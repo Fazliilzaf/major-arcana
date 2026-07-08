@@ -4,16 +4,19 @@
  * Brevlåde-väljare för CCO Konversationer (admin#cco).
  *
  * DESIGN FÖRST: renderar UI:t (väljare + status + folder-scope + läsfönster) i
- * befintlig layout/palett. Datakontraktet ("resten") kopplas på senare — modulen
- * läser GET /api/v1/cco/runtime/mailboxes när den finns och visar annars en ren
- * väntar-på-data-status. Sticky val i localStorage. Driver INTE inkorgs-hämtningen
- * ännu; dispatchar bara 'cco:mailbox-selection-change' så datalagret kan lyssna.
+ * befintlig layout/palett. Speglar lane-row/inbox-tab: neutralt mörk text, accent
+ * (rosa) bara på kryssruta + räls/avatar — aldrig rosa-tvättad text/bakgrund.
+ *
+ * Hopfällbara sektioner (sticky). Auto-sync (ingen manuell knapp) — läser
+ * spegeln på schema. Datakontraktet ("resten") kopplas på senare; modulen läser
+ * GET /api/v1/cco/runtime/mailboxes när den finns, annars "väntar på data".
  *
  * Ändrar ingen live-send. Ingen ny färg — allt via befintliga CCO-tokens.
  */
 
 (function () {
   const LS_KEY = 'cco_mailbox_valjare_v1';
+  const REFRESH_MS = 120000; // auto-läs spegeln var 2:a minut (ingen live-fetch per öppning)
   // id → { label, sub, rail }. Rälsfärger ur befintlig CCO-palett (inga nya färger).
   const MAILBOXES = [
     { id: 'kons@hairtpclinic.com', label: 'Kons', sub: 'kons@hairtpclinic.com', rail: '#9c2c62' },
@@ -55,9 +58,10 @@
     },
   ];
   const DEFAULT_STATE = {
-    mailboxIds: MAILBOXES.map((m) => m.id), // allt på från start
+    mailboxIds: MAILBOXES.map((m) => m.id),
     folder: 'inbox',
     windowDays: 90,
+    collapsed: { mailboxes: false, scope: false },
   };
 
   function el(tag, attrs, children) {
@@ -82,17 +86,19 @@
     try {
       const raw = window.localStorage.getItem(LS_KEY);
       const s = raw ? JSON.parse(raw) : null;
-      if (!s) return { ...DEFAULT_STATE };
+      if (!s) return JSON.parse(JSON.stringify(DEFAULT_STATE));
       const validIds = new Set(MAILBOXES.map((m) => m.id));
+      const c = s.collapsed || {};
       return {
         mailboxIds: Array.isArray(s.mailboxIds)
           ? s.mailboxIds.filter((id) => validIds.has(id))
           : DEFAULT_STATE.mailboxIds.slice(),
         folder: ['inbox', 'sent', 'drafts'].includes(s.folder) ? s.folder : 'inbox',
         windowDays: [30, 90, 365].includes(s.windowDays) ? s.windowDays : 90,
+        collapsed: { mailboxes: c.mailboxes === true, scope: c.scope === true },
       };
     } catch (_e) {
-      return { ...DEFAULT_STATE };
+      return JSON.parse(JSON.stringify(DEFAULT_STATE));
     }
   }
   function saveState(s) {
@@ -117,45 +123,62 @@
 
   function injectStyle() {
     if (document.getElementById('ccoMbvStyle')) return;
+    // Speglar konversationer.html: lane-kicker, lane-row (neutral), inbox-tab.active.
     const css =
-      '.mbv{margin:0 0 14px}' +
-      '.mbv-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}' +
-      '.mbv-title{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--cco-text-tertiary,#6a717d)}' +
-      '.mbv-sync{font:inherit;font-size:10.5px;font-weight:700;color:var(--accent-studio,#bb4779);background:var(--cco-bg-surface,#fff);border:1px solid var(--line,#e7ded5);border-radius:999px;padding:3px 9px;cursor:pointer}' +
-      '.mbv-row{display:grid;grid-template-columns:3px 20px 1fr 16px;gap:8px;align-items:center;padding:7px 6px;border-radius:9px;cursor:pointer}' +
-      '.mbv-row:hover{background:var(--cco-bg-surface-sunken,#f5efe6)}' +
-      '.mbv-row.on{background:rgba(187,71,121,.06)}' +
+      '.mbv{margin:0 0 12px}' +
+      '.mbv-kicker{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;appearance:none;border:0;background:transparent;cursor:pointer;' +
+      'font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#84756b;padding:0 6px 8px;border-bottom:1px solid rgba(132,117,107,.18);margin-bottom:6px}' +
+      '.mbv-chev{font-size:8px;color:#84756b;transition:transform .15s ease}' +
+      '.mbv-kicker.col .mbv-chev{transform:rotate(-90deg)}' +
+      '.mbv-body[hidden]{display:none}' +
+      '.mbv-row{display:grid;grid-template-columns:3px 20px 1fr 16px;gap:8px;align-items:center;padding:7px 10px;border-radius:10px;cursor:pointer;transition:background .14s ease;margin-bottom:1px}' +
+      '.mbv-row:hover{background:rgba(255,255,255,.6)}' +
       '.mbv-rail{width:3px;height:26px;border-radius:3px;background:var(--r,#84756b)}' +
       '.mbv-av{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;background:var(--r,#84756b)}' +
-      '.mbv-name{font-size:12.5px;font-weight:700;color:var(--cco-text-primary,#2b251f);line-height:1.2}' +
-      '.mbv-row.on .mbv-name{color:var(--accent-studio,#bb4779)}' +
-      '.mbv-meta{font-size:10px;color:var(--cco-text-tertiary,#6a717d);margin-top:2px;font-variant-numeric:tabular-nums}' +
+      '.mbv-name{font-size:11.5px;font-weight:700;color:#6b6258;line-height:1.2;letter-spacing:-.01em}' +
+      '.mbv-row.on .mbv-name{color:#1d1e24;font-weight:800}' +
+      '.mbv-meta{font-size:10px;color:#84756b;margin-top:2px;font-variant-numeric:tabular-nums}' +
       '.mbv-meta .warnc{color:var(--cco-status-warning,#c8821e)}' +
       '.mbv-meta .errc{color:var(--cco-status-danger,#b94a4a);font-weight:700}' +
-      '.mbv-chk{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--line,#e7ded5);display:grid;place-items:center;color:#fff;font-size:10px;background:#fff}' +
-      '.mbv-row.on .mbv-chk{background:var(--accent-studio,#bb4779);border-color:var(--accent-studio,#bb4779)}' +
-      '.mbv-row.part .mbv-chk{background:var(--accent-studio,#bb4779);border-color:var(--accent-studio,#bb4779)}' +
-      '.mbv-all{background:var(--cco-bg-surface-sunken,#f5efe6)}' +
-      '.mbv-all .mbv-name{font-weight:800}' +
-      '.mbv-sep{height:1px;background:var(--line-2,#efe6dc);margin:6px 2px}' +
-      // Kontroller i inkorg-headern
-      '.mbv-ctl{margin:6px 0 12px}' +
-      '.mbv-ctl-lbl{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--cco-text-tertiary,#6a717d);margin:0 0 5px}' +
-      '.mbv-seg{display:inline-flex;background:var(--cco-bg-surface-sunken,#f5efe6);border:1px solid var(--line,#e7ded5);border-radius:9px;padding:3px;gap:2px}' +
-      '.mbv-seg button{font:inherit;font-size:11.5px;font-weight:700;border:0;background:transparent;cursor:pointer;color:var(--cco-text-secondary,#5d6470);padding:5px 11px;border-radius:6px}' +
-      '.mbv-seg button.on{background:var(--cco-bg-surface,#fff);color:var(--accent-studio,#bb4779);box-shadow:0 1px 3px rgba(56,40,28,.12)}' +
-      '.mbv-scope-row{display:flex;gap:16px;flex-wrap:wrap}';
+      '.mbv-chk{width:15px;height:15px;border-radius:5px;border:1.5px solid rgba(132,117,107,.35);display:grid;place-items:center;color:#fff;font-size:10px;background:rgba(255,255,255,.6)}' +
+      '.mbv-row.on .mbv-chk,.mbv-row.part .mbv-chk{background:var(--accent-studio,#bb4779);border-color:var(--accent-studio,#bb4779)}' +
+      '.mbv-sep{height:1px;background:rgba(132,117,107,.14);margin:6px 2px}' +
+      // Kontroller (inkorg-headern)
+      '.mbv-ctl-lbl{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#84756b;margin:0 0 6px}' +
+      '.mbv-seg{display:inline-flex;background:rgba(132,117,107,.1);border-radius:9px;padding:3px;gap:2px}' +
+      '.mbv-seg button{appearance:none;font:inherit;font-size:10.5px;font-weight:700;letter-spacing:.04em;border:0;background:transparent;cursor:pointer;color:var(--cco-text-secondary,#5d6470);padding:5px 12px;border-radius:8px;min-height:26px}' +
+      '.mbv-seg button.on{background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(244,238,232,.88));color:var(--cco-color-brand,#1d1e24);box-shadow:0 2px 6px rgba(56,40,28,.07),inset 0 1px 0 rgba(255,255,255,.92)}' +
+      '.mbv-scope{margin:6px 0 12px}' +
+      '.mbv-scope-body[hidden]{display:none}' +
+      '.mbv-scope-row{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px}';
     document.head.appendChild(el('style', { id: 'ccoMbvStyle' }, css));
   }
 
   function dispatchChange(state) {
     try {
       document.dispatchEvent(
-        new CustomEvent('cco:mailbox-selection-change', { detail: { ...state } })
+        new CustomEvent('cco:mailbox-selection-change', {
+          detail: JSON.parse(JSON.stringify(state)),
+        })
       );
     } catch (_e) {
       /* CustomEvent kan saknas i mycket gamla klienter — icke-kritiskt */
     }
+  }
+
+  // Hopfällbar sektion: klickbar kicker + chevron; hidden-attribut på body.
+  function collapsibleKicker(label, collapsed, onToggle) {
+    const chev = el('span', { class: 'mbv-chev' }, '▾');
+    const btn = el('button', { class: 'mbv-kicker' + (collapsed ? ' col' : ''), type: 'button' }, [
+      el('span', {}, label),
+      chev,
+    ]);
+    btn.addEventListener('click', () => {
+      const next = !btn.classList.contains('col');
+      btn.classList.toggle('col', next);
+      onToggle(next);
+    });
+    return btn;
   }
 
   function mount() {
@@ -165,20 +188,23 @@
     injectStyle();
 
     const state = loadState();
-    let statusById = {}; // fylls av datalagret senare
+    let statusById = {};
 
-    // ── Panel A: brevlåde-väljaren (överst i vänsterrälen) ──
+    // ── Panel A: brevlåde-väljaren (vänsterrälen, överst) ──
     const rowsWrap = el('div', {});
     const allRow = el('div', { class: 'mbv-row mbv-all', style: '--r:var(--rail-info,#84756b)' });
-    const panel = el('div', { class: 'mbv', id: 'ccoMbv' }, [
-      el('div', { class: 'mbv-head' }, [
-        el('span', { class: 'mbv-title' }, 'Brevlådor'),
-        el('button', { class: 'mbv-sync', type: 'button', onclick: () => syncNow() }, '↻ Synka nu'),
-      ]),
+    const body = el('div', { class: 'mbv-body' }, [
       allRow,
       el('div', { class: 'mbv-sep' }),
       rowsWrap,
     ]);
+    body.hidden = state.collapsed.mailboxes;
+    const kicker = collapsibleKicker('Brevlådor', state.collapsed.mailboxes, (col) => {
+      body.hidden = col;
+      state.collapsed.mailboxes = col;
+      saveState(state);
+    });
+    const panel = el('div', { class: 'mbv', id: 'ccoMbv' }, [kicker, body]);
 
     function isOn(id) {
       return state.mailboxIds.indexOf(id) >= 0;
@@ -195,15 +221,13 @@
       }
       const c = st.counts || {};
       const sync = relTime(st.lastSyncAt);
-      const parts = [
-        el(
-          'span',
-          {},
-          (c.inbox != null ? c.inbox : '–') + ' ink · ' + (c.sent != null ? c.sent : '–') + ' skick'
-        ),
-      ];
-      if (sync) parts.push(document.createTextNode(' · '), el('span', {}, 'synk ' + sync));
-      return el('span', {}, parts);
+      const txt =
+        (c.inbox != null ? c.inbox : '–') +
+        ' ink · ' +
+        (c.sent != null ? c.sent : '–') +
+        ' skick' +
+        (sync ? ' · synk ' + sync : '');
+      return el('span', {}, txt);
     }
 
     function renderRows() {
@@ -229,7 +253,6 @@
         );
         rowsWrap.appendChild(row);
       }
-      // "Alla"-raden speglar hel/delvis/av.
       const total = MAILBOXES.length;
       const sel = state.mailboxIds.length;
       allRow.className = 'mbv-row mbv-all' + (sel === total ? ' on' : sel > 0 ? ' part' : '');
@@ -267,7 +290,7 @@
 
     rail.insertBefore(panel, rail.firstChild);
 
-    // ── Panel B: folder-scope + läsfönster (inkorg-headern) ──
+    // ── Panel B: folder-scope + läsfönster (inkorg-headern), hopfällbar ──
     if (inbox && !document.getElementById('ccoMbvScope')) {
       const seg = (label, opts, current, onPick) => {
         const buttons = opts.map((o) =>
@@ -285,43 +308,52 @@
             o.label
           )
         );
-        return el('div', { class: 'mbv-ctl' }, [
+        return el('div', {}, [
           el('div', { class: 'mbv-ctl-lbl' }, label),
           el('div', { class: 'mbv-seg' }, buttons),
         ]);
       };
-      const scope = el('div', { id: 'ccoMbvScope', class: 'mbv-scope-row' }, [
-        seg(
-          'Mapp',
-          [
-            { value: 'inbox', label: 'Inkorg' },
-            { value: 'sent', label: 'Skickat' },
-            { value: 'drafts', label: 'Utkast' },
-          ],
-          () => state.folder,
-          (v) => {
-            state.folder = v;
-            commit();
-          }
-        ),
-        seg(
-          'Läsfönster',
-          [
-            { value: 30, label: '30 dgr' },
-            { value: 90, label: '90 dgr' },
-            { value: 365, label: '365 dgr' },
-          ],
-          () => state.windowDays,
-          (v) => {
-            state.windowDays = v;
-            commit();
-          }
-        ),
+      const scopeBody = el('div', { class: 'mbv-scope-body' }, [
+        el('div', { class: 'mbv-scope-row' }, [
+          seg(
+            'Mapp',
+            [
+              { value: 'inbox', label: 'Inkorg' },
+              { value: 'sent', label: 'Skickat' },
+              { value: 'drafts', label: 'Utkast' },
+            ],
+            () => state.folder,
+            (v) => {
+              state.folder = v;
+              commit();
+            }
+          ),
+          seg(
+            'Läsfönster',
+            [
+              { value: 30, label: '30 dgr' },
+              { value: 90, label: '90 dgr' },
+              { value: 365, label: '365 dgr' },
+            ],
+            () => state.windowDays,
+            (v) => {
+              state.windowDays = v;
+              commit();
+            }
+          ),
+        ]),
       ]);
-      const kicker = inbox.querySelector('.inbox-kicker');
+      scopeBody.hidden = state.collapsed.scope;
+      const scopeKicker = collapsibleKicker('Filter', state.collapsed.scope, (col) => {
+        scopeBody.hidden = col;
+        state.collapsed.scope = col;
+        saveState(state);
+      });
+      const scope = el('div', { id: 'ccoMbvScope', class: 'mbv-scope' }, [scopeKicker, scopeBody]);
+      const inboxKicker = inbox.querySelector('.inbox-kicker');
       const tabs = inbox.querySelector('.inbox-tabs');
       if (tabs) inbox.insertBefore(scope, tabs);
-      else if (kicker) kicker.after(scope);
+      else if (inboxKicker) inboxKicker.after(scope);
       else inbox.insertBefore(scope, inbox.firstChild);
     }
 
@@ -339,13 +371,16 @@
         /* datakontraktet ("resten") kommer senare — designen står ändå */
       }
     }
-    function syncNow() {
-      loadStatus();
-    }
 
     renderRows();
     loadStatus();
-    dispatchChange(state); // ge datalagret initialvalet
+    // Auto-sync: läs spegeln på schema. Ingen manuell knapp, ingen live-fetch per öppning.
+    try {
+      window.setInterval(loadStatus, REFRESH_MS);
+    } catch (_e) {
+      /* setInterval saknas aldrig i praktiken — defensivt */
+    }
+    dispatchChange(state);
   }
 
   if (document.readyState === 'loading') {

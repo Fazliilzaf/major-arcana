@@ -13,7 +13,7 @@ brevlåda, och styr folder-scope och läsfönster — allt i CCO:s **befintliga*
 - **Ingen omdesign.** Återanvänd befintlig layout, klasser och tokens i
   `public/konversationer.html`. Inga nya färger införs.
 - **Lokal Mac Mail-modell.** Vyn läser den lokala speglingen. Räknare/trådar hämtas
-  **inte** live per öppning — schemalagd sync + manuell "↻ Synka nu" uppdaterar spegeln.
+  **inte** live per öppning — schemalagd (auto) sync uppdaterar spegeln — ingen manuell knapp.
 - **Ingen live-send ändras.** Väljaren styr bara vad som läses/visas. Utskickskedjan
   och grindarna (`CCO_SEND_LIVE`, `CCO_COMPOSE_SEND_LIVE`, m.fl.) är orörda.
 - **Nytt mail** använder redan Svarstudions accent `--accent-studio: #bb4779`
@@ -58,7 +58,7 @@ hex är redan definierade i samma fils tab-färgspalett (inga nya färger).
 - **Val är sticky per operatör** — valda brevlådor, folder-scope och läsfönster sparas
   och gäller nästa gång vyn öppnas.
 - **Fel blockerar inte** — en brevlåda med sync-fel visas rött (`#b94a4a`), men övriga
-  läses ändå in; "Synka nu" försöker igen.
+  läses ändå in; auto-syncen försöker igen.
 - **Status i klartext** — "Synkad X sedan"; äldre än ett tröskelvärde tonas i warning
   (`#c8821e`).
 - Väljaren driver den befintliga inkorgs-/worklist-hämtningen (`mailboxIds`-parametern
@@ -86,5 +86,78 @@ Vy-nivå:
 | `window`      | enum `30 \| 90 \| 365`                  | Läsfönster i dagar            |
 | `selection`   | `{ mailboxIds:[], folder, windowDays }` | Sparat operatörs-val (sticky) |
 
-"Synka nu" bör ha en egen åtgärd (t.ex. `POST …/mailboxes/sync`) som triggar en
-spegel-uppdatering utan att bli live-fetch per öppning.
+Auto-sync: UI:t läser spegeln på schema (var ~2:a min) + en schemalagd backend-
+spegel-uppdatering. Ingen manuell knapp, ingen live-fetch per öppning. En valfri
+`POST …/mailboxes/sync` kan trigga en spegel-uppdatering vid behov.
+
+## Koppling till inkorgs-hämtningen (följd-PR)
+
+Väljaren dispatchar redan `cco:mailbox-selection-change` (`{ mailboxIds, folder,
+windowDays }`) och sparar valet i `localStorage['cco_mailbox_valjare_v1']`. Idag
+driver den **inte** inkorgen — det kopplas i en liten följd-PR när endpointen finns.
+
+Inkorgs-hämtningen i `public/konversationer.html` ser i dag ut så här:
+
+```js
+// rad ~2851–2855 — konstant URL byggd EN gång vid load, bara mailboxIds + limit
+const LIVE_MAILBOX_IDS = ['kons@hairtpclinic.com'];
+const LIVE_WORKLIST_URL =
+  '/api/v1/cco/runtime/worklist/consumer?mailboxIds=' +
+  encodeURIComponent(LIVE_MAILBOX_IDS.join(',')) + '&limit=50';
+
+// rad ~4348 — loadLiveInbox() fetch:ar konstanten
+const response = await fetch(LIVE_WORKLIST_URL, { … });
+```
+
+Tre hook-punkter:
+
+**① Gör URL:en dynamisk** (ersätt `const LIVE_WORKLIST_URL`, ~rad 2852):
+
+```js
+function currentMailboxSelection() {
+  try {
+    return JSON.parse(localStorage.getItem('cco_mailbox_valjare_v1')) || {};
+  } catch {
+    return {};
+  }
+}
+function buildWorklistUrl() {
+  const s = currentMailboxSelection();
+  const ids =
+    s.mailboxIds && s.mailboxIds.length ? s.mailboxIds : LIVE_MAILBOX_IDS;
+  const p = new URLSearchParams({
+    mailboxIds: ids.join(','),
+    folder: s.folder || 'inbox', // NY param
+    days: String(s.windowDays || 90), // NY param
+    limit: '50',
+  });
+  return '/api/v1/cco/runtime/worklist/consumer?' + p.toString();
+}
+```
+
+**② Använd den i fetchen** (~rad 4348): `fetch(buildWorklistUrl(), …)` i stället för
+konstanten.
+
+**③ Ladda om inkorgen vid val-ändring** (nära `loadLiveInbox`-definitionen, ~rad 4340):
+
+```js
+document.addEventListener('cco:mailbox-selection-change', () =>
+  loadLiveInbox()
+);
+```
+
+`LIVE_MAILBOX_IDS` behålls som fallback (refereras på ~8 ställen för avatar/mailbox-
+etikett — rörs inte).
+
+### Nya query-params på worklist-endpointen (Codex)
+
+`GET /api/v1/cco/runtime/worklist/consumer` tar i dag bara `mailboxIds` + `limit`.
+Kopplingen kräver två till:
+
+| Param        | Värden                    | Idag   |
+| ------------ | ------------------------- | ------ |
+| `mailboxIds` | komma-lista               | finns  |
+| `folder`     | `inbox \| sent \| drafts` | **ny** |
+| `days`       | `30 \| 90 \| 365`         | **ny** |
+
+Lokal Mac Mail-modell bevaras: hämtningen sker vid val-ändring / auto-sync, inte per trådöppning. Ingen live-send påverkas.
