@@ -198,10 +198,8 @@
   font-size: 14px;
   line-height: 1.45;
   color: var(--ink);
-  background:
-    radial-gradient(ellipse at 12% 0%, var(--bg-warm-a), transparent 38%),
-    radial-gradient(ellipse at 88% 4%, var(--bg-warm-b), transparent 42%), var(--bg-page);
-  min-height: 100vh;
+  background: transparent;
+  min-height: 0;
   -webkit-font-smoothing: antialiased;
 }
 .tnum {
@@ -218,9 +216,12 @@ button {
 }
 
 .wrap {
-  max-width: 1220px;
-  margin: 0 auto;
-  padding: clamp(1rem, 3vw, 2.4rem) clamp(0.9rem, 3vw, 2rem) 4rem;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  min-height: 0;
 }
 
 /* ── page head ── */
@@ -277,28 +278,102 @@ h1 {
 
 /* ── studio shell ── */
 .studio {
-  border-radius: var(--r-xl);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
   background: var(--shell-grad);
-  border: 1px solid var(--line);
-  box-shadow: var(--sh-lg);
+  border: 0;
+  box-shadow: none;
   overflow: hidden;
 }
 .ov-bar {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
-  padding: 0.8rem 1.05rem;
+  flex-wrap: nowrap;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--line-soft);
   background: var(--shell-grad);
 }
 .ov-title {
+  flex: 0 0 auto;
   font-weight: 800;
   font-size: 0.95rem;
   letter-spacing: -0.01em;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+}
+.v2-panel-tabs {
+  display: flex;
+  gap: 14px;
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 8px;
+}
+.v2-panel-tabs::-webkit-scrollbar {
+  display: none;
+}
+.v2-panel-tab {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 1px;
+  border-radius: 0;
+  white-space: nowrap;
+  color: var(--tab-color, #6b5d50);
+  opacity: 1;
+  border-bottom: 2px solid transparent;
+  transition:
+    opacity 0.14s ease,
+    border-color 0.14s ease;
+}
+.v2-panel-tab.is-active {
+  font-weight: 800;
+  border-bottom-color: currentColor;
+}
+.v2-panel-tab:nth-child(1) {
+  --tab-color: #b0356e;
+}
+.v2-panel-tab:nth-child(2) {
+  --tab-color: #6b31c9;
+}
+.v2-panel-tab:nth-child(3) {
+  --tab-color: #2f6595;
+}
+.v2-panel-tab:nth-child(4) {
+  --tab-color: #bb4779;
+}
+.v2-panel-tab:nth-child(5) {
+  --tab-color: #9c6210;
+}
+.v2-panel-tab:nth-child(6) {
+  --tab-color: #3d6e58;
+}
+.v2-panel-tab:nth-child(7) {
+  --tab-color: #b94a4a;
+}
+.v2-panel-tab:nth-child(8) {
+  --tab-color: #556074;
+}
+.v2-panel-tab:nth-child(9) {
+  --tab-color: #286b6b;
+}
+.v2-panel-tab:nth-child(10) {
+  --tab-color: #9c2c62;
+}
+.ov-bar > .spill,
+.ov-bar > .grow {
+  display: none;
 }
 .spill {
   flex-shrink: 0;
@@ -350,10 +425,18 @@ h1 {
   width: 1.05rem;
   height: 1.05rem;
 }
+.ibtn-close {
+  font-size: 1.35rem;
+  line-height: 1;
+  color: var(--ink-3);
+}
 
 .grid {
   display: grid;
   grid-template-columns: 1fr;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 @media (min-width: 1000px) {
   .grid {

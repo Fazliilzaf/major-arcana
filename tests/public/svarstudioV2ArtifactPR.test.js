@@ -40,6 +40,25 @@ test('v2 monteras i isolerad shadow-DOM och laddar assets', () => {
   assert.match(source, /const mounted = await mountSvarstudioV2\(/);
 });
 
+test('v2 använder samma breda CCO-popup-ram som övriga paneler', () => {
+  assert.match(source, /width:98vw;height:96vh;max-width:none/);
+  assert.doesNotMatch(source, /max-width:1320px/);
+  assert.match(cssAsset, /\.wrap\s*\{[\s\S]*width:\s*100%[\s\S]*height:\s*100%/);
+  assert.match(cssAsset, /\.studio\s*\{[\s\S]*border-radius:\s*0[\s\S]*box-shadow:\s*none/);
+});
+
+test('v2 visar CCO-panelernas flikrad och inte demo-hero', () => {
+  assert.match(htmlAsset, /id="v2PanelTabs"/);
+  assert.match(source, /panelTabs\('svarstudio'\)\.forEach/);
+  assert.match(source, /button\.textContent = tab\.label/);
+  assert.match(source, /close\(\);\s*tab\.open\(\);/);
+  assert.match(cssAsset, /\.v2-panel-tabs\s*\{/);
+  assert.match(cssAsset, /\.v2-panel-tab\.is-active\s*\{/);
+  assert.doesNotMatch(htmlAsset, /Ett svar, med hela kunden i rummet/);
+  assert.doesNotMatch(htmlAsset, /Alla kanaler för en kund samlas i en tråd/);
+  assert.doesNotMatch(htmlAsset, /id="themeBtn"/);
+});
+
 test('v2 återanvänder EXAKT sändkedjans endpoints (ingen ny sändväg)', () => {
   assert.match(source, /POST[\s\S]{0,40}|method: 'POST'/);
   assert.match(source, /'\/api\/v1\/cco-comm\/drafts'/);

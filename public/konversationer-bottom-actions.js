@@ -636,11 +636,14 @@
       role: 'dialog',
       'aria-modal': 'true',
       style:
-        'position:fixed;inset:0;z-index:1000;overflow:auto;padding:22px;' +
-        'background:rgba(28,22,18,.52);backdrop-filter:blur(3px)',
+        'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;' +
+        'justify-content:center;overflow:hidden;padding:24px;' +
+        'background:rgba(56,40,28,.32);backdrop-filter:blur(4px)',
     });
     const host = el('div', {
-      style: 'display:block;max-width:1320px;margin:0 auto;border-radius:18px;overflow:hidden',
+      style:
+        'display:block;width:98vw;height:96vh;max-width:none;margin:0;' +
+        'border-radius:22px;overflow:hidden',
     });
     const root = host.attachShadow({ mode: 'open' });
     root.innerHTML = '<style>' + css + '</style>' + html;
@@ -658,6 +661,25 @@
     const $ = (sel) => root.querySelector(sel);
     const $$ = (sel) => Array.from(root.querySelectorAll(sel));
 
+    const tabsWrap = $('#v2PanelTabs');
+    if (tabsWrap) {
+      tabsWrap.textContent = '';
+      panelTabs('svarstudio').forEach((tab) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'v2-panel-tab' + (tab.active ? ' is-active' : '');
+        button.textContent = tab.label;
+        button.setAttribute('role', 'tab');
+        button.setAttribute('aria-selected', tab.active ? 'true' : 'false');
+        button.addEventListener('click', () => {
+          if (tab.active || typeof tab.open !== 'function') return;
+          close();
+          tab.open();
+        });
+        tabsWrap.appendChild(button);
+      });
+    }
+
     // theme-toggle → sätt data-theme på host (:host([data-theme]) i CSS:en)
     const themeBtn = $('#themeBtn');
     if (themeBtn) {
@@ -671,12 +693,16 @@
         if (lbl) lbl.textContent = next === 'dark' ? 'Ljust' : 'Mörkt';
       });
     }
-    // ov-bar: första ibtn stänger arbetsytan
-    const ibtn = $('.ov-bar .ibtn');
+    // ov-bar: håll samma enkla stängknapp som övriga CCO-popups.
+    const headerButtons = $$('.ov-bar .ibtn');
+    const ibtn = headerButtons[0];
     if (ibtn) {
       ibtn.setAttribute('aria-label', 'Stäng');
+      ibtn.classList.add('ibtn-close');
+      ibtn.textContent = '×';
       ibtn.addEventListener('click', close);
     }
+    headerButtons.slice(1).forEach((button) => button.remove());
 
     // ── Bind trådens riktiga data ─────────────────────────────────────
     const setText = (sel, val) => {
