@@ -1320,6 +1320,15 @@ h1 {
   gap: 0.55rem;
   padding: 0.7rem 0.8rem;
 }
+/* Bred yta: meddelandena paras två-i-bredd (även det senaste — långa mail får
+   plats i sin kolumn, de blir bara högre). Under 640px staplas allt som förut. */
+@media (min-width: 640px) {
+  .msgs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
 .rollup.collapsed .msgs .msg:not(:last-child) {
   display: none;
 }

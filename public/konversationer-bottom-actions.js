@@ -605,12 +605,14 @@
   // Laddar svarstudio-v2.css/.html, binder trådens riktiga data och kopplar
   // kontrollerna till EXAKT samma sänd-endpoints som klassiska modalen (upp
   // till needs_approval). Live-send förblir serverspärrat.
+  const SVARSTUDIO_V2_ASSET_VERSION = '20260708a-svarstudio-cache';
   let _svarstudioV2Assets = null;
   async function loadSvarstudioV2Assets() {
     if (_svarstudioV2Assets) return _svarstudioV2Assets;
+    const cacheBust = '?v=' + SVARSTUDIO_V2_ASSET_VERSION;
     const [cssRes, htmlRes] = await Promise.all([
-      fetch('/svarstudio-v2.css'),
-      fetch('/svarstudio-v2.html'),
+      fetch('/svarstudio-v2.css' + cacheBust, { cache: 'no-store' }),
+      fetch('/svarstudio-v2.html' + cacheBust, { cache: 'no-store' }),
     ]);
     if (!cssRes.ok || !htmlRes.ok) throw new Error('svarstudio-v2 assets saknas');
     _svarstudioV2Assets = { css: await cssRes.text(), html: await htmlRes.text() };
@@ -627,82 +629,31 @@
   async function mountSvarstudioV2({ ctx, state, mailboxes, recipientEmail, customerId }) {
     const { css, html } = await loadSvarstudioV2Assets();
 
-    // Overlay + isolerad shadow-host (artifactens CSS kan inte läcka till sidan).
-    document
-      .querySelectorAll('.action-modal-backdrop, .svarstudio-v2-backdrop')
-      .forEach((n) => n.remove());
-    const backdrop = el('div', {
-      class: 'svarstudio-v2-backdrop',
-      role: 'dialog',
-      'aria-modal': 'true',
-      style:
-        'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;' +
-        'justify-content:center;overflow:hidden;padding:24px;' +
-        'background:rgba(56,40,28,.32);backdrop-filter:blur(4px)',
-    });
+    // Montera artifacten i STANDARD-panelmodalen — samma ram, flikrad och
+    // storlek (wide) som övriga CCO-paneler, så Svarstudio blir enhetlig. Shadow-
+    // host isolerar fortfarande artifactens 141 egna klasser från sidan.
     const host = el('div', {
-      style:
-        'display:block;width:98vw;height:96vh;max-width:none;margin:0;' +
-        'border-radius:22px;overflow:hidden',
+      style: 'display:block;width:100%;height:100%;overflow:hidden',
     });
     const root = host.attachShadow({ mode: 'open' });
     root.innerHTML = '<style>' + css + '</style>' + html;
-    backdrop.appendChild(host);
-    const close = () => backdrop.remove();
-    backdrop.addEventListener('click', (e) => {
-      if (e.target === backdrop) close();
-    });
-    document.addEventListener('keydown', function esc(e) {
-      if (e.key === 'Escape') {
-        close();
-        document.removeEventListener('keydown', esc);
-      }
-    });
     const $ = (sel) => root.querySelector(sel);
     const $$ = (sel) => Array.from(root.querySelectorAll(sel));
 
-    const tabsWrap = $('#v2PanelTabs');
-    if (tabsWrap) {
-      tabsWrap.textContent = '';
-      panelTabs('svarstudio').forEach((tab) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'v2-panel-tab' + (tab.active ? ' is-active' : '');
-        button.textContent = tab.label;
-        button.setAttribute('role', 'tab');
-        button.setAttribute('aria-selected', tab.active ? 'true' : 'false');
-        button.addEventListener('click', () => {
-          if (tab.active || typeof tab.open !== 'function') return;
-          close();
-          tab.open();
-        });
-        tabsWrap.appendChild(button);
-      });
-    }
+    // Artifactens egen rubrik/verktygsrad (hjälte + ov-bar med tabbar/pillar)
+    // ersätts av panelmodalens huvud: titel + standard-flikrad + stäng. Det tar
+    // bort den extra vita ramen och ger identisk flikrad som övriga paneler.
+    ['.ov-bar', '.phead', '.foot'].forEach((sel) => {
+      const n = $(sel);
+      if (n) n.style.display = 'none';
+    });
 
-    // theme-toggle → sätt data-theme på host (:host([data-theme]) i CSS:en)
-    const themeBtn = $('#themeBtn');
-    if (themeBtn) {
-      themeBtn.addEventListener('click', () => {
-        const cur =
-          host.getAttribute('data-theme') ||
-          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        const next = cur === 'dark' ? 'light' : 'dark';
-        host.setAttribute('data-theme', next);
-        const lbl = $('#themeLbl');
-        if (lbl) lbl.textContent = next === 'dark' ? 'Ljust' : 'Mörkt';
-      });
-    }
-    // ov-bar: håll samma enkla stängknapp som övriga CCO-popups.
-    const headerButtons = $$('.ov-bar .ibtn');
-    const ibtn = headerButtons[0];
-    if (ibtn) {
-      ibtn.setAttribute('aria-label', 'Stäng');
-      ibtn.classList.add('ibtn-close');
-      ibtn.textContent = '×';
-      ibtn.addEventListener('click', close);
-    }
-    headerButtons.slice(1).forEach((button) => button.remove());
+    openModal({
+      title: '★ Svarstudio',
+      wide: true,
+      tabs: panelTabs('svarstudio'),
+      body: host,
+    });
 
     // ── Bind trådens riktiga data ─────────────────────────────────────
     const setText = (sel, val) => {
@@ -1142,8 +1093,7 @@
       if (panel) panel.innerHTML = '<b>★ AI-sammanfattning.</b> ' + cleanText(ctx.aiSummary);
     }
 
-    // Initial render
-    document.body.appendChild(backdrop);
+    // Initial render (modalen är redan monterad av openModal ovan)
     pressSig('Fazli Krasniqi');
     const pressedMbx =
       $$('#mailboxPicker .mailbox-opt').find((o) => o.getAttribute('aria-pressed') === 'true') ||
