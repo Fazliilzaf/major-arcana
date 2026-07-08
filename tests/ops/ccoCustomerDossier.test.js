@@ -42,6 +42,13 @@ const stores = {
       { createdAt: '2026-05-10', note: 'ÄNNU MER KÄNSLIGT' },
     ],
   },
+  portalMessageStore: {
+    listMessagesForCustomer: () => [
+      { direction: 'inbound', createdAt: '2026-06-01', readAt: null },
+      { direction: 'outbound', createdAt: '2026-06-02', readAt: null },
+    ],
+    countUnreadInbound: () => 1,
+  },
 };
 
 test('dossier samlar identitet, kontakt, journey, bokningar, ärenden, trådar', async () => {
@@ -61,6 +68,9 @@ test('dossier samlar identitet, kontakt, journey, bokningar, ärenden, trådar',
   assert.equal(d.cases[0].title, 'DHI-plan');
   assert.equal(d.threads.count, 2);
   assert.equal(d.threads.needsReply, 1);
+  assert.equal(d.portal.count, 2);
+  assert.equal(d.portal.unread, 1);
+  assert.equal(d.portal.latestAt, '2026-06-02');
 });
 
 test('RÅ JOURNALTEXT läcker ALDRIG — bara antal + senaste datum', async () => {

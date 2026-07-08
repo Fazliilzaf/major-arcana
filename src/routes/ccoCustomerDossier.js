@@ -206,6 +206,7 @@ function createCcoCustomerDossierRouter({
           caseStore: createCaseStoreAdapter(locals.ccoBookingCaseStore || null, locals.ccoBookingStore || null),
           threadStore: await getThreadStore(locals),
           journalStore: locals.ccoJournalStore || null,
+          portalMessageStore: locals.ccoPortalMessageStore || null,
         };
         const dossier = await buildCustomerDossier(
           {

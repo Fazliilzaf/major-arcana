@@ -13400,6 +13400,11 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // Staff-sidan av portal-kanalen: läs patientens portal-meddelanden + skicka
+  // klinik-svar (outbound). Storen ligger på app.locals (wire:ad ovan).
+  const { createCcoPortalMessagesRouter } = require('./src/routes/ccoPortalMessages');
+  app.use('/api/v1', createCcoPortalMessagesRouter({ requireAuth: auth.requireAuth }));
+
   app.use(
     '/api/v1',
     createCcoPatientMasterRouter({

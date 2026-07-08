@@ -1124,9 +1124,13 @@
       if (emails[0] && kkLines[0]) kkLines[0].lastChild.textContent = ' ' + emails[0];
       if (phones[0] && kkLines[1]) kkLines[1].lastChild.textContent = ' ' + phones[0];
 
+      const portalCount = dossier.portal?.count || 0;
+      const portalUnread = dossier.portal?.unread || 0;
       const metrics = [
         dossierCountLabel(dossier.bookings?.count, 'bokning', 'bokningar'),
         dossierCountLabel((dossier.cases || []).length, 'ärende', 'ärenden'),
+        dossierCountLabel(portalCount, 'portalmeddelande', 'portalmeddelanden') +
+          (portalUnread ? ' · ' + portalUnread + ' olästa' : ''),
         dossierCountLabel(dossier.threads?.count, 'tråd', 'trådar'),
         dossierCountLabel(dossier.journal?.count, 'journalpost', 'journalposter'),
       ];

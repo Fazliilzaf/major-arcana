@@ -73,6 +73,8 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
       latestAt: null,
       note: 'Journalinnehåll visas inte här (kräver separat behörighet).',
     },
+    // Portal-meddelanden (fri patient↔klinik-kanal) — sammanfattning för kortet.
+    portal: { count: 0, unread: 0, latestAt: null },
     photos: { count: 0 },
     warnings,
   };
@@ -220,6 +222,28 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
         .filter(Boolean)
         .sort()
         .pop() || null;
+  }
+
+  // ── Portal-meddelanden (antal + olästa + senaste) ─────────────────────
+  if (stores.portalMessageStore?.listMessagesForCustomer && customerId) {
+    const msgs = await safe(
+      'portal',
+      warnings,
+      () => stores.portalMessageStore.listMessagesForCustomer({ tenantId, customerId }),
+      []
+    );
+    const list = Array.isArray(msgs) ? msgs : [];
+    dossier.portal.count = list.length;
+    dossier.portal.latestAt =
+      list
+        .map((m) => text(m.createdAt))
+        .filter(Boolean)
+        .sort()
+        .pop() || null;
+    dossier.portal.unread =
+      typeof stores.portalMessageStore.countUnreadInbound === 'function'
+        ? stores.portalMessageStore.countUnreadInbound({ tenantId, customerId })
+        : list.filter((m) => m.direction === 'inbound' && !m.readAt).length;
   }
 
   return dossier;
