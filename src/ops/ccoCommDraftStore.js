@@ -92,6 +92,7 @@ function normalizeDraft(input = {}, existing = {}) {
     templateId: normalizeText(safe.templateId || ex.templateId) || null,
     templateVersion: normalizeText(safe.templateVersion || ex.templateVersion) || null,
     journeyStep: normalizeText(safe.journeyStep || ex.journeyStep) || null,
+    signatureId: normalizeText(safe.signatureId || ex.signatureId) || null,
     channel,
     subject: normalizeText(safe.subject ?? ex.subject) || '',
     body: typeof safe.body === 'string' ? safe.body : typeof ex.body === 'string' ? ex.body : '',
@@ -247,7 +248,7 @@ async function createCcoCommDraftStore({ filePath, auditLog = null } = {}) {
         e.statusCode = 409;
         throw e;
       }
-      // Tillåt patch av subject/body/mergeFields/channel/templateId
+      // Tillåt patch av subject/body/mergeFields/channel/templateId/signatureId
       const next = normalizeDraft(
         {
           ...ex,
@@ -257,6 +258,7 @@ async function createCcoCommDraftStore({ filePath, auditLog = null } = {}) {
           channel: patch.channel ?? ex.channel,
           templateId: patch.templateId ?? ex.templateId,
           templateVersion: patch.templateVersion ?? ex.templateVersion,
+          signatureId: patch.signatureId ?? ex.signatureId,
           recipientMasked: patch.recipientMasked ?? ex.recipientMasked,
           recipientHash: patch.recipientHash ?? ex.recipientHash,
         },

@@ -8,6 +8,14 @@
   const ROLE = 'owner';
   const TENANT = 'hair_tp';
 
+  // Svarstudio v2 — porten av design-artifacten "precis som den är". Renderas i
+  // en isolerad shadow-DOM-host (svarstudio-v2.css/.html) så artifactens 141
+  // egna klasser aldrig krockar med sidan. Sändkedjan är oförändrad: v2 postar
+  // exakt samma draft-/transition-endpoints (upp till needs_approval), live-send
+  // förblir serverspärrat. Faller tillbaka på den klassiska modalen om assets
+  // saknas.
+  const USE_SVARSTUDIO_V2 = true;
+
   function adminAuthHeaders(headers = {}) {
     if (window.CCOConversationAuth?.headers) {
       return window.CCOConversationAuth.headers(headers);
@@ -580,6 +588,534 @@
     return btn;
   }
 
+  // ─── SVARSTUDIO v2 — design-artifacten 1:1 i isolerad shadow-DOM ─────
+  // Laddar svarstudio-v2.css/.html, binder trådens riktiga data och kopplar
+  // kontrollerna till EXAKT samma sänd-endpoints som klassiska modalen (upp
+  // till needs_approval). Live-send förblir serverspärrat.
+  let _svarstudioV2Assets = null;
+  async function loadSvarstudioV2Assets() {
+    if (_svarstudioV2Assets) return _svarstudioV2Assets;
+    const [cssRes, htmlRes] = await Promise.all([
+      fetch('/svarstudio-v2.css'),
+      fetch('/svarstudio-v2.html'),
+    ]);
+    if (!cssRes.ok || !htmlRes.ok) throw new Error('svarstudio-v2 assets saknas');
+    _svarstudioV2Assets = { css: await cssRes.text(), html: await htmlRes.text() };
+    return _svarstudioV2Assets;
+  }
+
+  function railToneFor(name, email) {
+    const s = (name + ' ' + email).toLowerCase();
+    if (s.includes('fazli')) return 'fazli';
+    if (s.includes('egzona')) return 'egzona';
+    return 'contact';
+  }
+
+  async function mountSvarstudioV2({ ctx, state, mailboxes, recipientEmail, customerId }) {
+    const { css, html } = await loadSvarstudioV2Assets();
+
+    // Overlay + isolerad shadow-host (artifactens CSS kan inte läcka till sidan).
+    document
+      .querySelectorAll('.action-modal-backdrop, .svarstudio-v2-backdrop')
+      .forEach((n) => n.remove());
+    const backdrop = el('div', {
+      class: 'svarstudio-v2-backdrop',
+      role: 'dialog',
+      'aria-modal': 'true',
+      style:
+        'position:fixed;inset:0;z-index:1000;overflow:auto;padding:22px;' +
+        'background:rgba(28,22,18,.52);backdrop-filter:blur(3px)',
+    });
+    const host = el('div', {
+      style: 'display:block;max-width:1320px;margin:0 auto;border-radius:18px;overflow:hidden',
+    });
+    const root = host.attachShadow({ mode: 'open' });
+    root.innerHTML = '<style>' + css + '</style>' + html;
+    backdrop.appendChild(host);
+    const close = () => backdrop.remove();
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) close();
+    });
+    document.addEventListener('keydown', function esc(e) {
+      if (e.key === 'Escape') {
+        close();
+        document.removeEventListener('keydown', esc);
+      }
+    });
+    const $ = (sel) => root.querySelector(sel);
+    const $$ = (sel) => Array.from(root.querySelectorAll(sel));
+
+    // theme-toggle → sätt data-theme på host (:host([data-theme]) i CSS:en)
+    const themeBtn = $('#themeBtn');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+        const cur =
+          host.getAttribute('data-theme') ||
+          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        host.setAttribute('data-theme', next);
+        const lbl = $('#themeLbl');
+        if (lbl) lbl.textContent = next === 'dark' ? 'Ljust' : 'Mörkt';
+      });
+    }
+    // ov-bar: första ibtn stänger arbetsytan
+    const ibtn = $('.ov-bar .ibtn');
+    if (ibtn) {
+      ibtn.setAttribute('aria-label', 'Stäng');
+      ibtn.addEventListener('click', close);
+    }
+
+    // ── Bind trådens riktiga data ─────────────────────────────────────
+    const setText = (sel, val) => {
+      const n = $(sel);
+      if (n && val != null && val !== '') n.textContent = val;
+    };
+    setText('.kk-name', ctx.customerName || 'Vald konversation');
+    const avatarNode = $('.kk-av');
+    if (avatarNode) {
+      avatarNode.textContent = (ctx.avatar || (ctx.customerName || 'K').slice(0, 2)).toUpperCase();
+    }
+    const kkLines = $$('.kk-line');
+    if (kkLines[0]) kkLines[0].lastChild.textContent = ' ' + (recipientEmail || ctx.email || '—');
+    if (kkLines[1] && ctx.phone) kkLines[1].lastChild.textContent = ' ' + ctx.phone;
+
+    // Kontext-sidebar: bind trådens riktiga värden (annars visas artifactens
+    // exempeltext, t.ex. "Egzona K." / "Bekräfta fredag 09:00").
+    setText('.do-v', ctx.doNow);
+    setText('.block .val.soft', ctx.whyFocusSub || ctx.whyFocus);
+    setText('.wb-section .wb-title', ctx.nextStep);
+    setText('.wb-section .wb-sub', ctx.nextStepSub);
+    const cellMap = {
+      agent: ctx.agent,
+      status: ctx.status,
+      sla: ctx.sla,
+      prioritet: ctx.priority,
+      churn: ctx.churnRisk,
+    };
+    $$('.cell').forEach((cell) => {
+      const key = (cell.querySelector('.k')?.textContent || '').trim().toLowerCase();
+      const v = cellMap[key];
+      const vEl = cell.querySelector('.v');
+      if (vEl && v != null && v !== '' && v !== '—') vEl.textContent = v;
+    });
+
+    // meddelanden i tråden (om live-context har dem, annars artifactens exempel)
+    const msgsWrap = $('.msgs');
+    const liveMsgs = Array.isArray(ctx.latestMessages) ? ctx.latestMessages : null;
+    if (msgsWrap && liveMsgs && liveMsgs.length) {
+      msgsWrap.innerHTML = '';
+      liveMsgs.slice(-6).forEach((mssg) => {
+        const outgoing = mssg.dir === 'outgoing';
+        const row = el('div', { class: 'msg' + (outgoing ? ' is-outgoing' : ' is-incoming') });
+        const src = el('div', { class: 'msg-src' }, [
+          el('span', { class: 'msg-chan chan-mail' }, outgoing ? 'Klinik' : 'Mail'),
+          el('div', { class: 'msg-time' }, cleanText(mssg.time || '')),
+        ]);
+        const body = el('div', { class: 'msg-body' }, cleanText(mssg.body || ''));
+        row.appendChild(src);
+        row.appendChild(body);
+        msgsWrap.appendChild(row);
+      });
+    } else if (msgsWrap && ctx.threadSnippet) {
+      msgsWrap.innerHTML = '';
+      const row = el('div', { class: 'msg' }, [
+        el('div', { class: 'msg-src' }, [
+          el('span', { class: 'msg-chan chan-mail' }, cleanText(ctx.threadVia || 'Mail')),
+          el('div', { class: 'msg-time' }, cleanText(ctx.threadDate || '')),
+        ]),
+        el('div', { class: 'msg-body' }, cleanText(ctx.threadSnippet)),
+      ]);
+      msgsWrap.appendChild(row);
+    }
+
+    // Till-fält (redigerbart, förvalt kundens adress)
+    const toInput = $('.frow .field input');
+    if (toInput) {
+      toInput.removeAttribute('readonly');
+      toInput.value = recipientEmail || '';
+      if (!recipientEmail) toInput.placeholder = 'Mottagare saknas i vald tråd';
+    }
+
+    // Från (mailbox) — bygg om ur trådens tillåtna mailbox-spår (PR6-regeln),
+    // med artifactens rail-avatar-stil.
+    const picker = $('#mailboxPicker');
+    if (picker && mailboxes.length) {
+      picker.innerHTML = '';
+      mailboxes.forEach((mbx) => {
+        const tone = railToneFor(mbx.name, mbx.email);
+        const opt = el(
+          'button',
+          {
+            class: 'mailbox-opt',
+            type: 'button',
+            'aria-pressed': mbx.id === state.mailboxId ? 'true' : 'false',
+          },
+          [
+            el(
+              'span',
+              { class: 'rail-av rail-av--' + tone },
+              (mbx.name || mbx.email || '?').slice(0, 1).toUpperCase()
+            ),
+            el('span', { class: 'mo-meta' }, [
+              el('span', { class: 'mo-name' }, mbx.name || mbx.email),
+              el('span', { class: 'mo-mail' }, mbx.email),
+            ]),
+          ]
+        );
+        picker.appendChild(opt);
+      });
+    }
+
+    // ── Signatur (branded) ────────────────────────────────────────────
+    const sigTpl = $('#sigTpl');
+    const sigRender = $('#sigRender');
+    const sigCap = $('#sigCap');
+    const sigWho = $('#sigWho');
+    const sigRow = $('#sigRow');
+    const sigCtrlRow = $('#sigCtrlRow');
+    const sigHint = $('#sigHint');
+    const SIG_BY_FULLNAME = { 'Fazli Krasniqi': 'fazli', 'Egzona Krasniqi': 'egzona' };
+    function renderBrandedSig(fullName) {
+      if (!sigRender) return;
+      if (!fullName) {
+        sigRender.innerHTML = '';
+        if (sigCap) sigCap.style.display = 'none';
+        return;
+      }
+      if (sigTpl && sigTpl.firstElementChild) {
+        const node = sigTpl.firstElementChild.cloneNode(true);
+        const nm = node.querySelector('.sig-name');
+        if (nm) nm.textContent = fullName;
+        sigRender.innerHTML = '';
+        sigRender.appendChild(node);
+      }
+      if (sigCap) sigCap.style.display = 'flex';
+      if (sigWho) sigWho.textContent = fullName.split(' ')[0];
+    }
+
+    // ── Redigerare + state-koppling ───────────────────────────────────
+    const editor = $('#editor');
+    const wc = $('#wc');
+    const pvBody = $('#pvBody');
+    const pvFrom = $('#pvFrom');
+    const pvTo = $('.pv-to');
+    const pvHdr = $('.pv-hdr');
+    const SIG_DIVIDER = '\n\n— — — — —\n';
+    const messageOf = (b) => String(b || '').split(SIG_DIVIDER)[0];
+    function syncBodyFromEditor() {
+      const msg = editor ? editor.value : '';
+      state.body = state.signatureId
+        ? applySignatureToBody(msg, state.signatureId)
+        : messageOf(msg);
+      if (wc) {
+        const t = msg.trim();
+        wc.textContent = (t ? t.split(/\s+/).length : 0) + ' ord';
+      }
+      if (pvBody) pvBody.textContent = msg || 'Börja skriva, eller välj ett AI-förslag ovan…';
+    }
+    if (editor) {
+      editor.value = messageOf(state.body);
+      editor.addEventListener('input', syncBodyFromEditor);
+    }
+
+    // subjekt i preview
+    if (pvTo) pvTo.textContent = recipientEmail || '—';
+    if (pvHdr) {
+      const amneDiv = pvHdr.children[2];
+      if (amneDiv) amneDiv.innerHTML = '<b>Ämne</b> ' + (state.subject || '');
+    }
+
+    function pressMailbox(opt) {
+      $$('#mailboxPicker .mailbox-opt').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+      opt.setAttribute('aria-pressed', 'true');
+      const nm = opt.querySelector('.mo-name')?.textContent || '';
+      const ml = opt.querySelector('.mo-mail')?.textContent || '';
+      const match = mailboxes.find((m) => m.email === ml || m.name === nm);
+      if (match) state.mailboxId = match.id;
+      if (pvFrom) pvFrom.textContent = nm + ' · ' + ml;
+      // Signatur-läge: contact@ → fritt val; annars låst till avsändaren.
+      const tone = railToneFor(nm, ml);
+      if (tone === 'contact') {
+        if (sigCtrlRow) sigCtrlRow.classList.remove('is-locked');
+        if (sigHint) sigHint.textContent = 'Från contact@ — välj vem som signerar';
+      } else {
+        const full = tone === 'egzona' ? 'Egzona Krasniqi' : 'Fazli Krasniqi';
+        pressSig(full);
+        if (sigCtrlRow) sigCtrlRow.classList.add('is-locked');
+        if (sigHint) sigHint.textContent = 'Signatur låst till ' + nm;
+      }
+    }
+    function pressSig(fullName) {
+      let target = '';
+      $$('#sigRow .pill').forEach((b) => {
+        const full = b.getAttribute('data-sig');
+        const on = fullName ? full === fullName : full === '';
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.classList.toggle('is-active', on);
+        if (on) target = full;
+      });
+      state.signatureId = SIG_BY_FULLNAME[target] || (target ? 'fazli' : '');
+      renderBrandedSig(target);
+      syncBodyFromEditor();
+    }
+    if (picker) {
+      picker.addEventListener('click', (e) => {
+        const o = e.target.closest('.mailbox-opt');
+        if (o) pressMailbox(o);
+      });
+    }
+    if (sigRow) {
+      sigRow.addEventListener('click', (e) => {
+        const b = e.target.closest('.pill');
+        if (!b || (sigCtrlRow && sigCtrlRow.classList.contains('is-locked'))) return;
+        pressSig(b.getAttribute('data-sig'));
+      });
+    }
+
+    // TON/SPÅR-piller → state
+    $$('#toneRow .pill').forEach((p) =>
+      p.addEventListener('click', () => {
+        const was = p.getAttribute('aria-pressed') === 'true';
+        $$('#toneRow .pill').forEach((x) => {
+          x.setAttribute('aria-pressed', 'false');
+          x.classList.remove('is-active');
+        });
+        if (!was) {
+          p.setAttribute('aria-pressed', 'true');
+          p.classList.add('is-active');
+          state.tone = (p.textContent || '').trim().toLowerCase();
+        } else {
+          state.tone = null;
+        }
+      })
+    );
+    $$('#trackRow .pill').forEach((p) =>
+      p.addEventListener('click', () => {
+        $$('#trackRow .pill').forEach((x) => {
+          x.setAttribute('aria-pressed', 'false');
+          x.classList.remove('is-active');
+        });
+        p.setAttribute('aria-pressed', 'true');
+        p.classList.add('is-active');
+        state.track = (p.textContent || '').trim().toLowerCase();
+      })
+    );
+
+    // AI-förslagsvarianter → fyll editorn (trådanpassad text)
+    const firstName = (ctx.customerName || '').split(/\s+/)[0] || 'där';
+    const variantText = [
+      'Hej ' +
+        firstName +
+        '!\n\nVad roligt — jag bekräftar gärna nästa steg. Jag återkommer med en tydlig tid och det du behöver inför besöket.\n\nHör av dig om något behöver justeras!',
+      'Hej ' +
+        firstName +
+        '!\n\nTack för ditt meddelande — det ska bli ett nöje att hjälpa dig. Vi tar det i lugn takt och du får ställa alla frågor du vill.\n\nJag återkommer med en bekräftelse.',
+      'Hej ' +
+        firstName +
+        '!\n\nKlart — jag ordnar det. Jag återkommer strax med bekräftelse.\n\nVänligen',
+    ];
+    $$('.variant').forEach((b) => {
+      const idx = +b.getAttribute('data-v');
+      b.addEventListener('click', () => {
+        $$('.variant').forEach((x) => x.classList.remove('is-picked'));
+        b.classList.add('is-picked');
+        if (editor) {
+          editor.value = variantText[idx] || '';
+          syncBodyFromEditor();
+        }
+        markStep('draft');
+      });
+    });
+    const wbCta = $('#wbCta');
+    if (wbCta) {
+      wbCta.addEventListener('click', () => {
+        const v0 = $('.variant');
+        if (v0) v0.click();
+      });
+    }
+
+    // ── Stepper (speglar draft-status) ────────────────────────────────
+    const stepEls = $$('#stepper .sstep');
+    function markStep(status) {
+      const order = ['draft', 'needs_approval', 'approved', 'sent'];
+      let idx = order.indexOf(status);
+      if (idx < 0) idx = 0;
+      stepEls.forEach((elm, i) => {
+        elm.classList.remove('active', 'done');
+        if (i < idx) elm.classList.add('done');
+        else if (i === idx) elm.classList.add('active');
+      });
+    }
+
+    // ── Toast i shadow ────────────────────────────────────────────────
+    const toastEl = $('#toast');
+    let toastTimer = null;
+    function say(msg) {
+      if (!toastEl) {
+        toast(msg);
+        return;
+      }
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
+    }
+
+    // ── Kontrollerad sänd-kedja (samma endpoints som klassiska modalen) ─
+    function recipientBlock() {
+      const v = (toInput?.value || '').trim();
+      if (!v) return 'Mottagare saknas i vald tråd.';
+      if (/@hairtpclinic\.com$/i.test(v)) return 'Klinikadress kan inte vara mottagare.';
+      return null;
+    }
+    async function saveDraftV2(targetStatus) {
+      const blocked = recipientBlock();
+      if (blocked) {
+        say('✗ ' + blocked);
+        return false;
+      }
+      try {
+        if (!state.draftId) {
+          const r = await fetch('/api/v1/cco-comm/drafts', {
+            method: 'POST',
+            headers: adminAuthHeaders({
+              'Content-Type': 'application/json',
+              'x-cco-role': ROLE,
+              'x-cco-tenant': TENANT,
+            }),
+            body: JSON.stringify({
+              customerId,
+              templateId: state.template || 'manual_reply',
+              subject: state.subject,
+              body: state.body,
+              channel: 'email',
+              journeyStep: state.track || 'reply',
+              mailboxId: state.mailboxId,
+              signatureId: state.signatureId,
+              tone: state.tone,
+              refine: state.refine,
+            }),
+          });
+          const j = await r.json();
+          if (!j.ok) throw new Error(j.error || 'fel');
+          state.draftId = j.draft.draftId;
+          auditStudioEvent('studio.draft_created', {
+            draftId: state.draftId,
+            track: state.track,
+            tone: state.tone,
+            ui: 'v2',
+          });
+        } else {
+          await fetch('/api/v1/cco-comm/drafts/' + encodeURIComponent(state.draftId), {
+            method: 'PATCH',
+            headers: adminAuthHeaders({
+              'Content-Type': 'application/json',
+              'x-cco-role': ROLE,
+              'x-cco-tenant': TENANT,
+            }),
+            body: JSON.stringify({
+              subject: state.subject,
+              body: state.body,
+              signatureId: state.signatureId,
+            }),
+          });
+          auditStudioEvent('studio.draft_edited', { draftId: state.draftId, ui: 'v2' });
+        }
+        if (targetStatus && targetStatus !== 'draft') {
+          const r2 = await fetch(
+            '/api/v1/cco-comm/drafts/' + encodeURIComponent(state.draftId) + '/transition',
+            {
+              method: 'POST',
+              headers: adminAuthHeaders({
+                'Content-Type': 'application/json',
+                'x-cco-role': ROLE,
+                'x-cco-tenant': TENANT,
+              }),
+              body: JSON.stringify({ status: targetStatus, reason: 'via Svarstudio v2' }),
+            }
+          );
+          const j2 = await r2.json();
+          if (!j2.ok) throw new Error(j2.error || 'transition');
+          auditStudioEvent('studio.transitioned', {
+            draftId: state.draftId,
+            to: targetStatus,
+            ui: 'v2',
+          });
+        }
+        markStep(targetStatus || 'draft');
+        return true;
+      } catch (e) {
+        say('✗ ' + e.message);
+        return false;
+      }
+    }
+
+    const btnQueue = $('#btnQueue');
+    const btnSave = $('#btnSave');
+    const btnPreview = $('#btnPreview');
+    if (btnQueue) {
+      btnQueue.addEventListener('click', async () => {
+        if (!(editor && editor.value.trim())) {
+          say('Inget att köa — välj eller skriv ett svar');
+          return;
+        }
+        // "Godkänn & köa" = skicka för godkännande (needs_approval).
+        // Live-utskick sker ALDRIG härifrån — det är serverspärrat.
+        if (await saveDraftV2('needs_approval'))
+          say('▶ Skickat för godkännande · live-utskick låst');
+      });
+    }
+    if (btnSave) {
+      btnSave.addEventListener('click', async () => {
+        if (await saveDraftV2('draft')) say('💾 Utkast sparat');
+      });
+    }
+    if (btnPreview) {
+      btnPreview.addEventListener('click', () =>
+        say(
+          editor && editor.value.trim()
+            ? 'Förhandsvisning uppdaterad nedan'
+            : 'Skriv ett svar först'
+        )
+      );
+    }
+    // ⌘/Ctrl+Enter → köa
+    root.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && btnQueue) {
+        e.preventDefault();
+        btnQueue.click();
+      }
+    });
+
+    // rollup toggle + kontext-tabbar (presentationsdetaljer)
+    const rollup = $('#rollup');
+    const rt = $('#rollupToggle');
+    const rl = $('#rollupLbl');
+    if (rt && rollup) {
+      rt.addEventListener('click', () => {
+        const collapsed = rollup.classList.toggle('collapsed');
+        rt.setAttribute('aria-expanded', String(!collapsed));
+        if (rl) rl.textContent = collapsed ? 'Visa alla' : 'Fäll ihop';
+      });
+    }
+    if (ctx.aiSummary) {
+      const panel = $('#ctxPanel');
+      if (panel) panel.innerHTML = '<b>★ AI-sammanfattning.</b> ' + cleanText(ctx.aiSummary);
+    }
+
+    // Initial render
+    document.body.appendChild(backdrop);
+    pressSig('Fazli Krasniqi');
+    const pressedMbx =
+      $$('#mailboxPicker .mailbox-opt').find((o) => o.getAttribute('aria-pressed') === 'true') ||
+      $('#mailboxPicker .mailbox-opt');
+    if (pressedMbx) pressMailbox(pressedMbx);
+    syncBodyFromEditor();
+    markStep('draft');
+    auditStudioEvent('studio.v2_rendered', { customerId, hasRecipient: !!recipientEmail });
+    return true;
+  }
+
   // ─── SVARSTUDIO — workbench layout ───────────────────────────────────
   async function openSvarstudio(presetContext) {
     const liveContext =
@@ -695,6 +1231,23 @@
       body: applySignatureToBody(initialBody, 'fazli'),
       draftId: null,
     };
+
+    // Svarstudio v2 (artifacten 1:1 i shadow-DOM). Lyckas mount:en visas den och
+    // vi hoppar över den klassiska modalen; annars faller vi igenom.
+    if (USE_SVARSTUDIO_V2) {
+      try {
+        const mounted = await mountSvarstudioV2({
+          ctx,
+          state,
+          mailboxes,
+          recipientEmail,
+          customerId,
+        });
+        if (mounted) return;
+      } catch (_e) {
+        /* assets saknas / mount-fel → klassiska modalen nedan */
+      }
+    }
 
     // ─── Vänster: kontextpanel ──────────────────────────────────────
     const contextPanel = el('aside', { class: 'workbench-context' });
@@ -990,6 +1543,7 @@
         auditStudioEvent('studio.mailbox_selected', { mailboxId: state.mailboxId });
         updateMetaLine();
         renderLivePreview();
+        renderMailboxAvatar();
       },
     });
     for (const mb of mailboxes) {
@@ -1000,6 +1554,21 @@
       state.mailboxId = mailboxes[0].id;
       mailboxSelect.value = state.mailboxId;
     }
+    // Mailbox-avatar med rälsfärg (Kontakt teal / Fazli lila / Egzona guld).
+    const mailboxAvatar = el('span', { class: 'wb-mbx-avatar' }, '');
+    function renderMailboxAvatar() {
+      const mb = mailboxes.find((m) => m.id === state.mailboxId);
+      const label = cleanText((mb && (mb.name || mb.email || mb.id)) || state.mailboxId) || '?';
+      mailboxAvatar.textContent = label.slice(0, 1).toUpperCase();
+      const l = label.toLowerCase();
+      let tone = 'info';
+      if (l.includes('fazli')) tone = 'fazli';
+      else if (l.includes('egzona')) tone = 'egzona';
+      else if (l.includes('contact') || l.includes('kontakt') || l.includes('kons'))
+        tone = 'contact';
+      mailboxAvatar.className = 'wb-mbx-avatar wb-mbx-avatar--' + tone;
+    }
+    renderMailboxAvatar();
     replyBlock.appendChild(
       el('div', { class: 'wb-form-row' }, [
         el('label', { class: 'wb-field' }, [
@@ -1008,7 +1577,7 @@
         ]),
         el('label', { class: 'wb-field' }, [
           el('span', { class: 'wb-field-lbl' }, 'Från'),
-          mailboxSelect,
+          el('div', { class: 'wb-mbx-row' }, [mailboxAvatar, mailboxSelect]),
         ]),
       ])
     );
@@ -1238,6 +1807,8 @@
         onclick: () => {
           bodyArea.value = '[AI-utkast — administrativt, kräver godkännande]\n\n' + bodyArea.value;
           state.body = bodyArea.value;
+          wordCount.textContent = bodyArea.value.split(/\s+/).filter(Boolean).length + ' ord';
+          renderLivePreview();
           auditStudioEvent('studio.ai_draft_requested', { mode: 'administrative' });
           toast('★ AI-utkast — granska + godkänn');
         },
@@ -1362,7 +1933,11 @@
               'x-cco-role': ROLE,
               'x-cco-tenant': TENANT,
             }),
-            body: JSON.stringify({ subject: state.subject, body: state.body }),
+            body: JSON.stringify({
+              subject: state.subject,
+              body: state.body,
+              signatureId: state.signatureId,
+            }),
           });
           auditStudioEvent('studio.draft_edited', { draftId: state.draftId });
         }

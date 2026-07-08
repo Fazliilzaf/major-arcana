@@ -21,6 +21,7 @@ const nodePath = require('node:path');
 const nodeCrypto = require('node:crypto');
 const { attachRole, requirePermission, roleHasPermission } = require('../security/ccoRbac');
 const { containsJournalLikeContent } = require('../ops/ccoJournalAiGuard');
+const { composeHtmlBody } = require('../ops/ccoSignatureHtml');
 const { createExecutionGateway } = require('../gateway/executionGateway');
 
 // Bilagor på utkast (Svarstudio, steg 1b). Bytes lagras på persistent disk; ingen
@@ -132,9 +133,7 @@ function createCcoCommDraftRouter({
   }
   async function ensureAllowlistStore() {
     if (allowlistRef) return allowlistRef;
-    const {
-      createCcoRecipientAllowlistStore,
-    } = require('../ops/ccoRecipientAllowlistStore');
+    const { createCcoRecipientAllowlistStore } = require('../ops/ccoRecipientAllowlistStore');
     allowlistRef = await createCcoRecipientAllowlistStore({ filePath: allowlistPath(), auditLog });
     if (appLocals && !appLocals.ccoRecipientAllowlistStore) {
       appLocals.ccoRecipientAllowlistStore = allowlistRef;
@@ -302,6 +301,7 @@ function createCcoCommDraftRouter({
             subject: text(req.body?.subject),
             body: typeof req.body?.body === 'string' ? req.body.body : '',
             journeyStep: text(req.body?.journeyStep) || null,
+            signatureId: text(req.body?.signatureId) || null,
             aiGenerated: !!req.body?.aiGenerated,
             mergeFields: req.body?.mergeFields || {},
           },
@@ -331,6 +331,7 @@ function createCcoCommDraftRouter({
             body: req.body?.body,
             channel: req.body?.channel,
             mergeFields: req.body?.mergeFields,
+            signatureId: req.body?.signatureId,
           },
           { actor: actorOf(req), tenantId: text(req.auth?.tenantId) || null }
         );
@@ -796,11 +797,16 @@ function createCcoCommDraftRouter({
         }
 
         // Alla grindar passerade → queue:a och skicka via adaptern.
+        // Rik HTML-signatur (inbäddad logga) för det faktiska mailet: följer
+        // Svarstudions valda signatur när den sparats. Äldre utkast faller
+        // tillbaka till textsignaturen och sist avsändar-brevlådan.
+        const bodyHtml = composeHtmlBody(draft.body || '', draft.signatureId || senderMailbox);
         const payload = {
           from: senderMailbox,
           to,
           subject: draft.subject || '',
           body: draft.body || '',
+          ...(bodyHtml ? { bodyHtml } : {}),
           attachments: (draft.attachments || []).map((a) => ({
             name: a.name,
             contentType: a.contentType,
