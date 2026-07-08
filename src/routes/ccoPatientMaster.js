@@ -25,6 +25,7 @@ const { createCcoAssetImportPipeline } = require('../ops/ccoAssetImportPipeline'
 const {
   collectDriveRowsForInternalization,
   internalizeDriveAssets,
+  previewInternalizeCandidates,
 } = require('../ops/ccoDriveAssetInternalization');
 const {
   buildOccasionTimeline,
@@ -98,6 +99,20 @@ function clampInternalizeLimit(value, fallback = 50) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return Math.max(1, Math.min(50, Math.floor(parsed)));
+}
+
+function clampPreviewLimit(value, fallback = 10) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.max(1, Math.min(100, Math.floor(parsed)));
+}
+
+function parseExcludeUnknownMonth(value, defaultValue = false) {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  const normalized = String(value).trim().toLowerCase();
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  return defaultValue;
 }
 
 async function responseToBuffer(response) {
@@ -1527,6 +1542,62 @@ function createCcoPatientMasterRouter({
                 serviceAccountEmail: driveClient?.serviceAccountEmail || null,
               },
           report: safeReport,
+        });
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/assets/internalize/preview-candidates',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const limit = clampPreviewLimit(req.body?.limit, 10);
+        const offset = clampOffset(req.body?.offset);
+        const excludeUnknownMonth = parseExcludeUnknownMonth(req.body?.excludeUnknownMonth, true);
+        const includePilotWindow = parseExcludeUnknownMonth(req.body?.includePilotWindow, true);
+        const pilotWindowSize = clampPreviewLimit(req.body?.pilotWindowSize, 10);
+
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        const storage = stores.secureStorage || stores.storage || null;
+        if (!assetStore) {
+          return res.status(503).json({ error: 'Asset store saknas på servern.' });
+        }
+
+        const patientMasterState =
+          typeof loadPatientMasterState === 'function'
+            ? await loadPatientMasterState({ tenantId: actor.tenantId })
+            : await loadPatientMasterStateFromConfig(config);
+        const { rows, rowSources } = await collectDriveRowsForInternalization({
+          patientMasterState,
+          assetStore,
+          storage,
+          tenantId: actor.tenantId,
+        });
+
+        const preview = await previewInternalizeCandidates({
+          rows,
+          assetStore,
+          storage,
+          offset,
+          limit,
+          excludeUnknownMonth,
+          pilotWindowSize,
+          includePilotWindow,
+        });
+
+        return res.json({
+          ok: true,
+          zeroWrites: true,
+          dryRun: true,
+          rowsCollected: rows.length,
+          rowSources: { ...rowSources, mergedUnique: rows.length },
+          preview,
         });
       })
   );

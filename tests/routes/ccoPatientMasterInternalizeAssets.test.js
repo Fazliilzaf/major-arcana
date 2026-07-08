@@ -136,6 +136,19 @@ async function postJson(base, body) {
   return { status: res.status, body: json };
 }
 
+async function postPreviewJson(base, body) {
+  const res = await fetch(
+    `${base}/api/v1/cco-patient-master/assets/internalize/preview-candidates`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    }
+  );
+  const json = await res.json();
+  return { status: res.status, body: json };
+}
+
 test('assets/internalize finns och dryRun default skriver inte assets/import-runs', async () => {
   let driveFactoryCalled = 0;
   const fixture = await makeFixture({
@@ -234,6 +247,40 @@ test('assets/internalize commit använder mockad Drive-client och bevarar encoun
       assert.equal(Boolean(assets[0].encounterId), true);
       assert.equal(fixture.importRunStore.stats().finished, 1);
       assert.equal(fixture.authStore.events.at(-1).metadata.dryRun, false);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('assets/internalize/preview-candidates är read-only och maskerar kandidater', async () => {
+  const fixture = await makeFixture();
+  try {
+    await withServer(fixture.app, async (base) => {
+      const res = await postPreviewJson(base, { limit: 5, excludeUnknownMonth: false });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.ok, true);
+      assert.equal(res.body.zeroWrites, true);
+      assert.equal(res.body.preview.zeroWrites, true);
+      assert.equal(res.body.preview.candidates.length, 1);
+      assert.equal(res.body.preview.candidates[0].documentDateSource, 'folder_iso');
+      assert.match(res.body.preview.candidates[0].fileName, /\*/);
+      assert.match(res.body.preview.candidates[0].driveRef, /\*/);
+      assert.equal('patientId' in res.body.preview.candidates[0], false);
+      assert.equal(fixture.authStore.events.length, 0);
+      assert.equal(fixture.importRunStore.stats().total, 0);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('assets/internalize/preview-candidates kräver OWNER-roll', async () => {
+  const fixture = await makeFixture({ role: 'STAFF' });
+  try {
+    await withServer(fixture.app, async (base) => {
+      const res = await postPreviewJson(base, {});
+      assert.equal(res.status, 403);
     });
   } finally {
     await fs.rm(fixture.tmp, { recursive: true, force: true });
