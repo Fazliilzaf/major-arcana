@@ -61,7 +61,7 @@
     mailboxIds: MAILBOXES.map((m) => m.id),
     folder: 'inbox',
     windowDays: 90,
-    collapsed: { mailboxes: false, scope: false },
+    collapsed: { mailboxes: false, scope: true }, // FILTER hopfällt som default (tar minimal plats)
   };
 
   function el(tag, attrs, children) {
@@ -128,6 +128,8 @@
       '.mbv{margin:0 0 12px}' +
       '.mbv-kicker{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;appearance:none;border:0;background:transparent;cursor:pointer;' +
       'font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#84756b;padding:0 6px 8px;border-bottom:1px solid rgba(132,117,107,.18);margin-bottom:6px}' +
+      '.mbv-kicker-l{display:flex;align-items:baseline;gap:8px;min-width:0}' +
+      '.mbv-sum{font-size:9.5px;font-weight:700;letter-spacing:.02em;text-transform:none;color:var(--cco-text-tertiary,#6a717d)}' +
       '.mbv-chev{font-size:8px;color:#84756b;transition:transform .15s ease}' +
       '.mbv-kicker.col .mbv-chev{transform:rotate(-90deg)}' +
       '.mbv-body[hidden]{display:none}' +
@@ -171,10 +173,16 @@
   }
 
   // Hopfällbar sektion: klickbar kicker + chevron; hidden-attribut på body.
-  function collapsibleKicker(label, collapsed, onToggle) {
+  // extra = valfri liten sammanfattnings-nod (t.ex. aktivt filter) bredvid etiketten.
+  function collapsibleKicker(label, collapsed, onToggle, extra) {
     const chev = el('span', { class: 'mbv-chev' }, '▾');
+    const left = el(
+      'span',
+      { class: 'mbv-kicker-l' },
+      extra ? [el('span', {}, label), extra] : [label]
+    );
     const btn = el('button', { class: 'mbv-kicker' + (collapsed ? ' col' : ''), type: 'button' }, [
-      el('span', {}, label),
+      left,
       chev,
     ]);
     btn.addEventListener('click', () => {
@@ -329,29 +337,44 @@
             (v) => {
               state.folder = v;
               commit();
+              updateScopeSummary();
             }
           ),
           seg(
-            'Fönster',
+            'Dagar',
             [
-              { value: 30, label: '30 d' },
-              { value: 90, label: '90 d' },
-              { value: 365, label: '365 d' },
+              { value: 30, label: '30' },
+              { value: 90, label: '90' },
+              { value: 365, label: '365' },
             ],
             () => state.windowDays,
             (v) => {
               state.windowDays = v;
               commit();
+              updateScopeSummary();
             }
           ),
         ]),
       ]);
       scopeBody.hidden = state.collapsed.scope;
-      const scopeKicker = collapsibleKicker('Filter', state.collapsed.scope, (col) => {
-        scopeBody.hidden = col;
-        state.collapsed.scope = col;
-        saveState(state);
-      });
+      // Liten sammanfattning i FILTER-raden så aktivt val syns även hopfällt.
+      const FOLDER_LABEL = { inbox: 'Inkorg', sent: 'Skickat', drafts: 'Utkast' };
+      const scopeSummary = el('span', { class: 'mbv-sum' }, '');
+      function updateScopeSummary() {
+        scopeSummary.textContent =
+          (FOLDER_LABEL[state.folder] || 'Inkorg') + ' · ' + state.windowDays + ' d';
+      }
+      updateScopeSummary();
+      const scopeKicker = collapsibleKicker(
+        'Filter',
+        state.collapsed.scope,
+        (col) => {
+          scopeBody.hidden = col;
+          state.collapsed.scope = col;
+          saveState(state);
+        },
+        scopeSummary
+      );
       const scope = el('div', { id: 'ccoMbvScope', class: 'mbv-scope' }, [scopeKicker, scopeBody]);
       const inboxKicker = inbox.querySelector('.inbox-kicker');
       const tabs = inbox.querySelector('.inbox-tabs');

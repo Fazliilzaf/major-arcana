@@ -38,9 +38,9 @@ test('folder-scope (Inkorg/Skickat/Utkast) + läsfönster (30/90/365)', () => {
   assert.match(source, /value: 'inbox', label: 'Inkorg'/);
   assert.match(source, /value: 'sent', label: 'Skickat'/);
   assert.match(source, /value: 'drafts', label: 'Utkast'/);
-  assert.match(source, /value: 30, label: '30 d'/);
-  assert.match(source, /value: 90, label: '90 d'/);
-  assert.match(source, /value: 365, label: '365 d'/);
+  assert.match(source, /value: 30, label: '30'/);
+  assert.match(source, /value: 90, label: '90'/);
+  assert.match(source, /value: 365, label: '365'/);
 });
 
 test('sticky val i localStorage + läser mailboxes-endpointen (data kommer senare)', () => {
@@ -90,6 +90,14 @@ test('kompakt filter-toolbar (inline-etikett) + mjuk kryssruta', () => {
   assert.match(source, /class: 'mbv-unit'/);
   // Kryssruta: mjuk rosa ton (inte klarrosa fylld ruta).
   assert.match(source, /\.mbv-row\.on \.mbv-chk[^}]*background:rgba\(187,71,121,\.13\)/);
+});
+
+test('FILTER tar minimal plats: hopfällt som default + sammanfattning av aktivt val', () => {
+  // Scope-sektionen börjar hopfälld → bara en tunn rad.
+  assert.match(source, /collapsed: \{ mailboxes: false, scope: true/);
+  // Sammanfattning (t.ex. "Inkorg · 90 d") syns i FILTER-raden även hopfällt.
+  assert.match(source, /function updateScopeSummary\(\)/);
+  assert.match(source, /class: 'mbv-sum'/);
 });
 
 test('hopfällbara sektioner (sticky) + auto-sync utan manuell knapp', () => {
