@@ -3255,8 +3255,26 @@
     else if (action === 'notiser') openNotiser();
     else if (action === 'patienthub') openPatientHub();
     else if (action === 'signaturer') openSignaturer();
+    else if (action === 'nyttmail') openComposeNewMail();
     else return false;
     return true;
+  }
+
+  // Flytande snabbknapp: "✉ Nytt mail" alltid nåbar i CCO-vyn (inte begravd i
+  // panel-flikraden). Ett klick öppnar kompose-formuläret direkt.
+  function mountComposeFab() {
+    if (document.getElementById('ccoComposeFab')) return;
+    const fab = document.createElement('button');
+    fab.id = 'ccoComposeFab';
+    fab.type = 'button';
+    fab.textContent = '✉ Nytt mail';
+    fab.title = 'Skriv ett nytt mail till en ny mottagare';
+    fab.style.cssText =
+      'position:fixed;right:20px;bottom:20px;z-index:2147483000;border:0;border-radius:999px;' +
+      'padding:12px 18px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;' +
+      'background:var(--studio,#bb4779);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.22)';
+    fab.addEventListener('click', () => openComposeNewMail());
+    document.body.appendChild(fab);
   }
 
   function actionButtonFromEvent(event) {
@@ -3274,6 +3292,7 @@
 
   // ─── Wire bottom-bar + keyboard ──────────────────────────────────────
   function wireActions() {
+    mountComposeFab();
     document.addEventListener(
       'click',
       (e) => {
