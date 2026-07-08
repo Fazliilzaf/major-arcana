@@ -286,3 +286,22 @@ test('assets/internalize/preview-candidates kräver OWNER-roll', async () => {
     await fs.rm(fixture.tmp, { recursive: true, force: true });
   }
 });
+
+test('assets/internalize/preview-candidates returnerar pilotWindowSearch med skip-reasons', async () => {
+  const fixture = await makeFixture();
+  try {
+    await withServer(fixture.app, async (base) => {
+      const res = await postPreviewJson(base, {
+        allowedDocumentDateSources: ['folder_iso'],
+        requireDocumentDateSource: true,
+        pilotWindowSize: 1,
+      });
+      assert.equal(res.status, 200);
+      assert.ok(res.body.preview.pilotWindowSearch);
+      assert.equal(res.body.preview.pilotWindowSearch.skippedSamples[0].reason, 'unknown_month');
+      assert.equal(typeof res.body.preview.pilotWindowSearch.windowsScanned, 'number');
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
