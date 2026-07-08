@@ -12,6 +12,7 @@
 const express = require('express');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
 const { composeNewMail } = require('../ops/ccoComposeNewMail');
+const { lookupContactByEmail } = require('../ops/ccoContactLookup');
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -22,6 +23,33 @@ function createCcoComposeNewMailRouter({ requireAuth } = {}) {
   const jsonParser = express.json({ limit: '64kb' });
   const authMiddleware =
     typeof requireAuth === 'function' ? requireAuth : (_req, _res, next) => next();
+
+  // Dublettvarning: lätt uppslag om mottagaren redan finns som kontakt. Ren
+  // läsning (mail.send), bara staff-vänlig metadata — aldrig hela posten.
+  router.get(
+    '/cco/runtime/contact-lookup',
+    authMiddleware,
+    attachRole,
+    requirePermission('mail.send'),
+    async (req, res) => {
+      const patientMasterStore = req.app?.locals?.ccoPatientMasterStore || null;
+      if (!patientMasterStore) {
+        return res.status(200).json({ ok: true, exists: false, reason: 'store_unavailable' });
+      }
+      try {
+        const result = await lookupContactByEmail(
+          {
+            tenantId: text(req.auth?.tenantId) || 'hairtpclinic',
+            email: text(req.query?.email),
+          },
+          { patientMasterStore }
+        );
+        return res.status(200).json({ ok: true, ...result });
+      } catch (error) {
+        return res.status(500).json({ ok: false, error: error.message });
+      }
+    }
+  );
 
   router.post(
     '/cco/runtime/compose-new-mail',

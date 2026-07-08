@@ -66,6 +66,14 @@ test('spara som mall: egna snabbstartsmallar i localStorage', () => {
   assert.match(source, /COMPOSE_TEMPLATES\.concat\(loadCustomComposeTemplates\(\)\)/);
 });
 
+test('dublettvarning: debouncat uppslag mot contact-lookup, varnar om kontakt finns', () => {
+  assert.match(source, /'\/api\/v1\/cco\/runtime\/contact-lookup\?email='/);
+  assert.match(source, /function checkDuplicate\(\)/);
+  assert.match(source, /finns redan som kontakt/);
+  // Debounce + icke-blockerande (fel får inte störa formuläret).
+  assert.match(source, /setTimeout\(checkDuplicate, 450\)/);
+});
+
 test('owner-genväg: godkänn & skicka nu mot compose-send-endpointen', () => {
   assert.match(source, /ROLE === 'owner'[\s\S]{0,40}showSendNow/);
   assert.match(
