@@ -65,4 +65,50 @@ function buildPortalReadiness(env = process.env) {
   };
 }
 
-module.exports = { buildPortalReadiness };
+/**
+ * Kollar om Resend-sändomänen är VERIFIERAD (SPF/DKIM klart hos Resend). Detta är
+ * ett tillstånd HOS Resend, inte en env-flagga — därför ett valfritt async-anrop.
+ * Fångar fallet "readiness=live men domänen inte verifierad → sändningar failar".
+ *
+ * Robust: utan nyckel eller vid nätverksfel returneras `checked:false` (okänt) —
+ * aldrig ett kast, aldrig blockering (kort timeout).
+ *
+ * @param {{env?:object, fetchImpl?:Function, timeoutMs?:number}} opts
+ * @returns {Promise<{checked:boolean, verified?:boolean, status?:string, domain?:string, reason?:string}>}
+ */
+async function checkResendDomainVerified({ env = process.env, fetchImpl, timeoutMs = 4000 } = {}) {
+  const apiKey = String(env.RESEND_API_KEY || '').trim();
+  if (!apiKey) return { checked: false, reason: 'no_key' };
+  const doFetch = typeof fetchImpl === 'function' ? fetchImpl : global.fetch;
+  if (typeof doFetch !== 'function') return { checked: false, reason: 'no_fetch' };
+
+  let domain = '';
+  try {
+    domain = require('../infra/resendConfig').resolveResendDomain(env);
+  } catch {
+    domain = '';
+  }
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await doFetch('https://api.resend.com/domains', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return { checked: false, reason: `http_${res.status}`, domain };
+    const data = await res.json().catch(() => ({}));
+    const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    const match = list.find(
+      (d) => String(d?.name || '').toLowerCase() === String(domain || '').toLowerCase()
+    );
+    if (!match) return { checked: true, verified: false, status: 'not_found', domain };
+    const status = String(match.status || '').toLowerCase();
+    return { checked: true, verified: status === 'verified', status: status || 'unknown', domain };
+  } catch {
+    return { checked: false, reason: 'check_failed', domain };
+  }
+}
+
+module.exports = { buildPortalReadiness, checkResendDomainVerified };

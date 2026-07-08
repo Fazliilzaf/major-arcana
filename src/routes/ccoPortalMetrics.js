@@ -9,9 +9,11 @@
 const express = require('express');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
 const { buildPortalMetrics } = require('../ops/ccoPortalMetrics');
-const { buildPortalReadiness } = require('../ops/ccoPortalReadiness');
+const { buildPortalReadiness, checkResendDomainVerified } = require('../ops/ccoPortalReadiness');
 
-function createCcoPortalMetricsRouter({ requireAuth } = {}) {
+function createCcoPortalMetricsRouter({ requireAuth, resendDomainChecker } = {}) {
+  const checkDomain =
+    typeof resendDomainChecker === 'function' ? resendDomainChecker : checkResendDomainVerified;
   const router = express.Router();
   const authMiddleware =
     typeof requireAuth === 'function' ? requireAuth : (_req, _res, next) => next();
@@ -44,9 +46,19 @@ function createCcoPortalMetricsRouter({ requireAuth } = {}) {
     authMiddleware,
     attachRole,
     requirePermission('settings.read'),
-    (_req, res) => {
+    async (_req, res) => {
       try {
         const readiness = buildPortalReadiness(process.env);
+        // Om notiserna ska vara live: kontrollera även att Resend-domänen är
+        // verifierad — annars är det "live men sändningar failar".
+        if (readiness.patientNotify === 'live') {
+          const domain = await checkDomain({ env: process.env });
+          readiness.detail.mail.domain = domain;
+          if (domain.checked && domain.verified === false) {
+            readiness.patientNotify = 'live_unverified';
+            readiness.warning = 'resend_domain_unverified';
+          }
+        }
         return res.json({ ok: true, readiness, generatedAt: new Date().toISOString() });
       } catch (error) {
         return res.status(500).json({ ok: false, error: error.message });

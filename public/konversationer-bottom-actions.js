@@ -2861,16 +2861,21 @@
             const r = rj.readiness;
             const chip = (label, state) => {
               const live = state === 'live' || state === 'active';
+              const warn = state === 'live_unverified';
+              const text = state === 'live_unverified' ? 'live · domän ej verifierad' : state;
+              const style = warn
+                ? 'background:rgba(200,130,30,.16);color:#c8821e'
+                : live
+                  ? 'background:rgba(74,130,104,.14);color:#4a8268'
+                  : 'background:#f2ece6;color:#8a8174';
               return el(
                 'span',
                 {
                   style:
                     'display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:4px 9px;border-radius:999px;margin:3px 6px 3px 0;' +
-                    (live
-                      ? 'background:rgba(74,130,104,.14);color:#4a8268'
-                      : 'background:#f2ece6;color:#8a8174'),
+                    style,
                 },
-                (live ? '● ' : '○ ') + label + ': ' + state
+                (warn ? '▲ ' : live ? '● ' : '○ ') + label + ': ' + text
               );
             };
             body.appendChild(

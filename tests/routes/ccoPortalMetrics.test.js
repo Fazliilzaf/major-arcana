@@ -88,7 +88,7 @@ function req(app, method, p, { headers = {} } = {}) {
   });
 }
 
-async function buildApp() {
+async function buildApp({ resendDomainChecker = null } = {}) {
   const app = express();
   app.use(
     '/api/v1',
@@ -97,6 +97,7 @@ async function buildApp() {
         rq.auth = { tenantId: 't' };
         n();
       },
+      resendDomainChecker,
     })
   );
   const { msg, nudge, access } = await seededStores();
@@ -144,4 +145,51 @@ test('portal-readiness: konsult blockeras (settings.read = owner/operator)', asy
     headers: { 'x-cco-role': 'konsult' },
   });
   assert.equal(res.status, 403);
+});
+
+test('portal-readiness: live men OVERIFIERAD domän → live_unverified + varning', async () => {
+  const prevGate = process.env.CCO_PORTAL_NOTIFY_LIVE;
+  const prevKey = process.env.RESEND_API_KEY;
+  process.env.CCO_PORTAL_NOTIFY_LIVE = '1';
+  process.env.RESEND_API_KEY = 're_test';
+  try {
+    const app = await buildApp({
+      resendDomainChecker: async () => ({ checked: true, verified: false, status: 'pending' }),
+    });
+    const res = await req(app, 'GET', '/api/v1/cco/runtime/portal-readiness', {
+      headers: { 'x-cco-role': 'owner' },
+    });
+    assert.equal(res.status, 200);
+    const j = JSON.parse(res.body);
+    assert.equal(j.readiness.patientNotify, 'live_unverified');
+    assert.equal(j.readiness.warning, 'resend_domain_unverified');
+  } finally {
+    if (prevGate === undefined) delete process.env.CCO_PORTAL_NOTIFY_LIVE;
+    else process.env.CCO_PORTAL_NOTIFY_LIVE = prevGate;
+    if (prevKey === undefined) delete process.env.RESEND_API_KEY;
+    else process.env.RESEND_API_KEY = prevKey;
+  }
+});
+
+test('portal-readiness: live + verifierad domän → förblir live', async () => {
+  const prevGate = process.env.CCO_PORTAL_NOTIFY_LIVE;
+  const prevKey = process.env.RESEND_API_KEY;
+  process.env.CCO_PORTAL_NOTIFY_LIVE = '1';
+  process.env.RESEND_API_KEY = 're_test';
+  try {
+    const app = await buildApp({
+      resendDomainChecker: async () => ({ checked: true, verified: true, status: 'verified' }),
+    });
+    const res = await req(app, 'GET', '/api/v1/cco/runtime/portal-readiness', {
+      headers: { 'x-cco-role': 'owner' },
+    });
+    const j = JSON.parse(res.body);
+    assert.equal(j.readiness.patientNotify, 'live');
+    assert.equal(j.readiness.warning, undefined);
+  } finally {
+    if (prevGate === undefined) delete process.env.CCO_PORTAL_NOTIFY_LIVE;
+    else process.env.CCO_PORTAL_NOTIFY_LIVE = prevGate;
+    if (prevKey === undefined) delete process.env.RESEND_API_KEY;
+    else process.env.RESEND_API_KEY = prevKey;
+  }
 });
