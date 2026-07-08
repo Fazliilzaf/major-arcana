@@ -1136,7 +1136,11 @@
       ];
       const latestJournal = dossierDateLabel(dossier.journal?.latestAt);
       body.appendChild(
-        el('div', { class: 'dossier-mini__metrics' }, metrics.map((m) => el('span', {}, m)))
+        el(
+          'div',
+          { class: 'dossier-mini__metrics' },
+          metrics.map((m) => el('span', {}, m))
+        )
       );
       body.appendChild(
         el(
@@ -1154,9 +1158,13 @@
       const summaryBits = [
         nextBooking
           ? 'Nästa bokning: ' +
-            [nextBooking.service, dossierDateLabel(nextBooking.startsAt)].filter(Boolean).join(' · ')
+            [nextBooking.service, dossierDateLabel(nextBooking.startsAt)]
+              .filter(Boolean)
+              .join(' · ')
           : '',
-        openCase ? 'Senaste ärende: ' + [openCase.title, openCase.status].filter(Boolean).join(' · ') : '',
+        openCase
+          ? 'Senaste ärende: ' + [openCase.title, openCase.status].filter(Boolean).join(' · ')
+          : '',
         dossier.threads?.needsReply ? dossier.threads.needsReply + ' trådar behöver svar' : '',
       ].filter(Boolean);
       if (summaryBits.length) {
@@ -1196,7 +1204,10 @@
         if (ctx.conversationKey) params.set('conversationKey', ctx.conversationKey);
         const qs = params.toString();
         const r = await fetch(
-          '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/dossier' + (qs ? '?' + qs : ''),
+          '/api/v1/cco/runtime/customer/' +
+            encodeURIComponent(id) +
+            '/dossier' +
+            (qs ? '?' + qs : ''),
           {
             cache: 'no-store',
             headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
@@ -1211,6 +1222,107 @@
     }
     renderDossierMini(null, 'Hämtar lokalt kundkort…');
     loadDossierMini();
+
+    // ── Portal-chatt (Fas 2, steg 4b): läs + svara inline i den fria kanalen ──
+    // Rent tillägg i konversationsytan. Klinik-svar går till outbound-endpointen
+    // (mail.send), aldrig via Graph/live-send. Fel får aldrig störa Svarstudion.
+    function renderPortalChat(messages) {
+      const anchor = $('#rollup') || $('.msgs') || $('.main');
+      if (!anchor || !anchor.parentNode) return;
+      const esc = (s) =>
+        String(s == null ? '' : s).replace(
+          /[&<>"]/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
+        );
+      let panel = $('#portalChat');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'portalChat';
+        panel.className = 'block';
+        panel.style.marginTop = '10px';
+        anchor.parentNode.insertBefore(panel, anchor.nextSibling);
+      }
+      const bubbles =
+        (messages || [])
+          .map((m) => {
+            const out = m.direction === 'outbound';
+            return (
+              '<div style="display:flex;justify-content:' +
+              (out ? 'flex-end' : 'flex-start') +
+              ';margin:4px 0"><div style="max-width:78%;padding:7px 10px;border-radius:12px;font-size:12px;line-height:1.4;' +
+              (out
+                ? 'background:var(--rose-grad);color:var(--studio-ink)'
+                : 'background:var(--sunken);color:var(--ink)') +
+              '">' +
+              esc(m.body) +
+              '</div></div>'
+            );
+          })
+          .join('') ||
+        '<div style="font-size:11px;color:var(--ink-3);padding:4px 0">Inga portal-meddelanden än.</div>';
+      panel.innerHTML =
+        '<div class="glabel" style="margin-bottom:4px">★ Portal-chatt (fri kanal)</div>' +
+        '<div style="max-height:180px;overflow:auto">' +
+        bubbles +
+        '</div>' +
+        '<div style="display:flex;gap:6px;margin-top:6px">' +
+        '<input id="portalReplyInput" type="text" placeholder="Svara i portalen…" ' +
+        'style="flex:1;min-width:0;border:1px solid var(--line-soft);border-radius:8px;padding:6px 8px;font:inherit;font-size:12px;background:var(--field-bg);color:var(--ink)">' +
+        '<button id="portalReplyBtn" type="button" style="border:0;border-radius:8px;padding:6px 12px;' +
+        'font:inherit;font-size:12px;font-weight:700;cursor:pointer;background:var(--studio);color:#fff">Skicka</button>' +
+        '</div>';
+      const btn = panel.querySelector('#portalReplyBtn');
+      const input = panel.querySelector('#portalReplyInput');
+      if (btn && input) {
+        btn.addEventListener('click', async () => {
+          const body = input.value.trim();
+          if (!body) return;
+          btn.disabled = true;
+          try {
+            const id = cleanText(customerId || ctx.customerId);
+            const r = await fetch(
+              '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-message',
+              {
+                method: 'POST',
+                headers: adminAuthHeaders({
+                  'Content-Type': 'application/json',
+                  'x-cco-role': ROLE,
+                  'x-cco-tenant': TENANT,
+                }),
+                body: JSON.stringify({ body }),
+              }
+            );
+            if (r.ok) {
+              input.value = '';
+              loadPortalChat();
+            }
+          } catch (_e) {
+            /* tillägg — stör aldrig Svarstudion */
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      }
+    }
+    async function loadPortalChat() {
+      const id = cleanText(customerId || ctx.customerId);
+      if (!id) return;
+      try {
+        const r = await fetch(
+          '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-messages',
+          {
+            cache: 'no-store',
+            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+          }
+        );
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.messages) renderPortalChat(j.messages);
+      } catch (_e) {
+        /* portal-chatt är ett tillägg — fel får aldrig störa Svarstudion */
+      }
+    }
+    loadPortalChat();
+
     const qaDossier = $('.qa--dossier');
     if (qaDossier) qaDossier.addEventListener('click', () => openPatientHub(ctx));
     const qaSign = $('.qa--sign');

@@ -119,7 +119,10 @@ test('kundkort/dossier: hämtas + renderas i fast kontext-yta, journal låst', (
   assert.match(source, /'\/api\/v1\/cco\/runtime\/customer\/'/);
   assert.match(source, /function renderDossierMini\(dossier, note\)/);
   assert.match(source, /cache: 'no-store'/);
-  assert.match(source, /headers: adminAuthHeaders\(\{ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT \}\)/);
+  assert.match(
+    source,
+    /headers: adminAuthHeaders\(\{ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT \}\)/
+  );
   assert.match(htmlAsset, /id="customerDossier"/);
   assert.match(cssAsset, /\.dossier-mini\s*\{/);
   // Journalen visas bara som metadata — aldrig innehåll.
@@ -127,6 +130,17 @@ test('kundkort/dossier: hämtas + renderas i fast kontext-yta, journal låst', (
   assert.doesNotMatch(source, /journal\.body|journal\.note|entry\.body|entry\.note/);
   // Fel får aldrig störa Svarstudion
   assert.match(source, /Kundkort kunde inte laddas just nu/);
+});
+
+test('portal-chatt: läs inline + svara → outbound (aldrig live-send)', () => {
+  assert.match(source, /function renderPortalChat\(messages\)/);
+  assert.match(source, /async function loadPortalChat\(\)/);
+  assert.match(source, /Portal-chatt/);
+  // Läsning + klinik-svar mot portal-endpointsen
+  assert.match(source, /\/portal-messages'/);
+  assert.match(source, /'\/portal-message',\s*\{\s*method: 'POST'/);
+  // Portal-svar går ALDRIG via Graph/live-send
+  assert.doesNotMatch(source, /portal-message[\s\S]{0,200}\/send'/);
 });
 
 test('v2 rör INTE live-send: inget /send-anrop, ingen sent-transition', () => {
