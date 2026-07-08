@@ -15,6 +15,8 @@
  * Ren funktion med injicerade beroenden — enhetstestbar utan nätverk.
  */
 
+const { composeHtmlBody } = require('./ccoSignatureHtml');
+
 const SEND_CHANNELS = new Set(['graph', 'resend']);
 const DEFAULT_GRAPH_SENDER_MAILBOX_ID = 'kons@hairtpclinic.com';
 
@@ -147,6 +149,12 @@ async function deliverComposeDraft(ref = {}, stores = {}) {
 
   await walkToQueued(draftStore, draft, tenantId, actor);
 
+  // Varumärkt HTML-signatur (inbäddad logga) för det faktiska mailet — samma
+  // system som Svarstudion. Har utkastet en textsignatur (SIG_DIVIDER) byts den
+  // mot v9-signaturen; annars null → fall tillbaka på ren toHtml.
+  const bodyHtml =
+    composeHtmlBody(draft.body, draft.signatureId || senderMailboxId || '') || toHtml(draft.body);
+
   let ok = false;
   let messageId = null;
   let error = null;
@@ -157,7 +165,7 @@ async function deliverComposeDraft(ref = {}, stores = {}) {
         payload: {
           to,
           subject: draft.subject || '(utan ämne)',
-          html: toHtml(draft.body),
+          html: bodyHtml,
           text: text(draft.body),
           meta: { customerId: draft.customerId, reason: 'compose_new_mail' },
         },
@@ -173,7 +181,7 @@ async function deliverComposeDraft(ref = {}, stores = {}) {
         to,
         subject: draft.subject || '(utan ämne)',
         body: text(draft.body),
-        bodyHtml: toHtml(draft.body),
+        bodyHtml,
       });
       ok = r?.ok !== false;
       messageId = r?.messageId || null;

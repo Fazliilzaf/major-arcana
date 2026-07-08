@@ -50,6 +50,12 @@ test('portal-inbjudan: toggle bäddar in en personlig länk (fri kanal)', () => 
   assert.match(source, /portalLinkIncluded/);
 });
 
+test('signatur skickar signatureId → server ger varumärkt HTML-sig med logga', () => {
+  assert.match(source, /signatureId: sigKey === 'ingen' \? '' : sigKey/);
+  // Preview hintar att loggan bifogas.
+  assert.match(source, /Loggan bifogas i signaturen/);
+});
+
 test('spara som mall: egna snabbstartsmallar i localStorage', () => {
   assert.match(source, /Spara som mall/);
   assert.match(source, /cco_compose_templates_v1/);

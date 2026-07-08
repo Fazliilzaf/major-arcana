@@ -48,6 +48,7 @@ function createCcoComposeNewMailRouter({ requireAuth } = {}) {
             subject: text(b.subject),
             body: text(b.body),
             signature: text(b.signature),
+            signatureId: text(b.signatureId),
             includePortalLink: b.includePortalLink === true,
             baseUrl: text(process.env.PUBLIC_BASE_URL),
             channel: text(b.channel),

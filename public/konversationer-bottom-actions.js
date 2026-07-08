@@ -2953,7 +2953,9 @@
         ? '🔒 En personlig portal-länk bifogas automatiskt: “Du kan svara direkt i din trygga portal, utan SMS…”'
         : '';
       pvPortal.style.display = portalChk.checked ? 'block' : 'none';
-      pvSig.textContent = COMPOSE_SIGS[sigKey] || '';
+      pvSig.textContent = COMPOSE_SIGS[sigKey]
+        ? '🖼 Loggan bifogas i signaturen\n\n' + COMPOSE_SIGS[sigKey]
+        : '';
       pvSig.style.display = COMPOSE_SIGS[sigKey] ? 'block' : 'none';
       const words = bodyEl.value.trim() ? bodyEl.value.trim().split(/\s+/).length : 0;
       wc.textContent = words + ' ord';
@@ -3042,6 +3044,9 @@
         // Server sätter ihop texten: användartext → (valfri) portal-länk → signatur.
         body: bodyText,
         signature: sigText,
+        // signatureId → server byter textsignaturen mot den varumärkta HTML-
+        // signaturen med inbäddad logga (fazli/egzona; ingen = tom).
+        signatureId: sigKey === 'ingen' ? '' : sigKey,
         includePortalLink: portalChk.checked,
       };
       if (!payload.recipientEmail || !payload.subject || !bodyText) {
