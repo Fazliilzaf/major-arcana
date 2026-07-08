@@ -88,8 +88,28 @@ test('grind PÅ + Graph → använder graphSendAdapter.sendMail', async () => {
   );
   assert.equal(res.status, 'sent');
   assert.equal(res.channel, 'graph');
+  assert.equal(calls[0].from, 'kons@hairtpclinic.com');
   assert.equal(calls[0].to, 'mottagare@example.com');
   assert.equal(draftStore.getDraft(draftId).status, 'sent');
+});
+
+test('grind PÅ + Graph → skickar med explicit senderMailboxId från utkastet', async () => {
+  const { draftStore, draftId } = await seedDraft('graph');
+  await draftStore.updateDraft(
+    draftId,
+    { mergeFields: { sendChannel: 'graph', senderMailboxId: 'egzona@hairtpclinic.com' } },
+    { tenantId: 'hairtpclinic', actor: { userId: 'operator-1' } }
+  );
+  const calls = [];
+  const graphSendAdapter = {
+    sendMail: async (p) => (calls.push(p), { ok: true, messageId: 'g2' }),
+  };
+  const res = await deliverComposeDraft(
+    { draftId, forceLive: true },
+    { draftStore, patientMasterStore, graphSendAdapter }
+  );
+  assert.equal(res.status, 'sent');
+  assert.equal(calls[0].from, 'egzona@hairtpclinic.com');
 });
 
 test('Graph vald men adapter saknas (Graph av) → skipped graph_disabled, orört', async () => {
