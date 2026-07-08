@@ -9,7 +9,7 @@ const assert = require('node:assert/strict');
 const os = require('node:os');
 const fs = require('node:fs');
 const path = require('node:path');
-const { preparePortalNudge } = require('../../src/ops/ccoPortalNudge');
+const { preparePortalNudge, buildPortalUrl } = require('../../src/ops/ccoPortalNudge');
 const { createCcoPortalNudgeStore } = require('../../src/ops/ccoPortalNudgeStore');
 const { createCcoPortalAccessStore } = require('../../src/ops/ccoPortalAccessStore');
 const { createCcoCommDraftStore } = require('../../src/ops/ccoCommDraftStore');
@@ -48,6 +48,13 @@ test('förbereder nudge: magisk länk + utkast på needs_approval (aldrig sent)'
   // Ingen egen avslutshälsning och inga streck (samma disciplin som Svarstudion).
   assert.doesNotMatch(draft.body, /[—–]/);
   assert.doesNotMatch(draft.body, /Mvh|Vänligen|Varma hälsningar/i);
+});
+
+test('portal-länk blir absolut även när baseUrl saknas', () => {
+  assert.equal(
+    buildPortalUrl('', 'tok en'),
+    'https://arcana.hairtpclinic.com/portal-chat/tok%20en'
+  );
 });
 
 test('idempotent: andra anropet hoppar över (already_nudged)', async () => {

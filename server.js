@@ -12694,6 +12694,8 @@ process.once('SIGTERM', () => {
         nudgeStore: app.locals.ccoPortalNudgeStore,
         messageStore: app.locals.ccoPortalMessageStore,
       }),
+      baseUrl:
+        config.publicBaseUrl || process.env.PUBLIC_BASE_URL || 'https://arcana.hairtpclinic.com',
       logger: console,
     }),
     patientDirectoryProvider: async () => {
@@ -13371,6 +13373,18 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // Shared comm-draft-store: Svarstudio, portal-nudge och conversation-thread-
+  // store måste läsa samma in-memory-instans. Skapa den före routes som injicerar
+  // eller läser app.locals.ccoCommDraftStore.
+  if (!app.locals.ccoCommDraftStore) {
+    const { createCcoCommDraftStore } = require('./src/ops/ccoCommDraftStore');
+    app.locals.ccoCommDraftStore = await createCcoCommDraftStore({
+      filePath:
+        config.ccoCommDraftStorePath || `${config.stateRoot || './data'}/cco-comm-draft.json`,
+      auditLog: ccoAuditLog || null,
+    });
+  }
+
   app.use(
     '/api/v1',
     createCcoCustomerCommRouter({
@@ -13471,7 +13485,14 @@ process.once('SIGTERM', () => {
   // needs_approval-utkast med den magiska länken när en kund ännu inte är på
   // portalen. Skickar aldrig själv — personal godkänner i vanliga kedjan.
   const { createCcoPortalNudgeRouter } = require('./src/routes/ccoPortalNudge');
-  app.use('/api/v1', createCcoPortalNudgeRouter({ requireAuth: auth.requireAuth }));
+  app.use(
+    '/api/v1',
+    createCcoPortalNudgeRouter({
+      requireAuth: auth.requireAuth,
+      baseUrl:
+        config.publicBaseUrl || process.env.PUBLIC_BASE_URL || 'https://arcana.hairtpclinic.com',
+    })
+  );
 
   app.use(
     '/api/v1',
@@ -13744,18 +13765,6 @@ process.once('SIGTERM', () => {
   app.locals.ccoPortalMessageStore = portalMessageStore;
   app.locals.ccoPortalAccessStore = portalAccessStore;
   app.locals.ccoPortalNudgeStore = portalNudgeStore;
-
-  // Comm-draft-storen skapas annars lazy vid första comm-draft-anropet. Skapa
-  // den eagert och dela på app.locals så portal-nudgen (och dossiern) alltid har
-  // den; comm-draft-routern återanvänder samma instans (ensureStore kollar locals).
-  if (!app.locals.ccoCommDraftStore) {
-    const { createCcoCommDraftStore } = require('./src/ops/ccoCommDraftStore');
-    app.locals.ccoCommDraftStore = await createCcoCommDraftStore({
-      filePath:
-        config.ccoCommDraftStorePath || `${config.stateRoot || './data'}/cco-comm-draft.json`,
-      auditLog: ccoAuditLog || null,
-    });
-  }
 
   app.use(
     '/api',

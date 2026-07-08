@@ -20,7 +20,7 @@ function text(value) {
 }
 
 function buildPortalUrl(baseUrl, token) {
-  const base = text(baseUrl).replace(/\/+$/, '');
+  const base = text(baseUrl).replace(/\/+$/, '') || 'https://arcana.hairtpclinic.com';
   return `${base}/portal-chat/${encodeURIComponent(token)}`;
 }
 
