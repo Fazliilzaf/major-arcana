@@ -101,12 +101,68 @@ async function createCcoPortalNudgeStore({ filePath } = {}) {
     });
   }
 
-  /** Antal förberedda nudgar (adoptionsmätning). */
-  function stats() {
-    return { prepared: Object.keys(state.nudges || {}).length };
+  /** Har kunden redan fått en SMS-nudge? (separat spår från e-post/utkast-nudgen). */
+  function wasSmsNudged({ tenantId, customerId } = {}) {
+    return Boolean(state.nudges[key(tenantId, customerId)]?.smsNudgedAt);
   }
 
-  return { wasNudged, getNudge, recordNudge, stats };
+  /** Registrera att en SMS-nudge skickats. Idempotent per kund. */
+  async function recordSmsNudge({ tenantId, customerId } = {}) {
+    const k = key(tenantId, customerId);
+    return withLock(k, async () => {
+      return recordSmsNudgeLocked(k, { tenantId, customerId });
+    });
+  }
+
+  async function recordSmsNudgeLocked(k, { tenantId, customerId } = {}) {
+    const existing = state.nudges[k] || {
+      tenantId: normalizeText(tenantId),
+      customerId: normalizeText(customerId),
+      draftId: null,
+      tokenHint: null,
+      nudgedAt: null,
+    };
+    if (existing.smsNudgedAt) return { ...existing, created: false };
+    existing.smsNudgedAt = nowIso();
+    state.nudges[k] = existing;
+    await save();
+    return { ...existing, created: true };
+  }
+
+  /**
+   * Kör hela live-SMS-flödet under samma per-kund-lås. Det hindrar två samtidiga
+   * anrop från att båda passera "inte SMS-nudgad än" innan första skrivningen.
+   */
+  async function withSmsNudgeLock({ tenantId, customerId } = {}, fn) {
+    if (typeof fn !== 'function') throw new Error('fn krävs.');
+    const k = key(tenantId, customerId);
+    return withLock(k, async () => {
+      const helpers = {
+        wasSmsNudged: () => Boolean(state.nudges[k]?.smsNudgedAt),
+        recordSmsNudge: () => recordSmsNudgeLocked(k, { tenantId, customerId }),
+      };
+      return fn(helpers);
+    });
+  }
+
+  /** Antal förberedda nudgar (adoptionsmätning). */
+  function stats() {
+    const all = Object.values(state.nudges || {});
+    return {
+      prepared: all.length,
+      smsSent: all.filter((n) => n && n.smsNudgedAt).length,
+    };
+  }
+
+  return {
+    wasNudged,
+    getNudge,
+    recordNudge,
+    wasSmsNudged,
+    recordSmsNudge,
+    withSmsNudgeLock,
+    stats,
+  };
 }
 
 module.exports = { createCcoPortalNudgeStore };

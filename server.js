@@ -13529,6 +13529,19 @@ process.once('SIGTERM', () => {
   const { createCcoPortalMetricsRouter } = require('./src/routes/ccoPortalMetrics');
   app.use('/api/v1', createCcoPortalMetricsRouter({ requireAuth: auth.requireAuth }));
 
+  // SMS-nudge (sista utväg): engångs-SMS med portal-djuplänk. Hårt grindat
+  // (CCO_SMS_LIVE) + idempotent. Återanvänder den befintliga 46elks/Twilio-
+  // connectorn; exponeras på app.locals så routern/servicen når den lazy.
+  if (!app.locals.ccoSmsSender) {
+    try {
+      app.locals.ccoSmsSender = require('./src/sms/smsConnector');
+    } catch (e) {
+      console.warn('[cco-portal-sms] SMS-connector kunde inte laddas:', e.message);
+    }
+  }
+  const { createCcoPortalSmsNudgeRouter } = require('./src/routes/ccoPortalSmsNudge');
+  app.use('/api/v1', createCcoPortalSmsNudgeRouter({ requireAuth: auth.requireAuth }));
+
   app.use(
     '/api/v1',
     createCcoPatientMasterRouter({

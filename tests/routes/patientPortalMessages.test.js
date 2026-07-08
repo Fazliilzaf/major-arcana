@@ -21,7 +21,7 @@ function tmp(name) {
   return path.join(dir, name);
 }
 
-async function buildApp({ withStores = true } = {}) {
+async function buildApp({ withStores = true, messageRateLimiter = null } = {}) {
   const app = express();
   let portalMessageStore = null;
   let portalAccessStore = null;
@@ -41,6 +41,7 @@ async function buildApp({ withStores = true } = {}) {
       journalStore: null,
       portalMessageStore,
       portalAccessStore,
+      messageRateLimiter,
     })
   );
   return { app, token };
@@ -116,4 +117,57 @@ test('utan storar → 503 (funktion ej aktiverad), resten av portalen orörd', a
   const { app } = await buildApp({ withStores: false });
   const get = await req(app, 'GET', '/api/patient-portal/nagot/messages');
   assert.equal(get.status, 503);
+});
+
+test('rate-limit: floodande POST mot samma länk blockeras med 429', async () => {
+  const { createRateLimiter } = require('../../src/security/rateLimit');
+  const { app, token } = await buildApp({
+    messageRateLimiter: createRateLimiter({
+      windowMs: 60_000,
+      max: 2,
+      scope: 'test.portal.messages',
+      keyGenerator: (rq) => rq.params?.accessToken || 'anon',
+    }),
+  });
+  const send = () =>
+    req(app, 'POST', `/api/patient-portal/${token}/messages`, { body: { body: 'spam' } });
+  assert.equal((await send()).status, 201);
+  assert.equal((await send()).status, 201);
+  const third = await send();
+  assert.equal(third.status, 429); // tredje inom fönstret stoppas
+  assert.match(JSON.parse(third.body).error, /För många/);
+});
+
+test('rate-limit gäller per token — annan länk påverkas inte', async () => {
+  const { createRateLimiter } = require('../../src/security/rateLimit');
+  const limiter = createRateLimiter({
+    windowMs: 60_000,
+    max: 1,
+    scope: 'test.portal.messages.iso',
+    keyGenerator: (rq) => rq.params?.accessToken || 'anon',
+  });
+  // Två olika tokens mot samma app-instans (delad limiter) ska räknas separat.
+  const a = await buildApp({ messageRateLimiter: limiter });
+  const bAccess = await require('../../src/ops/ccoPortalAccessStore').createCcoPortalAccessStore({
+    filePath: tmp('a2.json'),
+  });
+  const { token: tokenB } = await bAccess.issueToken({
+    tenantId: 'hairtpclinic',
+    customerId: 'C2',
+  });
+  // token A: första OK, andra 429
+  assert.equal(
+    (await req(a.app, 'POST', `/api/patient-portal/${a.token}/messages`, { body: { body: 'x' } }))
+      .status,
+    201
+  );
+  assert.equal(
+    (await req(a.app, 'POST', `/api/patient-portal/${a.token}/messages`, { body: { body: 'y' } }))
+      .status,
+    429
+  );
+  // token B (annan nyckel) ska fortfarande släppas igenom trots delad limiter,
+  // men B finns inte i A:s access-store → 404 (bevisar att limitern inte 429:ar).
+  const bRes = await req(a.app, 'GET', `/api/patient-portal/${tokenB}/messages`);
+  assert.notEqual(bRes.status, 429);
 });

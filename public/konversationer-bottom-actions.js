@@ -364,6 +364,7 @@
       { key: 'senare', label: 'Senare', open: () => openSenarePanel() },
       { key: 'notiser', label: 'Notiser', open: () => openNotiser() },
       { key: 'skickat', label: 'Skickat', open: () => openSkickat() },
+      { key: 'portalmetrics', label: 'Portal', open: () => openPortalMetrics() },
       { key: 'patienthub', label: 'Dossier', open: () => openPatientHub() },
       { key: 'noshow', label: 'No-show', open: () => openNoShow() },
       { key: 'signaturer', label: 'Signering', open: () => openSignaturer() },
@@ -2781,6 +2782,85 @@
       }
     });
     openModal({ title: 'Notiser', wide: true, tabs: panelTabs('notiser'), body: frame });
+  }
+
+  // ─── PORTAL — adoptionsmätning ───────────────────────────────────────
+  // Visar hur väl den fria portal-kanalen ersätter SMS/mail: volym, engagemang,
+  // nudge-konvertering, aktiva länkar. Läser /portal-metrics (analytics.read_team).
+  function openPortalMetrics() {
+    const body = el('div', {
+      style: 'padding:16px;overflow:auto;height:100%;background:#fff;border-radius:14px',
+    });
+    body.appendChild(
+      el('div', { style: 'font-size:12px;color:#8a8174' }, 'Hämtar portal-statistik…')
+    );
+    openModal({ title: '★ Portal — adoption', wide: true, tabs: panelTabs('portalmetrics'), body });
+
+    const card = (label, value, sub) =>
+      el(
+        'div',
+        {
+          style:
+            'flex:1;min-width:140px;border:1px solid rgba(120,100,90,.16);border-radius:12px;padding:12px 14px;background:#faf6f2',
+        },
+        [
+          el('div', { style: 'font-size:22px;font-weight:800;color:#2b251f' }, String(value)),
+          el('div', { style: 'font-size:11px;color:#8a8174;margin-top:2px' }, label),
+          sub ? el('div', { style: 'font-size:10.5px;color:#a89f92;margin-top:2px' }, sub) : null,
+        ].filter(Boolean)
+      );
+
+    (async () => {
+      try {
+        const r = await fetch('/api/v1/cco/runtime/portal-metrics', {
+          cache: 'no-store',
+          headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.metrics) throw new Error(j.error || 'kunde inte läsa statistik');
+        const m = j.metrics;
+        const conv =
+          m.derived?.nudgeConversion == null
+            ? '—'
+            : Math.round(m.derived.nudgeConversion * 100) + '%';
+        body.innerHTML = '';
+        const row = el('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, [
+          card('Sparade SMS', m.derived?.estimatedSmsAvoided || 0, 'portalmeddelanden totalt'),
+          card(
+            'Portal-meddelanden',
+            m.messages?.total || 0,
+            (m.messages?.inbound || 0) + ' in · ' + (m.messages?.outbound || 0) + ' ut'
+          ),
+          card('Engagerade patienter', m.messages?.patientsEngaged || 0, 'skrev själva i portalen'),
+          card('Nudge-konvertering', conv, (m.nudges?.prepared || 0) + ' nudgar förberedda'),
+          card(
+            'Aktiva länkar',
+            m.access?.active || 0,
+            (m.access?.total || 0) + ' utfärdade · ' + (m.access?.revoked || 0) + ' återkallade'
+          ),
+        ]);
+        body.appendChild(row);
+        body.appendChild(
+          el(
+            'p',
+            { style: 'font-size:11px;color:#a89f92;margin-top:14px' },
+            'Varje portal-meddelande är ett meddelande som annars kunde ha gått som SMS. ' +
+              'Uppdaterad ' +
+              (m.generatedAt ? new Date(m.generatedAt).toLocaleString('sv-SE') : 'nyss') +
+              '.'
+          )
+        );
+      } catch (e) {
+        body.innerHTML = '';
+        body.appendChild(
+          el(
+            'div',
+            { style: 'font-size:12px;color:#b94a4a' },
+            'Kunde inte läsa portal-statistik just nu.'
+          )
+        );
+      }
+    })();
   }
 
   // ─── SKICKAT / KÖ → sektion inne i Svarstudio ────────────────────────
