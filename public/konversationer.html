@@ -1943,6 +1943,97 @@
         white-space: pre-wrap;
         color: var(--cco-color-brand);
       }
+      /* 4-stegs sändstege (artifact-design) — visualiserar sändkedjan */
+      .wb-send-stepper {
+        margin-top: 4px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        box-shadow:
+          0 1px 2px rgba(56, 40, 28, 0.05),
+          0 4px 10px rgba(56, 40, 28, 0.07);
+        padding: 13px 13px 11px;
+      }
+      .wb-sstep-kicker {
+        font:
+          800 9.5px Inter,
+          sans-serif;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin-bottom: 9px;
+      }
+      .wb-sstep-row {
+        display: flex;
+        align-items: flex-start;
+      }
+      .wb-sstep {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        position: relative;
+        text-align: center;
+      }
+      .wb-sstep::before {
+        content: '';
+        position: absolute;
+        top: 6px;
+        left: -50%;
+        width: 100%;
+        height: 2px;
+        background: rgba(120, 105, 90, 0.16);
+        z-index: 0;
+      }
+      .wb-sstep:first-child::before {
+        display: none;
+      }
+      .wb-sdot {
+        width: 13px;
+        height: 13px;
+        border-radius: 999px;
+        background: rgba(120, 105, 90, 0.22);
+        border: 2px solid var(--cco-bg-surface);
+        box-shadow: 0 0 0 1px rgba(120, 105, 90, 0.2);
+        z-index: 1;
+      }
+      .wb-sstep.is-active .wb-sdot {
+        background: var(--accent-studio);
+        box-shadow: 0 0 0 3px rgba(187, 71, 121, 0.24);
+      }
+      .wb-sstep.is-done .wb-sdot {
+        background: var(--cco-status-success);
+        box-shadow: 0 0 0 1px var(--cco-status-success);
+      }
+      .wb-sst {
+        font:
+          800 11px Inter,
+          sans-serif;
+        color: var(--cco-text-secondary);
+      }
+      .wb-sstep.is-active .wb-sst {
+        color: var(--accent-studio);
+      }
+      .wb-sstep.is-done .wb-sst {
+        color: var(--cco-status-success);
+      }
+      .wb-sss {
+        font:
+          600 9px Inter,
+          sans-serif;
+        color: var(--cco-text-tertiary);
+      }
+      .wb-sstep-lock {
+        margin-top: 11px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: rgba(200, 130, 30, 0.12);
+        border: 1px solid rgba(200, 130, 30, 0.28);
+        font-size: 10.5px;
+        line-height: 1.45;
+        color: var(--cco-text-secondary);
+      }
       .wb-chip-row-sect {
         display: flex;
         gap: 10px;

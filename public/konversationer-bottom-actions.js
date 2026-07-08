@@ -1257,6 +1257,44 @@
     );
     replyBlock.appendChild(smartActions);
 
+    // 4-stegs sändstege — visualiserar den kontrollerade sändkedjan.
+    // Rent presentationslager: speglar draft-status, ändrar INGEN sändlogik.
+    const STEP_DEFS = [
+      { key: 'draft', label: 'Utkast', sub: 'du' },
+      { key: 'needs_approval', label: 'Granskad', sub: 'operatör' },
+      { key: 'approved', label: 'Godkänd', sub: 'owner' },
+      { key: 'sent', label: 'Skickad', sub: 'Graph' },
+    ];
+    const stepEls = STEP_DEFS.map((s) =>
+      el('div', { class: 'wb-sstep' }, [
+        el('span', { class: 'wb-sdot' }),
+        el('span', { class: 'wb-sst' }, s.label),
+        el('span', { class: 'wb-sss' }, s.sub),
+      ])
+    );
+    function renderStepper(status) {
+      const order = ['draft', 'needs_approval', 'approved', 'sent'];
+      let idx = order.indexOf(status);
+      if (idx < 0) idx = 0;
+      stepEls.forEach((elm, i) => {
+        elm.classList.remove('is-done', 'is-active');
+        if (i < idx) elm.classList.add('is-done');
+        else if (i === idx) elm.classList.add('is-active');
+      });
+    }
+    renderStepper('draft');
+    replyBlock.appendChild(
+      el('div', { class: 'wb-send-stepper' }, [
+        el('div', { class: 'wb-sstep-kicker' }, 'Sändsäkerhet'),
+        el('div', { class: 'wb-sstep-row' }, stepEls),
+        el(
+          'div',
+          { class: 'wb-sstep-lock' },
+          '🔒 Live-utskick är avstängt. Ett svar går utkast → granskning → owner-godkännande innan något lämnar systemet.'
+        ),
+      ])
+    );
+
     main.appendChild(replyBlock);
 
     // ─── Workbench-grid wrapper ──────────────────────────────────────
@@ -1327,6 +1365,7 @@
           if (!j2.ok) throw new Error(j2.error || 'transition');
           auditStudioEvent('studio.transitioned', { draftId: state.draftId, to: targetStatus });
         }
+        renderStepper(targetStatus || 'draft');
         return true;
       } catch (e) {
         toast('✗ ' + e.message, 'err');
