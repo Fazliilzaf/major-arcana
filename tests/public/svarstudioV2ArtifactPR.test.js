@@ -34,29 +34,30 @@ test('v2 monteras i isolerad shadow-DOM och laddar assets', () => {
   assert.match(source, /const USE_SVARSTUDIO_V2 = true/);
   assert.match(source, /async function mountSvarstudioV2\(/);
   assert.match(source, /attachShadow\(\{ mode: 'open' \}\)/);
-  assert.match(source, /SVARSTUDIO_V2_ASSET_VERSION = '20260708a-svarstudio-cache'/);
+  assert.match(source, /SVARSTUDIO_V2_ASSET_VERSION = '20260708c-svarstudio-cache'/);
   assert.match(source, /fetch\('\/svarstudio-v2\.css' \+ cacheBust, \{ cache: 'no-store' \}\)/);
   assert.match(source, /fetch\('\/svarstudio-v2\.html' \+ cacheBust, \{ cache: 'no-store' \}\)/);
   // Öppnas före klassiska modalen, med fallback
   assert.match(source, /const mounted = await mountSvarstudioV2\(/);
 });
 
-test('v2 använder samma breda CCO-popup-ram som övriga paneler', () => {
-  assert.match(source, /width:98vw;height:96vh;max-width:none/);
-  assert.doesNotMatch(source, /max-width:1320px/);
-  assert.match(cssAsset, /\.wrap\s*\{[\s\S]*width:\s*100%[\s\S]*height:\s*100%/);
-  assert.match(cssAsset, /\.studio\s*\{[\s\S]*border-radius:\s*0[\s\S]*box-shadow:\s*none/);
+test('v2 monteras i STANDARD-panelmodalen (samma ram + storlek som övriga)', () => {
+  // Ingen egen backdrop längre — v2 använder openModal(wide) precis som Notiser,
+  // Skickat, Makron m.fl. → identisk ram, storlek och stäng.
+  assert.match(source, /openModal\(\{\s*title: '★ Svarstudio',\s*wide: true,/);
+  assert.doesNotMatch(source, /class: 'svarstudio-v2-backdrop'/);
+  assert.doesNotMatch(source, /width:98vw;height:96vh/);
+  // Shadow-host fyller modalkroppen
+  assert.match(source, /width:100%;height:100%;overflow:hidden/);
 });
 
-test('v2 visar CCO-panelernas flikrad och inte demo-hero', () => {
-  assert.match(htmlAsset, /id="v2PanelTabs"/);
-  assert.match(source, /panelTabs\('svarstudio'\)\.forEach/);
-  assert.match(source, /button\.textContent = tab\.label/);
-  assert.match(source, /close\(\);\s*tab\.open\(\);/);
-  assert.match(cssAsset, /\.v2-panel-tabs\s*\{/);
-  assert.match(cssAsset, /\.v2-panel-tab\.is-active\s*\{/);
+test('v2 visar CCO-panelernas standard-flikrad och döljer artifactens egen chrome', () => {
+  // Flikraden kommer från openModal (samma .action-modal-tabs som övriga paneler)
+  assert.match(source, /tabs: panelTabs\('svarstudio'\)/);
+  // Artifactens egen rubrik/verktygsrad döljs så bara panelmodalens huvud syns
+  assert.match(source, /\['\.ov-bar', '\.phead', '\.foot'\]\.forEach/);
+  // Demo-hjälten finns inte i markupen
   assert.doesNotMatch(htmlAsset, /Ett svar, med hela kunden i rummet/);
-  assert.doesNotMatch(htmlAsset, /Alla kanaler för en kund samlas i en tråd/);
   assert.doesNotMatch(htmlAsset, /id="themeBtn"/);
 });
 
@@ -111,6 +112,57 @@ test('kundtext: aldrig streck, ingen egen avslutshälsning (finns i signaturen)'
   const macroStart = source.indexOf('const bodies = {');
   const macroEnd = source.indexOf('};', macroStart);
   assert.doesNotMatch(source.slice(macroStart, macroEnd), /[—–]/);
+});
+
+test('kundkort/dossier: hämtas + renderas i fast kontext-yta, journal låst', () => {
+  // Hämtar dossiern från RBAC-endpointen
+  assert.match(source, /'\/api\/v1\/cco\/runtime\/customer\/'/);
+  assert.match(source, /function renderDossierMini\(dossier, note\)/);
+  assert.match(source, /cache: 'no-store'/);
+  assert.match(
+    source,
+    /headers: adminAuthHeaders\(\{ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT \}\)/
+  );
+  assert.match(htmlAsset, /id="customerDossier"/);
+  assert.match(cssAsset, /\.dossier-mini\s*\{/);
+  // Journalen visas bara som metadata — aldrig innehåll.
+  assert.match(source, /Journal: endast metadata visas här/);
+  assert.doesNotMatch(source, /journal\.body|journal\.note|entry\.body|entry\.note/);
+  // Fel får aldrig störa Svarstudion
+  assert.match(source, /Kundkort kunde inte laddas just nu/);
+});
+
+test('portal-chatt: läs inline + svara → outbound (aldrig live-send)', () => {
+  assert.match(source, /function renderPortalChat\(messages\)/);
+  assert.match(source, /async function loadPortalChat\(\)/);
+  assert.match(source, /Portal-chatt/);
+  // Läsning + klinik-svar mot portal-endpointsen
+  assert.match(source, /\/portal-messages'/);
+  assert.match(source, /'\/portal-message',\s*\{\s*method: 'POST'/);
+  // Portal-svar går ALDRIG via Graph/live-send
+  assert.doesNotMatch(source, /portal-message[\s\S]{0,200}\/send'/);
+});
+
+test('magisk länk (steg 5): knapp myntar token + infogar länken i det godkända mailet', () => {
+  // Knapp finns och kallar utfärdnings-endpointen (portal.write).
+  assert.match(source, /id="portalLinkBtn"/);
+  assert.match(source, /'\/portal-access',\s*\{\s*method: 'POST'/);
+  // Länken infogas i editorn → leverans sker i den kontrollerade mailkedjan.
+  assert.match(source, /editor\.value =[\s\S]{0,160}\+ line;/);
+  assert.match(source, /syncBodyFromEditor\(\)/);
+  // Utfärdningen får ALDRIG dra igång live-send.
+  assert.doesNotMatch(source, /portal-access[\s\S]{0,200}\/send'/);
+});
+
+test('länkhantering: rotera + återkalla-knappar mot befintliga endpoints', () => {
+  assert.match(source, /id="portalRotateBtn"/);
+  assert.match(source, /id="portalRevokeBtn"/);
+  // Rotera/återkalla går mot /portal-access/rotate resp. /revoke.
+  assert.match(source, /portal-access' \+ suffix/);
+  assert.match(source, /postPortalAccess\('\/rotate'\)/);
+  assert.match(source, /postPortalAccess\('\/revoke'\)/);
+  // Återkalla bekräftas innan den stänger av länken.
+  assert.match(source, /Återkalla kundens portal-länk\?/);
 });
 
 test('v2 rör INTE live-send: inget /send-anrop, ingen sent-transition', () => {

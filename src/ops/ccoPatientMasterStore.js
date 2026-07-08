@@ -760,6 +760,19 @@ async function createCcoPatientMasterStore({ filePath }) {
     return found ? clonePatient(found) : null;
   }
 
+  async function findPatientByPhone({ tenantId, phone } = {}) {
+    // phoneMatchKey (sista 9 siffror) förenar svenska format: 070…, +4670…, 004670…
+    const key = phoneMatchKey(phone);
+    if (!key) return null;
+    const bucket = tenantBucket(state, tenantId);
+    const found = bucket.patients.find((item) => {
+      if (item.matchStatus === 'merged') return false;
+      if (phoneMatchKey(item.primaryPhone) === key) return true;
+      return asArray(item.phones).some((value) => phoneMatchKey(value) === key);
+    });
+    return found ? clonePatient(found) : null;
+  }
+
   function applyPatientPatch(input = {}) {
     const normalized = normalizePatientRecord(input);
     if (!normalized.tenantId) throw new Error('tenantId saknas.');
@@ -1517,6 +1530,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     setAttendance,
     dismissMergeReviewGroup,
     findPatientByEmail,
+    findPatientByPhone,
     getPatient,
     getTenantStats,
     hardDeleteStubPatients,

@@ -364,6 +364,8 @@
       { key: 'senare', label: 'Senare', open: () => openSenarePanel() },
       { key: 'notiser', label: 'Notiser', open: () => openNotiser() },
       { key: 'skickat', label: 'Skickat', open: () => openSkickat() },
+      { key: 'portalmetrics', label: 'Portal', open: () => openPortalMetrics() },
+      { key: 'nyttmail', label: '✉ Nytt mail', open: () => openComposeNewMail() },
       { key: 'patienthub', label: 'Dossier', open: () => openPatientHub() },
       { key: 'noshow', label: 'No-show', open: () => openNoShow() },
       { key: 'signaturer', label: 'Signering', open: () => openSignaturer() },
@@ -605,7 +607,7 @@
   // Laddar svarstudio-v2.css/.html, binder trådens riktiga data och kopplar
   // kontrollerna till EXAKT samma sänd-endpoints som klassiska modalen (upp
   // till needs_approval). Live-send förblir serverspärrat.
-  const SVARSTUDIO_V2_ASSET_VERSION = '20260708a-svarstudio-cache';
+  const SVARSTUDIO_V2_ASSET_VERSION = '20260708c-svarstudio-cache';
   let _svarstudioV2Assets = null;
   async function loadSvarstudioV2Assets() {
     if (_svarstudioV2Assets) return _svarstudioV2Assets;
@@ -629,82 +631,31 @@
   async function mountSvarstudioV2({ ctx, state, mailboxes, recipientEmail, customerId }) {
     const { css, html } = await loadSvarstudioV2Assets();
 
-    // Overlay + isolerad shadow-host (artifactens CSS kan inte läcka till sidan).
-    document
-      .querySelectorAll('.action-modal-backdrop, .svarstudio-v2-backdrop')
-      .forEach((n) => n.remove());
-    const backdrop = el('div', {
-      class: 'svarstudio-v2-backdrop',
-      role: 'dialog',
-      'aria-modal': 'true',
-      style:
-        'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;' +
-        'justify-content:center;overflow:hidden;padding:24px;' +
-        'background:rgba(56,40,28,.32);backdrop-filter:blur(4px)',
-    });
+    // Montera artifacten i STANDARD-panelmodalen — samma ram, flikrad och
+    // storlek (wide) som övriga CCO-paneler, så Svarstudio blir enhetlig. Shadow-
+    // host isolerar fortfarande artifactens 141 egna klasser från sidan.
     const host = el('div', {
-      style:
-        'display:block;width:98vw;height:96vh;max-width:none;margin:0;' +
-        'border-radius:22px;overflow:hidden',
+      style: 'display:block;width:100%;height:100%;overflow:hidden',
     });
     const root = host.attachShadow({ mode: 'open' });
     root.innerHTML = '<style>' + css + '</style>' + html;
-    backdrop.appendChild(host);
-    const close = () => backdrop.remove();
-    backdrop.addEventListener('click', (e) => {
-      if (e.target === backdrop) close();
-    });
-    document.addEventListener('keydown', function esc(e) {
-      if (e.key === 'Escape') {
-        close();
-        document.removeEventListener('keydown', esc);
-      }
-    });
     const $ = (sel) => root.querySelector(sel);
     const $$ = (sel) => Array.from(root.querySelectorAll(sel));
 
-    const tabsWrap = $('#v2PanelTabs');
-    if (tabsWrap) {
-      tabsWrap.textContent = '';
-      panelTabs('svarstudio').forEach((tab) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'v2-panel-tab' + (tab.active ? ' is-active' : '');
-        button.textContent = tab.label;
-        button.setAttribute('role', 'tab');
-        button.setAttribute('aria-selected', tab.active ? 'true' : 'false');
-        button.addEventListener('click', () => {
-          if (tab.active || typeof tab.open !== 'function') return;
-          close();
-          tab.open();
-        });
-        tabsWrap.appendChild(button);
-      });
-    }
+    // Artifactens egen rubrik/verktygsrad (hjälte + ov-bar med tabbar/pillar)
+    // ersätts av panelmodalens huvud: titel + standard-flikrad + stäng. Det tar
+    // bort den extra vita ramen och ger identisk flikrad som övriga paneler.
+    ['.ov-bar', '.phead', '.foot'].forEach((sel) => {
+      const n = $(sel);
+      if (n) n.style.display = 'none';
+    });
 
-    // theme-toggle → sätt data-theme på host (:host([data-theme]) i CSS:en)
-    const themeBtn = $('#themeBtn');
-    if (themeBtn) {
-      themeBtn.addEventListener('click', () => {
-        const cur =
-          host.getAttribute('data-theme') ||
-          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        const next = cur === 'dark' ? 'light' : 'dark';
-        host.setAttribute('data-theme', next);
-        const lbl = $('#themeLbl');
-        if (lbl) lbl.textContent = next === 'dark' ? 'Ljust' : 'Mörkt';
-      });
-    }
-    // ov-bar: håll samma enkla stängknapp som övriga CCO-popups.
-    const headerButtons = $$('.ov-bar .ibtn');
-    const ibtn = headerButtons[0];
-    if (ibtn) {
-      ibtn.setAttribute('aria-label', 'Stäng');
-      ibtn.classList.add('ibtn-close');
-      ibtn.textContent = '×';
-      ibtn.addEventListener('click', close);
-    }
-    headerButtons.slice(1).forEach((button) => button.remove());
+    openModal({
+      title: '★ Svarstudio',
+      wide: true,
+      tabs: panelTabs('svarstudio'),
+      body: host,
+    });
 
     // ── Bind trådens riktiga data ─────────────────────────────────────
     const setText = (sel, val) => {
@@ -1144,8 +1095,386 @@
       if (panel) panel.innerHTML = '<b>★ AI-sammanfattning.</b> ' + cleanText(ctx.aiSummary);
     }
 
-    // Initial render
-    document.body.appendChild(backdrop);
+    // ── Kundkort/dossier (fas 1, steg 3) ─────────────────────────────────
+    // Hämtar "all info om kunden" från RBAC-endpointen. Journalinnehåll finns
+    // aldrig i svaret: Svarstudion visar bara metadata som antal + senaste datum.
+    function dossierCountLabel(count, singular, plural) {
+      const n = Math.max(0, Number(count) || 0);
+      return n + ' ' + (n === 1 ? singular : plural);
+    }
+    function dossierDateLabel(value) {
+      const raw = cleanText(value);
+      if (!raw) return '';
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return raw.slice(0, 16);
+      return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    function renderDossierMini(dossier, note) {
+      const box = $('#customerDossier');
+      if (!box) return;
+      const body = box.querySelector('.dossier-mini__body');
+      if (!body) return;
+      body.innerHTML = '';
+      if (!dossier) {
+        body.appendChild(el('p', { class: 'dossier-mini__empty' }, note || 'Kundkort saknas.'));
+        return;
+      }
+      const name = cleanText(dossier.identity?.name);
+      const emails = Array.isArray(dossier.contact?.emails) ? dossier.contact.emails : [];
+      const phones = Array.isArray(dossier.contact?.phones) ? dossier.contact.phones : [];
+      if (name) setText('.kk-name', name);
+      if (emails[0] && kkLines[0]) kkLines[0].lastChild.textContent = ' ' + emails[0];
+      if (phones[0] && kkLines[1]) kkLines[1].lastChild.textContent = ' ' + phones[0];
+
+      const portalCount = dossier.portal?.count || 0;
+      const portalUnread = dossier.portal?.unread || 0;
+      const metrics = [
+        dossierCountLabel(dossier.bookings?.count, 'bokning', 'bokningar'),
+        dossierCountLabel((dossier.cases || []).length, 'ärende', 'ärenden'),
+        dossierCountLabel(portalCount, 'portalmeddelande', 'portalmeddelanden') +
+          (portalUnread ? ' · ' + portalUnread + ' olästa' : ''),
+        dossierCountLabel(dossier.threads?.count, 'tråd', 'trådar'),
+        dossierCountLabel(dossier.journal?.count, 'journalpost', 'journalposter'),
+      ];
+      const latestJournal = dossierDateLabel(dossier.journal?.latestAt);
+      body.appendChild(
+        el(
+          'div',
+          { class: 'dossier-mini__metrics' },
+          metrics.map((m) => el('span', {}, m))
+        )
+      );
+      body.appendChild(
+        el(
+          'p',
+          { class: 'dossier-mini__safe' },
+          latestJournal
+            ? 'Journal: endast metadata visas här · senaste ' + latestJournal
+            : 'Journal: endast metadata visas här.'
+        )
+      );
+      const nextBooking = Array.isArray(dossier.bookings?.upcoming)
+        ? dossier.bookings.upcoming[0]
+        : null;
+      const openCase = Array.isArray(dossier.cases) ? dossier.cases[0] : null;
+      const journey = dossier.journey || null;
+      const journeyLabel = journey ? cleanText(journey.stepLabel || journey.step) : '';
+      const journeyBit = journeyLabel
+        ? 'Resa: ' +
+          journeyLabel +
+          (journey.sideState ? ' (' + cleanText(journey.sideState) + ')' : '') +
+          (journey.totalSteps
+            ? ' · ' + (journey.completedCount || 0) + '/' + journey.totalSteps + ' steg'
+            : '')
+        : '';
+      const summaryBits = [
+        journeyBit,
+        nextBooking
+          ? 'Nästa bokning: ' +
+            [nextBooking.service, dossierDateLabel(nextBooking.startsAt)]
+              .filter(Boolean)
+              .join(' · ')
+          : '',
+        openCase
+          ? 'Senaste ärende: ' + [openCase.title, openCase.status].filter(Boolean).join(' · ')
+          : '',
+        dossier.threads?.needsReply ? dossier.threads.needsReply + ' trådar behöver svar' : '',
+      ].filter(Boolean);
+      if (summaryBits.length) {
+        body.appendChild(
+          el(
+            'ul',
+            { class: 'dossier-mini__list' },
+            summaryBits.map((item) => el('li', {}, item))
+          )
+        );
+      }
+      const panel = $('#ctxPanel');
+      if (panel) {
+        panel.innerHTML =
+          '<b>Kundkort.</b> ' +
+          cleanText(
+            [
+              name || ctx.customerName || 'Vald kund',
+              metrics.join(' · '),
+              latestJournal ? 'senaste journalmetadata ' + latestJournal : '',
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          );
+      }
+    }
+    async function loadDossierMini() {
+      const id = cleanText(customerId || ctx.customerId || recipientEmail || ctx.email);
+      if (!id) {
+        renderDossierMini(null, 'Välj en kundtråd för att läsa kundkort.');
+        return;
+      }
+      try {
+        const params = new URLSearchParams();
+        const email = firstCustomerEmailValue(recipientEmail, ctx.email, ctx.customerEmail);
+        if (email) params.set('email', email);
+        if (ctx.conversationKey) params.set('conversationKey', ctx.conversationKey);
+        const qs = params.toString();
+        const r = await fetch(
+          '/api/v1/cco/runtime/customer/' +
+            encodeURIComponent(id) +
+            '/dossier' +
+            (qs ? '?' + qs : ''),
+          {
+            cache: 'no-store',
+            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+          }
+        );
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.dossier) throw new Error(j.error || 'kundkort saknas');
+        renderDossierMini(j.dossier);
+      } catch (_error) {
+        renderDossierMini(null, 'Kundkort kunde inte laddas just nu.');
+      }
+    }
+    renderDossierMini(null, 'Hämtar lokalt kundkort…');
+    loadDossierMini();
+
+    // ── Portal-chatt (Fas 2, steg 4b): läs + svara inline i den fria kanalen ──
+    // Rent tillägg i konversationsytan. Klinik-svar går till outbound-endpointen
+    // (mail.send), aldrig via Graph/live-send. Fel får aldrig störa Svarstudion.
+    function renderPortalChat(messages) {
+      const anchor = $('#rollup') || $('.msgs') || $('.main');
+      if (!anchor || !anchor.parentNode) return;
+      const esc = (s) =>
+        String(s == null ? '' : s).replace(
+          /[&<>"]/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
+        );
+      let panel = $('#portalChat');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'portalChat';
+        panel.className = 'block';
+        panel.style.marginTop = '10px';
+        anchor.parentNode.insertBefore(panel, anchor.nextSibling);
+      }
+      const bubbles =
+        (messages || [])
+          .map((m) => {
+            const out = m.direction === 'outbound';
+            return (
+              '<div style="display:flex;justify-content:' +
+              (out ? 'flex-end' : 'flex-start') +
+              ';margin:4px 0"><div style="max-width:78%;padding:7px 10px;border-radius:12px;font-size:12px;line-height:1.4;' +
+              (out
+                ? 'background:var(--rose-grad);color:var(--studio-ink)'
+                : 'background:var(--sunken);color:var(--ink)') +
+              '">' +
+              esc(m.body) +
+              '</div></div>'
+            );
+          })
+          .join('') ||
+        '<div style="font-size:11px;color:var(--ink-3);padding:4px 0">Inga portal-meddelanden än.</div>';
+      panel.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">' +
+        '<div class="glabel">★ Portal-chatt (fri kanal)</div>' +
+        '<div style="display:flex;gap:6px">' +
+        '<button id="portalLinkBtn" type="button" title="Skapa en magisk länk och infoga den i svaret — kunden chattar då gratis i portalen istället för via SMS" ' +
+        'style="border:1px solid var(--line-soft);border-radius:8px;padding:4px 9px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;background:var(--field-bg);color:var(--studio)">🔗 Skapa portal-länk</button>' +
+        '<button id="portalRotateBtn" type="button" title="Rotera länken (t.ex. vid läck-misstanke) — gamla länken slutar gälla och en ny infogas i svaret" ' +
+        'style="border:1px solid var(--line-soft);border-radius:8px;padding:4px 8px;font:inherit;font-size:11px;cursor:pointer;background:var(--field-bg);color:var(--ink-3)">⟳</button>' +
+        '<button id="portalRevokeBtn" type="button" title="Återkalla länken — kunden kan inte längre öppna portalen förrän en ny länk skapas" ' +
+        'style="border:1px solid var(--line-soft);border-radius:8px;padding:4px 8px;font:inherit;font-size:11px;cursor:pointer;background:var(--field-bg);color:var(--ink-3)">⊘</button>' +
+        '</div>' +
+        '</div>' +
+        '<div style="max-height:180px;overflow:auto">' +
+        bubbles +
+        '</div>' +
+        '<div style="display:flex;gap:6px;margin-top:6px">' +
+        '<input id="portalReplyInput" type="text" placeholder="Svara i portalen…" ' +
+        'style="flex:1;min-width:0;border:1px solid var(--line-soft);border-radius:8px;padding:6px 8px;font:inherit;font-size:12px;background:var(--field-bg);color:var(--ink)">' +
+        '<button id="portalReplyBtn" type="button" style="border:0;border-radius:8px;padding:6px 12px;' +
+        'font:inherit;font-size:12px;font-weight:700;cursor:pointer;background:var(--studio);color:#fff">Skicka</button>' +
+        '</div>';
+      // "Skapa portal-länk": myntar patientens magiska länk och INFOGAR den i
+      // svaret. Leveransen sker alltså i den kontrollerade mailkedjan (staff
+      // godkänner som vanligt) — vi skickar aldrig något direkt härifrån.
+      const linkBtn = panel.querySelector('#portalLinkBtn');
+      if (linkBtn) {
+        linkBtn.addEventListener('click', async () => {
+          linkBtn.disabled = true;
+          const original = linkBtn.textContent;
+          try {
+            const id = cleanText(customerId || ctx.customerId);
+            if (!id) return;
+            const r = await fetch(
+              '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-access',
+              {
+                method: 'POST',
+                headers: adminAuthHeaders({
+                  'Content-Type': 'application/json',
+                  'x-cco-role': ROLE,
+                  'x-cco-tenant': TENANT,
+                }),
+              }
+            );
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.url) {
+              const line =
+                'Du kan skriva till oss direkt i din trygga portal (inget SMS behövs): ' + j.url;
+              // Infoga i svaret så länken går ut i det godkända mailet.
+              if (typeof editor !== 'undefined' && editor) {
+                editor.value =
+                  (editor.value ? editor.value.replace(/\s*$/, '') + '\n\n' : '') + line;
+                syncBodyFromEditor();
+              }
+              try {
+                await navigator.clipboard?.writeText(j.url);
+              } catch (_c) {
+                /* clipboard valfritt */
+              }
+              linkBtn.textContent = '✓ Länk infogad';
+              setTimeout(() => {
+                linkBtn.textContent = original;
+              }, 2000);
+            }
+          } catch (_e) {
+            /* tillägg — stör aldrig Svarstudion */
+          } finally {
+            linkBtn.disabled = false;
+          }
+        });
+      }
+      // Infoga en (roterad/ny) länk i svaret + kopiera. Delad med rotera-knappen.
+      function insertPortalLink(url) {
+        const line = 'Du kan skriva till oss direkt i din trygga portal (inget SMS behövs): ' + url;
+        if (typeof editor !== 'undefined' && editor) {
+          editor.value = (editor.value ? editor.value.replace(/\s*$/, '') + '\n\n' : '') + line;
+          syncBodyFromEditor();
+        }
+        try {
+          navigator.clipboard?.writeText(url);
+        } catch (_c) {
+          /* clipboard valfritt */
+        }
+      }
+      async function postPortalAccess(suffix) {
+        const id = cleanText(customerId || ctx.customerId);
+        if (!id) return { ok: false };
+        const r = await fetch(
+          '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-access' + suffix,
+          {
+            method: 'POST',
+            headers: adminAuthHeaders({
+              'Content-Type': 'application/json',
+              'x-cco-role': ROLE,
+              'x-cco-tenant': TENANT,
+            }),
+          }
+        );
+        const j = await r.json().catch(() => ({}));
+        return { ok: r.ok, j };
+      }
+      // Rotera: återkalla nuvarande + infoga en ny länk i svaret.
+      const rotateBtn = panel.querySelector('#portalRotateBtn');
+      if (rotateBtn) {
+        rotateBtn.addEventListener('click', async () => {
+          rotateBtn.disabled = true;
+          const original = rotateBtn.textContent;
+          try {
+            const { ok, j } = await postPortalAccess('/rotate');
+            if (ok && j.url) {
+              insertPortalLink(j.url);
+              rotateBtn.textContent = '✓';
+              setTimeout(() => {
+                rotateBtn.textContent = original;
+              }, 1500);
+            }
+          } catch (_e) {
+            /* tillägg — stör aldrig Svarstudion */
+          } finally {
+            rotateBtn.disabled = false;
+          }
+        });
+      }
+      // Återkalla: stäng av länken (bekräftas först).
+      const revokeBtn = panel.querySelector('#portalRevokeBtn');
+      if (revokeBtn) {
+        revokeBtn.addEventListener('click', async () => {
+          if (typeof confirm === 'function' && !confirm('Återkalla kundens portal-länk?')) return;
+          revokeBtn.disabled = true;
+          const original = revokeBtn.textContent;
+          try {
+            const { ok, j } = await postPortalAccess('/revoke');
+            if (ok && j.revoked) {
+              revokeBtn.textContent = '✓ Återkallad';
+              setTimeout(() => {
+                revokeBtn.textContent = original;
+              }, 1800);
+            }
+          } catch (_e) {
+            /* tillägg — stör aldrig Svarstudion */
+          } finally {
+            revokeBtn.disabled = false;
+          }
+        });
+      }
+      const btn = panel.querySelector('#portalReplyBtn');
+      const input = panel.querySelector('#portalReplyInput');
+      if (btn && input) {
+        btn.addEventListener('click', async () => {
+          const body = input.value.trim();
+          if (!body) return;
+          btn.disabled = true;
+          try {
+            const id = cleanText(customerId || ctx.customerId);
+            const r = await fetch(
+              '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-message',
+              {
+                method: 'POST',
+                headers: adminAuthHeaders({
+                  'Content-Type': 'application/json',
+                  'x-cco-role': ROLE,
+                  'x-cco-tenant': TENANT,
+                }),
+                body: JSON.stringify({ body }),
+              }
+            );
+            if (r.ok) {
+              input.value = '';
+              loadPortalChat();
+            }
+          } catch (_e) {
+            /* tillägg — stör aldrig Svarstudion */
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      }
+    }
+    async function loadPortalChat() {
+      const id = cleanText(customerId || ctx.customerId);
+      if (!id) return;
+      try {
+        const r = await fetch(
+          '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-messages',
+          {
+            cache: 'no-store',
+            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+          }
+        );
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.messages) renderPortalChat(j.messages);
+      } catch (_e) {
+        /* portal-chatt är ett tillägg — fel får aldrig störa Svarstudion */
+      }
+    }
+    loadPortalChat();
+
+    const qaDossier = $('.qa--dossier');
+    if (qaDossier) qaDossier.addEventListener('click', () => openPatientHub(ctx));
+    const qaSign = $('.qa--sign');
+    if (qaSign) qaSign.addEventListener('click', () => openSignaturer(ctx));
+
+    // Initial render (modalen är redan monterad av openModal ovan)
     pressSig('Fazli Krasniqi');
     const pressedMbx =
       $$('#mailboxPicker .mailbox-opt').find((o) => o.getAttribute('aria-pressed') === 'true') ||
@@ -2454,6 +2783,242 @@
       }
     });
     openModal({ title: 'Notiser', wide: true, tabs: panelTabs('notiser'), body: frame });
+  }
+
+  // ─── PORTAL — adoptionsmätning ───────────────────────────────────────
+  // Visar hur väl den fria portal-kanalen ersätter SMS/mail: volym, engagemang,
+  // nudge-konvertering, aktiva länkar. Läser /portal-metrics (analytics.read_team).
+  // ─── NYTT MAIL → komponera till en ny mottagare ──────────────────────
+  // Skapar en enkel kontakt + ett needs_approval-utkast med vald sändkanal
+  // (kons@ via Graph / Resend). Skickar aldrig direkt — personal godkänner.
+  function openComposeNewMail() {
+    const body = el('div', {
+      style: 'padding:16px;overflow:auto;height:100%;background:#fff;border-radius:14px',
+    });
+    const field = (labelText, inputEl) =>
+      el('label', { style: 'display:block;margin-bottom:10px' }, [
+        el('div', { style: 'font-size:11px;color:#8a8174;margin-bottom:3px' }, labelText),
+        inputEl,
+      ]);
+    const inputStyle =
+      'width:100%;border:1px solid var(--line-soft,#e3dcd4);border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;background:#fff;color:#2b251f';
+    const nameEl = el('input', { type: 'text', placeholder: 'Namn (valfritt)', style: inputStyle });
+    const emailEl = el('input', {
+      type: 'email',
+      placeholder: 'mottagare@example.com',
+      style: inputStyle,
+    });
+    const phoneEl = el('input', {
+      type: 'tel',
+      placeholder: 'Telefon (valfritt)',
+      style: inputStyle,
+    });
+    const channelEl = el('select', { style: inputStyle }, [
+      el('option', { value: 'graph' }, 'kons@ (vanligt mejl, kunden kan svara)'),
+      el('option', { value: 'resend' }, 'Resend (no-reply, svar till kons@)'),
+    ]);
+    const subjectEl = el('input', { type: 'text', placeholder: 'Ämne', style: inputStyle });
+    const bodyEl = el('textarea', {
+      placeholder: 'Skriv mailet…',
+      rows: '8',
+      style: inputStyle + ';resize:vertical;min-height:140px',
+    });
+    const status = el('div', { style: 'font-size:12px;margin-top:8px;min-height:16px' }, '');
+    const submit = el(
+      'button',
+      {
+        type: 'button',
+        style:
+          'border:0;border-radius:10px;padding:9px 16px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:var(--studio,#bb4779);color:#fff;margin-top:4px',
+      },
+      'Skapa utkast för godkännande'
+    );
+    submit.addEventListener('click', async () => {
+      const payload = {
+        recipientName: nameEl.value.trim(),
+        recipientEmail: emailEl.value.trim(),
+        recipientPhone: phoneEl.value.trim(),
+        channel: channelEl.value,
+        subject: subjectEl.value.trim(),
+        body: bodyEl.value.trim(),
+      };
+      if (!payload.recipientEmail || !payload.subject || !payload.body) {
+        status.textContent = 'Fyll i mottagare, ämne och text.';
+        status.style.color = '#b94a4a';
+        return;
+      }
+      submit.disabled = true;
+      status.textContent = 'Skapar utkast…';
+      status.style.color = '#8a8174';
+      try {
+        const r = await fetch('/api/v1/cco/runtime/compose-new-mail', {
+          method: 'POST',
+          headers: adminAuthHeaders({
+            'Content-Type': 'application/json',
+            'x-cco-role': ROLE,
+            'x-cco-tenant': TENANT,
+          }),
+          body: JSON.stringify(payload),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.status === 'prepared') {
+          status.textContent =
+            '✓ Utkast skapat (' +
+            (j.contactCreated ? 'ny kontakt, ' : '') +
+            'väntar på godkännande). Godkänn i Skickat/kön.';
+          status.style.color = '#4a8268';
+          subjectEl.value = '';
+          bodyEl.value = '';
+        } else {
+          status.textContent = 'Kunde inte skapa utkast: ' + (j.reason || j.error || 'okänt fel');
+          status.style.color = '#b94a4a';
+        }
+      } catch (_e) {
+        status.textContent = 'Nätverksfel — försök igen.';
+        status.style.color = '#b94a4a';
+      } finally {
+        submit.disabled = false;
+      }
+    });
+    body.appendChild(
+      el(
+        'p',
+        { style: 'font-size:12px;color:#8a8174;margin:0 0 14px' },
+        'Skicka ett nytt mail till en person som inte redan finns som tråd. En enkel ' +
+          'kontakt skapas och ett utkast läggs för godkännande — inget skickas direkt.'
+      )
+    );
+    body.appendChild(field('Mottagarens namn', nameEl));
+    body.appendChild(field('Mottagarens e-post', emailEl));
+    body.appendChild(field('Telefon', phoneEl));
+    body.appendChild(field('Skicka via', channelEl));
+    body.appendChild(field('Ämne', subjectEl));
+    body.appendChild(field('Meddelande', bodyEl));
+    body.appendChild(submit);
+    body.appendChild(status);
+    openModal({ title: '✉ Nytt mail', wide: true, tabs: panelTabs('nyttmail'), body });
+  }
+
+  function openPortalMetrics() {
+    const body = el('div', {
+      style: 'padding:16px;overflow:auto;height:100%;background:#fff;border-radius:14px',
+    });
+    body.appendChild(
+      el('div', { style: 'font-size:12px;color:#8a8174' }, 'Hämtar portal-statistik…')
+    );
+    openModal({ title: '★ Portal — adoption', wide: true, tabs: panelTabs('portalmetrics'), body });
+
+    const card = (label, value, sub) =>
+      el(
+        'div',
+        {
+          style:
+            'flex:1;min-width:140px;border:1px solid rgba(120,100,90,.16);border-radius:12px;padding:12px 14px;background:#faf6f2',
+        },
+        [
+          el('div', { style: 'font-size:22px;font-weight:800;color:#2b251f' }, String(value)),
+          el('div', { style: 'font-size:11px;color:#8a8174;margin-top:2px' }, label),
+          sub ? el('div', { style: 'font-size:10.5px;color:#a89f92;margin-top:2px' }, sub) : null,
+        ].filter(Boolean)
+      );
+
+    (async () => {
+      try {
+        const r = await fetch('/api/v1/cco/runtime/portal-metrics', {
+          cache: 'no-store',
+          headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.metrics) throw new Error(j.error || 'kunde inte läsa statistik');
+        const m = j.metrics;
+        const conv =
+          m.derived?.nudgeConversion == null
+            ? '—'
+            : Math.round(m.derived.nudgeConversion * 100) + '%';
+        body.innerHTML = '';
+        const row = el('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, [
+          card('Sparade SMS', m.derived?.estimatedSmsAvoided || 0, 'portalmeddelanden totalt'),
+          card(
+            'Portal-meddelanden',
+            m.messages?.total || 0,
+            (m.messages?.inbound || 0) + ' in · ' + (m.messages?.outbound || 0) + ' ut'
+          ),
+          card('Engagerade patienter', m.messages?.patientsEngaged || 0, 'skrev själva i portalen'),
+          card('Nudge-konvertering', conv, (m.nudges?.prepared || 0) + ' nudgar förberedda'),
+          card(
+            'Aktiva länkar',
+            m.access?.active || 0,
+            (m.access?.total || 0) + ' utfärdade · ' + (m.access?.revoked || 0) + ' återkallade'
+          ),
+        ]);
+        body.appendChild(row);
+        body.appendChild(
+          el(
+            'p',
+            { style: 'font-size:11px;color:#a89f92;margin-top:14px' },
+            'Varje portal-meddelande är ett meddelande som annars kunde ha gått som SMS. ' +
+              'Uppdaterad ' +
+              (m.generatedAt ? new Date(m.generatedAt).toLocaleString('sv-SE') : 'nyss') +
+              '.'
+          )
+        );
+        // Aktiveringsstatus (go-live-spegel): visar vilka utskick som är skarpa.
+        try {
+          const rr = await fetch('/api/v1/cco/runtime/portal-readiness', {
+            cache: 'no-store',
+            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+          });
+          const rj = await rr.json().catch(() => ({}));
+          if (rr.ok && rj.readiness) {
+            const r = rj.readiness;
+            const chip = (label, state) => {
+              const live = state === 'live' || state === 'active';
+              const warn = state === 'live_unverified';
+              const text = state === 'live_unverified' ? 'live · domän ej verifierad' : state;
+              const style = warn
+                ? 'background:rgba(200,130,30,.16);color:#c8821e'
+                : live
+                  ? 'background:rgba(74,130,104,.14);color:#4a8268'
+                  : 'background:#f2ece6;color:#8a8174';
+              return el(
+                'span',
+                {
+                  style:
+                    'display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:4px 9px;border-radius:999px;margin:3px 6px 3px 0;' +
+                    style,
+                },
+                (warn ? '▲ ' : live ? '● ' : '○ ') + label + ': ' + text
+              );
+            };
+            body.appendChild(
+              el(
+                'div',
+                { style: 'font-size:12px;font-weight:700;margin-top:16px;color:#2b251f' },
+                'Aktivering'
+              )
+            );
+            body.appendChild(
+              el('div', { style: 'margin-top:6px' }, [
+                chip('Patient-notis', r.patientNotify),
+                chip('SMS-nudge', r.smsNudge),
+                chip('Inbound-SMS', r.inboundSms),
+              ])
+            );
+          }
+        } catch (_r) {
+          /* readiness är ett tillägg — fel får inte störa panelen */
+        }
+      } catch (e) {
+        body.innerHTML = '';
+        body.appendChild(
+          el(
+            'div',
+            { style: 'font-size:12px;color:#b94a4a' },
+            'Kunde inte läsa portal-statistik just nu.'
+          )
+        );
+      }
+    })();
   }
 
   // ─── SKICKAT / KÖ → sektion inne i Svarstudio ────────────────────────

@@ -44,3 +44,10 @@ test('CCO asset QA mutation route requires real auth before asset.write', () => 
     'backfill route must check asset.write after attachRole'
   );
 });
+
+test('CCO asset download uses RFC 5987 filename encoding for non-ASCII filenames', () => {
+  const block = routeBlock('/api/v1/cco/assets/:assetId/download');
+  assert.match(serverSource, /function buildSafeContentDisposition/);
+  assert.match(serverSource, /filename\*=UTF-8''/);
+  assert.match(block, /buildSafeContentDisposition\(disposition, asset\.originalFileName/);
+});

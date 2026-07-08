@@ -26,6 +26,7 @@ const {
   collectDriveRowsForInternalization,
   internalizeDriveAssets,
   previewInternalizeCandidates,
+  PILOT_STRONG_DOCUMENT_DATE_SOURCES,
 } = require('../ops/ccoDriveAssetInternalization');
 const {
   buildOccasionTimeline,
@@ -113,6 +114,22 @@ function parseExcludeUnknownMonth(value, defaultValue = false) {
   if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
   if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
   return defaultValue;
+}
+
+function parseAllowedDocumentDateSources(value, requireDocumentDateSource = false) {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeText(item)).filter(Boolean);
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return value
+      .split(',')
+      .map((item) => normalizeText(item))
+      .filter(Boolean);
+  }
+  if (parseExcludeUnknownMonth(requireDocumentDateSource, false)) {
+    return [...PILOT_STRONG_DOCUMENT_DATE_SOURCES];
+  }
+  return null;
 }
 
 async function responseToBuffer(response) {
@@ -1555,8 +1572,20 @@ function createCcoPatientMasterRouter({
         const limit = clampPreviewLimit(req.body?.limit, 10);
         const offset = clampOffset(req.body?.offset);
         const excludeUnknownMonth = parseExcludeUnknownMonth(req.body?.excludeUnknownMonth, true);
+        const requireDocumentDateSource = parseExcludeUnknownMonth(
+          req.body?.requireDocumentDateSource,
+          true
+        );
+        const allowedDocumentDateSources = parseAllowedDocumentDateSources(
+          req.body?.allowedDocumentDateSources,
+          requireDocumentDateSource
+        );
         const includePilotWindow = parseExcludeUnknownMonth(req.body?.includePilotWindow, true);
         const pilotWindowSize = clampPreviewLimit(req.body?.pilotWindowSize, 10);
+        const maxPilotWindowSkipSamples = clampPreviewLimit(
+          req.body?.maxPilotWindowSkipSamples,
+          20
+        );
 
         const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
         const assetStore =
@@ -1587,8 +1616,11 @@ function createCcoPatientMasterRouter({
           offset,
           limit,
           excludeUnknownMonth,
+          requireDocumentDateSource,
+          allowedDocumentDateSources,
           pilotWindowSize,
           includePilotWindow,
+          maxPilotWindowSkipSamples,
         });
 
         return res.json({

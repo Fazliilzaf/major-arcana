@@ -45,5 +45,5 @@ test('PR16: alla 7 paneler skickar med flik-raden', () => {
 });
 
 test('PR16: cache-bust bumpad', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260708a-svarstudio-cache/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260708c-svarstudio-cache/);
 });

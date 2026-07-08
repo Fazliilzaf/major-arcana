@@ -26,8 +26,36 @@ function createPatientPortalRouter({
   auditLog = null,
   bookingCaseStore = null,
   journalPhotoStore = null,
+  // Fas 2 — fri patient↔klinik-kanal via magisk länk. Båda valfria: saknas de
+  // svarar meddelande-endpointsen 503 (funktionen ej aktiverad) utan att röra
+  // resten av portalen.
+  portalMessageStore = null,
+  portalAccessStore = null,
+  // Rate-limiter för de token-grindade meddelande-endpointsen. Injiceras i test;
+  // annars skapas en in-memory-limiter (30 req/min per token, faller till IP).
+  messageRateLimiter = null,
 }) {
   const router = express.Router();
+  const messagesJsonParser = express.json({ limit: '16kb' });
+
+  // Missbruksskydd: patientens meddelande-endpoints är token-grindade men publika.
+  // Begränsa per token (credentialen) med IP som fallback så en läckt/delad länk
+  // inte kan floodas. no-op degradering om limitern inte kan skapas.
+  let msgRateLimit = messageRateLimiter;
+  if (typeof msgRateLimit !== 'function') {
+    try {
+      const { createRateLimiter } = require('../security/rateLimit');
+      msgRateLimit = createRateLimiter({
+        windowMs: 60_000,
+        max: 30,
+        scope: 'patient-portal.messages',
+        keyGenerator: (req) => normalizeText(req.params?.accessToken) || String(req.ip || 'anon'),
+        message: 'För många förfrågningar mot portalen. Försök igen om en stund.',
+      });
+    } catch {
+      msgRateLimit = (_req, _res, next) => next();
+    }
+  }
   const followupPhotoUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 12 * 1024 * 1024, files: 1 },
@@ -632,6 +660,78 @@ function createPatientPortalRouter({
       journalEntriesCreated,
     });
   });
+
+  // ── Fas 2: portal-meddelanden (fri patient↔klinik-kanal) ────────────────
+  // Grindas av den magiska länkens access-token (resolveToken → kund), INTE av
+  // personal-RBAC. Patienten läser och skriver sina egna portal-meddelanden.
+  function resolvePortalAccess(req, res) {
+    if (!portalAccessStore || !portalMessageStore) {
+      res.status(503).json({ ok: false, error: 'portal_messaging_unavailable' });
+      return null;
+    }
+    const accessToken = normalizeText(req.params?.accessToken);
+    if (!accessToken) {
+      res.status(400).json({ ok: false, error: 'missing_token' });
+      return null;
+    }
+    const resolved = portalAccessStore.resolveToken(accessToken);
+    if (!resolved) {
+      logPortalAudit('portal.message.access_denied', {
+        ip: getClientIp(req),
+        outcome: 'invalid_token',
+      });
+      res.status(404).json({ ok: false, error: 'invalid_or_expired_link' });
+      return null;
+    }
+    return resolved;
+  }
+
+  // GET — patienten läser sina meddelanden. Markerar samtidigt INTE något läst
+  // (klinikens läsning styr kliniksidan; patientens läsning är passiv).
+  router.get('/patient-portal/:accessToken/messages', msgRateLimit, async (req, res) => {
+    const access = resolvePortalAccess(req, res);
+    if (!access) return;
+    try {
+      const messages = portalMessageStore.listMessagesForCustomer({
+        tenantId: access.tenantId,
+        customerId: access.customerId,
+      });
+      return res.json({ ok: true, messages });
+    } catch (error) {
+      return res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // POST — patienten skriver ett meddelande (inbound → klinik). Text, ingen bilaga.
+  router.post(
+    '/patient-portal/:accessToken/messages',
+    msgRateLimit,
+    messagesJsonParser,
+    async (req, res) => {
+      const access = resolvePortalAccess(req, res);
+      if (!access) return;
+      const body = normalizeText(req.body?.body);
+      if (!body) return res.status(400).json({ ok: false, error: 'missing_body' });
+      try {
+        const message = await portalMessageStore.appendMessage({
+          tenantId: access.tenantId,
+          customerId: access.customerId,
+          direction: 'inbound',
+          body,
+          author: 'patient',
+        });
+        logPortalAudit('portal.message.inbound', {
+          ip: getClientIp(req),
+          tenantId: access.tenantId,
+          patientId: access.customerId,
+          outcome: 'ok',
+        });
+        return res.status(201).json({ ok: true, message });
+      } catch (error) {
+        return res.status(400).json({ ok: false, error: error.message });
+      }
+    }
+  );
 
   return router;
 }

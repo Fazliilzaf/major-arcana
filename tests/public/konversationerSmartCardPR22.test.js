@@ -95,5 +95,5 @@ test('PR22: ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR22: konversationer.html cache-bustar efter smart-kort/bar', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260708a-svarstudio-cache/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260708c-svarstudio-cache/);
 });

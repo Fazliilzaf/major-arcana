@@ -226,6 +226,7 @@ async function processRawMessage({
   tenantId = '',
   healthDeclarationIngest = null,
   clientoBookingIngest = null,
+  portalNudge = null,
 } = {}) {
   if (!store || !rawMessage?.id) {
     throw new Error('processRawMessage requires store and rawMessage.id');
@@ -453,6 +454,33 @@ async function processRawMessage({
           `[mail-ingestion] document triage failed raw=${rawMessage.id}: ${triageError?.message || triageError}`
         );
         triageResult = { skipped: true, reason: 'triage_failed' };
+      }
+    }
+
+    // Portal-nudge (valfri side-effect): förbered en portal-länk-nudge för en
+    // känd inbound-kund som ännu inte är på portalen. Guardas EXAKT som triagen
+    // (MATCHED patient, ej dry_run, ej säkerhetsgranskning/system-mail). Servicen
+    // är idempotent (nudgar en kund bara en gång) och skickar aldrig själv — den
+    // skapar bara ett needs_approval-utkast. Fel får ALDRIG störa ingestionen.
+    if (
+      portalNudge &&
+      typeof portalNudge.onInboundMatched === 'function' &&
+      status === 'MATCHED' &&
+      match.patientId &&
+      mode !== 'dry_run' &&
+      !security.needsReview &&
+      classification.messageClassification !== 'system_mail'
+    ) {
+      try {
+        await portalNudge.onInboundMatched({
+          tenantId: tenantId || 'hair-tp-clinic',
+          customerId: match.patientId,
+          customerEmail: match.counterpartyEmail || counterpartyEmail || null,
+        });
+      } catch (nudgeError) {
+        logger?.warn?.(
+          `[mail-ingestion] portal-nudge failed raw=${rawMessage.id}: ${nudgeError?.message || nudgeError}`
+        );
       }
     }
 

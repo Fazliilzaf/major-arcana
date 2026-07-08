@@ -1217,6 +1217,53 @@ h1 {
 .tabpanel b {
   color: var(--ink);
 }
+.dossier-mini {
+  padding: 0.65rem 0.72rem;
+  border-radius: var(--r-md);
+  background: var(--card-grad);
+  border: 1px solid var(--line-soft);
+  box-shadow: var(--sh-sm);
+}
+.dossier-mini__body {
+  margin-top: 0.45rem;
+}
+.dossier-mini__empty,
+.dossier-mini__safe {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.dossier-mini__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.dossier-mini__metrics span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.45rem;
+  padding: 0 0.5rem;
+  border-radius: var(--pill);
+  background: var(--chip-bg);
+  border: 1px solid var(--line-soft);
+  color: var(--ink);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+.dossier-mini__safe {
+  margin-top: 0.45rem;
+}
+.dossier-mini__list {
+  margin: 0.45rem 0 0;
+  padding-left: 1rem;
+  color: var(--ink-2);
+  font-size: 0.75rem;
+  line-height: 1.42;
+}
+.dossier-mini__list li + li {
+  margin-top: 0.2rem;
+}
 
 /* ── main composer ── */
 .main {
@@ -1319,6 +1366,15 @@ h1 {
   flex-direction: column;
   gap: 0.55rem;
   padding: 0.7rem 0.8rem;
+}
+/* Bred yta: meddelandena paras två-i-bredd (även det senaste — långa mail får
+   plats i sin kolumn, de blir bara högre). Under 640px staplas allt som förut. */
+@media (min-width: 640px) {
+  .msgs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
 }
 .rollup.collapsed .msgs .msg:not(:last-child) {
   display: none;

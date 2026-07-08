@@ -1,0 +1,33 @@
+'use strict';
+
+/* Kompose-vy för nytt mail (följdsteg). Ny "✉ Nytt mail"-flik som POST:ar till
+ * compose-new-mail och skapar ett needs_approval-utkast (skickar aldrig direkt). */
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const source = fs.readFileSync(
+  path.join(__dirname, '../../public/konversationer-bottom-actions.js'),
+  'utf8'
+);
+
+test('Nytt mail-fliken finns och öppnar kompose-vyn', () => {
+  assert.match(source, /key: 'nyttmail'[\s\S]{0,60}openComposeNewMail\(\)/);
+  assert.match(source, /function openComposeNewMail\(\)/);
+});
+
+test('kompose POST:ar till compose-new-mail med admin-auth', () => {
+  assert.match(source, /'\/api\/v1\/cco\/runtime\/compose-new-mail'/);
+  assert.match(source, /method: 'POST'/);
+  assert.match(source, /adminAuthHeaders\(/);
+});
+
+test('kanalval (graph/resend) + kontrollerad kedja (godkännande, aldrig direkt-send)', () => {
+  assert.match(source, /value: 'graph'/);
+  assert.match(source, /value: 'resend'/);
+  assert.match(source, /väntar på godkännande/);
+  // Fältvalidering innan submit.
+  assert.match(source, /Fyll i mottagare, ämne och text/);
+});
