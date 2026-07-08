@@ -10,6 +10,9 @@ const assert = require('node:assert/strict');
 const {
   isBankIdLive,
   createAuthRequest,
+  resolveBankIdAcrValues,
+  BANKID_ACR_QR,
+  BANKID_ACR_SAME_DEVICE,
   pnrFromClaims,
   pnrEquals,
   resolvePatientByPnr,
@@ -44,6 +47,16 @@ test('createAuthRequest bygger Criipto authorize-URL med state+nonce', () => {
   assert.match(r.url, /scope=openid/);
   assert.ok(r.state && r.nonce && r.state !== r.nonce);
   assert.match(r.url, new RegExp(`state=${r.state}`));
+  assert.match(r.url, /acr_values=urn%3Agrn%3Aauthn%3Ase%3Abankid%3Aqr/);
+});
+
+test('resolveBankIdAcrValues: qr på desktop, same-device på mobil', () => {
+  assert.equal(resolveBankIdAcrValues({ userAgent: 'Mozilla/5.0 (Macintosh)' }), BANKID_ACR_QR);
+  assert.equal(
+    resolveBankIdAcrValues({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS)' }),
+    BANKID_ACR_SAME_DEVICE
+  );
+  assert.equal(resolveBankIdAcrValues({ flow: 'same-device' }), BANKID_ACR_SAME_DEVICE);
 });
 
 test('createAuthRequest kastar utan tokenCustomerId (ingen anonym step-up)', () => {

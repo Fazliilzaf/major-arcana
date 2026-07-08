@@ -51,6 +51,28 @@ function isBankIdLive(env = process.env) {
   return Boolean(text(env.BANKID_API_KEY)) && text(env.PORTAL_BANKID_LIVE) === '1';
 }
 
+/** Idura/Criipto acr_values — se docs.idura.app/verify/e-ids/swedish-bankid/ */
+const BANKID_ACR_QR = 'urn:grn:authn:se:bankid:qr';
+const BANKID_ACR_SAME_DEVICE = 'urn:grn:authn:se:bankid:same-device';
+
+function isMobileUserAgent(userAgent) {
+  return /iPhone|iPad|iPod|Android|Mobile/i.test(text(userAgent));
+}
+
+/**
+ * Välj BankID-flöde: QR (dator→mobil) eller same-device (mobil→BankID-app).
+ * Override: PORTAL_BANKID_ACR_VALUES eller ?flow=same-device|qr på login.
+ */
+function resolveBankIdAcrValues({ flow, userAgent, env = process.env } = {}) {
+  const override = text(env.PORTAL_BANKID_ACR_VALUES);
+  if (override) return override;
+  const f = text(flow).toLowerCase();
+  if (f === 'same-device' || f === 'same_device' || f === 'mobile') return BANKID_ACR_SAME_DEVICE;
+  if (f === 'qr' || f === 'desktop') return BANKID_ACR_QR;
+  if (isMobileUserAgent(userAgent)) return BANKID_ACR_SAME_DEVICE;
+  return BANKID_ACR_QR;
+}
+
 /**
  * Bygg Criiptos OIDC authorize-URL. Anroparen persisterar `state`/`nonce`
  * (server-side) och verifierar dem i callbacken.
@@ -62,7 +84,7 @@ function createAuthRequest({
   clientId,
   redirectUri,
   tokenCustomerId,
-  acrValues = 'urn:grn:authn:se:bankid:another-device:qr',
+  acrValues = BANKID_ACR_QR,
   env = process.env,
 } = {}) {
   const brokerDomain = text(domain) || text(env.CRIIPTO_DOMAIN);
@@ -225,7 +247,11 @@ async function verifyBankIdCallback(ref = {}, deps = {}) {
 
 module.exports = {
   DEFAULT_SESSION_TTL_MS,
+  BANKID_ACR_QR,
+  BANKID_ACR_SAME_DEVICE,
   isBankIdLive,
+  isMobileUserAgent,
+  resolveBankIdAcrValues,
   createAuthRequest,
   pnrFromClaims,
   pnrDigits,

@@ -29,6 +29,7 @@ const {
   createAuthRequest,
   verifyBankIdCallback,
   isBankIdLive,
+  resolveBankIdAcrValues,
 } = require('../ops/ccoPortalBankIdSession');
 const { verifyCriiptoIdToken } = require('../ops/ccoCriiptoIdToken');
 const { buildLevelTwoPayload } = require('../ops/ccoPortalCustomerPayload');
@@ -180,6 +181,11 @@ function createCcoPortalBankIdRouter({
       auth = createAuthRequest({
         redirectUri: redirectUriFor(req),
         tokenCustomerId: resolved.customerId,
+        acrValues: resolveBankIdAcrValues({
+          flow: req.query.flow,
+          userAgent: req.headers && req.headers['user-agent'],
+          env,
+        }),
         env,
       });
     } catch (err) {
