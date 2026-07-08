@@ -14,7 +14,7 @@ const path = require('node:path');
 // ccoAftercareSchedulerStore) får `buildFilePayload` + `performSend` härifrån.
 // ---------------------------------------------------------------------------
 
-const SEND_KINDS = ['form', 'consent', 'file', 'encounter', 'aftercare'];
+const SEND_KINDS = ['form', 'consent', 'file', 'encounter', 'aftercare', 'notification'];
 
 // Mall-kataloger — UI-dropdown läser id + dessa fält (server.js GET .../templates).
 // Nycklarna används som `formKind` / `consentKind` i route-koden.

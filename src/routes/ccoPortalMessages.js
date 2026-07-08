@@ -15,9 +15,51 @@
 
 const express = require('express');
 const { attachRole, requirePermission } = require('../security/ccoRbac');
+const { notifyPatientOfPortalReply } = require('../ops/ccoPortalReplyNotification');
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function firstEmail(patient = {}) {
+  const candidates = [
+    patient.email,
+    patient.primaryEmail,
+    Array.isArray(patient.emails) ? patient.emails[0] : null,
+  ];
+  for (const c of candidates) {
+    const v = text(c);
+    if (v) return v;
+  }
+  return '';
+}
+
+// Best-effort patient-notis vid klinik-svar. Läser stores lazy från app.locals,
+// resolverar kundens e-post och skickar en transaktionell notis (dry-run/mock
+// tills CCO_SEND_LIVE). Fel får ALDRIG störa klinik-svaret.
+async function notifyPatientReply(req, { tenantId, customerId, patientName }) {
+  const locals = req.app?.locals || {};
+  const accessStore = locals.ccoPortalAccessStore || null;
+  const sendStore = locals.ccoSendActionStore || null;
+  if (!accessStore || !sendStore) return { status: 'skipped', reason: 'stores_unavailable' };
+  let patientEmail = '';
+  let name = text(patientName);
+  const master = locals.ccoPatientMasterStore || null;
+  if (master?.getPatient) {
+    try {
+      const patient = await master.getPatient({ tenantId, patientId: customerId });
+      if (patient) {
+        patientEmail = firstEmail(patient);
+        name = name || text(patient.name) || text(patient.fullName);
+      }
+    } catch {
+      /* uppslag valfritt */
+    }
+  }
+  return notifyPatientOfPortalReply(
+    { tenantId, customerId, patientEmail, patientName: name },
+    { accessStore, sendStore }
+  );
 }
 
 function createCcoPortalMessagesRouter({ requireAuth } = {}) {
@@ -85,7 +127,15 @@ function createCcoPortalMessagesRouter({ requireAuth } = {}) {
         if (typeof s.markInboundRead === 'function') {
           await s.markInboundRead({ tenantId, customerId });
         }
-        return res.status(201).json({ ok: true, message });
+        // Notifiera patienten (dry-run/mock tills CCO_SEND_LIVE). Best-effort —
+        // ett notis-fel får aldrig fälla klinik-svaret som redan är sparat.
+        let notification = null;
+        try {
+          notification = await notifyPatientReply(req, { tenantId, customerId });
+        } catch (notifyError) {
+          notification = { status: 'failed', reason: notifyError.message };
+        }
+        return res.status(201).json({ ok: true, message, notification });
       } catch (error) {
         return res.status(400).json({ ok: false, error: error.message });
       }

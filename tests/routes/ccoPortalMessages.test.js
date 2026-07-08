@@ -105,3 +105,29 @@ test('obehörig roll blockeras', async () => {
   });
   assert.notEqual(res.status, 200);
 });
+
+test('klinik-svar notifierar patienten (dry-run) när stores är wire:ade', async () => {
+  const { createCcoPortalAccessStore } = require('../../src/ops/ccoPortalAccessStore');
+  const { app } = await buildApp();
+  app.locals.ccoPortalAccessStore = await createCcoPortalAccessStore({ filePath: tmp() });
+  const sends = [];
+  app.locals.ccoSendActionStore = {
+    async performSend(input) {
+      sends.push(input);
+      return { ok: true, mode: 'dry-run' };
+    },
+  };
+  app.locals.ccoPatientMasterStore = {
+    getPatient: async () => ({ name: 'Anna', email: 'anna@mail.se' }),
+  };
+  const res = await req(app, 'POST', '/api/v1/cco/runtime/customer/CUST-1/portal-message', {
+    headers: { 'x-cco-role': 'owner' },
+    body: { body: 'Ja, vi flyttar till fredag.' },
+  });
+  assert.equal(res.status, 201);
+  const json = JSON.parse(res.body);
+  assert.equal(json.notification.status, 'sent');
+  assert.equal(json.notification.dryRun, true);
+  assert.equal(sends.length, 1);
+  assert.equal(sends[0].payload.to, 'anna@mail.se');
+});
