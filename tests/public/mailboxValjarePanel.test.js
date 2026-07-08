@@ -68,12 +68,14 @@ test('matchar CCO: neutralt mörk namntext, inte rosa-tvätt', () => {
   assert.match(source, /\.mbv-seg button\.on\{[^}]*color:var\(--cco-color-brand/);
 });
 
-test('design-finish matchar CCO: avatar-cirkel + skugga, segment-vit yta', () => {
-  // Avatar = 24px cirkel med CCO .wb-mbx-avatar-skugga (inte platt kvadrat).
+test('design-finish matchar CCO: avatar som tråd-kort (mjuk gradient-cirkel), segment-vit yta', () => {
+  // Avatar = rund gradient-cirkel som .thread-av (ingen räls), len skugga.
   assert.match(
     source,
-    /\.mbv-av\{width:24px;height:24px;border-radius:999px;[^}]*box-shadow:inset 0 1px 0 rgba\(255,255,255,\.4\),0 2px 6px rgba\(56,40,28,\.2\)/
+    /\.mbv-av\{width:26px;height:26px;border-radius:999px;[^}]*linear-gradient\(180deg,rgba\(255,255,255,\.35\)[^}]*box-shadow:inset 0 1px 0 rgba\(255,255,255,\.4\),0 2px 6px rgba\(56,40,28,\.16\)/
   );
+  // Rälsen är borttagen — avataren bär färgen.
+  assert.doesNotMatch(source, /class: 'mbv-rail'/);
   // Segment-container = ljus translucent vit (som .inbox-tabs), slimmad.
   assert.match(
     source,

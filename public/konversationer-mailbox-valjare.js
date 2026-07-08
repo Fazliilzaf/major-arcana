@@ -131,11 +131,11 @@
       '.mbv-chev{font-size:8px;color:#84756b;transition:transform .15s ease}' +
       '.mbv-kicker.col .mbv-chev{transform:rotate(-90deg)}' +
       '.mbv-body[hidden]{display:none}' +
-      '.mbv-row{display:grid;grid-template-columns:3px 24px 1fr 16px;gap:9px;align-items:center;padding:6px 10px;border-radius:10px;cursor:pointer;transition:background .14s ease;margin-bottom:1px}' +
+      // Ingen räls — avataren bär färgen (som tråd-korten). Grid utan räls-kolumn.
+      '.mbv-row{display:grid;grid-template-columns:26px 1fr 16px;gap:10px;align-items:center;padding:6px 10px;border-radius:10px;cursor:pointer;transition:background .14s ease;margin-bottom:1px}' +
       '.mbv-row:hover{background:rgba(255,255,255,.6)}' +
-      '.mbv-rail{width:3px;height:24px;border-radius:3px;background:var(--r,#84756b)}' +
-      // Avatar: matcha CCO .wb-mbx-avatar (24px cirkel + inset-highlight + mjuk skugga)
-      '.mbv-av{width:24px;height:24px;border-radius:999px;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;background:var(--r,#84756b);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 6px rgba(56,40,28,.2)}' +
+      // Avatar: matcha tråd-kortens .thread-av — mjuk gradient (ljus topp → färg) + len skugga.
+      '.mbv-av{width:26px;height:26px;border-radius:999px;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0) 62%),var(--r,#84756b);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 6px rgba(56,40,28,.16)}' +
       '.mbv-name{font-size:11.5px;font-weight:700;color:#6b6258;line-height:1.2;letter-spacing:-.01em}' +
       '.mbv-row.on .mbv-name{color:#1d1e24;font-weight:800}' +
       '.mbv-meta{font-size:10px;color:#84756b;margin-top:2px;font-variant-numeric:tabular-nums}' +
@@ -246,7 +246,6 @@
             onclick: () => toggle(m.id),
           },
           [
-            el('span', { class: 'mbv-rail' }),
             el('span', { class: 'mbv-av' }, m.label.slice(0, 1)),
             el('div', {}, [
               el('div', { class: 'mbv-name' }, m.label),
@@ -261,7 +260,6 @@
       const sel = state.mailboxIds.length;
       allRow.className = 'mbv-row mbv-all' + (sel === total ? ' on' : sel > 0 ? ' part' : '');
       allRow.innerHTML = '';
-      allRow.appendChild(el('span', { class: 'mbv-rail' }));
       allRow.appendChild(el('span', { class: 'mbv-av' }, '∑'));
       allRow.appendChild(
         el('div', {}, [
