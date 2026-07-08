@@ -127,3 +127,40 @@ test('utan stores → 503', async () => {
   });
   assert.equal(res.status, 503);
 });
+
+// ── Dublettvarning: GET /contact-lookup ──────────────────────────────────────
+
+const LOOKUP = '/api/v1/cco/runtime/contact-lookup';
+
+test('contact-lookup: känd e-post → exists:true med namn', async () => {
+  const app = await buildApp();
+  await app.locals.ccoPatientMasterStore.upsertPatient({
+    tenantId: 'hairtpclinic',
+    displayName: 'Redan Kund',
+    emails: ['redan@example.com'],
+  });
+  const res = await req(app, 'GET', LOOKUP + '?email=redan@example.com', {
+    headers: { 'x-cco-role': 'operator' },
+  });
+  assert.equal(res.status, 200);
+  const j = JSON.parse(res.body);
+  assert.equal(j.exists, true);
+  assert.equal(j.displayName, 'Redan Kund');
+});
+
+test('contact-lookup: okänd e-post → exists:false', async () => {
+  const app = await buildApp();
+  const res = await req(app, 'GET', LOOKUP + '?email=ny@example.com', {
+    headers: { 'x-cco-role': 'operator' },
+  });
+  assert.equal(res.status, 200);
+  assert.equal(JSON.parse(res.body).exists, false);
+});
+
+test('contact-lookup: obehörig roll (personal) blockeras', async () => {
+  const app = await buildApp();
+  const res = await req(app, 'GET', LOOKUP + '?email=a@b.se', {
+    headers: { 'x-cco-role': 'personal' },
+  });
+  assert.equal(res.status, 403);
+});

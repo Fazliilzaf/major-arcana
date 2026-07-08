@@ -2894,6 +2894,45 @@
       type: 'email',
       placeholder: 'mottagare@example.com',
     });
+    // Dublettvarning: kollar (debouncat) om mottagaren redan finns som kontakt.
+    const dupWarn = el('div', {
+      style:
+        'display:none;font-size:12px;margin-top:6px;padding:8px 10px;border-radius:8px;background:rgba(200,130,30,.12);color:#9a6a14;border:1px solid rgba(200,130,30,.3)',
+    });
+    let dupTimer = null;
+    async function checkDuplicate() {
+      const email = emailEl.value.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        dupWarn.style.display = 'none';
+        return;
+      }
+      try {
+        const r = await fetch(
+          '/api/v1/cco/runtime/contact-lookup?email=' + encodeURIComponent(email),
+          {
+            cache: 'no-store',
+            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+          }
+        );
+        const j = await r.json().catch(() => ({}));
+        if (j && j.exists) {
+          const who = j.displayName ? '“' + j.displayName + '”' : 'Den här adressen';
+          dupWarn.textContent =
+            '⚠ ' +
+            who +
+            ' finns redan som kontakt. Mailet knyts till befintlig kontakt (ingen dubblett skapas) — överväg att svara i den befintliga tråden istället.';
+          dupWarn.style.display = 'block';
+        } else {
+          dupWarn.style.display = 'none';
+        }
+      } catch (_e) {
+        dupWarn.style.display = 'none'; // varningen är ett tillägg — fel får inte störa
+      }
+    }
+    emailEl.addEventListener('input', () => {
+      if (dupTimer) clearTimeout(dupTimer);
+      dupTimer = setTimeout(checkDuplicate, 450);
+    });
     const phoneEl = el('input', {
       class: 'cnm-input',
       type: 'tel',
@@ -3159,6 +3198,7 @@
       nameEl,
       el('div', { style: 'height:8px' }),
       emailEl,
+      dupWarn,
       el('div', { style: 'height:8px' }),
       phoneEl,
       label('Skicka via'),
