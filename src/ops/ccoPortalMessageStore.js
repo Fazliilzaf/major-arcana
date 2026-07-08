@@ -185,7 +185,67 @@ async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
     ).length;
   }
 
-  return { appendMessage, listMessagesForCustomer, markInboundRead, countUnreadInbound };
+  /**
+   * Sammanfatta olästa inkommande per kund över ALLA kunder — för notis-feeden.
+   * Returnerar bara kunder med minst ett oläst inbound-meddelande.
+   * @returns {Array<{tenantId, customerId, unread, latestInboundAt, latestBody}>}
+   */
+  function listUnreadInboundSummaries() {
+    const out = [];
+    for (const [key, data] of Object.entries(state.customers || {})) {
+      const messages = Array.isArray(data?.messages) ? data.messages : [];
+      const unreadInbound = messages.filter((m) => m.direction === 'inbound' && !m.readAt);
+      if (unreadInbound.length === 0) continue;
+      const sep = key.indexOf('::');
+      const tenantId = sep >= 0 ? key.slice(0, sep) : '';
+      const customerId = sep >= 0 ? key.slice(sep + 2) : key;
+      const latest = unreadInbound
+        .slice()
+        .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+        .pop();
+      out.push({
+        tenantId,
+        customerId,
+        unread: unreadInbound.length,
+        latestInboundAt: latest?.createdAt || null,
+        latestBody: latest?.body || '',
+      });
+    }
+    return out;
+  }
+
+  /** Aggregat för adoptionsmätning: kanalvolym + engagerade patienter. */
+  function stats() {
+    let customers = 0;
+    let patientsEngaged = 0; // kunder med minst ett inbound (patienten skrev själv)
+    let inbound = 0;
+    let outbound = 0;
+    for (const data of Object.values(state.customers || {})) {
+      const messages = Array.isArray(data?.messages) ? data.messages : [];
+      if (messages.length === 0) continue;
+      customers += 1;
+      let hasInbound = false;
+      for (const m of messages) {
+        if (m.direction === 'inbound') {
+          inbound += 1;
+          hasInbound = true;
+        } else if (m.direction === 'outbound') {
+          outbound += 1;
+        }
+      }
+      if (hasInbound) patientsEngaged += 1;
+    }
+    return { customers, patientsEngaged, inbound, outbound, total: inbound + outbound };
+  }
+
+  return {
+    appendMessage,
+    listMessagesForCustomer,
+    markInboundRead,
+    countUnreadInbound,
+    listUnreadInboundSummaries,
+    stats,
+  };
 }
 
 module.exports = { createCcoPortalMessageStore, MAX_BODY };

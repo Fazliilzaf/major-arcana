@@ -176,7 +176,19 @@ async function createCcoPortalAccessStore({ filePath } = {}) {
     return { tenantId: rec.tenantId, customerId: rec.customerId, expiresAt: rec.expiresAt };
   }
 
-  return { issueToken, rotateToken, revokeToken, resolveToken };
+  /** Aggregat för adoptionsmätning: aktiva vs totala utfärdade tokens. */
+  function stats() {
+    const all = Object.values(state.tokens || {});
+    let active = 0;
+    let revoked = 0;
+    for (const rec of all) {
+      if (rec?.revokedAt) revoked += 1;
+      else if (isActive(rec)) active += 1;
+    }
+    return { total: all.length, active, revoked };
+  }
+
+  return { issueToken, rotateToken, revokeToken, resolveToken, stats };
 }
 
 module.exports = { createCcoPortalAccessStore, DEFAULT_TTL_DAYS };

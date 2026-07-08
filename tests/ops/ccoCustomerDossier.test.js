@@ -19,7 +19,23 @@ const stores = {
     }),
   },
   journeyStore: {
-    getOverview: async () => ({ step: 'offert', status: 'väntar_signering' }),
+    // Verkliga storens API: POSITIONELL (customerId, { tenantId }). Fälten heter
+    // currentStep/sideState/completedSteps, och steps[] bär den läsbara etiketten.
+    getJourney: (customerId, { tenantId } = {}) => {
+      assert.equal(typeof customerId, 'string'); // regression: aldrig ett objekt
+      assert.ok(tenantId);
+      return {
+        customerId,
+        currentStep: 'treatment_offered',
+        sideState: null,
+        completedSteps: ['lead_first_contact', 'consultation_booked'],
+        steps: [
+          { id: 'lead_first_contact', label: 'Lead välkomnande' },
+          { id: 'treatment_offered', label: 'Behandlingsförslag' },
+        ],
+        updatedAt: '2026-06-01T10:00',
+      };
+    },
   },
   bookingStore: {
     getBookingsForCustomer: async () => [
@@ -61,7 +77,10 @@ test('dossier samlar identitet, kontakt, journey, bokningar, ärenden, trådar',
   assert.doesNotMatch(d.identity.personnummerMasked, /19900101-123/);
   assert.deepEqual(d.contact.emails, ['anna@mail.se']); // dedupe (case-insensitiv)
   assert.equal(d.contact.phones[0], '+46701234567');
-  assert.equal(d.journey.step, 'offert');
+  assert.equal(d.journey.step, 'treatment_offered');
+  assert.equal(d.journey.stepLabel, 'Behandlingsförslag'); // läsbar etikett från steps[]
+  assert.equal(d.journey.completedCount, 2);
+  assert.equal(d.journey.totalSteps, 2);
   assert.equal(d.bookings.count, 2);
   assert.equal(d.bookings.upcoming[0].service, 'Konsultation'); // framtida
   assert.equal(d.bookings.recent[0].service, 'PRP'); // förfluten

@@ -118,6 +118,10 @@ function createCcoCommDraftRouter({
 
   async function ensureStore() {
     if (storeRef) return storeRef;
+    if (appLocals?.ccoCommDraftStore) {
+      storeRef = appLocals.ccoCommDraftStore;
+      return storeRef;
+    }
     const { createCcoCommDraftStore } = require('../ops/ccoCommDraftStore');
     storeRef = await createCcoCommDraftStore({ filePath: storePath(), auditLog });
     if (appLocals && !appLocals.ccoCommDraftStore) appLocals.ccoCommDraftStore = storeRef;

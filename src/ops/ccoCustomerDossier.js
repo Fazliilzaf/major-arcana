@@ -120,18 +120,29 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
   }
 
   // ── Journey/status ────────────────────────────────────────────────────
-  if (stores.journeyStore?.getOverview || stores.journeyStore?.getJourney) {
-    const journey = await safe('journey', warnings, () =>
-      (stores.journeyStore.getOverview || stores.journeyStore.getJourney).call(
-        stores.journeyStore,
-        { tenantId, patientId, customerId }
-      )
-    );
+  // getJourney(customerId, { tenantId }) är POSITIONELL — nyckeln är kund-id:t,
+  // inte ett objekt. Fälten heter currentStep/sideState/completedSteps, och
+  // steps[] bär den läsbara etiketten. Saknas en resa returnerar storen ett
+  // default (lead_first_contact) — vilket ändå är meningsfull kontext.
+  if (stores.journeyStore?.getJourney) {
+    const journeyKey = customerId || patientId;
+    const journey = journeyKey
+      ? await safe('journey', warnings, () =>
+          stores.journeyStore.getJourney(journeyKey, { tenantId })
+        )
+      : null;
     if (journey) {
+      const currentStep = text(journey.currentStep) || text(journey.step) || null;
+      const stepMeta = Array.isArray(journey.steps)
+        ? journey.steps.find((s) => s && s.id === currentStep)
+        : null;
       dossier.journey = {
-        step: text(journey.step) || text(journey.journeyStep) || null,
-        stage: text(journey.stage) || null,
-        status: text(journey.status) || null,
+        step: currentStep,
+        stepLabel: text(stepMeta?.label) || null,
+        sideState: text(journey.sideState) || null,
+        completedCount: Array.isArray(journey.completedSteps) ? journey.completedSteps.length : 0,
+        totalSteps: Array.isArray(journey.steps) ? journey.steps.length : 0,
+        updatedAt: text(journey.updatedAt) || null,
       };
     }
   }

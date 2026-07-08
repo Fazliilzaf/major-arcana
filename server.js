@@ -7216,6 +7216,11 @@ try {
       journalStore: {
         listAllEntries: async (args) => app.locals.ccoJournalStore?.listAllEntries?.(args) || [],
       },
+      // Olästa inbound portal-meddelanden → notis per kund (lazy från app.locals).
+      portalMessageStore: {
+        listUnreadInboundSummaries: () =>
+          app.locals.ccoPortalMessageStore?.listUnreadInboundSummaries?.() || [],
+      },
       readStore,
     });
     app.locals.ccoNotificationFeedStore = feedStore;
@@ -11203,6 +11208,7 @@ const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore')
 const { createConfiguredCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStoreFactory');
 const { createCcoMailIngestionStore } = require('./src/ops/ccoMailIngestion/store');
 const { createCcoMailIngestionSyncService } = require('./src/ops/ccoMailIngestion/syncService');
+const { createPortalNudgeIngestionHook } = require('./src/ops/ccoPortalNudgeIngestionHook');
 const { createCcoMailIngestionWorker } = require('./src/ops/ccoMailIngestion/worker');
 const {
   createMicrosoftGraphChangeNotifications,
@@ -12682,6 +12688,21 @@ process.once('SIGTERM', () => {
     documentTriage: ccoDocumentTriageEngine,
     healthDeclarationIngest: ccoHalsoHealthDeclarationIngest,
     clientoBookingIngest: ccoClientoBookingIngest,
+    // Auto-nudge vid ny inbound: förbereder ett needs_approval-utkast med den
+    // magiska portal-länken för känd inbound-kund. Stores resolveras lazy från
+    // app.locals (de wire:as senare i boot) → ingen ordningsberoende. Skickar
+    // aldrig själv; idempotent (en kund nudgas bara en gång).
+    portalNudge: createPortalNudgeIngestionHook({
+      getStores: () => ({
+        accessStore: app.locals.ccoPortalAccessStore,
+        draftStore: app.locals.ccoCommDraftStore,
+        nudgeStore: app.locals.ccoPortalNudgeStore,
+        messageStore: app.locals.ccoPortalMessageStore,
+      }),
+      baseUrl:
+        config.publicBaseUrl || process.env.PUBLIC_BASE_URL || 'https://arcana.hairtpclinic.com',
+      logger: console,
+    }),
     patientDirectoryProvider: async () => {
       const tenantId = config.defaultTenantId || 'hair-tp-clinic';
       const listed = await ccoPatientMasterStore.listPatients({ tenantId, limit: 20000 });
@@ -13357,6 +13378,18 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // Shared comm-draft-store: Svarstudio, portal-nudge och conversation-thread-
+  // store måste läsa samma in-memory-instans. Skapa den före routes som injicerar
+  // eller läser app.locals.ccoCommDraftStore.
+  if (!app.locals.ccoCommDraftStore) {
+    const { createCcoCommDraftStore } = require('./src/ops/ccoCommDraftStore');
+    app.locals.ccoCommDraftStore = await createCcoCommDraftStore({
+      filePath:
+        config.ccoCommDraftStorePath || `${config.stateRoot || './data'}/cco-comm-draft.json`,
+      auditLog: ccoAuditLog || null,
+    });
+  }
+
   app.use(
     '/api/v1',
     createCcoCustomerCommRouter({
@@ -13392,6 +13425,39 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // Fylligare kundkort: exponera de kanoniska journey- och konversationstråd-
+  // storarna på app.locals så dossiern (och kund-360-vyn på rad ~4803) läser
+  // SAMMA populerade instans istället för en tom lazy-dubblett per läsare.
+  if (!app.locals.ccoCustomerJourneyStore) {
+    const { createCcoCustomerJourneyStore } = require('./src/ops/ccoCustomerJourneyStore');
+    app.locals.ccoCustomerJourneyStore = await createCcoCustomerJourneyStore({
+      filePath:
+        config.ccoCustomerJourneyStorePath ||
+        `${config.stateRoot || config.dataDir || './data'}/cco-customer-journey.json`,
+      auditLog: ccoAuditLog || null,
+    });
+  }
+  if (!app.locals.ccoConversationThreadStore) {
+    const { createCcoConversationThreadStore } = require('./src/ops/ccoConversationThreadStore');
+    app.locals.ccoConversationThreadStore = await createCcoConversationThreadStore({
+      filePath:
+        config.ccoConversationThreadStateStorePath ||
+        config.ccoConversationStateStorePath ||
+        `${config.stateRoot || config.dataDir || './data'}/cco-conversation-thread-state.json`,
+      mailboxTruthStore: ccoMailboxTruthStore || null,
+      mailIngestionStore: ccoMailIngestionStore || null,
+      conversationNotesStore: ccoConversationNotesStore || null,
+      commDraftStore: app.locals.ccoCommDraftStore || null,
+      historyMailboxIds: [
+        'kons@hairtpclinic.com',
+        'info@hairtpclinic.com',
+        'contact@hairtpclinic.com',
+        'egzona@hairtpclinic.com',
+        'fazli@hairtpclinic.com',
+      ],
+    });
+  }
+
   // Kundkort/dossier — RBAC-grindad läs-endpoint (mail.read) som samlar "all info
   // om kunden" för Svarstudion ur app.locals-storarna. Journalinnehåll ingår aldrig.
   const { createCcoCustomerDossierRouter } = require('./src/routes/ccoCustomerDossier');
@@ -13419,6 +13485,23 @@ process.once('SIGTERM', () => {
   // kontrollerade mailkedjan — routern skickar inget själv.
   const { createCcoPortalAccessRouter } = require('./src/routes/ccoPortalAccess');
   app.use('/api/v1', createCcoPortalAccessRouter({ requireAuth: auth.requireAuth }));
+
+  // Portal-nudge (följdsteg): automatiserbar ingång som förbereder ett
+  // needs_approval-utkast med den magiska länken när en kund ännu inte är på
+  // portalen. Skickar aldrig själv — personal godkänner i vanliga kedjan.
+  const { createCcoPortalNudgeRouter } = require('./src/routes/ccoPortalNudge');
+  app.use(
+    '/api/v1',
+    createCcoPortalNudgeRouter({
+      requireAuth: auth.requireAuth,
+      baseUrl:
+        config.publicBaseUrl || process.env.PUBLIC_BASE_URL || 'https://arcana.hairtpclinic.com',
+    })
+  );
+
+  // Portal-adoptionsmätning (följdsteg): volym/engagemang/nudge-konvertering.
+  const { createCcoPortalMetricsRouter } = require('./src/routes/ccoPortalMetrics');
+  app.use('/api/v1', createCcoPortalMetricsRouter({ requireAuth: auth.requireAuth }));
 
   app.use(
     '/api/v1',
@@ -13681,8 +13764,16 @@ process.once('SIGTERM', () => {
       ? `${config.stateRoot}/cco-portal-access.json`
       : './data/cco-portal-access.json',
   });
+  // Idempotens för portal-länk-nudgen (en kund nudgas bara en gång).
+  const { createCcoPortalNudgeStore } = require('./src/ops/ccoPortalNudgeStore');
+  const portalNudgeStore = await createCcoPortalNudgeStore({
+    filePath: config.stateRoot
+      ? `${config.stateRoot}/cco-portal-nudge.json`
+      : './data/cco-portal-nudge.json',
+  });
   app.locals.ccoPortalMessageStore = portalMessageStore;
   app.locals.ccoPortalAccessStore = portalAccessStore;
+  app.locals.ccoPortalNudgeStore = portalNudgeStore;
 
   app.use(
     '/api',

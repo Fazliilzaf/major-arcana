@@ -7,6 +7,7 @@ const http = require('node:http');
 const express = require('express');
 
 const { createCcoCommDraftRouter } = require('../../src/routes/ccoCommDraft');
+const { createCcoCommDraftStore } = require('../../src/ops/ccoCommDraftStore');
 const { roleHasPermission } = require('../../src/security/ccoRbac');
 
 async function withServer(app, run) {
@@ -64,6 +65,47 @@ test('mail.live_send är owner-only i RBAC', () => {
   assert.equal(roleHasPermission('owner', 'mail.live_send'), true);
   assert.equal(roleHasPermission('operator', 'mail.live_send'), false);
   assert.equal(roleHasPermission('konsult', 'mail.live_send'), false);
+});
+
+test('router återanvänder app.locals.ccoCommDraftStore när den finns', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-comm-draft-locals-'));
+  const app = express();
+  const sharedStore = await createCcoCommDraftStore({
+    filePath: path.join(tempDir, 'cco-comm-draft.json'),
+  });
+  app.locals.ccoCommDraftStore = sharedStore;
+  app.use(
+    '/api/v1',
+    createCcoCommDraftRouter({
+      config: {
+        ccoCommDraftStorePath: path.join(tempDir, 'other-cco-comm-draft.json'),
+        buildVersion: 'test',
+      },
+      requireAuth: (req, _res, next) => {
+        req.auth = {
+          tenantId: 'hairtpclinic',
+          userId: 'u-locals',
+          role: req.headers['x-role'] || 'operator',
+        };
+        next();
+      },
+      commDraftStore: null,
+      appLocals: app.locals,
+    })
+  );
+
+  try {
+    await withServer(app, async (baseUrl) => {
+      const created = await call(baseUrl, 'POST', '/cco-comm/drafts', {
+        role: 'operator',
+        body: { customerId: 'cust-locals', subject: 'Hej', body: 'Delad store' },
+      });
+      assert.equal(created.status, 201);
+      assert.ok(sharedStore.getDraft(created.json.draft.draftId));
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 });
 
 test('AI-generering går genom gateway och skapar ett utkast (deterministisk fallback)', async () => {

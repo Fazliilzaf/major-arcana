@@ -7,6 +7,7 @@ const NOTIFICATION_TYPES = [
   'id_verification',
   'agreement',
   'mail',
+  'portal_message',
   'system',
 ];
 
@@ -74,6 +75,7 @@ function notificationLinks({ type, customerId = null, source = {} }) {
     id_verification: customerCard || staffTask,
     agreement: customerCard || staffTask,
     mail: staffTask,
+    portal_message: customerCard || staffTask,
     system: qms,
   };
 
@@ -115,6 +117,7 @@ function createCcoNotificationFeedStore({
   idVerificationStore = null,
   agreementStore = null,
   journalStore = null,
+  portalMessageStore = null,
   readStore = null,
 } = {}) {
   async function collectBooking() {
@@ -202,6 +205,25 @@ function createCcoNotificationFeedStore({
     return out;
   }
 
+  // Olästa inkommande portal-meddelanden (patient→klinik). En notis per kund så
+  // personalen ser att någon skrivit i den fria kanalen utan att öppna kortet.
+  function collectPortal() {
+    if (!portalMessageStore?.listUnreadInboundSummaries) return [];
+    const summaries = asArray(portalMessageStore.listUnreadInboundSummaries());
+    return summaries.map((s) =>
+      notif({
+        type: 'portal_message',
+        title:
+          s.unread > 1 ? `${s.unread} nya portal-meddelanden` : 'Nytt portal-meddelande från kund',
+        body: normalizeText(s.latestBody).slice(0, 140),
+        at: s.latestInboundAt,
+        severity: 'info',
+        customerId: s.customerId || null,
+        source: { kind: 'portal_message', id: s.customerId || null },
+      })
+    );
+  }
+
   async function collectMail() {
     if (!journalStore?.listAllEntries) return [];
     const entries = asArray(await journalStore.listAllEntries({}));
@@ -235,6 +257,7 @@ function createCcoNotificationFeedStore({
       Promise.resolve(collectIdVerification(customerEvalResults)),
       Promise.resolve(collectAgreements(customerEvalResults)),
       collectMail(),
+      Promise.resolve(collectPortal()),
     ]);
 
     let items = groups.flat();
