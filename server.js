@@ -13529,6 +13529,11 @@ process.once('SIGTERM', () => {
   const { createCcoPortalMetricsRouter } = require('./src/routes/ccoPortalMetrics');
   app.use('/api/v1', createCcoPortalMetricsRouter({ requireAuth: auth.requireAuth }));
 
+  // Portal-loopens självtest (mint → notis → domänkoll), grönt/rött per steg.
+  // settings.read; skarpt testmejl (live) är owner-only i routern.
+  const { createCcoPortalSelfTestRouter } = require('./src/routes/ccoPortalSelfTest');
+  app.use('/api/v1', createCcoPortalSelfTestRouter({ requireAuth: auth.requireAuth }));
+
   // Nytt mail till ny mottagare: skapar enkel kontakt + needs_approval-utkast med
   // vald sändkanal (graph|resend). Personal godkänner och skickar i vanliga kedjan.
   const { createCcoComposeNewMailRouter } = require('./src/routes/ccoComposeNewMail');

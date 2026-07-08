@@ -3299,6 +3299,7 @@
         } catch (_r) {
           /* readiness är ett tillägg — fel får inte störa panelen */
         }
+        renderPortalSelfTest(body);
       } catch (e) {
         body.innerHTML = '';
         body.appendChild(
@@ -3310,6 +3311,111 @@
         );
       }
     })();
+  }
+
+  // "Testa portal-loopen": kör mint → notis → domänkoll och visar grönt/rött per
+  // steg. Dry-run som default (inget mejl); bocka i skarpt + adress för ett riktigt
+  // testmejl (owner-grindat server-side).
+  function renderPortalSelfTest(body) {
+    const inputStyle =
+      'border:1px solid #e7ded5;border-radius:8px;padding:7px 10px;font:inherit;font-size:12.5px;min-width:220px';
+    const emailEl = el('input', {
+      type: 'email',
+      placeholder: 'din@adress.se (för skarpt testmejl)',
+      style: inputStyle,
+    });
+    const liveEl = el('input', { type: 'checkbox' });
+    const liveRow = el(
+      'label',
+      { style: 'display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6b6357' },
+      [liveEl, el('span', {}, 'Skicka skarpt testmejl (owner)')]
+    );
+    const runBtn = el(
+      'button',
+      {
+        type: 'button',
+        style:
+          'border:0;border-radius:999px;padding:8px 16px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;background:var(--studio,#bb4779);color:#fff',
+      },
+      '🔍 Kör test'
+    );
+    const out = el('div', { style: 'margin-top:8px' });
+
+    runBtn.addEventListener('click', async () => {
+      runBtn.disabled = true;
+      out.innerHTML = '';
+      out.appendChild(el('div', { style: 'font-size:12px;color:#8a8174' }, 'Kör test…'));
+      try {
+        const rr = await fetch('/api/v1/cco/runtime/portal-selftest', {
+          method: 'POST',
+          headers: adminAuthHeaders({
+            'Content-Type': 'application/json',
+            'x-cco-role': ROLE,
+            'x-cco-tenant': TENANT,
+          }),
+          body: JSON.stringify({ email: emailEl.value.trim(), live: liveEl.checked }),
+        });
+        const rj = await rr.json().catch(() => ({}));
+        out.innerHTML = '';
+        if (!rr.ok || !Array.isArray(rj.steps)) {
+          out.appendChild(
+            el(
+              'div',
+              { style: 'font-size:12px;color:#b94a4a' },
+              'Testet kunde inte köras: ' + (rj.error || 'okänt fel')
+            )
+          );
+          return;
+        }
+        rj.steps.forEach((s) =>
+          out.appendChild(
+            el('div', { style: 'display:flex;gap:8px;align-items:flex-start;margin:4px 0' }, [
+              el(
+                'span',
+                { style: 'font-weight:800;font-size:13px;color:' + (s.ok ? '#4a8268' : '#b94a4a') },
+                s.ok ? '✓' : '✗'
+              ),
+              el('div', { style: 'font-size:12px' }, [
+                el('b', {}, s.label + ' '),
+                el('span', { style: 'color:#8a8174' }, '(' + s.status + ') ' + s.detail),
+              ]),
+            ])
+          )
+        );
+        out.appendChild(
+          el(
+            'div',
+            { style: 'font-size:11px;color:#a89f92;margin-top:6px' },
+            rj.live
+              ? 'Skarpt testmejl skickades.'
+              : 'Dry-run — inget mejl skickades. Bocka i skarpt + fyll i adress för ett riktigt test.'
+          )
+        );
+      } catch (_e) {
+        out.innerHTML = '';
+        out.appendChild(
+          el('div', { style: 'font-size:12px;color:#b94a4a' }, 'Nätverksfel vid test.')
+        );
+      } finally {
+        runBtn.disabled = false;
+      }
+    });
+
+    body.appendChild(
+      el(
+        'div',
+        { style: 'font-size:12px;font-weight:700;margin-top:18px;color:#2b251f' },
+        'Testa portal-loopen'
+      )
+    );
+    body.appendChild(
+      el(
+        'div',
+        { style: 'margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center' },
+        [emailEl, liveRow, runBtn]
+      )
+    );
+    body.appendChild(out);
   }
 
   // ─── SKICKAT / KÖ → sektion inne i Svarstudio ────────────────────────
