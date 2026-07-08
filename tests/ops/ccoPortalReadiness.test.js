@@ -5,7 +5,10 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildPortalReadiness } = require('../../src/ops/ccoPortalReadiness');
+const {
+  buildPortalReadiness,
+  checkResendDomainVerified,
+} = require('../../src/ops/ccoPortalReadiness');
 
 test('allt av → dry-run/off', () => {
   const r = buildPortalReadiness({});
@@ -75,4 +78,83 @@ test('avslöjar ALDRIG hemligheter — bara booleans/status', () => {
   // Men statusen syns.
   assert.equal(r.detail.mail.resendConfigured, true);
   assert.equal(r.detail.sms.inboundConfigured, true);
+});
+
+// ── Domän-verifiering (checkResendDomainVerified) ────────────────────────────
+
+function fakeFetch(payload, ok = true, status = 200) {
+  return async () => ({
+    ok,
+    status,
+    json: async () => payload,
+  });
+}
+
+test('utan nyckel → checked:false (no_key), inget nätverksanrop', async () => {
+  const r = await checkResendDomainVerified({ env: {}, fetchImpl: fakeFetch({}) });
+  assert.equal(r.checked, false);
+  assert.equal(r.reason, 'no_key');
+});
+
+test('verifierad domän → verified:true', async () => {
+  const env = { RESEND_API_KEY: 're_x', RESEND_DOMAIN: 'notifications.hairtpclinic.com' };
+  const payload = { data: [{ name: 'notifications.hairtpclinic.com', status: 'verified' }] };
+  const r = await checkResendDomainVerified({ env, fetchImpl: fakeFetch(payload) });
+  assert.equal(r.checked, true);
+  assert.equal(r.verified, true);
+  assert.equal(r.status, 'verified');
+});
+
+test('overifierad domän → verified:false (pending)', async () => {
+  const env = { RESEND_API_KEY: 're_x', RESEND_DOMAIN: 'notifications.hairtpclinic.com' };
+  const payload = { data: [{ name: 'notifications.hairtpclinic.com', status: 'pending' }] };
+  const r = await checkResendDomainVerified({ env, fetchImpl: fakeFetch(payload) });
+  assert.equal(r.checked, true);
+  assert.equal(r.verified, false);
+  assert.equal(r.status, 'pending');
+});
+
+test('domän saknas i Resend → verified:false (not_found)', async () => {
+  const env = { RESEND_API_KEY: 're_x', RESEND_DOMAIN: 'notifications.hairtpclinic.com' };
+  const r = await checkResendDomainVerified({ env, fetchImpl: fakeFetch({ data: [] }) });
+  assert.equal(r.verified, false);
+  assert.equal(r.status, 'not_found');
+});
+
+test('nätverksfel/timeout → checked:false, aldrig kast', async () => {
+  const env = { RESEND_API_KEY: 're_x' };
+  const r = await checkResendDomainVerified({
+    env,
+    fetchImpl: async () => {
+      throw new Error('boom');
+    },
+  });
+  assert.equal(r.checked, false);
+  assert.equal(r.reason, 'check_failed');
+});
+
+test('nätverksfel rensar timeout-timern direkt', async () => {
+  const originalSetTimeout = global.setTimeout;
+  const originalClearTimeout = global.clearTimeout;
+  const timeoutToken = { id: 'resend-timeout' };
+  let cleared = false;
+
+  global.setTimeout = () => timeoutToken;
+  global.clearTimeout = (token) => {
+    if (token === timeoutToken) cleared = true;
+  };
+
+  try {
+    const r = await checkResendDomainVerified({
+      env: { RESEND_API_KEY: 're_x' },
+      fetchImpl: async () => {
+        throw new Error('boom');
+      },
+    });
+    assert.equal(r.checked, false);
+    assert.equal(cleared, true);
+  } finally {
+    global.setTimeout = originalSetTimeout;
+    global.clearTimeout = originalClearTimeout;
+  }
 });
