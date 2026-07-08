@@ -473,17 +473,17 @@
     {
       id: 'fazli',
       label: 'Fazli',
-      text: 'Med vänliga hälsningar,\n\nDr. Fazli · Medical Director\nHair TP Clinic\nSveavägen 42, 113 50 Stockholm\n08-555 123 45 · www.hairtpclinic.com',
+      text: 'Bästa hälsningar,\n\nFazli Krasniqi\nHårspecialist | Hårtransplantationer & PRP-injektioner\nHair TP Clinic\n031-88 11 66 · contact@hairtpclinic.com\nVasaplatsen 2, 411 34 Göteborg\nhairtpclinic.com',
     },
     {
       id: 'egzona',
       label: 'Egzona',
-      text: 'Med vänliga hälsningar,\n\nEgzona M. · Customer Lead\nHair TP Clinic\nSveavägen 42, 113 50 Stockholm\n08-555 123 45 · www.hairtpclinic.com',
+      text: 'Bästa hälsningar,\n\nEgzona Krasniqi\nHårspecialist | Hårtransplantationer & PRP-injektioner\nHair TP Clinic\n031-88 11 66 · contact@hairtpclinic.com\nVasaplatsen 2, 411 34 Göteborg\nhairtpclinic.com',
     },
     {
       id: 'contact',
       label: 'Kontakt',
-      text: 'Med vänliga hälsningar,\n\nHair TP Clinic\nSveavägen 42, 113 50 Stockholm\n08-555 123 45 · contact@hairtpclinic.com',
+      text: 'Bästa hälsningar,\n\nHair TP Clinic\nHårtransplantationer & PRP-injektioner\n031-88 11 66 · contact@hairtpclinic.com\nVasaplatsen 2, 411 34 Göteborg\nhairtpclinic.com',
     },
   ];
 
@@ -945,6 +945,7 @@
             bodyArea.value = nextBody;
             state.body = nextBody;
             wordCount.textContent = nextBody.split(/\s+/).filter(Boolean).length + ' ord';
+            renderLivePreview();
             auditStudioEvent('studio.template_selected', { templateId: sm.id });
             toast('★ Mall infogad: ' + sm.label);
           },
@@ -978,13 +979,17 @@
       placeholder: recipientEmail ? '' : 'Mottagare saknas i tråddatan',
       'aria-invalid': recipientMissing ? 'true' : null,
       readonly: recipientMissing ? 'readonly' : null,
-      oninput: () => evaluateRecipient(),
+      oninput: () => {
+        evaluateRecipient();
+        renderLivePreview();
+      },
     });
     const mailboxSelect = el('select', {
       onchange: () => {
         state.mailboxId = mailboxSelect.value;
         auditStudioEvent('studio.mailbox_selected', { mailboxId: state.mailboxId });
         updateMetaLine();
+        renderLivePreview();
       },
     });
     for (const mb of mailboxes) {
@@ -1046,6 +1051,7 @@
     const subjectInput = el('input', { type: 'text', value: state.subject });
     subjectInput.addEventListener('input', (e) => {
       state.subject = e.target.value;
+      renderLivePreview();
     });
     replyBlock.appendChild(
       el('label', { class: 'wb-field' }, [
@@ -1059,6 +1065,7 @@
     bodyArea.addEventListener('input', (e) => {
       state.body = e.target.value;
       wordCount.textContent = e.target.value.split(/\s+/).filter(Boolean).length + ' ord';
+      renderLivePreview();
     });
     replyBlock.appendChild(
       el('label', { class: 'wb-field' }, [
@@ -1074,6 +1081,34 @@
         el('span', { class: 'wb-policy-ok' }, 'Policy OK'),
       ])
     );
+
+    // Inline live-preview "Så här blir mailet" — speglar det som komponeras.
+    // Rent presentationslager: läser state/mailbox/mottagare, rör inte sändkedjan.
+    const lpTo = el('span', { class: 'wb-lp-val' }, '');
+    const lpFrom = el('span', { class: 'wb-lp-val wb-lp-from' }, '');
+    const lpSubject = el('span', { class: 'wb-lp-val' }, '');
+    const lpBody = el('pre', { class: 'wb-lp-body' }, '');
+    function renderLivePreview() {
+      const mb = mailboxes.find((m) => m.id === state.mailboxId);
+      lpTo.textContent = cleanText(recipientInput.value) || '—';
+      lpFrom.textContent = (mb && (mb.email || mb.name)) || state.mailboxId || '—';
+      lpSubject.textContent = state.subject || '—';
+      lpBody.textContent = state.body || 'Börja skriva, eller infoga en mall ovan…';
+    }
+    const livePreview = el('div', { class: 'wb-live-preview' }, [
+      el('div', { class: 'wb-lp-head' }, [
+        el('span', { class: 'wb-lp-title' }, 'Så här blir mailet'),
+        el('span', { class: 'wb-lp-live' }, '● Uppdateras live'),
+      ]),
+      el('div', { class: 'wb-lp-hdr' }, [
+        el('div', {}, [el('b', {}, 'Till'), lpTo]),
+        el('div', {}, [el('b', {}, 'Från'), lpFrom]),
+        el('div', {}, [el('b', {}, 'Ämne'), lpSubject]),
+      ]),
+      lpBody,
+    ]);
+    renderLivePreview();
+    replyBlock.appendChild(livePreview);
 
     // Signatur
     function makeChipSection(items, getActive, onPick, eventKind) {
@@ -1105,13 +1140,32 @@
         bodyArea.value = applySignatureToBody(bodyArea.value, v);
         state.body = bodyArea.value;
         wordCount.textContent = bodyArea.value.split(/\s+/).filter(Boolean).length + ' ord';
+        renderLivePreview();
+        renderSigPreview();
       },
       'studio.signature_selected'
     );
+    // Signatur-live-render: visar vald signatur direkt (v9-uppgifter).
+    const sigWhoEl = el('span', { class: 'wb-sig-who' }, '');
+    const sigBodyEl = el('pre', { class: 'wb-sig-body' }, '');
+    function renderSigPreview() {
+      const sig = SIGNATURES.find((s) => s.id === state.signatureId);
+      sigWhoEl.textContent = sig ? sig.label : '—';
+      sigBodyEl.textContent = sig ? sig.text : 'Ingen signatur vald.';
+    }
+    renderSigPreview();
+    const sigPreview = el('div', { class: 'wb-sig-preview' }, [
+      el('div', { class: 'wb-sig-cap' }, [
+        el('span', {}, 'Signatur (bifogas i svaret) · '),
+        sigWhoEl,
+      ]),
+      sigBodyEl,
+    ]);
     replyBlock.appendChild(
       el('div', { class: 'wb-chip-row-sect', 'data-group': 'signatur' }, [
         el('span', { class: 'wb-section-kicker' }, 'Signatur'),
         sigChips,
+        sigPreview,
       ])
     );
 
@@ -1221,6 +1275,44 @@
     );
     replyBlock.appendChild(smartActions);
 
+    // 4-stegs sändstege — visualiserar den kontrollerade sändkedjan.
+    // Rent presentationslager: speglar draft-status, ändrar INGEN sändlogik.
+    const STEP_DEFS = [
+      { key: 'draft', label: 'Utkast', sub: 'du' },
+      { key: 'needs_approval', label: 'Granskad', sub: 'operatör' },
+      { key: 'approved', label: 'Godkänd', sub: 'owner' },
+      { key: 'sent', label: 'Skickad', sub: 'Graph' },
+    ];
+    const stepEls = STEP_DEFS.map((s) =>
+      el('div', { class: 'wb-sstep' }, [
+        el('span', { class: 'wb-sdot' }),
+        el('span', { class: 'wb-sst' }, s.label),
+        el('span', { class: 'wb-sss' }, s.sub),
+      ])
+    );
+    function renderStepper(status) {
+      const order = ['draft', 'needs_approval', 'approved', 'sent'];
+      let idx = order.indexOf(status);
+      if (idx < 0) idx = 0;
+      stepEls.forEach((elm, i) => {
+        elm.classList.remove('is-done', 'is-active');
+        if (i < idx) elm.classList.add('is-done');
+        else if (i === idx) elm.classList.add('is-active');
+      });
+    }
+    renderStepper('draft');
+    replyBlock.appendChild(
+      el('div', { class: 'wb-send-stepper' }, [
+        el('div', { class: 'wb-sstep-kicker' }, 'Sändsäkerhet'),
+        el('div', { class: 'wb-sstep-row' }, stepEls),
+        el(
+          'div',
+          { class: 'wb-sstep-lock' },
+          '🔒 Live-utskick är avstängt. Ett svar går utkast → granskning → owner-godkännande innan något lämnar systemet.'
+        ),
+      ])
+    );
+
     main.appendChild(replyBlock);
 
     // ─── Workbench-grid wrapper ──────────────────────────────────────
@@ -1291,6 +1383,7 @@
           if (!j2.ok) throw new Error(j2.error || 'transition');
           auditStudioEvent('studio.transitioned', { draftId: state.draftId, to: targetStatus });
         }
+        renderStepper(targetStatus || 'draft');
         return true;
       } catch (e) {
         toast('✗ ' + e.message, 'err');
