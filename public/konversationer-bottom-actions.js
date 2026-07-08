@@ -504,6 +504,19 @@
     const baseBody = idx >= 0 ? currentBody.slice(0, idx) : currentBody.replace(/\s+$/, '');
     return baseBody + SIG_DIVIDER + sig.text;
   }
+
+  // Kundtext får ALDRIG innehålla streck (em/en-dash) och ska inte ha en egen
+  // avslutande hälsning — den ligger i signaturen. Körs på allt genererat/förvalt
+  // svarsinnehåll innan det hamnar i editorn. Rör inte signatur-dividern (den
+  // sätts efteråt av applySignatureToBody och byts mot HTML-signaturen vid send).
+  function sanitizeReplyText(text) {
+    return String(text || '')
+      .replace(/ *[—–] */g, ', ') // streck → komma
+      .replace(/\n+\s*(Varma|Vänliga|Bästa|Med\s+vänliga?)\s+häls\w*[\s\S]*$/i, '') // "Varma hälsningar…"
+      .replace(/\n+\s*(Vänligen|Mvh|M\.?\s?v\.?\s?h\.?)\b[\s\S]*$/i, '') // "Vänligen/Mvh…"
+      .replace(/[ \t]+\n/g, '\n')
+      .trimEnd();
+  }
   const SNABBMALLAR = [
     { id: 'confirm_booking', label: 'Bekräfta bokning' },
     { id: 'suggest_times', label: 'Föreslå tider' },
@@ -557,7 +570,7 @@
         greeting +
         '\n\nTack för ditt mejl gällande ' +
         topic +
-        '. Vi har följande tider lediga – låt oss veta vilken som passar dig bäst:\n\n– \n– \n– ',
+        '. Vi har följande tider lediga, låt oss veta vilken som passar dig bäst:\n\n• \n• \n• ',
       send_pricing:
         greeting +
         '\n\nTack för din förfrågan om ' +
@@ -567,7 +580,7 @@
         greeting +
         '\n\nTack för ditt meddelande om ' +
         topic +
-        '. För att kunna hjälpa dig på bästa sätt behöver vi lite mer information:\n\n– \n– ',
+        '. För att kunna hjälpa dig på bästa sätt behöver vi lite mer information:\n\n• \n• ',
     };
     return (
       bodies[templateId] || greeting + '\n\nTack för ditt meddelande. Vi återkommer inom kort.'
@@ -906,13 +919,11 @@
     const variantText = [
       'Hej ' +
         firstName +
-        '!\n\nVad roligt — jag bekräftar gärna nästa steg. Jag återkommer med en tydlig tid och det du behöver inför besöket.\n\nHör av dig om något behöver justeras!',
+        '!\n\nVad roligt att höra från dig. Jag bekräftar gärna nästa steg och återkommer med en tydlig tid och det du behöver inför besöket.\n\nHör av dig om något behöver justeras!',
       'Hej ' +
         firstName +
-        '!\n\nTack för ditt meddelande — det ska bli ett nöje att hjälpa dig. Vi tar det i lugn takt och du får ställa alla frågor du vill.\n\nJag återkommer med en bekräftelse.',
-      'Hej ' +
-        firstName +
-        '!\n\nKlart — jag ordnar det. Jag återkommer strax med bekräftelse.\n\nVänligen',
+        '!\n\nTack för ditt meddelande, det ska bli ett nöje att hjälpa dig. Vi tar det i lugn takt och du får ställa alla frågor du vill. Jag återkommer med en bekräftelse.',
+      'Hej ' + firstName + '!\n\nKlart, jag ordnar det. Jag återkommer strax med en bekräftelse.',
     ];
     $$('.variant').forEach((b) => {
       const idx = +b.getAttribute('data-v');
@@ -920,7 +931,8 @@
         $$('.variant').forEach((x) => x.classList.remove('is-picked'));
         b.classList.add('is-picked');
         if (editor) {
-          editor.value = variantText[idx] || '';
+          // Kundtext: strippa ev. streck/avslutshälsning innan den hamnar i editorn.
+          editor.value = sanitizeReplyText(variantText[idx] || '');
           syncBodyFromEditor();
         }
         markStep('draft');
@@ -996,9 +1008,10 @@
               refine: state.refine,
             }),
           });
-          const j = await r.json();
-          if (!j.ok) throw new Error(j.error || 'fel');
-          state.draftId = j.draft.draftId;
+          // Endpoints svarar { draft } (ingen ok-flagga) → använd HTTP-status.
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || !j.draft) throw new Error(j.error || 'kunde inte spara utkast');
+          state.draftId = j.draft.draftId || j.draft.id;
           auditStudioEvent('studio.draft_created', {
             draftId: state.draftId,
             track: state.track,
@@ -1034,8 +1047,8 @@
               body: JSON.stringify({ status: targetStatus, reason: 'via Svarstudio v2' }),
             }
           );
-          const j2 = await r2.json();
-          if (!j2.ok) throw new Error(j2.error || 'transition');
+          const j2 = await r2.json().catch(() => ({}));
+          if (!r2.ok || !j2.draft) throw new Error(j2.error || 'kunde inte uppdatera status');
           auditStudioEvent('studio.transitioned', {
             draftId: state.draftId,
             to: targetStatus,
@@ -1213,12 +1226,11 @@
       return null;
     }
 
+    // Ingen inbäddad SLA/streck i kundtexten (kan vara "—" eller platshållare).
     const initialBody =
       'Hej ' +
       (ctx.customerName || '') +
-      ',\n\nTack för ditt meddelande. Jag bekräftar gärna nästa steg för ' +
-      (ctx.sla || 'kommande tid') +
-      '.\n\nJag återkommer med en tydlig bekräftelse och det du behöver inför besöket.' +
+      ',\n\nTack för ditt meddelande. Jag bekräftar gärna nästa steg och återkommer med en tydlig bekräftelse och det du behöver inför besöket.' +
       '\n\nHör gärna av dig om något behöver justeras.';
     const state = {
       mailboxId: preferredMailbox?.id || 'contact@hairtpclinic.com',
@@ -1917,9 +1929,10 @@
               refine: state.refine,
             }),
           });
-          const j = await r.json();
-          if (!j.ok) throw new Error(j.error || 'fel');
-          state.draftId = j.draft.draftId;
+          // Endpoints svarar { draft } (ingen ok-flagga) → använd HTTP-status.
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || !j.draft) throw new Error(j.error || 'kunde inte spara utkast');
+          state.draftId = j.draft.draftId || j.draft.id;
           auditStudioEvent('studio.draft_created', {
             draftId: state.draftId,
             track: state.track,
@@ -1954,8 +1967,8 @@
               body: JSON.stringify({ status: targetStatus, reason: 'via Svarstudio' }),
             }
           );
-          const j2 = await r2.json();
-          if (!j2.ok) throw new Error(j2.error || 'transition');
+          const j2 = await r2.json().catch(() => ({}));
+          if (!r2.ok || !j2.draft) throw new Error(j2.error || 'kunde inte uppdatera status');
           auditStudioEvent('studio.transitioned', { draftId: state.draftId, to: targetStatus });
         }
         renderStepper(targetStatus || 'draft');

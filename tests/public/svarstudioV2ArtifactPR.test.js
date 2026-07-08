@@ -49,6 +49,50 @@ test('v2 återanvänder EXAKT sändkedjans endpoints (ingen ny sändväg)', () =
   assert.match(source, /saveDraftV2\('draft'\)/);
 });
 
+test('draft-svar tolkas via HTTP-status, inte j.ok (Bugbot #678)', () => {
+  // Endpoints svarar { draft } utan ok-flagga → framgång avgörs av r.ok + draft
+  assert.match(source, /if \(!r\.ok \|\| !j\.draft\) throw/);
+  assert.match(source, /if \(!r2\.ok \|\| !j2\.draft\) throw/);
+  // Den gamla felaktiga ok-kontrollen får inte finnas kvar
+  assert.doesNotMatch(source, /if \(!j\.ok\) throw/);
+  assert.doesNotMatch(source, /if \(!j2\.ok\) throw/);
+});
+
+test('signatur + sändstege utan vita kort/bubblor', () => {
+  const rule = (name) => {
+    const i = cssAsset.indexOf('.' + name + ' {');
+    return cssAsset.slice(i, cssAsset.indexOf('}', i));
+  };
+  const sig = rule('sig-render');
+  assert.match(sig, /background: transparent/);
+  assert.match(sig, /border: 0/);
+  assert.match(sig, /box-shadow: none/);
+  const safety = rule('safety2');
+  assert.match(safety, /background: transparent/);
+  assert.match(safety, /border: 0/);
+  assert.match(safety, /box-shadow: none/);
+});
+
+test('initial svarstext bäddar inte in SLA (streck-/platshållarrisk)', () => {
+  assert.doesNotMatch(source, /nästa steg för ' \+\s*\n?\s*\(ctx\.sla/);
+});
+
+test('kundtext: aldrig streck, ingen egen avslutshälsning (finns i signaturen)', () => {
+  // sanitizern finns och körs på förvalt/genererat svar innan editorn
+  assert.match(source, /function sanitizeReplyText\(text\)/);
+  assert.match(source, /editor\.value = sanitizeReplyText\(variantText\[idx\] \|\| ''\)/);
+  // v2-varianterna får inte innehålla em/en-dash eller en egen sign-off
+  const vStart = source.indexOf('const variantText = [');
+  const vEnd = source.indexOf('];', vStart);
+  const variants = source.slice(vStart, vEnd);
+  assert.doesNotMatch(variants, /[—–]/);
+  assert.doesNotMatch(variants, /Varma hälsningar|Vänligen|Mvh/i);
+  // svarsmallarna (makron) använder inte streck som punktlista
+  const macroStart = source.indexOf('const bodies = {');
+  const macroEnd = source.indexOf('};', macroStart);
+  assert.doesNotMatch(source.slice(macroStart, macroEnd), /[—–]/);
+});
+
 test('v2 rör INTE live-send: inget /send-anrop, ingen sent-transition', () => {
   // v2-mount-blocket får aldrig skicka på riktigt
   const start = source.indexOf('async function mountSvarstudioV2(');

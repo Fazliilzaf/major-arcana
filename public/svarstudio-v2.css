@@ -863,13 +863,13 @@ h1 {
   white-space: pre-wrap;
 }
 
-/* 4-stegs sändstege (från v1) */
+/* 4-stegs sändstege (från v1) — utan kort/bubbla, sitter platt */
 .safety2 {
-  border-radius: var(--r-lg);
-  background: var(--card-grad);
-  border: 1px solid var(--line-soft);
-  box-shadow: var(--sh-md);
-  padding: 1rem 0.95rem 0.85rem;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0.9rem 0 0.2rem;
 }
 .stepper {
   display: flex;
@@ -982,11 +982,11 @@ h1 {
 }
 .sig-render {
   margin-top: 0.4rem;
-  background: #ffffff;
-  border: 1px solid rgba(120, 105, 90, 0.2);
-  border-radius: 10px;
-  padding: 0.5rem 0.8rem 0.8rem;
-  box-shadow: var(--sh-sm);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0.2rem 0 0;
+  box-shadow: none;
   overflow-x: auto;
 }
 .sig-render:empty {
