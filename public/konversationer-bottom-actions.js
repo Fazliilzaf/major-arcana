@@ -2865,10 +2865,12 @@
           status.textContent =
             '✓ Utkast skapat (' +
             (j.contactCreated ? 'ny kontakt, ' : '') +
-            'väntar på godkännande). Godkänn i Skickat/kön.';
+            'väntar på godkännande).';
           status.style.color = '#4a8268';
           subjectEl.value = '';
           bodyEl.value = '';
+          // Owner kan godkänna + skicka direkt (grindat av CCO_COMPOSE_SEND_LIVE).
+          if (ROLE === 'owner' && j.draftId) showSendNow(j.draftId);
         } else {
           status.textContent = 'Kunde inte skapa utkast: ' + (j.reason || j.error || 'okänt fel');
           status.style.color = '#b94a4a';
@@ -2880,6 +2882,58 @@
         submit.disabled = false;
       }
     });
+    // Owner-genväg: godkänn + skicka det nyss skapade utkastet direkt.
+    let sendNowBtn = null;
+    function showSendNow(draftId) {
+      if (!sendNowBtn) {
+        sendNowBtn = el(
+          'button',
+          {
+            type: 'button',
+            style:
+              'border:1px solid var(--studio,#bb4779);border-radius:10px;padding:9px 16px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:var(--studio,#bb4779);margin:8px 0 0 8px',
+          },
+          '✓ Godkänn & skicka nu'
+        );
+        submit.parentNode.insertBefore(sendNowBtn, submit.nextSibling);
+      }
+      sendNowBtn.style.display = 'inline-block';
+      sendNowBtn.onclick = async () => {
+        sendNowBtn.disabled = true;
+        status.textContent = 'Skickar…';
+        status.style.color = '#8a8174';
+        try {
+          const r = await fetch(
+            '/api/v1/cco/runtime/compose-new-mail/' + encodeURIComponent(draftId) + '/send',
+            {
+              method: 'POST',
+              headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+            }
+          );
+          const j = await r.json().catch(() => ({}));
+          if (r.ok && j.status === 'sent') {
+            status.textContent = '✓ Skickat via ' + (j.channel || 'vald kanal') + '.';
+            status.style.color = '#4a8268';
+            sendNowBtn.style.display = 'none';
+          } else if (j.reason === 'compose_gate_off') {
+            status.textContent =
+              'Utskick är avstängt (CCO_COMPOSE_SEND_LIVE). Utkastet ligger kvar för godkännande.';
+            status.style.color = '#c8821e';
+          } else if (j.reason === 'graph_disabled') {
+            status.textContent = 'kons@/Graph-utskick är inte påslaget än. Utkastet ligger kvar.';
+            status.style.color = '#c8821e';
+          } else {
+            status.textContent = 'Kunde inte skicka: ' + (j.reason || j.error || 'okänt fel');
+            status.style.color = '#b94a4a';
+          }
+        } catch (_e) {
+          status.textContent = 'Nätverksfel vid utskick.';
+          status.style.color = '#b94a4a';
+        } finally {
+          sendNowBtn.disabled = false;
+        }
+      };
+    }
     body.appendChild(
       el(
         'p',
@@ -3201,8 +3255,26 @@
     else if (action === 'notiser') openNotiser();
     else if (action === 'patienthub') openPatientHub();
     else if (action === 'signaturer') openSignaturer();
+    else if (action === 'nyttmail') openComposeNewMail();
     else return false;
     return true;
+  }
+
+  // Flytande snabbknapp: "✉ Nytt mail" alltid nåbar i CCO-vyn (inte begravd i
+  // panel-flikraden). Ett klick öppnar kompose-formuläret direkt.
+  function mountComposeFab() {
+    if (document.getElementById('ccoComposeFab')) return;
+    const fab = document.createElement('button');
+    fab.id = 'ccoComposeFab';
+    fab.type = 'button';
+    fab.textContent = '✉ Nytt mail';
+    fab.title = 'Skriv ett nytt mail till en ny mottagare';
+    fab.style.cssText =
+      'position:fixed;right:20px;bottom:20px;z-index:2147483000;border:0;border-radius:999px;' +
+      'padding:12px 18px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;' +
+      'background:var(--studio,#bb4779);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.22)';
+    fab.addEventListener('click', () => openComposeNewMail());
+    document.body.appendChild(fab);
   }
 
   function actionButtonFromEvent(event) {
@@ -3220,6 +3292,7 @@
 
   // ─── Wire bottom-bar + keyboard ──────────────────────────────────────
   function wireActions() {
+    mountComposeFab();
     document.addEventListener(
       'click',
       (e) => {

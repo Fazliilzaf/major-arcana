@@ -31,3 +31,24 @@ test('kanalval (graph/resend) + kontrollerad kedja (godkännande, aldrig direkt-
   // Fältvalidering innan submit.
   assert.match(source, /Fyll i mottagare, ämne och text/);
 });
+
+test('flytande snabbknapp (FAB) alltid nåbar, öppnar kompose-vyn', () => {
+  assert.match(source, /function mountComposeFab\(\)/);
+  assert.match(source, /id = 'ccoComposeFab'/);
+  assert.match(source, /position:fixed/);
+  assert.match(source, /openComposeNewMail\(\)/);
+  // Monteras vid init + finns i action-dispatchen.
+  assert.match(source, /mountComposeFab\(\);/);
+  assert.match(source, /action === 'nyttmail'/);
+});
+
+test('owner-genväg: godkänn & skicka nu mot compose-send-endpointen', () => {
+  assert.match(source, /ROLE === 'owner'[\s\S]{0,40}showSendNow/);
+  assert.match(
+    source,
+    /'\/api\/v1\/cco\/runtime\/compose-new-mail\/' \+ encodeURIComponent\(draftId\) \+ '\/send'/
+  );
+  assert.match(source, /Godkänn & skicka nu/);
+  // Grind-av visas tydligt, inte som ett fel.
+  assert.match(source, /compose_gate_off/);
+});
