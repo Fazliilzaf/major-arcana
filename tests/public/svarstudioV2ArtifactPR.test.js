@@ -143,6 +143,17 @@ test('portal-chatt: läs inline + svara → outbound (aldrig live-send)', () => 
   assert.doesNotMatch(source, /portal-message[\s\S]{0,200}\/send'/);
 });
 
+test('magisk länk (steg 5): knapp myntar token + infogar länken i det godkända mailet', () => {
+  // Knapp finns och kallar utfärdnings-endpointen (portal.write).
+  assert.match(source, /id="portalLinkBtn"/);
+  assert.match(source, /'\/portal-access',\s*\{\s*method: 'POST'/);
+  // Länken infogas i editorn → leverans sker i den kontrollerade mailkedjan.
+  assert.match(source, /editor\.value =[\s\S]{0,160}\+ line;/);
+  assert.match(source, /syncBodyFromEditor\(\)/);
+  // Utfärdningen får ALDRIG dra igång live-send.
+  assert.doesNotMatch(source, /portal-access[\s\S]{0,200}\/send'/);
+});
+
 test('v2 rör INTE live-send: inget /send-anrop, ingen sent-transition', () => {
   // v2-mount-blocket får aldrig skicka på riktigt
   const start = source.indexOf('async function mountSvarstudioV2(');

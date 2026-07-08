@@ -10376,6 +10376,15 @@ app.get('/portal/:token', (req, res, next) => {
   res.sendFile(path.join(__dirname, 'public', 'patient-portal.html'));
 });
 
+// ── Fas 2, steg 5: Clean URL för patient-portalens fria chatt-kanal.
+// /portal-chat/:token → patient-portal-chat.html. HTML:en läser token från path
+// och pratar med /api/patient-portal/:token/messages (magisk-länk-grindat).
+app.get('/portal-chat/:token', (req, res, next) => {
+  const token = req.params.token;
+  if (!token || token.length < 8) return next();
+  res.sendFile(path.join(__dirname, 'public', 'patient-portal-chat.html'));
+});
+
 // ── CCO Patient Portal Staff API (Beslut #2: wrap legacy createInvite med RBAC) ──
 try {
   const { attachRole, requirePermission } = require('./src/security/ccoRbac');
@@ -13404,6 +13413,12 @@ process.once('SIGTERM', () => {
   // klinik-svar (outbound). Storen ligger på app.locals (wire:ad ovan).
   const { createCcoPortalMessagesRouter } = require('./src/routes/ccoPortalMessages');
   app.use('/api/v1', createCcoPortalMessagesRouter({ requireAuth: auth.requireAuth }));
+
+  // Magisk-länk-utfärdning (Fas 2, steg 5): staff myntar/roterar/återkallar
+  // patientens portal-token och får den färdiga länken. Leverans sker i den
+  // kontrollerade mailkedjan — routern skickar inget själv.
+  const { createCcoPortalAccessRouter } = require('./src/routes/ccoPortalAccess');
+  app.use('/api/v1', createCcoPortalAccessRouter({ requireAuth: auth.requireAuth }));
 
   app.use(
     '/api/v1',

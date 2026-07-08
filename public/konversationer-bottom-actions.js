@@ -1261,7 +1261,11 @@
           .join('') ||
         '<div style="font-size:11px;color:var(--ink-3);padding:4px 0">Inga portal-meddelanden än.</div>';
       panel.innerHTML =
-        '<div class="glabel" style="margin-bottom:4px">★ Portal-chatt (fri kanal)</div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">' +
+        '<div class="glabel">★ Portal-chatt (fri kanal)</div>' +
+        '<button id="portalLinkBtn" type="button" title="Skapa en magisk länk och infoga den i svaret — kunden chattar då gratis i portalen istället för via SMS" ' +
+        'style="border:1px solid var(--line-soft);border-radius:8px;padding:4px 9px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;background:var(--field-bg);color:var(--studio)">🔗 Skapa portal-länk</button>' +
+        '</div>' +
         '<div style="max-height:180px;overflow:auto">' +
         bubbles +
         '</div>' +
@@ -1271,6 +1275,55 @@
         '<button id="portalReplyBtn" type="button" style="border:0;border-radius:8px;padding:6px 12px;' +
         'font:inherit;font-size:12px;font-weight:700;cursor:pointer;background:var(--studio);color:#fff">Skicka</button>' +
         '</div>';
+      // "Skapa portal-länk": myntar patientens magiska länk och INFOGAR den i
+      // svaret. Leveransen sker alltså i den kontrollerade mailkedjan (staff
+      // godkänner som vanligt) — vi skickar aldrig något direkt härifrån.
+      const linkBtn = panel.querySelector('#portalLinkBtn');
+      if (linkBtn) {
+        linkBtn.addEventListener('click', async () => {
+          linkBtn.disabled = true;
+          const original = linkBtn.textContent;
+          try {
+            const id = cleanText(customerId || ctx.customerId);
+            if (!id) return;
+            const r = await fetch(
+              '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-access',
+              {
+                method: 'POST',
+                headers: adminAuthHeaders({
+                  'Content-Type': 'application/json',
+                  'x-cco-role': ROLE,
+                  'x-cco-tenant': TENANT,
+                }),
+              }
+            );
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.url) {
+              const line =
+                'Du kan skriva till oss direkt i din trygga portal (inget SMS behövs): ' + j.url;
+              // Infoga i svaret så länken går ut i det godkända mailet.
+              if (typeof editor !== 'undefined' && editor) {
+                editor.value =
+                  (editor.value ? editor.value.replace(/\s*$/, '') + '\n\n' : '') + line;
+                syncBodyFromEditor();
+              }
+              try {
+                await navigator.clipboard?.writeText(j.url);
+              } catch (_c) {
+                /* clipboard valfritt */
+              }
+              linkBtn.textContent = '✓ Länk infogad';
+              setTimeout(() => {
+                linkBtn.textContent = original;
+              }, 2000);
+            }
+          } catch (_e) {
+            /* tillägg — stör aldrig Svarstudion */
+          } finally {
+            linkBtn.disabled = false;
+          }
+        });
+      }
       const btn = panel.querySelector('#portalReplyBtn');
       const input = panel.querySelector('#portalReplyInput');
       if (btn && input) {
