@@ -32,6 +32,12 @@ const {
   createCcoPatientAssetStore: createSharedCcoPatientAssetStore,
 } = require('./src/ops/ccoPatientAssetStore');
 const {
+  createCcoAssetImportRunStore: createSharedCcoAssetImportRunStore,
+} = require('./src/ops/ccoAssetImportRunStore');
+const {
+  createCcoAssetReviewQueueStore: createSharedCcoAssetReviewQueueStore,
+} = require('./src/ops/ccoAssetReviewQueueStore');
+const {
   createSecureStorageProvider: createSharedSecureStorageProvider,
 } = require('./src/ops/ccoSecureStorageProvider');
 
@@ -46,6 +52,8 @@ app.use(express.json({ limit: '10mb' }));
 
 let ccoRequireAuthMiddleware = null;
 let sharedPatientAssetStorePromise = null;
+let sharedAssetImportRunStorePromise = null;
+let sharedAssetReviewQueueStorePromise = null;
 let sharedSecureStoragePromise = null;
 async function resolveSharedPatientAssetStore() {
   if (app.locals.ccoPatientAssetStore) return app.locals.ccoPatientAssetStore;
@@ -60,6 +68,32 @@ async function resolveSharedPatientAssetStore() {
   }
   return sharedPatientAssetStorePromise;
 }
+async function resolveSharedAssetImportRunStore() {
+  if (app.locals.ccoAssetImportRunStore) return app.locals.ccoAssetImportRunStore;
+  if (!sharedAssetImportRunStorePromise) {
+    sharedAssetImportRunStorePromise = createSharedCcoAssetImportRunStore({
+      filePath: config.ccoAssetImportRunsPath,
+      auditLog: ccoAuditLog,
+    }).then((store) => {
+      app.locals.ccoAssetImportRunStore = store;
+      return store;
+    });
+  }
+  return sharedAssetImportRunStorePromise;
+}
+async function resolveSharedAssetReviewQueueStore() {
+  if (app.locals.ccoAssetReviewQueueStore) return app.locals.ccoAssetReviewQueueStore;
+  if (!sharedAssetReviewQueueStorePromise) {
+    sharedAssetReviewQueueStorePromise = createSharedCcoAssetReviewQueueStore({
+      filePath: config.ccoAssetReviewQueuePath,
+      auditLog: ccoAuditLog,
+    }).then((store) => {
+      app.locals.ccoAssetReviewQueueStore = store;
+      return store;
+    });
+  }
+  return sharedAssetReviewQueueStorePromise;
+}
 async function resolveSharedSecureStorage() {
   if (app.locals.ccoSecureStorage) return app.locals.ccoSecureStorage;
   if (!sharedSecureStoragePromise) {
@@ -71,6 +105,15 @@ async function resolveSharedSecureStorage() {
     });
   }
   return sharedSecureStoragePromise;
+}
+async function resolveSharedAssetStores() {
+  const [assetStore, importRunStore, reviewQueueStore, secureStorage] = await Promise.all([
+    resolveSharedPatientAssetStore(),
+    resolveSharedAssetImportRunStore(),
+    resolveSharedAssetReviewQueueStore(),
+    resolveSharedSecureStorage(),
+  ]);
+  return { assetStore, importRunStore, reviewQueueStore, secureStorage };
 }
 function decodeImageDataUrl(value) {
   const raw = typeof value === 'string' ? value.trim() : '';
@@ -9114,12 +9157,18 @@ try {
   const ASSET_QA_CACHE_TTL_MS = 60 * 1000;
 
   async function ensureAssetStores() {
+    if (!assetStore && app.locals.ccoPatientAssetStore) {
+      assetStore = app.locals.ccoPatientAssetStore;
+    }
     if (!assetStore) {
       assetStore = await createCcoPatientAssetStore({
         filePath: config.ccoPatientAssetsPath,
         auditLog: ccoAuditLog,
       });
       app.locals.ccoPatientAssetStore = assetStore;
+    }
+    if (!importRunStore && app.locals.ccoAssetImportRunStore) {
+      importRunStore = app.locals.ccoAssetImportRunStore;
     }
     if (!importRunStore) {
       importRunStore = await createCcoAssetImportRunStore({
@@ -9128,12 +9177,18 @@ try {
       });
       app.locals.ccoAssetImportRunStore = importRunStore;
     }
+    if (!reviewQueueStore && app.locals.ccoAssetReviewQueueStore) {
+      reviewQueueStore = app.locals.ccoAssetReviewQueueStore;
+    }
     if (!reviewQueueStore) {
       reviewQueueStore = await createCcoAssetReviewQueueStore({
         filePath: config.ccoAssetReviewQueuePath,
         auditLog: ccoAuditLog,
       });
       app.locals.ccoAssetReviewQueueStore = reviewQueueStore;
+    }
+    if (!secureStorage && app.locals.ccoSecureStorage) {
+      secureStorage = app.locals.ccoSecureStorage;
     }
     if (!secureStorage) {
       secureStorage = createSecureStorageProvider({ provider: 'local' });
@@ -13343,6 +13398,7 @@ process.once('SIGTERM', () => {
       swishStore: ccoSwishStore,
       readCache: ccoReadCache,
       resolvePatientAssetStore: resolveSharedPatientAssetStore,
+      resolveAssetStores: resolveSharedAssetStores,
       mailIngestionStore: ccoMailIngestionStore,
       fortnoxInvoiceLister: app.locals.cfoFortnoxInvoiceLister || null,
       fortnoxStore: cfoFortnoxStore,
