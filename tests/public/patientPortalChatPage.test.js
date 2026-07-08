@@ -17,6 +17,8 @@ test('sidan är self-contained och robots-noindex', () => {
   // Ingen extern hotlink (skript/stil/font/bild) — allt inlinat.
   assert.doesNotMatch(html, /src="https?:\/\//);
   assert.doesNotMatch(html, /<link[^>]+href="https?:\/\//);
+  // Favicon är inline (data-URI) så webbläsaren inte auto-begär /favicon.ico (404).
+  assert.match(html, /rel="icon"[\s\S]{0,40}href="data:image\/svg\+xml/);
 });
 
 test('token läses ur /portal-chat/:token och driver meddelande-API:t', () => {
