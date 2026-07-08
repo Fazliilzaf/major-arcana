@@ -1320,6 +1320,18 @@ h1 {
   gap: 0.55rem;
   padding: 0.7rem 0.8rem;
 }
+/* Bred yta: äldre meddelanden paras två-i-bredd och det senaste (sist i tråden)
+   spänner full bredd så det får mest plats. Under 640px staplas allt som förut. */
+@media (min-width: 640px) {
+  .msgs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  .msgs .msg:last-child {
+    grid-column: 1 / -1;
+  }
+}
 .rollup.collapsed .msgs .msg:not(:last-child) {
   display: none;
 }
