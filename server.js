@@ -13876,6 +13876,8 @@ process.once('SIGTERM', () => {
       accessStore: portalAccessStore,
       getPatientMasterStore: () => app.locals.ccoPatientMasterStore || null,
       getCommercialStore: () => app.locals.ccoCommercialStore || null,
+      getJournalStore: () => app.locals.ccoJournalStore || null,
+      getBookingStore: () => app.locals.ccoBookingCaseStore || null,
       baseUrl: config.publicBaseUrl || process.env.PUBLIC_BASE_URL || '',
     })
   );

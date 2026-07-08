@@ -127,13 +127,36 @@ Ingen ny live-send. Broker-credentials bakom env-gate (`BANKID_API_KEY` /
 ### 3. Nivå-2-payload — BYGGD (offert)
 
 `GET /api/v1/cco-portal/me` (kräver nivå-2-cookie) returnerar nu även `offer`:
-`{ hasOffer, offerPlan, quoteStatus, signing: { status, canAccept, coolingOff } }`
+`{ hasOffer, offerPlan, quoteStatus, signing, journal, bookings }`
 via `src/ops/ccoPortalCustomerPayload.js`. Läser samma `commercialCase.offerPlan`
 som PDF/signeringssida (`getPatientRegisterCase`) — ingen andra sanning.
 Signeringsstatus härleds: `preparing → cooling_off → ready_to_sign → signed`.
 
-Kvar (senare, bakom samma nivå-2): journal-referens + bokningar. Medicinskt
-innehåll först när det uttryckligen läggs till — inget läcker via nivå 1.
+- **`journal`**: en REFERENS — `{ count, signedCount, latestAt, types }`. INTE
+  kliniskt innehåll, INTE personnummer, INTE fält. Full journalvisning i portalen
+  är ett separat medicinskt/juridiskt beslut (patientdatalagen), inte gjort här.
+- **`bookings`**: `{ upcoming: [{ bookingId, startsAt, endsAt, serviceLabel,
+encounterType, state }], upcomingCount, pastCount }` — bara kundvänliga fält,
+  inga interna anteckningar/tilldelningar.
+
+### 3b. Frontend-klient — BYGGD (drop-in)
+
+`public/major-arcana-preview/app/cco-portal-level2.js` hämtar `/me` och renderar
+offert + journal-referens + bokningar; vid 401 visas "Logga in med BankID"
+(länkar till `/bankid/login?token=<token>`, token härleds ur `/portal-chat/<token>`
+eller `?token=`). Injicerar egen minimal CSS → ingen portal-CSS krävs.
+
+Inkluderas utan att röra portal-HTML:en (Cursor/Codex yta) — en container + ett
+script:
+
+```html
+<div data-cco-portal-level2></div>
+<script src="/major-arcana-preview/app/cco-portal-level2.js"></script>
+```
+
+Rena render-funktioner exporteras (UMD) och enhetstestas i node
+(`tests/public/ccoPortalLevel2.test.js`, inkl. XSS-escaping). Signera-knappen
+sätter `data-l2-accept` — koppla den till esign-flödet i steg 4.
 
 ### 4. Signering återanvänder esign
 
