@@ -44,7 +44,7 @@ const BRAND = {
   addressSv: 'Vasaplatsen 2, 411 34 Göteborg',
   addressEn: 'Vasaplatsen 2, 411 34 Gothenburg',
   email: 'contact@hairtpclinic.com',
-  phoneIntl: '+46318811166',
+  phoneIntl: '+4631881166',
   phoneSeDisplay: '031 88 11 66',
   phoneIntlDisplay: '+46 31 88 11 66',
 };
