@@ -26,8 +26,23 @@ function escapeHtml(value) {
 const { buildPortalUrl } = require('./ccoPortalNudge');
 
 /**
+ * Finkornig grind: låter BARA portal-notiser gå skarpt utan att öppna hela
+ * mail-sändningen (CCO_SEND_LIVE). Läses per anrop så prod-konfig alltid vinner.
+ *   - CCO_PORTAL_NOTIFY_LIVE=1  → portal-notiser försöker skickas på riktigt
+ *     (kräver ändå RESEND_API_KEY hos mailern; annars mock).
+ *   - annars → faller tillbaka på den globala grinden (CCO_SEND_LIVE via
+ *     performSends isDryRunDefault). Inget annat utskick påverkas.
+ */
+function isPortalNotifyLive() {
+  const v = String(process.env.CCO_PORTAL_NOTIFY_LIVE || '')
+    .trim()
+    .toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
+
+/**
  * @param {{tenantId?:string, customerId:string, patientEmail?:string,
- *          patientName?:string, baseUrl?:string}} ref
+ *          patientName?:string, baseUrl?:string, forceLive?:boolean}} ref
  * @param {{accessStore:object, sendStore:object}} stores
  * @returns {Promise<{status:'sent'|'skipped'|'failed', reason?:string, dryRun?:boolean, url?:string}>}
  */
@@ -62,11 +77,16 @@ async function notifyPatientOfPortalReply(ref = {}, stores = {}) {
     meta: { customerId, reason: 'portal_reply' },
   };
 
+  // Finkornig grind: forceLive (test/anropare) eller CCO_PORTAL_NOTIFY_LIVE gör
+  // att just portal-notisen försöker skickas skarpt (dryRunOverride:false). Annars
+  // null → performSend följer den globala CCO_SEND_LIVE-grinden.
+  const live = typeof ref.forceLive === 'boolean' ? ref.forceLive : isPortalNotifyLive();
   const result = await sendStore.performSend({
     kind: 'notification',
     payload,
     customerId,
     userId: 'automation:portal-reply-notify',
+    dryRunOverride: live ? false : null,
   });
 
   return {
@@ -77,4 +97,4 @@ async function notifyPatientOfPortalReply(ref = {}, stores = {}) {
   };
 }
 
-module.exports = { notifyPatientOfPortalReply };
+module.exports = { notifyPatientOfPortalReply, isPortalNotifyLive };
