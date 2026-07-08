@@ -26,8 +26,14 @@ function createPatientPortalRouter({
   auditLog = null,
   bookingCaseStore = null,
   journalPhotoStore = null,
+  // Fas 2 — fri patient↔klinik-kanal via magisk länk. Båda valfria: saknas de
+  // svarar meddelande-endpointsen 503 (funktionen ej aktiverad) utan att röra
+  // resten av portalen.
+  portalMessageStore = null,
+  portalAccessStore = null,
 }) {
   const router = express.Router();
+  const messagesJsonParser = express.json({ limit: '16kb' });
   const followupPhotoUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 12 * 1024 * 1024, files: 1 },
@@ -631,6 +637,73 @@ function createPatientPortalRouter({
       message: 'Tack! Formuläret är inskickat.',
       journalEntriesCreated,
     });
+  });
+
+  // ── Fas 2: portal-meddelanden (fri patient↔klinik-kanal) ────────────────
+  // Grindas av den magiska länkens access-token (resolveToken → kund), INTE av
+  // personal-RBAC. Patienten läser och skriver sina egna portal-meddelanden.
+  function resolvePortalAccess(req, res) {
+    if (!portalAccessStore || !portalMessageStore) {
+      res.status(503).json({ ok: false, error: 'portal_messaging_unavailable' });
+      return null;
+    }
+    const accessToken = normalizeText(req.params?.accessToken);
+    if (!accessToken) {
+      res.status(400).json({ ok: false, error: 'missing_token' });
+      return null;
+    }
+    const resolved = portalAccessStore.resolveToken(accessToken);
+    if (!resolved) {
+      logPortalAudit('portal.message.access_denied', {
+        ip: getClientIp(req),
+        outcome: 'invalid_token',
+      });
+      res.status(404).json({ ok: false, error: 'invalid_or_expired_link' });
+      return null;
+    }
+    return resolved;
+  }
+
+  // GET — patienten läser sina meddelanden. Markerar samtidigt INTE något läst
+  // (klinikens läsning styr kliniksidan; patientens läsning är passiv).
+  router.get('/patient-portal/:accessToken/messages', async (req, res) => {
+    const access = resolvePortalAccess(req, res);
+    if (!access) return;
+    try {
+      const messages = portalMessageStore.listMessagesForCustomer({
+        tenantId: access.tenantId,
+        customerId: access.customerId,
+      });
+      return res.json({ ok: true, messages });
+    } catch (error) {
+      return res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // POST — patienten skriver ett meddelande (inbound → klinik). Text, ingen bilaga.
+  router.post('/patient-portal/:accessToken/messages', messagesJsonParser, async (req, res) => {
+    const access = resolvePortalAccess(req, res);
+    if (!access) return;
+    const body = normalizeText(req.body?.body);
+    if (!body) return res.status(400).json({ ok: false, error: 'missing_body' });
+    try {
+      const message = await portalMessageStore.appendMessage({
+        tenantId: access.tenantId,
+        customerId: access.customerId,
+        direction: 'inbound',
+        body,
+        author: 'patient',
+      });
+      logPortalAudit('portal.message.inbound', {
+        ip: getClientIp(req),
+        tenantId: access.tenantId,
+        patientId: access.customerId,
+        outcome: 'ok',
+      });
+      return res.status(201).json({ ok: true, message });
+    } catch (error) {
+      return res.status(400).json({ ok: false, error: error.message });
+    }
   });
 
   return router;

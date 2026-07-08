@@ -13635,6 +13635,23 @@ process.once('SIGTERM', () => {
     .load()
     .catch((err) => console.warn('[patient-portal] Load failed:', err?.message));
 
+  // Fas 2 — fri patient↔klinik-kanal (portal-meddelanden via magisk länk).
+  const { createCcoPortalMessageStore } = require('./src/ops/ccoPortalMessageStore');
+  const { createCcoPortalAccessStore } = require('./src/ops/ccoPortalAccessStore');
+  const portalMessageStore = await createCcoPortalMessageStore({
+    filePath: config.stateRoot
+      ? `${config.stateRoot}/cco-portal-messages.json`
+      : './data/cco-portal-messages.json',
+    auditLog: ccoAuditLog || null,
+  });
+  const portalAccessStore = await createCcoPortalAccessStore({
+    filePath: config.stateRoot
+      ? `${config.stateRoot}/cco-portal-access.json`
+      : './data/cco-portal-access.json',
+  });
+  app.locals.ccoPortalMessageStore = portalMessageStore;
+  app.locals.ccoPortalAccessStore = portalAccessStore;
+
   app.use(
     '/api',
     createPatientPortalRouter({
@@ -13642,6 +13659,8 @@ process.once('SIGTERM', () => {
       journalStore: ccoJournalStore || null,
       bookingCaseStore: ccoBookingCaseStore || null,
       journalPhotoStore: ccoJournalPhotoStore || null,
+      portalMessageStore,
+      portalAccessStore,
     })
   );
   app.locals.patientPortalStore = patientPortalStore; // Beslut #2: exponera för staff-API
