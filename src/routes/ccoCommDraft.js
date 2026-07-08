@@ -21,6 +21,7 @@ const nodePath = require('node:path');
 const nodeCrypto = require('node:crypto');
 const { attachRole, requirePermission, roleHasPermission } = require('../security/ccoRbac');
 const { containsJournalLikeContent } = require('../ops/ccoJournalAiGuard');
+const { composeHtmlBody } = require('../ops/ccoSignatureHtml');
 const { createExecutionGateway } = require('../gateway/executionGateway');
 
 // Bilagor på utkast (Svarstudio, steg 1b). Bytes lagras på persistent disk; ingen
@@ -132,9 +133,7 @@ function createCcoCommDraftRouter({
   }
   async function ensureAllowlistStore() {
     if (allowlistRef) return allowlistRef;
-    const {
-      createCcoRecipientAllowlistStore,
-    } = require('../ops/ccoRecipientAllowlistStore');
+    const { createCcoRecipientAllowlistStore } = require('../ops/ccoRecipientAllowlistStore');
     allowlistRef = await createCcoRecipientAllowlistStore({ filePath: allowlistPath(), auditLog });
     if (appLocals && !appLocals.ccoRecipientAllowlistStore) {
       appLocals.ccoRecipientAllowlistStore = allowlistRef;
@@ -796,11 +795,16 @@ function createCcoCommDraftRouter({
         }
 
         // Alla grindar passerade → queue:a och skicka via adaptern.
+        // Rik HTML-signatur (inbäddad logga) för det faktiska mailet: härledd ur
+        // avsändar-brevlådan. Är null om utkastet saknar textsignatur eller mallen
+        // inte kan läsas → adaptern skickar då ren text (ingen sändlogik ändras).
+        const bodyHtml = composeHtmlBody(draft.body || '', senderMailbox);
         const payload = {
           from: senderMailbox,
           to,
           subject: draft.subject || '',
           body: draft.body || '',
+          ...(bodyHtml ? { bodyHtml } : {}),
           attachments: (draft.attachments || []).map((a) => ({
             name: a.name,
             contentType: a.contentType,

@@ -22,7 +22,7 @@ function createCcoGraphSendAdapter(connector) {
     throw new Error('createCcoGraphSendAdapter kräver en connector med sendNewMessage.');
   }
 
-  async function sendMail({ from, to, subject, body, attachments } = {}) {
+  async function sendMail({ from, to, subject, body, bodyHtml, attachments } = {}) {
     const hasAttachments = Array.isArray(attachments)
       ? attachments.length > 0
       : attachments != null && attachments !== false;
@@ -39,6 +39,9 @@ function createCcoGraphSendAdapter(connector) {
       to: to ? [to] : [],
       subject: subject || '',
       body: body || '',
+      // Varumärkt HTML-signatur (inbäddad logga) skickas som HTML-mail när den
+      // finns; annars formaterar connectorn själv ren text till HTML.
+      ...(bodyHtml ? { bodyHtml } : {}),
     });
     return {
       // Graph /sendMail returnerar 202 utan body → inget message-id.
