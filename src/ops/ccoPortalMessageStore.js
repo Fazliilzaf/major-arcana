@@ -47,11 +47,11 @@ async function writeJsonAtomic(filePath, data) {
   await fsp.rename(tmp, filePath);
 }
 function emptyState() {
-  return { customers: {}, version: 1, updatedAt: nowIso() };
+  return { customers: {}, sourceIndex: {}, version: 1, updatedAt: nowIso() };
 }
 
-function cloneMessage(m = {}) {
-  return {
+function cloneMessage(m = {}, extra = {}) {
+  const cloned = {
     id: m.id,
     direction: m.direction,
     channel: m.channel || 'portal',
@@ -60,6 +60,8 @@ function cloneMessage(m = {}) {
     createdAt: m.createdAt || null,
     readAt: m.readAt || null,
   };
+  if (extra.deduped) cloned.deduped = true;
+  return cloned;
 }
 
 async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
@@ -67,6 +69,7 @@ async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const state = await readJson(filePath, emptyState());
   if (!state.customers || typeof state.customers !== 'object') state.customers = {};
+  if (!state.sourceIndex || typeof state.sourceIndex !== 'object') state.sourceIndex = {};
 
   let saveQueue = Promise.resolve();
   async function save() {
@@ -104,6 +107,14 @@ async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
     if (!Array.isArray(state.customers[key].messages)) state.customers[key].messages = [];
     return state.customers[key];
   }
+  function findBySourceKey(sourceKey) {
+    const source = normalizeText(sourceKey);
+    if (!source) return null;
+    const hit = state.sourceIndex[source];
+    if (!hit) return null;
+    const list = state.customers[hit.key]?.messages || [];
+    return list.find((message) => message.id === hit.messageId) || null;
+  }
 
   /**
    * Lägg till ett meddelande i kundens portal-logg.
@@ -122,7 +133,11 @@ async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
     const channel = CHANNELS.has(normalizeText(input.channel))
       ? normalizeText(input.channel)
       : 'portal';
-    return withLock(key, async () => {
+    const sourceKey = normalizeText(input.sourceKey).slice(0, 180);
+    const lockKey = sourceKey ? `source:${sourceKey}` : key;
+    return withLock(lockKey, async () => {
+      const existing = findBySourceKey(sourceKey);
+      if (existing) return cloneMessage(existing, { deduped: true });
       const message = {
         id: crypto.randomUUID(),
         direction,
@@ -132,7 +147,9 @@ async function createCcoPortalMessageStore({ filePath, auditLog = null } = {}) {
         createdAt: nowIso(),
         readAt: null,
       };
+      if (sourceKey) message.sourceKey = sourceKey;
       bucket(key).messages.push(message);
+      if (sourceKey) state.sourceIndex[sourceKey] = { key, messageId: message.id };
       await save();
       auditLog?.append?.({
         action: 'portal.message.append',

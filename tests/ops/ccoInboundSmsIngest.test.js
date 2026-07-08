@@ -56,6 +56,31 @@ test('okänt nummer tappas aldrig → lagras under telefon-nyckel', async () => 
   );
 });
 
+test('provider-retry med samma SMS-id dedupe:as', async () => {
+  const messageStore = await createCcoPortalMessageStore({ filePath: tmp() });
+  const patientMasterStore = {
+    findPatientByPhone: async () => ({ id: 'PAT-RETRY' }),
+  };
+  const sms = {
+    from: '+46701234567',
+    to: '+46766000000',
+    message: 'Samma leverantörs-SMS',
+    providerId: 'sabc',
+  };
+  const first = await ingestInboundSms(sms, { messageStore, patientMasterStore });
+  const second = await ingestInboundSms(sms, { messageStore, patientMasterStore });
+  assert.equal(first.status, 'stored');
+  assert.equal(first.deduped, false);
+  assert.equal(second.status, 'stored');
+  assert.equal(second.deduped, true);
+  assert.equal(second.messageId, first.messageId);
+  assert.equal(
+    messageStore.listMessagesForCustomer({ tenantId: 'hairtpclinic', customerId: 'PAT-RETRY' })
+      .length,
+    1
+  );
+});
+
 test('tomt meddelande / saknad avsändare → skipped, inget lagras', async () => {
   const messageStore = await createCcoPortalMessageStore({ filePath: tmp() });
   assert.equal(

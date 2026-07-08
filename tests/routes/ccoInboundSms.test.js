@@ -88,6 +88,26 @@ test('giltig hemlighet + 46elks-format → 200 stored, matchad kund', async () =
   assert.equal(list[0].channel, 'sms');
 });
 
+test('provider-retry med samma id ger 200 men ingen dubblett', async () => {
+  const app = await buildApp();
+  const form = {
+    from: '+46701234567',
+    to: '+46766000000',
+    message: 'Samma retry-SMS',
+    id: 'retry-1',
+  };
+  const first = await postForm(app, `/api/public/sms/inbound/${SECRET}`, form);
+  const second = await postForm(app, `/api/public/sms/inbound/${SECRET}`, form);
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 200);
+  assert.equal(JSON.parse(second.body).deduped, true);
+  const list = app.locals.ccoPortalMessageStore.listMessagesForCustomer({
+    tenantId: 'hairtpclinic',
+    customerId: 'PAT-1',
+  });
+  assert.equal(list.length, 1);
+});
+
 test('fel hemlighet → 403', async () => {
   const app = await buildApp();
   const res = await postForm(app, '/api/public/sms/inbound/fel-token', {

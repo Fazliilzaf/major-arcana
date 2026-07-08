@@ -33,7 +33,9 @@ function normalizePhone(value) {
 async function ingestInboundSms(sms = {}, stores = {}) {
   const tenantId = text(sms.tenantId) || 'hairtpclinic';
   const from = normalizePhone(sms.from);
+  const to = normalizePhone(sms.to);
   const body = text(sms.message);
+  const providerId = text(sms.providerId);
   const { messageStore, patientMasterStore = null, auditLog = null } = stores;
 
   if (!messageStore?.appendMessage) return { status: 'skipped', reason: 'store_unavailable' };
@@ -62,9 +64,14 @@ async function ingestInboundSms(sms = {}, stores = {}) {
     customerId,
     direction: 'inbound',
     channel: 'sms',
+    sourceKey: providerId ? ['sms', to || 'unknown-to', providerId].join(':') : '',
     body,
     author: 'patient',
   });
+
+  if (message.deduped) {
+    return { status: 'stored', customerId, matched, messageId: message.id, deduped: true };
+  }
 
   try {
     auditLog?.append?.({
@@ -75,7 +82,7 @@ async function ingestInboundSms(sms = {}, stores = {}) {
       detail: {
         matched,
         customerId,
-        providerId: text(sms.providerId) || null,
+        providerId: providerId || null,
         fromSuffix: from.slice(-4),
       },
     });
@@ -83,7 +90,7 @@ async function ingestInboundSms(sms = {}, stores = {}) {
     /* audit får aldrig fälla ingesten */
   }
 
-  return { status: 'stored', customerId, matched, messageId: message.id };
+  return { status: 'stored', customerId, matched, messageId: message.id, deduped: false };
 }
 
 module.exports = { ingestInboundSms, normalizePhone };

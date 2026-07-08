@@ -130,3 +130,25 @@ test('persistens: ny store-instans läser samma fil', async () => {
   assert.equal(list.length, 1);
   assert.equal(list[0].body, 'kvar efter omstart');
 });
+
+test('sourceKey dedupe: provider-retry skapar inte dubblett', async () => {
+  const store = await createCcoPortalMessageStore({ filePath: tmpFile() });
+  const ref = { tenantId: 'hairtpclinic', customerId: 'CUST-SMS' };
+  const first = await store.appendMessage({
+    ...ref,
+    direction: 'inbound',
+    channel: 'sms',
+    sourceKey: 'sms:+46766000000:sabc',
+    body: 'Samma SMS',
+  });
+  const second = await store.appendMessage({
+    ...ref,
+    direction: 'inbound',
+    channel: 'sms',
+    sourceKey: 'sms:+46766000000:sabc',
+    body: 'Samma SMS',
+  });
+  assert.equal(second.id, first.id);
+  assert.equal(second.deduped, true);
+  assert.equal(store.listMessagesForCustomer(ref).length, 1);
+});

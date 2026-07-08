@@ -24,8 +24,9 @@ function timingSafeEqual(a, b) {
   const crypto = require('node:crypto');
   const ba = Buffer.from(String(a));
   const bb = Buffer.from(String(b));
-  if (ba.length !== bb.length) return false;
-  return crypto.timingSafeEqual(ba, bb);
+  const ha = crypto.createHash('sha256').update(ba).digest();
+  const hb = crypto.createHash('sha256').update(bb).digest();
+  return crypto.timingSafeEqual(ha, hb) && ba.length === bb.length;
 }
 
 function createCcoInboundSmsRouter({ getSecret } = {}) {
