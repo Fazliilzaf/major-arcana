@@ -11203,6 +11203,7 @@ const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore')
 const { createConfiguredCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStoreFactory');
 const { createCcoMailIngestionStore } = require('./src/ops/ccoMailIngestion/store');
 const { createCcoMailIngestionSyncService } = require('./src/ops/ccoMailIngestion/syncService');
+const { createPortalNudgeIngestionHook } = require('./src/ops/ccoPortalNudgeIngestionHook');
 const { createCcoMailIngestionWorker } = require('./src/ops/ccoMailIngestion/worker');
 const {
   createMicrosoftGraphChangeNotifications,
@@ -12682,6 +12683,19 @@ process.once('SIGTERM', () => {
     documentTriage: ccoDocumentTriageEngine,
     healthDeclarationIngest: ccoHalsoHealthDeclarationIngest,
     clientoBookingIngest: ccoClientoBookingIngest,
+    // Auto-nudge vid ny inbound: förbereder ett needs_approval-utkast med den
+    // magiska portal-länken för känd inbound-kund. Stores resolveras lazy från
+    // app.locals (de wire:as senare i boot) → ingen ordningsberoende. Skickar
+    // aldrig själv; idempotent (en kund nudgas bara en gång).
+    portalNudge: createPortalNudgeIngestionHook({
+      getStores: () => ({
+        accessStore: app.locals.ccoPortalAccessStore,
+        draftStore: app.locals.ccoCommDraftStore,
+        nudgeStore: app.locals.ccoPortalNudgeStore,
+        messageStore: app.locals.ccoPortalMessageStore,
+      }),
+      logger: console,
+    }),
     patientDirectoryProvider: async () => {
       const tenantId = config.defaultTenantId || 'hair-tp-clinic';
       const listed = await ccoPatientMasterStore.listPatients({ tenantId, limit: 20000 });
