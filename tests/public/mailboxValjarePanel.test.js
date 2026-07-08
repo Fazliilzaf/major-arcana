@@ -68,6 +68,19 @@ test('matchar CCO: neutralt mörk namntext, inte rosa-tvätt', () => {
   assert.match(source, /\.mbv-seg button\.on\{[^}]*color:var\(--cco-color-brand/);
 });
 
+test('design-finish matchar CCO: avatar-cirkel + skugga, segment-vit yta', () => {
+  // Avatar = 24px cirkel med CCO .wb-mbx-avatar-skugga (inte platt kvadrat).
+  assert.match(
+    source,
+    /\.mbv-av\{width:24px;height:24px;border-radius:999px;[^}]*box-shadow:inset 0 1px 0 rgba\(255,255,255,\.4\),0 2px 6px rgba\(56,40,28,\.2\)/
+  );
+  // Segment-container = ljus translucent vit (som .inbox-tabs), radie 10px, gap 3px.
+  assert.match(
+    source,
+    /\.mbv-seg\{[^}]*background:rgba\(255,255,255,\.55\);border-radius:10px;padding:3px;gap:3px/
+  );
+});
+
 test('hopfällbara sektioner (sticky) + auto-sync utan manuell knapp', () => {
   assert.match(source, /function collapsibleKicker\(/);
   assert.match(source, /collapsed: \{ mailboxes:/);
