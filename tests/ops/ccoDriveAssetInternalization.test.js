@@ -11,6 +11,7 @@ const { createCcoPatientAssetStore } = require('../../src/ops/ccoPatientAssetSto
 const { createCcoAssetImportRunStore } = require('../../src/ops/ccoAssetImportRunStore');
 const { createCcoAssetReviewQueueStore } = require('../../src/ops/ccoAssetReviewQueueStore');
 const { createLocalProvider } = require('../../src/ops/ccoSecureStorageProvider');
+const { stableEncounterId } = require('../../src/ops/ccoAssetNaming/encounterMapper');
 const {
   collectDriveRowsForInternalization,
   internalizeDriveAssets,
@@ -162,6 +163,61 @@ test('commit laddar Drive-binär, använder korrekt Drive-namn med åäö och bl
     });
     assert.equal(second.stats.alreadyInternal, 1);
     assert.equal(second.stats.remaining, 0);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
+test('commit härleder encounterId från Drive-mappens datum och session', async () => {
+  const rig = await makeRig();
+  try {
+    const driveClient = {
+      async getFileMetadata() {
+        return { name: 'Journal-PRP-Dino.pdf', modifiedTime: '2026-01-01T12:00:00.000Z' };
+      },
+      async downloadBuffer() {
+        return Buffer.from('prp journal body');
+      },
+    };
+    const rows = [
+      {
+        patientId: 'patient-prp',
+        file: {
+          id: 'idx-prp-2',
+          driveFileId: 'drive-prp-2',
+          fileName: 'legacy-name.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/2024-05-17 PRP 2/legacy-name.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+    ];
+    const report = await internalizeDriveAssets({
+      rows,
+      assetStore: rig.assetStore,
+      importRunStore: rig.importRunStore,
+      reviewQueueStore: rig.reviewQueueStore,
+      pipeline: rig.pipeline,
+      driveClient,
+      dryRun: false,
+      go: true,
+    });
+
+    const expectedEncounterId = stableEncounterId({
+      patientId: 'patient-prp',
+      date: '2024-05-17',
+      encounterType: 'prp_hair',
+      sessionNumber: 2,
+    });
+    const asset = rig.assetStore.listItemsForEnrichment()[0];
+    assert.equal(report.stats.imported, 1);
+    assert.equal(report.samples[0].documentDate, '2024-05-17');
+    assert.equal(report.samples[0].documentDateSource, 'folder_iso');
+    assert.equal(report.samples[0].encounterType, 'prp_hair');
+    assert.equal(asset.encounterId, expectedEncounterId);
+    assert.equal(asset.encounterType, 'prp_hair');
+    assert.equal(asset.treatmentType, 'PRP');
+    assert.equal(asset.sessionNumber, 2);
+    assert.equal(asset.visitLabel, 'PRP 2');
   } finally {
     await fs.rm(rig.tmp, { recursive: true, force: true });
   }

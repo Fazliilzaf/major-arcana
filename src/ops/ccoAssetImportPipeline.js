@@ -315,6 +315,19 @@ function linkEncounter({
   return null;
 }
 
+function sourceRecordEncounterLink(sourceRecord = {}, patientId = null) {
+  const encounterId = normalizeText(sourceRecord.encounterId);
+  if (!encounterId || !normalizeText(patientId)) return null;
+  return {
+    encounterId,
+    confidence: normalizeText(sourceRecord.encounterConfidence) || 'high',
+    score: 0.95,
+    basis: 'source_record',
+    encounterType: normalizeText(sourceRecord.encounterType) || null,
+    visitLabel: normalizeText(sourceRecord.visitLabel) || null,
+  };
+}
+
 // -----------------------------------------------------------------------------
 // Discovery (stubs som kan injekteras / utvidgas)
 // -----------------------------------------------------------------------------
@@ -380,6 +393,7 @@ function createCcoAssetImportPipeline({
     const linkOnlyAsset = await assetStore.addAsset(
       {
         patientId: sourceRecord.patientId || 'unknown',
+        encounterId: sourceRecord.encounterId || null,
         sourceSystem,
         sourceRecordId: sourceRecord.sourceRecordId || null,
         originalDriveFileId: sourceRecord.originalDriveFileId || null,
@@ -392,6 +406,10 @@ function createCcoAssetImportPipeline({
         documentDate: sourceRecord.documentDate || null,
         importRunId,
         status: 'LINK_ONLY_BLOCKER',
+        treatmentType: sourceRecord.treatmentType || null,
+        encounterType: sourceRecord.encounterType || null,
+        sessionNumber: sourceRecord.sessionNumber || null,
+        visitLabel: sourceRecord.visitLabel || null,
       },
       { actor }
     );
@@ -588,6 +606,7 @@ function createCcoAssetImportPipeline({
       const dupAsset = await assetStore.addAsset(
         {
           patientId: sourceRecord.patientId || 'unknown',
+          encounterId: sourceRecord.encounterId || null,
           sourceSystem,
           sourceRecordId: sourceRecord.sourceRecordId || null,
           originalDriveFileId: sourceRecord.originalDriveFileId || null,
@@ -603,6 +622,10 @@ function createCcoAssetImportPipeline({
           documentDate: sourceRecord.documentDate || null,
           importRunId,
           status: 'DUPLICATE',
+          treatmentType: sourceRecord.treatmentType || null,
+          encounterType: sourceRecord.encounterType || null,
+          sessionNumber: sourceRecord.sessionNumber || null,
+          visitLabel: sourceRecord.visitLabel || null,
         },
         { actor }
       );
@@ -655,7 +678,8 @@ function createCcoAssetImportPipeline({
 
     // Steg 7: Link encounter
     const encounterLink = patientLink.patientId
-      ? linkEncounter({
+      ? sourceRecordEncounterLink(sourceRecord, patientLink.patientId) ||
+        linkEncounter({
           patientId: patientLink.patientId,
           documentDate: sourceRecord.documentDate,
           category: classification.category,
@@ -718,6 +742,7 @@ function createCcoAssetImportPipeline({
         auditRequired: needsReview,
         isJournalRelevant: classification.category === 'journal',
         treatmentType: sourceRecord.treatmentType || null,
+        encounterType: sourceRecord.encounterType || encounterLink?.encounterType || null,
         sessionNumber: sourceRecord.sessionNumber || null,
         visitLabel: sourceRecord.visitLabel || null,
         ...captureFields,

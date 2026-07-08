@@ -2,6 +2,8 @@
 
 const path = require('node:path');
 
+const { stableEncounterId } = require('./ccoAssetNaming/encounterMapper');
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -377,6 +379,36 @@ const TREATMENT_TYPES = [
   { needle: 'op', canon: 'OP', word: true },
 ];
 
+const TREATMENT_ENCOUNTER_TYPES = Object.freeze({
+  DHI: 'transplant_dhi',
+  FUE: 'transplant_fue',
+  Konsultation: 'consultation',
+  Microneedling: 'microneedling',
+  OP: 'other',
+  PRP: 'prp_hair',
+});
+
+const ENCOUNTER_DATE_SOURCES = new Set(['folder_iso', 'folder_month', 'filename_epoch', 'row']);
+
+function buildDriveEncounterFields({ patientId, documentDate, documentDateSource, enc = {} } = {}) {
+  const pid = normalizeText(patientId);
+  const date = normalizeText(documentDate);
+  const treatmentType = normalizeText(enc.treatmentType);
+  if (!pid || !date || !treatmentType || !ENCOUNTER_DATE_SOURCES.has(documentDateSource)) {
+    return { encounterId: null, encounterType: null };
+  }
+  const encounterType = TREATMENT_ENCOUNTER_TYPES[treatmentType] || 'other';
+  return {
+    encounterId: stableEncounterId({
+      patientId: pid,
+      date,
+      encounterType,
+      sessionNumber: enc.sessionNumber || null,
+    }),
+    encounterType,
+  };
+}
+
 // Härled besöksdatum + behandlingstyp/session ur Drive-mappnamnet (ORD-41).
 // Datum: ISO i path → månadsnamn+dag → unix-epoch i filnamnet. Drive-tid sätts av anroparen sist.
 function parseFolderEncounter(originalDrivePath = '', originalFileName = '') {
@@ -483,10 +515,19 @@ async function resolveDriveFileMetadata(row, driveClient) {
     }
   }
 
+  const encounter = buildDriveEncounterFields({
+    patientId: row.patientId,
+    documentDate,
+    documentDateSource,
+    enc,
+  });
+
   return {
     name,
     documentDate: documentDate || null,
     documentDateSource: documentDateSource || null,
+    encounterId: encounter.encounterId,
+    encounterType: encounter.encounterType,
     treatmentType: enc.treatmentType || null,
     sessionNumber: enc.sessionNumber || null,
     visitLabel: enc.visitLabel || null,
@@ -580,6 +621,8 @@ async function internalizeDriveAssets({
           mimeType: row.mimeType,
           documentDate: driveMetadata.documentDate,
           documentDateSource: driveMetadata.documentDateSource,
+          encounterId: driveMetadata.encounterId,
+          encounterType: driveMetadata.encounterType,
           treatmentType: driveMetadata.treatmentType,
           sessionNumber: driveMetadata.sessionNumber,
           visitLabel: driveMetadata.visitLabel,
@@ -598,6 +641,8 @@ async function internalizeDriveAssets({
           name: maskValue(driveMetadata.name, { keepStart: 1, keepEnd: 1 }),
           documentDate: driveMetadata.documentDate,
           documentDateSource: driveMetadata.documentDateSource,
+          encounterId: maskValue(driveMetadata.encounterId, { keepStart: 4, keepEnd: 4 }),
+          encounterType: driveMetadata.encounterType,
           treatmentType: driveMetadata.treatmentType,
           sessionNumber: driveMetadata.sessionNumber,
           visitLabel: driveMetadata.visitLabel,

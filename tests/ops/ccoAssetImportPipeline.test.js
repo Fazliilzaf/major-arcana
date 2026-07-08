@@ -207,6 +207,46 @@ test('importSingleAsset end-to-end: high-conf pnr-match → IMPORTED + VISIBLE',
   }
 });
 
+test('importSingleAsset respekterar explicit sourceRecord.encounterId framför journalStore-matchning', async () => {
+  const rig = await makeRig();
+  try {
+    const runId = await rig.importRunStore.startRun({
+      sourceSystem: 'drive_import',
+      mode: 'incremental',
+    });
+    const result = await rig.pipeline.importSingleAsset({
+      sourceSystem: 'drive_import',
+      importRunId: runId,
+      sourceRecord: {
+        patientId: 'pat-known-001',
+        sourceRecordId: 'drive-explicit-enc',
+        originalDriveFileId: 'drive-explicit-enc',
+        originalDrivePath: '/Kunder/pat-known-001/2026-03-15 PRP 2/journal.pdf',
+        originalFileName: 'Journal-PRP-test.pdf',
+        mimeType: 'application/pdf',
+        documentDate: '2026-03-15',
+        encounterId: 'enc-from-drive-folder',
+        encounterType: 'prp_hair',
+        treatmentType: 'PRP',
+        sessionNumber: 2,
+        visitLabel: 'PRP 2',
+        body: Buffer.from('fake pdf content for explicit encounter test'),
+      },
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.encounterLink?.encounterId, 'enc-from-drive-folder');
+    assert.equal(result.encounterLink?.basis, 'source_record');
+    assert.equal(result.asset.encounterId, 'enc-from-drive-folder');
+    assert.equal(result.asset.encounterType, 'prp_hair');
+    assert.equal(result.asset.treatmentType, 'PRP');
+    assert.equal(result.asset.sessionNumber, 2);
+    assert.equal(result.asset.visitLabel, 'PRP 2');
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
 test('importSingleAsset: no patient match → NEEDS_REVIEW + queue-item', async () => {
   const rig = await makeRig();
   const runId = await rig.importRunStore.startRun({
