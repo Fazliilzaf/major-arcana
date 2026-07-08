@@ -37,9 +37,33 @@ function maskEmail(email) {
   return `${head}${'•'.repeat(Math.max(1, local.length - 2))}@${domain}`;
 }
 
+/** Patient-länken (fri kanal-chatt) ligger på /portal-chat/:token. */
+function buildPortalUrl(baseUrl, token) {
+  const base = text(baseUrl).replace(/\/+$/, '') || 'https://arcana.hairtpclinic.com';
+  return `${base}/portal-chat/${encodeURIComponent(token)}`;
+}
+
+/**
+ * Sätter ihop den slutliga mailtexten i rätt ordning:
+ *   användartext → (valfri) portal-inbjudan → (valfri) signatur.
+ * Portal-inbjudan driver dialogen till den fria kanalen (kostnadsbesparing).
+ */
+function buildComposeBody({ userBody, portalUrl, signature } = {}) {
+  let out = text(userBody);
+  if (text(portalUrl)) {
+    out +=
+      '\n\nDu kan svara direkt i din trygga portal, utan SMS:\n' +
+      text(portalUrl) +
+      '\nLänken är personlig, spara den gärna.';
+  }
+  if (text(signature)) out += '\n\n' + text(signature);
+  return out;
+}
+
 /**
  * @param {{tenantId?:string, recipientName?:string, recipientEmail:string,
- *          recipientPhone?:string, subject:string, body:string,
+ *          recipientPhone?:string, subject:string, body:string, signature?:string,
+ *          includePortalLink?:boolean, baseUrl?:string,
  *          channel?:'graph'|'resend', senderMailboxId?:string, actor?:object}} ref
  * @param {{patientMasterStore:object, draftStore:object}} stores
  * @returns {Promise<{status:'prepared'|'skipped', reason?:string, draftId?:string,
@@ -53,9 +77,11 @@ async function composeNewMail(ref = {}, stores = {}) {
   const subject = text(ref.subject);
   const body = text(ref.body);
   const channel = SEND_CHANNELS.has(text(ref.channel)) ? text(ref.channel) : 'graph';
+  const signature = text(ref.signature);
+  const includePortalLink = ref.includePortalLink === true;
   const senderMailboxId =
     normalizeMailbox(ref.senderMailboxId) || (channel === 'graph' ? DEFAULT_GRAPH_SENDER_MAILBOX_ID : '');
-  const { patientMasterStore, draftStore } = stores;
+  const { patientMasterStore, draftStore, accessStore } = stores;
 
   if (!recipientEmail) return { status: 'skipped', reason: 'invalid_email' };
   if (!subject) return { status: 'skipped', reason: 'missing_subject' };
@@ -85,14 +111,29 @@ async function composeNewMail(ref = {}, stores = {}) {
   const customerId = text(contact?.id) || text(contact?.patientId);
   if (!customerId) return { status: 'skipped', reason: 'contact_failed' };
 
-  // 2. Utkast → needs_approval. Kanalvalet sparas i mergeFields. ALDRIG sent här.
+  // 2. Valfri portal-inbjudan: mynta en personlig magisk länk och bädda in den i
+  // texten. Driver dialogen till den fria portal-kanalen. Aldrig utskick här.
+  let portalUrl = '';
+  if (includePortalLink && typeof accessStore?.issueToken === 'function') {
+    try {
+      const issued = await accessStore.issueToken({ tenantId, customerId });
+      if (issued?.token) {
+        portalUrl = buildPortalUrl(ref.baseUrl || process.env.PUBLIC_BASE_URL, issued.token);
+      }
+    } catch {
+      portalUrl = '';
+    }
+  }
+  const composedBody = buildComposeBody({ userBody: body, portalUrl, signature });
+
+  // 3. Utkast → needs_approval. Kanalvalet sparas i mergeFields. ALDRIG sent här.
   const draft = await draftStore.createDraft(
     {
       tenantId,
       customerId,
       channel: 'email',
       subject,
-      body,
+      body: composedBody,
       mergeFields: {
         sendChannel: channel,
         recipientName: recipientName || null,
@@ -115,7 +156,14 @@ async function composeNewMail(ref = {}, stores = {}) {
     channel,
     senderMailboxId: senderMailboxId || null,
     contactCreated,
+    portalLinkIncluded: Boolean(portalUrl),
   };
 }
 
-module.exports = { composeNewMail, maskEmail, DEFAULT_GRAPH_SENDER_MAILBOX_ID };
+module.exports = {
+  composeNewMail,
+  maskEmail,
+  buildComposeBody,
+  buildPortalUrl,
+  DEFAULT_GRAPH_SENDER_MAILBOX_ID,
+};

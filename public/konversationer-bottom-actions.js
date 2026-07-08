@@ -2823,6 +2823,25 @@
     },
   ];
 
+  // Egna snabbstartsmallar sparas lokalt i webbläsaren (best-effort).
+  const COMPOSE_TPL_LS = 'cco_compose_templates_v1';
+  function loadCustomComposeTemplates() {
+    try {
+      const raw = window.localStorage.getItem(COMPOSE_TPL_LS);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (_e) {
+      return [];
+    }
+  }
+  function saveCustomComposeTemplates(list) {
+    try {
+      window.localStorage.setItem(COMPOSE_TPL_LS, JSON.stringify(list.slice(0, 20)));
+    } catch (_e) {
+      /* localStorage kan vara blockerad — egna mallar är best-effort */
+    }
+  }
+
   function openComposeNewMail() {
     const body = el('div', { class: 'cnm-wrap' });
     body.appendChild(
@@ -2837,9 +2856,16 @@
           '.cnm-input:focus{outline:0;border-color:#bb4779;box-shadow:0 0 0 3px rgba(187,71,121,.14)}' +
           'textarea.cnm-input{resize:vertical;min-height:150px;line-height:1.55}' +
           '.cnm-cards{display:flex;gap:8px;flex-wrap:wrap}' +
-          '.cnm-card{flex:1;min-width:150px;text-align:left;border:1px solid #efe6dc;border-radius:12px;padding:9px 12px;background:#fff;cursor:pointer;transition:border-color .15s,transform .1s,box-shadow .15s}' +
+          '.cnm-card{position:relative;flex:1;min-width:150px;text-align:left;border:1px solid #efe6dc;border-radius:12px;padding:9px 12px;background:#fff;cursor:pointer;transition:border-color .15s,transform .1s,box-shadow .15s}' +
           '.cnm-card:hover{border-color:#bb4779;transform:translateY(-1px);box-shadow:0 3px 10px rgba(187,71,121,.12)}' +
           '.cnm-card b{display:block;font-size:12.5px}.cnm-card span{display:block;font-size:11px;color:#8a8174;margin-top:2px}' +
+          '.cnm-card-x{position:absolute;top:3px;right:7px;font-size:15px;line-height:1;color:#c6a9b7;font-weight:700}' +
+          '.cnm-card-x:hover{color:#bb4779}' +
+          '.cnm-portal{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:#6b6357;margin-top:8px;cursor:pointer;line-height:1.4}' +
+          '.cnm-portal input{margin-top:2px}' +
+          '.cnm-savebtn{border:1px dashed #d9c7b6;border-radius:8px;padding:6px 12px;font:inherit;font-size:12px;cursor:pointer;background:#fff;color:#8a7a63;margin-top:8px}' +
+          '.cnm-savebtn:hover{border-color:#bb4779;color:#bb4779}' +
+          '.cnm-preview .pv-portal{white-space:pre-wrap;font-size:11.5px;color:#bb4779;border-top:1px dashed #f0d8e4;padding-top:9px;margin-top:11px}' +
           '.cnm-pills{display:flex;gap:6px;flex-wrap:wrap}' +
           '.cnm-pill{border:1px solid #e7ded5;border-radius:999px;padding:5px 13px;font:inherit;font-size:12px;cursor:pointer;background:#fff;color:#6b6357}' +
           '.cnm-pill.is-on{background:linear-gradient(135deg,#fce9f0,#f1cfdc);border-color:#e6a9c3;color:#bb4779;font-weight:700}' +
@@ -2895,14 +2921,25 @@
     const pvFran = el('span', {}, '');
     const pvAmne = el('span', {}, '');
     const pvBody = el('div', { class: 'pv-body' }, '');
+    const pvPortal = el('div', { class: 'pv-portal' }, '');
     const pvSig = el('div', { class: 'pv-sig' }, '');
     const preview = el('div', { class: 'cnm-preview' }, [
       el('div', { class: 'pv-row' }, [el('b', {}, 'Till'), pvTill]),
       el('div', { class: 'pv-row' }, [el('b', {}, 'Från'), pvFran]),
       el('div', { class: 'pv-row' }, [el('b', {}, 'Ämne'), pvAmne]),
       pvBody,
+      pvPortal,
       pvSig,
     ]);
+
+    // Portal-inbjudan: en toggle som bäddar in en personlig magisk länk i mailet
+    // (myntas server-side vid utkastet). Driver dialogen till den fria kanalen.
+    const portalChk = el('input', { type: 'checkbox' });
+    const portalRow = el('label', { class: 'cnm-portal' }, [
+      portalChk,
+      el('span', {}, 'Bjud in till portalen — bifoga en personlig länk (fri kanal, inget SMS)'),
+    ]);
+    portalChk.addEventListener('change', () => updatePreview());
 
     function updatePreview() {
       pvTill.textContent = emailEl.value.trim() || 'mottagare@…';
@@ -2912,6 +2949,10 @@
           : 'kons@hairtpclinic.com';
       pvAmne.textContent = subjectEl.value.trim() || '(inget ämne)';
       pvBody.textContent = bodyEl.value || 'Här visas mailet live medan du skriver…';
+      pvPortal.textContent = portalChk.checked
+        ? '🔒 En personlig portal-länk bifogas automatiskt: “Du kan svara direkt i din trygga portal, utan SMS…”'
+        : '';
+      pvPortal.style.display = portalChk.checked ? 'block' : 'none';
       pvSig.textContent = COMPOSE_SIGS[sigKey] || '';
       pvSig.style.display = COMPOSE_SIGS[sigKey] ? 'block' : 'none';
       const words = bodyEl.value.trim() ? bodyEl.value.trim().split(/\s+/).length : 0;
@@ -2929,25 +2970,59 @@
       })
     );
 
-    // Snabbstart-kort (funktionella — fyller ämne + text, inte fejk-AI).
-    const cards = el(
-      'div',
-      { class: 'cnm-cards' },
-      COMPOSE_TEMPLATES.map((t) =>
-        el('button', { type: 'button', class: 'cnm-card' }, [
+    // Snabbstart-kort: inbyggda mallar + egna sparade (localStorage). Funktionella
+    // (fyller ämne + text), ingen fejk-AI.
+    const cards = el('div', { class: 'cnm-cards' });
+    function renderComposeCards() {
+      cards.innerHTML = '';
+      COMPOSE_TEMPLATES.concat(loadCustomComposeTemplates()).forEach((t) => {
+        const card = el('button', { type: 'button', class: 'cnm-card' }, [
           el('b', {}, t.title),
-          el('span', {}, t.hint),
-        ])
-      )
-    );
-    Array.from(cards.children).forEach((cardEl, i) =>
-      cardEl.addEventListener('click', () => {
-        const t = COMPOSE_TEMPLATES[i];
-        subjectEl.value = t.subject;
-        bodyEl.value = t.body;
-        updatePreview();
-      })
-    );
+          el('span', {}, t.hint || 'Egen mall'),
+        ]);
+        card.addEventListener('click', () => {
+          subjectEl.value = t.subject;
+          bodyEl.value = t.body;
+          updatePreview();
+        });
+        if (t.custom) {
+          const x = el('span', { class: 'cnm-card-x', title: 'Ta bort mall' }, '×');
+          x.addEventListener('click', (e) => {
+            e.stopPropagation();
+            saveCustomComposeTemplates(loadCustomComposeTemplates().filter((m) => m.key !== t.key));
+            renderComposeCards();
+          });
+          card.appendChild(x);
+        }
+        cards.appendChild(card);
+      });
+    }
+    renderComposeCards();
+
+    // "Spara som mall": sparar nuvarande ämne + text som en egen snabbstart.
+    const saveTplBtn = el('button', { type: 'button', class: 'cnm-savebtn' }, '💾 Spara som mall');
+    saveTplBtn.addEventListener('click', () => {
+      const subj = subjectEl.value.trim();
+      const bd = bodyEl.value.trim();
+      if (!subj || !bd) {
+        status.textContent = 'Fyll i ämne och text för att spara som mall.';
+        status.style.color = '#b94a4a';
+        return;
+      }
+      const list = loadCustomComposeTemplates();
+      list.push({
+        key: 'custom:' + Date.now(),
+        title: subj.slice(0, 40),
+        hint: 'Egen mall',
+        subject: subj,
+        body: bd,
+        custom: true,
+      });
+      saveCustomComposeTemplates(list);
+      renderComposeCards();
+      status.textContent = '✓ Sparad som mall.';
+      status.style.color = '#4a8268';
+    });
 
     const submit = el(
       'button',
@@ -2964,8 +3039,10 @@
         channel: channelEl.value,
         senderMailboxId: channelEl.value === 'graph' ? 'kons@hairtpclinic.com' : '',
         subject: subjectEl.value.trim(),
-        // Signaturen bifogas i själva texten så den går ut med mailet (som i förhandsvisningen).
-        body: bodyText + (sigText ? '\n\n' + sigText : ''),
+        // Server sätter ihop texten: användartext → (valfri) portal-länk → signatur.
+        body: bodyText,
+        signature: sigText,
+        includePortalLink: portalChk.checked,
       };
       if (!payload.recipientEmail || !payload.subject || !bodyText) {
         status.textContent = 'Fyll i mottagare, ämne och text.';
@@ -2990,6 +3067,7 @@
           status.textContent =
             '✓ Utkast skapat (' +
             (j.contactCreated ? 'ny kontakt, ' : '') +
+            (j.portalLinkIncluded ? 'portal-länk bifogad, ' : '') +
             'väntar på godkännande).';
           status.style.color = '#4a8268';
           subjectEl.value = '';
@@ -3069,6 +3147,7 @@
     );
     body.appendChild(label('Snabbstart'));
     body.appendChild(cards);
+    body.appendChild(saveTplBtn);
 
     const leftCol = el('div', {}, [
       label('Till'),
@@ -3086,6 +3165,8 @@
       wc,
       label('Signatur'),
       el('div', { class: 'cnm-pills' }, sigPills),
+      label('Portal'),
+      portalRow,
       el('div', { style: 'margin-top:18px;display:flex;align-items:center;flex-wrap:wrap' }, [
         submit,
       ]),

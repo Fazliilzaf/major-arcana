@@ -41,6 +41,7 @@ test('skapar kontakt + needs_approval-utkast med kanalval (graph)', async () => 
   assert.equal(res.status, 'prepared');
   assert.equal(res.contactCreated, true);
   assert.equal(res.channel, 'graph');
+  assert.equal(res.senderMailboxId, 'kons@hairtpclinic.com');
   assert.ok(res.draftId);
   assert.ok(res.customerId);
 
@@ -56,6 +57,7 @@ test('skapar kontakt + needs_approval-utkast med kanalval (graph)', async () => 
   const draft = stores.draftStore.getDraft(res.draftId);
   assert.equal(draft.status, 'needs_approval');
   assert.equal(draft.mergeFields.sendChannel, 'graph');
+  assert.equal(draft.mergeFields.senderMailboxId, 'kons@hairtpclinic.com');
   assert.match(draft.recipientMasked, /@example\.com$/);
   assert.doesNotMatch(draft.recipientMasked, /ny\.person@/); // maskad
 });
@@ -107,4 +109,75 @@ test('maskEmail döljer lokaldelen men behåller domänen', () => {
   assert.match(masked, /^an•+@mail\.se$/); // två tecken + bullets + domän
   assert.doesNotMatch(masked, /karlsson/);
   assert.equal(maskEmail('trasig'), '•••');
+});
+
+// ── Portal-inbjudan + signatur (buildComposeBody + includePortalLink) ─────────
+
+const { buildComposeBody, buildPortalUrl } = require('../../src/ops/ccoComposeNewMail');
+
+test('buildComposeBody sätter ihop text → portal-länk → signatur i rätt ordning', () => {
+  const out = buildComposeBody({
+    userBody: 'Hej!',
+    portalUrl: 'https://arcana.hairtpclinic.com/portal-chat/tok',
+    signature: 'Mvh\nFazli',
+  });
+  assert.match(out, /^Hej!/);
+  assert.match(out, /portal-chat\/tok/);
+  assert.match(out, /Mvh\nFazli$/);
+  // Ordning: portal-inbjudan före signaturen.
+  assert.ok(out.indexOf('portal-chat') < out.indexOf('Mvh'));
+});
+
+test('buildComposeBody utan extra-delar returnerar bara användartexten', () => {
+  assert.equal(buildComposeBody({ userBody: 'Bara text' }), 'Bara text');
+});
+
+test('includePortalLink myntar token och bäddar in /portal-chat-länken', async () => {
+  const stores = await build();
+  const issued = [];
+  stores.accessStore = {
+    issueToken: async ({ tenantId, customerId }) => {
+      issued.push({ tenantId, customerId });
+      return { token: 'magic-123' };
+    },
+  };
+  const res = await composeNewMail(
+    {
+      recipientEmail: 'portal@example.com',
+      subject: 'Välkommen',
+      body: 'Hej och välkommen!',
+      signature: 'Mvh\nFazli',
+      includePortalLink: true,
+      baseUrl: 'https://arcana.hairtpclinic.com',
+    },
+    stores
+  );
+  assert.equal(res.status, 'prepared');
+  assert.equal(res.portalLinkIncluded, true);
+  assert.equal(issued.length, 1);
+
+  const draft = stores.draftStore.getDraft(res.draftId);
+  assert.match(draft.body, /\/portal-chat\/magic-123/);
+  assert.match(draft.body, /Mvh\nFazli$/); // signaturen sist
+  assert.ok(draft.body.indexOf('portal-chat') < draft.body.indexOf('Mvh')); // länk före signatur
+});
+
+test('includePortalLink utan accessStore kraschar inte → portalLinkIncluded:false', async () => {
+  const stores = await build();
+  const res = await composeNewMail(
+    {
+      recipientEmail: 'ingen-access@example.com',
+      subject: 'Hej',
+      body: 'Text',
+      includePortalLink: true,
+    },
+    stores
+  );
+  assert.equal(res.status, 'prepared');
+  assert.equal(res.portalLinkIncluded, false);
+  assert.doesNotMatch(stores.draftStore.getDraft(res.draftId).body, /portal-chat/);
+});
+
+test('buildPortalUrl faller tillbaka på prod-basen och kodar token', () => {
+  assert.equal(buildPortalUrl('', 'a b'), 'https://arcana.hairtpclinic.com/portal-chat/a%20b');
 });

@@ -33,6 +33,7 @@ function createCcoComposeNewMailRouter({ requireAuth } = {}) {
       const locals = req.app?.locals || {};
       const patientMasterStore = locals.ccoPatientMasterStore || null;
       const draftStore = locals.ccoCommDraftStore || null;
+      const accessStore = locals.ccoPortalAccessStore || null;
       if (!patientMasterStore || !draftStore) {
         return res.status(503).json({ ok: false, error: 'compose_unavailable' });
       }
@@ -46,11 +47,14 @@ function createCcoComposeNewMailRouter({ requireAuth } = {}) {
             recipientPhone: text(b.recipientPhone),
             subject: text(b.subject),
             body: text(b.body),
+            signature: text(b.signature),
+            includePortalLink: b.includePortalLink === true,
+            baseUrl: text(process.env.PUBLIC_BASE_URL),
             channel: text(b.channel),
             senderMailboxId: text(b.senderMailboxId),
             actor: { userId: text(req.auth?.userId) || text(req.cco?.role) || 'staff' },
           },
-          { patientMasterStore, draftStore }
+          { patientMasterStore, draftStore, accessStore }
         );
         if (result.status !== 'prepared') {
           return res.status(400).json({ ok: false, ...result });
