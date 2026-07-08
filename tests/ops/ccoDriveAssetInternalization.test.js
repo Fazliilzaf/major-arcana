@@ -17,6 +17,8 @@ const {
   internalizeDriveAssets,
   inventoryDriveAssets,
   normalizeDriveAssetRow,
+  previewInternalizeCandidates,
+  findConsecutivePilotWindow,
 } = require('../../src/ops/ccoDriveAssetInternalization');
 
 async function makeRig() {
@@ -428,4 +430,82 @@ test('inventory räknar om saknad blob på disk som remaining trots checksum i i
   } finally {
     await fs.rm(rig.tmp, { recursive: true, force: true });
   }
+});
+
+test('previewInternalizeCandidates maskerar och hittar pilotWindow utan unknown_month', async () => {
+  const rig = await makeRig();
+  try {
+    const rows = [
+      {
+        patientId: 'pat-1',
+        file: {
+          driveFileId: 'drive-unknown-1',
+          fileName: 'a.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/Åsa/a.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+      {
+        patientId: 'pat-2',
+        file: {
+          driveFileId: 'drive-clear-1',
+          fileName: 'b.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/Januari 2025/2025-01-02 PRP 1/b.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+      {
+        patientId: 'pat-3',
+        file: {
+          driveFileId: 'drive-clear-2',
+          fileName: 'c.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/Januari 2025/2025-01-03 PRP 2/c.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+    ];
+    const preview = await previewInternalizeCandidates({
+      rows,
+      assetStore: rig.assetStore,
+      storage: rig.storage,
+      limit: 10,
+      excludeUnknownMonth: true,
+      pilotWindowSize: 2,
+    });
+    assert.equal(preview.zeroWrites, true);
+    assert.equal(preview.stats.remaining, 3);
+    assert.equal(preview.stats.unknownMonthRemaining, 1);
+    assert.equal(preview.stats.calendarClearRemaining, 2);
+    assert.equal(preview.candidates.length, 2);
+    assert.equal(preview.candidates[0].monthFolder, 'Januari 2025');
+    assert.equal(preview.candidates[0].documentDateSource, 'folder_iso');
+    assert.match(preview.candidates[0].fileName, /\*/);
+    assert.match(preview.candidates[0].driveRef, /\*/);
+    assert.equal('patientId' in preview.candidates[0], false);
+    assert.equal(preview.pilotWindow.offset, 1);
+    assert.equal(preview.pilotWindow.size, 2);
+    assert.equal(preview.pilotWindow.candidates.length, 2);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
+test('findConsecutivePilotWindow returnerar null när inget fönster finns', () => {
+  const rows = [
+    {
+      file: {
+        driveFileId: 'd1',
+        relativePath: 'Hair TP Clinic 2024/Bokade/Åsa/a.pdf',
+        fileName: 'a.pdf',
+      },
+    },
+    {
+      file: {
+        driveFileId: 'd2',
+        relativePath: 'Hair TP Clinic 2024/Bokade/Januari 2025/b.pdf',
+        fileName: 'b.pdf',
+      },
+    },
+  ];
+  assert.equal(findConsecutivePilotWindow(rows, 2), null);
 });

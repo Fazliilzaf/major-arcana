@@ -694,6 +694,118 @@ async function internalizeDriveAssets({
   };
 }
 
+const UNKNOWN_MONTH_BUCKET = 'unknown_month';
+
+function buildInternalizeCandidatePreviewRow(row, remainingOffset) {
+  const normalized = normalizeDriveAssetRow(row);
+  const enc = parseFolderEncounter(normalized.originalDrivePath, normalized.originalFileName);
+  let documentDateSource = enc.documentDateSource;
+  const documentDate = enc.documentDate || normalized.documentDate || null;
+  if (!documentDateSource && documentDate) documentDateSource = 'row';
+  const monthFolder = extractMonthFolder(normalized.originalDrivePath);
+  return {
+    remainingOffset,
+    monthFolder,
+    calendarBucketClear: monthFolder !== UNKNOWN_MONTH_BUCKET,
+    documentDateSource: documentDateSource || 'none',
+    documentDate,
+    family: mimeFamily(normalized.mimeType, normalized.originalFileName),
+    fileName: maskValue(normalized.originalFileName, { keepStart: 1, keepEnd: 1 }),
+    driveRef: maskValue(normalized.driveFileId, { keepStart: 4, keepEnd: 4 }),
+  };
+}
+
+function findConsecutivePilotWindow(remainingRows = [], windowSize = 10) {
+  const size = Math.max(1, Number(windowSize) || 10);
+  const rows = asArray(remainingRows);
+  if (rows.length < size) return null;
+  for (let offset = 0; offset <= rows.length - size; offset += 1) {
+    let allClear = true;
+    for (let index = 0; index < size; index += 1) {
+      const monthFolder = extractMonthFolder(
+        normalizeDriveAssetRow(rows[offset + index]).originalDrivePath
+      );
+      if (monthFolder === UNKNOWN_MONTH_BUCKET) {
+        allClear = false;
+        break;
+      }
+    }
+    if (allClear) {
+      return { offset, size, calendarBucketClear: true };
+    }
+  }
+  return null;
+}
+
+async function previewInternalizeCandidates({
+  rows = [],
+  assetStore = null,
+  storage = null,
+  offset = 0,
+  limit = 10,
+  excludeUnknownMonth = false,
+  pilotWindowSize = 10,
+  includePilotWindow = true,
+} = {}) {
+  const inventory = await inventoryDriveAssets({ rows, assetStore, storage, sampleSize: 0 });
+  const remainingRows = inventory.remainingRows || [];
+  const previewAll = remainingRows.map((row, index) =>
+    buildInternalizeCandidatePreviewRow(row, index)
+  );
+
+  let calendarClearRemaining = 0;
+  let unknownMonthRemaining = 0;
+  for (const preview of previewAll) {
+    if (preview.calendarBucketClear) calendarClearRemaining += 1;
+    else unknownMonthRemaining += 1;
+  }
+
+  const browseOffset = Math.max(0, Number(offset) || 0);
+  const browseLimit = Math.max(1, Number(limit) || 10);
+  const candidates = excludeUnknownMonth
+    ? previewAll
+        .filter((preview) => preview.calendarBucketClear)
+        .slice(browseOffset, browseOffset + browseLimit)
+    : previewAll.slice(browseOffset, browseOffset + browseLimit);
+
+  const pilotWindowBase = includePilotWindow
+    ? findConsecutivePilotWindow(remainingRows, pilotWindowSize)
+    : null;
+  const pilotWindow = pilotWindowBase
+    ? {
+        ...pilotWindowBase,
+        candidates: previewAll.slice(
+          pilotWindowBase.offset,
+          pilotWindowBase.offset + pilotWindowBase.size
+        ),
+      }
+    : null;
+
+  return {
+    generatedAt: nowIso(),
+    zeroWrites: true,
+    dryRun: true,
+    model:
+      'Read-only pilot candidate preview · masked · no patient IDs · commit offset = remainingOffset',
+    stats: {
+      scanned: inventory.stats.scanned,
+      remaining: inventory.stats.remaining,
+      calendarClearRemaining,
+      unknownMonthRemaining,
+    },
+    pilotWindow,
+    candidates,
+    pagination: {
+      offset: browseOffset,
+      limit: browseLimit,
+      excludeUnknownMonth,
+      returned: candidates.length,
+      totalRemaining: remainingRows.length,
+      totalCalendarClear: calendarClearRemaining,
+    },
+  };
+}
+
 module.exports = {
   assetBlobVerifiedOnStorage,
   buildExistingAssetIndex,
@@ -710,4 +822,7 @@ module.exports = {
   extractMonthFolder,
   normalizeDriveAssetRow,
   parseFolderEncounter,
+  buildInternalizeCandidatePreviewRow,
+  findConsecutivePilotWindow,
+  previewInternalizeCandidates,
 };
