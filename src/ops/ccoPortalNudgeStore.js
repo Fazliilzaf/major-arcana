@@ -101,12 +101,40 @@ async function createCcoPortalNudgeStore({ filePath } = {}) {
     });
   }
 
-  /** Antal förberedda nudgar (adoptionsmätning). */
-  function stats() {
-    return { prepared: Object.keys(state.nudges || {}).length };
+  /** Har kunden redan fått en SMS-nudge? (separat spår från e-post/utkast-nudgen). */
+  function wasSmsNudged({ tenantId, customerId } = {}) {
+    return Boolean(state.nudges[key(tenantId, customerId)]?.smsNudgedAt);
   }
 
-  return { wasNudged, getNudge, recordNudge, stats };
+  /** Registrera att en SMS-nudge skickats. Idempotent per kund. */
+  async function recordSmsNudge({ tenantId, customerId } = {}) {
+    const k = key(tenantId, customerId);
+    return withLock(k, async () => {
+      const existing = state.nudges[k] || {
+        tenantId: normalizeText(tenantId),
+        customerId: normalizeText(customerId),
+        draftId: null,
+        tokenHint: null,
+        nudgedAt: null,
+      };
+      if (existing.smsNudgedAt) return { ...existing, created: false };
+      existing.smsNudgedAt = nowIso();
+      state.nudges[k] = existing;
+      await save();
+      return { ...existing, created: true };
+    });
+  }
+
+  /** Antal förberedda nudgar (adoptionsmätning). */
+  function stats() {
+    const all = Object.values(state.nudges || {});
+    return {
+      prepared: all.length,
+      smsSent: all.filter((n) => n && n.smsNudgedAt).length,
+    };
+  }
+
+  return { wasNudged, getNudge, recordNudge, wasSmsNudged, recordSmsNudge, stats };
 }
 
 module.exports = { createCcoPortalNudgeStore };
