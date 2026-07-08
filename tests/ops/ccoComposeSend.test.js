@@ -89,6 +89,7 @@ test('grind PÅ + Graph → använder graphSendAdapter.sendMail', async () => {
   );
   assert.equal(res.status, 'sent');
   assert.equal(res.channel, 'graph');
+  assert.equal(res.senderMailboxId, 'kons@hairtpclinic.com');
   assert.equal(calls[0].from, 'kons@hairtpclinic.com');
   assert.equal(calls[0].to, 'mottagare@example.com');
   assert.equal(draftStore.getDraft(draftId).status, 'sent');

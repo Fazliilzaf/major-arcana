@@ -16,7 +16,11 @@ function text(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function createCcoComposeSendRouter({ requireAuth, graphSendAdapter = null } = {}) {
+function createCcoComposeSendRouter({
+  requireAuth,
+  graphSendAdapter = null,
+  postSendMailboxSync = null,
+} = {}) {
   const router = express.Router();
   const authMiddleware =
     typeof requireAuth === 'function' ? requireAuth : (_req, _res, next) => next();
@@ -47,6 +51,17 @@ function createCcoComposeSendRouter({ requireAuth, graphSendAdapter = null } = {
             graphSendAdapter: graphSendAdapter || locals.ccoGraphSendAdapter || null,
           }
         );
+        if (
+          result.status === 'sent' &&
+          result.channel === 'graph' &&
+          typeof postSendMailboxSync === 'function'
+        ) {
+          postSendMailboxSync({
+            mailboxId: result.senderMailboxId,
+            source: 'cco_compose_sent',
+            draftId,
+          });
+        }
         // 'skipped' (grind av / kanal ej på) är normala utfall, inte fel.
         const code = result.status === 'sent' ? 200 : result.status === 'failed' ? 502 : 200;
         return res.status(code).json({ ok: result.status !== 'failed', ...result });

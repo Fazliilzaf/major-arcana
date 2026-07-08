@@ -198,7 +198,13 @@ async function deliverComposeDraft(ref = {}, stores = {}) {
     return { status: 'failed', reason: error || 'send_failed', channel };
   }
   await draftStore.transitionStatus(draftId, 'sent', { actor, tenantId, reason: 'compose_sent' });
-  return { status: 'sent', channel, messageId, to: maskEmail(to) };
+  return {
+    status: 'sent',
+    channel,
+    messageId,
+    to: maskEmail(to),
+    senderMailboxId: channel === 'graph' ? senderMailboxId : null,
+  };
 }
 
 module.exports = {

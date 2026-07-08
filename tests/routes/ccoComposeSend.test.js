@@ -18,7 +18,11 @@ function tmp() {
   return path.join(dir, 'd.json');
 }
 
-async function buildApp() {
+async function buildApp({
+  channel = 'resend',
+  graphSendAdapter = null,
+  postSendMailboxSync = null,
+} = {}) {
   const app = express();
   app.use(
     '/api/v1',
@@ -27,6 +31,8 @@ async function buildApp() {
         rq.auth = { tenantId: 'hairtpclinic', userId: 'owner-1' };
         n();
       },
+      graphSendAdapter,
+      postSendMailboxSync,
     })
   );
   const draftStore = await createCcoCommDraftStore({ filePath: tmp() });
@@ -37,7 +43,7 @@ async function buildApp() {
       channel: 'email',
       subject: 'Hej',
       body: 'Text',
-      mergeFields: { sendChannel: 'resend' },
+      mergeFields: { sendChannel: channel },
     },
     { actor: { userId: 'operator-1' } }
   );
@@ -85,6 +91,36 @@ test('owner + grind PÅ → 200 sent', async () => {
     assert.equal(res.status, 200);
     assert.equal(JSON.parse(res.body).status, 'sent');
     assert.equal(draftStore.getDraft(draftId).status, 'sent');
+  } finally {
+    if (prev === undefined) delete process.env.CCO_COMPOSE_SEND_LIVE;
+    else process.env.CCO_COMPOSE_SEND_LIVE = prev;
+  }
+});
+
+test('owner + Graph-kanal → schemalägger post-send mailbox-sync', async () => {
+  const prev = process.env.CCO_COMPOSE_SEND_LIVE;
+  process.env.CCO_COMPOSE_SEND_LIVE = '1';
+  try {
+    const syncCalls = [];
+    const { app, draftId } = await buildApp({
+      channel: 'graph',
+      graphSendAdapter: { sendMail: async () => ({ ok: true, messageId: 'graph-1' }) },
+      postSendMailboxSync: (payload) => syncCalls.push(payload),
+    });
+    const res = await req(app, 'POST', `/api/v1/cco/runtime/compose-new-mail/${draftId}/send`, {
+      headers: { 'x-cco-role': 'owner' },
+    });
+    assert.equal(res.status, 200);
+    const payload = JSON.parse(res.body);
+    assert.equal(payload.status, 'sent');
+    assert.equal(payload.channel, 'graph');
+    assert.deepEqual(syncCalls, [
+      {
+        mailboxId: 'kons@hairtpclinic.com',
+        source: 'cco_compose_sent',
+        draftId,
+      },
+    ]);
   } finally {
     if (prev === undefined) delete process.env.CCO_COMPOSE_SEND_LIVE;
     else process.env.CCO_COMPOSE_SEND_LIVE = prev;

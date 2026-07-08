@@ -12705,7 +12705,6 @@ process.once('SIGTERM', () => {
       return null;
     }
   })();
-
   const ccoMailIngestionSyncService = createCcoMailIngestionSyncService({
     config,
     graphReadConnector,
@@ -13130,6 +13129,14 @@ process.once('SIGTERM', () => {
     heartbeatIntervalMs: 30000,
   });
   app.use('/api/v1', ccoRuntimeStreamRouter);
+  const { createPostSendMailboxSync } = require('./src/ops/ccoPostSendMailboxSync');
+  const postSendMailboxSync = createPostSendMailboxSync({
+    graphReadConnector,
+    ccoMailboxTruthStore,
+    runtimeStreamRouter: ccoRuntimeStreamRouter,
+    lookbackDays: Number(process.env.ARCANA_CCO_POST_SEND_SYNC_LOOKBACK_DAYS || 3),
+    logger: console,
+  });
 
   // Default mailboxar för manuell sync (A1) — CCO läser in curated kund-
   // konversations-allowlist som default; ARCANA_MAILBOX_ALLOWLIST (env) och
@@ -13177,6 +13184,7 @@ process.once('SIGTERM', () => {
       ccoConversationNotesStore,
       ccoMailTemplateStore,
       clientoBookingStore,
+      postSendMailboxSync,
       defaultTenantId: 'cco',
       authStore,
     })
@@ -13551,6 +13559,7 @@ process.once('SIGTERM', () => {
     createCcoComposeSendRouter({
       requireAuth: auth.requireAuth,
       graphSendAdapter: graphSendConnector ? _mkGraphAdapterForCompose(graphSendConnector) : null,
+      postSendMailboxSync,
     })
   );
 
