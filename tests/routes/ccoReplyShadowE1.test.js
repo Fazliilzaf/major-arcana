@@ -45,6 +45,7 @@ function makeApp({
   graphSendConnector = null,
   sendTestRecipient = '',
   auditEvents = null,
+  postSendMailboxSync = null,
 } = {}) {
   const app = express();
   app.use(express.json());
@@ -55,6 +56,7 @@ function makeApp({
       graphSendConnector,
       shadowSendEnabled,
       sendTestRecipient,
+      postSendMailboxSync,
       authStore: auditEvents
         ? {
             async addAuditEvent(event) {
@@ -164,6 +166,33 @@ test('E1: utan shadow med connector → skarp sändning (mode:live, sendReply an
   });
   assert.equal(sendCalls, 1, 'sendReply ska anropas exakt en gång i skarpt läge');
   assert.equal(lastArgs.to[0], 'kund@example.com');
+});
+
+test('E1: skarp Graph-sändning schemalägger post-send mailbox-sync', async () => {
+  const syncCalls = [];
+  const connector = {
+    sendReply() {
+      return { id: 'sent-sync-1' };
+    },
+  };
+  const app = makeApp({
+    shadowSendEnabled: false,
+    graphSendConnector: connector,
+    postSendMailboxSync: (payload) => syncCalls.push(payload),
+  });
+  await withServer(app, async (baseUrl) => {
+    const res = await replyReq(baseUrl);
+    assert.equal(res.status, 200);
+    const payload = await res.json();
+    assert.equal(payload.sent, true);
+  });
+  assert.deepEqual(syncCalls, [
+    {
+      mailboxId: 'contact@hairtpclinic.com',
+      source: 'cco_reply_sent',
+      conversationKey: CONV_KEY,
+    },
+  ]);
 });
 
 // ── 5. Owner-only-grinden gäller fortfarande i shadow-läge ───────────────────

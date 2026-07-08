@@ -1513,6 +1513,7 @@ function createCcoConversationRouter({
   ccoConversationNotesStore = null,
   ccoMailTemplateStore = null,
   clientoBookingStore = null,
+  postSendMailboxSync = null,
   defaultTenantId = 'cco',
   authStore = null,
 } = {}) {
@@ -2169,6 +2170,13 @@ function createCcoConversationRouter({
             sentAt,
           },
         });
+        if (typeof postSendMailboxSync === 'function') {
+          postSendMailboxSync({
+            mailboxId: senderMailboxId,
+            source: redirectToTest ? 'cco_reply_test_send' : 'cco_reply_sent',
+            conversationKey: key,
+          });
+        }
         return res.json({
           ok: true,
           mode: redirectToTest ? 'live_test' : 'live',
