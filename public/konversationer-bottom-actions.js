@@ -1008,9 +1008,10 @@
               refine: state.refine,
             }),
           });
-          const j = await r.json();
-          if (!j.ok) throw new Error(j.error || 'fel');
-          state.draftId = j.draft.draftId;
+          // Endpoints svarar { draft } (ingen ok-flagga) → använd HTTP-status.
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || !j.draft) throw new Error(j.error || 'kunde inte spara utkast');
+          state.draftId = j.draft.draftId || j.draft.id;
           auditStudioEvent('studio.draft_created', {
             draftId: state.draftId,
             track: state.track,
@@ -1046,8 +1047,8 @@
               body: JSON.stringify({ status: targetStatus, reason: 'via Svarstudio v2' }),
             }
           );
-          const j2 = await r2.json();
-          if (!j2.ok) throw new Error(j2.error || 'transition');
+          const j2 = await r2.json().catch(() => ({}));
+          if (!r2.ok || !j2.draft) throw new Error(j2.error || 'kunde inte uppdatera status');
           auditStudioEvent('studio.transitioned', {
             draftId: state.draftId,
             to: targetStatus,
@@ -1225,12 +1226,11 @@
       return null;
     }
 
+    // Ingen inbäddad SLA/streck i kundtexten (kan vara "—" eller platshållare).
     const initialBody =
       'Hej ' +
       (ctx.customerName || '') +
-      ',\n\nTack för ditt meddelande. Jag bekräftar gärna nästa steg för ' +
-      (ctx.sla || 'kommande tid') +
-      '.\n\nJag återkommer med en tydlig bekräftelse och det du behöver inför besöket.' +
+      ',\n\nTack för ditt meddelande. Jag bekräftar gärna nästa steg och återkommer med en tydlig bekräftelse och det du behöver inför besöket.' +
       '\n\nHör gärna av dig om något behöver justeras.';
     const state = {
       mailboxId: preferredMailbox?.id || 'contact@hairtpclinic.com',
@@ -1929,9 +1929,10 @@
               refine: state.refine,
             }),
           });
-          const j = await r.json();
-          if (!j.ok) throw new Error(j.error || 'fel');
-          state.draftId = j.draft.draftId;
+          // Endpoints svarar { draft } (ingen ok-flagga) → använd HTTP-status.
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || !j.draft) throw new Error(j.error || 'kunde inte spara utkast');
+          state.draftId = j.draft.draftId || j.draft.id;
           auditStudioEvent('studio.draft_created', {
             draftId: state.draftId,
             track: state.track,
@@ -1966,8 +1967,8 @@
               body: JSON.stringify({ status: targetStatus, reason: 'via Svarstudio' }),
             }
           );
-          const j2 = await r2.json();
-          if (!j2.ok) throw new Error(j2.error || 'transition');
+          const j2 = await r2.json().catch(() => ({}));
+          if (!r2.ok || !j2.draft) throw new Error(j2.error || 'kunde inte uppdatera status');
           auditStudioEvent('studio.transitioned', { draftId: state.draftId, to: targetStatus });
         }
         renderStepper(targetStatus || 'draft');
