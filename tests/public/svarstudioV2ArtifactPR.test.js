@@ -34,8 +34,9 @@ test('v2 monteras i isolerad shadow-DOM och laddar assets', () => {
   assert.match(source, /const USE_SVARSTUDIO_V2 = true/);
   assert.match(source, /async function mountSvarstudioV2\(/);
   assert.match(source, /attachShadow\(\{ mode: 'open' \}\)/);
-  assert.match(source, /fetch\('\/svarstudio-v2\.css'\)/);
-  assert.match(source, /fetch\('\/svarstudio-v2\.html'\)/);
+  assert.match(source, /SVARSTUDIO_V2_ASSET_VERSION = '20260708a-svarstudio-cache'/);
+  assert.match(source, /fetch\('\/svarstudio-v2\.css' \+ cacheBust, \{ cache: 'no-store' \}\)/);
+  assert.match(source, /fetch\('\/svarstudio-v2\.html' \+ cacheBust, \{ cache: 'no-store' \}\)/);
   // Öppnas före klassiska modalen, med fallback
   assert.match(source, /const mounted = await mountSvarstudioV2\(/);
 });

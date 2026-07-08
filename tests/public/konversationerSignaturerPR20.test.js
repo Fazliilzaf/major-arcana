@@ -85,5 +85,5 @@ test('PR20: nivå 1/2-paneler orörda, ingen live-send', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR20: konversationer.html cache-bustar efter signaturer-koppling', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260704d-smartcard/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260708a-svarstudio-cache/);
 });
