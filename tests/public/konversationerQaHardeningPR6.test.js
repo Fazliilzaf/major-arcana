@@ -180,5 +180,5 @@ test('PR6: ingen live-send — bara utkast/godkännande', () => {
 // ── Cache-bust ───────────────────────────────────────────────────────────────
 
 test('PR6: konversationer.html cache-bustar efter QA-hardening', () => {
-  assert.match(html, /konversationer-bottom-actions\.js\?v=20260708b-dossier/);
+  assert.match(html, /konversationer-bottom-actions\.js\?v=20260708c-svarstudio-cache/);
 });

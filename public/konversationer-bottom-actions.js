@@ -607,7 +607,7 @@
   // Laddar svarstudio-v2.css/.html, binder trådens riktiga data och kopplar
   // kontrollerna till EXAKT samma sänd-endpoints som klassiska modalen (upp
   // till needs_approval). Live-send förblir serverspärrat.
-  const SVARSTUDIO_V2_ASSET_VERSION = '20260708b-dossier';
+  const SVARSTUDIO_V2_ASSET_VERSION = '20260708c-svarstudio-cache';
   let _svarstudioV2Assets = null;
   async function loadSvarstudioV2Assets() {
     if (_svarstudioV2Assets) return _svarstudioV2Assets;
