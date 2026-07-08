@@ -32,6 +32,15 @@ test('raden bär needsReply + waitingSinceMs (från senaste inkommande)', () => 
   assert.match(source, /waitingSinceMs: Date\.parse\(timing\.lastInboundAt/);
 });
 
+test('per-rad ålders-badge ("X utan svar") på obesvarade > 24 h', () => {
+  assert.match(source, /function formatWaitingAge\(ms\)/);
+  // Timmar upp till 48h, därefter dagar.
+  assert.match(source, /if \(hours < 48\) return Math\.max\(1, hours\) \+ ' h'/);
+  // Badge: "26 h utan svar" / "3 d utan svar", annars "Obesvarad" om tid saknas.
+  assert.match(source, /formatWaitingAge\(rowWaitingMs\) \+ ' utan svar'/);
+  assert.match(source, /: 'Obesvarad'/);
+});
+
 test('äldst-först-sortering + egen räknare i lane-listan', () => {
   assert.match(
     source,
