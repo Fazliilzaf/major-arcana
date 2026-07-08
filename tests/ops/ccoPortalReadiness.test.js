@@ -132,3 +132,29 @@ test('nätverksfel/timeout → checked:false, aldrig kast', async () => {
   assert.equal(r.checked, false);
   assert.equal(r.reason, 'check_failed');
 });
+
+test('nätverksfel rensar timeout-timern direkt', async () => {
+  const originalSetTimeout = global.setTimeout;
+  const originalClearTimeout = global.clearTimeout;
+  const timeoutToken = { id: 'resend-timeout' };
+  let cleared = false;
+
+  global.setTimeout = () => timeoutToken;
+  global.clearTimeout = (token) => {
+    if (token === timeoutToken) cleared = true;
+  };
+
+  try {
+    const r = await checkResendDomainVerified({
+      env: { RESEND_API_KEY: 're_x' },
+      fetchImpl: async () => {
+        throw new Error('boom');
+      },
+    });
+    assert.equal(r.checked, false);
+    assert.equal(cleared, true);
+  } finally {
+    global.setTimeout = originalSetTimeout;
+    global.clearTimeout = originalClearTimeout;
+  }
+});

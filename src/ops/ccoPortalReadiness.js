@@ -89,14 +89,14 @@ async function checkResendDomainVerified({ env = process.env, fetchImpl, timeout
     domain = '';
   }
 
+  let timer = null;
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    timer = setTimeout(() => controller.abort(), timeoutMs);
     const res = await doFetch('https://api.resend.com/domains', {
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: controller.signal,
     });
-    clearTimeout(timer);
     if (!res.ok) return { checked: false, reason: `http_${res.status}`, domain };
     const data = await res.json().catch(() => ({}));
     const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
@@ -108,6 +108,8 @@ async function checkResendDomainVerified({ env = process.env, fetchImpl, timeout
     return { checked: true, verified: status === 'verified', status: status || 'unknown', domain };
   } catch {
     return { checked: false, reason: 'check_failed', domain };
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
