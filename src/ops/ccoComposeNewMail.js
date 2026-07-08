@@ -14,6 +14,7 @@
  */
 
 const SEND_CHANNELS = new Set(['graph', 'resend']);
+const DEFAULT_GRAPH_SENDER_MAILBOX_ID = 'kons@hairtpclinic.com';
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -22,6 +23,11 @@ function text(value) {
 function normalizeEmail(value) {
   const v = text(value).toLowerCase();
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) ? v : '';
+}
+
+function normalizeMailbox(value) {
+  const v = normalizeEmail(value);
+  return v || '';
 }
 
 function maskEmail(email) {
@@ -34,7 +40,7 @@ function maskEmail(email) {
 /**
  * @param {{tenantId?:string, recipientName?:string, recipientEmail:string,
  *          recipientPhone?:string, subject:string, body:string,
- *          channel?:'graph'|'resend', actor?:object}} ref
+ *          channel?:'graph'|'resend', senderMailboxId?:string, actor?:object}} ref
  * @param {{patientMasterStore:object, draftStore:object}} stores
  * @returns {Promise<{status:'prepared'|'skipped', reason?:string, draftId?:string,
  *          customerId?:string, channel?:string, contactCreated?:boolean}>}
@@ -47,6 +53,8 @@ async function composeNewMail(ref = {}, stores = {}) {
   const subject = text(ref.subject);
   const body = text(ref.body);
   const channel = SEND_CHANNELS.has(text(ref.channel)) ? text(ref.channel) : 'graph';
+  const senderMailboxId =
+    normalizeMailbox(ref.senderMailboxId) || (channel === 'graph' ? DEFAULT_GRAPH_SENDER_MAILBOX_ID : '');
   const { patientMasterStore, draftStore } = stores;
 
   if (!recipientEmail) return { status: 'skipped', reason: 'invalid_email' };
@@ -85,7 +93,11 @@ async function composeNewMail(ref = {}, stores = {}) {
       channel: 'email',
       subject,
       body,
-      mergeFields: { sendChannel: channel, recipientName: recipientName || null },
+      mergeFields: {
+        sendChannel: channel,
+        recipientName: recipientName || null,
+        senderMailboxId: senderMailboxId || null,
+      },
       recipientMasked: maskEmail(recipientEmail),
     },
     { actor }
@@ -101,8 +113,9 @@ async function composeNewMail(ref = {}, stores = {}) {
     draftId: draft.draftId,
     customerId,
     channel,
+    senderMailboxId: senderMailboxId || null,
     contactCreated,
   };
 }
 
-module.exports = { composeNewMail, maskEmail };
+module.exports = { composeNewMail, maskEmail, DEFAULT_GRAPH_SENDER_MAILBOX_ID };

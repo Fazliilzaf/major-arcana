@@ -16,9 +16,24 @@
  */
 
 const SEND_CHANNELS = new Set(['graph', 'resend']);
+const DEFAULT_GRAPH_SENDER_MAILBOX_ID = 'kons@hairtpclinic.com';
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeEmail(value) {
+  const v = text(value).toLowerCase();
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) ? v : '';
+}
+
+function resolveGraphSenderMailboxId(draft = {}) {
+  return (
+    normalizeEmail(draft.mergeFields?.senderMailboxId) ||
+    normalizeEmail(draft.senderMailboxId) ||
+    normalizeEmail(draft.mergeFields?.mailboxId) ||
+    DEFAULT_GRAPH_SENDER_MAILBOX_ID
+  );
 }
 
 function isComposeSendLive() {
@@ -125,6 +140,10 @@ async function deliverComposeDraft(ref = {}, stores = {}) {
   if (channel === 'resend' && typeof sendStore?.performSend !== 'function') {
     return { status: 'skipped', reason: 'resend_unavailable', channel };
   }
+  const senderMailboxId = channel === 'graph' ? resolveGraphSenderMailboxId(draft) : '';
+  if (channel === 'graph' && !senderMailboxId) {
+    return { status: 'skipped', reason: 'missing_sender_mailbox', channel };
+  }
 
   await walkToQueued(draftStore, draft, tenantId, actor);
 
@@ -150,7 +169,7 @@ async function deliverComposeDraft(ref = {}, stores = {}) {
       messageId = r?.messageId || null;
     } else {
       const r = await graphSendAdapter.sendMail({
-        from: text(ref.from) || undefined,
+        from: senderMailboxId,
         to,
         subject: draft.subject || '(utan ämne)',
         body: text(draft.body),
@@ -174,4 +193,9 @@ async function deliverComposeDraft(ref = {}, stores = {}) {
   return { status: 'sent', channel, messageId, to: maskEmail(to) };
 }
 
-module.exports = { deliverComposeDraft, isComposeSendLive };
+module.exports = {
+  deliverComposeDraft,
+  isComposeSendLive,
+  resolveGraphSenderMailboxId,
+  DEFAULT_GRAPH_SENDER_MAILBOX_ID,
+};

@@ -2962,6 +2962,7 @@
         recipientEmail: emailEl.value.trim(),
         recipientPhone: phoneEl.value.trim(),
         channel: channelEl.value,
+        senderMailboxId: channelEl.value === 'graph' ? 'kons@hairtpclinic.com' : '',
         subject: subjectEl.value.trim(),
         // Signaturen bifogas i själva texten så den går ut med mailet (som i förhandsvisningen).
         body: bodyText + (sigText ? '\n\n' + sigText : ''),

@@ -47,6 +47,7 @@ function createCcoComposeNewMailRouter({ requireAuth } = {}) {
             subject: text(b.subject),
             body: text(b.body),
             channel: text(b.channel),
+            senderMailboxId: text(b.senderMailboxId),
             actor: { userId: text(req.auth?.userId) || text(req.cco?.role) || 'staff' },
           },
           { patientMasterStore, draftStore }

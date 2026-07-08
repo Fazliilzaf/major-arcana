@@ -27,6 +27,7 @@ test('kompose POST:ar till compose-new-mail med admin-auth', () => {
 test('kanalval (graph/resend) + kontrollerad kedja (godkännande, aldrig direkt-send)', () => {
   assert.match(source, /value: 'graph'/);
   assert.match(source, /value: 'resend'/);
+  assert.match(source, /senderMailboxId:[\s\S]{0,80}kons@hairtpclinic\.com/);
   assert.match(source, /väntar på godkännande/);
   // Fältvalidering innan submit.
   assert.match(source, /Fyll i mottagare, ämne och text/);
