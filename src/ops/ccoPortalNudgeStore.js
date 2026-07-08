@@ -110,18 +110,38 @@ async function createCcoPortalNudgeStore({ filePath } = {}) {
   async function recordSmsNudge({ tenantId, customerId } = {}) {
     const k = key(tenantId, customerId);
     return withLock(k, async () => {
-      const existing = state.nudges[k] || {
-        tenantId: normalizeText(tenantId),
-        customerId: normalizeText(customerId),
-        draftId: null,
-        tokenHint: null,
-        nudgedAt: null,
+      return recordSmsNudgeLocked(k, { tenantId, customerId });
+    });
+  }
+
+  async function recordSmsNudgeLocked(k, { tenantId, customerId } = {}) {
+    const existing = state.nudges[k] || {
+      tenantId: normalizeText(tenantId),
+      customerId: normalizeText(customerId),
+      draftId: null,
+      tokenHint: null,
+      nudgedAt: null,
+    };
+    if (existing.smsNudgedAt) return { ...existing, created: false };
+    existing.smsNudgedAt = nowIso();
+    state.nudges[k] = existing;
+    await save();
+    return { ...existing, created: true };
+  }
+
+  /**
+   * Kör hela live-SMS-flödet under samma per-kund-lås. Det hindrar två samtidiga
+   * anrop från att båda passera "inte SMS-nudgad än" innan första skrivningen.
+   */
+  async function withSmsNudgeLock({ tenantId, customerId } = {}, fn) {
+    if (typeof fn !== 'function') throw new Error('fn krävs.');
+    const k = key(tenantId, customerId);
+    return withLock(k, async () => {
+      const helpers = {
+        wasSmsNudged: () => Boolean(state.nudges[k]?.smsNudgedAt),
+        recordSmsNudge: () => recordSmsNudgeLocked(k, { tenantId, customerId }),
       };
-      if (existing.smsNudgedAt) return { ...existing, created: false };
-      existing.smsNudgedAt = nowIso();
-      state.nudges[k] = existing;
-      await save();
-      return { ...existing, created: true };
+      return fn(helpers);
     });
   }
 
@@ -134,7 +154,15 @@ async function createCcoPortalNudgeStore({ filePath } = {}) {
     };
   }
 
-  return { wasNudged, getNudge, recordNudge, wasSmsNudged, recordSmsNudge, stats };
+  return {
+    wasNudged,
+    getNudge,
+    recordNudge,
+    wasSmsNudged,
+    recordSmsNudge,
+    withSmsNudgeLock,
+    stats,
+  };
 }
 
 module.exports = { createCcoPortalNudgeStore };

@@ -72,6 +72,38 @@ test('forceLive → skickar SMS med djuplänk + markerar (idempotent)', async ()
   assert.equal(smsSender.sent.length, 1);
 });
 
+test('samtidiga forceLive-anrop skickar exakt ett SMS', async () => {
+  const { accessStore, nudgeStore } = await build();
+  const smsSender = {
+    sent: [],
+    async sendSms(input) {
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      this.sent.push(input);
+      return { ok: true, messageId: `sms-${this.sent.length}` };
+    },
+  };
+  const ref = {
+    customerId: 'C-RACE',
+    phone: '+46700000000',
+    baseUrl: 'https://p.ex',
+    forceLive: true,
+  };
+  const results = await Promise.all([
+    sendPortalSmsNudge(ref, { accessStore, smsSender, nudgeStore }),
+    sendPortalSmsNudge(ref, { accessStore, smsSender, nudgeStore }),
+  ]);
+  assert.deepEqual(
+    results.map((r) => r.status).sort(),
+    ['sent', 'skipped']
+  );
+  assert.equal(results.find((r) => r.status === 'skipped')?.reason, 'already_sms_nudged');
+  assert.equal(smsSender.sent.length, 1);
+  assert.equal(
+    nudgeStore.wasSmsNudged({ tenantId: 'hairtpclinic', customerId: 'C-RACE' }),
+    true
+  );
+});
+
 test('utan telefonnummer → skipped no_phone', async () => {
   const { accessStore, nudgeStore } = await build();
   const smsSender = fakeSms();

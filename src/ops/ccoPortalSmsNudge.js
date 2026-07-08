@@ -53,28 +53,51 @@ async function sendPortalSmsNudge(ref = {}, stores = {}) {
   }
 
   const live = typeof ref.forceLive === 'boolean' ? ref.forceLive : isSmsLive();
-  const issued = await accessStore.issueToken({ tenantId, customerId });
-  const url = buildPortalUrl(ref.baseUrl || process.env.PUBLIC_BASE_URL, issued.token);
 
   // Grinden AV → dry-run: skicka inget och markera INTE som nudgad (så det kan
   // skickas skarpt senare när grinden öppnas).
   if (!live) {
+    const issued = await accessStore.issueToken({ tenantId, customerId });
+    const url = buildPortalUrl(ref.baseUrl || process.env.PUBLIC_BASE_URL, issued.token);
     return { status: 'skipped', reason: 'sms_gate_off', dryRun: true, url };
   }
 
-  const result = await smsSender.sendSms({
-    to: phone,
-    message: buildSmsBody({ url }),
-    from: text(ref.from) || undefined,
-  });
+  async function sendLiveOnce(lock = null) {
+    const alreadySent = lock?.wasSmsNudged
+      ? lock.wasSmsNudged()
+      : nudgeStore.wasSmsNudged?.({ tenantId, customerId });
+    if (alreadySent) return { status: 'skipped', reason: 'already_sms_nudged' };
 
-  if (!result || result.ok === false) {
-    return { status: 'failed', reason: result?.error || 'send_failed', url };
+    const issued = await accessStore.issueToken({ tenantId, customerId });
+    const url = buildPortalUrl(ref.baseUrl || process.env.PUBLIC_BASE_URL, issued.token);
+    let result;
+    try {
+      result = await smsSender.sendSms({
+        to: phone,
+        message: buildSmsBody({ url }),
+        from: text(ref.from) || undefined,
+      });
+    } catch (err) {
+      result = { ok: false, error: err?.message || 'send_failed' };
+    }
+
+    if (!result || result.ok === false) {
+      return { status: 'failed', reason: result?.error || 'send_failed', url };
+    }
+
+    // Bara vid faktiskt lyckat utskick markeras kunden som SMS-nudgad (idempotens).
+    if (lock?.recordSmsNudge) {
+      await lock.recordSmsNudge();
+    } else {
+      await nudgeStore.recordSmsNudge({ tenantId, customerId });
+    }
+    return { status: 'sent', dryRun: false, url, messageId: result.messageId || null };
   }
 
-  // Bara vid faktiskt lyckat utskick markeras kunden som SMS-nudgad (idempotens).
-  await nudgeStore.recordSmsNudge({ tenantId, customerId });
-  return { status: 'sent', dryRun: false, url, messageId: result.messageId || null };
+  if (typeof nudgeStore.withSmsNudgeLock === 'function') {
+    return nudgeStore.withSmsNudgeLock({ tenantId, customerId }, sendLiveOnce);
+  }
+  return sendLiveOnce();
 }
 
 module.exports = { sendPortalSmsNudge, isSmsLive, buildSmsBody };
