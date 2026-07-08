@@ -29,6 +29,7 @@ const {
   verifyBankIdCallback,
   isBankIdLive,
 } = require('../ops/ccoPortalBankIdSession');
+const { verifyCriiptoIdToken } = require('../ops/ccoCriiptoIdToken');
 
 const STATE_COOKIE = 'cco_bankid_state';
 const SESSION_COOKIE = 'cco_portal_l2';
@@ -98,10 +99,10 @@ function decodeJwtPayload(jwt) {
 
 /**
  * Skarpt kodutbyte mot Criiptos token-endpoint. Körs bara i live-läge.
- * OBS: id_token-signaturen bör verifieras mot Criiptos JWKS innan
- * PORTAL_BANKID_LIVE=1 slås på i produktion — se runbook.
+ * id_token verifieras mot Criiptos JWKS (signatur + iss/aud/exp/nonce) innan
+ * dess claims returneras — annars kastas. Se ccoCriiptoIdToken.js.
  */
-function makeCriiptoExchange({ env, redirectUri }) {
+function makeCriiptoExchange({ env, redirectUri, nonce, verifyIdToken = verifyCriiptoIdToken }) {
   return async function exchangeCode(code) {
     const domain = text(env.CRIIPTO_DOMAIN);
     const clientId = text(env.CRIIPTO_CLIENT_ID);
@@ -120,7 +121,9 @@ function makeCriiptoExchange({ env, redirectUri }) {
     });
     if (!resp.ok) throw new Error(`criipto_token_${resp.status}`);
     const json = await resp.json();
-    return decodeJwtPayload(json.id_token);
+    const verdict = await verifyIdToken(json.id_token, { domain, clientId, nonce });
+    if (!verdict.valid) throw new Error(`id_token_invalid:${verdict.reason}`);
+    return verdict.claims;
   };
 }
 
@@ -199,7 +202,13 @@ function createCcoPortalBankIdRouter({
       return res.status(400).json({ error: 'state_expired' });
     }
     const store = resolvePatientStore();
-    const exchange = exchangeCode || makeCriiptoExchange({ env, redirectUri: redirectUriFor(req) });
+    const exchange =
+      exchangeCode ||
+      makeCriiptoExchange({
+        env,
+        redirectUri: redirectUriFor(req),
+        nonce: text(stateData.nonce),
+      });
 
     const result = await verifyBankIdCallback(
       {

@@ -50,20 +50,21 @@ Utan `PORTAL_BANKID_LIVE=1` görs inget skarpt anrop — sömmen svarar `dry_run
 Testkundens personnummer måste finnas i patient-mastern (`patient.personnummer`)
 och matcha tokenägaren — annars nekas med `l2=owner_mismatch` (avsiktligt).
 
-## MÅSTE innan prod-live: verifiera id_token-signaturen
+## id_token-verifiering (JWKS) — BYGGD
 
-`makeCriiptoExchange` avkodar idag `id_token`-payloaden **utan** att verifiera
-signaturen. Innan `PORTAL_BANKID_LIVE=1` i produktion:
+`makeCriiptoExchange` verifierar nu `id_token` mot Criiptos **JWKS** innan dess
+claims används, via `src/ops/ccoCriiptoIdToken.js` (12 tester):
 
-- Verifiera `id_token` mot Criiptos **JWKS** (`https://<domain>/.well-known/
-openid-configuration` → `jwks_uri`), samt `iss`, `aud` (=client_id), `exp` och
-  `nonce` (mot state-cookiens `nonce`).
-- Enklast: lägg till ett litet JWKS-verifieringssteg i `makeCriiptoExchange`
-  (eller injicera en verifierande `exchangeCode`). Utan detta kan en angripare
-  med ett förfalskat id_token teoretiskt kringgå — acceptabelt i dry-run/test,
-  INTE i prod.
+- RS256-signatur mot publik nyckel (kid → JWK); `alg=none` avvisas.
+- `iss` === `https://<CRIIPTO_DOMAIN>`, `aud` innehåller `CRIIPTO_CLIENT_ID`.
+- `exp` i framtiden (60 s klock-skew), `nonce` === state-cookiens nonce (replay-skydd).
+- JWKS hämtas via OIDC-discovery (`/.well-known/openid-configuration`).
 
-Detta är den enda kända produktionsspärren; allt annat är klart.
+Ett förfalskat eller manipulerat id_token nekas därför automatiskt. Inget kvar
+att bygga på kodsidan — det som återstår är enbart Criipto-konto + env ovan.
+
+Tips: verifiera att `iss` matchar exakt vad Criipto sätter (vissa tenants har
+domän utan/med avslutande slash). Justera `expectedIssuer` vid behov.
 
 ## Fallback (redan inbyggt)
 
