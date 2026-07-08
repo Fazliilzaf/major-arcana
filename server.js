@@ -115,6 +115,30 @@ async function resolveSharedAssetStores() {
   ]);
   return { assetStore, importRunStore, reviewQueueStore, secureStorage };
 }
+
+function encodeHeaderFilenamePart(value = '') {
+  return encodeURIComponent(String(value || '')).replace(
+    /[!'()*]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+}
+
+function buildSafeContentDisposition(disposition = 'attachment', fileName = 'download') {
+  const mode = disposition === 'inline' ? 'inline' : 'attachment';
+  const rawName =
+    String(fileName || 'download')
+      .replace(/[\r\n]/g, '')
+      .trim() || 'download';
+  const fallback =
+    rawName
+      .normalize('NFKD')
+      .replace(/[^\x20-\x7E]/g, '')
+      .replace(/["\\;]+/g, '')
+      .trim()
+      .slice(0, 180) || 'download';
+  return `${mode}; filename="${fallback}"; filename*=UTF-8''${encodeHeaderFilenamePart(rawName)}`;
+}
+
 function decodeImageDataUrl(value) {
   const raw = typeof value === 'string' ? value.trim() : '';
   const match = raw.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\s]+)$/);
@@ -10197,12 +10221,14 @@ try {
           ? await stores.secureStorage.getObjectStream(asset.storageKey)
           : await stores.secureStorage.getObject(asset.storageKey);
         const mime = asset.mimeType || obj.mimeType || 'application/octet-stream';
-        const fname = (asset.originalFileName || `asset-${assetId}`).replace(/["\\\r\n]/g, '');
         res.setHeader('Content-Type', mime);
         res.setHeader('Content-Length', obj.size);
         // attachment = browser laddar ner; client kan välja `?inline=1` för iframe-preview
         const disposition = String(req.query.inline || '') === '1' ? 'inline' : 'attachment';
-        res.setHeader('Content-Disposition', `${disposition}; filename="${fname}"`);
+        res.setHeader(
+          'Content-Disposition',
+          buildSafeContentDisposition(disposition, asset.originalFileName || `asset-${assetId}`)
+        );
         res.setHeader('Cache-Control', 'private, max-age=60');
         if (ccoAuditLog) {
           ccoAuditLog.append({
