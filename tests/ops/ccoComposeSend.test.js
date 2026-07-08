@@ -11,6 +11,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { deliverComposeDraft } = require('../../src/ops/ccoComposeSend');
 const { createCcoCommDraftStore } = require('../../src/ops/ccoCommDraftStore');
+const { SIG_DIVIDER } = require('../../src/ops/ccoSignatureHtml');
 
 function tmp() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'compose-send-'));
@@ -147,6 +148,78 @@ test('redan skickat → skipped already_sent (idempotent)', async () => {
   );
   assert.equal(again.status, 'skipped');
   assert.equal(again.reason, 'already_sent');
+});
+
+async function seedSignedDraft(channel, signatureId) {
+  const draftStore = await createCcoCommDraftStore({ filePath: tmp() });
+  const draft = await draftStore.createDraft(
+    {
+      tenantId: 'hairtpclinic',
+      customerId: 'CUST-1',
+      channel: 'email',
+      subject: 'Hej',
+      body:
+        'Hej och välkommen!' + SIG_DIVIDER + 'Bästa hälsningar,\n\nFazli Krasniqi\n031-88 11 66',
+      signatureId,
+      mergeFields: { sendChannel: channel },
+    },
+    { actor: { userId: 'operator-1' } }
+  );
+  await draftStore.transitionStatus(draft.draftId, 'needs_approval', {
+    actor: { userId: 'operator-1' },
+    tenantId: 'hairtpclinic',
+  });
+  return { draftStore, draftId: draft.draftId };
+}
+
+test('Resend: varumärkt HTML-signatur med inbäddad logga (inte ren text)', async () => {
+  const { draftStore, draftId } = await seedSignedDraft('resend', 'fazli');
+  const sends = [];
+  const sendStore = {
+    performSend: async (i) => (sends.push(i), { ok: true, messageId: 'r9', mode: 'live' }),
+  };
+  const res = await deliverComposeDraft(
+    { draftId, forceLive: true },
+    { draftStore, patientMasterStore, sendStore }
+  );
+  assert.equal(res.status, 'sent');
+  const html = sends[0].payload.html;
+  assert.match(html, /<img/i); // loggan finns
+  assert.match(html, /Fazli Krasniqi/); // rätt namn i signaturen
+  assert.match(html, /Hej och välkommen/); // meddelandetexten kvar
+  assert.doesNotMatch(html, /— — — — —/); // textsignatur-dividern strippad
+  // Plain-text-delen behåller textsignaturen (fallback för icke-HTML-klienter).
+  assert.match(sends[0].payload.text, /Fazli Krasniqi/);
+});
+
+test('Graph: bodyHtml är den varumärkta signaturen med logga', async () => {
+  const { draftStore, draftId } = await seedSignedDraft('graph', 'fazli');
+  const calls = [];
+  const graphSendAdapter = {
+    sendMail: async (p) => (calls.push(p), { ok: true, messageId: 'g9' }),
+  };
+  const res = await deliverComposeDraft(
+    { draftId, forceLive: true },
+    { draftStore, patientMasterStore, graphSendAdapter }
+  );
+  assert.equal(res.status, 'sent');
+  assert.match(calls[0].bodyHtml, /<img/i);
+  assert.match(calls[0].bodyHtml, /Fazli Krasniqi/);
+  assert.doesNotMatch(calls[0].bodyHtml, /— — — — —/);
+});
+
+test('utan signatur (ingen divider) → ren toHtml, ingen signatur påtvingad', async () => {
+  const { draftStore, draftId } = await seedDraft('resend'); // body utan SIG_DIVIDER
+  const sends = [];
+  const sendStore = {
+    performSend: async (i) => (sends.push(i), { ok: true, mode: 'live' }),
+  };
+  await deliverComposeDraft(
+    { draftId, forceLive: true },
+    { draftStore, patientMasterStore, sendStore }
+  );
+  assert.match(sends[0].payload.html, /<p>/); // ren toHtml
+  assert.doesNotMatch(sends[0].payload.html, /<img/i); // ingen logga påtvingad
 });
 
 test('ingen mottagar-e-post → skipped no_recipient', async () => {

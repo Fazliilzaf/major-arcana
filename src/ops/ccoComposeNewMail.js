@@ -13,8 +13,12 @@
  * Ren funktion med injicerade stores — enhetstestbar utan server-wiring.
  */
 
+const { SIG_DIVIDER } = require('./ccoSignatureHtml');
+
 const SEND_CHANNELS = new Set(['graph', 'resend']);
 const DEFAULT_GRAPH_SENDER_MAILBOX_ID = 'kons@hairtpclinic.com';
+// Kända signatur-id:n för den varumärkta HTML-signaturen (inbäddad logga).
+const SIGNATURE_IDS = new Set(['fazli', 'egzona', 'contact']);
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -47,6 +51,9 @@ function buildPortalUrl(baseUrl, token) {
  * Sätter ihop den slutliga mailtexten i rätt ordning:
  *   användartext → (valfri) portal-inbjudan → (valfri) signatur.
  * Portal-inbjudan driver dialogen till den fria kanalen (kostnadsbesparing).
+ *
+ * Textsignaturen läggs efter SIG_DIVIDER (samma som Svarstudion) så att /send
+ * kan byta ut den mot den varumärkta HTML-signaturen med inbäddad logga.
  */
 function buildComposeBody({ userBody, portalUrl, signature } = {}) {
   let out = text(userBody);
@@ -56,14 +63,14 @@ function buildComposeBody({ userBody, portalUrl, signature } = {}) {
       text(portalUrl) +
       '\nLänken är personlig, spara den gärna.';
   }
-  if (text(signature)) out += '\n\n' + text(signature);
+  if (text(signature)) out += SIG_DIVIDER + text(signature);
   return out;
 }
 
 /**
  * @param {{tenantId?:string, recipientName?:string, recipientEmail:string,
  *          recipientPhone?:string, subject:string, body:string, signature?:string,
- *          includePortalLink?:boolean, baseUrl?:string,
+ *          signatureId?:string, includePortalLink?:boolean, baseUrl?:string,
  *          channel?:'graph'|'resend', senderMailboxId?:string, actor?:object}} ref
  * @param {{patientMasterStore:object, draftStore:object}} stores
  * @returns {Promise<{status:'prepared'|'skipped', reason?:string, draftId?:string,
@@ -78,9 +85,13 @@ async function composeNewMail(ref = {}, stores = {}) {
   const body = text(ref.body);
   const channel = SEND_CHANNELS.has(text(ref.channel)) ? text(ref.channel) : 'graph';
   const signature = text(ref.signature);
+  const signatureId = SIGNATURE_IDS.has(text(ref.signatureId).toLowerCase())
+    ? text(ref.signatureId).toLowerCase()
+    : '';
   const includePortalLink = ref.includePortalLink === true;
   const senderMailboxId =
-    normalizeMailbox(ref.senderMailboxId) || (channel === 'graph' ? DEFAULT_GRAPH_SENDER_MAILBOX_ID : '');
+    normalizeMailbox(ref.senderMailboxId) ||
+    (channel === 'graph' ? DEFAULT_GRAPH_SENDER_MAILBOX_ID : '');
   const { patientMasterStore, draftStore, accessStore } = stores;
 
   if (!recipientEmail) return { status: 'skipped', reason: 'invalid_email' };
@@ -134,6 +145,7 @@ async function composeNewMail(ref = {}, stores = {}) {
       channel: 'email',
       subject,
       body: composedBody,
+      signatureId: signatureId || null,
       mergeFields: {
         sendChannel: channel,
         recipientName: recipientName || null,
