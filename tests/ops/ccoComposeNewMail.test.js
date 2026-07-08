@@ -41,6 +41,7 @@ test('skapar kontakt + needs_approval-utkast med kanalval (graph)', async () => 
   assert.equal(res.status, 'prepared');
   assert.equal(res.contactCreated, true);
   assert.equal(res.channel, 'graph');
+  assert.equal(res.senderMailboxId, 'kons@hairtpclinic.com');
   assert.ok(res.draftId);
   assert.ok(res.customerId);
 
@@ -56,6 +57,7 @@ test('skapar kontakt + needs_approval-utkast med kanalval (graph)', async () => 
   const draft = stores.draftStore.getDraft(res.draftId);
   assert.equal(draft.status, 'needs_approval');
   assert.equal(draft.mergeFields.sendChannel, 'graph');
+  assert.equal(draft.mergeFields.senderMailboxId, 'kons@hairtpclinic.com');
   assert.match(draft.recipientMasked, /@example\.com$/);
   assert.doesNotMatch(draft.recipientMasked, /ny\.person@/); // maskad
 });

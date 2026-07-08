@@ -51,6 +51,7 @@ function createCcoComposeNewMailRouter({ requireAuth } = {}) {
             includePortalLink: b.includePortalLink === true,
             baseUrl: text(process.env.PUBLIC_BASE_URL),
             channel: text(b.channel),
+            senderMailboxId: text(b.senderMailboxId),
             actor: { userId: text(req.auth?.userId) || text(req.cco?.role) || 'staff' },
           },
           { patientMasterStore, draftStore, accessStore }

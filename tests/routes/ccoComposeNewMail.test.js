@@ -87,6 +87,7 @@ test('POST → 201 prepared, skapar kontakt + needs_approval-utkast', async () =
       subject: 'Hej',
       body: 'Välkommen!',
       channel: 'graph',
+      senderMailboxId: 'kons@hairtpclinic.com',
     },
   });
   assert.equal(res.status, 201);
@@ -96,6 +97,7 @@ test('POST → 201 prepared, skapar kontakt + needs_approval-utkast', async () =
   // Utkastet finns på needs_approval.
   const draft = app.locals.ccoCommDraftStore.getDraft(j.draftId);
   assert.equal(draft.status, 'needs_approval');
+  assert.equal(draft.mergeFields.senderMailboxId, 'kons@hairtpclinic.com');
 });
 
 test('ogiltig e-post → 400', async () => {

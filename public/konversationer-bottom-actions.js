@@ -3037,6 +3037,7 @@
         recipientEmail: emailEl.value.trim(),
         recipientPhone: phoneEl.value.trim(),
         channel: channelEl.value,
+        senderMailboxId: channelEl.value === 'graph' ? 'kons@hairtpclinic.com' : '',
         subject: subjectEl.value.trim(),
         // Server sätter ihop texten: användartext → (valfri) portal-länk → signatur.
         body: bodyText,
