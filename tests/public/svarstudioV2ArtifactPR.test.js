@@ -154,6 +154,17 @@ test('magisk länk (steg 5): knapp myntar token + infogar länken i det godkänd
   assert.doesNotMatch(source, /portal-access[\s\S]{0,200}\/send'/);
 });
 
+test('länkhantering: rotera + återkalla-knappar mot befintliga endpoints', () => {
+  assert.match(source, /id="portalRotateBtn"/);
+  assert.match(source, /id="portalRevokeBtn"/);
+  // Rotera/återkalla går mot /portal-access/rotate resp. /revoke.
+  assert.match(source, /portal-access' \+ suffix/);
+  assert.match(source, /postPortalAccess\('\/rotate'\)/);
+  assert.match(source, /postPortalAccess\('\/revoke'\)/);
+  // Återkalla bekräftas innan den stänger av länken.
+  assert.match(source, /Återkalla kundens portal-länk\?/);
+});
+
 test('v2 rör INTE live-send: inget /send-anrop, ingen sent-transition', () => {
   // v2-mount-blocket får aldrig skicka på riktigt
   const start = source.indexOf('async function mountSvarstudioV2(');

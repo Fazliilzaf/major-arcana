@@ -1274,8 +1274,14 @@
       panel.innerHTML =
         '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">' +
         '<div class="glabel">★ Portal-chatt (fri kanal)</div>' +
+        '<div style="display:flex;gap:6px">' +
         '<button id="portalLinkBtn" type="button" title="Skapa en magisk länk och infoga den i svaret — kunden chattar då gratis i portalen istället för via SMS" ' +
         'style="border:1px solid var(--line-soft);border-radius:8px;padding:4px 9px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;background:var(--field-bg);color:var(--studio)">🔗 Skapa portal-länk</button>' +
+        '<button id="portalRotateBtn" type="button" title="Rotera länken (t.ex. vid läck-misstanke) — gamla länken slutar gälla och en ny infogas i svaret" ' +
+        'style="border:1px solid var(--line-soft);border-radius:8px;padding:4px 8px;font:inherit;font-size:11px;cursor:pointer;background:var(--field-bg);color:var(--ink-3)">⟳</button>' +
+        '<button id="portalRevokeBtn" type="button" title="Återkalla länken — kunden kan inte längre öppna portalen förrän en ny länk skapas" ' +
+        'style="border:1px solid var(--line-soft);border-radius:8px;padding:4px 8px;font:inherit;font-size:11px;cursor:pointer;background:var(--field-bg);color:var(--ink-3)">⊘</button>' +
+        '</div>' +
         '</div>' +
         '<div style="max-height:180px;overflow:auto">' +
         bubbles +
@@ -1332,6 +1338,80 @@
             /* tillägg — stör aldrig Svarstudion */
           } finally {
             linkBtn.disabled = false;
+          }
+        });
+      }
+      // Infoga en (roterad/ny) länk i svaret + kopiera. Delad med rotera-knappen.
+      function insertPortalLink(url) {
+        const line = 'Du kan skriva till oss direkt i din trygga portal (inget SMS behövs): ' + url;
+        if (typeof editor !== 'undefined' && editor) {
+          editor.value = (editor.value ? editor.value.replace(/\s*$/, '') + '\n\n' : '') + line;
+          syncBodyFromEditor();
+        }
+        try {
+          navigator.clipboard?.writeText(url);
+        } catch (_c) {
+          /* clipboard valfritt */
+        }
+      }
+      async function postPortalAccess(suffix) {
+        const id = cleanText(customerId || ctx.customerId);
+        if (!id) return { ok: false };
+        const r = await fetch(
+          '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-access' + suffix,
+          {
+            method: 'POST',
+            headers: adminAuthHeaders({
+              'Content-Type': 'application/json',
+              'x-cco-role': ROLE,
+              'x-cco-tenant': TENANT,
+            }),
+          }
+        );
+        const j = await r.json().catch(() => ({}));
+        return { ok: r.ok, j };
+      }
+      // Rotera: återkalla nuvarande + infoga en ny länk i svaret.
+      const rotateBtn = panel.querySelector('#portalRotateBtn');
+      if (rotateBtn) {
+        rotateBtn.addEventListener('click', async () => {
+          rotateBtn.disabled = true;
+          const original = rotateBtn.textContent;
+          try {
+            const { ok, j } = await postPortalAccess('/rotate');
+            if (ok && j.url) {
+              insertPortalLink(j.url);
+              rotateBtn.textContent = '✓';
+              setTimeout(() => {
+                rotateBtn.textContent = original;
+              }, 1500);
+            }
+          } catch (_e) {
+            /* tillägg — stör aldrig Svarstudion */
+          } finally {
+            rotateBtn.disabled = false;
+          }
+        });
+      }
+      // Återkalla: stäng av länken (bekräftas först).
+      const revokeBtn = panel.querySelector('#portalRevokeBtn');
+      if (revokeBtn) {
+        revokeBtn.addEventListener('click', async () => {
+          if (typeof confirm === 'function' && !confirm('Återkalla kundens portal-länk?')) return;
+          revokeBtn.disabled = true;
+          const original = revokeBtn.textContent;
+          try {
+            const { ok, j } = await postPortalAccess('/revoke');
+            if (ok && j.revoked) {
+              revokeBtn.textContent = '✓ Återkallad';
+              setTimeout(() => {
+                revokeBtn.textContent = original;
+              }, 1800);
+            }
+          } catch (_e) {
+            /* tillägg — stör aldrig Svarstudion */
+          } finally {
+            revokeBtn.disabled = false;
           }
         });
       }
