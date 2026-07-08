@@ -13529,6 +13529,11 @@ process.once('SIGTERM', () => {
   const { createCcoPortalMetricsRouter } = require('./src/routes/ccoPortalMetrics');
   app.use('/api/v1', createCcoPortalMetricsRouter({ requireAuth: auth.requireAuth }));
 
+  // Nytt mail till ny mottagare: skapar enkel kontakt + needs_approval-utkast med
+  // vald sändkanal (graph|resend). Personal godkänner och skickar i vanliga kedjan.
+  const { createCcoComposeNewMailRouter } = require('./src/routes/ccoComposeNewMail');
+  app.use('/api/v1', createCcoComposeNewMailRouter({ requireAuth: auth.requireAuth }));
+
   // SMS-nudge (sista utväg): engångs-SMS med portal-djuplänk. Hårt grindat
   // (CCO_SMS_LIVE) + idempotent. Återanvänder den befintliga 46elks/Twilio-
   // connectorn; exponeras på app.locals så routern/servicen når den lazy.
