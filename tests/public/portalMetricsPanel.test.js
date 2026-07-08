@@ -44,3 +44,14 @@ test('panelen visar aktiveringsstatus (go-live-spegel)', () => {
   assert.match(source, /live_unverified/);
   assert.match(source, /domän ej verifierad/);
 });
+
+test('panelen har "Testa portal-loopen" (mint → notis → domänkoll, grönt/rött)', () => {
+  assert.match(source, /function renderPortalSelfTest\(/);
+  assert.match(source, /renderPortalSelfTest\(body\)/);
+  assert.match(source, /'\/api\/v1\/cco\/runtime\/portal-selftest'/);
+  assert.match(source, /Testa portal-loopen/);
+  assert.match(source, /Kör test/);
+  // Skarpt testmejl är opt-in (dry-run som default).
+  assert.match(source, /Skicka skarpt testmejl/);
+  assert.match(source, /live: liveEl\.checked/);
+});
