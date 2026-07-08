@@ -1380,7 +1380,11 @@
               'x-cco-role': ROLE,
               'x-cco-tenant': TENANT,
             }),
-            body: JSON.stringify({ subject: state.subject, body: state.body }),
+            body: JSON.stringify({
+              subject: state.subject,
+              body: state.body,
+              signatureId: state.signatureId,
+            }),
           });
           auditStudioEvent('studio.draft_edited', { draftId: state.draftId });
         }

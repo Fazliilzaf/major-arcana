@@ -13,6 +13,7 @@ const path = require('node:path');
 
 const {
   resolveSignatureId,
+  resolveSignatureIdFromBody,
   textToHtmlParagraphs,
   stripPlainSignature,
   getSignatureHtml,
@@ -28,6 +29,8 @@ test('mallen finns med inbäddad logga + namn-placeholder ersatt', () => {
   assert.match(tpl, /data:image\/gif;base64,/); // inbäddad logga
   assert.match(tpl, /\{\{SIGNATURE_NAME\}\}/); // placeholder
   assert.doesNotMatch(tpl, /img2\.gimm\.io/); // ingen extern hotlink
+  assert.match(tpl, /href="tel:\+4631881166"/); // klickbar tel-länk i E.164
+  assert.doesNotMatch(tpl, /href="tel:031881166"/); // inte lokalformat i href
 });
 
 test('resolveSignatureId härleder person ur brevlåda', () => {
@@ -60,6 +63,16 @@ test('stripPlainSignature tar bort textsignaturen från dividern', () => {
   assert.equal(stripPlainSignature('Bara text'), 'Bara text');
 });
 
+test('resolveSignatureIdFromBody härleder äldre utkast från textsignaturen', () => {
+  assert.equal(
+    resolveSignatureIdFromBody(
+      'Hej' + SIG_DIVIDER + 'Bästa hälsningar,\n\nEgzona Krasniqi\nHair TP Clinic'
+    ),
+    'egzona'
+  );
+  assert.equal(resolveSignatureIdFromBody('Hej utan divider'), '');
+});
+
 test('composeHtmlBody: HTML-sig bara när textsignatur fanns', () => {
   const withSig = composeHtmlBody(
     'Hej Anna, tack för ditt meddelande.' + SIG_DIVIDER + 'Bästa hälsningar,\n\nFazli',
@@ -77,6 +90,19 @@ test('composeHtmlBody: HTML-sig bara när textsignatur fanns', () => {
   );
 });
 
+test('composeHtmlBody följer vald signatur före mailbox-fallback', () => {
+  const fazliBody =
+    'Hej Anna, vi återkommer.' +
+    SIG_DIVIDER +
+    'Bästa hälsningar,\n\nFazli Krasniqi\nHair TP Clinic';
+  const inferred = composeHtmlBody(fazliBody, 'contact@hairtpclinic.com');
+  assert.match(inferred, /Fazli Krasniqi/);
+  assert.doesNotMatch(inferred, /Hair TP Clinic<\/span><\/p><\/td><\/tr><tr>/);
+
+  const explicit = composeHtmlBody(fazliBody, 'egzona');
+  assert.match(explicit, /Egzona Krasniqi/);
+});
+
 test('adaptern trådar bodyHtml till connectorn (HTML-mail) när den finns', () => {
   const src = fs.readFileSync(
     path.join(__dirname, '../../src/infra/ccoGraphSendAdapter.js'),
@@ -92,7 +118,10 @@ test('adaptern trådar bodyHtml till connectorn (HTML-mail) när den finns', () 
 test('/send komponerar bodyHtml men rör ingen sändgrind', () => {
   const src = fs.readFileSync(path.join(__dirname, '../../src/routes/ccoCommDraft.js'), 'utf8');
   assert.match(src, /const \{ composeHtmlBody \} = require\('\.\.\/ops\/ccoSignatureHtml'\)/);
-  assert.match(src, /const bodyHtml = composeHtmlBody\(draft\.body \|\| '', senderMailbox\)/);
+  assert.match(
+    src,
+    /const bodyHtml = composeHtmlBody\(draft\.body \|\| '', draft\.signatureId \|\| senderMailbox\)/
+  );
   assert.match(src, /\.\.\.\(bodyHtml \? \{ bodyHtml \} : \{\}\)/);
   // Sändgrindarna orörda
   assert.match(src, /if \(!graphSendEnabled\(\)\)/);

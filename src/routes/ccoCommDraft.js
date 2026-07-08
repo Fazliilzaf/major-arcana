@@ -301,6 +301,7 @@ function createCcoCommDraftRouter({
             subject: text(req.body?.subject),
             body: typeof req.body?.body === 'string' ? req.body.body : '',
             journeyStep: text(req.body?.journeyStep) || null,
+            signatureId: text(req.body?.signatureId) || null,
             aiGenerated: !!req.body?.aiGenerated,
             mergeFields: req.body?.mergeFields || {},
           },
@@ -330,6 +331,7 @@ function createCcoCommDraftRouter({
             body: req.body?.body,
             channel: req.body?.channel,
             mergeFields: req.body?.mergeFields,
+            signatureId: req.body?.signatureId,
           },
           { actor: actorOf(req), tenantId: text(req.auth?.tenantId) || null }
         );
@@ -795,10 +797,10 @@ function createCcoCommDraftRouter({
         }
 
         // Alla grindar passerade → queue:a och skicka via adaptern.
-        // Rik HTML-signatur (inbäddad logga) för det faktiska mailet: härledd ur
-        // avsändar-brevlådan. Är null om utkastet saknar textsignatur eller mallen
-        // inte kan läsas → adaptern skickar då ren text (ingen sändlogik ändras).
-        const bodyHtml = composeHtmlBody(draft.body || '', senderMailbox);
+        // Rik HTML-signatur (inbäddad logga) för det faktiska mailet: följer
+        // Svarstudions valda signatur när den sparats. Äldre utkast faller
+        // tillbaka till textsignaturen och sist avsändar-brevlådan.
+        const bodyHtml = composeHtmlBody(draft.body || '', draft.signatureId || senderMailbox);
         const payload = {
           from: senderMailbox,
           to,

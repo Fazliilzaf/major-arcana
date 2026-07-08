@@ -10,9 +10,9 @@
  *   - Om mallen saknas/inte kan läsas returneras null → /send faller tillbaka
  *     på ren text (bodyHtml utelämnas, connectorn formaterar plain-text själv).
  *
- * Signaturvalet härleds ur avsändar-brevlådan (senderMailbox) — samma person-
- * mappning som Svarstudion visar (fazli@ → Fazli, egzona@ → Egzona, annars
- * klinik/Kontakt). Ingen ny persisterad draft-fält krävs.
+ * Signaturvalet följer Svarstudions valda signatur-id när det finns. Äldre
+ * utkast utan sparat id kan fortfarande härledas ur textsignaturen, och först
+ * därefter används avsändar-brevlådan som fallback.
  */
 
 const fs = require('node:fs');
@@ -51,6 +51,22 @@ function resolveSignatureId(mailboxOrId) {
   if (value.includes('fazli')) return 'fazli';
   if (value.includes('egzona')) return 'egzona';
   return 'contact';
+}
+
+function isKnownSignatureId(value) {
+  return Object.prototype.hasOwnProperty.call(SIGNATURE_NAMES, String(value || '').toLowerCase());
+}
+
+/** Härled vald signatur ur den rena textsignaturen i äldre utkast. */
+function resolveSignatureIdFromBody(body) {
+  const raw = String(body || '');
+  const idx = raw.indexOf(SIG_DIVIDER);
+  if (idx < 0) return '';
+  const signatureText = raw.slice(idx + SIG_DIVIDER.length).toLowerCase();
+  if (signatureText.includes('fazli krasniqi')) return 'fazli';
+  if (signatureText.includes('egzona krasniqi')) return 'egzona';
+  if (signatureText.includes('hair tp clinic')) return 'contact';
+  return '';
 }
 
 /** HTML-escape för text som stoppas in i mailkroppen. */
@@ -115,7 +131,14 @@ function composeHtmlBody(body, senderMailboxOrSignatureId) {
   const hadSignature = raw.indexOf(SIG_DIVIDER) >= 0;
   if (!hadSignature) return null;
 
-  const signatureHtml = getSignatureHtml(senderMailboxOrSignatureId);
+  const explicitSignatureId = isKnownSignatureId(senderMailboxOrSignatureId)
+    ? String(senderMailboxOrSignatureId || '').toLowerCase()
+    : '';
+  const signatureId =
+    explicitSignatureId ||
+    resolveSignatureIdFromBody(raw) ||
+    resolveSignatureId(senderMailboxOrSignatureId);
+  const signatureHtml = getSignatureHtml(signatureId);
   if (!signatureHtml) return null;
 
   const messageHtml = textToHtmlParagraphs(stripPlainSignature(raw));
@@ -126,6 +149,7 @@ module.exports = {
   SIGNATURE_NAMES,
   SIG_DIVIDER,
   resolveSignatureId,
+  resolveSignatureIdFromBody,
   escapeHtml,
   textToHtmlParagraphs,
   getSignatureHtml,
