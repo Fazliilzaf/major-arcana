@@ -2865,10 +2865,12 @@
           status.textContent =
             '✓ Utkast skapat (' +
             (j.contactCreated ? 'ny kontakt, ' : '') +
-            'väntar på godkännande). Godkänn i Skickat/kön.';
+            'väntar på godkännande).';
           status.style.color = '#4a8268';
           subjectEl.value = '';
           bodyEl.value = '';
+          // Owner kan godkänna + skicka direkt (grindat av CCO_COMPOSE_SEND_LIVE).
+          if (ROLE === 'owner' && j.draftId) showSendNow(j.draftId);
         } else {
           status.textContent = 'Kunde inte skapa utkast: ' + (j.reason || j.error || 'okänt fel');
           status.style.color = '#b94a4a';
@@ -2880,6 +2882,58 @@
         submit.disabled = false;
       }
     });
+    // Owner-genväg: godkänn + skicka det nyss skapade utkastet direkt.
+    let sendNowBtn = null;
+    function showSendNow(draftId) {
+      if (!sendNowBtn) {
+        sendNowBtn = el(
+          'button',
+          {
+            type: 'button',
+            style:
+              'border:1px solid var(--studio,#bb4779);border-radius:10px;padding:9px 16px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:var(--studio,#bb4779);margin:8px 0 0 8px',
+          },
+          '✓ Godkänn & skicka nu'
+        );
+        submit.parentNode.insertBefore(sendNowBtn, submit.nextSibling);
+      }
+      sendNowBtn.style.display = 'inline-block';
+      sendNowBtn.onclick = async () => {
+        sendNowBtn.disabled = true;
+        status.textContent = 'Skickar…';
+        status.style.color = '#8a8174';
+        try {
+          const r = await fetch(
+            '/api/v1/cco/runtime/compose-new-mail/' + encodeURIComponent(draftId) + '/send',
+            {
+              method: 'POST',
+              headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+            }
+          );
+          const j = await r.json().catch(() => ({}));
+          if (r.ok && j.status === 'sent') {
+            status.textContent = '✓ Skickat via ' + (j.channel || 'vald kanal') + '.';
+            status.style.color = '#4a8268';
+            sendNowBtn.style.display = 'none';
+          } else if (j.reason === 'compose_gate_off') {
+            status.textContent =
+              'Utskick är avstängt (CCO_COMPOSE_SEND_LIVE). Utkastet ligger kvar för godkännande.';
+            status.style.color = '#c8821e';
+          } else if (j.reason === 'graph_disabled') {
+            status.textContent = 'kons@/Graph-utskick är inte påslaget än. Utkastet ligger kvar.';
+            status.style.color = '#c8821e';
+          } else {
+            status.textContent = 'Kunde inte skicka: ' + (j.reason || j.error || 'okänt fel');
+            status.style.color = '#b94a4a';
+          }
+        } catch (_e) {
+          status.textContent = 'Nätverksfel vid utskick.';
+          status.style.color = '#b94a4a';
+        } finally {
+          sendNowBtn.disabled = false;
+        }
+      };
+    }
     body.appendChild(
       el(
         'p',

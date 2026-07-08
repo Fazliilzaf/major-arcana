@@ -13534,6 +13534,21 @@ process.once('SIGTERM', () => {
   const { createCcoComposeNewMailRouter } = require('./src/routes/ccoComposeNewMail');
   app.use('/api/v1', createCcoComposeNewMailRouter({ requireAuth: auth.requireAuth }));
 
+  // Leverans av godkänt kompose-utkast (owner-only) via vald kanal. Grindas av
+  // CCO_COMPOSE_SEND_LIVE i servicen. Graph-adaptern finns bara när Graph-send är
+  // på (ARCANA_GRAPH_SEND_ENABLED); annars svarar 'graph'-kanalen skipped.
+  const { createCcoComposeSendRouter } = require('./src/routes/ccoComposeSend');
+  const {
+    createCcoGraphSendAdapter: _mkGraphAdapterForCompose,
+  } = require('./src/infra/ccoGraphSendAdapter');
+  app.use(
+    '/api/v1',
+    createCcoComposeSendRouter({
+      requireAuth: auth.requireAuth,
+      graphSendAdapter: graphSendConnector ? _mkGraphAdapterForCompose(graphSendConnector) : null,
+    })
+  );
+
   // SMS-nudge (sista utväg): engångs-SMS med portal-djuplänk. Hårt grindat
   // (CCO_SMS_LIVE) + idempotent. Återanvänder den befintliga 46elks/Twilio-
   // connectorn; exponeras på app.locals så routern/servicen når den lazy.
