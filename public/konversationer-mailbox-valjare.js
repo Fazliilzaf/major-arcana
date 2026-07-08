@@ -129,7 +129,7 @@
       '.mbv-kicker{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;appearance:none;border:0;background:transparent;cursor:pointer;' +
       'font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#84756b;padding:0 6px 8px;border-bottom:1px solid rgba(132,117,107,.18);margin-bottom:6px}' +
       '.mbv-kicker-l{display:flex;align-items:baseline;gap:8px;min-width:0}' +
-      '.mbv-sum{font-size:9.5px;font-weight:700;letter-spacing:.02em;text-transform:none;color:var(--cco-text-tertiary,#6a717d)}' +
+      '.mbv-sum{font-size:10px;font-weight:700;letter-spacing:.01em;text-transform:none;color:var(--cco-text-secondary,#5d6470)}' +
       '.mbv-chev{font-size:8px;color:#84756b;transition:transform .15s ease}' +
       '.mbv-kicker.col .mbv-chev{transform:rotate(-90deg)}' +
       '.mbv-body[hidden]{display:none}' +
@@ -176,11 +176,10 @@
   // extra = valfri liten sammanfattnings-nod (t.ex. aktivt filter) bredvid etiketten.
   function collapsibleKicker(label, collapsed, onToggle, extra) {
     const chev = el('span', { class: 'mbv-chev' }, '▾');
-    const left = el(
-      'span',
-      { class: 'mbv-kicker-l' },
-      extra ? [el('span', {}, label), extra] : [label]
-    );
+    const parts = [];
+    if (label) parts.push(el('span', {}, label));
+    if (extra) parts.push(extra);
+    const left = el('span', { class: 'mbv-kicker-l' }, parts);
     const btn = el('button', { class: 'mbv-kicker' + (collapsed ? ' col' : ''), type: 'button' }, [
       left,
       chev,
@@ -366,7 +365,7 @@
       }
       updateScopeSummary();
       const scopeKicker = collapsibleKicker(
-        'Filter',
+        '', // dölj "FILTER"-ordet — bara summeringen (t.ex. "Inkorg · 90 d") + chevron
         state.collapsed.scope,
         (col) => {
           scopeBody.hidden = col;
