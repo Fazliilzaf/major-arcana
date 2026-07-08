@@ -15,7 +15,8 @@
  *         endpoint; annars dry-run), matchar personnummer → patientId, kräver
  *         att det är samma patient som tokenägaren, sätter nivå-2-session-cookie.
  *   GET /api/v1/cco-portal/me
- *       → läser nivå-2-session-cookie, returnerar identitet (401 om ingen).
+ *       → läser nivå-2-session-cookie, returnerar identitet + `offer`
+ *         (offert, journal-referens, bokningar); 401 om ingen session.
  *
  * SÄKERHET: ingen live-trafik utan BANKID_API_KEY + PORTAL_BANKID_LIVE=1.
  * Cookies är HMAC-signerade (ingen ny dependency). Read-only mot patient-master.
@@ -135,6 +136,10 @@ function createCcoPortalBankIdRouter({
   getPatientMasterStore,
   commercialStore,
   getCommercialStore,
+  journalStore,
+  getJournalStore,
+  bookingStore,
+  getBookingStore,
   env = process.env,
   baseUrl = process.env.PUBLIC_BASE_URL || '',
   sessionSecret,
@@ -143,6 +148,8 @@ function createCcoPortalBankIdRouter({
   const router = express.Router();
   const resolveCommercialStore = () =>
     commercialStore || (getCommercialStore && getCommercialStore()) || null;
+  const resolveJournalStore = () => journalStore || (getJournalStore && getJournalStore()) || null;
+  const resolveBookingStore = () => bookingStore || (getBookingStore && getBookingStore()) || null;
   const secret =
     text(sessionSecret) ||
     text(env.PORTAL_SESSION_SECRET) ||
@@ -264,16 +271,28 @@ function createCcoPortalBankIdRouter({
     const patientId = text(session.patientId);
     const tenantId = text(session.tenantId) || 'hairtpclinic';
 
-    // Offert-payload (read-only) — samma offerPlan-källa som PDF/signeringssida.
+    // Nivå-2-payload (read-only): offert (samma offerPlan-källa som PDF/
+    // signeringssida) + journal-REFERENS + bokningar. En läsning som fallerar
+    // får aldrig bryta auth-svaret.
     let offer = null;
-    const store = resolveCommercialStore();
-    if (typeof store?.getPatientRegisterCase === 'function') {
-      try {
-        const commercialCase = await store.getPatientRegisterCase({ tenantId, patientId });
-        offer = buildLevelTwoPayload({ patientId, commercialCase });
-      } catch {
-        offer = null; // bryt aldrig auth-svaret på en offert-läsning
-      }
+    try {
+      const commercial = resolveCommercialStore();
+      const journal = resolveJournalStore();
+      const booking = resolveBookingStore();
+      const [commercialCase, journalEntries, bookingCases] = await Promise.all([
+        typeof commercial?.getPatientRegisterCase === 'function'
+          ? commercial.getPatientRegisterCase({ tenantId, patientId }).catch(() => null)
+          : null,
+        typeof journal?.listEntries === 'function'
+          ? journal.listEntries({ tenantId, patientId }).catch(() => [])
+          : [],
+        typeof booking?.listCasesForCustomer === 'function'
+          ? booking.listCasesForCustomer({ tenantId, patientId }).catch(() => [])
+          : [],
+      ]);
+      offer = buildLevelTwoPayload({ patientId, commercialCase, journalEntries, bookingCases });
+    } catch {
+      offer = null;
     }
 
     return res.json({

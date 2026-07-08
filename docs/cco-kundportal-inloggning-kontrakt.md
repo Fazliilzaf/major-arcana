@@ -127,13 +127,17 @@ Ingen ny live-send. Broker-credentials bakom env-gate (`BANKID_API_KEY` /
 ### 3. Nivå-2-payload — BYGGD (offert)
 
 `GET /api/v1/cco-portal/me` (kräver nivå-2-cookie) returnerar nu även `offer`:
-`{ hasOffer, offerPlan, quoteStatus, signing: { status, canAccept, coolingOff } }`
+`{ hasOffer, offerPlan, quoteStatus, signing, journal, bookings }`
 via `src/ops/ccoPortalCustomerPayload.js`. Läser samma `commercialCase.offerPlan`
 som PDF/signeringssida (`getPatientRegisterCase`) — ingen andra sanning.
 Signeringsstatus härleds: `preparing → cooling_off → ready_to_sign → signed`.
 
-Kvar (senare, bakom samma nivå-2): journal-referens + bokningar. Medicinskt
-innehåll först när det uttryckligen läggs till — inget läcker via nivå 1.
+- **`journal`**: en REFERENS — `{ count, signedCount, latestAt, types }`. INTE
+  kliniskt innehåll, INTE personnummer, INTE fält. Full journalvisning i portalen
+  är ett separat medicinskt/juridiskt beslut (patientdatalagen), inte gjort här.
+- **`bookings`**: `{ upcoming: [{ bookingId, startsAt, endsAt, serviceLabel,
+encounterType, state }], upcomingCount, pastCount }` — bara kundvänliga fält,
+  inga interna anteckningar/tilldelningar.
 
 ### 4. Signering återanvänder esign
 
