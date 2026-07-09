@@ -770,30 +770,83 @@
 
       /* integrationskort */
       .intg-card {
+        --cat: var(--slate);
+        --cat-bg: var(--slate-bg);
+        position: relative;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
         gap: 0.55rem;
-        padding: 1rem;
+        padding: 1rem 1rem 1rem 1.2rem;
         border-radius: var(--r-lg);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        background:
+          radial-gradient(120% 90% at 0% 0%, var(--cat-bg), transparent 42%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.9));
         border: 1px solid rgba(180, 165, 150, 0.25);
         box-shadow: var(--sh-md);
         min-width: 0;
+        transition:
+          transform 0.16s ease,
+          box-shadow 0.16s ease,
+          border-color 0.16s ease;
       }
-      .intg-card.is-connected {
-        border-color: rgba(47, 111, 84, 0.4);
-        background: linear-gradient(180deg, #f4faf6, rgba(238, 247, 241, 0.86));
-      }
-      .intg-card.is-connected::before {
+      /* färgad kategori-rygg till vänster */
+      .intg-card::before {
         content: '';
         position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--cat);
+        opacity: 0.85;
+      }
+      .intg-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--sh-lg, 0 10px 28px rgba(60, 45, 40, 0.16));
+        border-color: color-mix(in srgb, var(--cat) 40%, rgba(180, 165, 150, 0.25));
+      }
+      /* kategori-färger */
+      .intg-card[data-cat='calendar'] {
+        --cat: var(--info);
+        --cat-bg: var(--info-bg);
+      }
+      .intg-card[data-cat='payment'] {
+        --cat: var(--gold);
+        --cat-bg: var(--gold-bg);
+      }
+      .intg-card[data-cat='communication'] {
+        --cat: var(--accent);
+        --cat-bg: var(--accent-weak, rgba(168, 56, 106, 0.12));
+      }
+      .intg-card[data-cat='analytics'] {
+        --cat: var(--violet);
+        --cat-bg: var(--violet-bg);
+      }
+      .intg-card[data-cat='automation'] {
+        --cat: var(--warning);
+        --cat-bg: var(--warning-bg);
+      }
+      .intg-card[data-cat='accounting'] {
+        --cat: var(--slate);
+        --cat-bg: var(--slate-bg);
+      }
+      .intg-card.is-connected {
+        border-color: color-mix(in srgb, var(--cat) 45%, transparent);
       }
       .ic-cat {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        align-self: flex-start;
         font-size: var(--fs-kicker);
         font-weight: 800;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: var(--text-tertiary);
+        color: var(--cat);
+        background: var(--cat-bg);
+        padding: 0.16rem 0.5rem;
+        border-radius: var(--r-pill);
       }
       .ic-head {
         display: flex;
