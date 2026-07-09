@@ -11,32 +11,36 @@
    WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
    Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
       :root {
+        /* Kanoniskt CCO-designunderlag (extraherat ur konversationer-mastern).
+           Tokennamnen behålls; värdena är de kanoniska så Notiser matchar samma
+           familj (varm off-white, brand #1d1e24, rosa accent #bb4779, status i
+           4a8268/c8821e/b94a4a/4a7ba8). WCAG: text lyft mot AA. */
         --bg-page: #faf6f2;
         --bg-surface: #ffffff;
-        --bg-sunken: #f3ece3;
-        --bg-rail: #fbf7f2;
-        --text-primary: #221c15;
-        --text-secondary: #574d40;
-        --text-tertiary: #6d6354;
-        --accent: #b0356e;
-        --accent-weak: #fdeef4;
-        --accent-weak-bg: #fdeef4;
-        --accent-strong: #8e285699;
+        --bg-sunken: #f5efe6;
+        --bg-rail: #fffdfb;
+        --text-primary: #1d1e24;
+        --text-secondary: #5d6470;
+        --text-tertiary: #6a717d;
+        --accent: #bb4779;
+        --accent-weak: #fce9f0;
+        --accent-weak-bg: #fce9f0;
+        --accent-strong: #9c2c62;
         --text-on-accent: #ffffff;
-        --success: #2f6f54;
-        --success-bg: rgba(47, 111, 84, 0.14);
-        --warning: #9a6410;
-        --warning-bg: rgba(154, 100, 16, 0.16);
-        --danger: #a83838;
-        --danger-bg: rgba(168, 56, 56, 0.14);
-        --info: #2f6595;
-        --info-bg: rgba(47, 101, 149, 0.14);
+        --success: #4a8268;
+        --success-bg: rgba(74, 130, 104, 0.14);
+        --warning: #c8821e;
+        --warning-bg: rgba(200, 130, 30, 0.14);
+        --danger: #b94a4a;
+        --danger-bg: rgba(185, 74, 74, 0.14);
+        --info: #4a7ba8;
+        --info-bg: rgba(74, 123, 168, 0.14);
         --violet: #6b31c9;
         --violet-bg: rgba(107, 49, 201, 0.12);
-        --gold: #8a5f1e;
-        --gold-bg: rgba(138, 95, 30, 0.14);
-        --slate: #475569;
-        --slate-bg: rgba(71, 85, 105, 0.12);
+        --gold: #9c6210;
+        --gold-bg: rgba(200, 130, 30, 0.14);
+        --slate: #556074;
+        --slate-bg: rgba(85, 96, 116, 0.12);
         --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
         --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
         --sh-lg: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
@@ -81,7 +85,11 @@
           radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%),
           var(--bg-page);
         color: var(--text-primary);
-        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
         font-size: var(--fs-body);
         line-height: 1.45;
         min-height: 100vh;
