@@ -82,6 +82,8 @@ services:
         value: kons@hairtpclinic.com
       - key: ARCANA_GRAPH_SEND_ALLOWLIST
         sync: false
+      - key: ARCANA_CCO_MARK_ANSWERED_CATEGORY
+        value: "true"
       - key: OPENAI_API_KEY
         sync: false
       # Resend för transactional emails — INTE deklarerade här. Med
