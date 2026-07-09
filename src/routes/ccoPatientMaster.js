@@ -145,6 +145,31 @@ function parseAllowedDocumentDateSources(value, requireDocumentDateSource = fals
   return null;
 }
 
+function parseInternalizeDateGateOptions(body = {}) {
+  const hasDateGate =
+    body.allowedDocumentDateSources !== undefined ||
+    body.requireDocumentDateSource !== undefined ||
+    body.excludeUnknownMonth !== undefined;
+  if (!hasDateGate) {
+    return {
+      active: false,
+      excludeUnknownMonth: false,
+      requireDocumentDateSource: false,
+      allowedDocumentDateSources: null,
+    };
+  }
+  const requireDocumentDateSource = parseExcludeUnknownMonth(body.requireDocumentDateSource, true);
+  return {
+    active: true,
+    excludeUnknownMonth: parseExcludeUnknownMonth(body.excludeUnknownMonth, true),
+    requireDocumentDateSource,
+    allowedDocumentDateSources: parseAllowedDocumentDateSources(
+      body.allowedDocumentDateSources,
+      requireDocumentDateSource
+    ),
+  };
+}
+
 async function responseToBuffer(response) {
   if (typeof response?.arrayBuffer === 'function') {
     return Buffer.from(await response.arrayBuffer());
@@ -220,6 +245,7 @@ async function prepareInternalizeExecution({
   dryRun,
   limit,
   offset,
+  dateGate = null,
   resolveAssetStores,
   resolvePatientAssetStore,
   loadPatientMasterState,
@@ -303,6 +329,10 @@ async function prepareInternalizeExecution({
       driveThrottleMs: 75,
       tenantId: actor.tenantId,
       actor: importActor,
+      dateGateActive: Boolean(dateGate?.active),
+      excludeUnknownMonth: dateGate?.excludeUnknownMonth ?? true,
+      requireDocumentDateSource: dateGate?.requireDocumentDateSource ?? false,
+      allowedDocumentDateSources: dateGate?.allowedDocumentDateSources ?? null,
     },
   };
 }
@@ -1590,6 +1620,7 @@ function createCcoPatientMasterRouter({
         const asyncCommit = !dryRun && parseAsyncCommit(req.body?.async, true);
         const limit = clampInternalizeLimit(req.body?.limit, 50);
         const offset = clampOffset(req.body?.offset);
+        const dateGate = parseInternalizeDateGateOptions(req.body);
 
         if (!dryRun) {
           const confirmText = normalizeText(req.body?.confirmText);
@@ -1607,6 +1638,7 @@ function createCcoPatientMasterRouter({
             dryRun,
             limit,
             offset,
+            dateGate,
             resolveAssetStores,
             resolvePatientAssetStore,
             loadPatientMasterState,
@@ -1672,6 +1704,13 @@ function createCcoPatientMasterRouter({
             accepted: true,
             limit,
             offset,
+            dateGate: dateGate.active
+              ? {
+                  excludeUnknownMonth: dateGate.excludeUnknownMonth,
+                  requireDocumentDateSource: dateGate.requireDocumentDateSource,
+                  allowedDocumentDateSources: dateGate.allowedDocumentDateSources,
+                }
+              : null,
             rowsCollected: rows.length,
             rowSources: { ...rowSources, mergedUnique: rows.length },
             drive: {
@@ -1703,6 +1742,13 @@ function createCcoPatientMasterRouter({
           async: false,
           limit,
           offset,
+          dateGate: dateGate.active
+            ? {
+                excludeUnknownMonth: dateGate.excludeUnknownMonth,
+                requireDocumentDateSource: dateGate.requireDocumentDateSource,
+                allowedDocumentDateSources: dateGate.allowedDocumentDateSources,
+              }
+            : null,
           rowsCollected: rows.length,
           rowSources: { ...rowSources, mergedUnique: rows.length },
           drive: dryRun

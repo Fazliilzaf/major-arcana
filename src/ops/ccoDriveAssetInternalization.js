@@ -541,6 +541,80 @@ async function downloadDriveFile(row, driveClient) {
   throw new Error('driveClient.downloadBuffer krävs för commit.');
 }
 
+function filterInternalizeRemainingRows(
+  remainingRows = [],
+  {
+    excludeUnknownMonth = true,
+    requireDocumentDateSource = false,
+    allowedDocumentDateSources = null,
+  } = {}
+) {
+  const resolvedAllowedSources = resolveAllowedDocumentDateSources({
+    requireDocumentDateSource,
+    allowedDocumentDateSources,
+  });
+  const paired = asArray(remainingRows).map((row, index) => ({
+    row,
+    preview: buildInternalizeCandidatePreviewRow(row, index),
+  }));
+  let filtered = paired;
+  if (excludeUnknownMonth) {
+    filtered = filtered.filter(({ preview }) => preview.calendarBucketClear);
+  }
+  if (resolvedAllowedSources) {
+    filtered = filtered.filter(({ preview }) =>
+      matchesDocumentDateSourceGate(preview, resolvedAllowedSources)
+    );
+  }
+  return { filtered, resolvedAllowedSources };
+}
+
+function selectInternalizeBatchRows(
+  remainingRows = [],
+  {
+    offset = 0,
+    limit = 0,
+    excludeUnknownMonth = true,
+    requireDocumentDateSource = false,
+    allowedDocumentDateSources = null,
+  } = {}
+) {
+  const { filtered, resolvedAllowedSources } = filterInternalizeRemainingRows(remainingRows, {
+    excludeUnknownMonth,
+    requireDocumentDateSource,
+    allowedDocumentDateSources,
+  });
+  const start = Math.max(0, Number(offset) || 0);
+  const cap = Math.max(0, Number(limit) || 0);
+  const slice = filtered.slice(start, cap > 0 ? start + cap : undefined);
+  return {
+    batch: slice.map((item) => item.row),
+    batchPreviews: slice.map((item) => item.preview),
+    resolvedAllowedSources,
+    filteredCount: filtered.length,
+  };
+}
+
+function buildGatedBatchMeta(
+  selection = {},
+  { offset = 0, limit = 0, excludeUnknownMonth = true } = {}
+) {
+  return {
+    documentDateSourceGate: selection.resolvedAllowedSources
+      ? { allowedDocumentDateSources: selection.resolvedAllowedSources }
+      : null,
+    excludeUnknownMonth,
+    offset: Math.max(0, Number(offset) || 0),
+    limit: Math.max(0, Number(limit) || 0),
+    filteredRemaining: selection.filteredCount || 0,
+    batchSize: selection.batch?.length || 0,
+    documentDateSources: (selection.batchPreviews || []).map(
+      (preview) => preview.documentDateSource
+    ),
+    candidates: selection.batchPreviews || [],
+  };
+}
+
 async function internalizeDriveAssets({
   rows = [],
   assetStore,
@@ -561,20 +635,47 @@ async function internalizeDriveAssets({
   concurrency = 1,
   tenantId = 'hair-tp-clinic',
   actor = { role: 'system', userId: 'ord-34-drive-internalize', tenantId },
+  dateGateActive = false,
+  excludeUnknownMonth = true,
+  requireDocumentDateSource = false,
+  allowedDocumentDateSources = null,
 } = {}) {
   if (!assetStore) throw new Error('assetStore krävs.');
   const inventory = await inventoryDriveAssets({ rows, assetStore, storage, sampleSize });
-  if (dryRun) return inventory;
+  const dateGateOpts = dateGateActive
+    ? { excludeUnknownMonth, requireDocumentDateSource, allowedDocumentDateSources }
+    : null;
+  let batch;
+  let gatedBatch = null;
+  if (dateGateActive) {
+    const selection = selectInternalizeBatchRows(inventory.remainingRows, {
+      offset,
+      limit,
+      ...dateGateOpts,
+    });
+    batch = selection.batch;
+    gatedBatch = buildGatedBatchMeta(selection, {
+      offset,
+      limit,
+      excludeUnknownMonth,
+    });
+  } else {
+    const start = Math.max(0, Number(offset) || 0);
+    const cap = Math.max(0, Number(limit) || 0);
+    batch = inventory.remainingRows.slice(start, cap > 0 ? start + cap : undefined);
+  }
+  if (dryRun) {
+    if (gatedBatch) {
+      return { ...inventory, gatedBatch };
+    }
+    return inventory;
+  }
   if (!go) throw new Error('commit kräver go=true.');
   if (!importRunStore) throw new Error('importRunStore krävs för commit.');
   if (!reviewQueueStore) throw new Error('reviewQueueStore krävs för commit.');
   if (!pipeline || typeof pipeline.importSingleAsset !== 'function') {
     throw new Error('pipeline.importSingleAsset krävs för commit.');
   }
-
-  const start = Math.max(0, Number(offset) || 0);
-  const cap = Math.max(0, Number(limit) || 0);
-  const batch = inventory.remainingRows.slice(start, cap > 0 ? start + cap : undefined);
   const runId = await importRunStore.startRun(
     { sourceSystem: 'drive_import', mode: 'full', createdBy: actor.userId || 'system' },
     { actor }
@@ -691,6 +792,7 @@ async function internalizeDriveAssets({
     stats,
     samples,
     errors,
+    gatedBatch,
   };
 }
 
@@ -888,15 +990,12 @@ async function previewInternalizeCandidates({
 
   const browseOffset = Math.max(0, Number(offset) || 0);
   const browseLimit = Math.max(1, Number(limit) || 10);
-  let browsePool = previewAll;
-  if (excludeUnknownMonth) {
-    browsePool = browsePool.filter((preview) => preview.calendarBucketClear);
-  }
-  if (resolvedAllowedSources) {
-    browsePool = browsePool.filter((preview) =>
-      matchesDocumentDateSourceGate(preview, resolvedAllowedSources)
-    );
-  }
+  const { filtered } = filterInternalizeRemainingRows(remainingRows, {
+    excludeUnknownMonth,
+    requireDocumentDateSource,
+    allowedDocumentDateSources,
+  });
+  const browsePool = filtered.map((item) => item.preview);
   const candidates = browsePool.slice(browseOffset, browseOffset + browseLimit);
 
   const pilotSearch = includePilotWindow
@@ -963,6 +1062,9 @@ module.exports = {
   buildPilotWindowSearch,
   evaluatePilotWindowFailure,
   resolveAllowedDocumentDateSources,
+  filterInternalizeRemainingRows,
+  selectInternalizeBatchRows,
+  buildGatedBatchMeta,
   PILOT_STRONG_DOCUMENT_DATE_SOURCES,
   previewInternalizeCandidates,
 };
