@@ -30,6 +30,11 @@ const {
 } = require('../ops/ccoContactFormIdentity');
 const { toCanonicalMailboxConversationKey } = require('../ops/ccoMailboxTruthWorklistReadModel');
 const { computeReplyConfidence } = require('../ops/replyConfidencePanel');
+const {
+  ANSWERED_CATEGORY_PREFIX,
+  buildAnsweredCategory,
+  markAnsweredCategoryEnabled,
+} = require('../ops/ccoAnsweredCategory');
 const { requirePermission } = require('../security/ccoRbac');
 
 // Heuristisk fallback om OpenAI inte är konfigurerad — säker, generisk
@@ -2148,6 +2153,35 @@ function createCcoConversationRouter({
           );
         }
         const sentAt = new Date().toISOString();
+
+        // Sätt "Besvarad i CCO – <namn>"-kategori på originalmailet så kollegor
+        // som sitter i den delade brevlådan i Outlook/Mac ser att — och av vem —
+        // kunden är besvarad. Best-effort: får ALDRIG fälla svaret som redan
+        // gått iväg. Endast skarpa utskick (inte testomdirigering), och bakom
+        // flagga tills Coworker verifierat mot kons@.
+        if (
+          !redirectToTest &&
+          markAnsweredCategoryEnabled() &&
+          typeof graphSendConnector.markMessageAnswered === 'function'
+        ) {
+          try {
+            await graphSendConnector.markMessageAnswered({
+              mailboxId: senderMailboxId,
+              messageId: replyToMessageId,
+              category: buildAnsweredCategory({
+                actorName: normalizeText(req?.user?.name || req?.user?.displayName),
+                actorEmail,
+              }),
+              replacePrefix: ANSWERED_CATEGORY_PREFIX,
+            });
+          } catch (markErr) {
+            console.warn(
+              '[cco-reply] markMessageAnswered misslyckades (best-effort, svaret är skickat)',
+              String((markErr && markErr.message) || markErr)
+            );
+          }
+        }
+
         await safeAuditConversation(authStore, {
           action: redirectToTest
             ? 'cco.conversation.reply_test_send'
