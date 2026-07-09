@@ -450,7 +450,7 @@
 
       /* metric-kort (KPI) */
       .metric {
-        padding: 0.9rem 1rem;
+        padding: 1.2rem 1.3rem;
         border-radius: var(--r-lg);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.84));
         border: 1px solid rgba(180, 165, 150, 0.25);
@@ -467,13 +467,13 @@
         font-size: var(--fs-num);
         font-weight: 800;
         letter-spacing: -0.02em;
-        margin-top: 0.15rem;
+        margin-top: 0.4rem;
         line-height: 1.05;
       }
       .metric .m-meta {
         font-size: var(--fs-kicker);
         color: var(--text-tertiary);
-        margin-top: 0.25rem;
+        margin-top: 0.4rem;
       }
       .metric .m-trend {
         font-size: var(--fs-kicker);
@@ -742,7 +742,7 @@
       .metrics {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: var(--gap);
+        gap: clamp(1.5rem, 2.2vw, 2.4rem);
         margin: 1.7rem 0 0.95rem;
       }
       @media (min-width: 601px) {
