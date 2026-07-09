@@ -14,6 +14,7 @@ const { createCcoPatientAssetStore } = require('../../src/ops/ccoPatientAssetSto
 const { createCcoAssetImportRunStore } = require('../../src/ops/ccoAssetImportRunStore');
 const { createCcoAssetReviewQueueStore } = require('../../src/ops/ccoAssetReviewQueueStore');
 const { createLocalProvider } = require('../../src/ops/ccoSecureStorageProvider');
+const { blobExistsOnStorage } = require('../../src/ops/ccoGhostVisibleAssetDiagnosis');
 
 const TENANT = 'hair-tp-clinic';
 
@@ -550,6 +551,123 @@ test('assets/diagnose-ghost-visible är read-only och rapporterar ghost + siblin
       assert.equal(
         fixture.authStore.events.some(
           (e) => e.action === 'cco.patient_master.assets_diagnose_ghost_visible'
+        ),
+        true
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+async function seedRouteGhostPair(fixture, importRunId = 'run-route-repair') {
+  const body = Buffer.from('%PDF-route-repair');
+  const put = await fixture.storage.putObject({
+    key: '2026/07/route-repair.pdf',
+    body,
+    contentType: 'application/pdf',
+  });
+
+  const canonical = await fixture.assetStore.addAsset({
+    patientId: 'patient-dino',
+    sourceSystem: 'drive_import',
+    originalDriveFileId: 'drive-repair-canonical',
+    originalFileName: 'repair.pdf',
+    storageProvider: 'local',
+    storageKey: 'missing/route-repair.pdf',
+    checksum: put.checksum,
+    fileSize: body.length,
+    mimeType: 'application/pdf',
+    category: 'journal',
+    status: 'VISIBLE_ON_PATIENT_CARD',
+  });
+
+  const duplicate = await fixture.assetStore.addAsset({
+    patientId: 'patient-dino',
+    sourceSystem: 'drive_import',
+    importRunId,
+    originalDriveFileId: 'drive-repair-dup',
+    originalFileName: 'repair.pdf',
+    storageProvider: 'local',
+    storageKey: put.storageKey,
+    checksum: put.checksum,
+    fileSize: body.length,
+    mimeType: 'application/pdf',
+    category: 'journal',
+    status: 'DUPLICATE',
+  });
+
+  return { canonical, duplicate, put };
+}
+
+test('assets/repair-ghost-visible dryRun default skriver inte', async () => {
+  const fixture = await makeFixture();
+  try {
+    const { canonical } = await seedRouteGhostPair(fixture);
+    await withServer(fixture.app, async (base) => {
+      const res = await fetch(`${base}/api/v1/cco-patient-master/assets/repair-ghost-visible`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ importRunId: 'run-route-repair' }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.dryRun, true);
+      assert.equal(json.zeroWrites, true);
+      assert.equal(json.stats.wouldRepair, 1);
+      assert.equal(json.stats.repaired, 0);
+      const unchanged = fixture.assetStore.getAsset(canonical.id);
+      assert.equal(unchanged.storageKey, 'missing/route-repair.pdf');
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('assets/repair-ghost-visible commit kräver confirmText och reparerar blob', async () => {
+  const fixture = await makeFixture();
+  try {
+    const { canonical, put } = await seedRouteGhostPair(fixture);
+    await withServer(fixture.app, async (base) => {
+      const blocked = await fetch(`${base}/api/v1/cco-patient-master/assets/repair-ghost-visible`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ dryRun: false, importRunId: 'run-route-repair' }),
+      });
+      assert.equal(blocked.status, 400);
+
+      const unscoped = await fetch(
+        `${base}/api/v1/cco-patient-master/assets/repair-ghost-visible`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            dryRun: false,
+            confirmText: 'REPAIR GHOST VISIBLE',
+          }),
+        }
+      );
+      assert.equal(unscoped.status, 400);
+
+      const res = await fetch(`${base}/api/v1/cco-patient-master/assets/repair-ghost-visible`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          dryRun: false,
+          importRunId: 'run-route-repair',
+          confirmText: 'REPAIR GHOST VISIBLE',
+        }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.stats.repaired, 1);
+
+      const fixed = fixture.assetStore.getAsset(canonical.id);
+      assert.equal(fixed.storageKey, put.storageKey);
+      assert.equal(await blobExistsOnStorage(fixed, fixture.storage), true);
+      assert.equal(
+        fixture.authStore.events.some(
+          (e) => e.action === 'cco.patient_master.assets_repair_ghost_visible'
         ),
         true
       );
