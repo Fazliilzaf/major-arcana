@@ -32,6 +32,7 @@ const { toCanonicalMailboxConversationKey } = require('../ops/ccoMailboxTruthWor
 const { computeReplyConfidence } = require('../ops/replyConfidencePanel');
 const {
   ANSWERED_CATEGORY_PREFIX,
+  ANSWERED_CATEGORY_COLOR,
   buildAnsweredCategory,
   markAnsweredCategoryEnabled,
 } = require('../ops/ccoAnsweredCategory');
@@ -2173,6 +2174,7 @@ function createCcoConversationRouter({
                 actorEmail,
               }),
               replacePrefix: ANSWERED_CATEGORY_PREFIX,
+              color: ANSWERED_CATEGORY_COLOR,
             });
           } catch (markErr) {
             console.warn(

@@ -623,15 +623,65 @@ function createMicrosoftGraphSendConnector(config = {}) {
     };
   }
 
+  // Säkerställ att en Outlook-kategori finns i brevlådans masterlista med rätt
+  // färg. Idempotent: skapar bara om displayName saknas. Utan detta visas taggen
+  // som grå text utan färg. Låter nya operatörers taggar auto-få rätt färg.
+  async function ensureMasterCategory({
+    mailboxId,
+    displayName,
+    color,
+    accessToken = null,
+    timeoutMs = requestTimeoutMs,
+  } = {}) {
+    const normalizedMailboxId = requiredConfig('mailboxId', mailboxId);
+    const normalizedDisplayName = normalizeText(displayName);
+    const normalizedColor = normalizeText(color);
+    if (!normalizedDisplayName || !normalizedColor) {
+      throw new Error(
+        'MicrosoftGraphSendConnector ensureMasterCategory requires displayName and color.'
+      );
+    }
+    const token = accessToken || (await fetchAccessToken());
+    const masterUrl = `${graphBaseUrl}/users/${encodeURIComponent(
+      normalizedMailboxId
+    )}/outlook/masterCategories`;
+    const listResponse = await fetchWithTimeout(
+      fetchImpl,
+      masterUrl,
+      { method: 'GET', headers: { authorization: `Bearer ${token}` } },
+      timeoutMs
+    );
+    const list = await parseJsonResponse(listResponse, 'Microsoft Graph listMasterCategories');
+    const existing = Array.isArray(list?.value) ? list.value : [];
+    const already = existing.some(
+      (item) => normalizeText(item?.displayName) === normalizedDisplayName
+    );
+    if (already) {
+      return { mailboxId: normalizedMailboxId, displayName: normalizedDisplayName, created: false };
+    }
+    await postGraphJson({
+      fetchImpl,
+      url: masterUrl,
+      accessToken: token,
+      payload: { displayName: normalizedDisplayName, color: normalizedColor },
+      timeoutMs,
+      label: 'Microsoft Graph createMasterCategory',
+    });
+    return { mailboxId: normalizedMailboxId, displayName: normalizedDisplayName, created: true };
+  }
+
   // Sätt en Outlook-kategori på ett meddelande (t.ex. originalmailet efter att
   // kunden besvarats i CCO). Domän-agnostisk: anroparen bestämmer kategoritext.
   // Bevarar befintliga kategorier; om replacePrefix anges ersätts tidigare taggar
   // med det prefixet (så bara senaste "Besvarad i CCO – <namn>" står kvar).
+  // Om color anges säkerställs kategorin i masterlistan (best-effort) så taggen
+  // får färg i Outlook/Mac.
   async function markMessageAnswered({
     mailboxId,
     messageId,
     category,
     replacePrefix = '',
+    color = '',
     timeoutMs = requestTimeoutMs,
   } = {}) {
     const normalizedMailboxId = requiredConfig('mailboxId', mailboxId);
@@ -641,7 +691,23 @@ function createMicrosoftGraphSendConnector(config = {}) {
       throw new Error('MicrosoftGraphSendConnector markMessageAnswered requires category.');
     }
     const normalizedPrefix = normalizeText(replacePrefix);
+    const normalizedColor = normalizeText(color);
     const accessToken = await fetchAccessToken();
+    if (normalizedColor) {
+      // Best-effort: färg-provisionering får aldrig blockera själva taggningen.
+      try {
+        await ensureMasterCategory({
+          mailboxId: normalizedMailboxId,
+          displayName: normalizedCategory,
+          color: normalizedColor,
+          accessToken,
+          timeoutMs,
+        });
+      } catch (ensureErr) {
+        // Kategorin sätts ändå (utan garanterad färg).
+        void ensureErr;
+      }
+    }
     const messageUrl = `${graphBaseUrl}/users/${encodeURIComponent(
       normalizedMailboxId
     )}/messages/${encodeURIComponent(normalizedMessageId)}`;
@@ -687,6 +753,7 @@ function createMicrosoftGraphSendConnector(config = {}) {
     sendNewMessage,
     sendReply,
     markMessageAnswered,
+    ensureMasterCategory,
     moveMessageToFolder,
     moveMessageToDeletedItems,
     inspectPermissions,

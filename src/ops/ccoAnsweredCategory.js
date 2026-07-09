@@ -6,6 +6,10 @@
 // kunden är besvarad. Ren och testbar; connectorn förblir domän-agnostisk.
 
 const ANSWERED_CATEGORY_PREFIX = 'Besvarad i CCO';
+// Outlook-kategorifärg (Graph preset). preset4 = grön → läses som "klart/besvarat".
+// Gemensam färg för alla operatörers "Besvarad i CCO – <namn>"-taggar så chippen
+// är enhetliga i Outlook/Mac medan namnet syns i texten.
+const ANSWERED_CATEGORY_COLOR = 'preset4';
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -41,6 +45,7 @@ function markAnsweredCategoryEnabled(env = process.env) {
 
 module.exports = {
   ANSWERED_CATEGORY_PREFIX,
+  ANSWERED_CATEGORY_COLOR,
   deriveAnsweredByName,
   buildAnsweredCategory,
   isAnsweredCategory,
