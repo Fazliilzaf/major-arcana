@@ -3204,13 +3204,19 @@
             hidden
           >
             <div class="calendar-shell-surface">
-              <header class="calendar-shell-header">
-                <h1 id="calendar-title">Kalender</h1>
-                <p class="calendar-shell-lead">
-                  Bokade tider, lediga slots och resursplanering för mottagningen.
-                </p>
-              </header>
-              <div data-booking-calendar-host class="cco-cal-host" aria-live="polite"></div>
+              <iframe
+                src="/kalender.html?embed=1"
+                title="Kalender"
+                class="cco-kalender-frame"
+                style="
+                  width: 100%;
+                  height: calc(100vh - 96px);
+                  border: 0;
+                  border-radius: 18px;
+                  display: block;
+                  background: transparent;
+                "
+              ></iframe>
             </div>
           </section>
 
