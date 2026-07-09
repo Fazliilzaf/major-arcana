@@ -50,11 +50,11 @@ test('createAuthRequest bygger Criipto authorize-URL med state+nonce', () => {
   assert.match(r.url, /acr_values=urn%3Agrn%3Aauthn%3Ase%3Abankid%3Aanother-device%3Aqr/);
 });
 
-test('resolveBankIdAcrValues: qr på desktop, same-device på mobil', () => {
+test('resolveBankIdAcrValues: qr default, same-device bara vid explicit flow', () => {
   assert.equal(resolveBankIdAcrValues({ userAgent: 'Mozilla/5.0 (Macintosh)' }), BANKID_ACR_QR);
   assert.equal(
     resolveBankIdAcrValues({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS)' }),
-    BANKID_ACR_SAME_DEVICE
+    BANKID_ACR_QR
   );
   assert.equal(resolveBankIdAcrValues({ flow: 'same-device' }), BANKID_ACR_SAME_DEVICE);
 });

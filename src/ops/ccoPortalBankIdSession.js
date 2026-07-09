@@ -61,7 +61,9 @@ function isMobileUserAgent(userAgent) {
 }
 
 /**
- * Välj BankID-flöde: QR (dator→mobil) eller same-device (mobil→BankID-app).
+ * Välj BankID-flöde: QR (dator→mobil, eller mobil skannar QR på skärmen) eller
+ * same-device (mobil→BankID-app via autostart). Default mobil = QR tills iOS
+ * autostart mot Idura test-RP är stabilt (same-device ger "Något gick fel").
  * Override: PORTAL_BANKID_ACR_VALUES eller ?flow=same-device|qr på login.
  */
 function resolveBankIdAcrValues({ flow, userAgent, env = process.env } = {}) {
@@ -70,7 +72,7 @@ function resolveBankIdAcrValues({ flow, userAgent, env = process.env } = {}) {
   const f = text(flow).toLowerCase();
   if (f === 'same-device' || f === 'same_device' || f === 'mobile') return BANKID_ACR_SAME_DEVICE;
   if (f === 'qr' || f === 'desktop') return BANKID_ACR_QR;
-  if (isMobileUserAgent(userAgent)) return BANKID_ACR_SAME_DEVICE;
+  if (isMobileUserAgent(userAgent)) return BANKID_ACR_QR;
   return BANKID_ACR_QR;
 }
 

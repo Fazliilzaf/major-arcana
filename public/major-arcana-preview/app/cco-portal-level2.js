@@ -158,7 +158,12 @@
   }
 
   function loginUrlFor(token) {
-    return token ? '/api/v1/cco-portal/bankid/login?token=' + encodeURIComponent(token) : '';
+    if (!token) return '';
+    var url = '/api/v1/cco-portal/bankid/login?token=' + encodeURIComponent(token);
+    if (/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || '')) {
+      url += '&flow=qr';
+    }
+    return url;
   }
 
   async function fetchMe() {
