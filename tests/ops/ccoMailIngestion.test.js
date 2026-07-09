@@ -228,6 +228,26 @@ test('evaluateSourceFilter allows standard mailbox folders', () => {
   assert.equal(evaluateSourceFilter({ folderType: 'unknown' }).allowed, false);
 });
 
+test('evaluateSourceFilter gates custom folders behind ARCANA_CCO_CUSTOM_FOLDER_INGEST', () => {
+  const previous = process.env.ARCANA_CCO_CUSTOM_FOLDER_INGEST;
+  try {
+    // Default av → custom avvisas (exakt dagens beteende).
+    delete process.env.ARCANA_CCO_CUSTOM_FOLDER_INGEST;
+    const off = evaluateSourceFilter({ folderType: 'custom' });
+    assert.equal(off.allowed, false);
+    assert.equal(off.reason, 'folder_custom_disabled');
+
+    // Flagga på → custom tillåts, standardmappar oförändrade.
+    process.env.ARCANA_CCO_CUSTOM_FOLDER_INGEST = 'true';
+    assert.equal(evaluateSourceFilter({ folderType: 'custom' }).allowed, true);
+    assert.equal(evaluateSourceFilter({ folderType: 'inbox' }).allowed, true);
+    assert.equal(evaluateSourceFilter({ folderType: 'unknown' }).allowed, false);
+  } finally {
+    if (previous === undefined) delete process.env.ARCANA_CCO_CUSTOM_FOLDER_INGEST;
+    else process.env.ARCANA_CCO_CUSTOM_FOLDER_INGEST = previous;
+  }
+});
+
 test('matchPatientOrEntity matches sent-mail counterparty recipient', () => {
   const result = matchPatientOrEntity(
     {

@@ -20,9 +20,18 @@ function normalizeEmail(value = '') {
 
 const RISKY_ATTACHMENT_TYPES = /\.(exe|bat|cmd|scr|js|vbs|zip|rar|7z)$/i;
 
+function customFolderIngestEnabled() {
+  // Custom-mappar ("mappar") tas bara in när flaggan är på. Default av =
+  // exakt dagens beteende (custom avvisas som tidigare).
+  return normalizeText(process.env.ARCANA_CCO_CUSTOM_FOLDER_INGEST).toLowerCase() === 'true';
+}
+
 function evaluateSourceFilter(rawMessage = {}) {
   const folderType = normalizeText(rawMessage.folderType).toLowerCase();
   const enabledFolders = new Set(['inbox', 'sent', 'drafts', 'deleted']);
+  if (customFolderIngestEnabled()) {
+    enabledFolders.add('custom');
+  }
   if (!enabledFolders.has(folderType)) {
     return {
       allowed: false,

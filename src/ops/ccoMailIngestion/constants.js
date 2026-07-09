@@ -22,11 +22,23 @@ const LEDGER_STATUSES = Object.freeze([
   'REPROCESSED',
 ]);
 
-const IMPORT_RUN_MODES = Object.freeze(['initial_sync', 'delta_sync', 'reset', 'retry', 'webhook_trigger']);
+const IMPORT_RUN_MODES = Object.freeze([
+  'initial_sync',
+  'delta_sync',
+  'reset',
+  'retry',
+  'webhook_trigger',
+]);
 
-const IMPORT_RUN_STATUSES = Object.freeze(['pending', 'running', 'completed', 'failed', 'cancelled']);
+const IMPORT_RUN_STATUSES = Object.freeze([
+  'pending',
+  'running',
+  'completed',
+  'failed',
+  'cancelled',
+]);
 
-const MAILBOX_FOLDER_TYPES = Object.freeze(['inbox', 'sent', 'drafts', 'deleted']);
+const MAILBOX_FOLDER_TYPES = Object.freeze(['inbox', 'sent', 'drafts', 'deleted', 'custom']);
 
 const MAIL_TYPES = Object.freeze([
   'booking_request',

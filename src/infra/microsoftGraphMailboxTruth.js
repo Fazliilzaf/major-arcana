@@ -63,7 +63,9 @@ function normalizeHeaderMessageId(value = '') {
 
 function normalizeFolderType(value = '') {
   const normalized = normalizeText(value).toLowerCase();
-  if (['inbox', 'sent', 'drafts', 'deleted'].includes(normalized)) return normalized;
+  // 'custom' = mail i en egen Outlook-mapp ("mappar"). Riktning för custom härleds
+  // via alias-inferens uppströms (inferMailboxTruthDirection), inte via mappnamnet.
+  if (['inbox', 'sent', 'drafts', 'deleted', 'custom'].includes(normalized)) return normalized;
   return 'unknown';
 }
 
@@ -124,17 +126,25 @@ function normalizeIdentityCarrier(value = {}) {
     mergeReviewDecisionsByPairId: Object.keys(mergeReviewDecisionsByPairId).length
       ? cloneJson(mergeReviewDecisionsByPairId)
       : {},
-    identityProvenance: Object.keys(identityProvenance).length ? cloneJson(identityProvenance) : null,
+    identityProvenance: Object.keys(identityProvenance).length
+      ? cloneJson(identityProvenance)
+      : null,
   };
 }
 
-function toMailboxConversationId({ mailboxId = '', conversationId = '', internetMessageId = '', graphMessageId = '' } = {}) {
+function toMailboxConversationId({
+  mailboxId = '',
+  conversationId = '',
+  internetMessageId = '',
+  graphMessageId = '',
+} = {}) {
   const safeMailboxId = normalizeText(mailboxId).toLowerCase();
   const safeConversationId = normalizeText(conversationId);
   const safeInternetMessageId = normalizeHeaderMessageId(internetMessageId);
   const safeGraphMessageId = normalizeText(graphMessageId);
   if (safeMailboxId && safeConversationId) return `${safeMailboxId}:${safeConversationId}`;
-  if (safeMailboxId && safeInternetMessageId) return `${safeMailboxId}:message:${safeInternetMessageId}`;
+  if (safeMailboxId && safeInternetMessageId)
+    return `${safeMailboxId}:message:${safeInternetMessageId}`;
   if (safeMailboxId && safeGraphMessageId) return `${safeMailboxId}:graph:${safeGraphMessageId}`;
   if (safeConversationId) return safeConversationId;
   if (safeInternetMessageId) return `message:${safeInternetMessageId}`;
@@ -162,21 +172,19 @@ function buildMailboxTruthConversations(messages = []) {
     if (!graphMessageId) continue;
     const mailboxConversationId = normalizeText(safeMessage.mailboxConversationId);
     if (!mailboxConversationId) continue;
-    const conversation =
-      conversationsById.get(mailboxConversationId) ||
-      {
-        mailboxConversationId,
-        mailboxId: normalizeText(safeMessage.mailboxId).toLowerCase() || null,
-        mailboxAddress: normalizeText(safeMessage.mailboxAddress).toLowerCase() || null,
-        userPrincipalName: normalizeText(safeMessage.userPrincipalName).toLowerCase() || null,
-        graphUserId: normalizeText(safeMessage.graphUserId) || null,
-        conversationId: normalizeText(safeMessage.conversationId) || null,
-        messageIds: [],
-        folderTypes: new Set(),
-        latestMessageAt: null,
-        latestInboundAt: null,
-        latestOutboundAt: null,
-      };
+    const conversation = conversationsById.get(mailboxConversationId) || {
+      mailboxConversationId,
+      mailboxId: normalizeText(safeMessage.mailboxId).toLowerCase() || null,
+      mailboxAddress: normalizeText(safeMessage.mailboxAddress).toLowerCase() || null,
+      userPrincipalName: normalizeText(safeMessage.userPrincipalName).toLowerCase() || null,
+      graphUserId: normalizeText(safeMessage.graphUserId) || null,
+      conversationId: normalizeText(safeMessage.conversationId) || null,
+      messageIds: [],
+      folderTypes: new Set(),
+      latestMessageAt: null,
+      latestInboundAt: null,
+      latestOutboundAt: null,
+    };
     conversation.messageIds.push(graphMessageId);
     conversation.folderTypes.add(normalizeFolderType(safeMessage.folderType));
     const latestMessageAt = toLatestMessageAt(safeMessage);
@@ -299,8 +307,7 @@ function normalizeMailboxTruthSnapshot(snapshot = {}) {
           isRead: typeof safeMessage.isRead === 'boolean' ? safeMessage.isRead : null,
           hasAttachments: safeMessage.hasAttachments === true,
           attachments: toSafeAttachmentMetadata(safeMessage.attachments),
-          isDraft:
-            safeMessage.isDraft === true || folderType === 'drafts',
+          isDraft: safeMessage.isDraft === true || folderType === 'drafts',
           isDeleted: folderType === 'deleted',
           receivedAt: toIso(safeMessage.receivedAt),
           sentAt: toIso(safeMessage.sentAt),
@@ -335,7 +342,9 @@ function normalizeMailboxTruthSnapshot(snapshot = {}) {
     conversations: conversations.map((conversation) => ({
       ...conversation,
       ...normalizeIdentityCarrier(
-        safeMessages.find((message) => message.mailboxConversationId === conversation.mailboxConversationId) || {}
+        safeMessages.find(
+          (message) => message.mailboxConversationId === conversation.mailboxConversationId
+        ) || {}
       ),
     })),
     metadata: {
@@ -369,8 +378,7 @@ function summarizeMailboxTruthVerification(model = {}, options = {}) {
         status: 'BROKEN',
         reasonCode: 'fetch_error',
         detail:
-          normalizeText(folder.errorMessage) ||
-          'Foldern kunde inte hamtas fran Microsoft Graph.',
+          normalizeText(folder.errorMessage) || 'Foldern kunde inte hamtas fran Microsoft Graph.',
       };
     }
     const totalItemCount = toNumber(folder.totalItemCount, 0);
@@ -414,14 +422,20 @@ function summarizeMailboxTruthVerification(model = {}, options = {}) {
 
   for (const account of accounts) {
     const mailboxId = normalizeText(account.mailboxId).toLowerCase() || null;
-    const accountFolders = folderRows.filter((folder) => normalizeText(folder.mailboxId).toLowerCase() === mailboxId);
-    const accountMessages = messages.filter((message) => normalizeText(message.mailboxId).toLowerCase() === mailboxId);
+    const accountFolders = folderRows.filter(
+      (folder) => normalizeText(folder.mailboxId).toLowerCase() === mailboxId
+    );
+    const accountMessages = messages.filter(
+      (message) => normalizeText(message.mailboxId).toLowerCase() === mailboxId
+    );
     const statusByFolderType = {};
     const reasonByFolderType = {};
     const detailByFolderType = {};
 
     for (const folderType of ['inbox', 'sent', 'drafts', 'deleted']) {
-      const folder = accountFolders.find((entry) => normalizeFolderType(entry.folderType) === folderType);
+      const folder = accountFolders.find(
+        (entry) => normalizeFolderType(entry.folderType) === folderType
+      );
       const verification = toFolderVerification(folderType, folder);
       statusByFolderType[folderType] = verification.status;
       reasonByFolderType[folderType] = verification.reasonCode;
@@ -487,10 +501,7 @@ function summarizeMailboxTruthVerification(model = {}, options = {}) {
   }
 
   const orderedMailboxIds = Array.from(
-    new Set([
-      ...expectedMailboxIds,
-      ...Array.from(accountSummariesById.keys()).filter(Boolean),
-    ])
+    new Set([...expectedMailboxIds, ...Array.from(accountSummariesById.keys()).filter(Boolean)])
   );
   const accountSummaries = orderedMailboxIds
     .map((mailboxId) => accountSummariesById.get(mailboxId))
@@ -499,22 +510,21 @@ function summarizeMailboxTruthVerification(model = {}, options = {}) {
   return {
     modelVersion: normalizeText(safeModel.modelVersion) || 'cco.mailbox.truth.v1',
     accountSummaries,
-    overallStatus:
-      accountSummaries.every((account) =>
-        ['inbox', 'sent', 'drafts', 'deleted'].every(
-          (folderType) => account.statusByFolderType[folderType] === 'VERIFIED'
-        )
+    overallStatus: accountSummaries.every((account) =>
+      ['inbox', 'sent', 'drafts', 'deleted'].every(
+        (folderType) => account.statusByFolderType[folderType] === 'VERIFIED'
       )
-        ? 'VERIFIED'
+    )
+      ? 'VERIFIED'
+      : accountSummaries.some((account) =>
+            Object.values(asObject(account.statusByFolderType)).includes('BROKEN')
+          )
+        ? 'BROKEN'
         : accountSummaries.some((account) =>
-              Object.values(asObject(account.statusByFolderType)).includes('BROKEN')
+              Object.values(asObject(account.statusByFolderType)).includes('PARTIAL')
             )
-          ? 'BROKEN'
-          : accountSummaries.some((account) =>
-                Object.values(asObject(account.statusByFolderType)).includes('PARTIAL')
-              )
-            ? 'PARTIAL'
-            : 'NOT VERIFIED',
+          ? 'PARTIAL'
+          : 'NOT VERIFIED',
   };
 }
 
