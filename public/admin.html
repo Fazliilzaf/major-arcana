@@ -2587,6 +2587,14 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.95),
                 0 4px 14px rgba(187, 71, 121, 0.14);
             }
+            .cco-subnav-btn:disabled {
+              opacity: 0.4;
+              cursor: not-allowed;
+              box-shadow: none;
+            }
+            .cco-subnav-btn:disabled:hover {
+              color: rgba(70, 60, 50, 0.72);
+            }
           </style>
           <div class="cco-subnav" data-cco-subnav role="tablist" aria-label="CCO-sektioner">
             <span class="cco-subnav-kicker">CCO</span>
@@ -2622,7 +2630,9 @@
               type="button"
               role="tab"
               aria-selected="false"
-              data-cco-section="automatisering"
+              data-cco-pending="automatisering"
+              disabled
+              title="Kommer snart — URL ej bekräftad"
             >
               Automatisering
             </button>
@@ -2631,7 +2641,9 @@
               type="button"
               role="tab"
               aria-selected="false"
-              data-cco-section="analys"
+              data-cco-pending="analys"
+              disabled
+              title="Kommer snart — URL ej bekräftad"
             >
               Analys
             </button>
@@ -2640,7 +2652,9 @@
               type="button"
               role="tab"
               aria-selected="false"
-              data-cco-section="mer"
+              data-cco-pending="mer"
+              disabled
+              title="Kommer snart — URL ej bekräftad"
             >
               Mer
             </button>

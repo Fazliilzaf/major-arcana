@@ -36,22 +36,21 @@
     var konversationerSrc =
       String(frame.getAttribute('data-src') || '').trim() || '/konversationer.html';
 
-    // SPA-vyer laddas med ?embed=admin → SPA:t döljer sin egen topbar
-    // (.is-admin-embed .preview-topbar{display:none}), så CCO-undernaven inte
+    // Fas 1 — endast de tre bekräftade sektionerna är wired. Kunder laddas med
+    // samma flaggor som arbets-URL:en (v9/demo/demoOpDay/v11rail/v12workspace) så
+    // den data-fyllda vyn visas, plus embed=admin som döljer SPA:ts egen topbar
+    // (.is-admin-embed .preview-topbar{display:none}) så CCO-undernaven inte
     // dubbleras. Kalender använder kalender.html:s egen ?embed=1. Konversationer
     // behåller sin ursprungliga (build-stämplade) data-src.
-    // SPA-vyerna laddas med samma flaggor som arbets-URL:en (v9/demo/demoOpDay/
-    // v11rail/v12workspace) så den data-fyllda vyn visas, plus embed=admin som
-    // döljer SPA:ts egen topbar. Kalender använder kalender.html:s egen ?embed=1.
-    // Konversationer behåller sin ursprungliga (build-stämplade) data-src.
+    //
+    // Automatisering/Analys/Mer är inaktiverade platshållare i markup:en tills
+    // deras riktiga arbets-URL:er bekräftats — de finns inte här, så activate()
+    // ignorerar dem även om de skulle klickas.
     var SPA_FLAGS = 'v9=on&demo=on&demoOpDay=1&embed=admin';
     var SECTIONS = {
       konversationer: konversationerSrc,
       kunder: '/major-arcana-preview/?view=customers&' + SPA_FLAGS + '&v11rail=on&v12workspace=on',
       kalender: '/kalender.html?embed=1',
-      automatisering: '/major-arcana-preview/?view=automation&' + SPA_FLAGS,
-      analys: '/major-arcana-preview/?view=analytics&' + SPA_FLAGS,
-      mer: '/major-arcana-preview/?view=integrations&' + SPA_FLAGS,
     };
 
     function setActiveButton(key) {
