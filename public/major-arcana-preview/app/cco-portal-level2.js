@@ -160,7 +160,9 @@
   function loginUrlFor(token) {
     if (!token) return '';
     var url = '/api/v1/cco-portal/bankid/login?token=' + encodeURIComponent(token);
-    if (/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || '')) {
+    // Node-säker: `navigator` saknas utanför browsern (enhetstest på Node 20).
+    var ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+    if (/iPhone|iPad|iPod|Android|Mobile/i.test(ua)) {
       url += '&flow=qr';
     }
     return url;
