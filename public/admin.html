@@ -2527,6 +2527,124 @@
           hidden
           aria-hidden="true"
         >
+          <style>
+            .cco-subnav {
+              display: flex;
+              gap: 6px;
+              flex-wrap: wrap;
+              align-items: center;
+              padding: 10px 12px;
+              margin-bottom: 10px;
+              border-radius: 14px;
+              background: linear-gradient(
+                180deg,
+                rgba(255, 255, 255, 0.7),
+                rgba(244, 238, 233, 0.6)
+              );
+              box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.7),
+                0 2px 8px rgba(56, 40, 28, 0.06);
+            }
+            .cco-subnav-kicker {
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: 0.14em;
+              text-transform: uppercase;
+              color: #8a8174;
+              margin-right: 4px;
+            }
+            .cco-subnav-btn {
+              appearance: none;
+              cursor: pointer;
+              border: 1px solid rgba(255, 255, 255, 0.82);
+              border-radius: 999px;
+              padding: 6px 14px;
+              font-size: 12px;
+              font-weight: 600;
+              color: rgba(70, 60, 50, 0.72);
+              background: linear-gradient(
+                180deg,
+                rgba(255, 255, 255, 0.9),
+                rgba(244, 238, 232, 0.8)
+              );
+              transition:
+                color 0.12s ease,
+                background 0.12s ease,
+                box-shadow 0.12s ease;
+            }
+            .cco-subnav-btn:hover {
+              color: #2b251f;
+            }
+            .cco-subnav-btn.is-active {
+              color: #bb4779;
+              font-weight: 700;
+              background: linear-gradient(
+                180deg,
+                rgba(252, 233, 240, 0.98),
+                rgba(241, 207, 220, 0.95)
+              );
+              box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.95),
+                0 4px 14px rgba(187, 71, 121, 0.14);
+            }
+          </style>
+          <div class="cco-subnav" data-cco-subnav role="tablist" aria-label="CCO-sektioner">
+            <span class="cco-subnav-kicker">CCO</span>
+            <button
+              class="cco-subnav-btn is-active"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              data-cco-section="konversationer"
+            >
+              Konversationer
+            </button>
+            <button
+              class="cco-subnav-btn"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-cco-section="kunder"
+            >
+              Kunder
+            </button>
+            <button
+              class="cco-subnav-btn"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-cco-section="kalender"
+            >
+              Kalender
+            </button>
+            <button
+              class="cco-subnav-btn"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-cco-section="automatisering"
+            >
+              Automatisering
+            </button>
+            <button
+              class="cco-subnav-btn"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-cco-section="analys"
+            >
+              Analys
+            </button>
+            <button
+              class="cco-subnav-btn"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-cco-section="mer"
+            >
+              Mer
+            </button>
+          </div>
           <div id="ccoPreviewEmbedShell" class="cco-preview-embed-shell">
             <iframe
               id="ccoPreviewEmbedFrame"
@@ -5451,6 +5569,7 @@ const BOOKING_STATUSES = Object.freeze([
     <script src="/admin/cao-workspace.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/arcana-page-titles.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin.js?v=__ARCANA_UI_BUILD__"></script>
+    <script src="/admin/cco-subnav.js?v=__ARCANA_UI_BUILD__"></script>
     <script>
       // Inline contextual docs per section
       (function () {
