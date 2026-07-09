@@ -116,3 +116,12 @@ test('loginUrlFor bygger login-URL, tomt utan token', () => {
   assert.equal(l2.loginUrlFor('t o'), '/api/v1/cco-portal/bankid/login?token=t%20o');
   assert.equal(l2.loginUrlFor(''), '');
 });
+
+test('loginUrlFor är node-säker: kastar inte i node (Node 20 saknar navigator)', () => {
+  // Fick tidigare ReferenceError i CI (Node 20 har ingen global `navigator`;
+  // Node 22+ har en med icke-mobil userAgent). Ska aldrig kasta, och i node
+  // (ingen mobil-UA) inte lägga på &flow=qr.
+  assert.doesNotThrow(() => l2.loginUrlFor('tok'));
+  assert.equal(l2.loginUrlFor('tok'), '/api/v1/cco-portal/bankid/login?token=tok');
+  assert.doesNotMatch(l2.loginUrlFor('tok'), /flow=qr/);
+});
