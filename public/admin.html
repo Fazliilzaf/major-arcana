@@ -2595,6 +2595,50 @@
             .cco-subnav-btn:disabled:hover {
               color: rgba(70, 60, 50, 0.72);
             }
+            .cco-subnav-more {
+              position: relative;
+              display: inline-flex;
+            }
+            .cco-subnav-more-menu {
+              position: absolute;
+              top: calc(100% + 6px);
+              right: 0;
+              z-index: 30;
+              min-width: 184px;
+              padding: 6px;
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+              background: linear-gradient(
+                180deg,
+                rgba(255, 255, 255, 0.98),
+                rgba(244, 238, 232, 0.96)
+              );
+              border: 1px solid rgba(255, 255, 255, 0.82);
+              border-radius: 12px;
+              box-shadow:
+                0 12px 30px rgba(56, 40, 28, 0.14),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            }
+            .cco-subnav-more-menu[hidden] {
+              display: none;
+            }
+            .cco-subnav-more-menu button {
+              appearance: none;
+              border: 0;
+              cursor: pointer;
+              text-align: left;
+              padding: 7px 12px;
+              border-radius: 8px;
+              font-size: 12px;
+              font-weight: 600;
+              color: rgba(70, 60, 50, 0.82);
+              background: transparent;
+            }
+            .cco-subnav-more-menu button:hover {
+              background: rgba(187, 71, 121, 0.08);
+              color: #bb4779;
+            }
           </style>
           <div class="cco-subnav" data-cco-subnav role="tablist" aria-label="CCO-sektioner">
             <span class="cco-subnav-kicker">CCO</span>
@@ -2630,9 +2674,7 @@
               type="button"
               role="tab"
               aria-selected="false"
-              data-cco-pending="automatisering"
-              disabled
-              title="Kommer snart — URL ej bekräftad"
+              data-cco-section="automatisering"
             >
               Automatisering
             </button>
@@ -2641,23 +2683,34 @@
               type="button"
               role="tab"
               aria-selected="false"
-              data-cco-pending="analys"
-              disabled
-              title="Kommer snart — URL ej bekräftad"
+              data-cco-section="analys"
             >
               Analys
             </button>
-            <button
-              class="cco-subnav-btn"
-              type="button"
-              role="tab"
-              aria-selected="false"
-              data-cco-pending="mer"
-              disabled
-              title="Kommer snart — URL ej bekräftad"
-            >
-              Mer
-            </button>
+            <div class="cco-subnav-more" data-cco-more-wrap>
+              <button
+                class="cco-subnav-btn"
+                type="button"
+                aria-haspopup="true"
+                aria-expanded="false"
+                data-cco-more-toggle
+              >
+                Mer ▾
+              </button>
+              <div class="cco-subnav-more-menu" data-cco-more-menu role="menu" hidden>
+                <button type="button" role="menuitem" data-cco-more="integrationer">
+                  Integrationer
+                </button>
+                <button type="button" role="menuitem" data-cco-more="makron">Makron</button>
+                <button type="button" role="menuitem" data-cco-more="installningar">
+                  Inställningar
+                </button>
+                <button type="button" role="menuitem" data-cco-more="notiser">Notiser</button>
+                <button type="button" role="menuitem" data-cco-more="signaturer">Signaturer</button>
+                <button type="button" role="menuitem" data-cco-more="revisor">Revisor</button>
+                <button type="button" role="menuitem" data-cco-more="showcase">Showcase</button>
+              </div>
+            </div>
           </div>
           <div id="ccoPreviewEmbedShell" class="cco-preview-embed-shell">
             <iframe
