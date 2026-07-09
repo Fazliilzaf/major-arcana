@@ -3383,6 +3383,25 @@
         if (rollup.enabled && Number(rollup.mailboxCount || 0) > 1) {
           tags.push({ kind: 'ai', label: `${rollup.mailboxCount} mailboxar` });
         }
+        // Rad 2 (ämne) ska vara mailets subject — ALDRIG kundnamnet. Worklisten är
+        // kund-centrerad och sätter ofta subject = namnet (labeln), vilket ger
+        // "dubbel-namn" i listbubblan (rad 1 namn, rad 2 samma namn). Släpp ämnet
+        // när det bara upprepar namnet; strippa även namnet om previewn inleds med det.
+        const threadName = normalizeText(name);
+        const rawSubject = normalizeText(row.subject);
+        const subjectIsName =
+          Boolean(rawSubject) &&
+          Boolean(threadName) &&
+          (rawSubject.toLowerCase() === threadName.toLowerCase() ||
+            rawSubject.toLowerCase().startsWith(threadName.toLowerCase() + ' '));
+        const cleanSubject = rawSubject && !subjectIsName ? rawSubject : '';
+        const rawPreview =
+          normalizeText(row.preview) || normalizeText(row.queueExplanatoryLine) || '';
+        const cleanPreview =
+          threadName && rawPreview.toLowerCase().startsWith(threadName.toLowerCase())
+            ? normalizeText(rawPreview.slice(threadName.length).replace(/^[\s:–—-]+/, '')) ||
+              rawPreview
+            : rawPreview;
         return {
           id: normalizeText(row.id) || primaryConversationKey || `live-${index}`,
           conversationKey: primaryConversationKey,
@@ -3396,8 +3415,8 @@
           from: name,
           init: initialsFromName(name),
           bg: avatarBackground(name || source),
-          subj: normalizeText(row.subject) || '(utan ämne)',
-          preview: normalizeText(row.preview) || normalizeText(row.queueExplanatoryLine) || '',
+          subj: cleanSubject || '(utan ämne)',
+          preview: cleanPreview,
           when: formatWhen(timing.latestMessageAt || timing.lastInboundAt),
           source,
           mailboxAddress,

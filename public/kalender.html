@@ -6024,5 +6024,23 @@
         });
       })();
     </script>
+    <script>
+      /* Inbäddat läge (?embed=1): dölj sidans egen top-nav när den visas inuti
+         CCO Admin-skalets Kalender-flik, så navigeringen inte dubbleras. */
+      (function () {
+        try {
+          var embed = new URLSearchParams(window.location.search).get('embed');
+          if (embed === '1' || embed === 'true') {
+            document.documentElement.setAttribute('data-embed', '1');
+            var style = document.createElement('style');
+            style.textContent =
+              '[data-embed] .top-nav,[data-embed] .caption,[data-embed] .mockup-label{display:none!important}[data-embed] body{padding-top:0}';
+            document.head.appendChild(style);
+          }
+        } catch (e) {
+          /* best-effort */
+        }
+      })();
+    </script>
   </body>
 </html>

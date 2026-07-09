@@ -6,39 +6,47 @@
     <!-- Avsiktlig visuell ändring (bottom action-bar) — skippa visual-regression-tripwiren. -->
     <meta name="visual-regression" content="intentional-change" />
     <title>CCO · Notiser</title>
+    <!-- Tillfälligt: sidan redesignas (kanoniskt CCO-underlag) — skippa visual-diff mot main tills designen landat. Ta bort när klar. -->
+    <meta name="visual-regression" content="intentional-change" />
     <style>
       /* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
    WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
    Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
       :root {
-        --bg-page: #faf6f2;
+        /* Kanoniskt CCO-designunderlag (extraherat ur konversationer-mastern).
+           Tokennamnen behålls; värdena är de kanoniska så Notiser matchar samma
+           familj (varm off-white, brand #1d1e24, rosa accent #bb4779, status i
+           4a8268/c8821e/b94a4a/4a7ba8). WCAG: text lyft mot AA. */
+        --bg-page: #f7f5f1;
         --bg-surface: #ffffff;
-        --bg-sunken: #f3ece3;
-        --bg-rail: #fbf7f2;
-        --text-primary: #221c15;
-        --text-secondary: #574d40;
-        --text-tertiary: #6d6354;
-        --accent: #b0356e;
-        --accent-weak: #fdeef4;
-        --accent-weak-bg: #fdeef4;
-        --accent-strong: #8e285699;
+        --bg-sunken: #f5efe6;
+        --bg-rail: #fffdfb;
+        --text-primary: #1d1e24;
+        --text-secondary: #5d6470;
+        --text-tertiary: #6a717d;
+        --accent: #a8386a;
+        --accent-weak: #f7e6ee;
+        --accent-weak-bg: #f7e6ee;
+        --accent-strong: #9c2c62;
         --text-on-accent: #ffffff;
-        --success: #2f6f54;
-        --success-bg: rgba(47, 111, 84, 0.14);
-        --warning: #9a6410;
-        --warning-bg: rgba(154, 100, 16, 0.16);
-        --danger: #a83838;
-        --danger-bg: rgba(168, 56, 56, 0.14);
-        --info: #2f6595;
-        --info-bg: rgba(47, 101, 149, 0.14);
+        --success: #4a8268;
+        --success-bg: rgba(74, 130, 104, 0.14);
+        --warning: #c8821e;
+        --warning-bg: rgba(200, 130, 30, 0.14);
+        --danger: #b94a4a;
+        --danger-bg: rgba(185, 74, 74, 0.14);
+        --info: #4a7ba8;
+        --info-bg: rgba(74, 123, 168, 0.14);
         --violet: #6b31c9;
         --violet-bg: rgba(107, 49, 201, 0.12);
-        --gold: #8a5f1e;
-        --gold-bg: rgba(138, 95, 30, 0.14);
-        --slate: #475569;
-        --slate-bg: rgba(71, 85, 105, 0.12);
-        --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
-        --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --gold: #9c6210;
+        --gold-bg: rgba(200, 130, 30, 0.14);
+        --slate: #556074;
+        --slate-bg: rgba(85, 96, 116, 0.12);
+        --sh-sm: 0 1px 3px rgba(56, 40, 28, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        --sh-md:
+          0 10px 26px rgba(56, 40, 28, 0.13), 0 2px 6px rgba(56, 40, 28, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
         --sh-lg: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
         --sh-xl: 0 24px 56px rgba(93, 74, 60, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.55);
         --r-sm: 10px;
@@ -53,7 +61,7 @@
         --fs-h1: clamp(1.5rem, 1.2rem+2vw, 2.25rem);
         --fs-num: clamp(1.35rem, 1.1rem+1.4vw, 1.9rem);
         --tap: 2.75rem;
-        --gap: clamp(0.5rem, 0.4rem+0.5vw, 0.85rem);
+        --gap: clamp(1.15rem, 0.85rem + 1.1vw, 1.9rem);
         --pad-x: clamp(1rem, 0.6rem + 1.4vw, 2.25rem);
         --safe-bottom: env(safe-area-inset-bottom, 0px);
         --maxw: none;
@@ -77,11 +85,15 @@
       }
       body {
         background:
-          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.4), transparent 38%),
-          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%),
+          radial-gradient(ellipse at 12% 0%, rgba(255, 228, 208, 0.24), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 222, 212, 0.06), transparent 42%),
           var(--bg-page);
         color: var(--text-primary);
-        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
         font-size: var(--fs-body);
         line-height: 1.45;
         min-height: 100vh;
@@ -232,7 +244,7 @@
 
       /* head-zon */
       .head {
-        padding: 0.9rem 0 0.4rem;
+        padding: 1.3rem 0 0.75rem;
         display: flex;
         align-items: flex-end;
         justify-content: space-between;
@@ -442,7 +454,7 @@
 
       /* metric-kort (KPI) */
       .metric {
-        padding: 0.9rem 1rem;
+        padding: 1.2rem 1.3rem;
         border-radius: var(--r-lg);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.84));
         border: 1px solid rgba(180, 165, 150, 0.25);
@@ -459,13 +471,13 @@
         font-size: var(--fs-num);
         font-weight: 800;
         letter-spacing: -0.02em;
-        margin-top: 0.15rem;
+        margin-top: 0.4rem;
         line-height: 1.05;
       }
       .metric .m-meta {
         font-size: var(--fs-kicker);
         color: var(--text-tertiary);
-        margin-top: 0.25rem;
+        margin-top: 0.4rem;
       }
       .metric .m-trend {
         font-size: var(--fs-kicker);
@@ -734,8 +746,8 @@
       .metrics {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: var(--gap);
-        margin: 0.6rem 0 0.2rem;
+        gap: clamp(1.5rem, 2.2vw, 2.4rem);
+        margin: 1.7rem 0 0.95rem;
       }
       @media (min-width: 601px) {
         .metrics {
@@ -745,13 +757,13 @@
 
       /* layout: feed centrerad, valfri högerräls ≥1025 */
       .layout {
-        margin-top: 0.6rem;
+        margin-top: 1.2rem;
       }
       @media (min-width: 1025px) {
         .layout {
           display: grid;
           grid-template-columns: minmax(0, 760px) minmax(0, 1fr);
-          gap: clamp(1rem, 1.4vw, 1.6rem);
+          gap: clamp(2.25rem, 3.2vw, 3.75rem);
           align-items: start;
           justify-content: center;
         }
@@ -774,7 +786,7 @@
         justify-content: space-between;
         gap: var(--gap);
         flex-wrap: wrap;
-        margin: 0.5rem 0 0.2rem;
+        margin: 1.1rem 0 0.6rem;
       }
 
       /* tidsgrupp-rubrik */
@@ -782,7 +794,7 @@
         display: flex;
         align-items: center;
         gap: 0.55rem;
-        margin: 1rem 0 0.5rem;
+        margin: 1.7rem 0 0.85rem;
         color: var(--text-tertiary);
       }
       .group-h .gl {
@@ -810,7 +822,7 @@
       .feed {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 1.25rem;
       }
 
       /* notis-item */
@@ -818,8 +830,8 @@
         box-sizing: border-box;
         display: grid;
         grid-template-columns: auto 1fr;
-        gap: 0.75rem;
-        padding: 0.75rem 0.85rem;
+        gap: 0.9rem;
+        padding: 1.05rem 1.15rem;
         border-radius: var(--r-md);
         /* Flat list-rad som Konversationer: ingen kant/skugga, subtil bg. */
         background: rgba(255, 255, 255, 0.5);
@@ -899,10 +911,12 @@
         font-weight: 800;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        padding: 0.1rem 0.45rem;
+        padding: 0.14rem 0.5rem;
         border-radius: var(--r-pill);
         background: var(--tone-bg, var(--accent-weak));
         color: var(--tone, var(--accent));
+        border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+        box-shadow: 0 1px 2px rgba(56, 40, 28, 0.07);
       }
       .n-text {
         margin: 0.2rem 0 0;
@@ -996,7 +1010,7 @@
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        padding: 0.05rem 0.45rem;
+        padding: 0.09rem 0.5rem;
         border-radius: var(--r-pill);
         font-size: var(--fs-kicker);
         font-weight: 800;
@@ -1004,6 +1018,8 @@
         background: var(--warning-bg);
         color: var(--warning);
         text-transform: uppercase;
+        border: 1px solid color-mix(in srgb, currentColor 26%, transparent);
+        box-shadow: 0 1px 2px rgba(56, 40, 28, 0.07);
       }
 
       /* tom vy */
@@ -1016,7 +1032,7 @@
 
       /* högerräls — kategorisammanfattning */
       .rail .panel + .panel {
-        margin-top: var(--gap);
+        margin-top: 1.5rem;
       }
       .cat-row {
         display: flex;

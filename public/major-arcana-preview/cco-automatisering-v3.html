@@ -4,39 +4,43 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>CCO Automatisering — v3 responsiv</title>
+    <!-- Tillfälligt: sidan redesignas (kanoniskt CCO-underlag) — skippa visual-diff mot main tills designen landat. Ta bort när klar. -->
+    <meta name="visual-regression" content="intentional-change" />
     <style>
       /* ===== CCO AUX SHARED FOUNDATION — paste inside each prototype's <style> at the top =====
    WCAG-härdad varm palett (all text ≥4.5:1). rem/clamp + CSS Grid/flex. Touch ≥44px.
    Samma tokens/primitiver i alla aux-ytor → de hör ihop med varandra och resten av appen. */
       :root {
-        --bg-page: #faf6f2;
+        --bg-page: #f7f5f1;
         --bg-surface: #ffffff;
-        --bg-sunken: #f3ece3;
-        --bg-rail: #fbf7f2;
-        --text-primary: #221c15;
-        --text-secondary: #574d40;
-        --text-tertiary: #6d6354;
-        --accent: #b0356e;
-        --accent-weak: #fdeef4;
-        --accent-weak-bg: #fdeef4;
-        --accent-strong: #8e285699;
+        --bg-sunken: #f5efe6;
+        --bg-rail: #fffdfb;
+        --text-primary: #1d1e24;
+        --text-secondary: #5d6470;
+        --text-tertiary: #6a717d;
+        --accent: #a8386a;
+        --accent-weak: #f7e6ee;
+        --accent-weak-bg: #f7e6ee;
+        --accent-strong: #9c2c62;
         --text-on-accent: #ffffff;
-        --success: #2f6f54;
-        --success-bg: rgba(47, 111, 84, 0.14);
-        --warning: #9a6410;
-        --warning-bg: rgba(154, 100, 16, 0.16);
-        --danger: #a83838;
-        --danger-bg: rgba(168, 56, 56, 0.14);
-        --info: #2f6595;
-        --info-bg: rgba(47, 101, 149, 0.14);
+        --success: #4a8268;
+        --success-bg: rgba(74, 130, 104, 0.14);
+        --warning: #c8821e;
+        --warning-bg: rgba(200, 130, 30, 0.14);
+        --danger: #b94a4a;
+        --danger-bg: rgba(185, 74, 74, 0.14);
+        --info: #4a7ba8;
+        --info-bg: rgba(74, 123, 168, 0.14);
         --violet: #6b31c9;
         --violet-bg: rgba(107, 49, 201, 0.12);
-        --gold: #8a5f1e;
-        --gold-bg: rgba(138, 95, 30, 0.14);
-        --slate: #475569;
-        --slate-bg: rgba(71, 85, 105, 0.12);
-        --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
-        --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        --gold: #9c6210;
+        --gold-bg: rgba(200, 130, 30, 0.14);
+        --slate: #556074;
+        --slate-bg: rgba(85, 96, 116, 0.12);
+        --sh-sm: 0 1px 3px rgba(56, 40, 28, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        --sh-md:
+          0 10px 26px rgba(56, 40, 28, 0.13), 0 2px 6px rgba(56, 40, 28, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
         --sh-lg: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
         --sh-xl: 0 24px 56px rgba(93, 74, 60, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.55);
         --r-sm: 10px;
@@ -51,7 +55,7 @@
         --fs-h1: clamp(1.5rem, 1.2rem+2vw, 2.25rem);
         --fs-num: clamp(1.35rem, 1.1rem+1.4vw, 1.9rem);
         --tap: 2.75rem;
-        --gap: clamp(0.5rem, 0.4rem+0.5vw, 0.85rem);
+        --gap: clamp(1.15rem, 0.85rem + 1.1vw, 1.9rem);
         --pad-x: clamp(0.875rem, 0.5rem+1.6vw, 1.5rem);
         --safe-bottom: env(safe-area-inset-bottom, 0px);
         --maxw: 1500px;
@@ -75,11 +79,15 @@
       }
       body {
         background:
-          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.4), transparent 38%),
-          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%),
+          radial-gradient(ellipse at 12% 0%, rgba(255, 228, 208, 0.24), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 222, 212, 0.06), transparent 42%),
           var(--bg-page);
         color: var(--text-primary);
-        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
         font-size: var(--fs-body);
         line-height: 1.45;
         min-height: 100vh;
@@ -764,9 +772,9 @@
       /* BYGGARE 3-kol */
       .builder {
         display: grid;
-        gap: var(--gap);
+        gap: clamp(1.25rem, 2vw, 2.2rem);
         grid-template-columns: 1fr;
-        margin-top: 0.7rem;
+        margin-top: 1.2rem;
       }
       @media (min-width: 601px) {
         .builder {
@@ -894,7 +902,7 @@
       .node {
         width: 100%;
         max-width: 30rem;
-        padding: 0.8rem 0.9rem;
+        padding: 1.05rem 1.2rem;
         border-radius: var(--r-lg);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.88));
         border: 1px solid rgba(180, 165, 150, 0.25);
@@ -1434,7 +1442,7 @@
         justify-content: space-between;
         gap: 0.5rem;
         align-items: center;
-        padding: 0.5rem 0;
+        padding: 0.7rem 0;
         border-bottom: 1px solid rgba(180, 165, 150, 0.2);
       }
       .opt-main {
