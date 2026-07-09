@@ -160,7 +160,13 @@ async function diagnoseGhostVisibleAssets({
     }
 
     const sibling = pickBlobSibling(siblings, asset);
-    if (runFilter && sibling && normalizeText(sibling.importRunId) !== runFilter) continue;
+    if (
+      runFilter &&
+      normalizeText(sibling?.importRunId) !== runFilter &&
+      normalizeText(asset.importRunId) !== runFilter
+    ) {
+      continue;
+    }
 
     const driveFileId =
       normalizeText(asset.originalDriveFileId) ||

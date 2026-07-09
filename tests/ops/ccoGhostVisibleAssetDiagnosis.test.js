@@ -121,6 +121,78 @@ test('diagnoseGhostVisibleAssets filtrerar bort VISIBLE med fungerande blob', as
   }
 });
 
+test('diagnoseGhostVisibleAssets importRunId-filter inkluderar inte orelaterade no-sibling ghosts', async () => {
+  const rig = await makeRig();
+  try {
+    const body = Buffer.from('%PDF-run-filter');
+    const put = await rig.storage.putObject({
+      key: '2026/07/run-filter.pdf',
+      body,
+      contentType: 'application/pdf',
+    });
+
+    const canonical = await rig.assetStore.addAsset({
+      patientId: 'pat-run',
+      sourceSystem: 'drive_import',
+      originalDriveFileId: 'drive-run-canonical',
+      originalFileName: 'run.pdf',
+      storageProvider: 'local',
+      storageKey: 'missing/run-filter.pdf',
+      checksum: put.checksum,
+      fileSize: body.length,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      documentDate: '2024-03-05',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+
+    const duplicate = await rig.assetStore.addAsset({
+      patientId: 'pat-run',
+      sourceSystem: 'drive_import',
+      importRunId: 'target-run',
+      originalDriveFileId: 'drive-run-dup',
+      originalFileName: 'run.pdf',
+      storageProvider: 'local',
+      storageKey: put.storageKey,
+      checksum: put.checksum,
+      fileSize: body.length,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      documentDate: '2024-03-05',
+      status: 'DUPLICATE',
+    });
+
+    await rig.assetStore.addAsset({
+      patientId: 'pat-other',
+      sourceSystem: 'drive_import',
+      originalDriveFileId: 'drive-other',
+      originalFileName: 'other.pdf',
+      storageProvider: 'local',
+      storageKey: 'missing/other.pdf',
+      checksum: 'checksum-without-sibling',
+      fileSize: 100,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+
+    const report = await diagnoseGhostVisibleAssets({
+      assetStore: rig.assetStore,
+      storage: rig.storage,
+      importRunId: 'target-run',
+      maskSamples: false,
+    });
+
+    assert.equal(report.stats.ghostRenderCandidates, 1);
+    assert.equal(report.stats.withBlobSibling, 1);
+    assert.equal(report.cases.length, 1);
+    assert.equal(report.cases[0].canonicalAssetId, canonical.id);
+    assert.equal(report.cases[0].duplicateAssetId, duplicate.id);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
 test('summarizeChecksumInventoryCoverage räknar checksum vs driveFileId index', async () => {
   const rig = await makeRig();
   try {
