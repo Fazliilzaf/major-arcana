@@ -9,7 +9,10 @@ const path = require('node:path');
 const { createCcoPatientAssetStore } = require('../../src/ops/ccoPatientAssetStore');
 const { createLocalProvider } = require('../../src/ops/ccoSecureStorageProvider');
 const { blobExistsOnStorage } = require('../../src/ops/ccoGhostVisibleAssetDiagnosis');
-const { repairGhostVisibleAssets } = require('../../src/ops/ccoGhostVisibleAssetRepair');
+const {
+  isRepairableCase,
+  repairGhostVisibleAssets,
+} = require('../../src/ops/ccoGhostVisibleAssetRepair');
 
 async function makeRig() {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'ghost-visible-repair-'));
@@ -168,6 +171,73 @@ test('reattachGhostVisibleBlobFromSibling blockerar cross-patient', async () => 
           storage: rig.storage,
         }),
       (err) => err.statusCode === 409
+    );
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
+test('isRepairableCase kräver DUPLICATE-sibling', () => {
+  assert.equal(
+    isRepairableCase({
+      kind: 'ghost_visible_with_blob_sibling',
+      canonicalAssetId: 'asset-canonical',
+      duplicateAssetId: 'asset-sibling',
+      siblingStatus: 'DUPLICATE',
+      crossPatientSibling: false,
+    }),
+    true
+  );
+  assert.equal(
+    isRepairableCase({
+      kind: 'ghost_visible_with_blob_sibling',
+      canonicalAssetId: 'asset-canonical',
+      duplicateAssetId: 'asset-sibling',
+      siblingStatus: 'VISIBLE_ON_PATIENT_CARD',
+      crossPatientSibling: false,
+    }),
+    false
+  );
+});
+
+test('reattachGhostVisibleBlobFromSibling blockerar icke-DUPLICATE sibling', async () => {
+  const rig = await makeRig();
+  try {
+    const body = Buffer.from('%PDF-non-duplicate');
+    const put = await rig.storage.putObject({
+      key: '2026/07/non-duplicate.pdf',
+      body,
+      contentType: 'application/pdf',
+    });
+
+    const canonical = await rig.assetStore.addAsset({
+      patientId: 'pat-a',
+      sourceSystem: 'drive_import',
+      storageKey: 'missing/non-duplicate.pdf',
+      checksum: put.checksum,
+      fileSize: body.length,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+
+    const sibling = await rig.assetStore.addAsset({
+      patientId: 'pat-a',
+      sourceSystem: 'drive_import',
+      storageKey: put.storageKey,
+      checksum: put.checksum,
+      fileSize: body.length,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      status: 'VERIFIED_IN_CCO',
+    });
+
+    await assert.rejects(
+      () =>
+        rig.assetStore.reattachGhostVisibleBlobFromSibling(canonical.id, sibling.id, {
+          storage: rig.storage,
+        }),
+      (err) => err.statusCode === 409 && /DUPLICATE-sibling/.test(err.message)
     );
   } finally {
     await fs.rm(rig.tmp, { recursive: true, force: true });

@@ -24,6 +24,7 @@ function isRepairableCase(row = {}) {
     row.kind === 'ghost_visible_with_blob_sibling' &&
     normalizeText(row.canonicalAssetId) &&
     normalizeText(row.duplicateAssetId) &&
+    normalizeText(row.siblingStatus) === 'DUPLICATE' &&
     !row.crossPatientSibling
   );
 }

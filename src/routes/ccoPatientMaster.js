@@ -1922,11 +1922,20 @@ function createCcoPatientMasterRouter({
     async (req, res) =>
       handle(req, res, async (actor) => {
         const dryRun = parseDryRun(req.body?.dryRun, true);
+        const importRunId = normalizeText(req.body?.importRunId);
+        const patientIds = Array.isArray(req.body?.patientIds)
+          ? req.body.patientIds.map(normalizeText).filter(Boolean)
+          : null;
         if (!dryRun) {
           const confirmText = normalizeText(req.body?.confirmText);
           if (confirmText !== 'REPAIR GHOST VISIBLE') {
             return res.status(400).json({
               error: 'Bekräfta med confirmText: "REPAIR GHOST VISIBLE"',
+            });
+          }
+          if (!importRunId && !patientIds?.length) {
+            return res.status(400).json({
+              error: 'Commit kräver importRunId eller patientIds som scope.',
             });
           }
         }
@@ -1942,10 +1951,6 @@ function createCcoPatientMasterRouter({
           return res.status(503).json({ error: 'Asset store saknas på servern.' });
         }
 
-        const importRunId = normalizeText(req.body?.importRunId);
-        const patientIds = Array.isArray(req.body?.patientIds)
-          ? req.body.patientIds.map(normalizeText).filter(Boolean)
-          : null;
         const limit = clampPreviewLimit(req.body?.limit, 500);
 
         let report;

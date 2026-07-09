@@ -636,6 +636,19 @@ test('assets/repair-ghost-visible commit kräver confirmText och reparerar blob'
       });
       assert.equal(blocked.status, 400);
 
+      const unscoped = await fetch(
+        `${base}/api/v1/cco-patient-master/assets/repair-ghost-visible`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            dryRun: false,
+            confirmText: 'REPAIR GHOST VISIBLE',
+          }),
+        }
+      );
+      assert.equal(unscoped.status, 400);
+
       const res = await fetch(`${base}/api/v1/cco-patient-master/assets/repair-ghost-visible`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
