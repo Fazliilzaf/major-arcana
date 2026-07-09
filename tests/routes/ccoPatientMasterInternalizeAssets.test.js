@@ -17,6 +17,74 @@ const { createLocalProvider } = require('../../src/ops/ccoSecureStorageProvider'
 
 const TENANT = 'hair-tp-clinic';
 
+function gatedPatientMasterState() {
+  return {
+    version: 1,
+    tenants: {
+      [TENANT]: {
+        patients: [
+          {
+            id: 'patient-iso',
+            displayName: 'Iso Patient',
+            matchStatus: 'matched',
+            drive: {
+              attachments: [
+                {
+                  id: 'idx-iso',
+                  driveFileId: 'drive-file-iso',
+                  fileName: 'journal-iso.pdf',
+                  relativePath: 'Hair TP Clinic 2024/Januari 2025/2025-05-17 PRP 2/journal-iso.pdf',
+                  mimeType: 'application/pdf',
+                },
+              ],
+            },
+          },
+          {
+            id: 'patient-month',
+            displayName: 'Month Patient',
+            matchStatus: 'matched',
+            drive: {
+              attachments: [
+                {
+                  id: 'idx-month',
+                  driveFileId: 'drive-file-month',
+                  fileName: 'journal-month.pdf',
+                  relativePath: 'Hair TP Clinic/April 2026/April 5/journal-month.pdf',
+                  mimeType: 'application/pdf',
+                },
+              ],
+            },
+          },
+          {
+            id: 'patient-unknown',
+            displayName: 'Unknown Patient',
+            matchStatus: 'matched',
+            drive: {
+              attachments: [
+                {
+                  id: 'idx-unknown',
+                  driveFileId: 'drive-file-unknown',
+                  fileName: 'journal-unknown.pdf',
+                  relativePath: 'Hair TP Clinic/misc/journal-unknown.pdf',
+                  mimeType: 'application/pdf',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  };
+}
+
+function dateGateFilter() {
+  return {
+    allowedDocumentDateSources: ['folder_iso'],
+    requireDocumentDateSource: true,
+    excludeUnknownMonth: true,
+  };
+}
+
 function patientMasterState() {
   return {
     version: 1,
@@ -77,7 +145,11 @@ function requireRole(...roles) {
   };
 }
 
-async function makeFixture({ role = 'OWNER', createDriveInternalizationClient = null } = {}) {
+async function makeFixture({
+  role = 'OWNER',
+  createDriveInternalizationClient = null,
+  masterState = null,
+} = {}) {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'cco-pm-internalize-route-'));
   const authStore = fakeAuthStore(role);
   const patientMasterStore = await createCcoPatientMasterStore({
@@ -109,7 +181,7 @@ async function makeFixture({ role = 'OWNER', createDriveInternalizationClient = 
         reviewQueueStore,
         secureStorage: storage,
       }),
-      loadPatientMasterState: async () => patientMasterState(),
+      loadPatientMasterState: async () => masterState || patientMasterState(),
       createDriveInternalizationClient,
     })
   );
@@ -347,6 +419,78 @@ test('assets/internalize/preview-candidates returnerar pilotWindowSearch med ski
       assert.ok(res.body.preview.pilotWindowSearch);
       assert.equal(res.body.preview.pilotWindowSearch.skippedSamples[0].reason, 'unknown_month');
       assert.equal(typeof res.body.preview.pilotWindowSearch.windowsScanned, 'number');
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('assets/internalize commit och preview väljer samma folder_iso-kandidater med date-gate', async () => {
+  const fixture = await makeFixture({ masterState: gatedPatientMasterState() });
+  try {
+    await withServer(fixture.app, async (base) => {
+      const filter = dateGateFilter();
+      const preview = await postPreviewJson(base, { ...filter, offset: 0, limit: 2 });
+      assert.equal(preview.status, 200);
+      assert.equal(preview.body.preview.candidates.length, 1);
+      assert.equal(preview.body.preview.candidates[0].documentDateSource, 'folder_iso');
+
+      const dryRun = await postJson(base, { dryRun: true, ...filter, offset: 0, limit: 2 });
+      assert.equal(dryRun.status, 200);
+      assert.equal(dryRun.body.report.gatedBatch.batchSize, 1);
+      assert.deepEqual(dryRun.body.report.gatedBatch.documentDateSources, ['folder_iso']);
+      assert.equal(
+        dryRun.body.report.gatedBatch.candidates[0].driveRef,
+        preview.body.preview.candidates[0].driveRef
+      );
+
+      const ungated = await postJson(base, { dryRun: true, offset: 0, limit: 1 });
+      assert.equal(ungated.status, 200);
+      assert.equal(ungated.body.report.gatedBatch, undefined);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('assets/internalize commit med folder_iso-gate importerar endast gateade rader', async () => {
+  const fixture = await makeFixture({
+    masterState: gatedPatientMasterState(),
+    createDriveInternalizationClient: async () => ({
+      serviceAccountEmail: 'svc-drive@example.test',
+      async getFileMetadata(driveFileId) {
+        return {
+          name:
+            driveFileId === 'drive-file-iso'
+              ? 'Journal-Iso.pdf'
+              : driveFileId === 'drive-file-month'
+                ? 'Journal-Month.pdf'
+                : 'Journal-Unknown.pdf',
+          modifiedTime: '2026-01-01T12:00:00.000Z',
+        };
+      },
+      async downloadBuffer(driveFileId) {
+        return Buffer.from(`body:${driveFileId}`);
+      },
+    }),
+  });
+  try {
+    await withServer(fixture.app, async (base) => {
+      const res = await postJson(base, {
+        dryRun: false,
+        async: false,
+        limit: 1,
+        offset: 0,
+        confirmText: 'INTERNALIZE ASSETS',
+        ...dateGateFilter(),
+      });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.report.stats.imported, 1);
+      assert.deepEqual(res.body.report.gatedBatch.documentDateSources, ['folder_iso']);
+
+      const assets = fixture.assetStore.listItemsForEnrichment();
+      assert.equal(assets.length, 1);
+      assert.equal(assets[0].originalDriveFileId, 'drive-file-iso');
     });
   } finally {
     await fs.rm(fixture.tmp, { recursive: true, force: true });

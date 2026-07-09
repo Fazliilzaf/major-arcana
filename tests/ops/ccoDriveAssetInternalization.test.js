@@ -571,3 +571,43 @@ test('findConsecutivePilotWindow returnerar null när inget fönster finns', () 
   ];
   assert.equal(findConsecutivePilotWindow(rows, 2), null);
 });
+
+test('selectInternalizeBatchRows filtrerar folder_iso och matchar preview-offset', async () => {
+  const {
+    selectInternalizeBatchRows,
+    buildInternalizeCandidatePreviewRow,
+    normalizeDriveAssetRow,
+  } = require('../../src/ops/ccoDriveAssetInternalization');
+  const rows = [
+    normalizeDriveAssetRow({
+      patientId: 'pat-month',
+      file: {
+        driveFileId: 'drive-month',
+        relativePath: 'Hair TP Clinic/April 2026/April 5/journal-month.pdf',
+        fileName: 'journal-month.pdf',
+      },
+    }),
+    normalizeDriveAssetRow({
+      patientId: 'pat-iso',
+      file: {
+        driveFileId: 'drive-iso',
+        relativePath: 'Hair TP Clinic 2024/Januari 2025/2025-05-17 PRP 2/journal-iso.pdf',
+        fileName: 'journal-iso.pdf',
+      },
+    }),
+  ];
+  const filter = {
+    allowedDocumentDateSources: ['folder_iso'],
+    requireDocumentDateSource: true,
+    excludeUnknownMonth: true,
+  };
+  const selection = selectInternalizeBatchRows(rows, { offset: 0, limit: 1, ...filter });
+  assert.equal(selection.filteredCount, 1);
+  assert.equal(selection.batch.length, 1);
+  assert.equal(selection.batch[0].driveFileId, 'drive-iso');
+  assert.deepEqual(
+    selection.batchPreviews.map((preview) => preview.documentDateSource),
+    ['folder_iso']
+  );
+  assert.equal(buildInternalizeCandidatePreviewRow(rows[1], 1).documentDateSource, 'folder_iso');
+});
