@@ -29,6 +29,10 @@ const {
   PILOT_STRONG_DOCUMENT_DATE_SOURCES,
 } = require('../ops/ccoDriveAssetInternalization');
 const {
+  diagnoseGhostVisibleAssets,
+  summarizeChecksumInventoryCoverage,
+} = require('../ops/ccoGhostVisibleAssetDiagnosis');
+const {
   startInternalizeJob,
   getInternalizeJobState,
   isInternalizeJobRunning,
@@ -1836,6 +1840,77 @@ function createCcoPatientMasterRouter({
           },
         });
         return res.json({ ok: true, runId, run });
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/assets/diagnose-ghost-visible',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        const storage = stores.secureStorage || stores.storage || null;
+        if (!assetStore) {
+          return res.status(503).json({ error: 'Asset store saknas på servern.' });
+        }
+
+        const importRunId = normalizeText(req.body?.importRunId);
+        const patientIds = Array.isArray(req.body?.patientIds)
+          ? req.body.patientIds.map(normalizeText).filter(Boolean)
+          : null;
+        const limit = clampPreviewLimit(req.body?.limit, 500);
+        const sampleSize = clampPreviewLimit(req.body?.sampleSize, 25);
+        const includeInventory = parseExcludeUnknownMonth(
+          req.body?.includeInventoryCoverage,
+          false
+        );
+
+        let report;
+        try {
+          report = await diagnoseGhostVisibleAssets({
+            assetStore,
+            storage,
+            tenantId: actor.tenantId,
+            importRunId: importRunId || null,
+            patientIds,
+            limit,
+            sampleSize,
+            maskSamples: true,
+          });
+        } catch (error) {
+          return res.status(error.statusCode || 500).json({ error: error.message });
+        }
+
+        if (includeInventory) {
+          report.inventoryCoverage = await summarizeChecksumInventoryCoverage({
+            assetStore,
+            storage,
+            tenantId: actor.tenantId,
+          });
+        }
+
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.assets_diagnose_ghost_visible',
+          outcome: 'success',
+          targetType: 'cco_patient_assets',
+          targetId: importRunId || 'all',
+          metadata: {
+            zeroWrites: true,
+            ghostRenderCandidates: report.stats?.ghostRenderCandidates ?? 0,
+            withBlobSibling: report.stats?.withBlobSibling ?? 0,
+            importRunId: importRunId || null,
+          },
+        });
+
+        return res.json(report);
       })
   );
 

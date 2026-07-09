@@ -185,7 +185,7 @@ async function makeFixture({
       createDriveInternalizationClient,
     })
   );
-  return { tmp, app, authStore, assetStore, importRunStore, reviewQueueStore };
+  return { tmp, app, authStore, assetStore, importRunStore, reviewQueueStore, storage };
 }
 
 async function withServer(app, run) {
@@ -491,6 +491,68 @@ test('assets/internalize commit med folder_iso-gate importerar endast gateade ra
       const assets = fixture.assetStore.listItemsForEnrichment();
       assert.equal(assets.length, 1);
       assert.equal(assets[0].originalDriveFileId, 'drive-file-iso');
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('assets/diagnose-ghost-visible är read-only och rapporterar ghost + sibling', async () => {
+  const fixture = await makeFixture();
+  try {
+    const body = Buffer.from('%PDF-route-ghost');
+    const put = await fixture.storage.putObject({
+      key: '2026/07/route-ghost.pdf',
+      body,
+      contentType: 'application/pdf',
+    });
+
+    await fixture.assetStore.addAsset({
+      patientId: 'patient-dino',
+      sourceSystem: 'drive_import',
+      originalDriveFileId: 'drive-ghost-canonical',
+      originalFileName: 'ghost.pdf',
+      storageProvider: 'local',
+      storageKey: 'missing/route-ghost.pdf',
+      checksum: put.checksum,
+      fileSize: body.length,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+
+    await fixture.assetStore.addAsset({
+      patientId: 'patient-dino',
+      sourceSystem: 'drive_import',
+      importRunId: 'run-route-ghost',
+      originalDriveFileId: 'drive-ghost-dup',
+      originalFileName: 'ghost.pdf',
+      storageProvider: 'local',
+      storageKey: put.storageKey,
+      checksum: put.checksum,
+      fileSize: body.length,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      status: 'DUPLICATE',
+    });
+
+    await withServer(fixture.app, async (base) => {
+      const res = await fetch(`${base}/api/v1/cco-patient-master/assets/diagnose-ghost-visible`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ importRunId: 'run-route-ghost' }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.zeroWrites, true);
+      assert.equal(json.stats.withBlobSibling, 1);
+      assert.equal(fixture.assetStore.listItemsForEnrichment().length, 2);
+      assert.equal(
+        fixture.authStore.events.some(
+          (e) => e.action === 'cco.patient_master.assets_diagnose_ghost_visible'
+        ),
+        true
+      );
     });
   } finally {
     await fs.rm(fixture.tmp, { recursive: true, force: true });
