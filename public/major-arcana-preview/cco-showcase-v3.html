@@ -807,14 +807,28 @@
 
       /* effect-card */
       .effect-card {
+        position: relative;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
         gap: 0.3rem;
-        padding: 1rem;
+        padding: 1.15rem 1.15rem 1.15rem 1.3rem;
         border-radius: var(--r-lg);
-        background: linear-gradient(180deg, #fdeef4, rgba(246, 207, 220, 0.55));
-        border: 1px solid rgba(176, 53, 110, 0.28);
-        box-shadow: var(--sh-sm);
+        background:
+          radial-gradient(120% 90% at 0% 0%, rgba(168, 56, 106, 0.1), transparent 44%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.88));
+        border: 1px solid rgba(180, 165, 150, 0.28);
+        box-shadow: var(--sh-md);
+      }
+      .effect-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--accent);
+        opacity: 0.8;
       }
       .effect-card .e-label {
         font-size: var(--fs-kicker);
