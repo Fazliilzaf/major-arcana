@@ -5,11 +5,16 @@ const assert = require('node:assert/strict');
 
 const {
   ANSWERED_CATEGORY_PREFIX,
+  ANSWERED_CATEGORY_COLOR,
   deriveAnsweredByName,
   buildAnsweredCategory,
   isAnsweredCategory,
   markAnsweredCategoryEnabled,
 } = require('../../src/ops/ccoAnsweredCategory');
+
+test('ANSWERED_CATEGORY_COLOR is a green Graph preset', () => {
+  assert.equal(ANSWERED_CATEGORY_COLOR, 'preset4');
+});
 
 test('deriveAnsweredByName prefers explicit name', () => {
   assert.equal(

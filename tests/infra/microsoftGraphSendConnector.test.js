@@ -127,6 +127,116 @@ test('markMessageAnswered appends category, preserves others, replaces stale ans
   assert.equal(result.changed, true);
 });
 
+test('ensureMasterCategory creates the category with color only when missing', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options, method: options.method || 'GET' });
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({ body: { access_token: 'token-mc-1' } });
+    }
+    if (String(url).includes('/outlook/masterCategories') && (options.method || 'GET') === 'GET') {
+      return createJsonResponse({ body: { value: [{ displayName: 'VIP', color: 'preset0' }] } });
+    }
+    if (String(url).includes('/outlook/masterCategories') && options.method === 'POST') {
+      return createJsonResponse({ status: 201, body: {} });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+  const connector = createMicrosoftGraphSendConnector({
+    tenantId: 't',
+    clientId: 'c',
+    clientSecret: 's',
+    fetchImpl,
+  });
+  const created = await connector.ensureMasterCategory({
+    mailboxId: 'kons@hairtpclinic.com',
+    displayName: 'Besvarad i CCO – Egzona',
+    color: 'preset4',
+  });
+  assert.equal(created.created, true);
+  const postCall = calls.find(
+    (c) => c.method === 'POST' && String(c.url).includes('/outlook/masterCategories')
+  );
+  const postBody = JSON.parse(String(postCall?.options?.body || '{}'));
+  assert.equal(postBody.displayName, 'Besvarad i CCO – Egzona');
+  assert.equal(postBody.color, 'preset4');
+});
+
+test('markMessageAnswered provisions the colored master category before tagging', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options, method: options.method || 'GET' });
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({ body: { access_token: 'token-mc-2' } });
+    }
+    if (String(url).includes('/outlook/masterCategories') && (options.method || 'GET') === 'GET') {
+      return createJsonResponse({ body: { value: [] } });
+    }
+    if (String(url).includes('/outlook/masterCategories') && options.method === 'POST') {
+      return createJsonResponse({ status: 201, body: {} });
+    }
+    if (String(url).includes('/messages/msg-77') && (options.method || 'GET') === 'GET') {
+      return createJsonResponse({ body: { categories: [] } });
+    }
+    if (String(url).includes('/messages/msg-77') && options.method === 'PATCH') {
+      return createJsonResponse({ status: 200, body: {} });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+  const connector = createMicrosoftGraphSendConnector({
+    tenantId: 't',
+    clientId: 'c',
+    clientSecret: 's',
+    fetchImpl,
+  });
+  const result = await connector.markMessageAnswered({
+    mailboxId: 'kons@hairtpclinic.com',
+    messageId: 'msg-77',
+    category: 'Besvarad i CCO – Egzona',
+    replacePrefix: 'Besvarad i CCO',
+    color: 'preset4',
+  });
+  assert.equal(result.changed, true);
+  // masterCategory POST sker före message PATCH.
+  const postIdx = calls.findIndex(
+    (c) => c.method === 'POST' && String(c.url).includes('masterCategories')
+  );
+  const patchIdx = calls.findIndex((c) => c.method === 'PATCH');
+  assert.ok(postIdx >= 0 && patchIdx >= 0 && postIdx < patchIdx);
+});
+
+test('markMessageAnswered still tags when master-category provisioning fails (best-effort)', async () => {
+  const fetchImpl = async (url, options = {}) => {
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({ body: { access_token: 'token-mc-3' } });
+    }
+    if (String(url).includes('/outlook/masterCategories')) {
+      return createJsonResponse({ status: 500, body: { error: { message: 'boom' } } });
+    }
+    if (String(url).includes('/messages/msg-88') && (options.method || 'GET') === 'GET') {
+      return createJsonResponse({ body: { categories: [] } });
+    }
+    if (String(url).includes('/messages/msg-88') && options.method === 'PATCH') {
+      return createJsonResponse({ status: 200, body: {} });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+  const connector = createMicrosoftGraphSendConnector({
+    tenantId: 't',
+    clientId: 'c',
+    clientSecret: 's',
+    fetchImpl,
+  });
+  const result = await connector.markMessageAnswered({
+    mailboxId: 'kons@hairtpclinic.com',
+    messageId: 'msg-88',
+    category: 'Besvarad i CCO – Egzona',
+    replacePrefix: 'Besvarad i CCO',
+    color: 'preset4',
+  });
+  assert.equal(result.changed, true);
+});
+
 test('markMessageAnswered is a no-op when the category already present', async () => {
   const calls = [];
   const fetchImpl = async (url, options = {}) => {
