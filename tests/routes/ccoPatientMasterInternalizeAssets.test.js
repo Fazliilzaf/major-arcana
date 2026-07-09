@@ -8,6 +8,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { createCcoPatientMasterRouter } = require('../../src/routes/ccoPatientMaster');
+const { resetInternalizeJobStateForTests } = require('../../src/ops/ccoDriveInternalizeAsyncJob');
 const { createCcoPatientMasterStore } = require('../../src/ops/ccoPatientMasterStore');
 const { createCcoPatientAssetStore } = require('../../src/ops/ccoPatientAssetStore');
 const { createCcoAssetImportRunStore } = require('../../src/ops/ccoAssetImportRunStore');
@@ -231,6 +232,7 @@ test('assets/internalize commit använder mockad Drive-client och bevarar encoun
         dryRun: false,
         limit: 1,
         confirmText: 'INTERNALIZE ASSETS',
+        async: false,
       });
       assert.equal(res.status, 200);
       assert.equal(res.body.dryRun, false);
@@ -271,6 +273,51 @@ test('assets/internalize/preview-candidates är read-only och maskerar kandidate
       assert.equal(fixture.importRunStore.stats().total, 0);
     });
   } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('assets/internalize commit async returnerar 202 och avslutar job', async () => {
+  resetInternalizeJobStateForTests();
+  const fixture = await makeFixture({
+    createDriveInternalizationClient: async () => ({
+      serviceAccountEmail: 'svc-drive@example.test',
+      async getFileMetadata() {
+        return { name: 'Journal-PRP-Dino.pdf', modifiedTime: '2026-01-01T12:00:00.000Z' };
+      },
+      async downloadBuffer() {
+        return Buffer.from('journal pdf body');
+      },
+    }),
+  });
+  try {
+    await withServer(fixture.app, async (base) => {
+      const res = await postJson(base, {
+        dryRun: false,
+        limit: 1,
+        confirmText: 'INTERNALIZE ASSETS',
+        async: true,
+      });
+      assert.equal(res.status, 202);
+      assert.equal(res.body.async, true);
+      assert.equal(res.body.accepted, true);
+      assert.match(res.body.pollUrl, /internalize\/job$/);
+
+      let jobBody = null;
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        const jobRes = await fetch(`${base}/api/v1/cco-patient-master/assets/internalize/job`);
+        jobBody = await jobRes.json();
+        if (!jobBody.state?.running) break;
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      assert.equal(jobBody.state.running, false);
+      assert.equal(jobBody.failed, undefined);
+      assert.equal(jobBody.state.stats.imported, 1);
+      assert.equal(fixture.assetStore.listItemsForEnrichment().length, 1);
+      assert.equal(fixture.importRunStore.stats().finished, 1);
+    });
+  } finally {
+    resetInternalizeJobStateForTests();
     await fs.rm(fixture.tmp, { recursive: true, force: true });
   }
 });

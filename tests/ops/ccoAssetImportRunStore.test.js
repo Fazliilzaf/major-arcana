@@ -165,3 +165,40 @@ test('store persists across re-open', async () => {
     await fs.rm(tmp, { recursive: true, force: true });
   }
 });
+
+test('reconcileFromAssets stänger orphan-run och räknar om counters', async () => {
+  const { tmp, store } = await makeStore();
+  try {
+    const runId = await store.startRun({
+      sourceSystem: 'drive_import',
+      mode: 'full',
+      createdBy: 'owner-1',
+    });
+    const assetStore = {
+      listItemsForEnrichment: () => [
+        {
+          id: 'a1',
+          importRunId: runId,
+          status: 'VISIBLE_ON_PATIENT_CARD',
+        },
+        {
+          id: 'a2',
+          importRunId: runId,
+          status: 'NEEDS_REVIEW',
+        },
+      ],
+    };
+    const reconciled = await store.reconcileFromAssets(runId, assetStore, {
+      actor: { role: 'OWNER', userId: 'owner-1' },
+    });
+    assert.equal(reconciled.reconciled, true);
+    assert.equal(reconciled.assetCount, 2);
+    assert.equal(reconciled.totalDiscovered, 2);
+    assert.equal(reconciled.totalImported, 1);
+    assert.equal(reconciled.totalVerified, 1);
+    assert.equal(reconciled.totalNeedsReview, 1);
+    assert.ok(reconciled.finishedAt);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});

@@ -29,6 +29,11 @@ const {
   PILOT_STRONG_DOCUMENT_DATE_SOURCES,
 } = require('../ops/ccoDriveAssetInternalization');
 const {
+  startInternalizeJob,
+  getInternalizeJobState,
+  isInternalizeJobRunning,
+} = require('../ops/ccoDriveInternalizeAsyncJob');
+const {
   buildOccasionTimeline,
   extractFileOccasionContext,
 } = require('../../scripts/migration/lib/migrationUtils');
@@ -81,6 +86,14 @@ function parseDryRun(value, defaultValue = true) {
   const normalized = String(value).trim().toLowerCase();
   if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
   if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  return defaultValue;
+}
+
+function parseAsyncCommit(value, defaultValue = true) {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  const normalized = String(value).trim().toLowerCase();
+  if (['0', 'false', 'no', 'off', 'sync'].includes(normalized)) return false;
+  if (['1', 'true', 'yes', 'on', 'async'].includes(normalized)) return true;
   return defaultValue;
 }
 
@@ -200,6 +213,130 @@ function redactInternalizeReport(report = {}) {
     delete safe.remainingRows;
   }
   return safe;
+}
+
+async function prepareInternalizeExecution({
+  actor,
+  dryRun,
+  limit,
+  offset,
+  resolveAssetStores,
+  resolvePatientAssetStore,
+  loadPatientMasterState,
+  config,
+  createDriveInternalizationClient,
+  customerStore,
+  journalStore,
+  req,
+} = {}) {
+  const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+  const assetStore =
+    stores.assetStore ||
+    (typeof resolvePatientAssetStore === 'function' ? await resolvePatientAssetStore() : null);
+  const storage = stores.secureStorage || stores.storage || null;
+  if (!assetStore) {
+    const error = new Error('Asset store saknas på servern.');
+    error.statusCode = 503;
+    throw error;
+  }
+  if (!dryRun && (!stores.importRunStore || !stores.reviewQueueStore || !storage)) {
+    const error = new Error('Import-run store, review queue och secure storage krävs för commit.');
+    error.statusCode = 503;
+    throw error;
+  }
+
+  const patientMasterState =
+    typeof loadPatientMasterState === 'function'
+      ? await loadPatientMasterState({ tenantId: actor.tenantId })
+      : await loadPatientMasterStateFromConfig(config);
+  const { rows, rowSources } = await collectDriveRowsForInternalization({
+    patientMasterState,
+    assetStore,
+    storage,
+    tenantId: actor.tenantId,
+  });
+
+  const driveClient = dryRun
+    ? null
+    : await (typeof createDriveInternalizationClient === 'function'
+        ? createDriveInternalizationClient({ actor, req })
+        : createDriveInternalizationClientFromEnv());
+  const pipeline = dryRun
+    ? null
+    : createCcoAssetImportPipeline({
+        assetStore,
+        importRunStore: stores.importRunStore,
+        reviewQueueStore: stores.reviewQueueStore,
+        storage,
+        customerStore,
+        journalStore,
+      });
+  const importActor = {
+    role: actor.role || ROLE_OWNER,
+    userId: actor.userId || 'cco-patient-master-internalize-endpoint',
+    tenantId: actor.tenantId,
+  };
+
+  return {
+    rows,
+    rowSources,
+    assetStore,
+    storage,
+    driveClient,
+    pipeline,
+    importRunStore: stores.importRunStore,
+    reviewQueueStore: stores.reviewQueueStore,
+    importActor,
+    internalizeParams: {
+      rows,
+      assetStore,
+      importRunStore: stores.importRunStore,
+      reviewQueueStore: stores.reviewQueueStore,
+      pipeline,
+      storage,
+      driveClient,
+      dryRun,
+      go: !dryRun,
+      limit,
+      offset,
+      sampleSize: 5,
+      driveThrottleMs: 75,
+      tenantId: actor.tenantId,
+      actor: importActor,
+    },
+  };
+}
+
+async function auditInternalizeOutcome({
+  authStore,
+  actor,
+  dryRun,
+  limit,
+  offset,
+  rowsCollected,
+  rowSources,
+  safeReport,
+  asyncMode = false,
+  jobError = null,
+} = {}) {
+  await authStore.addAuditEvent({
+    tenantId: actor.tenantId,
+    actorUserId: actor.userId,
+    action: 'cco.patient_master.assets_internalize',
+    outcome: jobError ? 'error' : 'success',
+    targetType: 'cco_patient_assets',
+    targetId: dryRun ? 'dry_run' : safeReport?.runId || (asyncMode ? 'async_commit' : 'commit'),
+    metadata: {
+      dryRun,
+      asyncMode,
+      limit,
+      offset,
+      rowsCollected,
+      rowSources,
+      stats: safeReport?.stats || {},
+      lastError: jobError || null,
+    },
+  });
 }
 
 function resolveStoredFileName(file) {
@@ -1450,6 +1587,7 @@ function createCcoPatientMasterRouter({
     async (req, res) =>
       handle(req, res, async (actor) => {
         const dryRun = parseDryRun(req.body?.dryRun, true);
+        const asyncCommit = !dryRun && parseAsyncCommit(req.body?.async, true);
         const limit = clampInternalizeLimit(req.body?.limit, 50);
         const offset = clampOffset(req.body?.offset);
 
@@ -1462,92 +1600,107 @@ function createCcoPatientMasterRouter({
           }
         }
 
-        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
-        const assetStore =
-          stores.assetStore ||
-          (typeof resolvePatientAssetStore === 'function'
-            ? await resolvePatientAssetStore()
-            : null);
-        const storage = stores.secureStorage || stores.storage || null;
-        if (!assetStore) {
-          return res.status(503).json({ error: 'Asset store saknas på servern.' });
-        }
-        if (!dryRun && (!stores.importRunStore || !stores.reviewQueueStore || !storage)) {
-          return res.status(503).json({
-            error: 'Import-run store, review queue och secure storage krävs för commit.',
-          });
-        }
-
-        const patientMasterState =
-          typeof loadPatientMasterState === 'function'
-            ? await loadPatientMasterState({ tenantId: actor.tenantId })
-            : await loadPatientMasterStateFromConfig(config);
-        const { rows, rowSources } = await collectDriveRowsForInternalization({
-          patientMasterState,
-          assetStore,
-          storage,
-          tenantId: actor.tenantId,
-        });
-
-        const driveClient = dryRun
-          ? null
-          : await (typeof createDriveInternalizationClient === 'function'
-              ? createDriveInternalizationClient({ actor, req })
-              : createDriveInternalizationClientFromEnv());
-        const pipeline = dryRun
-          ? null
-          : createCcoAssetImportPipeline({
-              assetStore,
-              importRunStore: stores.importRunStore,
-              reviewQueueStore: stores.reviewQueueStore,
-              storage,
-              customerStore,
-              journalStore,
-            });
-        const importActor = {
-          role: actor.role || ROLE_OWNER,
-          userId: actor.userId || 'cco-patient-master-internalize-endpoint',
-          tenantId: actor.tenantId,
-        };
-        const report = await internalizeDriveAssets({
-          rows,
-          assetStore,
-          importRunStore: stores.importRunStore,
-          reviewQueueStore: stores.reviewQueueStore,
-          pipeline,
-          storage,
-          driveClient,
-          dryRun,
-          go: !dryRun,
-          limit,
-          offset,
-          sampleSize: 5,
-          driveThrottleMs: 75,
-          tenantId: actor.tenantId,
-          actor: importActor,
-        });
-        const safeReport = redactInternalizeReport(report);
-
-        await authStore.addAuditEvent({
-          tenantId: actor.tenantId,
-          actorUserId: actor.userId,
-          action: 'cco.patient_master.assets_internalize',
-          outcome: 'success',
-          targetType: 'cco_patient_assets',
-          targetId: dryRun ? 'dry_run' : safeReport.runId || 'commit',
-          metadata: {
+        let prepared;
+        try {
+          prepared = await prepareInternalizeExecution({
+            actor,
             dryRun,
             limit,
             offset,
+            resolveAssetStores,
+            resolvePatientAssetStore,
+            loadPatientMasterState,
+            config,
+            createDriveInternalizationClient,
+            customerStore,
+            journalStore,
+            req,
+          });
+        } catch (error) {
+          return res.status(error.statusCode || 500).json({ error: error.message });
+        }
+
+        const { rows, rowSources, driveClient, internalizeParams } = prepared;
+
+        if (asyncCommit) {
+          const started = startInternalizeJob({
+            ...internalizeParams,
+            limit,
+            offset,
+            tenantId: actor.tenantId,
+            redactReport: redactInternalizeReport,
+            onComplete: async (_state, report) => {
+              await auditInternalizeOutcome({
+                authStore,
+                actor,
+                dryRun: false,
+                limit,
+                offset,
+                rowsCollected: rows.length,
+                rowSources,
+                safeReport: redactInternalizeReport(report),
+                asyncMode: true,
+              });
+            },
+            onError: async (error) => {
+              await auditInternalizeOutcome({
+                authStore,
+                actor,
+                dryRun: false,
+                limit,
+                offset,
+                rowsCollected: rows.length,
+                rowSources,
+                safeReport: null,
+                asyncMode: true,
+                jobError: error?.message || String(error),
+              });
+            },
+          });
+          if (started.already) {
+            return res.status(409).json({
+              ok: false,
+              error: 'internalize_job_running',
+              state: started.state,
+              pollUrl: '/api/v1/cco-patient-master/assets/internalize/job',
+            });
+          }
+          return res.status(202).json({
+            ok: true,
+            dryRun: false,
+            async: true,
+            accepted: true,
+            limit,
+            offset,
             rowsCollected: rows.length,
-            rowSources,
-            stats: safeReport.stats || {},
-          },
+            rowSources: { ...rowSources, mergedUnique: rows.length },
+            drive: {
+              used: true,
+              serviceAccountEmail: driveClient?.serviceAccountEmail || null,
+            },
+            pollUrl: '/api/v1/cco-patient-master/assets/internalize/job',
+            state: started.state,
+          });
+        }
+
+        const report = await internalizeDriveAssets(internalizeParams);
+        const safeReport = redactInternalizeReport(report);
+
+        await auditInternalizeOutcome({
+          authStore,
+          actor,
+          dryRun,
+          limit,
+          offset,
+          rowsCollected: rows.length,
+          rowSources,
+          safeReport,
         });
 
         return res.json({
           ok: true,
           dryRun,
+          async: false,
           limit,
           offset,
           rowsCollected: rows.length,
@@ -1560,6 +1713,83 @@ function createCcoPatientMasterRouter({
               },
           report: safeReport,
         });
+      })
+  );
+
+  router.get(
+    '/cco-patient-master/assets/internalize/job',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async () => {
+        const state = getInternalizeJobState();
+        const payload = {
+          ok: true,
+          zeroWrites: true,
+          running: state.running,
+          pollUrl: '/api/v1/cco-patient-master/assets/internalize/job',
+          state,
+        };
+        if (state.running) return res.status(200).json(payload);
+        if (state.lastError) {
+          return res.status(200).json({
+            ...payload,
+            failed: true,
+            error: state.lastError,
+          });
+        }
+        return res.json({
+          ...payload,
+          completed: Boolean(state.finishedAt),
+          report: state.report || null,
+        });
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/assets/internalize/runs/:runId/reconcile',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const runId = normalizeText(req.params.runId);
+        if (!runId) return res.status(400).json({ error: 'runId saknas.' });
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        if (!stores.importRunStore || !assetStore) {
+          return res.status(503).json({ error: 'Import-run store eller asset store saknas.' });
+        }
+        const importActor = {
+          role: actor.role || ROLE_OWNER,
+          userId: actor.userId || 'cco-patient-master-internalize-reconcile',
+          tenantId: actor.tenantId,
+        };
+        let run;
+        try {
+          run = await stores.importRunStore.reconcileFromAssets(runId, assetStore, {
+            actor: importActor,
+          });
+        } catch (error) {
+          return res.status(error.statusCode || 500).json({ error: error.message });
+        }
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.assets_internalize_reconcile',
+          outcome: 'success',
+          targetType: 'cco_patient_assets',
+          targetId: runId,
+          metadata: {
+            reconciled: run.reconciled,
+            assetCount: run.assetCount,
+            finishedAt: run.finishedAt,
+          },
+        });
+        return res.json({ ok: true, runId, run });
       })
   );
 

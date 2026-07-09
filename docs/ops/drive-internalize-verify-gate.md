@@ -111,6 +111,35 @@ Exempel (pilot @1319, run `b8364d5d-47dd-4e14-8212-fb0bc1a09152`): riktad kontro
 - Scriptet ska **inte** ensam gate:a nästa batch när `authoritativeForNextBatch: false`.
 - Alias-mönster (`asset.patientId=cliento_*`, `bundle.cliento=null`) via heuristik är **känt**, inte import-fail — se `ALIAS_HEURISTIC_NOTE` i scriptet.
 
+## 502 / orphan-runs (2026-07-08)
+
+**Orsak:** Synkron commit via HTTP kan ta >100s (Drive-download). Cloudflare/Render avbryter då med **502** medan importen ibland fortsätter → `finishedAt: null` (orphan-run) och risk för dubbel-commit.
+
+**Fix (deployad):** Commit är **async by default** — POST returnerar **202** direkt; jobbet körs i bakgrunden.
+
+```bash
+# 1. Starta commit (async default — vänta INTE på full body i curl)
+curl -X POST .../assets/internalize \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"dryRun":false,"limit":10,"offset":1375,"confirmText":"INTERNALIZE ASSETS"}'
+
+# 2. Poll tills running=false
+curl .../assets/internalize/job
+
+# 3. Verify med runId från job.state.runId
+node scripts/verify-internalize-run-prod.js --run-id <uuid> --commit-report /tmp/job.json
+```
+
+Synk commit (endast debug): `"async": false` i body.
+
+**Orphan-reconcile** (read/write, owner): om run saknar `finishedAt` men assets finns:
+
+```bash
+POST /api/v1/cco-patient-master/assets/internalize/runs/<runId>/reconcile
+```
+
+**Pausa GO** tills async-fixen är live på prod (`/assets/internalize/job` svarar 200). Deploy-trigger restart → vänta `readyz` grön före nästa pilot.
+
 ## Referens — npm-script
 
 ```bash

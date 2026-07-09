@@ -356,13 +356,12 @@ jobs:
           exit 0
 
       - name: Restore Render env from blueprint
+        if: false
         continue-on-error: true
         env:
+          RENDER_ENV_RESTORE_ENABLED: "false"
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: srv-d8b3i3tckfvc73clgeng
         run: |
-          if [[ -z "${RENDER_API_KEY:-}" ]]; then
-            echo "::warning::RENDER_API_KEY saknas — env restore hoppas över."
-            exit 0
-          fi
-          bash ./scripts/restore-render-env-from-blueprint.sh
+          echo "⏭ Env restore avstängd i deploy-cloud-safe (502-risk vid omstart)."
+          echo "   Använd workflow_dispatch post-deploy-prod-heal + restore_env_from_blueprint=true vid behov."

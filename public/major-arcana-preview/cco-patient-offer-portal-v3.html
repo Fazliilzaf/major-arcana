@@ -3225,6 +3225,8 @@
         </div>
       </div>
 
+      <div data-cco-portal-level2 aria-live="polite"></div>
+
       <section class="portal-next-action" data-portal-next-action hidden aria-live="polite">
         <div class="portal-next-action__kicker" data-next-action-kicker>Nästa steg</div>
         <h2 class="portal-next-action__title" data-next-action-title>Läs igenom din offert</h2>
@@ -4424,6 +4426,19 @@
         },
       };
 
+      (function wirePortalLevel2Accept() {
+        if (window.__ccoPortalLevel2AcceptWired) return;
+        window.__ccoPortalLevel2AcceptWired = true;
+        document.addEventListener('click', function (e) {
+          var btn = e.target && e.target.closest('[data-l2-accept]');
+          if (!btn) return;
+          var url = safeText((window.ARCANA_CUSTOMER_OFFER_CONTEXT || {}).offerSignUrl);
+          if (!url) return;
+          e.preventDefault();
+          window.location.href = url;
+        });
+      })();
+
       function safeText(value) {
         return typeof value === 'string' ? value.trim() : '';
       }
@@ -5535,5 +5550,6 @@
         if (videoSub) videoSub.classList.toggle('visible', isOnline);
       }
     </script>
+    <script src="/major-arcana-preview/app/cco-portal-level2.js"></script>
   </body>
 </html>

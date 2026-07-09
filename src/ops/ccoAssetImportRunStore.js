@@ -192,6 +192,63 @@ async function createCcoAssetImportRunStore({ filePath, auditLog = null } = {}) 
   }
 
   /**
+   * Räkna om run-räknare från asset-store och stäng orphan-runs (finishedAt saknas).
+   * Används när HTTP 502 avbröt svaret men importen slutfördes delvis/helt.
+   */
+  async function reconcileFromAssets(runId, assetStore, { actor = {} } = {}) {
+    const id = normalizeText(runId);
+    const run = state.items[id];
+    if (!run) {
+      const e = new Error(`run ${id} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    if (!assetStore || typeof assetStore.listItemsForEnrichment !== 'function') {
+      const e = new Error('assetStore.listItemsForEnrichment krävs för reconcile.');
+      e.statusCode = 400;
+      throw e;
+    }
+    const assets = assetStore
+      .listItemsForEnrichment()
+      .filter((asset) => normalizeText(asset?.importRunId) === id);
+
+    const counters = Object.fromEntries(COUNTER_NAMES.map((name) => [name, 0]));
+    counters.totalDiscovered = assets.length;
+    for (const asset of assets) {
+      const status = normalizeText(asset.status);
+      if (status === 'FAILED_IMPORT') counters.totalFailed += 1;
+      else if (status === 'NEEDS_REVIEW') counters.totalNeedsReview += 1;
+      else if (status === 'LINK_ONLY_BLOCKER') counters.totalLinkOnlyBlockers += 1;
+      else if (status === 'VERIFIED_IN_CCO' || status === 'VISIBLE_ON_PATIENT_CARD') {
+        counters.totalImported += 1;
+        counters.totalVerified += 1;
+      } else if (
+        status === 'IMPORTED_TO_CCO' ||
+        status === 'IMPORTING' ||
+        status === 'DISCOVERED'
+      ) {
+        counters.totalImported += 1;
+      }
+    }
+    for (const name of COUNTER_NAMES) {
+      run[name] = counters[name];
+    }
+    const wasOpen = !run.finishedAt;
+    if (wasOpen) {
+      run.finishedAt = nowIso();
+      logAudit(auditLog, 'asset.import_run_finished', run, actor, {
+        reconciled: true,
+        assetCount: assets.length,
+      });
+    } else {
+      await save();
+      return { ...run, reconciled: false, assetCount: assets.length, wasOpen: false };
+    }
+    await save();
+    return { ...run, reconciled: wasOpen, assetCount: assets.length, wasOpen };
+  }
+
+  /**
    * Stäng en körning (sätter finishedAt). Idempotent — andra-anrop är no-op.
    * Emittar `asset.import_run_finished` audit.
    */
@@ -259,6 +316,7 @@ async function createCcoAssetImportRunStore({ filePath, auditLog = null } = {}) 
   return {
     startRun,
     incrementCounter,
+    reconcileFromAssets,
     finishRun,
     listRecentRuns,
     getRun,
