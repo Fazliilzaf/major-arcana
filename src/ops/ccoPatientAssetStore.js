@@ -706,6 +706,134 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     return { ...merged };
   }
 
+  /**
+   * Reparera ghost VISIBLE/VERIFIED: kopiera blob-pekare från sibling med verifierad storage.
+   * Sibling lämnas kvar (ofta DUPLICATE, dold i default-lista).
+   */
+  async function reattachGhostVisibleBlobFromSibling(
+    canonicalAssetId,
+    siblingAssetId,
+    { storage = null, actor = {}, reason = null } = {}
+  ) {
+    const canonicalId = normalizeText(canonicalAssetId);
+    const siblingId = normalizeText(siblingAssetId);
+    const canonical = state.items[canonicalId];
+    const sibling = state.items[siblingId];
+
+    if (!canonical) {
+      const e = new Error(`asset ${canonicalId} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    if (!sibling) {
+      const e = new Error(`sibling asset ${siblingId} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    if (canonicalId === siblingId) {
+      const e = new Error('canonical och sibling får inte vara samma asset.');
+      e.statusCode = 400;
+      throw e;
+    }
+    if (!['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(normalizeText(canonical.status))) {
+      const e = new Error(
+        `reattachGhostVisibleBlobFromSibling: kräver VISIBLE_ON_PATIENT_CARD eller VERIFIED_IN_CCO (var ${canonical.status}).`
+      );
+      e.statusCode = 409;
+      throw e;
+    }
+    if (normalizeText(canonical.patientId) !== normalizeText(sibling.patientId)) {
+      const e = new Error('cross-patient sibling repair är inte tillåten.');
+      e.statusCode = 409;
+      throw e;
+    }
+
+    const siblingKey = normalizeText(sibling.storageKey);
+    const siblingChecksum = normalizeText(sibling.checksum);
+    const siblingSize = Number(sibling.fileSize);
+    const siblingMime = normalizeText(sibling.mimeType);
+    if (!siblingKey || siblingKey === 'pending-no-binary') {
+      const e = new Error('sibling saknar storageKey.');
+      e.statusCode = 409;
+      throw e;
+    }
+    if (!siblingChecksum) {
+      const e = new Error('sibling saknar checksum.');
+      e.statusCode = 409;
+      throw e;
+    }
+    if (!(siblingSize > 0)) {
+      const e = new Error('sibling saknar fileSize.');
+      e.statusCode = 409;
+      throw e;
+    }
+    if (!siblingMime) {
+      const e = new Error('sibling saknar mimeType.');
+      e.statusCode = 409;
+      throw e;
+    }
+
+    if (storage && typeof storage.exists === 'function') {
+      try {
+        const siblingBlobOk = await storage.exists(siblingKey);
+        if (!siblingBlobOk) {
+          const e = new Error('sibling blob saknas i storage.');
+          e.statusCode = 409;
+          throw e;
+        }
+        const canonicalKey = normalizeText(canonical.storageKey);
+        if (canonicalKey && canonicalKey !== 'pending-no-binary') {
+          const canonicalBlobOk = await storage.exists(canonicalKey);
+          if (canonicalBlobOk) {
+            const e = new Error('canonical asset har redan verifierad blob.');
+            e.statusCode = 409;
+            throw e;
+          }
+        }
+      } catch (error) {
+        if (error?.statusCode) throw error;
+        const e = new Error(`storage.exists misslyckades: ${error.message}`);
+        e.statusCode = 500;
+        throw e;
+      }
+    }
+
+    const canonicalChecksum = normalizeText(canonical.checksum);
+    if (canonicalChecksum && canonicalChecksum !== siblingChecksum) {
+      const e = new Error('canonical checksum matchar inte sibling — manuell review krävs.');
+      e.statusCode = 409;
+      throw e;
+    }
+
+    const merged = normalizeAsset(
+      {
+        ...canonical,
+        storageProvider:
+          normalizeText(sibling.storageProvider) || canonical.storageProvider || 'local',
+        storageKey: siblingKey,
+        checksum: siblingChecksum,
+        fileSize: siblingSize,
+        mimeType: siblingMime,
+        thumbnailKey: sibling.thumbnailKey || canonical.thumbnailKey || null,
+        originalDriveFileId:
+          normalizeText(canonical.originalDriveFileId) ||
+          normalizeText(sibling.originalDriveFileId) ||
+          null,
+      },
+      canonical
+    );
+
+    state.items[canonicalId] = merged;
+    await save();
+    logAudit(auditLog, 'asset.ghost_visible_repaired', merged, actor, 'ok', {
+      reason: reason || null,
+      siblingAssetId: siblingId,
+      previousStorageKey: canonical.storageKey || null,
+      previousChecksum: canonical.checksum || null,
+    });
+    return { ...merged };
+  }
+
   async function recordChecksumVerified(id, checksum, { actor = {} } = {}) {
     const assetId = normalizeText(id);
     const existing = state.items[assetId];
@@ -1219,6 +1347,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     patchAssetForReview,
     patchAssetNamingMetadata,
     attachImportedBinary,
+    reattachGhostVisibleBlobFromSibling,
     recordChecksumVerified,
     linkAssetToPatient,
     linkAssetToEncounter,
