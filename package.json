@@ -121,6 +121,7 @@
     "verify:kkx-journey-prod": "node ./scripts/verify-kkx-journey-prod.js",
     "verify:kkx-journal-workspace-prod": "node ./scripts/verify-kkx-journal-workspace-prod.js",
     "ensure:kkx-uat-test-patient-prod": "node ./scripts/ensure-kkx-uat-test-patient-prod.js",
+    "ensure:portal-bankid-uat-patient-prod": "node ./scripts/ensure-portal-bankid-uat-patient-prod.js",
     "cleanup:kkx-uat-drafts-prod": "node ./scripts/cleanup-kkx-uat-drafts-prod.js",
     "report:drive-journal-segments": "node ./scripts/report-drive-journal-segment-readiness.js",
     "build:drive-journal-native-pilot-manifest": "node ./scripts/build-drive-journal-native-pilot-manifest.js",
