@@ -11,30 +11,30 @@
       :root {
         --bg-page: #faf6f2;
         --bg-surface: #ffffff;
-        --bg-sunken: #f3ece3;
-        --bg-rail: #fbf7f2;
-        --text-primary: #221c15;
-        --text-secondary: #574d40;
-        --text-tertiary: #6d6354;
-        --accent: #b0356e;
-        --accent-weak: #fdeef4;
-        --accent-weak-bg: #fdeef4;
-        --accent-strong: #8e285699;
+        --bg-sunken: #f5efe6;
+        --bg-rail: #fffdfb;
+        --text-primary: #1d1e24;
+        --text-secondary: #5d6470;
+        --text-tertiary: #6a717d;
+        --accent: #bb4779;
+        --accent-weak: #fce9f0;
+        --accent-weak-bg: #fce9f0;
+        --accent-strong: #9c2c62;
         --text-on-accent: #ffffff;
-        --success: #2f6f54;
-        --success-bg: rgba(47, 111, 84, 0.14);
-        --warning: #9a6410;
-        --warning-bg: rgba(154, 100, 16, 0.16);
-        --danger: #a83838;
-        --danger-bg: rgba(168, 56, 56, 0.14);
-        --info: #2f6595;
-        --info-bg: rgba(47, 101, 149, 0.14);
+        --success: #4a8268;
+        --success-bg: rgba(74, 130, 104, 0.14);
+        --warning: #c8821e;
+        --warning-bg: rgba(200, 130, 30, 0.14);
+        --danger: #b94a4a;
+        --danger-bg: rgba(185, 74, 74, 0.14);
+        --info: #4a7ba8;
+        --info-bg: rgba(74, 123, 168, 0.14);
         --violet: #6b31c9;
         --violet-bg: rgba(107, 49, 201, 0.12);
-        --gold: #8a5f1e;
-        --gold-bg: rgba(138, 95, 30, 0.14);
-        --slate: #475569;
-        --slate-bg: rgba(71, 85, 105, 0.12);
+        --gold: #9c6210;
+        --gold-bg: rgba(200, 130, 30, 0.14);
+        --slate: #556074;
+        --slate-bg: rgba(85, 96, 116, 0.12);
         --sh-sm: 0 1px 2px rgba(56, 40, 28, 0.06);
         --sh-md: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
         --sh-lg: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
@@ -51,7 +51,7 @@
         --fs-h1: clamp(1.5rem, 1.2rem+2vw, 2.25rem);
         --fs-num: clamp(1.35rem, 1.1rem+1.4vw, 1.9rem);
         --tap: 2.75rem;
-        --gap: clamp(0.5rem, 0.4rem+0.5vw, 0.85rem);
+        --gap: clamp(0.8rem, 0.55rem+0.9vw, 1.35rem);
         --pad-x: clamp(0.875rem, 0.5rem+1.6vw, 1.5rem);
         --safe-bottom: env(safe-area-inset-bottom, 0px);
         --maxw: 1500px;
@@ -79,7 +79,11 @@
           radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.3), transparent 42%),
           var(--bg-page);
         color: var(--text-primary);
-        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
         font-size: var(--fs-body);
         line-height: 1.45;
         min-height: 100vh;
@@ -764,9 +768,9 @@
       /* BYGGARE 3-kol */
       .builder {
         display: grid;
-        gap: var(--gap);
+        gap: clamp(1.25rem, 2vw, 2.2rem);
         grid-template-columns: 1fr;
-        margin-top: 0.7rem;
+        margin-top: 1.2rem;
       }
       @media (min-width: 601px) {
         .builder {
@@ -894,7 +898,7 @@
       .node {
         width: 100%;
         max-width: 30rem;
-        padding: 0.8rem 0.9rem;
+        padding: 1.05rem 1.2rem;
         border-radius: var(--r-lg);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.88));
         border: 1px solid rgba(180, 165, 150, 0.25);
@@ -1434,7 +1438,7 @@
         justify-content: space-between;
         gap: 0.5rem;
         align-items: center;
-        padding: 0.5rem 0;
+        padding: 0.7rem 0;
         border-bottom: 1px solid rgba(180, 165, 150, 0.2);
       }
       .opt-main {
