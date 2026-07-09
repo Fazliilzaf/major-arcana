@@ -227,6 +227,30 @@ html[data-v9-demo="on"]:not(:has(.preview-canvas[data-app-shell-view="customers"
 }
 
 /*
+ * Rek. 9b — admin-embed guard: demo-only chrome ska inte ligga ovanpå admin#cco
+ * även när kunden körs med ?demo=on i subnaven.
+ */
+html.is-admin-embed[data-v9-enabled="on"] {
+  --topbar-height: 0px;
+  --workspace-top-clearance: 0px;
+}
+
+html.is-admin-embed[data-v9-enabled="on"] .preview-topbar {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html.is-admin-embed[data-v9-enabled="on"] .v9-watch-widget,
+html.is-admin-embed[data-v9-enabled="on"] .v9-watch-wrap,
+html.is-admin-embed[data-v9-enabled="on"] .v9-watch-restore,
+html.is-admin-embed[data-v9-enabled="on"] .v9-watch-toast {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/*
  * Rek. 12 — brand-anchor (mockup .top-nav a.active).
  * Aktiv Kunder-pill och compose-CTA delar rose-pill + --accent-studio — bevara, skriv inte över.
  */
