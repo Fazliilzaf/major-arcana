@@ -39,6 +39,11 @@ test('admin embed markeras i customers-sidan så demo-chrome kan gömmas', () =>
 
   assert.match(html, /document\.documentElement\.classList\.add\('is-admin-embed'\)/);
   assert.match(html, /document\.body\.classList\.add\('is-admin-embed'\)/);
+  assert.match(
+    html,
+    /cco-v9-shell-overrides\.css\?v=admin-embed-single-shell-v1/,
+    'admin-embed CSS måste cache-bustas så den nya toppbar-gömningen laddas om'
+  );
 });
 
 test('admin embed gömmer watch chrome i customers-vyn', () => {
