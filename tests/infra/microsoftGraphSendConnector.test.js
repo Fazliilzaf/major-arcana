@@ -1,7 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { createMicrosoftGraphSendConnector } = require('../../src/infra/microsoftGraphSendConnector');
+const {
+  createMicrosoftGraphSendConnector,
+} = require('../../src/infra/microsoftGraphSendConnector');
 
 function createJsonResponse({ status = 200, body = {} } = {}) {
   return {
@@ -59,17 +61,98 @@ test('MicrosoftGraphSendConnector performs token + createReply/update/send flow 
   assert.equal(calls.length, 4);
   assert.equal(calls[0].options.method, 'POST');
   assert.equal(calls[1].options.method, 'POST');
-  assert.equal(String(calls[1].url).includes('/users/owner%40hairtpclinic.se/messages/msg-1/createReply'), true);
+  assert.equal(
+    String(calls[1].url).includes('/users/owner%40hairtpclinic.se/messages/msg-1/createReply'),
+    true
+  );
   assert.equal(calls[2].options.method, 'PATCH');
   const patchPayload = JSON.parse(String(calls[2].options?.body || '{}'));
   assert.equal(patchPayload?.body?.contentType, 'HTML');
-  assert.equal(String(patchPayload?.body?.content || '').includes('Hej! Uppfoljning fran kliniken.'), true);
-  assert.equal(String(calls[3].url).includes('/users/owner%40hairtpclinic.se/messages/draft-msg-1/send'), true);
+  assert.equal(
+    String(patchPayload?.body?.content || '').includes('Hej! Uppfoljning fran kliniken.'),
+    true
+  );
+  assert.equal(
+    String(calls[3].url).includes('/users/owner%40hairtpclinic.se/messages/draft-msg-1/send'),
+    true
+  );
   assert.equal(response.provider, 'microsoft_graph');
   assert.equal(response.mailboxId, 'owner@hairtpclinic.se');
   assert.equal(response.sourceMailboxId, 'owner@hairtpclinic.se');
   assert.equal(response.replyToMessageId, 'msg-1');
   assert.equal(response.sendMode, 'reply_draft');
+});
+
+test('markMessageAnswered appends category, preserves others, replaces stale answered tag', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options, method: options.method || 'GET' });
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({ body: { access_token: 'token-mark-1' } });
+    }
+    // GET nuvarande kategorier: en manuell tagg (VIP) + en gammal besvarad-tagg.
+    if (options.method === undefined || options.method === 'GET') {
+      return createJsonResponse({
+        body: { categories: ['VIP', 'Besvarad i CCO – Fazli'] },
+      });
+    }
+    if (options.method === 'PATCH') {
+      return createJsonResponse({ status: 200, body: {} });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  const connector = createMicrosoftGraphSendConnector({
+    tenantId: 'tenant-id-1',
+    clientId: 'client-id-1',
+    clientSecret: 'client-secret-1',
+    fetchImpl,
+  });
+
+  const result = await connector.markMessageAnswered({
+    mailboxId: 'kons@hairtpclinic.com',
+    messageId: 'msg-42',
+    category: 'Besvarad i CCO – Egzona',
+    replacePrefix: 'Besvarad i CCO',
+  });
+
+  const patchCall = calls.find((c) => c.method === 'PATCH');
+  const patchPayload = JSON.parse(String(patchCall?.options?.body || '{}'));
+  // VIP bevaras, gamla besvarad-taggen (Fazli) ersätts, nya (Egzona) läggs till.
+  assert.deepEqual(patchPayload.categories, ['VIP', 'Besvarad i CCO – Egzona']);
+  assert.equal(
+    String(patchCall.url).includes('/users/kons%40hairtpclinic.com/messages/msg-42'),
+    true
+  );
+  assert.equal(result.changed, true);
+});
+
+test('markMessageAnswered is a no-op when the category already present', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options, method: options.method || 'GET' });
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({ body: { access_token: 'token-mark-2' } });
+    }
+    return createJsonResponse({ body: { categories: ['Besvarad i CCO – Egzona'] } });
+  };
+  const connector = createMicrosoftGraphSendConnector({
+    tenantId: 't',
+    clientId: 'c',
+    clientSecret: 's',
+    fetchImpl,
+  });
+  const result = await connector.markMessageAnswered({
+    mailboxId: 'kons@hairtpclinic.com',
+    messageId: 'msg-9',
+    category: 'Besvarad i CCO – Egzona',
+    replacePrefix: 'Besvarad i CCO',
+  });
+  assert.equal(result.changed, false);
+  assert.equal(
+    calls.some((c) => c.method === 'PATCH'),
+    false
+  );
 });
 
 test('MicrosoftGraphSendConnector allows in-thread reply without explicit recipients', async () => {
@@ -111,10 +194,16 @@ test('MicrosoftGraphSendConnector allows in-thread reply without explicit recipi
   });
 
   assert.equal(calls.length, 4);
-  assert.equal(String(calls[1].url).includes('/users/kons%40hairtpclinic.com/messages/msg-1b/createReply'), true);
+  assert.equal(
+    String(calls[1].url).includes('/users/kons%40hairtpclinic.com/messages/msg-1b/createReply'),
+    true
+  );
   const patchPayload = JSON.parse(String(calls[2].options?.body || '{}'));
   assert.equal(patchPayload?.body?.contentType, 'HTML');
-  assert.equal(String(calls[3].url).includes('/users/kons%40hairtpclinic.com/messages/draft-msg-1b/send'), true);
+  assert.equal(
+    String(calls[3].url).includes('/users/kons%40hairtpclinic.com/messages/draft-msg-1b/send'),
+    true
+  );
   assert.equal(response.sendMode, 'reply_draft');
   assert.deepEqual(response.to, []);
 });
@@ -280,11 +369,7 @@ test('MicrosoftGraphSendConnector moves message to Deleted Items for safe delete
         },
       });
     }
-    if (
-      String(url).includes(
-        '/users/contact%40hairtpclinic.com/messages/msg-delete-1/move'
-      )
-    ) {
+    if (String(url).includes('/users/contact%40hairtpclinic.com/messages/msg-delete-1/move')) {
       return createJsonResponse({
         status: 201,
         body: {
@@ -313,9 +398,7 @@ test('MicrosoftGraphSendConnector moves message to Deleted Items for safe delete
   assert.equal(calls[0].options.method, 'POST');
   assert.equal(calls[1].options.method, 'POST');
   assert.equal(
-    String(calls[1].url).includes(
-      '/users/contact%40hairtpclinic.com/messages/msg-delete-1/move'
-    ),
+    String(calls[1].url).includes('/users/contact%40hairtpclinic.com/messages/msg-delete-1/move'),
     true
   );
   const payload = JSON.parse(String(calls[1].options?.body || '{}'));

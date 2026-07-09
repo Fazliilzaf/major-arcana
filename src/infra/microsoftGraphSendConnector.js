@@ -623,10 +623,70 @@ function createMicrosoftGraphSendConnector(config = {}) {
     };
   }
 
+  // Sätt en Outlook-kategori på ett meddelande (t.ex. originalmailet efter att
+  // kunden besvarats i CCO). Domän-agnostisk: anroparen bestämmer kategoritext.
+  // Bevarar befintliga kategorier; om replacePrefix anges ersätts tidigare taggar
+  // med det prefixet (så bara senaste "Besvarad i CCO – <namn>" står kvar).
+  async function markMessageAnswered({
+    mailboxId,
+    messageId,
+    category,
+    replacePrefix = '',
+    timeoutMs = requestTimeoutMs,
+  } = {}) {
+    const normalizedMailboxId = requiredConfig('mailboxId', mailboxId);
+    const normalizedMessageId = requiredConfig('messageId', messageId);
+    const normalizedCategory = normalizeText(category);
+    if (!normalizedCategory) {
+      throw new Error('MicrosoftGraphSendConnector markMessageAnswered requires category.');
+    }
+    const normalizedPrefix = normalizeText(replacePrefix);
+    const accessToken = await fetchAccessToken();
+    const messageUrl = `${graphBaseUrl}/users/${encodeURIComponent(
+      normalizedMailboxId
+    )}/messages/${encodeURIComponent(normalizedMessageId)}`;
+    const getResponse = await fetchWithTimeout(
+      fetchImpl,
+      `${messageUrl}?$select=categories`,
+      { method: 'GET', headers: { authorization: `Bearer ${accessToken}` } },
+      timeoutMs
+    );
+    const current = await parseJsonResponse(getResponse, 'Microsoft Graph getMessageCategories');
+    const existing = Array.isArray(current?.categories)
+      ? current.categories.map((item) => normalizeText(item)).filter(Boolean)
+      : [];
+    if (existing.includes(normalizedCategory)) {
+      return {
+        mailboxId: normalizedMailboxId,
+        messageId: normalizedMessageId,
+        category: normalizedCategory,
+        changed: false,
+      };
+    }
+    const preserved = normalizedPrefix
+      ? existing.filter((item) => !item.startsWith(normalizedPrefix))
+      : existing.slice();
+    await patchGraphJson({
+      fetchImpl,
+      url: messageUrl,
+      accessToken,
+      payload: { categories: [...preserved, normalizedCategory] },
+      timeoutMs,
+      label: 'Microsoft Graph markMessageAnswered',
+    });
+    return {
+      mailboxId: normalizedMailboxId,
+      messageId: normalizedMessageId,
+      category: normalizedCategory,
+      changed: true,
+    };
+  }
+
   return {
     sendComposeDocument,
     sendNewMessage,
     sendReply,
+    markMessageAnswered,
     moveMessageToFolder,
     moveMessageToDeletedItems,
     inspectPermissions,
