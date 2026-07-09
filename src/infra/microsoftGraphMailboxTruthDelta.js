@@ -130,6 +130,7 @@ function toFolderReportFromCheckpoint(folderType = '', checkpoint = {}, fallback
     changesApplied: Number(safeCheckpoint.changesApplied || 0),
     upsertsApplied: Number(safeCheckpoint.upsertsApplied || 0),
     deletesApplied: Number(safeCheckpoint.deletesApplied || 0),
+    messageCount: Number(safeCheckpoint.upsertsApplied || 0),
     deltaLinkPresent: Boolean(normalizeText(safeCheckpoint.deltaLink)),
     nextPageUrlPresent: Boolean(normalizeText(safeCheckpoint.nextPageUrl)),
     roundType: normalizeText(safeCheckpoint.roundType) || null,
@@ -194,9 +195,9 @@ function createMicrosoftGraphMailboxTruthDelta({
         for (const folderType of folderTypes) {
           const folderState = store.getFolderState(mailboxId, folderType);
           if (normalizeText(folderState?.completenessStatus) !== 'VERIFIED') {
-          const report = toFolderReportFromCheckpoint(folderType, null, {
-            reasonCode: 'folder_truth_not_verified',
-            detail:
+            const report = toFolderReportFromCheckpoint(folderType, null, {
+              reasonCode: 'folder_truth_not_verified',
+              detail:
                 'Foldern ar inte verifierad i mailbox truth-basen och ar inte redo for delta-sync.',
             });
             report.status = 'NOT READY';
@@ -241,7 +242,7 @@ function createMicrosoftGraphMailboxTruthDelta({
           let cursorUrl = resume
             ? normalizeText(checkpoint?.nextPageUrl || checkpoint?.deltaLink)
             : '';
-          let roundType = normalizeText(checkpoint?.nextPageUrl)
+          const roundType = normalizeText(checkpoint?.nextPageUrl)
             ? normalizeText(checkpoint?.roundType) || 'initial_delta_round'
             : normalizeText(checkpoint?.deltaLink)
               ? 'incremental_delta_round'

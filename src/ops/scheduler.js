@@ -260,6 +260,20 @@ function resolveCcoHistoryMailboxIds(config = {}) {
   return fallbackMailboxId ? [fallbackMailboxId] : [];
 }
 
+function countTruthDeltaFolderUpserts(folderReports = []) {
+  const reports = Array.isArray(folderReports) ? folderReports : [];
+  return reports.reduce(
+    (sum, folderReport) =>
+      sum + Number(folderReport?.upsertsApplied ?? folderReport?.messageCount ?? 0),
+    0
+  );
+}
+
+function countTruthDeltaFolderPagesFetched(folderReports = []) {
+  const reports = Array.isArray(folderReports) ? folderReports : [];
+  return reports.reduce((sum, folderReport) => sum + Number(folderReport?.pagesFetched ?? 0), 0);
+}
+
 function resolveCcoShadowMailboxIds(config = {}) {
   const configuredList = Array.isArray(config?.schedulerCcoShadowMailboxIds)
     ? config.schedulerCcoShadowMailboxIds
@@ -3848,22 +3862,23 @@ function createScheduler({
         mailboxIds,
         folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
       });
-      const newMessages = (result?.perMailbox || []).reduce((sum, mb) => {
-        return (
-          sum + (mb?.folderReports || []).reduce((s, fr) => s + Number(fr?.messageCount || 0), 0)
-        );
-      }, 0);
+      const newMessages = (result?.perMailbox || []).reduce(
+        (sum, mb) => sum + countTruthDeltaFolderUpserts(mb?.folderReports),
+        0
+      );
+      const pagesFetched = (result?.perMailbox || []).reduce(
+        (sum, mb) => sum + countTruthDeltaFolderPagesFetched(mb?.folderReports),
+        0
+      );
       logger?.log?.(
-        `[scheduler] cco_truth_delta_sync DONE runId=${result?.runId || ''} mailboxes=${mailboxIds.length} newMessages=${newMessages} elapsedMs=${result?.elapsedMs ?? Date.now() - startedAt}`
+        `[scheduler] cco_truth_delta_sync DONE runId=${result?.runId || ''} mailboxes=${mailboxIds.length} newMessages=${newMessages} pagesFetched=${pagesFetched} elapsedMs=${result?.elapsedMs ?? Date.now() - startedAt}`
       );
       // Per-mailbox breakdown
       for (const mb of result?.perMailbox || []) {
-        const mbMsgs = (mb?.folderReports || []).reduce(
-          (s, fr) => s + Number(fr?.messageCount || 0),
-          0
-        );
+        const mbMsgs = countTruthDeltaFolderUpserts(mb?.folderReports);
+        const mbPages = countTruthDeltaFolderPagesFetched(mb?.folderReports);
         logger?.log?.(
-          `[scheduler] cco_truth_delta_sync mailbox=${mb?.mailboxId || '?'} newMessages=${mbMsgs}`
+          `[scheduler] cco_truth_delta_sync mailbox=${mb?.mailboxId || '?'} newMessages=${mbMsgs} pagesFetched=${mbPages}`
         );
       }
 
@@ -3871,7 +3886,7 @@ function createScheduler({
       const affectedConversationIds = Array.isArray(result?.affectedConversationIds)
         ? result.affectedConversationIds.filter(Boolean)
         : [];
-      if (newMessages > 0) {
+      if (newMessages > 0 || affectedConversationIds.length > 0) {
         try {
           logger?.log?.(
             `[scheduler] cco_truth_delta_sync triggering inbox refresh newMessages=${newMessages} scoped=${affectedConversationIds.length}`
