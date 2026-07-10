@@ -11236,6 +11236,7 @@ const { createCcoMailIngestionStore } = require('./src/ops/ccoMailIngestion/stor
 const { createCcoMailIngestionSyncService } = require('./src/ops/ccoMailIngestion/syncService');
 const { createPortalNudgeIngestionHook } = require('./src/ops/ccoPortalNudgeIngestionHook');
 const { createCcoMailIngestionWorker } = require('./src/ops/ccoMailIngestion/worker');
+const { createCcoMailIngestionPoller } = require('./src/ops/ccoMailIngestion/poller');
 const {
   createMicrosoftGraphChangeNotifications,
 } = require('./src/infra/microsoftGraphChangeNotifications');
@@ -14090,6 +14091,16 @@ process.once('SIGTERM', () => {
       .catch((error) => {
         console.error('[mail-ingestion] startup heal failed', error?.message || error);
       });
+
+    // Den globala schedulern kan vara avstängd under stabilisering. Den här
+    // separata grinden håller endast KONS synkad, read-only och utan send-väg.
+    const ccoMailIngestionPoller = createCcoMailIngestionPoller({
+      config,
+      syncService: ccoMailIngestionSyncService,
+      logger: console,
+    });
+    app.locals.ccoMailIngestionPoller = ccoMailIngestionPoller;
+    ccoMailIngestionPoller.start();
   }
 })().catch((error) => {
   runtimeState.ready = false;
