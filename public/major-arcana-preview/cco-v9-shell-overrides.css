@@ -273,6 +273,12 @@ html[data-admin-embed-view="customers"] [data-shell-view]:not([data-shell-view="
   pointer-events: none !important;
 }
 
+html[data-admin-embed-view="customers"] [data-shell-view="customers"] {
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
 html.is-admin-embed[data-admin-embed-view="customers"]
   section.customers-shell[data-shell-view="customers"] {
   display: block !important;
