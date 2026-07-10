@@ -424,6 +424,11 @@ const config = {
     stateRoot,
     fileName: 'cco-booking-engine.json',
   }),
+  clientoBookingStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CLIENTO_BOOKING_STORE_PATH,
+    stateRoot,
+    fileName: path.join('cco', 'cliento-bookings.json'),
+  }),
   ccoWorkspacePrefsStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_WORKSPACE_PREFS_STORE_PATH,
     stateRoot,

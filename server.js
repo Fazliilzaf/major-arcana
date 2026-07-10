@@ -11714,7 +11714,12 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
 // Calendar + iCal-routes flyttade till src/routes/calendar.js (se ORGANISATION.md §4).
 // Monteras här (top-level) för att bevara registreringsordning före rate-limit-
 // middleware i startup — calendar-GET var oratelimitad i originalet.
-app.use('/api/v1', createCalendarRouter());
+app.use(
+  '/api/v1',
+  createCalendarRouter({
+    requireAuth: requireCcoAuthenticated,
+  })
+);
 
 const {
   createRecurringSeries,
@@ -12197,13 +12202,10 @@ process.once('SIGTERM', () => {
   );
   const clientoBookingStore = await startupStep('clientoBookingStore', () =>
     createClientoBookingStore({
-      filePath:
-        config.clientoBookingStorePath ||
-        (config.dataDir
-          ? `${config.dataDir}/cco/cliento-bookings.json`
-          : './data/cco/cliento-bookings.json'),
+      filePath: config.clientoBookingStorePath,
     })
   );
+  app.locals.clientoBookingStore = clientoBookingStore;
   const { createCcoClientoBookingIngest } = require('./src/ops/ccoClientoBookingIngest');
   const ccoClientoBookingIngest =
     config.ccoClientoBookingIngestEnabled === false
@@ -12250,6 +12252,7 @@ process.once('SIGTERM', () => {
       filePath: config.ccoBookingEngineStorePath,
     })
   );
+  app.locals.ccoBookingEngineStore = ccoBookingEngineStore;
   const postOpReviewStore = await startupStep('postOpReviewStore', () =>
     createPostOpReviewStore({
       filePath: config.postOpReviewStorePath,
