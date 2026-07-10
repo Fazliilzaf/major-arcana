@@ -29,10 +29,10 @@ test('PR7: ingen title="HairTP Clinic CCO"-tooltip i konversationer.html', () =>
 });
 
 test('PR7: embed-iframen behåller standardvyns tillgängliga namn via aria-label', () => {
-  // Kalender är ny sessions-default; cco-subnav uppdaterar namnet vid segmentbyte.
+  // Live-Konversationer är sessions-default; cco-subnav uppdaterar namnet vid segmentbyte.
   const frame = adminHtml.match(/<iframe[^>]*id="ccoPreviewEmbedFrame"[\s\S]*?>/);
   assert.ok(frame, 'ccoPreviewEmbedFrame-iframe hittas');
-  assert.match(frame[0], /aria-label="HairTP Clinic CCO — Kalender"/);
+  assert.match(frame[0], /aria-label="HairTP Clinic CCO — Konversationer"/);
   assert.doesNotMatch(frame[0], /\btitle=/);
 });
 

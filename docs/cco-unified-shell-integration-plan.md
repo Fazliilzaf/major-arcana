@@ -53,10 +53,10 @@ must produce fresh Chrome and Safari screenshots at agreed viewports.
     |-- Conversations: live inbox and stored message thread
     |   `-- Cloud-built actions and dialogs
     |-- Customers: live customer registry and V12 dossier
-    |-- Calendar: existing calendar content
-    |-- Automation: existing automation content
-    |-- Analytics: existing analytics content
-    `-- More: existing supporting tools
+    |-- Calendar: existing UI; live backend wiring is pending
+    |-- Automation: existing mockup content
+    |-- Analytics: existing mockup content
+    `-- More: mixed live, gated, and mockup tools
 ```
 
 The shell owns layout, global navigation, segment selection, deep-link state,
@@ -74,10 +74,10 @@ workspace.
 | Conversations | `public/konversationer.html`, `public/konversationer-bottom-actions.js` | `/api/v1/cco/runtime/worklist/consumer`, conversation messages, actions, and reply APIs |
 | Conversation dialogs | Existing `public/major-arcana-preview/cco-*.html` views | Open as actions/dialogs from the selected live conversation |
 | Customers | Canonical `/staff?view=customers` route, served by `public/major-arcana-preview/index.html` and `public/major-arcana-preview/app/patient-master-ui.js` | `/api/v1/cco/staff/customers-shell` and `/api/v1/cco-patient-master/*`; canonical identity is `patient.id` exposed as `patientId` |
-| Calendar | `public/kalender.html` | Existing calendar APIs and state |
-| Automation | `public/major-arcana-preview/cco-automatisering-v3.html` | Existing implementation and data |
-| Analytics | `public/major-arcana-preview/cco-analytics-v3.html` | Existing implementation and data |
-| More | Existing integration, macro, settings, notifications, signatures, audit, and showcase views | Existing implementation and data |
+| Calendar | `public/kalender.html` | UI bridge exists; current week/day routes are stubbed and booking wiring remains a separate delivery |
+| Automation | `public/major-arcana-preview/cco-automatisering-v3.html` | Existing mockup content; no live backend contract in this delivery |
+| Analytics | `public/major-arcana-preview/cco-analytics-v3.html` | Existing mockup content; no live backend contract in this delivery |
+| More | Existing integration, macro, settings, notifications, signatures, audit, and showcase views | Mixed maturity: Notiser is live, Makron persists but execution is a no-op, integrations are gated/batch-backed, and remaining tools include mockups |
 
 This plan does not authorize copies or replacements of these products. An
 implementation may add a thin content adapter only where the existing page
@@ -104,9 +104,10 @@ Every segment transition must satisfy all of these conditions:
 - no second global navigation is rendered; and
 - stale demo state cannot override the selected production segment.
 
-Calendar is the default segment for a new CCO browser session. A valid segment
-selected earlier in the same session may be restored. All categories remain
-visible and clickable in this delivery; role-specific category permissions are
+Live Conversations is the default segment for a new CCO browser session. A
+valid segment selected earlier in the same session may be restored. All
+categories remain visible and clickable in this delivery; their presence does
+not claim live backend maturity. Role-specific category permissions are
 explicitly deferred to a later, separate program.
 
 ## Ownership Lock
@@ -200,7 +201,8 @@ The unified shell is not ready to cut over unless every item below passes:
   `Fokusyta`, Anna Karlsson sample data, or any legacy conversation surface.
 - Production navigation contains no `demo=on` or `demoOpDay=1`.
 - `patientId` deep links open the correct live customer and survive refresh.
-- Calendar, Automation, Analytics, and More render their existing real content.
+- Calendar, Automation, Analytics, and More render their existing content
+  without implying that mockup or gated backends are live.
 - Bearer-token authentication and current API contracts remain unchanged.
 - Conversation opening remains local-readmodel based with no live Graph fetch.
 - No send gate, owner approval rule, or mailbox policy changes in this program.

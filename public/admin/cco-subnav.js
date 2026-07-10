@@ -277,9 +277,9 @@
     });
 
     // Initialt val: senast använda giltiga sektion. En ny session landar på
-    // Kalender, som är den gemensamma startytan för alla CCO-användare.
-    var initial = String(nav.getAttribute('data-default-section') || 'kalender').trim();
-    if (!urlFor(initial)) initial = 'kalender';
+    // live-Konversationer; segment med mock/stubbad data är fortfarande valbara.
+    var initial = String(nav.getAttribute('data-default-section') || 'konversationer').trim();
+    if (!urlFor(initial)) initial = 'konversationer';
     try {
       var saved = sessionStorage.getItem(STORE_KEY);
       if (saved && urlFor(saved)) initial = saved;

@@ -77,7 +77,7 @@ function runSubnavHarness({ saved = '', src = 'about:blank', liveUrl = 'about:bl
   const sectionKeys = ['konversationer', 'kunder', 'kalender', 'automatisering', 'analys'];
   const buttons = sectionKeys.map((key) => {
     const button = createElement({ 'data-cco-section': key, 'aria-selected': 'false' });
-    button.classList = createClassList(key === 'kalender' ? ['is-active'] : []);
+    button.classList = createClassList(key === 'konversationer' ? ['is-active'] : []);
     button.closest = (selector) => (selector === '[data-cco-section]' ? button : null);
     return button;
   });
@@ -85,12 +85,12 @@ function runSubnavHarness({ saved = '', src = 'about:blank', liveUrl = 'about:bl
   const frame = createElement({
     id: 'ccoPreviewEmbedFrame',
     src,
-    'data-src': '/kalender.html?embed=1',
+    'data-src': '/konversationer.html?v=test&embed=admin',
     'data-conversations-src': '/konversationer.html?v=test&embed=admin',
   });
   frame.contentWindow = { location: { href: liveUrl } };
 
-  const nav = createElement({ 'data-cco-subnav': '', 'data-default-section': 'kalender' });
+  const nav = createElement({ 'data-cco-subnav': '', 'data-default-section': 'konversationer' });
   nav.querySelectorAll = (selector) => (selector === '[data-cco-section]' ? buttons : []);
   nav.querySelector = () => null;
   nav.closest = (selector) => (selector === '#ccoWorkspaceSection' ? workspace : null);
@@ -202,8 +202,11 @@ test('admin#cco använder ett neutralt skal utan att byta befintliga målunderla
     'exakt en aktiv innehålls-iframe ska finnas'
   );
   assert.match(html, /\/admin\/cco-shell\.css\?v=__ARCANA_UI_BUILD__/);
-  assert.match(html, /data-default-section="kalender"/);
-  assert.match(html, /data-src="\/kalender\.html\?embed=1"/);
+  assert.match(html, /data-default-section="konversationer"/);
+  assert.match(
+    html,
+    /data-src="\/konversationer\.html\?v=__ARCANA_UI_BUILD__&amp;embed=admin"/
+  );
   assert.match(
     html,
     /data-conversations-src="\/konversationer\.html\?v=__ARCANA_UI_BUILD__&amp;embed=admin"/,
@@ -265,10 +268,13 @@ test('sparad Kunder eller Automatisering återställer både flik och redan star
   }
 });
 
-test('ny CCO-session startar på Kalender och alla huvudkategorier är klickbara', () => {
+test('ny CCO-session startar på live-Konversationer och alla huvudkategorier är klickbara', () => {
   const harness = runSubnavHarness();
-  assert.equal(activeSection(harness), 'kalender');
-  assert.equal(harness.frame.getAttribute('data-src'), '/kalender.html?embed=1');
+  assert.equal(activeSection(harness), 'konversationer');
+  assert.equal(
+    harness.frame.getAttribute('data-src'),
+    '/konversationer.html?v=test&embed=admin'
+  );
 
   const expectedRoutes = {
     konversationer: /\/konversationer\.html\?v=test&embed=admin$/,
