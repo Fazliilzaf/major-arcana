@@ -1208,6 +1208,81 @@
     return true;
   }
 
+  function findShellPatientRow(patientId) {
+    const key = normalizeText(patientId);
+    if (!key) return null;
+    return runtime.patients.find((row) => normalizeText(row?.patientId) === key) || null;
+  }
+
+  function hasActiveCustomerListFilter() {
+    return Boolean(
+      normalizeText(runtime.query) ||
+      normalizeText(runtime.segmentFilter) ||
+      normalizeText(runtime.flagFilter)
+    );
+  }
+
+  function isPatientExcludedFromActiveFilter(patientId) {
+    const key = normalizeText(patientId);
+    if (!key || !hasActiveCustomerListFilter()) return false;
+    if (findShellPatientRow(key)) return false;
+    if (runtime.offset !== 0) return false;
+    if (runtime.patients.length >= PAGE_SIZE) return false;
+    return true;
+  }
+
+  function closeV12WorkspaceOverlayIfOpen() {
+    const deep = document.querySelector('[data-v9-dossier-deep]:not([hidden])');
+    if (deep && typeof deep.__v12WorkspaceClose === 'function') {
+      deep.__v12WorkspaceClose();
+    }
+  }
+
+  function clearSelectedPatientForFilterMismatch(message) {
+    const previousId = normalizeText(runtime.selectedPatientId);
+    if (!previousId) return false;
+    closeV12WorkspaceOverlayIfOpen();
+    runtime.selectedPatientId = '';
+    runtime.detail = null;
+    runtime.detailLoading = false;
+    runtime.pendingPatientId = '';
+    try {
+      window.history.replaceState(
+        { ...(window.history.state || {}) },
+        '',
+        buildPatientDeepLink('')
+      );
+    } catch {
+      /* deep-link sync is best-effort */
+    }
+    renderDetailEmpty();
+    updatePatientRowSelection(previousId, '');
+    if (message) setStatus(message, 'info');
+    syncMobilePatientLayout();
+    return true;
+  }
+
+  function reconcileSelectedPatientWithFilteredList(options = {}) {
+    if (runtime.mode !== 'register') return { inList: true, cleared: false };
+    const patientId = normalizeText(runtime.selectedPatientId);
+    if (!patientId) return { inList: true, cleared: false };
+    if (runtime.loading && !runtime.loaded) {
+      return { inList: true, cleared: false, pending: true };
+    }
+    if (isPatientExcludedFromActiveFilter(patientId)) {
+      const reason = normalizeText(options.reason);
+      const message =
+        options.message ||
+        (reason === 'deep_link'
+          ? 'Djuplänkad kund finns inte i aktuellt urval.'
+          : 'Kunden finns inte i aktuellt urval.');
+      clearSelectedPatientForFilterMismatch(message);
+      return { inList: false, cleared: true };
+    }
+    refreshSelectedCustomerRailFromShell();
+    return { inList: true, cleared: false };
+  }
+
   window.addEventListener('arcana:customer-product-renderers-ready', () => {
     window.requestAnimationFrame(refreshFullCustomerProductWhenReady);
   });
@@ -1797,6 +1872,27 @@
       if (visitPrep && body.contains(visitPrep)) {
         event.preventDefault();
         openV12VisitPrep(body, ctx);
+        return;
+      }
+      const calBtn = event.target.closest('[data-kk-ord48-open-calendar]');
+      if (calBtn && body.contains(calBtn)) {
+        event.preventDefault();
+        if (calBtn.disabled || calBtn.getAttribute('aria-disabled') === 'true') return;
+        try {
+          const calUrl = new URL(window.location.href);
+          calUrl.searchParams.set('view', 'calendar');
+          calUrl.searchParams.set('v9', 'on');
+          const calPid =
+            calBtn.getAttribute('data-patient-id') ||
+            calBtn.getAttribute('data-kk-ord48-open-calendar') ||
+            '';
+          if (calPid) calUrl.searchParams.set('patientId', calPid);
+          window.location.href = calUrl.toString();
+        } catch (_calNav) {
+          window.location.href =
+            '/staff?view=calendar&v9=on&patientId=' +
+            encodeURIComponent(calBtn.getAttribute('data-patient-id') || '');
+        }
         return;
       }
       // CONTENT-CANON s7/s5: "Rita på bild" → öppna foto-editorn.
@@ -11798,7 +11894,15 @@
     }
     renderMetricCards();
     renderPatientRows();
-    refreshSelectedCustomerRailFromShell();
+    if (
+      deepLinkId &&
+      isPatientExcludedFromActiveFilter(deepLinkId) &&
+      normalizeText(runtime.selectedPatientId) === deepLinkId
+    ) {
+      clearSelectedPatientForFilterMismatch('Djuplänkad kund finns inte i aktuellt urval.');
+    } else {
+      reconcileSelectedPatientWithFilteredList();
+    }
   }
 
   const CUSTOMER_SEARCH_INPUT_SELECTOR =

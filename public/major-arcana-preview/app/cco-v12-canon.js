@@ -58,6 +58,33 @@
     return '<span class="chip ' + (CHIP[tone] || 'neutral') + '">' + esc(label) + '</span>';
   }
 
+  function telHref(phone) {
+    return String(phone == null ? '' : phone).replace(/[^\d+]/g, '');
+  }
+
+  function s1QuickActions(card) {
+    var phone = txt(card.primaryPhone || card.phone);
+    var email = txt(card.primaryEmail || card.email);
+    var pid = txt(card.patientId || card.id);
+    var parts = [];
+    if (phone) {
+      parts.push('<a class="quick-btn" href="tel:' + esc(telHref(phone)) + '">📞 Ring</a>');
+      parts.push('<a class="quick-btn" href="sms:' + esc(telHref(phone)) + '">💬 SMS</a>');
+    }
+    if (email) {
+      parts.push('<a class="quick-btn" href="mailto:' + esc(email) + '">✉️ Mejl</a>');
+    }
+    if (pid) {
+      parts.push(
+        '<button type="button" class="quick-btn" data-kk-ord48-open-calendar data-patient-id="' +
+          esc(pid) +
+          '">📅 Ny bokning</button>'
+      );
+    }
+    parts.push('<button type="button" class="quick-btn" data-v12-edit-open>✏️ Redigera</button>');
+    return parts.join('');
+  }
+
   /* ---------- 1 · NULÄGE ---------- */
   function s1(card, journey) {
     var name = txt(card.displayName || card.fullName || card.name) || 'Kund';
@@ -115,9 +142,7 @@
         : '') +
       (tags ? '<div class="s1-tags">' + tags + '</div>' : '') +
       '<div class="s1-quick">' +
-      '<button class="quick-btn">📞 Ring</button><button class="quick-btn">💬 SMS</button>' +
-      '<button class="quick-btn">✉️ Mejl</button><button class="quick-btn">📅 Ny bokning</button>' +
-      '<button class="quick-btn" data-v12-edit-open>✏️ Redigera</button>' +
+      s1QuickActions(card) +
       '</div></div>' +
       '<div class="s1-actions"><button class="btn-primary" data-v12-visit-prep>⚡ Förbered besök</button>' +
       '<button class="btn-edit">Åtgärder ▾</button></div>' +

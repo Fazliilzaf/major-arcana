@@ -263,6 +263,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  text-decoration: none;
 }
 .v12-canon .s1-actions {
   display: flex;
