@@ -8206,6 +8206,7 @@ async function buildWorklistConsumerContext({
   ccoCustomerStore = null,
   ccoConversationStateStore = null,
   ccoMailIngestionStore = null,
+  clientoBookingStore = null,
   customerState = null,
   mailboxIds = [],
   limit = 120,
@@ -8221,6 +8222,7 @@ async function buildWorklistConsumerContext({
     tenantId,
     conversationStateStore: ccoConversationStateStore,
     ingestionStore: ccoMailIngestionStore,
+    clientoBookingStore,
   });
   const truthContext = await buildWorklistTruthContext({
     tenantId,
@@ -9228,6 +9230,7 @@ function toCcoRuntimeWorklistConsumerHandler({
   ccoCustomerStore = null,
   ccoConversationStateStore = null,
   ccoMailIngestionStore = null,
+  clientoBookingStore = null,
 }) {
   return async (req, res) => {
     try {
@@ -9251,6 +9254,7 @@ function toCcoRuntimeWorklistConsumerHandler({
         ccoCustomerStore,
         ccoConversationStateStore,
         ccoMailIngestionStore,
+        clientoBookingStore,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
       });
@@ -9347,6 +9351,7 @@ function toCcoRuntimeWorklistConsumerReadoutHandler({
   ccoCustomerStore = null,
   ccoConversationStateStore = null,
   ccoMailIngestionStore = null,
+  clientoBookingStore = null,
 }) {
   return async (req, res) => {
     try {
@@ -9359,6 +9364,7 @@ function toCcoRuntimeWorklistConsumerReadoutHandler({
         ccoCustomerStore,
         ccoConversationStateStore,
         ccoMailIngestionStore,
+        clientoBookingStore,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
       });
@@ -9928,6 +9934,7 @@ function createCapabilitiesRouter({
         ccoCustomerStore,
         ccoConversationStateStore,
         ccoMailIngestionStore,
+        clientoBookingStore,
       })
     )
   );
@@ -9943,6 +9950,7 @@ function createCapabilitiesRouter({
         ccoCustomerStore,
         ccoConversationStateStore,
         ccoMailIngestionStore,
+        clientoBookingStore,
       })
     )
   );

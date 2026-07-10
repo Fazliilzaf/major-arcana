@@ -133,6 +133,18 @@ test('konversationer inbox tabs are explicit filters for live rows', () => {
   assert.match(html, /activeLane:\s*currentLane/);
 });
 
+test('konversationer derives booking chips from the local worklist booking context', () => {
+  const html = readHtml();
+
+  assert.match(html, /function formatBookingTag\(nextAt\)/);
+  assert.match(html, /timeZone:\s*'Europe\/Stockholm'/);
+  assert.match(html, /return 'Bok idag'/);
+  assert.match(html, /return 'Bok imorgon'/);
+  assert.match(html, /const bookingTag = formatBookingTag\(row\.booking\?\.nextAt\)/);
+  assert.match(html, /row\.booking\?\.nextAt \|\| String\(row\.lane \|\| ''\)\.includes\('book'\)/);
+  assert.match(html, /tags\.push\(\{ kind: 'vip', label: 'VIP' \}\);[\s\S]*tags\.push\(\{ kind: 'booking', label: bookingTag \}\);/);
+});
+
 test('konversationer live row opens real conversation messages endpoint', () => {
   const html = readHtml();
 
