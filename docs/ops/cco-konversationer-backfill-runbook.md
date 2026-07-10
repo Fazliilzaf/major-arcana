@@ -1,6 +1,6 @@
 # CCO Konversationer — backfill-runbook (Fas 1)
 
-Mål: historiska inkommande mail från Microsoft Graph (READ) fyller
+Mål: historiska inkommande och skickade mail från Microsoft Graph (READ) fyller
 Konversationer i `admin#cco`, via befintlig CCO-pipeline. Ingen live-send.
 
 ## Kedjan (Graph → UI)
@@ -58,8 +58,9 @@ ARCANA_MAILBOX=info@hairtpclinic.com node scripts/run-cco-conversations-backfill
 
 Skriptet kör fyra faser och skriver PASS/STOP + JSON-bevis:
 
-1. **Truth (inbox):** `history/status` → rundor av `history/backfill`
-   (enbart `inbox` — scope är inkommande mail) tills materialiserad.
+1. **Truth (inbox + sent):** `history/status` → rundor av `history/backfill`
+   tills både `inbox` och `sent` är materialiserade. Överstyr endast medvetet
+   via `ARCANA_BACKFILL_FOLDERS=inbox,sent` (eller annan tillåten folderlista).
 2. **Ingestion-backfill:** `POST /cco/mail-ingestion/backfill` —
    allowlist-gated, `mode` hårdlåst `read_only` i workern.
 3. **Jobbföljning:** `GET /cco/mail-ingestion/status` → fas + räkneverk
@@ -97,3 +98,16 @@ ingestion ger `saved=0 processed=0 duplicates=0` blir utfallet **STOP**.
 mailade till, senaste inkommande och needsReply. Tvetydiga kundmatchningar
 ligger i review-kön (`GET /api/v1/cco/mail-ingestion/review-queue`) och binds
 manuellt där — aldrig automatiskt.
+
+## Skicka från CCO och spegla i kons@
+
+För kundmail som ska ligga både i CCO och i `kons@` Skickat används Graph-kanalen
+från `kons@hairtpclinic.com`, inte Resend. Svar i en befintlig tråd använder
+originalets mailbox automatiskt; nytt mail väljer `kons@` som avsändare.
+
+Skarp sändning kräver `ARCANA_GRAPH_SEND_ENABLED=true`, en Graph-send-allowlist
+som innehåller `kons@hairtpclinic.com`, samt Graph-credentials med `Mail.Send`.
+Nya kompose-mail kräver dessutom `CCO_COMPOSE_SEND_LIVE=1`. Efter ett Graph-svar
+kör CCO en smal mailbox-sync, så kopian landar i den lokala CCO-tråden och i
+Outlook/Mac Mail. Resend används endast när avsändaren medvetet ska vara
+`no-reply` och är därför inte rätt kanal för vanlig konversationsmail.

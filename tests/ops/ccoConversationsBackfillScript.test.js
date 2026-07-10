@@ -10,11 +10,53 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  DEFAULT_FOLDER_TYPES,
+  resolveBackfillFolderTypes,
   inboxCoverage,
+  selectedFolderCoverage,
   pickBackfillJob,
   summarizeBackfillJob,
   summarizeWorklist,
 } = require('../../scripts/run-cco-conversations-backfill.js');
+
+test('backfill defaults to inbox and sent, with explicit safe folder overrides', () => {
+  assert.deepEqual(DEFAULT_FOLDER_TYPES, ['inbox', 'sent']);
+  assert.deepEqual(resolveBackfillFolderTypes(''), ['inbox', 'sent']);
+  assert.deepEqual(resolveBackfillFolderTypes('inbox, sent, inbox'), ['inbox', 'sent']);
+  assert.deepEqual(resolveBackfillFolderTypes('sent,deleted,unknown'), ['sent', 'deleted']);
+});
+
+test('selectedFolderCoverage requires a verified status for empty selected folders', () => {
+  const incomplete = selectedFolderCoverage({
+    mailboxes: [
+      {
+        folderCounts: [
+          { folderType: 'inbox', materializedMessageCount: 141, totalItemCount: 141 },
+          { folderType: 'sent', materializedMessageCount: 0, totalItemCount: 0 },
+        ],
+        folderStatuses: { inbox: 'VERIFIED', sent: 'NOT VERIFIED' },
+      },
+    ],
+  });
+  assert.equal(incomplete.complete, false);
+
+  const complete = selectedFolderCoverage({
+    mailboxes: [
+      {
+        folderCounts: [
+          { folderType: 'inbox', materializedMessageCount: 141, totalItemCount: 141 },
+          { folderType: 'sent', materializedMessageCount: 45, totalItemCount: 45 },
+        ],
+        folderStatuses: { inbox: 'VERIFIED', sent: 'VERIFIED' },
+      },
+    ],
+  });
+  assert.equal(complete.complete, true);
+  assert.deepEqual(
+    complete.folders.map((folder) => folder.folderType),
+    ['inbox', 'sent']
+  );
+});
 
 test('inboxCoverage tolkar history/status-svaret (komplett/inkomplett/tomt)', () => {
   const complete = inboxCoverage({

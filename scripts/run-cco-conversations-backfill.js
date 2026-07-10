@@ -3,9 +3,8 @@
 
 /* Konversationer Fas 1 — kör hela backfill-kedjan för EN brevlåda mot prod:
  *
- *   1. Truth-täckning (inbox): /cco/runtime/history/status
- *      → rundor av /cco/runtime/history/backfill tills inbox är materialiserad.
- *      (Scope = historiska INKOMMANDE mail → enbart inbox-foldern.)
+ *   1. Truth-täckning (inbox + sent): /cco/runtime/history/status
+ *      → rundor av /cco/runtime/history/backfill tills valda mappar är materialiserade.
  *   2. Ingestion-backfill: POST /cco/mail-ingestion/backfill (read-only,
  *      allowlist-gated; kedjar import + processning genom befintliga
  *      pipelinen: brusfilter/dedupe/kundmatchning/conflict-review/needsReply).
@@ -18,6 +17,7 @@
  * Env:
  *   ARCANA_PROD_URL   (default https://arcana.hairtpclinic.com — den riktiga ytan)
  *   ARCANA_MAILBOX    (default kons@hairtpclinic.com)
+ *   ARCANA_BACKFILL_FOLDERS (default inbox,sent)
  *   ARCANA_BACKFILL_MAX_ROUNDS / _MAX_PAGES / _PAGE_SIZE / _RETRY_MS
  *   ARCANA_INGEST_POLL_MS (default 15000) / ARCANA_INGEST_MAX_POLLS (default 240)
  *
@@ -39,6 +39,18 @@ const pageSize = Number(process.env.ARCANA_BACKFILL_PAGE_SIZE || 150);
 const retryDelayMs = Number(process.env.ARCANA_BACKFILL_RETRY_MS || 20000);
 const ingestPollMs = Number(process.env.ARCANA_INGEST_POLL_MS || 15000);
 const ingestMaxPolls = Number(process.env.ARCANA_INGEST_MAX_POLLS || 240);
+const DEFAULT_FOLDER_TYPES = Object.freeze(['inbox', 'sent']);
+
+function resolveBackfillFolderTypes(value = process.env.ARCANA_BACKFILL_FOLDERS) {
+  const allowed = new Set(['inbox', 'sent', 'drafts', 'deleted']);
+  const requested = String(value || '')
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => allowed.has(item));
+  return requested.length ? [...new Set(requested)] : [...DEFAULT_FOLDER_TYPES];
+}
+
+const backfillFolderTypes = resolveBackfillFolderTypes();
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -57,6 +69,36 @@ function inboxCoverage(coveragePayload) {
       Boolean(row) &&
       Number(row.totalItemCount || 0) > 0 &&
       Number(row.materializedMessageCount || 0) >= Number(row.totalItemCount || 0),
+  };
+}
+
+function selectedFolderCoverage(coveragePayload, folderTypes = DEFAULT_FOLDER_TYPES) {
+  const mailbox = coveragePayload?.mailboxes?.[0] || {};
+  const countsByFolder = new Map(
+    (Array.isArray(mailbox.folderCounts) ? mailbox.folderCounts : []).map((item) => [
+      item?.folderType,
+      item,
+    ])
+  );
+  const statuses = mailbox.folderStatuses && typeof mailbox.folderStatuses === 'object'
+    ? mailbox.folderStatuses
+    : {};
+  const folders = folderTypes.map((folderType) => {
+    const count = countsByFolder.get(folderType) || {};
+    const materialized = Number(count.materializedMessageCount || 0);
+    const total = Number(count.totalItemCount || 0);
+    const status = String(statuses[folderType] || '').trim().toUpperCase();
+    return {
+      folderType,
+      materialized,
+      total,
+      status: status || 'NOT VERIFIED',
+      complete: status === 'VERIFIED',
+    };
+  });
+  return {
+    folders,
+    complete: folders.length > 0 && folders.every((folder) => folder.complete),
   };
 }
 
@@ -291,20 +333,25 @@ async function resolveOwnerToken() {
   return token;
 }
 
-/* ── Fas 1: truth-inbox ── */
+/* ── Fas 1: truth för valda mailmappar ── */
 
-async function ensureInboxTruth(token) {
+async function ensureSelectedFolderTruth(token) {
   const coverage = await fetchJson(
     `/api/v1/cco/runtime/history/status?mailboxId=${encodeURIComponent(mailboxEmail)}`,
     { token }
   );
-  let inbox = inboxCoverage(coverage);
-  console.log(`[1/4] Truth inbox: ${inbox.materialized}/${inbox.total}`);
-  if (inbox.complete) return inbox;
+  let selected = selectedFolderCoverage(coverage, backfillFolderTypes);
+  console.log(
+    `[1/4] Truth ${backfillFolderTypes.join('+')}: ` +
+      selected.folders
+        .map((folder) => `${folder.folderType}=${folder.materialized}/${folder.total} (${folder.status})`)
+        .join(' · ')
+  );
+  if (selected.complete) return selected;
 
   let stopState = nextStopState(null, {});
   for (let round = 1; round <= maxRounds; round += 1) {
-    console.log(`  -- truth-runda ${round} (inbox) --`);
+    console.log(`  -- truth-runda ${round} (${backfillFolderTypes.join(',')}) --`);
     try {
       await fetchJson('/api/v1/cco/runtime/history/backfill', {
         method: 'POST',
@@ -315,7 +362,7 @@ async function ensureInboxTruth(token) {
           lookbackDays: 365,
           maxPagesPerFolder,
           pageSize,
-          folderTypes: ['inbox'],
+          folderTypes: backfillFolderTypes,
         },
       });
       stopState = nextStopState(stopState, {});
@@ -342,12 +389,19 @@ async function ensureInboxTruth(token) {
       `/api/v1/cco/runtime/history/status?mailboxId=${encodeURIComponent(mailboxEmail)}`,
       { token }
     );
-    inbox = inboxCoverage(after);
-    console.log(`  inbox: ${inbox.materialized}/${inbox.total}`);
-    if (inbox.complete) return inbox;
+    selected = selectedFolderCoverage(after, backfillFolderTypes);
+    console.log(
+      '  ' +
+        selected.folders
+          .map((folder) => `${folder.folderType}=${folder.materialized}/${folder.total} (${folder.status})`)
+          .join(' · ')
+    );
+    if (selected.complete) return selected;
     await sleep(5000);
   }
-  throw new Error('STOP: truth-backfill (inbox) nådde max rundor utan komplett täckning');
+  throw new Error(
+    `STOP: truth-backfill (${backfillFolderTypes.join(',')}) nådde max rundor utan komplett täckning`
+  );
 }
 
 /* ── Fas 2+3: ingestion-backfill + jobbföljning ── */
@@ -405,7 +459,7 @@ async function main() {
   const before = summarizeWorklist(await fetchWorklist(token));
   console.log(`[0/4] Worklist före: ${before.rowCount} trådar, needsReply=${before.needsReply}`);
 
-  await ensureInboxTruth(token);
+  await ensureSelectedFolderTruth(token);
   const jobSummary = await runIngestionBackfill(token);
 
   const afterPayload = await fetchWorklist(token);
@@ -456,7 +510,10 @@ if (require.main === module) {
 
 module.exports = {
   DEFAULT_PROD_URL,
+  DEFAULT_FOLDER_TYPES,
+  resolveBackfillFolderTypes,
   inboxCoverage,
+  selectedFolderCoverage,
   pickBackfillJob,
   summarizeBackfillJob,
   summarizeWorklist,

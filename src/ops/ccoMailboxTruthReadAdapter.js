@@ -362,6 +362,7 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
           messageCount,
           completenessStatus: normalizeText(account.accountStatus) || 'NOT VERIFIED',
         },
+        folderStatuses: folderStatuses,
         coverage: {
           source: 'mailbox_truth_store',
           missingWindowCount: missingFolders.length,
