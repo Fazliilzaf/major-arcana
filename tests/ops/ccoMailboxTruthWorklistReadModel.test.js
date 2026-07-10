@@ -622,6 +622,67 @@ test('buildConsumerModel row-shape: nested preview/timing/state/mailbox/customer
   assert.equal(row.evidenceComplete, true);
 });
 
+test('buildConsumerModel exposes the nearest active local booking without a network lookup', () => {
+  const bookingCalls = [];
+  const model = createCcoMailboxTruthWorklistReadModel({
+    tenantId: 'cco',
+    clientoBookingStore: {
+      getBookingsForCustomer({ tenantId, customerEmail }) {
+        bookingCalls.push({ tenantId, customerEmail });
+        return [
+          {
+            bookingId: 'cancelled-first',
+            startsAt: '2099-01-01T08:00:00.000Z',
+            status: 'cancelled',
+          },
+          {
+            bookingId: 'next',
+            startsAt: '2099-01-02T09:30:00.000Z',
+            status: 'upcoming',
+            serviceLabel: 'PRP',
+            staffName: 'Egzona',
+          },
+          {
+            bookingId: 'later',
+            startsAt: '2099-01-03T09:30:00.000Z',
+            status: 'upcoming',
+          },
+        ];
+      },
+    },
+    store: {
+      listMessages() {
+        return [
+          {
+            mailboxId: 'kons@hairtpclinic.com',
+            mailboxAddress: 'kons@hairtpclinic.com',
+            mailboxConversationId: 'kons@hairtpclinic.com:booking-chip',
+            conversationId: 'booking-chip',
+            graphMessageId: 'booking-chip-message',
+            folderType: 'inbox',
+            direction: 'inbound',
+            isRead: false,
+            subject: 'Fraga om PRP',
+            bodyPreview: 'Hej',
+            from: { address: 'patient@example.com', name: 'Patient' },
+            receivedAt: '2098-12-31T10:00:00.000Z',
+          },
+        ];
+      },
+    },
+  });
+
+  const consumer = model.buildConsumerModel({ mailboxIds: ['kons@hairtpclinic.com'] });
+  assert.equal(consumer.rows.length, 1);
+  assert.deepEqual(consumer.rows[0].booking, {
+    nextAt: '2099-01-02T09:30:00.000Z',
+    serviceLabel: 'PRP',
+    staffName: 'Egzona',
+    status: 'upcoming',
+  });
+  assert.deepEqual(bookingCalls, [{ tenantId: 'cco', customerEmail: 'patient@example.com' }]);
+});
+
 test('resolveWorklistEvidenceFields prefers nested consumer evidence over stale flat fallbacks', () => {
   const evidence = resolveWorklistEvidenceFields({
     id: 'legacy-row-id',

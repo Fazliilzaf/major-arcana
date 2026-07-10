@@ -29,6 +29,51 @@ function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+function buildConsumerBookingContext({
+  clientoBookingStore = null,
+  tenantId = '',
+  customerEmail = '',
+  nowMs = Date.now(),
+} = {}) {
+  if (
+    !clientoBookingStore ||
+    typeof clientoBookingStore.getBookingsForCustomer !== 'function' ||
+    !normalizeText(tenantId) ||
+    !normalizeText(customerEmail)
+  ) {
+    return null;
+  }
+
+  const nextBooking = asArray(
+    clientoBookingStore.getBookingsForCustomer({
+      tenantId,
+      customerEmail,
+    })
+  )
+    .map((booking) => asObject(booking))
+    .filter((booking) => {
+      const startsAtMs = Date.parse(normalizeText(booking.startsAt));
+      const status = normalizeText(booking.status).toLowerCase();
+      return (
+        Number.isFinite(startsAtMs) &&
+        startsAtMs > nowMs &&
+        !['cancelled', 'no_show', 'completed'].includes(status)
+      );
+    })
+    .sort(
+      (left, right) =>
+        Date.parse(normalizeText(left.startsAt)) - Date.parse(normalizeText(right.startsAt))
+    )[0];
+
+  if (!nextBooking) return null;
+  return {
+    nextAt: normalizeText(nextBooking.startsAt),
+    serviceLabel: normalizeText(nextBooking.serviceLabel || nextBooking.service) || null,
+    staffName: normalizeText(nextBooking.staffName || nextBooking.staff) || null,
+    status: normalizeText(nextBooking.status) || 'upcoming',
+  };
+}
+
 function cloneJson(value) {
   return value && typeof value === 'object' ? JSON.parse(JSON.stringify(value)) : value;
 }
@@ -1093,6 +1138,7 @@ function createCcoMailboxTruthWorklistReadModel({
   tenantId = '',
   conversationStateStore = null,
   ingestionStore = null,
+  clientoBookingStore = null,
 } = {}) {
   if (!store || typeof store.listMessages !== 'function') {
     return null;
@@ -1453,6 +1499,22 @@ function createCcoMailboxTruthWorklistReadModel({
       const followUpIso = normalizeText(row.operatorState?.followUpDueAt || '');
       return followUpIso && getCalendarDayBucket(followUpIso, 'Europe/Stockholm') === 'tomorrow';
     }).length;
+    const bookingContextByCustomerEmail = new Map();
+    const bookingContextFor = (customerEmail) => {
+      const key = normalizeLookupKey(customerEmail);
+      if (!key) return null;
+      if (!bookingContextByCustomerEmail.has(key)) {
+        bookingContextByCustomerEmail.set(
+          key,
+          buildConsumerBookingContext({
+            clientoBookingStore,
+            tenantId,
+            customerEmail: key,
+          })
+        );
+      }
+      return bookingContextByCustomerEmail.get(key);
+    };
     return {
       generatedAt: new Date().toISOString(),
       source: 'mailbox_truth_worklist_consumer',
@@ -1487,6 +1549,7 @@ function createCcoMailboxTruthWorklistReadModel({
       rows: rollupRows.map((row) => {
         const inlineContext = buildQueueInlineContext(row);
         const explanatoryLine = buildQueueExplanatoryLine(row);
+        const booking = bookingContextFor(row.customerEmail);
         const consumerRow = {
           id: row.conversationKey,
           lane: row.lane || 'all',
@@ -1520,6 +1583,7 @@ function createCcoMailboxTruthWorklistReadModel({
           mergeReviewDecisionsByPairId: row.mergeReviewDecisionsByPairId,
           identityProvenance: row.identityProvenance,
           rollup: row.rollup,
+          booking,
           queueInlineContext: inlineContext || null,
           queueExplanatoryLine: explanatoryLine || null,
           presentation: {
