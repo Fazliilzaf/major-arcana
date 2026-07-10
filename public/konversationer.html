@@ -158,6 +158,26 @@
       html.is-admin-cco-content .top-nav > a {
         display: none;
       }
+      @media (min-width: 960px) {
+        html.is-admin-cco-content .top-nav {
+          /* Host-skalets Konversationer-baserade nav ligger i samma visuella
+             rad. Utrymmet till vänster hindrar status/sök från att överlappa. */
+          min-height: 46px;
+          box-sizing: border-box;
+          padding-left: 660px;
+        }
+        html.is-admin-cco-content .global-search {
+          min-width: 180px;
+        }
+      }
+      @media (min-width: 960px) and (max-width: 1500px) {
+        html.is-admin-cco-content .risk-badge-row {
+          display: none;
+        }
+        html.is-admin-cco-content .global-search {
+          margin-left: auto;
+        }
+      }
 
       .app-grid {
         display: grid;
