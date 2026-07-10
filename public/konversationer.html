@@ -4,6 +4,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>CCO · Konversationer</title>
+    <script>
+      (function markAdminCcoEmbed() {
+        try {
+          if (new URLSearchParams(window.location.search).get('embed') === 'admin') {
+            document.documentElement.classList.add('is-admin-cco-content');
+          }
+        } catch (_error) {
+          /* standalone fallback */
+        }
+      })();
+    </script>
     <style>
       :root {
         --cco-bg-page: #faf6f2;
@@ -133,6 +144,19 @@
       }
       .global-search input::placeholder {
         color: var(--cco-text-tertiary);
+      }
+
+      html.is-admin-cco-content,
+      html.is-admin-cco-content body {
+        height: 100%;
+        overflow: hidden;
+      }
+      html.is-admin-cco-content body {
+        padding: 14px;
+      }
+      html.is-admin-cco-content .top-nav > .brand,
+      html.is-admin-cco-content .top-nav > a {
+        display: none;
       }
 
       .app-grid {
