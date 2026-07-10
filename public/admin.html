@@ -2524,11 +2524,18 @@
         <section
           id="ccoWorkspaceSection"
           data-section-group="ccoWorkspaceSection"
+          data-cco-active-section="konversationer"
           class="cco-preview-embed-section"
           hidden
           aria-hidden="true"
         >
-          <div class="cco-subnav" data-cco-subnav role="tablist" aria-label="CCO-sektioner">
+          <div
+            class="cco-subnav"
+            data-cco-subnav
+            data-default-section="konversationer"
+            role="tablist"
+            aria-label="CCO-sektioner"
+          >
             <span class="cco-subnav-kicker">CCO</span>
             <button
               class="cco-subnav-btn is-active"
@@ -2606,6 +2613,7 @@
               class="cco-preview-embed-frame"
               aria-label="HairTP Clinic CCO — Konversationer"
               data-src="/konversationer.html?v=__ARCANA_UI_BUILD__&amp;embed=admin"
+              data-conversations-src="/konversationer.html?v=__ARCANA_UI_BUILD__&amp;embed=admin"
               src="about:blank"
               loading="eager"
               referrerpolicy="same-origin"
