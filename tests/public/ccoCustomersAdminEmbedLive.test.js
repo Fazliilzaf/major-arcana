@@ -15,6 +15,9 @@ test('kundregistret renderar snabb listfas före berikad översikt', () => {
   assert.match(source, /initialParams\.set\('phase', 'list'\)/);
   assert.match(source, /applyCustomerShellPayload\(initialPayload/);
   assert.match(source, /Kundregistret laddat\. Uppdaterar översikten/);
+  assert.match(source, /runtime\.enriching = true/);
+  assert.match(source, /payload\.enrichmentPending === true/);
+  assert.match(source, /data-v9-segment-enrichment-loading/);
   assert.match(source, /timeoutMs: 12_000/);
   assert.match(source, /timeoutMs: 20_000/);
   assert.match(source, /Översikten kunde inte uppdateras just nu/);

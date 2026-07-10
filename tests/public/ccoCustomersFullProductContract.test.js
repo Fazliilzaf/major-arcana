@@ -71,3 +71,13 @@ test('enriched customers-shell uppdaterar V11/V12-rail för vald kund', () => {
     /renderMetricCards\(\);\s*\n\s*renderPatientRows\(\);\s*\n\s*refreshSelectedCustomerRailFromShell\(\)/
   );
 });
+
+test('listfas visar segment/insikts-placeholder tills enriched customers-shell landar', () => {
+  assert.match(ui, /function isCustomerShellEnrichmentPending\(\)/);
+  assert.match(ui, /function isCustomerSegmentEnrichmentPending\(segmentStats\)/);
+  assert.match(ui, /payload\.enrichmentPending === true/);
+  assert.match(ui, /data-v9-segment-enrichment-loading/);
+  assert.match(ui, /Uppdaterar segment och insikter/);
+  assert.match(ui, /Uppdaterar insikter/);
+  assert.match(ui, /isCustomerSegmentEnrichmentPending\(segmentStats\)/);
+});

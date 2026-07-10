@@ -2997,6 +2997,10 @@
 
   function renderV9AggInsights(segmentStats) {
     if (!isV9CustomersEnabled() || !els.v9AggInsights) return;
+    if (isCustomerSegmentEnrichmentPending(segmentStats)) {
+      setV9AggInsightsLoadingState();
+      return;
+    }
     const agg = segmentStats?.aggInsights;
     if (!agg) {
       setV9AggInsightBody('idag', 'Data saknas.');
@@ -3096,6 +3100,28 @@
     }
   }
 
+  function isCustomerShellEnrichmentPending() {
+    return Boolean(runtime.enriching);
+  }
+
+  function isCustomerSegmentEnrichmentPending(segmentStats) {
+    return isCustomerShellEnrichmentPending() && !Array.isArray(segmentStats?.segments);
+  }
+
+  const V9_SEGMENT_ENRICHMENT_LOADING_COPY = 'Uppdaterar segment och insikter…';
+
+  function renderV9SegmentEnrichmentLoadingHtml(message = V9_SEGMENT_ENRICHMENT_LOADING_COPY) {
+    return `<p class="v9-segment-sidebar-loading" data-v9-segment-enrichment-loading="1">${escapeHtml(message)}</p>`;
+  }
+
+  function setV9AggInsightsLoadingState() {
+    const loading = 'Uppdaterar insikter…';
+    setV9AggInsightBody('idag', loading);
+    setV9AggInsightBody('opp', loading);
+    setV9AggInsightBody('trend', loading);
+    setV9AggInsightBody('risk', loading);
+  }
+
   function resolveV9AggregateStats(stats, segmentStats) {
     const panel = segmentStats?.panel || {};
     const counts = segmentStats?.counts || runtime.segmentTotals || {};
@@ -3124,6 +3150,28 @@
   }
 
   function buildV9AggregateInsightRows(segmentStats) {
+    if (isCustomerSegmentEnrichmentPending(segmentStats)) {
+      return [
+        {
+          key: '',
+          html: V9_SEGMENT_ENRICHMENT_LOADING_COPY,
+          empty: true,
+          loading: true,
+        },
+        {
+          key: '',
+          html: 'Väntar på berikad översikt…',
+          empty: true,
+          loading: true,
+        },
+        {
+          key: '',
+          html: 'Uppdaterar insikter…',
+          empty: true,
+          loading: true,
+        },
+      ];
+    }
     const agg = segmentStats?.aggInsights;
     const rows = [];
     const push = (key, html) => {
@@ -3189,6 +3237,16 @@
   function renderV9PopulationChartHtml(segmentStats, stats) {
     const v10Facit = usesV10KundkortFacit();
     const chartTitle = v10Facit ? 'Intäkt / vecka' : 'Kundpopulation (master)';
+    if (isCustomerSegmentEnrichmentPending(segmentStats)) {
+      return `
+        <div class="agg-chart agg-chart--empty" data-v9-segment-enrichment-loading="1">
+          <div class="agg-chart-head">
+            <span class="agg-chart-title">${escapeHtml(chartTitle)}</span>
+            <span class="agg-chart-value">…</span>
+          </div>
+          <p class="patient-master-muted agg-chart-empty">Uppdaterar översikt…</p>
+        </div>`;
+    }
     const panel = segmentStats?.panel || {};
     const total = Number(stats?.totalPatients ?? panel.totalPatients ?? 0);
     const totalRevenue = Number(stats?.totalRevenue ?? stats?.revenueTotal ?? 0);
@@ -3425,18 +3483,24 @@
   function renderV9AggregatePanelHtml() {
     const stats = runtime.stats || {};
     const segmentStats = runtime.segmentStats;
+    const segmentPending = isCustomerSegmentEnrichmentPending(segmentStats);
     const { total, active, vip, newN, trend } = resolveV9AggregateStats(stats, segmentStats);
-    const totalTrend =
-      newN > 0
+    const totalTrend = segmentPending
+      ? 'Uppdaterar…'
+      : newN > 0
         ? `+${formatMetricNumber(newN)} nya i register`
         : trend?.pctChange != null && !trend?.disabled
           ? `${trend.pctChange > 0 ? '+' : ''}${formatMetricNumber(trend.pctChange)}% besök 4 v`
           : '—';
-    const activeTrend = active > 0 ? 'Aktiva i register' : '—';
-    const vipTrend = vip > 0 ? 'VIP-segment' : '—';
-    const ltv = resolveV9AggregateLtv(stats, segmentStats);
+    const activeTrend = segmentPending ? 'Uppdaterar…' : active > 0 ? 'Aktiva i register' : '—';
+    const vipTrend = segmentPending ? 'Uppdaterar…' : vip > 0 ? 'VIP-segment' : '—';
+    const ltv = segmentPending
+      ? { value: '…', trend: 'Uppdaterar…', hasData: false }
+      : resolveV9AggregateLtv(stats, segmentStats);
     const insightRows = buildV9AggregateInsightRows(segmentStats);
     const aiKicker = usesV10KundkortFacit() ? 'Veckans insikter' : 'Veckans läge';
+    const activeValue = segmentPending ? '…' : formatMetricNumber(active);
+    const vipValue = segmentPending ? '…' : formatMetricNumber(vip);
 
     return `
       <section class="patient-master-card v9-aggregate-panel" data-v9-aggregate-panel>
@@ -3453,12 +3517,12 @@
             </div>
             <div class="agg-stat">
               <div class="agg-stat-label">Aktiva</div>
-              <div class="agg-stat-value">${escapeHtml(formatMetricNumber(active))}</div>
+              <div class="agg-stat-value">${escapeHtml(activeValue)}</div>
               <div class="agg-stat-trend">${escapeHtml(activeTrend)}</div>
             </div>
             <div class="agg-stat">
               <div class="agg-stat-label">VIP</div>
-              <div class="agg-stat-value">${escapeHtml(formatMetricNumber(vip))}</div>
+              <div class="agg-stat-value">${escapeHtml(vipValue)}</div>
               <div class="agg-stat-trend">${escapeHtml(vipTrend)}</div>
             </div>
             <div class="agg-stat">
@@ -3664,6 +3728,11 @@
 
   function renderV9SegmentSidebar(segmentStats, stats) {
     if (!isV9CustomersEnabled() || !els.v9Sidebar) return;
+    if (isCustomerSegmentEnrichmentPending(segmentStats)) {
+      els.v9Sidebar.dataset.renderKey = 'enrichment-pending';
+      els.v9Sidebar.innerHTML = renderV9SegmentEnrichmentLoadingHtml();
+      return;
+    }
     if (Array.isArray(segmentStats?.segments)) {
       runtime.segments = mergeSegmentsFromApi(segmentStats.segments);
     } else if (!runtime.segments.length) {
@@ -3833,6 +3902,18 @@
   function renderV9FilterChips(stats, segmentStats) {
     if (!isV9CustomersEnabled() || !els.v9Filters) return;
     if (!stats && !segmentStats) return;
+    if (isCustomerSegmentEnrichmentPending(segmentStats)) {
+      els.v9Filters.querySelectorAll('[data-v9-filter-count]').forEach((node) => {
+        const key = normalizeText(node.dataset.v9FilterCount);
+        if (key === 'all' && stats?.totalPatients != null) {
+          node.textContent = formatV9ZeroCount(stats.totalPatients, { allowZero: true });
+          return;
+        }
+        node.textContent = '…';
+      });
+      syncV9FilterChipsActive();
+      return;
+    }
     const countMap = resolveV9FilterChipCounts(stats, segmentStats);
     els.v9Filters.querySelectorAll('[data-v9-filter-count]').forEach((node) => {
       const key = normalizeText(node.dataset.v9FilterCount);
@@ -3943,23 +4024,33 @@
       review: (n) => `${formatMetricNumber(n)} behöver granskning`,
       drive: (n) => `${formatMetricNumber(n)} endast Drive`,
     };
+    const segmentMetricKeys = new Set(['active', 'vip', 'risk', 'new', 'dormant']);
+    const segmentPending = isCustomerSegmentEnrichmentPending(segmentStats);
     els.v9Header.querySelectorAll('[data-v9-metric]').forEach((pill) => {
       const key = pill.dataset.v9Metric;
       const textNode = pill.querySelector('[data-v9-metric-text]');
       if (!textNode || !Object.prototype.hasOwnProperty.call(mapping, key)) return;
+      if (segmentPending && segmentMetricKeys.has(key)) {
+        textNode.textContent = 'Uppdaterar…';
+        return;
+      }
       const value = mapping[key];
       textNode.textContent = labels[key](value ?? 0);
     });
     // Snitt LTV (read-only, "—" om data saknas)
     const ltvNode = els.v9Header.querySelector('[data-v9-snitt-ltv-value]');
     if (ltvNode) {
-      const totalRevenue = Number(stats.totalRevenue ?? stats.revenueTotal ?? 0);
-      const totalCustomers = Number(stats.totalPatients ?? 0);
-      if (totalRevenue > 0 && totalCustomers > 0) {
-        const avg = Math.round(totalRevenue / totalCustomers);
-        ltvNode.textContent = `${formatMetricNumber(avg)} kr`;
+      if (segmentPending) {
+        ltvNode.textContent = '…';
       } else {
-        ltvNode.textContent = '—';
+        const totalRevenue = Number(stats.totalRevenue ?? stats.revenueTotal ?? 0);
+        const totalCustomers = Number(stats.totalPatients ?? 0);
+        if (totalRevenue > 0 && totalCustomers > 0) {
+          const avg = Math.round(totalRevenue / totalCustomers);
+          ltvNode.textContent = `${formatMetricNumber(avg)} kr`;
+        } else {
+          ltvNode.textContent = '—';
+        }
       }
     }
   }
@@ -11534,7 +11625,14 @@
       : Number(patientsPayload.total || batch.length);
     runtime.patients = append ? runtime.patients.concat(batch) : batch;
     if (payload.stats) runtime.stats = payload.stats;
-    if (payload.segmentStats) runtime.segmentStats = payload.segmentStats;
+    if (payload.enrichmentPending === true) {
+      runtime.segmentStats = null;
+      runtime.segments = [];
+      runtime.automation = null;
+      if (els.v9Sidebar) delete els.v9Sidebar.dataset.renderKey;
+    } else if (payload.segmentStats) {
+      runtime.segmentStats = payload.segmentStats;
+    }
     if (payload.automation) runtime.automation = payload.automation;
     if (payload.staffOwnership) {
       runtime.staffOwnership = payload.staffOwnership;
