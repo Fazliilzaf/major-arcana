@@ -95,6 +95,10 @@ const CCO_ANALYZE_HISTORY_SIGNAL_LOOKBACK_DAYS = 365;
 const CCO_ANALYZE_HISTORY_SIGNAL_RECENT_WINDOW_DAYS = 45;
 const ANALYZE_INBOX_GRAPH_SNAPSHOT_CACHE_TTL_MS = 45000;
 const WORKLIST_CONSUMER_RESPONSE_CACHE_TTL_MS = 300000;
+// The operator surface is intentionally mailbox-scoped. A broad multi-mailbox
+// sweep materializes and groups every stored message in each shard on Node's
+// event loop, which can starve /readyz on a busy production instance.
+const CCO_RUNTIME_WORKLIST_MAX_MAILBOX_IDS = 2;
 const ANALYZE_INBOX_HISTORY_IO_CONCURRENCY = 2;
 const analyzeInboxGraphSnapshotCache = new Map();
 const worklistConsumerResponseCache = new Map();
@@ -8210,11 +8214,19 @@ async function buildWorklistConsumerContext({
   customerState = null,
   mailboxIds = [],
   limit = 120,
+  includeDiagnostics = false,
 } = {}) {
   const resolvedCustomerState = await resolveWorklistCustomerState({
     tenantId,
     customerState,
     ccoCustomerStore,
+  });
+  // The live operator endpoint only needs the consumer model. The shadow
+  // comparison walks the same truth corpus again and belongs to the explicit
+  // readout, not every inbox refresh.
+  await preloadMailboxTruthStoreForWorklist({
+    ccoMailboxTruthStore,
+    mailboxIds,
   });
   const worklistReadModel = createCcoMailboxTruthWorklistReadModel({
     store: ccoMailboxTruthStore,
@@ -8224,16 +8236,25 @@ async function buildWorklistConsumerContext({
     ingestionStore: ccoMailIngestionStore,
     clientoBookingStore,
   });
-  const truthContext = await buildWorklistTruthContext({
-    tenantId,
-    capabilityAnalysisStore,
-    ccoMailboxTruthStore,
-    ccoCustomerStore,
-    ccoConversationStateStore,
-    customerState: resolvedCustomerState,
-    mailboxIds,
-    limit,
-  });
+  const diagnostics = includeDiagnostics
+    ? await buildWorklistShadowContext({
+        tenantId,
+        capabilityAnalysisStore,
+        ccoMailboxTruthStore,
+        ccoCustomerStore,
+        customerState: resolvedCustomerState,
+        mailboxIds,
+        limit,
+      })
+    : null;
+  const truthCoverage =
+    ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
+      ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds })
+      : null;
+  const deltaCoverage =
+    ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getDeltaSyncReport === 'function'
+      ? ccoMailboxTruthStore.getDeltaSyncReport({ mailboxIds })
+      : null;
 
   return {
     consumerModel: worklistReadModel
@@ -8242,15 +8263,15 @@ async function buildWorklistConsumerContext({
           limit,
         })
       : null,
-    latestEntry: truthContext.latestEntry,
-    latestObservedEntry: truthContext.latestObservedEntry,
-    latestOutputData: truthContext.latestOutputData,
-    baselineSelection: truthContext.baselineSelection,
-    truthCoverage: truthContext.truthCoverage,
-    deltaCoverage: truthContext.deltaCoverage,
-    shadowDiffReport: truthContext.shadowDiffReport,
+    latestEntry: diagnostics?.latestEntry || null,
+    latestObservedEntry: diagnostics?.latestObservedEntry || null,
+    latestOutputData: diagnostics?.latestOutputData || null,
+    baselineSelection: diagnostics?.baselineSelection || null,
+    truthCoverage,
+    deltaCoverage,
+    shadowDiffReport: diagnostics?.diffReport || null,
     parityBaseline: buildWorklistConsumerParityBaseline({
-      shadowDiffReport: truthContext.shadowDiffReport,
+      shadowDiffReport: diagnostics?.diffReport || null,
       mailboxIds,
     }),
   };
@@ -9236,6 +9257,16 @@ function toCcoRuntimeWorklistConsumerHandler({
     try {
       const tenantId = toTenantId(req);
       const query = toCcoRuntimeWorklistShadowQuery(req.query);
+      if (query.mailboxIds.length > CCO_RUNTIME_WORKLIST_MAX_MAILBOX_IDS) {
+        return res.status(422).json({
+          ok: false,
+          error: 'worklist_scope_too_broad',
+          detail:
+            'CCO-worklisten laddas en eller två mailboxar i taget. Välj mailbox i arbetsytan och försök igen.',
+          maxMailboxIds: CCO_RUNTIME_WORKLIST_MAX_MAILBOX_IDS,
+          requestedMailboxIds: query.mailboxIds,
+        });
+      }
       const responseCacheKey = buildWorklistConsumerResponseCacheKey({
         tenantId,
         mailboxIds: query.mailboxIds,
@@ -9294,7 +9325,7 @@ function toCcoRuntimeWorklistConsumerHandler({
           mode: 'limited',
           legacyUiDriving: true,
           cutoverState: 'not_allowed',
-          shadowGuardrail: 'required',
+          shadowGuardrail: 'readout_only',
         },
         readiness: {
           canStartLimitedConsumerExposure:
@@ -9367,6 +9398,7 @@ function toCcoRuntimeWorklistConsumerReadoutHandler({
         clientoBookingStore,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
+        includeDiagnostics: true,
       });
       if (!context.consumerModel) {
         return res.status(503).send(escapeHtml('Worklist consumer-preview kunde inte byggas.'));

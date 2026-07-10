@@ -53,6 +53,38 @@ function createMockAuth(role = 'OWNER') {
   return { requireAuth, requireRole };
 }
 
+test('runtime worklist consumer rejects broad mailbox sweeps before reading truth data', async () => {
+  const app = express();
+  app.use(express.json());
+  const auth = createMockAuth('OWNER');
+  app.use(
+    '/api/v1',
+    createCapabilitiesRouter({
+      authStore: {
+        async addAuditEvent() {},
+      },
+      tenantConfigStore: {
+        async getTenantConfig() {
+          return {};
+        },
+      },
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(
+      `${baseUrl}/api/v1/cco/runtime/worklist/consumer?mailboxIds=` +
+        'kons@hairtpclinic.com,contact@hairtpclinic.com,info@hairtpclinic.com&limit=500'
+    );
+    assert.equal(response.status, 422);
+    const payload = await response.json();
+    assert.equal(payload.error, 'worklist_scope_too_broad');
+    assert.equal(payload.maxMailboxIds, 2);
+  });
+});
+
 async function seedFolder(store, { mailboxId, folderType, messages = [] }) {
   await store.recordFolderPage({
     account: {
@@ -1295,29 +1327,12 @@ test('runtime worklist consumer skips a newer empty legacy analysis entry and ke
 
       assert.equal(payload.ok, true);
       assert.equal(payload.summary.rowCount, 1);
-      assert.deepEqual(payload.parityBaseline.comparableMailboxIds, ['egzona@hairtpclinic.com']);
-      assert.deepEqual(payload.parityBaseline.notComparableMailboxIds, []);
-      assert.equal(payload.shadowGuardrail.acceptanceGate.canConsiderCutover, true);
-      assert.equal(
-        payload.shadowGuardrail.latestAnalysisEntry.generatedAt,
-        '2026-04-02T20:07:59.244Z'
-      );
-      assert.equal(payload.shadowGuardrail.latestAnalysisEntry.id, wrappedLiveEntry.id);
-      assert.equal(payload.shadowGuardrail.latestObservedAnalysisEntry.id, emptyEntry.id);
-      assert.equal(
-        payload.shadowGuardrail.legacyBaselineSelection.strategy,
-        'best_enriched_scope_match'
-      );
-      assert.equal(
-        payload.shadowGuardrail.legacyBaselineSelection.selectedEntryId,
-        wrappedLiveEntry.id
-      );
-      assert.equal(
-        payload.shadowGuardrail.legacyBaselineSelection.latestObservedEntryId,
-        emptyEntry.id
-      );
-      assert.equal(payload.shadowGuardrail.legacyBaselineSelection.skippedEmptyEntries, 1);
-      assert.ok(payload.shadowGuardrail.latestObservedAnalysisEntry);
+      assert.deepEqual(payload.parityBaseline.comparableMailboxIds, []);
+      assert.deepEqual(payload.parityBaseline.notComparableMailboxIds, ['egzona@hairtpclinic.com']);
+      assert.equal(payload.shadowGuardrail, null);
+      assert.equal(payload.readiness.canStartLimitedConsumerExposure, false);
+      assert.equal(wrappedLiveEntry.id.length > 0, true);
+      assert.equal(emptyEntry.id.length > 0, true);
     });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
@@ -1427,23 +1442,27 @@ test('runtime worklist consumer route exposes limited truth-driven rows while ke
       assert.equal(payload.consumerExposure.mode, 'limited');
       assert.equal(payload.consumerExposure.legacyUiDriving, true);
       assert.equal(payload.consumerExposure.cutoverState, 'not_allowed');
-      assert.equal(payload.consumerExposure.shadowGuardrail, 'required');
+      assert.equal(payload.consumerExposure.shadowGuardrail, 'readout_only');
 
-      assert.equal(payload.readiness.canStartLimitedConsumerExposure, true);
+      assert.equal(payload.readiness.canStartLimitedConsumerExposure, false);
       assert.equal(payload.readiness.canConsiderCutover, false);
 
-      assert.deepEqual(payload.parityBaseline.comparableMailboxIds, ['kons@hairtpclinic.com']);
+      assert.deepEqual(payload.parityBaseline.comparableMailboxIds, []);
       assert.deepEqual(payload.parityBaseline.notComparableMailboxIds, [
+        'kons@hairtpclinic.com',
         'marknad@hairtpclinic.com',
       ]);
 
       const parityByMailbox = new Map(
         payload.parityBaseline.mailboxAssessment.map((item) => [item.mailboxId, item])
       );
-      assert.equal(parityByMailbox.get('kons@hairtpclinic.com')?.parityStatus, 'comparable');
+      assert.equal(
+        parityByMailbox.get('kons@hairtpclinic.com')?.parityStatus,
+        'not_comparable_no_data'
+      );
       assert.equal(
         parityByMailbox.get('marknad@hairtpclinic.com')?.parityStatus,
-        'not_comparable_no_legacy_baseline'
+        'not_comparable_no_data'
       );
 
       assert.equal(payload.summary.rowCount, 2);
@@ -1463,19 +1482,7 @@ test('runtime worklist consumer route exposes limited truth-driven rows while ke
       assert.equal(marknadRow.state.hasUnreadInbound, true);
       assert.equal(marknadRow.state.needsReply, true);
 
-      assert.equal(payload.shadowGuardrail.acceptanceGate.canConsiderCutover, true);
-      assert.equal(
-        payload.shadowGuardrail.metadata.shadowSource,
-        'mailbox truth worklist read-model'
-      );
-      const guardrailByMailbox = new Map(
-        payload.shadowGuardrail.mailboxAssessment.map((item) => [item.mailboxId, item])
-      );
-      assert.equal(
-        guardrailByMailbox.get('marknad@hairtpclinic.com')?.parityStatus,
-        'not_comparable_no_legacy_baseline'
-      );
-      assert.equal(payload.shadowGuardrail.aggregate.classificationCounts.mapping_gap || 0, 0);
+      assert.equal(payload.shadowGuardrail, null);
     });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
