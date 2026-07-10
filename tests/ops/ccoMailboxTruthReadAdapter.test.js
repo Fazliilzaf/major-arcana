@@ -146,4 +146,6 @@ test('getHistoryCoverage marks incomplete when a folder is not VERIFIED', () => 
   assert.equal(cov.coverage.complete, false);
   assert.ok(cov.coverage.missingWindowCount >= 1);
   assert.equal(cov.mailboxes[0].mailbox.messageCount, 1);
+  assert.equal(cov.mailboxes[0].folderStatuses.inbox, 'VERIFIED');
+  assert.equal(cov.mailboxes[0].folderStatuses.sent, 'MISSING');
 });
