@@ -833,12 +833,10 @@
       url.hash = '';
       url.searchParams.set('view', 'customers');
       const current = new URLSearchParams(window.location.search || '');
-      ['v9', 'demo', 'embed', 'v11rail', 'v12workspace', 'flags', 'segment'].forEach(
-        (key) => {
-          const value = normalizeText(current.get(key));
-          if (value) url.searchParams.set(key, value);
-        }
-      );
+      ['v9', 'demo', 'embed', 'v11rail', 'v12workspace', 'flags', 'segment'].forEach((key) => {
+        const value = normalizeText(current.get(key));
+        if (value) url.searchParams.set(key, value);
+      });
       if (document.documentElement.getAttribute('data-admin-embed-view') === 'customers') {
         url.searchParams.set('v9', 'on');
         url.searchParams.set('demo', 'off');
@@ -1201,6 +1199,13 @@
     const rail = document.querySelector('[data-patient-master-rail]');
     if (!rail?.querySelector('[data-customer-product-loading]')) return;
     renderDetailPanel({ forceFullRender: true, preserveRailScroll: true });
+  }
+
+  function refreshSelectedCustomerRailFromShell() {
+    if (!isCustomersShellActive()) return false;
+    if (!runtime.selectedPatientId || !runtime.detail?.card) return false;
+    renderDetailPanel({ preserveRailScroll: true });
+    return true;
   }
 
   window.addEventListener('arcana:customer-product-renderers-ready', () => {
@@ -11695,6 +11700,7 @@
     }
     renderMetricCards();
     renderPatientRows();
+    refreshSelectedCustomerRailFromShell();
   }
 
   const CUSTOMER_SEARCH_INPUT_SELECTOR =
