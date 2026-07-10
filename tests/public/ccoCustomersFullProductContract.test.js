@@ -7,13 +7,7 @@ const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..', '..');
 const INDEX_HTML = path.join(ROOT, 'public', 'major-arcana-preview', 'index.html');
-const PATIENT_UI = path.join(
-  ROOT,
-  'public',
-  'major-arcana-preview',
-  'app',
-  'patient-master-ui.js'
-);
+const PATIENT_UI = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'patient-master-ui.js');
 const SUBNAV = path.join(ROOT, 'public', 'admin', 'cco-subnav.js');
 
 const html = fs.readFileSync(INDEX_HTML, 'utf8');
@@ -21,10 +15,7 @@ const ui = fs.readFileSync(PATIENT_UI, 'utf8');
 const subnav = fs.readFileSync(SUBNAV, 'utf8');
 
 test('admin#cco Kunder monterar hela skarpa kundprodukten', () => {
-  assert.match(
-    subnav,
-    /CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on'/
-  );
+  assert.match(subnav, /CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on'/);
   assert.doesNotMatch(subnav, /demoOpDay|demo=on/);
   assert.match(html, /data-shell-view="customers"/);
   assert.match(html, /data-customer-list/);
@@ -70,4 +61,13 @@ test('patientId-djuplänk bevarar admin-, V11- och V12-kontraktet', () => {
   assert.match(ui, /ccoCustomerPatient: id/);
   assert.match(ui, /rail\.querySelector\('\[data-v11-rail-shell="1"\]'\)/);
   assert.match(ui, /rail\.querySelector\('\[data-v12-workspace-shell="1"\]'\)/);
+});
+
+test('enriched customers-shell uppdaterar V11/V12-rail för vald kund', () => {
+  assert.match(ui, /function refreshSelectedCustomerRailFromShell\(\)/);
+  assert.match(ui, /renderDetailPanel\(\{ preserveRailScroll: true \}\)/);
+  assert.match(
+    ui,
+    /renderMetricCards\(\);\s*\n\s*renderPatientRows\(\);\s*\n\s*refreshSelectedCustomerRailFromShell\(\)/
+  );
 });
