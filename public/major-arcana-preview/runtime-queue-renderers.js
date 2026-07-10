@@ -9,7 +9,9 @@
   // container) plus en lågfrekvent re-fetch var 60s av API-data.
 
   const __CUSTOMER_LS_KEY = "cco.selectedMailboxIds.v1";
-  const __CUSTOMER_DEFAULT_MAILBOXES = ["contact", "egzona", "fazli", "info", "kons", "marknad"];
+  // The live inbox is mailbox-scoped. Do not make a broad truth-store sweep
+  // just to decorate cards with names; that can stall the shared Node process.
+  const __CUSTOMER_DEFAULT_MAILBOXES = ["kons"];
   const __threadCustomerMap = new Map();
 
   function asText(...values) {
@@ -104,7 +106,7 @@
       if (persisted) {
         const parsed = JSON.parse(persisted);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          mailboxIds = parsed.map((k) => `${k}@hairtpclinic.com`);
+          mailboxIds = parsed.slice(0, 1).map((k) => `${k}@hairtpclinic.com`);
         }
       }
     } catch (_e) {
@@ -115,7 +117,7 @@
     }
     const params = new URLSearchParams();
     params.set("mailboxIds", mailboxIds.join(","));
-    params.set("limit", "500");
+    params.set("limit", "50");
     return `/api/v1/cco/runtime/worklist/consumer?${params.toString()}`;
   }
 
@@ -1075,7 +1077,7 @@
   // Nu: 60s API-fetch behållen (lågfrekvent), DOM-polling ersatt med
   // MutationObserver som triggar apply när nya mailbox-labels mountas.
 
-  const __MAILBOX_DEFAULTS = ["contact", "egzona", "fazli", "info", "kons", "marknad"];
+  const __MAILBOX_DEFAULTS = ["kons"];
   const __mailboxCountMap = new Map();
 
   function __rebuildMailboxCounts(rows) {
@@ -1112,7 +1114,7 @@
       if (!token) return;
       const params = new URLSearchParams();
       params.set("mailboxIds", __MAILBOX_DEFAULTS.map((k) => `${k}@hairtpclinic.com`).join(","));
-      params.set("limit", "500");
+      params.set("limit", "50");
       const res = await fetch(`/api/v1/cco/runtime/worklist/consumer?${params.toString()}`, {
         headers: { Authorization: "Bearer " + token },
       });
