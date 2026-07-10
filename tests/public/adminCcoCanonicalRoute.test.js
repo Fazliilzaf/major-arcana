@@ -12,7 +12,7 @@ function read(file) {
   return fs.readFileSync(file, 'utf8');
 }
 
-test('admin#cco embeds canonical konversationer.html surface', () => {
+test('admin#cco starts on Kalender and preserves canonical Konversationer target', () => {
   const html = read(ADMIN_HTML);
   const js = read(ADMIN_JS);
 
@@ -20,7 +20,12 @@ test('admin#cco embeds canonical konversationer.html surface', () => {
   // Iframe-URL:en bär build-id som query så varje deploy ger en ny URL —
   // annars serverar CDN/browser gammal konversationer.html efter deploy.
   // __ARCANA_UI_BUILD__ ersätts med aktuell build vid rendering av admin.html.
-  assert.match(html, /data-src="\/konversationer\.html\?v=__ARCANA_UI_BUILD__&amp;embed=admin"/);
+  assert.match(html, /data-default-section="kalender"/);
+  assert.match(html, /data-src="\/kalender\.html\?embed=1"/);
+  assert.match(
+    html,
+    /data-conversations-src="\/konversationer\.html\?v=__ARCANA_UI_BUILD__&amp;embed=admin"/
+  );
   assert.doesNotMatch(html, /data-src="\/major-arcana-preview/);
 
   assert.match(js, /const CCO_PREVIEW_PRIMARY_PATH = '\/konversationer\.html';/);

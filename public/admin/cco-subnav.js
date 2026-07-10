@@ -40,20 +40,20 @@
       document.getElementById('ccoWorkspaceSection');
     var pendingKey = '';
 
-    // Konversationer behåller sidans build-stämplade data-src och använder
-    // embed=admin för att inte rita en andra global navrad inne i iframen.
+    // Konversationer behåller sin build-stämplade URL separat från den aktiva
+    // standardrouten. embed=admin behåller status/sök men tar bort dublettnav.
     var konversationerSrc =
-      String(frame.getAttribute('data-src') || '').trim() || '/konversationer.html';
+      String(frame.getAttribute('data-conversations-src') || '').trim() ||
+      '/konversationer.html?embed=admin';
 
-    // Kunder: SPA-customers med arbets-flaggorna (v9/demo/demoOpDay/v11rail/
-    // v12workspace) + embed=admin (döljer SPA:ts egen topbar så undernaven inte
-    // dubbleras). Kalender: kalender.html?embed=1. Automatisering/Analys: v3-
-    // mockup-familjen (samma design som Kunder-v9, gjord samtidigt).
-    var SPA_FLAGS = 'v9=on&demo=on&demoOpDay=1&embed=admin';
+    // Kunder använder den befintliga live-vyn. demo=off rensar tidigare sticky
+    // UAT-state; admin-embed-kontraktet hårdlåser SPA:n till customer content.
+    // Kalender och övriga segment behåller sina redan byggda målunderlag.
+    var CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on';
     var PREVIEW = '/major-arcana-preview/';
     var SECTIONS = {
       konversationer: konversationerSrc,
-      kunder: PREVIEW + '?view=customers&' + SPA_FLAGS + '&v11rail=on&v12workspace=on',
+      kunder: PREVIEW + '?view=customers&' + CUSTOMER_FLAGS,
       kalender: '/kalender.html?embed=1',
       automatisering: PREVIEW + 'cco-automatisering-v3.html',
       analys: PREVIEW + 'cco-analytics-v3.html',
@@ -274,8 +274,10 @@
       syncRouteState(loadedKey);
     });
 
-    // Initialt val: senast använda sektion (annars Konversationer = default).
-    var initial = 'konversationer';
+    // Initialt val: senast använda giltiga sektion. En ny session landar på
+    // Kalender, som är den gemensamma startytan för alla CCO-användare.
+    var initial = String(nav.getAttribute('data-default-section') || 'kalender').trim();
+    if (!urlFor(initial)) initial = 'kalender';
     try {
       var saved = sessionStorage.getItem(STORE_KEY);
       if (saved && urlFor(saved)) initial = saved;

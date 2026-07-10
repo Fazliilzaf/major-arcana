@@ -2524,17 +2524,24 @@
         <section
           id="ccoWorkspaceSection"
           data-section-group="ccoWorkspaceSection"
+          data-cco-active-section="kalender"
           class="cco-preview-embed-section"
           hidden
           aria-hidden="true"
         >
-          <div class="cco-subnav" data-cco-subnav role="tablist" aria-label="CCO-sektioner">
+          <div
+            class="cco-subnav"
+            data-cco-subnav
+            data-default-section="kalender"
+            role="tablist"
+            aria-label="CCO-sektioner"
+          >
             <span class="cco-subnav-kicker">CCO</span>
             <button
-              class="cco-subnav-btn is-active"
+              class="cco-subnav-btn"
               type="button"
               role="tab"
-              aria-selected="true"
+              aria-selected="false"
               data-cco-section="konversationer"
             >
               Konversationer
@@ -2549,10 +2556,10 @@
               Kunder
             </button>
             <button
-              class="cco-subnav-btn"
+              class="cco-subnav-btn is-active"
               type="button"
               role="tab"
-              aria-selected="false"
+              aria-selected="true"
               data-cco-section="kalender"
             >
               Kalender
@@ -2604,8 +2611,9 @@
             <iframe
               id="ccoPreviewEmbedFrame"
               class="cco-preview-embed-frame"
-              aria-label="HairTP Clinic CCO — Konversationer"
-              data-src="/konversationer.html?v=__ARCANA_UI_BUILD__&amp;embed=admin"
+              aria-label="HairTP Clinic CCO — Kalender"
+              data-src="/kalender.html?embed=1"
+              data-conversations-src="/konversationer.html?v=__ARCANA_UI_BUILD__&amp;embed=admin"
               src="about:blank"
               loading="eager"
               referrerpolicy="same-origin"

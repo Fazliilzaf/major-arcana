@@ -104,6 +104,11 @@ Every segment transition must satisfy all of these conditions:
 - no second global navigation is rendered; and
 - stale demo state cannot override the selected production segment.
 
+Calendar is the default segment for a new CCO browser session. A valid segment
+selected earlier in the same session may be restored. All categories remain
+visible and clickable in this delivery; role-specific category permissions are
+explicitly deferred to a later, separate program.
+
 ## Ownership Lock
 
 Codex is the sole integration owner for the unified shell and global route

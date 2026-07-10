@@ -251,6 +251,36 @@ html.is-admin-embed[data-v9-enabled="on"] .v9-watch-toast {
 }
 
 /*
+ * Admin Customers is a content adapter, not another application shell.
+ * The route lock is set synchronously from ?embed=admin&view=customers, so
+ * legacy Conversations can never flash or become a fallback while the async
+ * customer bundle authenticates and hydrates.
+ */
+html[data-admin-embed-view="customers"] .preview-shell,
+html[data-admin-embed-view="customers"] .focus-shell,
+html[data-admin-embed-view="customers"] [data-resize-handle],
+html[data-admin-embed-view="customers"] #note-mode-shell,
+html[data-admin-embed-view="customers"] #truth-worklist-shell,
+html[data-admin-embed-view="customers"] #studio-shell,
+html[data-admin-embed-view="customers"] #note-shell,
+html[data-admin-embed-view="customers"] #focus-context-shell,
+html[data-admin-embed-view="customers"] #booking-shell,
+html[data-admin-embed-view="customers"] #schedule-shell,
+html[data-admin-embed-view="customers"] #later-shell,
+html[data-admin-embed-view="customers"]
+  [data-shell-view]:not([data-shell-view="customers"]) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html[data-admin-embed-view="customers"] [data-shell-view="customers"] {
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/*
  * Rek. 12 — brand-anchor (mockup .top-nav a.active).
  * Aktiv Kunder-pill och compose-CTA delar rose-pill + --accent-studio — bevara, skriv inte över.
  */

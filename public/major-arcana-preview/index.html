@@ -12,6 +12,9 @@
     <script src="./app/cco-booking-v1-flag.js?v=booking-v1-cutover-default-on"></script>
     <!-- Konversationer v2 — feature flag (CUTOVER: default ON, opt-out via ?conversations=off; sätter data-conversations-v2) -->
     <script src="./app/cco-conversations-v2-flag.js?v=conversations-v2-cutover-default-on"></script>
+    <!-- /admin#cco owns the global shell. Lock explicit admin embeds to their
+         requested content before the asynchronous application bundle boots. -->
+    <script src="./app/cco-admin-embed-contract.js?v=admin-content-contract-v1"></script>
     <!-- ARCANA bundle URLs (content-hash: 787864adfa) -->
     <script>
       window.__ARCANA_BUNDLE_URLS__ = {
@@ -154,7 +157,7 @@
     <link rel="stylesheet" href="/cco-scalp-analysis.css" />
     <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-1ccb8f9" />
     <link rel="stylesheet" href="./cco-tablet-shell.css?v=build-1ccb8f9" />
-    <link rel="stylesheet" href="./cco-v9-shell-overrides.css?v=admin-embed-single-shell-v1" />
+    <link rel="stylesheet" href="./cco-v9-shell-overrides.css?v=admin-content-contract-v1" />
     <link rel="stylesheet" href="./cco-dossier-v9d.css?v=v9d-1" />
     <link rel="stylesheet" href="./cco-v10-skin.css?v=v10tl-skin-36" />
     <link rel="stylesheet" href="./cco-v11-polish.css?v=ord25g-v1" />
