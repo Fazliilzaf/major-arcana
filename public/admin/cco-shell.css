@@ -153,6 +153,36 @@ body.cco-preview-embed-route #ccoWorkspaceSection .cco-preview-embed-frame {
   border: 0;
 }
 
+/* Konversationers topprad innehåller redan status och sök. På desktop delar
+ * det kanoniska CCO-navet exakt samma rad i stället för att skapa ett lager
+ * ovanför den. Övriga segment behåller samma nav som första grid-rad. */
+@media (min-width: 960px) {
+  body.cco-preview-embed-route
+    #ccoWorkspaceSection.cco-preview-embed-section[data-cco-active-section="konversationer"] {
+    position: relative;
+    display: block;
+  }
+
+  body.cco-preview-embed-route
+    #ccoWorkspaceSection[data-cco-active-section="konversationer"]
+    .cco-subnav {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    width: max-content;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  body.cco-preview-embed-route
+    #ccoWorkspaceSection[data-cco-active-section="konversationer"]
+    .cco-preview-embed-shell {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+}
+
 @media (max-width: 760px) {
   body.cco-preview-embed-route .cco-subnav {
     gap: 6px;

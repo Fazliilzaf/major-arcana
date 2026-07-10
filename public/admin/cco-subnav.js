@@ -14,10 +14,10 @@
  * "Mer" är en dropdown över v3-verktygen (Integrationer/Makron/Inställningar/
  * Notiser/Signaturer/Revisor/Showcase).
  *
- * Rör INTE admin-hashen (#cco) — valet minns via sessionStorage, så admin.js:s
- * sektions-routing och ensureCcoPreviewEmbed() lämnas orörda. Vid val sätts både
- * frame.src OCH frame.dataset.src, så att ett senare teardown→ensure (vid
- * återinträde i CCO) laddar samma sektion igen.
+ * Rör INTE admin-hashen (#cco). Valet minns via sessionStorage och hålls
+ * atomiskt med både aktiv flik, frame.src och frame.dataset.src. Det gör att
+ * admin.js:s lazy-load samt ett senare teardown→ensure alltid återöppnar samma
+ * faktiska sektion som navigationen visar.
  */
 
 (function initCcoSubnav() {
@@ -35,6 +35,10 @@
     var frame = document.getElementById('ccoPreviewEmbedFrame');
     var nav = document.querySelector('[data-cco-subnav]');
     if (!frame || !nav) return;
+    var workspace =
+      (nav.closest && nav.closest('#ccoWorkspaceSection')) ||
+      document.getElementById('ccoWorkspaceSection');
+    var pendingKey = '';
 
     // Konversationer behåller sidans build-stämplade data-src och använder
     // embed=admin för att inte rita en andra global navrad inne i iframen.
@@ -92,6 +96,59 @@
       return '';
     }
 
+    function absoluteUrl(value) {
+      var raw = String(value || '').trim();
+      if (!raw || raw === 'about:blank') return raw;
+      try {
+        return new URL(raw, window.location.href).href;
+      } catch (e) {
+        return raw;
+      }
+    }
+
+    function sameUrl(left, right) {
+      return absoluteUrl(left) === absoluteUrl(right);
+    }
+
+    function keyForUrl(value) {
+      var raw = String(value || '').trim();
+      if (!raw || raw === 'about:blank') return '';
+      var parsed;
+      try {
+        parsed = new URL(raw, window.location.href);
+      } catch (e) {
+        return '';
+      }
+
+      var path = parsed.pathname.replace(/\/+$/, '') || '/';
+      if (path.endsWith('/konversationer.html')) return 'konversationer';
+      if (path.endsWith('/kalender.html')) return 'kalender';
+      if (
+        (path === '/major-arcana-preview' || path === '/major-arcana-preview/index.html') &&
+        parsed.searchParams.get('view') === 'customers'
+      ) {
+        return 'kunder';
+      }
+      if (path.endsWith('/cco-automatisering-v3.html')) return 'automatisering';
+      if (path.endsWith('/cco-analytics-v3.html')) return 'analys';
+
+      var toolKeys = Object.keys(MORE_TOOLS);
+      for (var i = 0; i < toolKeys.length; i += 1) {
+        if (sameUrl(parsed.href, MORE_TOOLS[toolKeys[i]])) return 'mer:' + toolKeys[i];
+      }
+      return '';
+    }
+
+    function currentFrameUrl() {
+      try {
+        var liveUrl = String(frame.contentWindow && frame.contentWindow.location.href).trim();
+        if (liveUrl && liveUrl !== 'about:blank') return liveUrl;
+      } catch (e) {
+        /* same-origin targets are expected; fall back during navigation */
+      }
+      return String(frame.getAttribute('src') || '').trim();
+    }
+
     function setActiveButton(key) {
       var isMore = key && key.indexOf('mer:') === 0;
       var buttons = nav.querySelectorAll('[data-cco-section]');
@@ -106,30 +163,50 @@
       }
     }
 
-    function activate(key, opts) {
+    function syncRouteState(key) {
       var url = urlFor(key);
       if (!url) return;
-      var loadNow = !opts || opts.loadNow !== false;
       var labelKey = key && key.indexOf('mer:') === 0 ? key.slice(4) : key;
-      // data-src styr admin.js:s (åter)inladdning; håll den i synk med valet.
       frame.setAttribute('data-src', url);
       frame.setAttribute(
         'aria-label',
         'HairTP Clinic CCO — ' + (SECTION_LABELS[labelKey] || 'CCO')
       );
       nav.setAttribute('data-active-section', key);
-      // Vid explicit klick (loadNow): ladda direkt. Initialt (loadNow:false): rör
-      // inte src — låt admin.js:s ensureCcoPreviewEmbed() lazy-ladda data-src när
-      // CCO-sektionen öppnas.
-      if (loadNow) {
-        frame.setAttribute('src', url);
-      }
+      if (workspace) workspace.setAttribute('data-cco-active-section', key);
       setActiveButton(key);
       try {
         sessionStorage.setItem(STORE_KEY, key);
       } catch (e) {
         /* private mode */
       }
+    }
+
+    function navigateFrame(key) {
+      var url = urlFor(key);
+      if (!url) return;
+      var attrKey = keyForUrl(frame.getAttribute('src'));
+      var liveKey = keyForUrl(currentFrameUrl());
+      if (attrKey === key && (!liveKey || liveKey === key)) {
+        pendingKey = '';
+        return;
+      }
+      pendingKey = key;
+      frame.setAttribute('src', url);
+    }
+
+    function activate(key, opts) {
+      var url = urlFor(key);
+      if (!url) return;
+      var loadNow = !opts || opts.loadNow !== false;
+      var currentSrc = String(frame.getAttribute('src') || '').trim();
+      var frameAlreadyStarted = Boolean(currentSrc && currentSrc !== 'about:blank');
+
+      syncRouteState(key);
+      // Om admin.js redan hann starta default-vyn måste även initial restore
+      // korrigera den faktiska iframen. Är den fortfarande blank lämnas själva
+      // laddningen till admin.js, som då läser det nyss synkade data-src-värdet.
+      if (loadNow || frameAlreadyStarted) navigateFrame(key);
     }
 
     function closeMore() {
@@ -175,6 +252,28 @@
       if (!wrap) closeMore();
     });
 
+    frame.addEventListener('load', function () {
+      var loadedKey = keyForUrl(currentFrameUrl());
+      if (!loadedKey) return;
+
+      if (pendingKey) {
+        if (loadedKey === pendingKey) {
+          var completedKey = pendingKey;
+          pendingKey = '';
+          syncRouteState(completedKey);
+          return;
+        }
+        // Ett avslutat gammalt request får aldrig skriva över ett nyare klick.
+        if (keyForUrl(frame.getAttribute('src')) === pendingKey) return;
+        navigateFrame(pendingKey);
+        return;
+      }
+
+      // Om iframen navigeras på annat sätt ska flikmarkeringen följa den sida
+      // användaren faktiskt ser, inte ett gammalt sessionStorage-värde.
+      syncRouteState(loadedKey);
+    });
+
     // Initialt val: senast använda sektion (annars Konversationer = default).
     var initial = 'konversationer';
     try {
@@ -183,8 +282,8 @@
     } catch (e) {
       /* ignore */
     }
-    // Sätt data-src + aktiv-knapp UTAN att tvinga en laddning (about:blank tills
-    // CCO öppnas), så admin.js:s lazy-load-flöde behålls.
+    // Är iframen blank sätts bara data-src. Har admin.js redan laddat default-
+    // vyn korrigerar activate även src, så flik och innehåll aldrig divergerar.
     activate(initial, { loadNow: false });
   });
 })();

@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const ROOT = path.join(__dirname, '..', '..');
 const ADMIN_HTML = path.join(ROOT, 'public', 'admin.html');
@@ -20,6 +21,97 @@ const SHELL_OVERRIDES = path.join(
 
 function read(file) {
   return fs.readFileSync(file, 'utf8');
+}
+
+function createClassList(initial = []) {
+  const values = new Set(initial);
+  return {
+    contains(value) {
+      return values.has(value);
+    },
+    toggle(value, force) {
+      if (force) values.add(value);
+      else values.delete(value);
+    },
+  };
+}
+
+function createElement(initialAttributes = {}) {
+  const attributes = new Map(Object.entries(initialAttributes));
+  const listeners = new Map();
+  return {
+    classList: createClassList(),
+    getAttribute(name) {
+      return attributes.get(name) || '';
+    },
+    setAttribute(name, value) {
+      attributes.set(name, String(value));
+    },
+    addEventListener(type, listener) {
+      listeners.set(type, listener);
+    },
+    emit(type) {
+      const listener = listeners.get(type);
+      if (listener) listener({ target: this });
+    },
+  };
+}
+
+function runSubnavHarness({ saved = '', src = 'about:blank', liveUrl = 'about:blank' } = {}) {
+  const sectionKeys = ['konversationer', 'kunder', 'kalender', 'automatisering', 'analys'];
+  const buttons = sectionKeys.map((key) => {
+    const button = createElement({ 'data-cco-section': key, 'aria-selected': 'false' });
+    button.classList = createClassList(key === 'konversationer' ? ['is-active'] : []);
+    return button;
+  });
+  const workspace = createElement({ id: 'ccoWorkspaceSection' });
+  const frame = createElement({
+    id: 'ccoPreviewEmbedFrame',
+    src,
+    'data-src': '/konversationer.html?v=test&embed=admin',
+  });
+  frame.contentWindow = { location: { href: liveUrl } };
+
+  const nav = createElement({ 'data-cco-subnav': '' });
+  nav.querySelectorAll = (selector) => (selector === '[data-cco-section]' ? buttons : []);
+  nav.querySelector = () => null;
+  nav.closest = (selector) => (selector === '#ccoWorkspaceSection' ? workspace : null);
+  nav.contains = () => true;
+
+  const stored = new Map(saved ? [['arcana.cco.subsection', saved]] : []);
+  const document = {
+    readyState: 'complete',
+    getElementById(id) {
+      if (id === 'ccoPreviewEmbedFrame') return frame;
+      if (id === 'ccoWorkspaceSection') return workspace;
+      return null;
+    },
+    querySelector(selector) {
+      return selector === '[data-cco-subnav]' ? nav : null;
+    },
+    addEventListener() {},
+  };
+
+  vm.runInNewContext(read(SUBNAV_JS), {
+    URL,
+    document,
+    sessionStorage: {
+      getItem(key) {
+        return stored.get(key) || null;
+      },
+      setItem(key, value) {
+        stored.set(key, String(value));
+      },
+    },
+    window: { location: { href: 'https://arcana.hairtpclinic.com/admin#cco' } },
+  });
+
+  return { buttons, frame, nav, stored, workspace };
+}
+
+function activeSection(harness) {
+  const active = harness.buttons.find((button) => button.classList.contains('is-active'));
+  return active ? active.getAttribute('data-cco-section') : '';
 }
 
 test('admin#cco kundlänk fortsätter peka på customers-vyn med alla v9/v11/v12-flaggor', () => {
@@ -75,6 +167,64 @@ test('admin#cco använder ett neutralt skal utan att byta befintliga målunderla
     /@media \(max-width: 760px\)[\s\S]*?\.cco-subnav \{[\s\S]*?flex-wrap:\s*wrap;[\s\S]*?overflow:\s*visible;/,
     'mobilnav ska visa alla kategorier och inte klippa Mer-menyn'
   );
+  assert.match(
+    css,
+    /data-cco-active-section="konversationer"[\s\S]*?position:\s*absolute;[\s\S]*?height:\s*100dvh;/,
+    'Konversationer ska dela sin befintliga topprad med det kanoniska skalet på desktop'
+  );
+});
+
+test('sparad Kunder eller Automatisering återställer både flik och redan startad iframe', () => {
+  const cases = [
+    {
+      key: 'kunder',
+      expected: /\/major-arcana-preview\/\?view=customers&v9=on&demo=on&demoOpDay=1&embed=admin/,
+    },
+    {
+      key: 'automatisering',
+      expected: /\/major-arcana-preview\/cco-automatisering-v3\.html$/,
+    },
+  ];
+
+  for (const item of cases) {
+    const harness = runSubnavHarness({
+      saved: item.key,
+      src: '/konversationer.html?v=test&embed=admin',
+      liveUrl: 'https://arcana.hairtpclinic.com/konversationer.html?v=test&embed=admin',
+    });
+
+    assert.match(harness.frame.getAttribute('src'), item.expected);
+    assert.match(harness.frame.getAttribute('data-src'), item.expected);
+    assert.equal(activeSection(harness), item.key);
+    assert.equal(harness.nav.getAttribute('data-active-section'), item.key);
+    assert.equal(harness.workspace.getAttribute('data-cco-active-section'), item.key);
+  }
+});
+
+test('blank iframe behåller lazy-load men får rätt sparad route innan admin.js laddar', () => {
+  const harness = runSubnavHarness({ saved: 'kunder' });
+
+  assert.equal(harness.frame.getAttribute('src'), 'about:blank');
+  assert.match(harness.frame.getAttribute('data-src'), /view=customers/);
+  assert.equal(activeSection(harness), 'kunder');
+  assert.equal(harness.workspace.getAttribute('data-cco-active-section'), 'kunder');
+});
+
+test('ett sent load-event från default-vyn får inte skriva över ett nyare segmentval', () => {
+  const harness = runSubnavHarness({
+    saved: 'kunder',
+    src: '/konversationer.html?v=test&embed=admin',
+    liveUrl: 'https://arcana.hairtpclinic.com/konversationer.html?v=test&embed=admin',
+  });
+
+  harness.frame.emit('load');
+  assert.equal(activeSection(harness), 'kunder');
+  assert.equal(harness.workspace.getAttribute('data-cco-active-section'), 'kunder');
+
+  harness.frame.contentWindow.location.href =
+    'https://arcana.hairtpclinic.com/major-arcana-preview/?view=customers&v9=on&embed=admin';
+  harness.frame.emit('load');
+  assert.equal(activeSection(harness), 'kunder');
 });
 
 test('konversationer embed gömmer bara dublettnav och bevarar sök samt riskkontroller', () => {
@@ -92,6 +242,11 @@ test('konversationer embed gömmer bara dublettnav och bevarar sök samt riskkon
   );
   assert.match(html, /class="risk-badge-row" id="risk-badge-row"/);
   assert.match(html, /class="global-search"/);
+  assert.match(
+    html,
+    /html\.is-admin-cco-content \.top-nav \{[\s\S]*?padding-left:\s*660px;/,
+    'status och sök ska reservera plats för samma kanoniska topprad på desktop'
+  );
 });
 
 test('admin embed markeras i customers-sidan så demo-chrome kan gömmas', () => {
