@@ -9,6 +9,7 @@
  */
 
 const { internalizeDriveAssets } = require('./ccoDriveAssetInternalization');
+const { finalizeInternalizeReportWithAutoRepair } = require('./ccoInternalizeGhostAutoRepair');
 
 function idleState() {
   return {
@@ -22,6 +23,7 @@ function idleState() {
     lastError: null,
     stats: null,
     report: null,
+    ghostAutoRepair: null,
   };
 }
 
@@ -49,9 +51,21 @@ function resetInternalizeJobStateForTests() {
 
 async function executeInternalizeJob(ctx = {}) {
   try {
-    const report = await internalizeDriveAssets(ctx);
+    let report = await internalizeDriveAssets(ctx);
+    if (!ctx.dryRun && ctx.autoRepairGhostVisible !== false) {
+      report = await finalizeInternalizeReportWithAutoRepair({
+        report,
+        assetStore: ctx.assetStore,
+        storage: ctx.storage,
+        tenantId: ctx.tenantId,
+        actor: ctx.actor,
+        enabled: ctx.autoRepairGhostVisible !== false,
+        limit: ctx.autoRepairLimit ?? 500,
+      });
+    }
     jobState.runId = report.runId || null;
     jobState.stats = report.stats || null;
+    jobState.ghostAutoRepair = report.ghostAutoRepair || null;
     jobState.report = typeof ctx.redactReport === 'function' ? ctx.redactReport(report) : report;
     if (typeof ctx.onComplete === 'function') {
       await ctx.onComplete(cloneState(jobState), report);

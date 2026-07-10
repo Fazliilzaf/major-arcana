@@ -34,6 +34,10 @@ const {
 } = require('../ops/ccoGhostVisibleAssetDiagnosis');
 const { repairGhostVisibleAssets } = require('../ops/ccoGhostVisibleAssetRepair');
 const {
+  finalizeInternalizeReportWithAutoRepair,
+  parseAutoRepairGhostVisible,
+} = require('../ops/ccoInternalizeGhostAutoRepair');
+const {
   startInternalizeJob,
   getInternalizeJobState,
   isInternalizeJobRunning,
@@ -369,8 +373,35 @@ async function auditInternalizeOutcome({
       rowsCollected,
       rowSources,
       stats: safeReport?.stats || {},
+      ghostAutoRepair: summarizeGhostAutoRepairAudit(safeReport?.ghostAutoRepair),
       lastError: jobError || null,
     },
+  });
+}
+
+function summarizeGhostAutoRepairAudit(ghostAutoRepair = null) {
+  if (!ghostAutoRepair) return null;
+  return {
+    triggered: Boolean(ghostAutoRepair.triggered),
+    skippedReason: ghostAutoRepair.skippedReason || null,
+    duplicateCount: ghostAutoRepair.duplicateCount ?? 0,
+    runId: ghostAutoRepair.runId || null,
+    repairable: ghostAutoRepair.repair?.stats?.repairable ?? 0,
+    repaired: ghostAutoRepair.repair?.stats?.repaired ?? 0,
+    failed: ghostAutoRepair.repair?.stats?.failed ?? 0,
+  };
+}
+
+async function auditInternalizeGhostAutoRepair({ authStore, actor, ghostAutoRepair } = {}) {
+  if (!ghostAutoRepair?.triggered) return;
+  await authStore.addAuditEvent({
+    tenantId: actor.tenantId,
+    actorUserId: actor.userId,
+    action: 'cco.patient_master.assets_internalize_auto_repair_ghost_visible',
+    outcome: ghostAutoRepair.repair?.errors?.length ? 'partial' : 'success',
+    targetType: 'cco_patient_assets',
+    targetId: ghostAutoRepair.runId || 'internalize_auto_repair',
+    metadata: summarizeGhostAutoRepairAudit(ghostAutoRepair),
   });
 }
 
@@ -1657,7 +1688,18 @@ function createCcoPatientMasterRouter({
           return res.status(error.statusCode || 500).json({ error: error.message });
         }
 
-        const { rows, rowSources, driveClient, internalizeParams } = prepared;
+        const {
+          rows,
+          rowSources,
+          driveClient,
+          internalizeParams,
+          assetStore,
+          storage,
+          importActor,
+        } = prepared;
+        const autoRepairGhostVisible = dryRun
+          ? false
+          : parseAutoRepairGhostVisible(req.body?.autoRepairGhostVisible, true);
 
         if (asyncCommit) {
           const started = startInternalizeJob({
@@ -1665,8 +1707,10 @@ function createCcoPatientMasterRouter({
             limit,
             offset,
             tenantId: actor.tenantId,
+            autoRepairGhostVisible,
             redactReport: redactInternalizeReport,
             onComplete: async (_state, report) => {
+              const safeReport = redactInternalizeReport(report);
               await auditInternalizeOutcome({
                 authStore,
                 actor,
@@ -1675,8 +1719,13 @@ function createCcoPatientMasterRouter({
                 offset,
                 rowsCollected: rows.length,
                 rowSources,
-                safeReport: redactInternalizeReport(report),
+                safeReport,
                 asyncMode: true,
+              });
+              await auditInternalizeGhostAutoRepair({
+                authStore,
+                actor,
+                ghostAutoRepair: report.ghostAutoRepair,
               });
             },
             onError: async (error) => {
@@ -1706,6 +1755,7 @@ function createCcoPatientMasterRouter({
             ok: true,
             dryRun: false,
             async: true,
+            autoRepairGhostVisible,
             accepted: true,
             limit,
             offset,
@@ -1727,7 +1777,17 @@ function createCcoPatientMasterRouter({
           });
         }
 
-        const report = await internalizeDriveAssets(internalizeParams);
+        let report = await internalizeDriveAssets(internalizeParams);
+        if (autoRepairGhostVisible) {
+          report = await finalizeInternalizeReportWithAutoRepair({
+            report,
+            assetStore,
+            storage,
+            tenantId: actor.tenantId,
+            actor: importActor,
+            enabled: autoRepairGhostVisible,
+          });
+        }
         const safeReport = redactInternalizeReport(report);
 
         await auditInternalizeOutcome({
@@ -1740,11 +1800,17 @@ function createCcoPatientMasterRouter({
           rowSources,
           safeReport,
         });
+        await auditInternalizeGhostAutoRepair({
+          authStore,
+          actor,
+          ghostAutoRepair: report.ghostAutoRepair,
+        });
 
         return res.json({
           ok: true,
           dryRun,
           async: false,
+          autoRepairGhostVisible,
           limit,
           offset,
           dateGate: dateGate.active
