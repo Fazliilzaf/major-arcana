@@ -267,8 +267,7 @@ html[data-admin-embed-view="customers"] #focus-context-shell,
 html[data-admin-embed-view="customers"] #booking-shell,
 html[data-admin-embed-view="customers"] #schedule-shell,
 html[data-admin-embed-view="customers"] #later-shell,
-html[data-admin-embed-view="customers"]
-  [data-shell-view]:not([data-shell-view="customers"]) {
+html[data-admin-embed-view="customers"] [data-shell-view]:not([data-shell-view="customers"]) {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
@@ -278,6 +277,191 @@ html[data-admin-embed-view="customers"] [data-shell-view="customers"] {
   display: block !important;
   visibility: visible !important;
   pointer-events: auto !important;
+}
+
+html.is-admin-embed[data-admin-embed-view="customers"]
+  section.customers-shell[data-shell-view="customers"] {
+  display: block !important;
+  grid-template-columns: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  height: auto !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Admin owns navigation. The embedded customer document must never add a
+ * second mobile/tablet bar or let the aggregate rail cover the customer list. */
+@layer components {
+  html.is-admin-embed[data-admin-embed-view="customers"][data-cco-mobile-tabbar]
+    body.is-admin-embed
+    .cco-mobile-tabbar,
+  html.is-admin-embed[data-admin-embed-view="customers"] body.is-admin-embed .cco-mobile-more-sheet,
+  html.is-admin-embed[data-admin-embed-view="customers"]
+    body.is-admin-embed
+    #cco-mobile-back-button,
+  html.is-admin-embed[data-admin-embed-view="customers"] body.is-admin-embed #cco-mobile-app-title {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  html.is-admin-embed[data-admin-embed-view="customers"][data-cco-mobile-tabbar]
+    body.is-preview-ready.is-admin-embed {
+    padding-bottom: 0 !important;
+  }
+}
+
+html.is-admin-embed[data-admin-embed-view="customers"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-surface,
+html.is-admin-embed[data-admin-embed-view="customers"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-layout {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin-inline: 0 !important;
+  box-sizing: border-box !important;
+}
+
+@media (min-width: 768px) {
+  html[data-admin-embed-view="customers"][data-v9-enabled="on"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v10-facit-app-grid] {
+    display: grid !important;
+    align-items: start !important;
+  }
+
+  html[data-admin-embed-view="customers"][data-v9-enabled="on"]
+    .customers-layout[data-v10-facit-app-grid]
+    [data-v9-segment-sidebar] {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  html[data-admin-embed-view="customers"][data-v9-enabled="on"]
+    .customers-layout[data-v10-facit-app-grid]
+    .customers-center-shell {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+  }
+
+  html[data-admin-embed-view="customers"][data-v9-enabled="on"]
+    .customers-layout[data-v10-facit-app-grid]
+    .customers-rail.intel-shell {
+    grid-row: 1 !important;
+    position: sticky !important;
+    pointer-events: auto !important;
+    z-index: auto !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
+  html.is-admin-embed[data-admin-embed-view="customers"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .preview-workspace {
+    display: block !important;
+    grid-template-columns: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  html[data-admin-embed-view="customers"][data-v9-enabled="on"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v10-facit-app-grid] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html[data-admin-embed-view="customers"][data-v9-enabled="on"]
+    .customers-layout[data-v10-facit-app-grid]
+    .customers-center-shell {
+    grid-column: 1 !important;
+  }
+
+  html[data-admin-embed-view="customers"][data-v9-enabled="on"]
+    .customers-layout[data-v10-facit-app-grid]
+    .customers-rail.intel-shell {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1023px) {
+  html.is-admin-embed[data-admin-embed-view="customers"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .preview-workspace {
+    display: block !important;
+    grid-template-columns: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  html[data-admin-embed-view="customers"][data-v9-enabled="on"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-layout[data-v10-facit-app-grid] {
+    grid-template-columns: minmax(0, 1fr) 280px !important;
+  }
+
+  html[data-admin-embed-view="customers"][data-v9-enabled="on"]
+    .customers-layout[data-v10-facit-app-grid]
+    .customers-center-shell {
+    grid-column: 1 !important;
+  }
+
+  html[data-admin-embed-view="customers"][data-v9-enabled="on"]
+    .customers-layout[data-v10-facit-app-grid]
+    .customers-rail.intel-shell {
+    grid-column: 2 !important;
+    width: 100% !important;
+    max-width: 280px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  html.is-admin-embed[data-admin-embed-view="customers"]
+    .preview-canvas[data-app-shell-view="customers"]
+    .preview-workspace,
+  html.is-admin-embed[data-admin-embed-view="customers"]
+    section.customers-shell[data-shell-view="customers"] {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  html.is-admin-embed[data-admin-embed-view="customers"]:not([data-cco-patient-detail="on"])
+    .customers-layout
+    .customers-rail.intel-shell {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    transform: none !important;
+    z-index: auto !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  html[data-admin-embed-view="customers"][data-v9-enabled="on"]
+    .customers-layout[data-v10-facit-app-grid]
+    .customers-rail.intel-shell {
+    grid-column: 3 !important;
+  }
 }
 
 /*

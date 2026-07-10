@@ -202,6 +202,8 @@
   const runtime = {
     mode: 'register',
     loading: false,
+    enriching: false,
+    listRequestId: 0,
     loaded: false,
     error: '',
     authRequired: false,
@@ -1027,14 +1029,31 @@
       if (token) {
         headers.Authorization = `Bearer ${token}`;
       }
-      const response = await fetch(new URL(path, window.location.origin), {
-        method: options.method || 'GET',
-        headers,
-        body:
-          options.body === undefined || options.body === null
-            ? undefined
-            : JSON.stringify(options.body),
-      });
+      const timeoutMs = Math.max(0, Number(options.timeoutMs) || 0);
+      const controller =
+        timeoutMs > 0 && typeof AbortController === 'function' ? new AbortController() : null;
+      const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
+      let response;
+      try {
+        response = await fetch(new URL(path, window.location.origin), {
+          method: options.method || 'GET',
+          headers,
+          body:
+            options.body === undefined || options.body === null
+              ? undefined
+              : JSON.stringify(options.body),
+          signal: controller?.signal,
+        });
+      } catch (error) {
+        if (controller?.signal.aborted) {
+          const timeoutError = new Error('Kunddatan tog för lång tid att läsa. Försök igen.');
+          timeoutError.statusCode = 408;
+          throw timeoutError;
+        }
+        throw error;
+      } finally {
+        if (timeoutId !== null) window.clearTimeout(timeoutId);
+      }
       let payload = {};
       try {
         payload = await response.json();
@@ -11462,6 +11481,30 @@
     }
   }
 
+  function applyCustomerShellPayload(payload, { append = false } = {}) {
+    const patientsPayload = payload.patients || payload;
+    const batch = filterPilotPatients(asArray(patientsPayload.patients));
+    runtime.total = getPilotPatientIds().length
+      ? batch.length
+      : Number(patientsPayload.total || batch.length);
+    runtime.patients = append ? runtime.patients.concat(batch) : batch;
+    if (payload.stats) runtime.stats = payload.stats;
+    if (payload.segmentStats) runtime.segmentStats = payload.segmentStats;
+    if (payload.automation) runtime.automation = payload.automation;
+    if (payload.staffOwnership) {
+      runtime.staffOwnership = payload.staffOwnership;
+      window.CcoKunderStaffOwner?.rememberShellOwnership?.(payload);
+    }
+    if (Array.isArray(payload.offerTemplates?.templates)) {
+      runtime.offerTemplates = payload.offerTemplates.templates;
+    } else if (Array.isArray(payload.offerTemplates)) {
+      runtime.offerTemplates = payload.offerTemplates;
+    }
+    runtime.loaded = true;
+    runtime.authRequired = false;
+    return batch;
+  }
+
   async function loadPatientList({ append = false, force = false } = {}) {
     if (runtime.mode !== 'register') return;
     if (needsStaffLogin()) {
@@ -11474,11 +11517,14 @@
       }
       return;
     }
+    const requestId = runtime.listRequestId + 1;
+    runtime.listRequestId = requestId;
     runtime.loading = true;
+    runtime.enriching = false;
     runtime.error = '';
     if (!append) {
       runtime.offset = 0;
-      runtime.patients = [];
+      if (!runtime.loaded) runtime.patients = [];
     }
     setStatus('Läser kundregister…', 'loading');
     renderPatientRows();
@@ -11506,67 +11552,101 @@
     if (assignedOwner) params.set('assignedOwner', assignedOwner);
     params.set('includeAutomation', '1');
 
+    let initialListApplied = false;
     try {
-      const shellKey = `customers-shell:list:${normalizeText(runtime.query)}:${runtime.flagFilter}:${runtime.segmentFilter}:${runtime.offset}:auto`;
+      // The first useful customer list comes from the same patient-master truth
+      // without waiting for global asset/booking/automation enrichment.
+      if (!append && !runtime.segmentFilter) {
+        const initialParams = new URLSearchParams(params);
+        initialParams.set('phase', 'list');
+        initialParams.delete('includeAutomation');
+        try {
+          const initialKey = `customers-shell:initial:${normalizeText(runtime.query)}:${runtime.flagFilter}:${runtime.offset}`;
+          const initialPayload = await apiRequest(
+            `/api/v1/cco/staff/customers-shell?${initialParams}`,
+            {
+              cacheKey: initialKey,
+              staleTime: window.ArcanaCcoData?.policy?.PATIENT_LIST?.staleTime,
+              force: force === true,
+              timeoutMs: 12_000,
+            }
+          );
+          if (requestId !== runtime.listRequestId) return;
+          applyCustomerShellPayload(initialPayload, { append: false });
+          initialListApplied = true;
+          runtime.loading = false;
+          runtime.enriching = true;
+          setStatus('Kundregistret laddat. Uppdaterar översikten…', 'loading');
+          renderMetricCards();
+          renderPatientRows();
+
+          const pendingAfterInitial = runtime.pendingListReload;
+          runtime.pendingListReload = null;
+          if (pendingAfterInitial) {
+            void loadPatientList(pendingAfterInitial);
+            return;
+          }
+        } catch (error) {
+          if (isAuthFailure(error.statusCode, error.message)) throw error;
+          console.warn('Snabb kundlista misslyckades, fortsätter med full läsning.', error);
+        }
+      }
+
+      const shellKey = `customers-shell:enriched:${normalizeText(runtime.query)}:${runtime.flagFilter}:${runtime.segmentFilter}:${runtime.offset}:auto`;
       const payload = await apiRequest(`/api/v1/cco/staff/customers-shell?${params}`, {
         cacheKey: shellKey,
         staleTime: window.ArcanaCcoData?.policy?.PATIENT_LIST?.staleTime,
         force: force === true,
+        timeoutMs: 20_000,
       });
-      const patientsPayload = payload.patients || payload;
-      const batch = filterPilotPatients(asArray(patientsPayload.patients));
-      runtime.total = getPilotPatientIds().length
-        ? batch.length
-        : Number(patientsPayload.total || batch.length);
-      runtime.patients = append ? runtime.patients.concat(batch) : batch;
-      if (payload.stats) runtime.stats = payload.stats;
-      if (payload.segmentStats) runtime.segmentStats = payload.segmentStats;
-      if (payload.automation) runtime.automation = payload.automation;
-      if (payload.staffOwnership) {
-        runtime.staffOwnership = payload.staffOwnership;
-        window.CcoKunderStaffOwner?.rememberShellOwnership?.(payload);
-      }
-      if (Array.isArray(payload.offerTemplates?.templates)) {
-        runtime.offerTemplates = payload.offerTemplates.templates;
-      } else if (Array.isArray(payload.offerTemplates)) {
-        runtime.offerTemplates = payload.offerTemplates;
-      }
-      runtime.loaded = true;
-      runtime.authRequired = false;
+      if (requestId !== runtime.listRequestId) return;
+      applyCustomerShellPayload(payload, { append });
       setStatus('', '');
-      if (detailPromise) {
-        if (deepLinkId && isMobileViewport()) {
-          void detailPromise.catch((error) => {
-            console.warn('Patient deep link misslyckades.', error);
-          });
-        } else {
-          await detailPromise.catch((error) => {
-            console.warn('Patient deep link misslyckades.', error);
-          });
-          if (runtime.detail?.card) {
-            scheduleDetailPanelPaint(deepLinkId);
-          }
-        }
-      }
-      if (!runtime.selectedPatientId && runtime.patients[0] && !isCompactFormViewport()) {
-        if (!isV9CustomersEnabled()) {
-          runtime.selectedPatientId = runtime.patients[0].patientId;
-          await loadPatientDetail(runtime.selectedPatientId);
-        }
-      }
     } catch (error) {
-      runtime.error = isAuthFailure(error.statusCode, error.message)
-        ? 'Inloggning krävs. Logga in nedan.'
-        : error.message || 'Kunde inte läsa kundregistret.';
-      runtime.authRequired = isAuthFailure(error.statusCode, error.message);
+      if (requestId !== runtime.listRequestId) return;
+      const authFailure = isAuthFailure(error.statusCode, error.message);
+      runtime.authRequired = authFailure;
       if (runtime.authRequired) {
+        runtime.error = 'Inloggning krävs. Logga in nedan.';
         clearStaffTokens();
         runtime.authRequired = true;
+        setStatus(runtime.error, 'error');
+      } else if (initialListApplied || runtime.patients.length) {
+        runtime.error = '';
+        setStatus('Kundregistret är laddat. Översikten kunde inte uppdateras just nu.', 'error');
+      } else {
+        runtime.error = error.message || 'Kunde inte läsa kundregistret.';
+        setStatus(runtime.error, 'error');
       }
-      setStatus(runtime.error, 'error');
     } finally {
-      runtime.loading = false;
+      if (requestId === runtime.listRequestId) {
+        runtime.loading = false;
+        runtime.enriching = false;
+      }
     }
+    if (requestId !== runtime.listRequestId) return;
+
+    if (detailPromise) {
+      if (deepLinkId && isMobileViewport()) {
+        void detailPromise.catch((error) => {
+          console.warn('Patient deep link misslyckades.', error);
+        });
+      } else {
+        await detailPromise.catch((error) => {
+          console.warn('Patient deep link misslyckades.', error);
+        });
+        if (runtime.detail?.card) {
+          scheduleDetailPanelPaint(deepLinkId);
+        }
+      }
+    }
+    if (!runtime.selectedPatientId && runtime.patients[0] && !isCompactFormViewport()) {
+      if (!isV9CustomersEnabled()) {
+        runtime.selectedPatientId = runtime.patients[0].patientId;
+        await loadPatientDetail(runtime.selectedPatientId);
+      }
+    }
+
     const pending = runtime.pendingListReload;
     runtime.pendingListReload = null;
     if (pending) {

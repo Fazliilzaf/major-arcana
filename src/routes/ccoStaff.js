@@ -78,6 +78,7 @@ function createCcoStaffRouter({
         const offsetVal = parseIntParam(req.query.offset, 0);
         const query = normalizeText(req.query.q || req.query.query);
         const segment = normalizeText(req.query.segment);
+        const phase = normalizeText(req.query.phase).toLowerCase();
         const includeAutomation = String(req.query.includeAutomation || '') === '1';
         const flags = String(req.query.flags || '')
           .split(',')
@@ -93,6 +94,7 @@ function createCcoStaffRouter({
                 query,
                 flags,
                 segment,
+                phase,
                 includeAutomation,
                 assignedOwner: normalizeText(req.query.assignedOwner),
                 actorUserId: actor.userId,
@@ -101,13 +103,45 @@ function createCcoStaffRouter({
           : '';
 
         const build = async () => {
-          const allForStats = (
-            await patientMasterStore.listPatients({
-              tenantId: actor.tenantId,
-              limit: 50_000,
-              offset: 0,
-            })
-          ).patients;
+          const start = Math.max(0, offsetVal);
+          const max = Math.max(1, Math.min(20000, limit));
+
+          // First paint must not wait for global asset, booking and automation
+          // enrichment. This phase reads the same patient-master truth and is
+          // replaced by the fully enriched response in the background.
+          if (phase === 'list' && !segment) {
+            const [baseList, stats] = await Promise.all([
+              patientMasterStore.listPatients({
+                tenantId: actor.tenantId,
+                query,
+                flags,
+                limit: max,
+                offset: start,
+              }),
+              patientMasterStore.getTenantStats({ tenantId: actor.tenantId }),
+            ]);
+            return {
+              stats,
+              segmentStats: null,
+              staffOwnership: null,
+              bookingCoverage: 'pending',
+              automation: null,
+              patients: {
+                ...baseList,
+                patients: baseList.patients.map((patient) => buildKunderReadout(patient)),
+              },
+              offerTemplates: { templates: listOfferTemplates() },
+              provider: 'customers-shell-list',
+              enrichmentPending: true,
+            };
+          }
+
+          const allPatientsResult = await patientMasterStore.listPatients({
+            tenantId: actor.tenantId,
+            limit: 50_000,
+            offset: 0,
+          });
+          const allForStats = allPatientsResult.patients;
 
           const staffOwnership = resolveStaffOwnership({
             queryAssigned: req.query.assignedOwner,
@@ -125,13 +159,16 @@ function createCcoStaffRouter({
           const bookingIndex = bookingBundle.index;
           const bookingCoverage = bookingBundle.coverage || 'missing';
 
-          const baseList = await patientMasterStore.listPatients({
-            tenantId: actor.tenantId,
-            query,
-            flags,
-            limit: 50_000,
-            offset: 0,
-          });
+          const baseList =
+            !query && flags.length === 0
+              ? allPatientsResult
+              : await patientMasterStore.listPatients({
+                  tenantId: actor.tenantId,
+                  query,
+                  flags,
+                  limit: 50_000,
+                  offset: 0,
+                });
           let rows = baseList.patients;
           if (segment) {
             rows = filterPatientsBySegment(
@@ -177,8 +214,6 @@ function createCcoStaffRouter({
             );
           }
 
-          const start = Math.max(0, offsetVal);
-          const max = Math.max(1, Math.min(20000, limit));
           const page = rows.slice(start, start + max);
 
           const [stats] = await Promise.all([
@@ -277,6 +312,7 @@ function createCcoStaffRouter({
             },
             offerTemplates: { templates: listOfferTemplates() },
             provider: 'customers-shell',
+            enrichmentPending: false,
           };
         };
 
