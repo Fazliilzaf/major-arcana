@@ -8,6 +8,9 @@ For frozen history and pass reports, see [docs/archives/cco/README.md](./archive
 - `docs/cco-ny-project-lock.md`
 - `docs/cco-mail-foundation-status.md`
 
+## Shell integration
+- `docs/cco-unified-shell-integration-plan.md`
+
 ## Working sequence
 - `docs/cco-mail-foundation-working-sequence.md`
 - `docs/cco-mail-foundation-gap-blueprint.md`
