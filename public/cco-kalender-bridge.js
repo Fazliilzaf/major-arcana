@@ -392,6 +392,10 @@
   // ─── Boot ─────────────────────────────────────────────────────────────
   function boot() {
     try {
+      if (window.CCO_CALENDAR_READ_ONLY === true) {
+        console.info('[cco-kalender-bridge] read-only live calendar; write bridge disabled');
+        return;
+      }
       wireInkorg();
       wireWeekGrid();
       wireSidebarCounts();

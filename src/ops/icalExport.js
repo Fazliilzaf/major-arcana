@@ -24,7 +24,10 @@ function buildIcalFeed({ resourceLabel, bookings, clinicName = 'Hair TP Clinic',
     const uid = `booking-${booking.bookingId || booking.id}@arcana.hairtpclinic.se`;
     const start = normalizeText(booking.slot?.startsAt || booking.startsAt);
     const durationMin = Number(booking.slot?.durationMinutes || booking.durationMinutes) || 60;
-    const endDate = new Date(new Date(start).getTime() + durationMin * 60000);
+    const explicitEnd = normalizeText(booking.slot?.endsAt || booking.endsAt);
+    const endDate = Number.isFinite(Date.parse(explicitEnd))
+      ? new Date(explicitEnd)
+      : new Date(new Date(start).getTime() + durationMin * 60000);
     const summary = normalizeText(booking.serviceLabel || booking.slot?.serviceLabel || 'Bokning');
     const customer = normalizeText(booking.customerName || booking.contact?.name || '');
     const location = normalizeText(booking.locationLabel || booking.slot?.locationLabel || clinicName);
@@ -57,18 +60,50 @@ function buildIcalFeed({ resourceLabel, bookings, clinicName = 'Hair TP Clinic',
   ].join('\r\n');
 }
 
-function getBookingsForResource(bookingEngineStore, resourceId, { days = 30 } = {}) {
-  if (!bookingEngineStore?._state?.bookings) return [];
+function getBookingsForResource(
+  bookingEngineStore,
+  resourceId,
+  { days = 30, tenantId = '', clientoBookingStore = null } = {}
+) {
   const now = new Date();
   const cutoff = new Date(now.getTime() + days * 86400000);
-  return bookingEngineStore._state.bookings.filter((b) => {
-    if (b.status === 'cancelled') return false;
+  const scopedTenantId = normalizeText(tenantId);
+  const engineBookings =
+    typeof bookingEngineStore?.listBookingsForEnrichment === 'function'
+      ? bookingEngineStore.listBookingsForEnrichment(scopedTenantId)
+      : bookingEngineStore?._state?.bookings || [];
+  const clientoBookings =
+    typeof clientoBookingStore?.listAllBookings === 'function'
+      ? clientoBookingStore.listAllBookings({ tenantId: scopedTenantId })
+      : [];
+  const seen = new Set();
+  return [...engineBookings, ...clientoBookings].filter((b) => {
+    if (normalizeText(b.status).toLowerCase() === 'cancelled') return false;
+    if (scopedTenantId && b.tenantId && b.tenantId !== scopedTenantId) return false;
     const rid = normalizeText(b.resourceId || b.slot?.resourceId);
-    if (resourceId !== 'all' && rid !== resourceId) return false;
+    const resourceLabel = normalizeText(
+      b.resourceLabel || b.slot?.resourceLabel || b.staffName || b.staff
+    );
+    if (
+      resourceId !== 'all' &&
+      rid !== resourceId &&
+      resourceLabel.toLowerCase() !== normalizeText(resourceId).toLowerCase()
+    ) {
+      return false;
+    }
     const start = normalizeText(b.slot?.startsAt || b.startsAt);
     if (!start) return false;
     const d = new Date(start);
-    return d >= now && d <= cutoff;
+    if (!(d >= now && d <= cutoff)) return false;
+    const key = [
+      start,
+      normalizeText(b.customerEmail).toLowerCase(),
+      normalizeText(b.serviceLabel || b.slot?.serviceLabel).toLowerCase(),
+      normalizeText(resourceLabel || rid).toLowerCase(),
+    ].join('::');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 

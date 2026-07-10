@@ -3978,6 +3978,7 @@
       }
     </style>
     <link rel="stylesheet" href="/cco-mobile.css?v=20260531a" />
+    <link rel="stylesheet" href="/cco-kalender-shell.css?v=20260710a" />
   </head>
   <body>
     <div class="mockup-label">v6 · DE VILDA</div>
@@ -5980,7 +5981,11 @@
         } catch (e) {}
       })();
     </script>
-    <script src="/cco-kalender-bridge.js?v=20260530c" defer></script>
+    <script>
+      window.CCO_CALENDAR_READ_ONLY = true;
+    </script>
+    <script src="/cco-kalender-bridge.js?v=20260710a" defer></script>
+    <script src="/cco-kalender-shell.js?v=20260710a" defer></script>
     <script>
       /* PR 10 — ta emot vald live-tråds kontext från admin#cco → Konversationer
          ("Öppna kalender"). Scopar kalendern till trådens kund via befintlig

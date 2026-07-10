@@ -18,6 +18,34 @@
   const HOUR_START = 7;
   const HOUR_END = 19;
 
+  function isReadOnlyMode() {
+    return global.CCO_CALENDAR_READ_ONLY === true;
+  }
+
+  function adminAuthToken() {
+    try {
+      return (
+        global.localStorage?.getItem('ARCANA_ADMIN_TOKEN') ||
+        global.sessionStorage?.getItem('ARCANA_ADMIN_TOKEN') ||
+        ''
+      ).trim();
+    } catch {
+      return '';
+    }
+  }
+
+  function calendarHeaders({ tenantId = '', role = '', json = false } = {}) {
+    const headers = {};
+    const token = adminAuthToken();
+    if (token && token !== '__preview_local__') headers.Authorization = 'Bearer ' + token;
+    if (json) headers['Content-Type'] = 'application/json';
+    if (!isReadOnlyMode()) {
+      if (role) headers['x-cco-role'] = role;
+      if (tenantId) headers['x-cco-tenant'] = tenantId;
+    }
+    return headers;
+  }
+
   // Stabil resurs-färg-palette (samma som cco-kalender.js)
   const RESOURCE_COLORS = ['#7c3aed', '#a37433', '#2596a8', '#bb4779', '#4a8268', '#c8821e', '#84756b', '#5e8db8'];
   function colorForResource(resourceId) {
@@ -53,17 +81,44 @@
     return ((mins - HOUR_START * 60) / 60) * HOUR_H;
   }
 
-  function isoToday() { return new Date().toISOString().slice(0, 10); }
+  function isoToday() {
+    const parts = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Europe/Stockholm',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return values.year + '-' + values.month + '-' + values.day;
+  }
 
   function formatTimeRange(start, end) {
     if (!end) return start || '';
     return start + '–' + end;
   }
 
+  function statusLabel(status) {
+    const labels = {
+      confirmed: 'Bekräftad',
+      upcoming: 'Bokad',
+      pending: 'Reserverad',
+      completed: 'Genomförd',
+      no_show: 'Uteblev',
+      unknown: 'Okänd',
+    };
+    return labels[String(status || '').toLowerCase()] || status || 'Bokad';
+  }
+
+  function sourceLabel(source) {
+    return String(source || '').startsWith('cco_booking') ? 'CCO' :
+      String(source || '').toLowerCase() === 'cliento' ? 'Cliento' : source || '—';
+  }
+
   // ─── View-switch: kunder vs kalender ─────────────────────────────────────
   function detectViewFromUrl() {
     try {
       const params = new URLSearchParams(window.location.search);
+      if (/\/kalender\.html$/i.test(window.location.pathname)) return 'calendar';
       return params.get('view') || 'customers';
     } catch { return 'customers'; }
   }
@@ -72,6 +127,9 @@
     const body = document.body;
     const calendarShell = document.querySelector('.calendar-shell');
     body.setAttribute('data-cco-view', view === 'calendar' ? 'calendar' : 'customers');
+    if (view === 'calendar' && isReadOnlyMode()) {
+      body.setAttribute('data-cco-calendar-mode', 'live-read');
+    }
     if (calendarShell) calendarShell.hidden = (view !== 'calendar');
     // Uppdatera top-nav active state (mjuk — bryter inte existing)
     if (view === 'calendar') {
@@ -128,8 +186,11 @@
     const unassigned = (dayView.resources || []).find(r => r.resourceId === '_unassigned');
     const totalResources = resources.length + (unassigned ? 1 : 0);
 
+    if ((dayView.totalSlots || 0) === 0) {
+      return el('div', { class: 'cco-cal-empty' }, 'Inga bokningar registrerade för dagen.');
+    }
     if (totalResources === 0) {
-      return el('div', { class: 'cco-cal-empty' }, 'Inga bokningar och inga aktiva behandlare för dagen.');
+      return el('div', { class: 'cco-cal-empty' }, 'Bokningar finns men saknar behandlarkoppling.');
     }
 
     const grid = el('div', { class: 'cco-cal-day-grid' });
@@ -180,7 +241,7 @@
                    : slot.status === 'pending'   ? 'warning'
                    : slot.status === 'cancelled' ? 'danger' : 'info';
         col.appendChild(el('button', {
-          class: 'cco-cal-booking',
+          class: 'cco-cal-booking' + (height < 38 ? ' cco-cal-booking--short' : ''),
           style: `top: ${top}px; height: ${height}px; border-left-color: ${color};`,
           dataset: { bookingid: slot.id },
           onclick: (e) => { e.stopPropagation(); onBookingClick(slot, r); },
@@ -189,7 +250,7 @@
           el('div', { class: 'cco-cal-booking-patient' }, slot.patientName || '(okänd patient)'),
           el('div', { class: 'cco-cal-booking-service' }, slot.serviceLabel || slot.serviceId || ''),
           el('div', { class: 'cco-cal-booking-pills' }, [
-            el('span', { class: `cco-cal-pill cco-cal-pill--${tone}` }, slot.status || 'bokad'),
+            el('span', { class: `cco-cal-pill cco-cal-pill--${tone}` }, statusLabel(slot.status)),
           ]),
         ]));
       }
@@ -205,6 +266,10 @@
 
   // ─── Booking click → fetch status-pills + render drawer ──────────────────
   async function onBookingClick(slot) {
+    if (isReadOnlyMode()) {
+      renderReadonlyDrawer(slot);
+      return;
+    }
     const tenantId = global.__ccoCalTenantId || 'hair_tp';
     const role = global.__ccoCalRole || 'owner';
     const treatment = slot.serviceId || '';
@@ -225,6 +290,39 @@
     } catch (_) {}
 
     renderDrawer(slot, pills);
+  }
+
+  function renderReadonlyDrawer(slot) {
+    const drawer = getDrawerMount();
+    const placeholder = document.querySelector('.cco-cal-live-placeholder');
+    if (placeholder) placeholder.hidden = true;
+    drawer.innerHTML = '';
+    drawer.classList.add('is-open');
+    const close = () => {
+      drawer.classList.remove('is-open');
+      drawer.innerHTML = '';
+      if (placeholder) placeholder.hidden = false;
+    };
+    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
+      el('h3', {}, slot.patientName || '(okänd patient)'),
+      el('div', { class: 'cco-cal-drawer-meta' },
+        formatTimeRange(slot.time, slot.endTime) + ' · ' +
+        (slot.serviceLabel || slot.serviceId || 'Bokning')),
+      el('button', { class: 'cco-cal-drawer-close', onclick: close, 'aria-label': 'Stäng' }, '×'),
+    ]));
+    const details = [
+      ['Status', statusLabel(slot.status)],
+      ['Behandling', slot.serviceLabel || slot.serviceId || '—'],
+      ['Källa', sourceLabel(slot.source)],
+      ['E-post', slot.patientEmail || '—'],
+      ['Telefon', slot.patientPhone || '—'],
+    ];
+    const detailList = el('dl', { class: 'cco-cal-read-details' });
+    for (const [label, value] of details) {
+      detailList.appendChild(el('dt', {}, label));
+      detailList.appendChild(el('dd', {}, value));
+    }
+    drawer.appendChild(detailList);
   }
 
   // ─── Drawer rendering (delas mellan desktop right-col + mobile bottom-sheet) ──
@@ -402,6 +500,106 @@
     setTimeout(() => toast.remove(), 3500);
   }
 
+  function updateSideCount(label, value) {
+    document.querySelectorAll('.side-link').forEach((row) => {
+      if (!(row.textContent || '').includes(label)) return;
+      const count = row.querySelector('.count');
+      if (count) count.textContent = value == null ? '—' : String(value);
+    });
+  }
+
+  function resetLiveReadUi() {
+    if (!isReadOnlyMode()) return;
+    document.querySelectorAll(
+      '.mockup-label, .caption, .mini-inbox, .morgon-story, .story-cta-row, ' +
+      '.calendar-busy, .vibe-strip, .calendar-week, .watch-widget, .watch-restore, ' +
+      '.voice-overlay, .voice-sheet, .search-overlay, .calm-banner'
+    ).forEach((fixture) => {
+      fixture.remove();
+    });
+    document.querySelectorAll('.side-link .count').forEach((count) => {
+      count.textContent = '—';
+    });
+    const status = document.querySelector('.calendar-status-bar');
+    if (status) {
+      status.replaceChildren(
+        el('span', { class: 'status-pill status-pill--neutral' }, 'Laddar lokal kalenderdata…')
+      );
+    }
+    const intelShell = document.querySelector('.intel-shell');
+    if (intelShell && !intelShell.querySelector('.cco-cal-live-placeholder')) {
+      Array.from(intelShell.children).forEach((fixture) => fixture.remove());
+      intelShell.appendChild(
+        el('div', { class: 'cco-cal-live-placeholder' }, [
+          el('strong', {}, 'Bokningsdetaljer'),
+          el('span', {}, 'Välj en bokning i kalendern.'),
+        ])
+      );
+    }
+  }
+
+  function renderLiveStatus({ label, total, confirmed, pending, sourceCounts = {} }) {
+    if (!isReadOnlyMode()) return;
+    const status = document.querySelector('.calendar-status-bar');
+    if (!status) return;
+    status.replaceChildren(
+      el('span', { class: 'week-pill' }, label),
+      el('span', { class: 'status-pill status-pill--success' }, [
+        el('span', { class: 'dot' }),
+        String(confirmed || 0) + ' bokade',
+      ]),
+      el('span', { class: 'status-pill status-pill--warning' }, [
+        el('span', { class: 'dot' }),
+        String(pending || 0) + ' reservationer',
+      ]),
+      el('span', { class: 'status-pill status-pill--info' }, [
+        el('span', { class: 'dot' }),
+        String(sourceCounts.bookingEngine || 0) + ' CCO',
+      ]),
+      el('span', { class: 'status-pill status-pill--neutral' },
+        String(sourceCounts.cliento || 0) + ' Cliento'),
+      el('span', { class: 'spacer' }),
+      el('span', { class: 'status-pill status-pill--neutral' }, String(total || 0) + ' totalt')
+    );
+  }
+
+  function updateDaySummary(dayView) {
+    if (!isReadOnlyMode()) return;
+    updateSideCount('Dagens mottagning', dayView.totalSlots || 0);
+    updateSideCount('Resurser', (dayView.resources || []).filter((resource) =>
+      resource.resourceId !== '_unassigned').length);
+    updateSideCount('Bekräftade', dayView.confirmedBookings || 0);
+    updateSideCount('Tentativa', dayView.pendingReservations || 0);
+    updateSideCount('Konflikt', null);
+    updateSideCount('Återbesök', null);
+    renderLiveStatus({
+      label: dayView.date || 'Dag',
+      total: dayView.totalSlots,
+      confirmed: dayView.confirmedBookings,
+      pending: dayView.pendingReservations,
+      sourceCounts: dayView.sourceCounts,
+    });
+  }
+
+  async function refreshWeekSummary(date, tenantId, role) {
+    if (!isReadOnlyMode()) return;
+    try {
+      const startDate = startOfWeek(date || isoToday());
+      const response = await fetch(
+        '/api/v1/calendar/week?startDate=' + encodeURIComponent(startDate),
+        { headers: calendarHeaders({ tenantId, role }) }
+      );
+      if (!response.ok) return;
+      const weekView = await response.json();
+      const tomorrow = new Date((date || isoToday()) + 'T12:00:00.000Z');
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+      const tomorrowKey = tomorrow.toISOString().slice(0, 10);
+      const tomorrowView = (weekView.days || []).find((day) => day.date === tomorrowKey);
+      updateSideCount('Imorgon', tomorrowView?.totalSlots || 0);
+      updateSideCount('Veckan', weekView.totalSlots || 0);
+    } catch (_) {}
+  }
+
   // ─── Main load ───────────────────────────────────────────────────────────
   async function loadDay(opts = {}) {
     const date = opts.date || isoToday();
@@ -415,12 +613,18 @@
     mount.innerHTML = '<div class="cco-cal-empty">Laddar dagens kalender…</div>';
 
     try {
-      const res = await fetch('/api/v1/calendar/day?date=' + encodeURIComponent(date) +
-        '&tenantId=' + encodeURIComponent(tenantId),
-        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+      const query = new URLSearchParams({ date });
+      if (!isReadOnlyMode()) query.set('tenantId', tenantId);
+      const res = await fetch('/api/v1/calendar/day?' + query.toString(), {
+        headers: calendarHeaders({ tenantId, role }),
+      });
       if (!res.ok) {
+        if (res.status === 401) {
+          mount.innerHTML = '<div class="cco-cal-empty">Inloggningen saknas eller har gått ut.</div>';
+          return;
+        }
         if (res.status === 403) {
-          mount.innerHTML = '<div class="cco-cal-empty">Saknar permission (bookings.read). Välj annan roll.</div>';
+          mount.innerHTML = '<div class="cco-cal-empty">Du saknar läsbehörighet till kalendern.</div>';
           return;
         }
         throw new Error('HTTP ' + res.status);
@@ -428,6 +632,8 @@
       const dayView = await res.json();
       mount.innerHTML = '';
       mount.appendChild(renderDayGrid(dayView, onBookingClick));
+      updateDaySummary(dayView);
+      refreshWeekSummary(date, tenantId, role);
 
       // Uppdatera title (existing #calTitle)
       const title = document.getElementById('calTitle');
@@ -534,13 +740,13 @@
 
   // ═══ FAS 4: VECKOVY ════════════════════════════════════════════════════════
   function startOfWeek(iso) {
-    const d = new Date(iso + 'T00:00:00');
-    const day = d.getDay() || 7;
-    d.setDate(d.getDate() - (day - 1));
+    const d = new Date(iso + 'T12:00:00.000Z');
+    const day = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() - (day - 1));
     return d.toISOString().slice(0, 10);
   }
   function weekNumber(d) {
-    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
     const dayNum = date.getUTCDay() || 7;
     date.setUTCDate(date.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
@@ -560,6 +766,9 @@
   function renderWeekGrid(weekView, onBookingClickFn) {
     const days = weekView.days || [];
     if (days.length === 0) return el('div', { class: 'cco-cal-empty' }, 'Ingen vecko-data.');
+    if ((weekView.totalSlots || 0) === 0) {
+      return el('div', { class: 'cco-cal-empty' }, 'Inga bokningar registrerade för veckan.');
+    }
 
     const grid = el('div', { class: 'cco-cal-week-grid' });
 
@@ -573,13 +782,16 @@
 
     // 7 dag-kolumner
     for (const day of days) {
-      const dateObj = new Date(day.date + 'T00:00:00');
+      const dateObj = new Date(day.date + 'T12:00:00.000Z');
       const isToday = day.date === isoToday();
       const col = el('div', { class: 'cco-cal-week-day-col' });
       col.appendChild(el('div', {
         class: 'cco-cal-week-day-header' + (isToday ? ' is-today' : ''),
       }, [
-        el('div', { class: 'cco-cal-week-day-name' }, dateObj.toLocaleDateString('sv-SE', { weekday: 'short' })),
+        el('div', { class: 'cco-cal-week-day-name' }, dateObj.toLocaleDateString('sv-SE', {
+          weekday: 'short',
+          timeZone: 'UTC',
+        })),
         el('div', { class: 'cco-cal-week-day-num' }, String(dateObj.getDate())),
         el('div', { class: 'cco-cal-week-day-count' }, (day.totalSlots || 0) + ' bok.'),
       ]));
@@ -608,7 +820,7 @@
           el('div', { class: 'cco-cal-booking-time' }, slot.time || ''),
           el('div', { class: 'cco-cal-booking-patient' }, slot.patientName || '—'),
           el('div', { class: 'cco-cal-booking-pills' }, [
-            el('span', { class: `cco-cal-pill cco-cal-pill--${tone}` }, slot.status || 'bok'),
+            el('span', { class: `cco-cal-pill cco-cal-pill--${tone}` }, statusLabel(slot.status)),
           ]),
         ]));
       }
@@ -630,12 +842,18 @@
     mount.innerHTML = '<div class="cco-cal-empty">Laddar vecka…</div>';
 
     try {
-      const res = await fetch('/api/v1/calendar/week?startDate=' + encodeURIComponent(startDate) +
-        '&tenantId=' + encodeURIComponent(tenantId),
-        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+      const query = new URLSearchParams({ startDate });
+      if (!isReadOnlyMode()) query.set('tenantId', tenantId);
+      const res = await fetch('/api/v1/calendar/week?' + query.toString(), {
+        headers: calendarHeaders({ tenantId, role }),
+      });
       if (!res.ok) {
+        if (res.status === 401) {
+          mount.innerHTML = '<div class="cco-cal-empty">Inloggningen saknas eller har gått ut.</div>';
+          return;
+        }
         if (res.status === 403) {
-          mount.innerHTML = '<div class="cco-cal-empty">Saknar permission (bookings.read). Välj annan roll.</div>';
+          mount.innerHTML = '<div class="cco-cal-empty">Du saknar läsbehörighet till kalendern.</div>';
           return;
         }
         throw new Error('HTTP ' + res.status);
@@ -643,13 +861,37 @@
       const weekView = await res.json();
       mount.innerHTML = '';
       mount.appendChild(renderWeekGrid(weekView, onBookingClick));
+      const totals = (weekView.days || []).reduce(
+        (summary, day) => {
+          summary.confirmed += day.confirmedBookings || 0;
+          summary.pending += day.pendingReservations || 0;
+          summary.sourceCounts.bookingEngine += day.sourceCounts?.bookingEngine || 0;
+          summary.sourceCounts.cliento += day.sourceCounts?.cliento || 0;
+          return summary;
+        },
+        { confirmed: 0, pending: 0, sourceCounts: { bookingEngine: 0, cliento: 0 } }
+      );
+      if (isReadOnlyMode()) {
+        updateSideCount('Veckan', weekView.totalSlots || 0);
+        renderLiveStatus({
+          label: 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')),
+          total: weekView.totalSlots,
+          confirmed: totals.confirmed,
+          pending: totals.pending,
+          sourceCounts: totals.sourceCounts,
+        });
+      }
 
       // Uppdatera existing #calTitle
       const title = document.getElementById('calTitle');
       if (title) {
-        const sd = new Date(startDate + 'T00:00:00');
-        const ed = new Date(sd); ed.setDate(ed.getDate() + 6);
-        const fmt = d => d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
+        const sd = new Date(startDate + 'T12:00:00.000Z');
+        const ed = new Date(sd); ed.setUTCDate(ed.getUTCDate() + 6);
+        const fmt = d => d.toLocaleDateString('sv-SE', {
+          day: 'numeric',
+          month: 'short',
+          timeZone: 'UTC',
+        });
         title.textContent = 'Vecka ' + weekNumber(sd) + ' · ' + fmt(sd) + '–' + fmt(ed);
       }
     } catch (err) {
@@ -906,11 +1148,11 @@
     const view = detectViewFromUrl();
     applyView(view);
     if (view === 'calendar') {
+      resetLiveReadUi();
       const dagTab = document.querySelector('.segment-tab[data-mode="dag"]');
       if (dagTab) {
         setTimeout(() => {
           dagTab.click();
-          loadDay({});
         }, 100);
       } else {
         loadDay({});
@@ -924,6 +1166,10 @@
     const tryBind = () => {
       const btn = document.getElementById('ccoCalCreateBtn');
       if (!btn) return;
+      if (isReadOnlyMode()) {
+        btn.hidden = true;
+        return;
+      }
       btn.addEventListener('click', () => {
         openCreateBookingModal({});
       });
@@ -941,5 +1187,7 @@
     init();
   }
 
-  global.CcoKalenderShell = { loadDay, loadWeek, applyView, renderDrawer, openCreateBookingModal };
+  global.CcoKalenderShell = isReadOnlyMode()
+    ? { loadDay, loadWeek, applyView, renderDrawer: renderReadonlyDrawer }
+    : { loadDay, loadWeek, applyView, renderDrawer, openCreateBookingModal };
 })(window);

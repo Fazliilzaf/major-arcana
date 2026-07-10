@@ -4,6 +4,119 @@
  * Återanvänder --cco-*-tokens från kunder.html.
  * ─────────────────────────────────────────────────────────────────── */
 
+/* Canonical /kalender.html runs this existing shell as an honest read-only
+ * surface: live store rows or an explicit empty state, never fixture cards. */
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .mockup-label,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .caption,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .mini-inbox,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .morgon-story,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .story-cta-row,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calendar-busy,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .vibe-strip,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calendar-week,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .watch-widget,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .watch-restore,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .voice-overlay,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .voice-sheet,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .search-overlay,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calm-banner,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .density-toggle,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .mic-btn,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calm-toggle,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .avatar-toggle,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .timemachine,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .nav-btn,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .segment-tab[data-mode="morgon"],
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .segment-tab[data-mode="resurs"] {
+  display: none !important;
+}
+
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calendar-content[data-mode="dag"] #cco-cal-week-mount,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calendar-content[data-mode="vecka"] #cco-cal-day-mount {
+  display: none !important;
+}
+
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calendar-content[data-mode="dag"] #cco-cal-day-mount,
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calendar-content[data-mode="vecka"] #cco-cal-week-mount {
+  display: block;
+}
+
+body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .intel-shell > *:not(#cco-cal-drawer):not(.cco-cal-live-placeholder) {
+  display: none !important;
+}
+
+.cco-cal-live-placeholder {
+  display: flex;
+  min-height: 160px;
+  padding: 24px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 105, 90, 0.16);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--cco-text-secondary);
+  text-align: center;
+}
+
+.cco-cal-live-placeholder strong {
+  color: var(--cco-color-brand);
+  font-size: 14px;
+}
+
+.cco-cal-live-placeholder span {
+  font-size: 12px;
+}
+
+.cco-cal-read-details {
+  display: grid;
+  grid-template-columns: minmax(80px, auto) 1fr;
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 11px;
+}
+
+.cco-cal-read-details dt {
+  color: var(--cco-text-tertiary);
+  font-weight: 700;
+}
+
+.cco-cal-read-details dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--cco-color-brand);
+}
+
+@media (max-width: 720px) {
+  body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calendar-shell {
+    order: 1;
+  }
+  body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .side-shell {
+    order: 2;
+  }
+  body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .intel-shell {
+    order: 3;
+  }
+  body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calendar-toolbar-main h2 {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calendar-toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calendar-status-bar {
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+  }
+  body[data-cco-view="calendar"][data-cco-calendar-mode="live-read"] .calendar-status-bar .spacer {
+    display: none;
+  }
+}
+
 /* ─── View-switch: vid ?view=calendar ─────────────────────────────────
  * Dölj HELA customers-shell (1247-header + filters + list + verktyg).
  * Calendar-shell tar mitten-positionen i app-grid.
@@ -238,6 +351,23 @@ body[data-cco-view="calendar"] .cco-cal-week-day-header {
 }
 .cco-cal-booking-pills {
   display: flex; gap: 3px; flex-wrap: wrap;
+}
+.cco-cal-booking--short {
+  padding: 3px 8px;
+  line-height: 1.05;
+}
+.cco-cal-booking--short .cco-cal-booking-time {
+  margin-bottom: 1px;
+  font-size: 9px;
+  line-height: 10px;
+}
+.cco-cal-booking--short .cco-cal-booking-patient {
+  font-size: 10px;
+  line-height: 11px;
+}
+.cco-cal-booking--short .cco-cal-booking-service,
+.cco-cal-booking--short .cco-cal-booking-pills {
+  display: none;
 }
 .cco-cal-pill {
   display: inline-flex; align-items: center;
