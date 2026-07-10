@@ -300,6 +300,16 @@ const config = {
     process.env.ARCANA_CCO_MAIL_INGESTION_STARTUP_RESUME_DELAY_MS,
     120000
   ),
+  // Smal KONS-poller. Kör oberoende av den globala schedulern och kan bara
+  // läsa inbox + skickat via den redan read-only ingestion-pipelinen.
+  ccoMailIngestionPollEnabled: asBool(
+    process.env.ARCANA_CCO_MAIL_INGESTION_POLL_ENABLED,
+    false
+  ),
+  ccoMailIngestionPollIntervalMinutes: asInt(
+    process.env.ARCANA_CCO_MAIL_INGESTION_POLL_INTERVAL_MINUTES,
+    3
+  ),
   ccoHalsoMailboxEmail: asNonEmptyString(
     process.env.ARCANA_CCO_HALSO_MAILBOX_EMAIL,
     'halso@hairtpclinic.com'

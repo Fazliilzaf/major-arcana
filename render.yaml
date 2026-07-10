@@ -194,6 +194,12 @@ services:
         value: "50"
       - key: ARCANA_CCO_MAIL_INGESTION_STARTUP_RESUME_DELAY_MS
         value: "180000"
+      # När den globala schedulern är avstängd håller denna smala poller enbart
+      # kons@ synkad via read-only Graph delta (inbox + skickat).
+      - key: ARCANA_CCO_MAIL_INGESTION_POLL_ENABLED
+        value: "true"
+      - key: ARCANA_CCO_MAIL_INGESTION_POLL_INTERVAL_MINUTES
+        value: "3"
       # Separat queue-jobb avstangt; truth-delta-jobbet kor en liten ingestion-batch efter ny mail.
       - key: ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES
         value: "0"
