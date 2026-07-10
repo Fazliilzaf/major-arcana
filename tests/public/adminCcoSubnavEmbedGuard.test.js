@@ -178,8 +178,8 @@ test('admin#cco kundlänk pekar på live customers-vyn utan demo/UAT-flaggor', (
 
   assert.match(
     subnav,
-    /kunder:\s*PREVIEW \+ '\?view=customers&' \+ CUSTOMER_FLAGS,/,
-    'Kunder-länken ska återbruka den befintliga customers-vyn'
+    /kunder:\s*'\/staff\?view=customers&' \+ CUSTOMER_FLAGS,/,
+    'Kunder-länken ska använda den kanoniska skarpa staff-routen'
   );
   assert.match(
     subnav,
@@ -242,7 +242,7 @@ test('sparad Kunder eller Automatisering återställer både flik och redan star
     {
       key: 'kunder',
       expected:
-        /\/major-arcana-preview\/\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on/,
+        /\/staff\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on/,
     },
     {
       key: 'automatisering',
@@ -272,7 +272,7 @@ test('ny CCO-session startar på Kalender och alla huvudkategorier är klickbara
 
   const expectedRoutes = {
     konversationer: /\/konversationer\.html\?v=test&embed=admin$/,
-    kunder: /\/major-arcana-preview\/\?view=customers&v9=on&demo=off&embed=admin/,
+    kunder: /\/staff\?view=customers&v9=on&demo=off&embed=admin/,
     kalender: /\/kalender\.html\?embed=1$/,
     automatisering: /\/major-arcana-preview\/cco-automatisering-v3\.html$/,
     analys: /\/major-arcana-preview\/cco-analytics-v3\.html$/,
@@ -307,7 +307,7 @@ test('ett sent load-event från default-vyn får inte skriva över ett nyare seg
   assert.equal(harness.workspace.getAttribute('data-cco-active-section'), 'kunder');
 
   harness.frame.contentWindow.location.href =
-    'https://arcana.hairtpclinic.com/major-arcana-preview/?view=customers&v9=on&embed=admin';
+    'https://arcana.hairtpclinic.com/staff?view=customers&v9=on&embed=admin';
   harness.frame.emit('load');
   assert.equal(activeSection(harness), 'kunder');
 });

@@ -46,14 +46,14 @@
       String(frame.getAttribute('data-conversations-src') || '').trim() ||
       '/konversationer.html?embed=admin';
 
-    // Kunder använder den befintliga live-vyn. demo=off rensar tidigare sticky
-    // UAT-state; admin-embed-kontraktet hårdlåser SPA:n till customer content.
+    // Kunder använder den kanoniska staff-routen. demo=off rensar tidigare
+    // sticky UAT-state; admin-embed-kontraktet hårdlåser SPA:n till customer content.
     // Kalender och övriga segment behåller sina redan byggda målunderlag.
     var CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on';
     var PREVIEW = '/major-arcana-preview/';
     var SECTIONS = {
       konversationer: konversationerSrc,
-      kunder: PREVIEW + '?view=customers&' + CUSTOMER_FLAGS,
+      kunder: '/staff?view=customers&' + CUSTOMER_FLAGS,
       kalender: '/kalender.html?embed=1',
       automatisering: PREVIEW + 'cco-automatisering-v3.html',
       analys: PREVIEW + 'cco-analytics-v3.html',
@@ -124,7 +124,9 @@
       if (path.endsWith('/konversationer.html')) return 'konversationer';
       if (path.endsWith('/kalender.html')) return 'kalender';
       if (
-        (path === '/major-arcana-preview' || path === '/major-arcana-preview/index.html') &&
+        (path === '/staff' ||
+          path === '/major-arcana-preview' ||
+          path === '/major-arcana-preview/index.html') &&
         parsed.searchParams.get('view') === 'customers'
       ) {
         return 'kunder';

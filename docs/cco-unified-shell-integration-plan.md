@@ -73,7 +73,7 @@ workspace.
 | --- | --- | --- |
 | Conversations | `public/konversationer.html`, `public/konversationer-bottom-actions.js` | `/api/v1/cco/runtime/worklist/consumer`, conversation messages, actions, and reply APIs |
 | Conversation dialogs | Existing `public/major-arcana-preview/cco-*.html` views | Open as actions/dialogs from the selected live conversation |
-| Customers | Customer mode in `public/major-arcana-preview/index.html` and `public/major-arcana-preview/app/patient-master-ui.js` | `/api/v1/cco/staff/customers-shell` and `/api/v1/cco-patient-master/*`; canonical identity is `patient.id` exposed as `patientId` |
+| Customers | Canonical `/staff?view=customers` route, served by `public/major-arcana-preview/index.html` and `public/major-arcana-preview/app/patient-master-ui.js` | `/api/v1/cco/staff/customers-shell` and `/api/v1/cco-patient-master/*`; canonical identity is `patient.id` exposed as `patientId` |
 | Calendar | `public/kalender.html` | Existing calendar APIs and state |
 | Automation | `public/major-arcana-preview/cco-automatisering-v3.html` | Existing implementation and data |
 | Analytics | `public/major-arcana-preview/cco-analytics-v3.html` | Existing implementation and data |
