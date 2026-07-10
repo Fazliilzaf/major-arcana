@@ -66,10 +66,25 @@ test('patientId-djuplänk bevarar admin-, V11- och V12-kontraktet', () => {
 test('enriched customers-shell uppdaterar V11/V12-rail för vald kund', () => {
   assert.match(ui, /function refreshSelectedCustomerRailFromShell\(\)/);
   assert.match(ui, /renderDetailPanel\(\{ preserveRailScroll: true \}\)/);
-  assert.match(
-    ui,
-    /renderMetricCards\(\);\s*\n\s*renderPatientRows\(\);\s*\n\s*refreshSelectedCustomerRailFromShell\(\)/
-  );
+  assert.match(ui, /reconcileSelectedPatientWithFilteredList\(\)/);
+  assert.match(ui, /isPatientExcludedFromActiveFilter\(deepLinkId\)/);
+  assert.match(ui, /function reconcileSelectedPatientWithFilteredList\(/);
+  assert.match(ui, /function isPatientExcludedFromActiveFilter\(/);
+  assert.match(ui, /function clearSelectedPatientForFilterMismatch\(/);
+  assert.match(ui, /closeV12WorkspaceOverlayIfOpen\(\)/);
+  assert.match(ui, /Kunden finns inte i aktuellt urval/);
+  assert.match(ui, /Djuplänkad kund finns inte i aktuellt urval/);
+});
+
+test('V12 Content Canon snabbknappar använder tel/sms/mailto och ord48-kalender', () => {
+  const canonPath = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js');
+  const canon = fs.readFileSync(canonPath, 'utf8');
+  assert.match(canon, /function s1QuickActions\(card\)/);
+  assert.match(canon, /href="tel:/);
+  assert.match(canon, /href="sms:/);
+  assert.match(canon, /href="mailto:/);
+  assert.match(canon, /data-kk-ord48-open-calendar data-patient-id="/);
+  assert.match(ui, /data-kk-ord48-open-calendar/);
 });
 
 test('listfas visar segment/insikts-placeholder tills enriched customers-shell landar', () => {
