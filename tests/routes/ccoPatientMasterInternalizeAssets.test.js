@@ -624,6 +624,81 @@ test('assets/repair-ghost-visible dryRun default skriver inte', async () => {
   }
 });
 
+test('assets/internalize sharp commit auto-repairerar ghost efter duplicate-run', async () => {
+  const body = Buffer.from('journal pdf body');
+  const fixture = await makeFixture({
+    createDriveInternalizationClient: async () => ({
+      serviceAccountEmail: 'svc-drive@example.test',
+      async getFileMetadata() {
+        return { name: 'Journal-PRP-Dino.pdf', modifiedTime: '2026-01-01T12:00:00.000Z' };
+      },
+      async downloadBuffer() {
+        return body;
+      },
+    }),
+  });
+  try {
+    const put = await fixture.storage.putObject({
+      key: '2026/07/preexisting-journal.pdf',
+      body,
+      contentType: 'application/pdf',
+    });
+
+    const canonical = await fixture.assetStore.addAsset({
+      patientId: 'patient-dino',
+      sourceSystem: 'drive_import',
+      originalDriveFileId: 'drive-file-1',
+      originalFileName: 'legacy-name.pdf',
+      storageProvider: 'local',
+      storageKey: 'missing/preexisting-journal.pdf',
+      checksum: put.checksum,
+      fileSize: body.length,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+
+    await withServer(fixture.app, async (base) => {
+      const res = await postJson(base, {
+        dryRun: false,
+        async: false,
+        limit: 1,
+        confirmText: 'INTERNALIZE ASSETS',
+      });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.autoRepairGhostVisible, true);
+      assert.equal(res.body.report.stats.duplicate, 1);
+      assert.equal(res.body.report.ghostAutoRepair.triggered, true);
+      assert.equal(res.body.report.ghostAutoRepair.repair.stats.repaired, 1);
+
+      const fixed = fixture.assetStore.getAsset(canonical.id);
+      assert.equal(fixed.storageKey, put.storageKey);
+      assert.equal(await blobExistsOnStorage(fixed, fixture.storage), true);
+      assert.equal(
+        fixture.authStore.events.some(
+          (e) => e.action === 'cco.patient_master.assets_internalize_auto_repair_ghost_visible'
+        ),
+        true
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('assets/internalize dryRun kör inte auto-repair', async () => {
+  const fixture = await makeFixture();
+  try {
+    await withServer(fixture.app, async (base) => {
+      const res = await postJson(base, { dryRun: true, autoRepairGhostVisible: true });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.report.ghostAutoRepair, undefined);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
 test('assets/repair-ghost-visible commit kräver confirmText och reparerar blob', async () => {
   const fixture = await makeFixture();
   try {

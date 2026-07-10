@@ -140,6 +140,30 @@ POST /api/v1/cco-patient-master/assets/internalize/runs/<runId>/reconcile
 
 **Pausa GO** tills async-fixen är live på prod (`/assets/internalize/job` svarar 200). Deploy-trigger restart → vänta `readyz` grön före nästa pilot.
 
+## Auto-repair ghost-VISIBLE efter duplicate-run
+
+När en sharp internalize-batch ger `duplicate>0` (checksum-dedupe) kan kanonisk `VISIBLE_ON_PATIENT_CARD` sakna blob medan DUPLICATE-shadow bär PDF:en. **Auto-repair** körs då automatiskt i samma commit-kontext (default `autoRepairGhostVisible: true`).
+
+| Kontext                                          | Auto-repair                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------- |
+| `dryRun: true`                                   | **Nej** — inga writes                                               |
+| Sharp commit (`confirmText: INTERNALIZE ASSETS`) | **Ja** (default) om `duplicate>0`                                   |
+| Manuell repair-endpoint                          | Oförändrad — `dryRun` default, commit kräver `REPAIR GHOST VISIBLE` |
+
+**Poll / verify efter batch:**
+
+```bash
+# job.state.ghostAutoRepair + report.ghostAutoRepair.repair.stats
+curl .../assets/internalize/job
+
+# Primärväg: canonical download 200/N (inte bara DUPLICATE-shadow)
+# Post-diagnos: ghostRenderCandidates=0 för runId
+```
+
+Opt-out per batch: `"autoRepairGhostVisible": false` i internalize-body.
+
+Audit: `cco.patient_master.assets_internalize_auto_repair_ghost_visible`.
+
 ## Referens — npm-script
 
 ```bash
