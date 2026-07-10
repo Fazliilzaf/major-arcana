@@ -832,6 +832,20 @@
       url.search = '';
       url.hash = '';
       url.searchParams.set('view', 'customers');
+      const current = new URLSearchParams(window.location.search || '');
+      ['v9', 'demo', 'embed', 'v11rail', 'v12workspace', 'flags', 'segment'].forEach(
+        (key) => {
+          const value = normalizeText(current.get(key));
+          if (value) url.searchParams.set(key, value);
+        }
+      );
+      if (document.documentElement.getAttribute('data-admin-embed-view') === 'customers') {
+        url.searchParams.set('v9', 'on');
+        url.searchParams.set('demo', 'off');
+        url.searchParams.set('embed', 'admin');
+        url.searchParams.set('v11rail', 'on');
+        url.searchParams.set('v12workspace', 'on');
+      }
       if (patientId) {
         url.searchParams.set('patientId', patientId);
       }
@@ -1166,6 +1180,32 @@
       return false;
     }
   }
+
+  function syncSelectedPatientDeepLink(patientId) {
+    const id = normalizeText(patientId);
+    if (!id || isMobileViewport() || !isCustomersShellActive()) return;
+    if (normalizeText(parseStartupParams().patientId) === id) return;
+    try {
+      window.history.replaceState(
+        { ...(window.history.state || {}), ccoCustomerPatient: id },
+        '',
+        buildPatientDeepLink(id)
+      );
+    } catch {
+      /* deep-link sync is best-effort; patient loading must continue */
+    }
+  }
+
+  function refreshFullCustomerProductWhenReady() {
+    if (!isCustomersShellActive() || !runtime.detail?.card || !usesV12Workspace()) return;
+    const rail = document.querySelector('[data-patient-master-rail]');
+    if (!rail?.querySelector('[data-customer-product-loading]')) return;
+    renderDetailPanel({ forceFullRender: true, preserveRailScroll: true });
+  }
+
+  window.addEventListener('arcana:customer-product-renderers-ready', () => {
+    window.requestAnimationFrame(refreshFullCustomerProductWhenReady);
+  });
 
   // JOURNEY-SPINE (Fas 5) opt-in. ?v13spine=on slår på (sticky via localStorage),
   // ?v13spine=off stänger av. Default OFF tills facit-paritet är godkänd.
@@ -6195,9 +6235,9 @@
     }
     const body =
       inner ||
-      '<div class="v11-rail__empty" role="status">' +
-        '<div class="v11-rail__empty-title">V11 Rail · Block 0</div>' +
-        '<div class="v11-rail__empty-hint">Scaffold aktiv (?v11rail=on). Inga sektioner implementerade ännu.</div>' +
+      '<div class="v11-rail__empty" role="status" data-customer-product-loading="v11">' +
+        '<div class="v11-rail__empty-title">Kunddossiern laddas…</div>' +
+        '<div class="v11-rail__empty-hint">Kundens fullständiga V11-dossier förbereds.</div>' +
         '</div>';
     return `
       <section class="patient-master-card v11-rail" data-patient-detail data-v11-rail-shell="1">
@@ -12091,6 +12131,7 @@
   async function loadPatientDetail(patientId) {
     if (!patientId || runtime.mode !== 'register') return;
     const key = normalizeText(patientId);
+    syncSelectedPatientDeepLink(key);
     const inflight = patientDetailInflight.get(key);
     if (inflight) return inflight;
 
@@ -12319,7 +12360,9 @@
       return Boolean(
         rail.querySelector('[data-kk-doc-cards]') ||
         rail.querySelector('.v10-dossier-referens .kkref') ||
-        rail.querySelector('.patient-master-camera-button')
+        rail.querySelector('.patient-master-camera-button') ||
+        rail.querySelector('[data-v11-rail-shell="1"]') ||
+        rail.querySelector('[data-v12-workspace-shell="1"]')
       );
     }
     return false;

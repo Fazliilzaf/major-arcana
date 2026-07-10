@@ -14,7 +14,7 @@
     <script src="./app/cco-conversations-v2-flag.js?v=conversations-v2-cutover-default-on"></script>
     <!-- /admin#cco owns the global shell. Lock explicit admin embeds to their
          requested content before the asynchronous application bundle boots. -->
-    <script src="./app/cco-admin-embed-contract.js?v=admin-content-contract-v1"></script>
+    <script src="./app/cco-admin-embed-contract.js?v=customer-full-product-contract-v1"></script>
     <!-- ARCANA bundle URLs (content-hash: 787864adfa) -->
     <script>
       window.__ARCANA_BUNDLE_URLS__ = {
@@ -58,7 +58,7 @@
     <link
       rel="preload"
       as="script"
-      href="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
+      href="./app/patient-master-ui.js?v=customer-full-product-contract-v1"
     />
     <script>
       (function deferInboxUntilNeeded() {
@@ -3656,7 +3656,7 @@
                   <script src="./app/journal-photo-client.js?v=kkx-photo-uat2"></script>
                   <script
                     async
-                    src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
+                    src="./app/patient-master-ui.js?v=customer-full-product-contract-v1"
                   ></script>
                   <script
                     defer
@@ -3710,7 +3710,11 @@
                   ></script>
                   <script defer src="./app/cco-v11-rk.js?v=v11v12-port-wiring-1"></script>
                   <script defer src="./app/cco-v12-spine.js?v=v11v12-port-wiring-1"></script>
-                  <script defer src="./app/cco-v12-canon.js?v=v11v12-port-wiring-1"></script>
+                  <script
+                    defer
+                    src="./app/cco-v12-canon.js?v=v11v12-port-wiring-1"
+                    onload="window.dispatchEvent(new CustomEvent('arcana:customer-product-renderers-ready'))"
+                  ></script>
                   <script
                     defer
                     src="./app/cco-v9-customers-parity.js?v=hairtp-cloud-fas456-v9"
@@ -3724,7 +3728,7 @@
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
                   <script
                     async
-                    src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
+                    src="./app/patient-master-ui.js?v=customer-full-product-contract-v1"
                   ></script>
                   <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">

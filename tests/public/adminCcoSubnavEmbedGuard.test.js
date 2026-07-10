@@ -350,7 +350,10 @@ test('admin embed markeras i customers-sidan så demo-chrome kan gömmas', () =>
     /cco-v9-shell-overrides\.css\?v=admin-content-contract-v1/,
     'admin-embed CSS måste cache-bustas så den nya toppbar-gömningen laddas om'
   );
-  assert.match(html, /cco-admin-embed-contract\.js\?v=admin-content-contract-v1/);
+  assert.match(
+    html,
+    /cco-admin-embed-contract\.js\?v=customer-full-product-contract-v1/
+  );
 });
 
 test('customers admin embed har ett hårt content-only-kontrakt före app-boot', () => {
@@ -381,6 +384,11 @@ test('customers content-lock döljer legacy Conversations och visar bara kundreg
   const harness = runAdminEmbedContract('?view=customers&demo=off&embed=admin');
 
   assert.equal(harness.documentElement.getAttribute('data-admin-embed-view'), 'customers');
+  assert.equal(harness.documentElement.getAttribute('data-customer-product-contract'), 'full');
+  assert.equal(harness.documentElement.getAttribute('data-v9-enabled'), 'on');
+  assert.equal(harness.documentElement.getAttribute('data-v9-demo'), 'off');
+  assert.equal(harness.documentElement.getAttribute('data-v11-rail'), 'on');
+  assert.equal(harness.documentElement.getAttribute('data-v12-workspace'), 'on');
   assert.equal(harness.canvas.getAttribute('data-app-shell-view'), 'customers');
   assert.equal(harness.canvas.getAttribute('data-app-view'), 'customers');
   assert.equal(harness.sections.customers.hidden, false);
@@ -388,6 +396,9 @@ test('customers content-lock döljer legacy Conversations och visar bara kundreg
   assert.equal(harness.sections.calendar.hidden, true);
   assert.ok(harness.legacyNodes.every((node) => node.hidden === true));
   assert.equal(harness.window.CcoAdminEmbedContract.view, 'customers');
+  assert.equal(harness.window.__ARCANA_V9_ENABLED__, true);
+  assert.equal(harness.window.__ARCANA_V11_RAIL_ENABLED__, true);
+  assert.equal(harness.window.__ARCANA_V12_WORKSPACE_ENABLED__, true);
 });
 
 test('content-lock påverkar inte fristående eller andra Major Arcana-vyer', () => {

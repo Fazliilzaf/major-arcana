@@ -21,7 +21,15 @@
   if (!lockedView) return;
 
   document.documentElement.setAttribute('data-admin-embed-view', lockedView);
+  document.documentElement.setAttribute('data-customer-product-contract', 'full');
+  document.documentElement.setAttribute('data-v9-enabled', 'on');
+  document.documentElement.setAttribute('data-v9-demo', 'off');
+  document.documentElement.setAttribute('data-v11-rail', 'on');
+  document.documentElement.setAttribute('data-v12-workspace', 'on');
   global.__ARCANA_ADMIN_EMBED_VIEW__ = lockedView;
+  global.__ARCANA_V9_ENABLED__ = true;
+  global.__ARCANA_V11_RAIL_ENABLED__ = true;
+  global.__ARCANA_V12_WORKSPACE_ENABLED__ = true;
 
   function setHidden(node, hidden) {
     if (!node) return;
