@@ -3441,10 +3441,12 @@
         const cleanSubject = rawSubject && !subjectIsName ? rawSubject : '';
         const rawPreview =
           normalizeText(row.preview) || normalizeText(row.queueExplanatoryLine) || '';
+        // OBS: när previewn ENBART är namnet blir strippningen tom — då ska den
+        // förbli tom (annars återinför fallbacken namnet och dubbel-namnet i
+        // listbubblan kommer tillbaka i just det kantfallet).
         const cleanPreview =
           threadName && rawPreview.toLowerCase().startsWith(threadName.toLowerCase())
-            ? normalizeText(rawPreview.slice(threadName.length).replace(/^[\s:–—-]+/, '')) ||
-              rawPreview
+            ? normalizeText(rawPreview.slice(threadName.length).replace(/^[\s:–—-]+/, ''))
             : rawPreview;
         return {
           id: normalizeText(row.id) || primaryConversationKey || `live-${index}`,
