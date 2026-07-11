@@ -183,6 +183,24 @@ test('konversationer derives booking chips from the local worklist booking conte
   );
 });
 
+test('konversationer inbox cards preserve smart subjects without showing the mailbox chip', () => {
+  const html = readHtml();
+
+  assert.match(html, /const subjectStartsWithName\s*=/);
+  assert.match(
+    html,
+    /normalizeText\(rawSubject\.slice\(threadName\.length\)\.replace\(\/\^\[\\s:–—-\]\+\//,
+    'a subject such as "Amer Putes Kontaktformulär" must keep "Kontaktformulär"'
+  );
+  assert.match(html, /const previewWithoutName\s*=/);
+  assert.match(html, /previewWithoutName\.replace\(/);
+  assert.doesNotMatch(
+    html,
+    /<span class="thread-tag thread-tag--booking">\$\{escapeHtml\(t\.mailboxAddress \|\| t\.source\)\}<\/span>/,
+    'mailbox address must not consume a smart-info chip in the inbox card'
+  );
+});
+
 test('konversationer live row opens real conversation messages endpoint', () => {
   const html = readHtml();
 
