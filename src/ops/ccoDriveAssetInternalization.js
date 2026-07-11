@@ -2,7 +2,10 @@
 
 const path = require('node:path');
 
-const { stableEncounterId } = require('./ccoAssetNaming/encounterMapper');
+const {
+  inferEncounterTypeFromAsset,
+  stableEncounterId,
+} = require('./ccoAssetNaming/encounterMapper');
 
 function nowIso() {
   return new Date().toISOString();
@@ -394,14 +397,52 @@ const TREATMENT_ENCOUNTER_TYPES = Object.freeze({
 
 const ENCOUNTER_DATE_SOURCES = new Set(['folder_iso', 'folder_month', 'filename_epoch', 'row']);
 
-function buildDriveEncounterFields({ patientId, documentDate, documentDateSource, enc = {} } = {}) {
+function isMediaEncounterCandidate({ category = '', mimeType = '', fileName = '' } = {}) {
+  const normalizedCategory = normalizeText(category).toLowerCase();
+  const normalizedMime = normalizeText(mimeType).toLowerCase();
+  const normalizedName = normalizeText(fileName).toLowerCase();
+  return (
+    normalizedCategory.startsWith('photo_') ||
+    normalizedMime.startsWith('image/') ||
+    /\.(heic|heif|jpe?g|png|webp|gif|mp4|mov|m4v|webm)$/i.test(normalizedName)
+  );
+}
+
+function buildDriveEncounterFields({
+  patientId,
+  documentDate,
+  documentDateSource,
+  originalFileName = '',
+  originalDrivePath = '',
+  mimeType = '',
+  category = '',
+  enc = {},
+} = {}) {
   const pid = normalizeText(patientId);
   const date = normalizeText(documentDate);
   const treatmentType = normalizeText(enc.treatmentType);
-  if (!pid || !date || !treatmentType || !ENCOUNTER_DATE_SOURCES.has(documentDateSource)) {
+  const hasStrongDate = ENCOUNTER_DATE_SOURCES.has(documentDateSource);
+  const isMedia = isMediaEncounterCandidate({ category, mimeType, fileName: originalFileName });
+  const inferredEncounterType =
+    !treatmentType && isMedia
+      ? inferEncounterTypeFromAsset({
+          originalFileName,
+          originalDrivePath,
+          mimeType,
+          category,
+        })
+      : null;
+  const encounterType = treatmentType
+    ? TREATMENT_ENCOUNTER_TYPES[treatmentType] || 'other'
+    : inferredEncounterType || (isMedia && hasStrongDate ? 'other' : null);
+  if (!pid || !date || !encounterType || !hasStrongDate) {
     return { encounterId: null, encounterType: null };
   }
-  const encounterType = TREATMENT_ENCOUNTER_TYPES[treatmentType] || 'other';
+  const encounterLinkReason = treatmentType
+    ? 'drive_treatment'
+    : inferredEncounterType
+      ? 'asset_type_inferred'
+      : 'date_only_fallback';
   return {
     encounterId: stableEncounterId({
       patientId: pid,
@@ -410,6 +451,8 @@ function buildDriveEncounterFields({ patientId, documentDate, documentDateSource
       sessionNumber: enc.sessionNumber || null,
     }),
     encounterType,
+    encounterLinkReason,
+    encounterConfidence: treatmentType || inferredEncounterType ? 'medium' : 'low',
   };
 }
 
@@ -588,6 +631,9 @@ async function resolveDriveFileMetadata(row, driveClient) {
     patientId: row.patientId,
     documentDate,
     documentDateSource,
+    originalFileName: name,
+    originalDrivePath: row.originalDrivePath,
+    mimeType: row.mimeType,
     enc,
   });
 
@@ -597,6 +643,8 @@ async function resolveDriveFileMetadata(row, driveClient) {
     documentDateSource: documentDateSource || null,
     encounterId: encounter.encounterId,
     encounterType: encounter.encounterType,
+    encounterLinkReason: encounter.encounterLinkReason || null,
+    encounterConfidence: encounter.encounterConfidence || null,
     treatmentType: enc.treatmentType || null,
     sessionNumber: enc.sessionNumber || null,
     visitLabel: enc.visitLabel || null,
@@ -793,6 +841,8 @@ async function internalizeDriveAssets({
           documentDateSource: driveMetadata.documentDateSource,
           encounterId: driveMetadata.encounterId,
           encounterType: driveMetadata.encounterType,
+          encounterConfidence: driveMetadata.encounterConfidence,
+          encounterLinkReason: driveMetadata.encounterLinkReason,
           treatmentType: driveMetadata.treatmentType,
           sessionNumber: driveMetadata.sessionNumber,
           visitLabel: driveMetadata.visitLabel,
@@ -925,6 +975,9 @@ function buildInternalizeCandidatePreviewRow(row, remainingOffset) {
     patientId: normalized.patientId,
     documentDate,
     documentDateSource: documentDateSource || 'none',
+    originalFileName: normalized.originalFileName,
+    originalDrivePath: normalized.originalDrivePath,
+    mimeType: normalized.mimeType,
     enc,
   });
   return {
@@ -935,6 +988,8 @@ function buildInternalizeCandidatePreviewRow(row, remainingOffset) {
     documentDate,
     treatmentType: enc.treatmentType || null,
     visitLabel: enc.visitLabel || null,
+    encounterLinkReason: encounter.encounterLinkReason || null,
+    encounterConfidence: encounter.encounterConfidence || null,
     encounterId: encounter.encounterId
       ? maskValue(encounter.encounterId, { keepStart: 6, keepEnd: 4 })
       : null,
@@ -1138,6 +1193,7 @@ module.exports = {
   normalizeDriveAssetRow,
   parseFolderEncounter,
   buildInternalizeCandidatePreviewRow,
+  buildDriveEncounterFields,
   findConsecutivePilotWindow,
   buildPilotWindowSearch,
   evaluatePilotWindowFailure,

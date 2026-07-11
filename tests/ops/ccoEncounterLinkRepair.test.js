@@ -1,0 +1,102 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { previewEncounterLinkRepair } = require('../../src/ops/ccoEncounterLinkRepair');
+
+test('previewEncounterLinkRepair föreslår exakt ett date-only-foto utan writes', () => {
+  const report = previewEncounterLinkRepair({
+    patientInputs: [
+      {
+        patientId: 'canonical-patient-1',
+        journalEntries: [
+          {
+            patientId: 'canonical-patient-1',
+            treatmentDate: '2026-05-05',
+            journalType: 'consultation',
+          },
+        ],
+        assets: [
+          {
+            id: 'asset-photo-1',
+            patientId: 'cliento-asset-1',
+            mimeType: 'image/jpeg',
+            originalFileName: 'IMG_0001.jpg',
+            documentDate: '2026-05-05',
+            status: 'VISIBLE_ON_PATIENT_CARD',
+          },
+        ],
+      },
+    ],
+    sampleSize: 5,
+  });
+
+  assert.equal(report.zeroWrites, true);
+  assert.equal(report.stats.missingEncounterId, 1);
+  assert.equal(report.stats.linkable, 1);
+  assert.equal(report.stats.linkableMedium, 1);
+  assert.equal(report.stats.review, 0);
+  assert.equal(report.samples.length, 1);
+  assert.equal(report.samples[0].confidence, 'medium');
+  assert.equal(report.samples[0].reason, 'date_only');
+  assert.ok(report.samples[0].proposedEncounterId);
+  assert.match(report.samples[0].patientId, /\*\*\*/);
+});
+
+test('previewEncounterLinkRepair skickar tvetydig foto-matchning till review', () => {
+  const report = previewEncounterLinkRepair({
+    patientInputs: [
+      {
+        patientId: 'canonical-patient-1',
+        journalEntries: [
+          { patientId: 'canonical-patient-1', treatmentDate: '2026-05-05', journalType: 'prp' },
+          {
+            patientId: 'canonical-patient-1',
+            treatmentDate: '2026-05-05',
+            journalType: 'consultation',
+          },
+        ],
+        assets: [
+          {
+            id: 'asset-photo-1',
+            patientId: 'cliento-asset-1',
+            mimeType: 'image/jpeg',
+            originalFileName: 'IMG_0001.jpg',
+            documentDate: '2026-05-05',
+            status: 'VISIBLE_ON_PATIENT_CARD',
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(report.stats.linkable, 0);
+  assert.equal(report.stats.review, 1);
+  assert.equal(report.samples[0].reason, 'ambiguous_date');
+  assert.equal(report.samples[0].proposedEncounterId, null);
+});
+
+test('redan länkade media räknas men föreslås inte igen', () => {
+  const report = previewEncounterLinkRepair({
+    patientInputs: [
+      {
+        patientId: 'canonical-patient-1',
+        assets: [
+          {
+            id: 'asset-photo-1',
+            patientId: 'canonical-patient-1',
+            mimeType: 'image/jpeg',
+            originalFileName: 'IMG_0001.jpg',
+            documentDate: '2026-05-05',
+            encounterId: 'existing-encounter',
+            status: 'VISIBLE_ON_PATIENT_CARD',
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(report.stats.alreadyLinked, 1);
+  assert.equal(report.stats.missingEncounterId, 0);
+  assert.equal(report.stats.linkable, 0);
+});

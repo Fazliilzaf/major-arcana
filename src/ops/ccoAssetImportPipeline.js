@@ -325,6 +325,7 @@ function sourceRecordEncounterLink(sourceRecord = {}, patientId = null) {
     basis: 'source_record',
     encounterType: normalizeText(sourceRecord.encounterType) || null,
     visitLabel: normalizeText(sourceRecord.visitLabel) || null,
+    mappingReason: normalizeText(sourceRecord.encounterLinkReason) || 'source_record',
   };
 }
 
@@ -745,6 +746,9 @@ function createCcoAssetImportPipeline({
         encounterType: sourceRecord.encounterType || encounterLink?.encounterType || null,
         sessionNumber: sourceRecord.sessionNumber || null,
         visitLabel: sourceRecord.visitLabel || null,
+        encounterMappingStatus: encounterLink?.mappingReason || null,
+        encounterMappingReviewReason:
+          encounterLink?.mappingReason === 'date_only_fallback' ? 'date_only_fallback' : null,
         ...captureFields,
       },
       { actor }
