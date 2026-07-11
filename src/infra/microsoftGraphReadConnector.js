@@ -5,6 +5,33 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function extractEmbeddedDataImages(bodyHtml = '') {
+  const html = normalizeText(bodyHtml);
+  if (!html) return [];
+  const seen = new Set();
+  const images = [];
+  const pattern = /<img\b([^>]*)\bsrc\s*=\s*(["'])(data:image\/[^;,]+;base64,([^"']+))\2([^>]*)>/gi;
+  for (const match of html.matchAll(pattern)) {
+    const dataUrl = normalizeText(match?.[3]);
+    const base64 = normalizeText(match?.[4]);
+    if (!dataUrl || !base64 || seen.has(dataUrl)) continue;
+    try {
+      const buffer = Buffer.from(base64, 'base64');
+      if (!buffer.length) continue;
+      const contentType = normalizeText(dataUrl.match(/^data:([^;,]+)/i)?.[1]).toLowerCase();
+      const alt = normalizeText(
+        `${match?.[1] || ''} ${match?.[5] || ''}`.match(/\balt\s*=\s*(["'])(.*?)\1/i)?.[2]
+      );
+      const attachmentId = `inline-data-${crypto.createHash('sha256').update(buffer).digest('hex').slice(0, 24)}`;
+      seen.add(dataUrl);
+      images.push({ dataUrl, buffer, contentType, alt, attachmentId });
+    } catch (_error) {
+      // Malformed data URLs stay in the original HTML and are never cached.
+    }
+  }
+  return images;
+}
+
 const DEFAULT_STORED_BODY_HTML_MAX_LENGTH = 24000;
 const INLINE_IMAGE_BODY_HTML_MAX_LENGTH = 240000;
 
@@ -1883,6 +1910,53 @@ function createMicrosoftGraphReadConnector(config = {}) {
     return { cached, skipped, failed, truncated: false };
   }
 
+  async function cacheEmbeddedDataImages({
+    messages = [],
+    fallbackUserId = '',
+    label = 'Microsoft Graph embedded mail image cache',
+  } = {}) {
+    if (!mailAssetCache) return { cached: 0, skipped: 0, failed: 0 };
+    let cached = 0;
+    let skipped = 0;
+    let failed = 0;
+    for (const message of asArray(messages)) {
+      const graphMessageId = normalizeText(message?.id || message?.graphMessageId || message?.messageId);
+      const targetUserId = normalizeText(
+        message?.userPrincipalName || message?.mailboxAddress || message?.mailboxId || fallbackUserId
+      );
+      const bodyHtml = normalizeText(message?.body?.content || message?.bodyHtml);
+      if (!graphMessageId || !targetUserId || !bodyHtml) continue;
+      for (const image of extractEmbeddedDataImages(bodyHtml)) {
+        const context = {
+          mailboxId: normalizeText(message?.mailboxId || targetUserId),
+          messageId: graphMessageId,
+          attachmentId: image.attachmentId,
+        };
+        try {
+          const existing = await mailAssetCache.get(context);
+          if (existing) {
+            cached += 1;
+            continue;
+          }
+          const stored = await mailAssetCache.put(context, {
+            buffer: image.buffer,
+            name: image.alt || 'inline-image',
+            contentType: image.contentType || 'application/octet-stream',
+            isInline: true,
+            contentId: image.attachmentId,
+            sourceType: 'body_html_inline',
+          });
+          if (stored?.cached) cached += 1;
+          else skipped += 1;
+        } catch (error) {
+          failed += 1;
+          console.warn(`[cco-mail-assets] kunde inte cacha inlinebild (${label})`, error?.message || error);
+        }
+      }
+    }
+    return { cached, skipped, failed };
+  }
+
   async function fetchInlineImageAttachments(options = {}) {
     const attachments = await fetchMessageAttachments(options);
     return attachments.filter((item) => {
@@ -1912,6 +1986,48 @@ function createMicrosoftGraphReadConnector(config = {}) {
     for (const rawMessage of safeMessages) {
       const safeMessage = rawMessage && typeof rawMessage === 'object' ? { ...rawMessage } : rawMessage;
       const bodyContent = normalizeText(safeMessage?.body?.content);
+      const embeddedImages = extractEmbeddedDataImages(bodyContent);
+      if (embeddedImages.length && mailAssetCache) {
+        await cacheEmbeddedDataImages({
+          messages: [safeMessage],
+          fallbackUserId: userId,
+          label,
+        });
+        const cachedImages = [];
+        let rewrittenBody = bodyContent;
+        for (const image of embeddedImages) {
+          const context = {
+            mailboxId: normalizeText(safeMessage?.mailboxId || safeMessage?.mailboxAddress || userId),
+            messageId: normalizeText(safeMessage?.id),
+            attachmentId: image.attachmentId,
+          };
+          if (!(await mailAssetCache.get(context))) continue;
+          rewrittenBody = rewrittenBody.split(image.dataUrl).join(`cid:${image.attachmentId}`);
+          cachedImages.push({
+            id: image.attachmentId,
+            name: image.alt || 'inline-image',
+            contentType: image.contentType,
+            contentId: image.attachmentId,
+            isInline: true,
+            size: image.buffer.length,
+            sourceType: 'body_html_inline',
+          });
+        }
+        if (cachedImages.length) {
+          safeMessage.body = {
+            ...(safeMessage?.body && typeof safeMessage.body === 'object' ? safeMessage.body : {}),
+            content: rewrittenBody,
+          };
+          safeMessage.attachments = [
+            ...(Array.isArray(safeMessage.attachments) ? safeMessage.attachments : []),
+            ...cachedImages.filter(
+              (candidate) =>
+                !Array.isArray(safeMessage.attachments) ||
+                !safeMessage.attachments.some((item) => normalizeText(item?.id) === candidate.id)
+            ),
+          ];
+        }
+      }
       const cidReferences = extractInlineCidReferences(bodyContent);
       const shouldFetchAttachments =
         safeMessage?.hasAttachments === true || cidReferences.length > 0;

@@ -296,7 +296,7 @@ test('konversationer renders full mail html and attachments safely', () => {
   assert.match(html, /function renderMessageBubbleInner\(message\)/);
   assert.match(html, /const html = sanitizeMailHtmlForDisplay\(messageBodyHtml\(message\)\);/);
   assert.match(html, /iframe/);
-  assert.match(html, /sandbox="allow-popups allow-popups-to-escape-sandbox"/);
+  assert.match(html, /sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"/);
   assert.match(html, /srcdoc="\$\{escapeHtml\(doc\)\}"/);
   assert.match(html, /message\?\.bodyHtml/);
   assert.match(html, /message\?\.body_html/);
@@ -325,6 +325,16 @@ test('konversationer renders full mail html and attachments safely', () => {
     /\$\{renderMessageBubbleInner\(message\)\}[\s\S]*\$\{renderMessageAttachments\(message\)\}/
   );
   assert.match(html, /msg-attachments/);
+});
+
+test('konversationer skiljer olästa mail från trådar som behöver svar', () => {
+  const html = readHtml();
+
+  assert.match(html, /unread: state\.hasUnreadInbound === true/);
+  assert.match(html, /const needsReply = threads\.filter\(\(thread\) => thread\.needsReply\)\.length/);
+  assert.match(html, /\$\{unread\} oläst · \$\{needsReply\} behöver svar · \$\{all\} trådar/);
+  assert.match(html, /truthCoverage\?\.metadata\?\.messageCount/);
+  assert.match(html, /actNowCount\) actNowCount\.textContent = String\(needsReply\)/);
 });
 
 test('konversationer keeps the bottom action bar visible for long mail threads', () => {

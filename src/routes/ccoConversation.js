@@ -1191,6 +1191,20 @@ function chooseRicherHtml(existing = '', candidate = '') {
   return safeExisting;
 }
 
+const MAX_RUNTIME_BODY_HTML_CHARS = 24000;
+
+function boundRuntimeBodyHtml(value = '') {
+  let html = normalizeText(value);
+  if (!html) return '';
+  // A legacy ingestion row can contain a truncated data-URI image. Remove that
+  // unsafe payload before bounding the response; new truth rows use local CID
+  // assets and therefore keep the actual image without inflating the JSON.
+  if (html.length > MAX_RUNTIME_BODY_HTML_CHARS && /data:image\//i.test(html)) {
+    html = html.replace(/data:image\/[^;,]+;base64,[^"')\s>]+/gi, 'about:blank');
+  }
+  return html.slice(0, MAX_RUNTIME_BODY_HTML_CHARS);
+}
+
 function deriveMailboxForMatch(message = {}) {
   const safe = asObject(message);
   const rawJson = asObject(safe.rawJson);
@@ -1295,13 +1309,12 @@ function enrichConversationMessagesWithIngestion(messages, store, options = {}) 
     const messageBodyText = deriveBody(message);
     const rawBodyText = deriveBody(raw);
     const mergedBodyText = chooseRicherBodyText(messageBodyText, rawBodyText, preview);
-    const messageBodyHtml = deriveBodyHtml(message);
-    const rawBodyHtml = deriveBodyHtml(raw);
-    const mergedBodyHtml = chooseRicherHtml(messageBodyHtml, rawBodyHtml);
+    const messageBodyHtml = boundRuntimeBodyHtml(deriveBodyHtml(message));
+    const rawBodyHtml = boundRuntimeBodyHtml(deriveBodyHtml(raw));
+    // Truth is canonical. Ingestion may fill an absent HTML body, but must not
+    // replace it merely because its legacy copy is longer or contains base64.
+    const mergedBodyHtml = messageBodyHtml || rawBodyHtml;
     const mergedAttachments = mergeConversationAttachments(message, raw);
-    const rawLooksRicher =
-      (rawBodyText && mergedBodyText === rawBodyText && rawBodyText !== messageBodyText) ||
-      (rawBodyHtml && mergedBodyHtml === rawBodyHtml && rawBodyHtml !== messageBodyHtml);
     return {
       ...message,
       bodyText: mergedBodyText || chooseRicherBodyText(message.bodyText, raw.bodyText, preview),
@@ -1310,21 +1323,13 @@ function enrichConversationMessagesWithIngestion(messages, store, options = {}) 
       body_html: mergedBodyHtml || null,
       html:
         mergedBodyHtml ||
-        chooseRicherHtml(normalizeText(message.html), normalizeText(raw.html)) ||
+        boundRuntimeBodyHtml(normalizeText(message.html) || normalizeText(raw.html)) ||
         null,
       text: mergedBodyText || chooseRicherBodyText(message.text, raw.text, preview),
       attachments: mergedAttachments,
-      rawJson: rawLooksRicher || !objectHasKeys(message.rawJson) ? raw.rawJson : message.rawJson,
-      mailDocument:
-        rawLooksRicher || !objectHasKeys(message.mailDocument)
-          ? raw.mailDocument
-          : message.mailDocument,
-      body:
-        rawLooksRicher && objectHasKeys(raw.body)
-          ? raw.body
-          : objectHasKeys(message.body)
-            ? message.body
-            : raw.body,
+      rawJson: objectHasKeys(message.rawJson) ? message.rawJson : raw.rawJson,
+      mailDocument: objectHasKeys(message.mailDocument) ? message.mailDocument : raw.mailDocument,
+      body: objectHasKeys(message.body) ? message.body : raw.body,
       bodyPreview: normalizeText(message.bodyPreview) || normalizeText(raw.bodyPreview),
       preview: normalizeText(message.preview) || normalizeText(raw.preview),
       snippet: normalizeText(message.snippet) || normalizeText(raw.snippet),
@@ -1576,8 +1581,13 @@ function createCcoConversationRouter({
           const mailboxId = normalizeText(safe.mailboxId) || null;
           const mailboxAddress = normalizeText(safe.mailboxAddress) || mailboxId;
           const attachments = collectConversationAttachments(safe);
-          const bodyHtml = rewriteMailCidImageSources(deriveBodyHtml(safe), attachments);
-          const bodyText = deriveBody(safe);
+          const boundedBodyHtml = boundRuntimeBodyHtml(deriveBodyHtml(safe));
+          const bodyHtml = rewriteMailCidImageSources(boundedBodyHtml, attachments);
+          const derivedBodyText = deriveBody(safe);
+          const bodyText =
+            derivedBodyText.length > 50000 && boundedBodyHtml
+              ? extractTextFromHtml(boundedBodyHtml)
+              : derivedBodyText;
           const bodyPreview =
             normalizeText(safe.bodyPreview) ||
             normalizeText(safe.preview) ||
