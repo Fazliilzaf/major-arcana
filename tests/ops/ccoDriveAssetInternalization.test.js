@@ -611,3 +611,79 @@ test('selectInternalizeBatchRows filtrerar folder_iso och matchar preview-offset
   );
   assert.equal(buildInternalizeCandidatePreviewRow(rows[1], 1).documentDateSource, 'folder_iso');
 });
+
+test('parseFolderEncounter: månad+år i samma mapp → folder_month', () => {
+  const {
+    parseFolderEncounter,
+    buildInternalizeCandidatePreviewRow,
+    normalizeDriveAssetRow,
+  } = require('../../src/ops/ccoDriveAssetInternalization');
+
+  const cases = [
+    {
+      path: 'Hair TP Clinic/Januari 2024 (Begum)/Journal.pdf',
+      fileName: 'Journal.pdf',
+      documentDate: '2024-01-01',
+      documentDateSource: 'folder_month',
+      treatmentType: 'Konsultation',
+    },
+    {
+      path: 'Hair TP Clinic/November TP 2021/scan.pdf',
+      fileName: 'scan.pdf',
+      documentDate: '2021-11-01',
+      documentDateSource: 'folder_month',
+      treatmentType: 'TP',
+      visitLabel: 'TP',
+    },
+    {
+      path: 'Hair TP Clinic/April 2024 Begum & Sukru (15-20)/hd.pdf',
+      fileName: 'Hälsodeklaration.pdf',
+      documentDate: '2024-04-15',
+      documentDateSource: 'folder_month',
+      treatmentType: 'Konsultation',
+    },
+    {
+      path: 'Hair TP Clinic/September 2023 Begum/photo.heic',
+      fileName: 'IMG_0001.heic',
+      documentDate: '2023-09-01',
+      documentDateSource: 'folder_month',
+      treatmentType: null,
+    },
+  ];
+
+  for (const item of cases) {
+    const enc = parseFolderEncounter(item.path, item.fileName);
+    assert.equal(enc.documentDate, item.documentDate, item.path);
+    assert.equal(enc.documentDateSource, item.documentDateSource, item.path);
+    assert.equal(enc.treatmentType, item.treatmentType, item.path);
+    if (item.visitLabel) assert.equal(enc.visitLabel, item.visitLabel, item.path);
+  }
+
+  const preview = buildInternalizeCandidatePreviewRow(
+    normalizeDriveAssetRow({
+      patientId: 'patient-month-batch',
+      file: {
+        driveFileId: 'drive-month-batch',
+        relativePath: 'Hair TP Clinic/November TP 2021/Journal.pdf',
+        fileName: 'Journal.pdf',
+        mimeType: 'application/pdf',
+      },
+    }),
+    0
+  );
+  assert.equal(preview.documentDateSource, 'folder_month');
+  assert.equal(preview.documentDate, '2021-11-01');
+  assert.equal(preview.treatmentType, 'TP');
+  assert.ok(preview.encounterId);
+
+  const expectedEncounterId = stableEncounterId({
+    patientId: 'patient-month-batch',
+    date: '2021-11-01',
+    encounterType: 'prp_hair',
+    sessionNumber: null,
+  });
+  assert.equal(
+    preview.encounterId,
+    `${expectedEncounterId.slice(0, 6)}***${expectedEncounterId.slice(-4)}`
+  );
+});

@@ -376,8 +376,11 @@ const TREATMENT_TYPES = [
   { needle: 'prp', canon: 'PRP', word: true },
   { needle: 'dhi', canon: 'DHI', word: true },
   { needle: 'fue', canon: 'FUE', word: true },
+  { needle: 'tp', canon: 'TP', word: true },
   { needle: 'op', canon: 'OP', word: true },
 ];
+
+const CLINIC_ROOT_RE = /hair\s+tp\s+clinic/i;
 
 const TREATMENT_ENCOUNTER_TYPES = Object.freeze({
   DHI: 'transplant_dhi',
@@ -386,6 +389,7 @@ const TREATMENT_ENCOUNTER_TYPES = Object.freeze({
   Microneedling: 'microneedling',
   OP: 'other',
   PRP: 'prp_hair',
+  TP: 'prp_hair',
 });
 
 const ENCOUNTER_DATE_SOURCES = new Set(['folder_iso', 'folder_month', 'filename_epoch', 'row']);
@@ -409,8 +413,63 @@ function buildDriveEncounterFields({ patientId, documentDate, documentDateSource
   };
 }
 
+function parseMonthYearDayFromSegment(segment = '') {
+  const text = normalizeText(segment);
+  if (!text) return null;
+  const monthMatch = text.match(MONTH_WORD_RE);
+  if (!monthMatch) return null;
+  const monthNum = MONTH_NUM[monthMatch[1].toLowerCase()];
+  if (!monthNum) return null;
+  const yearMatch = text.match(/\b(20\d{2})\b/);
+  if (!yearMatch) return null;
+  let day = 1;
+  const parenDay = text.match(/\((\d{1,2})\s*(?:-|–|—)/);
+  if (parenDay) {
+    const parsedDay = Number(parenDay[1]);
+    if (parsedDay >= 1 && parsedDay <= 31) day = parsedDay;
+  }
+  return {
+    documentDate: `${yearMatch[1]}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    documentDateSource: 'folder_month',
+  };
+}
+
+function parseTreatmentFromTexts(texts = []) {
+  let best = { treatmentType: null, sessionNumber: null, visitLabel: null };
+  for (const raw of texts) {
+    const text = normalizeText(raw);
+    if (!text || CLINIC_ROOT_RE.test(text)) continue;
+    for (const t of TREATMENT_TYPES) {
+      const re = t.word ? new RegExp(`\\b${t.needle}\\b`, 'i') : new RegExp(t.needle, 'i');
+      if (!re.test(text)) continue;
+      const sessionMatch = text.match(new RegExp(`${t.needle}\\s*(\\d+)`, 'i'));
+      const rawSession = sessionMatch ? Number(sessionMatch[1]) : null;
+      const sessionNumber =
+        rawSession != null && rawSession >= 1 && rawSession <= 99 ? rawSession : null;
+      const candidate = {
+        treatmentType: t.canon,
+        sessionNumber,
+        visitLabel: sessionNumber ? `${t.canon} ${sessionNumber}` : t.canon,
+      };
+      if (!best.treatmentType || (candidate.sessionNumber && !best.sessionNumber)) {
+        best = candidate;
+      }
+      if (best.sessionNumber) return best;
+    }
+  }
+  return best;
+}
+
+function inferTreatmentFromFileName(originalFileName = '') {
+  const name = normalizeText(originalFileName);
+  if (!name) return null;
+  if (/\bhd\b|h[aä]lso|frisk|samtycke/i.test(name)) return 'Konsultation';
+  if (/journal/i.test(name)) return 'Konsultation';
+  return null;
+}
+
 // Härled besöksdatum + behandlingstyp/session ur Drive-mappnamnet (ORD-41).
-// Datum: ISO i path → månadsnamn+dag → unix-epoch i filnamnet. Drive-tid sätts av anroparen sist.
+// Datum: ISO i path → månadsnamn+dag → månadsnamn+år → unix-epoch i filnamnet.
 function parseFolderEncounter(originalDrivePath = '', originalFileName = '') {
   const segments = normalizeText(originalDrivePath)
     .split('/')
@@ -432,7 +491,7 @@ function parseFolderEncounter(originalDrivePath = '', originalFileName = '') {
     }
   }
 
-  // 2) Månadsnamn + år + dag fördelat på två mappar: "April 2026" / "April 5".
+  // 2a) Månadsnamn + år + dag fördelat på två mappar: "April 2026" / "April 5".
   if (!documentDate) {
     let monthV = null;
     let yearV = null;
@@ -457,6 +516,18 @@ function parseFolderEncounter(originalDrivePath = '', originalFileName = '') {
     }
   }
 
+  // 2b) Månadsnamn + år i samma mapp utan separat dag-mapp: "Januari 2024 (Begum)", "November TP 2021".
+  if (!documentDate) {
+    for (let i = segments.length - 1; i >= 0; i -= 1) {
+      const parsed = parseMonthYearDayFromSegment(segments[i]);
+      if (parsed) {
+        documentDate = parsed.documentDate;
+        documentDateSource = parsed.documentDateSource;
+        break;
+      }
+    }
+  }
+
   // 3) Unix-epoch i filnamnet: "Hälsodeklaration-...-1766080815-4262.pdf".
   if (!documentDate) {
     const em = normalizeText(originalFileName).match(/-(\d{10})-/);
@@ -469,18 +540,16 @@ function parseFolderEncounter(originalDrivePath = '', originalFileName = '') {
     }
   }
 
-  // Behandlingstyp + session ur encounter-mappnamnet.
-  let treatmentType = null;
-  let sessionNumber = null;
-  let visitLabel = null;
-  for (const t of TREATMENT_TYPES) {
-    const re = t.word ? new RegExp(`\\b${t.needle}\\b`, 'i') : new RegExp(t.needle, 'i');
-    if (re.test(folder)) {
-      treatmentType = t.canon;
-      const sm = folder.match(new RegExp(`${t.needle}\\s*(\\d+)`, 'i'));
-      if (sm) sessionNumber = Number(sm[1]);
-      visitLabel = sessionNumber ? `${t.canon} ${sessionNumber}` : t.canon;
-      break;
+  let { treatmentType, sessionNumber, visitLabel } = parseTreatmentFromTexts([
+    folder,
+    ...segments.slice().reverse(),
+    originalFileName,
+  ]);
+  if (!treatmentType) {
+    const inferred = inferTreatmentFromFileName(originalFileName);
+    if (inferred) {
+      treatmentType = inferred;
+      visitLabel = inferred;
     }
   }
 
@@ -852,12 +921,23 @@ function buildInternalizeCandidatePreviewRow(row, remainingOffset) {
   const documentDate = enc.documentDate || normalized.documentDate || null;
   if (!documentDateSource && documentDate) documentDateSource = 'row';
   const monthFolder = extractMonthFolder(normalized.originalDrivePath);
+  const encounter = buildDriveEncounterFields({
+    patientId: normalized.patientId,
+    documentDate,
+    documentDateSource: documentDateSource || 'none',
+    enc,
+  });
   return {
     remainingOffset,
     monthFolder,
     calendarBucketClear: monthFolder !== UNKNOWN_MONTH_BUCKET,
     documentDateSource: documentDateSource || 'none',
     documentDate,
+    treatmentType: enc.treatmentType || null,
+    visitLabel: enc.visitLabel || null,
+    encounterId: encounter.encounterId
+      ? maskValue(encounter.encounterId, { keepStart: 6, keepEnd: 4 })
+      : null,
     family: mimeFamily(normalized.mimeType, normalized.originalFileName),
     fileName: maskValue(normalized.originalFileName, { keepStart: 1, keepEnd: 1 }),
     driveRef: maskValue(normalized.driveFileId, { keepStart: 4, keepEnd: 4 }),
