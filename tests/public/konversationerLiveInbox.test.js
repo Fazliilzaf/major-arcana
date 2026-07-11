@@ -47,6 +47,21 @@ test('konversationer live inbox uses kons worklist consumer as first real data s
   );
 });
 
+test('konversationer initializes live inbox state before the first status render', () => {
+  const script = liveScript(readHtml());
+  const stateDeclaration = script.indexOf('let liveInboxMessageCount = null;');
+  const statusFunction = script.indexOf('function renderLiveInboxStatus(');
+  const initialStatusRender = script.indexOf("renderLiveInboxStatus(", statusFunction);
+
+  assert.ok(stateDeclaration >= 0, 'live inbox message state must be declared');
+  assert.ok(statusFunction >= 0, 'live inbox status renderer must exist');
+  assert.ok(initialStatusRender >= 0, 'initial live status render must exist');
+  assert.ok(
+    stateDeclaration < initialStatusRender,
+    'liveInboxMessageCount must be initialized before the initial status render'
+  );
+});
+
 test('konversationer live inbox reuses admin Bearer token for CCO API calls', () => {
   const html = readHtml();
 

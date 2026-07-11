@@ -4454,6 +4454,9 @@
       let currentThreads = STATIC_DEMO_PREVIEW ? DEMO_THREADS : [];
       let currentInboxTab = 'alla';
       let currentLane = 'all';
+      // Must exist before the initial live-status render below. A temporal-dead-zone
+      // error here would leave the static preview visible and stop live loading.
+      let liveInboxMessageCount = null;
 
       function renderLiveInboxStatus(title, message, tone = 'info') {
         const list = document.getElementById('inboxList');
@@ -4526,7 +4529,6 @@
       let liveInboxAttempt = 0;
       let liveInboxRetryTimer = null;
       let liveInboxFetchInFlight = false;
-      let liveInboxMessageCount = null;
 
       async function loadLiveInbox({ background = false } = {}) {
         if (window.location.protocol === 'file:') return;
