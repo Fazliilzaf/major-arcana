@@ -1476,7 +1476,10 @@ function createMicrosoftGraphReadConnector(config = {}) {
             method: 'GET',
             headers: {
               authorization: `Bearer ${accessToken}`,
-              ...(preferImmutableIds ? { Prefer: 'IdType="ImmutableId"' } : {}),
+              Prefer: [
+                'outlook.body-content-type="html"',
+                ...(preferImmutableIds ? ['IdType="ImmutableId"'] : []),
+              ].join(', '),
             },
           },
           timeoutMs
