@@ -16,7 +16,13 @@ function resolveIntervalMs(config = {}) {
  * Narrow live reader for KONS when the global scheduler is deliberately off.
  * It is read-only, only handles KONS, and never touches the send connector.
  */
-function createCcoMailIngestionPoller({ config = {}, syncService, logger = console, timers = {} } = {}) {
+function createCcoMailIngestionPoller({
+  config = {},
+  syncService,
+  runtimeStreamRouter = null,
+  logger = console,
+  timers = {},
+} = {}) {
   const setIntervalFn = timers.setInterval || setInterval;
   const clearIntervalFn = timers.clearInterval || clearInterval;
   const mailboxEmail = normalizeEmail(config.ccoMailIngestionDefaultMailbox);
@@ -48,6 +54,16 @@ function createCcoMailIngestionPoller({ config = {}, syncService, logger = conso
           `saved=${Number(result?.ingestResult?.totalSaved || 0)} ` +
           `processed=${Number(result?.processResult?.processed || 0)}`
       );
+      const saved = Number(result?.ingestResult?.totalSaved || 0);
+      if (saved > 0 && typeof runtimeStreamRouter?.broadcast === 'function') {
+        runtimeStreamRouter.broadcast('worklist_updated', {
+          source: 'kons_poller',
+          mailboxIds: [KONS_MAILBOX],
+          saved,
+          processed: Number(result?.processResult?.processed || 0),
+          completedAt: new Date().toISOString(),
+        });
+      }
       return { skipped: false, result };
     } catch (error) {
       logger?.error?.('[cco-kons-poller] cycle failed', error?.message || error);
@@ -67,6 +83,7 @@ function createCcoMailIngestionPoller({ config = {}, syncService, logger = conso
     }, intervalMs);
     intervalId?.unref?.();
     logger?.log?.(`[cco-kons-poller] aktiv mailbox=${KONS_MAILBOX} intervalMs=${intervalMs}`);
+    void runOnce();
     return { started: true, mailboxEmail: KONS_MAILBOX, intervalMs };
   }
 

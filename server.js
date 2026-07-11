@@ -14113,6 +14113,7 @@ process.once('SIGTERM', () => {
     const ccoMailIngestionPoller = createCcoMailIngestionPoller({
       config,
       syncService: ccoMailIngestionSyncService,
+      runtimeStreamRouter: ccoRuntimeStreamRouter,
       logger: console,
     });
     app.locals.ccoMailIngestionPoller = ccoMailIngestionPoller;
