@@ -4486,11 +4486,15 @@
       }
 
       const LIVE_INBOX_MAX_ATTEMPTS = 5;
+      const LIVE_INBOX_REFRESH_MS = 60 * 1000;
       let liveInboxAttempt = 0;
       let liveInboxRetryTimer = null;
+      let liveInboxFetchInFlight = false;
 
-      async function loadLiveInbox() {
+      async function loadLiveInbox({ background = false } = {}) {
         if (window.location.protocol === 'file:') return;
+        if (liveInboxFetchInFlight) return;
+        liveInboxFetchInFlight = true;
         clearTimeout(liveInboxRetryTimer);
         let failureStatus = 0;
         let failureReason = '';
@@ -4530,6 +4534,9 @@
           }
           liveInboxAttempt = 0;
           const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+          const previousSelection = selectedLiveThread;
+          const previousSelectionKey = normalizeText(previousSelection?.conversationKey);
+          const previousSelectionId = normalizeText(previousSelection?.id);
           currentThreads = rows.map(normalizeLiveThread);
           if (!currentThreads.length) {
             renderInboxThreads(currentThreads, {
@@ -4542,17 +4549,38 @@
             );
             return;
           }
+          const selectedThread = currentThreads.find(
+            (thread) =>
+              (previousSelectionKey && thread.conversationKey === previousSelectionKey) ||
+              (previousSelectionId && thread.id === previousSelectionId)
+          );
+          const firstThread = currentThreads.find((thread) => thread.conversationKey);
+          const nextThread = selectedThread || firstThread || null;
+          currentThreads.forEach((thread) => {
+            thread.active = thread === nextThread;
+          });
           renderInboxThreads(currentThreads, {
             activeTab: currentInboxTab,
             activeLane: currentLane,
           });
-          const firstThread = currentThreads.find((thread) => thread.conversationKey);
-          if (firstThread) openConversationThread(firstThread);
-          if (rows.length && window.CCOPolish?.showToast) {
+          const selectedThreadChanged =
+            selectedThread &&
+            (selectedThread.when !== previousSelection?.when ||
+              selectedThread.preview !== previousSelection?.preview ||
+              selectedThread.unread !== previousSelection?.unread);
+          if (nextThread && (!background || !selectedThread || selectedThreadChanged)) {
+            openConversationThread(nextThread);
+          } else if (selectedThread) {
+            // Behåll Svarstudions kontext och den redan renderade läsrutan när
+            // bakgrundsuppdateringen inte förändrade den valda tråden.
+            setSvarstudioLiveContext(selectedThread, selectedLiveMessages);
+          }
+          if (!background && rows.length && window.CCOPolish?.showToast) {
             window.CCOPolish.showToast(`CCO-inkorg: ${rows.length} trådar från kons@`, 'success');
           }
         } catch (error) {
           console.warn('[cco-live-inbox] worklist kunde inte laddas', error);
+          if (background && currentThreads.length) return;
           currentThreads = [];
           const detail = failureReason || describeWorklistFailure(failureStatus);
           // Övergående lägen: token ännu inte skriven av admin-skalet (401),
@@ -4565,7 +4593,7 @@
             const retryNote = `${detail} Försöker igen (${liveInboxAttempt}/${LIVE_INBOX_MAX_ATTEMPTS})…`;
             renderLiveInboxStatus('Laddar CCO-inkorg', retryNote, 'info');
             renderLivePaneStatus('Laddar CCO-inkorg', retryNote);
-            liveInboxRetryTimer = setTimeout(loadLiveInbox, waitMs);
+            liveInboxRetryTimer = setTimeout(() => loadLiveInbox({ background }), waitMs);
             return;
           }
           const message = `${detail} Demo visas inte i admin/webb.`;
@@ -4577,6 +4605,8 @@
               'warning'
             );
           }
+        } finally {
+          liveInboxFetchInFlight = false;
         }
       }
 
@@ -4591,6 +4621,13 @@
       });
 
       loadLiveInbox();
+      // Pollern synkar KONS på servern. Den här lätta, lokala läsningen gör
+      // att nya mejl blir synliga utan sidladdning, men rör aldrig Graph.
+      setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          loadLiveInbox({ background: true });
+        }
+      }, LIVE_INBOX_REFRESH_MS);
 
       document.querySelectorAll('.inbox-tab').forEach((t) =>
         t.addEventListener('click', () => {
