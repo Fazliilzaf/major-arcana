@@ -747,20 +747,18 @@
     var photoGrid = imgs.length
       ? '<div class="photo-grid">' +
         imgs
-          .slice(0, 6)
           .map(function (im) {
-            var bg = txt(im.thumbnailUrl || im.openRef);
-            var editable = Boolean(im.assetId && im.openRef);
+            var assetId = txt(im.assetId);
+            var editable = Boolean(assetId && im.openRef);
             return (
               '<div class="photo-tile raw' +
               (editable ? ' photo-tile--editable' : '') +
               '"' +
-              (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
               (editable
                 ? ' role="button" tabindex="0" data-v11-photo-edit data-patient-id="' +
                   esc(patientId) +
                   '" data-asset-id="' +
-                  esc(txt(im.assetId)) +
+                  esc(assetId) +
                   '" data-encounter-id="' +
                   esc(txt(im.encounterId)) +
                   '" data-photo-src="' +
@@ -773,7 +771,15 @@
                   esc(txt(im.takenAt)) +
                   '"'
                 : '') +
-              '><span class="lbl">' +
+              '>' +
+              (assetId
+                ? '<img src="" data-patient-file-id="' +
+                  esc(assetId) +
+                  '" alt="' +
+                  esc(txt(im.fileName || 'Foto')) +
+                  '" loading="lazy" decoding="async" />'
+                : '') +
+              '<span class="lbl">' +
               esc(txt(im.timeLabel || '').slice(0, 8)) +
               '</span>' +
               (editable ? '<span class="photo-tile__draw" aria-hidden="true">✎ Rita</span>' : '') +
@@ -825,6 +831,9 @@
             return renderBesokOccasion(segment, pid);
           })
           .join('');
+        if (typeof global.__ccoHydratePatientFileImages === 'function') {
+          void global.__ccoHydratePatientFileImages(mount);
+        }
         if (sec) sec.removeAttribute('hidden');
       })
       .catch(drop);

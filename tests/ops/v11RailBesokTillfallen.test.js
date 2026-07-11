@@ -94,12 +94,20 @@ test('occasion-render använder railens egna klasser (ingen ny design)', () => {
     visitType: 'treatment',
     timeRange: '14:20–15:10',
     confidence: 'high',
-    images: [{ thumbnailUrl: '/t.jpg', timeLabel: '14:22' }],
+    images: [
+      {
+        assetId: 'asset-1',
+        openRef: '/api/v1/cco/assets/asset-1/download?inline=1',
+        timeLabel: '14:22',
+      },
+    ],
     documents: [{ fileName: 'avtal.pdf', openRef: '/d', documentDate: '2026-06-18' }],
   });
   assert.match(html, /class="hist-row"/, 'ska återanvända hist-row');
   assert.match(html, /class="photo-grid"/, 'ska återanvända photo-grid');
-  assert.match(html, /class="photo-tile raw"/, 'ska återanvända photo-tile');
+  assert.match(html, /class="photo-tile raw/, 'ska återanvända photo-tile');
+  assert.match(html, /data-patient-file-id="asset-1"/, 'besöksfoto ska hydreras via auth-blob');
+  assert.doesNotMatch(html, /background-image:url\(/, 'ingen oautentiserad CSS-bakgrund');
   assert.match(html, /class="file-row"/, 'ska återanvända file-row');
 });
 
