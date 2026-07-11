@@ -2,10 +2,8 @@
 
 /* Svarstudio v2 — design-artifacten 1:1 i isolerad shadow-DOM. Renderas ur
  * public/svarstudio-v2.css/.html i live-modalen (konversationer-bottom-actions.js).
- * Kontrollerna kopplas till EXAKT samma draft-/transition-endpoints som klassiska
- * modalen (upp till needs_approval). Live-send förblir serverspärrat — v2 anropar
- * aldrig /send och sätter aldrig status 'sent'. Testlåser assets + wiring + att
- * sändsäkerheten är orörd. */
+ * Kontrollerna kopplas till samma draft-/transition-/send-endpoints som klassiska
+ * modalen. Owner självgodkänner och skickar direkt via den befintliga sändvägen. */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -34,7 +32,7 @@ test('v2 monteras i isolerad shadow-DOM och laddar assets', () => {
   assert.match(source, /const USE_SVARSTUDIO_V2 = true/);
   assert.match(source, /async function mountSvarstudioV2\(/);
   assert.match(source, /attachShadow\(\{ mode: 'open' \}\)/);
-  assert.match(source, /SVARSTUDIO_V2_ASSET_VERSION = '20260708c-svarstudio-cache'/);
+  assert.match(source, /SVARSTUDIO_V2_ASSET_VERSION = '20260711-owner-direct-send'/);
   assert.match(source, /fetch\('\/svarstudio-v2\.css' \+ cacheBust, \{ cache: 'no-store' \}\)/);
   assert.match(source, /fetch\('\/svarstudio-v2\.html' \+ cacheBust, \{ cache: 'no-store' \}\)/);
   // Öppnas före klassiska modalen, med fallback
@@ -61,12 +59,15 @@ test('v2 visar CCO-panelernas standard-flikrad och döljer artifactens egen chro
   assert.doesNotMatch(htmlAsset, /id="themeBtn"/);
 });
 
-test('v2 återanvänder EXAKT sändkedjans endpoints (ingen ny sändväg)', () => {
+test('v2 återanvänder sändkedjans endpoints och skickar owner direkt', () => {
   assert.match(source, /POST[\s\S]{0,40}|method: 'POST'/);
   assert.match(source, /'\/api\/v1\/cco-comm\/drafts'/);
   assert.match(source, /\/transition'/);
-  // "Godkänn & köa" går till needs_approval — INTE sent/live-send
+  // Owner går genom needs_approval → approved och befintlig /send-endpoint.
   assert.match(source, /saveDraftV2\('needs_approval'\)/);
+  assert.match(source, /transitionDraftV2\('approved'\)/);
+  assert.match(source, /encodeURIComponent\(state\.draftId\) \+ '\/send'/);
+  assert.match(source, /ROLE === 'owner'/);
   assert.match(source, /saveDraftV2\('draft'\)/);
 });
 
@@ -165,17 +166,15 @@ test('länkhantering: rotera + återkalla-knappar mot befintliga endpoints', () 
   assert.match(source, /Återkalla kundens portal-länk\?/);
 });
 
-test('v2 rör INTE live-send: inget /send-anrop, ingen sent-transition', () => {
-  // v2-mount-blocket får aldrig skicka på riktigt
+test('v2 owner-flöde skickar via befintlig route och markerar sent först efter svar', () => {
   const start = source.indexOf('async function mountSvarstudioV2(');
   const end = source.indexOf('async function openSvarstudio(');
   const v2 = source.slice(start, end);
   assert.ok(v2.length > 500, 'v2-blocket hittades');
-  assert.doesNotMatch(v2, /\/send'/); // ingen live-send-endpoint
-  assert.doesNotMatch(v2, /saveDraftV2\('sent'\)/); // köar aldrig direkt till sent
-  assert.doesNotMatch(v2, /status: 'sent'/); // ingen sent-transition
-  // 'sent' förekommer bara som stepper-etikett i ordningslistan, aldrig som anrop
-  assert.match(v2, /\['draft', 'needs_approval', 'approved', 'sent'\]/);
+  assert.match(v2, /async function sendDraftV2Now\(\)/);
+  assert.match(v2, /transitionDraftV2\('approved'\)/);
+  assert.match(v2, /payload\.sent !== true/);
+  assert.match(v2, /markStep\('sent'\)/);
   // recipient-block (tom/klinikadress) håller köa spärrat
   assert.match(v2, /function recipientBlock\(\)/);
   assert.match(v2, /Mottagare saknas/);

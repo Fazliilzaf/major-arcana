@@ -15,9 +15,7 @@ const express = require('express');
 
 const { createCcoCommDraftRouter } = require('../../src/routes/ccoCommDraft');
 const { createCcoCommDraftStore } = require('../../src/ops/ccoCommDraftStore');
-const {
-  createCcoRecipientAllowlistStore,
-} = require('../../src/ops/ccoRecipientAllowlistStore');
+const { createCcoRecipientAllowlistStore } = require('../../src/ops/ccoRecipientAllowlistStore');
 
 async function withServer(app, run) {
   const server = http.createServer(app);
@@ -100,7 +98,13 @@ async function newApprovedDraft(baseUrl) {
   const created = await j(baseUrl, 'POST', '/cco-comm/drafts', {
     role: 'operator',
     user: 'author-1',
-    body: { tenantId: 'hairtpclinic', customerId: 'c1', channel: 'email', subject: 'Hej', body: 'Text' },
+    body: {
+      tenantId: 'hairtpclinic',
+      customerId: 'c1',
+      channel: 'email',
+      subject: 'Hej',
+      body: 'Text',
+    },
   });
   const draftId = created.json.draft.draftId;
   await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/transition`, {
@@ -154,17 +158,19 @@ test('operator (ej owner) nekas av middleware (403)', async () => {
 test('owner, flagga av → 403 send_disabled, adaptern anropas ALDRIG', async () => {
   const adapter = fakeAdapter();
   const { app } = await createFixture({ adapter });
-  await withSendEnv({ ARCANA_GRAPH_SEND_ENABLED: undefined, ARCANA_GRAPH_SEND_ALLOWLIST: '*' }, () =>
-    withServer(app, async (baseUrl) => {
-      const draftId = await newApprovedDraft(baseUrl);
-      const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/send`, {
-        role: 'owner',
-        body: { to: 'anna@mail.se', senderMailbox: 'kons@hairtp.se' },
-      });
-      assert.equal(res.status, 403);
-      assert.equal(res.json.reason, 'send_disabled');
-      assert.equal(adapter.calls.length, 0);
-    })
+  await withSendEnv(
+    { ARCANA_GRAPH_SEND_ENABLED: undefined, ARCANA_GRAPH_SEND_ALLOWLIST: '*' },
+    () =>
+      withServer(app, async (baseUrl) => {
+        const draftId = await newApprovedDraft(baseUrl);
+        const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/send`, {
+          role: 'owner',
+          body: { to: 'anna@mail.se', senderMailbox: 'kons@hairtp.se' },
+        });
+        assert.equal(res.status, 403);
+        assert.equal(res.json.reason, 'send_disabled');
+        assert.equal(adapter.calls.length, 0);
+      })
   );
 });
 
@@ -203,7 +209,7 @@ test('owner, ej godkänt utkast → 409, adaptern anropas ALDRIG', async () => {
   );
 });
 
-test('owner, mottagare ej allowlistad → 403, adaptern anropas ALDRIG', async () => {
+test('owner får skicka till giltig mottagare utan separat mottagar-allowlist', async () => {
   const adapter = fakeAdapter();
   const { app } = await createFixture({ adapter });
   await withSendEnv({ ARCANA_GRAPH_SEND_ENABLED: 'true', ARCANA_GRAPH_SEND_ALLOWLIST: '*' }, () =>
@@ -213,9 +219,10 @@ test('owner, mottagare ej allowlistad → 403, adaptern anropas ALDRIG', async (
         role: 'owner',
         body: { to: 'okand@spam.se', senderMailbox: 'kons@hairtp.se' },
       });
-      assert.equal(res.status, 403);
-      assert.equal(res.json.reason, 'recipient_not_allowlisted');
-      assert.equal(adapter.calls.length, 0);
+      assert.equal(res.status, 200);
+      assert.equal(res.json.sent, true);
+      assert.equal(adapter.calls.length, 1);
+      assert.equal(adapter.calls[0].to, 'okand@spam.se');
     })
   );
 });
@@ -351,22 +358,20 @@ test('adapter bekräftar send men sent-status kan inte sparas → aldrig failed'
 test('generisk /transition → sent förblir hårt blockerad även för owner', async () => {
   const adapter = fakeAdapter();
   const { app } = await createFixture({ adapter });
-  await withSendEnv(
-    { ARCANA_GRAPH_SEND_ENABLED: 'true', ARCANA_GRAPH_SEND_ALLOWLIST: '*' },
-    () =>
-      withServer(app, async (baseUrl) => {
-        const draftId = await newApprovedDraft(baseUrl);
-        await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/transition`, {
-          role: 'owner',
-          body: { status: 'queued' },
-        });
-        const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/transition`, {
-          role: 'owner',
-          body: { status: 'sent' },
-        });
-        assert.equal(res.status, 403);
-        assert.equal(res.json.decision, 'blocked');
-        assert.equal(adapter.calls.length, 0);
-      })
+  await withSendEnv({ ARCANA_GRAPH_SEND_ENABLED: 'true', ARCANA_GRAPH_SEND_ALLOWLIST: '*' }, () =>
+    withServer(app, async (baseUrl) => {
+      const draftId = await newApprovedDraft(baseUrl);
+      await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/transition`, {
+        role: 'owner',
+        body: { status: 'queued' },
+      });
+      const res = await j(baseUrl, 'POST', `/cco-comm/drafts/${draftId}/transition`, {
+        role: 'owner',
+        body: { status: 'sent' },
+      });
+      assert.equal(res.status, 403);
+      assert.equal(res.json.decision, 'blocked');
+      assert.equal(adapter.calls.length, 0);
+    })
   );
 });

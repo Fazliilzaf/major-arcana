@@ -699,8 +699,8 @@ function createCcoCommDraftRouter({
   // Den ENDA vägen som kan skicka på riktigt. Den generiska /transition → sent
   // förblir hårt blockerad. Grindar (alla måste passera): owner (mail.live_send,
   // via middleware) · flaggan ARCANA_GRAPH_SEND_ENABLED på · en send-adapter
-  // wire:ad · approved-utkast · mottagare allowlistad (2a) · avsändar-brevlåda
-  // på ARCANA_GRAPH_SEND_ALLOWLIST. Varje försök loggas i audit (maskerad
+  // wire:ad · approved-utkast · giltig mottagare · avsändar-brevlåda på
+  // ARCANA_GRAPH_SEND_ALLOWLIST. Varje försök loggas i audit (maskerad
   // mottagare). Utan wire:ad adapter skickas inget ens med flaggan på.
   router.post(
     '/cco-comm/drafts/:draftId/send',
@@ -758,19 +758,12 @@ function createCcoCommDraftRouter({
             .status(409)
             .json({ error: 'send kräver approved utkast.', status: draft.status });
         }
-        // 4) Mottagaradress giltig + aktivt allowlistad (2a).
+        // 4) Owner får skicka till en giltig extern mottagaradress. Endpointen
+        // är redan owner-only via mail.live_send, så en separat mottagarlista
+        // ska inte blockera ett uttryckligt owner-utskick.
         if (!isPlausibleEmail(to)) {
           audit('error', { reason: 'invalid_recipient' });
           return res.status(400).json({ error: 'giltig mottagaradress (to) krävs.' });
-        }
-        const allowlist = await ensureAllowlistStore();
-        if (!allowlist.isAllowed(tenantId, to)) {
-          audit('error', { reason: 'recipient_not_allowlisted' });
-          return res.status(403).json({
-            decision: 'blocked',
-            reason: 'recipient_not_allowlisted',
-            error: 'Mottagaren är inte på allowlisten för utgående mail.',
-          });
         }
         // 5) Avsändar-brevlåda giltig + på sender-allowlisten (samma helper som 2c).
         if (!isPlausibleEmail(senderMailbox)) {
