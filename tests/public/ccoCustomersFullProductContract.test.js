@@ -87,6 +87,16 @@ test('V12 Content Canon snabbknappar använder tel/sms/mailto och ord48-kalender
   assert.match(ui, /data-kk-ord48-open-calendar/);
 });
 
+test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle', () => {
+  const canonPath = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js');
+  const canon = fs.readFileSync(canonPath, 'utf8');
+  assert.match(ui, /visitSegments: asArray\(runtime\.detail\?\.visitSegments\)/);
+  assert.match(canon, /function visitSegmentsBlock\(visitSegments\)/);
+  assert.match(canon, /data-v12-visit-segments="1"/);
+  assert.match(canon, /data-patient-file-id=/);
+  assert.match(canon, /s8\(bundle, ctx\.visitSegments\)/);
+});
+
 test('listfas visar segment/insikts-placeholder tills enriched customers-shell landar', () => {
   assert.match(ui, /function isCustomerShellEnrichmentPending\(\)/);
   assert.match(ui, /function isCustomerSegmentEnrichmentPending\(segmentStats\)/);

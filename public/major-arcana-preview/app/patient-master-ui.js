@@ -6402,6 +6402,7 @@
       journalEntries,
       occasionTimeline,
       driveFiles,
+      visitSegments: asArray(runtime.detail?.visitSegments),
       patient,
       tab,
       lite,
@@ -12528,6 +12529,7 @@
       runtime.detail = {
         ...runtime.detail,
         driveFiles: asArray(payload.driveFiles),
+        visitSegments: asArray(payload.visitSegments),
         occasionTimeline: asArray(payload.occasionTimeline),
       };
       scheduleDetailPanelPaint(patientId);
@@ -14832,6 +14834,7 @@
       journalEntries: asArray(payload?.journalEntries),
       occasionTimeline,
       driveFiles,
+      visitSegments: asArray(payload?.visitSegments || dossierBundle?.visitSegments),
       patient: payload?.patient || card || null,
     };
   }

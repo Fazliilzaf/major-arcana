@@ -798,7 +798,7 @@
           return s && s.date;
         });
         if (!dated.length) return drop();
-        mount.innerHTML = dated.slice(0, 8).map(renderBesokOccasion).join('');
+        mount.innerHTML = dated.map(renderBesokOccasion).join('');
         if (sec) sec.removeAttribute('hidden');
       })
       .catch(drop);

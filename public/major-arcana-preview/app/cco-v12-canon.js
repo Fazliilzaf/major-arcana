@@ -944,10 +944,126 @@
     );
   }
 
+  function visitSegmentsBlock(visitSegments) {
+    var segments = arr(visitSegments);
+    if (!segments.length) return '';
+    var reasonLabels = {
+      capture_document_date_mismatch: 'Foto- och dokumentdatum skiljer',
+      date_without_time_metadata: 'Datum utan tid',
+      document_shared_across_same_day_clusters: 'Dokument delat mellan samma dagsbesök',
+      inferred_from_path_or_filename: 'Datum härlett från filnamn/sökväg',
+      occasion_context_only: 'Datum från tillfälle, saknar tid',
+      same_day_time_cluster: 'Flera besök samma dag',
+      uncertain_document_date_binding: 'Osäker dokumentkoppling',
+    };
+    function photoTile(image) {
+      var assetId = txt(image && image.assetId);
+      var href = txt(image && image.openRef);
+      var name = txt(image && image.fileName) || 'Foto';
+      var label = txt(image && (image.timeLabel || image.takenAt)).slice(0, 16) || 'Foto';
+      return (
+        '<a class="photo-tile over patient-master-image-tile v12-canon-visit-photo"' +
+        (href ? ' href="' + esc(href) + '"' : '') +
+        ' target="_blank" rel="noopener" title="' +
+        esc(name) +
+        '"><img src="" data-patient-file-id="' +
+        esc(assetId) +
+        '" alt="' +
+        esc(name) +
+        '" loading="lazy" decoding="async" /><span class="lbl">' +
+        esc(label) +
+        '</span></a>'
+      );
+    }
+    function segmentMarkup(segment) {
+      var images = arr(segment && segment.images);
+      var documents = arr(segment && segment.documents);
+      var counts = [];
+      if (images.length) counts.push(images.length + (images.length === 1 ? ' foto' : ' foton'));
+      if (documents.length)
+        counts.push(documents.length + (documents.length === 1 ? ' dokument' : ' dokument'));
+      var meta = [
+        txt(segment && segment.visitType),
+        txt(segment && segment.timeRange),
+        counts.join(' · '),
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      var reasons = arr(segment && segment.reasons)
+        .map(function (reason) {
+          return reasonLabels[reason] || reason;
+        })
+        .filter(Boolean);
+      var confidence = txt(segment && segment.confidence);
+      var warning =
+        confidence && confidence !== 'high'
+          ? '<div class="card-row"><span class="what">Koppling</span>' +
+            chip(
+              confidence === 'low' ? 'danger' : 'warn',
+              confidence === 'low' ? 'Osäker' : 'Kontrollera'
+            ) +
+            '</div>'
+          : '';
+      var reasonRow = reasons.length
+        ? '<div class="visit-segment-reasons">' + esc(reasons.join(' · ')) + '</div>'
+        : '';
+      var photos = images.length
+        ? '<div class="photo-grid v12-canon-visit-photo-grid">' +
+          images.map(photoTile).join('') +
+          '</div>'
+        : '<div class="visit-segment-empty">Inga bilder kopplade till detta tillfälle.</div>';
+      var docs = documents.length
+        ? '<div class="visit-segment-documents">' +
+          documents
+            .map(function (doc) {
+              var href = txt(doc.openRef);
+              var name = txt(doc.fileName) || 'Dokument';
+              var metaParts = [txt(doc.documentDate), txt(doc.type)].filter(Boolean);
+              var content =
+                '<span class="file-icn">📄</span><span class="file-name">' +
+                esc(name) +
+                (metaParts.length
+                  ? ' <span class="when">' + esc(metaParts.join(' · ')) + '</span>'
+                  : '') +
+                '</span>';
+              return href
+                ? '<a class="file-row" href="' +
+                    esc(href) +
+                    '" target="_blank" rel="noopener">' +
+                    content +
+                    '</a>'
+                : '<div class="file-row">' + content + '</div>';
+            })
+            .join('') +
+          '</div>'
+        : '<div class="visit-segment-empty">Inga dokument kopplade till detta tillfälle.</div>';
+      return (
+        '<details class="card v12-canon-visit-segment" open><summary><span class="what">' +
+        esc(txt(segment && (segment.label || segment.date)) || 'Tillfälle') +
+        '</span><span class="when">' +
+        esc(meta) +
+        '</span></summary>' +
+        warning +
+        reasonRow +
+        photos +
+        docs +
+        '</details>'
+      );
+    }
+    return (
+      '<div class="v12-canon-visit-segments card" data-v12-visit-segments="1">' +
+      '<div class="card-l">Besök · tillfällen</div>' +
+      '<div class="visit-segments-list">' +
+      segments.map(segmentMarkup).join('') +
+      '</div></div>'
+    );
+  }
+
   /* ---------- 8 · BOKNINGAR ---------- */
-  function s8(bundle) {
+  function s8(bundle, visitSegments) {
     var up = arr(bundle && bundle.upcomingBookings);
     var hist = arr(bundle && bundle.historyBookings);
+    var visitBlock = visitSegmentsBlock(visitSegments);
     var head = secHead(
       '08',
       'Bokningar',
@@ -955,7 +1071,7 @@
       '<button class="sec-link">+ Boka</button>'
     );
     var rows = up.concat(hist).slice(0, 8);
-    if (!rows.length)
+    if (!rows.length && !visitBlock)
       return (
         '<section class="sec" id="s8">' +
         head +
@@ -999,6 +1115,7 @@
           (up.length + hist.length - rows.length) +
           ' fler bokningar</div>'
         : '') +
+      visitBlock +
       cta +
       '</section>'
     );
@@ -1651,7 +1768,7 @@
       s5(journey, av, nextStep, photos, health, stepAssets) +
       s6(ctx.journalEntries) +
       s7(photos) +
-      s8(bundle) +
+      s8(bundle, ctx.visitSegments) +
       s9(files) +
       s10(comm) +
       s11(econ, invoices) +

@@ -889,6 +889,11 @@ function createCcoPatientMasterRouter({
       }
     }
 
+    const visitSegments = buildVisitSegments({
+      customerId: patient.id,
+      driveFiles: filesForUi,
+    }).visitSegments;
+
     const journalReadouts = journalStore
       ? journalEntries.map((entry) => journalStore.buildJournalReadout(entry))
       : [];
@@ -933,6 +938,7 @@ function createCcoPatientMasterRouter({
       }),
       journalEntries: enrichedJournalReadouts,
       driveFiles: filesForUi,
+      visitSegments,
       occasionTimeline: buildOccasionTimeline(filesForUi),
       bookings: {
         upcoming: bookingContext.upcomingBookings,
