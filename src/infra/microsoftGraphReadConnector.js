@@ -1519,6 +1519,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
     retryBaseDelayMs = 500,
     retryMaxDelayMs = 5000,
     accept = 'message/rfc822',
+    preferImmutableIds = false,
   }) {
     const safeRetries = clampInt(requestMaxRetries, 0, 6, 2);
     const maxAttempts = safeRetries + 1;
@@ -1536,6 +1537,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
             headers: {
               authorization: `Bearer ${accessToken}`,
               accept,
+              ...(preferImmutableIds ? { Prefer: 'IdType="ImmutableId"' } : {}),
             },
           },
           timeoutMs
@@ -1781,6 +1783,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
       retryBaseDelayMs,
       retryMaxDelayMs,
       accept: 'message/rfc822',
+      preferImmutableIds: true,
     });
     return {
       rawMime: normalizeText(payload?.text),
