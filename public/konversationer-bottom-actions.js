@@ -605,9 +605,9 @@
 
   // ─── SVARSTUDIO v2 — design-artifacten 1:1 i isolerad shadow-DOM ─────
   // Laddar svarstudio-v2.css/.html, binder trådens riktiga data och kopplar
-  // kontrollerna till EXAKT samma sänd-endpoints som klassiska modalen (upp
-  // till needs_approval). Live-send förblir serverspärrat.
-  const SVARSTUDIO_V2_ASSET_VERSION = '20260708c-svarstudio-cache';
+  // kontrollerna till samma draft-, transition- och send-endpoints som den
+  // klassiska modalen. Owner kan självgodkänna och skicka direkt.
+  const SVARSTUDIO_V2_ASSET_VERSION = '20260711-owner-direct-send';
   let _svarstudioV2Assets = null;
   async function loadSvarstudioV2Assets() {
     if (_svarstudioV2Assets) return _svarstudioV2Assets;
@@ -1042,6 +1042,62 @@
       }
     }
 
+    async function transitionDraftV2(status) {
+      const response = await fetch(
+        '/api/v1/cco-comm/drafts/' + encodeURIComponent(state.draftId) + '/transition',
+        {
+          method: 'POST',
+          headers: adminAuthHeaders({
+            'Content-Type': 'application/json',
+            'x-cco-role': ROLE,
+            'x-cco-tenant': TENANT,
+          }),
+          body: JSON.stringify({ status, reason: 'owner direct send via Svarstudio v2' }),
+        }
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.draft) {
+        throw new Error(payload.error || 'kunde inte godkänna utkastet');
+      }
+      markStep(status);
+    }
+
+    async function sendDraftV2Now() {
+      if (!(await saveDraftV2('needs_approval'))) return false;
+      try {
+        await transitionDraftV2('approved');
+        const sender =
+          mailboxes.find((mailbox) => mailbox.id === state.mailboxId)?.email ||
+          mailboxes.find((mailbox) => mailbox.email === state.mailboxId)?.email ||
+          state.mailboxId;
+        const response = await fetch(
+          '/api/v1/cco-comm/drafts/' + encodeURIComponent(state.draftId) + '/send',
+          {
+            method: 'POST',
+            headers: adminAuthHeaders({
+              'Content-Type': 'application/json',
+              'x-cco-role': ROLE,
+              'x-cco-tenant': TENANT,
+            }),
+            body: JSON.stringify({
+              to: (toInput?.value || '').trim(),
+              senderMailbox: sender,
+            }),
+          }
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.sent !== true) {
+          throw new Error(payload.error || payload.reason || 'kunde inte skicka svaret');
+        }
+        markStep('sent');
+        say('✓ Svaret är skickat');
+        return true;
+      } catch (error) {
+        say('✗ ' + error.message);
+        return false;
+      }
+    }
+
     const btnQueue = $('#btnQueue');
     const btnSave = $('#btnSave');
     const btnPreview = $('#btnPreview');
@@ -1051,10 +1107,11 @@
           say('Inget att köa — välj eller skriv ett svar');
           return;
         }
-        // "Godkänn & köa" = skicka för godkännande (needs_approval).
-        // Live-utskick sker ALDRIG härifrån — det är serverspärrat.
-        if (await saveDraftV2('needs_approval'))
-          say('▶ Skickat för godkännande · live-utskick låst');
+        if (ROLE === 'owner') {
+          await sendDraftV2Now();
+          return;
+        }
+        if (await saveDraftV2('needs_approval')) say('▶ Skickat för godkännande');
       });
     }
     if (btnSave) {
