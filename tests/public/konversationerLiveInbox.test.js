@@ -327,6 +327,26 @@ test('konversationer renders full mail html and attachments safely', () => {
   assert.match(html, /msg-attachments/);
 });
 
+test('konversationer keeps the bottom action bar visible for long mail threads', () => {
+  const html = readHtml();
+
+  assert.match(
+    html,
+    /\.thread-shell\s*\{[\s\S]*height:\s*calc\(100vh - 80px\);[\s\S]*min-height:\s*0;/,
+    'trådpanelen måste vara höjdbegränsad så att meddelandelistan, inte panelen, scrollar'
+  );
+  assert.match(
+    html,
+    /\.messages\s*\{[\s\S]*flex:\s*1;[\s\S]*overflow-y:\s*auto;/,
+    'meddelandelistan måste vara den interna scrollcontainern'
+  );
+  assert.match(
+    html,
+    /\.thread-bottom-actions\s*\{[\s\S]*position:\s*sticky;[\s\S]*bottom:\s*14px;/,
+    'befintlig action-rad ska ligga kvar som synlig nederkant i trådpanelen'
+  );
+});
+
 test('konversationer exposes selected live thread as Svarstudio context', () => {
   const html = readHtml();
 
