@@ -97,13 +97,30 @@ test('konversationer inbox retries transient failures and recovers when the admi
     /const retriable =\s*failureStatus === 0 \|\| failureStatus === 401 \|\| failureStatus === 503/
   );
   assert.match(html, /const waitMs = Math\.min\(4000, 400 \* 2 \*\* \(liveInboxAttempt - 1\)\)/);
-  assert.match(html, /liveInboxRetryTimer = setTimeout\(loadLiveInbox, waitMs\)/);
+  assert.match(
+    html,
+    /liveInboxRetryTimer = setTimeout\(\(\) => loadLiveInbox\(\{ background \}\), waitMs\)/
+  );
   // Admin-skalet skriver token i ett annat dokument — iframe:n lyssnar och
   // laddar om utan sidladdning.
   assert.match(
     html,
     /window\.addEventListener\('storage', \(event\) => \{[\s\S]*event\.key === 'ARCANA_ADMIN_TOKEN'[\s\S]*loadLiveInbox\(\)/
   );
+});
+
+test('konversationer refreshes the local KONS worklist without disrupting the selected thread', () => {
+  const html = readHtml();
+
+  assert.match(html, /const LIVE_INBOX_REFRESH_MS = 60 \* 1000/);
+  assert.match(html, /async function loadLiveInbox\(\{ background = false \} = \{\}\)/);
+  assert.match(html, /const previousSelection = selectedLiveThread/);
+  assert.match(html, /const selectedThread = currentThreads\.find\(/);
+  assert.match(html, /thread\.active = thread === nextThread/);
+  assert.match(html, /if \(background && currentThreads\.length\) return/);
+  assert.match(html, /setTimeout\(\(\) => loadLiveInbox\(\{ background \}\), waitMs\)/);
+  assert.match(html, /document\.visibilityState === 'visible'/);
+  assert.match(html, /loadLiveInbox\(\{ background: true \}\)/);
 });
 
 test('konversationer inbox distinguishes a true network failure from a non-JSON 2xx response', () => {
