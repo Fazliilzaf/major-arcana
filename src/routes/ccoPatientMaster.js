@@ -121,7 +121,7 @@ function clampOffset(value) {
 function clampInternalizeLimit(value, fallback = 50) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-  return Math.max(1, Math.min(50, Math.floor(parsed)));
+  return Math.max(1, Math.min(200, Math.floor(parsed)));
 }
 
 function clampPreviewLimit(value, fallback = 10) {

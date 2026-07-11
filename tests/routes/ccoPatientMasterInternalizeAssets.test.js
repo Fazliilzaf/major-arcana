@@ -699,6 +699,25 @@ test('assets/internalize dryRun kör inte auto-repair', async () => {
   }
 });
 
+test('assets/internalize klampar requested limit till max 200', async () => {
+  const fixture = await makeFixture();
+  try {
+    await withServer(fixture.app, async (base) => {
+      const at200 = await postJson(base, { dryRun: true, limit: 200 });
+      assert.equal(at200.status, 200);
+      assert.equal(at200.body.limit, 200);
+      assert.equal(fixture.authStore.events.at(-1).metadata.limit, 200);
+
+      const over = await postJson(base, { dryRun: true, limit: 500 });
+      assert.equal(over.status, 200);
+      assert.equal(over.body.limit, 200);
+      assert.equal(fixture.authStore.events.at(-1).metadata.limit, 200);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
 test('assets/repair-ghost-visible commit kräver confirmText och reparerar blob', async () => {
   const fixture = await makeFixture();
   try {
