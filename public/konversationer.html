@@ -3955,6 +3955,73 @@
         });
       }
 
+      // Mail-assets kräver Bearer-auth. En vanlig <img src="/api/..."> kan inte
+      // skicka den headern, så hämta asseten i parent-dokumentet och ge både
+      // signatur-HTML och bilagekort en lokal blob-URL.
+      const mailAssetBlobUrls = new Map();
+
+      function isLocalMailAssetUrl(value) {
+        try {
+          const parsed = new URL(normalizeText(value), window.location.href);
+          return (
+            parsed.origin === window.location.origin &&
+            parsed.pathname === '/api/v1/cco/runtime/mail-asset/content'
+          );
+        } catch {
+          return false;
+        }
+      }
+
+      async function authorizedMailAssetUrl(value) {
+        const url = normalizeText(value);
+        if (!isLocalMailAssetUrl(url)) return url;
+        if (mailAssetBlobUrls.has(url)) return mailAssetBlobUrls.get(url);
+        const pending = fetch(url, {
+          credentials: 'include',
+          headers: withAdminAuthHeaders({ Accept: '*/*' }),
+        })
+          .then((response) => {
+            if (!response.ok) throw new Error(`mail_asset_${response.status}`);
+            return response.blob();
+          })
+          .then((blob) => URL.createObjectURL(blob));
+        mailAssetBlobUrls.set(url, pending);
+        try {
+          const blobUrl = await pending;
+          mailAssetBlobUrls.set(url, blobUrl);
+          return blobUrl;
+        } catch (error) {
+          mailAssetBlobUrls.delete(url);
+          throw error;
+        }
+      }
+
+      async function hydrateMailAssetRoot(root) {
+        if (!root?.querySelectorAll) return;
+        const elements = root.querySelectorAll('img[src], a[href]');
+        await Promise.all(
+          [...elements].map(async (element) => {
+            const attribute = element.tagName.toLowerCase() === 'a' ? 'href' : 'src';
+            const source = element.getAttribute(attribute);
+            if (!isLocalMailAssetUrl(source)) return;
+            try {
+              element.setAttribute(attribute, await authorizedMailAssetUrl(source));
+            } catch (error) {
+              console.warn('[cco-mail-asset] kunde inte ladda lokal mail-asset', error);
+            }
+          })
+        );
+      }
+
+      function hydrateMailAssetUrls() {
+        hydrateMailAssetRoot(document);
+        document.querySelectorAll('.msg-html-frame').forEach((frame) => {
+          const hydrateFrame = () => hydrateMailAssetRoot(frame.contentDocument);
+          frame.addEventListener('load', hydrateFrame, { once: true });
+          hydrateFrame();
+        });
+      }
+
       function messageDayLabel(value) {
         const iso = normalizeText(value);
         if (!iso) return '';
@@ -4246,6 +4313,7 @@
           })
           .join('');
         resizeMailFrames();
+        hydrateMailAssetUrls();
       }
 
       function duplicateFolderLabel(folderType) {
