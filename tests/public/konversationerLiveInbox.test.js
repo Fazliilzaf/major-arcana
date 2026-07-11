@@ -24,6 +24,7 @@ test('konversationer live inbox uses kons worklist consumer as first real data s
 
   assert.match(html, /const LIVE_MAILBOX_IDS = \['kons@hairtpclinic\.com'\]/);
   assert.match(html, /\/api\/v1\/cco\/runtime\/worklist\/consumer\?mailboxIds=/);
+  assert.match(html, /'&limit=500'/);
   assert.match(html, /credentials:\s*'include'/);
   assert.match(html, /headers:\s*withAdminAuthHeaders\(\{\s*Accept:\s*'application\/json'\s*\}\)/);
   assert.doesNotMatch(html, /const THREADS\s*=/, 'old demo THREADS primary source must not remain');
