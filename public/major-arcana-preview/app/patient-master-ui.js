@@ -1650,17 +1650,26 @@
     // Hämta via auth-fetch → blob-URL (samma origin → canvas blir ej tainted,
     // så toDataURL fungerar vid spara). Fallback till direkt src för blob:/data:.
     (async () => {
+      const note = overlay.querySelector('.v12-pe-note');
       if (/^blob:|^data:/.test(src)) {
         image.src = src;
         return;
       }
       let objUrl = '';
       try {
-        if (sourceAssetId) objUrl = await fetchPatientFileObjectUrl(sourceAssetId);
+        if (sourceAssetId) {
+          objUrl = await fetchPatientFileObjectUrl(sourceAssetId, { preferThumbnail: true });
+        }
       } catch (_e) {
-        /* fallback nedan */
+        /* handled below */
       }
-      image.src = objUrl || src;
+      if (objUrl) {
+        image.src = objUrl;
+        return;
+      }
+      if (note) {
+        note.textContent = 'Kunde inte öppna bilden för redigering.';
+      }
     })();
     function point(ev) {
       const r = canvas.getBoundingClientRect();
@@ -8114,25 +8123,43 @@
     }
   }
 
-  async function fetchPatientFileObjectUrl(fileId) {
+  async function fetchPatientFileObjectUrl(fileId, opts = {}) {
     const normalizedId = normalizeText(fileId);
     if (!normalizedId) return '';
-    const primaryUrl = `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(normalizedId)}`;
     const token = getAdminToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const response = await fetch(new URL(primaryUrl, window.location.origin), {
-      headers,
-      credentials: 'same-origin',
-    });
-    if (!response.ok) return '';
-    let blob = await response.blob();
-    const contentType = response.headers.get('content-type') || '';
-    if (blob.type === '' && contentType) {
-      blob = new Blob([blob], { type: contentType.split(';')[0] });
+    const preferThumbnail = opts.preferThumbnail === true;
+    const candidateUrls = preferThumbnail
+      ? [
+          `/api/v1/cco/assets/${encodeURIComponent(normalizedId)}/thumbnail`,
+          `/api/v1/cco/assets/${encodeURIComponent(normalizedId)}/download?inline=1`,
+          `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(normalizedId)}`,
+        ]
+      : [
+          `/api/v1/cco/assets/${encodeURIComponent(normalizedId)}/download?inline=1`,
+          `/api/v1/cco/assets/${encodeURIComponent(normalizedId)}/thumbnail`,
+          `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(normalizedId)}`,
+        ];
+    for (const primaryUrl of candidateUrls) {
+      try {
+        const response = await fetch(new URL(primaryUrl, window.location.origin), {
+          headers,
+          credentials: 'same-origin',
+        });
+        if (!response.ok) continue;
+        let blob = await response.blob();
+        const contentType = response.headers.get('content-type') || '';
+        if (blob.type === '' && contentType) {
+          blob = new Blob([blob], { type: contentType.split(';')[0] });
+        }
+        const objectUrl = URL.createObjectURL(blob);
+        fileObjectUrls.add(objectUrl);
+        return objectUrl;
+      } catch {
+        /* try next candidate */
+      }
     }
-    const objectUrl = URL.createObjectURL(blob);
-    fileObjectUrls.add(objectUrl);
-    return objectUrl;
+    return '';
   }
 
   async function mountScalpAnalysisPanel(root = els.patientRail) {

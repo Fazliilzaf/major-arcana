@@ -147,6 +147,17 @@ test('besöksrum skapas från encounter, bokning och journal utan filer', () => 
   assert.match(canon, /Ingen journalanteckning för detta tillfälle/);
 });
 
+test('foto-editorn hämtar native asset via auth blob utan direkt URL-fallback', () => {
+  assert.match(ui, /fetchPatientFileObjectUrl\(sourceAssetId, \{ preferThumbnail: true \}\)/);
+  assert.match(ui, /\/api\/v1\/cco\/assets\/\$\{encodeURIComponent\(normalizedId\)\}\/thumbnail/);
+  assert.match(
+    ui,
+    /\/api\/v1\/cco\/assets\/\$\{encodeURIComponent\(normalizedId\)\}\/download\?inline=1/
+  );
+  assert.match(ui, /Kunde inte öppna bilden för redigering/);
+  assert.doesNotMatch(ui, /image\.src = objUrl \|\| src/);
+});
+
 test('listfas visar segment/insikts-placeholder tills enriched customers-shell landar', () => {
   assert.match(ui, /function isCustomerShellEnrichmentPending\(\)/);
   assert.match(ui, /function isCustomerSegmentEnrichmentPending\(segmentStats\)/);
