@@ -8722,6 +8722,8 @@
 
   window.__gkHydrateSecurePhotos = (root) =>
     hydrateGkMediaElements(root || els.patientRail || document);
+  window.__ccoHydratePatientFileImages = (root) =>
+    hydratePatientFileImages(root || els.patientRail || document);
   if (document.body) {
     ensureGkMediaObserver();
   } else {
