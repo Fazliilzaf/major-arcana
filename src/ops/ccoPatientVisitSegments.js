@@ -302,13 +302,20 @@ function ensureSegmentReasons(
 function buildImageEntry(file) {
   const takenAt = resolveTakenAt(file);
   const assetId = normalizeText(file?.assetId || file?.id) || null;
+  const selectedFor = asArray(file?.selectedFor).map(normalizeText).filter(Boolean).slice(0, 12);
   return {
     assetId,
+    encounterId: normalizeText(file?.encounterId) || null,
     takenAt: takenAt || null,
     timeLabel: formatTimeLabel(takenAt),
     fileName: normalizeText(file?.fileName || file?.originalFileName || file?.name) || 'Fil',
     thumbnailUrl: normalizeText(file?.thumbnailUrl || file?.thumbnailLink) || null,
     openRef: normalizeText(file?.viewUrl) || null,
+    imageStage: normalizeText(file?.imageStage) || null,
+    imageType: normalizeText(file?.imageType) || null,
+    sourceAnnotationId: normalizeText(file?.sourceAnnotationId) || null,
+    selectedFor,
+    offerReady: Boolean(file?.offerReady),
   };
 }
 

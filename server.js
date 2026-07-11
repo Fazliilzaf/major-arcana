@@ -804,6 +804,11 @@ let ccoBookingCaseStore = null;
       const documentDate = annotation.documentDate || sourceCaptureDate || nowIso.slice(0, 10);
       const secureStorage = await resolveSharedSecureStorage();
       const assetStore = await resolveSharedPatientAssetStore();
+      const sourceAsset =
+        annotation.sourceAssetId && assetStore?.getAsset
+          ? assetStore.getAsset(annotation.sourceAssetId)
+          : null;
+      const encounterId = annotation.encounterId || sourceAsset?.encounterId || null;
       const originalName = `Markerad bild ${documentDate}.png`;
       const stored = await secureStorage.putObject({
         body: decoded.buffer,
@@ -824,7 +829,7 @@ let ccoBookingCaseStore = null;
       const asset = await assetStore.addAsset(
         {
           patientId,
-          encounterId: annotation.encounterId || null,
+          encounterId,
           sourceSystem: 'upload',
           sourceRecordId: annotation.id,
           storageProvider: 'local',
