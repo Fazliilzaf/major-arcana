@@ -121,6 +121,10 @@ test('V11/V12 visar journal och film inom samma besökstillfälle', () => {
   assert.match(canon, /data-v12-visit-journal/);
   assert.match(canon, /v12-canon-visit-video/);
   assert.match(canon, /video controls preload="metadata" data-patient-file-id/);
+  assert.match(
+    ui,
+    /function renderV12WorkspaceDetailShell[\s\S]*?visitSegments: asArray\(runtime\.detail\?\.visitSegments\)/
+  );
   assert.match(ui, /video\[data-patient-file-id\]/);
   assert.match(ui, /Journal öppnad för valt besök/);
 });
