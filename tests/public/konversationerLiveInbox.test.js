@@ -270,6 +270,13 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   );
 });
 
+test('konversationstråden visar senaste mailet överst utan att mutera API-ordningen', () => {
+  const html = readHtml();
+  assert.match(html, /const newestFirst = messages\.slice\(\)\.sort/);
+  assert.match(html, /return bMs - aMs/);
+  assert.match(html, /mount\.innerHTML = newestFirst/);
+});
+
 test('kontaktformulär utan kundmail scopas från formulärtexten, inte generisk rubrik', () => {
   const html = readHtml();
 

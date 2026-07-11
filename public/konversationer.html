@@ -4279,8 +4279,16 @@
             '<div class="msg-day">CCO-tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:linear-gradient(180deg,#c8e8e0,#88c8b8)">CC</div><div><div class="msg-bubble">Inga meddelanden kunde visas för den här tråden ännu.</div><div class="msg-meta">CCO · synkad data</div></div></div>';
           return;
         }
+        // API:t behåller kronologisk ordning för sammanfattning och Svarstudio.
+        // Själva läsrutan är en inkorgsvy: senaste mailet ska alltid ligga överst.
+        const newestFirst = messages.slice().sort((a, b) => {
+          const aMs = Date.parse(normalizeText(a?.time));
+          const bMs = Date.parse(normalizeText(b?.time));
+          if (Number.isFinite(aMs) && Number.isFinite(bMs)) return bMs - aMs;
+          return normalizeText(b?.time).localeCompare(normalizeText(a?.time));
+        });
         let previousDay = '';
-        mount.innerHTML = messages
+        mount.innerHTML = newestFirst
           .map((message) => {
             const rawDir = normalizeText(message.dir);
             const dir =
