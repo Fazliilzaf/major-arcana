@@ -46,6 +46,43 @@ function toAccountStatus(statusByFolderType = {}) {
   return values.length > 0 ? 'VERIFIED' : 'NOT VERIFIED';
 }
 
+function isIncompleteHtml(value = '') {
+  const html = normalizeText(value);
+  return Boolean(
+    html &&
+      ((/<(?:html|body)\b/i.test(html) && !/<\/(?:html|body)>/i.test(html)) ||
+        /<img\b[^>]*\bsrc\s*=\s*["'][^"']*$/i.test(html))
+  );
+}
+
+async function repairPageRichBodies(messages, connector, mailboxId) {
+  if (!connector || typeof connector.fetchMessageMimeContent !== 'function') return messages;
+  const repaired = [];
+  for (const message of asArray(messages)) {
+    const candidate = message && typeof message === 'object' ? { ...message } : message;
+    if (!candidate || !isIncompleteHtml(candidate.bodyHtml)) {
+      repaired.push(candidate);
+      continue;
+    }
+    try {
+      const mime = await connector.fetchMessageMimeContent({
+        userId: mailboxId,
+        messageId: normalizeText(candidate.graphMessageId),
+        label: `CCO rich mail body repair (${mailboxId})`,
+        timeoutMs: 7000,
+      });
+      const preferredHtml = normalizeText(mime?.parsed?.body?.preferredHtml);
+      if (preferredHtml && !isIncompleteHtml(preferredHtml)) {
+        candidate.bodyHtml = preferredHtml;
+      }
+    } catch (_error) {
+      // Keep the existing bounded body when MIME repair is unavailable.
+    }
+    repaired.push(candidate);
+  }
+  return repaired;
+}
+
 function createMicrosoftGraphMailboxTruthBackfill({
   connectorFactory,
   store,
@@ -165,12 +202,15 @@ function createMicrosoftGraphMailboxTruthBackfill({
               pagesFetched += 1;
               folderMessageTotal += Array.isArray(payload?.messages) ? payload.messages.length : 0;
               folderMetadata = payload.folder;
+              const repairedMessages = options.repairRichBodies === true
+                ? await repairPageRichBodies(payload.messages, mailboxConnector, mailboxId)
+                : payload.messages;
               nextPageUrl = normalizeText(payload?.page?.nextPageUrl) || null;
               lastPersistedFolder = await store.recordFolderPage({
                 runId: run.runId,
                 account: payload.account,
                 folder: payload.folder,
-                messages: payload.messages,
+                messages: repairedMessages,
                 nextPageUrl,
                 sourcePageUrl: payload?.page?.sourcePageUrl,
                 pageSize,

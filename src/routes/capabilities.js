@@ -5226,6 +5226,7 @@ function toCcoRuntimeHistoryBackfillInput(input = {}) {
     CCO_KONS_HISTORY_DEFAULT_LOOKBACK_DAYS
   );
   const refresh = toBoolean(safeInput.refresh, false);
+  const repairRichBodies = toBoolean(safeInput.repairRichBodies || safeInput.richBodyRepair, false);
   const maxPagesPerFolder = clampInteger(safeInput.maxPagesPerFolder, 1, 10000, 0) || null;
   const pageSize = clampInteger(safeInput.pageSize, 1, 500, 0) || null;
   const folderTypes = normalizeMailboxIdList(
@@ -5237,6 +5238,7 @@ function toCcoRuntimeHistoryBackfillInput(input = {}) {
     mailboxIds,
     lookbackDays,
     refresh,
+    repairRichBodies,
     maxPagesPerFolder,
     pageSize,
     folderTypes: folderTypes.length > 0 ? folderTypes : null,
@@ -5939,6 +5941,7 @@ function toCcoRuntimeHistoryBackfillHandler({
           resume: input.refresh !== true,
           ...(input.maxPagesPerFolder ? { maxPagesPerFolder: input.maxPagesPerFolder } : {}),
           ...(input.pageSize ? { pageSize: input.pageSize } : {}),
+          repairRichBodies: input.repairRichBodies === true || input.richBodyRepair === true,
         });
         const nextCoverage = mailboxTruthHistory.getHistoryCoverage({
           mailboxIds: input.mailboxIds,
