@@ -1037,6 +1037,56 @@
   text-decoration: none;
   border-top: 1px solid var(--hair, rgba(180, 170, 150, 0.25));
 }
+.v12-canon .visit-segment-journal {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid var(--hair, rgba(180, 170, 150, 0.25));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+}
+.v12-canon .visit-segment-journal__head,
+.v12-canon .visit-segment-journal__row,
+.v12-canon .v12-canon-visit-video__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.v12-canon .visit-segment-journal__head {
+  font-weight: 800;
+  margin-bottom: 7px;
+}
+.v12-canon .visit-segment-journal__row small {
+  display: block;
+  color: var(--ink-mute, #8a7d6a);
+  margin-top: 2px;
+}
+.v12-canon .v12-canon-visit-video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  margin: 10px 0;
+}
+.v12-canon .v12-canon-visit-video {
+  overflow: hidden;
+  border: 1px solid var(--hair, rgba(180, 170, 150, 0.25));
+  border-radius: 8px;
+  background: #211d19;
+}
+.v12-canon .v12-canon-visit-video video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #171411;
+}
+.v12-canon .v12-canon-visit-video__meta {
+  padding: 8px 10px;
+  color: #fff;
+  font-size: 11px;
+}
+.v12-canon .v12-canon-visit-video__meta a {
+  color: #fff;
+}
 .v12-canon .photo-bar {
   display: flex;
   justify-content: space-between;

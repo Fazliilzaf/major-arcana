@@ -51,6 +51,13 @@ function isImageLikeFile(file) {
   );
 }
 
+function isVideoLikeFile(file) {
+  const mime = normalizeText(file?.mimeType || file?.contentType).toLowerCase();
+  const type = normalizeText(file?.fileType).toLowerCase();
+  const name = normalizeText(file?.fileName || file?.originalFileName || file?.name).toLowerCase();
+  return type === 'video' || mime.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(name);
+}
+
 function resolveSortKey(file) {
   const direct = normalizeTimelineDateTime(file?.timelineSortKey || file?.timelineDate);
   if (direct) return direct;
@@ -319,6 +326,34 @@ function buildImageEntry(file) {
   };
 }
 
+function buildVideoEntry(file) {
+  return {
+    ...buildImageEntry(file),
+    mimeType: normalizeText(file?.mimeType || file?.contentType) || 'video/mp4',
+  };
+}
+
+function resolveJournalDate(entry) {
+  for (const value of [entry?.signedAt, entry?.updatedAt, entry?.createdAt]) {
+    const date = normalizeText(value).slice(0, 10);
+    if (isIsoDate(date)) return date;
+  }
+  return '';
+}
+
+function buildJournalEntry(entry) {
+  return {
+    entryId: normalizeText(entry?.entryId) || null,
+    encounterId: normalizeText(entry?.treatmentEncounterId || entry?.encounterId) || null,
+    date: resolveJournalDate(entry) || null,
+    title: normalizeText(entry?.title || entry?.journalType) || 'Journalanteckning',
+    journalType: normalizeText(entry?.journalType) || null,
+    status: normalizeText(entry?.status) || 'draft',
+    locked: Boolean(entry?.locked),
+    canEdit: entry?.canEdit !== false && !entry?.locked,
+  };
+}
+
 function buildDocumentEntry(file) {
   const assetId = normalizeText(file?.assetId || file?.id) || null;
   const documentDate = resolveDocumentDate(file);
@@ -347,8 +382,13 @@ function compareDocumentsByDateAsc(a, b) {
 }
 
 function finalizeSegment({ date, label, files, clusterIndex = 0, clusterCount = 1 }) {
-  const images = files.filter(isImageLikeFile).sort(compareImagesByTimeAsc);
+  const media = files.filter(isImageLikeFile).sort(compareImagesByTimeAsc);
+  const videos = media.filter(isVideoLikeFile);
+  const images = media.filter((file) => !isVideoLikeFile(file));
   const documents = files.filter((file) => !isImageLikeFile(file)).sort(compareDocumentsByDateAsc);
+  const encounterIds = [
+    ...new Set(files.map((file) => normalizeText(file?.encounterId)).filter(Boolean)),
+  ];
 
   let confidence = 'high';
   const reasons = [];
@@ -365,7 +405,7 @@ function finalizeSegment({ date, label, files, clusterIndex = 0, clusterCount = 
   }
 
   const visitType = inferVisitTypeFromFiles(files);
-  const timeRange = buildTimeRange(images);
+  const timeRange = buildTimeRange(media);
   ensureSegmentReasons(confidence, reasons, { images, documents, timeRange });
 
   return {
@@ -375,8 +415,11 @@ function finalizeSegment({ date, label, files, clusterIndex = 0, clusterCount = 
     visitType,
     confidence,
     reasons,
+    encounterId: encounterIds.length === 1 ? encounterIds[0] : null,
     clusterIndex,
     images: images.map(buildImageEntry),
+    videos: videos.map(buildVideoEntry),
+    journals: [],
     documents: documents.map((doc) => {
       const entry = buildDocumentEntry(doc);
       const { dateBindingUncertain, ...rest } = entry;
@@ -391,11 +434,33 @@ function finalizeSegment({ date, label, files, clusterIndex = 0, clusterCount = 
   };
 }
 
+function attachJournalsToSegments(segments, journalEntries) {
+  const byDate = new Map();
+  for (const segment of segments) {
+    if (!segment.date) continue;
+    if (!byDate.has(segment.date)) byDate.set(segment.date, []);
+    byDate.get(segment.date).push(segment);
+  }
+
+  for (const rawEntry of asArray(journalEntries)) {
+    const journal = buildJournalEntry(rawEntry);
+    let target = null;
+    if (journal.encounterId) {
+      target = segments.find((segment) => segment.encounterId === journal.encounterId) || null;
+    }
+    if (!target && journal.date) {
+      const sameDate = byDate.get(journal.date) || [];
+      if (sameDate.length === 1) target = sameDate[0];
+    }
+    if (target) target.journals.push(journal);
+  }
+}
+
 /**
  * Read-only visit segment builder for kundkort "Besök/tillfällen".
  * Uses the same date/file signals as existing patient card file payloads.
  */
-function buildVisitSegments({ driveFiles = [], customerId = '' } = {}) {
+function buildVisitSegments({ driveFiles = [], journalEntries = [], customerId = '' } = {}) {
   const datedGroups = new Map();
   const missingDateFiles = [];
   const reviewFiles = [];
@@ -487,6 +552,8 @@ function buildVisitSegments({ driveFiles = [], customerId = '' } = {}) {
     return String(b.sortKey || b.date).localeCompare(String(a.sortKey || a.date));
   });
 
+  attachJournalsToSegments(segments, journalEntries);
+
   return {
     customerId: normalizeText(customerId),
     visitSegments: segments.map(({ sortKey, clusterIndex, ...segment }) => segment),
@@ -500,4 +567,5 @@ module.exports = {
   resolveVisitDate,
   resolveTakenAt,
   isImageLikeFile,
+  isVideoLikeFile,
 };

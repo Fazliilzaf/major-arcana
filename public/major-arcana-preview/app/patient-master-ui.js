@@ -1918,6 +1918,19 @@
         });
         return;
       }
+      const visitJournal = event.target.closest('[data-v12-visit-journal]');
+      if (visitJournal && body.contains(visitJournal)) {
+        event.preventDefault();
+        closeV12WorkspaceOverlayIfOpen();
+        switchDetailTab('journal');
+        setStatus(
+          visitJournal.getAttribute('data-encounter-id')
+            ? 'Journal öppnad för valt besök.'
+            : 'Journal öppnad. Besökskoppling väljs i journalen.',
+          'info'
+        );
+        return;
+      }
       // CONTENT-CANON s9: "Öppna" dokument → visa PDF i modal-ruta (ingen länk,
       // ingen ny flik — dokumentet dyker upp i en ruta ovanpå kundvyn).
       const docOpen = event.target.closest('[data-doc-open]');
@@ -8141,7 +8154,7 @@
 
   async function hydratePatientFileImages(root = els.patientRail) {
     if (!root) return;
-    const images = root.querySelectorAll('img[data-patient-file-id]');
+    const images = root.querySelectorAll('img[data-patient-file-id], video[data-patient-file-id]');
     await Promise.all(
       Array.from(images).map(async (img) => {
         const fileId = normalizeText(img.dataset.patientFileId);
@@ -8150,13 +8163,13 @@
         const objectUrl = await fetchPatientFileObjectUrl(fileId);
         img.classList.remove('is-loading');
         if (!objectUrl) {
-          img.alt = 'Kunde inte visa bild';
+          if (img.tagName === 'IMG') img.alt = 'Kunde inte visa bild';
           img.classList.add('is-broken');
           return;
         }
         img.src = objectUrl;
         img.dataset.loaded = 'true';
-        const tileLink = img.closest('a.patient-master-image-tile');
+        const tileLink = img.tagName === 'IMG' ? img.closest('a.patient-master-image-tile') : null;
         if (tileLink) tileLink.href = objectUrl;
       })
     );

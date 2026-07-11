@@ -55,6 +55,100 @@ test('buildVisitSegments groups images and documents on same visit date', () => 
   assert.equal(segment.timeRange, '09:14');
 });
 
+test('buildVisitSegments keeps films separate from photos on the same visit', () => {
+  const result = buildVisitSegments({
+    driveFiles: [
+      {
+        id: 'photo-1',
+        fileType: 'image',
+        fileName: 'Front.jpg',
+        captureDateTime: '2024-04-22T09:14:00',
+        documentDate: '2024-04-22',
+      },
+      {
+        id: 'video-1',
+        fileType: 'video',
+        mimeType: 'video/mp4',
+        fileName: 'Treatment.mp4',
+        captureDateTime: '2024-04-22T09:18:00',
+        documentDate: '2024-04-22',
+        viewUrl: '/api/v1/cco/assets/video-1/download?inline=1',
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments.length, 1);
+  assert.equal(result.visitSegments[0].images.length, 1);
+  assert.equal(result.visitSegments[0].videos.length, 1);
+  assert.equal(result.visitSegments[0].videos[0].fileName, 'Treatment.mp4');
+  assert.equal(result.visitSegments[0].videos[0].mimeType, 'video/mp4');
+});
+
+test('buildVisitSegments attaches journal to matching encounter and exposes journal CTA state', () => {
+  const result = buildVisitSegments({
+    driveFiles: [
+      {
+        id: 'photo-1',
+        encounterId: 'encounter-1',
+        fileType: 'image',
+        fileName: 'Front.jpg',
+        captureDateTime: '2024-04-22T09:14:00',
+        documentDate: '2024-04-22',
+      },
+    ],
+    journalEntries: [
+      {
+        entryId: 'journal-1',
+        treatmentEncounterId: 'encounter-1',
+        title: 'PRP-journal',
+        journalType: 'prp_treatment',
+        status: 'signed',
+        signedAt: '2024-04-22T10:00:00.000Z',
+        locked: true,
+      },
+    ],
+  });
+
+  const segment = result.visitSegments[0];
+  assert.equal(segment.encounterId, 'encounter-1');
+  assert.equal(segment.journals.length, 1);
+  assert.deepEqual(segment.journals[0], {
+    entryId: 'journal-1',
+    encounterId: 'encounter-1',
+    date: '2024-04-22',
+    title: 'PRP-journal',
+    journalType: 'prp_treatment',
+    status: 'signed',
+    locked: true,
+    canEdit: false,
+  });
+});
+
+test('buildVisitSegments uses journal date only when the visit date is unambiguous', () => {
+  const result = buildVisitSegments({
+    driveFiles: [
+      {
+        id: 'photo-1',
+        fileType: 'image',
+        fileName: 'Front.jpg',
+        captureDateTime: '2024-04-22T09:14:00',
+        documentDate: '2024-04-22',
+      },
+    ],
+    journalEntries: [
+      {
+        entryId: 'journal-1',
+        title: 'Besöksjournal',
+        status: 'draft',
+        updatedAt: '2024-04-22T11:00:00.000Z',
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments[0].journals.length, 1);
+  assert.equal(result.visitSegments[0].journals[0].entryId, 'journal-1');
+});
+
 test('buildVisitSegments sorts images by taken time ascending within segment', () => {
   const result = buildVisitSegments({
     driveFiles: [

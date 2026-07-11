@@ -101,9 +101,13 @@
   function segmentMetaCounts(segment) {
     var parts = [];
     var imgN = asArray(segment.images).length;
+    var videoN = asArray(segment.videos).length;
     var docN = asArray(segment.documents).length;
+    var journalN = asArray(segment.journals).length;
     if (imgN) parts.push(imgN + (imgN === 1 ? ' foto' : ' foton'));
+    if (videoN) parts.push(videoN + (videoN === 1 ? ' film' : ' filmer'));
     if (docN) parts.push(docN + (docN === 1 ? ' dokument' : ' dokument'));
+    if (journalN) parts.push(journalN + (journalN === 1 ? ' journal' : ' journaler'));
     return parts.join(' · ') || '0 filer';
   }
 
@@ -123,6 +127,13 @@
       kind: 'image',
       offerReady: false,
     };
+  }
+
+  function mapVideoToGridItem(video) {
+    var item = mapImageToGridItem(video);
+    item.kind = 'video';
+    item.name = video.fileName || 'Film';
+    return item;
   }
 
   function renderSegmentBody(segment, helpers) {
@@ -147,8 +158,9 @@
     }
 
     var images = asArray(segment.images);
-    if (images.length && gkSharedPhotoGrid) {
-      var mediaRows = images.map(mapImageToGridItem);
+    var videos = asArray(segment.videos);
+    if ((images.length || videos.length) && gkSharedPhotoGrid) {
+      var mediaRows = images.map(mapImageToGridItem).concat(videos.map(mapVideoToGridItem));
       var visitCollapsed = mediaRows.length > 12;
       html +=
         '<div class="gk-visit-photos"><div class="gk-visit-label">Bilder och film</div>' +
@@ -163,6 +175,28 @@
           : '') +
         '</div>';
     }
+
+    var journals = asArray(segment.journals);
+    html +=
+      '<div class="gk-visit-journal"><div class="gk-visit-label">Journal</div>' +
+      (journals.length
+        ? journals
+            .map(function (journal) {
+              return (
+                '<div class="gk-med-doc"><span>📝</span><span>' +
+                escFn(journal.title || 'Journalanteckning') +
+                '<small>' +
+                escFn([journal.date, journal.status].filter(Boolean).join(' · ')) +
+                '</small></span></div>'
+              );
+            })
+            .join('')
+        : '<div class="gk-sub">Ingen journalanteckning för detta tillfälle.</div>') +
+      '<button type="button" class="gk-btn" data-v9-section-link="journal" data-encounter-id="' +
+      escFn(segment.encounterId || '') +
+      '">' +
+      (journals.length ? 'Fortsätt journal' : 'Starta journal') +
+      '</button></div>';
 
     html += asArray(segment.documents)
       .map(function (doc) {
