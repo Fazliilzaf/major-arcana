@@ -274,6 +274,20 @@ const config = {
     stateRoot,
     fileName: 'cco-mailbox-truth',
   }),
+  ccoMailAssetCacheDir: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_MAIL_ASSET_CACHE_DIR,
+    stateRoot,
+    fileName: 'cco-mail-assets',
+  }),
+  ccoMailAssetCacheEnabled: asBool(process.env.ARCANA_CCO_MAIL_ASSET_CACHE_ENABLED, true),
+  ccoMailAssetCacheMaxAssetBytes: asInt(
+    process.env.ARCANA_CCO_MAIL_ASSET_CACHE_MAX_ASSET_BYTES,
+    25 * 1024 * 1024
+  ),
+  ccoMailAssetCacheMaxTotalBytes: asInt(
+    process.env.ARCANA_CCO_MAIL_ASSET_CACHE_MAX_TOTAL_BYTES,
+    10 * 1024 * 1024 * 1024
+  ),
   ccoMailIngestionStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_MAIL_INGESTION_STORE_PATH,
     stateRoot,

@@ -1792,6 +1792,7 @@ test('runtime mail asset route streams attachment content for focus attachment a
   process.env.ARCANA_GRAPH_TENANT_ID = process.env.ARCANA_GRAPH_TENANT_ID || 'tenant-test';
   process.env.ARCANA_GRAPH_CLIENT_ID = process.env.ARCANA_GRAPH_CLIENT_ID || 'client-test';
   process.env.ARCANA_GRAPH_CLIENT_SECRET = process.env.ARCANA_GRAPH_CLIENT_SECRET || 'secret-test';
+  let graphAttachmentRead = false;
 
   try {
     const app = express();
@@ -1813,6 +1814,7 @@ test('runtime mail asset route streams attachment content for focus attachment a
             return { conversations: [] };
           },
           async fetchMessageAttachmentContent({ userId, messageId, attachmentId }) {
+            graphAttachmentRead = true;
             assert.equal(userId, 'contact@hairtpclinic.com');
             assert.equal(messageId, 'msg-asset-1');
             assert.equal(attachmentId, 'att-file-1');
@@ -1820,6 +1822,17 @@ test('runtime mail asset route streams attachment content for focus attachment a
               name: 'price-list.pdf',
               contentType: 'application/pdf',
               buffer: Buffer.from('PDF-BYTES'),
+            };
+          },
+        },
+        ccoMailAssetCache: {
+          async get({ mailboxId, messageId, attachmentId }) {
+            assert.equal(mailboxId, 'contact@hairtpclinic.com');
+            assert.equal(messageId, 'msg-asset-1');
+            assert.equal(attachmentId, 'att-file-1');
+            return {
+              buffer: Buffer.from('PDF-BYTES'),
+              metadata: { name: 'price-list.pdf', contentType: 'application/pdf' },
             };
           },
         },
@@ -1835,6 +1848,7 @@ test('runtime mail asset route streams attachment content for focus attachment a
       assert.match(String(response.headers.get('content-disposition') || ''), /attachment;/);
       const buffer = Buffer.from(await response.arrayBuffer());
       assert.equal(String(buffer), 'PDF-BYTES');
+      assert.equal(graphAttachmentRead, false, 'visningen ska använda lokal cache utan Graph-läsning');
     });
   } finally {
     if (previousGraphReadEnabled === undefined) {
