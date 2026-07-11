@@ -1845,6 +1845,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
     requestMaxRetries = 2,
     retryBaseDelayMs = 500,
     retryMaxDelayMs = 5000,
+    embedInlineImageBytes = true,
   }) {
     const safeMessages = Array.isArray(rawMessages) ? rawMessages : [];
     const enriched = [];
@@ -1873,7 +1874,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
         if (resolvedAttachments.length) {
           safeMessage.attachments = sanitizeResolvedAttachmentMetadata(resolvedAttachments);
         }
-        if (cidReferences.length && resolvedAttachments.length) {
+        if (embedInlineImageBytes && cidReferences.length && resolvedAttachments.length) {
           safeMessage.body = {
             ...(safeMessage?.body && typeof safeMessage.body === 'object' ? safeMessage.body : {}),
             content: resolveInlineCidImages(bodyContent, resolvedAttachments),
@@ -2085,6 +2086,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
       requestMaxRetries,
       retryBaseDelayMs,
       retryMaxDelayMs,
+      // Truth-sharden bär bara CID + bilagemetadata. Bildbytes hämtas först
+      // när användaren faktiskt öppnar den lokalt lagrade tråden.
+      embedInlineImageBytes: false,
     });
 
     const messages = Array.isArray(enrichedRawMessages)
@@ -2259,6 +2263,8 @@ function createMicrosoftGraphReadConnector(config = {}) {
       requestMaxRetries,
       retryBaseDelayMs,
       retryMaxDelayMs,
+      // Se page-pathen ovan: inga base64-bilder i den persistenta truth-storen.
+      embedInlineImageBytes: false,
     });
     const enrichedDeltaUpsertMap = new Map(
       asArray(enrichedDeltaUpserts)
