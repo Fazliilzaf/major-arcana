@@ -8695,6 +8695,22 @@
       window.setTimeout(() => scheduleGkMediaHydration(document), 0);
     }
   });
+  document.addEventListener('click', (event) => {
+    const photoEdit = event.target.closest?.('[data-v11-photo-edit]');
+    if (!photoEdit) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openV12PhotoEditor({
+      patientId: photoEdit.getAttribute('data-patient-id') || '',
+      assetId: photoEdit.getAttribute('data-asset-id') || '',
+      encounterId: photoEdit.getAttribute('data-encounter-id') || '',
+      src: photoEdit.getAttribute('data-photo-src') || '',
+      name: photoEdit.getAttribute('data-photo-name') || 'Bild',
+      zone: photoEdit.getAttribute('data-photo-zone') || '',
+      docDate: photoEdit.getAttribute('data-photo-date') || '',
+      captureDate: photoEdit.getAttribute('data-photo-capture') || '',
+    });
+  });
 
   function bindJournalPhotoOpenLinks(root = els.patientRail) {
     if (!root) return;
