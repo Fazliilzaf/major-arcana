@@ -1046,11 +1046,23 @@
 }
 .v12-canon .visit-segment-journal__head,
 .v12-canon .visit-segment-journal__row,
+.v12-canon .visit-segment-room-status,
 .v12-canon .v12-canon-visit-video__meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+.v12-canon .visit-segment-room-status {
+  margin: 10px 0;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: var(--paper-deep, #f7f1ec);
+}
+.v12-canon .visit-segment-room-status small {
+  display: block;
+  color: var(--ink-mute, #8a7d6a);
+  margin-top: 2px;
 }
 .v12-canon .visit-segment-journal__head {
   font-weight: 800;

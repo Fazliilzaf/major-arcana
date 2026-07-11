@@ -104,6 +104,7 @@
     var videoN = asArray(segment.videos).length;
     var docN = asArray(segment.documents).length;
     var journalN = asArray(segment.journals).length;
+    if (segment.booking) parts.push('1 bokning');
     if (imgN) parts.push(imgN + (imgN === 1 ? ' foto' : ' foton'));
     if (videoN) parts.push(videoN + (videoN === 1 ? ' film' : ' filmer'));
     if (docN) parts.push(docN + (docN === 1 ? ' dokument' : ' dokument'));
@@ -177,6 +178,15 @@
     }
 
     var journals = asArray(segment.journals);
+    if (segment.booking || segment.encounter) {
+      var room = segment.booking || segment.encounter;
+      html +=
+        '<div class="gk-med-doc"><span>📅</span><span>' +
+        escFn(room.title || room.serviceLabel || 'Besök') +
+        '<small>' +
+        escFn([room.startsAt, room.status].filter(Boolean).join(' · ')) +
+        '</small></span></div>';
+    }
     html +=
       '<div class="gk-visit-journal"><div class="gk-visit-label">Journal</div>' +
       (journals.length

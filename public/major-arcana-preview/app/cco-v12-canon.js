@@ -1053,6 +1053,25 @@
         '</div>'
       );
     }
+    function visitRoomStatus(segment) {
+      var booking = segment && segment.booking;
+      var encounter = segment && segment.encounter;
+      if (!booking && !encounter) return '';
+      var title =
+        txt((booking && booking.title) || (encounter && encounter.serviceLabel)) || 'Besök';
+      var startsAt = txt((booking && booking.startsAt) || (encounter && encounter.startsAt));
+      var status =
+        txt((booking && booking.status) || (encounter && encounter.status)) || 'registrerat';
+      return (
+        '<div class="visit-segment-room-status"><span><b>' +
+        esc(title) +
+        '</b><small>' +
+        esc(startsAt ? startsAt.slice(0, 16).replace('T', ' · ') : 'Tid saknas') +
+        '</small></span>' +
+        chip(status === 'completed' ? 'ok' : 'warn', status) +
+        '</div>'
+      );
+    }
     function segmentMarkup(segment) {
       var images = arr(segment && segment.images);
       var videos = arr(segment && segment.videos);
@@ -1135,6 +1154,7 @@
         '</span></summary>' +
         warning +
         reasonRow +
+        visitRoomStatus(segment) +
         journalBlock(segment) +
         photos +
         films +

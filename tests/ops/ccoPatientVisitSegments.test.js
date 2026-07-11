@@ -149,6 +149,119 @@ test('buildVisitSegments uses journal date only when the visit date is unambiguo
   assert.equal(result.visitSegments[0].journals[0].entryId, 'journal-1');
 });
 
+test('buildVisitSegments creates a room from an encounter before files exist', () => {
+  const result = buildVisitSegments({
+    encounters: [
+      {
+        encounterId: 'enc-only',
+        startsAt: '2026-08-12T10:30:00.000Z',
+        endsAt: '2026-08-12T11:00:00.000Z',
+        encounterType: 'consultation',
+        serviceLabel: 'Konsultation',
+        status: 'confirmed',
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments.length, 1);
+  assert.equal(result.visitSegments[0].date, '2026-08-12');
+  assert.equal(result.visitSegments[0].encounterId, 'enc-only');
+  assert.equal(result.visitSegments[0].visitType, 'consultation');
+  assert.equal(result.visitSegments[0].encounter.serviceLabel, 'Konsultation');
+  assert.deepEqual(result.visitSegments[0].images, []);
+  assert.deepEqual(result.visitSegments[0].documents, []);
+});
+
+test('buildVisitSegments creates a room from a booking before journal and files exist', () => {
+  const result = buildVisitSegments({
+    bookings: [
+      {
+        id: 'booking-only',
+        startsAt: '2026-08-13T13:15:00.000Z',
+        endsAt: '2026-08-13T14:00:00.000Z',
+        serviceName: 'PRP',
+        status: 'confirmed',
+        staff: 'Fazli',
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments.length, 1);
+  assert.equal(result.visitSegments[0].date, '2026-08-13');
+  assert.equal(result.visitSegments[0].timeRange, '13:15');
+  assert.equal(result.visitSegments[0].booking.bookingId, 'booking-only');
+  assert.equal(result.visitSegments[0].booking.title, 'PRP');
+});
+
+test('buildVisitSegments creates a room from a journal before files exist', () => {
+  const result = buildVisitSegments({
+    journalEntries: [
+      {
+        entryId: 'journal-only',
+        treatmentEncounterId: 'enc-journal-only',
+        title: 'Besöksjournal',
+        status: 'draft',
+        updatedAt: '2026-08-14T09:00:00.000Z',
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments.length, 1);
+  assert.equal(result.visitSegments[0].date, '2026-08-14');
+  assert.equal(result.visitSegments[0].encounterId, 'enc-journal-only');
+  assert.equal(result.visitSegments[0].journals.length, 1);
+  assert.equal(result.visitSegments[0].journals[0].entryId, 'journal-only');
+});
+
+test('buildVisitSegments merges encounter, booking, journal and file into one room', () => {
+  const startsAt = '2026-08-15T14:30:00.000Z';
+  const result = buildVisitSegments({
+    driveFiles: [
+      {
+        id: 'photo-complete',
+        encounterId: 'enc-complete',
+        fileType: 'image',
+        fileName: 'Front.jpg',
+        captureDateTime: startsAt,
+        documentDate: '2026-08-15',
+      },
+    ],
+    encounters: [
+      {
+        encounterId: 'enc-complete',
+        bookingId: 'booking-complete',
+        startsAt,
+        encounterType: 'prp_hair',
+        serviceLabel: 'PRP',
+        status: 'confirmed',
+      },
+    ],
+    bookings: [
+      {
+        id: 'booking-complete',
+        startsAt,
+        serviceName: 'PRP',
+        status: 'confirmed',
+      },
+    ],
+    journalEntries: [
+      {
+        entryId: 'journal-complete',
+        treatmentEncounterId: 'enc-complete',
+        title: 'PRP-journal',
+        status: 'draft',
+        updatedAt: startsAt,
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments.length, 1);
+  assert.equal(result.visitSegments[0].encounterId, 'enc-complete');
+  assert.equal(result.visitSegments[0].booking.bookingId, 'booking-complete');
+  assert.equal(result.visitSegments[0].images.length, 1);
+  assert.equal(result.visitSegments[0].journals.length, 1);
+});
+
 test('buildVisitSegments sorts images by taken time ascending within segment', () => {
   const result = buildVisitSegments({
     driveFiles: [

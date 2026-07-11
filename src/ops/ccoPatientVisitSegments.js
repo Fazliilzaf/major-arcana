@@ -354,6 +354,25 @@ function buildJournalEntry(entry) {
   };
 }
 
+function resolveStartsAt(value = {}) {
+  return normalizeTimelineDateTime(
+    value?.startsAt || value?.startAt || value?.scheduledAt || value?.date
+  );
+}
+
+function buildBookingEntry(booking) {
+  const startsAt = resolveStartsAt(booking);
+  return {
+    bookingId: normalizeText(booking?.bookingId || booking?.id) || null,
+    startsAt: startsAt || null,
+    endsAt: normalizeTimelineDateTime(booking?.endsAt || booking?.endAt) || null,
+    title:
+      normalizeText(booking?.serviceLabel || booking?.serviceName || booking?.title) || 'Bokning',
+    status: normalizeText(booking?.status) || 'confirmed',
+    resourceLabel: normalizeText(booking?.resourceLabel || booking?.staff) || null,
+  };
+}
+
 function buildDocumentEntry(file) {
   const assetId = normalizeText(file?.assetId || file?.id) || null;
   const documentDate = resolveDocumentDate(file);
@@ -420,6 +439,8 @@ function finalizeSegment({ date, label, files, clusterIndex = 0, clusterCount = 
     images: images.map(buildImageEntry),
     videos: videos.map(buildVideoEntry),
     journals: [],
+    booking: null,
+    encounter: null,
     documents: documents.map((doc) => {
       const entry = buildDocumentEntry(doc);
       const { dateBindingUncertain, ...rest } = entry;
@@ -432,6 +453,89 @@ function finalizeSegment({ date, label, files, clusterIndex = 0, clusterCount = 
     }),
     sortKey: date ? `${date}T${timeRange.split('–')[0] || '00:00'}:00` : '0000-00-00T00:00:00',
   };
+}
+
+function createEmptyVisitRoom({ date, startsAt = '', encounterId = null, visitType = 'unknown' }) {
+  const segment = finalizeSegment({
+    date: date || null,
+    label: formatSegmentLabel(date),
+    files: [],
+  });
+  const timeLabel = formatTimeLabel(startsAt);
+  segment.encounterId = encounterId || null;
+  segment.visitType = visitType || 'unknown';
+  segment.timeRange = timeLabel;
+  segment.sortKey = date ? startsAt || `${date}T00:00:00` : '0000-00-00T00:00:00';
+  return segment;
+}
+
+function seedEncounterRooms(segments, encounters) {
+  for (const encounter of asArray(encounters)) {
+    const encounterId = normalizeText(encounter?.encounterId);
+    const startsAt = resolveStartsAt(encounter);
+    const date = startsAt.slice(0, 10);
+    if (!encounterId && !isIsoDate(date)) continue;
+    let target = encounterId
+      ? segments.find((segment) => segment.encounterId === encounterId) || null
+      : null;
+    if (!target && isIsoDate(date)) {
+      const candidates = segments.filter(
+        (segment) => segment.date === date && !segment.encounterId && !segment.encounter
+      );
+      if (candidates.length === 1) target = candidates[0];
+    }
+    if (!target) {
+      target = createEmptyVisitRoom({
+        date: isIsoDate(date) ? date : null,
+        startsAt,
+        encounterId,
+        visitType: mapEncounterTypeToVisitType(encounter?.encounterType),
+      });
+      segments.push(target);
+    }
+    if (!target.encounterId) target.encounterId = encounterId || null;
+    if (target.visitType === 'unknown') {
+      target.visitType = mapEncounterTypeToVisitType(encounter?.encounterType);
+    }
+    target.encounter = {
+      encounterId: encounterId || null,
+      bookingId: normalizeText(encounter?.bookingId) || null,
+      startsAt: startsAt || null,
+      endsAt: normalizeTimelineDateTime(encounter?.endsAt) || null,
+      serviceLabel: normalizeText(encounter?.serviceLabel) || null,
+      status: normalizeText(encounter?.status) || 'reserved',
+    };
+  }
+}
+
+function seedBookingRooms(segments, bookings) {
+  for (const rawBooking of asArray(bookings)) {
+    const booking = buildBookingEntry(rawBooking);
+    const date = normalizeText(booking.startsAt).slice(0, 10);
+    if (!isIsoDate(date)) continue;
+    let target = booking.bookingId
+      ? segments.find(
+          (segment) =>
+            segment.booking?.bookingId === booking.bookingId ||
+            segment.encounter?.bookingId === booking.bookingId
+        ) || null
+      : null;
+    if (!target) {
+      const timeLabel = formatTimeLabel(booking.startsAt);
+      const candidates = segments.filter(
+        (segment) =>
+          segment.date === date &&
+          !segment.booking &&
+          (!timeLabel || !segment.timeRange || segment.timeRange.startsWith(timeLabel))
+      );
+      if (candidates.length === 1) target = candidates[0];
+    }
+    if (!target) {
+      target = createEmptyVisitRoom({ date, startsAt: booking.startsAt });
+      segments.push(target);
+    }
+    target.booking = booking;
+  }
 }
 
 function attachJournalsToSegments(segments, journalEntries) {
@@ -452,6 +556,17 @@ function attachJournalsToSegments(segments, journalEntries) {
       const sameDate = byDate.get(journal.date) || [];
       if (sameDate.length === 1) target = sameDate[0];
     }
+    if (!target && (journal.encounterId || journal.date)) {
+      target = createEmptyVisitRoom({
+        date: journal.date,
+        encounterId: journal.encounterId,
+      });
+      segments.push(target);
+      if (journal.date) {
+        if (!byDate.has(journal.date)) byDate.set(journal.date, []);
+        byDate.get(journal.date).push(target);
+      }
+    }
     if (target) target.journals.push(journal);
   }
 }
@@ -460,7 +575,13 @@ function attachJournalsToSegments(segments, journalEntries) {
  * Read-only visit segment builder for kundkort "Besök/tillfällen".
  * Uses the same date/file signals as existing patient card file payloads.
  */
-function buildVisitSegments({ driveFiles = [], journalEntries = [], customerId = '' } = {}) {
+function buildVisitSegments({
+  driveFiles = [],
+  journalEntries = [],
+  bookings = [],
+  encounters = [],
+  customerId = '',
+} = {}) {
   const datedGroups = new Map();
   const missingDateFiles = [];
   const reviewFiles = [];
@@ -543,6 +664,10 @@ function buildVisitSegments({ driveFiles = [], journalEntries = [], customerId =
     );
   }
 
+  seedEncounterRooms(segments, encounters);
+  seedBookingRooms(segments, bookings);
+  attachJournalsToSegments(segments, journalEntries);
+
   segments.sort((a, b) => {
     if (!a.date && b.date) return 1;
     if (a.date && !b.date) return -1;
@@ -551,8 +676,6 @@ function buildVisitSegments({ driveFiles = [], journalEntries = [], customerId =
     }
     return String(b.sortKey || b.date).localeCompare(String(a.sortKey || a.date));
   });
-
-  attachJournalsToSegments(segments, journalEntries);
 
   return {
     customerId: normalizeText(customerId),
