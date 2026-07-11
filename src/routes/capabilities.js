@@ -5827,7 +5827,7 @@ function toCcoRuntimeHistoryHandler({
   };
 }
 
-function toCcoRuntimeMailAssetContentHandler({ graphReadConnector, graphReadEnabled = false }) {
+function toCcoRuntimeMailAssetContentHandler({ ccoMailAssetCache = null }) {
   return async (req, res) => {
     try {
       const query = toCcoRuntimeMailAssetQuery(req.query);
@@ -5838,36 +5838,30 @@ function toCcoRuntimeMailAssetContentHandler({ graphReadConnector, graphReadEnab
         });
       }
 
-      if (
-        graphReadEnabled !== true ||
-        !graphReadConnector ||
-        typeof graphReadConnector.fetchMessageAttachmentContent !== 'function'
-      ) {
+      if (!ccoMailAssetCache || typeof ccoMailAssetCache.get !== 'function') {
         return res.status(503).json({
           ok: false,
-          error: 'Bilageåtkomst är inte tillgänglig just nu.',
+          error: 'Lokal bilagecache är inte tillgänglig just nu.',
         });
       }
 
-      const asset = await graphReadConnector.fetchMessageAttachmentContent({
-        userId: query.mailboxId,
+      const cached = await ccoMailAssetCache.get({
+        mailboxId: query.mailboxId,
         messageId: query.messageId,
         attachmentId: query.attachmentId,
-        label: `CCO runtime mail asset content (${query.mailboxId})`,
       });
-
-      const buffer = Buffer.isBuffer(asset?.buffer)
-        ? asset.buffer
-        : Buffer.from(asset?.buffer || []);
+      const buffer = Buffer.isBuffer(cached?.buffer)
+        ? cached.buffer
+        : Buffer.from(cached?.buffer || []);
       if (!buffer.length) {
         return res.status(404).json({
           ok: false,
-          error: 'Bilagan kunde inte hämtas.',
+          error: 'Bilagan är inte sparad lokalt ännu.',
         });
       }
 
-      const contentType = normalizeText(asset?.contentType) || 'application/octet-stream';
-      const fileName = sanitizeAttachmentFilename(asset?.name || query.fileName, 'bilaga');
+      const contentType = normalizeText(cached?.metadata?.contentType) || 'application/octet-stream';
+      const fileName = sanitizeAttachmentFilename(cached?.metadata?.name || query.fileName, 'bilaga');
       res.setHeader('content-type', contentType);
       res.setHeader(
         'content-disposition',
@@ -9653,6 +9647,7 @@ function createCapabilitiesRouter({
   marketingCampaignDraftsStore = null,
   marketingContentAssetsStore = null,
   graphReadConnector = null,
+  ccoMailAssetCache = null,
   graphReadConnectorFactory = createMicrosoftGraphReadConnector,
   graphSendConnector = null,
   graphSendConnectorFactory = createMicrosoftGraphSendConnector,
@@ -10054,8 +10049,7 @@ function createCapabilitiesRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     toRoleGuardedHandler(
       toCcoRuntimeMailAssetContentHandler({
-        graphReadConnector: resolvedGraphReadConnector,
-        graphReadEnabled: isGraphReadOperational,
+        ccoMailAssetCache,
       })
     )
   );

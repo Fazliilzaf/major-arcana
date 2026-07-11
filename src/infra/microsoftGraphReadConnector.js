@@ -1374,6 +1374,12 @@ function createMicrosoftGraphReadConnector(config = {}) {
   }
 
   const fetchImpl = typeof config.fetchImpl === 'function' ? config.fetchImpl : global.fetch;
+  const mailAssetCache =
+    config.mailAssetCache &&
+    typeof config.mailAssetCache.get === 'function' &&
+    typeof config.mailAssetCache.put === 'function'
+      ? config.mailAssetCache
+      : null;
   if (typeof fetchImpl !== 'function') {
     throw new Error('MicrosoftGraphReadConnector requires fetch implementation.');
   }
@@ -1823,6 +1829,60 @@ function createMicrosoftGraphReadConnector(config = {}) {
     };
   }
 
+  async function cacheMailboxTruthMessageAssets({
+    messages = [],
+    fallbackUserId = '',
+    label = 'Microsoft Graph local mail asset cache',
+    maxAssets = 100,
+  } = {}) {
+    if (!mailAssetCache) return { cached: 0, skipped: 0, failed: 0 };
+    let cached = 0;
+    let skipped = 0;
+    let failed = 0;
+    let attempted = 0;
+    for (const message of asArray(messages)) {
+      const graphMessageId = normalizeText(message?.graphMessageId || message?.messageId);
+      const targetUserId = normalizeText(
+        message?.userPrincipalName || message?.mailboxAddress || message?.mailboxId || fallbackUserId
+      );
+      if (!graphMessageId || !targetUserId) continue;
+      for (const attachment of asArray(message?.attachments)) {
+        if (attempted >= maxAssets) return { cached, skipped, failed, truncated: true };
+        const attachmentId = normalizeText(attachment?.id || attachment?.attachmentId);
+        if (!attachmentId) {
+          skipped += 1;
+          continue;
+        }
+        attempted += 1;
+        const context = {
+          mailboxId: normalizeText(message?.mailboxId || targetUserId),
+          messageId: graphMessageId,
+          attachmentId,
+        };
+        try {
+          const existing = await mailAssetCache.get(context);
+          if (existing) {
+            cached += 1;
+            continue;
+          }
+          const asset = await fetchMessageAttachmentContent({
+            userId: targetUserId,
+            messageId: graphMessageId,
+            attachmentId,
+            label,
+            timeoutMs: 7000,
+          });
+          const stored = await mailAssetCache.put(context, asset);
+          if (stored?.cached) cached += 1;
+          else skipped += 1;
+        } catch (_error) {
+          failed += 1;
+        }
+      }
+    }
+    return { cached, skipped, failed, truncated: false };
+  }
+
   async function fetchInlineImageAttachments(options = {}) {
     const attachments = await fetchMessageAttachments(options);
     return attachments.filter((item) => {
@@ -2086,8 +2146,8 @@ function createMicrosoftGraphReadConnector(config = {}) {
       requestMaxRetries,
       retryBaseDelayMs,
       retryMaxDelayMs,
-      // Truth-sharden bär bara CID + bilagemetadata. Bildbytes hämtas först
-      // när användaren faktiskt öppnar den lokalt lagrade tråden.
+      // Truth-sharden bär bara CID + bilagemetadata. Bildbytes går till den
+      // separata, kvoterade diskcachen innan tråden visas.
       embedInlineImageBytes: false,
     });
 
@@ -2106,6 +2166,11 @@ function createMicrosoftGraphReadConnector(config = {}) {
           )
           .filter(Boolean)
       : [];
+    await cacheMailboxTruthMessageAssets({
+      messages,
+      fallbackUserId: targetUserId,
+      label: `Microsoft Graph local mail asset cache (${identity.mailboxId || targetUserId} · ${folderSpec.folderType})`,
+    });
 
     return {
       account: {
@@ -2296,6 +2361,11 @@ function createMicrosoftGraphReadConnector(config = {}) {
           })
           .filter(Boolean)
       : [];
+    await cacheMailboxTruthMessageAssets({
+      messages: changes.filter((change) => change?.changeType === 'upsert').map((change) => change.message),
+      fallbackUserId: targetUserId,
+      label: `Microsoft Graph local mail asset cache (${identity.mailboxId || targetUserId} · ${folderSpec.folderType} delta)`,
+    });
 
     const nextDeltaPageUrl = normalizeText(payload?.['@odata.nextLink']) || null;
     const deltaLink = normalizeText(payload?.['@odata.deltaLink']) || null;

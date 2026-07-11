@@ -46,6 +46,7 @@ const { createCorsPolicy } = require('./src/security/corsPolicy');
 const { requestContextMiddleware } = require('./src/observability/requestContext');
 
 const app = express();
+let runtimeMailAssetCache = null;
 if (config.trustProxy) app.set('trust proxy', 1);
 app.use(cors(createCorsPolicy(config)));
 app.use(express.json({ limit: '10mb' }));
@@ -11230,6 +11231,7 @@ const { createRuntimeMetricsStore } = require('./src/ops/runtimeMetrics');
 const { createPatientConversionStore } = require('./src/ops/patientConversionStore');
 const { createWebBridgeAuditStore } = require('./src/ops/webBridgeAuditStore');
 const { createCcoHistoryStore } = require('./src/ops/ccoHistoryStore');
+const { createCcoMailAssetCache } = require('./src/ops/ccoMailAssetCache');
 const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore');
 const { createConfiguredCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStoreFactory');
 const { createCcoMailIngestionStore } = require('./src/ops/ccoMailIngestion/store');
@@ -11499,6 +11501,7 @@ function createRuntimeGraphReadConnector() {
       authorityHost: String(process.env.ARCANA_GRAPH_AUTHORITY_HOST || '').trim() || undefined,
       graphBaseUrl: String(process.env.ARCANA_GRAPH_BASE_URL || '').trim() || undefined,
       scope: String(process.env.ARCANA_GRAPH_SCOPE || '').trim() || undefined,
+      mailAssetCache: runtimeMailAssetCache,
     });
   } catch (err) {
     console.warn('[server] kunde inte skapa graphReadConnector', err?.message);
@@ -12684,6 +12687,13 @@ process.once('SIGTERM', () => {
     filePath: config.releaseGovernanceStorePath,
     maxCycles: config.releaseGovernanceMaxCycles,
   });
+  runtimeMailAssetCache = createCcoMailAssetCache({
+    dirPath: config.ccoMailAssetCacheDir,
+    enabled: config.ccoMailAssetCacheEnabled,
+    maxAssetBytes: config.ccoMailAssetCacheMaxAssetBytes,
+    maxTotalBytes: config.ccoMailAssetCacheMaxTotalBytes,
+  });
+  app.locals.ccoMailAssetCache = runtimeMailAssetCache;
   const graphReadConnector = createRuntimeGraphReadConnector();
 
   // DD1: shared graphSendConnector så scheduler (daily-digest) och
@@ -13740,6 +13750,7 @@ process.once('SIGTERM', () => {
       postOpReviewStore,
       scheduler,
       graphReadConnector,
+      ccoMailAssetCache: runtimeMailAssetCache,
       executiveDecisionFeed,
       marketingCampaignDraftsStore,
       marketingContentAssetsStore,

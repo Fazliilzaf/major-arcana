@@ -1874,6 +1874,7 @@ test('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage follows nextL
 });
 
 test('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage keeps CID images external to the truth shard', async () => {
+  const cacheWrites = [];
   const fetchImpl = async (url, _options = {}) => {
     if (String(url).includes('/oauth2/v2.0/token')) {
       return createJsonResponse({
@@ -1889,6 +1890,19 @@ test('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage keeps CID ima
           displayName: 'Inbox',
           totalItemCount: 1,
           unreadItemCount: 1,
+        },
+      });
+    }
+    if (String(url).includes('/messages/msg-inline-1/attachments/att-inline-1')) {
+      return createJsonResponse({
+        body: {
+          id: 'att-inline-1',
+          name: 'image001.png@abc',
+          contentType: 'image/png',
+          contentId: 'image001.png@abc',
+          isInline: true,
+          size: 128,
+          contentBytes: 'YWJjMTIz',
         },
       });
     }
@@ -1960,6 +1974,15 @@ test('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage keeps CID ima
     clientSecret: 'client-secret-folder-delta-inline',
     userId: 'kons@hairtpclinic.com',
     fetchImpl,
+    mailAssetCache: {
+      async get() {
+        return null;
+      },
+      async put(context, asset) {
+        cacheWrites.push({ context, asset });
+        return { cached: true };
+      },
+    },
   });
 
   const page = await connector.fetchMailboxTruthFolderDeltaPage({
@@ -1976,6 +1999,8 @@ test('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage keeps CID ima
   assert.match(String(page.changes[0].message?.bodyHtml || ''), /cid:image001\.png@abc/);
   assert.doesNotMatch(String(page.changes[0].message?.bodyHtml || ''), /data:image\/png;base64/);
   assert.equal(page.changes[0].message?.attachments?.[0]?.id, 'att-inline-1');
+  assert.equal(cacheWrites.length, 1);
+  assert.equal(String(cacheWrites[0].asset?.buffer), 'abc123');
 });
 
 test('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage marks invalid delta tokens explicitly', async () => {
