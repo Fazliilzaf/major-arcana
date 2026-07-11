@@ -768,6 +768,50 @@ test('nested Graph-raw body/html matchar truth-preview via rawJson.id', () => {
   assert.ok(enriched.bodyText.length > preview.length + 30);
 });
 
+test('truth-html behåller canonical kropp och släpper inte igenom legacy base64-kropp', () => {
+  const truthMessages = [
+    {
+      graphMessageId: 'truth-rich-1',
+      mailboxId: 'kons@hairtpclinic.com',
+      mailboxConversationId: 'kons@hairtpclinic.com:conv-rich-1',
+      conversationId: 'conv-rich-1',
+      folderType: 'sent',
+      bodyText: 'Hej\n\nBästa hälsningar, Hair TP Clinic',
+      bodyHtml: '<div>Hej</div><div><img src="cid:inline-data-logo" alt="Hair TP Clinic" /></div>',
+      attachments: [
+        {
+          id: 'inline-data-logo',
+          contentId: 'inline-data-logo',
+          name: 'logo.gif',
+          contentType: 'image/gif',
+          isInline: true,
+        },
+      ],
+    },
+  ];
+  const legacyBody = `<div>Hej<img src="data:image/gif;base64,${'QUJD'.repeat(70000)}" /></div>`;
+  const ingestionStore = {
+    getState: () => ({
+      mailRawMessages: {
+        legacy: {
+          graphMessageId: 'truth-rich-1',
+          mailboxId: 'kons@hairtpclinic.com',
+          conversationId: 'conv-rich-1',
+          bodyHtml: legacyBody,
+          bodyText: 'LEGACY BASE64 BODY',
+        },
+      },
+    }),
+  };
+
+  const [enriched] = enrichConversationMessagesWithIngestion(truthMessages, ingestionStore);
+
+  assert.match(enriched.bodyHtml, /cid:inline-data-logo/);
+  assert.doesNotMatch(enriched.bodyHtml, /data:image\//);
+  assert.ok(enriched.bodyHtml.length < 24000);
+  assert.doesNotMatch(enriched.bodyText, /LEGACY BASE64 BODY/);
+});
+
 test('kontaktformulär-preview berikas från scoped raw-store även när Graph-id saknar alias', () => {
   const preview =
     'Från: Sudarshan E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Hi, I am a foreigner residing in Umea, Sweden.';

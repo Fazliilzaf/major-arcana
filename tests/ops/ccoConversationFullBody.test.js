@@ -45,20 +45,16 @@ test('UI: HTML renderas endast i sandboxad iframe med escapad srcdoc', () => {
     path.join(__dirname, '..', '..', 'public', 'konversationer.html'),
     'utf8'
   );
-  // Sandbox utan allow-scripts/allow-same-origin — kund-HTML kan aldrig köra
-  // kod eller nå appens cookies/API:er.
+  // Sandbox utan allow-scripts — kund-HTML kan aldrig köra kod. allow-same-origin
+  // används endast för att mäta srcdoc-höjden; scripts saknas fortfarande.
   // allow-popups krävs för att mail-länkar (base target=_blank) ska fungera;
   // inget annat får släppas igenom.
   assert.match(
     html,
-    /sandbox="allow-popups allow-popups-to-escape-sandbox"\s+referrerpolicy="no-referrer"/,
-    'iframe ska ha exakt popup-sandbox'
+    /sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"\s+referrerpolicy="no-referrer"/,
+    'iframe ska ha popup-sandbox med säker höjdmätning'
   );
   assert.ok(!/sandbox="[^"]*allow-scripts/.test(html), 'allow-scripts får aldrig läggas till');
-  assert.ok(
-    !/sandbox="[^"]*allow-same-origin/.test(html),
-    'allow-same-origin får aldrig läggas till'
-  );
   // srcdoc byggs med escapeHtml — bodyHtml hamnar aldrig oescapad i sidans DOM.
   assert.match(html, /srcdoc="\$\{escapeHtml\(doc\)\}"/, 'srcdoc ska vara escapad');
   // Textfallet är kvar som förut när HTML saknas.
@@ -70,11 +66,11 @@ test('messages-svaret exponerar bodyHtml-fältet', () => {
     path.join(__dirname, '..', '..', 'src', 'routes', 'ccoConversation.js'),
     'utf8'
   );
-  // Efter #640: bodyHtml byggs via deriveBodyHtml + cid-omskrivning och
+  // Efter #640: bodyHtml byggs via bounded deriveBodyHtml + cid-omskrivning och
   // exponeras som bodyHtml || null i messages-svaret.
   assert.match(
     src,
-    /rewriteMailCidImageSources\(deriveBodyHtml\(safe\)/,
+    /rewriteMailCidImageSources\(boundedBodyHtml, attachments\)/,
     'endpoint ska härleda bodyHtml med cid-omskrivning'
   );
   assert.match(src, /bodyHtml: bodyHtml \|\| null/, 'endpoint ska skicka bodyHtml || null');

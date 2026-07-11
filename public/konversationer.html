@@ -2572,7 +2572,7 @@
       <!-- INBOX -->
       <aside class="inbox-shell">
         <div class="inbox-kicker">Inkorg</div>
-        <h2 class="inbox-h2">12 olästa · 47 totalt</h2>
+        <h2 class="inbox-h2">Laddar KONS-inkorg…</h2>
         <div class="inbox-tabs">
           <button class="inbox-tab active" data-tab="alla">
             Alla<span class="count">47</span>
@@ -3423,7 +3423,10 @@
             label: rowWaitingSinceMs ? formatWaitingAge(rowWaitingMs) + ' utan svar' : 'Obesvarad',
           });
         } else if (state.hasUnreadInbound || state.needsReply)
-          tags.push({ kind: 'urgent', label: 'OLÄST' });
+          tags.push({
+            kind: state.hasUnreadInbound ? 'urgent' : 'warning',
+            label: state.hasUnreadInbound ? 'OLÄST' : 'BEHÖVER SVAR',
+          });
         if (row.customerIdentity?.vip || row.customer?.identity?.vip)
           tags.push({ kind: 'vip', label: 'VIP' });
         const bookingTag = formatBookingTag(row.booking?.nextAt);
@@ -3483,7 +3486,7 @@
           contactReference,
           customerPhone: normalizeText(customer.phone || customer.phoneNumber),
           tags,
-          unread: state.hasUnreadInbound || state.needsReply,
+          unread: state.hasUnreadInbound === true,
           // "Väntar"-lanen: kunden skrev sist och vi har inte svarat (oavsett läst).
           needsReply: rowNeedsReply,
           waitingSinceMs: rowWaitingSinceMs,
@@ -3801,10 +3804,15 @@
       function updateInboxCounts(threads) {
         const all = threads.length;
         const unread = threads.filter((thread) => thread.unread).length;
+        const needsReply = threads.filter((thread) => thread.needsReply).length;
         const booking = threads.filter((thread) => threadMatchesTab(thread, 'bokning')).length;
         const vip = threads.filter((thread) => threadMatchesTab(thread, 'vip')).length;
         const heading = document.querySelector('.inbox-h2');
-        if (heading) heading.textContent = `${unread} olästa · ${all} totalt`;
+        const mailCount = Number(liveInboxMessageCount);
+        const mailLabel = mailCount > 0 ? ` · ${mailCount} mail` : '';
+        if (heading) {
+          heading.textContent = `${unread} oläst · ${needsReply} behöver svar · ${all} trådar${mailLabel}`;
+        }
         const tabCounts = { alla: all, olasta: unread, bokning: booking, vip };
         document.querySelectorAll('.inbox-tab').forEach((button) => {
           const tab = button.dataset.tab || 'alla';
@@ -3814,7 +3822,7 @@
         const allLaneCount = document.querySelector('.lane-row[data-lane="all"] .ct');
         if (allLaneCount) allLaneCount.textContent = String(all);
         const actNowCount = document.querySelector('.lane-row[data-lane="act-now"] .ct');
-        if (actNowCount) actNowCount.textContent = String(unread);
+        if (actNowCount) actNowCount.textContent = String(needsReply);
         const waitingCount = document.querySelector('.lane-row[data-lane="waiting"] .ct');
         if (waitingCount) waitingCount.textContent = String(threads.filter(threadIsWaiting).length);
       }
@@ -3922,7 +3930,29 @@
           '</head><body>' +
           html +
           '</body></html>';
-        return `<div class="msg-bubble msg-bubble--html msg-bubble-rich"><iframe class="msg-html-frame" sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" loading="lazy" srcdoc="${escapeHtml(doc)}" title="Mailinnehåll"></iframe></div>`;
+        return `<div class="msg-bubble msg-bubble--html msg-bubble-rich"><iframe class="msg-html-frame" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin" referrerpolicy="no-referrer" loading="lazy" srcdoc="${escapeHtml(doc)}" title="Mailinnehåll"></iframe></div>`;
+      }
+
+      function resizeMailFrames() {
+        document.querySelectorAll('.msg-html-frame').forEach((frame) => {
+          const resize = () => {
+            try {
+              const documentElement = frame.contentDocument?.documentElement;
+              const body = frame.contentDocument?.body;
+              const contentHeight = Math.max(
+                Number(documentElement?.scrollHeight || 0),
+                Number(body?.scrollHeight || 0)
+              );
+              if (contentHeight > 0) {
+                frame.style.height = `${Math.min(720, Math.max(220, contentHeight + 8))}px`;
+              }
+            } catch {
+              // A frame that cannot be measured keeps its bounded fallback height.
+            }
+          };
+          frame.addEventListener('load', resize, { once: true });
+          resize();
+        });
       }
 
       function messageDayLabel(value) {
@@ -4215,6 +4245,7 @@
             `;
           })
           .join('');
+        resizeMailFrames();
       }
 
       function duplicateFolderLabel(folderType) {
@@ -4430,7 +4461,8 @@
           list.innerHTML = `<div class="thread thread-live-status thread-live-status--${escapeHtml(tone)}" style="cursor:default"><div class="thread-body"><div class="thread-from">${escapeHtml(title)}</div><div class="thread-preview">${escapeHtml(message)}</div></div></div>`;
         }
         const heading = document.querySelector('.inbox-h2');
-        if (heading) heading.textContent = '0 olästa · 0 totalt';
+        liveInboxMessageCount = null;
+        if (heading) heading.textContent = '0 oläst · 0 behöver svar · 0 trådar';
         document.querySelectorAll('.inbox-tab .count, .lane-row .ct').forEach((node) => {
           node.textContent = '0';
         });
@@ -4494,6 +4526,7 @@
       let liveInboxAttempt = 0;
       let liveInboxRetryTimer = null;
       let liveInboxFetchInFlight = false;
+      let liveInboxMessageCount = null;
 
       async function loadLiveInbox({ background = false } = {}) {
         if (window.location.protocol === 'file:') return;
@@ -4537,6 +4570,18 @@
             throw parseError;
           }
           liveInboxAttempt = 0;
+          const truthReports = Array.isArray(payload?.truthCoverage?.accountReports)
+            ? payload.truthCoverage.accountReports
+            : [];
+          const truthFolderCounts = truthReports.flatMap((report) =>
+            Array.isArray(report?.folderCounts) ? report.folderCounts : []
+          );
+          const truthMessageCount = Number(payload?.truthCoverage?.metadata?.messageCount);
+          const inboxMessageCount = truthFolderCounts
+            .filter((folder) => folder?.folderType === 'inbox')
+            .reduce((total, folder) => total + Number(folder?.totalItemCount || 0), 0);
+          liveInboxMessageCount =
+            truthMessageCount > 0 ? truthMessageCount : inboxMessageCount > 0 ? inboxMessageCount : null;
           const rows = Array.isArray(payload?.rows) ? payload.rows : [];
           const previousSelection = selectedLiveThread;
           const previousSelectionKey = normalizeText(previousSelection?.conversationKey);

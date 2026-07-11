@@ -2619,3 +2619,65 @@ test('MicrosoftGraphReadConnector preserves long inline-image html beyond legacy
   assert.equal(bodyHtml.includes('data:image/png;base64,'), true);
   assert.equal(bodyHtml.endsWith('</div>'), true);
 });
+
+test('MicrosoftGraphReadConnector internalizes embedded signature images before truth storage', async () => {
+  const dataImage = `data:image/gif;base64,${Buffer.from('SIGNATURE-PIXELS').toString('base64')}`;
+  const cache = new Map();
+  const fetchImpl = async (url) => {
+    const safeUrl = String(url);
+    if (safeUrl.includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({ body: { access_token: 'token-inline-data' } });
+    }
+    if (safeUrl.includes('/mailFolders/inbox/messages')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            {
+              id: 'msg-inline-data-1',
+              conversationId: 'conv-inline-data-1',
+              subject: 'Embedded signature',
+              bodyPreview: 'Hej',
+              receivedDateTime: '2026-04-08T08:00:00.000Z',
+              hasAttachments: false,
+              body: {
+                contentType: 'html',
+                content: `<div>Hej</div><img src="${dataImage}" alt="Hair TP Clinic" />`,
+              },
+              from: { emailAddress: { address: 'patient@example.com', name: 'Patient' } },
+              toRecipients: [{ emailAddress: { address: 'kons@hairtpclinic.com' } }],
+              isRead: false,
+            },
+          ],
+        },
+      });
+    }
+    if (safeUrl.includes('/mailFolders/SentItems/messages')) {
+      return createJsonResponse({ body: { value: [] } });
+    }
+    throw new Error(`Unexpected URL: ${safeUrl}`);
+  };
+
+  const connector = createMicrosoftGraphReadConnector({
+    tenantId: 'tenant-id-inline-data',
+    clientId: 'client-id-inline-data',
+    clientSecret: 'client-secret-inline-data',
+    userId: 'kons@hairtpclinic.com',
+    fetchImpl,
+    mailAssetCache: {
+      async get(context) {
+        return cache.get(JSON.stringify(context)) || null;
+      },
+      async put(context, asset) {
+        cache.set(JSON.stringify(context), { buffer: asset.buffer, metadata: asset });
+        return { cached: true };
+      },
+    },
+  });
+
+  const snapshot = await connector.fetchInboxSnapshot();
+  const message = snapshot.conversations[0]?.messages?.[0];
+  assert.match(String(message?.bodyHtml || ''), /cid:inline-data-/);
+  assert.doesNotMatch(String(message?.bodyHtml || ''), /data:image\/gif;base64/);
+  assert.equal(message?.attachments?.[0]?.isInline, true);
+  assert.equal(cache.size, 1);
+});
