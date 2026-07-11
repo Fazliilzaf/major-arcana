@@ -7,6 +7,7 @@ const {
   FAZLI_MAILBOX,
   KONS_MAILBOX,
   createCcoMailIngestionPoller,
+  resolveInitialDelayMs,
   resolveIntervalMs,
   resolvePollMailboxes,
 } = require('../../src/ops/ccoMailIngestion/poller');
@@ -28,6 +29,7 @@ test('mailbox-pollern låser kons + fazli och mode till read_only', async () => 
   const calls = [];
   const broadcasts = [];
   let scheduled = null;
+  let initial = null;
   const poller = createCcoMailIngestionPoller({
     config: {
       ccoMailIngestionPollEnabled: true,
@@ -36,6 +38,7 @@ test('mailbox-pollern låser kons + fazli och mode till read_only', async () => 
       ccoMailIngestionDefaultMailbox: KONS_MAILBOX,
       ccoMailIngestionPollMailboxes: [KONS_MAILBOX, FAZLI_MAILBOX],
       ccoMailIngestionPollIntervalMinutes: 3,
+      ccoMailIngestionPollInitialDelayMs: 120000,
     },
     runtimeStreamRouter: {
       broadcast(event, payload) {
@@ -58,16 +61,24 @@ test('mailbox-pollern låser kons + fazli och mode till read_only', async () => 
         return { unref() {} };
       },
       clearInterval() {},
+      setTimeout(fn, ms) {
+        initial = { fn, ms };
+        return { unref() {} };
+      },
+      clearTimeout() {},
     },
   });
 
   assert.deepEqual(poller.start(), {
     started: true,
     mailboxEmails: [KONS_MAILBOX, FAZLI_MAILBOX],
+    initialDelayMs: 120000,
     intervalMs: 180000,
   });
   assert.equal(scheduled.ms, 180000);
-  // start() kör första cykeln direkt; vänta ett tick innan explicit verifiering.
+  assert.equal(initial.ms, 120000);
+  assert.equal(calls.length, 0);
+  initial.fn();
   await new Promise((resolve) => setImmediate(resolve));
   await poller.runOnce();
   assert.deepEqual(calls, [
@@ -124,4 +135,6 @@ test('mailbox-pollern avvisar konton utanför den låsta live-listan', () => {
     [KONS_MAILBOX, FAZLI_MAILBOX]
   );
   assert.equal(resolveIntervalMs({ ccoMailIngestionPollIntervalMinutes: 0 }), 60000);
+  assert.equal(resolveInitialDelayMs({ ccoMailIngestionPollInitialDelayMs: 0 }), 10000);
+  assert.equal(resolveInitialDelayMs({}), 120000);
 });

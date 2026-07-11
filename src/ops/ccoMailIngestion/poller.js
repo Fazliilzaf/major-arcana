@@ -22,6 +22,11 @@ function resolveIntervalMs(config = {}) {
   return Math.max(1, Number.isFinite(minutes) ? minutes : 3) * 60 * 1000;
 }
 
+function resolveInitialDelayMs(config = {}) {
+  const configured = Number(config.ccoMailIngestionPollInitialDelayMs);
+  return Number.isFinite(configured) ? Math.max(10000, configured) : 120000;
+}
+
 /**
  * Narrow live reader for KONS when the global scheduler is deliberately off.
  * It is read-only, only handles KONS, and never touches the send connector.
@@ -35,6 +40,8 @@ function createCcoMailIngestionPoller({
 } = {}) {
   const setIntervalFn = timers.setInterval || setInterval;
   const clearIntervalFn = timers.clearInterval || clearInterval;
+  const setTimeoutFn = timers.setTimeout || setTimeout;
+  const clearTimeoutFn = timers.clearTimeout || clearTimeout;
   const mailboxEmails = resolvePollMailboxes(config);
   const enabled =
     config.ccoMailIngestionPollEnabled === true &&
@@ -44,6 +51,7 @@ function createCcoMailIngestionPoller({
     typeof syncService?.runMailboxCycle === 'function';
 
   let intervalId = null;
+  let initialTimeoutId = null;
   let inFlight = false;
 
   async function runOnce() {
@@ -102,21 +110,32 @@ function createCcoMailIngestionPoller({
     if (intervalId) return { started: true, alreadyRunning: true, mailboxEmails };
 
     const intervalMs = resolveIntervalMs(config);
+    const initialDelayMs = resolveInitialDelayMs(config);
     intervalId = setIntervalFn(() => {
       void runOnce();
     }, intervalMs);
     intervalId?.unref?.();
+    initialTimeoutId = setTimeoutFn(() => {
+      initialTimeoutId = null;
+      void runOnce();
+    }, initialDelayMs);
+    initialTimeoutId?.unref?.();
     logger?.log?.(
-      `[cco-mailbox-poller] aktiv mailboxes=${mailboxEmails.join(',')} intervalMs=${intervalMs}`
+      `[cco-mailbox-poller] aktiv mailboxes=${mailboxEmails.join(',')} ` +
+        `initialDelayMs=${initialDelayMs} intervalMs=${intervalMs}`
     );
-    void runOnce();
-    return { started: true, mailboxEmails, intervalMs };
+    return { started: true, mailboxEmails, initialDelayMs, intervalMs };
   }
 
   function stop() {
-    if (!intervalId) return;
-    clearIntervalFn(intervalId);
-    intervalId = null;
+    if (intervalId) {
+      clearIntervalFn(intervalId);
+      intervalId = null;
+    }
+    if (initialTimeoutId) {
+      clearTimeoutFn(initialTimeoutId);
+      initialTimeoutId = null;
+    }
   }
 
   return { start, stop, runOnce };
@@ -128,5 +147,6 @@ module.exports = {
   LIVE_MAILBOXES,
   createCcoMailIngestionPoller,
   resolveIntervalMs,
+  resolveInitialDelayMs,
   resolvePollMailboxes,
 };

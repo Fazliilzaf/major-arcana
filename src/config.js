@@ -328,6 +328,10 @@ const config = {
     process.env.ARCANA_CCO_MAIL_INGESTION_POLL_INTERVAL_MINUTES,
     3
   ),
+  ccoMailIngestionPollInitialDelayMs: asInt(
+    process.env.ARCANA_CCO_MAIL_INGESTION_POLL_INITIAL_DELAY_MS,
+    120000
+  ),
   ccoHalsoMailboxEmail: asNonEmptyString(
     process.env.ARCANA_CCO_HALSO_MAILBOX_EMAIL,
     'halso@hairtpclinic.com'
