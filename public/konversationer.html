@@ -449,7 +449,11 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        min-height: calc(100vh - 80px);
+        /* Håll action-raden synlig även när en tråd innehåller många mail.
+           Själva #messages scrollar redan internt; utan en bestämd panelhöjd
+           växte panelen i stället för listan och raden hamnade under folden. */
+        height: calc(100vh - 80px);
+        min-height: 0;
       }
       .thread-shell::before {
         content: '';
