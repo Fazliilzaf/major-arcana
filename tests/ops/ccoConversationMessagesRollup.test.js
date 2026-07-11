@@ -812,6 +812,40 @@ test('truth-html behåller canonical kropp och släpper inte igenom legacy base6
   assert.doesNotMatch(enriched.bodyText, /LEGACY BASE64 BODY/);
 });
 
+test('avhuggen truth-html använder komplett lokal ingestion-html för signatur och logotyp', () => {
+  const truthMessages = [
+    {
+      graphMessageId: 'truth-truncated-rich-1',
+      mailboxId: 'kons@hairtpclinic.com',
+      mailboxConversationId: 'kons@hairtpclinic.com:conv-truncated-rich-1',
+      conversationId: 'conv-truncated-rich-1',
+      folderType: 'sent',
+      bodyHtml: '<html><body><p>Bästa hälsningar,</p><img src="/api/mail-asset/logo',
+      bodyText: 'Bästa hälsningar,',
+    },
+  ];
+  const ingestionStore = {
+    getState: () => ({
+      mailRawMessages: {
+        complete: {
+          graphMessageId: 'truth-truncated-rich-1',
+          mailboxId: 'kons@hairtpclinic.com',
+          conversationId: 'conv-truncated-rich-1',
+          bodyHtml:
+            '<html><body><p>Bästa hälsningar,</p><p>Fazli Krasniqi<br>Hårspecialist<br>031-88 11 66</p><img src="/api/mail-asset/logo"></body></html>',
+          bodyText: 'Bästa hälsningar, Fazli Krasniqi Hårspecialist 031-88 11 66',
+        },
+      },
+    }),
+  };
+
+  const [enriched] = enrichConversationMessagesWithIngestion(truthMessages, ingestionStore);
+
+  assert.match(enriched.bodyHtml, /Fazli Krasniqi/);
+  assert.match(enriched.bodyHtml, /031-88 11 66/);
+  assert.match(enriched.bodyHtml, /<\/html>/);
+});
+
 test('kontaktformulär-preview berikas från scoped raw-store även när Graph-id saknar alias', () => {
   const preview =
     'Från: Sudarshan E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Hi, I am a foreigner residing in Umea, Sweden.';

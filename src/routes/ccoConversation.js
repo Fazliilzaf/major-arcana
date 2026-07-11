@@ -1202,6 +1202,27 @@ function chooseRicherHtml(existing = '', candidate = '') {
   return safeExisting;
 }
 
+function isIncompleteMailHtml(value = '') {
+  const html = normalizeText(value);
+  if (!html) return false;
+  // Graph/truth can contain a document shell that was cut off during an older
+  // ingestion pass. In that case the local ingestion copy is the safer rich
+  // source, provided it is complete.
+  if (/<(?:html|body)\b/i.test(html) && !/<\/(?:html|body)>/i.test(html)) return true;
+  return /<img\b[^>]*\bsrc\s*=\s*["'][^"']*$/i.test(html);
+}
+
+function chooseRuntimeMailHtml(canonical = '', fallback = '') {
+  const safeCanonical = normalizeText(canonical);
+  const safeFallback = normalizeText(fallback);
+  if (!safeCanonical) return safeFallback;
+  if (!safeFallback) return safeCanonical;
+  if (isIncompleteMailHtml(safeCanonical) && !isIncompleteMailHtml(safeFallback)) {
+    return safeFallback;
+  }
+  return safeCanonical;
+}
+
 const MAX_RUNTIME_BODY_HTML_CHARS = 24000;
 
 function boundRuntimeBodyHtml(value = '') {
@@ -1327,9 +1348,10 @@ function enrichConversationMessagesWithIngestion(messages, store, options = {}) 
     const mergedBodyText = chooseRicherBodyText(messageBodyText, rawBodyText, preview);
     const messageBodyHtml = boundRuntimeBodyHtml(deriveBodyHtml(message));
     const rawBodyHtml = boundRuntimeBodyHtml(deriveBodyHtml(raw));
-    // Truth is canonical. Ingestion may fill an absent HTML body, but must not
-    // replace it merely because its legacy copy is longer or contains base64.
-    const mergedBodyHtml = messageBodyHtml || rawBodyHtml;
+    // Truth is canonical. If that copy is structurally truncated, use the
+    // complete local ingestion copy instead; never fall back merely because it
+    // is longer or contains legacy base64.
+    const mergedBodyHtml = chooseRuntimeMailHtml(messageBodyHtml, rawBodyHtml);
     const mergedAttachments = mergeConversationAttachments(message, raw);
     return {
       ...message,
