@@ -184,6 +184,45 @@ test('duplicate truth import upgrades preview-only raw body when full body arriv
   await fs.unlink(filePath).catch(() => {});
 });
 
+test('duplicate truth import replaces an incomplete HTML signature with the complete body', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-html-upgrade-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'kons@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id, mode: 'initial_sync' });
+  const base = {
+    mailboxId: 'kons@hairtpclinic.com',
+    folderType: 'sent',
+    graphMessageId: 'graph-signature-upgrade-1',
+    internetMessageId: '<signature-upgrade-1@example.com>',
+    subject: 'Svar',
+    from: { address: 'kons@hairtpclinic.com', name: 'Kons' },
+    sentAt: '2026-05-26T10:00:00.000Z',
+  };
+  const first = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      ...base,
+      bodyHtml: '<html><body><p>Bästa hälsningar,</p><img src="/api/mail-asset/logo',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+  const second = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      ...base,
+      bodyHtml:
+        '<html><body><p>Bästa hälsningar,</p><img src="/api/mail-asset/logo"><div>Fazli Krasniqi</div><div>031-88 11 66</div></body></html>',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+
+  assert.equal(second.duplicate, true);
+  assert.equal(second.rawMessage.id, first.rawMessage.id);
+  assert.match(second.rawMessage.rawJson.bodyHtml, /Fazli Krasniqi/);
+  assert.match(second.rawMessage.rawJson.bodyHtml, /<\/html>/);
+  await fs.unlink(filePath).catch(() => {});
+});
+
 test('processRawMessage is idempotent for completed ledger versions', async () => {
   const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-pipeline-${Date.now()}.json`);
   const store = await createCcoMailIngestionStore({ filePath });
