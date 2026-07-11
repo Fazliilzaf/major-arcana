@@ -4,9 +4,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  FAZLI_MAILBOX,
   KONS_MAILBOX,
   createCcoMailIngestionPoller,
   resolveIntervalMs,
+  resolvePollMailboxes,
 } = require('../../src/ops/ccoMailIngestion/poller');
 
 test('KONS-pollern är avstängd utan explicit gate', async () => {
@@ -22,7 +24,7 @@ test('KONS-pollern är avstängd utan explicit gate', async () => {
   assert.deepEqual(await poller.runOnce(), { skipped: true, reason: 'kons_poller_disabled' });
 });
 
-test('KONS-pollern låser mailbox och mode till read_only', async () => {
+test('mailbox-pollern låser kons + fazli och mode till read_only', async () => {
   const calls = [];
   const broadcasts = [];
   let scheduled = null;
@@ -32,6 +34,7 @@ test('KONS-pollern låser mailbox och mode till read_only', async () => {
       ccoMailIngestionEnabled: true,
       ccoMailIngestionMode: 'read_only',
       ccoMailIngestionDefaultMailbox: KONS_MAILBOX,
+      ccoMailIngestionPollMailboxes: [KONS_MAILBOX, FAZLI_MAILBOX],
       ccoMailIngestionPollIntervalMinutes: 3,
     },
     runtimeStreamRouter: {
@@ -60,7 +63,7 @@ test('KONS-pollern låser mailbox och mode till read_only', async () => {
 
   assert.deepEqual(poller.start(), {
     started: true,
-    mailboxEmail: KONS_MAILBOX,
+    mailboxEmails: [KONS_MAILBOX, FAZLI_MAILBOX],
     intervalMs: 180000,
   });
   assert.equal(scheduled.ms, 180000);
@@ -71,24 +74,39 @@ test('KONS-pollern låser mailbox och mode till read_only', async () => {
     {
       mailboxEmail: KONS_MAILBOX,
       mode: 'read_only',
-      trigger: 'kons_poller',
-      createdBy: 'system:cco_kons_poller',
+      trigger: 'cco_mailbox_poller',
+      createdBy: 'system:cco_mailbox_poller',
+      folderTypes: ['inbox', 'sent'],
+    },
+    {
+      mailboxEmail: FAZLI_MAILBOX,
+      mode: 'read_only',
+      trigger: 'cco_mailbox_poller',
+      createdBy: 'system:cco_mailbox_poller',
       folderTypes: ['inbox', 'sent'],
     },
     {
       mailboxEmail: KONS_MAILBOX,
       mode: 'read_only',
-      trigger: 'kons_poller',
-      createdBy: 'system:cco_kons_poller',
+      trigger: 'cco_mailbox_poller',
+      createdBy: 'system:cco_mailbox_poller',
+      folderTypes: ['inbox', 'sent'],
+    },
+    {
+      mailboxEmail: FAZLI_MAILBOX,
+      mode: 'read_only',
+      trigger: 'cco_mailbox_poller',
+      createdBy: 'system:cco_mailbox_poller',
       folderTypes: ['inbox', 'sent'],
     },
   ]);
   assert.equal(broadcasts.length, 2);
   assert.equal(broadcasts[0].event, 'worklist_updated');
-  assert.equal(broadcasts[0].payload.saved, 1);
+  assert.equal(broadcasts[0].payload.saved, 2);
+  assert.deepEqual(broadcasts[0].payload.mailboxIds, [KONS_MAILBOX, FAZLI_MAILBOX]);
 });
 
-test('KONS-pollern avvisar annan default-brevlåda', () => {
+test('mailbox-pollern avvisar konton utanför den låsta live-listan', () => {
   const poller = createCcoMailIngestionPoller({
     config: {
       ccoMailIngestionPollEnabled: true,
@@ -99,5 +117,11 @@ test('KONS-pollern avvisar annan default-brevlåda', () => {
     syncService: { runMailboxCycle: async () => assert.fail('ska inte köras') },
   });
   assert.deepEqual(poller.start(), { started: false, reason: 'kons_poller_disabled' });
+  assert.deepEqual(
+    resolvePollMailboxes({
+      ccoMailIngestionPollMailboxes: [KONS_MAILBOX, 'info@hairtpclinic.com', FAZLI_MAILBOX],
+    }),
+    [KONS_MAILBOX, FAZLI_MAILBOX]
+  );
   assert.equal(resolveIntervalMs({ ccoMailIngestionPollIntervalMinutes: 0 }), 60000);
 });
