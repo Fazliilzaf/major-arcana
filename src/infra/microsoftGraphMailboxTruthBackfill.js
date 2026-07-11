@@ -1,3 +1,5 @@
+const { parseMailMime } = require('../ops/ccoMailMimeParser');
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -71,7 +73,8 @@ async function repairPageRichBodies(messages, connector, mailboxId) {
         label: `CCO rich mail body repair (${mailboxId})`,
         timeoutMs: 7000,
       });
-      const preferredHtml = normalizeText(mime?.parsed?.body?.preferredHtml);
+      const parsedMime = parseMailMime(normalizeText(mime?.rawMime));
+      const preferredHtml = normalizeText(parsedMime?.body?.preferredHtml);
       if (preferredHtml && !isIncompleteHtml(preferredHtml)) {
         candidate.bodyHtml = preferredHtml;
       }
