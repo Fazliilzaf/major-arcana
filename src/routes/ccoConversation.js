@@ -335,15 +335,15 @@ function deriveBodyHtml(message) {
   const rawUniqueBody = asObject(rawJson.uniqueBody);
   const mailDocument = asObject(safe.mailDocument);
   const candidates = [
-    mailDocument.primaryBodyHtml,
     safe.bodyHtml,
     safe.body_html,
-    rawJson.bodyHtml,
-    rawJson.body_html,
     body.contentType && /html/i.test(String(body.contentType)) ? body.content : '',
     uniqueBody.contentType && /html/i.test(String(uniqueBody.contentType))
       ? uniqueBody.content
       : '',
+    mailDocument.primaryBodyHtml,
+    rawJson.bodyHtml,
+    rawJson.body_html,
     rawBody.contentType && /html/i.test(String(rawBody.contentType)) ? rawBody.content : '',
     rawUniqueBody.contentType && /html/i.test(String(rawUniqueBody.contentType))
       ? rawUniqueBody.content
