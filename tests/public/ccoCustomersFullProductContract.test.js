@@ -129,6 +129,24 @@ test('V11/V12 visar journal och film inom samma besökstillfälle', () => {
   assert.match(ui, /Journal öppnad för valt besök/);
 });
 
+test('besöksrum skapas från encounter, bokning och journal utan filer', () => {
+  const visits = fs.readFileSync(
+    path.join(ROOT, 'src', 'ops', 'ccoPatientVisitSegments.js'),
+    'utf8'
+  );
+  const canon = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js'),
+    'utf8'
+  );
+
+  assert.match(visits, /function seedEncounterRooms\(/);
+  assert.match(visits, /function seedBookingRooms\(/);
+  assert.match(visits, /createEmptyVisitRoom/);
+  assert.match(visits, /attachJournalsToSegments/);
+  assert.match(canon, /function visitRoomStatus\(/);
+  assert.match(canon, /Ingen journalanteckning för detta tillfälle/);
+});
+
 test('listfas visar segment/insikts-placeholder tills enriched customers-shell landar', () => {
   assert.match(ui, /function isCustomerShellEnrichmentPending\(\)/);
   assert.match(ui, /function isCustomerSegmentEnrichmentPending\(segmentStats\)/);

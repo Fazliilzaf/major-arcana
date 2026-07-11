@@ -906,6 +906,8 @@ function createCcoPatientMasterRouter({
       customerId: patient.id,
       driveFiles: filesForUi,
       journalEntries: enrichedJournalReadouts,
+      bookings: [...bookingContext.upcomingBookings, ...bookingContext.historyBookings],
+      encounters: visitEncounters,
     }).visitSegments;
 
     try {
@@ -945,6 +947,7 @@ function createCcoPatientMasterRouter({
       journalEntries: enrichedJournalReadouts,
       driveFiles: filesForUi,
       visitSegments,
+      visitEncounters,
       occasionTimeline: buildOccasionTimeline(filesForUi),
       bookings: {
         upcoming: bookingContext.upcomingBookings,
@@ -1090,6 +1093,8 @@ function createCcoPatientMasterRouter({
           customerId: patient.id,
           driveFiles: payload.driveFiles || [],
           journalEntries: payload.journalEntries || [],
+          bookings: [...asArray(payload.upcomingBookings), ...asArray(payload.historyBookings)],
+          encounters: payload.visitEncounters || [],
         });
         return res.json({
           patientId: patient.id,
