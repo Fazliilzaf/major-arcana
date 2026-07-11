@@ -1,9 +1,19 @@
 'use strict';
 
 const KONS_MAILBOX = 'kons@hairtpclinic.com';
+const FAZLI_MAILBOX = 'fazli@hairtpclinic.com';
+const LIVE_MAILBOXES = Object.freeze([KONS_MAILBOX, FAZLI_MAILBOX]);
 
 function normalizeEmail(value = '') {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function resolvePollMailboxes(config = {}) {
+  const requested = Array.isArray(config.ccoMailIngestionPollMailboxes)
+    ? config.ccoMailIngestionPollMailboxes
+    : [config.ccoMailIngestionDefaultMailbox];
+  const allowed = new Set(LIVE_MAILBOXES);
+  return Array.from(new Set(requested.map(normalizeEmail).filter((email) => allowed.has(email))));
 }
 
 function resolveIntervalMs(config = {}) {
@@ -25,12 +35,12 @@ function createCcoMailIngestionPoller({
 } = {}) {
   const setIntervalFn = timers.setInterval || setInterval;
   const clearIntervalFn = timers.clearInterval || clearInterval;
-  const mailboxEmail = normalizeEmail(config.ccoMailIngestionDefaultMailbox);
+  const mailboxEmails = resolvePollMailboxes(config);
   const enabled =
     config.ccoMailIngestionPollEnabled === true &&
     config.ccoMailIngestionEnabled === true &&
     config.ccoMailIngestionMode === 'read_only' &&
-    mailboxEmail === KONS_MAILBOX &&
+    mailboxEmails.length > 0 &&
     typeof syncService?.runMailboxCycle === 'function';
 
   let intervalId = null;
@@ -42,32 +52,46 @@ function createCcoMailIngestionPoller({
 
     inFlight = true;
     try {
-      const result = await syncService.runMailboxCycle({
-        mailboxEmail: KONS_MAILBOX,
-        mode: 'read_only',
-        trigger: 'kons_poller',
-        createdBy: 'system:cco_kons_poller',
-        folderTypes: ['inbox', 'sent'],
-      });
-      logger?.log?.(
-        `[cco-kons-poller] cycle klar fetched=${Number(result?.ingestResult?.totalFetched || 0)} ` +
-          `saved=${Number(result?.ingestResult?.totalSaved || 0)} ` +
-          `processed=${Number(result?.processResult?.processed || 0)}`
+      const results = [];
+      for (const mailboxEmail of mailboxEmails) {
+        const result = await syncService.runMailboxCycle({
+          mailboxEmail,
+          mode: 'read_only',
+          trigger: 'cco_mailbox_poller',
+          createdBy: 'system:cco_mailbox_poller',
+          folderTypes: ['inbox', 'sent'],
+        });
+        results.push({ mailboxEmail, result });
+      }
+      const fetched = results.reduce(
+        (sum, item) => sum + Number(item.result?.ingestResult?.totalFetched || 0),
+        0
       );
-      const saved = Number(result?.ingestResult?.totalSaved || 0);
+      const saved = results.reduce(
+        (sum, item) => sum + Number(item.result?.ingestResult?.totalSaved || 0),
+        0
+      );
+      const processed = results.reduce(
+        (sum, item) => sum + Number(item.result?.processResult?.processed || 0),
+        0
+      );
+      logger?.log?.(
+        `[cco-mailbox-poller] cycle klar mailboxes=${mailboxEmails.join(',')} ` +
+          `fetched=${fetched} saved=${saved} processed=${processed}`
+      );
       if (saved > 0 && typeof runtimeStreamRouter?.broadcast === 'function') {
         runtimeStreamRouter.broadcast('worklist_updated', {
-          source: 'kons_poller',
-          mailboxIds: [KONS_MAILBOX],
+          source: 'cco_mailbox_poller',
+          mailboxIds: mailboxEmails,
           saved,
-          processed: Number(result?.processResult?.processed || 0),
+          processed,
           completedAt: new Date().toISOString(),
         });
       }
-      return { skipped: false, result };
+      return { skipped: false, mailboxEmails, results };
     } catch (error) {
-      logger?.error?.('[cco-kons-poller] cycle failed', error?.message || error);
-      return { skipped: false, error: error?.message || 'kons_poller_failed' };
+      logger?.error?.('[cco-mailbox-poller] cycle failed', error?.message || error);
+      return { skipped: false, error: error?.message || 'mailbox_poller_failed' };
     } finally {
       inFlight = false;
     }
@@ -75,16 +99,18 @@ function createCcoMailIngestionPoller({
 
   function start() {
     if (!enabled) return { started: false, reason: 'kons_poller_disabled' };
-    if (intervalId) return { started: true, alreadyRunning: true, mailboxEmail: KONS_MAILBOX };
+    if (intervalId) return { started: true, alreadyRunning: true, mailboxEmails };
 
     const intervalMs = resolveIntervalMs(config);
     intervalId = setIntervalFn(() => {
       void runOnce();
     }, intervalMs);
     intervalId?.unref?.();
-    logger?.log?.(`[cco-kons-poller] aktiv mailbox=${KONS_MAILBOX} intervalMs=${intervalMs}`);
+    logger?.log?.(
+      `[cco-mailbox-poller] aktiv mailboxes=${mailboxEmails.join(',')} intervalMs=${intervalMs}`
+    );
     void runOnce();
-    return { started: true, mailboxEmail: KONS_MAILBOX, intervalMs };
+    return { started: true, mailboxEmails, intervalMs };
   }
 
   function stop() {
@@ -96,4 +122,11 @@ function createCcoMailIngestionPoller({
   return { start, stop, runOnce };
 }
 
-module.exports = { KONS_MAILBOX, createCcoMailIngestionPoller, resolveIntervalMs };
+module.exports = {
+  KONS_MAILBOX,
+  FAZLI_MAILBOX,
+  LIVE_MAILBOXES,
+  createCcoMailIngestionPoller,
+  resolveIntervalMs,
+  resolvePollMailboxes,
+};

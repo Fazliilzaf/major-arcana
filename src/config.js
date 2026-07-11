@@ -305,6 +305,10 @@ const config = {
     process.env.ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX,
     'contact@hairtpclinic.com'
   ),
+  ccoMailIngestionPollMailboxes: asStringArray(
+    process.env.ARCANA_CCO_MAIL_INGESTION_POLL_MAILBOXES ||
+      process.env.ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX
+  ),
   ccoMailIngestionMaxProcessPerCycle: asInt(
     process.env.ARCANA_CCO_MAIL_INGESTION_MAX_PROCESS_PER_CYCLE,
     25

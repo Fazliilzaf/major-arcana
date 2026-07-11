@@ -19,10 +19,13 @@ function liveScript(html) {
   return script;
 }
 
-test('konversationer live inbox uses kons worklist consumer as first real data source', () => {
+test('konversationer live inbox uses kons + fazli worklist consumer as first real data source', () => {
   const html = readHtml();
 
-  assert.match(html, /const LIVE_MAILBOX_IDS = \['kons@hairtpclinic\.com'\]/);
+  assert.match(
+    html,
+    /const LIVE_MAILBOX_IDS = \['kons@hairtpclinic\.com', 'fazli@hairtpclinic\.com'\]/
+  );
   assert.match(html, /\/api\/v1\/cco\/runtime\/worklist\/consumer\?mailboxIds=/);
   assert.match(html, /'&limit=500'/);
   assert.match(html, /credentials:\s*'include'/);
