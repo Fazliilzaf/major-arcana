@@ -6526,6 +6526,7 @@
       journalEntries,
       occasionTimeline,
       driveFiles,
+      visitSegments: asArray(runtime.detail?.visitSegments),
       patient,
       tab,
       lite,
