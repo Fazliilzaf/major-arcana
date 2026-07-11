@@ -38,12 +38,7 @@ function buildFortnoxAuthUrl({ clientId, redirectUri, scope, state, accountType 
   return url.toString();
 }
 
-async function exchangeAuthorizationCode({
-  clientId,
-  clientSecret,
-  redirectUri,
-  code,
-} = {}) {
+async function exchangeAuthorizationCode({ clientId, clientSecret, redirectUri, code } = {}) {
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
     code: normalizeText(code),
@@ -75,7 +70,9 @@ async function refreshAccessToken({ clientId, clientSecret, refreshToken } = {})
 async function requestClientCredentialsToken({ clientId, clientSecret, tenantId, scope } = {}) {
   const numericTenant = String(tenantId || '').trim();
   if (!numericTenant) throw new Error('tenantId krävs för client_credentials');
-  const credentials = Buffer.from(`${normalizeText(clientId)}:${normalizeText(clientSecret)}`).toString('base64');
+  const credentials = Buffer.from(
+    `${normalizeText(clientId)}:${normalizeText(clientSecret)}`
+  ).toString('base64');
   const params = { grant_type: 'client_credentials' };
   if (scope) params.scope = normalizeText(scope);
   const body = new URLSearchParams(params);
@@ -91,7 +88,8 @@ async function requestClientCredentialsToken({ clientId, clientSecret, tenantId,
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(
-      normalizeText(payload.error_description || payload.error) || 'Fortnox client_credentials request failed.'
+      normalizeText(payload.error_description || payload.error) ||
+        'Fortnox client_credentials request failed.'
     );
     error.statusCode = response.status;
     error.metadata = payload;
@@ -112,7 +110,9 @@ async function requestClientCredentialsToken({ clientId, clientSecret, tenantId,
  * eftersom access tokens har kort livslängd).
  */
 async function revokeRefreshToken({ clientId, clientSecret, refreshToken } = {}) {
-  const credentials = Buffer.from(`${normalizeText(clientId)}:${normalizeText(clientSecret)}`).toString('base64');
+  const credentials = Buffer.from(
+    `${normalizeText(clientId)}:${normalizeText(clientSecret)}`
+  ).toString('base64');
   const body = new URLSearchParams({
     token_type_hint: 'refresh_token',
     token: normalizeText(refreshToken),
@@ -138,9 +138,9 @@ async function revokeRefreshToken({ clientId, clientSecret, refreshToken } = {})
 }
 
 async function requestFortnoxToken({ clientId, clientSecret, body }) {
-  const credentials = Buffer.from(`${normalizeText(clientId)}:${normalizeText(clientSecret)}`).toString(
-    'base64'
-  );
+  const credentials = Buffer.from(
+    `${normalizeText(clientId)}:${normalizeText(clientSecret)}`
+  ).toString('base64');
   const response = await fetch(FORTNOX_TOKEN_URL, {
     method: 'POST',
     headers: {
@@ -182,8 +182,7 @@ function createFortnoxClient({
       throw error;
     }
     const expiresAtMs = Date.parse(connection.expiresAt || '');
-    const needsRefresh =
-      !Number.isFinite(expiresAtMs) || expiresAtMs - Date.now() < 60 * 1000;
+    const needsRefresh = !Number.isFinite(expiresAtMs) || expiresAtMs - Date.now() < 60 * 1000;
     if (!needsRefresh) {
       return connection.accessToken;
     }
@@ -268,9 +267,11 @@ function createFortnoxClient({
       return request(`/invoices/${encodeURIComponent(documentNumber)}`);
     },
     // Förskott/deposit hanteras typiskt som InvoicePayment med separat dokumenttyp
-    listInvoicePayments({ customerNumber, page = 1 } = {}) {
+    listInvoicePayments({ customerNumber, fromDate, toDate, page = 1 } = {}) {
       const params = new URLSearchParams({ page: String(page) });
       if (customerNumber) params.set('customernumber', String(customerNumber));
+      if (fromDate) params.set('fromdate', String(fromDate));
+      if (toDate) params.set('todate', String(toDate));
       return request(`/invoicepayments?${params.toString()}`);
     },
   };

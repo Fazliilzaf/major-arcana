@@ -45,3 +45,40 @@ test('buildFinanceDashboard klampar previous comparable period till föregående
 
   assert.equal(dashboard.invoices.totalPaidPreviousComparablePeriodSek, 4000);
 });
+
+test('buildFinanceDashboard prioriterar Fortnox InvoicePayments när ansluten', async () => {
+  const dashboard = await buildFinanceDashboard({
+    stores: {
+      fortnoxStore: {
+        async getPublicStatus() {
+          return { connected: true, connectedAt: '2026-01-01T00:00:00.000Z' };
+        },
+      },
+      fortnoxInvoiceLister: {
+        async listAllInvoicePayments() {
+          return {
+            ok: true,
+            payments: [
+              { PaymentDate: '2026-06-02', Amount: 11000 },
+              { PaymentDate: '2026-05-03', Amount: 4500 },
+            ],
+          };
+        },
+      },
+      commercialStore: {
+        async listAll() {
+          return [
+            { invoiceStatus: 'paid', invoicePaidAt: '2026-06-02T09:00:00.000Z', totalDueSek: 1 },
+          ];
+        },
+      },
+    },
+    fortnoxBlockedIntegration: false,
+    now: new Date(Date.UTC(2026, 5, 15, 10, 0, 0)),
+  });
+
+  assert.equal(dashboard.invoices.totalPaidThisMonthSek, 11000);
+  assert.equal(dashboard.invoices.totalPaidPreviousComparablePeriodSek, 4500);
+  assert.match(dashboard.invoices.note, /Fortnox betalda fakturor/i);
+  assert.equal(dashboard.invoices.partial, false);
+});
