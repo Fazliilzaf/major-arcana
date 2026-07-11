@@ -890,7 +890,7 @@ function createCcoPatientMasterRouter({
       }
     }
 
-    const visitSegments = buildVisitSegments({
+    let visitSegments = buildVisitSegments({
       customerId: patient.id,
       driveFiles: filesForUi,
     }).visitSegments;
@@ -902,6 +902,11 @@ function createCcoPatientMasterRouter({
       journalEntries: journalReadouts,
       bookings: [...bookingContext.upcomingBookings, ...bookingContext.historyBookings],
     });
+    visitSegments = buildVisitSegments({
+      customerId: patient.id,
+      driveFiles: filesForUi,
+      journalEntries: enrichedJournalReadouts,
+    }).visitSegments;
 
     try {
       const assetIndex = await loadAssetSignalsIndex(config, actor.tenantId);
@@ -1046,7 +1051,7 @@ function createCcoPatientMasterRouter({
           }
         );
         const payload = await buildPatientPayload(actor, patient, {
-          includeJournal: false,
+          includeJournal: true,
           includeDriveFiles,
         });
         return res.json(payload);
@@ -1084,6 +1089,7 @@ function createCcoPatientMasterRouter({
         const visitPayload = buildVisitSegments({
           customerId: patient.id,
           driveFiles: payload.driveFiles || [],
+          journalEntries: payload.journalEntries || [],
         });
         return res.json({
           patientId: patient.id,

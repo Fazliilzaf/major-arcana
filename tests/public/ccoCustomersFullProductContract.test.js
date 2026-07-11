@@ -105,6 +105,26 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   assert.match(ui, /encounterId,\n\s+documentDate: docDate/);
 });
 
+test('V11/V12 visar journal och film inom samma besökstillfälle', () => {
+  const visits = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-kundkort-visit-segments.js'),
+    'utf8'
+  );
+  const canon = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js'),
+    'utf8'
+  );
+
+  assert.match(visits, /segment\.videos/);
+  assert.match(visits, /segment\.journals/);
+  assert.match(visits, /Starta journal/);
+  assert.match(canon, /data-v12-visit-journal/);
+  assert.match(canon, /v12-canon-visit-video/);
+  assert.match(canon, /video controls preload="metadata" data-patient-file-id/);
+  assert.match(ui, /video\[data-patient-file-id\]/);
+  assert.match(ui, /Journal öppnad för valt besök/);
+});
+
 test('listfas visar segment/insikts-placeholder tills enriched customers-shell landar', () => {
   assert.match(ui, /function isCustomerShellEnrichmentPending\(\)/);
   assert.match(ui, /function isCustomerSegmentEnrichmentPending\(segmentStats\)/);

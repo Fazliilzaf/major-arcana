@@ -1002,13 +1002,69 @@
         '</a>'
       );
     }
+    function videoTile(video) {
+      var assetId = txt(video && video.assetId);
+      var href = txt(video && video.openRef);
+      var name = txt(video && video.fileName) || 'Film';
+      return (
+        '<div class="v12-canon-visit-video">' +
+        '<video controls preload="metadata" data-patient-file-id="' +
+        esc(assetId) +
+        '" aria-label="' +
+        esc(name) +
+        '"></video>' +
+        '<div class="v12-canon-visit-video__meta"><span>Film</span><span>' +
+        esc(name) +
+        '</span>' +
+        (href ? '<a href="' + esc(href) + '" target="_blank" rel="noopener">Öppna</a>' : '') +
+        '</div></div>'
+      );
+    }
+    function journalBlock(segment) {
+      var journals = arr(segment && segment.journals);
+      var encounterId = txt(segment && segment.encounterId);
+      var rows = journals.length
+        ? journals
+            .map(function (journal) {
+              var status = txt(journal && journal.status) || 'draft';
+              return (
+                '<div class="visit-segment-journal__row"><span><b>' +
+                esc(txt(journal && journal.title) || 'Journalanteckning') +
+                '</b><small>' +
+                esc(txt(journal && journal.date)) +
+                '</small></span>' +
+                chip(
+                  status === 'signed' ? 'ok' : 'warn',
+                  status === 'signed' ? 'Signerad' : 'Utkast'
+                ) +
+                '</div>'
+              );
+            })
+            .join('')
+        : '<div class="visit-segment-empty">Ingen journalanteckning för detta tillfälle.</div>';
+      return (
+        '<div class="visit-segment-journal"><div class="visit-segment-journal__head"><span>Journal</span>' +
+        '<button type="button" class="warn-action" data-v12-visit-journal data-encounter-id="' +
+        esc(encounterId) +
+        '">' +
+        (journals.length ? 'Fortsätt journal' : 'Starta journal') +
+        '</button></div>' +
+        rows +
+        '</div>'
+      );
+    }
     function segmentMarkup(segment) {
       var images = arr(segment && segment.images);
+      var videos = arr(segment && segment.videos);
       var documents = arr(segment && segment.documents);
+      var journals = arr(segment && segment.journals);
       var counts = [];
       if (images.length) counts.push(images.length + (images.length === 1 ? ' foto' : ' foton'));
+      if (videos.length) counts.push(videos.length + (videos.length === 1 ? ' film' : ' filmer'));
       if (documents.length)
         counts.push(documents.length + (documents.length === 1 ? ' dokument' : ' dokument'));
+      if (journals.length)
+        counts.push(journals.length + (journals.length === 1 ? ' journal' : ' journaler'));
       var meta = [
         txt(segment && segment.visitType),
         txt(segment && segment.timeRange),
@@ -1043,6 +1099,9 @@
             .join('') +
           '</div>'
         : '<div class="visit-segment-empty">Inga bilder kopplade till detta tillfälle.</div>';
+      var films = videos.length
+        ? '<div class="v12-canon-visit-video-grid">' + videos.map(videoTile).join('') + '</div>'
+        : '<div class="visit-segment-empty">Ingen film kopplad till detta tillfälle.</div>';
       var docs = documents.length
         ? '<div class="visit-segment-documents">' +
           documents
@@ -1076,7 +1135,9 @@
         '</span></summary>' +
         warning +
         reasonRow +
+        journalBlock(segment) +
         photos +
+        films +
         docs +
         '</details>'
       );
