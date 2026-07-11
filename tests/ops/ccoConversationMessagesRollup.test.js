@@ -988,6 +988,21 @@ test('cid-inlinebilder skrivs om till säkra attachment-URL:er', () => {
   assert.match(html, /messageId=graph-inline-logo/);
 });
 
+test('trunkerad about:blank-inlinebild binds till enda lokala inline-asset', () => {
+  const html = rewriteMailCidImageSources('<div><img alt="Hair TP Clinic" src="about:blank', [
+    {
+      id: 'inline-data-logo',
+      name: 'Hair TP Clinic',
+      contentType: 'image/gif',
+      isInline: true,
+      openUrl: '/api/v1/cco/runtime/mail-asset/content?attachmentId=inline-data-logo',
+    },
+  ]);
+
+  assert.match(html, /attachmentId=inline-data-logo/);
+  assert.doesNotMatch(html, /about:blank/);
+});
+
 test('bilagor får öppnings- och nedladdningslänkar utan contentBytes', () => {
   const [attachment] = collectConversationAttachments({
     mailboxId: 'kons@hairtpclinic.com',

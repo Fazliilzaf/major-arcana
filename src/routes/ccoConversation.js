@@ -567,9 +567,17 @@ function buildInlineAttachmentUrlMap(attachments = []) {
 
 function rewriteMailCidImageSources(html = '', attachments = []) {
   const safeHtml = normalizeText(html);
-  if (!safeHtml || !/cid:/i.test(safeHtml)) return safeHtml;
+  if (!safeHtml || !/cid:|about:blank/i.test(safeHtml)) return safeHtml;
   const cidMap = buildInlineAttachmentUrlMap(attachments);
   if (!cidMap.size) return safeHtml;
+  const inlineImages = asArray(attachments).filter(
+    (attachment) =>
+      attachment?.isInline === true && /^image\//i.test(normalizeText(attachment?.contentType))
+  );
+  const fallbackInlineUrl =
+    inlineImages.length === 1
+      ? normalizeText(inlineImages[0].inlineUrl || inlineImages[0].openUrl)
+      : '';
   return safeHtml
     .replace(/\b(src\s*=\s*)(["'])cid:([^"']+)\2/gi, (match, prefix, quote, rawCid) => {
       const url = cidMap.get(normalizeContentId(rawCid));
@@ -578,6 +586,9 @@ function rewriteMailCidImageSources(html = '', attachments = []) {
     .replace(/url\(\s*(['"]?)cid:([^)'"\\]+)\1\s*\)/gi, (match, _quote, rawCid) => {
       const url = cidMap.get(normalizeContentId(rawCid));
       return url ? `url("${url}")` : match;
+    })
+    .replace(/\b(src\s*=\s*)(["'])about:blank(?:\2|$)/gi, (match, prefix, quote) => {
+      return fallbackInlineUrl ? `${prefix}${quote}${fallbackInlineUrl}${quote}` : match;
     });
 }
 
@@ -1202,6 +1213,11 @@ function boundRuntimeBodyHtml(value = '') {
   if (html.length > MAX_RUNTIME_BODY_HTML_CHARS && /data:image\//i.test(html)) {
     html = html.replace(/data:image\/[^;,]+;base64,[^"')\s>]+/gi, 'about:blank');
   }
+  // Older truth rows may already have been truncated inside an <img> src.
+  // Close that final tag after removing the oversized payload so the image can
+  // be rebound to its local cached asset below.
+  const lastImageStart = html.toLowerCase().lastIndexOf('<img');
+  if (lastImageStart >= 0 && html.lastIndexOf('>') < lastImageStart) html += '">';
   return html.slice(0, MAX_RUNTIME_BODY_HTML_CHARS);
 }
 
@@ -1585,7 +1601,8 @@ function createCcoConversationRouter({
           const bodyHtml = rewriteMailCidImageSources(boundedBodyHtml, attachments);
           const derivedBodyText = deriveBody(safe);
           const bodyText =
-            derivedBodyText.length > 50000 && boundedBodyHtml
+            (derivedBodyText.length > 50000 || /<img\b[^>]*(?:data:image|about:blank)/i.test(derivedBodyText)) &&
+            bodyHtml
               ? extractTextFromHtml(boundedBodyHtml)
               : derivedBodyText;
           const bodyPreview =
