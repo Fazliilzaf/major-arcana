@@ -144,8 +144,11 @@ async function main() {
   }
   console.log(`   candidates (${preview.candidates?.length || 0}):`);
   for (const row of preview.candidates || []) {
+    const enc = row.encounterId ? ` · enc=${row.encounterId}` : ' · enc=—';
+    const trt = row.treatmentType ? ` · ${row.treatmentType}` : '';
+    const dt = row.documentDate ? ` · ${row.documentDate}` : '';
     console.log(
-      `     [${row.remainingOffset}] ${row.monthFolder} · ${row.documentDateSource} · ${row.family} · ${row.fileName} · ${row.driveRef}`
+      `     [${row.remainingOffset}] ${row.monthFolder} · ${row.documentDateSource}${dt}${trt}${enc} · ${row.family} · ${row.fileName} · ${row.driveRef}`
     );
   }
 }
