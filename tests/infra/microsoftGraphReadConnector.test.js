@@ -1873,7 +1873,7 @@ test('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage follows nextL
   assert.equal(secondPage.changes[0].graphMessageId, 'msg-2');
 });
 
-test('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage resolves cid images on delta upserts', async () => {
+test('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage keeps CID images external to the truth shard', async () => {
   const fetchImpl = async (url, _options = {}) => {
     if (String(url).includes('/oauth2/v2.0/token')) {
       return createJsonResponse({
@@ -1973,10 +1973,9 @@ test('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage resolves cid 
 
   assert.equal(page.changes.length, 1);
   assert.equal(page.changes[0].changeType, 'upsert');
-  assert.match(
-    String(page.changes[0].message?.bodyHtml || ''),
-    /data:image\/png;base64,YWJjMTIz/
-  );
+  assert.match(String(page.changes[0].message?.bodyHtml || ''), /cid:image001\.png@abc/);
+  assert.doesNotMatch(String(page.changes[0].message?.bodyHtml || ''), /data:image\/png;base64/);
+  assert.equal(page.changes[0].message?.attachments?.[0]?.id, 'att-inline-1');
 });
 
 test('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage marks invalid delta tokens explicitly', async () => {

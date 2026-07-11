@@ -19,6 +19,23 @@ function normalizeText(value) {
 // minnet i #646 var att lagra HELA rik-HTML:en inkl. inbäddade base64-bilder, inte
 // textinnehållet. Cap:en håller shard-filerna små även med många konton.
 const MAX_STORED_BODY_TEXT_CHARS = 16000;
+// Rik HTML behövs för att återge en verklig mailsignatur/layout, men får aldrig
+// bli ett nytt råmail-arkiv. Inline-bilder hanteras som Graph-bilagor vid
+// visning, inte som base64 i truth-sharden.
+const MAX_STORED_BODY_HTML_CHARS = 24000;
+
+function toStoredBodyHtml(value = '') {
+  const html = normalizeText(value);
+  if (!html || !/<[a-z][^>]*>/i.test(html)) return '';
+
+  // Försvar på write-pathen: även om en äldre connector skulle lämna kvar en
+  // data-URL får den aldrig göra shard-filen stor. CID-referenser behålls och
+  // skrivs om till den lokala bilagevägen när tråden renderas.
+  const withoutEmbeddedImages = html
+    .replace(/\s(src|background)\s*=\s*(['"])\s*data:image\/[\s\S]*?\2/gi, ' $1="#"')
+    .replace(/data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+/gi, '');
+  return withoutEmbeddedImages.slice(0, MAX_STORED_BODY_HTML_CHARS);
+}
 
 // Minimal HTML→text (self-contained, ingen cross-modul-koppling i write-path).
 // För ren-text-mail (Graph contentType text) är innehållet redan text och passerar
@@ -296,16 +313,18 @@ function hydrateStoredMessage(message = {}, fallbackMailboxId = '') {
       graphMessageId,
     });
 
-  // SLIMMA — rå body-text tas aldrig in i truth-store. Rik HTML med inline-
-  // assets behålls däremot som reparationshint för CCO:s läsyta.
+  // SLIMMA — rå body-text tas aldrig in i truth-store. En liten, sanerad
+  // HTML-kropp behålls så att signaturer, logotyper och formatering kan
+  // återges från den lokala truth-sharden. Bildbytes sparas aldrig här.
   // bodyPreview cap:as till 500 tecken (räcker för worklist-preview).
   const { body, uniqueBody, body_text, body_html, mailDocument, ...rest } = safeMessage;
   if (rest.bodyPreview && typeof rest.bodyPreview === 'string' && rest.bodyPreview.length > 500) {
     rest.bodyPreview = rest.bodyPreview.slice(0, 500);
   }
-  const richBodyHtml = normalizeText(safeMessage.bodyHtml || safeMessage.body_html);
-  if (/<img\b|cid:|data:image\/|<table\b/i.test(richBodyHtml)) {
-    rest.bodyHtml = richBodyHtml;
+  const sourceBodyHtml = normalizeText(safeMessage.bodyHtml || safeMessage.body_html);
+  const storedBodyHtml = toStoredBodyHtml(sourceBodyHtml);
+  if (storedBodyHtml) {
+    rest.bodyHtml = storedBodyHtml;
   } else {
     delete rest.bodyHtml;
   }
@@ -315,7 +334,7 @@ function hydrateStoredMessage(message = {}, fallbackMailboxId = '') {
   // "halva mailet" i CCO-läsytan. Svar med signatur/logga överlevde bara för att
   // deras HTML matchar img/table-grinden ovan. Text är billigt (ingen base64-
   // inline-bild), till skillnad från rik-HTML:en som spikade minnet i #646.
-  const fullBodyText = normalizeText(safeMessage.bodyText) || htmlToPlainTextForStore(richBodyHtml);
+  const fullBodyText = normalizeText(safeMessage.bodyText) || htmlToPlainTextForStore(sourceBodyHtml);
   const cappedPreview = normalizeText(rest.bodyPreview);
   if (fullBodyText && fullBodyText.length > cappedPreview.length) {
     rest.bodyText = fullBodyText.slice(0, MAX_STORED_BODY_TEXT_CHARS);

@@ -42,7 +42,8 @@ test('truth store bevarar hela ren-text-brödtexten (capad) — inte bara ~255-p
   assert.match(stored.bodyText, /Its been about 5 months now/);
   assert.match(stored.bodyText, /personuppgifter behandlas/);
   assert.ok(stored.bodyText.length > preview.length, 'bodyText ska vara längre än previewen');
-  // Ren text (ingen img/table) → ingen tung bodyHtml lagras (grinden oförändrad).
+  // Ren text lagras fortsatt bara som bodyText; HTML är reserverat för faktisk
+  // mailsignatur/layout.
   assert.equal(stored.bodyHtml, undefined);
 
   await fs.rm(tempDir, { recursive: true, force: true });
@@ -75,6 +76,41 @@ test('truth store cap:ar lagrad bodyText så shard-filerna inte växer okontroll
 
   const [stored] = store.listMessages({ mailboxIds: ['kons@hairtpclinic.com'] });
   assert.ok(stored.bodyText.length <= 16000, 'bodyText ska cap:as till 16000 tecken');
+
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+test('truth store bevarar liten HTML-signatur men aldrig inbäddade bildbytes', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-mailbox-truth-html-'));
+  const filePath = path.join(tempDir, 'mailbox.json');
+  const store = await createCcoMailboxTruthStore({ filePath, deferConversationRebuild: true });
+
+  await store.recordFolderPage({
+    runId: 'run-html-1',
+    account: { mailboxId: 'kons@hairtpclinic.com', mailboxAddress: 'kons@hairtpclinic.com' },
+    folder: { folderType: 'sent', totalItemCount: 1, messageCollectionCount: 1 },
+    messages: [
+      {
+        mailboxId: 'kons@hairtpclinic.com',
+        graphMessageId: 'signature-1',
+        folderType: 'sent',
+        conversationId: 'signature-thread',
+        subject: 'Svar med signatur',
+        bodyPreview: 'Bästa hälsningar',
+        bodyHtml:
+          '<div>Hej!</div><table><tr><td>Bästa hälsningar,<br>Hair TP Clinic</td></tr></table><img src="data:image/png;base64,QUJDRA==">',
+        hasAttachments: true,
+        attachments: [{ id: 'logo-1', name: 'logo.png', contentType: 'image/png', isInline: true }],
+      },
+    ],
+    nextPageUrl: null,
+    complete: true,
+  });
+
+  const [stored] = store.listMessages({ mailboxIds: ['kons@hairtpclinic.com'] });
+  assert.match(stored.bodyHtml, /Bästa hälsningar/);
+  assert.equal(stored.bodyHtml.includes('data:image'), false);
+  assert.equal(stored.attachments[0]?.id, 'logo-1');
 
   await fs.rm(tempDir, { recursive: true, force: true });
 });
