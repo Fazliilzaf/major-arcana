@@ -3768,7 +3768,9 @@
         const instant = new Date(safeNextAt);
         if (!safeNextAt || Number.isNaN(instant.getTime())) return 'Bokning';
         const today = stockholmCalendarDay(new Date().toISOString());
-        const tomorrow = stockholmCalendarDay(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+        const tomorrow = stockholmCalendarDay(
+          new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        );
         const bookingDay = stockholmCalendarDay(safeNextAt);
         if (bookingDay === today) return 'Bok idag';
         if (bookingDay === tomorrow) return 'Bok imorgon';
@@ -4593,7 +4595,7 @@
       }
 
       const LIVE_INBOX_MAX_ATTEMPTS = 5;
-      const LIVE_INBOX_REFRESH_MS = 60 * 1000;
+      const LIVE_INBOX_REFRESH_MS = 10 * 1000;
       let liveInboxAttempt = 0;
       let liveInboxRetryTimer = null;
       let liveInboxFetchInFlight = false;
@@ -4651,7 +4653,11 @@
             .filter((folder) => folder?.folderType === 'inbox')
             .reduce((total, folder) => total + Number(folder?.totalItemCount || 0), 0);
           liveInboxMessageCount =
-            truthMessageCount > 0 ? truthMessageCount : inboxMessageCount > 0 ? inboxMessageCount : null;
+            truthMessageCount > 0
+              ? truthMessageCount
+              : inboxMessageCount > 0
+                ? inboxMessageCount
+                : null;
           const rows = Array.isArray(payload?.rows) ? payload.rows : [];
           const previousSelection = selectedLiveThread;
           const previousSelectionKey = normalizeText(previousSelection?.conversationKey);
@@ -4740,6 +4746,24 @@
       });
 
       loadLiveInbox();
+      // Runtime-streamen skickar en lätt "knackning" var tionde sekund och ett
+      // worklist_updated-event direkt efter att KONS-pollern sparat nya mail.
+      // EventSource kan inte sätta Bearer-header; stream-endpointen innehåller
+      // ingen patientdata och används enbart som refresh-signal.
+      if (typeof EventSource !== 'undefined') {
+        try {
+          const liveInboxStream = new EventSource('/api/v1/cco/runtime/stream');
+          liveInboxStream.addEventListener('poll', () => {
+            if (document.visibilityState === 'visible') loadLiveInbox({ background: true });
+          });
+          liveInboxStream.addEventListener('worklist_updated', () => {
+            loadLiveInbox({ background: true });
+          });
+          window.addEventListener('pagehide', () => liveInboxStream.close(), { once: true });
+        } catch (_error) {
+          // Den vanliga 10-sekunderspollningen nedan är alltid kvar som fallback.
+        }
+      }
       // Pollern synkar KONS på servern. Den här lätta, lokala läsningen gör
       // att nya mejl blir synliga utan sidladdning, men rör aldrig Graph.
       setInterval(() => {

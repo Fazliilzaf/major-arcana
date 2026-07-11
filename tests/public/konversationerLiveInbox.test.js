@@ -51,7 +51,7 @@ test('konversationer initializes live inbox state before the first status render
   const script = liveScript(readHtml());
   const stateDeclaration = script.indexOf('let liveInboxMessageCount = null;');
   const statusFunction = script.indexOf('function renderLiveInboxStatus(');
-  const initialStatusRender = script.indexOf("renderLiveInboxStatus(", statusFunction);
+  const initialStatusRender = script.indexOf('renderLiveInboxStatus(', statusFunction);
 
   assert.ok(stateDeclaration >= 0, 'live inbox message state must be declared');
   assert.ok(statusFunction >= 0, 'live inbox status renderer must exist');
@@ -127,7 +127,9 @@ test('konversationer inbox retries transient failures and recovers when the admi
 test('konversationer refreshes the local KONS worklist without disrupting the selected thread', () => {
   const html = readHtml();
 
-  assert.match(html, /const LIVE_INBOX_REFRESH_MS = 60 \* 1000/);
+  assert.match(html, /const LIVE_INBOX_REFRESH_MS = 10 \* 1000/);
+  assert.match(html, /new EventSource\('\/api\/v1\/cco\/runtime\/stream'\)/);
+  assert.match(html, /liveInboxStream\.addEventListener\('worklist_updated'/);
   assert.match(html, /async function loadLiveInbox\(\{ background = false \} = \{\}\)/);
   assert.match(html, /const previousSelection = selectedLiveThread/);
   assert.match(html, /const selectedThread = currentThreads\.find\(/);
@@ -174,7 +176,10 @@ test('konversationer derives booking chips from the local worklist booking conte
   assert.match(html, /return 'Bok imorgon'/);
   assert.match(html, /const bookingTag = formatBookingTag\(row\.booking\?\.nextAt\)/);
   assert.match(html, /row\.booking\?\.nextAt \|\| String\(row\.lane \|\| ''\)\.includes\('book'\)/);
-  assert.match(html, /tags\.push\(\{ kind: 'vip', label: 'VIP' \}\);[\s\S]*tags\.push\(\{ kind: 'booking', label: bookingTag \}\);/);
+  assert.match(
+    html,
+    /tags\.push\(\{ kind: 'vip', label: 'VIP' \}\);[\s\S]*tags\.push\(\{ kind: 'booking', label: bookingTag \}\);/
+  );
 });
 
 test('konversationer live row opens real conversation messages endpoint', () => {
@@ -361,7 +366,10 @@ test('konversationer skiljer olästa mail från trådar som behöver svar', () =
   const html = readHtml();
 
   assert.match(html, /unread: state\.hasUnreadInbound === true/);
-  assert.match(html, /const needsReply = threads\.filter\(\(thread\) => thread\.needsReply\)\.length/);
+  assert.match(
+    html,
+    /const needsReply = threads\.filter\(\(thread\) => thread\.needsReply\)\.length/
+  );
   assert.match(html, /\$\{unread\} oläst · \$\{needsReply\} behöver svar · \$\{all\} trådar/);
   assert.match(html, /truthCoverage\?\.metadata\?\.messageCount/);
   assert.match(html, /actNowCount\) actNowCount\.textContent = String\(needsReply\)/);

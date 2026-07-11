@@ -24,6 +24,7 @@ test('KONS-pollern är avstängd utan explicit gate', async () => {
 
 test('KONS-pollern låser mailbox och mode till read_only', async () => {
   const calls = [];
+  const broadcasts = [];
   let scheduled = null;
   const poller = createCcoMailIngestionPoller({
     config: {
@@ -33,10 +34,18 @@ test('KONS-pollern låser mailbox och mode till read_only', async () => {
       ccoMailIngestionDefaultMailbox: KONS_MAILBOX,
       ccoMailIngestionPollIntervalMinutes: 3,
     },
+    runtimeStreamRouter: {
+      broadcast(event, payload) {
+        broadcasts.push({ event, payload });
+      },
+    },
     syncService: {
       runMailboxCycle: async (options) => {
         calls.push(options);
-        return { ingestResult: { totalFetched: 1, totalSaved: 1 }, processResult: { processed: 1 } };
+        return {
+          ingestResult: { totalFetched: 1, totalSaved: 1 },
+          processResult: { processed: 1 },
+        };
       },
     },
     logger: { log() {}, error() {} },
@@ -55,6 +64,8 @@ test('KONS-pollern låser mailbox och mode till read_only', async () => {
     intervalMs: 180000,
   });
   assert.equal(scheduled.ms, 180000);
+  // start() kör första cykeln direkt; vänta ett tick innan explicit verifiering.
+  await new Promise((resolve) => setImmediate(resolve));
   await poller.runOnce();
   assert.deepEqual(calls, [
     {
@@ -64,7 +75,17 @@ test('KONS-pollern låser mailbox och mode till read_only', async () => {
       createdBy: 'system:cco_kons_poller',
       folderTypes: ['inbox', 'sent'],
     },
+    {
+      mailboxEmail: KONS_MAILBOX,
+      mode: 'read_only',
+      trigger: 'kons_poller',
+      createdBy: 'system:cco_kons_poller',
+      folderTypes: ['inbox', 'sent'],
+    },
   ]);
+  assert.equal(broadcasts.length, 2);
+  assert.equal(broadcasts[0].event, 'worklist_updated');
+  assert.equal(broadcasts[0].payload.saved, 1);
 });
 
 test('KONS-pollern avvisar annan default-brevlåda', () => {
