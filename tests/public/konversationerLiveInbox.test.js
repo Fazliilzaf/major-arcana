@@ -342,6 +342,21 @@ test('konversationer renders full mail html and attachments safely', () => {
   assert.match(html, /msg-attachments/);
 });
 
+test('konversationer hydrates authenticated local mail assets in HTML and attachments', () => {
+  const html = readHtml();
+
+  assert.match(html, /function isLocalMailAssetUrl\(value\)/);
+  assert.match(html, /function authorizedMailAssetUrl\(value\)/);
+  assert.match(
+    html,
+    /fetch\(url,\s*\{[\s\S]*credentials:\s*'include',[\s\S]*withAdminAuthHeaders\(\{ Accept: '\*\/\*' \}\)/
+  );
+  assert.match(html, /URL\.createObjectURL\(blob\)/);
+  assert.match(html, /function hydrateMailAssetRoot\(root\)/);
+  assert.match(html, /hydrateMailAssetRoot\(frame\.contentDocument\)/);
+  assert.match(html, /hydrateMailAssetUrls\(\);/);
+});
+
 test('konversationer skiljer olästa mail från trådar som behöver svar', () => {
   const html = readHtml();
 
