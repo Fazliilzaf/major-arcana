@@ -1223,7 +1223,10 @@ function chooseRuntimeMailHtml(canonical = '', fallback = '') {
   return safeCanonical;
 }
 
-const MAX_RUNTIME_BODY_HTML_CHARS = 24000;
+// Inline data-images are removed or rebound to local asset URLs before this
+// response is built. Keep the existing rich-mail budget so signature text
+// following a large GIF/logo is not cut off at the old 24k boundary.
+const MAX_RUNTIME_BODY_HTML_CHARS = 240000;
 
 function boundRuntimeBodyHtml(value = '') {
   let html = normalizeText(value);
