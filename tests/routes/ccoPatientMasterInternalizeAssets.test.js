@@ -186,7 +186,16 @@ async function makeFixture({
       createDriveInternalizationClient,
     })
   );
-  return { tmp, app, authStore, assetStore, importRunStore, reviewQueueStore, storage };
+  return {
+    tmp,
+    app,
+    authStore,
+    patientMasterStore,
+    assetStore,
+    importRunStore,
+    reviewQueueStore,
+    storage,
+  };
 }
 
 async function withServer(app, run) {
@@ -219,6 +228,16 @@ async function postPreviewJson(base, body) {
       body: JSON.stringify(body || {}),
     }
   );
+  const json = await res.json();
+  return { status: res.status, body: json };
+}
+
+async function postEncounterPreviewJson(base, body) {
+  const res = await fetch(`${base}/api/v1/cco-patient-master/assets/preview-encounter-links`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
   const json = await res.json();
   return { status: res.status, body: json };
 }
@@ -344,6 +363,69 @@ test('assets/internalize/preview-candidates är read-only och maskerar kandidate
       assert.equal('patientId' in res.body.preview.candidates[0], false);
       assert.equal(fixture.authStore.events.length, 0);
       assert.equal(fixture.importRunStore.stats().total, 0);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('assets/preview-encounter-links är read-only och maskerar föreslagna fotolänkar', async () => {
+  const fixture = await makeFixture();
+  try {
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: TENANT,
+      id: 'patient-dino',
+      displayName: 'Dino Placo',
+      matchStatus: 'matched',
+    });
+    await fixture.assetStore.addAsset({
+      patientId: 'patient-dino',
+      sourceSystem: 'drive_import',
+      sourceRecordId: 'journal-1',
+      originalFileName: 'Journal Konsultation.pdf',
+      originalDrivePath: 'Konsultation/2026-05-05/Journal Konsultation.pdf',
+      mimeType: 'application/pdf',
+      category: 'journal',
+      documentDate: '2026-05-05',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+    await fixture.assetStore.addAsset({
+      patientId: 'patient-dino',
+      sourceSystem: 'drive_import',
+      sourceRecordId: 'photo-1',
+      originalFileName: 'IMG_0001.jpg',
+      originalDrivePath: 'Konsultation/2026-05-05/IMG_0001.jpg',
+      mimeType: 'image/jpeg',
+      category: 'photo_before',
+      documentDate: '2026-05-05',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+
+    await withServer(fixture.app, async (base) => {
+      const res = await postEncounterPreviewJson(base, { patientIds: ['patient-dino'] });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.ok, true);
+      assert.equal(res.body.zeroWrites, true);
+      assert.equal(res.body.dryRun, true);
+      assert.equal(res.body.stats.linkable, 1);
+      assert.equal(res.body.stats.review, 0);
+      assert.equal(res.body.samples.length, 1);
+      assert.equal(res.body.samples[0].reason, 'date_and_type');
+      assert.match(res.body.samples[0].patientId, /\*\*\*/);
+      assert.equal(fixture.authStore.events.at(-1).metadata.zeroWrites, true);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('assets/preview-encounter-links kräver OWNER-roll', async () => {
+  const fixture = await makeFixture({ role: 'STAFF' });
+  try {
+    await withServer(fixture.app, async (base) => {
+      const res = await postEncounterPreviewJson(base, { patientIds: ['patient-dino'] });
+      assert.equal(res.status, 403);
+      assert.equal(fixture.authStore.events.length, 0);
     });
   } finally {
     await fs.rm(fixture.tmp, { recursive: true, force: true });

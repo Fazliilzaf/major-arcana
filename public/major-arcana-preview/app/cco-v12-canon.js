@@ -944,7 +944,7 @@
     );
   }
 
-  function visitSegmentsBlock(visitSegments) {
+  function visitSegmentsBlock(visitSegments, patientId) {
     var segments = arr(visitSegments);
     if (!segments.length) return '';
     var reasonLabels = {
@@ -956,15 +956,36 @@
       same_day_time_cluster: 'Flera besök samma dag',
       uncertain_document_date_binding: 'Osäker dokumentkoppling',
     };
-    function photoTile(image) {
+    function photoTile(image, segment) {
       var assetId = txt(image && image.assetId);
       var href = txt(image && image.openRef);
       var name = txt(image && image.fileName) || 'Foto';
       var label = txt(image && (image.timeLabel || image.takenAt)).slice(0, 16) || 'Foto';
+      var editable = Boolean(assetId && href);
+      var drawLabel = image && image.offerReady ? '✓ Vald till plan' : '✎ Rita';
       return (
         '<a class="photo-tile over patient-master-image-tile v12-canon-visit-photo"' +
         (href ? ' href="' + esc(href) + '"' : '') +
-        ' target="_blank" rel="noopener" title="' +
+        (editable
+          ? ' role="button" tabindex="0" data-v12-photo-edit data-patient-id="' +
+            esc(patientId) +
+            '" data-asset-id="' +
+            esc(assetId) +
+            '" data-encounter-id="' +
+            esc(txt(image && image.encounterId)) +
+            '" data-photo-src="' +
+            esc(href) +
+            '" data-photo-name="' +
+            esc(name) +
+            '" data-photo-zone="' +
+            esc(txt(image && (image.imageStage || image.imageType)) || 'Besök') +
+            '" data-photo-date="' +
+            esc(txt(segment && (segment.date || segment.label))) +
+            '" data-photo-capture="' +
+            esc(txt(image && image.takenAt)) +
+            '"'
+          : ' target="_blank" rel="noopener"') +
+        ' title="' +
         esc(name) +
         '"><img src="" data-patient-file-id="' +
         esc(assetId) +
@@ -972,7 +993,13 @@
         esc(name) +
         '" loading="lazy" decoding="async" /><span class="lbl">' +
         esc(label) +
-        '</span></a>'
+        '</span>' +
+        (editable
+          ? '<span class="photo-tile__draw v12-canon-visit-photo__draw" aria-hidden="true">' +
+            drawLabel +
+            '</span>'
+          : '') +
+        '</a>'
       );
     }
     function segmentMarkup(segment) {
@@ -1009,7 +1036,11 @@
         : '';
       var photos = images.length
         ? '<div class="photo-grid v12-canon-visit-photo-grid">' +
-          images.map(photoTile).join('') +
+          images
+            .map(function (image) {
+              return photoTile(image, segment);
+            })
+            .join('') +
           '</div>'
         : '<div class="visit-segment-empty">Inga bilder kopplade till detta tillfälle.</div>';
       var docs = documents.length
@@ -1060,10 +1091,10 @@
   }
 
   /* ---------- 8 · BOKNINGAR ---------- */
-  function s8(bundle, visitSegments) {
+  function s8(bundle, visitSegments, patientId) {
     var up = arr(bundle && bundle.upcomingBookings);
     var hist = arr(bundle && bundle.historyBookings);
-    var visitBlock = visitSegmentsBlock(visitSegments);
+    var visitBlock = visitSegmentsBlock(visitSegments, patientId);
     var head = secHead(
       '08',
       'Bokningar',
@@ -1768,7 +1799,7 @@
       s5(journey, av, nextStep, photos, health, stepAssets) +
       s6(ctx.journalEntries) +
       s7(photos) +
-      s8(bundle, ctx.visitSegments) +
+      s8(bundle, ctx.visitSegments, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
       s9(files) +
       s10(comm) +
       s11(econ, invoices) +

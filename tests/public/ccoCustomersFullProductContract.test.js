@@ -8,10 +8,12 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..', '..');
 const INDEX_HTML = path.join(ROOT, 'public', 'major-arcana-preview', 'index.html');
 const PATIENT_UI = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'patient-master-ui.js');
+const V11_RK = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v11-rk.js');
 const SUBNAV = path.join(ROOT, 'public', 'admin', 'cco-subnav.js');
 
 const html = fs.readFileSync(INDEX_HTML, 'utf8');
 const ui = fs.readFileSync(PATIENT_UI, 'utf8');
+const v11 = fs.readFileSync(V11_RK, 'utf8');
 const subnav = fs.readFileSync(SUBNAV, 'utf8');
 
 test('admin#cco Kunder monterar hela skarpa kundprodukten', () => {
@@ -91,10 +93,16 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   const canonPath = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js');
   const canon = fs.readFileSync(canonPath, 'utf8');
   assert.match(ui, /visitSegments: asArray\(runtime\.detail\?\.visitSegments\)/);
-  assert.match(canon, /function visitSegmentsBlock\(visitSegments\)/);
+  assert.match(canon, /function visitSegmentsBlock\(visitSegments, patientId\)/);
   assert.match(canon, /data-v12-visit-segments="1"/);
   assert.match(canon, /data-patient-file-id=/);
-  assert.match(canon, /s8\(bundle, ctx\.visitSegments\)/);
+  assert.match(canon, /data-v12-photo-edit/);
+  assert.match(canon, /data-encounter-id=/);
+  assert.match(canon, /s8\(bundle, ctx\.visitSegments, card\.id/);
+  assert.match(v11, /data-v11-photo-edit/);
+  assert.match(v11, /renderBesokOccasion\(segment, pid\)/);
+  assert.match(ui, /const encounterId = o\.encounterId/);
+  assert.match(ui, /encounterId,\n\s+documentDate: docDate/);
 });
 
 test('listfas visar segment/insikts-placeholder tills enriched customers-shell landar', () => {

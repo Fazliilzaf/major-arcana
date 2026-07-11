@@ -39,7 +39,16 @@ function inferEncounterType(text = '') {
 function inferEncounterTypeFromAsset(asset = {}) {
   const fileName = normalizeText(asset.originalFileName);
   const folder = normalizeText(asset.originalDrivePath);
-  const haystack = `${fileName} ${folder} ${asset.treatmentType || ''} ${asset.visitLabel || ''}`;
+  const filteredFolder = folder
+    .split(/[\\/]/)
+    .filter((segment) => !/^hair\s+tp\s+clinic\b/i.test(segment.trim()))
+    .join(' ');
+  // Treat filename underscores as separators for media names such as PRP_before.jpg.
+  const haystack =
+    `${fileName} ${filteredFolder} ${asset.treatmentType || ''} ${asset.visitLabel || ''}`.replace(
+      /_/g,
+      ' '
+    );
 
   const journalParsed = parseJournalFilename(fileName);
   if (journalParsed?.treatmentType) {

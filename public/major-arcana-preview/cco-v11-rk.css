@@ -964,6 +964,27 @@
   padding: 2px 6px;
   border-radius: 4px;
 }
+.v11-rk .photo-tile--editable {
+  cursor: pointer;
+}
+.v11-rk .photo-tile__draw {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  z-index: 2;
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: #fff;
+  background: rgba(35, 29, 23, 0.72);
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.v11-rk .photo-tile--editable:hover .photo-tile__draw,
+.v11-rk .photo-tile--editable:focus-visible .photo-tile__draw {
+  opacity: 1;
+}
 
 /* N · FILER */
 .v11-rk .file-row {

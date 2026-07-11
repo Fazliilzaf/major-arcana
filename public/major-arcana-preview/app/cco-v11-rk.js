@@ -716,7 +716,7 @@
     var p = txt(seg.date).split('-');
     return p.length === 3 ? p[2] + '/' + p[1] : txt(seg.label || seg.date || '—');
   }
-  function renderBesokOccasion(seg) {
+  function renderBesokOccasion(seg, patientId) {
     if (!seg || !seg.date) return '';
     var vt = besokVisitType(seg);
     var title = [vt || txt(seg.label) || 'Besök', txt(seg.timeRange)].filter(Boolean).join(' · ');
@@ -750,12 +750,34 @@
           .slice(0, 6)
           .map(function (im) {
             var bg = txt(im.thumbnailUrl || im.openRef);
+            var editable = Boolean(im.assetId && im.openRef);
             return (
-              '<div class="photo-tile raw"' +
+              '<div class="photo-tile raw' +
+              (editable ? ' photo-tile--editable' : '') +
+              '"' +
               (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
+              (editable
+                ? ' role="button" tabindex="0" data-v11-photo-edit data-patient-id="' +
+                  esc(patientId) +
+                  '" data-asset-id="' +
+                  esc(txt(im.assetId)) +
+                  '" data-encounter-id="' +
+                  esc(txt(im.encounterId)) +
+                  '" data-photo-src="' +
+                  esc(txt(im.openRef)) +
+                  '" data-photo-name="' +
+                  esc(txt(im.fileName || 'Foto')) +
+                  '" data-photo-zone="Besök" data-photo-date="' +
+                  esc(txt(seg.date || seg.label)) +
+                  '" data-photo-capture="' +
+                  esc(txt(im.takenAt)) +
+                  '"'
+                : '') +
               '><span class="lbl">' +
               esc(txt(im.timeLabel || '').slice(0, 8)) +
-              '</span></div>'
+              '</span>' +
+              (editable ? '<span class="photo-tile__draw" aria-hidden="true">✎ Rita</span>' : '') +
+              '</div>'
             );
           })
           .join('') +
@@ -798,7 +820,11 @@
           return s && s.date;
         });
         if (!dated.length) return drop();
-        mount.innerHTML = dated.map(renderBesokOccasion).join('');
+        mount.innerHTML = dated
+          .map(function (segment) {
+            return renderBesokOccasion(segment, pid);
+          })
+          .join('');
         if (sec) sec.removeAttribute('hidden');
       })
       .catch(drop);

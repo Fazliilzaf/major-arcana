@@ -17,10 +17,45 @@ const {
   internalizeDriveAssets,
   inventoryDriveAssets,
   normalizeDriveAssetRow,
+  buildDriveEncounterFields,
   previewInternalizeCandidates,
   findConsecutivePilotWindow,
   buildPilotWindowSearch,
 } = require('../../src/ops/ccoDriveAssetInternalization');
+
+test('media med starkt datum får date-only fallback när behandlingstyp saknas', () => {
+  const result = buildDriveEncounterFields({
+    patientId: 'patient-photo',
+    documentDate: '2026-05-05',
+    documentDateSource: 'folder_month',
+    originalFileName: 'IMG_0001.jpg',
+    originalDrivePath: 'Hair TP Clinic 2024/5 maj 2026/IMG_0001.jpg',
+    mimeType: 'image/jpeg',
+    enc: { treatmentType: null },
+  });
+
+  assert.ok(result.encounterId);
+  assert.equal(result.encounterType, 'other');
+  assert.equal(result.encounterLinkReason, 'date_only_fallback');
+  assert.equal(result.encounterConfidence, 'low');
+});
+
+test('media med PRP-signal får inferred encountertyp utan folder-treatment', () => {
+  const result = buildDriveEncounterFields({
+    patientId: 'patient-photo',
+    documentDate: '2026-05-05',
+    documentDateSource: 'folder_month',
+    originalFileName: 'PRP-before.jpg',
+    originalDrivePath: 'Hair TP Clinic/5 maj 2026/PRP-before.jpg',
+    mimeType: 'image/jpeg',
+    enc: { treatmentType: null },
+  });
+
+  assert.ok(result.encounterId);
+  assert.equal(result.encounterType, 'prp_hair');
+  assert.equal(result.encounterLinkReason, 'asset_type_inferred');
+  assert.equal(result.encounterConfidence, 'medium');
+});
 
 async function makeRig() {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-drive-internalize-'));
