@@ -73,6 +73,21 @@ function pickBodyHtml(message = {}) {
   );
 }
 
+function isIncompleteBodyHtml(value = '') {
+  const html = normalizeText(value);
+  if (!html) return false;
+  if (/<(?:html|body)\b/i.test(html) && !/<\/(?:html|body)>/i.test(html)) return true;
+  return /<img\b[^>]*\bsrc\s*=\s*["'][^"']*$/i.test(html);
+}
+
+function shouldReplaceStoredBodyHtml(currentHtml = '', nextHtml = '') {
+  const current = normalizeText(currentHtml);
+  const next = normalizeText(nextHtml);
+  if (!next) return false;
+  if (!current) return true;
+  return isIncompleteBodyHtml(current) && !isIncompleteBodyHtml(next) && next.length > current.length;
+}
+
 function deriveTruthBodyText(truthMessage = {}) {
   const rawJson = asObject(truthMessage.rawJson);
   const bodyHtml = pickBodyHtml(truthMessage);
@@ -389,13 +404,11 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
         enriched = true;
       }
       const nextBodyHtml = pickBodyHtml(truthMessage);
-      if (nextBodyHtml) {
+      if (shouldReplaceStoredBodyHtml(existingRawMessage.rawJson?.bodyHtml, nextBodyHtml)) {
         const rawJson = asObject(existingRawMessage.rawJson);
-        if (!normalizeText(rawJson.bodyHtml)) {
-          existingRawMessage.rawJson = { ...rawJson, bodyHtml: nextBodyHtml };
-          existingRawMessage.bodyHtmlStored = true;
-          enriched = true;
-        }
+        existingRawMessage.rawJson = { ...rawJson, bodyHtml: nextBodyHtml };
+        existingRawMessage.bodyHtmlStored = true;
+        enriched = true;
       }
       const existingLedger = getLedgerByRawMessageId(existingRawId);
       let queued = false;
