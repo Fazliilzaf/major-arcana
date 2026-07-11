@@ -846,6 +846,36 @@ test('avhuggen truth-html använder komplett lokal ingestion-html för signatur 
   assert.match(enriched.bodyHtml, /<\/html>/);
 });
 
+test('rich mail behåller signatur efter stor lokal GIF/logotyp', () => {
+  const largeLogoSpacer = '<!-- local-logo -->' + 'x'.repeat(30000);
+  const truthMessages = [{
+    graphMessageId: 'rich-after-logo-1',
+    mailboxId: 'kons@hairtpclinic.com',
+    mailboxConversationId: 'kons@hairtpclinic.com:conv-rich-after-logo-1',
+    conversationId: 'conv-rich-after-logo-1',
+    folderType: 'inbox',
+    bodyHtml: `<html><body>${largeLogoSpacer}<img src="/api/mail-asset/logo"><div>Fazli Krasniqi</div><div>031-88 11 66</div></body></html>`,
+  }];
+  const ingestionStore = {
+    getState: () => ({
+      mailRawMessages: {
+        rich: {
+          graphMessageId: 'rich-after-logo-1',
+          mailboxId: 'kons@hairtpclinic.com',
+          conversationId: 'conv-rich-after-logo-1',
+          bodyHtml: truthMessages[0].bodyHtml,
+        },
+      },
+    }),
+  };
+
+  const [enriched] = enrichConversationMessagesWithIngestion(truthMessages, ingestionStore);
+
+  assert.match(enriched.bodyHtml, /Fazli Krasniqi/);
+  assert.match(enriched.bodyHtml, /031-88 11 66/);
+  assert.match(enriched.bodyHtml, /<\/html>/);
+});
+
 test('kontaktformulär-preview berikas från scoped raw-store även när Graph-id saknar alias', () => {
   const preview =
     'Från: Sudarshan E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Hi, I am a foreigner residing in Umea, Sweden.';
