@@ -299,82 +299,16 @@
 
     rail.insertBefore(panel, rail.firstChild);
 
-    // ── Panel B: folder-scope + läsfönster (inkorg-headern), hopfällbar ──
+    // ── Datatäckning i inkorg-headern ──────────────────────────────────
+    // Worklisten visar kundrollup från hela lokala KONS truth-storen. Tidigare
+    // låg här klickbara Mapp/Dagar-kontroller som bara sparade localStorage och
+    // aldrig påverkade datan. Visa det verkliga kontraktet i stället.
     if (inbox && !document.getElementById('ccoMbvScope')) {
-      const seg = (label, opts, current, onPick) => {
-        const buttons = opts.map((o) =>
-          el(
-            'button',
-            {
-              type: 'button',
-              class: o.value === current() ? 'on' : '',
-              onclick: (e) => {
-                onPick(o.value);
-                for (const b of e.currentTarget.parentNode.children) b.className = '';
-                e.currentTarget.className = 'on';
-              },
-            },
-            o.label
-          )
-        );
-        // Kompakt inline-enhet: liten gemen etikett bredvid slimmad segment-rad.
-        return el('div', { class: 'mbv-unit' }, [
-          el('span', { class: 'mbv-inlabel' }, label),
-          el('div', { class: 'mbv-seg' }, buttons),
-        ]);
-      };
-      const scopeBody = el('div', { class: 'mbv-scope-body' }, [
-        el('div', { class: 'mbv-scope-row' }, [
-          seg(
-            'Mapp',
-            [
-              { value: 'inbox', label: 'Inkorg' },
-              { value: 'sent', label: 'Skickat' },
-              { value: 'drafts', label: 'Utkast' },
-            ],
-            () => state.folder,
-            (v) => {
-              state.folder = v;
-              commit();
-              updateScopeSummary();
-            }
-          ),
-          seg(
-            'Dagar',
-            [
-              { value: 30, label: '30' },
-              { value: 90, label: '90' },
-              { value: 365, label: '365' },
-            ],
-            () => state.windowDays,
-            (v) => {
-              state.windowDays = v;
-              commit();
-              updateScopeSummary();
-            }
-          ),
+      const scope = el('div', { id: 'ccoMbvScope', class: 'mbv-scope' }, [
+        el('div', { class: 'mbv-kicker' }, [
+          el('span', { class: 'mbv-sum' }, 'Inkorg + Skickat · hela historiken'),
         ]),
       ]);
-      scopeBody.hidden = state.collapsed.scope;
-      // Liten sammanfattning i FILTER-raden så aktivt val syns även hopfällt.
-      const FOLDER_LABEL = { inbox: 'Inkorg', sent: 'Skickat', drafts: 'Utkast' };
-      const scopeSummary = el('span', { class: 'mbv-sum' }, '');
-      function updateScopeSummary() {
-        scopeSummary.textContent =
-          (FOLDER_LABEL[state.folder] || 'Inkorg') + ' · ' + state.windowDays + ' d';
-      }
-      updateScopeSummary();
-      const scopeKicker = collapsibleKicker(
-        '', // dölj "FILTER"-ordet — bara summeringen (t.ex. "Inkorg · 90 d") + chevron
-        state.collapsed.scope,
-        (col) => {
-          scopeBody.hidden = col;
-          state.collapsed.scope = col;
-          saveState(state);
-        },
-        scopeSummary
-      );
-      const scope = el('div', { id: 'ccoMbvScope', class: 'mbv-scope' }, [scopeKicker, scopeBody]);
       const inboxKicker = inbox.querySelector('.inbox-kicker');
       const tabs = inbox.querySelector('.inbox-tabs');
       if (tabs) inbox.insertBefore(scope, tabs);

@@ -34,13 +34,10 @@ test('monteras i befintliga ytor (vänsterräl + inkorg-header), ingen omdesign'
   assert.match(source, /\.inbox-tabs/);
 });
 
-test('folder-scope (Inkorg/Skickat/Utkast) + läsfönster (30/90/365)', () => {
-  assert.match(source, /value: 'inbox', label: 'Inkorg'/);
-  assert.match(source, /value: 'sent', label: 'Skickat'/);
-  assert.match(source, /value: 'drafts', label: 'Utkast'/);
-  assert.match(source, /value: 30, label: '30'/);
-  assert.match(source, /value: 90, label: '90'/);
-  assert.match(source, /value: 365, label: '365'/);
+test('visar ärligt datakontrakt i stället för oinkopplade mapp-/dagfilter', () => {
+  assert.match(source, /Inkorg \+ Skickat · hela historiken/);
+  assert.doesNotMatch(source, /value: 'drafts', label: 'Utkast'/);
+  assert.doesNotMatch(source, /value: 90, label: '90'/);
 });
 
 test('sticky val i localStorage + läser mailboxes-endpointen (data kommer senare)', () => {
@@ -83,20 +80,14 @@ test('design-finish matchar CCO: avatar som tråd-kort (mjuk gradient-cirkel), s
   );
 });
 
-test('kompakt filter-toolbar (inline-etikett) + mjuk kryssruta', () => {
-  // Folder-scope/läsfönster som inline-enhet: liten gemen etikett bredvid segmentet.
-  assert.match(source, /\.mbv-unit\{display:flex;align-items:center/);
-  assert.match(source, /\.mbv-inlabel\{/);
-  assert.match(source, /class: 'mbv-unit'/);
+test('kompakt datatäckningsrad + mjuk kryssruta', () => {
+  assert.match(source, /class: 'mbv-sum'/);
   // Kryssruta: mjuk rosa ton (inte klarrosa fylld ruta).
   assert.match(source, /\.mbv-row\.on \.mbv-chk[^}]*background:rgba\(187,71,121,\.13\)/);
 });
 
-test('FILTER tar minimal plats: hopfällt som default + sammanfattning av aktivt val', () => {
-  // Scope-sektionen börjar hopfälld → bara en tunn rad.
-  assert.match(source, /collapsed: \{ mailboxes: false, scope: true/);
-  // Sammanfattning (t.ex. "Inkorg · 90 d") syns i FILTER-raden även hopfällt.
-  assert.match(source, /function updateScopeSummary\(\)/);
+test('datatäckningen tar minimal plats och visar statisk sann status', () => {
+  assert.match(source, /Inkorg \+ Skickat · hela historiken/);
   assert.match(source, /class: 'mbv-sum'/);
 });
 
