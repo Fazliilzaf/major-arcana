@@ -207,6 +207,9 @@ test('V11/V12 visar journal och film inom samma besökstillfälle', () => {
   assert.match(canon, /data-v12-visit-video/);
   assert.match(ui, /formData\.append\('encounterId', encounterId\)/);
   assert.match(ui, /cco-journal-quick\/visit-media/);
+  assert.match(ui, /durationSeconds/);
+  assert.match(canon, /data-v12-archive-asset/);
+  assert.match(ui, /Filen är arkiverad\. Den fysiska filen är bevarad/);
   assert.match(ui, /runtime\.pendingVisitEncounterId/);
   assert.match(canon, /Journal saknas/);
   assert.match(canon, /Journal signerad/);

@@ -84,6 +84,25 @@ test('buildVisitSegments keeps films separate from photos on the same visit', ()
   assert.equal(result.visitSegments[0].videos[0].mimeType, 'video/mp4');
 });
 
+test('buildVisitSegments preserves video duration and file size metadata', () => {
+  const result = buildVisitSegments({
+    driveFiles: [
+      {
+        id: 'video-meta',
+        fileType: 'video',
+        mimeType: 'video/mp4',
+        fileName: 'besok.mp4',
+        documentDate: '2026-06-19',
+        durationSeconds: 92,
+        fileSize: 4_200_000,
+        viewUrl: '/video',
+      },
+    ],
+  });
+  assert.equal(result.visitSegments[0].videos[0].durationSeconds, 92);
+  assert.equal(result.visitSegments[0].videos[0].fileSize, 4_200_000);
+});
+
 test('buildVisitSegments attaches journal to matching encounter and exposes journal CTA state', () => {
   const result = buildVisitSegments({
     driveFiles: [

@@ -1047,6 +1047,18 @@
       var assetId = txt(video && video.assetId);
       var href = txt(video && video.openRef);
       var name = txt(video && video.fileName) || 'Film';
+      var durationSeconds = Number(video && video.durationSeconds);
+      var durationLabel =
+        Number.isFinite(durationSeconds) && durationSeconds > 0
+          ? Math.floor(durationSeconds / 60) +
+            ':' +
+            String(Math.round(durationSeconds % 60)).padStart(2, '0')
+          : '';
+      var sizeBytes = Number(video && video.fileSize);
+      var sizeLabel =
+        Number.isFinite(sizeBytes) && sizeBytes > 0
+          ? (sizeBytes / 1024 / 1024).toFixed(1) + ' MB'
+          : '';
       return (
         '<div class="v12-canon-visit-video">' +
         '<video controls preload="metadata" data-patient-file-id="' +
@@ -1057,7 +1069,15 @@
         '<div class="v12-canon-visit-video__meta"><span>Film</span><span>' +
         esc(name) +
         '</span>' +
+        (durationLabel || sizeLabel
+          ? '<small>' + esc([durationLabel, sizeLabel].filter(Boolean).join(' · ')) + '</small>'
+          : '') +
         (href ? '<a href="' + esc(href) + '" target="_blank" rel="noopener">Öppna</a>' : '') +
+        (assetId
+          ? '<button type="button" class="warn-action" data-v12-archive-asset="' +
+            esc(assetId) +
+            '">Arkivera</button>'
+          : '') +
         '</div></div>'
       );
     }
@@ -1215,6 +1235,10 @@
               var href = txt(doc.openRef);
               var name = txt(doc.fileName) || 'Dokument';
               var metaParts = [txt(doc.documentDate), txt(doc.type)].filter(Boolean);
+              var sizeBytes = Number(doc && doc.fileSize);
+              if (Number.isFinite(sizeBytes) && sizeBytes > 0) {
+                metaParts.push((sizeBytes / 1024 / 1024).toFixed(1) + ' MB');
+              }
               var content =
                 '<span class="file-icn">📄</span><span class="file-name">' +
                 esc(name) +
@@ -1222,13 +1246,21 @@
                   ? ' <span class="when">' + esc(metaParts.join(' · ')) + '</span>'
                   : '') +
                 '</span>';
-              return href
+              var row = href
                 ? '<a class="file-row" href="' +
-                    esc(href) +
-                    '" target="_blank" rel="noopener">' +
-                    content +
-                    '</a>'
+                  esc(href) +
+                  '" target="_blank" rel="noopener">' +
+                  content +
+                  '</a>'
                 : '<div class="file-row">' + content + '</div>';
+              return (
+                row +
+                (doc.assetId
+                  ? '<button type="button" class="warn-action" data-v12-archive-asset="' +
+                    esc(doc.assetId) +
+                    '">Arkivera</button>'
+                  : '')
+              );
             })
             .join('') +
           '</div>'

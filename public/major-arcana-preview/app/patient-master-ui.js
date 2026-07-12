@@ -2038,6 +2038,24 @@
           });
         return;
       }
+      const archiveAsset = event.target.closest('[data-v12-archive-asset]');
+      if (archiveAsset && body.contains(archiveAsset)) {
+        event.preventDefault();
+        const assetId = archiveAsset.getAttribute('data-v12-archive-asset') || '';
+        if (!assetId || !window.confirm('Arkivera filen från kundvyn? Filen raderas inte.')) return;
+        archiveAsset.disabled = true;
+        apiRequest(`/api/v1/cco/assets/${encodeURIComponent(assetId)}/soft-delete`, {
+          method: 'POST',
+          body: { reason: 'staff_archived_from_visit_room' },
+        })
+          .then(() => loadPatientDetail(runtime.selectedPatientId, { force: true }))
+          .then(() => setStatus('Filen är arkiverad. Den fysiska filen är bevarad.', 'success'))
+          .catch((error) => {
+            archiveAsset.disabled = false;
+            setStatus(error?.message || 'Kunde inte arkivera filen.', 'error');
+          });
+        return;
+      }
       // CONTENT-CANON s9: "Öppna" dokument → visa PDF i modal-ruta (ingen länk,
       // ingen ny flik — dokumentet dyker upp i en ruta ovanpå kundvyn).
       const docOpen = event.target.closest('[data-doc-open]');
@@ -2244,16 +2262,38 @@
         formData.append('patientId', patientId);
         formData.append('encounterId', encounterId);
         if (visitDate) formData.append('documentDate', visitDate);
+        const metadataUrl = URL.createObjectURL(file);
+        const metadataVideo = document.createElement('video');
+        metadataVideo.preload = 'metadata';
+        metadataVideo.src = metadataUrl;
+        const durationReady = new Promise((resolve) => {
+          let settled = false;
+          const done = () => {
+            if (settled) return;
+            settled = true;
+            if (Number.isFinite(metadataVideo.duration)) {
+              formData.append('durationSeconds', String(Math.round(metadataVideo.duration)));
+            }
+            URL.revokeObjectURL(metadataUrl);
+            resolve();
+          };
+          metadataVideo.addEventListener('loadedmetadata', done, { once: true });
+          metadataVideo.addEventListener('error', done, { once: true });
+          window.setTimeout(done, 1500);
+        });
         const token = getAdminToken();
         const headers = {};
         if (token) headers.Authorization = `Bearer ${token}`;
         setStatus('Laddar upp film…', 'loading');
-        fetch(new URL('/api/v1/cco-journal-quick/visit-media', window.location.origin), {
-          method: 'POST',
-          headers,
-          credentials: 'same-origin',
-          body: formData,
-        })
+        durationReady
+          .then(() =>
+            fetch(new URL('/api/v1/cco-journal-quick/visit-media', window.location.origin), {
+              method: 'POST',
+              headers,
+              credentials: 'same-origin',
+              body: formData,
+            })
+          )
           .then(async (response) => {
             const payload = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);

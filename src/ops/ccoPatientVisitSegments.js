@@ -330,6 +330,11 @@ function buildVideoEntry(file) {
   return {
     ...buildImageEntry(file),
     mimeType: normalizeText(file?.mimeType || file?.contentType) || 'video/mp4',
+    fileSize: Number.isFinite(Number(file?.fileSize)) ? Number(file.fileSize) : null,
+    durationSeconds: Number.isFinite(Number(file?.durationSeconds))
+      ? Number(file.durationSeconds)
+      : null,
+    uploadedAt: normalizeText(file?.uploadedAt) || null,
   };
 }
 
@@ -402,6 +407,7 @@ function buildDocumentEntry(file) {
     documentDate: documentDate || null,
     fileName: normalizeText(file?.fileName || file?.originalFileName || file?.name) || 'Dokument',
     type: normalizeText(file?.fileType || file?.category) || 'document',
+    fileSize: Number.isFinite(Number(file?.fileSize)) ? Number(file.fileSize) : null,
     openRef: normalizeText(file?.viewUrl) || null,
     dateBindingUncertain: Boolean(file?.captureDateMismatch) || !isIsoDate(documentDate),
   };
