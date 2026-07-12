@@ -31,6 +31,7 @@ describe('ccoKunderBookingEnrichment', () => {
           status: 'confirmed',
           slot: {
             startsAt,
+            durationMinutes: 45,
             serviceId: 'dhi',
             resourceLabel: 'Fazli',
           },
@@ -44,6 +45,8 @@ describe('ccoKunderBookingEnrichment', () => {
     assert.equal(sig.hasUpcomingBooking, true);
     assert.equal(sig.treatmentTypes.includes('DHI'), true);
     assert.equal(sig.nextBookingResourceLabel, 'Fazli');
+    assert.equal(sig.upcomingBookings[0].durationLabel, '45 min');
+    assert.equal(sig.upcomingBookings[0].practitioner, 'Fazli');
   });
 
   it('waitlist from booking case status', () => {

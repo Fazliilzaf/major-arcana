@@ -144,8 +144,7 @@
       '<div class="s1-quick">' +
       s1QuickActions(card) +
       '</div></div>' +
-      '<div class="s1-actions"><button class="btn-primary" data-v12-visit-prep>⚡ Förbered besök</button>' +
-      '<button class="btn-edit">Åtgärder ▾</button></div>' +
+      '<div class="s1-actions"><button class="btn-primary" data-v12-visit-prep>⚡ Förbered besök</button></div>' +
       '</div></section>'
     );
   }
@@ -315,7 +314,7 @@
             '</div>' +
             (w.text || w.why ? '<div class="why">' + esc(txt(w.text || w.why)) + '</div>' : '') +
             '</div>' +
-            '<button class="warn-action">Visa</button></div>'
+            '<button class="warn-action" data-v12-scroll-module="health">Visa</button></div>'
           );
         })
         .join('') +
@@ -326,12 +325,7 @@
   /* ---------- 4 · HÄLSA ---------- */
   function s4(health) {
     var updated = health && txt(health.updatedAt || health.signedAt);
-    var head = secHead(
-      '04',
-      'Hälsa',
-      updated ? 'senast uppdaterad ' + updated : null,
-      '<button class="sec-link">Öppna full hälsoprofil →</button>'
-    );
+    var head = secHead('04', 'Hälsa', updated ? 'senast uppdaterad ' + updated : null, '');
     if (!health) {
       return (
         '<section class="sec" id="s4">' +
@@ -370,7 +364,7 @@
           chip('danger', 'JA · ' + txt(hAllergies[0])) +
           '</div>'
         : '<div class="card-row"><span class="what">Allergier</span>' +
-          chip('ok', 'NEJ') +
+          chip('neutral', 'Ej registrerat') +
           '</div>';
       hdRows += hMeds.length
         ? '<div class="card-row"><span class="what">Pågående mediciner</span>' +
@@ -378,8 +372,8 @@
           '</div>'
         : '<div class="card-row"><span class="what">Pågående mediciner</span>' +
           chip(
-            health.medications && health.medications.known ? 'warn' : 'ok',
-            health.medications && health.medications.known ? 'JA' : 'NEJ'
+            health.medications && health.medications.known ? 'warn' : 'neutral',
+            health.medications && health.medications.known ? 'JA' : 'Ej registrerat'
           ) +
           '</div>';
       hContra.forEach(function (c) {
@@ -616,7 +610,7 @@
                     );
                   })
                   .join('') +
-                '</div><div class="photo-actions"><button class="smart-btn">Välj i Foto</button><button class="smart-btn">Ta/rita bild</button><button class="smart-btn primary">Slutför konsultation</button></div></div>'
+                '</div><div class="photo-actions"><button class="smart-btn" data-v12-scroll-module="photos">Välj i Foto</button><button class="smart-btn" data-v11-active-visit-action="photo">Ta/rita bild</button></div></div>'
               : '';
           // body (aktivt steg → aktivt besök + smart; blockerat → gate)
           var body = '';
@@ -817,7 +811,12 @@
         ? dagens + ' dagens · ' + (list.length - dagens) + ' tidigare'
         : list.length + ' anteckningar'
       : null;
-    var head = secHead('06', 'Journal', sub, '<button class="sec-link">+ Ny anteckning</button>');
+    var head = secHead(
+      '06',
+      'Journal',
+      sub,
+      '<button class="sec-link" data-v12-visit-journal>+ Ny anteckning</button>'
+    );
     if (!list.length)
       return (
         '<section class="sec" id="s6">' +
@@ -870,7 +869,10 @@
       '07',
       'Bilder',
       items.length ? items.length + ' bilder' : null,
-      '<button class="sec-link">📷 Ta bild</button><button class="sec-link">Jämför →</button>'
+      '<button class="sec-link" data-v11-active-visit-action="photo">📷 Ta bild</button>' +
+        (items.length >= 2
+          ? '<button class="sec-link" data-v12-compare-photos>Jämför →</button>'
+          : '')
     );
     if (!items.length && !visitBlock)
       return (
@@ -889,7 +891,8 @@
     var tiles = items
       .slice(0, 12)
       .map(function (p) {
-        var bg = p.thumbnailUrl || p.viewUrl || p.url;
+        var assetId = txt(p.assetId || p.fileId || p.id);
+        var openRef = txt(p.openRef || p.viewUrl || p.url);
         // Fas-märkt ruta (facit: FÖRE/EFTER/ÖVER/FILM) ur adapterns phase/isImage.
         var ph = txt(p.phase);
         var isVideo = p.isImage === false;
@@ -903,15 +906,40 @@
               : 'ÖVER';
         var date = txt(p.dateLabel || p.photoDateLabel || p.capturedAt || '').slice(0, 12);
         var lbl = (prefix + (date ? ' ' + date : '')).trim();
+        var editable = Boolean(assetId && openRef && !isVideo);
         return (
           '<div class="photo-tile ' +
           cls +
+          (editable ? ' photo-tile--editable' : '') +
           '"' +
-          (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
+          (editable
+            ? ' role="button" tabindex="0" data-v12-photo-edit data-patient-id="' +
+              esc(patientId) +
+              '" data-asset-id="' +
+              esc(assetId) +
+              '" data-photo-src="' +
+              esc(openRef) +
+              '" data-photo-name="' +
+              esc(txt(p.fileName || p.name || 'Bild')) +
+              '" data-photo-zone="' +
+              esc(txt(p.zone || p.phase)) +
+              '" data-photo-date="' +
+              esc(date) +
+              '"'
+            : '') +
           '>' +
+          (assetId && !isVideo
+            ? '<img src="" data-patient-file-id="' +
+              esc(assetId) +
+              '" alt="' +
+              esc(txt(p.fileName || p.name || 'Bild')) +
+              '" decoding="async" />'
+            : '') +
           '<span class="lbl">' +
           esc(lbl) +
-          '</span></div>'
+          '</span>' +
+          (editable ? '<span class="photo-tile__draw" aria-hidden="true">✎ Rita</span>' : '') +
+          '</div>'
         );
       })
       .join('');
@@ -934,7 +962,7 @@
           esc(firstLbl || 'Före') +
           '</b> <span class="sep">↔</span> <b>' +
           esc(lastLbl || 'Efter') +
-          '</b></div><button class="warn-action">Jämför</button></div>'
+          '</b></div><button class="warn-action" data-v12-compare-photos>Jämför</button></div>'
         : '';
     return (
       '<section class="sec" id="s7">' +
@@ -947,7 +975,7 @@
         : '') +
       bar +
       (gap
-        ? '<div class="photo-gap"><span>⚠ Krona-vy saknas för fullständig dokumentation</span><button class="warn-action">Begär foto</button></div>'
+        ? '<div class="photo-gap"><span>⚠ Krona-vy saknas för fullständig dokumentation</span><button class="warn-action" data-v12-scroll-module="communication">Begär foto</button></div>'
         : '') +
       visitBlock +
       '</section>'
@@ -1182,14 +1210,16 @@
   }
 
   /* ---------- 8 · BOKNINGAR ---------- */
-  function s8(bundle) {
+  function s8(bundle, patientId) {
     var up = arr(bundle && bundle.upcomingBookings);
     var hist = arr(bundle && bundle.historyBookings);
     var head = secHead(
       '08',
       'Besök · tillfällen',
       up.length + ' kommande · ' + hist.length + ' historik',
-      '<button class="sec-link">+ Boka</button>'
+      '<button class="sec-link" data-kk-ord48-open-calendar data-patient-id="' +
+        esc(patientId) +
+        '">+ Boka</button>'
     );
     var rows = up.concat(hist).slice(0, 8);
     if (!rows.length)
@@ -1230,7 +1260,9 @@
             esc(bookingMeta.join(' · ')) +
             '</div></div>' +
             chip(done ? 'ok' : 'info', done ? 'Genomförd' : 'Bokad') +
-            '<button class="j-btn">' +
+            '<button class="j-btn" data-kk-ord48-open-calendar data-patient-id="' +
+            esc(patientId) +
+            '">' +
             (done ? 'Visa' : 'Bekräfta') +
             '</button></div>'
           );
@@ -1247,7 +1279,7 @@
   }
 
   /* ---------- 9 · DOKUMENT ---------- */
-  function s9(files) {
+  function s9(files, patientId) {
     var items = arr(files && files.items ? files.items : files);
     var pending = items.filter(function (f) {
       return /vänt|vant|utkast|pending|sign/i.test(txt(f && (f.status || f.statusLabel)));
@@ -1255,12 +1287,23 @@
     var sub = items.length
       ? items.length + ' totalt' + (pending ? ' · ' + pending + ' signering väntar' : '')
       : null;
-    var head = secHead('09', 'Dokument', sub, '<button class="sec-link">+ Lägg till</button>');
+    var docInput =
+      '<input type="file" accept="application/pdf,.pdf" hidden data-v12-doc-input="' +
+      esc(patientId) +
+      '">';
+    var head = secHead(
+      '09',
+      'Dokument',
+      sub,
+      '<button class="sec-link" data-v12-doc-add="' + esc(patientId) + '">+ Lägg till PDF</button>'
+    );
     if (!items.length)
       return (
         '<section class="sec" id="s9">' +
         head +
-        '<div class="card" style="color:var(--ink-mute)">Inga dokument registrerade.</div></section>'
+        '<div class="card" style="color:var(--ink-mute)">Inga dokument registrerade.</div>' +
+        docInput +
+        '</section>'
       );
     return (
       '<section class="sec" id="s9">' +
@@ -1364,20 +1407,23 @@
           );
         })
         .join('') +
-      '</div></section>'
+      '</div>' +
+      docInput +
+      '</section>'
     );
   }
 
   /* ---------- 10 · KOMMUNIKATION ---------- */
-  function s10(comm) {
+  function s10(comm, card) {
     var items = arr(comm && comm.items ? comm.items : comm);
     // "senaste kontakt: <datum>" ur första (nyaste) meddelandets meta.
     var lastDate = items.length ? txt(items[0].meta).split('·').pop().trim() : '';
+    var replyEmail = txt(card && (card.primaryEmail || card.email));
     var head = secHead(
       '10',
       'Kommunikation',
       lastDate ? 'senaste kontakt: ' + lastDate : null,
-      '<button class="sec-link">+ Svara</button><button class="sec-link">Svarstudio →</button>'
+      replyEmail ? '<a class="sec-link" href="mailto:' + esc(replyEmail) + '">+ Svara</a>' : ''
     );
     if (!items.length)
       return (
@@ -1419,8 +1465,15 @@
   }
 
   /* ---------- 11 · EKONOMI ---------- */
-  function s11(econ, invoices) {
-    var head = secHead('11', 'Ekonomi', null, '<button class="sec-link">→ Fortnox</button>');
+  function s11(econ, invoices, patientId) {
+    var head = secHead(
+      '11',
+      'Ekonomi',
+      null,
+      '<button class="sec-link" data-v12-fortnox-sync data-patient-id="' +
+        esc(patientId) +
+        '">→ Fortnox</button>'
+    );
     var cells = arr(econ && econ.items);
     var inv = arr(invoices && invoices.items ? invoices.items : invoices);
     return (
@@ -1460,18 +1513,18 @@
                 esc(txt((r.amount || '') + (r.date ? ' · ' + r.date : ''))) +
                 '</div></div>' +
                 chip(tone, txt(r.statusLabel || r.status || '—')) +
-                '<button class="j-btn">Visa</button></div>'
+                '</div>'
               );
             })
             .join('') +
           '</div>'
         : '') +
-      '</section>'
+      '<div class="when" data-v12-fortnox-status></div></section>'
     );
   }
 
   /* ---------- 12 · INSIKTER ---------- */
-  function s12(nextStep, insights) {
+  function s12(nextStep, insights, patientId) {
     var head = secHead('12', 'Insikter och nästa bästa åtgärd');
     var blocks = '';
     if (nextStep && nextStep.what) {
@@ -1485,7 +1538,7 @@
         esc(nextStep.ruleId) +
         '">' +
         esc(nextStep.ctaLabel || 'Åtgärda') +
-        '</button><button class="warn-action">Granska först</button></div></div>';
+        '</button></div></div>';
     }
     var opp = arr(insights && insights.items ? insights.items : insights).filter(function (i) {
       return i && i.tone !== 'blocker' && i.tone !== 'review';
@@ -1498,7 +1551,9 @@
         esc(txt(o.title)) +
         '</div>' +
         (o.text ? '<div class="insight-why">' + esc(txt(o.text)) + '</div>' : '') +
-        '<div class="insight-actions"><button class="warn-action greenbtn">Boka</button><button class="warn-action">Påminn senare</button></div></div>';
+        '<div class="insight-actions"><button class="warn-action greenbtn" data-kk-ord48-open-calendar data-patient-id="' +
+        esc(patientId) +
+        '">Boka</button></div></div>';
     }
     if (!blocks)
       blocks =
@@ -1893,14 +1948,11 @@
       s5(journey, av, nextStep, photos, health, stepAssets) +
       s6(ctx.journalEntries) +
       s7(photos, ctx.visitSegments, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
-      s8(bundle) +
-      s9(files) +
-      s10(comm) +
-      s11(econ, invoices) +
-      s12(nextStep, insights) +
-      fotoDok(photos) +
-      uppfoljning(insights) +
-      histSection(bundle) +
+      s8(bundle, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
+      s9(files, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
+      s10(comm, card) +
+      s11(econ, invoices, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
+      s12(nextStep, insights, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
       '</div>';
     // Lägg data-v12-module på varje sektion så befintlig scrollV12WorkspaceModule
     // + jump-rail-launcher (inferV12ModuleFromRailClick) landar rätt vid sektionsklick.
