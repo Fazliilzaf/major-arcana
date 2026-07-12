@@ -1091,7 +1091,7 @@ function createCcoPatientMasterRouter({
         });
 
         const payload = await buildPatientPayload(actor, patient, {
-          includeJournal: false,
+          includeJournal: true,
           includeDriveFiles: parseIncludeDriveFiles(req.query.includeDriveFiles),
         });
         const visitPayload = buildVisitSegments({
