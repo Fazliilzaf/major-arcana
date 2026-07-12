@@ -354,6 +354,27 @@ function buildJournalEntry(entry) {
   };
 }
 
+function buildJournalPhotoEntry(attachment, journal) {
+  const photoId = normalizeText(attachment?.photoId);
+  if (!photoId) return null;
+  const takenAt = normalizeTimelineDateTime(
+    attachment?.capturedAt || attachment?.storedAt || journal?.date
+  );
+  return {
+    assetId: null,
+    journalPhotoId: photoId,
+    encounterId: journal?.encounterId || null,
+    documentDate: journal?.date || (takenAt ? takenAt.slice(0, 10) : null),
+    takenAt: takenAt || null,
+    timeLabel: formatTimeLabel(takenAt),
+    fileName: normalizeText(attachment?.fileName || attachment?.label) || 'Journalbild',
+    imageType: normalizeText(attachment?.photoPhase) || 'journal_photo',
+    imageStage: normalizeText(attachment?.photoPhase) || null,
+    openRef: null,
+    source: 'journal_photo',
+  };
+}
+
 function resolveStartsAt(value = {}) {
   return normalizeTimelineDateTime(
     value?.startsAt || value?.startAt || value?.scheduledAt || value?.date
@@ -568,6 +589,19 @@ function attachJournalsToSegments(segments, journalEntries) {
       }
     }
     if (target) target.journals.push(journal);
+    if (target) {
+      for (const attachment of asArray(rawEntry?.attachments)) {
+        if (normalizeText(attachment?.type) !== 'consultation_photo') continue;
+        const image = buildJournalPhotoEntry(attachment, journal);
+        if (!image) continue;
+        if (!target.images.some((item) => item.journalPhotoId === image.journalPhotoId)) {
+          target.images.push(image);
+        }
+      }
+      target.images.sort((a, b) =>
+        normalizeText(a?.takenAt).localeCompare(normalizeText(b?.takenAt))
+      );
+    }
   }
 }
 

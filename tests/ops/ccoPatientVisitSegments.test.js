@@ -124,6 +124,41 @@ test('buildVisitSegments attaches journal to matching encounter and exposes jour
   });
 });
 
+test('buildVisitSegments exposes consultation photo attachments in the same encounter room', () => {
+  const result = buildVisitSegments({
+    customerId: 'patient-photo',
+    encounters: [
+      {
+        patientId: 'patient-photo',
+        encounterId: 'enc-photo',
+        startsAt: '2026-07-12T12:00:00.000Z',
+      },
+    ],
+    journalEntries: [
+      {
+        entryId: 'journal-photo',
+        treatmentEncounterId: 'enc-photo',
+        createdAt: '2026-07-12T12:01:00.000Z',
+        status: 'draft',
+        attachments: [
+          {
+            type: 'consultation_photo',
+            photoId: 'photo-native',
+            fileName: 'visit.png',
+            mimeType: 'image/png',
+            capturedAt: '2026-07-12T12:02:00.000Z',
+          },
+        ],
+      },
+    ],
+  });
+  const room = result.visitSegments.find((segment) => segment.encounterId === 'enc-photo');
+  assert.ok(room);
+  assert.equal(room.images.length, 1);
+  assert.equal(room.images[0].journalPhotoId, 'photo-native');
+  assert.equal(room.images[0].source, 'journal_photo');
+});
+
 test('buildVisitSegments uses journal date only when the visit date is unambiguous', () => {
   const result = buildVisitSegments({
     driveFiles: [
