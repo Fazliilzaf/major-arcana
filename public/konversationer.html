@@ -4632,6 +4632,7 @@
           try {
             await renderMailPdfPreview(backdrop, displayUrl);
           } catch (error) {
+            console.error('[cco-attachment-preview] PDF kunde inte renderas', error);
             const stage = backdrop.querySelector('.mail-preview-stage');
             if (stage) stage.innerHTML = '<div class="mail-preview-unavailable"><strong>PDF-filen kunde inte visas</strong><br>Använd Ladda ner för att öppna originalet.</div>';
           }
