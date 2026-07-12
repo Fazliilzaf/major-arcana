@@ -8204,7 +8204,36 @@
         img.classList.add('is-broken');
         return;
       }
-      img.src = objectUrl;
+      if (img.tagName === 'IMG') {
+        await new Promise((resolve, reject) => {
+          const done = () => {
+            img.removeEventListener('load', onLoad);
+            img.removeEventListener('error', onError);
+          };
+          const onLoad = () => {
+            done();
+            resolve();
+          };
+          const onError = () => {
+            done();
+            reject(new Error('image_decode_failed'));
+          };
+          img.addEventListener('load', onLoad, { once: true });
+          img.addEventListener('error', onError, { once: true });
+          img.src = objectUrl;
+          if (img.complete && img.naturalWidth > 0) {
+            done();
+            resolve();
+          }
+        }).catch(() => {
+          img.classList.add('is-broken');
+          if (img.tagName === 'IMG') img.alt = 'Kunde inte visa bild';
+          return;
+        });
+        if (img.classList.contains('is-broken')) return;
+      } else {
+        img.src = objectUrl;
+      }
       img.dataset.loaded = 'true';
       const tileLink = img.tagName === 'IMG' ? img.closest('a.patient-master-image-tile') : null;
       if (tileLink) tileLink.href = objectUrl;
