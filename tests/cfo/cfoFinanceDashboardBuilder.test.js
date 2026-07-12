@@ -82,3 +82,54 @@ test('buildFinanceDashboard prioriterar Fortnox InvoicePayments när ansluten', 
   assert.match(dashboard.invoices.note, /Fortnox betalda fakturor/i);
   assert.equal(dashboard.invoices.partial, false);
 });
+
+test('buildFinanceDashboard löser Fortnox-tenant via hair_tp-alias', async () => {
+  const requested = [];
+  const dashboard = await buildFinanceDashboard({
+    stores: {
+      fortnoxStore: {
+        async getPublicStatus({ tenantId }) {
+          return { connected: tenantId === 'hair_tp' };
+        },
+      },
+      fortnoxInvoiceLister: {
+        async listAllInvoicePayments({ tenantId }) {
+          requested.push(tenantId);
+          return {
+            ok: true,
+            payments: [{ PaymentDate: '2026-06-02', Amount: 5000 }],
+          };
+        },
+      },
+    },
+    tenantId: 'hair-tp-clinic',
+    fortnoxBlockedIntegration: false,
+    now: new Date(Date.UTC(2026, 5, 15, 10, 0, 0)),
+  });
+
+  assert.equal(dashboard.fortnoxTenantId, 'hair_tp');
+  assert.equal(requested[0], 'hair_tp');
+  assert.equal(dashboard.invoices.totalPaidThisMonthSek, 5000);
+});
+
+test('buildFinanceDashboard slice=invoices hoppar tung rest av dashboard', async () => {
+  let commercialCalls = 0;
+  const dashboard = await buildFinanceDashboard({
+    stores: {
+      commercialStore: {
+        async listAll() {
+          commercialCalls += 1;
+          return [];
+        },
+      },
+    },
+    slice: 'invoices',
+    fortnoxBlockedIntegration: false,
+    now: new Date(Date.UTC(2026, 5, 15, 10, 0, 0)),
+  });
+
+  assert.equal(dashboard.invoices.partial, true);
+  assert.equal(typeof dashboard.invoices, 'object');
+  assert.equal(dashboard.deposits, undefined);
+  assert.equal(commercialCalls, 1);
+});

@@ -8,11 +8,16 @@ function cacheKey(tenantId, customerNumber) {
   return `${normalizeText(tenantId)}::${normalizeText(customerNumber)}`;
 }
 
-function createCfoFortnoxInvoiceLister({ createClientFor, cacheTtlMs = 60_000 } = {}) {
+function createCfoFortnoxInvoiceLister({
+  createClientFor,
+  cacheTtlMs = 60_000,
+  periodCacheTtlMs = 10 * 60 * 1000,
+} = {}) {
   if (typeof createClientFor !== 'function') {
     throw new Error('createClientFor krävs för cfoFortnoxInvoiceLister.');
   }
   const cache = new Map();
+  const periodCache = new Map();
 
   async function listInvoicesForCustomer({ tenantId, customerNumber } = {}) {
     const customer = normalizeText(customerNumber);
@@ -65,6 +70,11 @@ function createCfoFortnoxInvoiceLister({ createClientFor, cacheTtlMs = 60_000 } 
         error: 'fromDate och toDate krävs för listAllInvoicePayments.',
       };
     }
+    const periodKey = `${normalizeText(tenantId)}::${from}::${to}`;
+    const cached = periodCache.get(periodKey);
+    if (cached && Date.now() - cached.at < periodCacheTtlMs) {
+      return { ...cached.value, cached: true };
+    }
     try {
       const client = await createClientFor(tenantId);
       const payments = [];
@@ -76,7 +86,9 @@ function createCfoFortnoxInvoiceLister({ createClientFor, cacheTtlMs = 60_000 } 
         if (batch.length < 100) break;
         page += 1;
       }
-      return { ok: true, payments, cached: false, error: null };
+      const value = { ok: true, payments, cached: false, error: null };
+      periodCache.set(periodKey, { at: Date.now(), value });
+      return value;
     } catch (error) {
       return {
         ok: false,
@@ -89,6 +101,7 @@ function createCfoFortnoxInvoiceLister({ createClientFor, cacheTtlMs = 60_000 } 
 
   function clearCache() {
     cache.clear();
+    periodCache.clear();
   }
 
   return {

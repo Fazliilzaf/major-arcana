@@ -71,6 +71,7 @@
     "verify:cloud-document-wiring-prod": "node ./scripts/verify-cloud-document-wiring-prod.js",
     "verify:ord47-prod-sticks": "node ./scripts/verify-ord47-prod-sticks.js",
     "verify:ord48-prod-sticks": "node ./scripts/verify-ord48-prod-sticks.js",
+    "verify:ord58-clinic-performance-prod": "node ./scripts/verify-ord58-clinic-performance-prod.js",
     "verify:ord29-prod-sticks": "node ./scripts/verify-ord29-prod-sticks.js",
     "verify:ord6-prod-sticks": "node ./scripts/verify-ord6-prod-sticks.js",
     "verify:ord49-id-ready-wiring": "node ./scripts/verify-ord49-id-ready-wiring.js",
