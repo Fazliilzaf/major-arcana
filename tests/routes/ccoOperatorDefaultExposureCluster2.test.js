@@ -11,7 +11,9 @@ const serverSource = fs.readFileSync(path.join(__dirname, '../../server.js'), 'u
 const CLUSTER2_ROUTES = [
   { method: 'get', path: '/api/v1/cco-customer-identity/suggestions' },
   { method: 'get', path: '/api/v1/cco-photo-annotations/customer/:cid' },
+  { method: 'post', path: '/api/v1/cco-photo-annotations' },
   { method: 'get', path: '/api/v1/cco-treatment-plans/customer/:cid' },
+  { method: 'post', path: '/api/v1/cco-treatment-plans' },
   { method: 'get', path: '/api/v1/cco-encounters/customer/:cid/composite' },
   { method: 'get', path: '/api/v1/cco-operator-dashboard/customer-actions' },
   { method: 'get', path: '/api/v1/cco-customers/:id/timeline' },

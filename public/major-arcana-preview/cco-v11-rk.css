@@ -219,6 +219,36 @@
 .v11-rk [data-v11-rk-besok-sec] .photo-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.v11-rk .v11-rk__visit-video-grid {
+  margin-top: 8px;
+}
+.v11-rk .v11-rk__visit-video {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: var(--card-border);
+  border-radius: 10px;
+  background: #241f1b;
+}
+.v11-rk .v11-rk__visit-video video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.v11-rk .v11-rk__visit-video .lbl {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.58);
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
 
 .v11-rk .v11-rk__visit-open {
   width: 100%;

@@ -174,6 +174,8 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   assert.match(v11, /label\('Besök · tillfällen'\)/);
   assert.match(v11, /bundle && bundle\.historyBookings/);
   assert.match(v11, /data-patient-file-id=/);
+  assert.match(v11, /var allVideos = arr\(seg\.videos\)/);
+  assert.match(v11, /video controls preload="metadata" playsinline data-patient-file-id/);
   assert.match(v11, /__ccoHydratePatientFileImages/);
   assert.match(ui, /window\.__ccoHydratePatientFileImages/);
   assert.match(ui, /const encounterId = o\.encounterId/);
