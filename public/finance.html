@@ -1159,6 +1159,8 @@
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             if (preview) {
+              // Bugbot rond 4: revoka INTE preview-blobben — fliken kan vara
+              // öppen länge; URL:en städas när sidan stängs.
               preview.location = url;
             } else {
               const parts = href.split('?')[0].split('/').filter(Boolean);
@@ -1172,8 +1174,8 @@
               document.body.appendChild(a);
               a.click();
               a.remove();
+              setTimeout(() => URL.revokeObjectURL(url), 60000);
             }
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
           } catch (err) {
             if (preview) preview.close();
             alert('Nedladdningsfel: ' + err.message);
