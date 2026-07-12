@@ -104,6 +104,21 @@ test('V12 Content Canon snabbknappar använder tel/sms/mailto och ord48-kalender
   assert.match(ui, /data-kk-ord48-open-calendar/);
 });
 
+test('V12 använder befintliga sektioner som dragspel och jump öppnar rätt sektion', () => {
+  const canonPath = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js');
+  const canon = fs.readFileSync(canonPath, 'utf8');
+  const canonCss = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'cco-v12-canon.css'),
+    'utf8'
+  );
+  assert.match(ui, /function setupV12CanonAccordion\(body\)/);
+  assert.match(ui, /function expandV12CanonSection\(scope, targetSection\)/);
+  assert.match(ui, /data-v12-section-toggle/);
+  assert.match(ui, /expandV12CanonSection\(scope, module\)/);
+  assert.match(canonCss, /data-v12-collapsed="true"/);
+  assert.doesNotMatch(canon, /v12-canon-visit-segment" open/);
+});
+
 test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle', () => {
   const canonPath = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js');
   const canon = fs.readFileSync(canonPath, 'utf8');

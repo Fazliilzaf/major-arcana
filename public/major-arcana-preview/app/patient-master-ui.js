@@ -1496,9 +1496,35 @@
     if (!scope || !moduleName) return;
     const module = scope.querySelector(`[data-v12-module="${moduleName}"]`);
     if (!module) return;
+    expandV12CanonSection(scope, module);
     module.scrollIntoView({ behavior: 'smooth', block: 'start' });
     module.setAttribute('data-v12-focus-pulse', '1');
     window.setTimeout(() => module.removeAttribute('data-v12-focus-pulse'), 1200);
+  }
+
+  function expandV12CanonSection(scope, targetSection) {
+    if (!scope || !targetSection || targetSection.id === 's1') return;
+    scope.querySelectorAll('.v12-canon .sec[data-v12-accordion="1"]').forEach((section) => {
+      const expanded = section === targetSection;
+      section.setAttribute('data-v12-collapsed', expanded ? 'false' : 'true');
+      const header = section.querySelector(':scope > .sec-h[data-v12-section-toggle]');
+      if (header) header.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    });
+  }
+
+  function setupV12CanonAccordion(body) {
+    if (!body) return;
+    body.querySelectorAll('.v12-canon .sec[data-v12-module]').forEach((section) => {
+      if (section.id === 's1') return;
+      const header = section.querySelector(':scope > .sec-h');
+      if (!header) return;
+      section.setAttribute('data-v12-accordion', '1');
+      section.setAttribute('data-v12-collapsed', 'true');
+      header.setAttribute('data-v12-section-toggle', '');
+      header.setAttribute('role', 'button');
+      header.setAttribute('tabindex', '0');
+      header.setAttribute('aria-expanded', 'false');
+    });
   }
 
   // CONTENT-CANON s9: visa ett dokument (PDF) i en modal-ruta ovanpå kundvyn.
@@ -1861,6 +1887,7 @@
 
   function bindV12WorkspaceOverlayBody(body, ctx) {
     if (!body) return;
+    setupV12CanonAccordion(body);
     // Nuläge "Förbered besök" / "Åtgärder ▾"-meny: scrolla till en V12-modul
     // via den befintliga scrollV12WorkspaceModule. Presentation/navigation —
     // ingen ny write-handler. (body återskapas per öppning → ingen dubbelbind.)
@@ -1872,9 +1899,26 @@
         const secId = canonJump.getAttribute('data-v12-canon-jump');
         const target = secId && body.querySelector('#' + secId);
         if (target) {
+          expandV12CanonSection(body, target);
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
           target.setAttribute('data-v12-focus-pulse', '1');
           window.setTimeout(() => target.removeAttribute('data-v12-focus-pulse'), 1200);
+        }
+        return;
+      }
+      const sectionToggle = event.target.closest('[data-v12-section-toggle]');
+      if (sectionToggle && body.contains(sectionToggle)) {
+        const interactiveChild = event.target.closest('button, a, input, select, textarea');
+        if (interactiveChild && interactiveChild !== sectionToggle) return;
+        event.preventDefault();
+        const section = sectionToggle.closest('.sec[data-v12-accordion="1"]');
+        if (!section) return;
+        const collapsed = section.getAttribute('data-v12-collapsed') === 'true';
+        if (collapsed) {
+          expandV12CanonSection(body, section);
+        } else {
+          section.setAttribute('data-v12-collapsed', 'true');
+          sectionToggle.setAttribute('aria-expanded', 'false');
         }
         return;
       }
@@ -2055,6 +2099,13 @@
       const menu = trigger.closest('details[open]');
       if (menu) menu.removeAttribute('open');
       scrollV12WorkspaceModule(body, moduleName);
+    });
+    body.addEventListener('keydown', (event) => {
+      const sectionToggle = event.target.closest('[data-v12-section-toggle]');
+      if (!sectionToggle || !body.contains(sectionToggle)) return;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      sectionToggle.click();
     });
     // Redigera-formulär → PUT /cco-patient-master/patient (merge-upsert, ingen
     // dataförlust). Optimistisk uppdatering av synliga fält + bakgrundsrefresh.

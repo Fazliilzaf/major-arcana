@@ -1147,7 +1147,7 @@
           '</div>'
         : '<div class="visit-segment-empty">Inga dokument kopplade till detta tillfälle.</div>';
       return (
-        '<details class="card v12-canon-visit-segment" open><summary><span class="what">' +
+        '<details class="card v12-canon-visit-segment"><summary><span class="what">' +
         esc(txt(segment && (segment.label || segment.date)) || 'Tillfälle') +
         '</span><span class="when">' +
         esc(meta) +
