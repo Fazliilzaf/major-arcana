@@ -14054,6 +14054,9 @@ process.once('SIGTERM', () => {
       authStore: auth,
       cmStore,
       graphReadConnector: graphReadConnector || null,
+      // ORD-63/64: CM lämnar kandidater till CFO-livscykeln + arkiverar original
+      cfoExpenseStore: app.locals.cfoExpenseStore || null,
+      secureStorage: app.locals.ccoSecureStorage || null,
     })
   );
 

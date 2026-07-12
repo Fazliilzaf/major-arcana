@@ -396,6 +396,24 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 
 ---
 
+## DEL 6 — CFO & CM (ekonomi) _(tillagd 2026-07-12)_
+
+> Nuläge + plan: [CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md](./CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md) ·
+> Kod: `src/cfo/` (CF.2–CF.9) + `src/cm/` · Ordrar: ORD-58–ORD-66.
+
+- [x] CF.2–CF.9 levererade (kvitton, expenses, regelmotor, leverantörer, moms, återkommande, revisorportal, rapporter/månadsstängning) — juni 2026
+- [x] ORD-58/58b Fortnox intäkt/AOV → CEO (#824/#826 mergade; latens prod-verifierad 1,3 s varm 2026-07-12)
+- [ ] **Fortnox OAuth-state prod** → revenue/AOV numeriska (`/api/v1/cco-fortnox/status` + ev. Anslut-klick — ägare: Fazli, ~10 min)
+- [x] ORD-63 CM→CFO-kontrakt + promote-flöde (CM = intagsmotor, CFO äger livscykeln) — 2026-07-12
+- [x] ORD-64 CM-pipeline härdning: äkta delta-sync (persisted cursor) + Graph-bilagor → secure storage + originalarkiv (BFN 7 år) + ledger + store-rotation — 2026-07-12
+- [x] ORD-65 CM-intag i `finance.html` + `tests/cm/` (17/17 PASS) — 2026-07-12
+- [x] CF.9 voucher-sync **SCAFFOLD** (fail-closed: env-gate + OAuth-gate + dryRun; skarp write kräver ägar-GO på BAS-kontoplanen) — 2026-07-12
+- [ ] ORD-66 route-flytt `/cco-cf/*` → `src/routes/cfo.js` (egen PR — het fil)
+- [ ] AI/OCR-policybeslut: CM extraherar via OpenAI medan CF.10 väntar GO — formalisera (ägare: Fazli)
+- [ ] CF.11 bank-CSV · CF.12 payroll — parkerade tills ägar-GO
+
+---
+
 ## Snabb verify (kör vid tvivel)
 
 ```bash
