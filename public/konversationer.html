@@ -4528,13 +4528,40 @@
         document.body.style.overflow = '';
       }
 
+      let mailPdfJsPromise = null;
+      function loadMailPdfJs() {
+        if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+        if (mailPdfJsPromise) return mailPdfJsPromise;
+        mailPdfJsPromise = new Promise((resolve, reject) => {
+          const existing = document.querySelector('script[data-mail-pdfjs]');
+          const script = existing || document.createElement('script');
+          const finish = () => {
+            if (window.pdfjsLib) resolve(window.pdfjsLib);
+            else reject(new Error('PDF.js laddades utan att registreras'));
+          };
+          script.addEventListener('load', finish, { once: true });
+          script.addEventListener('error', () => reject(new Error('PDF.js kunde inte hämtas')), {
+            once: true,
+          });
+          if (!existing) {
+            script.src = '/major-arcana-preview/vendor/pdfjs/pdf.min.js';
+            script.dataset.mailPdfjs = 'true';
+            document.head.appendChild(script);
+          }
+        }).catch((error) => {
+          mailPdfJsPromise = null;
+          throw error;
+        });
+        return mailPdfJsPromise;
+      }
+
       async function renderMailPdfPreview(backdrop, displayUrl) {
-        if (!window.pdfjsLib) throw new Error('PDF.js kunde inte laddas');
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        const pdfjs = await loadMailPdfJs();
+        pdfjs.GlobalWorkerOptions.workerSrc =
           '/major-arcana-preview/vendor/pdfjs/pdf.worker.min.js';
         const response = await fetch(displayUrl);
         if (!response.ok) throw new Error(`PDF kunde inte hämtas (${response.status})`);
-        const loadingTask = window.pdfjsLib.getDocument({ data: await response.arrayBuffer() });
+        const loadingTask = pdfjs.getDocument({ data: await response.arrayBuffer() });
         const pdf = await loadingTask.promise;
         const canvas = backdrop.querySelector('.mail-preview-pdf canvas');
         const pageLabel = backdrop.querySelector('.mail-preview-pdf-page');
@@ -5211,7 +5238,6 @@
         })
       );
     </script>
-    <script src="/major-arcana-preview/vendor/pdfjs/pdf.min.js"></script>
     <script src="/cco-komm-panel.js?v=20260531c" defer></script>
     <script src="/konversationer-bottom-actions.js?v=20260708c-svarstudio-cache" defer></script>
     <script src="/konversationer-mailbox-valjare.js?v=20260708a" defer></script>
