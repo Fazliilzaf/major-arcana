@@ -160,6 +160,11 @@ async function buildFinanceDashboard({
         toDate,
       })
     );
+    if (!listed?.ok) {
+      console.warn(
+        `[cfoFinanceDashboard] invoicePayments FAIL tenant=${fortnoxTenantId}: ${listed?.error || 'okänt fel'}`
+      );
+    }
     if (listed?.ok && Array.isArray(listed.payments)) {
       const totals = buildFortnoxPaidPeriodTotals(listed.payments, now);
       invoiceSummary.totalPaidThisMonthSek = totals.totalPaidThisMonthSek;
@@ -234,6 +239,12 @@ async function buildFinanceDashboard({
   } else {
     issues.push('Commercial-store saknas eller listAll() ej tillgänglig');
     partial.reasons.push('no_commercial_data');
+  }
+
+  if (invoiceSummary.totalPaidThisMonthSek === null) {
+    console.warn(
+      `[cfoFinanceDashboard] revenue=null connected=${fortnox.connected} tenant=${fortnoxTenantId} note=${invoiceSummary.note || '-'}`
+    );
   }
 
   if (slice === 'invoices') {
