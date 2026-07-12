@@ -4579,7 +4579,7 @@ let ccoBookingCaseStore = null;
       async (req, res) => {
         try {
           const assetId = req.params.assetId;
-          const store = app.locals.ccoPatientAssetStore;
+          const store = await resolveSharedPatientAssetStore();
           if (!store) return res.status(503).json({ error: 'asset_store_not_initialized' });
           const asset = store.getAsset?.(assetId);
           if (!asset) return res.status(404).json({ error: 'asset saknas' });

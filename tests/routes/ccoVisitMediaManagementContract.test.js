@@ -14,6 +14,8 @@ test('visit media soft-delete uses audited asset state machine and never hard-de
   assert.ok(route, 'soft-delete route must exist');
   assert.match(route[0], /requireCcoAuthenticated/);
   assert.match(route[0], /requireCcoAuthenticated,[\s\S]*attachRole/);
+  assert.match(route[0], /await resolveSharedPatientAssetStore\(\)/);
+  assert.doesNotMatch(route[0], /app\.locals\.ccoPatientAssetStore/);
   assert.match(route[0], /store\.softDeleteAsset/);
   assert.match(route[0], /target: 'REJECTED'/);
   assert.doesNotMatch(route[0], /hardDeleteAsset/);
