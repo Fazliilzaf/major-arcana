@@ -141,14 +141,45 @@ function createCfoFortnoxVoucherSync({
     const results = [];
     for (const [i, expense] of pending.entries()) {
       try {
+        // Bugbot HIGH (PR #835): tvåfas — markera 'syncing' PERSISTERAT före
+        // Fortnox-write. Krasch efter write → expensen fastnar i 'syncing'
+        // (exkluderas ur nästa run) i stället för att dubbelbokas.
+        if (typeof expenseStore.markFortnoxSyncing === 'function') {
+          await expenseStore.markFortnoxSyncing({ id: expense.id });
+        }
         const response = await fortnoxClient.createVoucher(payloads[i].Voucher);
         const voucherId = response?.Voucher?.VoucherNumber || null;
+        if (!voucherId) {
+          // Bugbot (PR #835): utan verifikatreferens = INTE synced — felmarkera
+          // så avstämning mot Fortnox kan ske manuellt.
+          if (typeof expenseStore.markFortnoxError === 'function') {
+            await expenseStore.markFortnoxError({
+              id: expense.id,
+              error: 'voucher_id_missing_in_response',
+            });
+          }
+          audit('cf.fortnox.voucher_sync_error', {
+            expenseId: expense.id,
+            error: 'voucher_id_missing_in_response',
+          });
+          results.push({
+            expenseId: expense.id,
+            ok: false,
+            error: 'voucher_id_missing_in_response',
+          });
+          continue;
+        }
         if (typeof expenseStore.markFortnoxSynced === 'function') {
           await expenseStore.markFortnoxSynced({ id: expense.id, fortnoxVoucherId: voucherId });
         }
         audit('cf.fortnox.voucher_synced', { expenseId: expense.id, voucherId });
         results.push({ expenseId: expense.id, ok: true, voucherId });
       } catch (err) {
+        if (typeof expenseStore.markFortnoxError === 'function') {
+          await expenseStore
+            .markFortnoxError({ id: expense.id, error: err.message })
+            .catch(() => {});
+        }
         audit('cf.fortnox.voucher_sync_error', { expenseId: expense.id, error: err.message });
         results.push({ expenseId: expense.id, ok: false, error: err.message });
       }

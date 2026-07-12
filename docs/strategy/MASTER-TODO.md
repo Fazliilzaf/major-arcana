@@ -399,17 +399,20 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 ## DEL 6 — CFO & CM (ekonomi) _(tillagd 2026-07-12)_
 
 > Nuläge + plan: [CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md](./CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md) ·
-> Kod: `src/cfo/` (CF.2–CF.9) + `src/cm/` · Ordrar: ORD-58–ORD-66.
+> Kod: `src/cfo/` (CF.2–CF.9) + `src/cm/` · Ordrar: ORD-58–ORD-67.
 
 - [x] CF.2–CF.9 levererade (kvitton, expenses, regelmotor, leverantörer, moms, återkommande, revisorportal, rapporter/månadsstängning) — juni 2026
 - [x] ORD-58/58b Fortnox intäkt/AOV → CEO (#824/#826 mergade; latens prod-verifierad 1,3 s varm 2026-07-12)
-- [ ] **Fortnox OAuth-state prod** → revenue/AOV numeriska (`/api/v1/cco-fortnox/status` + ev. Anslut-klick — ägare: Fazli, ~10 min)
+- [x] **Fortnox OAuth-state prod** ✅ VERIFIERAD 2026-07-13: connected, revenue 285 000 kr + AOV live i CP, `verify:ord58` **7/7** (401 ms varm)
 - [x] ORD-63 CM→CFO-kontrakt + promote-flöde (CM = intagsmotor, CFO äger livscykeln) — 2026-07-12
 - [x] ORD-64 CM-pipeline härdning: äkta delta-sync (persisted cursor) + Graph-bilagor → secure storage + originalarkiv (BFN 7 år) + ledger + store-rotation — 2026-07-12
 - [x] ORD-65 CM-intag i `finance.html` + `tests/cm/` (17/17 PASS) — 2026-07-12
-- [x] CF.9 voucher-sync **SCAFFOLD** (fail-closed: env-gate + OAuth-gate + dryRun; skarp write kräver ägar-GO på BAS-kontoplanen) — 2026-07-12
-- [ ] ORD-66 route-flytt `/cco-cf/*` → `src/routes/cfo.js` (egen PR — het fil)
-- [ ] AI/OCR-policybeslut: CM extraherar via OpenAI medan CF.10 väntar GO — formalisera (ägare: Fazli)
+- [x] CF.9 voucher-sync **SCAFFOLD** (fail-closed: env-gate + OAuth-gate + dryRun) — 2026-07-12
+- [x] **ORD-67** CF.9 skarp: `createVoucher` + dryRun-rapport (route + finance.html) — ägar-GO "GO + dryRun först" 2026-07-13. Kontoplan: [CF9-KONTOPLAN-FORSLAG](./CF9-KONTOPLAN-FORSLAG-2026-07-13.md)
+- [x] **AI/OCR-policybeslut** — ägar-beslut 2026-07-13: OpenAI OK för leverantörsunderlag, aldrig patientdata; CF.10 öppnad. Se [AI-OCR-POLICY-BESLUT](./AI-OCR-POLICY-BESLUT-2026-07-13.md)
+- [ ] **Skarp voucher-write** (ägare: Fazli): dryRun-granskning m. revisor → bookkeeping-scope + om-OAuth → `ARCANA_CFO_FORTNOX_VOUCHER_SYNC_ENABLED=true` (ordning i ORD-67)
+- [ ] **kvitto@hairtpclinic.com** (ägare: Fazli, ~10 min): delad postlåda i M365 + `CM_MAIL_ACCOUNT`-env → skarp mail-intag (steg i ORD-67)
+- [ ] ORD-66 route-flytt `/cco-cf/*` → `src/routes/cfo.js` (egen PR — het fil, Cursor)
 - [ ] CF.11 bank-CSV · CF.12 payroll — parkerade tills ägar-GO
 
 ---

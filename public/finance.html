@@ -939,6 +939,26 @@
         <div class="receipts-list" id="cm-list"><div class="empty">Hämtar…</div></div>
       </div>
 
+      <!-- ORD-67 · CF.9: Fortnox verifikat — dryRun-granskning (ägar-GO 2026-07-13) -->
+      <div class="section" id="cf9-dryrun">
+        <h2>
+          Fortnox verifikat · dryRun
+          <span class="meta" id="cf9-count">—</span>
+          <div class="section-actions">
+            <button class="btn btn--primary" data-action="cf9-dryrun">
+              📋 Generera dryRun-rapport
+            </button>
+          </div>
+        </h2>
+        <div class="receipts-list" id="cf9-list">
+          <div class="empty">
+            Klicka "Generera dryRun-rapport" för att se exakta verifikat-förslag (BAS-konton) för
+            exporterade utgifter — inget skrivs till Fortnox. Skarp sync kräver env-gate +
+            bookkeeping-scope (se ORD-67).
+          </div>
+        </div>
+      </div>
+
       <!-- Upload Receipt -->
       <label class="upload-card" for="cf-upload">
         📎 Ladda upp kvitto / underlag
@@ -2720,6 +2740,83 @@
           });
         document.querySelector('[data-action="cm-refresh"]').addEventListener('click', loadCm);
         loadCm();
+      })();
+
+      // ORD-67 · CF.9 dryRun-granskning: verifikat-förslag utan write
+      (function cf9DryRunSection() {
+        const list = document.getElementById('cf9-list');
+        const countEl = document.getElementById('cf9-count');
+        const btn = document.querySelector('[data-action="cf9-dryrun"]');
+        if (!list || !countEl || !btn) return;
+        function esc(s) {
+          return String(s == null ? '' : s).replace(
+            /[&<>"']/g,
+            (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+          );
+        }
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          btn.textContent = 'Genererar…';
+          try {
+            const r = await fetch('/api/v1/cco-cf/voucher-sync/dry-run', {
+              credentials: 'same-origin',
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              list.innerHTML = '<div class="empty">Fel: ' + esc(d.error || r.status) + '</div>';
+              return;
+            }
+            countEl.textContent = d.pendingCount || 0;
+            if (!d.payloads || !d.payloads.length) {
+              list.innerHTML =
+                '<div class="empty">Inga exporterade utgifter väntar på Fortnox-sync. Exportera i utgiftsflödet först.</div>';
+              return;
+            }
+            list.innerHTML = d.payloads
+              .map((p) => {
+                const v = p.Voucher || {};
+                const rows = (v.VoucherRows || [])
+                  .map(
+                    (row) =>
+                      '<span class="receipt-link-chip">' +
+                      esc(row.Account) +
+                      ' D:' +
+                      esc(row.Debit) +
+                      ' K:' +
+                      esc(row.Credit) +
+                      '</span>'
+                  )
+                  .join(' ');
+                const bal = p.meta && p.meta.balanced;
+                return (
+                  '<div class="receipt">' +
+                  '<div class="receipt-thumb">🧮</div>' +
+                  '<div class="receipt-main"><div class="receipt-name">' +
+                  esc(v.Description || '') +
+                  '</div>' +
+                  '<div class="receipt-meta"><span>' +
+                  esc(v.TransactionDate || '') +
+                  '</span><span>serie ' +
+                  esc(v.VoucherSeries || '') +
+                  '</span>' +
+                  rows +
+                  '</div></div>' +
+                  '<span class="receipt-status receipt-status--' +
+                  (bal ? 'categorized' : 'rejected') +
+                  '">' +
+                  (bal ? 'Balanserad' : 'OBALANS') +
+                  '</span>' +
+                  '</div>'
+                );
+              })
+              .join('');
+          } catch (err) {
+            list.innerHTML = '<div class="empty">Fel: ' + esc(err.message) + '</div>';
+          } finally {
+            btn.disabled = false;
+            btn.textContent = '📋 Generera dryRun-rapport';
+          }
+        });
       })();
     </script>
   </body>
