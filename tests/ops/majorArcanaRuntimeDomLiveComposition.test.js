@@ -241,6 +241,30 @@ test('bindWorkspaceInteractions kan bindas utan ReferenceError när queueHistory
   });
 });
 
+test('mailboxnamnet väljer endast det kontot och laddar om runtime med exakt mailboxscope', () => {
+  const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
+  const bindWorkspaceInteractionsSource = extractFunctionSource(
+    source,
+    'bindWorkspaceInteractions'
+  );
+
+  assert.match(
+    bindWorkspaceInteractionsSource,
+    /addEventListener\("click"[\s\S]*?\.mailbox-option-copy[\s\S]*?preventDefault\(\)/,
+    'Kontonamnet ska ha en egen exklusiv klickväg i mailboxmenyn.'
+  );
+  assert.match(
+    bindWorkspaceInteractionsSource,
+    /applyRuntimeMailboxSelection\(\[mailboxId\]\)/,
+    'Exklusivt mailboxval ska ersätta scope med exakt det valda kontot.'
+  );
+  assert.match(
+    bindWorkspaceInteractionsSource,
+    /scheduleMailboxScopeLiveReload\(nextSelectedMailboxIds\)/,
+    'Mailboxvalet ska hämta om live-runtime med det nya scopet.'
+  );
+});
+
 test('runtime-dom-live-composition routear offline-historikkort via den gemensamma workspace-clickkedjan', () => {
   const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
 
