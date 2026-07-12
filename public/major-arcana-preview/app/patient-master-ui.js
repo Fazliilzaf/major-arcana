@@ -2284,19 +2284,15 @@
         const token = getAdminToken();
         const headers = {};
         if (token) headers.Authorization = `Bearer ${token}`;
-        setStatus('Laddar upp film…', 'loading');
+        setStatus(`Förbereder ${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB…`, 'loading');
         durationReady
           .then(() =>
-            fetch(new URL('/api/v1/cco-journal-quick/visit-media', window.location.origin), {
-              method: 'POST',
+            uploadFormDataWithProgress('/api/v1/cco-journal-quick/visit-media', formData, {
               headers,
-              credentials: 'same-origin',
-              body: formData,
+              onProgress: (percent) => setStatus(`Laddar upp film… ${percent} %`, 'loading'),
             })
           )
-          .then(async (response) => {
-            const payload = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+          .then(() => {
             setStatus('Film sparad på besöket.', 'success');
             window.setTimeout(() => void loadPatientDetail(patientId), 500);
           })
@@ -8345,6 +8341,58 @@
     }
   }
 
+  function uploadFormDataWithProgress(url, formData, { headers = {}, onProgress } = {}) {
+    return new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('POST', new URL(url, window.location.origin));
+      request.withCredentials = true;
+      Object.entries(headers).forEach(([name, value]) => request.setRequestHeader(name, value));
+      request.upload.addEventListener('progress', (event) => {
+        if (!event.lengthComputable || typeof onProgress !== 'function') return;
+        onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      });
+      request.addEventListener('load', () => {
+        let payload = {};
+        try {
+          payload = JSON.parse(request.responseText || '{}');
+        } catch {
+          /* The HTTP status remains authoritative when the body is not JSON. */
+        }
+        if (request.status >= 200 && request.status < 300) {
+          resolve(payload);
+          return;
+        }
+        reject(new Error(payload.error || `HTTP ${request.status}`));
+      });
+      request.addEventListener('error', () => reject(new Error('Nätverksfel vid uppladdning.')));
+      request.addEventListener('abort', () => reject(new Error('Uppladdningen avbröts.')));
+      request.send(formData);
+    });
+  }
+
+  async function attachVideoPoster(video) {
+    if (!video || video.dataset.posterReady === 'true') return;
+    try {
+      await new Promise((resolve, reject) => {
+        const onReady = () => resolve();
+        const onError = () => reject(new Error('video_metadata_failed'));
+        video.addEventListener('loadeddata', onReady, { once: true });
+        video.addEventListener('error', onError, { once: true });
+        if (video.readyState >= 2) resolve();
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.min(video.videoWidth || 640, 960);
+      canvas.height = Math.round(canvas.width * ((video.videoHeight || 360) / (video.videoWidth || 640)));
+      const context = canvas.getContext('2d');
+      if (!context || !canvas.width || !canvas.height) return;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      video.poster = canvas.toDataURL('image/jpeg', 0.78);
+      video.dataset.posterReady = 'true';
+    } catch {
+      video.dataset.posterReady = 'unavailable';
+    }
+  }
+
   async function fetchPatientFileObjectUrl(fileId, opts = {}) {
     const normalizedId = normalizeText(fileId);
     if (!normalizedId) return '';
@@ -8469,6 +8517,7 @@
         }
       } else {
         img.src = objectUrl;
+        void attachVideoPoster(img);
       }
       img.dataset.loaded = 'true';
       const tileLink = img.tagName === 'IMG' ? img.closest('a.patient-master-image-tile') : null;

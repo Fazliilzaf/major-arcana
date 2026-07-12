@@ -471,6 +471,18 @@ test('assets/repair-encounter-links är owner-gated och kräver confirmText vid 
   assert.match(source, /assetStore\.linkAssetToEncounter/);
 });
 
+test('assets/repair-encounter-links batchar persist vid skarp repair', () => {
+  const source = require('node:fs').readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
+    'utf8'
+  );
+  assert.match(
+    source,
+    /repair-encounter-links[\s\S]*?assetStore\.beginBatch\(\)[\s\S]*?assetStore\.linkAssetToEncounter[\s\S]*?assetStore\.flushBatch\(\)/
+  );
+  assert.match(source, /finally \{[\s\S]*?assetStore\.flushBatch\(\)/);
+});
+
 test('assets/link-encounter kräver owner och verifierar patient, asset och encounter', () => {
   const source = require('node:fs').readFileSync(
     path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),

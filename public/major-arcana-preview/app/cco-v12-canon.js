@@ -1061,7 +1061,7 @@
           : '';
       return (
         '<div class="v12-canon-visit-video">' +
-        '<video controls preload="metadata" data-patient-file-id="' +
+        '<video controls preload="auto" playsinline data-patient-file-id="' +
         esc(assetId) +
         '" aria-label="' +
         esc(name) +

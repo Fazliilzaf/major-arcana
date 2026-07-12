@@ -1211,6 +1211,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   background: #171411;
+  object-fit: contain;
 }
 .v12-canon .v12-canon-visit-video__meta {
   padding: 8px 10px;

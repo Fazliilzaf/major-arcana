@@ -2315,25 +2315,32 @@ function createCcoPatientMasterRouter({
         });
         const plan = buildEncounterLinkRepairPlan({ patientInputs });
         const results = [];
-        for (const mapping of plan.linkable) {
-          const asset = plan.assetById.get(mapping.assetId);
-          if (!asset || !mapping.encounterId) continue;
-          if (dryRun) {
+        if (!dryRun && typeof assetStore.beginBatch === 'function') assetStore.beginBatch();
+        try {
+          for (const mapping of plan.linkable) {
+            const asset = plan.assetById.get(mapping.assetId);
+            if (!asset || !mapping.encounterId) continue;
+            if (dryRun) {
+              results.push({
+                assetId: asset.id,
+                encounterId: mapping.encounterId,
+                status: 'would_link',
+              });
+              continue;
+            }
+            const linked = await assetStore.linkAssetToEncounter(asset.id, mapping.encounterId, {
+              actor: { userId: actor.userId, role: actor.role },
+            });
             results.push({
               assetId: asset.id,
-              encounterId: mapping.encounterId,
-              status: 'would_link',
+              encounterId: linked?.encounterId || mapping.encounterId,
+              status: 'linked',
             });
-            continue;
           }
-          const linked = await assetStore.linkAssetToEncounter(asset.id, mapping.encounterId, {
-            actor: { userId: actor.userId, role: actor.role },
-          });
-          results.push({
-            assetId: asset.id,
-            encounterId: linked?.encounterId || mapping.encounterId,
-            status: 'linked',
-          });
+        } finally {
+          if (!dryRun && typeof assetStore.flushBatch === 'function') {
+            await assetStore.flushBatch();
+          }
         }
         const report = {
           dryRun,
