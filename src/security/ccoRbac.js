@@ -309,6 +309,22 @@ function attachRole(req, res, next) {
   next();
 }
 
+/**
+ * ORD-67c (2026-07-13): bygg actor ur verifierad auth (req.auth/req.user, satt
+ * av auth-middleware — se ORD-67b-bryggan i server.js). CF-routes har refererat
+ * `getActor` sedan CF.2 (2026-06-01) men exporten har ALDRIG funnits — maskerat
+ * av att requireAnyRole 403:ade allt före handlern (ingen token-parser fanns).
+ * Upptäckt vid ägar-UAT när bryggan släppte fram första riktiga requesten.
+ */
+function getActor(req) {
+  const src = req.auth || req.user || req.cco || {};
+  return {
+    userId: src.userId || src.id || src.email || 'unknown',
+    email: src.email || null,
+    role: getRoleFromRequest(req),
+  };
+}
+
 module.exports = {
   PERMISSIONS,
   ALL_ROLES,
@@ -316,6 +332,7 @@ module.exports = {
   roleHasPermission,
   listPermissionsForRole,
   getRoleFromRequest,
+  getActor,
   requirePermission,
   requireAnyRole,
   attachRole,
