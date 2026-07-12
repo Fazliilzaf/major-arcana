@@ -289,6 +289,17 @@ function typesCompatible(encounterType, assetType) {
   return false;
 }
 
+function reviewCandidateDetails(encounters = []) {
+  return encounters.map((encounter) => ({
+    encounterId: encounter.encounterId,
+    encounterType: encounter.encounterType || null,
+    visitLabel: encounter.visitLabel || null,
+    source: encounter.source || null,
+    confidence: encounter.confidence || null,
+    occurredAt: encounter.occurredAt || null,
+  }));
+}
+
 /**
  * Matcha ett asset mot registry. Osäkert → confidence review.
  */
@@ -394,6 +405,7 @@ function matchAssetToEncounter(asset = {}, registryForPatient = new Map()) {
         confidence: 'review',
         reason: 'ambiguous_type_on_date',
         candidates: typed.map((e) => e.encounterId),
+        candidateDetails: reviewCandidateDetails(typed),
         visitLabel: null,
         encounterType: assetType,
       };
@@ -471,6 +483,7 @@ function matchAssetToEncounter(asset = {}, registryForPatient = new Map()) {
     confidence: 'review',
     reason: 'ambiguous_date',
     candidates: sameDay.map((e) => e.encounterId),
+    candidateDetails: reviewCandidateDetails(sameDay),
     visitLabel: null,
     encounterType: assetType,
   };
