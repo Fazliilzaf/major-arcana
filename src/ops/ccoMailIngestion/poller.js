@@ -68,6 +68,7 @@ function createCcoMailIngestionPoller({
           trigger: 'cco_mailbox_poller',
           createdBy: 'system:cco_mailbox_poller',
           folderTypes: ['inbox', 'sent'],
+          truthLimit: Math.max(1, Number(config.ccoMailIngestionPollTruthLimit) || 100),
         });
         results.push({ mailboxEmail, result });
       }
