@@ -1100,6 +1100,13 @@
   font-weight: 800;
   margin-bottom: 7px;
 }
+
+.v12-canon .visit-segment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
 .v12-canon .visit-segment-journal__row small {
   display: block;
   color: var(--ink-mute, #8a7d6a);

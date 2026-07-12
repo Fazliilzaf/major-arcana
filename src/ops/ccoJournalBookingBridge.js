@@ -245,6 +245,7 @@ async function syncConsultationPhotoToEncounter({
   tenantId,
   planEntry = {},
   photo = {},
+  encounterId = '',
   actor = {},
   channel = 'cco_staff',
 } = {}) {
@@ -258,8 +259,17 @@ async function syncConsultationPhotoToEncounter({
   const today = new Date().toISOString().slice(0, 10);
   let encounter = null;
 
+  const requestedEncounterId = normalizeText(encounterId);
+  if (requestedEncounterId) {
+    encounter = await treatmentEncounterStore.getEncounter({
+      tenantId,
+      patientId,
+      encounterId: requestedEncounterId,
+    });
+  }
+
   const existingEncounterId = normalizeText(planEntry.treatmentEncounterId);
-  if (existingEncounterId) {
+  if (!encounter && existingEncounterId) {
     encounter = await treatmentEncounterStore.getEncounter({
       tenantId,
       patientId,

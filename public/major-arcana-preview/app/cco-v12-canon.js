@@ -1184,6 +1184,26 @@
             .join('') +
           '</div>'
         : '<div class="visit-segment-empty">Inga dokument kopplade till detta tillfälle.</div>';
+      var encounterId = txt(segment && segment.encounterId);
+      var visitDate = txt(segment && segment.date);
+      var roomActions =
+        '<div class="visit-segment-actions">' +
+        '<button type="button" class="sec-link" data-v11-active-visit-action="photo" data-encounter-id="' +
+        esc(encounterId) +
+        '" data-visit-date="' +
+        esc(visitDate) +
+        '">📷 Lägg till bild</button>' +
+        '<button type="button" class="sec-link" data-v12-visit-document data-encounter-id="' +
+        esc(encounterId) +
+        '" data-visit-date="' +
+        esc(visitDate) +
+        '">📄 Lägg till dokument</button>' +
+        '<button type="button" class="sec-link" data-v12-visit-video data-encounter-id="' +
+        esc(encounterId) +
+        '" data-visit-date="' +
+        esc(visitDate) +
+        '">🎥 Lägg till film</button>' +
+        '</div>';
       return (
         '<details class="card v12-canon-visit-segment"><summary><span class="what">' +
         esc(txt(segment && (segment.label || segment.date)) || 'Tillfälle') +
@@ -1194,6 +1214,7 @@
         reasonRow +
         visitRoomStatus(segment) +
         journalBlock(segment) +
+        roomActions +
         photos +
         films +
         docs +
@@ -1289,6 +1310,9 @@
       : null;
     var docInput =
       '<input type="file" accept="application/pdf,.pdf" hidden data-v12-doc-input="' +
+      esc(patientId) +
+      '">' +
+      '<input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.m4v,.webm" hidden data-v12-video-input="' +
       esc(patientId) +
       '">';
     var head = secHead(

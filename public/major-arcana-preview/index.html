@@ -55,11 +55,7 @@
       as="script"
       href="./app/mobile-deeplink-boot.js?v=v12-real-customer-surface-v1"
     />
-    <link
-      rel="preload"
-      as="script"
-      href="./app/patient-master-ui.js?v=customer-full-product-contract-v1"
-    />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=visit-room-workflow-v1" />
     <script>
       (function deferInboxUntilNeeded() {
         try {
@@ -164,8 +160,8 @@
     <link rel="stylesheet" href="./cco-v11-rail.css?v=v11rail-polish-2" />
     <link rel="stylesheet" href="./cco-v12-workspace.css?v=v12-dossier-launch-flow-v1" />
     <link rel="stylesheet" href="./cco-v12-spine.css?v=v12spine-v1" />
-    <link rel="stylesheet" href="./cco-v12-canon.css?v=v12canon-v1" />
-    <link rel="stylesheet" href="./cco-v11-rk.css?v=v11rk-v1" />
+    <link rel="stylesheet" href="./cco-v12-canon.css?v=visit-room-workflow-v1" />
+    <link rel="stylesheet" href="./cco-v11-rk.css?v=visit-room-workflow-v1" />
     <!-- Konversationer v2 — skal-styling (scopad #cco-conv-v2-root; legacy-göm grindad på flaggan) -->
     <link rel="stylesheet" href="./app/cco-conversations-v2.css?v=conversations-v2-shell-v1" />
     <!-- Bokning v1 — facit-trogen MOBIL-styling (scopad #cco-book-v1-root; ≤834px) -->
@@ -3654,10 +3650,7 @@
                   <script defer src="/cco-scalp-analysis.js"></script>
                   <script src="/cco-kunder-staff-owner.js?v=build-39eec9b8" defer></script>
                   <script src="./app/journal-photo-client.js?v=kkx-photo-uat2"></script>
-                  <script
-                    async
-                    src="./app/patient-master-ui.js?v=customer-full-product-contract-v1"
-                  ></script>
+                  <script async src="./app/patient-master-ui.js?v=visit-room-workflow-v1"></script>
                   <script
                     defer
                     src="./app/cco-v9-interactions.js?v=build-cmdk-server-search"
@@ -3708,12 +3701,16 @@
                     defer
                     src="./app/cco-v11-rail-adapters.js?v=v11v12-port-wiring-1"
                   ></script>
-                  <script defer src="./app/cco-v11-rk.js?v=v11v12-port-wiring-1"></script>
+                  <script defer src="./app/cco-v11-rk.js?v=visit-room-workflow-v1"></script>
                   <script defer src="./app/cco-v12-spine.js?v=v11v12-port-wiring-1"></script>
                   <script
                     defer
-                    src="./app/cco-v12-canon.js?v=v11v12-port-wiring-1"
-                    onload="window.dispatchEvent(new CustomEvent('arcana:customer-product-renderers-ready'))"
+                    src="./app/cco-v12-canon.js?v=visit-room-workflow-v1"
+                    onload="
+                      window.dispatchEvent(
+                        new CustomEvent('arcana:customer-product-renderers-ready')
+                      )
+                    "
                   ></script>
                   <script
                     defer
@@ -3726,10 +3723,7 @@
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script
-                    async
-                    src="./app/patient-master-ui.js?v=customer-full-product-contract-v1"
-                  ></script>
+                  <script async src="./app/patient-master-ui.js?v=visit-room-workflow-v1"></script>
                   <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
