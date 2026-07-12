@@ -3985,26 +3985,38 @@
         );
       }
 
+      function createEmbeddedMailImageBlob(value) {
+        const url = normalizeText(value);
+        const match = url.match(/^data:(image\/(?:png|jpe?g|gif|webp|svg\+xml))((?:;[^,]*)?),(.*)$/is);
+        if (!match) throw new Error('mail_asset_invalid_embedded_image');
+        const contentType = match[1].toLowerCase();
+        const metadata = match[2] || '';
+        const payload = match[3] || '';
+        if (/;base64/i.test(metadata)) {
+          const binary = window.atob(payload.replace(/\s+/g, ''));
+          const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+          return new Blob([bytes], { type: contentType });
+        }
+        return new Blob([decodeURIComponent(payload)], { type: contentType });
+      }
+
       async function authorizedMailAssetUrl(value) {
         const url = normalizeText(value);
         const localMailAsset = isLocalMailAssetUrl(url);
         const embeddedMailImage = isEmbeddedMailImageUrl(url);
         if (!localMailAsset && !embeddedMailImage) return url;
         if (mailAssetBlobUrls.has(url)) return mailAssetBlobUrls.get(url);
-        const pending = fetch(
-          url,
-          localMailAsset
-            ? {
-                credentials: 'include',
-                headers: withAdminAuthHeaders({ Accept: '*/*' }),
-              }
-            : undefined
-        )
-          .then((response) => {
-            if (!response.ok) throw new Error(`mail_asset_${response.status}`);
-            return response.blob();
-          })
-          .then((blob) => URL.createObjectURL(blob));
+        const pending = embeddedMailImage
+          ? Promise.resolve(URL.createObjectURL(createEmbeddedMailImageBlob(url)))
+          : fetch(url, {
+              credentials: 'include',
+              headers: withAdminAuthHeaders({ Accept: '*/*' }),
+            })
+              .then((response) => {
+                if (!response.ok) throw new Error(`mail_asset_${response.status}`);
+                return response.blob();
+              })
+              .then((blob) => URL.createObjectURL(blob));
         mailAssetBlobUrls.set(url, pending);
         try {
           const blobUrl = await pending;

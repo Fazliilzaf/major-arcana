@@ -403,7 +403,12 @@ test('konversationer hydrates embedded company-template images before iframe dis
   );
   assert.match(
     html,
-    /const embeddedMailImage = isEmbeddedMailImageUrl\(url\);[\s\S]*URL\.createObjectURL\(blob\)/,
+    /function createEmbeddedMailImageBlob\(value\)[\s\S]*decodeURIComponent\(payload\)/,
+    'Mallbilder ska avkodas lokalt utan ett CSP-blockerat fetch(data:)-anrop.'
+  );
+  assert.match(
+    html,
+    /embeddedMailImage[\s\S]*Promise\.resolve\(URL\.createObjectURL\(createEmbeddedMailImageBlob\(url\)\)\)/,
     'Inbäddade SVG-/bildsymboler ska bli renderbara blob-URL:er.'
   );
 });
