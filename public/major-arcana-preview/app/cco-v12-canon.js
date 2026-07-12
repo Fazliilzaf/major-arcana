@@ -1285,7 +1285,11 @@
         '">🎥 Lägg till film</button>' +
         '</div>';
       return (
-        '<details class="card v12-canon-visit-segment"><summary><span class="what">' +
+        '<details class="card v12-canon-visit-segment" data-visit-room-encounter="' +
+        esc(encounterId) +
+        '" data-visit-room-date="' +
+        esc(visitDate) +
+        '"><summary><span class="what">' +
         esc(txt(segment && (segment.label || segment.date)) || 'Tillfälle') +
         '</span><span class="when">' +
         esc(meta) +
