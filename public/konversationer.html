@@ -781,10 +781,18 @@
         font-size: 10px;
         font-weight: 750;
       }
+      .msg-attachments-more { width: 100%; margin-top: 6px; }
+      .msg-attachments-more summary {
+        cursor: pointer;
+        color: var(--cco-color-brand);
+        font-size: 11px;
+        font-weight: 750;
+      }
+      .msg-attachments-more-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
       .mail-preview-backdrop {
         position: fixed;
         inset: 0;
-        z-index: 12000;
+        z-index: 2147483600;
         display: grid;
         place-items: center;
         padding: 28px;
@@ -860,6 +868,90 @@
         border: 0;
         background: #fff;
       }
+      .mail-preview-loading {
+        display: grid;
+        place-items: center;
+        gap: 12px;
+        min-height: 240px;
+        padding: 32px;
+        color: var(--cco-text-secondary);
+        text-align: center;
+      }
+      .mail-preview-spinner {
+        width: 34px;
+        height: 34px;
+        border: 3px solid rgba(187, 71, 121, 0.16);
+        border-top-color: var(--accent-studio);
+        border-radius: 50%;
+        animation: mail-preview-spin 0.8s linear infinite;
+      }
+      @keyframes mail-preview-spin { to { transform: rotate(360deg); } }
+      .mail-preview-office {
+        width: min(960px, 100%);
+        min-height: 100%;
+        padding: 28px;
+        background: #fff;
+        color: #242126;
+      }
+      .mail-preview-office img { max-width: 100%; height: auto; }
+      .mail-preview-office table {
+        width: max-content;
+        min-width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .mail-preview-office th,
+      .mail-preview-office td {
+        max-width: 360px;
+        padding: 7px 9px;
+        border: 1px solid #ddd7d2;
+        overflow-wrap: anywhere;
+        text-align: left;
+      }
+      .mail-preview-sheet-tabs {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 8px;
+        background: rgba(255, 253, 251, 0.96);
+        border-bottom: 1px solid rgba(112, 89, 65, 0.14);
+      }
+      .mail-preview-sheet-tabs button,
+      .mail-preview-retry {
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid rgba(112, 89, 65, 0.18);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--cco-color-brand);
+        font: inherit;
+        font-weight: 750;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .mail-preview-sheet-tabs button.active { color: var(--accent-studio); border-color: #d79ab5; }
+      .mail-preview-slides { display: grid; gap: 18px; width: min(960px, 100%); padding: 24px; }
+      .mail-preview-slide {
+        aspect-ratio: 16 / 9;
+        min-height: 260px;
+        padding: 7%;
+        overflow: auto;
+        background: #fff;
+        border: 1px solid #ded8d3;
+        box-shadow: 0 8px 24px rgba(36, 30, 27, 0.12);
+      }
+      .mail-preview-slide h3 { margin: 0 0 18px; color: var(--accent-studio); }
+      .mail-preview-slide p { margin: 0 0 10px; font-size: 16px; }
+      .mail-preview-media {
+        display: block;
+        width: min(100%, 1040px);
+        max-height: 100%;
+        background: #171515;
+      }
+      audio.mail-preview-media { width: min(720px, calc(100% - 32px)); background: transparent; }
       .mail-preview-pdf {
         width: 100%;
         height: 100%;
@@ -920,6 +1012,9 @@
         .mail-preview-dialog { width: 100%; height: 94vh; border-radius: 12px; }
         .mail-preview-download { font-size: 0; width: 36px; padding: 0; justify-content: center; }
         .mail-preview-download::before { content: '↓'; font-size: 18px; }
+        .mail-preview-office { padding: 16px; }
+        .mail-preview-slides { padding: 12px; }
+        .mail-preview-slide { min-height: 190px; }
       }
       .msg.is-outgoing .msg-bubble {
         background: linear-gradient(180deg, #fff5e6, #ffe3b8);
@@ -4511,8 +4606,7 @@
           summary.push(`🖼 ${imageCount} ${imageCount === 1 ? 'bild' : 'bilder'}`);
         }
         const header = `<div class="msg-attachments-head">${escapeHtml(summary.join(' · '))}</div>`;
-        const chips = attachments
-          .map((attachment) => {
+        const renderAttachment = (attachment) => {
             const item = attachment && typeof attachment === 'object' ? attachment : {};
             const size = formatAttachmentSize(item.size);
             const type = normalizeText(item.contentType);
@@ -4532,9 +4626,13 @@
             // Ingen nedladdningsbar URL (t.ex. Graph-läsning av): visa ändå att
             // bilagan finns, som en icke-klickbar chip.
             return `<div class="msg-attachment msg-attachment--unavailable" title="${escapeHtml(meta || name)} · går inte att öppna just nu">${inner}</div>`;
-          })
-          .join('');
-        return `<div class="msg-attachments">${header}${chips}</div>`;
+          };
+        const visible = attachments.slice(0, 24).map(renderAttachment).join('');
+        const remaining = attachments.slice(24);
+        const overflow = remaining.length
+          ? `<details class="msg-attachments-more"><summary>Visa resterande ${remaining.length} bilagor</summary><div class="msg-attachments-more-grid">${remaining.map(renderAttachment).join('')}</div></details>`
+          : '';
+        return `<div class="msg-attachments">${header}${visible}${overflow}</div>`;
       }
 
       function closeMailAttachmentPreview() {
@@ -4546,6 +4644,26 @@
       }
 
       let mailPdfJsPromise = null;
+      const MAIL_PREVIEW_MAX_BYTES = 25 * 1024 * 1024;
+      const mailPreviewScriptPromises = new Map();
+
+      function loadMailPreviewScript(src, ready) {
+        if (ready()) return Promise.resolve();
+        if (mailPreviewScriptPromises.has(src)) return mailPreviewScriptPromises.get(src);
+        const pending = new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = src;
+          script.onload = () => (ready() ? resolve() : reject(new Error('Biblioteket kunde inte startas')));
+          script.onerror = () => reject(new Error('Biblioteket kunde inte laddas'));
+          document.head.appendChild(script);
+        }).catch((error) => {
+          mailPreviewScriptPromises.delete(src);
+          throw error;
+        });
+        mailPreviewScriptPromises.set(src, pending);
+        return pending;
+      }
+
       function loadMailPdfJs() {
         if (mailPdfJsPromise) return mailPdfJsPromise;
         mailPdfJsPromise = import('/vendor/pdfjs/pdf.min.mjs').catch((error) => {
@@ -4553,6 +4671,51 @@
           throw error;
         });
         return mailPdfJsPromise;
+      }
+
+      async function loadMailOfficeLibrary(kind) {
+        if (kind === 'word') {
+          await loadMailPreviewScript('/vendor/office/mammoth.browser.min.js', () => !!window.mammoth);
+          return window.mammoth;
+        }
+        if (kind === 'excel') {
+          await loadMailPreviewScript('/vendor/office/xlsx.full.min.js', () => !!window.XLSX);
+          return window.XLSX;
+        }
+        if (kind === 'powerpoint') {
+          await loadMailPreviewScript('/vendor/office/jszip.min.js', () => !!window.JSZip);
+          return window.JSZip;
+        }
+        throw new Error('Filtypen stöds inte');
+      }
+
+      function mailPreviewKind(name, contentType, imageLike) {
+        const value = `${normalizeText(name).toLowerCase()} ${normalizeText(contentType).toLowerCase()}`;
+        if (imageLike) return 'image';
+        if (/\.pdf\b|application\/pdf/.test(value)) return 'pdf';
+        if (/\.(docx?|odt)\b|wordprocessingml|msword/.test(value)) return 'word';
+        if (/\.(xlsx?|xlsm|csv)\b|spreadsheetml|ms-excel|text\/csv/.test(value)) return 'excel';
+        if (/\.(pptx?|odp)\b|presentationml|ms-powerpoint/.test(value)) return 'powerpoint';
+        if (/^video\//.test(normalizeText(contentType).toLowerCase()) || /\.(mp4|webm|mov|m4v)\b/.test(value)) return 'video';
+        if (/^audio\//.test(normalizeText(contentType).toLowerCase()) || /\.(mp3|wav|m4a|aac|ogg)\b/.test(value)) return 'audio';
+        if (/text\//.test(value) || /\.(txt|log)\b/.test(value)) return 'text';
+        return 'unknown';
+      }
+
+      function mailPreviewLoading(label) {
+        return `<div class="mail-preview-loading" role="status"><span class="mail-preview-spinner" aria-hidden="true"></span><strong>${escapeHtml(label)}</strong><span>Filen bearbetas lokalt i CCO.</span></div>`;
+      }
+
+      function mailPreviewError(message, detail = '') {
+        return `<div class="mail-preview-unavailable"><strong>${escapeHtml(message)}</strong>${detail ? `<br><span>${escapeHtml(detail)}</span>` : ''}<br><button class="mail-preview-retry" type="button">Försök igen</button><br><small>Originalfilen kan alltid hämtas med Ladda ner.</small></div>`;
+      }
+
+      async function mailPreviewBlob(sourceUrl) {
+        const blob = await authorizedMailAssetBlob(sourceUrl);
+        if (blob.size > MAIL_PREVIEW_MAX_BYTES) {
+          throw new Error(`Filen är ${formatAttachmentSize(blob.size)}. Förhandsvisning stöder upp till 25 MB.`);
+        }
+        return blob;
       }
 
       async function renderMailPdfPreview(backdrop, sourceUrl) {
@@ -4609,6 +4772,82 @@
         await renderPage();
       }
 
+      async function renderMailWordPreview(stage, sourceUrl) {
+        const mammoth = await loadMailOfficeLibrary('word');
+        const blob = await mailPreviewBlob(sourceUrl);
+        const result = await mammoth.convertToHtml({ arrayBuffer: await blob.arrayBuffer() });
+        const safeHtml = sanitizeMailHtmlForDisplay(result.value || '');
+        stage.innerHTML = `<article class="mail-preview-office">${safeHtml || '<p>Dokumentet saknar synligt innehåll.</p>'}</article>`;
+        await hydrateMailAssetRoot(stage);
+      }
+
+      async function renderMailExcelPreview(stage, sourceUrl) {
+        const XLSX = await loadMailOfficeLibrary('excel');
+        const blob = await mailPreviewBlob(sourceUrl);
+        const workbook = XLSX.read(await blob.arrayBuffer(), { type: 'array', cellDates: true });
+        const names = workbook.SheetNames.slice(0, 30);
+        if (!names.length) throw new Error('Arbetsboken innehåller inga blad.');
+        const tabs = names.map((name, index) => `<button type="button" data-sheet-index="${index}" class="${index === 0 ? 'active' : ''}">${escapeHtml(name)}</button>`).join('');
+        stage.innerHTML = `<div style="width:100%;min-height:100%"><div class="mail-preview-sheet-tabs">${tabs}</div><div class="mail-preview-office" data-sheet-content></div></div>`;
+        const renderSheet = (index) => {
+          const name = names[index];
+          const html = XLSX.utils.sheet_to_html(workbook.Sheets[name], { id: 'mail-preview-sheet' });
+          stage.querySelector('[data-sheet-content]').innerHTML = sanitizeMailHtmlForDisplay(html);
+          stage.querySelectorAll('[data-sheet-index]').forEach((button) => button.classList.toggle('active', Number(button.dataset.sheetIndex) === index));
+        };
+        stage.querySelector('.mail-preview-sheet-tabs').addEventListener('click', (event) => {
+          const button = event.target.closest('[data-sheet-index]');
+          if (button) renderSheet(Number(button.dataset.sheetIndex));
+        });
+        renderSheet(0);
+      }
+
+      async function renderMailPowerPointPreview(stage, sourceUrl) {
+        const JSZip = await loadMailOfficeLibrary('powerpoint');
+        const blob = await mailPreviewBlob(sourceUrl);
+        const archive = await JSZip.loadAsync(await blob.arrayBuffer());
+        const slideNames = Object.keys(archive.files)
+          .filter((name) => /^ppt\/slides\/slide\d+\.xml$/i.test(name))
+          .sort((a, b) => Number(a.match(/slide(\d+)/i)?.[1] || 0) - Number(b.match(/slide(\d+)/i)?.[1] || 0))
+          .slice(0, 100);
+        if (!slideNames.length) throw new Error('Presentationens bilder kunde inte läsas.');
+        const slides = await Promise.all(slideNames.map(async (path, index) => {
+          const xml = new DOMParser().parseFromString(await archive.file(path).async('text'), 'application/xml');
+          const texts = [...xml.getElementsByTagName('a:t')].map((node) => normalizeText(node.textContent)).filter(Boolean);
+          const title = texts.shift() || `Bild ${index + 1}`;
+          const slideNumber = path.match(/slide(\d+)\.xml$/i)?.[1];
+          const relPath = `ppt/slides/_rels/slide${slideNumber}.xml.rels`;
+          const relationships = new Map();
+          if (archive.file(relPath)) {
+            const relXml = new DOMParser().parseFromString(await archive.file(relPath).async('text'), 'application/xml');
+            [...relXml.getElementsByTagName('Relationship')].forEach((node) => {
+              relationships.set(node.getAttribute('Id'), normalizeText(node.getAttribute('Target')));
+            });
+          }
+          const imageMarkup = [];
+          for (const blip of [...xml.getElementsByTagName('a:blip')].slice(0, 20)) {
+            const relationId = blip.getAttribute('r:embed');
+            const target = relationships.get(relationId);
+            if (!target) continue;
+            const mediaPath = target.startsWith('../') ? `ppt/${target.slice(3)}` : `ppt/slides/${target}`;
+            const media = archive.file(mediaPath);
+            if (!media) continue;
+            const extension = mediaPath.split('.').pop().toLowerCase();
+            const mime = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' }[extension];
+            if (!mime) continue;
+            imageMarkup.push(`<img src="data:${mime};base64,${await media.async('base64')}" alt="Bild från presentationssida ${index + 1}">`);
+          }
+          return `<section class="mail-preview-slide"><h3>${escapeHtml(title)}</h3>${imageMarkup.join('')}${texts.map((text) => `<p>${escapeHtml(text)}</p>`).join('') || (!imageMarkup.length ? '<p>Ingen text på bilden.</p>' : '')}</section>`;
+        }));
+        stage.innerHTML = `<div class="mail-preview-slides">${slides.join('')}</div>`;
+      }
+
+      async function renderMailOfficePreview(stage, sourceUrl, kind) {
+        if (kind === 'word') return renderMailWordPreview(stage, sourceUrl);
+        if (kind === 'excel') return renderMailExcelPreview(stage, sourceUrl);
+        return renderMailPowerPointPreview(stage, sourceUrl);
+      }
+
       async function openMailAttachmentPreview(trigger) {
         const url = normalizeText(trigger?.dataset?.mailPreviewUrl);
         if (!url) return;
@@ -4616,41 +4855,52 @@
         const contentType = normalizeText(trigger.dataset.mailPreviewType).toLowerCase();
         const imageLike = trigger.dataset.mailPreviewImage === 'true';
         closeMailAttachmentPreview();
-        let displayUrl = url;
-        try {
-          displayUrl = await authorizedMailAssetUrl(url);
-        } catch (error) {
-          toast('Bilagan kunde inte laddas. Försök igen.');
-          return;
-        }
         const backdrop = document.createElement('div');
         backdrop.className = 'mail-preview-backdrop';
         backdrop.setAttribute('role', 'presentation');
-        const pdfLike = /pdf/i.test(contentType) || /\.pdf$/i.test(name);
-        const textLike = /text\//i.test(contentType) || /\.(txt|csv)$/i.test(name);
-        const preview = imageLike
-          ? `<img src="${escapeHtml(displayUrl)}" alt="${escapeHtml(name)}">`
-          : pdfLike
-            ? '<div class="mail-preview-pdf"><div class="mail-preview-pdf-toolbar"><button type="button" data-pdf-action="previous" aria-label="Föregående sida">‹</button><span class="mail-preview-pdf-page">Laddar PDF…</span><button type="button" data-pdf-action="next" aria-label="Nästa sida">›</button><button type="button" data-pdf-action="zoom-out" aria-label="Zooma ut">−</button><button type="button" data-pdf-action="zoom-in" aria-label="Zooma in">+</button></div><div class="mail-preview-pdf-canvas-wrap"><canvas aria-label="PDF-sida"></canvas></div></div>'
-          : textLike
-            ? `<iframe src="${escapeHtml(displayUrl)}" title="${escapeHtml(name)}"></iframe>`
-            : '<div class="mail-preview-unavailable"><strong>Ingen inbyggd förhandsvisning</strong><br>Filen kan laddas ner med knappen ovan.</div>';
-        backdrop.innerHTML = `<section class="mail-preview-dialog" role="dialog" aria-modal="true" aria-label="Förhandsvisning av ${escapeHtml(name)}"><header class="mail-preview-head"><div class="mail-preview-title">${escapeHtml(name)}</div><a class="mail-preview-download" href="${escapeHtml(displayUrl)}" download="${escapeHtml(name)}">Ladda ner</a><button class="mail-preview-close" type="button" aria-label="Stäng förhandsvisning">×</button></header><div class="mail-preview-stage">${preview}</div></section>`;
+        const kind = mailPreviewKind(name, contentType, imageLike);
+        backdrop.innerHTML = `<section class="mail-preview-dialog" role="dialog" aria-modal="true" aria-label="Förhandsvisning av ${escapeHtml(name)}"><header class="mail-preview-head"><div class="mail-preview-title">${escapeHtml(name)}</div><a class="mail-preview-download" href="#" aria-disabled="true" download="${escapeHtml(name)}">Ladda ner</a><button class="mail-preview-close" type="button" aria-label="Stäng förhandsvisning">×</button></header><div class="mail-preview-stage">${mailPreviewLoading('Laddar bilagan…')}</div></section>`;
         backdrop.addEventListener('click', (event) => {
           if (event.target === backdrop || event.target.closest('.mail-preview-close')) {
             closeMailAttachmentPreview();
+            return;
+          }
+          if (event.target.closest('.mail-preview-retry')) {
+            closeMailAttachmentPreview();
+            void openMailAttachmentPreview(trigger);
           }
         });
         document.body.appendChild(backdrop);
         document.body.style.overflow = 'hidden';
         backdrop.querySelector('.mail-preview-close')?.focus();
-        if (pdfLike) {
-          try {
+        const stage = backdrop.querySelector('.mail-preview-stage');
+        try {
+          const displayUrl = await authorizedMailAssetUrl(url);
+          if (!backdrop.isConnected) return;
+          const download = backdrop.querySelector('.mail-preview-download');
+          download.href = displayUrl;
+          download.removeAttribute('aria-disabled');
+          if (kind === 'image') {
+            stage.innerHTML = `<img src="${escapeHtml(displayUrl)}" alt="${escapeHtml(name)}">`;
+          } else if (kind === 'pdf') {
+            stage.innerHTML = '<div class="mail-preview-pdf"><div class="mail-preview-pdf-toolbar"><button type="button" data-pdf-action="previous" aria-label="Föregående sida">‹</button><span class="mail-preview-pdf-page">Laddar PDF…</span><button type="button" data-pdf-action="next" aria-label="Nästa sida">›</button><button type="button" data-pdf-action="zoom-out" aria-label="Zooma ut">−</button><button type="button" data-pdf-action="zoom-in" aria-label="Zooma in">+</button></div><div class="mail-preview-pdf-canvas-wrap"><canvas aria-label="PDF-sida"></canvas></div></div>';
             await renderMailPdfPreview(backdrop, url);
-          } catch (error) {
-            console.error('[cco-attachment-preview] PDF kunde inte renderas', error);
-            const stage = backdrop.querySelector('.mail-preview-stage');
-            if (stage) stage.innerHTML = '<div class="mail-preview-unavailable"><strong>PDF-filen kunde inte visas</strong><br>Använd Ladda ner för att öppna originalet.</div>';
+          } else if (['word', 'excel', 'powerpoint'].includes(kind)) {
+            stage.innerHTML = mailPreviewLoading(`Öppnar ${kind === 'word' ? 'Word-dokument' : kind === 'excel' ? 'kalkylblad' : 'presentation'}…`);
+            await renderMailOfficePreview(stage, url, kind);
+          } else if (kind === 'video') {
+            stage.innerHTML = `<video class="mail-preview-media" src="${escapeHtml(displayUrl)}" controls playsinline preload="none"></video>`;
+          } else if (kind === 'audio') {
+            stage.innerHTML = `<audio class="mail-preview-media" src="${escapeHtml(displayUrl)}" controls preload="none"></audio>`;
+          } else if (kind === 'text') {
+            stage.innerHTML = `<iframe src="${escapeHtml(displayUrl)}" title="${escapeHtml(name)}"></iframe>`;
+          } else {
+            stage.innerHTML = mailPreviewError('Ingen inbyggd förhandsvisning för filtypen.');
+          }
+        } catch (error) {
+          console.error('[cco-attachment-preview] Bilagan kunde inte renderas', error);
+          if (backdrop.isConnected) {
+            stage.innerHTML = mailPreviewError('Bilagan kunde inte visas.', normalizeText(error?.message));
           }
         }
       }
