@@ -182,3 +182,59 @@ test('monitor clinic-performance skickar revenue/AOV när finance-dashboard har 
     assert.equal(payload.avgOrderValueSek.current, 9000);
   });
 });
+
+test('monitor clinic-performance hämtar Fortnox-intäkt via hair_tp-alias', async () => {
+  const todayUtc = new Date();
+  const startsAtToday = new Date(
+    Date.UTC(todayUtc.getUTCFullYear(), todayUtc.getUTCMonth(), todayUtc.getUTCDate(), 9, 0, 0)
+  ).toISOString();
+  const app = buildApp({
+    clientoBookingStore: {
+      listAllBookings() {
+        return [
+          {
+            bookingId: 'cli-1',
+            customerEmail: 'a@b.se',
+            startsAt: startsAtToday,
+            status: 'completed',
+          },
+        ];
+      },
+    },
+  });
+  app.locals.cfoFortnoxStore = {
+    async getPublicStatus({ tenantId }) {
+      return { connected: tenantId === 'hair_tp' };
+    },
+  };
+  app.locals.ccoSwishStore = {
+    async getPublicStatus() {
+      return { connected: false };
+    },
+  };
+  app.locals.ccoCommercialStore = null;
+  app.locals.cfoReceiptStore = null;
+  app.locals.cfoExpenseStore = null;
+  app.locals.cfoExpenseRuleStore = null;
+  app.locals.cfoFinanceVendorStore = null;
+  app.locals.cfoRecurringExpenseStore = null;
+  app.locals.cfoFinanceReviewStore = null;
+  app.locals.cfoFinanceMonthlyCloseStore = null;
+  app.locals.cfoFortnoxInvoiceLister = {
+    async listAllInvoicePayments({ tenantId }) {
+      assert.equal(tenantId, 'hair_tp');
+      return {
+        ok: true,
+        payments: [{ PaymentDate: startsAtToday.slice(0, 10), Amount: 12000 }],
+      };
+    },
+  };
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/monitor/clinic-performance`);
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.revenueSek.current, 12000);
+    assert.equal(payload.avgOrderValueSek.current, 12000);
+  });
+});

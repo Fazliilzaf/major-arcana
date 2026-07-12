@@ -3506,6 +3506,7 @@ function createMonitorRouter({
               fortnoxInvoiceLister: locals.cfoFortnoxInvoiceLister,
             },
             tenantId,
+            slice: 'invoices',
           });
         } catch (financeErr) {
           financeDashboard = null; // ärligt: revenue blir null istället för gissad

@@ -20,6 +20,7 @@ const {
   buildFortnoxPaidPeriodTotals,
   endOfUtcDayExclusive,
 } = require('./cfoFortnoxPaidPeriodTotals');
+const { resolveConnectedFortnoxTenantId } = require('./cfoFortnoxTenantResolve');
 
 function nowIso() {
   return new Date().toISOString();
@@ -73,15 +74,17 @@ async function buildFinanceDashboard({
   stores = {},
   tenantId = 'hair_tp',
   now = new Date(),
+  slice = 'full',
   // CF.3 (2026-06-01): Fortnox OAuth är blockerad av Fortnox backend
   // (utvecklarportalen ger tre olika felkoder). Markera status som
   // 'blocked_integration' istället för 'not_connected' så UI visar
   // tydligt att det är en känd integration-blocker, inte glömd setup.
   // Återställs när Fortnox-felen löses.
-  fortnoxBlockedIntegration = true,
+  fortnoxBlockedIntegration = process.env.FORTNOX_BLOCKED_INTEGRATION !== 'false',
 } = {}) {
   const issues = [];
   const partial = { reasons: [] };
+  const fortnoxTenantId = await resolveConnectedFortnoxTenantId(stores.fortnoxStore, tenantId);
 
   // ── Fortnox status ─────────────────────────────────────────────
   const fortnox = {
@@ -91,7 +94,9 @@ async function buildFinanceDashboard({
     blockedIntegration: false,
   };
   if (stores.fortnoxStore?.getPublicStatus) {
-    const fs = await safeCall(() => stores.fortnoxStore.getPublicStatus({ tenantId }));
+    const fs = await safeCall(() =>
+      stores.fortnoxStore.getPublicStatus({ tenantId: fortnoxTenantId })
+    );
     if (fs) {
       fortnox.connected = !!fs.connected;
       fortnox.status = fs.connected ? 'connected' : 'not_connected';
@@ -149,7 +154,11 @@ async function buildFinanceDashboard({
     const fromDate = periodStartUtcMonth(now, -1).slice(0, 10);
     const toDate = endOfUtcDayExclusive(now).slice(0, 10);
     const listed = await safeCall(() =>
-      stores.fortnoxInvoiceLister.listAllInvoicePayments({ tenantId, fromDate, toDate })
+      stores.fortnoxInvoiceLister.listAllInvoicePayments({
+        tenantId: fortnoxTenantId,
+        fromDate,
+        toDate,
+      })
     );
     if (listed?.ok && Array.isArray(listed.payments)) {
       const totals = buildFortnoxPaidPeriodTotals(listed.payments, now);
@@ -225,6 +234,21 @@ async function buildFinanceDashboard({
   } else {
     issues.push('Commercial-store saknas eller listAll() ej tillgänglig');
     partial.reasons.push('no_commercial_data');
+  }
+
+  if (slice === 'invoices') {
+    return {
+      schemaVersion: SCHEMA_VERSION,
+      generatedAt: nowIso(),
+      tenantId,
+      fortnoxTenantId,
+      fortnox,
+      swish,
+      invoices: invoiceSummary,
+      partial: partial.reasons.length > 0,
+      partialReasons: partial.reasons,
+      issues,
+    };
   }
 
   // ── Deposits ───────────────────────────────────────────────────
@@ -563,6 +587,7 @@ async function buildFinanceDashboard({
     schemaVersion: SCHEMA_VERSION,
     builtAt: nowIso(),
     tenantId,
+    fortnoxTenantId,
     fortnox,
     swish,
     invoices: invoiceSummary,
