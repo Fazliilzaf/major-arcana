@@ -747,8 +747,12 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       e.statusCode = 409;
       throw e;
     }
-    if (normalizeText(sibling.status) !== 'DUPLICATE') {
-      const e = new Error('ghost visible repair kräver DUPLICATE-sibling.');
+    if (
+      !['DUPLICATE', 'VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(
+        normalizeText(sibling.status)
+      )
+    ) {
+      const e = new Error('ghost visible repair kräver verifierad blob-sibling.');
       e.statusCode = 409;
       throw e;
     }
