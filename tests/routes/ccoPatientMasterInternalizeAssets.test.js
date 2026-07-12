@@ -428,6 +428,22 @@ test('assets/preview-encounter-links är read-only och maskerar föreslagna foto
   }
 });
 
+test('encounter preview begränsar samtidig patientmaterialisering', () => {
+  const source = require('node:fs').readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
+    'utf8'
+  );
+  assert.match(source, /function mapWithConcurrency\(/);
+  assert.match(
+    source,
+    /assets\/preview-encounter-links[\s\S]*mapWithConcurrency\(\s*patients,\s*4,/
+  );
+  assert.match(
+    source,
+    /assets\/repair-encounter-links[\s\S]*mapWithConcurrency\(\s*patients,\s*4,/
+  );
+});
+
 test('assets/preview-encounter-links kräver OWNER-roll', async () => {
   const fixture = await makeFixture({ role: 'STAFF' });
   try {
