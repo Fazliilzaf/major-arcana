@@ -139,3 +139,43 @@ test('foto mitt emellan två tider förblir review', () => {
   assert.equal(result.confidence, 'review');
   assert.equal(result.reason, 'ambiguous_date');
 });
+
+test('identiska encounter-ID:n på samma dag räknas som en kandidat', () => {
+  const registry = new Map([
+    ['alias-a', { encounterId: 'same-encounter', date: '2026-05-05', encounterType: 'other', confidence: 'medium' }],
+    ['alias-b', { encounterId: 'same-encounter', date: '2026-05-05', encounterType: 'other', confidence: 'medium' }],
+  ]);
+  const result = matchAssetToEncounter(
+    { patientId: 'patient-1', mimeType: 'image/jpeg', documentDate: '2026-05-05' },
+    registry
+  );
+  assert.equal(result.reason, 'date_only');
+  assert.equal(result.encounterId, 'same-encounter');
+});
+
+test('ensam explicit encounter vinner över härledda kandidater samma dag', () => {
+  const registry = new Map([
+    ['explicit', { encounterId: 'explicit', date: '2026-05-05', encounterType: 'consultation', confidence: 'high' }],
+    ['derived', { encounterId: 'derived', date: '2026-05-05', encounterType: 'other', confidence: 'medium' }],
+  ]);
+  const result = matchAssetToEncounter(
+    { patientId: 'patient-1', mimeType: 'image/jpeg', documentDate: '2026-05-05' },
+    registry
+  );
+  assert.equal(result.reason, 'date_and_explicit_encounter');
+  assert.equal(result.encounterId, 'explicit');
+  assert.equal(result.confidence, 'high');
+});
+
+test('två explicita encounters samma dag förblir review utan tidsvinnare', () => {
+  const registry = new Map([
+    ['explicit-a', { encounterId: 'explicit-a', date: '2026-05-05', encounterType: 'consultation', confidence: 'high' }],
+    ['explicit-b', { encounterId: 'explicit-b', date: '2026-05-05', encounterType: 'other', confidence: 'high' }],
+  ]);
+  const result = matchAssetToEncounter(
+    { patientId: 'patient-1', mimeType: 'image/jpeg', documentDate: '2026-05-05' },
+    registry
+  );
+  assert.equal(result.reason, 'ambiguous_date');
+  assert.equal(result.confidence, 'review');
+});

@@ -328,7 +328,13 @@ function matchAssetToEncounter(asset = {}, registryForPatient = new Map()) {
   }
 
   const assetType = inferEncounterTypeFromAsset(asset);
-  const sameDay = [...registryForPatient.values()].filter((e) => e.date === date);
+  const sameDay = [
+    ...new Map(
+      [...registryForPatient.values()]
+        .filter((encounter) => encounter.date === date)
+        .map((encounter) => [encounter.encounterId, encounter])
+    ).values(),
+  ];
 
   if (sameDay.length === 0) {
     if (assetType && assetType !== 'other') {
@@ -373,6 +379,16 @@ function matchAssetToEncounter(asset = {}, registryForPatient = new Map()) {
       };
     }
     if (typed.length > 1) {
+      const explicitTyped = typed.filter((encounter) => encounter.confidence === 'high');
+      if (explicitTyped.length === 1) {
+        return {
+          encounterId: explicitTyped[0].encounterId,
+          confidence: 'high',
+          reason: 'date_type_and_explicit_encounter',
+          visitLabel: explicitTyped[0].visitLabel,
+          encounterType: explicitTyped[0].encounterType,
+        };
+      }
       return {
         encounterId: null,
         confidence: 'review',
@@ -382,6 +398,17 @@ function matchAssetToEncounter(asset = {}, registryForPatient = new Map()) {
         encounterType: assetType,
       };
     }
+  }
+
+  const explicitSameDay = sameDay.filter((encounter) => encounter.confidence === 'high');
+  if (explicitSameDay.length === 1) {
+    return {
+      encounterId: explicitSameDay[0].encounterId,
+      confidence: 'high',
+      reason: 'date_and_explicit_encounter',
+      visitLabel: explicitSameDay[0].visitLabel,
+      encounterType: explicitSameDay[0].encounterType,
+    };
   }
 
   if (sameDay.length === 1) {
