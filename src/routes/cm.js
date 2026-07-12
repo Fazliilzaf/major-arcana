@@ -215,7 +215,9 @@ function createCmRouter({
         ? req.body.folderTypes.map((f) => String(f))
         : DEFAULT_FOLDER_TYPES;
     const result = await mailSync.syncAll(mailboxId, folderTypes);
-    return res.json({ ok: true, ...result });
+    // Bugbot PR #831: maska inte folder-fel — ok speglar att ALLA mappar lyckades.
+    const allOk = (result.folders || []).every((f) => f?.ok !== false);
+    return res.status(allOk ? 200 : 502).json({ ok: allOk, ...result });
   });
 
   // AI extraction — skicka bild eller text, få strukturerad data tillbaka

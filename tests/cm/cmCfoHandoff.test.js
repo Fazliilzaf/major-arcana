@@ -103,6 +103,36 @@ test('promoteRecordToCfo: skapar cfoExpense + idempotens', async () => {
   assert.equal(again.error, 'already_promoted');
 });
 
+test('promoteRecordToCfo: recovery — befintlig CFO-expense för recordet återanvänds (ingen dubblett)', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'cm-handoff-recovery-'));
+  const cfoExpenseStore = await createCfoExpenseStore({
+    filePath: path.join(dir, 'expenses.json'),
+  });
+
+  // Simulera persist-krasch: expense skapades men CM-recordet fick aldrig cfoExpenseId
+  const record = {
+    id: 'cm-rec-crash',
+    expenseType: 'receipt',
+    supplierName: 'Kaffebolaget',
+    amountIncVat: 250,
+    vatAmount: 50,
+    confidenceScore: 88,
+    cfoExpenseId: null,
+  };
+  const first = await promoteRecordToCfo({ record, cfoExpenseStore, actor: { userId: 't' } });
+  assert.equal(first.ok, true);
+  assert.equal(first.reused, false);
+
+  // Retry utan cfoExpenseId satt → ska ÅTERANVÄNDA, inte skapa dubblett
+  const retry = await promoteRecordToCfo({ record, cfoExpenseStore, actor: { userId: 't' } });
+  assert.equal(retry.ok, true);
+  assert.equal(retry.reused, true);
+  assert.equal(retry.cfoExpense.id, first.cfoExpense.id);
+  const all = await cfoExpenseStore.listExpenses({});
+  const rows = Array.isArray(all) ? all : all?.expenses || [];
+  assert.equal(rows.length, 1);
+});
+
 test('promoteRecordToCfo utan store → tydligt fel', async () => {
   const result = await promoteRecordToCfo({ record: { id: 'x' }, cfoExpenseStore: null });
   assert.equal(result.ok, false);

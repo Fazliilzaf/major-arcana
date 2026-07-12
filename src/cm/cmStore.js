@@ -450,14 +450,25 @@ function createCmStore({ filePath }) {
     return state.documents.find((d) => d.id === id) || null;
   }
 
+  // Bugbot PR #831: promotade records (handed_off/cfoExpenseId) ska inte
+  // räknas som öppna kandidater i inbox/kö/granskning — CFO äger dem nu.
+  function isOpenCandidate(r) {
+    return r.bookkeepingStatus !== 'handed_off' && !r.cfoExpenseId;
+  }
+
   function getInbox() {
     return state.expenseRecords.filter(
-      (r) => r.approvalStatus === 'pending' && !r.flags.includes('NEEDS_MANUAL_REVIEW')
+      (r) =>
+        isOpenCandidate(r) &&
+        r.approvalStatus === 'pending' &&
+        !r.flags.includes('NEEDS_MANUAL_REVIEW')
     );
   }
 
   function getNeedsReview() {
-    return state.expenseRecords.filter((r) => r.flags.some((f) => REVIEW_FLAGS.includes(f)));
+    return state.expenseRecords.filter(
+      (r) => isOpenCandidate(r) && r.flags.some((f) => REVIEW_FLAGS.includes(f))
+    );
   }
 
   function getInvoices() {
@@ -476,7 +487,10 @@ function createCmStore({ filePath }) {
 
   function getApprovalQueue() {
     return state.expenseRecords.filter(
-      (r) => r.approvalStatus === 'pending' && !r.flags.includes('NEEDS_MANUAL_REVIEW')
+      (r) =>
+        isOpenCandidate(r) &&
+        r.approvalStatus === 'pending' &&
+        !r.flags.includes('NEEDS_MANUAL_REVIEW')
     );
   }
 

@@ -137,7 +137,23 @@ function buildCfoExpenseFields({ record, documents = [], validCategories = [] } 
 }
 
 /**
- * Promota ett CM-record till CFO. Idempotent: record med cfoExpenseId → fel.
+ * Recovery-lookup (Bugbot HIGH, PR #831): notes-fältet bär `cm-record <id>` —
+ * finns redan en CFO-expense för recordet (t.ex. efter persist-krasch mellan
+ * createExpense och markHandedOff) återanvänds den i stället för att dubblera.
+ */
+async function findExistingCfoExpenseForRecord({ record, cfoExpenseStore }) {
+  if (typeof cfoExpenseStore?.listExpenses !== 'function') return null;
+  const marker = `cm-record ${record.id}`;
+  const listed = await cfoExpenseStore.listExpenses({});
+  const rows = Array.isArray(listed) ? listed : listed?.expenses || [];
+  return rows.find((e) => typeof e?.notes === 'string' && e.notes.includes(marker)) || null;
+}
+
+/**
+ * Promota ett CM-record till CFO. Idempotent två vägar:
+ *  1. record.cfoExpenseId satt → already_promoted.
+ *  2. CFO-expense med `cm-record <id>` i notes finns redan → återanvänds
+ *     (reused: true) i stället för att skapa dubblett.
  * Muterar INTE CM-storen — anroparen (routen) sätter handed_off via cmStore.markHandedOff.
  */
 async function promoteRecordToCfo({
@@ -153,6 +169,10 @@ async function promoteRecordToCfo({
   if (record.cfoExpenseId) {
     return { ok: false, error: 'already_promoted', cfoExpenseId: record.cfoExpenseId };
   }
+  const existing = await findExistingCfoExpenseForRecord({ record, cfoExpenseStore });
+  if (existing) {
+    return { ok: true, cfoExpense: existing, reused: true };
+  }
   const validCategories =
     Array.isArray(providedCategories) && providedCategories.length
       ? providedCategories
@@ -161,7 +181,13 @@ async function promoteRecordToCfo({
         : [];
   const fields = buildCfoExpenseFields({ record, documents, validCategories });
   const cfoExpense = await cfoExpenseStore.createExpense({ actor, fields });
-  return { ok: true, cfoExpense, fields };
+  return { ok: true, cfoExpense, fields, reused: false };
 }
 
-module.exports = { buildCfoExpenseFields, promoteRecordToCfo, mapCategory, CATEGORY_SYNONYMS };
+module.exports = {
+  buildCfoExpenseFields,
+  promoteRecordToCfo,
+  findExistingCfoExpenseForRecord,
+  mapCategory,
+  CATEGORY_SYNONYMS,
+};

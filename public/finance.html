@@ -2538,6 +2538,14 @@
           await loadExpenses();
           await loadRules();
         })();
+
+        // Bugbot PR #831: CM-sektionen lever i egen IIFE — exponera refresh-hook
+        // så promote kan uppdatera KPI:er + utgiftslistan (annars stale tills manuell refresh).
+        window.arcanaCfReload = async () => {
+          await loadDashboard();
+          await loadReceipts();
+          await loadExpenses();
+        };
       })();
 
       // ORD-65 · CM-intag: kandidatlista + promote → CFO (cfoExpenseStore äger livscykeln)
@@ -2681,8 +2689,7 @@
               return;
             }
             await loadCm();
-            if (typeof loadDashboard === 'function') loadDashboard();
-            if (typeof loadExpenses === 'function') loadExpenses();
+            if (typeof window.arcanaCfReload === 'function') await window.arcanaCfReload();
           } catch (err) {
             alert('Promote-fel: ' + err.message);
             btn.disabled = false;

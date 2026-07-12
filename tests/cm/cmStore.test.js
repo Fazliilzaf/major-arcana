@@ -76,6 +76,10 @@ test('markHandedOff sätter handed_off + cfoExpenseId + syns i dashboard', async
   assert.equal(updated.cfoExpenseId, 'exp_abc123');
   assert.equal(store.getDashboard().handedOff, 1);
   assert.equal(store.getReadyForBookkeeping().length, 0);
+  // Bugbot PR #831: promotade records ska inte ligga kvar som öppna kandidater
+  assert.equal(store.getInbox().length, 0);
+  assert.equal(store.getApprovalQueue().length, 0);
+  assert.equal(store.getNeedsReview().filter((r) => r.id === record.id).length, 0);
 });
 
 test('syncState persisteras och överlever reload', async () => {
