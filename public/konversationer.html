@@ -732,8 +732,14 @@
       .msg-attachment[href] {
         cursor: pointer;
       }
-      .msg-attachment[href]:hover,
-      .msg-attachment-preview[href]:hover {
+      button.msg-attachment,
+      button.msg-attachment-preview {
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      button.msg-attachment:hover,
+      button.msg-attachment-preview:hover {
         border-color: rgba(35, 133, 153, 0.35);
         color: var(--rail-contact);
       }
@@ -774,6 +780,96 @@
         white-space: nowrap;
         font-size: 10px;
         font-weight: 750;
+      }
+      .mail-preview-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 12000;
+        display: grid;
+        place-items: center;
+        padding: 28px;
+        background: rgba(36, 30, 27, 0.58);
+        backdrop-filter: blur(8px);
+      }
+      .mail-preview-dialog {
+        width: min(1120px, 96vw);
+        height: min(820px, 92vh);
+        display: grid;
+        grid-template-rows: 58px minmax(0, 1fr);
+        overflow: hidden;
+        border-radius: 18px;
+        background: #fffdfb;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow: 0 30px 90px rgba(20, 14, 10, 0.32);
+      }
+      .mail-preview-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 14px 0 20px;
+        border-bottom: 1px solid rgba(112, 89, 65, 0.14);
+      }
+      .mail-preview-title {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .mail-preview-download,
+      .mail-preview-close {
+        min-height: 36px;
+        border: 1px solid rgba(112, 89, 65, 0.16);
+        background: #fff;
+        color: var(--cco-color-brand);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 750;
+      }
+      .mail-preview-download {
+        padding: 0 14px;
+        border-radius: 10px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+      }
+      .mail-preview-close {
+        width: 36px;
+        border-radius: 50%;
+        font-size: 22px;
+        line-height: 1;
+      }
+      .mail-preview-stage {
+        min-height: 0;
+        display: grid;
+        place-items: center;
+        overflow: auto;
+        background: #f2eeea;
+      }
+      .mail-preview-stage img {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+      .mail-preview-stage iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #fff;
+      }
+      .mail-preview-unavailable {
+        padding: 24px;
+        text-align: center;
+        color: var(--cco-text-secondary);
+      }
+      @media (max-width: 720px) {
+        .mail-preview-backdrop { padding: 8px; }
+        .mail-preview-dialog { width: 100%; height: 94vh; border-radius: 12px; }
+        .mail-preview-download { font-size: 0; width: 36px; padding: 0; justify-content: center; }
+        .mail-preview-download::before { content: '↓'; font-size: 18px; }
       }
       .msg.is-outgoing .msg-bubble {
         background: linear-gradient(180deg, #fff5e6, #ffe3b8);
@@ -4358,12 +4454,13 @@
             const url = attachmentUrl(item);
             const imageLike = attachmentIsImage(item);
             const safeUrl = isAllowedMailUrl(url, { image: imageLike }) ? url : '';
+            const previewAttrs = `data-mail-preview-url="${escapeHtml(safeUrl)}" data-mail-preview-name="${escapeHtml(name)}" data-mail-preview-type="${escapeHtml(type)}" data-mail-preview-image="${imageLike ? 'true' : 'false'}"`;
             if (imageLike && safeUrl) {
-              return `<a class="msg-attachment-preview" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(meta || name)}"><img src="${escapeHtml(safeUrl)}" alt="${escapeHtml(name)}" loading="lazy"><span>${escapeHtml(name)}</span></a>`;
+              return `<button class="msg-attachment-preview" type="button" ${previewAttrs} title="${escapeHtml(meta || name)}"><img src="${escapeHtml(safeUrl)}" alt="${escapeHtml(name)}" loading="lazy"><span>${escapeHtml(name)}</span></button>`;
             }
             const inner = `${imageLike ? '🖼' : '📎'} <span>${escapeHtml(name)}</span>${meta ? `<small>${escapeHtml(meta)}</small>` : ''}`;
             if (safeUrl) {
-              return `<a class="msg-attachment" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(meta || name)}">${inner}</a>`;
+              return `<button class="msg-attachment" type="button" ${previewAttrs} title="${escapeHtml(meta || name)}">${inner}</button>`;
             }
             // Ingen nedladdningsbar URL (t.ex. Graph-läsning av): visa ändå att
             // bilagan finns, som en icke-klickbar chip.
@@ -4372,6 +4469,57 @@
           .join('');
         return `<div class="msg-attachments">${header}${chips}</div>`;
       }
+
+      function closeMailAttachmentPreview() {
+        const backdrop = document.querySelector('.mail-preview-backdrop');
+        if (!backdrop) return;
+        backdrop.remove();
+        document.body.style.overflow = '';
+      }
+
+      async function openMailAttachmentPreview(trigger) {
+        const url = normalizeText(trigger?.dataset?.mailPreviewUrl);
+        if (!url) return;
+        const name = normalizeText(trigger.dataset.mailPreviewName) || 'Bilaga';
+        const contentType = normalizeText(trigger.dataset.mailPreviewType).toLowerCase();
+        const imageLike = trigger.dataset.mailPreviewImage === 'true';
+        closeMailAttachmentPreview();
+        let displayUrl = url;
+        try {
+          displayUrl = await authorizedMailAssetUrl(url);
+        } catch (error) {
+          toast('Bilagan kunde inte laddas. Försök igen.');
+          return;
+        }
+        const backdrop = document.createElement('div');
+        backdrop.className = 'mail-preview-backdrop';
+        backdrop.setAttribute('role', 'presentation');
+        const canEmbedDocument = /pdf|text\//i.test(contentType) || /\.(pdf|txt|csv)$/i.test(name);
+        const preview = imageLike
+          ? `<img src="${escapeHtml(displayUrl)}" alt="${escapeHtml(name)}">`
+          : canEmbedDocument
+            ? `<iframe src="${escapeHtml(displayUrl)}" title="${escapeHtml(name)}"></iframe>`
+            : '<div class="mail-preview-unavailable"><strong>Ingen inbyggd förhandsvisning</strong><br>Filen kan laddas ner med knappen ovan.</div>';
+        backdrop.innerHTML = `<section class="mail-preview-dialog" role="dialog" aria-modal="true" aria-label="Förhandsvisning av ${escapeHtml(name)}"><header class="mail-preview-head"><div class="mail-preview-title">${escapeHtml(name)}</div><a class="mail-preview-download" href="${escapeHtml(displayUrl)}" download="${escapeHtml(name)}">Ladda ner</a><button class="mail-preview-close" type="button" aria-label="Stäng förhandsvisning">×</button></header><div class="mail-preview-stage">${preview}</div></section>`;
+        backdrop.addEventListener('click', (event) => {
+          if (event.target === backdrop || event.target.closest('.mail-preview-close')) {
+            closeMailAttachmentPreview();
+          }
+        });
+        document.body.appendChild(backdrop);
+        document.body.style.overflow = 'hidden';
+        backdrop.querySelector('.mail-preview-close')?.focus();
+      }
+
+      document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-mail-preview-url]');
+        if (!trigger) return;
+        event.preventDefault();
+        void openMailAttachmentPreview(trigger);
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeMailAttachmentPreview();
+      });
 
       function renderThreadMessages(thread, messages) {
         const mount = document.getElementById('messages');

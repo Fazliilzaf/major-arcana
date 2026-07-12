@@ -367,13 +367,30 @@ test('konversationer renders full mail html and attachments safely', () => {
   assert.match(html, /attachment\?\.downloadUrl/);
   assert.match(html, /const url = attachmentUrl\(item\)/);
   assert.match(html, /msg-attachment-preview/);
-  assert.match(html, /target="_blank"/);
+  assert.match(html, /data-mail-preview-url/);
   assert.match(html, /msg-bubble--html msg-bubble-rich/);
   assert.match(
     html,
     /\$\{renderMessageBubbleInner\(message\)\}[\s\S]*\$\{renderMessageAttachments\(message\)\}/
   );
   assert.match(html, /msg-attachments/);
+});
+
+test('bilagor öppnas i en intern modal utan ny flik', () => {
+  const html = readHtml();
+
+  assert.match(html, /function openMailAttachmentPreview\(trigger\)/);
+  assert.match(html, /class="mail-preview-dialog" role="dialog" aria-modal="true"/);
+  assert.match(html, /class="mail-preview-stage"/);
+  assert.match(html, /class="mail-preview-close"/);
+  assert.match(html, /class="mail-preview-download"/);
+  assert.match(html, /authorizedMailAssetUrl\(url\)/);
+  assert.match(html, /event\.key === 'Escape'/);
+  assert.doesNotMatch(
+    html,
+    /class="msg-attachment(?:-preview)?"[^>]*target="_blank"/,
+    'Bilagekorten får inte längre öppna en ny flik.'
+  );
 });
 
 test('konversationer hydrates authenticated local mail assets in HTML and attachments', () => {
