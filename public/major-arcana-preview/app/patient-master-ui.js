@@ -2018,6 +2018,26 @@
         );
         return;
       }
+      const encounterLink = event.target.closest('[data-v12-link-encounter]');
+      if (encounterLink && body.contains(encounterLink)) {
+        event.preventDefault();
+        encounterLink.disabled = true;
+        apiRequest('/api/v1/cco-patient-master/assets/link-encounter', {
+          method: 'POST',
+          body: {
+            patientId: encounterLink.getAttribute('data-patient-id') || '',
+            assetId: encounterLink.getAttribute('data-asset-id') || '',
+            encounterId: encounterLink.getAttribute('data-encounter-id') || '',
+          },
+        })
+          .then(() => loadPatientDetail(runtime.selectedPatientId, { force: true }))
+          .then(() => setStatus('Bilden är kopplad till besöket.', 'success'))
+          .catch((error) => {
+            encounterLink.disabled = false;
+            setStatus(error?.message || 'Kunde inte koppla bilden till besöket.', 'error');
+          });
+        return;
+      }
       // CONTENT-CANON s9: "Öppna" dokument → visa PDF i modal-ruta (ingen länk,
       // ingen ny flik — dokumentet dyker upp i en ruta ovanpå kundvyn).
       const docOpen = event.target.closest('[data-doc-open]');

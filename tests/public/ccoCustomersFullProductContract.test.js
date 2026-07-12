@@ -215,6 +215,9 @@ test('V11/V12 visar journal och film inom samma besökstillfälle', () => {
   assert.match(canon, /counts\.push\(journalStateForSegment\(segment\)\)/);
   assert.match(canon, /Journal signerad och låst/);
   assert.doesNotMatch(canon, /counts\.push\(journalState\);/);
+  assert.match(canon, /data-v12-link-encounter/);
+  assert.match(ui, /assets\/link-encounter/);
+  assert.match(ui, /Bilden är kopplad till besöket/);
 });
 
 test('besöksrum skapas från encounter, bokning och journal utan filer', () => {
