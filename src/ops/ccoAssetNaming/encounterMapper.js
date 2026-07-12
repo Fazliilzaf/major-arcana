@@ -411,6 +411,19 @@ function matchAssetToEncounter(asset = {}, registryForPatient = new Map()) {
     };
   }
 
+  const specificSameDay = sameDay.filter(
+    (encounter) => encounter.encounterType && encounter.encounterType !== 'other'
+  );
+  if (explicitSameDay.length < 2 && specificSameDay.length === 1 && sameDay.length > 1) {
+    return {
+      encounterId: specificSameDay[0].encounterId,
+      confidence: 'medium',
+      reason: 'date_and_specific_type_over_other',
+      visitLabel: specificSameDay[0].visitLabel,
+      encounterType: specificSameDay[0].encounterType,
+    };
+  }
+
   if (sameDay.length === 1) {
     return {
       encounterId: sameDay[0].encounterId,
