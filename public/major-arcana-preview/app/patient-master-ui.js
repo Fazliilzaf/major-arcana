@@ -12676,17 +12676,88 @@
     }
   }
 
+  function captureOpenV12VisitRoomState() {
+    const deep = document.querySelector('.v9-dossier-deep--v12-workspace:not([hidden])');
+    const body = deep?.querySelector('[data-v9-deep-body]');
+    if (!deep || !body) return null;
+    const scroll = body.querySelector('[data-v9-dossier-scroll]');
+    const openRooms = Array.from(body.querySelectorAll('.v12-canon-visit-segment[open]')).map(
+      (room) => ({
+        encounterId: room.getAttribute('data-visit-room-encounter') || '',
+        date: room.getAttribute('data-visit-room-date') || '',
+      })
+    );
+    return {
+      patientId: normalizeText(runtime.selectedPatientId),
+      openRooms,
+      scrollTop: Number(scroll?.scrollTop || 0),
+    };
+  }
+
+  function refreshOpenV12VisitRooms(state) {
+    if (!state || normalizeText(state.patientId) !== normalizeText(runtime.selectedPatientId)) {
+      return false;
+    }
+    const deep = document.querySelector('.v9-dossier-deep--v12-workspace:not([hidden])');
+    const body = deep?.querySelector('[data-v9-deep-body]');
+    const detail = runtime.detail;
+    if (!deep || !body || !detail?.card) return false;
+    const ctx = {
+      card: detail.card,
+      journalEntries: asArray(detail.journalEntries),
+      occasionTimeline: asArray(detail.occasionTimeline),
+      driveFiles: asArray(detail.driveFiles),
+      patient: detail.patient || null,
+    };
+    const shellHtml = renderV12WorkspaceDetailShell(
+      ctx.card,
+      ctx.journalEntries,
+      ctx.occasionTimeline,
+      ctx.driveFiles,
+      ctx.patient,
+      { tab: normalizeDetailTab(runtime.detailTab) }
+    );
+    if (!shellHtml || shellHtml.indexOf('data-v12-workspace-shell') === -1) return false;
+    body.innerHTML = shellHtml;
+    bindV12WorkspaceOverlayBody(body, ctx);
+    for (const roomState of state.openRooms) {
+      const rooms = Array.from(body.querySelectorAll('.v12-canon-visit-segment'));
+      const room = rooms.find((candidate) => {
+        const encounterId = candidate.getAttribute('data-visit-room-encounter') || '';
+        const date = candidate.getAttribute('data-visit-room-date') || '';
+        return roomState.encounterId
+          ? encounterId === roomState.encounterId
+          : Boolean(roomState.date) && date === roomState.date;
+      });
+      if (room) room.open = true;
+    }
+    const scroll = body.querySelector('[data-v9-dossier-scroll]');
+    if (scroll) {
+      window.requestAnimationFrame(() => {
+        scroll.scrollTop = state.scrollTop;
+      });
+    }
+    return true;
+  }
+
   async function loadPatientDetail(patientId) {
     if (!patientId || runtime.mode !== 'register') return;
     const key = normalizeText(patientId);
+    const visitRoomState = captureOpenV12VisitRoomState();
     syncSelectedPatientDeepLink(key);
     const inflight = patientDetailInflight.get(key);
-    if (inflight) return inflight;
+    if (inflight) {
+      const result = await inflight;
+      refreshOpenV12VisitRooms(visitRoomState);
+      return result;
+    }
 
     const promise = loadPatientDetailInternal(patientId);
     patientDetailInflight.set(key, promise);
     try {
-      return await promise;
+      const result = await promise;
+      refreshOpenV12VisitRooms(visitRoomState);
+      return result;
     } finally {
       if (patientDetailInflight.get(key) === promise) {
         patientDetailInflight.delete(key);

@@ -210,6 +210,11 @@ test('V11/V12 visar journal och film inom samma besökstillfälle', () => {
   assert.match(ui, /durationSeconds/);
   assert.match(canon, /data-v12-archive-asset/);
   assert.match(ui, /Filen är arkiverad\. Den fysiska filen är bevarad/);
+  assert.match(canon, /data-visit-room-encounter/);
+  assert.match(canon, /data-visit-room-date/);
+  assert.match(ui, /function captureOpenV12VisitRoomState\(\)/);
+  assert.match(ui, /function refreshOpenV12VisitRooms\(state\)/);
+  assert.match(ui, /refreshOpenV12VisitRooms\(visitRoomState\)/);
   assert.match(ui, /runtime\.pendingVisitEncounterId/);
   assert.match(canon, /Journal saknas/);
   assert.match(canon, /Journal signerad/);
