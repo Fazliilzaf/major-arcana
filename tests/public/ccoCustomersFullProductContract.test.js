@@ -9,11 +9,13 @@ const ROOT = path.join(__dirname, '..', '..');
 const INDEX_HTML = path.join(ROOT, 'public', 'major-arcana-preview', 'index.html');
 const PATIENT_UI = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'patient-master-ui.js');
 const V11_RK = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v11-rk.js');
+const V10_SKIN = path.join(ROOT, 'public', 'major-arcana-preview', 'cco-v10-skin.css');
 const SUBNAV = path.join(ROOT, 'public', 'admin', 'cco-subnav.js');
 
 const html = fs.readFileSync(INDEX_HTML, 'utf8');
 const ui = fs.readFileSync(PATIENT_UI, 'utf8');
 const v11 = fs.readFileSync(V11_RK, 'utf8');
+const v10Skin = fs.readFileSync(V10_SKIN, 'utf8');
 const subnav = fs.readFileSync(SUBNAV, 'utf8');
 
 test('admin#cco Kunder monterar hela skarpa kundprodukten', () => {
@@ -30,6 +32,19 @@ test('hela kundpopulationen använder patient-master med fortsatt paginering', (
   assert.match(ui, /runtime\.offset \+= PAGE_SIZE/);
   assert.match(ui, /data-patient-load-more/);
   assert.match(ui, /runtime\.total/);
+});
+
+test('Kunder visar och återanvänder den befintliga V9-sökningen', () => {
+  assert.match(html, /data-v9-global-search-input/);
+  assert.match(
+    ui,
+    /bindCustomerSearchInput\(document\.querySelector\('\[data-v9-global-search-input\]'\)\)/
+  );
+  assert.match(ui, /params\.set\('q', runtime\.query\)/);
+  assert.doesNotMatch(
+    v10Skin,
+    /\.customers-v9-header \.v9-global-search\s*\{[^}]*display:\s*none/s
+  );
 });
 
 test('kundrad öppnar V11-dossier och V11-sektion öppnar V12 Content Canon', () => {
@@ -89,6 +104,21 @@ test('V12 Content Canon snabbknappar använder tel/sms/mailto och ord48-kalender
   assert.match(ui, /data-kk-ord48-open-calendar/);
 });
 
+test('V12 använder befintliga sektioner som dragspel och jump öppnar rätt sektion', () => {
+  const canonPath = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js');
+  const canon = fs.readFileSync(canonPath, 'utf8');
+  const canonCss = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'cco-v12-canon.css'),
+    'utf8'
+  );
+  assert.match(ui, /function setupV12CanonAccordion\(body\)/);
+  assert.match(ui, /function expandV12CanonSection\(scope, targetSection\)/);
+  assert.match(ui, /data-v12-section-toggle/);
+  assert.match(ui, /expandV12CanonSection\(scope, module\)/);
+  assert.match(canonCss, /data-v12-collapsed="true"/);
+  assert.doesNotMatch(canon, /v12-canon-visit-segment" open/);
+});
+
 test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle', () => {
   const canonPath = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js');
   const canon = fs.readFileSync(canonPath, 'utf8');
@@ -98,9 +128,16 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   assert.match(canon, /data-patient-file-id=/);
   assert.match(canon, /data-v12-photo-edit/);
   assert.match(canon, /data-encounter-id=/);
-  assert.match(canon, /s8\(bundle, ctx\.visitSegments, card\.id/);
+  assert.match(canon, /function s7\(photos, visitSegments, patientId\)/);
+  assert.match(canon, /Foto- och besöksdokumentation/);
+  assert.match(canon, /function s8\(bundle\)/);
+  assert.match(canon, /'Besök · tillfällen'/);
+  assert.match(canon, /b\.durationLabel \|\| b\.duration/);
+  assert.match(canon, /bookingMeta\.join\(' · '\)/);
+  assert.doesNotMatch(canon, /function s8\(bundle, visitSegments/);
   assert.match(v11, /data-v11-photo-edit/);
-  assert.match(v11, /renderBesokOccasion\(segment, pid\)/);
+  assert.match(v11, /label\('Besök · tillfällen'\)/);
+  assert.match(v11, /bundle && bundle\.historyBookings/);
   assert.match(v11, /data-patient-file-id=/);
   assert.match(v11, /__ccoHydratePatientFileImages/);
   assert.match(ui, /window\.__ccoHydratePatientFileImages/);

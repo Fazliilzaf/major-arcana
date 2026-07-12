@@ -96,6 +96,26 @@
   padding-bottom: 10px;
   box-shadow: inset 0 -1px 0 var(--hair);
 }
+.v12-canon .sec[data-v12-accordion="1"] > .sec-h {
+  cursor: pointer;
+}
+.v12-canon .sec[data-v12-accordion="1"] > .sec-h::after {
+  content: "Dölj";
+  flex: none;
+  color: var(--ink-mute);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.v12-canon .sec[data-v12-accordion="1"][data-v12-collapsed="true"] > .sec-h {
+  margin-bottom: 0;
+}
+.v12-canon .sec[data-v12-accordion="1"][data-v12-collapsed="true"] > .sec-h::after {
+  content: "Visa";
+}
+.v12-canon .sec[data-v12-accordion="1"][data-v12-collapsed="true"] > :not(.sec-h) {
+  display: none !important;
+}
 .v12-canon .sec-num {
   font-size: 10px;
   font-weight: 800;

@@ -388,23 +388,30 @@
           : '<div class="next-row"><div class="what" style="color:var(--ink-mute)">Inga kommande bokningar</div></div>')
     );
 
-    /* I · HISTORIK */
+    /* I · BESÖK / TILLFÄLLEN (bokningshistorik enligt V11-facit) */
     var hist = arr(bundle && bundle.historyBookings);
     if (hist.length) {
       out += secOpen(
         'historik',
         'sec',
-        label('Historik') +
+        label('Besök · tillfällen') +
           hist
             .slice(0, 4)
             .map(function (b) {
+              var meta = [
+                txt(b.timeLabel || b.time),
+                txt(b.durationLabel || b.duration),
+                txt(b.staffName || b.providerName || b.resourceName),
+              ].filter(Boolean);
               return (
                 '<div class="hist-row"><div class="book-date"><span class="d">' +
                 esc(txt(b.dayLabel || b.day || '—')) +
                 '</span></div>' +
                 '<div><div class="book-title">' +
-                esc(txt(b.title || 'Besök')) +
-                '</div></div><span class="q-status green">Genomförd</span></div>'
+                esc(txt(b.title || b.serviceLabel || 'Besök')) +
+                '</div>' +
+                (meta.length ? '<div class="book-meta">' + esc(meta.join(' · ')) + '</div>' : '') +
+                '</div><span class="q-status green">Genomförd</span></div>'
               );
             })
             .join('')
@@ -506,22 +513,6 @@
       );
     }
 
-    /* L2 · BESÖK / TILLFÄLLEN (visit-segments, read-only; hydreras async)
-       Placeras mellan Historik och Foton. Overifierade native-assets
-       (NEEDS_REVIEW/REJECTED/DUPLICATE) exkluderas redan vid API:t
-       (src/routes/ccoPatientMaster.js:535) → bara godkända tillfällen når hit.
-       Sektionen börjar dold; hydreringen visar den bara om det finns daterade
-       tillfällen, annars tas hela sektionen bort (ingen tom rubrik). */
-    var besokPid = txt(card.patientId || card.id || card.customerId);
-    if (besokPid) {
-      out +=
-        '<div class="sec" data-v9-section-link="besok-tillfallen" data-v11-rk-besok-sec hidden>' +
-        label('Besök · tillfällen') +
-        '<div class="v11-rk-besok" data-v11-rk-besok="' +
-        esc(besokPid) +
-        '"></div></div>';
-    }
-
     /* M · FOTON */
     var ph = arr(photos && photos.items ? photos.items : photos);
     if (ph.length) {
@@ -531,16 +522,43 @@
         label('Foton') +
           '<div class="photo-grid">' +
           ph
-            .slice(0, 6)
+            .slice(0, 3)
             .map(function (p) {
-              var bg = p.thumbnailUrl || p.viewUrl || p.url;
+              var assetId = txt(p.assetId || p.fileId || p.id);
+              var openRef = txt(p.openRef || p.viewUrl || p.url);
+              var editable = Boolean(assetId && openRef);
               return (
-                '<div class="photo-tile raw"' +
-                (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
+                '<div class="photo-tile raw' +
+                (editable ? ' photo-tile--editable' : '') +
+                '"' +
+                (editable
+                  ? ' role="button" tabindex="0" data-v11-photo-edit data-patient-id="' +
+                    esc(txt(card.patientId || card.id || card.customerId)) +
+                    '" data-asset-id="' +
+                    esc(assetId) +
+                    '" data-photo-src="' +
+                    esc(openRef) +
+                    '" data-photo-name="' +
+                    esc(txt(p.fileName || p.name || 'Foto')) +
+                    '" data-photo-zone="Foton" data-photo-date="' +
+                    esc(txt(p.dateLabel || p.photoDateLabel || p.capturedAt)) +
+                    '"'
+                  : '') +
                 '>' +
+                (assetId
+                  ? '<img src="" data-patient-file-id="' +
+                    esc(assetId) +
+                    '" alt="' +
+                    esc(txt(p.fileName || p.name || 'Foto')) +
+                    '" decoding="async" />'
+                  : '') +
                 '<span class="lbl">' +
                 esc(txt(p.dateLabel || p.photoDateLabel || 'Foto').slice(0, 8)) +
-                '</span></div>'
+                '</span>' +
+                (editable
+                  ? '<span class="photo-tile__draw" aria-hidden="true">✎ Rita</span>'
+                  : '') +
+                '</div>'
               );
             })
             .join('') +
@@ -860,17 +878,7 @@
     obs.observe(doc.documentElement || doc.body || doc, { childList: true, subtree: true });
   }
 
-  if (global.document) {
-    if (global.document.readyState === 'loading') {
-      global.document.addEventListener('DOMContentLoaded', observeBesok, { once: true });
-    } else {
-      observeBesok();
-    }
-  }
-
   global.CcoV11RailKomplett = {
     render: render,
-    renderBesokOccasion: renderBesokOccasion,
-    hydrateBesok: hydrateBesok,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

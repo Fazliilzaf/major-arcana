@@ -835,10 +835,6 @@ html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-center-shell
   overflow: auto;
 }
 
-html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-v9-header .v9-global-search {
-  display: none;
-}
-
 html[data-v9-enabled="on"][data-v10-kundkort-facit="on"] .customers-v9-agg-insights {
   margin: 0;
 }

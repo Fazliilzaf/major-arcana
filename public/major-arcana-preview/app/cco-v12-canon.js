@@ -863,19 +863,28 @@
   }
 
   /* ---------- 7 · BILDER ---------- */
-  function s7(photos) {
+  function s7(photos, visitSegments, patientId) {
     var items = arr(photos && photos.items ? photos.items : photos);
+    var visitBlock = visitSegmentsBlock(visitSegments, patientId);
     var head = secHead(
       '07',
       'Bilder',
       items.length ? items.length + ' bilder' : null,
       '<button class="sec-link">📷 Ta bild</button><button class="sec-link">Jämför →</button>'
     );
-    if (!items.length)
+    if (!items.length && !visitBlock)
       return (
         '<section class="sec" id="s7">' +
         head +
         '<div class="card" style="color:var(--ink-mute)">Inga bilder uppladdade ännu.</div></section>'
+      );
+    if (!items.length)
+      return (
+        '<section class="sec" id="s7">' +
+        head +
+        '<div class="card" style="color:var(--ink-mute)">Inga fristående bilder uppladdade.</div>' +
+        visitBlock +
+        '</section>'
       );
     var tiles = items
       .slice(0, 12)
@@ -940,6 +949,7 @@
       (gap
         ? '<div class="photo-gap"><span>⚠ Krona-vy saknas för fullständig dokumentation</span><button class="warn-action">Begär foto</button></div>'
         : '') +
+      visitBlock +
       '</section>'
     );
   }
@@ -1147,7 +1157,7 @@
           '</div>'
         : '<div class="visit-segment-empty">Inga dokument kopplade till detta tillfälle.</div>';
       return (
-        '<details class="card v12-canon-visit-segment" open><summary><span class="what">' +
+        '<details class="card v12-canon-visit-segment"><summary><span class="what">' +
         esc(txt(segment && (segment.label || segment.date)) || 'Tillfälle') +
         '</span><span class="when">' +
         esc(meta) +
@@ -1164,7 +1174,7 @@
     }
     return (
       '<div class="v12-canon-visit-segments card" data-v12-visit-segments="1">' +
-      '<div class="card-l">Besök · tillfällen</div>' +
+      '<div class="card-l">Foto- och besöksdokumentation</div>' +
       '<div class="visit-segments-list">' +
       segments.map(segmentMarkup).join('') +
       '</div></div>'
@@ -1172,18 +1182,17 @@
   }
 
   /* ---------- 8 · BOKNINGAR ---------- */
-  function s8(bundle, visitSegments, patientId) {
+  function s8(bundle) {
     var up = arr(bundle && bundle.upcomingBookings);
     var hist = arr(bundle && bundle.historyBookings);
-    var visitBlock = visitSegmentsBlock(visitSegments, patientId);
     var head = secHead(
       '08',
-      'Bokningar',
+      'Besök · tillfällen',
       up.length + ' kommande · ' + hist.length + ' historik',
       '<button class="sec-link">+ Boka</button>'
     );
     var rows = up.concat(hist).slice(0, 8);
-    if (!rows.length && !visitBlock)
+    if (!rows.length)
       return (
         '<section class="sec" id="s8">' +
         head +
@@ -1203,6 +1212,11 @@
         .map(function (b, i) {
           var done = i >= up.length;
           var md = monDay(b.dateLabel || b.monthLabel || b.month, b.dayLabel || b.day);
+          var bookingMeta = [
+            txt(b.timeLabel || b.time),
+            txt(b.durationLabel || b.duration),
+            txt(b.practitioner || b.staffName || b.providerName || b.resourceName),
+          ].filter(Boolean);
           return (
             '<div class="booking-row"><div class="b-date">' +
             esc(md.mon) +
@@ -1213,7 +1227,7 @@
             esc(txt(b.title || b.serviceLabel || 'Bokning')) +
             '</div>' +
             '<div class="b-meta">' +
-            esc(txt(b.timeLabel || b.time || '') + (b.practitioner ? ' · ' + b.practitioner : '')) +
+            esc(bookingMeta.join(' · ')) +
             '</div></div>' +
             chip(done ? 'ok' : 'info', done ? 'Genomförd' : 'Bokad') +
             '<button class="j-btn">' +
@@ -1227,7 +1241,6 @@
           (up.length + hist.length - rows.length) +
           ' fler bokningar</div>'
         : '') +
-      visitBlock +
       cta +
       '</section>'
     );
@@ -1879,8 +1892,8 @@
       s4(health) +
       s5(journey, av, nextStep, photos, health, stepAssets) +
       s6(ctx.journalEntries) +
-      s7(photos) +
-      s8(bundle, ctx.visitSegments, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
+      s7(photos, ctx.visitSegments, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
+      s8(bundle) +
       s9(files) +
       s10(comm) +
       s11(econ, invoices) +
