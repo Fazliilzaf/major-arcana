@@ -31,9 +31,20 @@ function toStoredBodyHtml(value = '') {
   // Försvar på write-pathen: även om en äldre connector skulle lämna kvar en
   // data-URL får den aldrig göra shard-filen stor. CID-referenser behålls och
   // skrivs om till den lokala bilagevägen när tråden renderas.
-  const withoutEmbeddedImages = html
+  const preservedSmallSvgImages = [];
+  const protectedHtml = html.replace(
+    /data:image\/svg\+xml(?:;[^,"']*)?,[^"']+/gi,
+    (source) => {
+      if (source.length > 8192) return source;
+      const token = `__CCO_SMALL_SVG_${preservedSmallSvgImages.length}__`;
+      preservedSmallSvgImages.push(source);
+      return token;
+    }
+  );
+  const withoutEmbeddedImages = protectedHtml
     .replace(/\s(src|background)\s*=\s*(['"])\s*data:image\/[\s\S]*?\2/gi, ' $1="#"')
-    .replace(/data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+/gi, '');
+    .replace(/data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+/gi, '')
+    .replace(/__CCO_SMALL_SVG_(\d+)__/g, (_match, index) => preservedSmallSvgImages[Number(index)] || '');
   return withoutEmbeddedImages.slice(0, MAX_STORED_BODY_HTML_CHARS);
 }
 
