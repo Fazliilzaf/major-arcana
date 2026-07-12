@@ -8205,32 +8205,46 @@
         return;
       }
       if (img.tagName === 'IMG') {
-        await new Promise((resolve, reject) => {
-          const done = () => {
-            img.removeEventListener('load', onLoad);
-            img.removeEventListener('error', onError);
-          };
-          const onLoad = () => {
-            done();
-            resolve();
-          };
-          const onError = () => {
-            done();
-            reject(new Error('image_decode_failed'));
-          };
-          img.addEventListener('load', onLoad, { once: true });
-          img.addEventListener('error', onError, { once: true });
-          img.src = objectUrl;
-          if (img.complete && img.naturalWidth > 0) {
-            done();
-            resolve();
+        img.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        img.src = objectUrl;
+        try {
+          if (typeof img.decode === 'function') {
+            await Promise.race([
+              img.decode(),
+              new Promise((_, reject) => {
+                window.setTimeout(() => reject(new Error('decode_timeout')), 8000);
+              }),
+            ]);
+          } else {
+            await new Promise((resolve, reject) => {
+              const done = () => {
+                img.removeEventListener('load', onLoad);
+                img.removeEventListener('error', onError);
+              };
+              const onLoad = () => {
+                done();
+                resolve();
+              };
+              const onError = () => {
+                done();
+                reject(new Error('image_decode_failed'));
+              };
+              img.addEventListener('load', onLoad, { once: true });
+              img.addEventListener('error', onError, { once: true });
+              if (img.complete && img.naturalWidth > 0) {
+                done();
+                resolve();
+              }
+            });
           }
-        }).catch(() => {
+          if (!(img.naturalWidth > 0)) {
+            throw new Error('image_zero_width');
+          }
+        } catch {
           img.classList.add('is-broken');
-          if (img.tagName === 'IMG') img.alt = 'Kunde inte visa bild';
+          img.alt = 'Kunde inte visa bild';
           return;
-        });
-        if (img.classList.contains('is-broken')) return;
+        }
       } else {
         img.src = objectUrl;
       }
