@@ -259,13 +259,6 @@ function deriveFolderCompleteness(folder = {}) {
         'Foldern kunde inte backfillas fran Microsoft Graph.',
     };
   }
-  if (nextPageUrl) {
-    return {
-      status: 'PARTIAL',
-      reasonCode: 'backfill_incomplete',
-      detail: `Foldern ar delvis materialiserad (${materializedMessageCount}/${expectedItemCount}) och har fortsatt backfill-cursor.`,
-    };
-  }
   if (expectedItemCount === 0 && materializedMessageCount === 0) {
     return {
       status: 'VERIFIED',
@@ -289,6 +282,13 @@ function deriveFolderCompleteness(folder = {}) {
       status: 'VERIFIED',
       reasonCode: 'verified',
       detail: `Foldern ar komplett materialiserad (${materializedMessageCount}/${expectedItemCount}).`,
+    };
+  }
+  if (nextPageUrl) {
+    return {
+      status: 'PARTIAL',
+      reasonCode: 'backfill_incomplete',
+      detail: `Foldern ar delvis materialiserad (${materializedMessageCount}/${expectedItemCount}) och har fortsatt backfill-cursor.`,
     };
   }
   return {
