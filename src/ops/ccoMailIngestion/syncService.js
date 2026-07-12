@@ -42,7 +42,12 @@ function createCcoMailIngestionSyncService({
     return createCcoMailboxTruthStore({ filePath: truthPath });
   }
 
-  async function runDeltaSync({ mailboxIds = [], folderTypes = MAILBOX_FOLDER_TYPES } = {}) {
+  async function runDeltaSync({
+    mailboxIds = [],
+    folderTypes = MAILBOX_FOLDER_TYPES,
+    pageSize,
+    maxPagesPerFolder,
+  } = {}) {
     const store = await openTruthStore();
     const delta = createMicrosoftGraphMailboxTruthDelta({
       connectorFactory: () => graphReadConnector,
@@ -51,6 +56,8 @@ function createCcoMailIngestionSyncService({
     return delta.runDeltaSync({
       mailboxIds,
       folderTypes,
+      pageSize,
+      maxPagesPerFolder,
     });
   }
 
@@ -257,6 +264,8 @@ function createCcoMailIngestionSyncService({
     createdBy = 'system',
     folderTypes = MAILBOX_FOLDER_TYPES,
     truthLimit = 0,
+    deltaPageSize,
+    deltaMaxPagesPerFolder,
   } = {}) {
     const normalizedMailbox = normalizeEmail(mailboxEmail);
     if (!normalizedMailbox) {
@@ -284,6 +293,8 @@ function createCcoMailIngestionSyncService({
         deltaResult = await runDeltaSync({
           mailboxIds: [normalizedMailbox],
           folderTypes,
+          pageSize: deltaPageSize,
+          maxPagesPerFolder: deltaMaxPagesPerFolder,
         });
       }
 
