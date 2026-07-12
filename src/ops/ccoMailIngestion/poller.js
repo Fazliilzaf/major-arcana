@@ -48,7 +48,7 @@ function createCcoMailIngestionPoller({
     config.ccoMailIngestionEnabled === true &&
     config.ccoMailIngestionMode === 'read_only' &&
     mailboxEmails.length > 0 &&
-    typeof syncService?.runMailboxCycle === 'function';
+    typeof syncService?.runDeltaSync === 'function';
 
   let intervalId = null;
   let initialTimeoutId = null;
@@ -62,43 +62,30 @@ function createCcoMailIngestionPoller({
     try {
       const results = [];
       for (const mailboxEmail of mailboxEmails) {
-        const result = await syncService.runMailboxCycle({
-          mailboxEmail,
-          mode: 'read_only',
-          trigger: 'cco_mailbox_poller',
-          createdBy: 'system:cco_mailbox_poller',
+        const result = await syncService.runDeltaSync({
+          mailboxIds: [mailboxEmail],
           folderTypes: ['inbox', 'sent'],
-          truthLimit: Math.max(1, Number(config.ccoMailIngestionPollTruthLimit) || 100),
-          deltaPageSize: Math.max(1, Number(config.ccoMailIngestionPollDeltaPageSize) || 25),
-          deltaMaxPagesPerFolder: Math.max(
+          pageSize: Math.max(1, Number(config.ccoMailIngestionPollDeltaPageSize) || 25),
+          maxPagesPerFolder: Math.max(
             1,
             Number(config.ccoMailIngestionPollDeltaMaxPages) || 1
           ),
         });
         results.push({ mailboxEmail, result });
       }
-      const fetched = results.reduce(
-        (sum, item) => sum + Number(item.result?.ingestResult?.totalFetched || 0),
-        0
-      );
-      const saved = results.reduce(
-        (sum, item) => sum + Number(item.result?.ingestResult?.totalSaved || 0),
-        0
-      );
-      const processed = results.reduce(
-        (sum, item) => sum + Number(item.result?.processResult?.processed || 0),
+      const changed = results.reduce(
+        (sum, item) => sum + Number(item.result?.affectedConversationIds?.length || 0),
         0
       );
       logger?.log?.(
         `[cco-mailbox-poller] cycle klar mailboxes=${mailboxEmails.join(',')} ` +
-          `fetched=${fetched} saved=${saved} processed=${processed}`
+          `truthChanged=${changed}`
       );
-      if (saved > 0 && typeof runtimeStreamRouter?.broadcast === 'function') {
+      if (changed > 0 && typeof runtimeStreamRouter?.broadcast === 'function') {
         runtimeStreamRouter.broadcast('worklist_updated', {
           source: 'cco_mailbox_poller',
           mailboxIds: mailboxEmails,
-          saved,
-          processed,
+          truthChanged: changed,
           completedAt: new Date().toISOString(),
         });
       }
