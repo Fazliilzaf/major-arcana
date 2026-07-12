@@ -59,6 +59,9 @@ function renderAttachmentsForTest(message) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
     },
+    document: {
+      addEventListener() {},
+    },
     URL,
   };
 
