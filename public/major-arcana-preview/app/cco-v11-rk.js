@@ -847,11 +847,10 @@
       })
       .join('');
     return (
-      '<details class="v11-rk-visit-card" data-v11-visit-card data-encounter-id="' +
+      '<article class="v11-rk-visit-card" data-v11-visit-card data-encounter-id="' +
       esc(txt(seg.encounterId)) +
-      '"><summary data-v11-visit-toggle>' +
+      '">' +
       head +
-      '</summary><div class="v11-rk-visit-card__body">' +
       reasonLine +
       photoGrid +
       morePhotos +
@@ -859,8 +858,7 @@
       journalRows +
       docRows +
       videoRows +
-      '</div><button type="button" class="v11-rk-visit-open" data-v12-open-module="bookings">Visa hela tillfället</button>' +
-      '</div></details>'
+      '</div></article>'
     );
   }
 

@@ -118,8 +118,6 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   assert.match(v11, /renderBesokOccasion\(segment, pid\)/);
   assert.match(v11, /\.slice\(0, 3\)/);
   assert.match(v11, /data-v11-visit-card/);
-  assert.match(v11, /data-v11-visit-toggle/);
-  assert.match(ui, /\[data-v11-visit-toggle\]/);
   assert.match(v11, /arr\(seg\.journals\)/);
   assert.match(v11, /arr\(seg\.videos\)/);
   assert.match(v11, /data-v11-rk-global-photos/);
