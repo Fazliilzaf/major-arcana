@@ -664,6 +664,7 @@ function filterInternalizeRemainingRows(
     excludeUnknownMonth = true,
     requireDocumentDateSource = false,
     allowedDocumentDateSources = null,
+    includeReviewDetails = false,
   } = {}
 ) {
   const resolvedAllowedSources = resolveAllowedDocumentDateSources({
@@ -672,7 +673,7 @@ function filterInternalizeRemainingRows(
   });
   const paired = asArray(remainingRows).map((row, index) => ({
     row,
-    preview: buildInternalizeCandidatePreviewRow(row, index),
+    preview: buildInternalizeCandidatePreviewRow(row, index, { includeReviewDetails }),
   }));
   let filtered = paired;
   if (excludeUnknownMonth) {
@@ -1137,6 +1138,7 @@ async function previewInternalizeCandidates({
     excludeUnknownMonth,
     requireDocumentDateSource,
     allowedDocumentDateSources,
+    includeReviewDetails,
   });
   const browsePool = filtered.map((item) => item.preview);
   const candidates = browsePool.slice(browseOffset, browseOffset + browseLimit);
