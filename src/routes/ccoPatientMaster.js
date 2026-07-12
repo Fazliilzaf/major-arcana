@@ -134,6 +134,24 @@ function clampPreviewLimit(value, fallback = 10) {
   return Math.max(1, Math.min(100, Math.floor(parsed)));
 }
 
+async function mapWithConcurrency(items, concurrency, mapper) {
+  const rows = Array.isArray(items) ? items : [];
+  const results = new Array(rows.length);
+  let nextIndex = 0;
+  const workers = Array.from(
+    { length: Math.min(Math.max(1, Number(concurrency) || 1), rows.length) },
+    async () => {
+      while (nextIndex < rows.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        results[index] = await mapper(rows[index], index);
+      }
+    }
+  );
+  await Promise.all(workers);
+  return results;
+}
+
 function parseExcludeUnknownMonth(value, defaultValue = false) {
   if (value === undefined || value === null || value === '') return defaultValue;
   const normalized = String(value).trim().toLowerCase();
@@ -2130,52 +2148,50 @@ function createCcoPatientMasterRouter({
           /* Preview remains useful with assets/journals when booking stores are unavailable. */
         }
 
-        const patientInputs = await Promise.all(
-          patients.map(async (patient) => {
-            const ids = await resolvePatientAssetIds({
-              patientId: patient.id,
-              patient,
-              tenantId: actor.tenantId,
-              customerStore,
-              assetStore,
-            });
-            const seen = new Set();
-            const assets = [];
-            for (const id of ids) {
-              const rows =
-                assetStore.listAssetsForPatient?.(id, {}, { actor: { role: 'system' } }) || [];
-              for (const row of rows) {
-                if (!row?.id || seen.has(row.id)) continue;
-                seen.add(row.id);
-                assets.push(row);
-              }
+        const patientInputs = await mapWithConcurrency(patients, 4, async (patient) => {
+          const ids = await resolvePatientAssetIds({
+            patientId: patient.id,
+            patient,
+            tenantId: actor.tenantId,
+            customerStore,
+            assetStore,
+          });
+          const seen = new Set();
+          const assets = [];
+          for (const id of ids) {
+            const rows =
+              assetStore.listAssetsForPatient?.(id, {}, { actor: { role: 'system' } }) || [];
+            for (const row of rows) {
+              if (!row?.id || seen.has(row.id)) continue;
+              seen.add(row.id);
+              assets.push(row);
             }
-            const journalEntries = journalStore?.listEntries
-              ? await journalStore.listEntries({
-                  tenantId: actor.tenantId,
-                  patientId: patient.id,
-                })
-              : [];
-            const signals = getBookingSignals(bookingIndex.index, patient.id);
-            const encounters = treatmentEncounterStore?.listByPatient
-              ? await treatmentEncounterStore.listByPatient({
-                  tenantId: actor.tenantId,
-                  patientId: patient.id,
-                  limit: 100,
-                })
-              : [];
-            return {
-              patientId: patient.id,
-              assets,
-              journalEntries,
-              bookings: [
-                ...asArray(signals.upcomingBookings),
-                ...asArray(signals.historyBookings),
-                ...asArray(encounters),
-              ],
-            };
-          })
-        );
+          }
+          const journalEntries = journalStore?.listEntries
+            ? await journalStore.listEntries({
+                tenantId: actor.tenantId,
+                patientId: patient.id,
+              })
+            : [];
+          const signals = getBookingSignals(bookingIndex.index, patient.id);
+          const encounters = treatmentEncounterStore?.listByPatient
+            ? await treatmentEncounterStore.listByPatient({
+                tenantId: actor.tenantId,
+                patientId: patient.id,
+                limit: 100,
+              })
+            : [];
+          return {
+            patientId: patient.id,
+            assets,
+            journalEntries,
+            bookings: [
+              ...asArray(signals.upcomingBookings),
+              ...asArray(signals.historyBookings),
+              ...asArray(encounters),
+            ],
+          };
+        });
 
         const report = previewEncounterLinkRepair({ patientInputs, sampleSize });
         await authStore.addAuditEvent({
@@ -2248,49 +2264,47 @@ function createCcoPatientMasterRouter({
         } catch {
           /* Asset/journal matching remains available without booking index. */
         }
-        const patientInputs = await Promise.all(
-          patients.map(async (patient) => {
-            const ids = await resolvePatientAssetIds({
-              patientId: patient.id,
-              patient,
-              tenantId: actor.tenantId,
-              customerStore,
-              assetStore,
-            });
-            const seen = new Set();
-            const assets = [];
-            for (const id of ids) {
-              const rows =
-                assetStore.listAssetsForPatient?.(id, {}, { actor: { role: 'system' } }) || [];
-              for (const row of rows) {
-                if (!row?.id || seen.has(row.id)) continue;
-                seen.add(row.id);
-                assets.push(row);
-              }
+        const patientInputs = await mapWithConcurrency(patients, 4, async (patient) => {
+          const ids = await resolvePatientAssetIds({
+            patientId: patient.id,
+            patient,
+            tenantId: actor.tenantId,
+            customerStore,
+            assetStore,
+          });
+          const seen = new Set();
+          const assets = [];
+          for (const id of ids) {
+            const rows =
+              assetStore.listAssetsForPatient?.(id, {}, { actor: { role: 'system' } }) || [];
+            for (const row of rows) {
+              if (!row?.id || seen.has(row.id)) continue;
+              seen.add(row.id);
+              assets.push(row);
             }
-            const journalEntries = journalStore?.listEntries
-              ? await journalStore.listEntries({ tenantId: actor.tenantId, patientId: patient.id })
-              : [];
-            const signals = getBookingSignals(bookingIndex.index, patient.id);
-            const encounters = treatmentEncounterStore?.listByPatient
-              ? await treatmentEncounterStore.listByPatient({
-                  tenantId: actor.tenantId,
-                  patientId: patient.id,
-                  limit: 100,
-                })
-              : [];
-            return {
-              patientId: patient.id,
-              assets,
-              journalEntries,
-              bookings: [
-                ...asArray(signals.upcomingBookings),
-                ...asArray(signals.historyBookings),
-                ...asArray(encounters),
-              ],
-            };
-          })
-        );
+          }
+          const journalEntries = journalStore?.listEntries
+            ? await journalStore.listEntries({ tenantId: actor.tenantId, patientId: patient.id })
+            : [];
+          const signals = getBookingSignals(bookingIndex.index, patient.id);
+          const encounters = treatmentEncounterStore?.listByPatient
+            ? await treatmentEncounterStore.listByPatient({
+                tenantId: actor.tenantId,
+                patientId: patient.id,
+                limit: 100,
+              })
+            : [];
+          return {
+            patientId: patient.id,
+            assets,
+            journalEntries,
+            bookings: [
+              ...asArray(signals.upcomingBookings),
+              ...asArray(signals.historyBookings),
+              ...asArray(encounters),
+            ],
+          };
+        });
         const plan = buildEncounterLinkRepairPlan({ patientInputs });
         const results = [];
         for (const mapping of plan.linkable) {
