@@ -1911,9 +1911,15 @@
         event.preventDefault();
         const action = activeVisitAction.getAttribute('data-v11-active-visit-action');
         if (action === 'photo') {
+          const cameraInput = document.querySelector('[data-patient-photo-camera]');
+          if (cameraInput) {
+            cameraInput.dataset.encounterId =
+              activeVisitAction.getAttribute('data-encounter-id') || '';
+            cameraInput.dataset.visitDate = activeVisitAction.getAttribute('data-visit-date') || '';
+          }
           closeV12WorkspaceOverlayIfOpen();
           window.requestAnimationFrame(() => {
-            document.querySelector('[data-patient-photo-camera]')?.click?.();
+            cameraInput?.click?.();
           });
         } else if (action === 'journal' || action === 'notes') {
           closeV12WorkspaceOverlayIfOpen();
@@ -2001,6 +2007,7 @@
       const visitJournal = event.target.closest('[data-v12-visit-journal]');
       if (visitJournal && body.contains(visitJournal)) {
         event.preventDefault();
+        runtime.pendingVisitEncounterId = visitJournal.getAttribute('data-encounter-id') || '';
         closeV12WorkspaceOverlayIfOpen();
         switchDetailTab('journal');
         setStatus(
@@ -2093,6 +2100,28 @@
         if (input) input.click();
         return;
       }
+      const visitDocAdd = event.target.closest('[data-v12-visit-document]');
+      if (visitDocAdd && body.contains(visitDocAdd)) {
+        event.preventDefault();
+        const input = body.querySelector('[data-v12-doc-input]');
+        if (input) {
+          input.dataset.encounterId = visitDocAdd.getAttribute('data-encounter-id') || '';
+          input.dataset.visitDate = visitDocAdd.getAttribute('data-visit-date') || '';
+          input.click();
+        }
+        return;
+      }
+      const visitVideoAdd = event.target.closest('[data-v12-visit-video]');
+      if (visitVideoAdd && body.contains(visitVideoAdd)) {
+        event.preventDefault();
+        const input = body.querySelector('[data-v12-video-input]');
+        if (input) {
+          input.dataset.encounterId = visitVideoAdd.getAttribute('data-encounter-id') || '';
+          input.dataset.visitDate = visitVideoAdd.getAttribute('data-visit-date') || '';
+          input.click();
+        }
+        return;
+      }
       // Fas 4 · Hybrid: jump-rail ankarklick → scrolla till modul i Zon 2.
       const jump = event.target.closest('[data-v12-jump]');
       if (jump && body.contains(jump)) {
@@ -2182,9 +2211,43 @@
     // Dokument "+ Lägg till PDF" → multipart-upload → POST /cco-journal-quick/document.
     // Lokalt, ingen extern integration. Vid klart → ladda om dossiern så filen syns.
     body.addEventListener('change', (event) => {
+      const videoInput = event.target.closest('[data-v12-video-input]');
+      if (videoInput && body.contains(videoInput)) {
+        const patientId = videoInput.getAttribute('data-v12-video-input');
+        const encounterId = videoInput.dataset.encounterId || '';
+        const visitDate = videoInput.dataset.visitDate || '';
+        const file = videoInput.files && videoInput.files[0];
+        videoInput.value = '';
+        if (!patientId || !encounterId || !file) return;
+        const formData = new FormData();
+        formData.append('media', file);
+        formData.append('patientId', patientId);
+        formData.append('encounterId', encounterId);
+        if (visitDate) formData.append('documentDate', visitDate);
+        const token = getAdminToken();
+        const headers = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+        setStatus('Laddar upp film…', 'loading');
+        fetch(new URL('/api/v1/cco-journal-quick/visit-media', window.location.origin), {
+          method: 'POST',
+          headers,
+          credentials: 'same-origin',
+          body: formData,
+        })
+          .then(async (response) => {
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+            setStatus('Film sparad på besöket.', 'success');
+            window.setTimeout(() => void loadPatientDetail(patientId), 500);
+          })
+          .catch((error) => setStatus(error.message || 'Kunde inte ladda upp film.', 'error'));
+        return;
+      }
       const input = event.target.closest('[data-v12-doc-input]');
       if (!input || !body.contains(input)) return;
       const patientId = input.getAttribute('data-v12-doc-input');
+      const encounterId = input.dataset.encounterId || '';
+      const visitDate = input.dataset.visitDate || '';
       const file = input.files && input.files[0];
       if (!patientId || !file) return;
       const isPdf = /pdf$/i.test(file.type || '') || /\.pdf$/i.test(file.name || '');
@@ -2203,6 +2266,8 @@
       const formData = new FormData();
       formData.append('document', file);
       formData.append('patientId', patientId);
+      if (encounterId) formData.append('encounterId', encounterId);
+      if (visitDate) formData.append('documentDate', visitDate);
       const token = getAdminToken();
       const headers = {};
       if (token) headers.Authorization = `Bearer ${token}`;
@@ -5105,9 +5170,9 @@
   }
 
   function journalEntryPayload(base, entries) {
-    const encounterId = resolveActiveTreatmentEncounterId(
-      entries || runtime.detail?.journalEntries
-    );
+    const encounterId =
+      normalizeText(runtime.pendingVisitEncounterId) ||
+      resolveActiveTreatmentEncounterId(entries || runtime.detail?.journalEntries);
     if (!encounterId) return base;
     return { ...base, treatmentEncounterId: encounterId };
   }
@@ -13299,11 +13364,11 @@
     document.body.appendChild(overlay);
   }
 
-  async function uploadConsultationPhotos(files) {
+  async function uploadConsultationPhotos(files, options = {}) {
     const queue = Array.from(files || []).filter(Boolean);
     if (!queue.length) return;
     for (const file of queue) {
-      await uploadConsultationPhoto(file);
+      await uploadConsultationPhoto(file, options);
     }
   }
 
@@ -13344,6 +13409,8 @@
     const formData = new FormData();
     formData.append('photo', uploadFile);
     formData.append('patientId', patientId);
+    if (options.encounterId) formData.append('encounterId', options.encounterId);
+    if (options.visitDate) formData.append('documentDate', options.visitDate);
     if (card?.personnummer) formData.append('personnummer', card.personnummer);
     if (planEntry?.entryId) formData.append('entryId', planEntry.entryId);
     formData.append('label', labelChoice || file.name || 'Konsultationsbild');
@@ -14466,8 +14533,12 @@
       const files = uploadInput.files ? Array.from(uploadInput.files) : [];
       uploadInput.value = '';
       if (!files.length) return;
-      if (files.length === 1) void uploadConsultationPhoto(files[0]);
-      else void uploadConsultationPhotos(files);
+      const encounterId = uploadInput.dataset.encounterId || '';
+      const visitDate = uploadInput.dataset.visitDate || '';
+      delete uploadInput.dataset.encounterId;
+      delete uploadInput.dataset.visitDate;
+      if (files.length === 1) void uploadConsultationPhoto(files[0], { encounterId, visitDate });
+      else void uploadConsultationPhotos(files, { encounterId, visitDate });
     });
 
     window.addEventListener('online', () => {

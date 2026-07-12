@@ -207,6 +207,12 @@
   box-shadow: var(--card-shadow);
   overflow: hidden;
 }
+
+.v11-rk .v11-rk__visit-open {
+  width: 100%;
+  margin-top: 10px;
+  justify-content: center;
+}
 .v11-rk .sec-label {
   font-size: 9.5px;
   font-weight: 800;

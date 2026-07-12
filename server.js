@@ -9005,6 +9005,21 @@ try {
       cb(null, true);
     },
   });
+  const MAX_VISIT_MEDIA_BYTES = 50 * 1024 * 1024;
+  const visitMediaUpload = multerDoc({
+    storage: multerDoc.memoryStorage(),
+    limits: { fileSize: MAX_VISIT_MEDIA_BYTES, files: 1 },
+    fileFilter: (_req, file, cb) => {
+      const mime = String(file.mimetype || '').toLowerCase();
+      const ok =
+        mime.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(file.originalname || '');
+      if (!ok) {
+        cb(Object.assign(new Error('Endast film stöds.'), { statusCode: 415 }));
+        return;
+      }
+      cb(null, true);
+    },
+  });
 
   app.post(
     '/api/v1/cco-journal-quick/document',
@@ -9027,6 +9042,7 @@ try {
         const rawCategory = t(req.body?.category).toLowerCase();
         const category = allowedCategories.includes(rawCategory) ? rawCategory : 'form';
         const displayName = t(req.body?.displayName) || null;
+        const encounterId = t(req.body?.encounterId) || null;
         const docDateRaw = t(req.body?.documentDate).slice(0, 10);
         const documentDate = /^\d{4}-\d{2}-\d{2}$/.test(docDateRaw) ? docDateRaw : null;
 
@@ -9057,6 +9073,7 @@ try {
             originalFileName: req.file.originalname || 'dokument.pdf',
             displayName,
             documentDate,
+            encounterId,
             status: 'VISIBLE_ON_PATIENT_CARD',
             importedBy: actor.userId,
           },
@@ -9067,7 +9084,7 @@ try {
           'patient.document.upload',
           req.cco?.role,
           { kind: 'patient_asset', id: asset.id },
-          { patientId, category, fileSize: put.size, deduped: !!put.deduped }
+          { patientId, encounterId, category, fileSize: put.size, deduped: !!put.deduped }
         );
         res.json({
           ok: true,
@@ -9080,6 +9097,84 @@ try {
         });
       } catch (err) {
         res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/cco-journal-quick/visit-media',
+    attachRole,
+    requirePermission('journal.write'),
+    visitMediaUpload.single('media'),
+    async (req, res) => {
+      const t = (v) => (typeof v === 'string' ? v.trim() : '');
+      try {
+        if (!req.file) return res.status(400).json({ error: 'media (film) krävs' });
+        const patientId = t(req.body?.patientId);
+        const encounterId = t(req.body?.encounterId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs' });
+        if (!encounterId) return res.status(400).json({ error: 'encounterId krävs' });
+
+        const secureStorage = await resolveSharedSecureStorage();
+        const assetStore = await resolveSharedPatientAssetStore();
+        if (!secureStorage || !assetStore)
+          return res.status(503).json({ error: 'asset stores not ready' });
+
+        const mimeType = t(req.file.mimetype).toLowerCase() || 'video/mp4';
+        const extension =
+          (t(req.file.originalname).match(/\.(mp4|mov|m4v|webm)$/i) || [])[0] || '.mp4';
+        const ym = new Date().toISOString().slice(0, 7);
+        const storageKey = `patient-visit-media/${ym}/${patientId}/upload-${Date.now()}${extension.toLowerCase()}`;
+        const put = await secureStorage.putObject({
+          key: storageKey,
+          body: req.file.buffer,
+          contentType: mimeType,
+          metadata: {
+            patientId,
+            encounterId,
+            originalFileName: req.file.originalname || 'film.mp4',
+          },
+        });
+        const docDateRaw = t(req.body?.documentDate).slice(0, 10);
+        const documentDate = /^\d{4}-\d{2}-\d{2}$/.test(docDateRaw) ? docDateRaw : null;
+        const actor = {
+          userId: req.headers['x-cco-user'] || 'demo-user',
+          role: req.cco?.role || 'staff',
+        };
+        const asset = await assetStore.addAsset(
+          {
+            patientId,
+            encounterId,
+            category: 'other',
+            fileType: 'video',
+            sourceSystem: 'upload',
+            storageProvider: 'local',
+            storageKey: put.storageKey,
+            checksum: put.checksum,
+            fileSize: put.size,
+            mimeType,
+            originalFileName: req.file.originalname || 'film.mp4',
+            displayName: t(req.body?.displayName) || null,
+            documentDate,
+            status: 'VISIBLE_ON_PATIENT_CARD',
+            importedBy: actor.userId,
+          },
+          { actor }
+        );
+        auditA(
+          'patient.visit_media.upload',
+          req.cco?.role,
+          { kind: 'patient_asset', id: asset.id },
+          { patientId, encounterId, mimeType, fileSize: put.size, deduped: !!put.deduped }
+        );
+        res.json({ ok: true, asset, storage: { deduped: !!put.deduped, size: put.size } });
+      } catch (error) {
+        if (error?.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ error: 'Filmen är för stor (max 50 MB).' });
+        }
+        res
+          .status(error.statusCode || 500)
+          .json({ error: error.message || 'Kunde inte ladda upp film.' });
       }
     }
   );

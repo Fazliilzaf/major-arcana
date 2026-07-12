@@ -440,6 +440,7 @@ function createCcoJournalRouter({
         }
         const patientId = normalizeText(req.body?.patientId);
         const entryId = normalizeText(req.body?.entryId);
+        const encounterId = normalizeText(req.body?.encounterId);
         const label = normalizeText(req.body?.label);
         const photoPhase = normalizePhotoPhase(req.body?.photoPhase);
         if (!patientId) return res.status(400).json({ error: 'patientId saknas.' });
@@ -505,6 +506,7 @@ function createCcoJournalRouter({
             tenantId: actor.tenantId,
             planEntry: entry,
             photo: stored,
+            encounterId,
             actor: photoActor,
           });
           if (!synced.skipped) {

@@ -418,6 +418,17 @@
       );
     }
 
+    /* I2 · SENASTE BESÖKSDOKUMENTATION — kompakt preview, full vy i V12. */
+    var visitPatientId = txt(card.patientId || card.id || card.customerId);
+    if (visitPatientId) {
+      out +=
+        '<div class="sec" data-v11-rk-besok-sec hidden>' +
+        label('Senaste besök · dokumentation') +
+        '<div data-v11-rk-besok="' +
+        esc(visitPatientId) +
+        '"></div></div>';
+    }
+
     /* J · JOURNALER */
     if (entries.length) {
       out += secOpen(
@@ -738,11 +749,14 @@
     if (!seg || !seg.date) return '';
     var vt = besokVisitType(seg);
     var title = [vt || txt(seg.label) || 'Besök', txt(seg.timeRange)].filter(Boolean).join(' · ');
-    var imgs = arr(seg.images);
-    var docs = arr(seg.documents);
+    var allImages = arr(seg.images);
+    var imgs = allImages.slice(0, 3);
+    var allDocs = arr(seg.documents);
+    var docs = allDocs.slice(0, 3);
     var counts = [];
-    if (imgs.length) counts.push(imgs.length + (imgs.length === 1 ? ' foto' : ' foton'));
-    if (docs.length) counts.push(docs.length + ' dokument');
+    if (allImages.length)
+      counts.push(allImages.length + (allImages.length === 1 ? ' foto' : ' foton'));
+    if (allDocs.length) counts.push(allDocs.length + ' dokument');
     var conf = txt(seg.confidence);
     var badge =
       conf && conf !== 'high'
@@ -824,7 +838,9 @@
           : '<div class="file-row">' + inner + '</div>';
       })
       .join('');
-    return head + reasonLine + photoGrid + docRows;
+    var more =
+      '<button type="button" class="sec-link v11-rk__visit-open" data-v9-section-link="foto">Öppna hela besöket</button>';
+    return head + reasonLine + photoGrid + docRows + more;
   }
 
   function hydrateBesok(mount) {
@@ -844,11 +860,11 @@
           return s && s.date;
         });
         if (!dated.length) return drop();
-        mount.innerHTML = dated
-          .map(function (segment) {
-            return renderBesokOccasion(segment, pid);
-          })
-          .join('');
+        var previewSegment =
+          dated.find(function (segment) {
+            return arr(segment && segment.images).length > 0;
+          }) || dated[0];
+        mount.innerHTML = renderBesokOccasion(previewSegment, pid);
         if (typeof global.__ccoHydratePatientFileImages === 'function') {
           void global.__ccoHydratePatientFileImages(mount);
         }
@@ -881,4 +897,5 @@
   global.CcoV11RailKomplett = {
     render: render,
   };
+  observeBesok();
 })(typeof window !== 'undefined' ? window : globalThis);

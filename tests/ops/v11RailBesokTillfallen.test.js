@@ -48,11 +48,18 @@ test('V11 behåller facits separata Journaler, Foton och Filer', () => {
   assert.match(html, /PRP 1\/3/);
   assert.match(html, /11:15 · 45 min · Erik Holm/);
   assert.match(html, /Journaler · personal/);
-  assert.doesNotMatch(html, /data-v11-rk-besok/);
+  assert.match(html, /data-v11-rk-besok="pat-42"/);
 });
 
 test('V11:s fotoöversikt är begränsad till tre bilder', () => {
   assert.match(source, /ph\s*\.slice\(0, 3\)/);
   assert.match(source, /data-patient-file-id/);
   assert.match(source, /data-v11-photo-edit/);
+});
+
+test('V11:s asynkrona besökssnabbvy visar senaste rummet och högst tre bilder', () => {
+  assert.match(source, /var imgs = allImages\.slice\(0, 3\)/);
+  assert.match(source, /var previewSegment =/);
+  assert.match(source, /renderBesokOccasion\(previewSegment, pid\)/);
+  assert.match(source, /Öppna hela besöket/);
 });
