@@ -2166,100 +2166,119 @@
 
   function openV12WorkspaceFromRail(root, ctx, moduleName) {
     if (!root || !ctx || !usesV12Workspace()) return;
-    const deep =
-      root.querySelector('[data-v9-dossier-deep]') ||
-      document.querySelector('[data-v9-dossier-deep]');
-    const body = deep?.querySelector('[data-v9-deep-body]');
-    if (!deep || !body) return;
-    const title = deep.querySelector('[data-v9-deep-title]');
-    if (title) title.textContent = 'Kundvy';
-    // Portala overlayn till <body> så den position:fixed-ytan slipper de
-    // nästlade stacking-contexterna i kund-railen (customers-layout/-surface/
-    // -shell + preview-workspace, alla z:1). Annars målas kundlistan ovanpå
-    // trots z-index 12080. Återställs till ursprunglig DOM-plats vid close.
-    if (deep.parentElement && deep.parentElement !== document.body) {
-      deep.__v12OriginalParent = deep.parentElement;
-      deep.__v12OriginalNext = deep.nextSibling;
-      document.body.appendChild(deep);
-    }
-    deep.classList.add('v9-dossier-deep--v12-workspace');
-    // Robusthet (Fas 4 hotfix): rendera ALDRIG en blank helskärms-overlay. Om
-    // shell-renderingen kastar eller returnerar tomt → avbryt öppningen, återställ
-    // portalen och lämna kund-railen synlig (pre-Fas-4-beteende), istället för att
-    // visa en tom cream-yta som täcker hela skärmen.
-    let shellHtml = '';
-    try {
-      shellHtml = renderV12WorkspaceDetailShell(
-        ctx.card,
-        ctx.journalEntries,
-        ctx.occasionTimeline,
-        ctx.driveFiles,
-        ctx.patient,
-        { tab: normalizeDetailTab(runtime.detailTab) }
+    const launch = async () => {
+      const patientId = normalizeText(
+        ctx?.card?.patientId || ctx?.card?.id || runtime.selectedPatientId
       );
-    } catch (_shellError) {
-      shellHtml = '';
-    }
-    if (!shellHtml || shellHtml.indexOf('data-v12-workspace-shell') === -1) {
-      deep.classList.remove('v9-dossier-deep--v12-workspace');
-      if (deep.__v12OriginalParent) {
-        try {
-          deep.__v12OriginalParent.insertBefore(deep, deep.__v12OriginalNext || null);
-        } catch (_restoreError) {
-          /* original-parent borta — oskadligt */
+      if (!asArray(runtime.detail?.visitSegments).length && patientId) {
+        const fetchSegments = window.CcoKundkortVisitSegments?.fetchVisitSegmentsOrEmpty;
+        if (typeof fetchSegments === 'function') {
+          try {
+            const segments = await fetchSegments(patientId);
+            if (segments.length && runtime.detail) {
+              runtime.detail = { ...runtime.detail, visitSegments: asArray(segments) };
+            }
+          } catch {
+            /* best-effort — render med befintlig detail */
+          }
         }
-        deep.__v12OriginalParent = null;
-        deep.__v12OriginalNext = null;
       }
-      runtime.v12HybridAutoOpenedFor = null;
-      return;
-    }
-    body.innerHTML = shellHtml;
-    deep.hidden = false;
-    deep.setAttribute('aria-hidden', 'false');
-    bindV12WorkspaceOverlayBody(body, ctx);
-    const close = () => {
-      deep.hidden = true;
-      deep.setAttribute('aria-hidden', 'true');
-      deep.classList.remove('v9-dossier-deep--v12-workspace');
-      body.innerHTML = '';
-      // Återställ overlayn till ursprunglig DOM-plats (portal-restore).
-      if (deep.__v12OriginalParent) {
-        try {
-          deep.__v12OriginalParent.insertBefore(deep, deep.__v12OriginalNext || null);
-        } catch (_e) {
-          /* original-parent borta (rerender) → lämna i body, oskadligt */
+      const deep =
+        root.querySelector('[data-v9-dossier-deep]') ||
+        document.querySelector('[data-v9-dossier-deep]');
+      const body = deep?.querySelector('[data-v9-deep-body]');
+      if (!deep || !body) return;
+      const title = deep.querySelector('[data-v9-deep-title]');
+      if (title) title.textContent = 'Kundvy';
+      // Portala overlayn till <body> så den position:fixed-ytan slipper de
+      // nästlade stacking-contexterna i kund-railen (customers-layout/-surface/
+      // -shell + preview-workspace, alla z:1). Annars målas kundlistan ovanpå
+      // trots z-index 12080. Återställs till ursprunglig DOM-plats vid close.
+      if (deep.parentElement && deep.parentElement !== document.body) {
+        deep.__v12OriginalParent = deep.parentElement;
+        deep.__v12OriginalNext = deep.nextSibling;
+        document.body.appendChild(deep);
+      }
+      deep.classList.add('v9-dossier-deep--v12-workspace');
+      // Robusthet (Fas 4 hotfix): rendera ALDRIG en blank helskärms-overlay. Om
+      // shell-renderingen kastar eller returnerar tomt → avbryt öppningen, återställ
+      // portalen och lämna kund-railen synlig (pre-Fas-4-beteende), istället för att
+      // visa en tom cream-yta som täcker hela skärmen.
+      let shellHtml = '';
+      try {
+        shellHtml = renderV12WorkspaceDetailShell(
+          ctx.card,
+          ctx.journalEntries,
+          ctx.occasionTimeline,
+          ctx.driveFiles,
+          ctx.patient,
+          { tab: normalizeDetailTab(runtime.detailTab) }
+        );
+      } catch (_shellError) {
+        shellHtml = '';
+      }
+      if (!shellHtml || shellHtml.indexOf('data-v12-workspace-shell') === -1) {
+        deep.classList.remove('v9-dossier-deep--v12-workspace');
+        if (deep.__v12OriginalParent) {
+          try {
+            deep.__v12OriginalParent.insertBefore(deep, deep.__v12OriginalNext || null);
+          } catch (_restoreError) {
+            /* original-parent borta — oskadligt */
+          }
+          deep.__v12OriginalParent = null;
+          deep.__v12OriginalNext = null;
         }
-        deep.__v12OriginalParent = null;
-        deep.__v12OriginalNext = null;
+        runtime.v12HybridAutoOpenedFor = null;
+        return;
+      }
+      body.innerHTML = shellHtml;
+      deep.hidden = false;
+      deep.setAttribute('aria-hidden', 'false');
+      bindV12WorkspaceOverlayBody(body, ctx);
+      const close = () => {
+        deep.hidden = true;
+        deep.setAttribute('aria-hidden', 'true');
+        deep.classList.remove('v9-dossier-deep--v12-workspace');
+        body.innerHTML = '';
+        // Återställ overlayn till ursprunglig DOM-plats (portal-restore).
+        if (deep.__v12OriginalParent) {
+          try {
+            deep.__v12OriginalParent.insertBefore(deep, deep.__v12OriginalNext || null);
+          } catch (_e) {
+            /* original-parent borta (rerender) → lämna i body, oskadligt */
+          }
+          deep.__v12OriginalParent = null;
+          deep.__v12OriginalNext = null;
+        }
+      };
+      deep.__v12WorkspaceClose = close;
+      const closeBtn = deep.querySelector('[data-v9-deep-close]');
+      closeBtn?.addEventListener('click', close, { once: true });
+      if (deep.dataset.v12BackdropBound !== '1') {
+        deep.dataset.v12BackdropBound = '1';
+        deep.addEventListener('click', (event) => {
+          if (event.target === deep && typeof deep.__v12WorkspaceClose === 'function') {
+            deep.__v12WorkspaceClose();
+          }
+        });
+      }
+      // Scroll-till-sektion vid öppning. Innehållet (tomma besök-state, foton,
+      // hydrerade bilder) layoutar asynkront och växer EFTER första rendern, så en
+      // enda tidig scroll landar fel (modulen trycks ner när innehållet expanderar).
+      // Därför: scrolla om flera gånger medan höjden sätter sig, tills modulens
+      // position är stabil. 'current-state' (toppen) hoppar vi över — redan i topp.
+      // Scroll-till-sektion vid öppning. Innehåll (foton/hydrering) växer höjden
+      // asynkront EFTER första rendern, så vi scrollar dels direkt (dubbel-rAF)
+      // dels igen när höjden hunnit sätta sig (300/700 ms) så modulen hamnar rätt.
+      const targetModule = moduleName || 'current-state';
+      if (targetModule && targetModule !== 'current-state') {
+        const doScroll = () => scrollV12WorkspaceModule(body, targetModule);
+        window.requestAnimationFrame(() => window.requestAnimationFrame(doScroll));
+        window.setTimeout(doScroll, 300);
+        window.setTimeout(doScroll, 700);
       }
     };
-    deep.__v12WorkspaceClose = close;
-    const closeBtn = deep.querySelector('[data-v9-deep-close]');
-    closeBtn?.addEventListener('click', close, { once: true });
-    if (deep.dataset.v12BackdropBound !== '1') {
-      deep.dataset.v12BackdropBound = '1';
-      deep.addEventListener('click', (event) => {
-        if (event.target === deep && typeof deep.__v12WorkspaceClose === 'function') {
-          deep.__v12WorkspaceClose();
-        }
-      });
-    }
-    // Scroll-till-sektion vid öppning. Innehållet (tomma besök-state, foton,
-    // hydrerade bilder) layoutar asynkront och växer EFTER första rendern, så en
-    // enda tidig scroll landar fel (modulen trycks ner när innehållet expanderar).
-    // Därför: scrolla om flera gånger medan höjden sätter sig, tills modulens
-    // position är stabil. 'current-state' (toppen) hoppar vi över — redan i topp.
-    // Scroll-till-sektion vid öppning. Innehåll (foton/hydrering) växer höjden
-    // asynkront EFTER första rendern, så vi scrollar dels direkt (dubbel-rAF)
-    // dels igen när höjden hunnit sätta sig (300/700 ms) så modulen hamnar rätt.
-    const targetModule = moduleName || 'current-state';
-    if (targetModule && targetModule !== 'current-state') {
-      const doScroll = () => scrollV12WorkspaceModule(body, targetModule);
-      window.requestAnimationFrame(() => window.requestAnimationFrame(doScroll));
-      window.setTimeout(doScroll, 300);
-      window.setTimeout(doScroll, 700);
-    }
+    void launch();
   }
 
   function bindV12WorkspaceRailLauncher(root, ctx) {

@@ -839,7 +839,9 @@ function createCcoPatientMasterRouter({
     });
     let nativeAssetFiles = [];
     const nativeAssets = [];
-    if (includeDriveFiles && typeof resolvePatientAssetStore === 'function') {
+    // Native CCO assets måste alltid ingå i visitSegments — även på mobil lite-path
+    // (includeDriveFiles=0). Drive-migrationsindexet förblir gated.
+    if (typeof resolvePatientAssetStore === 'function') {
       const assetStore = await resolvePatientAssetStore();
       if (assetStore?.listAssetsForPatient) {
         const patientIds = await resolvePatientAssetIds({

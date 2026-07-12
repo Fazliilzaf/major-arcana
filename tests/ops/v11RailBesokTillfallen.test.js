@@ -148,3 +148,21 @@ test('overifierade native-assets exkluderas fortfarande vid API:t', () => {
     'buildPatientPayload ska bara släppa igenom VISIBLE_ON_PATIENT_CARD/VERIFIED_IN_CCO'
   );
 });
+
+test('native CCO assets laddas även när includeDriveFiles=false (mobil lite-path)', () => {
+  const routeSrc = fs.readFileSync(ROUTE, 'utf8');
+  assert.match(
+    routeSrc,
+    /Native CCO assets måste alltid ingå i visitSegments/,
+    'kommentar ska dokumentera mobil lite-path'
+  );
+  const nativeBlock = routeSrc.slice(
+    routeSrc.indexOf('let nativeAssetFiles = []'),
+    routeSrc.indexOf('const gatedIndex = gateMigrationIndexFiles')
+  );
+  assert.doesNotMatch(
+    nativeBlock,
+    /if \(includeDriveFiles && typeof resolvePatientAssetStore/,
+    'native assets ska inte vara gated av includeDriveFiles'
+  );
+});
