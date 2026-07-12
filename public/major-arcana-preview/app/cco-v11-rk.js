@@ -781,6 +781,7 @@
         imgs
           .map(function (im) {
             var assetId = txt(im.assetId);
+            var journalPhotoId = txt(im.journalPhotoId);
             var editable = Boolean(assetId && im.openRef);
             return (
               '<div class="photo-tile raw' +
@@ -804,10 +805,12 @@
                   '"'
                 : '') +
               '>' +
-              (assetId
-                ? '<img src="" data-patient-file-id="' +
-                  esc(assetId) +
-                  '" alt="' +
+              (assetId || journalPhotoId
+                ? '<img src="" ' +
+                  (journalPhotoId
+                    ? 'data-journal-photo-id="' + esc(journalPhotoId) + '"'
+                    : 'data-patient-file-id="' + esc(assetId) + '"') +
+                  ' alt="' +
                   esc(txt(im.fileName || 'Foto')) +
                   '" decoding="async" />'
                 : '') +

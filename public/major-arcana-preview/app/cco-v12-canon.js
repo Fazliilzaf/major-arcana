@@ -996,6 +996,7 @@
     };
     function photoTile(image, segment) {
       var assetId = txt(image && image.assetId);
+      var journalPhotoId = txt(image && image.journalPhotoId);
       var href = txt(image && image.openRef);
       var name = txt(image && image.fileName) || 'Foto';
       var label = txt(image && (image.timeLabel || image.takenAt)).slice(0, 16) || 'Foto';
@@ -1025,9 +1026,11 @@
           : ' target="_blank" rel="noopener"') +
         ' title="' +
         esc(name) +
-        '"><img src="" data-patient-file-id="' +
-        esc(assetId) +
-        '" alt="' +
+        '"><img src="" ' +
+        (journalPhotoId
+          ? 'data-journal-photo-id="' + esc(journalPhotoId) + '"'
+          : 'data-patient-file-id="' + esc(assetId) + '"') +
+        ' alt="' +
         esc(name) +
         '" decoding="async" /><span class="lbl">' +
         esc(label) +
