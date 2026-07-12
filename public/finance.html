@@ -1141,14 +1141,16 @@
           const link = ev.target.closest('a[href^="/api/v1"]');
           if (!link) return;
           ev.preventDefault();
-          // Bugbot PR #840 (rond 2): window.open EFTER await tappar
-          // user-activation → popup-blockerad (särskilt Safari). Öppna fliken
-          // SYNKRONT i klickögonblicket; blockeras den ändå → ankar-download.
-          const preview = window.open('', '_blank');
+          const href = link.getAttribute('href');
+          // Bugbot rond 3: export-länkar (CSV/JSON) ska LADDA NER (som API:ts
+          // Content-Disposition), inte öppnas i flik — bara "Visa"-länkar får preview.
+          const wantsDownload = /\/export\/|\/(csv|json)(\?|$)/i.test(href);
+          // Bugbot rond 2: window.open EFTER await tappar user-activation →
+          // popup-blockerad (särskilt Safari). Öppna fliken SYNKRONT i
+          // klickögonblicket; blockeras den ändå → ankar-download.
+          const preview = wantsDownload ? null : window.open('', '_blank');
           try {
-            const res = await window.fetch(link.getAttribute('href'), {
-              credentials: 'same-origin',
-            });
+            const res = await window.fetch(href, { credentials: 'same-origin' });
             if (!res.ok) {
               if (preview) preview.close();
               alert('Nedladdning misslyckades: ' + res.status);
@@ -1159,11 +1161,14 @@
             if (preview) {
               preview.location = url;
             } else {
+              const parts = href.split('?')[0].split('/').filter(Boolean);
+              let name = parts.pop() || 'fil';
+              if (/^(csv|json|pdf)$/i.test(name) && parts.length) {
+                name = parts.pop() + '.' + name.toLowerCase();
+              }
               const a = document.createElement('a');
               a.href = url;
-              a.download = (
-                link.getAttribute('href').split('/').filter(Boolean).pop() || 'fil'
-              ).split('?')[0];
+              a.download = name;
               document.body.appendChild(a);
               a.click();
               a.remove();
