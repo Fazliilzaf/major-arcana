@@ -442,6 +442,7 @@ test('encounter preview begränsar samtidig patientmaterialisering', () => {
     source,
     /assets\/repair-encounter-links[\s\S]*mapWithConcurrency\(\s*patients,\s*4,/
   );
+  assert.match(source, /assets\/preview-encounter-links[\s\S]*includeClientoBookings: false/);
 });
 
 test('assets/preview-encounter-links kräver OWNER-roll', async () => {

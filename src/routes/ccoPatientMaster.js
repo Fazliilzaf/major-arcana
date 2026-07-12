@@ -2143,7 +2143,9 @@ function createCcoPatientMasterRouter({
 
         let bookingIndex = { index: new Map() };
         try {
-          bookingIndex = await loadKunderBookingIndex(config, actor.tenantId, patients);
+          bookingIndex = await loadKunderBookingIndex(config, actor.tenantId, patients, {
+            includeClientoBookings: false,
+          });
         } catch {
           /* Preview remains useful with assets/journals when booking stores are unavailable. */
         }
@@ -2260,7 +2262,9 @@ function createCcoPatientMasterRouter({
         ).filter(Boolean);
         let bookingIndex = { index: new Map() };
         try {
-          bookingIndex = await loadKunderBookingIndex(config, actor.tenantId, patients);
+          bookingIndex = await loadKunderBookingIndex(config, actor.tenantId, patients, {
+            includeClientoBookings: false,
+          });
         } catch {
           /* Asset/journal matching remains available without booking index. */
         }
