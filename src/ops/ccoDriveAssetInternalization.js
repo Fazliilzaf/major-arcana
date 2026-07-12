@@ -964,7 +964,11 @@ function evaluatePilotWindowFailure(
   return null;
 }
 
-function buildInternalizeCandidatePreviewRow(row, remainingOffset) {
+function buildInternalizeCandidatePreviewRow(
+  row,
+  remainingOffset,
+  { includeReviewDetails = false } = {}
+) {
   const normalized = normalizeDriveAssetRow(row);
   const enc = parseFolderEncounter(normalized.originalDrivePath, normalized.originalFileName);
   let documentDateSource = enc.documentDateSource;
@@ -994,7 +998,10 @@ function buildInternalizeCandidatePreviewRow(row, remainingOffset) {
       ? maskValue(encounter.encounterId, { keepStart: 6, keepEnd: 4 })
       : null,
     family: mimeFamily(normalized.mimeType, normalized.originalFileName),
-    fileName: maskValue(normalized.originalFileName, { keepStart: 1, keepEnd: 1 }),
+    fileName: includeReviewDetails
+      ? normalized.originalFileName
+      : maskValue(normalized.originalFileName, { keepStart: 1, keepEnd: 1 }),
+    drivePath: includeReviewDetails ? normalized.originalDrivePath : null,
     driveRef: maskValue(normalized.driveFileId, { keepStart: 4, keepEnd: 4 }),
   };
 }
@@ -1101,6 +1108,7 @@ async function previewInternalizeCandidates({
   pilotWindowSize = 10,
   includePilotWindow = true,
   maxPilotWindowSkipSamples = 20,
+  includeReviewDetails = false,
 } = {}) {
   const resolvedAllowedSources = resolveAllowedDocumentDateSources({
     requireDocumentDateSource,
@@ -1109,7 +1117,7 @@ async function previewInternalizeCandidates({
   const inventory = await inventoryDriveAssets({ rows, assetStore, storage, sampleSize: 0 });
   const remainingRows = inventory.remainingRows || [];
   const previewAll = remainingRows.map((row, index) =>
-    buildInternalizeCandidatePreviewRow(row, index)
+    buildInternalizeCandidatePreviewRow(row, index, { includeReviewDetails })
   );
 
   let calendarClearRemaining = 0;
@@ -1147,8 +1155,9 @@ async function previewInternalizeCandidates({
     generatedAt: nowIso(),
     zeroWrites: true,
     dryRun: true,
-    model:
-      'Read-only pilot candidate preview · masked · no patient IDs · commit offset = remainingOffset',
+    model: includeReviewDetails
+      ? 'Owner review candidate preview · file context · no patient IDs · zero writes'
+      : 'Read-only pilot candidate preview · masked · no patient IDs · commit offset = remainingOffset',
     stats: {
       scanned: inventory.stats.scanned,
       remaining: inventory.stats.remaining,

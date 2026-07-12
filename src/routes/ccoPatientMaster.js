@@ -2429,6 +2429,7 @@ function createCcoPatientMasterRouter({
           req.body?.maxPilotWindowSkipSamples,
           20
         );
+        const includeReviewDetails = req.body?.includeReviewDetails === true;
 
         const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
         const assetStore =
@@ -2464,6 +2465,7 @@ function createCcoPatientMasterRouter({
           pilotWindowSize,
           includePilotWindow,
           maxPilotWindowSkipSamples,
+          includeReviewDetails,
         });
 
         return res.json({

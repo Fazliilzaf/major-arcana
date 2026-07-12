@@ -51,6 +51,22 @@
     return body;
   }
 
+  async function patientMasterApi(path, options = {}) {
+    const auth = window.ArcanaReviewAuth;
+    const baseHeaders = { Accept: 'application/json', 'Content-Type': 'application/json' };
+    const res = await fetch(`/api/v1/cco-patient-master${path}`, {
+      credentials: 'same-origin',
+      headers: {
+        ...(auth?.authHeaders ? auth.authHeaders(baseHeaders) : baseHeaders),
+        ...(options.headers || {}),
+      },
+      ...options,
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || res.statusText);
+    return body;
+  }
+
   function selectedItem() {
     return queue.find((item) => item.assetId === selectedAssetId) || null;
   }
@@ -68,6 +84,17 @@
         <p>Ingen statusändring · ingen flytt · ingen radering · ingen auto-koppling · ingen batch-action.</p>
       </div>
       <div data-summary class="dir-metrics"></div>
+      <section class="dir-review-panel" data-undated-panel>
+        <h2>Odaterade Drive-filer kvar</h2>
+        <p class="dir-muted">Owner preview · <code>unknown_month + none</code> · inga writes</p>
+        <div data-undated-summary class="dir-metrics"></div>
+        <div class="dir-table-wrap">
+          <table class="dir-table">
+            <thead><tr><th>Filnamn</th><th>Typ</th><th>Sökväg</th><th>Offset</th></tr></thead>
+            <tbody data-undated-rows><tr><td colspan="4" class="dir-muted">Laddar restbucket…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
       <section class="dir-filters" data-filters></section>
       <section class="dir-review-panel" data-review-panel hidden>
         <h2>Granska en fil</h2>
@@ -125,6 +152,44 @@
         loadQueue().catch(showError);
       }
     });
+  }
+
+  async function loadUndatedRemainder() {
+    const body = await patientMasterApi('/assets/internalize/preview-candidates', {
+      method: 'POST',
+      body: JSON.stringify({
+        limit: 200,
+        offset: 0,
+        excludeUnknownMonth: false,
+        requireDocumentDateSource: false,
+        includePilotWindow: false,
+        includeReviewDetails: true,
+      }),
+    });
+    const items = (body.candidates || []).filter(
+      (item) => item.calendarBucketClear === false && item.documentDateSource === 'none'
+    );
+    const summaryEl = document.querySelector('[data-undated-summary]');
+    const rowsEl = document.querySelector('[data-undated-rows]');
+    if (summaryEl) {
+      summaryEl.innerHTML = `
+        <div class="dir-metric"><strong>${items.length}</strong><span>Behöver datumgranskning</span></div>
+        <div class="dir-metric"><strong>${body.stats?.remaining ?? '—'}</strong><span>Totalt kvar i inventory</span></div>`;
+    }
+    if (rowsEl) {
+      rowsEl.innerHTML = items.length
+        ? items
+            .map(
+              (item) => `<tr>
+                <td>${escapeHtml(item.fileName || '—')}</td>
+                <td><span class="dir-chip">${escapeHtml(item.family || '—')}</span></td>
+                <td class="path">${escapeHtml(item.drivePath || '—')}</td>
+                <td class="mono">${escapeHtml(item.remainingOffset)}</td>
+              </tr>`
+            )
+            .join('')
+        : '<tr><td colspan="4" class="dir-muted">Restbucketen är tom.</td></tr>';
+    }
   }
 
   function renderAuthPanel() {
@@ -454,6 +519,7 @@
     renderModeBanner();
     renderSummary();
     renderFilters();
+    await loadUndatedRemainder();
     await loadQueue();
   }
 
