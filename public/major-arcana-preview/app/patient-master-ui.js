@@ -8182,27 +8182,37 @@
 
   async function hydratePatientFileImages(root = els.patientRail) {
     if (!root) return;
-    const images = root.querySelectorAll('img[data-patient-file-id], video[data-patient-file-id]');
-    await Promise.all(
-      Array.from(images).map(async (img) => {
-        const fileId = normalizeText(img.dataset.patientFileId);
-        if (!fileId || img.dataset.loaded === 'true') return;
-        img.classList.add('is-loading');
-        const objectUrl = await fetchPatientFileObjectUrl(fileId, {
+    const images = Array.from(
+      root.querySelectorAll('img[data-patient-file-id], video[data-patient-file-id]')
+    );
+    const hydrateOne = async (img) => {
+      const fileId = normalizeText(img.dataset.patientFileId);
+      if (!fileId || img.dataset.loaded === 'true') return;
+      img.classList.add('is-loading');
+      let objectUrl = await fetchPatientFileObjectUrl(fileId, {
+        preferThumbnail: img.tagName === 'IMG',
+      });
+      if (!objectUrl) {
+        await new Promise((resolve) => window.setTimeout(resolve, 300));
+        objectUrl = await fetchPatientFileObjectUrl(fileId, {
           preferThumbnail: img.tagName === 'IMG',
         });
-        img.classList.remove('is-loading');
-        if (!objectUrl) {
-          if (img.tagName === 'IMG') img.alt = 'Kunde inte visa bild';
-          img.classList.add('is-broken');
-          return;
-        }
-        img.src = objectUrl;
-        img.dataset.loaded = 'true';
-        const tileLink = img.tagName === 'IMG' ? img.closest('a.patient-master-image-tile') : null;
-        if (tileLink) tileLink.href = objectUrl;
-      })
-    );
+      }
+      img.classList.remove('is-loading');
+      if (!objectUrl) {
+        if (img.tagName === 'IMG') img.alt = 'Kunde inte visa bild';
+        img.classList.add('is-broken');
+        return;
+      }
+      img.src = objectUrl;
+      img.dataset.loaded = 'true';
+      const tileLink = img.tagName === 'IMG' ? img.closest('a.patient-master-image-tile') : null;
+      if (tileLink) tileLink.href = objectUrl;
+    };
+    const batchSize = 8;
+    for (let offset = 0; offset < images.length; offset += batchSize) {
+      await Promise.all(images.slice(offset, offset + batchSize).map((img) => hydrateOne(img)));
+    }
   }
 
   async function fetchJournalPhotoObjectUrl(photoId, variant = '') {
