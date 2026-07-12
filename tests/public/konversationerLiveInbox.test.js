@@ -411,6 +411,14 @@ test('konversationer hydrates embedded company-template images before iframe dis
     /embeddedMailImage[\s\S]*Promise\.resolve\(URL\.createObjectURL\(createEmbeddedMailImageBlob\(url\)\)\)/,
     'Inbäddade SVG-/bildsymboler ska bli renderbara blob-URL:er.'
   );
+  assert.match(html, /function replaceEmbeddedMailSvgImage\(element\)/);
+  assert.match(
+    html,
+    /svg\.querySelectorAll\('script,foreignObject,iframe,object,embed'\)/,
+    'SVG-symboler måste saneras innan de infogas i maildokumentet.'
+  );
+  assert.match(html, /element\.replaceWith\(imported\)/);
+  assert.match(html, /if \(replaceEmbeddedMailSvgImage\(element\)\) return;/);
 });
 
 test('konversationer skiljer olästa mail från trådar som behöver svar', () => {
