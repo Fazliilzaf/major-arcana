@@ -1095,6 +1095,47 @@
     </div>
 
     <script>
+      // ORD-67b (2026-07-13): API-auth för finance.html. Sidan skickade bara
+      // cookies (credentials:'same-origin') men API:t auth:ar via Bearer-token
+      // — samma token som /admin sparar i localStorage (ARCANA_ADMIN_TOKEN).
+      // Wrappern injicerar Authorization på alla same-origin /api/v1-anrop
+      // (täcker CF-, CM- och voucher-sync-sektionerna utan att röra call-sites).
+      (() => {
+        const TOKEN_KEY = 'ARCANA_ADMIN_TOKEN';
+        const getToken = () => {
+          try {
+            return localStorage.getItem(TOKEN_KEY) || '';
+          } catch {
+            return '';
+          }
+        };
+        const origFetch = window.fetch.bind(window);
+        window.fetch = (input, init = {}) => {
+          const url = typeof input === 'string' ? input : input?.url || '';
+          if (url.startsWith('/api/v1')) {
+            const token = getToken();
+            if (token) {
+              const headers = new Headers(init.headers || {});
+              if (!headers.has('Authorization')) headers.set('Authorization', 'Bearer ' + token);
+              init = { ...init, headers };
+            }
+          }
+          return origFetch(input, init);
+        };
+        // Ingen token = inte inloggad via /admin → visa tydlig banner i stället
+        // för tysta 401:or i varje sektion.
+        if (!getToken()) {
+          document.addEventListener('DOMContentLoaded', () => {
+            const banner = document.createElement('div');
+            banner.className = 'status-banner status-banner--partial';
+            banner.innerHTML =
+              '🔐 Ej inloggad — logga in via <a href="/admin">/admin</a> först (samma flik-session), ladda sedan om denna sida.';
+            const wrap = document.querySelector('.wrap');
+            if (wrap) wrap.insertBefore(banner, wrap.children[1] || null);
+          });
+        }
+      })();
+
       (() => {
         const $ = (id) => document.getElementById(id);
         const esc = (s) =>

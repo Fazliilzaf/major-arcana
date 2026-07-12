@@ -2118,6 +2118,12 @@ let ccoBookingCaseStore = null;
 
     // ── CF.2 (MVP 1) — Chief of Finance routes ────────────────────
     // RBAC: owner / finance / revisor. Audit på alla mutationer.
+    // ORD-67b (2026-07-13): CF-routes registreras FÖRE auth-bootstrap och hade
+    // därför aldrig någon token-parser i prod → attachRole såg alltid
+    // 'anonymous' → 403 för ALLA (även owner). Bryggan nedan delegerar till
+    // auth.requireAuth vid request-tid (samma mönster som requireCcoAuthenticated)
+    // så Bearer/x-auth-token parsas och req.auth.role sätts innan attachRole.
+    app.use('/api/v1/cco-cf', requireCcoAuthenticated);
     const cfRBAC = ['owner', 'finance', 'revisor'];
     const cfMutateRBAC = ['owner', 'finance']; // revisor är read-only
     // CF.2-fix 2026-06-01 (BUG-2): använd getActor-helper istället för det
