@@ -2,7 +2,39 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { previewEncounterLinkRepair } = require('../../src/ops/ccoEncounterLinkRepair');
+const {
+  buildEncounterLinkRepairPlan,
+  previewEncounterLinkRepair,
+} = require('../../src/ops/ccoEncounterLinkRepair');
+
+test('buildEncounterLinkRepairPlan behåller omaskerade länkar endast internt', () => {
+  const patientInputs = [
+    {
+      patientId: 'patient-raw',
+      assets: [
+        {
+          id: 'asset-raw',
+          patientId: 'patient-raw',
+          status: 'VISIBLE_ON_PATIENT_CARD',
+          mimeType: 'image/jpeg',
+          documentDate: '2026-07-12',
+        },
+      ],
+      bookings: [
+        {
+          patientId: 'patient-raw',
+          encounterId: 'encounter-raw',
+          startsAt: '2026-07-12T10:00:00.000Z',
+          encounterType: 'consultation',
+        },
+      ],
+    },
+  ];
+  const plan = buildEncounterLinkRepairPlan({ patientInputs });
+  assert.equal(plan.linkable.length, 1);
+  assert.equal(plan.linkable[0].assetId, 'asset-raw');
+  assert.equal(plan.linkable[0].encounterId, 'encounter-raw');
+});
 
 test('previewEncounterLinkRepair föreslår exakt ett date-only-foto utan writes', () => {
   const report = previewEncounterLinkRepair({

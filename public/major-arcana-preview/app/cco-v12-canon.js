@@ -1060,6 +1060,13 @@
     }
     function journalBlock(segment) {
       var journals = arr(segment && segment.journals);
+      var journalState = !journals.length
+        ? 'Journal saknas'
+        : journals.every(function (journal) {
+              return txt(journal && journal.status) === 'signed';
+            })
+          ? 'Journal signerad'
+          : 'Journalutkast';
       var encounterId = txt(segment && segment.encounterId);
       var rows = journals.length
         ? journals
@@ -1122,6 +1129,7 @@
         counts.push(documents.length + (documents.length === 1 ? ' dokument' : ' dokument'));
       if (journals.length)
         counts.push(journals.length + (journals.length === 1 ? ' journal' : ' journaler'));
+      counts.push(journalState);
       var meta = [
         txt(segment && segment.visitType),
         txt(segment && segment.timeRange),

@@ -207,6 +207,9 @@ test('V11/V12 visar journal och film inom samma besökstillfälle', () => {
   assert.match(ui, /formData\.append\('encounterId', encounterId\)/);
   assert.match(ui, /cco-journal-quick\/visit-media/);
   assert.match(ui, /runtime\.pendingVisitEncounterId/);
+  assert.match(canon, /Journal saknas/);
+  assert.match(canon, /Journal signerad/);
+  assert.match(canon, /Journalutkast/);
 });
 
 test('besöksrum skapas från encounter, bokning och journal utan filer', () => {
