@@ -385,6 +385,12 @@ test('bilagor öppnas i en intern modal utan ny flik', () => {
   assert.match(html, /class="mail-preview-close"/);
   assert.match(html, /class="mail-preview-download"/);
   assert.match(html, /authorizedMailAssetUrl\(url\)/);
+  assert.match(html, /vendor\/pdfjs\/pdf\.min\.js/);
+  assert.match(html, /pdfjsLib\.getDocument\(\{ data: await response\.arrayBuffer\(\) \}\)/);
+  assert.match(html, /class="mail-preview-pdf-canvas-wrap"><canvas/);
+  assert.match(html, /data-pdf-action="previous"/);
+  assert.match(html, /data-pdf-action="next"/);
+  assert.match(html, /data-pdf-action="zoom-in"/);
   assert.match(html, /event\.key === 'Escape'/);
   assert.doesNotMatch(
     html,
