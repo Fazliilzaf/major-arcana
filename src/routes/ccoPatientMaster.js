@@ -2113,6 +2113,7 @@ function createCcoPatientMasterRouter({
         const patientLimit = clampPreviewLimit(req.body?.patientLimit, 25);
         const patientOffset = clampOffset(req.body?.patientOffset);
         const sampleSize = clampPreviewLimit(req.body?.sampleSize, 25);
+        const includeBookingIndex = req.body?.includeBookingIndex !== false;
         const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
         const assetStore =
           stores.assetStore ||
@@ -2142,12 +2143,14 @@ function createCcoPatientMasterRouter({
         }
 
         let bookingIndex = { index: new Map() };
-        try {
-          bookingIndex = await loadKunderBookingIndex(config, actor.tenantId, patients, {
-            includeClientoBookings: false,
-          });
-        } catch {
-          /* Preview remains useful with assets/journals when booking stores are unavailable. */
+        if (includeBookingIndex) {
+          try {
+            bookingIndex = await loadKunderBookingIndex(config, actor.tenantId, patients, {
+              includeClientoBookings: false,
+            });
+          } catch {
+            /* Preview remains useful with assets/journals when booking stores are unavailable. */
+          }
         }
 
         const patientInputs = await mapWithConcurrency(patients, 4, async (patient) => {
@@ -2220,6 +2223,7 @@ function createCcoPatientMasterRouter({
             returned: patients.length,
             offset: requestedPatientIds.length ? null : patientOffset,
             limit: requestedPatientIds.length ? null : patientLimit,
+            includeBookingIndex,
           },
           ...report,
         });

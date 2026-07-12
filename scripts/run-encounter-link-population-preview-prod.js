@@ -84,6 +84,7 @@ async function fetchPage({ offset, retries, getToken }) {
             patientLimit: PAGE_SIZE,
             patientOffset: offset,
             sampleSize: 25,
+            includeBookingIndex: false,
           }),
           signal: AbortSignal.timeout(120000),
         }
