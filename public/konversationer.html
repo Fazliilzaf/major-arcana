@@ -4530,25 +4530,8 @@
 
       let mailPdfJsPromise = null;
       function loadMailPdfJs() {
-        if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
         if (mailPdfJsPromise) return mailPdfJsPromise;
-        mailPdfJsPromise = new Promise((resolve, reject) => {
-          const existing = document.querySelector('script[data-mail-pdfjs]');
-          const script = existing || document.createElement('script');
-          const finish = () => {
-            if (window.pdfjsLib) resolve(window.pdfjsLib);
-            else reject(new Error('PDF.js laddades utan att registreras'));
-          };
-          script.addEventListener('load', finish, { once: true });
-          script.addEventListener('error', () => reject(new Error('PDF.js kunde inte hämtas')), {
-            once: true,
-          });
-          if (!existing) {
-            script.src = '/major-arcana-preview/vendor/pdfjs/pdf.min.js';
-            script.dataset.mailPdfjs = 'true';
-            document.head.appendChild(script);
-          }
-        }).catch((error) => {
+        mailPdfJsPromise = import('/vendor/pdfjs/pdf.min.mjs').catch((error) => {
           mailPdfJsPromise = null;
           throw error;
         });
@@ -4557,8 +4540,7 @@
 
       async function renderMailPdfPreview(backdrop, displayUrl) {
         const pdfjs = await loadMailPdfJs();
-        pdfjs.GlobalWorkerOptions.workerSrc =
-          '/major-arcana-preview/vendor/pdfjs/pdf.worker.min.js';
+        pdfjs.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
         const response = await fetch(displayUrl);
         if (!response.ok) throw new Error(`PDF kunde inte hämtas (${response.status})`);
         const loadingTask = pdfjs.getDocument({ data: await response.arrayBuffer() });

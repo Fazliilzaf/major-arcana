@@ -385,7 +385,8 @@ test('bilagor öppnas i en intern modal utan ny flik', () => {
   assert.match(html, /class="mail-preview-close"/);
   assert.match(html, /class="mail-preview-download"/);
   assert.match(html, /authorizedMailAssetUrl\(url\)/);
-  assert.match(html, /vendor\/pdfjs\/pdf\.min\.js/);
+  assert.match(html, /import\('\/vendor\/pdfjs\/pdf\.min\.mjs'\)/);
+  assert.match(html, /pdf\.worker\.min\.mjs/);
   assert.match(html, /function loadMailPdfJs\(\)/);
   assert.match(html, /const pdfjs = await loadMailPdfJs\(\)/);
   assert.match(html, /pdfjs\.getDocument\(\{ data: await response\.arrayBuffer\(\) \}\)/);
