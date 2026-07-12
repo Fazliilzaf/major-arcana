@@ -389,7 +389,9 @@ test('bilagor öppnas i en intern modal utan ny flik', () => {
   assert.match(html, /pdf\.worker\.min\.mjs/);
   assert.match(html, /function loadMailPdfJs\(\)/);
   assert.match(html, /const pdfjs = await loadMailPdfJs\(\)/);
-  assert.match(html, /pdfjs\.getDocument\(\{ data: await response\.arrayBuffer\(\) \}\)/);
+  assert.match(html, /function authorizedMailAssetBlob\(value\)/);
+  assert.match(html, /const blob = await authorizedMailAssetBlob\(sourceUrl\)/);
+  assert.match(html, /pdfjs\.getDocument\(\{ data: await blob\.arrayBuffer\(\) \}\)/);
   assert.match(html, /class="mail-preview-pdf-canvas-wrap"><canvas/);
   assert.match(html, /data-pdf-action="previous"/);
   assert.match(html, /data-pdf-action="next"/);
@@ -439,7 +441,7 @@ test('konversationer hydrates embedded company-template images before iframe dis
   );
   assert.match(
     html,
-    /embeddedMailImage[\s\S]*Promise\.resolve\(URL\.createObjectURL\(createEmbeddedMailImageBlob\(url\)\)\)/,
+    /embeddedMailImage[\s\S]*Promise\.resolve\(createEmbeddedMailImageBlob\(url\)\)[\s\S]*authorizedMailAssetBlob\(url\)\.then\(\(blob\) => URL\.createObjectURL\(blob\)\)/,
     'Inbäddade SVG-/bildsymboler ska bli renderbara blob-URL:er.'
   );
   assert.match(html, /function replaceEmbeddedMailSvgImage\(element\)/);
