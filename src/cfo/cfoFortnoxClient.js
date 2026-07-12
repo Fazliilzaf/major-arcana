@@ -275,6 +275,13 @@ function createFortnoxClient({
       if (customerNumber) params.set('customernumber', String(customerNumber));
       return request(`/invoicepayments?${params.toString()}`);
     },
+    // CF.9 (ORD-67, ägar-GO 2026-07-13 "GO + dryRun först"): verifikat-write.
+    // OBS: kräver bookkeeping-scope i OAuth-anslutningen — dagens scope är
+    // "customer invoice payment" → om-anslutning krävs innan skarp körning.
+    // Anropas ENDAST via cfoFortnoxVoucherSync (env-gate + OAuth-gate + dryRun).
+    createVoucher(voucherPayload) {
+      return request('/vouchers', { method: 'POST', body: { Voucher: voucherPayload } });
+    },
   };
 }
 

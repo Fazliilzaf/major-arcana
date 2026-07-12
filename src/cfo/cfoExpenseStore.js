@@ -69,14 +69,14 @@ const VALID_CATEGORIES = Object.freeze([
 ]);
 
 const VALID_PAYMENT_METHODS = Object.freeze([
-  'card',                 // Företagskort / kort
-  'swish',                // Swish Företag
-  'bank_transfer',        // Manuell banköverföring
-  'invoice',              // Leverantörsfaktura (betalas senare)
-  'cash',                 // Kontant
-  'autogiro',             // Autogiro
-  'direct_debit',         // Direktdebitering
-  'other',                // Annat / okänt
+  'card', // Företagskort / kort
+  'swish', // Swish Företag
+  'bank_transfer', // Manuell banköverföring
+  'invoice', // Leverantörsfaktura (betalas senare)
+  'cash', // Kontant
+  'autogiro', // Autogiro
+  'direct_debit', // Direktdebitering
+  'other', // Annat / okänt
 ]);
 
 // Vanliga svenska momssatser. 'reverse_charge' = omvänd skatteskyldighet (EU/utomlands).
@@ -84,15 +84,21 @@ const VALID_VAT_RATES = Object.freeze([0, 6, 12, 25, 'reverse_charge']);
 
 const VALID_FORTNOX_SYNC_STATUSES = Object.freeze([
   'blocked_integration', // OAuth-blocker — Fortnox kan inte ta emot writes ännu
-  'pending',             // Redo att synkas när OAuth fungerar
-  'synced',              // Synkad till Fortnox med voucher-ID
-  'error',               // Sync misslyckades, behöver retry
-  'skip',                // Owner valde att hoppa över Fortnox-sync för denna expense
+  'pending', // Redo att synkas när OAuth fungerar
+  'synced', // Synkad till Fortnox med voucher-ID
+  'error', // Sync misslyckades, behöver retry
+  'skip', // Owner valde att hoppa över Fortnox-sync för denna expense
 ]);
 
-function nowIso() { return new Date().toISOString(); }
-function newId() { return 'exp_' + crypto.randomBytes(8).toString('hex'); }
-function newBatchId() { return 'expbatch_' + crypto.randomBytes(6).toString('hex'); }
+function nowIso() {
+  return new Date().toISOString();
+}
+function newId() {
+  return 'exp_' + crypto.randomBytes(8).toString('hex');
+}
+function newBatchId() {
+  return 'expbatch_' + crypto.randomBytes(6).toString('hex');
+}
 
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value);
@@ -101,14 +107,14 @@ function isFiniteNumber(value) {
 function normalizeNumber(value, { allowNull = true } = {}) {
   if (value === null || value === undefined || value === '') return allowNull ? null : 0;
   const n = Number(value);
-  return Number.isFinite(n) ? n : (allowNull ? null : 0);
+  return Number.isFinite(n) ? n : allowNull ? null : 0;
 }
 
 async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage = null } = {}) {
   if (!filePath) throw new Error('filePath krävs');
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
 
-  let data = {
+  const data = {
     schemaVersion: SCHEMA_VERSION,
     createdAt: nowIso(),
     updatedAt: nowIso(),
@@ -141,7 +147,8 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
       auditLog?.append?.({
         // CF.3 P2-C workaround: skicka både action OCH kind. ccoAuditLog läser
         // action; framtida konsumenter kan läsa kind.
-        action: kind, kind,
+        action: kind,
+        kind,
         surface: 'cco.cf.expense',
         ts: nowIso(),
         actor: detail?.actor || { role: 'system' },
@@ -169,17 +176,24 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
 
     // Validera category om satt
     if (fields.category && !VALID_CATEGORIES.includes(fields.category)) {
-      throw new Error(`Okänd category: ${fields.category}. Tillåtna: ${VALID_CATEGORIES.join(', ')}`);
+      throw new Error(
+        `Okänd category: ${fields.category}. Tillåtna: ${VALID_CATEGORIES.join(', ')}`
+      );
     }
     if (fields.paymentMethod && !VALID_PAYMENT_METHODS.includes(fields.paymentMethod)) {
       throw new Error(`Okänd paymentMethod: ${fields.paymentMethod}.`);
     }
-    if (fields.vatRatePercent !== undefined && fields.vatRatePercent !== null
-      && !VALID_VAT_RATES.includes(fields.vatRatePercent)) {
-      throw new Error(`Okänd vatRatePercent: ${fields.vatRatePercent}. Tillåtna: ${VALID_VAT_RATES.join(', ')}`);
+    if (
+      fields.vatRatePercent !== undefined &&
+      fields.vatRatePercent !== null &&
+      !VALID_VAT_RATES.includes(fields.vatRatePercent)
+    ) {
+      throw new Error(
+        `Okänd vatRatePercent: ${fields.vatRatePercent}. Tillåtna: ${VALID_VAT_RATES.join(', ')}`
+      );
     }
 
-    const initialStatus = fields.category ? 'categorized' : (receiptId ? 'needs_review' : 'new');
+    const initialStatus = fields.category ? 'categorized' : receiptId ? 'needs_review' : 'new';
 
     const expense = {
       id,
@@ -215,13 +229,13 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
       supplierMatchConfidence: null, // 0..1
       // CF.6: VAT-regler — full breakdown + mode-flagga
       vatMode: fields.vatMode || null, // se cfoExpenseVatRules.VALID_VAT_MODES
-      reverseCharge: false,            // sätts av setVatMode
-      netAmountSek: null,              // beräknat via calculateVatBreakdown
-      grossAmountSek: null,            // alias för amountSek (klargör semantik)
+      reverseCharge: false, // sätts av setVatMode
+      netAmountSek: null, // beräknat via calculateVatBreakdown
+      grossAmountSek: null, // alias för amountSek (klargör semantik)
       deductibleVatSek: null,
       nonDeductibleVatSek: null,
       vatReviewStatus: null, // 'pending' | 'reviewed' | 'flagged' | null
-      vatSuggestion: null,   // separat från category-suggestion
+      vatSuggestion: null, // separat från category-suggestion
       // CF.7: koppling till återkommande kostnad
       recurringExpenseId: fields.recurringExpenseId || null,
       recurringMatchConfidence: null,
@@ -250,22 +264,43 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
       throw new Error('exporterad expense kan inte ändras');
     }
 
-    if ('category' in patch && patch.category !== null && !VALID_CATEGORIES.includes(patch.category)) {
-      throw new Error(`Okänd category: ${patch.category}. Tillåtna: ${VALID_CATEGORIES.join(', ')}`);
+    if (
+      'category' in patch &&
+      patch.category !== null &&
+      !VALID_CATEGORIES.includes(patch.category)
+    ) {
+      throw new Error(
+        `Okänd category: ${patch.category}. Tillåtna: ${VALID_CATEGORIES.join(', ')}`
+      );
     }
-    if ('paymentMethod' in patch && patch.paymentMethod !== null
-      && !VALID_PAYMENT_METHODS.includes(patch.paymentMethod)) {
+    if (
+      'paymentMethod' in patch &&
+      patch.paymentMethod !== null &&
+      !VALID_PAYMENT_METHODS.includes(patch.paymentMethod)
+    ) {
       throw new Error(`Okänd paymentMethod: ${patch.paymentMethod}.`);
     }
-    if ('vatRatePercent' in patch && patch.vatRatePercent !== null
-      && !VALID_VAT_RATES.includes(patch.vatRatePercent)) {
+    if (
+      'vatRatePercent' in patch &&
+      patch.vatRatePercent !== null &&
+      !VALID_VAT_RATES.includes(patch.vatRatePercent)
+    ) {
       throw new Error(`Okänd vatRatePercent: ${patch.vatRatePercent}.`);
     }
 
     const allowed = [
-      'supplier', 'amountSek', 'vatSek', 'vatRatePercent', 'date',
-      'category', 'paymentMethod', 'notes',
-      'customerId', 'encounterId', 'treatmentId', 'offerId',
+      'supplier',
+      'amountSek',
+      'vatSek',
+      'vatRatePercent',
+      'date',
+      'category',
+      'paymentMethod',
+      'notes',
+      'customerId',
+      'encounterId',
+      'treatmentId',
+      'offerId',
       'attachmentKeys',
     ];
     const numericFields = new Set(['amountSek', 'vatSek']);
@@ -315,10 +350,14 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     e.updatedAt = nowIso();
     e.history.push({ status: newStatus, at: nowIso(), by: actor, reason: reason || null });
     await persist();
-    if (newStatus === 'rejected') audit('cf.expense.rejected', { expenseId: id, oldStatus, reason, actor });
-    else if (newStatus === 'approved') audit('cf.expense.approved', { expenseId: id, oldStatus, actor });
-    else if (newStatus === 'ready_for_export') audit('cf.expense.ready_for_export', { expenseId: id, oldStatus, actor });
-    else if (newStatus === 'exported') audit('cf.expense.exported', { expenseId: id, oldStatus, actor });
+    if (newStatus === 'rejected')
+      audit('cf.expense.rejected', { expenseId: id, oldStatus, reason, actor });
+    else if (newStatus === 'approved')
+      audit('cf.expense.approved', { expenseId: id, oldStatus, actor });
+    else if (newStatus === 'ready_for_export')
+      audit('cf.expense.ready_for_export', { expenseId: id, oldStatus, actor });
+    else if (newStatus === 'exported')
+      audit('cf.expense.exported', { expenseId: id, oldStatus, actor });
     else audit('cf.expense.updated', { expenseId: id, oldStatus, newStatus, actor });
     return { ...e };
   }
@@ -367,35 +406,62 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     if (e.status === 'exported') throw new Error('exporterad expense kan inte få nya bilagor');
 
     const sha = crypto.createHash('sha256').update(buffer).digest('hex');
-    const ext = (mimeType || '').toLowerCase().includes('pdf') ? 'pdf'
-      : (mimeType || '').toLowerCase().includes('png') ? 'png'
-      : (mimeType || '').toLowerCase().includes('webp') ? 'webp'
-      : (mimeType || '').toLowerCase().includes('jpeg') || (mimeType || '').toLowerCase().includes('jpg') ? 'jpg'
-      : 'bin';
+    const ext = (mimeType || '').toLowerCase().includes('pdf')
+      ? 'pdf'
+      : (mimeType || '').toLowerCase().includes('png')
+        ? 'png'
+        : (mimeType || '').toLowerCase().includes('webp')
+          ? 'webp'
+          : (mimeType || '').toLowerCase().includes('jpeg') ||
+              (mimeType || '').toLowerCase().includes('jpg')
+            ? 'jpg'
+            : 'bin';
     const ym = new Date().toISOString().slice(0, 7);
     const key = `expenses/${ym}/${sha.slice(0, 8)}-${e.id}.${ext}`;
     await secureStorage.putObject(key, buffer, { mimeType });
-    e.attachmentKeys = [...(e.attachmentKeys || []), {
-      key, checksum: sha, sizeBytes: buffer.length,
-      mimeType: mimeType || 'application/octet-stream',
-      originalFileName: String(originalFileName || '').slice(0, 200),
-      addedAt: nowIso(),
-    }];
+    e.attachmentKeys = [
+      ...(e.attachmentKeys || []),
+      {
+        key,
+        checksum: sha,
+        sizeBytes: buffer.length,
+        mimeType: mimeType || 'application/octet-stream',
+        originalFileName: String(originalFileName || '').slice(0, 200),
+        addedAt: nowIso(),
+      },
+    ];
     e.updatedAt = nowIso();
     await persist();
-    audit('cf.expense.updated', { expenseId: id, fields: ['attachmentKeys'], attachmentAdded: true, actor });
+    audit('cf.expense.updated', {
+      expenseId: id,
+      fields: ['attachmentKeys'],
+      attachmentAdded: true,
+      actor,
+    });
     return { key, checksum: sha, sizeBytes: buffer.length };
   }
 
   function listExpenses({
-    status, category, supplier, customerId, receiptId, batchId,
-    fortnoxSyncStatus, fromDate, toDate,
+    status,
+    category,
+    supplier,
+    customerId,
+    receiptId,
+    batchId,
+    fortnoxSyncStatus,
+    fromDate,
+    toDate,
     limit = 200,
   } = {}) {
     let list = [...data.expenses];
     if (status) list = list.filter((e) => e.status === status);
     if (category) list = list.filter((e) => e.category === category);
-    if (supplier) list = list.filter((e) => String(e.supplier || '').toLowerCase().includes(String(supplier).toLowerCase()));
+    if (supplier)
+      list = list.filter((e) =>
+        String(e.supplier || '')
+          .toLowerCase()
+          .includes(String(supplier).toLowerCase())
+      );
     if (customerId) list = list.filter((e) => e.customerId === customerId);
     if (receiptId) list = list.filter((e) => e.receiptId === receiptId);
     if (batchId) list = list.filter((e) => e.exportBatchId === batchId);
@@ -406,7 +472,9 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     return list.slice(0, Math.max(1, Math.min(1000, limit)));
   }
 
-  function getById(id) { return data.expenses.find((e) => e.id === id) || null; }
+  function getById(id) {
+    return data.expenses.find((e) => e.id === id) || null;
+  }
 
   function listExportBatches({ limit = 50 } = {}) {
     return [...data.exportBatches]
@@ -420,10 +488,10 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     const byPaymentMethod = {};
     const byVatRate = {};
     const byFortnoxSyncStatus = {};
-    const byVatMode = {};       // CF.6
+    const byVatMode = {}; // CF.6
     let totalAmount = 0;
     let totalVat = 0;
-    let totalDeductibleVat = 0;  // CF.6
+    let totalDeductibleVat = 0; // CF.6
     let totalNonDeductibleVat = 0;
     let reverseChargeCount = 0;
     let reverseChargeAmountSek = 0;
@@ -442,10 +510,15 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
 
       byStatus[e.status] = (byStatus[e.status] || 0) + 1;
       if (e.category) byCategory[e.category] = (byCategory[e.category] || 0) + 1;
-      if (e.paymentMethod) byPaymentMethod[e.paymentMethod] = (byPaymentMethod[e.paymentMethod] || 0) + 1;
-      const vatKey = e.vatRatePercent === null || e.vatRatePercent === undefined ? 'unknown' : String(e.vatRatePercent);
+      if (e.paymentMethod)
+        byPaymentMethod[e.paymentMethod] = (byPaymentMethod[e.paymentMethod] || 0) + 1;
+      const vatKey =
+        e.vatRatePercent === null || e.vatRatePercent === undefined
+          ? 'unknown'
+          : String(e.vatRatePercent);
       byVatRate[vatKey] = (byVatRate[vatKey] || 0) + 1;
-      byFortnoxSyncStatus[e.fortnoxSyncStatus] = (byFortnoxSyncStatus[e.fortnoxSyncStatus] || 0) + 1;
+      byFortnoxSyncStatus[e.fortnoxSyncStatus] =
+        (byFortnoxSyncStatus[e.fortnoxSyncStatus] || 0) + 1;
       if (e.vatMode) byVatMode[e.vatMode] = (byVatMode[e.vatMode] || 0) + 1;
 
       const amt = isFiniteNumber(e.amountSek) ? e.amountSek : 0;
@@ -465,16 +538,27 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
       }
       if (e.vatMode === 'non_deductible' && e.status !== 'rejected') nonDeductibleCount += 1;
       if (e.vatReviewStatus === 'pending' && e.status !== 'rejected') vatReviewPendingCount += 1;
-      if (e.status === 'ready_for_export') { readyForExportCount += 1; readyForExportAmount += amt; }
-      if (e.status === 'approved') { approvedAmount += amt; }
-      if (e.status === 'exported') { exportedAmount += amt; }
+      if (e.status === 'ready_for_export') {
+        readyForExportCount += 1;
+        readyForExportAmount += amt;
+      }
+      if (e.status === 'approved') {
+        approvedAmount += amt;
+      }
+      if (e.status === 'exported') {
+        exportedAmount += amt;
+      }
       if (e.status === 'new' || e.status === 'needs_review') needsReviewAmount += amt;
     }
 
     return {
       total: data.expenses.length,
       unrejectedTotal,
-      byStatus, byCategory, byPaymentMethod, byVatRate, byFortnoxSyncStatus,
+      byStatus,
+      byCategory,
+      byPaymentMethod,
+      byVatRate,
+      byFortnoxSyncStatus,
       byVatMode, // CF.6
       totalAmountSek: totalAmount,
       totalVatSek: totalVat,
@@ -533,12 +617,19 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     if (fields.category && VALID_CATEGORIES.includes(fields.category) && !e.category) {
       e.category = fields.category;
     }
-    if (fields.vatRatePercent !== undefined && VALID_VAT_RATES.includes(fields.vatRatePercent)
-        && (e.vatRatePercent === null || e.vatRatePercent === undefined)) {
+    if (
+      fields.vatRatePercent !== undefined &&
+      VALID_VAT_RATES.includes(fields.vatRatePercent) &&
+      (e.vatRatePercent === null || e.vatRatePercent === undefined)
+    ) {
       e.vatRatePercent = fields.vatRatePercent;
     }
     if (fields.supplier && !e.supplier) e.supplier = String(fields.supplier).slice(0, 200);
-    if (fields.paymentMethod && VALID_PAYMENT_METHODS.includes(fields.paymentMethod) && !e.paymentMethod) {
+    if (
+      fields.paymentMethod &&
+      VALID_PAYMENT_METHODS.includes(fields.paymentMethod) &&
+      !e.paymentMethod
+    ) {
       e.paymentMethod = fields.paymentMethod;
     }
     if (fields.notes) e.notes = String(fields.notes).slice(0, 2000);
@@ -550,7 +641,12 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     if (e.category && (e.status === 'new' || e.status === 'needs_review')) {
       e.status = 'categorized';
       e.history.push({ status: 'categorized', at: nowIso(), by: actor, via: 'rule_engine' });
-      audit('cf.expense.categorized', { expenseId: id, category: e.category, via: 'rule_engine', actor });
+      audit('cf.expense.categorized', {
+        expenseId: id,
+        category: e.category,
+        via: 'rule_engine',
+        actor,
+      });
     }
 
     e.suggestion = null; // konsumerat
@@ -566,7 +662,9 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     });
 
     if (typeof onApplied === 'function') {
-      try { await onApplied({ ruleId: appliedRuleId, confidence: appliedConfidence }); } catch {}
+      try {
+        await onApplied({ ruleId: appliedRuleId, confidence: appliedConfidence });
+      } catch {}
     }
 
     return { ...e };
@@ -586,10 +684,16 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     e.updatedAt = nowIso();
     await persist();
     audit('cf.expense.suggestion_rejected', {
-      expenseId: id, ruleId: rejectedRuleId, confidence: rejectedConfidence, reason, actor,
+      expenseId: id,
+      ruleId: rejectedRuleId,
+      confidence: rejectedConfidence,
+      reason,
+      actor,
     });
     if (typeof onRejected === 'function') {
-      try { await onRejected({ ruleId: rejectedRuleId, reason }); } catch {}
+      try {
+        await onRejected({ ruleId: rejectedRuleId, reason });
+      } catch {}
     }
     return { ...e };
   }
@@ -599,7 +703,13 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
    * Koppla expense till en vendor (supplier). Auto-trigger eller manuell.
    * matchType: 'exact' | 'contains' | 'reverse_contains' | 'manual'
    */
-  async function linkSupplier({ id, supplierId, matchType = 'manual', confidence = 1.0, actor } = {}) {
+  async function linkSupplier({
+    id,
+    supplierId,
+    matchType = 'manual',
+    confidence = 1.0,
+    actor,
+  } = {}) {
     const e = data.expenses.find((x) => x.id === id);
     if (!e) throw new Error('expense finns ej');
     if (e.status === 'exported') throw new Error('exporterad expense kan inte länkas om');
@@ -609,7 +719,11 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     e.updatedAt = nowIso();
     await persist();
     audit('cf.expense.supplier_matched', {
-      expenseId: id, supplierId, matchType, confidence, actor,
+      expenseId: id,
+      supplierId,
+      matchType,
+      confidence,
+      actor,
     });
     return { ...e };
   }
@@ -628,8 +742,11 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     await persist();
     if (suggestion) {
       audit('cf.expense.vat_suggested', {
-        expenseId: id, suggestedVatMode: suggestion.suggestedVatMode,
-        confidence: suggestion.confidence, reason: suggestion.reason, actor,
+        expenseId: id,
+        suggestedVatMode: suggestion.suggestedVatMode,
+        confidence: suggestion.confidence,
+        reason: suggestion.reason,
+        actor,
       });
     }
     return { ...e };
@@ -674,8 +791,11 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
       audit('cf.expense.vat_marked_review', { expenseId: id, vatMode, actor });
     } else {
       audit('cf.expense.vat_approved', {
-        expenseId: id, vatMode, reverseCharge: e.reverseCharge,
-        deductibleVatSek: e.deductibleVatSek, nonDeductibleVatSek: e.nonDeductibleVatSek,
+        expenseId: id,
+        vatMode,
+        reverseCharge: e.reverseCharge,
+        deductibleVatSek: e.deductibleVatSek,
+        nonDeductibleVatSek: e.nonDeductibleVatSek,
         actor,
       });
     }
@@ -685,7 +805,13 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
   /**
    * CF.7: Länka expense till recurring-mall + spara confidence + anomalies.
    */
-  async function linkRecurring({ id, recurringExpenseId, confidence = 1.0, anomalies = [], actor } = {}) {
+  async function linkRecurring({
+    id,
+    recurringExpenseId,
+    confidence = 1.0,
+    anomalies = [],
+    actor,
+  } = {}) {
     const e = data.expenses.find((x) => x.id === id);
     if (!e) throw new Error('expense finns ej');
     if (e.status === 'exported') throw new Error('exporterad expense kan inte länkas om');
@@ -695,25 +821,57 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     e.updatedAt = nowIso();
     await persist();
     audit('cf.expense.recurring_matched', {
-      expenseId: id, recurringExpenseId, confidence, anomalyCount: anomalies.length, actor,
+      expenseId: id,
+      recurringExpenseId,
+      confidence,
+      anomalyCount: anomalies.length,
+      actor,
     });
+    return { ...e };
+  }
+
+  /**
+   * CF.9 (ORD-67): kvittera lyckad Fortnox voucher-sync på en exporterad expense.
+   */
+  async function markFortnoxSynced({ id, fortnoxVoucherId = null, actor } = {}) {
+    const e = data.expenses.find((x) => x.id === id);
+    if (!e) throw new Error('expense finns ej');
+    e.fortnoxSyncStatus = 'synced';
+    e.fortnoxVoucherId = fortnoxVoucherId || null;
+    e.fortnoxExportPending = false;
+    e.updatedAt = nowIso();
+    await persist();
+    audit('cf.fortnox.voucher_synced', { expenseId: id, fortnoxVoucherId, actor });
     return { ...e };
   }
 
   return {
     schemaVersion: SCHEMA_VERSION,
-    VALID_STATUSES, VALID_CATEGORIES, VALID_PAYMENT_METHODS, VALID_VAT_RATES,
+    VALID_STATUSES,
+    VALID_CATEGORIES,
+    VALID_PAYMENT_METHODS,
+    VALID_VAT_RATES,
     VALID_FORTNOX_SYNC_STATUSES,
-    createExpense, updateExpense, transitionStatus,
-    markExported, attachFile,
-    listExpenses, listExportBatches, getById, summary,
+    createExpense,
+    updateExpense,
+    transitionStatus,
+    markExported,
+    markFortnoxSynced,
+    attachFile,
+    listExpenses,
+    listExportBatches,
+    getById,
+    summary,
     buildAttachmentKey,
     // CF.4
-    setSuggestion, approveSuggestion, rejectSuggestion,
+    setSuggestion,
+    approveSuggestion,
+    rejectSuggestion,
     // CF.5
     linkSupplier,
     // CF.6
-    setVatSuggestion, setVatMode,
+    setVatSuggestion,
+    setVatMode,
     // CF.7
     linkRecurring,
   };

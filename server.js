@@ -11327,6 +11327,7 @@ const { createQmsRouter } = require('./src/routes/qms');
 const { createQmsStore } = require('./src/qms/qmsStore');
 const { createCmRouter } = require('./src/routes/cm');
 const { createCmStore } = require('./src/cm/cmStore');
+const { createCfoVoucherSyncRouter } = require('./src/routes/cfoVoucherSync');
 const { createReconciliationRouter } = require('./src/routes/reconciliation');
 const { createComplianceRouter } = require('./src/routes/compliance');
 const { createSafeMergeService } = require('./src/migration/safeMergeService');
@@ -14057,6 +14058,18 @@ process.once('SIGTERM', () => {
       // ORD-63/64: CM lämnar kandidater till CFO-livscykeln + arkiverar original
       cfoExpenseStore: app.locals.cfoExpenseStore || null,
       secureStorage: app.locals.ccoSecureStorage || null,
+    })
+  );
+
+  // ORD-67 · CF.9: voucher-sync dryRun + gated skarp körning (ägar-GO 2026-07-13)
+  app.use(
+    '/api/v1',
+    createCfoVoucherSyncRouter({
+      authStore: auth,
+      cfoExpenseStore: app.locals.cfoExpenseStore || null,
+      fortnoxStore: app.locals.cfoFortnoxStore || null,
+      config,
+      auditLog: app.locals.ccoAuditLog || null,
     })
   );
 

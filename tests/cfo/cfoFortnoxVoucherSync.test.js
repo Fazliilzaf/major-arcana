@@ -89,6 +89,50 @@ test('dryRun med alla gates gröna → payloads utan write', async () => {
   assert.equal(writes, 0);
 });
 
+test('skarp körning (ORD-67): createVoucher anropas + markFortnoxSynced kvitterar', async () => {
+  const synced = [];
+  const store = {
+    listExpenses: () => [SAMPLE_EXPENSE],
+    markFortnoxSynced: async ({ id, fortnoxVoucherId }) => {
+      synced.push({ id, fortnoxVoucherId });
+    },
+  };
+  const sync = createCfoFortnoxVoucherSync({
+    expenseStore: store,
+    fortnoxStore: { getConnection: async () => ({ connected: true, accessToken: 'x' }) },
+    fortnoxClient: {
+      createVoucher: async (voucher) => {
+        assert.equal(voucher.VoucherRows.length, 3);
+        return { Voucher: { VoucherNumber: 'A-42' } };
+      },
+    },
+    env: { ARCANA_CFO_FORTNOX_VOUCHER_SYNC_ENABLED: 'true' },
+  });
+  const result = await sync.run({ dryRun: false });
+  assert.equal(result.ok, true);
+  assert.equal(result.dryRun, false);
+  assert.equal(result.results[0].ok, true);
+  assert.equal(result.results[0].voucherId, 'A-42');
+  assert.deepEqual(synced, [{ id: 'exp_test1', fortnoxVoucherId: 'A-42' }]);
+});
+
+test('skarp körning: klientfel kvitterar INTE + rapporteras per expense', async () => {
+  const sync = createCfoFortnoxVoucherSync({
+    expenseStore: { listExpenses: () => [SAMPLE_EXPENSE] },
+    fortnoxStore: { getConnection: async () => ({ connected: true, accessToken: 'x' }) },
+    fortnoxClient: {
+      createVoucher: async () => {
+        throw new Error('Fortnox API 403');
+      },
+    },
+    env: { ARCANA_CFO_FORTNOX_VOUCHER_SYNC_ENABLED: 'true' },
+  });
+  const result = await sync.run({ dryRun: false });
+  assert.equal(result.ok, true);
+  assert.equal(result.results[0].ok, false);
+  assert.match(result.results[0].error, /403/);
+});
+
 test('bara exported + pending plockas upp', async () => {
   const sync = createCfoFortnoxVoucherSync({
     expenseStore: fakeExpenseStore([
