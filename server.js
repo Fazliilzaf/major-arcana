@@ -9023,6 +9023,7 @@ try {
 
   app.post(
     '/api/v1/cco-journal-quick/document',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.write'),
     docUpload.single('document'),
@@ -9103,6 +9104,7 @@ try {
 
   app.post(
     '/api/v1/cco-journal-quick/visit-media',
+    requireCcoAuthenticated,
     attachRole,
     requirePermission('journal.write'),
     visitMediaUpload.single('media'),

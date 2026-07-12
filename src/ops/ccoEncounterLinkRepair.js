@@ -65,7 +65,7 @@ function buildPreviewCase(asset = {}, mapping = {}) {
  * patientInputs must already be canonicalized by the route; this module never
  * guesses patient identity and never writes to the asset store.
  */
-function previewEncounterLinkRepair({ patientInputs = [], sampleSize = 25 } = {}) {
+function buildEncounterLinkRepairPlan({ patientInputs = [] } = {}) {
   const canonicalAssets = [];
   const registryInputs = [];
 
@@ -105,6 +105,30 @@ function previewEncounterLinkRepair({ patientInputs = [], sampleSize = 25 } = {}
   );
   const review = missingMappings.filter((mapping) => mapping.confidence === 'review');
   const noDate = missingMappings.filter((mapping) => mapping.reason === 'missing_date');
+  return {
+    canonicalAssets,
+    registryInputs,
+    mediaMappings,
+    missingMappings,
+    linkable,
+    review,
+    noDate,
+    assetById,
+  };
+}
+
+function previewEncounterLinkRepair({ patientInputs = [], sampleSize = 25 } = {}) {
+  const plan = buildEncounterLinkRepairPlan({ patientInputs });
+  const {
+    canonicalAssets,
+    registryInputs,
+    mediaMappings,
+    missingMappings,
+    linkable,
+    review,
+    noDate,
+    assetById,
+  } = plan;
   const samples = [];
   for (const mapping of [...linkable, ...review]) {
     if (samples.length >= Math.max(1, Number(sampleSize) || 25)) break;
@@ -134,6 +158,7 @@ function previewEncounterLinkRepair({ patientInputs = [], sampleSize = 25 } = {}
 }
 
 module.exports = {
+  buildEncounterLinkRepairPlan,
   isMediaAsset,
   previewEncounterLinkRepair,
 };

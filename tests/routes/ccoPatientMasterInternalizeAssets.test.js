@@ -432,6 +432,17 @@ test('assets/preview-encounter-links kräver OWNER-roll', async () => {
   }
 });
 
+test('assets/repair-encounter-links är owner-gated och kräver confirmText vid write', async () => {
+  const source = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
+    'utf8'
+  );
+  assert.match(source, /assets\/repair-encounter-links/);
+  assert.match(source, /requireRole\(ROLE_OWNER\)/);
+  assert.match(source, /REPAIR ENCOUNTER LINKS/);
+  assert.match(source, /assetStore\.linkAssetToEncounter/);
+});
+
 test('assets/internalize commit async returnerar 202 och avslutar job', async () => {
   resetInternalizeJobStateForTests();
   const fixture = await makeFixture({
