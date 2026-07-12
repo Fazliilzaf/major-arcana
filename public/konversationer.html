@@ -3979,14 +3979,27 @@
         }
       }
 
+      function isEmbeddedMailImageUrl(value) {
+        return /^data:image\/(?:png|jpe?g|gif|webp|svg\+xml)(?:;[^,]*)?,/i.test(
+          normalizeText(value)
+        );
+      }
+
       async function authorizedMailAssetUrl(value) {
         const url = normalizeText(value);
-        if (!isLocalMailAssetUrl(url)) return url;
+        const localMailAsset = isLocalMailAssetUrl(url);
+        const embeddedMailImage = isEmbeddedMailImageUrl(url);
+        if (!localMailAsset && !embeddedMailImage) return url;
         if (mailAssetBlobUrls.has(url)) return mailAssetBlobUrls.get(url);
-        const pending = fetch(url, {
-          credentials: 'include',
-          headers: withAdminAuthHeaders({ Accept: '*/*' }),
-        })
+        const pending = fetch(
+          url,
+          localMailAsset
+            ? {
+                credentials: 'include',
+                headers: withAdminAuthHeaders({ Accept: '*/*' }),
+              }
+            : undefined
+        )
           .then((response) => {
             if (!response.ok) throw new Error(`mail_asset_${response.status}`);
             return response.blob();
@@ -4010,7 +4023,7 @@
           [...elements].map(async (element) => {
             const attribute = element.tagName.toLowerCase() === 'a' ? 'href' : 'src';
             const source = element.getAttribute(attribute);
-            if (!isLocalMailAssetUrl(source)) return;
+            if (!isLocalMailAssetUrl(source) && !isEmbeddedMailImageUrl(source)) return;
             try {
               element.setAttribute(attribute, await authorizedMailAssetUrl(source));
             } catch (error) {

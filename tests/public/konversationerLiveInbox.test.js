@@ -383,12 +383,29 @@ test('konversationer hydrates authenticated local mail assets in HTML and attach
   assert.match(html, /function authorizedMailAssetUrl\(value\)/);
   assert.match(
     html,
-    /fetch\(url,\s*\{[\s\S]*credentials:\s*'include',[\s\S]*withAdminAuthHeaders\(\{ Accept: '\*\/\*' \}\)/
+    /localMailAsset[\s\S]*credentials:\s*'include',[\s\S]*withAdminAuthHeaders\(\{ Accept: '\*\/\*' \}\)/
   );
   assert.match(html, /URL\.createObjectURL\(blob\)/);
   assert.match(html, /function hydrateMailAssetRoot\(root\)/);
   assert.match(html, /hydrateMailAssetRoot\(frame\.contentDocument\)/);
   assert.match(html, /hydrateMailAssetUrls\(\);/);
+});
+
+test('konversationer hydrates embedded company-template images before iframe display', () => {
+  const html = readHtml();
+
+  assert.match(html, /function isEmbeddedMailImageUrl\(value\)/);
+  assert.match(html, /data:image\\\/\(\?:png\|jpe\?g\|gif\|webp\|svg\\\+xml\)/);
+  assert.match(
+    html,
+    /if \(!isLocalMailAssetUrl\(source\) && !isEmbeddedMailImageUrl\(source\)\) return;/,
+    'Mallbilder ska gå genom samma blob-hydrering som lokala mail-assets.'
+  );
+  assert.match(
+    html,
+    /const embeddedMailImage = isEmbeddedMailImageUrl\(url\);[\s\S]*URL\.createObjectURL\(blob\)/,
+    'Inbäddade SVG-/bildsymboler ska bli renderbara blob-URL:er.'
+  );
 });
 
 test('konversationer skiljer olästa mail från trådar som behöver svar', () => {
