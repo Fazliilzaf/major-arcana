@@ -234,6 +234,14 @@ const config = {
 
   stateRoot,
 
+  // ORD-67d (2026-07-13): 22 store-mounts i server.js läser `config.dataDir`
+  // (CF-kvitton/expenses, customer-events, message-intelligence m.fl.) men
+  // fältet har ALDRIG funnits → fallbacken './data/…' användes alltid = flyktig
+  // disk på Render → all sådan data raderades vid varje deploy. Upptäckt vid
+  // ägar-UAT ORD-67 (testutgift försvann efter deploy). Alias till stateRoot
+  // (/var/data i prod) så samtliga konsumenter hamnar på beständig disk.
+  dataDir: stateRoot,
+
   memoryStorePath: resolveStatePath({
     explicitPath: process.env.MEMORY_STORE_PATH,
     stateRoot,
