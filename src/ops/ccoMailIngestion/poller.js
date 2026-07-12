@@ -111,13 +111,13 @@ function createCcoMailIngestionPoller({
 
     const intervalMs = resolveIntervalMs(config);
     const initialDelayMs = resolveInitialDelayMs(config);
-    intervalId = setIntervalFn(() => {
-      void runOnce();
-    }, intervalMs);
-    intervalId?.unref?.();
-    initialTimeoutId = setTimeoutFn(() => {
+    initialTimeoutId = setTimeoutFn(async () => {
       initialTimeoutId = null;
-      void runOnce();
+      await runOnce();
+      intervalId = setIntervalFn(() => {
+        void runOnce();
+      }, intervalMs);
+      intervalId?.unref?.();
     }, initialDelayMs);
     initialTimeoutId?.unref?.();
     logger?.log?.(
