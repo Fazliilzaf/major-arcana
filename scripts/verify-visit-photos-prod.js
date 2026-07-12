@@ -106,15 +106,11 @@ async function dismissTour(page) {
 async function openV12BesokModule(page) {
   await dismissTour(page);
   await page.waitForSelector('[data-v11-rk-besok-sec]:not([hidden])', { timeout: 120000 });
-  const openBesok = page.locator('[data-v9-section-link="besok-tillfallen"]').first();
-  if (await openBesok.count()) {
-    await openBesok.click({ timeout: 15000, force: true });
-  } else {
-    await page.evaluate(() => {
-      const link = document.querySelector('[data-v9-section-link="besok-tillfallen"]');
-      link?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-    });
-  }
+  await page.evaluate(() => {
+    const link = document.querySelector('[data-v9-section-link="besok-tillfallen"]');
+    link?.scrollIntoView({ block: 'center', inline: 'nearest' });
+    link?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  });
   await page.waitForSelector('[data-v12-workspace-shell="1"]', {
     timeout: 120000,
     state: 'attached',
