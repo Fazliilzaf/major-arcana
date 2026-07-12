@@ -443,6 +443,8 @@ test('encounter preview begränsar samtidig patientmaterialisering', () => {
     /assets\/repair-encounter-links[\s\S]*mapWithConcurrency\(\s*patients,\s*4,/
   );
   assert.match(source, /assets\/preview-encounter-links[\s\S]*includeClientoBookings: false/);
+  assert.match(source, /const includeBookingIndex = req\.body\?\.includeBookingIndex !== false/);
+  assert.match(source, /if \(includeBookingIndex\) \{[\s\S]*loadKunderBookingIndex/);
 });
 
 test('assets/preview-encounter-links kräver OWNER-roll', async () => {
