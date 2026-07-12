@@ -211,6 +211,10 @@ test('V11/V12 visar journal och film inom samma besökstillfälle', () => {
   assert.match(canon, /Journal saknas/);
   assert.match(canon, /Journal signerad/);
   assert.match(canon, /Journalutkast/);
+  assert.match(canon, /function journalStateForSegment\(segment\)/);
+  assert.match(canon, /counts\.push\(journalStateForSegment\(segment\)\)/);
+  assert.match(canon, /Journal signerad och låst/);
+  assert.doesNotMatch(canon, /counts\.push\(journalState\);/);
 });
 
 test('besöksrum skapas från encounter, bokning och journal utan filer', () => {

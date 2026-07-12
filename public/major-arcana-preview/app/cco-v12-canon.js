@@ -1061,20 +1061,33 @@
         '</div></div>'
       );
     }
+    function journalStateForSegment(segment) {
+      var journals = arr(segment && segment.journals);
+      if (!journals.length) return 'Journal saknas';
+      if (
+        journals.every(function (journal) {
+          return Boolean(journal && journal.locked);
+        })
+      ) {
+        return 'Journal signerad och låst';
+      }
+      if (
+        journals.every(function (journal) {
+          return txt(journal && journal.status) === 'signed';
+        })
+      ) {
+        return 'Journal signerad';
+      }
+      return 'Journalutkast';
+    }
     function journalBlock(segment) {
       var journals = arr(segment && segment.journals);
-      var journalState = !journals.length
-        ? 'Journal saknas'
-        : journals.every(function (journal) {
-              return txt(journal && journal.status) === 'signed';
-            })
-          ? 'Journal signerad'
-          : 'Journalutkast';
       var encounterId = txt(segment && segment.encounterId);
       var rows = journals.length
         ? journals
             .map(function (journal) {
               var status = txt(journal && journal.status) || 'draft';
+              var locked = Boolean(journal && journal.locked);
               return (
                 '<div class="visit-segment-journal__row"><span><b>' +
                 esc(txt(journal && journal.title) || 'Journalanteckning') +
@@ -1082,8 +1095,8 @@
                 esc(txt(journal && journal.date)) +
                 '</small></span>' +
                 chip(
-                  status === 'signed' ? 'ok' : 'warn',
-                  status === 'signed' ? 'Signerad' : 'Utkast'
+                  locked || status === 'signed' ? 'ok' : 'warn',
+                  locked ? 'Signerad · låst' : status === 'signed' ? 'Signerad' : 'Utkast'
                 ) +
                 '</div>'
               );
@@ -1132,7 +1145,7 @@
         counts.push(documents.length + (documents.length === 1 ? ' dokument' : ' dokument'));
       if (journals.length)
         counts.push(journals.length + (journals.length === 1 ? ' journal' : ' journaler'));
-      counts.push(journalState);
+      counts.push(journalStateForSegment(segment));
       var meta = [
         txt(segment && segment.visitType),
         txt(segment && segment.timeRange),
