@@ -527,6 +527,31 @@ test('previewInternalizeCandidates maskerar och hittar pilotWindow utan unknown_
   }
 });
 
+test('previewInternalizeCandidates visar filkontext endast i explicit owner-review-läge', async () => {
+  const rows = [
+    {
+      patientId: 'patient-review',
+      driveFileId: 'drive-review-1',
+      originalFileName: 'Journal PRP verkligt namn.pdf',
+      originalDrivePath: 'Hair TP Clinic/Osorterat/Journal PRP verkligt namn.pdf',
+      mimeType: 'application/pdf',
+    },
+  ];
+  const preview = await previewInternalizeCandidates({
+    rows,
+    limit: 10,
+    includePilotWindow: false,
+    includeReviewDetails: true,
+  });
+  assert.equal(preview.zeroWrites, true);
+  assert.equal(preview.candidates[0].fileName, 'Journal PRP verkligt namn.pdf');
+  assert.equal(
+    preview.candidates[0].drivePath,
+    'Hair TP Clinic/Osorterat/Journal PRP verkligt namn.pdf'
+  );
+  assert.equal('patientId' in preview.candidates[0], false);
+});
+
 test('buildPilotWindowSearch hoppar weak_document_date_source tills folder_iso-fönster', async () => {
   const rig = await makeRig();
   try {

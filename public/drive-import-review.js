@@ -166,7 +166,8 @@
         includeReviewDetails: true,
       }),
     });
-    const items = (body.candidates || []).filter(
+    const preview = body.preview || {};
+    const items = (preview.candidates || []).filter(
       (item) => item.calendarBucketClear === false && item.documentDateSource === 'none'
     );
     const summaryEl = document.querySelector('[data-undated-summary]');
@@ -174,7 +175,7 @@
     if (summaryEl) {
       summaryEl.innerHTML = `
         <div class="dir-metric"><strong>${items.length}</strong><span>Behöver datumgranskning</span></div>
-        <div class="dir-metric"><strong>${body.stats?.remaining ?? '—'}</strong><span>Totalt kvar i inventory</span></div>`;
+        <div class="dir-metric"><strong>${preview.stats?.remaining ?? '—'}</strong><span>Totalt kvar i inventory</span></div>`;
     }
     if (rowsEl) {
       rowsEl.innerHTML = items.length
