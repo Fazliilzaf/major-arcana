@@ -5926,20 +5926,28 @@ function toCcoRuntimeHistoryBackfillHandler({
         });
         if (input.async === true) {
           const mailboxId = input.mailboxIds[0];
+          const selectedFolderTypes =
+            input.folderTypes || ['inbox', 'sent', 'drafts', 'deleted'];
+          const selectedFoldersComplete = (coverage) => {
+            const statusByFolderType = coverage?.coverage?.accountReports?.[0]?.statusByFolderType;
+            return selectedFolderTypes.every(
+              (folderType) => statusByFolderType?.[folderType] === 'VERIFIED'
+            );
+          };
           const started = startMailboxTruthBackfillJob({
             mailboxId,
             run: async ({ onRound }) => {
               let coverage = currentCoverage;
               let rounds = 0;
               const maxRounds = Number(input.maxPagesPerFolder || 10000);
-              while (coverage?.coverage?.complete !== true && rounds < maxRounds) {
+              while (!selectedFoldersComplete(coverage) && rounds < maxRounds) {
                 const backfill = createMicrosoftGraphMailboxTruthBackfill({
                   connectorFactory: () => graphReadConnector,
                   store: ccoMailboxTruthStore,
                 });
                 await backfill.runBackfill({
                   mailboxIds: input.mailboxIds,
-                  folderTypes: input.folderTypes || ['inbox', 'sent', 'drafts', 'deleted'],
+                  folderTypes: selectedFolderTypes,
                   resume: !(input.refresh === true && rounds === 0),
                   maxPagesPerFolder: 1,
                   pageSize: input.pageSize || 100,
@@ -5953,7 +5961,7 @@ function toCcoRuntimeHistoryBackfillHandler({
                 });
                 await new Promise((resolve) => setTimeout(resolve, 50));
               }
-              if (coverage?.coverage?.complete !== true) {
+              if (!selectedFoldersComplete(coverage)) {
                 throw new Error(`Mailbox truth async-backfill nådde max ${maxRounds} rundor.`);
               }
               return {
