@@ -105,17 +105,21 @@ async function dismissTour(page) {
 
 async function openV12BesokModule(page) {
   await dismissTour(page);
+  await page.waitForSelector('[data-v11-rk-besok-sec]:not([hidden])', { timeout: 120000 });
   const openBesok = page.locator('[data-v9-section-link="besok-tillfallen"]').first();
   if (await openBesok.count()) {
     await openBesok.click({ timeout: 15000, force: true });
-    await page.waitForTimeout(2500);
-    return;
+  } else {
+    await page.evaluate(() => {
+      const link = document.querySelector('[data-v9-section-link="besok-tillfallen"]');
+      link?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
   }
-  await page.evaluate(() => {
-    const link = document.querySelector('[data-v9-section-link="besok-tillfallen"]');
-    link?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  await page.waitForSelector('[data-v12-workspace-shell="1"]', {
+    timeout: 120000,
+    state: 'attached',
   });
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(1500);
 }
 
 async function waitForDetail(page, patientId, timeoutMs = 120000) {
@@ -227,7 +231,10 @@ async function runViewport(browser, token, viewport, commit) {
   }
 
   await openV12BesokModule(page);
-  await page.waitForSelector('[data-v12-visit-segments="1"]', { timeout: 60000 });
+  await page.waitForSelector('[data-v12-visit-segments="1"]', {
+    timeout: 120000,
+    state: 'attached',
+  });
   await waitForDecodedImages('[data-v12-visit-segments="1"] img[data-patient-file-id]', page);
 
   const v12Shot = path.join(OUT_DIR, `${viewport.name}-v12-besok-${commit}.png`);
