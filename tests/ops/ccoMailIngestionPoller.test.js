@@ -39,6 +39,7 @@ test('mailbox-pollern låser kons + fazli och mode till read_only', async () => 
       ccoMailIngestionPollMailboxes: [KONS_MAILBOX, FAZLI_MAILBOX],
       ccoMailIngestionPollIntervalMinutes: 3,
       ccoMailIngestionPollInitialDelayMs: 120000,
+      ccoMailIngestionPollTruthLimit: 100,
     },
     runtimeStreamRouter: {
       broadcast(event, payload) {
@@ -88,6 +89,7 @@ test('mailbox-pollern låser kons + fazli och mode till read_only', async () => 
       trigger: 'cco_mailbox_poller',
       createdBy: 'system:cco_mailbox_poller',
       folderTypes: ['inbox', 'sent'],
+      truthLimit: 100,
     },
     {
       mailboxEmail: FAZLI_MAILBOX,
@@ -95,6 +97,7 @@ test('mailbox-pollern låser kons + fazli och mode till read_only', async () => 
       trigger: 'cco_mailbox_poller',
       createdBy: 'system:cco_mailbox_poller',
       folderTypes: ['inbox', 'sent'],
+      truthLimit: 100,
     },
     {
       mailboxEmail: KONS_MAILBOX,
@@ -102,6 +105,7 @@ test('mailbox-pollern låser kons + fazli och mode till read_only', async () => 
       trigger: 'cco_mailbox_poller',
       createdBy: 'system:cco_mailbox_poller',
       folderTypes: ['inbox', 'sent'],
+      truthLimit: 100,
     },
     {
       mailboxEmail: FAZLI_MAILBOX,
@@ -109,6 +113,7 @@ test('mailbox-pollern låser kons + fazli och mode till read_only', async () => 
       trigger: 'cco_mailbox_poller',
       createdBy: 'system:cco_mailbox_poller',
       folderTypes: ['inbox', 'sent'],
+      truthLimit: 100,
     },
   ]);
   assert.equal(broadcasts.length, 2);

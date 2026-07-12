@@ -60,6 +60,7 @@ function createCcoMailIngestionSyncService({
     sinceIso = null,
     mode = 'read_only',
     folderTypes = MAILBOX_FOLDER_TYPES,
+    limit = 0,
   } = {}) {
     const normalizedMailbox = normalizeEmail(mailboxEmail);
     const truth = await openTruthStore();
@@ -74,7 +75,7 @@ function createCcoMailIngestionSyncService({
       mailboxIds: [normalizedMailbox],
       folderTypes,
       sinceIso,
-      limit: 0,
+      limit: Math.max(0, Number(limit) || 0),
     });
 
     const totalFetched = messages.length;
@@ -255,6 +256,7 @@ function createCcoMailIngestionSyncService({
     skipDelta = false,
     createdBy = 'system',
     folderTypes = MAILBOX_FOLDER_TYPES,
+    truthLimit = 0,
   } = {}) {
     const normalizedMailbox = normalizeEmail(mailboxEmail);
     if (!normalizedMailbox) {
@@ -290,6 +292,7 @@ function createCcoMailIngestionSyncService({
         importRunId: importRun.id,
         mode,
         folderTypes,
+        limit: truthLimit,
       });
 
       const processResult =
