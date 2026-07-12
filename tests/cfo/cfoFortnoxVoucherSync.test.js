@@ -89,12 +89,20 @@ test('dryRun med alla gates gröna → payloads utan write', async () => {
   assert.equal(writes, 0);
 });
 
-test('skarp körning (ORD-67): createVoucher anropas + markFortnoxSynced kvitterar', async () => {
+test('skarp körning (ORD-67): syncing FÖRE write + markFortnoxSynced kvitterar', async () => {
   const synced = [];
+  const events = [];
   const store = {
     listExpenses: () => [SAMPLE_EXPENSE],
+    markFortnoxSyncing: async ({ id }) => {
+      events.push(`syncing:${id}`);
+    },
     markFortnoxSynced: async ({ id, fortnoxVoucherId }) => {
+      events.push(`synced:${id}`);
       synced.push({ id, fortnoxVoucherId });
+    },
+    markFortnoxError: async () => {
+      events.push('error');
     },
   };
   const sync = createCfoFortnoxVoucherSync({
@@ -114,6 +122,38 @@ test('skarp körning (ORD-67): createVoucher anropas + markFortnoxSynced kvitter
   assert.equal(result.results[0].ok, true);
   assert.equal(result.results[0].voucherId, 'A-42');
   assert.deepEqual(synced, [{ id: 'exp_test1', fortnoxVoucherId: 'A-42' }]);
+  // Bugbot HIGH: syncing måste persisteras FÖRE write
+  assert.deepEqual(events, ['syncing:exp_test1', 'synced:exp_test1']);
+});
+
+test('skarp körning: svar utan VoucherNumber → error, INTE synced (Bugbot)', async () => {
+  const marks = [];
+  const sync = createCfoFortnoxVoucherSync({
+    expenseStore: {
+      listExpenses: () => [SAMPLE_EXPENSE],
+      markFortnoxSyncing: async () => marks.push('syncing'),
+      markFortnoxSynced: async () => marks.push('synced'),
+      markFortnoxError: async ({ error }) => marks.push(`error:${error}`),
+    },
+    fortnoxStore: { getConnection: async () => ({ connected: true, accessToken: 'x' }) },
+    fortnoxClient: { createVoucher: async () => ({ Voucher: {} }) },
+    env: { ARCANA_CFO_FORTNOX_VOUCHER_SYNC_ENABLED: 'true' },
+  });
+  const result = await sync.run({ dryRun: false });
+  assert.equal(result.results[0].ok, false);
+  assert.equal(result.results[0].error, 'voucher_id_missing_in_response');
+  assert.deepEqual(marks, ['syncing', 'error:voucher_id_missing_in_response']);
+});
+
+test('syncing-status exkluderas ur pending-kön (dubbelskydd över processer)', async () => {
+  const sync = createCfoFortnoxVoucherSync({
+    expenseStore: {
+      listExpenses: () => [{ ...SAMPLE_EXPENSE, fortnoxSyncStatus: 'syncing' }],
+    },
+    env: {},
+  });
+  const pending = await sync.listPendingExpenses();
+  assert.equal(pending.length, 0);
 });
 
 test('skarp körning: klientfel kvitterar INTE + rapporteras per expense', async () => {

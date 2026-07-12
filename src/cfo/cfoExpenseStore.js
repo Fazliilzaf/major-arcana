@@ -85,6 +85,7 @@ const VALID_VAT_RATES = Object.freeze([0, 6, 12, 25, 'reverse_charge']);
 const VALID_FORTNOX_SYNC_STATUSES = Object.freeze([
   'blocked_integration', // OAuth-blocker — Fortnox kan inte ta emot writes ännu
   'pending', // Redo att synkas när OAuth fungerar
+  'syncing', // ORD-67: write-attempt pågår/avbruten — plockas ALDRIG upp av ny run (dubbelskydd)
   'synced', // Synkad till Fortnox med voucher-ID
   'error', // Sync misslyckades, behöver retry
   'skip', // Owner valde att hoppa över Fortnox-sync för denna expense
@@ -831,17 +832,47 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
   }
 
   /**
-   * CF.9 (ORD-67): kvittera lyckad Fortnox voucher-sync på en exporterad expense.
+   * CF.9 (ORD-67, Bugbot HIGH): tvåfas-skydd mot dubbelverifikat.
+   * markFortnoxSyncing PERSISTERAS FÖRE Fortnox-write — kraschar processen
+   * mellan write och kvittens fastnar expensen i 'syncing' (plockas aldrig upp
+   * av ny run) i stället för att dubbelbokas. Fastnade 'syncing' löses manuellt
+   * mot Fortnox (verifikatet finns/finns inte) via markFortnoxSynced/Error.
+   */
+  async function markFortnoxSyncing({ id, actor } = {}) {
+    const e = data.expenses.find((x) => x.id === id);
+    if (!e) throw new Error('expense finns ej');
+    e.fortnoxSyncStatus = 'syncing';
+    e.updatedAt = nowIso();
+    await persist();
+    audit('cf.fortnox.voucher_sync_started', { expenseId: id, actor });
+    return { ...e };
+  }
+
+  /**
+   * CF.9 (ORD-67, Bugbot): kvittera lyckad sync. voucherId är OBLIGATORISKT —
+   * utan verifikatreferens får expensen aldrig lämna kön som "synced".
    */
   async function markFortnoxSynced({ id, fortnoxVoucherId = null, actor } = {}) {
     const e = data.expenses.find((x) => x.id === id);
     if (!e) throw new Error('expense finns ej');
+    if (!fortnoxVoucherId) throw new Error('fortnoxVoucherId krävs för synced-kvittens');
     e.fortnoxSyncStatus = 'synced';
-    e.fortnoxVoucherId = fortnoxVoucherId || null;
+    e.fortnoxVoucherId = fortnoxVoucherId;
     e.fortnoxExportPending = false;
     e.updatedAt = nowIso();
     await persist();
     audit('cf.fortnox.voucher_synced', { expenseId: id, fortnoxVoucherId, actor });
+    return { ...e };
+  }
+
+  async function markFortnoxError({ id, error = '', actor } = {}) {
+    const e = data.expenses.find((x) => x.id === id);
+    if (!e) throw new Error('expense finns ej');
+    e.fortnoxSyncStatus = 'error';
+    e.fortnoxSyncError = String(error).slice(0, 300);
+    e.updatedAt = nowIso();
+    await persist();
+    audit('cf.fortnox.voucher_sync_error', { expenseId: id, error: e.fortnoxSyncError, actor });
     return { ...e };
   }
 
@@ -856,7 +887,9 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     updateExpense,
     transitionStatus,
     markExported,
+    markFortnoxSyncing,
     markFortnoxSynced,
+    markFortnoxError,
     attachFile,
     listExpenses,
     listExportBatches,

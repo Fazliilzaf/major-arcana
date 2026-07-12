@@ -88,6 +88,10 @@ function createCfoVoucherSyncRouter({
   );
 
   // Skarp körning — fail-closed i cfoFortnoxVoucherSync (env-gate + OAuth-gate).
+  // Bugbot (PR #835): in-process-körlås — överlappande OWNER-anrop 409:ar i
+  // stället för att processa samma pending-kö parallellt. 'syncing'-statusen
+  // i storen skyddar dessutom över processgränser.
+  let runInProgress = false;
   router.post(
     '/cco-cf/voucher-sync/run',
     requireAuth,
@@ -95,6 +99,12 @@ function createCfoVoucherSyncRouter({
     async (req, res) => {
       if (!cfoExpenseStore)
         return res.status(503).json({ ok: false, error: 'expense store ej monterad' });
+      if (runInProgress) {
+        return res
+          .status(409)
+          .json({ ok: false, error: 'run_in_progress — vänta tills pågående körning är klar' });
+      }
+      runInProgress = true;
       try {
         const sync = await buildSync();
         const result = await sync.run({ dryRun: req.body?.dryRun === true });
@@ -102,6 +112,8 @@ function createCfoVoucherSyncRouter({
         return res.status(status).json(result);
       } catch (err) {
         return res.status(500).json({ ok: false, error: err.message });
+      } finally {
+        runInProgress = false;
       }
     }
   );
