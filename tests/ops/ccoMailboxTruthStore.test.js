@@ -115,6 +115,36 @@ test('truth store bevarar liten HTML-signatur men aldrig inbäddade bildbytes', 
   await fs.rm(tempDir, { recursive: true, force: true });
 });
 
+test('mailbox truth store preserves small SVG template icons but strips base64 photos', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-mailbox-truth-svg-'));
+  const filePath = path.join(tempDir, 'mailbox.json');
+  const store = await createCcoMailboxTruthStore({ filePath, deferConversationRebuild: true });
+  const svg =
+    'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%228%22%2F%3E%3C%2Fsvg%3E';
+
+  await store.recordFolderPage({
+    runId: 'run-svg-1',
+    account: { mailboxId: 'fazli@hairtpclinic.com', mailboxAddress: 'fazli@hairtpclinic.com' },
+    folder: { folderType: 'sent', totalItemCount: 1, messageCollectionCount: 1 },
+    messages: [
+      {
+        mailboxId: 'fazli@hairtpclinic.com',
+        graphMessageId: 'signature-svg-1',
+        folderType: 'sent',
+        conversationId: 'signature-svg-thread',
+        subject: 'SVG-signatur',
+        bodyHtml: `<img src="${svg}" alt="Webb"><img src="data:image/png;base64,QUJDRA==">`,
+      },
+    ],
+    complete: true,
+  });
+
+  const [stored] = store.listMessages({ mailboxIds: ['fazli@hairtpclinic.com'] });
+  assert.equal(stored.bodyHtml.includes(svg), true);
+  assert.equal(stored.bodyHtml.includes('data:image/png'), false);
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
 test('mailbox truth store self-heals a corrupt JSON state file at startup', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-mailbox-truth-store-'));
   const filePath = path.join(tempDir, 'cco-mailbox-truth.json');

@@ -4039,6 +4039,33 @@
         }
       }
 
+      function replaceKnownMailTemplateIcon(element) {
+        if (!element || element.tagName?.toLowerCase() !== 'img') return false;
+        const source = normalizeText(element.getAttribute('src'));
+        if (source && source !== '#' && source !== 'about:blank') return false;
+        const label = normalizeText(element.getAttribute('alt')).toLowerCase();
+        const icon = ['webb', 'visit website'].includes(label)
+          ? '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.5 4 5.34 4 8.5s-1.4 6-4 8.5c-2.6-2.5-4-5.34-4-8.5s1.4-6 4-8.5Z"/>'
+          : ['instagram', 'visit instagram'].includes(label)
+            ? '<rect x="4.5" y="4.5" width="15" height="15" rx="4"/><circle cx="12" cy="12" r="3.3"/><circle cx="16.7" cy="7.3" r="1.15" fill="currentColor" stroke="none"/>'
+            : ['facebook', 'visit facebook'].includes(label)
+              ? '<path d="M13.2 20v-7h2.35l.45-2.7h-2.8V8.6c0-.95.4-1.6 1.8-1.6H16V4.55c-.4-.05-1.15-.15-2.2-.15-2.2 0-3.7 1.35-3.7 3.8v2.1H7.75V13h2.35v7h3.1Z" fill="currentColor" stroke="none"/>'
+              : '';
+        if (!icon) return false;
+        const parsed = new DOMParser().parseFromString(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">${icon}</svg>`,
+          'image/svg+xml'
+        );
+        const imported = element.ownerDocument.importNode(parsed.documentElement, true);
+        imported.setAttribute('width', normalizeText(element.getAttribute('width')) || '14');
+        imported.setAttribute('height', normalizeText(element.getAttribute('height')) || '14');
+        imported.setAttribute('aria-label', normalizeText(element.getAttribute('alt')));
+        imported.style.color = '#b9a89d';
+        imported.style.display = 'block';
+        element.replaceWith(imported);
+        return true;
+      }
+
       async function authorizedMailAssetUrl(value) {
         const url = normalizeText(value);
         const localMailAsset = isLocalMailAssetUrl(url);
@@ -4161,6 +4188,9 @@
         });
         doc.body.querySelectorAll('img[src^="data:image/svg+xml"]').forEach((image) => {
           replaceEmbeddedMailSvgImage(image);
+        });
+        doc.body.querySelectorAll('img').forEach((image) => {
+          replaceKnownMailTemplateIcon(image);
         });
         return doc.body.innerHTML;
       }
