@@ -632,6 +632,19 @@ test('GET /patient/visit-segments returns grouped payload', async (t) => {
   assert.equal(body.visitSegments[0].visitType, 'prp');
 });
 
+test('visit-segments-rutten laddar journal för status och journalbilder', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
+    'utf8'
+  );
+  assert.match(
+    source,
+    /patient\/visit-segments[\s\S]*?buildPatientPayload\(actor, patient, \{[\s\S]*?includeJournal: true/
+  );
+});
+
 test('inferVisitTypeFromFiles maps operation and consultation tokens', () => {
   assert.equal(
     inferVisitTypeFromFiles([{ relativePath: 'Hair TP Clinic 2024/FUE Operation 1/Front.jpg' }]),
