@@ -273,3 +273,22 @@ test('listfas visar segment/insikts-placeholder tills enriched customers-shell l
   assert.match(ui, /Uppdaterar insikter/);
   assert.match(ui, /isCustomerSegmentEnrichmentPending\(segmentStats\)/);
 });
+
+test('V11 och V12 behåller kompakt facit-hierarki för besöksrum', () => {
+  const v11Css = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'cco-v11-rk.css'),
+    'utf8'
+  );
+  const v12Css = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'cco-v12-canon.css'),
+    'utf8'
+  );
+
+  assert.match(
+    v11Css,
+    /data-v11-rk-besok-sec[^}]*\.photo-grid[\s\S]*repeat\(3, minmax\(0, 1fr\)\)/
+  );
+  assert.match(v12Css, /v12-canon-visit-segment\[open\][\s\S]*var\(--card-shadow\)/);
+  assert.match(v12Css, /@media \(max-width: 834px\)[\s\S]*v12-canon-visit-photo-grid/);
+  assert.match(v12Css, /@media \(max-width: 600px\)[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/);
+});

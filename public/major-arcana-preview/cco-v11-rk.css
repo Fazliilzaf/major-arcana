@@ -207,6 +207,18 @@
   box-shadow: var(--card-shadow);
   overflow: hidden;
 }
+.v11-rk [data-v11-rk-besok-sec] .hist-row {
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+}
+.v11-rk [data-v11-rk-besok-sec] .book-title,
+.v11-rk [data-v11-rk-besok-sec] .when,
+.v11-rk [data-v11-rk-besok-sec] .file-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.v11-rk [data-v11-rk-besok-sec] .photo-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 
 .v11-rk .v11-rk__visit-open {
   width: 100%;

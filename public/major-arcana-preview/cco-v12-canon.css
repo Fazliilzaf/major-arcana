@@ -1034,17 +1034,56 @@
 }
 .v12-canon .v12-canon-visit-segments {
   margin-top: 14px;
+  padding: 14px;
+  background: var(--vellum);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--card-shadow);
 }
 .v12-canon .v12-canon-visit-segment {
   margin-top: 8px;
-  padding: 10px 12px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
 }
 .v12-canon .v12-canon-visit-segment summary {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-height: 54px;
+  padding: 11px 14px;
   cursor: pointer;
   list-style: none;
+}
+.v12-canon .v12-canon-visit-segment summary::after {
+  content: "+";
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink-mute);
+  font-size: 16px;
+  font-weight: 700;
+}
+.v12-canon .v12-canon-visit-segment[open] {
+  padding: 0 14px 14px;
+  background: linear-gradient(180deg, #fff 0%, #f7f1ec 100%);
+  box-shadow: var(--card-shadow);
+}
+.v12-canon .v12-canon-visit-segment[open] summary {
+  margin: 0 -14px 8px;
+  padding-inline: 14px;
+  box-shadow: inset 0 -1px 0 var(--hair);
+}
+.v12-canon .v12-canon-visit-segment[open] summary::after {
+  content: "−";
 }
 .v12-canon .v12-canon-visit-segment summary::-webkit-details-marker {
   display: none;
@@ -1068,6 +1107,12 @@
   color: var(--ink, #2c2218);
   text-decoration: none;
   border-top: 1px solid var(--hair, rgba(180, 170, 150, 0.25));
+}
+.v12-canon .visit-segment-documents {
+  margin-top: 10px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
 }
 .v12-canon .visit-segment-journal {
   margin: 10px 0;
@@ -1123,6 +1168,43 @@
   border: 1px solid var(--hair, rgba(180, 170, 150, 0.25));
   border-radius: 8px;
   background: #211d19;
+}
+
+@media (max-width: 834px) {
+  .v12-canon .v12-canon-visit-segments {
+    padding: 10px;
+  }
+  .v12-canon .v12-canon-visit-photo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .v12-canon .v12-canon-visit-video-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .v12-canon .v12-canon-visit-segment summary {
+    align-items: flex-start;
+    min-height: 50px;
+  }
+  .v12-canon .v12-canon-visit-segment summary .when {
+    flex: 1;
+    min-width: 0;
+  }
+  .v12-canon .v12-canon-visit-photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .v12-canon .v12-canon-visit-video-grid {
+    grid-template-columns: 1fr;
+  }
+  .v12-canon .visit-segment-journal__head,
+  .v12-canon .visit-segment-journal__row,
+  .v12-canon .visit-segment-room-status {
+    align-items: flex-start;
+  }
+  .v12-canon .visit-segment-actions .sec-link {
+    flex: 1 1 calc(50% - 4px);
+  }
 }
 .v12-canon .v12-canon-visit-video video {
   display: block;
