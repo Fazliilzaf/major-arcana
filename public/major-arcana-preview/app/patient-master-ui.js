@@ -1469,7 +1469,7 @@
     if (!target || !usesV12Workspace()) return '';
     if (
       target.closest(
-        'a[href^="tel:"],a[href^="sms:"],a[href^="mailto:"],[data-v11-active-visit-action],[data-v9-quick],[data-kk-sig],[data-kk-ord48-open-calendar],[data-patient-photo-camera],[data-v11-doc-action]'
+        'a[href^="tel:"],a[href^="sms:"],a[href^="mailto:"],[data-v11-active-visit-action],[data-v11-visit-toggle],[data-v9-quick],[data-kk-sig],[data-kk-ord48-open-calendar],[data-patient-photo-camera],[data-v11-doc-action]'
       )
     ) {
       return '';

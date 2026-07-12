@@ -106,6 +106,10 @@ test('occasion-render använder railens egna klasser (ingen ny design)', () => {
     videos: [{ fileName: 'besok.mp4', openRef: '/video' }],
   });
   assert.match(html, /data-v11-visit-card/, 'hela tillfället ska vara ett sammanhållet kort');
+  assert.match(html, /<details class="v11-rk-visit-card"/, 'kortet ska vara hopfällbart');
+  assert.match(html, /<summary data-v11-visit-toggle>/, 'rubriken ska fälla ut kortet');
+  assert.doesNotMatch(html, /<details[^>]* open/, 'besökskort ska vara stängda från start');
+  assert.match(html, /data-v12-open-module="bookings"/, 'hela tillfället ska öppna V12');
   assert.match(html, /class="hist-row"/, 'ska återanvända hist-row');
   assert.match(html, /class="photo-grid"/, 'ska återanvända photo-grid');
   assert.match(html, /class="photo-tile raw/, 'ska återanvända photo-tile');
