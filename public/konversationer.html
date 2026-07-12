@@ -4159,6 +4159,9 @@
           link.setAttribute('target', '_blank');
           link.setAttribute('rel', 'noopener noreferrer');
         });
+        doc.body.querySelectorAll('img[src^="data:image/svg+xml"]').forEach((image) => {
+          replaceEmbeddedMailSvgImage(image);
+        });
         return doc.body.innerHTML;
       }
 
