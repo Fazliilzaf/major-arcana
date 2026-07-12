@@ -75,11 +75,11 @@ test('mailbox-pollern låser kons + fazli och mode till read_only', async () => 
     initialDelayMs: 120000,
     intervalMs: 180000,
   });
-  assert.equal(scheduled.ms, 180000);
+  assert.equal(scheduled, null);
   assert.equal(initial.ms, 120000);
   assert.equal(calls.length, 0);
-  initial.fn();
-  await new Promise((resolve) => setImmediate(resolve));
+  await initial.fn();
+  assert.equal(scheduled.ms, 180000);
   await poller.runOnce();
   assert.deepEqual(calls, [
     {
