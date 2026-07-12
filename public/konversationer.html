@@ -4000,6 +4000,45 @@
         return new Blob([decodeURIComponent(payload)], { type: contentType });
       }
 
+      function replaceEmbeddedMailSvgImage(element) {
+        if (!element || element.tagName?.toLowerCase() !== 'img') return false;
+        const source = normalizeText(element.getAttribute('src'));
+        const match = source.match(/^data:image\/svg\+xml((?:;[^,]*)?),(.*)$/is);
+        if (!match) return false;
+        try {
+          const metadata = match[1] || '';
+          const rawPayload = match[2] || '';
+          const svgText = /;base64/i.test(metadata)
+            ? window.atob(rawPayload.replace(/\s+/g, ''))
+            : decodeURIComponent(rawPayload);
+          const parsed = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+          const svg = parsed.documentElement;
+          if (!svg || svg.nodeName.toLowerCase() !== 'svg' || parsed.querySelector('parsererror')) {
+            return false;
+          }
+          svg.querySelectorAll('script,foreignObject,iframe,object,embed').forEach((node) =>
+            node.remove()
+          );
+          svg.querySelectorAll('*').forEach((node) => {
+            [...node.attributes].forEach((attribute) => {
+              if (attribute.name.toLowerCase().startsWith('on')) node.removeAttribute(attribute.name);
+            });
+          });
+          const imported = element.ownerDocument.importNode(svg, true);
+          const width = normalizeText(element.getAttribute('width'));
+          const height = normalizeText(element.getAttribute('height'));
+          if (width) imported.setAttribute('width', width);
+          if (height) imported.setAttribute('height', height);
+          imported.setAttribute('aria-label', normalizeText(element.getAttribute('alt')));
+          imported.style.maxWidth = '100%';
+          imported.style.height = height ? `${height.replace(/px$/i, '')}px` : 'auto';
+          element.replaceWith(imported);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
       async function authorizedMailAssetUrl(value) {
         const url = normalizeText(value);
         const localMailAsset = isLocalMailAssetUrl(url);
@@ -4035,6 +4074,7 @@
           [...elements].map(async (element) => {
             const attribute = element.tagName.toLowerCase() === 'a' ? 'href' : 'src';
             const source = element.getAttribute(attribute);
+            if (replaceEmbeddedMailSvgImage(element)) return;
             if (!isLocalMailAssetUrl(source) && !isEmbeddedMailImageUrl(source)) return;
             try {
               element.setAttribute(attribute, await authorizedMailAssetUrl(source));
