@@ -4671,18 +4671,9 @@
       }
 
       if (mailboxMenuGrid) {
-        mailboxMenuGrid.addEventListener("change", (event) => {
-          const input = event.target.closest("[data-runtime-mailbox]");
-          if (!input) return;
-          const mailboxId = normalizeMailboxId(input.dataset.runtimeMailbox);
-          const nextSelected = new Set(workspaceSourceOfTruth.getSelectedMailboxIds());
-          if (input.checked) {
-            nextSelected.add(mailboxId);
-          } else {
-            nextSelected.delete(mailboxId);
-          }
+        const applyRuntimeMailboxSelection = (requestedMailboxIds) => {
           const nextSelectedMailboxIds = workspaceSourceOfTruth.setSelectedMailboxIds(
-            Array.from(nextSelected)
+            requestedMailboxIds
           );
           const availableMailboxIds = asArray(
             typeof getAvailableRuntimeMailboxes === "function" ? getAvailableRuntimeMailboxes() : []
@@ -4750,6 +4741,33 @@
             return;
           }
           scheduleMailboxScopeLiveReload(nextSelectedMailboxIds);
+        };
+
+        mailboxMenuGrid.addEventListener("click", (event) => {
+          const copy = event.target.closest(".mailbox-option-copy");
+          const input = copy?.closest(".mailbox-option")?.querySelector?.(
+            "[data-runtime-mailbox]"
+          );
+          if (!input) return;
+          event.preventDefault();
+          const mailboxId = normalizeMailboxId(input.dataset.runtimeMailbox);
+          mailboxMenuGrid.querySelectorAll("[data-runtime-mailbox]").forEach((option) => {
+            option.checked = normalizeMailboxId(option.dataset.runtimeMailbox) === mailboxId;
+          });
+          applyRuntimeMailboxSelection([mailboxId]);
+        });
+
+        mailboxMenuGrid.addEventListener("change", (event) => {
+          const input = event.target.closest("[data-runtime-mailbox]");
+          if (!input) return;
+          const mailboxId = normalizeMailboxId(input.dataset.runtimeMailbox);
+          const nextSelected = new Set(workspaceSourceOfTruth.getSelectedMailboxIds());
+          if (input.checked) {
+            nextSelected.add(mailboxId);
+          } else {
+            nextSelected.delete(mailboxId);
+          }
+          applyRuntimeMailboxSelection(Array.from(nextSelected));
         });
       }
 
