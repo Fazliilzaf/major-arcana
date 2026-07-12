@@ -1095,6 +1095,94 @@
     </div>
 
     <script>
+      // ORD-67b (2026-07-13): API-auth för finance.html. Sidan skickade bara
+      // cookies (credentials:'same-origin') men API:t auth:ar via Bearer-token
+      // — samma token som /admin sparar i localStorage (ARCANA_ADMIN_TOKEN).
+      // Wrappern injicerar Authorization på alla same-origin /api/v1-anrop
+      // (täcker CF-, CM- och voucher-sync-sektionerna utan att röra call-sites).
+      (() => {
+        const TOKEN_KEY = 'ARCANA_ADMIN_TOKEN';
+        const getToken = () => {
+          try {
+            return localStorage.getItem(TOKEN_KEY) || '';
+          } catch {
+            return '';
+          }
+        };
+        const origFetch = window.fetch.bind(window);
+        window.fetch = (input, init = {}) => {
+          const url = typeof input === 'string' ? input : input?.url || '';
+          if (url.startsWith('/api/v1')) {
+            const token = getToken();
+            if (token) {
+              const headers = new Headers(init.headers || {});
+              if (!headers.has('Authorization')) headers.set('Authorization', 'Bearer ' + token);
+              init = { ...init, headers };
+            }
+          }
+          return origFetch(input, init);
+        };
+        // Ingen token = inte inloggad via /admin → visa tydlig banner i stället
+        // för tysta 401:or i varje sektion.
+        if (!getToken()) {
+          document.addEventListener('DOMContentLoaded', () => {
+            const banner = document.createElement('div');
+            banner.className = 'status-banner status-banner--partial';
+            banner.innerHTML =
+              '🔐 Ej inloggad — logga in via <a href="/admin">/admin</a> först (samma flik-session), ladda sedan om denna sida.';
+            const wrap = document.querySelector('.wrap');
+            if (wrap) wrap.insertBefore(banner, wrap.children[1] || null);
+          });
+        }
+        // Bugbot PR #840: nedladdningslänkar (<a href="/api/v1/…">) får ingen
+        // header av fetch-wrappern — intercepta klick och hämta via fetch+blob
+        // (wrappern injicerar Bearer) i stället för rå navigation.
+        document.addEventListener('click', async (ev) => {
+          const link = ev.target.closest('a[href^="/api/v1"]');
+          if (!link) return;
+          ev.preventDefault();
+          const href = link.getAttribute('href');
+          // Bugbot rond 3: export-länkar (CSV/JSON) ska LADDA NER (som API:ts
+          // Content-Disposition), inte öppnas i flik — bara "Visa"-länkar får preview.
+          const wantsDownload = /\/export\/|\/(csv|json)(\?|$)/i.test(href);
+          // Bugbot rond 2: window.open EFTER await tappar user-activation →
+          // popup-blockerad (särskilt Safari). Öppna fliken SYNKRONT i
+          // klickögonblicket; blockeras den ändå → ankar-download.
+          const preview = wantsDownload ? null : window.open('', '_blank');
+          try {
+            const res = await window.fetch(href, { credentials: 'same-origin' });
+            if (!res.ok) {
+              if (preview) preview.close();
+              alert('Nedladdning misslyckades: ' + res.status);
+              return;
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            if (preview) {
+              // Bugbot rond 4: revoka INTE preview-blobben — fliken kan vara
+              // öppen länge; URL:en städas när sidan stängs.
+              preview.location = url;
+            } else {
+              const parts = href.split('?')[0].split('/').filter(Boolean);
+              let name = parts.pop() || 'fil';
+              if (/^(csv|json|pdf)$/i.test(name) && parts.length) {
+                name = parts.pop() + '.' + name.toLowerCase();
+              }
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = name;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              setTimeout(() => URL.revokeObjectURL(url), 60000);
+            }
+          } catch (err) {
+            if (preview) preview.close();
+            alert('Nedladdningsfel: ' + err.message);
+          }
+        });
+      })();
+
       (() => {
         const $ = (id) => document.getElementById(id);
         const esc = (s) =>
