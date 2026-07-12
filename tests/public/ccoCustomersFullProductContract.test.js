@@ -9,11 +9,13 @@ const ROOT = path.join(__dirname, '..', '..');
 const INDEX_HTML = path.join(ROOT, 'public', 'major-arcana-preview', 'index.html');
 const PATIENT_UI = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'patient-master-ui.js');
 const V11_RK = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v11-rk.js');
+const V10_SKIN = path.join(ROOT, 'public', 'major-arcana-preview', 'cco-v10-skin.css');
 const SUBNAV = path.join(ROOT, 'public', 'admin', 'cco-subnav.js');
 
 const html = fs.readFileSync(INDEX_HTML, 'utf8');
 const ui = fs.readFileSync(PATIENT_UI, 'utf8');
 const v11 = fs.readFileSync(V11_RK, 'utf8');
+const v10Skin = fs.readFileSync(V10_SKIN, 'utf8');
 const subnav = fs.readFileSync(SUBNAV, 'utf8');
 
 test('admin#cco Kunder monterar hela skarpa kundprodukten', () => {
@@ -30,6 +32,19 @@ test('hela kundpopulationen använder patient-master med fortsatt paginering', (
   assert.match(ui, /runtime\.offset \+= PAGE_SIZE/);
   assert.match(ui, /data-patient-load-more/);
   assert.match(ui, /runtime\.total/);
+});
+
+test('Kunder visar och återanvänder den befintliga V9-sökningen', () => {
+  assert.match(html, /data-v9-global-search-input/);
+  assert.match(
+    ui,
+    /bindCustomerSearchInput\(document\.querySelector\('\[data-v9-global-search-input\]'\)\)/
+  );
+  assert.match(ui, /params\.set\('q', runtime\.query\)/);
+  assert.doesNotMatch(
+    v10Skin,
+    /\.customers-v9-header \.v9-global-search\s*\{[^}]*display:\s*none/s
+  );
 });
 
 test('kundrad öppnar V11-dossier och V11-sektion öppnar V12 Content Canon', () => {
