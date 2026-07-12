@@ -128,7 +128,13 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   assert.match(canon, /data-patient-file-id=/);
   assert.match(canon, /data-v12-photo-edit/);
   assert.match(canon, /data-encounter-id=/);
-  assert.match(canon, /s8\(bundle, ctx\.visitSegments, card\.id/);
+  assert.match(canon, /function s7\(photos, visitSegments, patientId\)/);
+  assert.match(canon, /Foto- och besöksdokumentation/);
+  assert.match(canon, /function s8\(bundle\)/);
+  assert.match(canon, /'Besök · tillfällen'/);
+  assert.match(canon, /b\.durationLabel \|\| b\.duration/);
+  assert.match(canon, /bookingMeta\.join\(' · '\)/);
+  assert.doesNotMatch(canon, /function s8\(bundle, visitSegments/);
   assert.match(v11, /data-v11-photo-edit/);
   assert.match(v11, /label\('Besök · tillfällen'\)/);
   assert.match(v11, /bundle && bundle\.historyBookings/);
