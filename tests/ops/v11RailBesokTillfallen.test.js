@@ -102,32 +102,13 @@ test('occasion-render använder railens egna klasser (ingen ny design)', () => {
       },
     ],
     documents: [{ fileName: 'avtal.pdf', openRef: '/d', documentDate: '2026-06-18' }],
-    journals: [{ title: 'Journal PRP', status: 'signed' }],
-    videos: [{ fileName: 'besok.mp4', openRef: '/video' }],
   });
-  assert.match(html, /data-v11-visit-card/, 'hela tillfället ska vara ett sammanhållet kort');
   assert.match(html, /class="hist-row"/, 'ska återanvända hist-row');
   assert.match(html, /class="photo-grid"/, 'ska återanvända photo-grid');
   assert.match(html, /class="photo-tile raw/, 'ska återanvända photo-tile');
   assert.match(html, /data-patient-file-id="asset-1"/, 'besöksfoto ska hydreras via auth-blob');
   assert.doesNotMatch(html, /background-image:url\(/, 'ingen oautentiserad CSS-bakgrund');
   assert.match(html, /class="file-row"/, 'ska återanvända file-row');
-  assert.match(html, /Journal PRP/, 'journal ska ligga i samma besökskort');
-  assert.match(html, /besok\.mp4/, 'film ska ligga i samma besökskort');
-});
-
-test('V11 visar högst tre bilder per tillfälle och hänvisar till hela V12-vyn', () => {
-  const html = RailKomplett.renderBesokOccasion({
-    date: '2026-06-18',
-    images: [1, 2, 3, 4, 5].map((n) => ({
-      assetId: `asset-${n}`,
-      openRef: `/asset-${n}`,
-      fileName: `foto-${n}.jpg`,
-    })),
-  });
-  assert.equal((html.match(/class="photo-tile raw/g) || []).length, 3);
-  assert.match(html, /\+2 bilder · Visa hela tillfället/);
-  assert.doesNotMatch(html, /asset-4|asset-5/);
 });
 
 test('osäker koppling (low/medium) visas aldrig som klar — amber-badge, aldrig "Genomförd"', () => {

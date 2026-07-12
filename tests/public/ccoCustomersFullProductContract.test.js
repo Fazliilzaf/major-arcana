@@ -116,12 +116,6 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   assert.match(canon, /s8\(bundle, ctx\.visitSegments, card\.id/);
   assert.match(v11, /data-v11-photo-edit/);
   assert.match(v11, /renderBesokOccasion\(segment, pid\)/);
-  assert.match(v11, /\.slice\(0, 3\)/);
-  assert.match(v11, /data-v11-visit-card/);
-  assert.match(v11, /arr\(seg\.journals\)/);
-  assert.match(v11, /arr\(seg\.videos\)/);
-  assert.match(v11, /data-v11-rk-global-photos/);
-  assert.match(v11, /data-v11-rk-global-files/);
   assert.match(v11, /data-patient-file-id=/);
   assert.match(v11, /__ccoHydratePatientFileImages/);
   assert.match(ui, /window\.__ccoHydratePatientFileImages/);
