@@ -777,7 +777,7 @@
                   esc(assetId) +
                   '" alt="' +
                   esc(txt(im.fileName || 'Foto')) +
-                  '" loading="lazy" decoding="async" />'
+                  '" decoding="async" />'
                 : '') +
               '<span class="lbl">' +
               esc(txt(im.timeLabel || '').slice(0, 8)) +

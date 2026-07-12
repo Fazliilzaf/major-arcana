@@ -991,7 +991,7 @@
         esc(assetId) +
         '" alt="' +
         esc(name) +
-        '" loading="lazy" decoding="async" /><span class="lbl">' +
+        '" decoding="async" /><span class="lbl">' +
         esc(label) +
         '</span>' +
         (editable
