@@ -860,6 +860,56 @@
         border: 0;
         background: #fff;
       }
+      .mail-preview-pdf {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-rows: 48px minmax(0, 1fr);
+      }
+      .mail-preview-pdf-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 6px 12px;
+        background: #fff;
+        border-bottom: 1px solid rgba(112, 89, 65, 0.14);
+      }
+      .mail-preview-pdf-toolbar button {
+        width: 34px;
+        height: 34px;
+        border: 1px solid rgba(112, 89, 65, 0.16);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--cco-color-brand);
+        font: inherit;
+        font-size: 18px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .mail-preview-pdf-toolbar button:disabled {
+        opacity: 0.38;
+        cursor: default;
+      }
+      .mail-preview-pdf-page {
+        min-width: 92px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 750;
+        color: var(--cco-text-secondary);
+      }
+      .mail-preview-pdf-canvas-wrap {
+        min-height: 0;
+        overflow: auto;
+        display: grid;
+        place-items: start center;
+        padding: 20px;
+      }
+      .mail-preview-pdf canvas {
+        display: block;
+        background: #fff;
+        box-shadow: 0 8px 30px rgba(36, 30, 27, 0.18);
+      }
       .mail-preview-unavailable {
         padding: 24px;
         text-align: center;
@@ -4473,8 +4523,65 @@
       function closeMailAttachmentPreview() {
         const backdrop = document.querySelector('.mail-preview-backdrop');
         if (!backdrop) return;
+        if (typeof backdrop._mailPreviewCleanup === 'function') backdrop._mailPreviewCleanup();
         backdrop.remove();
         document.body.style.overflow = '';
+      }
+
+      async function renderMailPdfPreview(backdrop, displayUrl) {
+        if (!window.pdfjsLib) throw new Error('PDF.js kunde inte laddas');
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          '/major-arcana-preview/vendor/pdfjs/pdf.worker.min.js';
+        const response = await fetch(displayUrl);
+        if (!response.ok) throw new Error(`PDF kunde inte hämtas (${response.status})`);
+        const loadingTask = window.pdfjsLib.getDocument({ data: await response.arrayBuffer() });
+        const pdf = await loadingTask.promise;
+        const canvas = backdrop.querySelector('.mail-preview-pdf canvas');
+        const pageLabel = backdrop.querySelector('.mail-preview-pdf-page');
+        const previous = backdrop.querySelector('[data-pdf-action="previous"]');
+        const next = backdrop.querySelector('[data-pdf-action="next"]');
+        let pageNumber = 1;
+        let scale = 1.2;
+        let renderTask = null;
+
+        const renderPage = async () => {
+          if (renderTask) renderTask.cancel();
+          const page = await pdf.getPage(pageNumber);
+          const viewport = page.getViewport({ scale });
+          const ratio = window.devicePixelRatio || 1;
+          canvas.width = Math.floor(viewport.width * ratio);
+          canvas.height = Math.floor(viewport.height * ratio);
+          canvas.style.width = `${Math.floor(viewport.width)}px`;
+          canvas.style.height = `${Math.floor(viewport.height)}px`;
+          const context = canvas.getContext('2d');
+          context.setTransform(ratio, 0, 0, ratio, 0, 0);
+          renderTask = page.render({ canvasContext: context, viewport });
+          try {
+            await renderTask.promise;
+          } catch (error) {
+            if (error?.name !== 'RenderingCancelledException') throw error;
+          } finally {
+            renderTask = null;
+          }
+          pageLabel.textContent = `Sida ${pageNumber} av ${pdf.numPages}`;
+          previous.disabled = pageNumber <= 1;
+          next.disabled = pageNumber >= pdf.numPages;
+        };
+
+        backdrop.querySelector('.mail-preview-pdf-toolbar').addEventListener('click', (event) => {
+          const action = event.target.closest('[data-pdf-action]')?.dataset.pdfAction;
+          if (!action) return;
+          if (action === 'previous' && pageNumber > 1) pageNumber -= 1;
+          if (action === 'next' && pageNumber < pdf.numPages) pageNumber += 1;
+          if (action === 'zoom-in') scale = Math.min(3, scale + 0.2);
+          if (action === 'zoom-out') scale = Math.max(0.5, scale - 0.2);
+          void renderPage();
+        });
+        backdrop._mailPreviewCleanup = () => {
+          if (renderTask) renderTask.cancel();
+          loadingTask.destroy();
+        };
+        await renderPage();
       }
 
       async function openMailAttachmentPreview(trigger) {
@@ -4494,10 +4601,13 @@
         const backdrop = document.createElement('div');
         backdrop.className = 'mail-preview-backdrop';
         backdrop.setAttribute('role', 'presentation');
-        const canEmbedDocument = /pdf|text\//i.test(contentType) || /\.(pdf|txt|csv)$/i.test(name);
+        const pdfLike = /pdf/i.test(contentType) || /\.pdf$/i.test(name);
+        const textLike = /text\//i.test(contentType) || /\.(txt|csv)$/i.test(name);
         const preview = imageLike
           ? `<img src="${escapeHtml(displayUrl)}" alt="${escapeHtml(name)}">`
-          : canEmbedDocument
+          : pdfLike
+            ? '<div class="mail-preview-pdf"><div class="mail-preview-pdf-toolbar"><button type="button" data-pdf-action="previous" aria-label="Föregående sida">‹</button><span class="mail-preview-pdf-page">Laddar PDF…</span><button type="button" data-pdf-action="next" aria-label="Nästa sida">›</button><button type="button" data-pdf-action="zoom-out" aria-label="Zooma ut">−</button><button type="button" data-pdf-action="zoom-in" aria-label="Zooma in">+</button></div><div class="mail-preview-pdf-canvas-wrap"><canvas aria-label="PDF-sida"></canvas></div></div>'
+          : textLike
             ? `<iframe src="${escapeHtml(displayUrl)}" title="${escapeHtml(name)}"></iframe>`
             : '<div class="mail-preview-unavailable"><strong>Ingen inbyggd förhandsvisning</strong><br>Filen kan laddas ner med knappen ovan.</div>';
         backdrop.innerHTML = `<section class="mail-preview-dialog" role="dialog" aria-modal="true" aria-label="Förhandsvisning av ${escapeHtml(name)}"><header class="mail-preview-head"><div class="mail-preview-title">${escapeHtml(name)}</div><a class="mail-preview-download" href="${escapeHtml(displayUrl)}" download="${escapeHtml(name)}">Ladda ner</a><button class="mail-preview-close" type="button" aria-label="Stäng förhandsvisning">×</button></header><div class="mail-preview-stage">${preview}</div></section>`;
@@ -4509,6 +4619,14 @@
         document.body.appendChild(backdrop);
         document.body.style.overflow = 'hidden';
         backdrop.querySelector('.mail-preview-close')?.focus();
+        if (pdfLike) {
+          try {
+            await renderMailPdfPreview(backdrop, displayUrl);
+          } catch (error) {
+            const stage = backdrop.querySelector('.mail-preview-stage');
+            if (stage) stage.innerHTML = '<div class="mail-preview-unavailable"><strong>PDF-filen kunde inte visas</strong><br>Använd Ladda ner för att öppna originalet.</div>';
+          }
+        }
       }
 
       document.addEventListener('click', (event) => {
@@ -5093,6 +5211,7 @@
         })
       );
     </script>
+    <script src="/major-arcana-preview/vendor/pdfjs/pdf.min.js"></script>
     <script src="/cco-komm-panel.js?v=20260531c" defer></script>
     <script src="/konversationer-bottom-actions.js?v=20260708c-svarstudio-cache" defer></script>
     <script src="/konversationer-mailbox-valjare.js?v=20260708a" defer></script>
