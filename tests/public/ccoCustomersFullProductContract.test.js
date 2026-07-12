@@ -104,6 +104,34 @@ test('V12 Content Canon snabbknappar använder tel/sms/mailto och ord48-kalender
   assert.match(ui, /data-kk-ord48-open-calendar/);
 });
 
+test('V12 canon-actions använder befintliga handlers och saknar tomma kontrollknappar', () => {
+  const canon = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js'),
+    'utf8'
+  );
+  assert.match(canon, /data-v12-visit-journal/);
+  assert.match(canon, /data-v11-active-visit-action="photo"/);
+  assert.match(canon, /data-v12-compare-photos/);
+  assert.match(canon, /data-kk-ord48-open-calendar/);
+  assert.match(canon, /data-v12-doc-add=/);
+  assert.match(canon, /data-v12-doc-input=/);
+  assert.match(canon, /data-v12-fortnox-sync/);
+  assert.match(canon, /href="mailto:/);
+  assert.doesNotMatch(canon, /<button class="sec-link">\+ Svara/);
+  assert.doesNotMatch(canon, /<button class="warn-action">Påminn senare/);
+  assert.match(ui, /const activeVisitAction = event\.target\.closest/);
+  assert.match(ui, /const comparePhotos = event\.target\.closest/);
+});
+
+test('V12 visar okänd hälsodata ärligt och inte som NEJ', () => {
+  const canon = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js'),
+    'utf8'
+  );
+  assert.match(canon, /chip\('neutral', 'Ej registrerat'\)/);
+  assert.doesNotMatch(canon, /chip\('ok', 'NEJ'\)/);
+});
+
 test('V12 använder befintliga sektioner som dragspel och jump öppnar rätt sektion', () => {
   const canonPath = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js');
   const canon = fs.readFileSync(canonPath, 'utf8');
@@ -128,13 +156,20 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   assert.match(canon, /data-patient-file-id=/);
   assert.match(canon, /data-v12-photo-edit/);
   assert.match(canon, /data-encounter-id=/);
+  assert.match(
+    canon,
+    /function s7\(photos, visitSegments, patientId\)[\s\S]*data-patient-file-id=/
+  );
   assert.match(canon, /function s7\(photos, visitSegments, patientId\)/);
   assert.match(canon, /Foto- och besöksdokumentation/);
-  assert.match(canon, /function s8\(bundle\)/);
+  assert.match(canon, /function s8\(bundle, patientId\)/);
   assert.match(canon, /'Besök · tillfällen'/);
   assert.match(canon, /b\.durationLabel \|\| b\.duration/);
   assert.match(canon, /bookingMeta\.join\(' · '\)/);
   assert.doesNotMatch(canon, /function s8\(bundle, visitSegments/);
+  assert.doesNotMatch(canon, /fotoDok\(photos\) \+/);
+  assert.doesNotMatch(canon, /uppfoljning\(insights\) \+/);
+  assert.doesNotMatch(canon, /histSection\(bundle\) \+/);
   assert.match(v11, /data-v11-photo-edit/);
   assert.match(v11, /label\('Besök · tillfällen'\)/);
   assert.match(v11, /bundle && bundle\.historyBookings/);

@@ -970,6 +970,16 @@
   background: linear-gradient(135deg, #c4a484 0%, #8a6f4f 100%);
   background-size: cover;
   background-position: center;
+  position: relative;
+  overflow: hidden;
+}
+.v12-canon .photo-tile > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
 }
 .v12-canon .photo-tile.fore {
   background: linear-gradient(135deg, #c4a484 0%, #8a6f4f 100%);
@@ -995,6 +1005,8 @@
   opacity: 0.7;
 }
 .v12-canon .photo-tile .lbl {
+  position: relative;
+  z-index: 1;
   font-size: 8.5px;
   font-weight: 800;
   color: #fff;

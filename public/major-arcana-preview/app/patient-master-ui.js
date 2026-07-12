@@ -1906,6 +1906,33 @@
         }
         return;
       }
+      const activeVisitAction = event.target.closest('[data-v11-active-visit-action]');
+      if (activeVisitAction && body.contains(activeVisitAction)) {
+        event.preventDefault();
+        const action = activeVisitAction.getAttribute('data-v11-active-visit-action');
+        if (action === 'photo') {
+          closeV12WorkspaceOverlayIfOpen();
+          window.requestAnimationFrame(() => {
+            document.querySelector('[data-patient-photo-camera]')?.click?.();
+          });
+        } else if (action === 'journal' || action === 'notes') {
+          closeV12WorkspaceOverlayIfOpen();
+          switchDetailTab(action === 'notes' ? 'anteckningar' : 'journal');
+          setStatus(action === 'notes' ? 'Anteckningar öppnade.' : 'Journal öppnad.', 'info');
+        }
+        return;
+      }
+      const comparePhotos = event.target.closest('[data-v12-compare-photos]');
+      if (comparePhotos && body.contains(comparePhotos)) {
+        event.preventDefault();
+        const comparison = comparePhotos.closest('.sec')?.querySelector('.photo-bar');
+        if (comparison) {
+          comparison.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          comparison.setAttribute('data-v12-focus-pulse', '1');
+          window.setTimeout(() => comparison.removeAttribute('data-v12-focus-pulse'), 1200);
+        }
+        return;
+      }
       const sectionToggle = event.target.closest('[data-v12-section-toggle]');
       if (sectionToggle && body.contains(sectionToggle)) {
         const interactiveChild = event.target.closest('button, a, input, select, textarea');

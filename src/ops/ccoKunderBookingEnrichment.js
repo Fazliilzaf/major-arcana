@@ -258,6 +258,8 @@ function normalizeBookingReadout({
     const diff = Date.parse(end) - Date.parse(start);
     if (Number.isFinite(diff) && diff > 0) resolvedDuration = Math.round(diff / 60000);
   }
+  const staffName = normalizeText(resourceLabel) || null;
+  const durationLabel = Number.isFinite(resolvedDuration) ? `${resolvedDuration} min` : '';
   return {
     id: normalizeText(id) || buildBookingDedupeKey(pid, start, title),
     patientId: pid,
@@ -269,10 +271,13 @@ function normalizeBookingReadout({
     endsAt: end || null,
     duration: Number.isFinite(resolvedDuration) ? resolvedDuration : null,
     durationMinutes: Number.isFinite(resolvedDuration) ? resolvedDuration : null,
+    durationLabel,
     title,
     serviceName: title,
-    staff: normalizeText(resourceLabel) || null,
-    resourceLabel: normalizeText(resourceLabel) || null,
+    staff: staffName,
+    staffName,
+    practitioner: staffName,
+    resourceLabel: staffName,
     status: normalizeText(status) || 'confirmed',
     source,
   };
