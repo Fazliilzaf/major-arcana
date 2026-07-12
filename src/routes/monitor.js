@@ -3509,6 +3509,9 @@ function createMonitorRouter({
             slice: 'invoices',
           });
         } catch (financeErr) {
+          console.warn(
+            `[monitor.clinic-performance] financeDashboard error: ${financeErr?.message || financeErr}`
+          );
           financeDashboard = null; // ärligt: revenue blir null istället för gissad
         }
 
