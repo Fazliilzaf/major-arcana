@@ -195,7 +195,7 @@ test('V11/V12 visar journal och film inom samma besökstillfälle', () => {
   assert.match(visits, /Starta journal/);
   assert.match(canon, /data-v12-visit-journal/);
   assert.match(canon, /v12-canon-visit-video/);
-  assert.match(canon, /video controls preload="metadata" data-patient-file-id/);
+  assert.match(canon, /video controls preload="auto" playsinline data-patient-file-id/);
   assert.match(
     ui,
     /function renderV12WorkspaceDetailShell[\s\S]*?visitSegments: asArray\(runtime\.detail\?\.visitSegments\)/
@@ -208,6 +208,10 @@ test('V11/V12 visar journal och film inom samma besökstillfälle', () => {
   assert.match(ui, /formData\.append\('encounterId', encounterId\)/);
   assert.match(ui, /cco-journal-quick\/visit-media/);
   assert.match(ui, /durationSeconds/);
+  assert.match(ui, /function uploadFormDataWithProgress/);
+  assert.match(ui, /Laddar upp film… \$\{percent\} %/);
+  assert.match(ui, /function attachVideoPoster/);
+  assert.match(ui, /canvas\.toDataURL\('image\/jpeg'/);
   assert.match(canon, /data-v12-archive-asset/);
   assert.match(ui, /Filen är arkiverad\. Den fysiska filen är bevarad/);
   assert.match(canon, /data-visit-room-encounter/);
