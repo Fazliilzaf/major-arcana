@@ -380,6 +380,20 @@ function matchAssetToEncounter(asset = {}, registryForPatient = new Map()) {
 
   if (assetType) {
     const typed = sameDay.filter((e) => typesCompatible(e.encounterType, assetType));
+    if (typed.length === 0) {
+      return {
+        encounterId: stableEncounterId({
+          patientId,
+          date,
+          encounterType: assetType,
+          sessionNumber: null,
+        }),
+        confidence: 'medium',
+        reason: 'date_and_asset_type_fallback',
+        visitLabel: encounterVisitLabel(assetType, null),
+        encounterType: assetType,
+      };
+    }
     if (typed.length === 1) {
       return {
         encounterId: typed[0].encounterId,

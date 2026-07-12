@@ -206,3 +206,23 @@ test('två olika specifika behandlingar samma dag förblir review', () => {
   assert.equal(result.reason, 'ambiguous_date');
   assert.equal(result.confidence, 'review');
 });
+
+test('tydlig assettyp skapar typed fallback när dagens kandidater är inkompatibla', () => {
+  const registry = new Map([
+    ['fue', { encounterId: 'fue', date: '2026-05-05', encounterType: 'transplant_fue', confidence: 'medium' }],
+    ['prp', { encounterId: 'prp', date: '2026-05-05', encounterType: 'prp_hair', confidence: 'medium' }],
+  ]);
+  const result = matchAssetToEncounter(
+    {
+      patientId: 'patient-1',
+      mimeType: 'image/jpeg',
+      originalFileName: 'DHI_after.jpg',
+      documentDate: '2026-05-05',
+    },
+    registry
+  );
+  assert.equal(result.reason, 'date_and_asset_type_fallback');
+  assert.equal(result.encounterType, 'transplant_dhi');
+  assert.equal(result.confidence, 'medium');
+  assert.ok(result.encounterId);
+});
