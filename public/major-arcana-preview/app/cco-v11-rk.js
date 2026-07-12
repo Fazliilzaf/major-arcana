@@ -525,57 +525,63 @@
     /* M · FOTON */
     var ph = arr(photos && photos.items ? photos.items : photos);
     if (ph.length) {
-      out += secOpen(
-        'foto',
-        'sec',
-        label('Foton') +
-          '<div class="photo-grid">' +
-          ph
-            .slice(0, 6)
-            .map(function (p) {
-              var bg = p.thumbnailUrl || p.viewUrl || p.url;
-              return (
-                '<div class="photo-tile raw"' +
-                (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
-                '>' +
-                '<span class="lbl">' +
-                esc(txt(p.dateLabel || p.photoDateLabel || 'Foto').slice(0, 8)) +
-                '</span></div>'
-              );
-            })
-            .join('') +
-          '</div>'
-      );
+      out +=
+        '<div data-v11-rk-global-photos>' +
+        secOpen(
+          'foto',
+          'sec',
+          label('Foton') +
+            '<div class="photo-grid">' +
+            ph
+              .slice(0, 6)
+              .map(function (p) {
+                var bg = p.thumbnailUrl || p.viewUrl || p.url;
+                return (
+                  '<div class="photo-tile raw"' +
+                  (bg ? ' style="background-image:url(' + esc(bg) + ')"' : '') +
+                  '>' +
+                  '<span class="lbl">' +
+                  esc(txt(p.dateLabel || p.photoDateLabel || 'Foto').slice(0, 8)) +
+                  '</span></div>'
+                );
+              })
+              .join('') +
+            '</div>'
+        ) +
+        '</div>';
     }
 
     /* N · FILER */
     var fl = arr(files && files.items ? files.items : files);
     if (fl.length) {
-      out += secOpen(
-        'filer',
-        'sec',
-        label('Filer') +
-          fl
-            .slice(0, 5)
-            .map(function (f) {
-              var nm = esc(txt(f.name || f.title || 'Fil'));
-              var href = txt(f.href);
-              // Klickbar fil → öppnas i dokument-rutan (global fångare i
-              // patient-master-ui), aldrig som länk/ny flik.
-              return href
-                ? '<a class="file-row" href="' +
-                    esc(href) +
-                    '" title="' +
-                    nm +
-                    '"><span class="file-icn">📄</span><span class="file-name">' +
-                    nm +
-                    '</span></a>'
-                : '<div class="file-row"><span class="file-icn">📄</span><span class="file-name">' +
-                    nm +
-                    '</span></div>';
-            })
-            .join('')
-      );
+      out +=
+        '<div data-v11-rk-global-files>' +
+        secOpen(
+          'filer',
+          'sec',
+          label('Filer') +
+            fl
+              .slice(0, 5)
+              .map(function (f) {
+                var nm = esc(txt(f.name || f.title || 'Fil'));
+                var href = txt(f.href);
+                // Klickbar fil → öppnas i dokument-rutan (global fångare i
+                // patient-master-ui), aldrig som länk/ny flik.
+                return href
+                  ? '<a class="file-row" href="' +
+                      esc(href) +
+                      '" title="' +
+                      nm +
+                      '"><span class="file-icn">📄</span><span class="file-name">' +
+                      nm +
+                      '</span></a>'
+                  : '<div class="file-row"><span class="file-icn">📄</span><span class="file-name">' +
+                      nm +
+                      '</span></div>';
+              })
+              .join('')
+        ) +
+        '</div>';
     }
 
     /* O · ANTECKNINGAR */
@@ -722,9 +728,14 @@
     var title = [vt || txt(seg.label) || 'Besök', txt(seg.timeRange)].filter(Boolean).join(' · ');
     var imgs = arr(seg.images);
     var docs = arr(seg.documents);
+    var journals = arr(seg.journals);
+    var videos = arr(seg.videos);
     var counts = [];
     if (imgs.length) counts.push(imgs.length + (imgs.length === 1 ? ' foto' : ' foton'));
     if (docs.length) counts.push(docs.length + ' dokument');
+    if (journals.length)
+      counts.push(journals.length + (journals.length === 1 ? ' journal' : ' journaler'));
+    if (videos.length) counts.push(videos.length + (videos.length === 1 ? ' film' : ' filmer'));
     var conf = txt(seg.confidence);
     var badge =
       conf && conf !== 'high'
@@ -747,6 +758,7 @@
     var photoGrid = imgs.length
       ? '<div class="photo-grid">' +
         imgs
+          .slice(0, 3)
           .map(function (im) {
             var assetId = txt(im.assetId);
             var editable = Boolean(assetId && im.openRef);
@@ -789,6 +801,12 @@
           .join('') +
         '</div>'
       : '';
+    var morePhotos =
+      imgs.length > 3
+        ? '<div class="v11-rk-visit-more">+' +
+          esc(String(imgs.length - 3)) +
+          ' bilder · Visa hela tillfället</div>'
+        : '';
     var docRows = docs
       .map(function (d) {
         var nm = esc(txt(d.fileName || 'Dokument'));
@@ -806,7 +824,42 @@
           : '<div class="file-row">' + inner + '</div>';
       })
       .join('');
-    return head + reasonLine + photoGrid + docRows;
+    var journalRows = journals
+      .map(function (journal) {
+        var name = esc(txt(journal.title || journal.fileName || 'Journalanteckning'));
+        var status = txt(journal.status);
+        return (
+          '<div class="file-row"><span class="file-icn">J</span><span class="file-name">' +
+          name +
+          (status ? ' <span class="when">' + esc(status) + '</span>' : '') +
+          '</span></div>'
+        );
+      })
+      .join('');
+    var videoRows = videos
+      .map(function (video) {
+        var name = esc(txt(video.fileName || 'Film'));
+        var href = txt(video.openRef);
+        var inner = '<span class="file-icn">▶</span><span class="file-name">' + name + '</span>';
+        return href
+          ? '<a class="file-row" href="' + esc(href) + '" title="' + name + '">' + inner + '</a>'
+          : '<div class="file-row">' + inner + '</div>';
+      })
+      .join('');
+    return (
+      '<article class="v11-rk-visit-card" data-v11-visit-card data-encounter-id="' +
+      esc(txt(seg.encounterId)) +
+      '">' +
+      head +
+      reasonLine +
+      photoGrid +
+      morePhotos +
+      '<div class="v11-rk-visit-files">' +
+      journalRows +
+      docRows +
+      videoRows +
+      '</div></article>'
+    );
   }
 
   function hydrateBesok(mount) {
@@ -834,7 +887,18 @@
         if (typeof global.__ccoHydratePatientFileImages === 'function') {
           void global.__ccoHydratePatientFileImages(mount);
         }
-        if (sec) sec.removeAttribute('hidden');
+        if (sec) {
+          sec.removeAttribute('hidden');
+          var rail = sec.closest && sec.closest('[data-v11-rail-shell="1"]');
+          if (rail) {
+            Array.prototype.forEach.call(
+              rail.querySelectorAll('[data-v11-rk-global-photos], [data-v11-rk-global-files]'),
+              function (legacySection) {
+                legacySection.setAttribute('hidden', '');
+              }
+            );
+          }
+        }
       })
       .catch(drop);
   }

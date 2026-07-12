@@ -924,6 +924,35 @@
 }
 
 /* M · FOTON */
+.v11-rk .v11-rk-besok {
+  display: grid;
+  gap: 10px;
+}
+.v11-rk .v11-rk-visit-card {
+  padding: 10px;
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 4px 14px rgba(56, 40, 28, 0.06);
+  cursor: pointer;
+}
+.v11-rk .v11-rk-visit-card .hist-row {
+  padding-top: 0;
+}
+.v11-rk .v11-rk-visit-more {
+  margin-top: 6px;
+  color: var(--ink-mute);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: right;
+}
+.v11-rk .v11-rk-visit-files {
+  margin-top: 7px;
+  border-top: 1px solid var(--hair);
+}
+.v11-rk .v11-rk-visit-files:empty {
+  display: none;
+}
 .v11-rk .photo-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
