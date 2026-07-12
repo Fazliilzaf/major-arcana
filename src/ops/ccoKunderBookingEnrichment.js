@@ -721,7 +721,12 @@ function applyBookingToReadout(readout, bookingSignals) {
 
 let bookingStoresPromise = null;
 
-async function loadKunderBookingIndex(config, tenantId, patients = []) {
+async function loadKunderBookingIndex(
+  config,
+  tenantId,
+  patients = [],
+  { includeClientoBookings = true } = {}
+) {
   const empty = {
     index: new Map(),
     coverage: 'missing',
@@ -769,28 +774,30 @@ async function loadKunderBookingIndex(config, tenantId, patients = []) {
         : [];
 
     let clientoBookings = [];
-    try {
-      const { createClientoBookingStore } = require('./clientoBookingStore');
-      const candidatePaths = [
-        config?.clientoBookingStorePath,
-        path.join(process.cwd(), 'data', 'cco', 'cliento-bookings.json'),
-        path.join(process.cwd(), 'data', 'cliento-booking-store.json'),
-      ].filter(Boolean);
-      for (const clientoPath of candidatePaths) {
-        try {
-          const clientoStore = await createClientoBookingStore({ filePath: clientoPath });
-          const batch = clientoStore.listAllBookings({ tenantId: tid, limit: 50000 });
-          if (batch.length > 0) {
-            clientoBookings = batch;
-            break;
+    if (includeClientoBookings) {
+      try {
+        const { createClientoBookingStore } = require('./clientoBookingStore');
+        const candidatePaths = [
+          config?.clientoBookingStorePath,
+          path.join(process.cwd(), 'data', 'cco', 'cliento-bookings.json'),
+          path.join(process.cwd(), 'data', 'cliento-booking-store.json'),
+        ].filter(Boolean);
+        for (const clientoPath of candidatePaths) {
+          try {
+            const clientoStore = await createClientoBookingStore({ filePath: clientoPath });
+            const batch = clientoStore.listAllBookings({ tenantId: tid, limit: 50000 });
+            if (batch.length > 0) {
+              clientoBookings = batch;
+              break;
+            }
+            if (!clientoBookings.length) clientoBookings = batch;
+          } catch {
+            /* try next path */
           }
-          if (!clientoBookings.length) clientoBookings = batch;
-        } catch {
-          /* try next path */
         }
+      } catch {
+        clientoBookings = [];
       }
-    } catch {
-      clientoBookings = [];
     }
 
     const built = buildBookingSignalsIndex({
