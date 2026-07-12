@@ -5939,6 +5939,8 @@ function toCcoRuntimeHistoryBackfillHandler({
             run: async ({ onRound }) => {
               let coverage = currentCoverage;
               let rounds = 0;
+              let stagnantRounds = 0;
+              let previousMaterialized = null;
               const maxRounds = Number(input.maxPagesPerFolder || 10000);
               while (!selectedFoldersComplete(coverage) && rounds < maxRounds) {
                 const backfill = createMicrosoftGraphMailboxTruthBackfill({
@@ -5959,6 +5961,17 @@ function toCcoRuntimeHistoryBackfillHandler({
                 coverage = mailboxTruthHistory.getHistoryCoverage({
                   mailboxIds: input.mailboxIds,
                 });
+                const folderCounts = coverage?.mailboxes?.[0]?.folderCounts || [];
+                const materialized = folderCounts
+                  .filter((folder) => selectedFolderTypes.includes(folder.folderType))
+                  .reduce((sum, folder) => sum + Number(folder.materializedMessageCount || 0), 0);
+                stagnantRounds = materialized === previousMaterialized ? stagnantRounds + 1 : 0;
+                previousMaterialized = materialized;
+                if (stagnantRounds >= 3) {
+                  throw new Error(
+                    `Mailbox truth async-backfill stagnerade i 3 rundor (${selectedFolderTypes.join(',')}).`
+                  );
+                }
                 await new Promise((resolve) => setTimeout(resolve, 50));
               }
               if (!selectedFoldersComplete(coverage)) {
