@@ -107,7 +107,9 @@ async function openV12BesokModule(page) {
   await dismissTour(page);
   await page.waitForSelector('[data-v11-rk-besok-sec]:not([hidden])', { timeout: 120000 });
   await page.evaluate(() => {
-    const link = document.querySelector('[data-v9-section-link="besok-tillfallen"]');
+    const link =
+      document.querySelector('[data-v11-rk-besok] .v11-rk__visit-open') ||
+      document.querySelector('[data-v9-section-link="besok-tillfallen"]');
     link?.scrollIntoView({ block: 'center', inline: 'nearest' });
     link?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
   });
@@ -296,7 +298,8 @@ async function main() {
       m.v12PhotoTiles > 0 &&
       m.v12Loaded === m.v12PhotoTiles &&
       m.v12DriveLinks === 0 &&
-      m.v11Occasions === m.v12Occasions;
+      m.v11Occasions === 1 &&
+      m.v12Occasions === dated.length;
     row.pass = pass;
     if (!pass) report.ok = false;
   }
