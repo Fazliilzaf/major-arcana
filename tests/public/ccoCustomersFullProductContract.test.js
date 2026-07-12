@@ -150,6 +150,13 @@ test('besöksrum skapas från encounter, bokning och journal utan filer', () => 
   assert.match(canon, /Ingen journalanteckning för detta tillfälle/);
 });
 
+test('visit photo grids prefer thumbnails for HEIF-safe display', () => {
+  assert.match(
+    ui,
+    /fetchPatientFileObjectUrl\(fileId, \{\s*preferThumbnail: img\.tagName === 'IMG',\s*\}\)/
+  );
+});
+
 test('foto-editorn hämtar native asset via auth blob utan direkt URL-fallback', () => {
   assert.match(ui, /fetchPatientFileObjectUrl\(sourceAssetId, \{ preferThumbnail: true \}\)/);
   assert.match(ui, /\/api\/v1\/cco\/assets\/\$\{encodeURIComponent\(normalizedId\)\}\/thumbnail/);

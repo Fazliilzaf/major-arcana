@@ -73,6 +73,82 @@ async function waitForDeploy(token, expectedPrefix) {
   throw new Error('Deploy timeout');
 }
 
+async function ensurePatientOpen(page, patientId) {
+  await page.evaluate(async (pid) => {
+    const api = window.ArcanaPatientMasterUi;
+    if (!api?.openPatient) return;
+    const rt = api.getRuntime?.();
+    if (rt?.selectedPatientId === pid && rt?.detail?.card) return;
+    await api.openPatient(pid);
+  }, patientId);
+}
+
+async function dismissTour(page) {
+  const skip = page.locator('.arcana-tour-btn--ghost, .arcana-tour-btn--next').first();
+  for (let i = 0; i < 6; i += 1) {
+    if (!(await page.locator('.arcana-tour-card').count())) return;
+    if (await skip.count()) {
+      await skip.click({ timeout: 3000 }).catch(() => {});
+    } else {
+      await page.keyboard.press('Escape').catch(() => {});
+    }
+    await page.waitForTimeout(400);
+  }
+  await page.evaluate(() => {
+    document
+      .querySelectorAll('.arcana-tour-overlay, .arcana-tour-card, .arcana-tour-spotlight')
+      .forEach((el) => {
+        el.remove();
+      });
+  });
+}
+
+async function openV12BesokModule(page) {
+  await dismissTour(page);
+  const openBesok = page.locator('[data-v9-section-link="besok-tillfallen"]').first();
+  if (await openBesok.count()) {
+    await openBesok.click({ timeout: 15000, force: true });
+    await page.waitForTimeout(2500);
+    return;
+  }
+  await page.evaluate(() => {
+    const link = document.querySelector('[data-v9-section-link="besok-tillfallen"]');
+    link?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  });
+  await page.waitForTimeout(2500);
+}
+
+async function waitForDetail(page, patientId, timeoutMs = 120000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const state = await page.evaluate((pid) => {
+      const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
+      const rail = document.querySelector('[data-patient-master-rail]');
+      const hidden = rail ? rail.hidden || rail.getAttribute('aria-hidden') === 'true' : true;
+      return {
+        selected: rt?.selectedPatientId || '',
+        hasDetail: Boolean(rt?.detail?.card),
+        railHidden: hidden,
+      };
+    }, patientId);
+    if (state.hasDetail && state.selected === patientId && !state.railHidden) return state;
+    await page.waitForTimeout(1500);
+  }
+  throw new Error('Kundkort laddades inte');
+}
+
+async function waitForDecodedImages(selector, page, timeoutMs = 120000) {
+  await page.waitForFunction(
+    (sel) => {
+      const imgs = [...document.querySelectorAll(sel)];
+      if (!imgs.length) return false;
+      return imgs.every((img) => img.complete && img.naturalWidth > 0);
+    },
+    selector,
+    { timeout: timeoutMs }
+  );
+}
+
 async function auditVisitPhotos(page) {
   return page.evaluate(() => {
     const rail = document.querySelector('[data-patient-master-rail]');
@@ -105,9 +181,7 @@ async function auditVisitPhotos(page) {
     );
 
     const v11Occasions = besok ? besok.querySelectorAll('.hist-row').length : 0;
-    const v12Occasions = v12Root
-      ? v12Root.querySelectorAll('.visit-segment-card, .v12-canon-visit').length
-      : 0;
+    const v12Occasions = v12Root ? v12Root.querySelectorAll('.v12-canon-visit-segment').length : 0;
 
     return {
       v11Occasions,
@@ -129,24 +203,19 @@ async function runViewport(browser, token, viewport, commit) {
     deviceScaleFactor: 1,
   });
   await context.addInitScript((authToken) => {
-    window.localStorage.setItem('arcana_admin_token', authToken);
-    window.localStorage.setItem('arcana_token', authToken);
+    window.localStorage.setItem('ARCANA_ADMIN_TOKEN', authToken);
+    window.sessionStorage.setItem('ARCANA_ADMIN_TOKEN', authToken);
   }, token);
 
   const page = await context.newPage();
-  const url = `${BASE}/staff?view=customers&v12workspace=on&patientId=${encodeURIComponent(PATIENT_ID)}`;
+  const url = `${BASE}/staff?view=customers&v9=on&v12workspace=on&patientId=${encodeURIComponent(PATIENT_ID)}`;
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await page.waitForSelector('[data-patient-master-rail]', { timeout: 120000 });
-  await page.waitForTimeout(2500);
-  await page.waitForFunction(
-    () => {
-      const mount = document.querySelector('[data-v11-rk-besok]');
-      if (!mount) return false;
-      return mount.querySelector('.hist-row') || mount.textContent.trim().length > 0;
-    },
-    { timeout: 120000 }
-  );
-  await page.waitForTimeout(3000);
+  await ensurePatientOpen(page, PATIENT_ID);
+  await waitForDetail(page, PATIENT_ID);
+  await page.waitForFunction(() => document.querySelector('[data-v11-rk-besok] .hist-row'), {
+    timeout: 120000,
+  });
+  await waitForDecodedImages('[data-v11-rk-besok] img[data-patient-file-id]', page);
 
   const v11Shot = path.join(OUT_DIR, `${viewport.name}-v11-besok-${commit}.png`);
   const besokSec = page.locator('[data-v11-rk-besok-sec]');
@@ -157,13 +226,9 @@ async function runViewport(browser, token, viewport, commit) {
     await page.locator('[data-patient-master-rail]').first().screenshot({ path: v11Shot });
   }
 
-  const openV12 = page
-    .locator('[data-v9-section-link="bookings"], [data-v12-open-module="bookings"]')
-    .first();
-  if (await openV12.count()) {
-    await openV12.click({ timeout: 15000 });
-    await page.waitForTimeout(2500);
-  }
+  await openV12BesokModule(page);
+  await page.waitForSelector('[data-v12-visit-segments="1"]', { timeout: 60000 });
+  await waitForDecodedImages('[data-v12-visit-segments="1"] img[data-patient-file-id]', page);
 
   const v12Shot = path.join(OUT_DIR, `${viewport.name}-v12-besok-${commit}.png`);
   const v12Block = page.locator('[data-v12-visit-segments="1"]').first();

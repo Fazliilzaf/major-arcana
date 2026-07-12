@@ -8188,7 +8188,9 @@
         const fileId = normalizeText(img.dataset.patientFileId);
         if (!fileId || img.dataset.loaded === 'true') return;
         img.classList.add('is-loading');
-        const objectUrl = await fetchPatientFileObjectUrl(fileId);
+        const objectUrl = await fetchPatientFileObjectUrl(fileId, {
+          preferThumbnail: img.tagName === 'IMG',
+        });
         img.classList.remove('is-loading');
         if (!objectUrl) {
           if (img.tagName === 'IMG') img.alt = 'Kunde inte visa bild';
