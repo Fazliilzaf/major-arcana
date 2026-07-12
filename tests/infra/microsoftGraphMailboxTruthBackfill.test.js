@@ -256,6 +256,41 @@ test('ccoMailboxTruthStore persists folder completeness metadata and rebuilds ma
   assert.equal(model.conversations[0].messageIds.length, 2);
 });
 
+test('full message count verifies a folder even when a stale backfill cursor remains', async () => {
+  const filePath = await createTempStorePath();
+  const store = await createCcoMailboxTruthStore({ filePath });
+  const run = await store.startBackfillRun({ mailboxIds: ['fazli@hairtpclinic.com'] });
+
+  await store.recordFolderPage({
+    runId: run.runId,
+    account: {
+      mailboxId: 'fazli@hairtpclinic.com',
+      mailboxAddress: 'fazli@hairtpclinic.com',
+      userPrincipalName: 'fazli@hairtpclinic.com',
+    },
+    folder: {
+      folderType: 'inbox',
+      totalItemCount: 1,
+      messageCollectionCount: 1,
+    },
+    messages: [
+      {
+        graphMessageId: 'fazli-message-1',
+        mailboxId: 'fazli@hairtpclinic.com',
+        folderType: 'inbox',
+        direction: 'inbound',
+        subject: 'Hej',
+      },
+    ],
+    nextPageUrl: 'https://graph.example/stale-cursor',
+    complete: false,
+  });
+
+  const report = store.getCompletenessReport({ mailboxIds: ['fazli@hairtpclinic.com'] });
+  assert.equal(report.accountReports[0].statusByFolderType.inbox, 'VERIFIED');
+  assert.equal(report.accountReports[0].reasonByFolderType.inbox, 'verified');
+});
+
 test('microsoftGraphMailboxTruthBackfill backfills paged folders into the persistent truth store', async () => {
   const filePath = await createTempStorePath();
   const store = await createCcoMailboxTruthStore({ filePath });
