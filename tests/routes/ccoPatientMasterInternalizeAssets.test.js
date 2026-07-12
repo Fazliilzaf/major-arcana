@@ -471,6 +471,16 @@ test('assets/repair-encounter-links är owner-gated och kräver confirmText vid 
   assert.match(source, /assetStore\.linkAssetToEncounter/);
 });
 
+test('assets/repair-encounter-links batchar asset-store-persist vid write', () => {
+  const source = require('node:fs').readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
+    'utf8'
+  );
+  assert.match(source, /const useBatch = !dryRun && typeof assetStore\.beginBatch/);
+  assert.match(source, /if \(useBatch\) assetStore\.beginBatch\(\)/);
+  assert.match(source, /finally \{[\s\S]*await assetStore\.flushBatch\(\)/);
+});
+
 test('assets/link-encounter kräver owner och verifierar patient, asset och encounter', () => {
   const source = require('node:fs').readFileSync(
     path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
