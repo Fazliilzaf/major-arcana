@@ -46,6 +46,10 @@ const { buildCanonicalCcoMailboxSettingsDocument } = require('../ops/ccoMailboxS
 const { buildCanonicalMailThreadDocument } = require('../ops/ccoMailThreadHydrator');
 const { createCcoMailboxTruthReadAdapter } = require('../ops/ccoMailboxTruthReadAdapter');
 const {
+  getMailboxTruthBackfillJob,
+  startMailboxTruthBackfillJob,
+} = require('../ops/ccoMailboxTruthBackfillAsyncJob');
+const {
   createCcoMailboxTruthWorklistReadModel,
   resolveWorklistEvidenceFields,
 } = require('../ops/ccoMailboxTruthWorklistReadModel');
@@ -5226,18 +5230,23 @@ function toCcoRuntimeHistoryBackfillInput(input = {}) {
     CCO_KONS_HISTORY_DEFAULT_LOOKBACK_DAYS
   );
   const refresh = toBoolean(safeInput.refresh, false);
+  const async = toBoolean(safeInput.async, false);
   const repairRichBodies = toBoolean(safeInput.repairRichBodies || safeInput.richBodyRepair, false);
   const maxPagesPerFolder = clampInteger(safeInput.maxPagesPerFolder, 1, 10000, 0) || null;
   const pageSize = clampInteger(safeInput.pageSize, 1, 500, 0) || null;
-  const folderTypes = normalizeMailboxIdList(
-    parseMailboxIdValues(safeInput.folderTypes, 4),
-    4
-  ).filter((folderType) => ['inbox', 'sent', 'drafts', 'deleted'].includes(folderType));
+  const folderTypes = Array.from(
+    new Set(
+      parseMailboxIdValues(safeInput.folderTypes, 4)
+        .map((folderType) => normalizeText(folderType).toLowerCase())
+        .filter((folderType) => ['inbox', 'sent', 'drafts', 'deleted'].includes(folderType))
+    )
+  );
   return {
     mailboxId: mailboxIds[0] || CCO_KONS_HISTORY_DEFAULT_MAILBOX,
     mailboxIds,
     lookbackDays,
     refresh,
+    async,
     repairRichBodies,
     maxPagesPerFolder,
     pageSize,
@@ -5915,6 +5924,55 @@ function toCcoRuntimeHistoryBackfillHandler({
         const currentCoverage = mailboxTruthHistory.getHistoryCoverage({
           mailboxIds: input.mailboxIds,
         });
+        if (input.async === true) {
+          const mailboxId = input.mailboxIds[0];
+          const started = startMailboxTruthBackfillJob({
+            mailboxId,
+            run: async ({ onRound }) => {
+              let coverage = currentCoverage;
+              let rounds = 0;
+              const maxRounds = Number(input.maxPagesPerFolder || 10000);
+              while (coverage?.coverage?.complete !== true && rounds < maxRounds) {
+                const backfill = createMicrosoftGraphMailboxTruthBackfill({
+                  connectorFactory: () => graphReadConnector,
+                  store: ccoMailboxTruthStore,
+                });
+                await backfill.runBackfill({
+                  mailboxIds: input.mailboxIds,
+                  folderTypes: input.folderTypes || ['inbox', 'sent', 'drafts', 'deleted'],
+                  resume: !(input.refresh === true && rounds === 0),
+                  maxPagesPerFolder: 1,
+                  pageSize: input.pageSize || 100,
+                  repairRichBodies:
+                    input.repairRichBodies === true || input.richBodyRepair === true,
+                });
+                rounds += 1;
+                onRound(rounds);
+                coverage = mailboxTruthHistory.getHistoryCoverage({
+                  mailboxIds: input.mailboxIds,
+                });
+                await new Promise((resolve) => setTimeout(resolve, 50));
+              }
+              if (coverage?.coverage?.complete !== true) {
+                throw new Error(`Mailbox truth async-backfill nådde max ${maxRounds} rundor.`);
+              }
+              return {
+                mailboxId,
+                rounds,
+                coverage: coverage.coverage,
+                mailboxes: coverage.mailboxes,
+              };
+            },
+          });
+          return res.status(started.accepted ? 202 : 409).json({
+            ok: started.accepted,
+            async: true,
+            alreadyRunning: started.already,
+            mailboxId,
+            pollUrl: `/api/v1/cco/runtime/history/backfill/job?mailboxId=${encodeURIComponent(mailboxId)}`,
+            state: started.state,
+          });
+        }
         if (input.refresh !== true && currentCoverage?.coverage?.complete === true) {
           return res.json({
             ok: true,
@@ -9823,6 +9881,23 @@ function createCapabilitiesRouter({
         authStore,
       })
     )
+  );
+
+  router.get(
+    '/cco/runtime/history/backfill/job',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler((req, res) => {
+      const mailboxId = normalizeMailboxAddress(req.query?.mailboxId || '');
+      if (!mailboxId) {
+        return res.status(400).json({ ok: false, error: 'mailboxId krävs.' });
+      }
+      return res.json({
+        ok: true,
+        mailboxId,
+        state: getMailboxTruthBackfillJob(mailboxId),
+      });
+    })
   );
 
   router.post(
