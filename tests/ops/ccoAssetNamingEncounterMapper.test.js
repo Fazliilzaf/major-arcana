@@ -179,3 +179,30 @@ test('två explicita encounters samma dag förblir review utan tidsvinnare', () 
   assert.equal(result.reason, 'ambiguous_date');
   assert.equal(result.confidence, 'review');
 });
+
+test('ensam specifik behandling vinner över generisk other samma dag', () => {
+  const registry = new Map([
+    ['operation', { encounterId: 'operation', date: '2026-05-05', encounterType: 'transplant_fue', confidence: 'medium' }],
+    ['generic', { encounterId: 'generic', date: '2026-05-05', encounterType: 'other', confidence: 'medium' }],
+  ]);
+  const result = matchAssetToEncounter(
+    { patientId: 'patient-1', mimeType: 'image/jpeg', documentDate: '2026-05-05' },
+    registry
+  );
+  assert.equal(result.reason, 'date_and_specific_type_over_other');
+  assert.equal(result.encounterId, 'operation');
+  assert.equal(result.encounterType, 'transplant_fue');
+});
+
+test('två olika specifika behandlingar samma dag förblir review', () => {
+  const registry = new Map([
+    ['operation', { encounterId: 'operation', date: '2026-05-05', encounterType: 'transplant_fue', confidence: 'medium' }],
+    ['prp', { encounterId: 'prp', date: '2026-05-05', encounterType: 'prp_hair', confidence: 'medium' }],
+  ]);
+  const result = matchAssetToEncounter(
+    { patientId: 'patient-1', mimeType: 'image/jpeg', documentDate: '2026-05-05' },
+    registry
+  );
+  assert.equal(result.reason, 'ambiguous_date');
+  assert.equal(result.confidence, 'review');
+});
