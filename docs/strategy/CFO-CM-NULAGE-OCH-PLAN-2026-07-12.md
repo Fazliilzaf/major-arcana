@@ -108,10 +108,10 @@ regel 4): definiera överlämningsfält, dedupe-ansvar och audit-kedja i en spec
 
 **P0 — denna vecka**
 
-1. **ORD-58b: verify körd 22:56 → 4/7.** Latens LÖST (1,3 s varm). Kvar: revenue/AOV null →
-   kontrollera Fortnox OAuth-state i prod (`/api/v1/cco-fortnox/status` som owner, eller Render
-   Shell → cfo-fortnox-state på `/var/data`); saknas anslutning → kör runbooken (Anslut-knappen,
-   iCloud 06 · CM). Därefter om-verify + CEO-UAT hero 4/5.
+1. **ORD-58b: verify körd 22:56 → 4/7.** Latens LÖST (1,3 s varm). **OAuth VERIFIERAD ansluten
+   23:15** (`/cco-fortnox/status`: connected=true, scope customer+invoice+payment, ingen blocker).
+   Kvarvarande revenue/AOV-null = antingen äkta tom betalperiod (juli) eller builder/tenant-
+   kopplingen — dvs. ORD-58-kedjans UAT-punkt (Cursor), INTE OAuth. Om-verify efter analys.
 2. Incident-uppföljning enligt §4.5 (stub-verifiering, filtrim, instans-nedväxling).
 
 **P1 — nästa order-kedja (förslag till Order Inbox)** 3. **ORD-63 · CM↔CFO-kontrakt** (doc, ingen kod): kandidat-överlämning till `cfoExpenseStore`,
