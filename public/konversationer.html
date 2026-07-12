@@ -4112,6 +4112,7 @@
       // skicka den headern, så hämta asseten i parent-dokumentet och ge både
       // signatur-HTML och bilagekort en lokal blob-URL.
       const mailAssetBlobUrls = new Map();
+      const mailAssetBlobs = new Map();
 
       function isLocalMailAssetUrl(value) {
         try {
@@ -4212,23 +4213,39 @@
         return true;
       }
 
+      async function authorizedMailAssetBlob(value) {
+        const url = normalizeText(value);
+        const localMailAsset = isLocalMailAssetUrl(url);
+        const embeddedMailImage = isEmbeddedMailImageUrl(url);
+        if (mailAssetBlobs.has(url)) return mailAssetBlobs.get(url);
+        const pending = embeddedMailImage
+          ? Promise.resolve(createEmbeddedMailImageBlob(url))
+          : fetch(url, {
+              credentials: 'include',
+              headers: localMailAsset ? withAdminAuthHeaders({ Accept: '*/*' }) : { Accept: '*/*' },
+            })
+              .then((response) => {
+                if (!response.ok) throw new Error(`mail_asset_${response.status}`);
+                return response.blob();
+              });
+        mailAssetBlobs.set(url, pending);
+        try {
+          const blob = await pending;
+          mailAssetBlobs.set(url, blob);
+          return blob;
+        } catch (error) {
+          mailAssetBlobs.delete(url);
+          throw error;
+        }
+      }
+
       async function authorizedMailAssetUrl(value) {
         const url = normalizeText(value);
         const localMailAsset = isLocalMailAssetUrl(url);
         const embeddedMailImage = isEmbeddedMailImageUrl(url);
         if (!localMailAsset && !embeddedMailImage) return url;
         if (mailAssetBlobUrls.has(url)) return mailAssetBlobUrls.get(url);
-        const pending = embeddedMailImage
-          ? Promise.resolve(URL.createObjectURL(createEmbeddedMailImageBlob(url)))
-          : fetch(url, {
-              credentials: 'include',
-              headers: withAdminAuthHeaders({ Accept: '*/*' }),
-            })
-              .then((response) => {
-                if (!response.ok) throw new Error(`mail_asset_${response.status}`);
-                return response.blob();
-              })
-              .then((blob) => URL.createObjectURL(blob));
+        const pending = authorizedMailAssetBlob(url).then((blob) => URL.createObjectURL(blob));
         mailAssetBlobUrls.set(url, pending);
         try {
           const blobUrl = await pending;
@@ -4538,12 +4555,11 @@
         return mailPdfJsPromise;
       }
 
-      async function renderMailPdfPreview(backdrop, displayUrl) {
+      async function renderMailPdfPreview(backdrop, sourceUrl) {
         const pdfjs = await loadMailPdfJs();
         pdfjs.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
-        const response = await fetch(displayUrl);
-        if (!response.ok) throw new Error(`PDF kunde inte hämtas (${response.status})`);
-        const loadingTask = pdfjs.getDocument({ data: await response.arrayBuffer() });
+        const blob = await authorizedMailAssetBlob(sourceUrl);
+        const loadingTask = pdfjs.getDocument({ data: await blob.arrayBuffer() });
         const pdf = await loadingTask.promise;
         const canvas = backdrop.querySelector('.mail-preview-pdf canvas');
         const pageLabel = backdrop.querySelector('.mail-preview-pdf-page');
@@ -4630,7 +4646,7 @@
         backdrop.querySelector('.mail-preview-close')?.focus();
         if (pdfLike) {
           try {
-            await renderMailPdfPreview(backdrop, displayUrl);
+            await renderMailPdfPreview(backdrop, url);
           } catch (error) {
             console.error('[cco-attachment-preview] PDF kunde inte renderas', error);
             const stage = backdrop.querySelector('.mail-preview-stage');
