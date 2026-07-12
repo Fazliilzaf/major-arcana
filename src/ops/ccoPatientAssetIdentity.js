@@ -259,6 +259,10 @@ function assetToPatientFile(asset) {
     mimeType: asset?.mimeType || '',
     contentType: asset?.mimeType || '',
     fileSize: asset?.fileSize || null,
+    durationSeconds: Number.isFinite(Number(technicalInfo.durationSeconds))
+      ? Number(technicalInfo.durationSeconds)
+      : null,
+    uploadedAt: technicalInfo.uploadedAt || asset?.importedAt || null,
     documentDate: cleanDocumentDate,
     captureDate: cleanCaptureDate,
     captureDateTime: asset?.captureDateTime || null,

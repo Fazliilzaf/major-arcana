@@ -4587,15 +4587,10 @@ let ccoBookingCaseStore = null;
             0,
             500
           );
-          // Soft-delete via befintliga markAsLinkOnlyBlocker eller egen flagga
-          if (typeof store.markAsHidden === 'function') {
-            await store.markAsHidden(assetId, reason, { actor });
-          } else {
-            // Fallback: använd transition om finns, annars sätt flag direkt på state
-            if (typeof store.markAsLinkOnlyBlocker === 'function') {
-              await store.markAsLinkOnlyBlocker(assetId, reason, { actor });
-            }
+          if (typeof store.softDeleteAsset !== 'function') {
+            return res.status(503).json({ error: 'asset_soft_delete_unavailable' });
           }
+          await store.softDeleteAsset(assetId, { reason, actor, target: 'REJECTED' });
           try {
             ccoAuditLog?.append?.({
               kind: 'patient_asset.soft_deleted',
@@ -9046,7 +9041,6 @@ try {
         const encounterId = t(req.body?.encounterId) || null;
         const docDateRaw = t(req.body?.documentDate).slice(0, 10);
         const documentDate = /^\d{4}-\d{2}-\d{2}$/.test(docDateRaw) ? docDateRaw : null;
-
         const ym = new Date().toISOString().slice(0, 7);
         const safeSuffix = `${Date.now()}`;
         const storageKey = `patient-documents/${ym}/${patientId}/upload-${safeSuffix}.pdf`;
@@ -9139,6 +9133,10 @@ try {
         });
         const docDateRaw = t(req.body?.documentDate).slice(0, 10);
         const documentDate = /^\d{4}-\d{2}-\d{2}$/.test(docDateRaw) ? docDateRaw : null;
+        const rawDurationSeconds = Number(req.body?.durationSeconds);
+        const durationSeconds = Number.isFinite(rawDurationSeconds)
+          ? Math.max(0, Math.min(24 * 60 * 60, Math.round(rawDurationSeconds)))
+          : null;
         const actor = {
           userId: req.headers['x-cco-user'] || 'demo-user',
           role: req.cco?.role || 'staff',
@@ -9158,6 +9156,11 @@ try {
             originalFileName: req.file.originalname || 'film.mp4',
             displayName: t(req.body?.displayName) || null,
             documentDate,
+            technicalInfo: {
+              mediaKind: 'video',
+              durationSeconds,
+              uploadedAt: new Date().toISOString(),
+            },
             status: 'VISIBLE_ON_PATIENT_CARD',
             importedBy: actor.userId,
           },
@@ -9167,7 +9170,14 @@ try {
           'patient.visit_media.upload',
           req.cco?.role,
           { kind: 'patient_asset', id: asset.id },
-          { patientId, encounterId, mimeType, fileSize: put.size, deduped: !!put.deduped }
+          {
+            patientId,
+            encounterId,
+            mimeType,
+            fileSize: put.size,
+            durationSeconds,
+            deduped: !!put.deduped,
+          }
         );
         res.json({ ok: true, asset, storage: { deduped: !!put.deduped, size: put.size } });
       } catch (error) {

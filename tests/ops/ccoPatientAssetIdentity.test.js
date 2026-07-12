@@ -220,3 +220,20 @@ test('assetToPatientFile rewrites stale generated image display date in payload 
   assert.equal(file.fileName, '2026-01-06 · FUE Operation 1 · Under');
   assert.equal(file.originalFileName, '025436E4.jpeg');
 });
+
+test('assetToPatientFile exposes visit video metadata without leaking storage internals', () => {
+  const file = assetToPatientFile({
+    id: 'video-meta',
+    patientId: 'patient-1',
+    sourceSystem: 'upload',
+    status: 'VISIBLE_ON_PATIENT_CARD',
+    mimeType: 'video/mp4',
+    fileSize: 4_200_000,
+    importedAt: '2026-06-19T10:00:00.000Z',
+    technicalInfo: { durationSeconds: 92, uploadedAt: '2026-06-19T10:00:01.000Z' },
+  });
+  assert.equal(file.durationSeconds, 92);
+  assert.equal(file.fileSize, 4_200_000);
+  assert.equal(file.uploadedAt, '2026-06-19T10:00:01.000Z');
+  assert.equal('storageKey' in file, false);
+});
