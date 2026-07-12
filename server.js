@@ -4572,6 +4572,7 @@ let ccoBookingCaseStore = null;
     // POST /api/v1/cco/assets/:assetId/soft-delete — markera bild som dold (PDL-retention behåller fysisk fil 10 år)
     app.post(
       '/api/v1/cco/assets/:assetId/soft-delete',
+      requireCcoAuthenticated,
       attachRole,
       requireAnyRole(RBAC),
       express.json({ limit: '8kb' }),
