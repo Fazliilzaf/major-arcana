@@ -16,39 +16,88 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-function normalizeText(v) { return typeof v === 'string' ? v.trim() : ''; }
-function nowIso() { return new Date().toISOString(); }
+function normalizeText(v) {
+  return typeof v === 'string' ? v.trim() : '';
+}
+function nowIso() {
+  return new Date().toISOString();
+}
 
 const EXPENSE_STATUSES = Object.freeze([
-  'IMPORTED', 'RAW_SAVED', 'DUPLICATE_CHECKED', 'DUPLICATE_SKIPPED',
-  'PDF_FOUND', 'NO_PDF_FOUND', 'BODY_TEXT_USED', 'OCR_PENDING', 'OCR_DONE',
-  'AI_EXTRACTED', 'EXTRACTION_LOW_CONFIDENCE', 'NEEDS_REVIEW',
-  'READY_FOR_APPROVAL', 'APPROVED', 'REJECTED', 'READY_FOR_BOOKKEEPING',
-  'EXPORTED', 'ARCHIVED', 'FAILED', 'REPROCESS_REQUESTED',
+  'IMPORTED',
+  'RAW_SAVED',
+  'DUPLICATE_CHECKED',
+  'DUPLICATE_SKIPPED',
+  'PDF_FOUND',
+  'NO_PDF_FOUND',
+  'BODY_TEXT_USED',
+  'OCR_PENDING',
+  'OCR_DONE',
+  'AI_EXTRACTED',
+  'EXTRACTION_LOW_CONFIDENCE',
+  'NEEDS_REVIEW',
+  'READY_FOR_APPROVAL',
+  'APPROVED',
+  'REJECTED',
+  'READY_FOR_BOOKKEEPING',
+  'EXPORTED',
+  'ARCHIVED',
+  'FAILED',
+  'REPROCESS_REQUESTED',
 ]);
 
 const DOCUMENT_TYPES = Object.freeze([
-  'invoice', 'receipt', 'travel', 'flight_ticket', 'hotel', 'taxi',
-  'subscription', 'purchase_confirmation', 'credit_invoice',
-  'reminder_invoice', 'unknown',
+  'invoice',
+  'receipt',
+  'travel',
+  'flight_ticket',
+  'hotel',
+  'taxi',
+  'subscription',
+  'purchase_confirmation',
+  'credit_invoice',
+  'reminder_invoice',
+  'unknown',
 ]);
 
 const DOCUMENT_FLAGS = Object.freeze([
-  'NO_PDF_FOUND', 'PDF_FOUND', 'IMAGE_RECEIPT_FOUND', 'BODY_TEXT_USED_AS_SOURCE',
-  'ATTACHMENT_UNREADABLE', 'OCR_FAILED', 'LOW_CONFIDENCE_EXTRACTION', 'UNKNOWN_DOCUMENT_TYPE',
+  'NO_PDF_FOUND',
+  'PDF_FOUND',
+  'IMAGE_RECEIPT_FOUND',
+  'BODY_TEXT_USED_AS_SOURCE',
+  'ATTACHMENT_UNREADABLE',
+  'OCR_FAILED',
+  'LOW_CONFIDENCE_EXTRACTION',
+  'UNKNOWN_DOCUMENT_TYPE',
 ]);
 
 const FINANCE_FLAGS = Object.freeze([
-  'MISSING_TOTAL_AMOUNT', 'MISSING_VAT', 'MISSING_INVOICE_NUMBER', 'MISSING_DUE_DATE',
-  'MISSING_SUPPLIER', 'UNKNOWN_SUPPLIER', 'DUPLICATE_INVOICE_NUMBER', 'DUPLICATE_RECEIPT_HASH',
-  'CURRENCY_NOT_SEK', 'FOREIGN_PURCHASE', 'TRAVEL_EXPENSE', 'SUBSCRIPTION_EXPENSE',
-  'PRIVATE_REIMBURSEMENT_NEEDED', 'ALREADY_PAID', 'PAYMENT_NEEDED',
+  'MISSING_TOTAL_AMOUNT',
+  'MISSING_VAT',
+  'MISSING_INVOICE_NUMBER',
+  'MISSING_DUE_DATE',
+  'MISSING_SUPPLIER',
+  'UNKNOWN_SUPPLIER',
+  'DUPLICATE_INVOICE_NUMBER',
+  'DUPLICATE_RECEIPT_HASH',
+  'CURRENCY_NOT_SEK',
+  'FOREIGN_PURCHASE',
+  'TRAVEL_EXPENSE',
+  'SUBSCRIPTION_EXPENSE',
+  'PRIVATE_REIMBURSEMENT_NEEDED',
+  'ALREADY_PAID',
+  'PAYMENT_NEEDED',
 ]);
 
 const REVIEW_FLAGS = Object.freeze([
-  'NEEDS_MANUAL_REVIEW', 'NEEDS_APPROVAL', 'NEEDS_ACCOUNTING_REVIEW',
-  'NEEDS_SUPPLIER_MATCH', 'NEEDS_CATEGORY', 'NEEDS_COST_CENTER',
-  'NEEDS_PROJECT', 'NEEDS_EMPLOYEE_ASSIGNMENT',
+  'NEEDS_MANUAL_REVIEW',
+  'NEEDS_APPROVAL',
+  'NEEDS_ACCOUNTING_REVIEW',
+  'NEEDS_SUPPLIER_MATCH',
+  'NEEDS_CATEGORY',
+  'NEEDS_COST_CENTER',
+  'NEEDS_PROJECT',
+  'NEEDS_EMPLOYEE_ASSIGNMENT',
 ]);
 
 const ALL_FLAGS = Object.freeze([...DOCUMENT_FLAGS, ...FINANCE_FLAGS, ...REVIEW_FLAGS]);
@@ -62,10 +111,15 @@ function createCmStore({ filePath }) {
     auditEvents: [],
     suppliers: [],
     importRuns: [],
+    syncState: {},
   };
 
   async function load() {
-    try { state = JSON.parse(await fs.readFile(filePath, 'utf8')); } catch { /* first run */ }
+    try {
+      state = JSON.parse(await fs.readFile(filePath, 'utf8'));
+    } catch {
+      /* first run */
+    }
     if (!state.rawItems) state.rawItems = [];
     if (!state.documents) state.documents = [];
     if (!state.expenseRecords) state.expenseRecords = [];
@@ -73,11 +127,39 @@ function createCmStore({ filePath }) {
     if (!state.auditEvents) state.auditEvents = [];
     if (!state.suppliers) state.suppliers = [];
     if (!state.importRuns) state.importRuns = [];
+    if (!state.syncState) state.syncState = {};
+  }
+
+  // ORD-64 · Rotationsskydd (crashloop-lärdomen 2026-07-10): håll store-filen
+  // bounded. Äldsta raderna appendas till en .jsonl-arkivfil som ALDRIG läses
+  // vid boot — original bevaras (BFN), boot-parse förblir liten.
+  const RAW_ITEMS_MAX = Math.max(100, Number(process.env.CM_RAW_ITEMS_MAX) || 2000);
+  const AUDIT_EVENTS_MAX = Math.max(500, Number(process.env.CM_AUDIT_EVENTS_MAX) || 5000);
+
+  async function rotateIfNeeded() {
+    const overflow = [];
+    if (state.rawItems.length > RAW_ITEMS_MAX) {
+      const cut = state.rawItems.length - RAW_ITEMS_MAX;
+      overflow.push(...state.rawItems.splice(0, cut).map((row) => ({ kind: 'rawItem', row })));
+    }
+    if (state.auditEvents.length > AUDIT_EVENTS_MAX) {
+      const cut = state.auditEvents.length - AUDIT_EVENTS_MAX;
+      overflow.push(
+        ...state.auditEvents.splice(0, cut).map((row) => ({ kind: 'auditEvent', row }))
+      );
+    }
+    if (!overflow.length) return 0;
+    const ym = new Date().toISOString().slice(0, 7).replace('-', '');
+    const archivePath = `${filePath}.archive-${ym}.jsonl`;
+    const lines = `${overflow.map((e) => JSON.stringify(e)).join('\n')}\n`;
+    await fs.appendFile(archivePath, lines, 'utf8');
+    return overflow.length;
   }
 
   async function persist() {
     const dir = path.dirname(filePath);
     await fs.mkdir(dir, { recursive: true });
+    await rotateIfNeeded();
     const tmp = `${filePath}.${process.pid}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(state, null, 2) + '\n', 'utf8');
     await fs.rename(tmp, filePath);
@@ -107,7 +189,20 @@ function createCmStore({ filePath }) {
     return state.rawItems.some((item) => item.dedupeKey === dedupeKey);
   }
 
-  function importRawItem({ sourceType, sourceId, mailMessageId, internetMessageId, subject, fromEmail, receivedAt, rawBodyText, hasAttachments, hasPdf, hasImage, metadata = {} }) {
+  function importRawItem({
+    sourceType,
+    sourceId,
+    mailMessageId,
+    internetMessageId,
+    subject,
+    fromEmail,
+    receivedAt,
+    rawBodyText,
+    hasAttachments,
+    hasPdf,
+    hasImage,
+    metadata = {},
+  }) {
     const dedupeKey = computeDedupeKey({ internetMessageId, subject, fromEmail, ...metadata });
     if (isDuplicate(dedupeKey)) {
       return { ok: false, reason: 'duplicate', dedupeKey };
@@ -144,7 +239,15 @@ function createCmStore({ filePath }) {
 
   // ─── DOCUMENTS ───
 
-  function createDocument({ rawItemId, documentType, fileName, mimeType, storagePath, fileHash, source = 'pdf' }) {
+  function createDocument({
+    rawItemId,
+    documentType,
+    fileName,
+    mimeType,
+    storagePath,
+    fileHash,
+    source = 'pdf',
+  }) {
     const doc = {
       id: crypto.randomUUID(),
       rawItemId: normalizeText(rawItemId),
@@ -165,7 +268,26 @@ function createCmStore({ filePath }) {
 
   // ─── EXPENSE RECORDS ───
 
-  function createExpenseRecord({ documentId, expenseType, supplierName, invoiceNumber, receiptNumber, orderNumber, date, dueDate, amountExVat, vatAmount, amountIncVat, currency = 'SEK', category, costCenter, project, employeeId, confidenceScore, flags = [] }) {
+  function createExpenseRecord({
+    documentId,
+    expenseType,
+    supplierName,
+    invoiceNumber,
+    receiptNumber,
+    orderNumber,
+    date,
+    dueDate,
+    amountExVat,
+    vatAmount,
+    amountIncVat,
+    currency = 'SEK',
+    category,
+    costCenter,
+    project,
+    employeeId,
+    confidenceScore,
+    flags = [],
+  }) {
     const record = {
       id: crypto.randomUUID(),
       documentId: normalizeText(documentId),
@@ -188,6 +310,7 @@ function createCmStore({ filePath }) {
       approvalStatus: 'pending',
       bookkeepingStatus: 'pending',
       externalAccountingId: null,
+      cfoExpenseId: null,
       confidenceScore: Number(confidenceScore) || 0,
       flags: flags.filter((f) => ALL_FLAGS.includes(f)),
       createdAt: nowIso(),
@@ -196,7 +319,8 @@ function createCmStore({ filePath }) {
 
     if (!record.amountIncVat) record.flags.push('MISSING_TOTAL_AMOUNT');
     if (!record.vatAmount) record.flags.push('MISSING_VAT');
-    if (record.expenseType === 'invoice' && !record.invoiceNumber) record.flags.push('MISSING_INVOICE_NUMBER');
+    if (record.expenseType === 'invoice' && !record.invoiceNumber)
+      record.flags.push('MISSING_INVOICE_NUMBER');
     if (record.expenseType === 'invoice' && !record.dueDate) record.flags.push('MISSING_DUE_DATE');
     if (!record.supplierName) record.flags.push('MISSING_SUPPLIER');
     if (record.confidenceScore < 70) record.flags.push('NEEDS_MANUAL_REVIEW');
@@ -239,10 +363,97 @@ function createCmStore({ filePath }) {
     return record;
   }
 
+  // ORD-63 · CM lämnar över till CFO — cfoExpenseStore äger livscykeln därefter.
+  function markHandedOff(recordId, { cfoExpenseId, actor } = {}) {
+    const record = state.expenseRecords.find((r) => r.id === recordId);
+    if (!record) return null;
+    record.bookkeepingStatus = 'handed_off';
+    record.cfoExpenseId = normalizeText(cfoExpenseId);
+    record.updatedAt = nowIso();
+    audit('cm.expense_record.handed_off', { recordId, cfoExpenseId: record.cfoExpenseId, actor });
+    return record;
+  }
+
+  // ─── SYNC STATE (ORD-64 · delta-cursor per mailbox+folder) ───
+
+  function getSyncState(mailboxId, folderType) {
+    return state.syncState?.[mailboxId]?.[folderType] || null;
+  }
+
+  function setSyncState(mailboxId, folderType, patch = {}) {
+    if (!state.syncState) state.syncState = {};
+    if (!state.syncState[mailboxId]) state.syncState[mailboxId] = {};
+    state.syncState[mailboxId][folderType] = {
+      ...(state.syncState[mailboxId][folderType] || {}),
+      ...patch,
+      updatedAt: nowIso(),
+    };
+    return state.syncState[mailboxId][folderType];
+  }
+
+  // ─── PROCESSING LEDGER (ORD-64) ───
+
+  function addLedgerEntry({
+    rawItemId,
+    documentId = null,
+    expenseRecordId = null,
+    processorVersion = 2,
+    filterVersion = 1,
+    status = 'processing',
+  } = {}) {
+    const entry = {
+      id: crypto.randomUUID(),
+      rawItemId: normalizeText(rawItemId),
+      documentId,
+      expenseRecordId,
+      processorVersion,
+      filterVersion,
+      status,
+      attempts: 1,
+      errorCode: null,
+      errorMessage: null,
+      processedAt: nowIso(),
+      completedAt: null,
+    };
+    state.processingLedger.push(entry);
+    return entry;
+  }
+
+  function completeLedgerEntry(
+    id,
+    {
+      status = 'done',
+      expenseRecordId = null,
+      documentId = null,
+      errorCode = null,
+      errorMessage = null,
+    } = {}
+  ) {
+    const entry = state.processingLedger.find((e) => e.id === id);
+    if (!entry) return null;
+    entry.status = status;
+    if (expenseRecordId) entry.expenseRecordId = expenseRecordId;
+    if (documentId) entry.documentId = documentId;
+    entry.errorCode = errorCode;
+    entry.errorMessage = errorMessage ? String(errorMessage).slice(0, 500) : null;
+    entry.completedAt = nowIso();
+    return entry;
+  }
+
   // ─── QUERIES ───
 
+  function getExpenseRecordById(id) {
+    return state.expenseRecords.find((r) => r.id === id) || null;
+  }
+
+  function getDocumentById(id) {
+    return state.documents.find((d) => d.id === id) || null;
+  }
+
   function getInbox() {
-    return state.expenseRecords.filter((r) => r.approvalStatus === 'pending' && !r.flags.includes('NEEDS_MANUAL_REVIEW'));
+    return state.expenseRecords.filter(
+      (r) => r.approvalStatus === 'pending' && !r.flags.includes('NEEDS_MANUAL_REVIEW')
+    );
   }
 
   function getNeedsReview() {
@@ -258,11 +469,15 @@ function createCmStore({ filePath }) {
   }
 
   function getTravel() {
-    return state.expenseRecords.filter((r) => ['travel', 'flight_ticket', 'hotel', 'taxi'].includes(r.expenseType));
+    return state.expenseRecords.filter((r) =>
+      ['travel', 'flight_ticket', 'hotel', 'taxi'].includes(r.expenseType)
+    );
   }
 
   function getApprovalQueue() {
-    return state.expenseRecords.filter((r) => r.approvalStatus === 'pending' && !r.flags.includes('NEEDS_MANUAL_REVIEW'));
+    return state.expenseRecords.filter(
+      (r) => r.approvalStatus === 'pending' && !r.flags.includes('NEEDS_MANUAL_REVIEW')
+    );
   }
 
   function getReadyForBookkeeping() {
@@ -278,8 +493,9 @@ function createCmStore({ filePath }) {
     const dups = [];
     for (const r of state.expenseRecords) {
       const key = `${r.supplierName}|${r.amountIncVat}|${r.date}`;
-      if (seen.has(key)) { dups.push([seen.get(key), r]); }
-      else seen.set(key, r);
+      if (seen.has(key)) {
+        dups.push([seen.get(key), r]);
+      } else seen.set(key, r);
     }
     return dups;
   }
@@ -298,6 +514,7 @@ function createCmStore({ filePath }) {
       approvalQueue: getApprovalQueue().length,
       readyForBookkeeping: getReadyForBookkeeping().length,
       exported: getExported().length,
+      handedOff: state.expenseRecords.filter((r) => r.bookkeepingStatus === 'handed_off').length,
       duplicates: getDuplicates().length,
       importErrors: getImportErrors().length,
       totalRawItems: state.rawItems.length,
@@ -307,14 +524,38 @@ function createCmStore({ filePath }) {
   }
 
   return {
-    load, persist, audit,
-    importRawItem, isDuplicate, computeDedupeKey,
-    createDocument, createExpenseRecord,
-    approve, reject, markExported,
-    getInbox, getNeedsReview, getInvoices, getReceipts, getTravel,
-    getApprovalQueue, getReadyForBookkeeping, getExported, getDuplicates, getImportErrors,
+    load,
+    persist,
+    audit,
+    importRawItem,
+    isDuplicate,
+    computeDedupeKey,
+    createDocument,
+    createExpenseRecord,
+    approve,
+    reject,
+    markExported,
+    markHandedOff,
+    getSyncState,
+    setSyncState,
+    addLedgerEntry,
+    completeLedgerEntry,
+    getExpenseRecordById,
+    getDocumentById,
+    getInbox,
+    getNeedsReview,
+    getInvoices,
+    getReceipts,
+    getTravel,
+    getApprovalQueue,
+    getReadyForBookkeeping,
+    getExported,
+    getDuplicates,
+    getImportErrors,
     getDashboard,
-    EXPENSE_STATUSES, DOCUMENT_TYPES, ALL_FLAGS,
+    EXPENSE_STATUSES,
+    DOCUMENT_TYPES,
+    ALL_FLAGS,
   };
 }
 
