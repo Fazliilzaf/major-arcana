@@ -123,3 +123,62 @@ test('monitor clinic-performance använder booking engine när cliento är tom',
     assert.equal(payload.bookings.current, 1);
   });
 });
+
+test('monitor clinic-performance skickar revenue/AOV när finance-dashboard har perioddata', async () => {
+  const todayUtc = new Date();
+  const startsAtToday = new Date(
+    Date.UTC(todayUtc.getUTCFullYear(), todayUtc.getUTCMonth(), todayUtc.getUTCDate(), 9, 0, 0)
+  ).toISOString();
+  const app = buildApp({
+    clientoBookingStore: {
+      listAllBookings() {
+        return [
+          {
+            bookingId: 'cli-1',
+            customerEmail: 'a@b.se',
+            startsAt: startsAtToday,
+            status: 'completed',
+          },
+        ];
+      },
+    },
+  });
+  app.locals.cfoFortnoxStore = {
+    async getPublicStatus() {
+      return { connected: false };
+    },
+  };
+  app.locals.ccoSwishStore = {
+    async getPublicStatus() {
+      return { connected: false };
+    },
+  };
+  app.locals.ccoCommercialStore = {
+    async listAll() {
+      return [
+        {
+          invoiceStatus: 'paid',
+          invoicePaidAt: startsAtToday,
+          totalDueSek: 9000,
+          totalPaidSek: 9000,
+        },
+      ];
+    },
+  };
+  app.locals.cfoReceiptStore = null;
+  app.locals.cfoExpenseStore = null;
+  app.locals.cfoExpenseRuleStore = null;
+  app.locals.cfoFinanceVendorStore = null;
+  app.locals.cfoRecurringExpenseStore = null;
+  app.locals.cfoFinanceReviewStore = null;
+  app.locals.cfoFinanceMonthlyCloseStore = null;
+  app.locals.cfoFortnoxInvoiceLister = null;
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/monitor/clinic-performance`);
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.revenueSek.current, 9000);
+    assert.equal(payload.avgOrderValueSek.current, 9000);
+  });
+});

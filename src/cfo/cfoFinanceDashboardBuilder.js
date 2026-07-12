@@ -16,6 +16,10 @@
 'use strict';
 
 const SCHEMA_VERSION = '1.0.0';
+const {
+  buildFortnoxPaidPeriodTotals,
+  endOfUtcDayExclusive,
+} = require('./cfoFortnoxPaidPeriodTotals');
 
 function nowIso() {
   return new Date().toISOString();
@@ -141,19 +145,37 @@ async function buildFinanceDashboard({
     note: null,
   };
 
-  if (fortnox.connected && stores.fortnoxInvoiceLister) {
-    // I MVP 1 hämtar vi inte alla kunders fakturor (det är MVP 3).
-    // Istället visar vi commercial-snapshot om finns.
-    invoiceSummary.note = 'Fortnox connected — full invoice sync är MVP 3';
+  if (fortnox.connected && stores.fortnoxInvoiceLister?.listAllInvoicePayments) {
+    const fromDate = periodStartUtcMonth(now, -1).slice(0, 10);
+    const toDate = endOfUtcDayExclusive(now).slice(0, 10);
+    const listed = await safeCall(() =>
+      stores.fortnoxInvoiceLister.listAllInvoicePayments({ tenantId, fromDate, toDate })
+    );
+    if (listed?.ok && Array.isArray(listed.payments)) {
+      const totals = buildFortnoxPaidPeriodTotals(listed.payments, now);
+      invoiceSummary.totalPaidThisMonthSek = totals.totalPaidThisMonthSek;
+      invoiceSummary.totalPaidPreviousComparablePeriodSek =
+        totals.totalPaidPreviousComparablePeriodSek;
+      invoiceSummary.note =
+        'Fortnox betalda fakturor (InvoicePayments) periodskurna same-day mot föregående månad.';
+      invoiceSummary.partial = false;
+    } else {
+      issues.push('Fortnox invoice payments kunde inte hämtas');
+      partial.reasons.push('fortnox_invoice_payments_unavailable');
+    }
+  } else if (fortnox.connected && stores.fortnoxInvoiceLister) {
+    invoiceSummary.note =
+      'Fortnox connected — listAllInvoicePayments saknas, faller tillbaka till commercial-store.';
   }
 
-  if (stores.commercialStore?.listAll) {
+  if (invoiceSummary.totalPaidThisMonthSek === null && stores.commercialStore?.listAll) {
     const cases = (await safeCall(() => stores.commercialStore.listAll(), [])) || [];
     const todayIso = periodStart('today', now);
     const weekIso = periodStart('week', now);
     const monthIso = periodStart('month', now);
     const previousMonthIso = periodStartUtcMonth(now, -1);
     const previousComparableEndIso = previousMonthSameDayEndExclusive(now);
+    const currentComparableEndIso = endOfUtcDayExclusive(now);
     let outstanding = 0,
       paidToday = 0,
       paidWeek = 0,
@@ -167,7 +189,7 @@ async function buildFinanceDashboard({
       if (invStatus === 'paid') {
         if (paidAt >= todayIso) paidToday += paid;
         if (paidAt >= weekIso) paidWeek += paid;
-        if (paidAt >= monthIso) paidMonth += paid;
+        if (paidAt >= monthIso && paidAt < currentComparableEndIso) paidMonth += paid;
         if (paidAt >= previousMonthIso && paidAt < previousComparableEndIso)
           paidPreviousComparable += paid;
         invoiceSummary.invoiceCounts.paid += 1;
@@ -185,11 +207,21 @@ async function buildFinanceDashboard({
       }
     }
     invoiceSummary.totalOutstandingSek = outstanding;
-    invoiceSummary.totalPaidThisMonthSek = paidMonth;
-    invoiceSummary.totalPaidPreviousComparablePeriodSek = paidPreviousComparable;
+    if (invoiceSummary.totalPaidThisMonthSek === null) {
+      invoiceSummary.totalPaidThisMonthSek = paidMonth;
+    }
+    if (invoiceSummary.totalPaidPreviousComparablePeriodSek === null) {
+      invoiceSummary.totalPaidPreviousComparablePeriodSek = paidPreviousComparable;
+    }
     invoiceSummary.totalPaidThisWeekSek = paidWeek;
     invoiceSummary.totalPaidTodaySek = paidToday;
-    invoiceSummary.partial = !fortnox.connected; // bara säker när Fortnox sync är klar
+    if (!invoiceSummary.note) {
+      invoiceSummary.note =
+        'Commercial-store betalda fakturor (proxy tills Fortnox period-list är tillgänglig).';
+    }
+    if (invoiceSummary.partial !== false) {
+      invoiceSummary.partial = !fortnox.connected;
+    }
   } else {
     issues.push('Commercial-store saknas eller listAll() ej tillgänglig');
     partial.reasons.push('no_commercial_data');

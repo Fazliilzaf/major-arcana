@@ -55,6 +55,38 @@ function createCfoFortnoxInvoiceLister({ createClientFor, cacheTtlMs = 60_000 } 
     }
   }
 
+  async function listAllInvoicePayments({ tenantId, fromDate, toDate } = {}) {
+    const from = normalizeText(fromDate);
+    const to = normalizeText(toDate);
+    if (!from || !to) {
+      return {
+        ok: false,
+        payments: [],
+        error: 'fromDate och toDate krävs för listAllInvoicePayments.',
+      };
+    }
+    try {
+      const client = await createClientFor(tenantId);
+      const payments = [];
+      let page = 1;
+      while (page <= 50) {
+        const payload = await client.listInvoicePayments({ fromDate: from, toDate: to, page });
+        const batch = Array.isArray(payload?.InvoicePayments) ? payload.InvoicePayments : [];
+        payments.push(...batch);
+        if (batch.length < 100) break;
+        page += 1;
+      }
+      return { ok: true, payments, cached: false, error: null };
+    } catch (error) {
+      return {
+        ok: false,
+        payments: [],
+        cached: false,
+        error: error?.message || 'Fortnox invoice payment list misslyckades.',
+      };
+    }
+  }
+
   function clearCache() {
     cache.clear();
   }
@@ -62,6 +94,7 @@ function createCfoFortnoxInvoiceLister({ createClientFor, cacheTtlMs = 60_000 } 
   return {
     clearCache,
     listInvoicesForCustomer,
+    listAllInvoicePayments,
   };
 }
 

@@ -8,11 +8,10 @@
  * — the route wires the real stores; this module just shapes the numbers so it
  * is unit-testable.
  *
- * HONEST PARTIAL LIVE (v0.2b step 1): bookings + no-show now carry an honest
- * delta against the previous month because bookings already exist all-time in
- * the source store. revenue and avg order value still have `previous: null`
- * until finance gets a proper period-sliced source. utilizationRate and
- * channelSplit still have no clean source and stay null / omitted.
+ * HONEST PARTIAL LIVE (v0.2b step 2 / ORD-58 fas 1): bookings + no-show + intäkt +
+ * snittordervärde bär ärlig same-day-jämförelse mot föregående månad. Intäkt kommer
+ * från Fortnox InvoicePayments när anslutet, annars commercial-store-proxy (null om
+ * saknas). utilizationRate och channelSplit har fortfarande ingen ren källa.
  */
 
 const MONTHS_SV = [
@@ -348,9 +347,9 @@ function composeClinicMetrics({
       ...(avgOrderValuePrevious === null ? ['avgOrderValueSek.previous'] : []),
     ],
     dataNote:
-      'Live-data från major-arcanas gateway. Jämförelsen är hittills i månaden t.o.m. dagens kalenderdag mot samma kalenderdag i föregående månad.',
+      'Live-data från major-arcanas gateway. Jämförelsen är hittills i månaden t.o.m. dagens kalenderdag mot samma kalenderdag i föregående månad. Intäkt/AOV: Fortnox betalda fakturor när anslutet, annars commercial-store-proxy.',
     avgOrderValueNote:
-      'Proxy: intäkt betald denna månad ÷ bokningar denna månad (bokningsdata saknar pris per bokning).',
+      'Proxy: intäkt betald i perioden ÷ bokningar i samma period (bokningsdata saknar pris per bokning).',
   };
 }
 
