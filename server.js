@@ -10921,6 +10921,7 @@ app.use((req, res, next) => {
       "script-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "connect-src 'self' https:",
+      "frame-src 'self' blob:",
       "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",

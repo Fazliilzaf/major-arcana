@@ -393,6 +393,11 @@ test('bilagor öppnas i en intern modal utan ny flik', () => {
   );
 });
 
+test('CSP tillåter authade PDF-blobbar i den interna dokumentmodalen', () => {
+  const server = fs.readFileSync(path.join(__dirname, '..', '..', 'server.js'), 'utf8');
+  assert.match(server, /"frame-src 'self' blob:"/);
+});
+
 test('konversationer hydrates authenticated local mail assets in HTML and attachments', () => {
   const html = readHtml();
 
