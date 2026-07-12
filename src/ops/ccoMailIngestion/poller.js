@@ -69,6 +69,11 @@ function createCcoMailIngestionPoller({
           createdBy: 'system:cco_mailbox_poller',
           folderTypes: ['inbox', 'sent'],
           truthLimit: Math.max(1, Number(config.ccoMailIngestionPollTruthLimit) || 100),
+          deltaPageSize: Math.max(1, Number(config.ccoMailIngestionPollDeltaPageSize) || 25),
+          deltaMaxPagesPerFolder: Math.max(
+            1,
+            Number(config.ccoMailIngestionPollDeltaMaxPages) || 1
+          ),
         });
         results.push({ mailboxEmail, result });
       }

@@ -336,6 +336,14 @@ const config = {
     process.env.ARCANA_CCO_MAIL_INGESTION_POLL_TRUTH_LIMIT,
     100
   ),
+  ccoMailIngestionPollDeltaPageSize: asInt(
+    process.env.ARCANA_CCO_MAIL_INGESTION_POLL_DELTA_PAGE_SIZE,
+    25
+  ),
+  ccoMailIngestionPollDeltaMaxPages: asInt(
+    process.env.ARCANA_CCO_MAIL_INGESTION_POLL_DELTA_MAX_PAGES,
+    1
+  ),
   ccoHalsoMailboxEmail: asNonEmptyString(
     process.env.ARCANA_CCO_HALSO_MAILBOX_EMAIL,
     'halso@hairtpclinic.com'
