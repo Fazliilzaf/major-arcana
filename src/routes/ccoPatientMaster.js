@@ -2339,6 +2339,74 @@ function createCcoPatientMasterRouter({
   );
 
   router.post(
+    '/cco-patient-master/assets/link-encounter',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientId = normalizeText(req.body?.patientId);
+        const assetId = normalizeText(req.body?.assetId);
+        const encounterId = normalizeText(req.body?.encounterId);
+        if (!patientId || !assetId || !encounterId) {
+          return res.status(400).json({ error: 'patientId, assetId och encounterId krävs.' });
+        }
+        const patient = await patientMasterStore.getPatient({
+          tenantId: actor.tenantId,
+          patientId,
+        });
+        if (!patient) return res.status(404).json({ error: 'Kunden hittades inte.' });
+
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        if (!assetStore?.getAsset || !assetStore?.linkAssetToEncounter) {
+          return res.status(503).json({ error: 'Asset store saknar encounter-koppling.' });
+        }
+        const asset = assetStore.getAsset(assetId);
+        if (!asset) return res.status(404).json({ error: 'Filen hittades inte.' });
+        const allowedPatientIds = await resolvePatientAssetIds({
+          patientId,
+          patient,
+          tenantId: actor.tenantId,
+          customerStore,
+          assetStore,
+        });
+        if (!allowedPatientIds.includes(normalizeText(asset.patientId))) {
+          return res.status(409).json({ error: 'Filen tillhör inte vald kund.' });
+        }
+        const encounter = treatmentEncounterStore?.getEncounter
+          ? await treatmentEncounterStore.getEncounter({
+              tenantId: actor.tenantId,
+              patientId,
+              encounterId,
+            })
+          : null;
+        if (!encounter) {
+          return res.status(409).json({ error: 'Besöket tillhör inte vald kund.' });
+        }
+        const linked = await assetStore.linkAssetToEncounter(assetId, encounterId, {
+          actor: { userId: actor.userId, role: actor.role },
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.asset_link_encounter_reviewed',
+          outcome: 'success',
+          targetType: 'cco_patient_asset',
+          targetId: assetId,
+          metadata: { patientId, encounterId, previousEncounterId: asset.encounterId || null },
+        });
+        return res.json({
+          ok: true,
+          asset: { id: linked.id, patientId, encounterId: linked.encounterId },
+        });
+      })
+  );
+
+  router.post(
     '/cco-patient-master/assets/internalize/preview-candidates',
     requireAuth,
     requireRole(ROLE_OWNER),

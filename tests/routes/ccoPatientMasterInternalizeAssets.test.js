@@ -443,6 +443,19 @@ test('assets/repair-encounter-links är owner-gated och kräver confirmText vid 
   assert.match(source, /assetStore\.linkAssetToEncounter/);
 });
 
+test('assets/link-encounter kräver owner och verifierar patient, asset och encounter', () => {
+  const source = require('node:fs').readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
+    'utf8'
+  );
+  assert.match(source, /assets\/link-encounter/);
+  assert.match(source, /requireRole\(ROLE_OWNER\)/);
+  assert.match(source, /resolvePatientAssetIds/);
+  assert.match(source, /Filen tillhör inte vald kund/);
+  assert.match(source, /Besöket tillhör inte vald kund/);
+  assert.match(source, /asset_link_encounter_reviewed/);
+});
+
 test('assets/internalize commit async returnerar 202 och avslutar job', async () => {
   resetInternalizeJobStateForTests();
   const fixture = await makeFixture({

@@ -1180,6 +1180,31 @@
             .join('') +
           '</div>'
         : '<div class="visit-segment-empty">Inga bilder kopplade till detta tillfälle.</div>';
+      var encounterId = txt(segment && segment.encounterId);
+      var reviewLinks = encounterId
+        ? images
+            .filter(function (image) {
+              return Boolean(txt(image && image.assetId)) && !txt(image && image.encounterId);
+            })
+            .map(function (image) {
+              return (
+                '<button type="button" class="warn-action" data-v12-link-encounter' +
+                ' data-patient-id="' +
+                esc(patientId) +
+                '" data-asset-id="' +
+                esc(txt(image && image.assetId)) +
+                '" data-encounter-id="' +
+                esc(encounterId) +
+                '">Koppla ' +
+                esc(txt(image && image.fileName) || 'bild') +
+                ' till besöket</button>'
+              );
+            })
+            .join('')
+        : '';
+      var reviewBlock = reviewLinks
+        ? '<div class="visit-segment-link-review"><b>Behöver bekräftas</b>' + reviewLinks + '</div>'
+        : '';
       var films = videos.length
         ? '<div class="v12-canon-visit-video-grid">' + videos.map(videoTile).join('') + '</div>'
         : '<div class="visit-segment-empty">Ingen film kopplad till detta tillfälle.</div>';
@@ -1208,7 +1233,6 @@
             .join('') +
           '</div>'
         : '<div class="visit-segment-empty">Inga dokument kopplade till detta tillfälle.</div>';
-      var encounterId = txt(segment && segment.encounterId);
       var visitDate = txt(segment && segment.date);
       var roomActions =
         '<div class="visit-segment-actions">' +
@@ -1240,6 +1264,7 @@
         journalBlock(segment) +
         roomActions +
         photos +
+        reviewBlock +
         films +
         docs +
         '</details>'
