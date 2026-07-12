@@ -106,6 +106,12 @@ test('previewEncounterLinkRepair skickar tvetydig foto-matchning till review', (
   assert.equal(report.stats.review, 1);
   assert.equal(report.samples[0].reason, 'ambiguous_date');
   assert.equal(report.samples[0].proposedEncounterId, null);
+  assert.equal(report.samples[0].candidateDetails.length, 2);
+  assert.deepEqual(
+    report.samples[0].candidateDetails.map((candidate) => candidate.encounterType).sort(),
+    ['consultation', 'prp_hair']
+  );
+  assert.ok(report.samples[0].candidateDetails.every((candidate) => /\*\*\*/.test(candidate.encounterId)));
 });
 
 test('redan länkade media räknas men föreslås inte igen', () => {

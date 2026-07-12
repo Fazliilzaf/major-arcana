@@ -57,6 +57,14 @@ function buildPreviewCase(asset = {}, mapping = {}) {
     encounterType: mapping.encounterType || null,
     visitLabel: mapping.visitLabel || null,
     candidates: maskCandidates(mapping.candidates),
+    candidateDetails: asArray(mapping.candidateDetails).map((candidate) => ({
+      encounterId: maskValue(candidate.encounterId, { keepStart: 5, keepEnd: 4 }),
+      encounterType: candidate.encounterType || null,
+      visitLabel: candidate.visitLabel || null,
+      source: candidate.source || null,
+      confidence: candidate.confidence || null,
+      occurredAt: candidate.occurredAt || null,
+    })),
   };
 }
 
