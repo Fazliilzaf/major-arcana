@@ -369,6 +369,15 @@ test('assets/internalize/preview-candidates är read-only och maskerar kandidate
   }
 });
 
+test('assets/internalize/preview-candidates lämnar endast filkontext för explicit owner-review', () => {
+  const source = require('node:fs').readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
+    'utf8'
+  );
+  assert.match(source, /includeReviewDetails = req\.body\?\.includeReviewDetails === true/);
+  assert.match(source, /includeReviewDetails,/);
+});
+
 test('assets/preview-encounter-links är read-only och maskerar föreslagna fotolänkar', async () => {
   const fixture = await makeFixture();
   try {
