@@ -19,7 +19,7 @@ test('KONS-pollern är avstängd utan explicit gate', async () => {
       ccoMailIngestionMode: 'read_only',
       ccoMailIngestionDefaultMailbox: KONS_MAILBOX,
     },
-    syncService: { runMailboxCycle: async () => assert.fail('ska inte köras') },
+    syncService: { runDeltaSync: async () => assert.fail('ska inte köras') },
   });
   assert.deepEqual(poller.start(), { started: false, reason: 'kons_poller_disabled' });
   assert.deepEqual(await poller.runOnce(), { skipped: true, reason: 'kons_poller_disabled' });
@@ -49,11 +49,10 @@ test('mailbox-pollern låser kons + fazli och mode till read_only', async () => 
       },
     },
     syncService: {
-      runMailboxCycle: async (options) => {
+      runDeltaSync: async (options) => {
         calls.push(options);
         return {
-          ingestResult: { totalFetched: 1, totalSaved: 1 },
-          processResult: { processed: 1 },
+          affectedConversationIds: ['conversation-1'],
         };
       },
     },
@@ -86,49 +85,33 @@ test('mailbox-pollern låser kons + fazli och mode till read_only', async () => 
   await poller.runOnce();
   assert.deepEqual(calls, [
     {
-      mailboxEmail: KONS_MAILBOX,
-      mode: 'read_only',
-      trigger: 'cco_mailbox_poller',
-      createdBy: 'system:cco_mailbox_poller',
+      mailboxIds: [KONS_MAILBOX],
       folderTypes: ['inbox', 'sent'],
-      truthLimit: 100,
-      deltaPageSize: 25,
-      deltaMaxPagesPerFolder: 1,
+      pageSize: 25,
+      maxPagesPerFolder: 1,
     },
     {
-      mailboxEmail: FAZLI_MAILBOX,
-      mode: 'read_only',
-      trigger: 'cco_mailbox_poller',
-      createdBy: 'system:cco_mailbox_poller',
+      mailboxIds: [FAZLI_MAILBOX],
       folderTypes: ['inbox', 'sent'],
-      truthLimit: 100,
-      deltaPageSize: 25,
-      deltaMaxPagesPerFolder: 1,
+      pageSize: 25,
+      maxPagesPerFolder: 1,
     },
     {
-      mailboxEmail: KONS_MAILBOX,
-      mode: 'read_only',
-      trigger: 'cco_mailbox_poller',
-      createdBy: 'system:cco_mailbox_poller',
+      mailboxIds: [KONS_MAILBOX],
       folderTypes: ['inbox', 'sent'],
-      truthLimit: 100,
-      deltaPageSize: 25,
-      deltaMaxPagesPerFolder: 1,
+      pageSize: 25,
+      maxPagesPerFolder: 1,
     },
     {
-      mailboxEmail: FAZLI_MAILBOX,
-      mode: 'read_only',
-      trigger: 'cco_mailbox_poller',
-      createdBy: 'system:cco_mailbox_poller',
+      mailboxIds: [FAZLI_MAILBOX],
       folderTypes: ['inbox', 'sent'],
-      truthLimit: 100,
-      deltaPageSize: 25,
-      deltaMaxPagesPerFolder: 1,
+      pageSize: 25,
+      maxPagesPerFolder: 1,
     },
   ]);
   assert.equal(broadcasts.length, 2);
   assert.equal(broadcasts[0].event, 'worklist_updated');
-  assert.equal(broadcasts[0].payload.saved, 2);
+  assert.equal(broadcasts[0].payload.truthChanged, 2);
   assert.deepEqual(broadcasts[0].payload.mailboxIds, [KONS_MAILBOX, FAZLI_MAILBOX]);
 });
 
@@ -140,7 +123,7 @@ test('mailbox-pollern avvisar konton utanför den låsta live-listan', () => {
       ccoMailIngestionMode: 'read_only',
       ccoMailIngestionDefaultMailbox: 'info@hairtpclinic.com',
     },
-    syncService: { runMailboxCycle: async () => assert.fail('ska inte köras') },
+    syncService: { runDeltaSync: async () => assert.fail('ska inte köras') },
   });
   assert.deepEqual(poller.start(), { started: false, reason: 'kons_poller_disabled' });
   assert.deepEqual(
