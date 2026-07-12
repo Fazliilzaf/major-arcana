@@ -80,7 +80,8 @@ function createCfoFortnoxInvoiceLister({
       const payments = [];
       let page = 1;
       while (page <= 50) {
-        const payload = await client.listInvoicePayments({ fromDate: from, toDate: to, page });
+        // from/to används för cache-nyckeln; själva datumfiltret görs i periodsummeringen
+        const payload = await client.listInvoicePayments({ page });
         const batch = Array.isArray(payload?.InvoicePayments) ? payload.InvoicePayments : [];
         payments.push(...batch);
         if (batch.length < 100) break;

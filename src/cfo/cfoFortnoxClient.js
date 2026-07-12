@@ -267,11 +267,12 @@ function createFortnoxClient({
       return request(`/invoices/${encodeURIComponent(documentNumber)}`);
     },
     // Förskott/deposit hanteras typiskt som InvoicePayment med separat dokumenttyp
-    listInvoicePayments({ customerNumber, fromDate, toDate, page = 1 } = {}) {
+    // OBS (ORD-58d): Fortnox /invoicepayments stödjer INTE fromdate/todate —
+    // API:t svarar "Ogiltig parameter i anropet" (verifierat i prod 2026-07-12).
+    // Datumfönstret filtreras i stället klient-sidigt i cfoFortnoxPaidPeriodTotals.
+    listInvoicePayments({ customerNumber, page = 1 } = {}) {
       const params = new URLSearchParams({ page: String(page) });
       if (customerNumber) params.set('customernumber', String(customerNumber));
-      if (fromDate) params.set('fromdate', String(fromDate));
-      if (toDate) params.set('todate', String(toDate));
       return request(`/invoicepayments?${params.toString()}`);
     },
   };
