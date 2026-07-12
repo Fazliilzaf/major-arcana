@@ -101,6 +101,22 @@ function assetEncounterDate(asset = {}) {
   );
 }
 
+function parseDateTimeMs(value) {
+  const text = normalizeText(value);
+  if (!text || !/[T ]\d{1,2}:\d{2}/.test(text)) return null;
+  const parsed = Date.parse(text);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function assetEncounterTimeMs(asset = {}) {
+  return (
+    parseDateTimeMs(asset.captureDateTime) ||
+    parseDateTimeMs(asset.captureDate) ||
+    parseDateTimeMs(asset.takenAt) ||
+    parseDateTimeMs(asset.createdAt)
+  );
+}
+
 function stableEncounterId({ patientId, date, encounterType, sessionNumber = null }) {
   const key = [patientId, date, encounterType, sessionNumber || ''].join('::');
   return crypto.createHash('sha256').update(key).digest('hex').slice(0, 32);
@@ -201,6 +217,11 @@ function buildEncounterRegistry({ journalEntries = [], bookings = [], assets = [
       source: 'booking',
       sourceRefs: [booking.bookingId || booking.id].filter(Boolean),
       confidence: booking.encounterId ? 'high' : 'medium',
+      occurredAt:
+        normalizeText(booking.startsAt) ||
+        normalizeText(booking.treatmentDateTime) ||
+        normalizeText(booking.dateTime) ||
+        null,
     });
   }
 
@@ -325,12 +346,18 @@ function matchAssetToEncounter(asset = {}, registryForPatient = new Map()) {
         encounterType: assetType,
       };
     }
+    const encounterType = 'other';
     return {
-      encounterId: null,
-      confidence: 'review',
-      reason: 'no_encounter_on_date',
-      visitLabel: null,
-      encounterType: assetType,
+      encounterId: stableEncounterId({
+        patientId,
+        date,
+        encounterType,
+        sessionNumber: null,
+      }),
+      confidence: 'medium',
+      reason: 'date_only_fallback',
+      visitLabel: encounterVisitLabel(encounterType, null),
+      encounterType,
     };
   }
 
@@ -365,6 +392,38 @@ function matchAssetToEncounter(asset = {}, registryForPatient = new Map()) {
       visitLabel: sameDay[0].visitLabel,
       encounterType: sameDay[0].encounterType,
     };
+  }
+
+
+  const assetTimeMs = assetEncounterTimeMs(asset);
+  if (assetTimeMs) {
+    const timed = sameDay
+      .map((encounter) => {
+        const encounterTimeMs = parseDateTimeMs(encounter.occurredAt);
+        return {
+          encounter,
+          distanceMs: encounterTimeMs === null ? null : Math.abs(assetTimeMs - encounterTimeMs),
+        };
+      })
+      .filter((candidate) => candidate.distanceMs !== null)
+      .sort((a, b) => a.distanceMs - b.distanceMs);
+    const winner = timed[0];
+    const runnerUp = timed[1];
+    const maxDistanceMs = 12 * 60 * 60 * 1000;
+    const uniqueMarginMs = 30 * 60 * 1000;
+    if (
+      winner &&
+      winner.distanceMs <= maxDistanceMs &&
+      (!runnerUp || runnerUp.distanceMs - winner.distanceMs >= uniqueMarginMs)
+    ) {
+      return {
+        encounterId: winner.encounter.encounterId,
+        confidence: 'high',
+        reason: 'date_and_nearest_time',
+        visitLabel: winner.encounter.visitLabel,
+        encounterType: winner.encounter.encounterType,
+      };
+    }
   }
 
   return {
@@ -411,6 +470,7 @@ module.exports = {
   inferEncounterType,
   inferEncounterTypeFromAsset,
   assetEncounterDate,
+  assetEncounterTimeMs,
   stableEncounterId,
   encounterVisitLabel,
   buildEncounterRegistry,
