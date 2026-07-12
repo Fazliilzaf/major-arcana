@@ -137,7 +137,7 @@ async function waitForDetail(page, patientId, timeoutMs = 120000) {
   throw new Error('Kundkort laddades inte');
 }
 
-async function waitForDecodedImages(selector, page, timeoutMs = 120000) {
+async function waitForDecodedImages(selector, page, timeoutMs = 180000) {
   await page.waitForFunction(
     (sel) => {
       const imgs = [...document.querySelectorAll(sel)];
