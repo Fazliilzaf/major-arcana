@@ -122,6 +122,8 @@ async function openV12BesokModule(page) {
 
 async function waitForDetail(page, patientId, timeoutMs = 120000) {
   const deadline = Date.now() + timeoutMs;
+  let attempts = 0;
+  let lastState = null;
   while (Date.now() < deadline) {
     const state = await page.evaluate((pid) => {
       const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
@@ -133,10 +135,16 @@ async function waitForDetail(page, patientId, timeoutMs = 120000) {
         railHidden: hidden,
       };
     }, patientId);
+    lastState = state;
     if (state.hasDetail && state.selected === patientId && !state.railHidden) return state;
+
+    attempts += 1;
+    if (attempts === 1 || attempts % 6 === 0) {
+      await ensurePatientOpen(page, patientId).catch(() => {});
+    }
     await page.waitForTimeout(1500);
   }
-  throw new Error('Kundkort laddades inte');
+  throw new Error(`Kundkort laddades inte: ${JSON.stringify(lastState || {})}`);
 }
 
 async function waitForDecodedImages(selector, page, timeoutMs = 180000) {

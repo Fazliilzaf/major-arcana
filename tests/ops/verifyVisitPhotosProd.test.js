@@ -14,4 +14,7 @@ test('visit-photo prod verifier passes waitForFunction timeout as the third argu
     source,
     /waitForFunction\([\s\S]*?data-v11-rk-besok[\s\S]*?undefined,[\s\S]*?timeout: 120000/
   );
+  assert.match(source, /attempts % 6 === 0/);
+  assert.match(source, /ensurePatientOpen\(page, patientId\)/);
+  assert.match(source, /JSON\.stringify\(lastState \|\| \{\}\)/);
 });
