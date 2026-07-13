@@ -32,6 +32,10 @@ function buildEnrichmentRowConversationKey(row = {}) {
   });
 }
 
+function resolveEnrichmentRowConversationId(row = {}) {
+  return normalizeText(row.conversationKey) || buildEnrichmentRowConversationKey(row);
+}
+
 function hasCcoEnrichmentSignals(row = {}) {
   const intent = normalizeText(row.intent).toLowerCase();
   if (intent && !['unknown', 'unspecified', 'none'].includes(intent)) {
@@ -151,6 +155,8 @@ async function computeCcoInboxEnrichmentCoverage({
   readyThresholdPercent = 99.5,
   baselineOutputDataOverride = null,
   stateRoot = '',
+  eventLoopYieldEveryRows = 250,
+  yieldControl = null,
 } = {}) {
   const resolvedMailboxIds = asArray(mailboxIds)
     .map((item) => normalizeMailboxId(item))
@@ -174,12 +180,11 @@ async function computeCcoInboxEnrichmentCoverage({
         })
       : null;
 
-  const truthRows = worklistReadModel
-    ? worklistReadModel.listWorklistRows({
-        mailboxIds: resolvedMailboxIds,
-        includeOutOfScopeDraftReview: false,
-      })
-    : [];
+  const yieldToEventLoop =
+    typeof yieldControl === 'function'
+      ? yieldControl
+      : () => new Promise((resolve) => setImmediate(resolve));
+  const yieldEveryRows = Math.max(25, Number(eventLoopYieldEveryRows) || 250);
 
   const baseline = baselineOutputDataOverride
     ? {
@@ -226,40 +231,59 @@ async function computeCcoInboxEnrichmentCoverage({
   const gapConversationIds = [];
   const sampleUnenrichedIds = [];
   let enrichedConversationCount = 0;
+  let truthConversationCount = 0;
 
-  for (const truthRow of truthRows) {
-    const mailboxId =
-      normalizeMailboxId(truthRow.mailboxId || truthRow.mailboxAddress) || 'unknown';
-    if (!perMailboxMap.has(mailboxId)) {
-      perMailboxMap.set(mailboxId, {
-        mailboxId,
-        truthConversationCount: 0,
-        enrichedConversationCount: 0,
-        gapCount: 0,
-        coveragePercent: 0,
-      });
-    }
-    const mailboxStats = perMailboxMap.get(mailboxId);
-    mailboxStats.truthConversationCount += 1;
+  for (const requestedMailboxId of resolvedMailboxIds) {
+    const truthRows = worklistReadModel
+      ? worklistReadModel.listWorklistRows({
+          mailboxIds: [requestedMailboxId],
+          includeOutOfScopeDraftReview: false,
+        })
+      : [];
 
-    const matchedRow = truthRowMatchesEnrichment(truthRow, enrichmentIndex);
-    const enriched = Boolean(matchedRow && hasCcoEnrichmentSignals(matchedRow));
-    if (enriched) {
-      enrichedConversationCount += 1;
-      mailboxStats.enrichedConversationCount += 1;
-    } else {
-      const gapId = resolveGapConversationId(truthRow);
-      if (gapId) {
-        gapConversationIds.push(gapId);
-        if (sampleUnenrichedIds.length < 25) {
-          sampleUnenrichedIds.push(gapId);
-        }
+    for (let rowIndex = 0; rowIndex < truthRows.length; rowIndex += 1) {
+      const truthRow = truthRows[rowIndex];
+      const mailboxId =
+        normalizeMailboxId(truthRow.mailboxId || truthRow.mailboxAddress) ||
+        requestedMailboxId ||
+        'unknown';
+      if (!perMailboxMap.has(mailboxId)) {
+        perMailboxMap.set(mailboxId, {
+          mailboxId,
+          truthConversationCount: 0,
+          enrichedConversationCount: 0,
+          gapCount: 0,
+          coveragePercent: 0,
+        });
       }
-      mailboxStats.gapCount += 1;
+      const mailboxStats = perMailboxMap.get(mailboxId);
+      mailboxStats.truthConversationCount += 1;
+      truthConversationCount += 1;
+
+      const matchedRow = truthRowMatchesEnrichment(truthRow, enrichmentIndex);
+      const enriched = Boolean(matchedRow && hasCcoEnrichmentSignals(matchedRow));
+      if (enriched) {
+        enrichedConversationCount += 1;
+        mailboxStats.enrichedConversationCount += 1;
+      } else {
+        const gapId = resolveGapConversationId(truthRow);
+        if (gapId) {
+          gapConversationIds.push(gapId);
+          if (sampleUnenrichedIds.length < 25) {
+            sampleUnenrichedIds.push(gapId);
+          }
+        }
+        mailboxStats.gapCount += 1;
+      }
+
+      if ((rowIndex + 1) % yieldEveryRows === 0) {
+        await yieldToEventLoop();
+      }
     }
+
+    await yieldToEventLoop();
   }
 
-  const truthConversationCount = truthRows.length;
   const gapCount = Math.max(0, truthConversationCount - enrichedConversationCount);
   const coveragePercent =
     truthConversationCount > 0
@@ -301,6 +325,7 @@ async function computeCcoInboxEnrichmentCoverage({
 
 module.exports = {
   buildEnrichmentRowConversationKey,
+  resolveEnrichmentRowConversationId,
   hasCcoEnrichmentSignals,
   resolveGapConversationId,
   resolveTruthConversationIds,
