@@ -2362,20 +2362,23 @@ function createCcoPatientMasterRouter({
         if (!assetStore?.listItemsForEnrichment || !assetStore?.linkAssetToPatient) {
           return res.status(503).json({ error: 'Asset store saknar patient-link repair.' });
         }
-        const listed = await patientMasterStore.listPatients({
-          tenantId: actor.tenantId,
-          limit: 20000,
-          offset: 0,
-        });
-        const assets = assetStore.listItemsForEnrichment(actor.tenantId);
         if (!dryRun) {
           const started = startCanonicalPatientRepairJob({
-            assets,
-            patients: asArray(listed?.patients),
             assetStore,
             tenantId: actor.tenantId,
             batchSize: limit,
             actor: { userId: actor.userId, role: actor.role, tenantId: actor.tenantId },
+            loadInputs: async () => {
+              const listed = await patientMasterStore.listPatients({
+                tenantId: actor.tenantId,
+                limit: 20000,
+                offset: 0,
+              });
+              return {
+                assets: assetStore.listItemsForEnrichment(actor.tenantId),
+                patients: asArray(listed?.patients),
+              };
+            },
             onComplete: async (state) => {
               await authStore.addAuditEvent({
                 tenantId: actor.tenantId,
@@ -2404,6 +2407,12 @@ function createCcoPatientMasterRouter({
             state: started.state,
           });
         }
+        const listed = await patientMasterStore.listPatients({
+          tenantId: actor.tenantId,
+          limit: 20000,
+          offset: 0,
+        });
+        const assets = assetStore.listItemsForEnrichment(actor.tenantId);
         const report = await repairCanonicalAssetPatientLinks({
           assets,
           patients: asArray(listed?.patients),
