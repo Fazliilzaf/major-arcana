@@ -32,6 +32,7 @@ test('buildEncounterLinkReviewQueue groups only unresolved and ambiguous media',
 
   assert.equal(report.zeroWrites, true);
   assert.equal(report.stats.missingEncounterId, 1);
+  assert.equal(report.stats.identityResolved, 0);
   assert.equal(report.stats.reviewAssets, 1);
   assert.equal(report.stats.ambiguousGroups, 1);
   assert.equal(report.groups[0].reason, 'ambiguous_path_identity');
@@ -76,7 +77,36 @@ test('buildEncounterLinkReviewQueue excludes media already owned by a canonical 
   });
 
   assert.equal(report.stats.missingEncounterId, 1);
+  assert.equal(report.stats.identityResolved, 1);
   assert.equal(report.stats.reviewGroups, 0);
   assert.equal(report.stats.reviewAssets, 0);
   assert.deepEqual(report.groups, []);
+});
+
+test('buildEncounterLinkReviewQueue keeps only unresolved files from a shared alias', () => {
+  const report = buildEncounterLinkReviewQueue({
+    patients: [{ id: 'patient-lisa', displayName: 'Lisa Karlsson', personnummer: '020405-7160' }],
+    assets: [
+      {
+        id: 'asset-resolved',
+        patientId: 'shared-alias',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        mimeType: 'image/jpeg',
+        relativePath: 'PRP 2025/Lisa Karlsson - 0204057160/IMG_1.jpg',
+      },
+      {
+        id: 'asset-unresolved',
+        patientId: 'shared-alias',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        mimeType: 'image/jpeg',
+        relativePath: 'PRP 2025/Okänd/IMG_2.jpg',
+      },
+    ],
+    includeDetails: true,
+  });
+
+  assert.equal(report.stats.missingEncounterId, 2);
+  assert.equal(report.stats.identityResolved, 1);
+  assert.equal(report.stats.reviewAssets, 1);
+  assert.equal(report.groups[0].assets[0].assetId, 'asset-unresolved');
 });

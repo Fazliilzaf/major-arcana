@@ -1,6 +1,6 @@
 'use strict';
 
-const { resolveCanonicalPatientsForAssetAliases } = require('./ccoPatientAssetIdentity');
+const { resolveCanonicalPatientsForAssets } = require('./ccoPatientAssetIdentity');
 const { isMediaAsset } = require('./ccoEncounterLinkRepair');
 
 function text(value) {
@@ -20,19 +20,22 @@ function buildEncounterLinkReviewQueue({ assets = [], patients = [], includeDeta
       isMediaAsset(asset) &&
       !text(asset?.encounterId)
   );
-  const mappings = resolveCanonicalPatientsForAssetAliases({ patients, assets: missing });
+  const mappings = resolveCanonicalPatientsForAssets({ patients, assets: missing });
   const patientsById = new Map(patients.map((patient) => [text(patient?.id), patient]));
-  const assetsByPatientId = new Map();
-  for (const asset of missing) {
-    const patientId = text(asset?.patientId);
-    if (!assetsByPatientId.has(patientId)) assetsByPatientId.set(patientId, []);
-    assetsByPatientId.get(patientId).push(asset);
+  const assetsById = new Map(missing.map((asset) => [text(asset?.id), asset]));
+  const unresolvedGroups = new Map();
+  for (const mapping of mappings.filter((row) => !text(row?.canonicalPatientId))) {
+    const key = [
+      text(mapping.assetPatientId),
+      text(mapping.reason),
+      ...(mapping.candidatePatientIds || []).map(text).sort(),
+    ].join('|');
+    if (!unresolvedGroups.has(key)) unresolvedGroups.set(key, { mapping, assets: [] });
+    const asset = assetsById.get(text(mapping.assetId));
+    if (asset) unresolvedGroups.get(key).assets.push(asset);
   }
 
-  const groups = mappings
-    .filter((mapping) => !text(mapping?.canonicalPatientId))
-    .map((mapping) => {
-      const groupAssets = assetsByPatientId.get(text(mapping.assetPatientId)) || [];
+  const groups = [...unresolvedGroups.values()].map(({ mapping, assets: groupAssets }) => {
       return {
         assetPatientId: includeDetails ? text(mapping.assetPatientId) : mask(mapping.assetPatientId),
         reason: mapping.reason,
@@ -62,6 +65,7 @@ function buildEncounterLinkReviewQueue({ assets = [], patients = [], includeDeta
     zeroWrites: true,
     stats: {
       missingEncounterId: missing.length,
+      identityResolved: mappings.filter((mapping) => text(mapping?.canonicalPatientId)).length,
       reviewGroups: groups.length,
       reviewAssets: groups.reduce((sum, group) => sum + group.assets.length, 0),
       ambiguousGroups: groups.filter((group) => group.reason === 'ambiguous_path_identity').length,

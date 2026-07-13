@@ -293,6 +293,77 @@ function resolveCanonicalPatientsForAssetAliases({ patients, assets }) {
   });
 }
 
+function resolveCanonicalPatientsForAssets({ patients, assets }) {
+  const patientRows = asArray(patients)
+    .map((patient) => ({
+      patientId: normalizeText(patient?.id),
+      pnr: normalizeDigits(patient?.personnummer || patient?.personalNumber || patient?.pnr),
+      name: normalizeName(
+        patient?.displayName || patient?.fullName || patient?.name || patient?.cliento?.name
+      ),
+    }))
+    .filter((row) => row.patientId);
+  const canonicalPatientIds = new Set(patientRows.map((row) => row.patientId));
+
+  return asArray(assets).map((asset) => {
+    const assetPatientId = normalizeText(asset?.patientId);
+    const assetId = normalizeText(asset?.id);
+    if (canonicalPatientIds.has(assetPatientId)) {
+      return {
+        assetId,
+        assetPatientId,
+        canonicalPatientId: assetPatientId,
+        reason: 'direct_patient_id',
+        candidatePatientIds: [assetPatientId],
+      };
+    }
+
+    const fields = [
+      asset?.originalDrivePath,
+      asset?.relativePath,
+      asset?.originalFileName,
+      asset?.displayName,
+      asset?.documentTitle,
+    ].filter(Boolean);
+    const haystack = fields.join(' / ');
+    const haystackDigits = normalizeDigits(haystack);
+    const segments = haystack.split(/[\\/]/).map(normalizeName).filter(Boolean);
+    const pnrMatches = patientRows.filter(
+      (row) => row.pnr.length >= 8 && haystackDigits.includes(row.pnr)
+    );
+    const exactNameMatches = patientRows.filter(
+      (row) => row.name && segments.some((segment) => segment === row.name)
+    );
+    const prefixNameMatches = patientRows.filter(
+      (row) =>
+        row.name && segments.some((segment) => segment.startsWith(`${row.name} `))
+    );
+    const matches = pnrMatches.length
+      ? pnrMatches
+      : exactNameMatches.length
+        ? exactNameMatches
+        : prefixNameMatches;
+    const candidatePatientIds = [...new Set(matches.map((row) => row.patientId))];
+    return {
+      assetId,
+      assetPatientId,
+      canonicalPatientId:
+        candidatePatientIds.length === 1 ? candidatePatientIds[0] : null,
+      reason:
+        candidatePatientIds.length > 1
+          ? 'ambiguous_path_identity'
+          : candidatePatientIds.length === 0
+            ? 'unresolved_path_identity'
+            : pnrMatches.length
+              ? 'personnummer_path'
+              : exactNameMatches.length
+                ? 'exact_name_path'
+                : 'name_prefix_path',
+      candidatePatientIds,
+    };
+  });
+}
+
 async function resolvePatientAssetIds({
   patientId,
   patient,
@@ -429,5 +500,6 @@ module.exports = {
   assetToPatientFile,
   collectAssetStoreAliases,
   resolveCanonicalPatientsForAssetAliases,
+  resolveCanonicalPatientsForAssets,
   resolvePatientAssetIds,
 };

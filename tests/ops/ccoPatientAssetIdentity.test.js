@@ -5,6 +5,7 @@ const {
   assetToPatientFile,
   collectAssetStoreAliases,
   resolveCanonicalPatientsForAssetAliases,
+  resolveCanonicalPatientsForAssets,
   resolvePatientAssetIds,
 } = require('../../src/ops/ccoPatientAssetIdentity');
 
@@ -171,6 +172,53 @@ test('resolveCanonicalPatientsForAssetAliases accepts an existing canonical pati
       candidatePatientIds: ['patient-direct'],
     },
   ]);
+});
+
+test('resolveCanonicalPatientsForAssets resolves shared aliases independently per file', () => {
+  const mappings = resolveCanonicalPatientsForAssets({
+    patients: [
+      { id: 'patient-david', displayName: 'David' },
+      { id: 'patient-david-baker', displayName: 'David Baker' },
+      { id: 'patient-abdulrahman', displayName: 'Abdulrahman' },
+      {
+        id: 'patient-abdulrahman-ali',
+        displayName: 'Abdulrahman Mohamed Ali',
+        personnummer: '19990526-7358',
+      },
+    ],
+    assets: [
+      {
+        id: 'asset-david',
+        patientId: 'shared-alias',
+        relativePath: 'Juli TP 2020/David Baker/IMG_3840.HEIC',
+      },
+      {
+        id: 'asset-abdulrahman',
+        patientId: 'shared-alias',
+        relativePath: 'Abdulrahman Mohamed Ali - 19990526-7358/IMG_5126.HEIC',
+      },
+    ],
+  });
+
+  assert.deepEqual(
+    mappings.map(({ assetId, canonicalPatientId, reason }) => ({
+      assetId,
+      canonicalPatientId,
+      reason,
+    })),
+    [
+      {
+        assetId: 'asset-david',
+        canonicalPatientId: 'patient-david-baker',
+        reason: 'exact_name_path',
+      },
+      {
+        assetId: 'asset-abdulrahman',
+        canonicalPatientId: 'patient-abdulrahman-ali',
+        reason: 'personnummer_path',
+      },
+    ]
+  );
 });
 
 test('resolveCanonicalPatientsForAssetAliases leaves ambiguous exact names unresolved', () => {
