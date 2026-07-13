@@ -151,3 +151,15 @@ test('rotation: rawItems över taket arkiveras till .jsonl (bounded boot)', asyn
     delete process.env.CM_RAW_ITEMS_MAX;
   }
 });
+
+test('getNeedsReview: avvisade records ligger inte kvar i granska-kön', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'cm-store-nr-'));
+  const store = createCmStore({ filePath: path.join(dir, 'cm.json') });
+  const a = store.createExpenseRecord({ expenseType: 'receipt', confidenceScore: 50 });
+  const b = store.createExpenseRecord({ expenseType: 'receipt', confidenceScore: 50 });
+  assert.equal(store.getNeedsReview().length, 2);
+  store.reject(a.id, {});
+  const kvar = store.getNeedsReview();
+  assert.equal(kvar.length, 1);
+  assert.equal(kvar[0].id, b.id);
+});
