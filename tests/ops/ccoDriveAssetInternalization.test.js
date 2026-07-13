@@ -468,6 +468,51 @@ test('inventory räknar om saknad blob på disk som remaining trots checksum i i
   }
 });
 
+test('renderCandidatesOnly samlar endast renderbara ghosts med Drive-id', async () => {
+  const assets = [
+    {
+      id: 'visible-ghost',
+      patientId: 'patient-1',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      originalDriveFileId: 'drive-visible',
+      storageKey: 'missing-visible',
+      checksum: 'checksum-visible',
+      fileSize: 10,
+    },
+    {
+      id: 'review-ghost',
+      patientId: 'patient-1',
+      status: 'NEEDS_REVIEW',
+      originalDriveFileId: 'drive-review',
+      storageKey: 'missing-review',
+      checksum: 'checksum-review',
+      fileSize: 10,
+    },
+  ];
+  const result = await collectDriveRowsForInternalization({
+    patientMasterState: {
+      tenants: {
+        'hair-tp-clinic': {
+          patients: [
+            {
+              id: 'patient-1',
+              drive: { attachments: [{ driveFileId: 'drive-pm', fileName: 'pm.pdf' }] },
+            },
+          ],
+        },
+      },
+    },
+    assetStore: { listItemsForEnrichment: () => assets },
+    storage: { exists: async () => false },
+    renderCandidatesOnly: true,
+  });
+
+  assert.equal(result.rows.length, 1);
+  assert.equal(normalizeDriveAssetRow(result.rows[0]).driveFileId, 'drive-visible');
+  assert.equal(result.rowSources.patientMasterAttachments, 0);
+  assert.equal(result.rowSources.assetStoreDriveIds, 1);
+});
+
 test('previewInternalizeCandidates maskerar och hittar pilotWindow utan unknown_month', async () => {
   const rig = await makeRig();
   try {
