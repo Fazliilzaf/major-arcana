@@ -428,6 +428,51 @@ test('assets/preview-encounter-links är read-only och maskerar föreslagna foto
   }
 });
 
+test('assets/preview-encounter-links tar med entydigt path-alias för canonical patient', async () => {
+  const fixture = await makeFixture();
+  try {
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: TENANT,
+      id: 'patient-khalid',
+      displayName: 'Khalid Ahmed Mohamed',
+      matchStatus: 'matched',
+    });
+    await fixture.assetStore.addAsset({
+      patientId: 'cliento-khalid-legacy',
+      sourceSystem: 'drive_import',
+      sourceRecordId: 'journal-khalid',
+      originalFileName: 'Journal Konsultation.pdf',
+      originalDrivePath: 'Januari 2026/Khalid Ahmed Mohamed/Journal Konsultation.pdf',
+      mimeType: 'application/pdf',
+      category: 'journal',
+      documentDate: '2026-01-12',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+    await fixture.assetStore.addAsset({
+      patientId: 'cliento-khalid-legacy',
+      sourceSystem: 'drive_import',
+      sourceRecordId: 'photo-khalid',
+      originalFileName: 'IMG_0001.jpg',
+      originalDrivePath: 'Januari 2026/Khalid Ahmed Mohamed/IMG_0001.jpg',
+      mimeType: 'image/jpeg',
+      category: 'photo_before',
+      documentDate: '2026-01-12',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+
+    await withServer(fixture.app, async (base) => {
+      const res = await postEncounterPreviewJson(base, { patientIds: ['patient-khalid'] });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.stats.assetsScanned, 2);
+      assert.equal(res.body.stats.linkable, 1);
+      assert.equal(res.body.stats.review, 0);
+      assert.equal(res.body.samples[0].reason, 'date_only');
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
 test('assets/preview-encounter-link-population inventerar direkt utan patient-sweep', async () => {
   const fixture = await makeFixture();
   try {
