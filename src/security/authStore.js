@@ -185,6 +185,101 @@ function buildOtpAuthUrl({ secret, email, issuer = 'Arcana' }) {
 }
 
 const AUDIT_CHAIN_VERSION = 1;
+const DEFAULT_AUDIT_METADATA_MAX_BYTES = Math.max(
+  256,
+  Number(process.env.AUTH_AUDIT_METADATA_MAX_BYTES) || 2048
+);
+
+function summarizeAuditJobResult(result) {
+  if (!result || typeof result !== 'object' || Array.isArray(result)) {
+    return result;
+  }
+  const summary = {};
+  for (const key of [
+    'ok',
+    'error',
+    'message',
+    'jobId',
+    'trigger',
+    'durationMs',
+    'tenantId',
+    'status',
+    'code',
+    'reason',
+    'count',
+    'processed',
+    'failed',
+    'skipped',
+    'created',
+    'updated',
+    'deleted',
+  ]) {
+    if (result[key] !== undefined) summary[key] = result[key];
+  }
+  if (Object.keys(summary).length > 0) return summary;
+  return { ok: result.ok, truncated: true };
+}
+
+function compactAuditValue(value, depth = 0) {
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string') {
+    const maxLen = depth === 0 ? 512 : 160;
+    return value.length <= maxLen ? value : `${value.slice(0, maxLen)}…`;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) {
+    if (depth >= 2) return `[array:${value.length}]`;
+    const maxItems = depth === 0 ? 12 : 6;
+    return value.slice(0, maxItems).map((item) => compactAuditValue(item, depth + 1));
+  }
+  if (typeof value === 'object') {
+    if (depth >= 2) return '[object]';
+    const out = {};
+    for (const [key, nested] of Object.entries(safeObject(value)).slice(0, 24)) {
+      out[key] = compactAuditValue(nested, depth + 1);
+    }
+    return out;
+  }
+  return String(value);
+}
+
+function sanitizeAuditMetadata(metadata = {}) {
+  const source = safeObject(metadata);
+  const compact = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (key === 'result') {
+      compact.result = summarizeAuditJobResult(value);
+      continue;
+    }
+    compact[key] = compactAuditValue(value, 0);
+  }
+
+  let serialized = stableJson(compact);
+  if (Buffer.byteLength(serialized, 'utf8') <= DEFAULT_AUDIT_METADATA_MAX_BYTES) {
+    return compact;
+  }
+
+  const minimal = {};
+  for (const [key, value] of Object.entries(compact)) {
+    if (['correlationId', 'ok', 'error', 'message', 'jobId', 'trigger', 'reason'].includes(key)) {
+      minimal[key] = compactAuditValue(value, 0);
+    }
+  }
+  serialized = stableJson(minimal);
+  if (Buffer.byteLength(serialized, 'utf8') <= DEFAULT_AUDIT_METADATA_MAX_BYTES) {
+    return {
+      ...minimal,
+      _truncated: true,
+      _originalBytes: Buffer.byteLength(stableJson(source), 'utf8'),
+    };
+  }
+
+  return {
+    _truncated: true,
+    _originalBytes: Buffer.byteLength(stableJson(source), 'utf8'),
+    correlationId: normalizeText(source.correlationId || ''),
+  };
+}
 
 function isSha256Hex(value) {
   return typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
@@ -544,11 +639,21 @@ async function createAuthStore({
       }
     }
 
-    if (auditMaxEntries > 0 && state.auditEvents.length > auditMaxEntries) {
-      state.auditEvents = state.auditEvents.slice(-auditMaxEntries);
-      changed = true;
-    }
     return changed;
+  }
+
+  async function rotateAuditEventsIfNeeded() {
+    if (auditMaxEntries <= 0 || state.auditEvents.length <= auditMaxEntries) {
+      return 0;
+    }
+    const cut = state.auditEvents.length - auditMaxEntries;
+    const overflow = state.auditEvents.splice(0, cut);
+    if (!overflow.length) return 0;
+    const ym = new Date().toISOString().slice(0, 7).replace('-', '');
+    const archivePath = `${filePath}.archive-${ym}.jsonl`;
+    const lines = `${overflow.map((event) => JSON.stringify({ kind: 'auditEvent', event })).join('\n')}\n`;
+    await fs.appendFile(archivePath, lines, 'utf8');
+    return overflow.length;
   }
 
   function emergencyPruneForPersistFailure() {
@@ -617,6 +722,7 @@ async function createAuthStore({
 
   async function save() {
     prune();
+    await rotateAuditEventsIfNeeded();
     const recoverySteps = [
       () => {},
       () => {
@@ -735,7 +841,9 @@ async function createAuthStore({
   }) {
     const { seq: lastSeq, hash: lastHash } = getAuditTail();
     const nextSeq = lastSeq + 1;
-    const metadataValue = metadata && typeof metadata === 'object' ? safeObject(metadata) : {};
+    const metadataValue = sanitizeAuditMetadata(
+      metadata && typeof metadata === 'object' ? safeObject(metadata) : {}
+    );
     const requestContext = getRequestContext();
     const correlationId = normalizeText(requestContext?.correlationId || '');
     if (correlationId && !normalizeText(metadataValue?.correlationId)) {
@@ -1604,7 +1712,7 @@ async function createAuthStore({
   }
 
   const startupPruned = prune();
-  if (startupPruned) {
+  if (startupPruned || (auditMaxEntries > 0 && state.auditEvents.length > auditMaxEntries)) {
     await save();
   }
 
@@ -1647,4 +1755,6 @@ async function createAuthStore({
 
 module.exports = {
   createAuthStore,
+  sanitizeAuditMetadata,
+  summarizeAuditJobResult,
 };

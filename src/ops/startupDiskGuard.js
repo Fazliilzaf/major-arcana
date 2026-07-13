@@ -6,7 +6,9 @@ const { pruneBackups } = require('./stateBackup');
 const { pruneSchedulerPilotReports } = require('./pilotReports');
 
 const TMP_FILE_PATTERN = /\.tmp$/i;
-const OVERSIZE_BAK_PATTERN = /\.oversize\.bak$/i;
+// ORD-71: legacy `.oversize.bak` (no timestamp) is never auto-pruned — prod rescue backup
+// must survive until rotation is verified and ops removes it manually.
+const OVERSIZE_BAK_PRUNE_PATTERN = /\.oversize-\d{8}T\d{6}\.\d{3}Z\.bak$/i;
 const MB = 1024 * 1024;
 
 function toPositiveInt(value, fallback = 0) {
@@ -74,7 +76,7 @@ async function pruneOversizeBackupsInDirectory({
   const entries = await fs.readdir(directoryPath, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isFile()) continue;
-    if (!OVERSIZE_BAK_PATTERN.test(entry.name)) continue;
+    if (!OVERSIZE_BAK_PRUNE_PATTERN.test(entry.name)) continue;
     const filePath = path.join(directoryPath, entry.name);
     let stat = null;
     try {
@@ -98,6 +100,51 @@ async function pruneOversizeBackupsInDirectory({
     }
   }
   return deleted;
+}
+
+function buildTimestampedOversizeBackupPath(filePath) {
+  const stamp = new Date().toISOString().replace(/[-:]/g, '');
+  return `${filePath}.oversize-${stamp}.bak`;
+}
+
+function safeObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+async function readJsonFile(filePath) {
+  try {
+    const raw = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function buildAuthStoreGuardFallback({ fallback, backupPath }) {
+  const base = safeObject(fallback);
+  const preserved = {
+    users: safeObject(base.users),
+    memberships: safeObject(base.memberships),
+    sessions: {},
+    pendingLogins: {},
+    pendingMfaChallenges: {},
+    auditEvents: [],
+  };
+  return readJsonFile(backupPath).then((parsed) => {
+    if (!parsed || typeof parsed !== 'object') return preserved;
+    return {
+      ...preserved,
+      users: safeObject(parsed.users),
+      memberships: safeObject(parsed.memberships),
+    };
+  });
+}
+
+async function buildGuardFallback({ guard, backupPath }) {
+  if (guard.scope === 'auth_store') {
+    return buildAuthStoreGuardFallback({ fallback: guard.fallback, backupPath });
+  }
+  return guard.fallback;
 }
 
 function buildStateFileGuards(config = {}) {
@@ -248,15 +295,10 @@ async function sanitizeOversizedStateFiles({ config }) {
       });
       if (sizeBytes <= guard.maxBytes) continue;
 
-      const backupPath = `${absoluteFilePath}.oversize.bak`;
-      try {
-        await fs.unlink(backupPath);
-      } catch (error) {
-        if (error?.code !== 'ENOENT') throw error;
-      }
-
+      const backupPath = buildTimestampedOversizeBackupPath(absoluteFilePath);
       await fs.rename(absoluteFilePath, backupPath);
-      await fs.writeFile(absoluteFilePath, JSON.stringify(guard.fallback, null, 2), 'utf8');
+      const fallbackPayload = await buildGuardFallback({ guard, backupPath });
+      await fs.writeFile(absoluteFilePath, JSON.stringify(fallbackPayload, null, 2), 'utf8');
       summary.sanitizedCount += 1;
       summary.sanitized.push({
         scope: guard.scope,
@@ -419,4 +461,6 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
 
 module.exports = {
   runStartupDiskGuard,
+  buildTimestampedOversizeBackupPath,
+  sanitizeOversizedStateFiles,
 };

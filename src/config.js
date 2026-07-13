@@ -824,7 +824,7 @@ const config = {
   authSessionTtlHours: asInt(process.env.AUTH_SESSION_TTL_HOURS, 168),
   authSessionIdleMinutes: asInt(process.env.AUTH_SESSION_IDLE_MINUTES, 1440),
   authLoginTicketTtlMinutes: asInt(process.env.AUTH_LOGIN_TICKET_TTL_MINUTES, 10),
-  authAuditMaxEntries: asInt(process.env.AUTH_AUDIT_MAX_ENTRIES, 5000),
+  authAuditMaxEntries: asInt(process.env.AUTH_AUDIT_MAX_ENTRIES, 2000),
   authAuditAppendOnly: isProduction ? true : asBool(process.env.AUTH_AUDIT_APPEND_ONLY, true),
   authLoginRateLimitWindowSec: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_SEC, 900),
   authLoginRateLimitMax: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 5),
