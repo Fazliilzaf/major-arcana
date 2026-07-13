@@ -1984,6 +1984,7 @@ function createCcoPatientMasterRouter({
           req.body?.includeInventoryCoverage,
           false
         );
+        const includeReviewDetails = req.body?.includeReviewDetails === true;
 
         let report;
         try {
@@ -1995,7 +1996,7 @@ function createCcoPatientMasterRouter({
             patientIds,
             limit,
             sampleSize,
-            maskSamples: true,
+            maskSamples: !includeReviewDetails,
           });
         } catch (error) {
           return res.status(error.statusCode || 500).json({ error: error.message });

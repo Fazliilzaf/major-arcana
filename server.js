@@ -9299,6 +9299,7 @@ try {
   const { createCcoAssetImportRunStore } = require('./src/ops/ccoAssetImportRunStore');
   const { createCcoAssetReviewQueueStore } = require('./src/ops/ccoAssetReviewQueueStore');
   const { createSecureStorageProvider } = require('./src/ops/ccoSecureStorageProvider');
+  const { diagnoseGhostVisibleAssets } = require('./src/ops/ccoGhostVisibleAssetDiagnosis');
 
   // Lazy-init: stores skapas first-call så att data/-filer skapas on-demand
   // (per cursor-regeln: gitignored, on-write only).
@@ -9423,6 +9424,15 @@ try {
     const needsReview = aStats.needsReviewCount || byStatus.NEEDS_REVIEW || 0;
     const failed = byStatus.FAILED_IMPORT || 0;
     const duplicate = aStats.duplicateCount || byStatus.DUPLICATE || 0;
+    const ghostDiagnosis = await diagnoseGhostVisibleAssets({
+      assetStore: stores.assetStore,
+      storage: stores.secureStorage,
+      tenantId,
+      limit: 1,
+      sampleSize: 0,
+      maskSamples: true,
+    });
+    const ghostBlobBlockers = ghostDiagnosis.stats?.ghostRenderCandidates || 0;
 
     // Patient-coverage: räkna unika patienter + de utan journal/foto.
     // Vi använder customerStore (om finns) för total-population.
@@ -9480,7 +9490,8 @@ try {
       cacheTtlMs: ASSET_QA_CACHE_TTL_MS,
       // PRIMARY metric — cutover-readiness gate.
       linkOnlyBlockers: linkOnly,
-      cutoverReady: linkOnly === 0 && failed === 0,
+      ghostBlobBlockers,
+      cutoverReady: linkOnly === 0 && failed === 0 && ghostBlobBlockers === 0,
       // 11 metrics per cursor-regeln
       metrics: {
         totalFilesDiscovered: discovered,
@@ -9494,6 +9505,7 @@ try {
         totalPatientsWithMissingImages: patientsMissingImages,
         totalOrphanFiles: orphans,
         totalDuplicateFiles: duplicate,
+        totalGhostBlobBlockers: ghostBlobBlockers,
       },
       assetStats: aStats,
       recentRuns,
