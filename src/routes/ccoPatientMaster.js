@@ -34,6 +34,10 @@ const {
 } = require('../ops/ccoGhostVisibleAssetDiagnosis');
 const { repairGhostVisibleAssets } = require('../ops/ccoGhostVisibleAssetRepair');
 const {
+  getGhostVisibleDiagnosisJobState,
+  startGhostVisibleDiagnosisJob,
+} = require('../ops/ccoGhostVisibleDiagnosisAsyncJob');
+const {
   finalizeInternalizeReportWithAutoRepair,
   parseAutoRepairGhostVisible,
 } = require('../ops/ccoInternalizeGhostAutoRepair');
@@ -2061,6 +2065,46 @@ function createCcoPatientMasterRouter({
         );
         const includeReviewDetails = req.body?.includeReviewDetails === true;
 
+        if (req.body?.async === true) {
+          const started = startGhostVisibleDiagnosisJob({
+            assetStore,
+            storage,
+            tenantId: actor.tenantId,
+            importRunId: importRunId || null,
+            patientIds,
+            limit,
+            sampleSize,
+            maskSamples: !includeReviewDetails,
+            includeInventoryCoverage: includeInventory,
+            onComplete: async (_state, completedReport) => {
+              await authStore.addAuditEvent({
+                tenantId: actor.tenantId,
+                actorUserId: actor.userId,
+                action: 'cco.patient_master.assets_diagnose_ghost_visible',
+                outcome: 'success',
+                targetType: 'cco_patient_assets',
+                targetId: importRunId || 'all',
+                metadata: {
+                  async: true,
+                  zeroWrites: true,
+                  ghostRenderCandidates:
+                    completedReport.stats?.ghostRenderCandidates ?? 0,
+                  withBlobSibling: completedReport.stats?.withBlobSibling ?? 0,
+                  importRunId: importRunId || null,
+                },
+              });
+            },
+          });
+          return res.status(202).json({
+            ok: true,
+            accepted: started.accepted,
+            alreadyRunning: started.already === true,
+            zeroWrites: true,
+            pollUrl: '/api/v1/cco-patient-master/assets/diagnose-ghost-visible/job',
+            state: started.state,
+          });
+        }
+
         let report;
         try {
           report = await diagnoseGhostVisibleAssets({
@@ -2101,6 +2145,23 @@ function createCcoPatientMasterRouter({
         });
 
         return res.json(report);
+      })
+  );
+
+  router.get(
+    '/cco-patient-master/assets/diagnose-ghost-visible/job',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async () => {
+        const state = getGhostVisibleDiagnosisJobState();
+        return res.json({
+          ok: true,
+          zeroWrites: true,
+          completed: Boolean(state.finishedAt) && !state.running,
+          failed: Boolean(state.lastError),
+          state,
+        });
       })
   );
 
