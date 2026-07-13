@@ -848,11 +848,16 @@
             esc(txt(e.author || e.practitioner || '')) +
             '</div></div>' +
             chip(signed ? 'ok' : 'warn', signed ? 'Signerad' : 'Utkast') +
-            // Utkast → två knappar (Spara + Fortsätt) som facit; signerad → Öppna.
+            // Själva sparandet sker i journaleditorn. Översikten öppnar rätt
+            // befintligt journalflöde och bär med encounter-kopplingen.
             '<div class="journal-actions">' +
             (signed
-              ? '<button class="j-btn">Öppna</button>'
-              : '<button class="j-btn">Spara</button><button class="j-btn primary">Fortsätt</button>') +
+              ? '<button type="button" class="j-btn" data-v12-visit-journal data-encounter-id="' +
+                esc(txt(e.encounterId)) +
+                '">Öppna</button>'
+              : '<button type="button" class="j-btn primary" data-v12-visit-journal data-encounter-id="' +
+                esc(txt(e.encounterId)) +
+                '">Fortsätt</button>') +
             '</div></div>'
           );
         })
@@ -1339,7 +1344,7 @@
         ? '<div class="section-cta"><span class="lbl">' +
           up.length +
           (up.length === 1 ? ' kommande tid' : ' kommande tider') +
-          ' väntar på bekräftelse från kund</span><button class="warn-action">Bekräfta alla</button></div>'
+          ' väntar på bekräftelse från kund</span><button type="button" class="warn-action" data-v12-confirm-bookings>Bekräfta alla</button></div>'
         : '';
     return (
       '<section class="sec" id="s8">' +
@@ -1685,7 +1690,7 @@
     ['s11', 'Ekonomi', '11'],
     ['s12', 'Insikter', '12'],
   ];
-  function rail(events, nextStep, bundle) {
+  function rail(events, nextStep, bundle, card) {
     var evs = arr(events);
     var rows = evs.length
       ? evs
@@ -1708,7 +1713,7 @@
           esc(txt(nextStep.what)) +
           '</div>' +
           (nextStep.why ? '<div class="sub">' + esc(txt(nextStep.why)) + '</div>' : '') +
-          '<div class="ctas"><button class="cta secondary">Granska</button>' +
+          '<div class="ctas"><button type="button" class="cta secondary" data-v12-scroll-module="insights">Granska</button>' +
           '<button class="cta primary" data-kk-sig="' +
           esc(txt(nextStep.ruleId)) +
           '">' +
@@ -1741,8 +1746,10 @@
       '<div class="rail-card"><div class="rail-l">Snabb-åtgärder</div><div class="quick-actions">' +
       '<button class="quick-btn dark full" data-v11-active-visit-action="photo">📷 Ta bild · spara i journal</button>' +
       '<button class="quick-btn" data-v11-active-visit-action="notes">✏️ Anteckna</button>' +
-      '<button class="quick-btn">💬 Svarstudio</button>' +
-      '<button class="quick-btn full" data-v12-canon-jump="s8">📅 Boka återbesök</button>' +
+      '<button type="button" class="quick-btn" data-v12-reply-studio>💬 Svarstudio</button>' +
+      '<button type="button" class="quick-btn full" data-kk-ord48-open-calendar data-patient-id="' +
+      esc(txt(card && (card.patientId || card.id))) +
+      '">📅 Boka återbesök</button>' +
       '</div></div>';
     return (
       '<aside class="rail">' +
@@ -2087,7 +2094,7 @@
       '<div class="v12-canon" data-v12-canon="1">' +
       '<div class="v12-canon__grid">' +
       main +
-      rail(recentEvents, nextStep, bundle) +
+      rail(recentEvents, nextStep, bundle, card) +
       '</div>' +
       sticky(nextStep, card, av) +
       '</div>'

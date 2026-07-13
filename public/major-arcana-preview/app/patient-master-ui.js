@@ -1429,6 +1429,7 @@
     health: 'health',
     halsa: 'health',
     journal: 'journal',
+    anteckningar: 'journal',
     foto: 'photos',
     photos: 'photos',
     'besok-tillfallen': 'bookings',
@@ -1438,6 +1439,8 @@
     filer: 'documents',
     avtal: 'documents',
     ekonomi: 'economy',
+    kommunikation: 'communication',
+    insights: 'insights',
   };
 
   const V12_RAIL_CLASS_MODULES = [
@@ -1469,7 +1472,7 @@
     if (!target || !usesV12Workspace()) return '';
     if (
       target.closest(
-        'a[href^="tel:"],a[href^="sms:"],a[href^="mailto:"],[data-v11-active-visit-action],[data-v9-quick],[data-kk-sig],[data-kk-ord48-open-calendar],[data-patient-photo-camera],[data-v11-doc-action]'
+        'a[href^="tel:"],a[href^="sms:"],a[href^="mailto:"],[data-v11-active-visit-action],[data-v9-quick],[data-kk-sig],[data-kk-ord48-open-calendar],[data-patient-photo-camera],[data-v11-doc-action],[data-patient-action]'
       )
     ) {
       return '';
@@ -1908,9 +1911,9 @@
       }
       const activeVisitAction = event.target.closest('[data-v11-active-visit-action]');
       if (activeVisitAction && body.contains(activeVisitAction)) {
-        event.preventDefault();
         const action = activeVisitAction.getAttribute('data-v11-active-visit-action');
         if (action === 'photo') {
+          event.preventDefault();
           const cameraInput = document.querySelector('[data-patient-photo-camera]');
           if (cameraInput) {
             cameraInput.dataset.encounterId =
@@ -1921,12 +1924,16 @@
           window.requestAnimationFrame(() => {
             cameraInput?.click?.();
           });
+          return;
         } else if (action === 'journal' || action === 'notes') {
+          event.preventDefault();
           closeV12WorkspaceOverlayIfOpen();
           switchDetailTab(action === 'notes' ? 'anteckningar' : 'journal');
           setStatus(action === 'notes' ? 'Anteckningar öppnade.' : 'Journal öppnad.', 'info');
+          return;
         }
-        return;
+        // checkin/followup/complete ägs redan av bindIntelligentJourney
+        // som binds nedan. Låt eventet fortsätta till den befintliga handlern.
       }
       const comparePhotos = event.target.closest('[data-v12-compare-photos]');
       if (comparePhotos && body.contains(comparePhotos)) {
@@ -1960,6 +1967,18 @@
       if (visitPrep && body.contains(visitPrep)) {
         event.preventDefault();
         openV12VisitPrep(body, ctx);
+        return;
+      }
+      const confirmBookings = event.target.closest('[data-v12-confirm-bookings]');
+      if (confirmBookings && body.contains(confirmBookings)) {
+        event.preventDefault();
+        journeyHandlers.confirmBookings?.();
+        return;
+      }
+      const replyStudio = event.target.closest('[data-v12-reply-studio]');
+      if (replyStudio && body.contains(replyStudio)) {
+        event.preventDefault();
+        document.querySelector('[data-studio-open]')?.click();
         return;
       }
       const calBtn = event.target.closest('[data-kk-ord48-open-calendar]');
@@ -2363,7 +2382,7 @@
     void hydrateGkMediaElements(body);
   }
 
-  function openV12WorkspaceFromRail(root, ctx, moduleName) {
+  function openV12WorkspaceFromRail(root, ctx, moduleName, options = {}) {
     if (!root || !ctx || !usesV12Workspace()) return;
     const launch = async () => {
       const patientId = normalizeText(
@@ -2434,6 +2453,9 @@
       deep.hidden = false;
       deep.setAttribute('aria-hidden', 'false');
       bindV12WorkspaceOverlayBody(body, ctx);
+      if (options.openProfileEditor) {
+        window.requestAnimationFrame(() => body.querySelector('[data-v12-edit-open]')?.click());
+      }
       const close = () => {
         deep.hidden = true;
         deep.setAttribute('aria-hidden', 'true');
@@ -2489,12 +2511,17 @@
     railShell.addEventListener(
       'click',
       (event) => {
-        const moduleName = inferV12ModuleFromRailClick(event.target);
+        const editProfile = event.target.closest('[data-v12-edit-open]');
+        const moduleName = editProfile
+          ? 'current-state'
+          : inferV12ModuleFromRailClick(event.target);
         if (!moduleName) return;
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
-        openV12WorkspaceFromRail(root, ctx, moduleName);
+        openV12WorkspaceFromRail(root, ctx, moduleName, {
+          openProfileEditor: Boolean(editProfile),
+        });
       },
       true
     );
