@@ -584,16 +584,26 @@ function compareWorklistRollupRows(left = {}, right = {}) {
   const rightNeedsReply = right?.state?.needsReply === true ? 1 : 0;
   const leftLane = rankWorklistLane(left?.lane || '');
   const rightLane = rankWorklistLane(right?.lane || '');
-  const leftLatest = Date.parse(normalizeText(left?.timing?.latestMessageAt || ''));
-  const rightLatest = Date.parse(normalizeText(right?.timing?.latestMessageAt || ''));
-  if (rightUnread !== leftUnread) return rightUnread - leftUnread;
-  if (rightNeedsReply !== leftNeedsReply) return rightNeedsReply - leftNeedsReply;
-  if (rightLane !== leftLane) return rightLane - leftLane;
+  // Comparatorn används både före och efter consumer-projektionen. Läs därför
+  // både det flata readmodel-fältet och consumer-fältet under timing.
+  const leftLatest = Date.parse(
+    normalizeText(left?.timing?.latestMessageAt || left?.latestMessageAt || '')
+  );
+  const rightLatest = Date.parse(
+    normalizeText(right?.timing?.latestMessageAt || right?.latestMessageAt || '')
+  );
+  // Inkorgsordningen ska följa vanlig mail-logik: senaste verkliga aktivitet
+  // först. Oläst/behöver svar/lane är visuella arbetsmarkörer och får bara
+  // avgöra ordningen när två trådar har exakt samma timestamp. Väntar-lanen
+  // har en separat äldst-först-sortering i konversationer.html.
   if (Number.isFinite(rightLatest) && Number.isFinite(leftLatest) && rightLatest !== leftLatest) {
     return rightLatest - leftLatest;
   }
   if (Number.isFinite(rightLatest) && !Number.isFinite(leftLatest)) return 1;
   if (!Number.isFinite(rightLatest) && Number.isFinite(leftLatest)) return -1;
+  if (rightUnread !== leftUnread) return rightUnread - leftUnread;
+  if (rightNeedsReply !== leftNeedsReply) return rightNeedsReply - leftNeedsReply;
+  if (rightLane !== leftLane) return rightLane - leftLane;
   return normalizeText(left?.conversationKey || left?.id || '').localeCompare(
     normalizeText(right?.conversationKey || right?.id || ''),
     'sv'
