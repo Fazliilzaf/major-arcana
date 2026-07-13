@@ -46,6 +46,15 @@ test('extractPersonNameFromFileName parses dated smartdoc names', () => {
     extractPersonNameFromFileName('Anna Svensson 2023-11-02 14-05-22.pdf'),
     'Anna Svensson'
   );
+  assert.equal(
+    extractPersonNameFromFileName('Sheik Meeran Rasheed 2026-04-18 16-12-.pdf'),
+    'Sheik Meeran Rasheed'
+  );
+  assert.equal(extractPersonNameFromFileName('Shashank 2026-06-25 16-48-24.pdf'), 'Shashank');
+  assert.equal(
+    extractPersonNameFromFileName('Caesar Larsson 2026-04-01 18-30.pdf'),
+    'Caesar Larsson'
+  );
 });
 
 test('mergePipedriveHistoricalDocuments adds offers and agreements to bundle', () => {

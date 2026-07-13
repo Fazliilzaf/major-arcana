@@ -26,10 +26,12 @@ function nameKey(value) {
 
 function extractPersonNameFromFileName(fileName = '') {
   const base = normalizeText(fileName).replace(/\.pdf$/i, '');
-  const dated = base.match(/^(.+?)\s+\d{4}-\d{2}-\d{2}(?:\s+\d{2}-\d{2}-\d{2})?$/i);
+  const dated = base.match(/^(.+?)\s+\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}-\d{1,2}(?:-\d{0,4})?)?$/i);
   if (dated) return normalizeText(dated[1]);
   const smart = base.match(/^(.+?)\s+(?:offert|quote|avtal|smart)/i);
   if (smart) return normalizeText(smart[1]);
+  const singleBeforeDate = base.match(/^([A-Za-zÀ-ÖØ-öø-ÿ'’-]+)\s+\d{4}-\d{2}-\d{2}/u);
+  if (singleBeforeDate) return normalizeText(singleBeforeDate[1]);
   return '';
 }
 

@@ -3,7 +3,7 @@
 
 /**
  * Koppla REJECTED pipedrive_import-orphans till patientkort på prod.
- * Högkonfidens: unikt personId från people-CSV + exakt en Cliento-match (email/tel/pnr).
+ * Källor: people-CSV, Pipedrive persons/search API, direkt namn-match i patient-master.
  *
  *   node scripts/migration/linkPipedriveRejectedOrphansProd.js --dry-run
  *   node scripts/migration/linkPipedriveRejectedOrphansProd.js --write
@@ -14,6 +14,7 @@ require('dotenv').config({ quiet: true });
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const { execFileSync } = require('node:child_process');
 
 const { getProdToken } = require('../lib/halsoHdProdClient');
 const {
@@ -24,7 +25,9 @@ const {
 const {
   resolvePersonIdFromFileName,
   buildPipedrivePeopleNameIndex,
+  buildPipedrivePatientIndex,
   extractPersonNameFromFileName,
+  resolvePatientByFileName,
   nameKey,
 } = require('./lib/pipedriveSmartdocsImport');
 
@@ -47,11 +50,14 @@ function parseArgs(argv) {
     peopleCsv: path.join(DEFAULT_ICLOUD_ROOT, 'pipedrive-2026-05-24/personer-2026-05-24.csv'),
     reportPath: path.join(ROOT, 'data/reports/pipedrive-rejected-link-plan.json'),
     minConfidence: 0.7,
+    usePipedriveApi: true,
+    pipedriveDelayMs: 150,
   };
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i];
     if (token === '--write') args.dryRun = false;
     else if (token === '--dry-run') args.dryRun = true;
+    else if (token === '--no-pipedrive-api') args.usePipedriveApi = false;
     else if (token === '--reject-patch') args.rejectPatchPath = argv[++i];
     else if (token === '--people-csv') args.peopleCsv = argv[++i];
     else if (token === '--report') args.reportPath = argv[++i];
@@ -98,6 +104,73 @@ function loadPeopleCsv(csvPath) {
   return rows;
 }
 
+function isNonPatientTemplate(fileName = '') {
+  return /^(guide|efterv[aå]rdsguide|mall|template)[-_\s]/i.test(fileName);
+}
+
+function normalizePipedriveApiPerson(apiPerson = {}) {
+  const emails = (Array.isArray(apiPerson.email) ? apiPerson.email : [])
+    .map((entry) => entry?.value || entry?.email || entry)
+    .filter(Boolean);
+  const phones = (Array.isArray(apiPerson.phone) ? apiPerson.phone : [])
+    .map((entry) => entry?.value || entry?.phone || entry)
+    .filter(Boolean);
+  return {
+    personId: String(apiPerson.id || ''),
+    name: apiPerson.name || '',
+    firstName: apiPerson.first_name || '',
+    lastName: apiPerson.last_name || '',
+    emails,
+    primaryEmail: emails[0] || '',
+    phones,
+    primaryPhone: phones[0] || '',
+    personnummer: '',
+    organization: '',
+    owner: '',
+  };
+}
+
+function createPipedriveApiClient() {
+  const companyDomain = String(process.env.PIPEDRIVE_COMPANY_DOMAIN || '').trim();
+  const apiToken = String(process.env.PIPEDRIVE_API_TOKEN || '').trim();
+  if (!companyDomain || !apiToken) return null;
+
+  async function pipedriveGet(pathname, searchParams = {}) {
+    const url = new URL(`https://${companyDomain}.pipedrive.com/api/v1${pathname}`);
+    for (const [key, value] of Object.entries(searchParams)) {
+      if (value != null && value !== '') url.searchParams.set(key, String(value));
+    }
+    url.searchParams.set('api_token', apiToken);
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || payload.success === false) {
+      const message = payload.error || payload.error_info || payload.message || res.statusText;
+      throw new Error(`Pipedrive ${pathname} → ${res.status}: ${message}`);
+    }
+    return payload;
+  }
+
+  return {
+    async searchPersonByName(name) {
+      const payload = await pipedriveGet('/persons/search', {
+        term: name,
+        fields: 'name,email,phone',
+        limit: 10,
+        exact_match: 1,
+      });
+      const items = Array.isArray(payload.data?.items) ? payload.data.items : [];
+      return items
+        .map((entry) => entry?.item)
+        .filter(Boolean)
+        .filter((person) => nameKey(person.name) === nameKey(name));
+    },
+    async getPerson(personId) {
+      const payload = await pipedriveGet(`/persons/${personId}`);
+      return normalizePipedriveApiPerson(payload.data || {});
+    },
+  };
+}
+
 async function requestJson(method, route, token, body) {
   const res = await fetch(`${BASE}${route}`, {
     method,
@@ -138,17 +211,57 @@ async function fetchAllProdPatients(token) {
       token
     );
     total = Number(page.total) || 0;
-    patients.push(...(page.patients || []));
+    patients.push(
+      ...(page.patients || []).map((patient) => ({
+        ...patient,
+        id: patient.id || patient.patientId || null,
+      }))
+    );
     offset += limit;
     if (!(page.patients || []).length) break;
   }
   return patients;
 }
 
-function resolvePersonIdForAsset(fileName, peopleIndex, lookup, peopleById, minConfidence) {
+function fetchProdRejectedPipedriveAssetIds() {
+  const sshKey = process.env.RENDER_SSH_KEY || path.join(os.homedir(), '.ssh/id_render');
+  const sshHost =
+    process.env.RENDER_SSH_HOST ||
+    `${process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng'}@ssh.frankfurt.render.com`;
+  const script = `
+const fs=require('fs');
+const store=JSON.parse(fs.readFileSync('/var/data/cco-patient-assets.json','utf8'));
+const ids=[];
+for (const [id, asset] of Object.entries(store.items||{})) {
+  if (asset?.sourceSystem==='pipedrive_import' && asset?.status==='REJECTED') ids.push(id);
+}
+process.stdout.write(JSON.stringify(ids));
+`;
+  const out = execFileSync(
+    'ssh',
+    [
+      '-i',
+      sshKey,
+      '-o',
+      'BatchMode=yes',
+      '-o',
+      'ConnectTimeout=120',
+      sshHost,
+      `node -e ${JSON.stringify(script)}`,
+    ],
+    { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 }
+  );
+  return JSON.parse(out.trim());
+}
+
+function resolvePersonIdFromCsv(fileName, peopleIndex, lookup, peopleById, minConfidence) {
   const fromCsv = resolvePersonIdFromFileName(fileName, peopleIndex);
   if (fromCsv.personId) {
-    return { personId: fromCsv.personId, method: fromCsv.method };
+    return {
+      personId: fromCsv.personId,
+      method: fromCsv.method,
+      person: peopleById.get(String(fromCsv.personId)),
+    };
   }
   if (fromCsv.method !== 'pipedrive_people_ambiguous') return null;
   const ids = [
@@ -163,10 +276,57 @@ function resolvePersonIdForAsset(fileName, peopleIndex, lookup, peopleById, minC
       enableNameFallback: false,
     }).filter((item) => item.confidence >= minConfidence);
     if (candidates.length === 1) {
-      return { personId, method: 'disambiguated_single_cliento_match' };
+      return { personId, method: 'disambiguated_single_cliento_match', person };
     }
   }
   return null;
+}
+
+async function resolvePersonForAsset(fileName, ctx) {
+  const extracted = extractPersonNameFromFileName(fileName);
+  if (!extracted) return { reason: 'no_extracted_name' };
+  if (isNonPatientTemplate(fileName)) return { reason: 'non_patient_template' };
+
+  const fromCsv = resolvePersonIdFromCsv(
+    fileName,
+    ctx.peopleIndex,
+    ctx.lookup,
+    ctx.peopleById,
+    ctx.minConfidence
+  );
+  if (fromCsv?.person) {
+    return { person: fromCsv.person, method: fromCsv.method };
+  }
+
+  if (ctx.pipedriveApi) {
+    const cacheKey = nameKey(extracted) || extracted.toLowerCase();
+    if (!ctx.apiPersonCache.has(cacheKey)) {
+      const hits = await ctx.pipedriveApi.searchPersonByName(extracted);
+      if (hits.length === 1) {
+        const person = await ctx.pipedriveApi.getPerson(hits[0].id);
+        ctx.apiPersonCache.set(cacheKey, person);
+      } else {
+        ctx.apiPersonCache.set(cacheKey, hits.length > 1 ? { ambiguous: hits.length } : null);
+      }
+      if (ctx.pipedriveDelayMs > 0) await sleep(ctx.pipedriveDelayMs);
+    }
+    const cached = ctx.apiPersonCache.get(cacheKey);
+    if (cached && !cached.ambiguous && cached.personId) {
+      return { person: cached, method: 'pipedrive_api_search' };
+    }
+    if (cached?.ambiguous) return { reason: 'pipedrive_api_ambiguous', extractedName: extracted };
+  }
+
+  const direct = resolvePatientByFileName(fileName, ctx.patientIndex);
+  if (direct.patientId && direct.confidence === 'high') {
+    return {
+      patientId: direct.patientId,
+      method: direct.method,
+      extractedName: direct.extractedName,
+    };
+  }
+
+  return { reason: 'no_high_confidence_match', extractedName: extracted };
 }
 
 function buildPatientPayloadFromPerson(person, deals = []) {
@@ -213,6 +373,9 @@ async function migrationLinkAsset(token, assetId, patientId, { attempts = 6 } = 
         { patientId, reason: 'pipedrive_rejected_orphan_link' }
       );
     } catch (error) {
+      if (error.status === 409) {
+        return { ok: true, skipped: true, reason: 'already_linked_or_invalid_state' };
+      }
       if (error.status === 502 || error.status >= 500) {
         await sleep(1500 * attempt);
         continue;
@@ -230,9 +393,18 @@ async function main() {
   }
 
   const rejectPatch = JSON.parse(fs.readFileSync(args.rejectPatchPath, 'utf8'));
-  const rejectedAssets = Object.values(rejectPatch.items || {}).filter(
+  let rejectedAssets = Object.values(rejectPatch.items || {}).filter(
     (asset) => asset?.sourceSystem === 'pipedrive_import' && asset?.status === 'REJECTED'
   );
+
+  if (!args.dryRun) {
+    try {
+      const prodRejectedIds = new Set(fetchProdRejectedPipedriveAssetIds());
+      rejectedAssets = rejectedAssets.filter((asset) => prodRejectedIds.has(asset.id));
+    } catch (error) {
+      console.warn(`WARN: kunde inte läsa prod REJECTED-lista: ${error.message}`);
+    }
+  }
 
   const peopleRows = loadPeopleCsv(args.peopleCsv);
   const peopleIndex = buildPipedrivePeopleNameIndex(peopleRows);
@@ -254,6 +426,18 @@ async function main() {
     prodPatients = await fetchAllProdPatients(token);
   }
   const lookup = buildPipedrivePatientLookup(prodPatients);
+  const patientIndex = buildPipedrivePatientIndex(prodPatients, { tenantId: TENANT_ID });
+  const pipedriveApi = args.usePipedriveApi ? createPipedriveApiClient() : null;
+  const ctx = {
+    peopleIndex,
+    peopleById,
+    lookup,
+    patientIndex,
+    minConfidence: args.minConfidence,
+    pipedriveApi,
+    pipedriveDelayMs: args.pipedriveDelayMs,
+    apiPersonCache: new Map(),
+  };
 
   const plan = [];
   const unresolved = [];
@@ -261,23 +445,30 @@ async function main() {
 
   for (const asset of rejectedAssets) {
     const fileName = asset.originalFileName || asset.displayName || '';
-    const personRef = resolvePersonIdForAsset(
-      fileName,
-      peopleIndex,
-      lookup,
-      peopleById,
-      args.minConfidence
-    );
-    if (!personRef?.personId) {
-      unresolved.push({ assetId: asset.id, fileName, reason: 'no_person_id' });
-      continue;
-    }
-    const person = peopleById.get(String(personRef.personId));
-    if (!person) {
-      unresolved.push({ assetId: asset.id, fileName, reason: 'person_missing_in_csv' });
+    const resolved = await resolvePersonForAsset(fileName, ctx);
+
+    if (resolved.patientId) {
+      plan.push({
+        assetId: asset.id,
+        fileName,
+        patientId: resolved.patientId,
+        method: resolved.method,
+        action: 'link_existing_direct_name',
+      });
       continue;
     }
 
+    if (!resolved.person) {
+      unresolved.push({
+        assetId: asset.id,
+        fileName,
+        reason: resolved.reason || 'no_person',
+        extractedName: resolved.extractedName || null,
+      });
+      continue;
+    }
+
+    const { person, method } = resolved;
     const candidates = findPatientsForPipedrivePerson(lookup, person, {
       enableNameFallback: false,
     }).filter((item) => item.confidence >= args.minConfidence);
@@ -288,7 +479,7 @@ async function main() {
         fileName,
         personId: person.personId,
         patientId: candidates[0].patient.id,
-        method: `${personRef.method}:${candidates[0].method}`,
+        method: `${method}:${candidates[0].method}`,
         action: 'link_existing',
       });
       continue;
@@ -296,15 +487,12 @@ async function main() {
 
     if (candidates.length === 0) {
       if (!patientsToCreate.has(String(person.personId))) {
-        patientsToCreate.set(String(person.personId), {
-          person,
-          assets: [],
-        });
+        patientsToCreate.set(String(person.personId), { person, assets: [] });
       }
       patientsToCreate.get(String(person.personId)).assets.push({
         assetId: asset.id,
         fileName,
-        method: personRef.method,
+        method,
       });
       continue;
     }
@@ -314,10 +502,10 @@ async function main() {
       fileName,
       reason: 'ambiguous_patient_match',
       candidateCount: candidates.length,
+      extractedName: person.name,
     });
   }
 
-  const createdPatients = new Map();
   if (!args.dryRun) {
     for (const [personId, entry] of patientsToCreate.entries()) {
       const payload = buildPatientPayloadFromPerson(entry.person);
@@ -326,7 +514,6 @@ async function main() {
       if (!prodId) {
         throw new Error(`Ingen prod UUID efter PUT för pipedrive person ${personId}`);
       }
-      createdPatients.set(personId, prodId);
       for (const row of entry.assets) {
         plan.push({
           assetId: row.assetId,
@@ -341,7 +528,6 @@ async function main() {
   } else {
     for (const [personId, entry] of patientsToCreate.entries()) {
       const dryPatientId = `(dry-run-patient-${personId})`;
-      createdPatients.set(personId, dryPatientId);
       for (const row of entry.assets) {
         plan.push({
           assetId: row.assetId,
@@ -376,6 +562,7 @@ async function main() {
         linkPlanCount: report.linkPlanCount,
         newPatientsCount: report.newPatientsCount,
         unresolvedCount: report.unresolvedCount,
+        pipedriveApi: Boolean(pipedriveApi),
         reportPath: args.reportPath,
       },
       null,
@@ -386,23 +573,27 @@ async function main() {
   if (args.dryRun) return;
 
   let linked = 0;
+  let skipped = 0;
   let failed = 0;
   for (let i = 0; i < plan.length; i += 1) {
     const row = plan[i];
     try {
-      await migrationLinkAsset(token, row.assetId, row.patientId);
-      linked += 1;
+      const result = await migrationLinkAsset(token, row.assetId, row.patientId);
+      if (result?.skipped) skipped += 1;
+      else linked += 1;
     } catch (error) {
       failed += 1;
       if (failed <= 5) console.error(`FAIL ${row.assetId}: ${error.message}`);
     }
     if ((i + 1) % 20 === 0) {
-      console.log(`progress ${i + 1}/${plan.length} linked=${linked} failed=${failed}`);
+      console.log(
+        `progress ${i + 1}/${plan.length} linked=${linked} skipped=${skipped} failed=${failed}`
+      );
     }
     await sleep(400);
   }
 
-  console.log(JSON.stringify({ linked, failed, total: plan.length }, null, 2));
+  console.log(JSON.stringify({ linked, skipped, failed, total: plan.length }, null, 2));
   if (failed) process.exit(1);
 }
 
