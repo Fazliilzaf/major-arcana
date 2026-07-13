@@ -207,6 +207,8 @@ async function runViewport(browser, token, viewport, commit) {
   await context.addInitScript((authToken) => {
     window.localStorage.setItem('ARCANA_ADMIN_TOKEN', authToken);
     window.sessionStorage.setItem('ARCANA_ADMIN_TOKEN', authToken);
+    // Visual evidence must show the customer product, not the first-run tour.
+    window.localStorage.setItem('cco.onboardingTour.v1', 'done');
   }, token);
 
   const page = await context.newPage();
@@ -214,13 +216,14 @@ async function runViewport(browser, token, viewport, commit) {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await ensurePatientOpen(page, PATIENT_ID);
   await waitForDetail(page, PATIENT_ID);
+  await dismissTour(page);
   await page.waitForFunction(() => document.querySelector('[data-v11-rk-besok] .hist-row'), {
     timeout: 120000,
   });
   await waitForDecodedImages('[data-v11-rk-besok] img[data-patient-file-id]', page);
 
   const v11Shot = path.join(OUT_DIR, `${viewport.name}-v11-besok-${commit}.png`);
-  const besokSec = page.locator('[data-v11-rk-besok-sec]');
+  const besokSec = page.locator('[data-v11-rk-besok]');
   if (await besokSec.count()) {
     await besokSec.first().scrollIntoViewIfNeeded();
     await besokSec.first().screenshot({ path: v11Shot });

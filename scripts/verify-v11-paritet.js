@@ -130,8 +130,12 @@ if (!css) {
   // Frusna designval (negativ-check)
   // ─────────────────────────────────────────────────────────────
 
-  // Sök efter rosa-värden i v11-scoped CSS
-  // Grov regex — leter efter pink-tonade hex som inte är legit (parchment/cream/vellum är OK)
+  // Studio har en avsiktlig rosa accent. Kontrollera bara direkta färgvärden
+  // som inte uttryckligen använder den etablerade Studio-tokenen.
+  const cssWithoutStudioAccent = css.replace(
+    /var\(--v9-accent-studio,\s*#[0-9a-f]{6}\)/gi,
+    'var(--v9-accent-studio)'
+  );
   const rosaPatterns = [
     /#d4537e/i, // studio-rosa
     /#bb4779/i, // hot-pink
@@ -140,7 +144,7 @@ if (!css) {
   ];
   const rosaFound = [];
   for (const pat of rosaPatterns) {
-    if (pat.test(css)) {
+    if (pat.test(cssWithoutStudioAccent)) {
       rosaFound.push(pat.source);
     }
   }
