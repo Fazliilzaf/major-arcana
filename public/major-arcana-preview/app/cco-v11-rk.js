@@ -51,6 +51,14 @@
     );
   }
 
+  function blockerModule(ruleId, labelText) {
+    var value = (txt(ruleId) + ' ' + txt(labelText)).toLowerCase();
+    if (/allerg|health|hälso|halso|medicin|kontra/.test(value)) return 'health';
+    if (/journal/.test(value)) return 'journal';
+    if (/bok|booking|uppfölj|uppfolj/.test(value)) return 'bookings';
+    return 'documents';
+  }
+
   function render(ctx) {
     ctx = ctx || {};
     var card = ctx.bcard || ctx.card || {};
@@ -120,7 +128,7 @@
         : '') +
       '</div>' +
       (tags ? '<div class="tags">' + tags + '</div>' : '') +
-      '<button class="btn-edit-profile" data-v12-edit-open>Ändra profil</button>' +
+      '<button type="button" class="btn-edit-profile" data-v12-edit-open data-v12-open-module="current-state">Ändra profil</button>' +
       '</div></div>';
 
     /* B · SMART INFORMATION */
@@ -178,9 +186,11 @@
         var lbl = txt(b && (b.label || b.title) ? b.label || b.title : b);
         if (!lbl) return;
         pre.push(
-          '<div class="av-pre warn"><div class="pre-icn">!</div><div class="pre-title">' +
+          '<button type="button" class="av-pre warn" data-v12-open-module="' +
+            esc(blockerModule(b && b.ruleId, lbl)) +
+            '"><div class="pre-icn">!</div><div class="pre-title">' +
             esc(lbl) +
-            '</div><div class="pre-meta">Krävs idag</div><div class="pre-cta">Öppna →</div></div>'
+            '</div><div class="pre-meta">Krävs idag</div><div class="pre-cta">Öppna →</div></button>'
         );
       });
       var preHtml = pre.length
@@ -297,7 +307,11 @@
         label('Hälsodeklaration', health.signedAt ? 'Signerad ' + txt(health.signedAt) : '') +
           '<div class="hd-rows">' +
           (rows || '<div class="hd-row"><span class="hd-q">Inga registrerade svar</span></div>') +
-          '</div><div class="hd-foot"><a>Visa historik</a><a>Redigera svar</a><a>Kopiera länk</a></div>'
+          '</div><div class="hd-foot">' +
+          '<button type="button" data-v12-open-module="health">Visa historik</button>' +
+          '<button type="button" data-v12-open-module="health">Redigera svar</button>' +
+          '<button type="button" data-patient-action="copy-patient-link">Kopiera länk</button>' +
+          '</div>'
       );
     }
 
@@ -612,8 +626,9 @@
       return /antecknin|note/i.test(txt(e.journalType || e.type)) || txt(e.note);
     });
     if (notes.length) {
-      out +=
-        '<div class="sec">' +
+      out += secOpen(
+        'anteckningar',
+        'sec',
         label('Anteckningar') +
         notes
           .slice(0, 3)
@@ -626,15 +641,16 @@
               '</div></div>'
             );
           })
-          .join('') +
-        '</div>';
+          .join('')
+      );
     }
 
     /* P · KOMMUNIKATION */
     var cm = arr(comm && comm.items ? comm.items : comm);
     if (cm.length) {
-      out +=
-        '<div class="sec">' +
+      out += secOpen(
+        'kommunikation',
+        'sec',
         label('Kommunikation') +
         cm
           .slice(0, 4)
@@ -662,8 +678,8 @@
               '</div></div></div>'
             );
           })
-          .join('') +
-        '</div>';
+          .join('')
+      );
     }
 
     /* Q · EKONOMI */
@@ -689,8 +705,9 @@
     /* R · INSIKTER */
     var ins = arr(insights && insights.items ? insights.items : insights);
     if (ins.length) {
-      out +=
-        '<div class="sec">' +
+      out += secOpen(
+        'insights',
+        'sec',
         label('Insikter') +
         ins
           .slice(0, 3)
@@ -703,18 +720,34 @@
               '</div>'
             );
           })
-          .join('') +
-        '</div>';
+          .join('')
+      );
     }
 
     /* S · STICKY FOOTER */
+    var stickyPatientId = txt(card.patientId || card.id || card.customerId);
+    var stickyVisitAction = '';
+    if (av && av.state === 'scheduled_today') {
+      stickyVisitAction =
+        '<button type="button" class="sticky-btn green full" data-v11-active-visit-action="checkin">✓ Checka in</button>';
+    } else if (av && (av.state === 'checked_in' || av.state === 'in_progress')) {
+      stickyVisitAction =
+        '<button type="button" class="sticky-btn green full" data-v11-active-visit-action="complete">✓ Avsluta besök</button>';
+    } else if (av && av.state === 'completed_today') {
+      stickyVisitAction =
+        '<button type="button" class="sticky-btn green full" data-v11-active-visit-action="followup">📅 Boka uppföljning</button>';
+    }
     out +=
       '<div class="sticky"><div class="sticky-grid">' +
-      '<button class="sticky-btn primary full" data-v11-active-visit-action="photo">📷 Ta bild + öppna journal</button>' +
-      '<button class="sticky-btn gold full" data-v9-section-link="upcoming">📅 Boka nästa</button>' +
-      '<button class="sticky-btn ghost" data-v11-active-visit-action="notes">+ Anteckning</button>' +
-      '<button class="sticky-btn ghost" data-v9-section-link="ekonomi">+ Saldo</button>' +
-      '<button class="sticky-btn green full" data-v11-active-visit-action="complete">✓ Bekräfta incheckning</button>' +
+      '<button type="button" class="sticky-btn primary full" data-v11-active-visit-action="photo-journal">📷 Ta bild + öppna journal</button>' +
+      (stickyPatientId
+        ? '<button type="button" class="sticky-btn gold full" data-kk-ord48-open-calendar data-patient-id="' +
+          esc(stickyPatientId) +
+          '">📅 Boka nästa</button>'
+        : '') +
+      '<button type="button" class="sticky-btn ghost" data-v11-active-visit-action="notes">+ Anteckning</button>' +
+      '<button type="button" class="sticky-btn ghost" data-v9-section-link="ekonomi">Visa saldo</button>' +
+      stickyVisitAction +
       '</div></div>';
 
     return '<div class="v11-rk" data-v11-rk="1"><div class="v11-rk__shell">' + out + '</div></div>';

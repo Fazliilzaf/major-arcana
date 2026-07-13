@@ -3859,6 +3859,11 @@
         const action = activeVisitAction.getAttribute('data-v11-active-visit-action') || '';
         if (action === 'photo') {
           root.querySelector('.v9-camera-bridge [data-patient-photo-camera]')?.click();
+        } else if (action === 'photo-journal') {
+          liveHandlers.openJournal?.();
+          window.requestAnimationFrame(() => {
+            root.querySelector('.v9-camera-bridge [data-patient-photo-camera]')?.click();
+          });
         } else if (action === 'journal') {
           liveHandlers.openJournal?.();
         } else if (action === 'checkin') {

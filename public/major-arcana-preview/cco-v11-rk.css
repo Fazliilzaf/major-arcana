@@ -420,6 +420,11 @@
   margin-top: 12px;
 }
 .v11-rk .av-pre {
+  width: 100%;
+  min-width: 0;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
   padding: 9px 10px;
   border-radius: 10px;
   background: var(--card-bg);
@@ -455,6 +460,7 @@
   margin-top: 1px;
 }
 .v11-rk .av-pre.warn {
+  cursor: pointer;
   background: linear-gradient(180deg, rgba(255, 242, 220, 0.95), rgba(252, 233, 200, 0.78));
   box-shadow:
     inset 3px 0 0 var(--amber),
@@ -661,12 +667,21 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.v11-rk .hd-foot a {
+.v11-rk .hd-foot a,
+.v11-rk .hd-foot button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
   color: var(--ink-mute);
   cursor: pointer;
   text-decoration: none;
 }
-.v11-rk .hd-foot a:hover {
+.v11-rk .hd-foot a:hover,
+.v11-rk .hd-foot button:hover {
   color: var(--ink);
 }
 

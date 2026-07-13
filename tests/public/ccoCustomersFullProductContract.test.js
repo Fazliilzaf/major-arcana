@@ -51,7 +51,7 @@ test('kundrad öppnar V11-dossier och V11-sektion öppnar V12 Content Canon', ()
   assert.match(ui, /window\.CcoV11RailKomplett\.render\(railCtx\)/);
   assert.match(ui, /data-v11-rail-shell="1"/);
   assert.match(ui, /bindV12WorkspaceRailLauncher\(root, ctx\)/);
-  assert.match(ui, /openV12WorkspaceFromRail\(root, ctx, moduleName\)/);
+  assert.match(ui, /openV12WorkspaceFromRail\(root, ctx, moduleName, \{/);
   assert.match(ui, /window\.CcoV12Canon\.render\(ctx\)/);
   assert.match(ui, /data-v12-workspace-shell="1"/);
   assert.match(ui, /data-customer-product-loading="v11"/);
@@ -121,6 +121,39 @@ test('V12 canon-actions använder befintliga handlers och saknar tomma kontrollk
   assert.doesNotMatch(canon, /<button class="warn-action">Påminn senare/);
   assert.match(ui, /const activeVisitAction = event\.target\.closest/);
   assert.match(ui, /const comparePhotos = event\.target\.closest/);
+});
+
+test('V11 facit-actions A–S återanvänder riktiga profil-, besöks- och navigationsflöden', () => {
+  assert.match(v11, /data-v12-edit-open data-v12-open-module="current-state"/);
+  assert.match(v11, /function blockerModule\(ruleId, labelText\)/);
+  assert.match(v11, /class="av-pre warn" data-v12-open-module=/);
+  assert.match(v11, /data-patient-action="copy-patient-link"/);
+  assert.match(v11, /secOpen\(\s*'anteckningar'/);
+  assert.match(v11, /secOpen\(\s*'kommunikation'/);
+  assert.match(v11, /secOpen\(\s*'insights'/);
+  assert.match(v11, /data-v11-active-visit-action="photo-journal"/);
+  assert.match(v11, /data-kk-ord48-open-calendar data-patient-id=/);
+  assert.match(v11, /av\.state === 'scheduled_today'/);
+  assert.match(v11, /data-v11-active-visit-action="checkin"/);
+  assert.match(v11, /data-v11-active-visit-action="complete"/);
+  assert.doesNotMatch(v11, /data-v11-active-visit-action="complete">✓ Bekräfta incheckning/);
+  assert.match(ui, /openProfileEditor: Boolean\(editProfile\)/);
+  assert.match(ui, /\[data-patient-action\]/);
+});
+
+test('V12 facitkontroller öppnar befintliga journal-, boknings- och svarsstudioflöden', () => {
+  const canon = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js'),
+    'utf8'
+  );
+  assert.match(canon, /data-v12-visit-journal data-encounter-id=/);
+  assert.doesNotMatch(canon, /<button class="j-btn">Spara<\/button>/);
+  assert.match(canon, /data-v12-confirm-bookings/);
+  assert.match(canon, /data-v12-reply-studio/);
+  assert.match(canon, /data-kk-ord48-open-calendar data-patient-id=/);
+  assert.match(ui, /journeyHandlers\.confirmBookings\?\.\(\)/);
+  assert.match(ui, /document\.querySelector\('\[data-studio-open\]'\)\?\.click\(\)/);
+  assert.match(ui, /checkin\/followup\/complete ägs redan av bindIntelligentJourney/);
 });
 
 test('V12 visar okänd hälsodata ärligt och inte som NEJ', () => {
