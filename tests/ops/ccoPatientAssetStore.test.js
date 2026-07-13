@@ -111,6 +111,7 @@ test('exports canonical enums per owner-spec', () => {
       'drive',
       'drive_import',
       'getaccept_import',
+      'pipedrive_import',
       'm365_halso',
       'meridiq',
       'old_cco',

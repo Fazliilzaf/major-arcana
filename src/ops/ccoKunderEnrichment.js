@@ -171,6 +171,7 @@ function emptyAssetSignals() {
     fitnessCertificateViewUrl: '',
     hasAgreement: false,
     hasGetAccept: false,
+    hasPipedriveDocument: false,
     hasHalso: false,
     hasDriveJournalAsset: false,
     hasDriveDocumentAsset: false,
@@ -295,6 +296,7 @@ function buildAssetSignalsIndex(items = [], tenantId = null) {
     }
     if (cat === 'agreement' || cat === 'consent') sig.hasAgreement = true;
     if (source === 'getaccept_import') sig.hasGetAccept = true;
+    if (source === 'pipedrive_import') sig.hasPipedriveDocument = true;
     if (source === 'm365_halso') sig.hasHalso = true;
     if (cat === 'journal') sig.hasDriveJournalAsset = true;
     if (cat && cat !== 'journal' && cat !== 'other') sig.hasDriveDocumentAsset = true;
@@ -679,6 +681,7 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
     missingAgreement: hasJournal && !sig.hasAgreement,
     hasHalso: sig.hasHalso,
     hasGetAccept: sig.hasGetAccept,
+    hasPipedriveDocument: sig.hasPipedriveDocument,
     hasDriveJournal: Number(fs.journalPdfs) > 0 || sig.hasDriveJournalAsset,
     hasDriveDocument: Number(fs.totalFiles) > Number(fs.journalPdfs) || sig.hasDriveDocumentAsset,
     needsPhotoReview: sig.needsPhotoReview,
