@@ -53,6 +53,7 @@ const {
 } = require('../infra/microsoftGraphMailboxTruthDelta');
 const { createCcoMailboxTruthStore } = require('./ccoMailboxTruthStore');
 const { createConfiguredCcoMailboxTruthStore } = require('./ccoMailboxTruthStoreFactory');
+const { recordTenantAccessCheck } = require('./tenantAccessCheck');
 const {
   computeCcoInboxEnrichmentCoverage,
   hasCcoEnrichmentSignals,
@@ -515,6 +516,24 @@ function createScheduler({
       pruneScannedCount: prune.scannedCount,
       pruneKeptCount: prune.keptCount,
     };
+  }
+
+  async function runTenantAccessCheck({ tenantId }) {
+    try {
+      const resolvedTenantId = normalizeText(tenantId) || config.defaultTenantId;
+      if (!resolvedTenantId) {
+        return { status: 'skipped', reason: 'tenant_missing' };
+      }
+      await recordTenantAccessCheck({
+        authStore,
+        tenantId: resolvedTenantId,
+        actorUserId: null,
+        trigger: 'system_auto',
+      });
+      return { status: 'ok', tenantId: resolvedTenantId };
+    } catch (error) {
+      return { status: 'failed', error: sanitizeError(error) };
+    }
   }
 
   async function runCcoDailyMissingFormsReport({ tenantId }) {
@@ -4123,6 +4142,12 @@ function createScheduler({
       name: 'CCO forward outlook + scenario snapshot',
       intervalMs: toHoursMs(config.schedulerCcoForwardOutlookIntervalHours, 6),
       run: runCcoForwardOutlook,
+    },
+    {
+      id: 'tenant_access_check',
+      name: 'Tenant access-check (goAllowed readiness)',
+      intervalMs: toHoursMs(config.schedulerTenantAccessCheckIntervalHours, 12),
+      run: runTenantAccessCheck,
     },
     {
       id: 'cco_history_sync',

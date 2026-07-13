@@ -962,6 +962,10 @@ const config = {
     process.env.ARCANA_SCHEDULER_CCO_FORWARD_OUTLOOK_INTERVAL_HOURS,
     6
   ),
+  schedulerTenantAccessCheckIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_TENANT_ACCESS_CHECK_INTERVAL_HOURS,
+    12
+  ),
   schedulerCcoClientoBackfillIntervalHours: asInt(
     process.env.ARCANA_SCHEDULER_CCO_CLIENTO_BACKFILL_INTERVAL_HOURS,
     24
