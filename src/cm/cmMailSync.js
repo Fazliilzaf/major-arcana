@@ -91,7 +91,15 @@ function createCmMailSync({
     const url =
       `${graphReadConnector.graphBaseUrl}/users/${encodeURIComponent(mailboxId)}` +
       `/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,size,isInline`;
-    const res = await fetchImpl(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const res = await fetchImpl(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        // ORD-67f: delta-sidorna hämtas med immutable-IDs (preferImmutableIds i
+        // connectorn) — samma Prefer-header KRÄVS här, annars Graph 400 på id:t.
+        // Verifierat live mot kvitto@ 2026-07-13 (alla attachments-list gav 400).
+        Prefer: 'IdType="ImmutableId"',
+      },
+    });
     if (!res.ok) throw new Error(`Graph attachments-list ${res.status}`);
     const data = await res.json();
     return Array.isArray(data?.value) ? data.value : [];
