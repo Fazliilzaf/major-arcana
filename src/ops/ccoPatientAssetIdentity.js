@@ -235,6 +235,9 @@ function resolveCanonicalPatientsForAssetAliases({ patients, assets }) {
       ),
     }))
     .filter((row) => row.patientId && (row.pnr.length >= 8 || row.name));
+  const canonicalPatientIds = new Set(
+    asArray(patients).map((patient) => normalizeText(patient?.id)).filter(Boolean)
+  );
   const assetsByAlias = new Map();
   for (const asset of asArray(assets)) {
     const alias = normalizeText(asset?.patientId);
@@ -244,6 +247,14 @@ function resolveCanonicalPatientsForAssetAliases({ patients, assets }) {
   }
 
   return [...assetsByAlias.entries()].map(([assetPatientId, aliasAssets]) => {
+    if (canonicalPatientIds.has(assetPatientId)) {
+      return {
+        assetPatientId,
+        canonicalPatientId: assetPatientId,
+        reason: 'direct_patient_id',
+        candidatePatientIds: [assetPatientId],
+      };
+    }
     const fields = aliasAssets.flatMap((asset) =>
       [
         asset?.originalDrivePath,

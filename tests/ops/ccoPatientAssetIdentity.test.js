@@ -157,6 +157,22 @@ test('resolveCanonicalPatientsForAssetAliases inverts unique personnummer path i
   ]);
 });
 
+test('resolveCanonicalPatientsForAssetAliases accepts an existing canonical patient id directly', () => {
+  const mappings = resolveCanonicalPatientsForAssetAliases({
+    patients: [{ id: 'patient-direct', displayName: 'Direct Patient' }],
+    assets: [{ patientId: 'patient-direct', mimeType: 'image/jpeg' }],
+  });
+
+  assert.deepEqual(mappings, [
+    {
+      assetPatientId: 'patient-direct',
+      canonicalPatientId: 'patient-direct',
+      reason: 'direct_patient_id',
+      candidatePatientIds: ['patient-direct'],
+    },
+  ]);
+});
+
 test('resolveCanonicalPatientsForAssetAliases leaves ambiguous exact names unresolved', () => {
   const mappings = resolveCanonicalPatientsForAssetAliases({
     patients: [
