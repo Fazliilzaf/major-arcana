@@ -340,6 +340,7 @@ async function prepareInternalizeExecution({
   limit,
   offset,
   dateGate = null,
+  renderCandidatesOnly = false,
   resolveAssetStores,
   resolvePatientAssetStore,
   loadPatientMasterState,
@@ -374,6 +375,7 @@ async function prepareInternalizeExecution({
     assetStore,
     storage,
     tenantId: actor.tenantId,
+    renderCandidatesOnly,
   });
 
   const driveClient = dryRun
@@ -1784,6 +1786,7 @@ function createCcoPatientMasterRouter({
         const limit = clampInternalizeLimit(req.body?.limit, 50);
         const offset = clampOffset(req.body?.offset);
         const dateGate = parseInternalizeDateGateOptions(req.body);
+        const renderCandidatesOnly = req.body?.renderCandidatesOnly === true;
 
         if (!dryRun) {
           const confirmText = normalizeText(req.body?.confirmText);
@@ -1802,6 +1805,7 @@ function createCcoPatientMasterRouter({
             limit,
             offset,
             dateGate,
+            renderCandidatesOnly,
             resolveAssetStores,
             resolvePatientAssetStore,
             loadPatientMasterState,
@@ -1895,6 +1899,7 @@ function createCcoPatientMasterRouter({
               : null,
             rowsCollected: rows.length,
             rowSources: { ...rowSources, mergedUnique: rows.length },
+            renderCandidatesOnly,
             drive: {
               used: true,
               serviceAccountEmail: driveClient?.serviceAccountEmail || null,
@@ -1949,6 +1954,7 @@ function createCcoPatientMasterRouter({
             : null,
           rowsCollected: rows.length,
           rowSources: { ...rowSources, mergedUnique: rows.length },
+          renderCandidatesOnly,
           drive: dryRun
             ? { used: false, serviceAccountEmail: null }
             : {

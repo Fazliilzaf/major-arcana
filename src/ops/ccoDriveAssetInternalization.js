@@ -157,7 +157,7 @@ function collectPatientMasterDriveRows(state = {}, tenantId = 'hair-tp-clinic') 
 
 async function collectDriveRowsFromAssetStore(
   assetStore,
-  { storage = null, tenantId = null } = {}
+  { storage = null, tenantId = null, renderCandidatesOnly = false } = {}
 ) {
   const items =
     typeof assetStore?.listItemsForEnrichment === 'function'
@@ -165,6 +165,12 @@ async function collectDriveRowsFromAssetStore(
       : [];
   const rows = [];
   for (const asset of asArray(items)) {
+    if (
+      renderCandidatesOnly &&
+      !['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(normalizeText(asset.status))
+    ) {
+      continue;
+    }
     const driveFileId = normalizeText(asset.originalDriveFileId);
     if (!driveFileId) continue;
     const patientId = normalizeText(asset.patientId);
@@ -205,12 +211,17 @@ async function collectDriveRowsForInternalization({
   assetStore = null,
   storage = null,
   tenantId = 'hair-tp-clinic',
+  renderCandidatesOnly = false,
 } = {}) {
-  const pmRows = patientMasterState
+  const pmRows = patientMasterState && !renderCandidatesOnly
     ? collectPatientMasterDriveRows(patientMasterState, tenantId)
     : [];
   const assetRows = assetStore
-    ? await collectDriveRowsFromAssetStore(assetStore, { storage, tenantId })
+    ? await collectDriveRowsFromAssetStore(assetStore, {
+        storage,
+        tenantId,
+        renderCandidatesOnly,
+      })
     : [];
   return {
     rows: mergeDriveRows(pmRows, assetRows),

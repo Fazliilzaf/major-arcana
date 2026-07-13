@@ -275,6 +275,22 @@ test('assets/internalize finns och dryRun default skriver inte assets/import-run
   }
 });
 
+test('assets/internalize renderCandidatesOnly exkluderar patient-master attachments', async () => {
+  const fixture = await makeFixture();
+  try {
+    await withServer(fixture.app, async (base) => {
+      const res = await postJson(base, { renderCandidatesOnly: true, limit: 200 });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.renderCandidatesOnly, true);
+      assert.equal(res.body.rowsCollected, 0);
+      assert.equal(res.body.rowSources.patientMasterAttachments, 0);
+      assert.equal(res.body.report.remaining.count, 0);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
 test('assets/internalize kräver OWNER-roll', async () => {
   const fixture = await makeFixture({ role: 'STAFF' });
   try {
