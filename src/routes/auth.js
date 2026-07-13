@@ -1,6 +1,7 @@
 const express = require('express');
 
 const { getPermissionsForRole, ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
+const { recordTenantAccessCheck } = require('../ops/tenantAccessCheck');
 
 function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -91,9 +92,12 @@ function createAuthRouter({
 }) {
   const router = express.Router();
 
-  const applyLoginRateLimit = typeof loginRateLimiter === 'function' ? loginRateLimiter : (_req, _res, next) => next();
+  const applyLoginRateLimit =
+    typeof loginRateLimiter === 'function' ? loginRateLimiter : (_req, _res, next) => next();
   const applySelectTenantRateLimit =
-    typeof selectTenantRateLimiter === 'function' ? selectTenantRateLimiter : (_req, _res, next) => next();
+    typeof selectTenantRateLimiter === 'function'
+      ? selectTenantRateLimiter
+      : (_req, _res, next) => next();
   const rotationScope = normalizeSessionRotationScope(loginSessionRotationScope, 'none');
 
   async function safeAuditEvent(payload) {
@@ -146,10 +150,8 @@ function createAuthRouter({
   }
 
   function isMajorArcanaAdminClient(req) {
-    const headerClient =
-      (typeof req.get === 'function' && req.get('x-arcana-client')) || '';
-    const bodyClient =
-      req?.body?.client || req?.body?.app || req?.body?.source || '';
+    const headerClient = (typeof req.get === 'function' && req.get('x-arcana-client')) || '';
+    const bodyClient = req?.body?.client || req?.body?.app || req?.body?.source || '';
     const candidates = [headerClient, bodyClient]
       .map((item) => normalizeClientName(item))
       .filter(Boolean);
@@ -226,10 +228,13 @@ function createAuthRouter({
       if (!user) {
         return res.status(503).json({ error: 'Owner authentication failed.' });
       }
-      const memberships = await authStore.listMembershipsForUser(user.id, { includeDisabled: false });
+      const memberships = await authStore.listMembershipsForUser(user.id, {
+        includeDisabled: false,
+      });
       let selectedMembership =
-        memberships.find((m) => normalizeTenantId(m.tenantId) === normalizedBootstrapOwnerTenantId) ||
-        null;
+        memberships.find(
+          (m) => normalizeTenantId(m.tenantId) === normalizedBootstrapOwnerTenantId
+        ) || null;
       if (!selectedMembership && memberships.length === 1) {
         selectedMembership = memberships[0];
       }
@@ -256,7 +261,9 @@ function createAuthRouter({
             targetId: session?.id || '',
             metadata: {
               host: normalizeHost(
-                (typeof req.get === 'function' && (req.get('x-forwarded-host') || req.get('host'))) || ''
+                (typeof req.get === 'function' &&
+                  (req.get('x-forwarded-host') || req.get('host'))) ||
+                  ''
               ),
               rotatedSessions: rotatedPreviewSessions,
               rotationScope,
@@ -332,7 +339,11 @@ function createAuthRouter({
             user = bootstrap.user;
           }
           ownerCredentialSelfHealed = Boolean(user);
-          if (ownerCredentialSelfHealed && ownerEmergencyResetEnabled && !ownerPasswordMatchesBootstrap) {
+          if (
+            ownerCredentialSelfHealed &&
+            ownerEmergencyResetEnabled &&
+            !ownerPasswordMatchesBootstrap
+          ) {
             await safeAuditEvent({
               actorUserId: bootstrap?.user?.id || user?.id || null,
               action: 'auth.login.owner_emergency_reset',
@@ -532,15 +543,17 @@ function createAuthRouter({
       });
       if (!mfaResult?.ok) {
         const statusCode =
-          mfaResult?.error === 'invalid_ticket' || mfaResult?.error === 'expired_ticket' ? 400 : 401;
+          mfaResult?.error === 'invalid_ticket' || mfaResult?.error === 'expired_ticket'
+            ? 400
+            : 401;
         const errorMessage =
           mfaResult?.error === 'too_many_attempts'
             ? 'För många MFA-försök. Logga in igen.'
             : mfaResult?.error === 'expired_ticket'
-            ? 'MFA-ticket har gått ut. Logga in igen.'
-            : mfaResult?.error === 'invalid_ticket'
-            ? 'MFA-ticket är ogiltig.'
-            : 'Fel MFA-kod.';
+              ? 'MFA-ticket har gått ut. Logga in igen.'
+              : mfaResult?.error === 'invalid_ticket'
+                ? 'MFA-ticket är ogiltig.'
+                : 'Fel MFA-kod.';
 
         await authStore.addAuditEvent({
           actorUserId: mfaResult?.userId || null,
@@ -696,7 +709,9 @@ function createAuthRouter({
       });
       const membership = memberships.find(
         (item) =>
-          item.tenantId === tenantId && Array.isArray(pending.membershipIds) && pending.membershipIds.includes(item.id)
+          item.tenantId === tenantId &&
+          Array.isArray(pending.membershipIds) &&
+          pending.membershipIds.includes(item.id)
       );
 
       if (!membership) {
@@ -828,7 +843,8 @@ function createAuthRouter({
 
   router.post('/auth/change-password', requireAuth, async (req, res) => {
     try {
-      const currentPassword = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
+      const currentPassword =
+        typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
       const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
       const revokeOtherSessions = parseBoolean(req.body?.revokeOtherSessions, true);
       const revokeScopeRaw =
@@ -873,7 +889,8 @@ function createAuthRouter({
       let currentSessionRevoked = false;
       if (revokeOtherSessions) {
         const tenantScope = revokeAllSessions ? '' : req.auth.tenantId;
-        const excludeSessionId = revokeCurrentSession && revokeAllSessions ? '' : req.auth.sessionId;
+        const excludeSessionId =
+          revokeCurrentSession && revokeAllSessions ? '' : req.auth.sessionId;
 
         if (typeof authStore.revokeSessionsByUser === 'function') {
           const revokeResult = await authStore.revokeSessionsByUser(req.auth.userId, {
@@ -954,7 +971,8 @@ function createAuthRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
       try {
-        const scope = typeof req.query?.scope === 'string' ? req.query.scope.trim().toLowerCase() : 'me';
+        const scope =
+          typeof req.query?.scope === 'string' ? req.query.scope.trim().toLowerCase() : 'me';
         const includeRevoked = parseBoolean(req.query?.includeRevoked, false);
         const limit = parseLimit(req.query?.limit, 100);
 
@@ -1001,7 +1019,8 @@ function createAuthRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
       try {
-        const sessionId = typeof req.params?.sessionId === 'string' ? req.params.sessionId.trim() : '';
+        const sessionId =
+          typeof req.params?.sessionId === 'string' ? req.params.sessionId.trim() : '';
         if (!sessionId) return res.status(400).json({ error: 'sessionId saknas.' });
 
         const details = await authStore.getSessionDetailsById(sessionId);
@@ -1053,13 +1072,11 @@ function createAuthRouter({
     requireTenantScope({ paramKey: 'tenantId', optional: false }),
     async (req, res) => {
       try {
-        await authStore.addAuditEvent({
+        await recordTenantAccessCheck({
+          authStore,
           tenantId: req.auth.tenantId,
           actorUserId: req.auth.userId,
-          action: 'tenants.access_check',
-          outcome: 'success',
-          targetType: 'tenant',
-          targetId: req.auth.tenantId,
+          trigger: 'manual_api',
         });
       } catch (error) {
         console.error(error);
@@ -1132,120 +1149,129 @@ function createAuthRouter({
     }
   });
 
-  router.patch('/users/staff/:membershipId', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
-    try {
-      const membershipId = String(req.params.membershipId || '').trim();
-      if (!membershipId) {
-        return res.status(400).json({ error: 'membershipId saknas.' });
-      }
-
-      const existing = await authStore.getMembershipById(membershipId);
-      if (!existing) {
-        return res.status(404).json({ error: 'Medlemskapet hittades inte.' });
-      }
-      if (existing.tenantId !== req.auth.tenantId) {
-        return res.status(403).json({ error: 'Du har inte åtkomst till detta medlemskap.' });
-      }
-
-      const patch = {};
-
-      const nextStatus = typeof req.body?.status === 'string' ? req.body.status.trim().toLowerCase() : '';
-      if (nextStatus) {
-        if (!['active', 'disabled'].includes(nextStatus)) {
-          return res.status(400).json({ error: 'status måste vara active eller disabled.' });
+  router.patch(
+    '/users/staff/:membershipId',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const membershipId = String(req.params.membershipId || '').trim();
+        if (!membershipId) {
+          return res.status(400).json({ error: 'membershipId saknas.' });
         }
-        patch.status = nextStatus;
-      }
 
-      const nextRoleRaw = typeof req.body?.role === 'string' ? req.body.role.trim().toUpperCase() : '';
-      if (nextRoleRaw) {
-        if (![ROLE_STAFF, ROLE_OWNER].includes(nextRoleRaw)) {
-          return res.status(400).json({ error: 'role måste vara STAFF eller OWNER.' });
+        const existing = await authStore.getMembershipById(membershipId);
+        if (!existing) {
+          return res.status(404).json({ error: 'Medlemskapet hittades inte.' });
         }
-        patch.role = nextRoleRaw;
-      }
-
-      if (!Object.keys(patch).length) {
-        return res.status(400).json({ error: 'Inget att uppdatera. Ange status och/eller role.' });
-      }
-
-      const effectiveRole = typeof patch.role === 'string' ? patch.role : existing.role;
-      const effectiveStatus = typeof patch.status === 'string' ? patch.status : existing.status;
-      const removesActiveOwner =
-        existing.role === ROLE_OWNER &&
-        existing.status === 'active' &&
-        (effectiveRole !== ROLE_OWNER || effectiveStatus !== 'active');
-
-      if (removesActiveOwner) {
-        const members = await authStore.listTenantMembers(req.auth.tenantId);
-        const otherActiveOwners = members.filter((item) => {
-          const membership = item?.membership;
-          if (!membership || membership.id === membershipId) return false;
-          return membership.role === ROLE_OWNER && membership.status === 'active';
-        }).length;
-        if (otherActiveOwners < 1) {
-          return res.status(400).json({ error: 'Minst en aktiv OWNER måste finnas i tenant.' });
+        if (existing.tenantId !== req.auth.tenantId) {
+          return res.status(403).json({ error: 'Du har inte åtkomst till detta medlemskap.' });
         }
-      }
 
-      const updated = await authStore.updateMembership(membershipId, patch);
-      if (!updated) {
-        return res.status(404).json({ error: 'Medlemskapet hittades inte.' });
-      }
+        const patch = {};
 
-      if (patch.status === 'disabled') {
-        await authStore.revokeSessionsByMembership(membershipId, {
-          reason: 'membership_disabled',
+        const nextStatus =
+          typeof req.body?.status === 'string' ? req.body.status.trim().toLowerCase() : '';
+        if (nextStatus) {
+          if (!['active', 'disabled'].includes(nextStatus)) {
+            return res.status(400).json({ error: 'status måste vara active eller disabled.' });
+          }
+          patch.status = nextStatus;
+        }
+
+        const nextRoleRaw =
+          typeof req.body?.role === 'string' ? req.body.role.trim().toUpperCase() : '';
+        if (nextRoleRaw) {
+          if (![ROLE_STAFF, ROLE_OWNER].includes(nextRoleRaw)) {
+            return res.status(400).json({ error: 'role måste vara STAFF eller OWNER.' });
+          }
+          patch.role = nextRoleRaw;
+        }
+
+        if (!Object.keys(patch).length) {
+          return res
+            .status(400)
+            .json({ error: 'Inget att uppdatera. Ange status och/eller role.' });
+        }
+
+        const effectiveRole = typeof patch.role === 'string' ? patch.role : existing.role;
+        const effectiveStatus = typeof patch.status === 'string' ? patch.status : existing.status;
+        const removesActiveOwner =
+          existing.role === ROLE_OWNER &&
+          existing.status === 'active' &&
+          (effectiveRole !== ROLE_OWNER || effectiveStatus !== 'active');
+
+        if (removesActiveOwner) {
+          const members = await authStore.listTenantMembers(req.auth.tenantId);
+          const otherActiveOwners = members.filter((item) => {
+            const membership = item?.membership;
+            if (!membership || membership.id === membershipId) return false;
+            return membership.role === ROLE_OWNER && membership.status === 'active';
+          }).length;
+          if (otherActiveOwners < 1) {
+            return res.status(400).json({ error: 'Minst en aktiv OWNER måste finnas i tenant.' });
+          }
+        }
+
+        const updated = await authStore.updateMembership(membershipId, patch);
+        if (!updated) {
+          return res.status(404).json({ error: 'Medlemskapet hittades inte.' });
+        }
+
+        if (patch.status === 'disabled') {
+          await authStore.revokeSessionsByMembership(membershipId, {
+            reason: 'membership_disabled',
+          });
+        }
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'users.staff.update',
+          outcome: 'success',
+          targetType: 'membership',
+          targetId: membershipId,
+          metadata: {
+            patch,
+            revokedSessions: patch.status === 'disabled',
+            before: {
+              role: existing.role,
+              status: existing.status,
+            },
+            after: {
+              role: updated.role,
+              status: updated.status,
+            },
+            diff: [
+              ...(existing.role !== updated.role
+                ? [
+                    {
+                      field: 'role',
+                      before: existing.role,
+                      after: updated.role,
+                    },
+                  ]
+                : []),
+              ...(existing.status !== updated.status
+                ? [
+                    {
+                      field: 'status',
+                      before: existing.status,
+                      after: updated.status,
+                    },
+                  ]
+                : []),
+            ],
+          },
         });
+
+        return res.json({ membership: updated });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte uppdatera staff-medlemskap.' });
       }
-
-      await authStore.addAuditEvent({
-        tenantId: req.auth.tenantId,
-        actorUserId: req.auth.userId,
-        action: 'users.staff.update',
-        outcome: 'success',
-        targetType: 'membership',
-        targetId: membershipId,
-        metadata: {
-          patch,
-          revokedSessions: patch.status === 'disabled',
-          before: {
-            role: existing.role,
-            status: existing.status,
-          },
-          after: {
-            role: updated.role,
-            status: updated.status,
-          },
-          diff: [
-            ...(existing.role !== updated.role
-              ? [
-                  {
-                    field: 'role',
-                    before: existing.role,
-                    after: updated.role,
-                  },
-                ]
-              : []),
-            ...(existing.status !== updated.status
-              ? [
-                  {
-                    field: 'status',
-                    before: existing.status,
-                    after: updated.status,
-                  },
-                ]
-              : []),
-          ],
-        },
-      });
-
-      return res.json({ membership: updated });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Kunde inte uppdatera staff-medlemskap.' });
     }
-  });
+  );
 
   router.get(
     '/audit/integrity',

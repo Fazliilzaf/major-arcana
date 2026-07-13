@@ -392,7 +392,9 @@ test('scheduler release_governance_review alerts when release gate has blockers'
     assert.equal(run.ok, true);
     assert.equal(run.result.releaseGatePassed, false);
     assert.equal(run.result.blockerCount, 2);
-    assert.ok(alerts.some((item) => String(item?.eventType || '') === 'release.governance.blocked'));
+    assert.ok(
+      alerts.some((item) => String(item?.eventType || '') === 'release.governance.blocked')
+    );
   } finally {
     if (scheduler && typeof scheduler.stop === 'function') {
       await scheduler.stop();
@@ -407,10 +409,7 @@ test('scheduler cco_history_sync värmer senaste fönstret och backfillar bakåt
 
   try {
     const config = buildBaseConfig(tmpDir);
-    config.schedulerCcoHistoryMailboxIds = [
-      'kons@hairtpclinic.com',
-      'info@hairtpclinic.com',
-    ];
+    config.schedulerCcoHistoryMailboxIds = ['kons@hairtpclinic.com', 'info@hairtpclinic.com'];
     const ccoHistoryStore = await createCcoHistoryStore({
       filePath: path.join(tmpDir, 'cco-history.json'),
     });
@@ -438,8 +437,7 @@ test('scheduler cco_history_sync värmer senaste fönstret och backfillar bakåt
           const ageDays = Math.round(
             (baseNowMs - Date.parse(String(options.untilIso || ''))) / dayMs
           );
-          const bucket =
-            ageDays >= 55 ? 'backfill-2' : ageDays >= 25 ? 'backfill-1' : 'recent';
+          const bucket = ageDays >= 55 ? 'backfill-2' : ageDays >= 25 ? 'backfill-1' : 'recent';
           return createHistorySnapshotForWindow({
             mailboxId: options.mailboxIds?.[0] || 'kons@hairtpclinic.com',
             messageId: bucket,
@@ -543,14 +541,16 @@ test('scheduler cco_history_sync värmer senaste fönstret och backfillar bakåt
     });
     assert.equal(konsMessages.length, 3);
     assert.equal(infoMessages.length, 3);
-    assert.deepEqual(
-      konsMessages.map((message) => message.messageId).sort(),
-      ['backfill-1', 'backfill-2', 'recent']
-    );
-    assert.deepEqual(
-      infoMessages.map((message) => message.messageId).sort(),
-      ['backfill-1', 'backfill-2', 'recent']
-    );
+    assert.deepEqual(konsMessages.map((message) => message.messageId).sort(), [
+      'backfill-1',
+      'backfill-2',
+      'recent',
+    ]);
+    assert.deepEqual(infoMessages.map((message) => message.messageId).sort(), [
+      'backfill-1',
+      'backfill-2',
+      'recent',
+    ]);
   } finally {
     if (scheduler && typeof scheduler.stop === 'function') {
       await scheduler.stop();
@@ -761,8 +761,7 @@ test('scheduler release_governance_review skips auto-review when review already 
     assert.equal(run.result.autoReview.reason, 'already_reviewed_today');
     assert.ok(
       alerts.some(
-        (item) =>
-          String(item?.eventType || '') === 'release.governance.post_launch_review_missing'
+        (item) => String(item?.eventType || '') === 'release.governance.post_launch_review_missing'
       )
     );
   } finally {
@@ -981,6 +980,86 @@ test('scheduler cco_shadow_run stores recommendations and cco_shadow_review summ
       reviewEntries[0]?.output?.data?.summaries?.actionSummaryByIntent?.[0]?.intent,
       recommendation.intent
     );
+  } finally {
+    if (scheduler && typeof scheduler.stop === 'function') {
+      await scheduler.stop();
+    }
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('scheduler tenant_access_check writes tenants.access_check audit as system_auto', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-tenant-access-check-'));
+  let scheduler = null;
+
+  try {
+    const config = {
+      ...buildBaseConfig(tmpDir),
+      schedulerTenantAccessCheckIntervalHours: 12,
+    };
+
+    const audits = [];
+    const authStore = {
+      ...createBaseAuthStore(),
+      async addAuditEvent(payload) {
+        audits.push(payload);
+        return true;
+      },
+    };
+
+    scheduler = createScheduler({
+      config,
+      authStore,
+      templateStore: createBaseTemplateStore(),
+      logger: { log() {}, error() {} },
+    });
+
+    const run = await scheduler.runJob('tenant_access_check', {
+      trigger: 'manual',
+      tenantId: 'tenant-a',
+      actorUserId: null,
+    });
+
+    assert.equal(run.ok, true);
+    assert.equal(run.result.status, 'ok');
+    assert.ok(audits.length >= 1);
+    const accessAudit = audits.find((row) => row.action === 'tenants.access_check');
+    assert.ok(accessAudit);
+    assert.equal(accessAudit.outcome, 'success');
+    assert.equal(accessAudit.tenantId, 'tenant-a');
+    assert.equal(accessAudit.actorUserId, null);
+    assert.equal(accessAudit.metadata.trigger, 'system_auto');
+    assert.equal(accessAudit.metadata.actorType, 'system_auto');
+  } finally {
+    if (scheduler && typeof scheduler.stop === 'function') {
+      await scheduler.stop();
+    }
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('scheduler tenant_access_check respects interval env: 0 disables job', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-tenant-access-check-off-'));
+  let scheduler = null;
+
+  try {
+    const config = {
+      ...buildBaseConfig(tmpDir),
+      schedulerTenantAccessCheckIntervalHours: 0,
+    };
+
+    scheduler = createScheduler({
+      config,
+      authStore: createBaseAuthStore(),
+      templateStore: createBaseTemplateStore(),
+      logger: { log() {}, error() {} },
+    });
+
+    const status = scheduler.getStatus();
+    const job = status.jobs.find((item) => item.id === 'tenant_access_check');
+    assert.ok(job);
+    assert.equal(job.enabled, false);
+    assert.equal(job.intervalMs, 0);
   } finally {
     if (scheduler && typeof scheduler.stop === 'function') {
       await scheduler.stop();
