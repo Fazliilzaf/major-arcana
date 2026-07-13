@@ -150,8 +150,12 @@ function createCmMailSync({
   // ORD-72d: äldre rawItems saknar mailMessageId (graphMessageId-aliasbuggen) —
   // slå upp Graph-id via internetMessageId så full-body/bilagor kan hämtas.
   async function findMessageIdByInternetMessageId(mailboxId, internetMessageId) {
-    const imid = normalizeText(internetMessageId);
+    let imid = normalizeText(internetMessageId);
     if (!imid) return null;
+    // Connectorn lagrar imid UTAN vinkelparenteser — Graph-$filter kräver dem
+    // (verifierat i prod 2026-07-13: utan <> noll träffar, med <> träff +
+    // 30 648 tecken body mot 177 i preview).
+    if (!imid.startsWith('<')) imid = `<${imid}>`;
     const accessToken = await graphReadConnector.fetchAccessToken();
     const filter = encodeURIComponent(`internetMessageId eq '${imid.replace(/'/g, "''")}'`);
     const url =

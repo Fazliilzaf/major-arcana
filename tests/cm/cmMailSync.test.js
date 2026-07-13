@@ -558,7 +558,7 @@ test('reextractMissingAmounts: mailMessageId-backfill via internetMessageId (ORD
     sourceType: 'email',
     sourceId: 'kvitto@test.se',
     mailMessageId: '',
-    internetMessageId: '<meta-receipt-1@fb.com>',
+    internetMessageId: 'meta-receipt-1@fb.com', // lagras UTAN <> (connector-format)
     subject: 'Ditt annonser-kvitto för Meta',
     fromEmail: 'billing@meta.com',
     rawBodyText: 'Maskad preview utan belopp.',
