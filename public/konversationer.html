@@ -3506,7 +3506,87 @@
           .replace('.', '');
       }
 
-      function normalizeLiveThread(row = {}, index = 0) {
+      function worklistEnrichmentKeys(row = {}) {
+        const mailbox = canonicalHairTpMailbox(
+          normalizeText(row.mailboxAddress) ||
+            normalizeText(row.mailboxId) ||
+            normalizeText(row.userPrincipalName) ||
+            normalizeText(row.mailbox?.mailboxAddress) ||
+            normalizeText(row.mailbox?.mailboxId)
+        );
+        const identifiers = [
+          row.conversationId,
+          row.conversationKey,
+          row.messageId,
+          row.id,
+          row.conversation?.conversationId,
+          row.conversation?.mailboxConversationId,
+          row.conversation?.key,
+          row.mailboxConversationId,
+        ]
+          .map((value) => normalizeText(value).toLowerCase())
+          .filter(Boolean);
+        return identifiers.flatMap((identifier) =>
+          mailbox ? [`${mailbox}:${identifier}`, identifier] : [identifier]
+        );
+      }
+
+      function buildWorklistEnrichmentLookup(enrichment = {}) {
+        const lookup = new Map();
+        const rows = [
+          ...(Array.isArray(enrichment.conversationWorklist)
+            ? enrichment.conversationWorklist
+            : []),
+          ...(Array.isArray(enrichment.needsReplyToday) ? enrichment.needsReplyToday : []),
+        ];
+        rows.forEach((row) => {
+          worklistEnrichmentKeys(row).forEach((key) => {
+            const current = lookup.get(key);
+            lookup.set(key, current ? { ...current, ...row } : row);
+          });
+        });
+        return lookup;
+      }
+
+      function findWorklistEnrichment(row = {}, lookup = new Map()) {
+        for (const key of worklistEnrichmentKeys(row)) {
+          const match = lookup.get(key);
+          if (match) return match;
+        }
+        return null;
+      }
+
+      function smartInboxTags(enrichment = {}) {
+        if (!enrichment || typeof enrichment !== 'object') return [];
+        const tags = [];
+        const add = (kind, label) => {
+          if (!label || tags.some((tag) => tag.label === label)) return;
+          tags.push({ kind, label });
+        };
+        const intent = normalizeText(enrichment.intent).toLowerCase();
+        const confidence = Number(enrichment.intentConfidence);
+        const intentTags = {
+          booking_request: { kind: 'booking', label: 'Bokningsförfrågan' },
+          pricing_question: { kind: 'ai', label: 'Prisfråga' },
+          anxiety_pre_op: { kind: 'warning', label: 'Orolig inför behandling' },
+          complaint: { kind: 'urgent', label: 'Klagomål' },
+          cancellation: { kind: 'warning', label: 'Av-/ombokning' },
+          follow_up: { kind: 'ai', label: 'Uppföljning' },
+        };
+        if (Number.isFinite(confidence) && confidence >= 0.6 && intentTags[intent]) {
+          const tag = intentTags[intent];
+          add(tag.kind, tag.label);
+        }
+        const priority = normalizeText(enrichment.priorityLevel).toLowerCase();
+        if (priority === 'critical') add('urgent', 'Kritisk');
+        else if (priority === 'high') add('urgent', 'Hög prioritet');
+        if (enrichment.followUpSuggested === true || enrichment.stagnated === true) {
+          add('warning', 'Följ upp');
+        }
+        return tags.slice(0, 3);
+      }
+
+      function normalizeLiveThread(row = {}, index = 0, enrichment = null) {
         const customer = row.customer || {};
         const mailbox = row.mailbox || {};
         const timing = row.timing || {};
@@ -3677,6 +3757,9 @@
         if (rollup.enabled && Number(rollup.mailboxCount || 0) > 1) {
           tags.push({ kind: 'ai', label: `${rollup.mailboxCount} mailboxar` });
         }
+        smartInboxTags(enrichment).forEach((tag) => {
+          if (!tags.some((existing) => existing.label === tag.label)) tags.push(tag);
+        });
         // Rad 2 ska vara ärendet, inte kundnamnet. Kontaktformulär har ofta subject
         // "Kundnamn Kontaktformulär"; behåll då den meningsfulla resten.
         const threadName = normalizeText(name);
@@ -5330,10 +5413,13 @@
                 ? inboxMessageCount
                 : null;
           const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+          const enrichmentLookup = buildWorklistEnrichmentLookup(payload?.enrichment);
           const previousSelection = selectedLiveThread;
           const previousSelectionKey = normalizeText(previousSelection?.conversationKey);
           const previousSelectionId = normalizeText(previousSelection?.id);
-          currentThreads = rows.map(normalizeLiveThread);
+          currentThreads = rows.map((row, index) =>
+            normalizeLiveThread(row, index, findWorklistEnrichment(row, enrichmentLookup))
+          );
           if (!currentThreads.length) {
             renderInboxThreads(currentThreads, {
               activeTab: currentInboxTab,

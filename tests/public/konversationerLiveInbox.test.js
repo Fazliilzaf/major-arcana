@@ -186,6 +186,36 @@ test('konversationer derives booking chips from the local worklist booking conte
   );
 });
 
+test('konversationer maps verified worklist enrichment to smart inbox chips', () => {
+  const html = readHtml();
+
+  assert.match(html, /function buildWorklistEnrichmentLookup\(enrichment = \{\}\)/);
+  assert.match(html, /function findWorklistEnrichment\(row = \{\}, lookup = new Map\(\)\)/);
+  assert.match(html, /intentConfidence/);
+  assert.match(html, /confidence >= 0\.6/);
+  assert.match(html, /booking_request:\s*\{ kind: 'booking', label: 'Bokningsförfrågan' \}/);
+  assert.match(html, /pricing_question:\s*\{ kind: 'ai', label: 'Prisfråga' \}/);
+  assert.match(html, /anxiety_pre_op:\s*\{ kind: 'warning', label: 'Orolig inför behandling' \}/);
+  assert.match(html, /complaint:\s*\{ kind: 'urgent', label: 'Klagomål' \}/);
+  assert.match(html, /cancellation:\s*\{ kind: 'warning', label: 'Av-\/ombokning' \}/);
+  assert.match(html, /follow_up:\s*\{ kind: 'ai', label: 'Uppföljning' \}/);
+  assert.match(html, /priority === 'critical'.*'Kritisk'/);
+  assert.match(html, /priority === 'high'.*'Hög prioritet'/);
+  assert.match(html, /followUpSuggested === true \|\| enrichment\.stagnated === true/);
+  assert.match(
+    html,
+    /normalizeLiveThread\(row, index, findWorklistEnrichment\(row, enrichmentLookup\)\)/
+  );
+});
+
+test('konversationer keeps uncertain or unclear enrichment out of inbox chips', () => {
+  const html = readHtml();
+
+  assert.doesNotMatch(html, /unclear:\s*\{\s*kind:/);
+  assert.match(html, /return tags\.slice\(0, 3\)/);
+  assert.match(html, /tags\.some\(\(existing\) => existing\.label === tag\.label\)/);
+});
+
 test('konversationer inbox cards preserve smart subjects without showing the mailbox chip', () => {
   const html = readHtml();
 

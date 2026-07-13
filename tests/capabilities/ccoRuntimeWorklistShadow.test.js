@@ -1403,6 +1403,9 @@ test('runtime worklist consumer route exposes limited truth-driven rows while ke
               hasUnreadInbound: false,
               lastInboundAt: '2026-04-01T10:00:00.000Z',
               priorityLevel: 'Normal',
+              intent: 'booking_request',
+              intentConfidence: 0.84,
+              followUpSuggested: true,
             },
           ],
           needsReplyToday: [],
@@ -1443,6 +1446,10 @@ test('runtime worklist consumer route exposes limited truth-driven rows while ke
       assert.equal(payload.consumerExposure.legacyUiDriving, true);
       assert.equal(payload.consumerExposure.cutoverState, 'not_allowed');
       assert.equal(payload.consumerExposure.shadowGuardrail, 'readout_only');
+      assert.equal(payload.enrichment.rowCount, 1);
+      assert.equal(payload.enrichment.conversationWorklist[0].intent, 'booking_request');
+      assert.equal(payload.enrichment.conversationWorklist[0].intentConfidence, 0.84);
+      assert.equal(payload.enrichment.conversationWorklist[0].followUpSuggested, true);
 
       assert.equal(payload.readiness.canStartLimitedConsumerExposure, false);
       assert.equal(payload.readiness.canConsiderCutover, false);
