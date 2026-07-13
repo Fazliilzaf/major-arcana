@@ -4233,12 +4233,15 @@
         }
         const name = normalizeText(thread.from) || 'Okänd kund';
         if (dossierButton) {
-          dossierButton.disabled = false;
-          dossierButton.dataset.patientId = normalizeText(thread.patientId);
-          dossierButton.dataset.patientMatchStatus = normalizeText(thread.patientMatch?.status);
-          dossierButton.title = thread.patientId
+          const patientId = normalizeText(thread.patientId);
+          const patientMatchStatus = normalizeText(thread.patientMatch?.status);
+          const hasCanonicalPatientMatch = Boolean(patientId && patientMatchStatus === 'matched');
+          dossierButton.disabled = !hasCanonicalPatientMatch;
+          dossierButton.dataset.patientId = patientId;
+          dossierButton.dataset.patientMatchStatus = patientMatchStatus;
+          dossierButton.title = hasCanonicalPatientMatch
             ? `Öppna kunddossier för ${normalizeText(thread.patientDisplayName) || name}`
-            : thread.patientMatch?.status === 'ambiguous'
+            : patientMatchStatus === 'ambiguous'
               ? 'Flera kunder har samma e-post. Välj kund manuellt.'
               : 'Ingen kund är kopplad till denna konversation.';
         }

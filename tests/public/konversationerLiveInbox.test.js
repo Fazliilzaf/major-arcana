@@ -600,6 +600,8 @@ test('konversationer deep-links only canonical matched patientIds to the custome
   assert.match(script, /patientId: normalizeText\(row\.patientId\)/);
   assert.match(script, /patientMatch:\s*row\.patientMatch/);
   assert.match(html, /data-action="open-patient-dossier"/);
+  assert.match(script, /hasCanonicalPatientMatch = Boolean\(patientId && patientMatchStatus === 'matched'\)/);
+  assert.match(script, /dossierButton\.disabled = !hasCanonicalPatientMatch/);
   assert.match(script, /status !== 'matched'/);
   assert.match(script, /view: 'customers'/);
   assert.match(script, /v11rail: 'on'/);
