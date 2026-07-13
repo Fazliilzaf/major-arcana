@@ -113,6 +113,7 @@
     "verify:import-review-prod": "node ./scripts/verify-import-review-prod.js",
     "verify:internalize-run-prod": "node ./scripts/verify-internalize-run-prod.js",
     "verify:encounter-link-preview-prod": "node ./scripts/preview-encounter-link-repair-prod.js",
+    "review:encounter-link-queue-prod": "node ./scripts/review-encounter-link-queue-prod.js",
     "verify:drive-import-review-prod": "node ./scripts/verify-drive-import-review-prod.js",
     "apply:drive-import-review-prod": "node ./scripts/apply-drive-import-review-prod.js",
     "pilot:drive-import-review-prod": "node ./scripts/pilot-drive-import-review-prod.js",

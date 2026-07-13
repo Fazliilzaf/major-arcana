@@ -531,6 +531,49 @@ test('assets/preview-encounter-link-population inventerar direkt utan patient-sw
   }
 });
 
+test('assets/encounter-link-review-queue returns unresolved assets without writes', async () => {
+  const fixture = await makeFixture();
+  try {
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: TENANT,
+      id: 'patient-sam-1',
+      displayName: 'Sam Same',
+      matchStatus: 'matched',
+    });
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: TENANT,
+      id: 'patient-sam-2',
+      displayName: 'Sam Same',
+      matchStatus: 'matched',
+    });
+    await fixture.assetStore.addAsset({
+      patientId: 'cliento-sam-legacy',
+      sourceSystem: 'drive_import',
+      sourceRecordId: 'photo-sam-review',
+      originalFileName: 'IMG_2001.jpg',
+      originalDrivePath: 'Hair TP Clinic/Sam Same/IMG_2001.jpg',
+      mimeType: 'image/jpeg',
+      category: 'photo_before',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+
+    await withServer(fixture.app, async (base) => {
+      const res = await fetch(
+        `${base}/api/v1/cco-patient-master/assets/encounter-link-review-queue`
+      );
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.zeroWrites, true);
+      assert.equal(json.stats.reviewAssets, 1);
+      assert.equal(json.stats.ambiguousGroups, 1);
+      assert.match(json.groups[0].assets[0].assetId, /\*\*\*/);
+      assert.equal(json.groups[0].assets[0].fileName, null);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
 test('encounter preview begränsar samtidig patientmaterialisering', () => {
   const source = require('node:fs').readFileSync(
     path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
