@@ -538,7 +538,15 @@ function createCmStore({ filePath }) {
   }
 
   function getDashboard() {
+    // ORD-70: rullande 24h-räknare för auto-intagets statusrad
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const isLast24h = (iso) => {
+      const t = Date.parse(iso || '');
+      return Number.isFinite(t) && t >= dayAgo;
+    };
     return {
+      importedLast24h: state.rawItems.filter((r) => isLast24h(r.createdAt)).length,
+      recordsLast24h: state.expenseRecords.filter((r) => isLast24h(r.createdAt)).length,
       inbox: getInbox().length,
       needsReview: getNeedsReview().length,
       invoices: getInvoices().length,

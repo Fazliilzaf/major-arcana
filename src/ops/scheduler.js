@@ -4069,7 +4069,7 @@ function createScheduler({
     const mailbox = process.env.CM_MAIL_ACCOUNT || 'kvitto@hairtpclinic.com';
     const syncResult = await sync.syncAll(mailbox);
     const reprocessResult = await sync.reprocessUnprocessed({ limit: 10 });
-    return {
+    const summary = {
       status: 'ok',
       mailbox,
       imported: syncResult.totalImported,
@@ -4079,6 +4079,19 @@ function createScheduler({
         (syncResult.folders || []).reduce((s, f) => s + (f.errors?.length || 0), 0) +
         (reprocessResult.errors?.length || 0),
     };
+    // ORD-70: persistera körnings-summeringen så finance.html kan visa
+    // "auto-intag: senaste körning …" utan att fråga scheduler-endpointen.
+    try {
+      deps.cmStore.setSyncState(mailbox, '_scheduler', {
+        lastRunAt: new Date().toISOString(),
+        intervalMinutes: Number(config.schedulerCmMailSyncIntervalMinutes) || 30,
+        ...summary,
+      });
+      await deps.cmStore.persist();
+    } catch {
+      /* status-raden är best effort — själva intaget är redan persisterat */
+    }
+    return summary;
   }
 
   const jobDefinitions = [
