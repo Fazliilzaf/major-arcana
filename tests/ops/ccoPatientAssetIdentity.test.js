@@ -221,6 +221,24 @@ test('resolveCanonicalPatientsForAssets resolves shared aliases independently pe
   );
 });
 
+test('resolveCanonicalPatientsForAssets keeps personnummer matching across path punctuation', () => {
+  const mappings = resolveCanonicalPatientsForAssets({
+    patients: [
+      { id: 'lisa', displayName: 'Lisa Karlsson', personnummer: '020405-7160' },
+      { id: 'anna', displayName: 'Anna Svensson', personnummer: '850101-1234' },
+    ],
+    assets: [
+      {
+        id: 'a1',
+        patientId: 'shared',
+        originalDrivePath: '2026/Lisa Karlsson - 020405-7160/Foto 1.jpg',
+      },
+    ],
+  });
+  assert.equal(mappings[0].canonicalPatientId, 'lisa');
+  assert.equal(mappings[0].reason, 'personnummer_path');
+});
+
 test('resolveCanonicalPatientsForAssetAliases leaves ambiguous exact names unresolved', () => {
   const mappings = resolveCanonicalPatientsForAssetAliases({
     patients: [
