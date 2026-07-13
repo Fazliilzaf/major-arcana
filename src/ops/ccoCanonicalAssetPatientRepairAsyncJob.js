@@ -43,6 +43,10 @@ async function executeCanonicalPatientRepairJob({
 } = {}) {
   try {
     const loaded = typeof loadInputs === 'function' ? await loadInputs() : { assets, patients };
+    const effectiveAssetStore = loaded?.assetStore || assetStore;
+    if (!effectiveAssetStore?.linkAssetToPatient) {
+      throw new Error('Asset store saknar patient-link repair.');
+    }
     const plan = buildCanonicalAssetPatientRepairPlan({
       assets: loaded?.assets || assets,
       patients: loaded?.patients || patients,
@@ -60,17 +64,17 @@ async function executeCanonicalPatientRepairJob({
 
     for (let offset = 0; offset < plan.eligible.length; offset += size) {
       const batch = plan.eligible.slice(offset, offset + size);
-      assetStore.beginBatch?.();
+      effectiveAssetStore.beginBatch?.();
       try {
         for (const mapping of batch) {
-          await assetStore.linkAssetToPatient(mapping.assetId, mapping.canonicalPatientId, {
+          await effectiveAssetStore.linkAssetToPatient(mapping.assetId, mapping.canonicalPatientId, {
             actor,
           });
           jobState.stats.linked += 1;
           jobState.stats.remainingEligible -= 1;
         }
       } finally {
-        await assetStore.flushBatch?.();
+        await effectiveAssetStore.flushBatch?.();
       }
       jobState.stats.batchesCompleted += 1;
     }
