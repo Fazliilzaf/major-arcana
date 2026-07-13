@@ -79,6 +79,7 @@ const { gateMigrationIndexFiles } = require('../ops/ccoPatientMasterMigrationInd
 const { buildVisitSegments } = require('../ops/ccoPatientVisitSegments');
 const {
   buildEncounterLinkRepairPlan,
+  isMediaAsset,
   previewEncounterLinkRepair,
 } = require('../ops/ccoEncounterLinkRepair');
 const { hydratePatientHealthProjection } = require('../ops/ccoPatientMasterStore');
@@ -2111,6 +2112,74 @@ function createCcoPatientMasterRouter({
         });
 
         return res.json({ ok: true, ...report });
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/assets/preview-encounter-link-population',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const includeReviewDetails = req.body?.includeReviewDetails === true;
+        const sampleSize = clampPreviewLimit(req.body?.sampleSize, 25);
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        if (!assetStore?.listItemsForEnrichment) {
+          return res.status(503).json({ error: 'Asset store saknar populationsindex.' });
+        }
+
+        const renderable = assetStore
+          .listItemsForEnrichment(actor.tenantId)
+          .filter((asset) =>
+            ['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(asset?.status)
+          );
+        const media = renderable.filter(isMediaAsset);
+        const missing = media.filter((asset) => !normalizeText(asset.encounterId));
+        const patients = [...new Set(missing.map((asset) => normalizeText(asset.patientId)).filter(Boolean))];
+        const mask = (value) => {
+          const text = normalizeText(value);
+          if (includeReviewDetails || text.length < 9) return text;
+          return `${text.slice(0, 4)}***${text.slice(-4)}`;
+        };
+        const samples = missing.slice(0, sampleSize).map((asset) => ({
+          assetId: mask(asset.id),
+          patientId: mask(asset.patientId),
+          fileName: includeReviewDetails ? normalizeText(asset.originalFileName) || null : null,
+          category: normalizeText(asset.category) || null,
+          mimeType: normalizeText(asset.mimeType) || null,
+          documentDate: normalizeText(asset.documentDate) || null,
+          sourceSystem: normalizeText(asset.sourceSystem) || null,
+        }));
+        const report = {
+          ok: true,
+          dryRun: true,
+          zeroWrites: true,
+          stats: {
+            assetsScanned: renderable.length,
+            mediaAssets: media.length,
+            alreadyLinked: media.length - missing.length,
+            missingEncounterId: missing.length,
+            missingDate: missing.filter((asset) => !normalizeText(asset.documentDate)).length,
+            affectedPatients: patients.length,
+          },
+          patientIds: patients.map(mask),
+          samples,
+        };
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.assets_preview_encounter_link_population',
+          outcome: 'success',
+          targetType: 'cco_patient_assets',
+          targetId: 'population',
+          metadata: { zeroWrites: true, ...report.stats },
+        });
+        return res.json(report);
       })
   );
 
