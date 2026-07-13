@@ -193,6 +193,64 @@ function collectAssetStoreAliases({ patient, tenantId, assetStore }) {
   return aliases;
 }
 
+function resolveCanonicalPatientsForAssetAliases({ patients, assets }) {
+  const patientRows = asArray(patients)
+    .map((patient) => ({
+      patient,
+      patientId: normalizeText(patient?.id),
+      pnr: normalizeDigits(patient?.personnummer || patient?.personalNumber || patient?.pnr),
+      name: normalizeName(
+        patient?.displayName || patient?.fullName || patient?.name || patient?.cliento?.name
+      ),
+    }))
+    .filter((row) => row.patientId && (row.pnr.length >= 8 || row.name));
+  const assetsByAlias = new Map();
+  for (const asset of asArray(assets)) {
+    const alias = normalizeText(asset?.patientId);
+    if (!alias) continue;
+    if (!assetsByAlias.has(alias)) assetsByAlias.set(alias, []);
+    assetsByAlias.get(alias).push(asset);
+  }
+
+  return [...assetsByAlias.entries()].map(([assetPatientId, aliasAssets]) => {
+    const fields = aliasAssets.flatMap((asset) =>
+      [
+        asset?.originalDrivePath,
+        asset?.relativePath,
+        asset?.originalFileName,
+        asset?.displayName,
+        asset?.documentTitle,
+      ].filter(Boolean)
+    );
+    const haystack = fields.join(' / ');
+    const haystackDigits = normalizeDigits(haystack);
+    const segments = haystack.split(/[\\/]/).map(normalizeName).filter(Boolean);
+    const pnrMatches = patientRows.filter(
+      (row) => row.pnr.length >= 8 && haystackDigits.includes(row.pnr)
+    );
+    const nameMatches = patientRows.filter(
+      (row) =>
+        row.name &&
+        segments.some((segment) => segment === row.name || segment.startsWith(`${row.name} `))
+    );
+    const matches = pnrMatches.length ? pnrMatches : nameMatches;
+    const uniquePatientIds = [...new Set(matches.map((row) => row.patientId))];
+    return {
+      assetPatientId,
+      canonicalPatientId: uniquePatientIds.length === 1 ? uniquePatientIds[0] : null,
+      reason:
+        uniquePatientIds.length > 1
+          ? 'ambiguous_path_identity'
+          : uniquePatientIds.length === 0
+            ? 'unresolved_path_identity'
+            : pnrMatches.length
+              ? 'personnummer_path'
+              : 'exact_name_path',
+      candidatePatientIds: uniquePatientIds,
+    };
+  });
+}
+
 async function resolvePatientAssetIds({ patientId, patient, tenantId, customerStore, assetStore }) {
   const ids = [];
   pushUnique(ids, patientId);
@@ -316,5 +374,6 @@ function assetToPatientFile(asset) {
 module.exports = {
   assetToPatientFile,
   collectAssetStoreAliases,
+  resolveCanonicalPatientsForAssetAliases,
   resolvePatientAssetIds,
 };

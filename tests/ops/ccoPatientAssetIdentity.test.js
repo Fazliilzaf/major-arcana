@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   assetToPatientFile,
   collectAssetStoreAliases,
+  resolveCanonicalPatientsForAssetAliases,
   resolvePatientAssetIds,
 } = require('../../src/ops/ccoPatientAssetIdentity');
 
@@ -130,6 +131,46 @@ test('collectAssetStoreAliases does not trust needs-review paths as identity pro
   });
 
   assert.deepEqual(aliases, []);
+});
+
+test('resolveCanonicalPatientsForAssetAliases inverts unique personnummer path identity', () => {
+  const mappings = resolveCanonicalPatientsForAssetAliases({
+    patients: [
+      { id: 'patient-1', displayName: 'Daniel Bodin', personnummer: '19810830-4653' },
+      { id: 'patient-2', displayName: 'Daniel Bodin' },
+    ],
+    assets: [
+      {
+        patientId: 'cliento_old',
+        originalDrivePath: 'Hair TP Clinic/Daniel Bodin - 19810830-4653/IMG_001.HEIC',
+      },
+    ],
+  });
+
+  assert.deepEqual(mappings, [
+    {
+      assetPatientId: 'cliento_old',
+      canonicalPatientId: 'patient-1',
+      reason: 'personnummer_path',
+      candidatePatientIds: ['patient-1'],
+    },
+  ]);
+});
+
+test('resolveCanonicalPatientsForAssetAliases leaves ambiguous exact names unresolved', () => {
+  const mappings = resolveCanonicalPatientsForAssetAliases({
+    patients: [
+      { id: 'patient-1', displayName: 'Sam Same' },
+      { id: 'patient-2', displayName: 'Sam Same' },
+    ],
+    assets: [
+      { patientId: 'cliento_old', originalDrivePath: 'Hair TP Clinic/Sam Same/IMG_001.jpg' },
+    ],
+  });
+
+  assert.equal(mappings[0].canonicalPatientId, null);
+  assert.equal(mappings[0].reason, 'ambiguous_path_identity');
+  assert.deepEqual(mappings[0].candidatePatientIds, ['patient-1', 'patient-2']);
 });
 
 test('resolvePatientAssetIds only uses name fallback when the exact match is unique', async () => {

@@ -74,7 +74,11 @@ const {
   loadFasAContextForPatients,
 } = require('../ops/ccoKunderFasAReadiness');
 const { enrichJournalEntriesWithMetadata } = require('../ops/ccoJournalMetadataEnrichment');
-const { assetToPatientFile, resolvePatientAssetIds } = require('../ops/ccoPatientAssetIdentity');
+const {
+  assetToPatientFile,
+  resolveCanonicalPatientsForAssetAliases,
+  resolvePatientAssetIds,
+} = require('../ops/ccoPatientAssetIdentity');
 const { gateMigrationIndexFiles } = require('../ops/ccoPatientMasterMigrationIndexGate');
 const { buildVisitSegments } = require('../ops/ccoPatientVisitSegments');
 const {
@@ -2159,10 +2163,22 @@ function createCcoPatientMasterRouter({
             if (key && !canonicalByAlias.has(key)) canonicalByAlias.set(key, patient.id);
           }
         }
-        const patientMappings = patients.map((assetPatientId) => ({
-          assetPatientId,
-          canonicalPatientId: canonicalByAlias.get(assetPatientId) || null,
-        }));
+        const pathMappings = new Map(
+          resolveCanonicalPatientsForAssetAliases({
+            patients: asArray(patientList?.patients),
+            assets: missing.filter((asset) => !canonicalByAlias.has(normalizeText(asset.patientId))),
+          }).map((row) => [row.assetPatientId, row])
+        );
+        const patientMappings = patients.map((assetPatientId) => {
+          const explicitCanonicalId = canonicalByAlias.get(assetPatientId) || null;
+          const pathMapping = pathMappings.get(assetPatientId);
+          return {
+            assetPatientId,
+            canonicalPatientId: explicitCanonicalId || pathMapping?.canonicalPatientId || null,
+            reason: explicitCanonicalId ? 'explicit_alias' : pathMapping?.reason || 'unresolved',
+            candidatePatientIds: pathMapping?.candidatePatientIds || [],
+          };
+        });
         const mask = (value) => {
           const text = normalizeText(value);
           if (includeReviewDetails || text.length < 9) return text;
@@ -2199,6 +2215,8 @@ function createCcoPatientMasterRouter({
           patientMappings: patientMappings.map((row) => ({
             assetPatientId: mask(row.assetPatientId),
             canonicalPatientId: mask(row.canonicalPatientId),
+            reason: row.reason,
+            candidatePatientIds: row.candidatePatientIds.map(mask),
           })),
           samples,
         };
