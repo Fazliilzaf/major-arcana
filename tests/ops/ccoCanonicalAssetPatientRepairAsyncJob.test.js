@@ -69,14 +69,14 @@ test('async repair loads the expensive population inside the job', async () => {
       return {
         patients: [{ id: 'lisa', displayName: 'Lisa Karlsson', personnummer: '020405-7160' }],
         assets: [asset('a1', 'Lisa Karlsson - 0204057160/a.jpg')],
+        assetStore: {
+          beginBatch() {},
+          async flushBatch() {},
+          async linkAssetToPatient(id, patientId) {
+            writes.push([id, patientId]);
+          },
+        },
       };
-    },
-    assetStore: {
-      beginBatch() {},
-      async flushBatch() {},
-      async linkAssetToPatient(id, patientId) {
-        writes.push([id, patientId]);
-      },
     },
   });
   assert.equal(loads, 1);

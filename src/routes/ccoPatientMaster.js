@@ -2353,28 +2353,29 @@ function createCcoPatientMasterRouter({
         }
         const limit = clampInternalizeLimit(req.body?.limit, 200);
         const offset = clampOffset(req.body?.offset);
-        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
-        const assetStore =
-          stores.assetStore ||
-          (typeof resolvePatientAssetStore === 'function'
-            ? await resolvePatientAssetStore()
-            : null);
-        if (!assetStore?.listItemsForEnrichment || !assetStore?.linkAssetToPatient) {
-          return res.status(503).json({ error: 'Asset store saknar patient-link repair.' });
-        }
         if (!dryRun) {
           const started = startCanonicalPatientRepairJob({
-            assetStore,
             tenantId: actor.tenantId,
             batchSize: limit,
             actor: { userId: actor.userId, role: actor.role, tenantId: actor.tenantId },
             loadInputs: async () => {
+              const stores =
+                typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+              const assetStore =
+                stores.assetStore ||
+                (typeof resolvePatientAssetStore === 'function'
+                  ? await resolvePatientAssetStore()
+                  : null);
+              if (!assetStore?.listItemsForEnrichment || !assetStore?.linkAssetToPatient) {
+                throw new Error('Asset store saknar patient-link repair.');
+              }
               const listed = await patientMasterStore.listPatients({
                 tenantId: actor.tenantId,
                 limit: 20000,
                 offset: 0,
               });
               return {
+                assetStore,
                 assets: assetStore.listItemsForEnrichment(actor.tenantId),
                 patients: asArray(listed?.patients),
               };
@@ -2406,6 +2407,15 @@ function createCcoPatientMasterRouter({
             pollUrl: '/api/v1/cco-patient-master/assets/repair-canonical-patient-links/job',
             state: started.state,
           });
+        }
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        if (!assetStore?.listItemsForEnrichment || !assetStore?.linkAssetToPatient) {
+          return res.status(503).json({ error: 'Asset store saknar patient-link repair.' });
         }
         const listed = await patientMasterStore.listPatients({
           tenantId: actor.tenantId,
