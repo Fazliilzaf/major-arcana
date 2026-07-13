@@ -328,10 +328,7 @@ const config = {
   ),
   // Smal KONS-poller. Kör oberoende av den globala schedulern och kan bara
   // läsa inbox + skickat via den redan read-only ingestion-pipelinen.
-  ccoMailIngestionPollEnabled: asBool(
-    process.env.ARCANA_CCO_MAIL_INGESTION_POLL_ENABLED,
-    false
-  ),
+  ccoMailIngestionPollEnabled: asBool(process.env.ARCANA_CCO_MAIL_INGESTION_POLL_ENABLED, false),
   ccoMailIngestionPollIntervalMinutes: asInt(
     process.env.ARCANA_CCO_MAIL_INGESTION_POLL_INTERVAL_MINUTES,
     3

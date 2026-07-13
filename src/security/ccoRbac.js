@@ -75,9 +75,9 @@ const PERMISSIONS = {
   'settings.write': ['owner'],
   'settings.brand': ['owner'],
 
-  // Billing (revisor + owner only)
-  'billing.read': ['owner', 'revisor'],
-  'billing.write': ['owner'],
+  // Billing (revisor + owner + finance — CF.2 RBAC cfRBAC/cfMutateRBAC)
+  'billing.read': ['owner', 'revisor', 'finance'],
+  'billing.write': ['owner', 'finance'],
 
   // Users / roles
   'users.invite': ['owner'],
@@ -184,7 +184,7 @@ const PERMISSIONS = {
   'staff.manage': ['owner'],
 };
 
-const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor'];
+const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor', 'finance'];
 
 /** Map auth/session roles (OWNER/STAFF) → ccoRbac permission roles. */
 // SÄKERHET: aliaset `admin: 'owner'` borttaget — det utfärdas aldrig av auth
@@ -198,6 +198,7 @@ const AUTH_ROLE_ALIASES = {
   konsult: 'konsult',
   personal: 'personal',
   revisor: 'revisor',
+  finance: 'finance',
   doctor: 'operator',
 };
 
