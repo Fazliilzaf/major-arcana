@@ -92,6 +92,19 @@ test('patientId-djuplänk bevarar admin-, V11- och V12-kontraktet', () => {
   assert.match(ui, /rail\.querySelector\('\[data-v12-workspace-shell="1"\]'\)/);
 });
 
+test('Kunder-skalets aktivering startar patientId före browser-token-returen', () => {
+  const activation = ui.slice(
+    ui.indexOf('function onCustomersViewOpenImpl()'),
+    ui.indexOf('function onCustomersViewOpen()')
+  );
+  const detailCall = activation.indexOf('void loadPatientDetail(startup.patientId);');
+  const authReturn = activation.indexOf('if (needsStaffLogin() || runtime.authRequired)');
+
+  assert.notEqual(detailCall, -1);
+  assert.notEqual(authReturn, -1);
+  assert.ok(detailCall < authReturn);
+});
+
 test('enriched customers-shell uppdaterar V11/V12-rail för vald kund', () => {
   assert.match(ui, /function refreshSelectedCustomerRailFromShell\(\)/);
   assert.match(ui, /renderDetailPanel\(\{ preserveRailScroll: true \}\)/);

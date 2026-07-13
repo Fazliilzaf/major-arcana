@@ -14900,6 +14900,13 @@
       runtime.preferJournalOnMobile = true;
     }
     if (runtime.mode === 'register') {
+      // The customers shell can become active after bootstrap has already run. Start
+      // the canonical deep-link read here as well so a server-authenticated /staff
+      // session is not mistaken for a missing browser token. The API remains the
+      // authority and keeps the existing 401 handling.
+      if (startup.patientId && !runtime.detailLoading && !runtime.detail?.card) {
+        void loadPatientDetail(startup.patientId);
+      }
       if (needsStaffLogin() || runtime.authRequired) {
         if (runtime.authRequired) {
           clearStaffTokens();
