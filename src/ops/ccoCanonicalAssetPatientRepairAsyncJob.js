@@ -33,6 +33,7 @@ function resetCanonicalPatientRepairJobStateForTests() {
 async function executeCanonicalPatientRepairJob({
   assets = [],
   patients = [],
+  loadInputs,
   assetStore,
   tenantId,
   actor = {},
@@ -41,7 +42,11 @@ async function executeCanonicalPatientRepairJob({
   onError,
 } = {}) {
   try {
-    const plan = buildCanonicalAssetPatientRepairPlan({ assets, patients });
+    const loaded = typeof loadInputs === 'function' ? await loadInputs() : { assets, patients };
+    const plan = buildCanonicalAssetPatientRepairPlan({
+      assets: loaded?.assets || assets,
+      patients: loaded?.patients || patients,
+    });
     const size = Math.max(1, Math.min(200, Number(batchSize) || 200));
     jobState.stats = {
       candidates: plan.candidates.length,

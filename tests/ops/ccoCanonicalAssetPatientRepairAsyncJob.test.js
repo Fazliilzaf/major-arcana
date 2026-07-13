@@ -58,3 +58,27 @@ test('async repair builds the plan once and flushes bounded batches', async () =
   assert.equal(state.stats.remainingEligible, 0);
   assert.equal(state.lastError, null);
 });
+
+test('async repair loads the expensive population inside the job', async () => {
+  resetCanonicalPatientRepairJobStateForTests();
+  let loads = 0;
+  const writes = [];
+  await executeCanonicalPatientRepairJob({
+    loadInputs: async () => {
+      loads += 1;
+      return {
+        patients: [{ id: 'lisa', displayName: 'Lisa Karlsson', personnummer: '020405-7160' }],
+        assets: [asset('a1', 'Lisa Karlsson - 0204057160/a.jpg')],
+      };
+    },
+    assetStore: {
+      beginBatch() {},
+      async flushBatch() {},
+      async linkAssetToPatient(id, patientId) {
+        writes.push([id, patientId]);
+      },
+    },
+  });
+  assert.equal(loads, 1);
+  assert.deepEqual(writes, [['a1', 'lisa']]);
+});
