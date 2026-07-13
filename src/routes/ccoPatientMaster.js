@@ -2141,6 +2141,28 @@ function createCcoPatientMasterRouter({
         const media = renderable.filter(isMediaAsset);
         const missing = media.filter((asset) => !normalizeText(asset.encounterId));
         const patients = [...new Set(missing.map((asset) => normalizeText(asset.patientId)).filter(Boolean))];
+        const patientList = await patientMasterStore.listPatients({
+          tenantId: actor.tenantId,
+          limit: 20000,
+          offset: 0,
+        });
+        const canonicalByAlias = new Map();
+        for (const patient of asArray(patientList?.patients)) {
+          const aliases = [
+            patient.id,
+            patient.cliento?.sourceId,
+            patient.cliento?.canonicalCustomerId,
+            patient.cliento?.customerKey,
+          ];
+          for (const alias of aliases) {
+            const key = normalizeText(alias);
+            if (key && !canonicalByAlias.has(key)) canonicalByAlias.set(key, patient.id);
+          }
+        }
+        const patientMappings = patients.map((assetPatientId) => ({
+          assetPatientId,
+          canonicalPatientId: canonicalByAlias.get(assetPatientId) || null,
+        }));
         const mask = (value) => {
           const text = normalizeText(value);
           if (includeReviewDetails || text.length < 9) return text;
@@ -2168,6 +2190,16 @@ function createCcoPatientMasterRouter({
             affectedPatients: patients.length,
           },
           patientIds: patients.map(mask),
+          canonicalPatientIds: [
+            ...new Set(patientMappings.map((row) => row.canonicalPatientId).filter(Boolean)),
+          ].map(mask),
+          unresolvedPatientIds: patientMappings
+            .filter((row) => !row.canonicalPatientId)
+            .map((row) => mask(row.assetPatientId)),
+          patientMappings: patientMappings.map((row) => ({
+            assetPatientId: mask(row.assetPatientId),
+            canonicalPatientId: mask(row.canonicalPatientId),
+          })),
           samples,
         };
         await authStore.addAuditEvent({
