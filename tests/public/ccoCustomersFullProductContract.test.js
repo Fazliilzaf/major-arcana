@@ -75,6 +75,8 @@ test('patientId-djuplänk bevarar admin-, V11- och V12-kontraktet', () => {
   assert.match(ui, /\['v9', 'demo', 'embed', 'v11rail', 'v12workspace', 'flags', 'segment'\]/);
   assert.match(ui, /url\.searchParams\.set\('patientId', patientId\)/);
   assert.match(ui, /syncSelectedPatientDeepLink\(key\)/);
+  assert.match(ui, /else if \(startup\.patientId && isCustomersShellActive\(\)\)/);
+  assert.match(ui, /void loadPatientDetail\(startup\.patientId\)/);
   assert.match(ui, /ccoCustomerPatient: id/);
   assert.match(ui, /rail\.querySelector\('\[data-v11-rail-shell="1"\]'\)/);
   assert.match(ui, /rail\.querySelector\('\[data-v12-workspace-shell="1"\]'\)/);
