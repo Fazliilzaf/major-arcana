@@ -150,7 +150,7 @@ async function collectCustomerAliases({ patient, tenantId, customerStore }) {
   return aliases;
 }
 
-function collectAssetStoreAliases({ patient, tenantId, assetStore }) {
+function collectAssetStoreAliases({ patient, patientPopulation, tenantId, assetStore }) {
   const aliases = [];
   if (!assetStore || typeof assetStore.listItemsForEnrichment !== 'function') return aliases;
   const pnr = normalizeDigits(patient?.personnummer || patient?.personalNumber || patient?.pnr);
@@ -162,6 +162,21 @@ function collectAssetStoreAliases({ patient, tenantId, assetStore }) {
   const rows = assetStore.listItemsForEnrichment(tenantId) || [];
   const acceptedStatuses = new Set(['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO']);
   const exactNamePatientIds = new Set();
+  const population = asArray(patientPopulation);
+  const pnrIsUnique =
+    pnr.length >= 8 &&
+    population.filter(
+      (row) =>
+        normalizeDigits(row?.personnummer || row?.personalNumber || row?.pnr) === pnr
+    ).length === 1;
+  const nameIsUnique =
+    Boolean(name) &&
+    population.filter(
+      (row) =>
+        normalizeName(
+          row?.displayName || row?.fullName || row?.name || row?.cliento?.name
+        ) === name
+    ).length === 1;
 
   for (const row of rows) {
     if (!row?.patientId || !acceptedStatuses.has(row.status)) continue;
@@ -174,7 +189,12 @@ function collectAssetStoreAliases({ patient, tenantId, assetStore }) {
     ].filter(Boolean);
     const haystack = fields.join(' / ');
     const haystackDigits = normalizeDigits(haystack);
-    if (pnr && pnr.length >= 8 && haystackDigits.includes(pnr)) {
+    if (
+      pnr &&
+      pnr.length >= 8 &&
+      (!population.length || pnrIsUnique) &&
+      haystackDigits.includes(pnr)
+    ) {
       pushUnique(aliases, row.patientId);
       continue;
     }
@@ -186,8 +206,12 @@ function collectAssetStoreAliases({ patient, tenantId, assetStore }) {
     if (exactSegmentMatch) exactNamePatientIds.add(row.patientId);
   }
 
-  if (!aliases.length && exactNamePatientIds.size === 1) {
-    pushUnique(aliases, [...exactNamePatientIds][0]);
+  if (!aliases.length) {
+    if (population.length && (pnrIsUnique || nameIsUnique)) {
+      exactNamePatientIds.forEach((id) => pushUnique(aliases, id));
+    } else if (!population.length && exactNamePatientIds.size === 1) {
+      pushUnique(aliases, [...exactNamePatientIds][0]);
+    }
   }
 
   return aliases;
@@ -251,7 +275,14 @@ function resolveCanonicalPatientsForAssetAliases({ patients, assets }) {
   });
 }
 
-async function resolvePatientAssetIds({ patientId, patient, tenantId, customerStore, assetStore }) {
+async function resolvePatientAssetIds({
+  patientId,
+  patient,
+  patientPopulation,
+  tenantId,
+  customerStore,
+  assetStore,
+}) {
   const ids = [];
   pushUnique(ids, patientId);
   pushUnique(ids, patient?.id);
@@ -261,7 +292,12 @@ async function resolvePatientAssetIds({ patientId, patient, tenantId, customerSt
 
   const aliases = await collectCustomerAliases({ patient, tenantId, customerStore });
   aliases.forEach((id) => pushUnique(ids, id));
-  const assetAliases = collectAssetStoreAliases({ patient, tenantId, assetStore });
+  const assetAliases = collectAssetStoreAliases({
+    patient,
+    patientPopulation,
+    tenantId,
+    assetStore,
+  });
   assetAliases.forEach((id) => pushUnique(ids, id));
   return ids;
 }
