@@ -13,7 +13,12 @@ function asArray(value) {
 }
 
 function nameKey(value) {
-  const text = normalizeText(value).toLowerCase().replace(/\s+/g, ' ').trim();
+  const text = normalizeText(value)
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!text) return '';
   if (text.split(' ').length < 2) return '';
   return text;
@@ -238,4 +243,5 @@ module.exports = {
   extractPersonNameFromFileName,
   mapDocumentKindToAssetMeta,
   buildChecksumIndex,
+  nameKey,
 };

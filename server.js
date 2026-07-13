@@ -4580,6 +4580,37 @@ let ccoBookingCaseStore = null;
       }
     );
 
+    // POST /api/v1/cco/assets/:assetId/migration-link-patient — owner-only migration repair
+    app.post(
+      '/api/v1/cco/assets/:assetId/migration-link-patient',
+      requireCcoAuthenticated,
+      attachRole,
+      requireAnyRole(['owner']),
+      express.json({ limit: '8kb' }),
+      async (req, res) => {
+        try {
+          const assetId = req.params.assetId;
+          const patientId = String(req.body?.patientId || '').trim();
+          const reason = String(req.body?.reason || 'pipedrive_rejected_orphan_link').slice(0, 500);
+          if (!patientId) return res.status(400).json({ error: 'patientId krävs' });
+          const store = await resolveSharedPatientAssetStore();
+          if (!store) return res.status(503).json({ error: 'asset_store_not_initialized' });
+          if (typeof store.restoreRejectedAndLinkPatient !== 'function') {
+            return res.status(503).json({ error: 'asset_migration_link_unavailable' });
+          }
+          const actor = { userId: req.role?.userId || 'owner', role: req.role?.role || 'owner' };
+          const asset = await store.restoreRejectedAndLinkPatient(assetId, {
+            patientId,
+            reason,
+            actor,
+          });
+          res.json({ ok: true, assetId, patientId, status: asset.status });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
+
     // POST /api/v1/cco/assets/:assetId/soft-delete — markera bild som dold (PDL-retention behåller fysisk fil 10 år)
     app.post(
       '/api/v1/cco/assets/:assetId/soft-delete',

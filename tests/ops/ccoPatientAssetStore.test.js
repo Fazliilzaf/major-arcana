@@ -1146,3 +1146,29 @@ test('stats: assetsWithoutPatientIdCount exkluderar REJECTED', async () => {
     await fs.rm(tmp, { recursive: true, force: true });
   }
 });
+
+test('restoreRejectedAndLinkPatient: REJECTED pipedrive_import → VISIBLE med patientId', async () => {
+  const { tmp, store, audit } = await makeStore();
+  try {
+    const rejected = await store.addAsset({
+      ...BASE_ASSET,
+      sourceSystem: 'pipedrive_import',
+      sourceRecordId: 'pd-file-1',
+      patientId: 'unknown',
+      status: 'REJECTED',
+    });
+    const restored = await store.restoreRejectedAndLinkPatient(rejected.id, {
+      patientId: 'pat-pipedrive-99',
+      reason: 'test_restore',
+      actor: { userId: 'owner', role: 'owner' },
+    });
+    assert.equal(restored.status, 'VISIBLE_ON_PATIENT_CARD');
+    assert.equal(restored.patientId, 'pat-pipedrive-99');
+    assert.equal(restored.isPatientVisible, true);
+    assert.ok(
+      audit.events.some((event) => event.action === 'asset.migration_restored_from_rejected')
+    );
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
