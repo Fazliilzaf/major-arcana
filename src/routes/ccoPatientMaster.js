@@ -79,6 +79,9 @@ const {
   resolveCanonicalPatientsForAssetAliases,
   resolvePatientAssetIds,
 } = require('../ops/ccoPatientAssetIdentity');
+const {
+  repairCanonicalAssetPatientLinks,
+} = require('../ops/ccoCanonicalAssetPatientRepair');
 const { gateMigrationIndexFiles } = require('../ops/ccoPatientMasterMigrationIndexGate');
 const { buildVisitSegments } = require('../ops/ccoPatientVisitSegments');
 const {
@@ -2327,6 +2330,56 @@ function createCcoPatientMasterRouter({
           targetType: 'cco_patient_assets',
           targetId: 'manual_review',
           metadata: { ...report.stats, zeroWrites: true, includeDetails },
+        });
+        return res.json({ ok: true, ...report });
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/assets/repair-canonical-patient-links',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const dryRun = req.body?.dryRun !== false;
+        if (!dryRun && normalizeText(req.body?.confirmText) !== 'REPAIR CANONICAL PATIENT LINKS') {
+          return res.status(400).json({
+            error: 'confirmText måste vara REPAIR CANONICAL PATIENT LINKS vid skarp körning.',
+          });
+        }
+        const limit = clampInternalizeLimit(req.body?.limit, 200);
+        const offset = clampOffset(req.body?.offset);
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        if (!assetStore?.listItemsForEnrichment || !assetStore?.linkAssetToPatient) {
+          return res.status(503).json({ error: 'Asset store saknar patient-link repair.' });
+        }
+        const listed = await patientMasterStore.listPatients({
+          tenantId: actor.tenantId,
+          limit: 20000,
+          offset: 0,
+        });
+        const report = await repairCanonicalAssetPatientLinks({
+          assets: assetStore.listItemsForEnrichment(actor.tenantId),
+          patients: asArray(listed?.patients),
+          assetStore,
+          dryRun,
+          limit,
+          offset,
+          actor: { userId: actor.userId, role: actor.role },
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.assets_repair_canonical_patient_links',
+          outcome: 'success',
+          targetType: 'cco_patient_assets',
+          targetId: 'strong_identity',
+          metadata: { ...report.stats, dryRun, zeroWrites: report.zeroWrites },
         });
         return res.json({ ok: true, ...report });
       })

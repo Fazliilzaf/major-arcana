@@ -617,6 +617,19 @@ test('assets/repair-encounter-links är owner-gated och kräver confirmText vid 
   assert.match(source, /assetStore\.linkAssetToEncounter/);
 });
 
+test('assets/repair-canonical-patient-links är owner-gated och kräver stark confirmText', () => {
+  const source = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
+    'utf8'
+  );
+  assert.match(source, /assets\/repair-canonical-patient-links/);
+  assert.match(
+    source,
+    /repair-canonical-patient-links[\s\S]*?requireRole\(ROLE_OWNER\)[\s\S]*?REPAIR CANONICAL PATIENT LINKS/
+  );
+  assert.match(source, /repairCanonicalAssetPatientLinks/);
+});
+
 test('assets/repair-encounter-links batchar persist vid skarp repair', () => {
   const source = require('node:fs').readFileSync(
     path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
