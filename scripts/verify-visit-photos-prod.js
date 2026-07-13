@@ -207,7 +207,7 @@ async function auditVisitPhotos(page) {
   });
 }
 
-async function runViewport(browser, token, viewport, commit) {
+async function runViewportOnce(browser, token, viewport, commit) {
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
     deviceScaleFactor: 1,
@@ -219,18 +219,19 @@ async function runViewport(browser, token, viewport, commit) {
     window.localStorage.setItem('cco.onboardingTour.v1', 'done');
   }, token);
 
-  const page = await context.newPage();
-  const url = `${BASE}/staff?view=customers&v9=on&v12workspace=on&patientId=${encodeURIComponent(PATIENT_ID)}`;
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await ensurePatientOpen(page, PATIENT_ID);
-  await waitForDetail(page, PATIENT_ID);
-  await dismissTour(page);
-  await page.waitForFunction(
-    () => document.querySelector('[data-v11-rk-besok] .hist-row'),
-    undefined,
-    { timeout: 120000 }
-  );
-  await waitForDecodedImages('[data-v11-rk-besok] img[data-patient-file-id]', page);
+  try {
+    const page = await context.newPage();
+    const url = `${BASE}/staff?view=customers&v9=on&v12workspace=on&patientId=${encodeURIComponent(PATIENT_ID)}`;
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    await ensurePatientOpen(page, PATIENT_ID);
+    await waitForDetail(page, PATIENT_ID);
+    await dismissTour(page);
+    await page.waitForFunction(
+      () => document.querySelector('[data-v11-rk-besok] .hist-row'),
+      undefined,
+      { timeout: 120000 }
+    );
+    await waitForDecodedImages('[data-v11-rk-besok] img[data-patient-file-id]', page);
 
   const v11Shot = path.join(OUT_DIR, `${viewport.name}-v11-besok-${commit}.png`);
   const besokSec = page.locator('[data-v11-rk-besok]');
@@ -257,9 +258,25 @@ async function runViewport(browser, token, viewport, commit) {
     await page.locator('[data-v9-dossier-deep]').first().screenshot({ path: v12Shot });
   }
 
-  const metrics = await auditVisitPhotos(page);
-  await context.close();
-  return { viewport: viewport.name, metrics, shots: { v11: v11Shot, v12: v12Shot } };
+    const metrics = await auditVisitPhotos(page);
+    return { viewport: viewport.name, metrics, shots: { v11: v11Shot, v12: v12Shot } };
+  } finally {
+    await context.close();
+  }
+}
+
+async function runViewport(browser, token, viewport, commit, maxAttempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await runViewportOnce(browser, token, viewport, commit);
+    } catch (error) {
+      lastError = error;
+      console.error(`${viewport.name}: försök ${attempt}/${maxAttempts} misslyckades: ${error.message}`);
+      if (attempt < maxAttempts) await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+  }
+  throw lastError;
 }
 
 async function main() {

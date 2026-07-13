@@ -17,4 +17,7 @@ test('visit-photo prod verifier passes waitForFunction timeout as the third argu
   assert.match(source, /attempts % 6 === 0/);
   assert.match(source, /ensurePatientOpen\(page, patientId\)/);
   assert.match(source, /JSON\.stringify\(lastState \|\| \{\}\)/);
+  assert.match(source, /async function runViewportOnce/);
+  assert.match(source, /maxAttempts = 3/);
+  assert.match(source, /finally \{\s*await context\.close\(\)/);
 });
