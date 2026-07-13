@@ -916,3 +916,49 @@ test('assets/repair-ghost-visible commit kräver confirmText och reparerar blob'
     await fs.rm(fixture.tmp, { recursive: true, force: true });
   }
 });
+
+test('assets/repair-ghost-visible kräver stark bekräftelse för global repair', async () => {
+  const fixture = await makeFixture();
+  try {
+    const { canonical, put } = await seedRouteGhostPair(fixture);
+    await withServer(fixture.app, async (base) => {
+      const weakConfirmation = await fetch(
+        `${base}/api/v1/cco-patient-master/assets/repair-ghost-visible`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            dryRun: false,
+            scopeAllRepairable: true,
+            confirmText: 'REPAIR GHOST VISIBLE',
+          }),
+        }
+      );
+      assert.equal(weakConfirmation.status, 400);
+
+      const res = await fetch(`${base}/api/v1/cco-patient-master/assets/repair-ghost-visible`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          dryRun: false,
+          scopeAllRepairable: true,
+          confirmText: 'REPAIR ALL GHOST VISIBLE',
+          limit: 999,
+        }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.stats.repaired, 1);
+
+      const fixed = fixture.assetStore.getAsset(canonical.id);
+      assert.equal(fixed.storageKey, put.storageKey);
+      assert.equal(await blobExistsOnStorage(fixed, fixture.storage), true);
+      assert.equal(
+        fixture.authStore.events.at(-1).metadata.scopeAllRepairable,
+        true
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});

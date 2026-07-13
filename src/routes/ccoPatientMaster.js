@@ -134,6 +134,12 @@ function clampPreviewLimit(value, fallback = 10) {
   return Math.max(1, Math.min(100, Math.floor(parsed)));
 }
 
+function clampGhostRepairLimit(value, fallback = 100) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.max(1, Math.min(500, Math.floor(parsed)));
+}
+
 async function mapWithConcurrency(items, concurrency, mapper) {
   const rows = Array.isArray(items) ? items : [];
   const results = new Array(rows.length);
@@ -2030,19 +2036,24 @@ function createCcoPatientMasterRouter({
       handle(req, res, async (actor) => {
         const dryRun = parseDryRun(req.body?.dryRun, true);
         const importRunId = normalizeText(req.body?.importRunId);
+        const scopeAllRepairable = req.body?.scopeAllRepairable === true;
         const patientIds = Array.isArray(req.body?.patientIds)
           ? req.body.patientIds.map(normalizeText).filter(Boolean)
           : null;
         if (!dryRun) {
           const confirmText = normalizeText(req.body?.confirmText);
-          if (confirmText !== 'REPAIR GHOST VISIBLE') {
+          const expectedConfirmText = scopeAllRepairable
+            ? 'REPAIR ALL GHOST VISIBLE'
+            : 'REPAIR GHOST VISIBLE';
+          if (confirmText !== expectedConfirmText) {
             return res.status(400).json({
-              error: 'Bekräfta med confirmText: "REPAIR GHOST VISIBLE"',
+              error: `Bekräfta med confirmText: "${expectedConfirmText}"`,
             });
           }
-          if (!importRunId && !patientIds?.length) {
+          if (!scopeAllRepairable && !importRunId && !patientIds?.length) {
             return res.status(400).json({
-              error: 'Commit kräver importRunId eller patientIds som scope.',
+              error:
+                'Commit kräver importRunId, patientIds eller explicit scopeAllRepairable=true.',
             });
           }
         }
@@ -2058,7 +2069,7 @@ function createCcoPatientMasterRouter({
           return res.status(503).json({ error: 'Asset store saknas på servern.' });
         }
 
-        const limit = clampPreviewLimit(req.body?.limit, 500);
+        const limit = clampGhostRepairLimit(req.body?.limit, scopeAllRepairable ? 500 : 100);
 
         let report;
         try {
@@ -2094,6 +2105,7 @@ function createCcoPatientMasterRouter({
             repaired: report.stats?.repaired ?? 0,
             failed: report.stats?.failed ?? 0,
             importRunId: importRunId || null,
+            scopeAllRepairable,
           },
         });
 
