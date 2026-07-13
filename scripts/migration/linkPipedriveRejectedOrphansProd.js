@@ -138,7 +138,12 @@ async function fetchAllProdPatients(token) {
       token
     );
     total = Number(page.total) || 0;
-    patients.push(...(page.patients || []));
+    patients.push(
+      ...(page.patients || []).map((patient) => ({
+        ...patient,
+        id: patient.id || patient.patientId || null,
+      }))
+    );
     offset += limit;
     if (!(page.patients || []).length) break;
   }
@@ -213,6 +218,9 @@ async function migrationLinkAsset(token, assetId, patientId, { attempts = 6 } = 
         { patientId, reason: 'pipedrive_rejected_orphan_link' }
       );
     } catch (error) {
+      if (error.status === 409) {
+        return { ok: true, skipped: true, reason: 'already_linked_or_invalid_state' };
+      }
       if (error.status === 502 || error.status >= 500) {
         await sleep(1500 * attempt);
         continue;
@@ -386,23 +394,27 @@ async function main() {
   if (args.dryRun) return;
 
   let linked = 0;
+  let skipped = 0;
   let failed = 0;
   for (let i = 0; i < plan.length; i += 1) {
     const row = plan[i];
     try {
-      await migrationLinkAsset(token, row.assetId, row.patientId);
-      linked += 1;
+      const result = await migrationLinkAsset(token, row.assetId, row.patientId);
+      if (result?.skipped) skipped += 1;
+      else linked += 1;
     } catch (error) {
       failed += 1;
       if (failed <= 5) console.error(`FAIL ${row.assetId}: ${error.message}`);
     }
     if ((i + 1) % 20 === 0) {
-      console.log(`progress ${i + 1}/${plan.length} linked=${linked} failed=${failed}`);
+      console.log(
+        `progress ${i + 1}/${plan.length} linked=${linked} skipped=${skipped} failed=${failed}`
+      );
     }
     await sleep(400);
   }
 
-  console.log(JSON.stringify({ linked, failed, total: plan.length }, null, 2));
+  console.log(JSON.stringify({ linked, skipped, failed, total: plan.length }, null, 2));
   if (failed) process.exit(1);
 }
 
