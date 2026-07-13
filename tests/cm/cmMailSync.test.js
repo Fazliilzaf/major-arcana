@@ -550,3 +550,62 @@ test('reextractMissingAmounts: redan-försökta hoppas över, force kör om', as
   assert.equal(forced.attempted, 1);
   assert.equal(extractor.calls.length, 2);
 });
+
+test('reextractMissingAmounts: mailMessageId-backfill via internetMessageId (ORD-72d)', async () => {
+  const cmStore = await tmpStore();
+  // Äldre rawItem: importerad utan mailMessageId (graphMessageId-aliasbuggen)
+  const { rawItem } = cmStore.importRawItem({
+    sourceType: 'email',
+    sourceId: 'kvitto@test.se',
+    mailMessageId: '',
+    internetMessageId: '<meta-receipt-1@fb.com>',
+    subject: 'Ditt annonser-kvitto för Meta',
+    fromEmail: 'billing@meta.com',
+    rawBodyText: 'Maskad preview utan belopp.',
+    hasAttachments: false,
+  });
+  cmStore.createExpenseRecord({
+    rawItemId: rawItem.id,
+    expenseType: 'receipt',
+    supplierName: 'Meta for Business',
+    confidenceScore: 50,
+  });
+
+  const urls = [];
+  const fetchImpl = async (url, init) => {
+    urls.push(url);
+    assert.equal(init?.headers?.Prefer, 'IdType="ImmutableId"');
+    if (/\/messages\?\$filter=/.test(url)) {
+      return {
+        ok: true,
+        async json() {
+          return { value: [{ id: 'immutable-id-777' }] };
+        },
+      };
+    }
+    assert.match(url, /messages\/immutable-id-777\?\$select=subject,body/);
+    return {
+      ok: true,
+      async json() {
+        return { body: { content: '<p>Betalt belopp: 7 096,00 kr (moms 0,00 kr)</p>' } };
+      },
+    };
+  };
+  const sync = createCmMailSync({
+    graphReadConnector: makeFixtureConnector({ messages: [] }),
+    cmStore,
+    fetchImpl,
+    extractDocumentImpl: fakeExtractorReturning({
+      documentType: 'receipt',
+      amountIncVat: 7096,
+      confidenceScore: 88,
+    }),
+  });
+
+  const result = await sync.reextractMissingAmounts({ limit: 5 });
+  assert.equal(result.updatedRecords, 1);
+  assert.equal(result.errors.length, 0);
+  // id-lookup skedde och sparades på rawItem
+  assert.ok(urls.some((u) => /\$filter=internetMessageId/.test(u)));
+  assert.equal(cmStore.getRawItemById(rawItem.id).mailMessageId, 'immutable-id-777');
+});

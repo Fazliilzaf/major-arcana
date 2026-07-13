@@ -147,10 +147,31 @@ function createCmMailSync({
     return stripHtml(data?.body?.content || data?.bodyPreview || '');
   }
 
+  // ORD-72d: äldre rawItems saknar mailMessageId (graphMessageId-aliasbuggen) —
+  // slå upp Graph-id via internetMessageId så full-body/bilagor kan hämtas.
+  async function findMessageIdByInternetMessageId(mailboxId, internetMessageId) {
+    const imid = normalizeText(internetMessageId);
+    if (!imid) return null;
+    const accessToken = await graphReadConnector.fetchAccessToken();
+    const filter = encodeURIComponent(`internetMessageId eq '${imid.replace(/'/g, "''")}'`);
+    const url =
+      `${graphReadConnector.graphBaseUrl}/users/${encodeURIComponent(mailboxId)}` +
+      `/messages?$filter=${filter}&$select=id&$top=1`;
+    const res = await fetchImpl(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Prefer: 'IdType="ImmutableId"',
+      },
+    });
+    if (!res.ok) throw new Error(`Graph message-lookup ${res.status}`);
+    const data = await res.json();
+    return normalizeText(data?.value?.[0]?.id) || null;
+  }
+
   async function archiveOriginal(message) {
     if (!secureStorage?.putObject) return null;
     const ym = new Date().toISOString().slice(0, 7);
-    const key = `cm/raw-mail/${ym}/${sha8(message.id || message.internetMessageId || Math.random())}.json`;
+    const key = `cm/raw-mail/${ym}/${sha8(message.id || message.graphMessageId || message.internetMessageId || Math.random())}.json`;
     const put = await secureStorage.putObject({
       key,
       body: JSON.stringify(message),
@@ -291,22 +312,27 @@ function createCmMailSync({
       return;
     }
 
+    // ORD-72d: connectorns normaliserade delta-meddelanden bär graphMessageId
+    // (inte Graph-råformatets id) — utan denna alias blev mailMessageId tomt
+    // på ALLA rawItems, och varken bilagor eller full-body kunde hämtas.
+    const messageId = normalizeText(message.id || message.graphMessageId);
+
     // ORD-72c: delta ger ofta bara bodyPreview (~200 tecken) — hämta fulla
     // body:n innan import så extraktionen får hela mailinnehållet (belopp
     // ligger ofta långt ner i kvitto-HTML). Fail-open till preview vid fel.
     let bodyText = stripHtml(message.body?.content || message.bodyPreview || '').slice(0, 6000);
-    if (!message.body?.content && message.id) {
+    if (!message.body?.content && messageId) {
       try {
-        const fullBody = await fetchFullMessageBody(mailboxId, message.id);
+        const fullBody = await fetchFullMessageBody(mailboxId, messageId);
         if (fullBody) bodyText = fullBody.slice(0, 6000);
       } catch (err) {
-        results.errors.push({ messageId: message.id, error: `full-body: ${err.message}` });
+        results.errors.push({ messageId, error: `full-body: ${err.message}` });
       }
     }
     const importResult = cmStore.importRawItem({
       sourceType: 'email',
       sourceId: mailboxId,
-      mailMessageId: message.id,
+      mailMessageId: messageId,
       internetMessageId: message.internetMessageId,
       subject: normalizeText(message.subject),
       fromEmail: normalizeText(message.from?.emailAddress?.address),
@@ -337,7 +363,7 @@ function createCmMailSync({
       if (message.hasAttachments === true) {
         harvest = await harvestAttachments({
           mailboxId,
-          messageId: message.id,
+          messageId,
           rawItem,
           errors: results.errors,
         });
@@ -364,7 +390,7 @@ function createCmMailSync({
           });
           results.records++;
         } else if (!ex.ok) {
-          results.errors.push({ messageId: message.id, error: `extract: ${ex.error}` });
+          results.errors.push({ messageId, error: `extract: ${ex.error}` });
         }
       }
 
@@ -376,7 +402,7 @@ function createCmMailSync({
       results.imported++;
     } catch (err) {
       cmStore.completeLedgerEntry(ledger.id, { status: 'failed', errorMessage: err.message });
-      results.errors.push({ messageId: message.id, error: err.message });
+      results.errors.push({ messageId, error: err.message });
     }
   }
 
@@ -405,6 +431,19 @@ function createCmMailSync({
         status: 'reprocessing',
       });
       try {
+        // ORD-72d: äldre rawItems saknar mailMessageId — slå upp via
+        // internetMessageId och spara så bilagor + full body kan hämtas.
+        if (!rawItem.mailMessageId && rawItem.internetMessageId && rawItem.sourceId) {
+          try {
+            const foundId = await findMessageIdByInternetMessageId(
+              rawItem.sourceId,
+              rawItem.internetMessageId
+            );
+            if (foundId) rawItem.mailMessageId = foundId;
+          } catch (err) {
+            results.errors.push({ rawItemId: rawItem.id, error: `id-lookup: ${err.message}` });
+          }
+        }
         let harvest = { pdfText: null, imageInput: null, firstDocument: null };
         if (rawItem.hasAttachments && rawItem.mailMessageId && rawItem.sourceId) {
           harvest = await harvestAttachments({
@@ -620,6 +659,19 @@ function createCmMailSync({
         status: 'reextracting',
       });
       try {
+        // ORD-72d: äldre rawItems saknar mailMessageId — slå upp via
+        // internetMessageId och spara så bilagor + full body kan hämtas.
+        if (!rawItem.mailMessageId && rawItem.internetMessageId && rawItem.sourceId) {
+          try {
+            const foundId = await findMessageIdByInternetMessageId(
+              rawItem.sourceId,
+              rawItem.internetMessageId
+            );
+            if (foundId) rawItem.mailMessageId = foundId;
+          } catch (err) {
+            results.errors.push({ rawItemId: rawItem.id, error: `id-lookup: ${err.message}` });
+          }
+        }
         let harvest = { pdfText: null, imageInput: null, firstDocument: null };
         if (rawItem.hasAttachments && rawItem.mailMessageId && rawItem.sourceId) {
           harvest = await harvestAttachments({
