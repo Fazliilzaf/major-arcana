@@ -402,6 +402,12 @@ async function diagnoseGhostVisibleAssetPage({
   }
   const nextOffset = safeOffset + targets.length;
   const samples = cases.slice(0, Math.max(0, Number(sampleSize) || 25));
+  const countBy = (rows, field) =>
+    rows.reduce((counts, row) => {
+      const key = normalizeText(row[field]) || 'unknown';
+      counts[key] = (counts[key] || 0) + 1;
+      return counts;
+    }, {});
   return {
     generatedAt: nowIso(),
     dryRun: true,
@@ -422,6 +428,13 @@ async function diagnoseGhostVisibleAssetPage({
       withoutBlobSibling: cases.filter((row) => row.kind === 'ghost_visible_no_blob_sibling')
         .length,
       crossPatientSibling: cases.filter((row) => row.crossPatientSibling).length,
+      withDriveFileId: cases.filter((row) => normalizeText(row.originalDriveFileId)).length,
+      missingDriveFileId: cases.filter((row) => !normalizeText(row.originalDriveFileId)).length,
+      withChecksum: cases.filter((row) => normalizeText(row.checksum)).length,
+      missingChecksum: cases.filter((row) => !normalizeText(row.checksum)).length,
+      byCategory: countBy(cases, 'category'),
+      bySourceSystem: countBy(cases, 'sourceSystem'),
+      byStatus: countBy(cases, 'canonicalStatus'),
       importRunIdFilter: runFilter,
     },
     samples: maskSamples ? samples.map(maskCase) : samples,

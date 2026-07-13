@@ -44,6 +44,9 @@ test('diagnoseGhostVisibleAssetPage scans only requested render-candidate page',
   assert.equal(report.pagination.totalRenderCandidates, 6);
   assert.equal(report.pagination.nextOffset, 4);
   assert.equal(report.stats.ghostRenderCandidates, 2);
+  assert.equal(report.stats.missingDriveFileId, 2);
+  assert.equal(report.stats.withChecksum, 2);
+  assert.deepEqual(report.stats.byStatus, { VISIBLE_ON_PATIENT_CARD: 2 });
 });
 
 test('buildBlobExistenceCache deduplicerar storageKey och begränsar parallellismen', async () => {
