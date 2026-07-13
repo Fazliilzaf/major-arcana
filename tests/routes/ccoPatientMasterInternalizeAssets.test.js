@@ -9,6 +9,9 @@ const path = require('node:path');
 
 const { createCcoPatientMasterRouter } = require('../../src/routes/ccoPatientMaster');
 const { resetInternalizeJobStateForTests } = require('../../src/ops/ccoDriveInternalizeAsyncJob');
+const {
+  resetGhostVisibleDiagnosisJobStateForTests,
+} = require('../../src/ops/ccoGhostVisibleDiagnosisAsyncJob');
 const { createCcoPatientMasterStore } = require('../../src/ops/ccoPatientMasterStore');
 const { createCcoPatientAssetStore } = require('../../src/ops/ccoPatientAssetStore');
 const { createCcoAssetImportRunStore } = require('../../src/ops/ccoAssetImportRunStore');
@@ -874,6 +877,41 @@ test('assets/diagnose-ghost-visible är read-only och rapporterar ghost + siblin
         ),
         true
       );
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('assets/diagnose-ghost-visible async returnerar 202 och kan pollas', async () => {
+  resetGhostVisibleDiagnosisJobStateForTests();
+  const fixture = await makeFixture();
+  try {
+    await withServer(fixture.app, async (base) => {
+      const started = await fetch(
+        `${base}/api/v1/cco-patient-master/assets/diagnose-ghost-visible`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ async: true, includeInventoryCoverage: true }),
+        }
+      );
+      const accepted = await started.json();
+      assert.equal(started.status, 202);
+      assert.equal(accepted.zeroWrites, true);
+      assert.equal(accepted.pollUrl.endsWith('/diagnose-ghost-visible/job'), true);
+
+      let polled;
+      for (let attempt = 0; attempt < 50; attempt += 1) {
+        const response = await fetch(`${base}${accepted.pollUrl}`);
+        polled = await response.json();
+        if (polled.completed) break;
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      assert.equal(polled.completed, true);
+      assert.equal(polled.failed, false);
+      assert.equal(polled.state.report.zeroWrites, true);
+      assert.ok(polled.state.report.inventoryCoverage);
     });
   } finally {
     await fs.rm(fixture.tmp, { recursive: true, force: true });
