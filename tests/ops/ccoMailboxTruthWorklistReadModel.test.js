@@ -148,6 +148,56 @@ test('worklist read model keeps human replies actionable even after automated re
   assert.equal(consumer.rows[0].state.messageClassification, 'actionable');
 });
 
+test('consumer worklist sorts every mailbox by latest activity before unread priority', () => {
+  const mailboxId = 'fazli@hairtpclinic.com';
+  const model = createCcoMailboxTruthWorklistReadModel({
+    store: {
+      listMessages() {
+        return [
+          {
+            mailboxId,
+            mailboxAddress: mailboxId,
+            userPrincipalName: mailboxId,
+            mailboxConversationId: `${mailboxId}:older-unread`,
+            conversationId: 'older-unread',
+            graphMessageId: 'older-unread-message',
+            folderType: 'inbox',
+            direction: 'inbound',
+            isRead: false,
+            subject: 'Äldre oläst',
+            bodyPreview: 'Det här mailet är äldre men oläst.',
+            from: { address: 'older@example.com', name: 'Äldre kund' },
+            receivedAt: '2026-07-10T08:00:00.000Z',
+          },
+          {
+            mailboxId,
+            mailboxAddress: mailboxId,
+            userPrincipalName: mailboxId,
+            mailboxConversationId: `${mailboxId}:newer-read`,
+            conversationId: 'newer-read',
+            graphMessageId: 'newer-read-message',
+            folderType: 'inbox',
+            direction: 'inbound',
+            isRead: true,
+            subject: 'Nyare läst',
+            bodyPreview: 'Det här mailet är nyast och ska ligga först.',
+            from: { address: 'newer@example.com', name: 'Nyare kund' },
+            receivedAt: '2026-07-13T09:30:15.000Z',
+          },
+        ];
+      },
+    },
+  });
+
+  const consumer = model.buildConsumerModel({ mailboxIds: [mailboxId] });
+
+  assert.deepEqual(
+    consumer.rows.map((row) => row.subject),
+    ['Nyare läst', 'Äldre oläst']
+  );
+  assert.equal(consumer.rows[1].state.hasUnreadInbound, true);
+});
+
 test('worklist read model splits website contact forms by embedded customer email', () => {
   const model = createCcoMailboxTruthWorklistReadModel({
     store: {
