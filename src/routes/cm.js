@@ -204,8 +204,13 @@ function createCmRouter({
   // Mail sync — ORD-64: äkta delta-sync + bilagor + originalarkiv
   router.post('/cm/mail-sync', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
     const mailSync = createCmMailSync({ graphReadConnector, cmStore, secureStorage });
+    // ORD-67f: kvitto@ = kanonisk CM-mailkälla (ägar-beslut 2026-07-13).
+    // Env CM_MAIL_ACCOUNT överrider; fallbacken gör UI-knappen fungerande
+    // utan env-deploy. Verifierad läsbar via Graph 2026-07-13 (19 mail import).
     const mailboxId =
-      req.body?.mailboxId || process.env.CM_MAIL_ACCOUNT || process.env.ARCANA_GRAPH_USER_ID || '';
+      req.body?.mailboxId ||
+      process.env.CM_MAIL_ACCOUNT ||
+      'kvitto@hairtpclinic.com';
     if (!mailboxId)
       return res
         .status(400)

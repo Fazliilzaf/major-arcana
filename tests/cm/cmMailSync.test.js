@@ -146,8 +146,10 @@ test('syncFolder: PDF-bilaga sparas i secure storage + dokument skapas', async (
     ],
   });
   const secureStorage = makeFakeSecureStorage();
-  const fetchImpl = async (url) => {
+  const fetchImpl = async (url, init) => {
     assert.match(url, /attachments\?\$select/);
+    // ORD-67f: immutable-ID-headern MÅSTE följa med — annars Graph 400 i prod.
+    assert.equal(init?.headers?.Prefer, 'IdType="ImmutableId"');
     return {
       ok: true,
       async json() {
