@@ -15171,9 +15171,10 @@
       if (!railHasPatientDetailShell()) {
         renderDetailLoadingSkeleton(startup.patientId);
       }
-      if (!needsStaffLogin()) {
-        void loadPatientDetail(startup.patientId);
-      }
+      // /staff kan redan vara autentiserad av den serverhanterade staff-sessionen
+      // aven nar ingen bearer-token finns i web storage. Lat detail-endpointen
+      // avgora behorigheten; apiRequest behaller befintlig 401-hantering.
+      void loadPatientDetail(startup.patientId);
       onCustomersViewOpen();
     } else if (isCustomersShellActive()) {
       onCustomersViewOpen();

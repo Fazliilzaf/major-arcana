@@ -76,6 +76,16 @@ test('patientId-djuplänk bevarar admin-, V11- och V12-kontraktet', () => {
   assert.match(ui, /url\.searchParams\.set\('patientId', patientId\)/);
   assert.match(ui, /syncSelectedPatientDeepLink\(key\)/);
   assert.match(ui, /else if \(startup\.patientId && isCustomersShellActive\(\)\)/);
+  const desktopDeepLinkBranch = ui.slice(
+    ui.indexOf('else if (startup.patientId && isCustomersShellActive())'),
+    ui.indexOf('} else if (isCustomersShellActive())')
+  );
+  assert.match(desktopDeepLinkBranch, /void loadPatientDetail\(startup\.patientId\);/);
+  assert.doesNotMatch(
+    desktopDeepLinkBranch,
+    /if \(!needsStaffLogin\(\)\)/,
+    'serverautentiserad staff-session ska fa prova canonical patient-detail'
+  );
   assert.match(ui, /void loadPatientDetail\(startup\.patientId\)/);
   assert.match(ui, /ccoCustomerPatient: id/);
   assert.match(ui, /rail\.querySelector\('\[data-v11-rail-shell="1"\]'\)/);
