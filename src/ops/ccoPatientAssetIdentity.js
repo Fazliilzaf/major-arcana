@@ -161,6 +161,9 @@ function collectAssetStoreAliases({ patient, patientPopulation, tenantId, assetS
 
   const rows = assetStore.listItemsForEnrichment(tenantId) || [];
   const acceptedStatuses = new Set(['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO']);
+  const renderableRows = rows.filter(
+    (row) => row?.patientId && acceptedStatuses.has(row.status)
+  );
   const exactNamePatientIds = new Set();
   const population = asArray(patientPopulation);
   const pnrIsUnique =
@@ -178,8 +181,7 @@ function collectAssetStoreAliases({ patient, patientPopulation, tenantId, assetS
         ) === name
     ).length === 1;
 
-  for (const row of rows) {
-    if (!row?.patientId || !acceptedStatuses.has(row.status)) continue;
+  for (const row of renderableRows) {
     const fields = [
       row.originalDrivePath,
       row.relativePath,
@@ -208,6 +210,13 @@ function collectAssetStoreAliases({ patient, patientPopulation, tenantId, assetS
 
   if (!aliases.length) {
     if (population.length && (pnrIsUnique || nameIsUnique)) {
+      const canonicalPatientId = normalizeText(patient?.id);
+      resolveCanonicalPatientsForAssetAliases({
+        patients: population,
+        assets: renderableRows,
+      })
+        .filter((mapping) => mapping.canonicalPatientId === canonicalPatientId)
+        .forEach((mapping) => pushUnique(aliases, mapping.assetPatientId));
       exactNamePatientIds.forEach((id) => pushUnique(aliases, id));
     } else if (!population.length && exactNamePatientIds.size === 1) {
       pushUnique(aliases, [...exactNamePatientIds][0]);
