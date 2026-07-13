@@ -62,8 +62,8 @@ async function executeCanonicalPatientRepairJob({
       remainingEligible: plan.eligible.length,
     };
 
-    for (let offset = 0; offset < plan.eligible.length; offset += size) {
-      const batch = plan.eligible.slice(offset, offset + size);
+    const batch = plan.eligible.slice(0, size);
+    if (batch.length) {
       effectiveAssetStore.beginBatch?.();
       try {
         for (const mapping of batch) {

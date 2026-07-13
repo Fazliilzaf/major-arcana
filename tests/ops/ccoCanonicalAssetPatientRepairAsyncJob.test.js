@@ -18,7 +18,7 @@ function asset(id, path) {
   };
 }
 
-test('async repair builds the plan once and flushes bounded batches', async () => {
+test('async repair commits exactly one bounded batch per job', async () => {
   resetCanonicalPatientRepairJobStateForTests();
   const writes = [];
   let begins = 0;
@@ -50,12 +50,11 @@ test('async repair builds the plan once and flushes bounded batches', async () =
   assert.deepEqual(writes, [
     ['a1', 'lisa'],
     ['a2', 'lisa'],
-    ['a3', 'lisa'],
   ]);
-  assert.equal(begins, 2);
-  assert.equal(flushes, 2);
-  assert.equal(state.stats.linked, 3);
-  assert.equal(state.stats.remainingEligible, 0);
+  assert.equal(begins, 1);
+  assert.equal(flushes, 1);
+  assert.equal(state.stats.linked, 2);
+  assert.equal(state.stats.remainingEligible, 1);
   assert.equal(state.lastError, null);
 });
 
