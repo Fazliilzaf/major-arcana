@@ -83,23 +83,23 @@ test('startup disk guard sanitizes oversized state files before boot', async () 
   assert.equal(summary.stateFiles.sanitizedCount, 1);
   const sanitized = summary.stateFiles.sanitized[0] || {};
   assert.equal(sanitized.scope, 'capability_analysis_store');
-  assert.equal(Boolean(sanitized.backupPath), true);
+  assert.ok(/\.oversize-\d{8}T\d{6}\.\d{3}Z\.bak$/.test(String(sanitized.backupPath || '')));
 
   const sanitizedRaw = await fs.readFile(analysisPath, 'utf8');
   const sanitizedJson = JSON.parse(sanitizedRaw);
   assert.equal(Array.isArray(sanitizedJson.entries), true);
   assert.equal(sanitizedJson.entries.length, 0);
 
-  await fs.stat(`${analysisPath}.oversize.bak`);
+  await fs.stat(sanitized.backupPath);
   await fs.rm(tempDir, { recursive: true, force: true });
 });
 
-test('startup disk guard prunes stale oversize backup files', async () => {
+test('startup disk guard prunes stale timestamped oversize backup files', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-startup-oversize-bak-'));
   const stateRoot = path.join(tempDir, 'state');
   const backupDir = path.join(stateRoot, 'backups');
   const reportsDir = path.join(stateRoot, 'reports');
-  const staleBakPath = path.join(stateRoot, 'memory.json.oversize.bak');
+  const staleBakPath = path.join(stateRoot, 'memory.json.oversize-20260711T120000.000Z.bak');
 
   await createFile(staleBakPath, JSON.stringify({ stale: true }));
   const staleAt = new Date(Date.now() - 48 * 60 * 60 * 1000);
@@ -125,6 +125,137 @@ test('startup disk guard prunes stale oversize backup files', async () => {
   await fs.rm(tempDir, { recursive: true, force: true });
 });
 
+test('startup disk guard preserves auth users and memberships in fallback payload', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-startup-auth-fallback-'));
+  const stateRoot = path.join(tempDir, 'state');
+  const backupDir = path.join(stateRoot, 'backups');
+  const reportsDir = path.join(stateRoot, 'reports');
+  const authPath = path.join(stateRoot, 'auth.json');
+
+  const oversizedAuth = {
+    users: {
+      'user-1': {
+        id: 'user-1',
+        email: 'owner@example.com',
+        passwordHash: 'hash',
+        passwordSalt: 'salt',
+        status: 'active',
+      },
+    },
+    memberships: {
+      'membership-1': {
+        id: 'membership-1',
+        userId: 'user-1',
+        tenantId: 'tenant-a',
+        role: 'OWNER',
+        status: 'active',
+      },
+    },
+    sessions: { 'session-1': { id: 'session-1', tokenHash: 'x'.repeat(64) } },
+    pendingLogins: {},
+    pendingMfaChallenges: {},
+    auditEvents: new Array(2000).fill({ metadata: { blob: 'a'.repeat(9000) } }),
+  };
+
+  await createFile(authPath, JSON.stringify(oversizedAuth));
+
+  const summary = await runStartupDiskGuard({
+    config: {
+      stateRoot,
+      backupDir,
+      reportsDir,
+      authStorePath: authPath,
+      startupStateFileGuardEnabled: true,
+      startupAuthStoreMaxBytes: 4096,
+      backupRetentionMaxFiles: 1,
+      backupRetentionMaxAgeDays: 365,
+      reportRetentionMaxFiles: 1,
+      reportRetentionMaxAgeDays: 365,
+    },
+    logger: { warn() {} },
+  });
+
+  assert.equal(summary.stateFiles.sanitizedCount, 1);
+  const sanitized = summary.stateFiles.sanitized.find((item) => item.scope === 'auth_store');
+  assert.ok(sanitized);
+
+  const fallback = JSON.parse(await fs.readFile(authPath, 'utf8'));
+  assert.equal(Object.keys(fallback.users).length, 1);
+  assert.equal(fallback.users['user-1'].email, 'owner@example.com');
+  assert.equal(Object.keys(fallback.memberships).length, 1);
+  assert.equal(Object.keys(fallback.sessions).length, 0);
+  assert.equal(fallback.auditEvents.length, 0);
+
+  await fs.stat(sanitized.backupPath);
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+test('startup disk guard keeps prior timestamped oversize backup on repeated sanitize', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-startup-auth-backup-chain-'));
+  const stateRoot = path.join(tempDir, 'state');
+  const backupDir = path.join(stateRoot, 'backups');
+  const reportsDir = path.join(stateRoot, 'reports');
+  const authPath = path.join(stateRoot, 'auth.json');
+
+  const buildOversized = (marker) =>
+    JSON.stringify({
+      users: { 'user-1': { id: 'user-1', email: `${marker}@example.com`, status: 'active' } },
+      memberships: {},
+      sessions: {},
+      pendingLogins: {},
+      pendingMfaChallenges: {},
+      auditEvents: new Array(1000).fill({ metadata: { blob: 'b'.repeat(12000) } }),
+    });
+
+  await createFile(authPath, buildOversized('first'));
+
+  const firstSummary = await runStartupDiskGuard({
+    config: {
+      stateRoot,
+      backupDir,
+      reportsDir,
+      authStorePath: authPath,
+      startupStateFileGuardEnabled: true,
+      startupAuthStoreMaxBytes: 4096,
+      backupRetentionMaxFiles: 1,
+      backupRetentionMaxAgeDays: 365,
+      reportRetentionMaxFiles: 1,
+      reportRetentionMaxAgeDays: 365,
+    },
+    logger: { warn() {} },
+  });
+
+  const firstBackup = firstSummary.stateFiles.sanitized[0]?.backupPath;
+  assert.ok(firstBackup);
+  await fs.stat(firstBackup);
+
+  await createFile(authPath, buildOversized('second'));
+
+  const secondSummary = await runStartupDiskGuard({
+    config: {
+      stateRoot,
+      backupDir,
+      reportsDir,
+      authStorePath: authPath,
+      startupStateFileGuardEnabled: true,
+      startupAuthStoreMaxBytes: 4096,
+      backupRetentionMaxFiles: 1,
+      backupRetentionMaxAgeDays: 365,
+      reportRetentionMaxFiles: 1,
+      reportRetentionMaxAgeDays: 365,
+    },
+    logger: { warn() {} },
+  });
+
+  const secondBackup = secondSummary.stateFiles.sanitized[0]?.backupPath;
+  assert.ok(secondBackup);
+  assert.notEqual(firstBackup, secondBackup);
+  await fs.stat(firstBackup);
+  await fs.stat(secondBackup);
+
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
 test('startup disk guard utan config loggar fel och avslutar tidigt', async () => {
   const summary = await runStartupDiskGuard({ config: null, logger: { warn() {} } });
   assert.equal(summary.errors.length >= 1, true);
@@ -135,7 +266,10 @@ test('startup disk guard utan config loggar fel och avslutar tidigt', async () =
 test('startup disk guard avvisar icke-objekt config', async () => {
   for (const bad of [undefined, 'path-only', 42]) {
     const summary = await runStartupDiskGuard({ config: bad, logger: { warn() {} } });
-    assert.ok(summary.errors.some((e) => e.scope === 'startup_disk_guard'), String(bad));
+    assert.ok(
+      summary.errors.some((e) => e.scope === 'startup_disk_guard'),
+      String(bad)
+    );
     assert.equal(summary.stateFiles, null);
   }
 });
@@ -231,6 +365,35 @@ test('startup disk guard deduplicerar skannade kataloger när stateRoot och back
   const dirs = summary.tempFiles.scannedDirectories;
   assert.equal(new Set(dirs).size, dirs.length);
   assert.equal(dirs.length, 2);
+
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+test('startup disk guard raderar inte legacy oversize.bak även när filen är gammal', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-startup-legacy-bak-'));
+  const stateRoot = path.join(tempDir, 'state');
+  const backupDir = path.join(stateRoot, 'backups');
+  const reportsDir = path.join(stateRoot, 'reports');
+  const legacyRescueBak = path.join(stateRoot, 'auth.json.oversize.bak');
+  await createFile(legacyRescueBak, JSON.stringify({ rescue: true }));
+  const staleAt = new Date(Date.now() - 48 * 60 * 60 * 1000);
+  await fs.utimes(legacyRescueBak, staleAt, staleAt);
+
+  const summary = await runStartupDiskGuard({
+    config: {
+      stateRoot,
+      backupDir,
+      reportsDir,
+      backupRetentionMaxFiles: 10,
+      backupRetentionMaxAgeDays: 365,
+      reportRetentionMaxFiles: 10,
+      reportRetentionMaxAgeDays: 365,
+    },
+    logger: { warn() {} },
+  });
+
+  assert.equal(summary.stateGuardBackups.deletedCount, 0);
+  await fs.stat(legacyRescueBak);
 
   await fs.rm(tempDir, { recursive: true, force: true });
 });
