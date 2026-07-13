@@ -3145,10 +3145,21 @@
       ];
 
       const LIVE_MAILBOX_IDS = ['kons@hairtpclinic.com', 'fazli@hairtpclinic.com'];
-      const LIVE_WORKLIST_URL =
-        '/api/v1/cco/runtime/worklist/consumer?mailboxIds=' +
-        encodeURIComponent(LIVE_MAILBOX_IDS.join(',')) +
-        '&limit=500';
+      let selectedMailboxIds = LIVE_MAILBOX_IDS.slice();
+
+      function liveWorklistUrl(mailboxIds = selectedMailboxIds) {
+        return (
+          '/api/v1/cco/runtime/worklist/consumer?mailboxIds=' +
+          encodeURIComponent(mailboxIds.join(',')) +
+          '&limit=500'
+        );
+      }
+
+      function selectedMailboxLabel(mailboxIds = selectedMailboxIds) {
+        if (!mailboxIds.length) return 'inga brevlådor';
+        if (mailboxIds.length === 1) return mailboxIds[0];
+        return mailboxIds.length + ' brevlådor';
+      }
       const AVATAR_BACKGROUNDS = [
         'linear-gradient(180deg,#d8c1f0,#b48ad6)',
         'linear-gradient(180deg,#c5d8a8,#92b86e)',
@@ -5353,18 +5364,35 @@
       let liveInboxAttempt = 0;
       let liveInboxRetryTimer = null;
       let liveInboxFetchInFlight = false;
+      let liveInboxReloadQueued = false;
 
       async function loadLiveInbox({ background = false } = {}) {
         if (window.location.protocol === 'file:') return;
-        if (liveInboxFetchInFlight) return;
+        if (liveInboxFetchInFlight) {
+          liveInboxReloadQueued = true;
+          return;
+        }
+        if (!selectedMailboxIds.length) {
+          currentThreads = [];
+          selectedLiveThread = null;
+          selectedLiveMessages = [];
+          renderInboxThreads(currentThreads, {
+            activeTab: currentInboxTab,
+            activeLane: currentLane,
+          });
+          renderLivePaneStatus('Ingen brevlåda vald', 'Välj minst en brevlåda i vänsterspalten.');
+          return;
+        }
         liveInboxFetchInFlight = true;
+        const requestMailboxIds = selectedMailboxIds.slice();
+        const requestMailboxKey = requestMailboxIds.join(',');
         clearTimeout(liveInboxRetryTimer);
         let failureStatus = 0;
         let failureReason = '';
         try {
           let response;
           try {
-            response = await fetch(LIVE_WORKLIST_URL, {
+            response = await fetch(liveWorklistUrl(requestMailboxIds), {
               credentials: 'include',
               headers: withAdminAuthHeaders({ Accept: 'application/json' }),
             });
@@ -5413,6 +5441,10 @@
                 ? inboxMessageCount
                 : null;
           const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+          if (requestMailboxKey !== selectedMailboxIds.join(',')) {
+            liveInboxReloadQueued = true;
+            return;
+          }
           const enrichmentLookup = buildWorklistEnrichmentLookup(payload?.enrichment);
           const previousSelection = selectedLiveThread;
           const previousSelectionKey = normalizeText(previousSelection?.conversationKey);
@@ -5427,7 +5459,7 @@
             });
             renderLivePaneStatus(
               'CCO-inkorgen är tom',
-              'Inga trådar returnerades från kons@hairtpclinic.com. Detta är ett STOP-läge, inte demo.'
+              `Inga trådar returnerades från ${selectedMailboxLabel(requestMailboxIds)}. Detta är ett STOP-läge, inte demo.`
             );
             return;
           }
@@ -5458,7 +5490,10 @@
             setSvarstudioLiveContext(selectedThread, selectedLiveMessages);
           }
           if (!background && rows.length && window.CCOPolish?.showToast) {
-            window.CCOPolish.showToast(`CCO-inkorg: ${rows.length} trådar från kons@`, 'success');
+            window.CCOPolish.showToast(
+              `CCO-inkorg: ${rows.length} trådar från ${selectedMailboxLabel(requestMailboxIds)}`,
+              'success'
+            );
           }
         } catch (error) {
           console.warn('[cco-live-inbox] worklist kunde inte laddas', error);
@@ -5489,8 +5524,27 @@
           }
         } finally {
           liveInboxFetchInFlight = false;
+          if (liveInboxReloadQueued) {
+            liveInboxReloadQueued = false;
+            setTimeout(() => loadLiveInbox({ background: false }), 0);
+          }
         }
       }
+
+      document.addEventListener('cco:mailbox-selection-change', (event) => {
+        const requested = Array.isArray(event?.detail?.mailboxIds)
+          ? event.detail.mailboxIds.map((value) => normalizeText(value).toLowerCase()).filter(Boolean)
+          : [];
+        if (requested.join(',') === selectedMailboxIds.join(',')) return;
+        selectedMailboxIds = requested;
+        liveInboxAttempt = 0;
+        clearTimeout(liveInboxRetryTimer);
+        renderLiveInboxStatus(
+          'Laddar CCO-inkorg',
+          `Hämtar trådar från ${selectedMailboxLabel()}...`
+        );
+        loadLiveInbox();
+      });
 
       // När admin-skalet skriver ARCANA_ADMIN_TOKEN efter inloggning (ett annat
       // dokument än denna iframe) återhämtar vi inkorgen automatiskt utan

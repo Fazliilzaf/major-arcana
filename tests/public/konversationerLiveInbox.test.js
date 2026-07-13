@@ -14,7 +14,7 @@ function liveScript(html) {
   const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(
     (match) => match[1]
   );
-  const script = scripts.find((source) => source.includes('LIVE_WORKLIST_URL'));
+  const script = scripts.find((source) => source.includes('function liveWorklistUrl('));
   assert.ok(script, 'konversationer.html should contain the live inbox script');
   return script;
 }

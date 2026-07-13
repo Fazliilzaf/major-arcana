@@ -40,7 +40,7 @@ test('visar ärligt datakontrakt i stället för oinkopplade mapp-/dagfilter', (
   assert.doesNotMatch(source, /value: 90, label: '90'/);
 });
 
-test('sticky val i localStorage + läser mailboxes-endpointen (data kommer senare)', () => {
+test('sticky val i localStorage + läser mailboxes-endpointen', () => {
   assert.match(source, /cco_mailbox_valjare_v1/);
   assert.match(source, /localStorage/);
   assert.match(source, /'\/api\/v1\/cco\/runtime\/mailboxes'/);
@@ -48,8 +48,22 @@ test('sticky val i localStorage + läser mailboxes-endpointen (data kommer senar
   assert.match(source, /väntar på data/);
 });
 
-test('driver inte inkorgen ännu — dispatchar bara selection-change för datalagret', () => {
+test('driver inkorgen via selection-change till det befintliga datalagret', () => {
   assert.match(source, /cco:mailbox-selection-change/);
+  assert.match(page, /document\.addEventListener\('cco:mailbox-selection-change'/);
+  assert.match(page, /liveWorklistUrl\(requestMailboxIds\)/);
+  assert.match(page, /selectedMailboxIds = requested/);
+  assert.doesNotMatch(page, /const LIVE_WORKLIST_URL/);
+});
+
+test('tomt mailbox-val tömmer inkorgen ärligt i stället för att visa föregående konto', () => {
+  assert.match(page, /if \(!selectedMailboxIds\.length\)/);
+  assert.match(page, /Välj minst en brevlåda i vänsterspalten/);
+});
+
+test('sen selection vinner över ett redan pågående worklist-anrop', () => {
+  assert.match(page, /liveInboxReloadQueued = true/);
+  assert.match(page, /requestMailboxKey !== selectedMailboxIds\.join\(','\)/);
 });
 
 test('ingen ny färg: använder befintliga CCO-tokens', () => {
