@@ -207,7 +207,11 @@
         '</div>' +
         '<div class="av-sub">' +
         esc(av.statusLine || '') +
-        '</div></div>' +
+        '</div>' +
+        (av.bookingNote
+          ? '<div class="av-sub">Anteckning · ' + esc(av.bookingNote) + '</div>'
+          : '') +
+        '</div>' +
         (av.practitioner
           ? '<div class="av-staff">' +
             esc(av.practitioner) +
@@ -393,7 +397,16 @@
                   esc(txt(b.title || b.serviceLabel || 'Bokning')) +
                   '</div>' +
                   '<div class="book-meta">' +
-                  esc(txt(b.timeLabel || b.time || '')) +
+                  esc(
+                    [
+                      txt(b.timeLabel || b.time || ''),
+                      txt(b.staffName || b.resourceLabel || ''),
+                      txt(b.locationLabel || ''),
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                  ) +
+                  (txt(b.notes) ? '<br>Anteckning · ' + esc(txt(b.notes)) : '') +
                   '</div></div>' +
                   '<span class="q-status warn">Bokad</span></div>'
                 );
@@ -416,6 +429,7 @@
                 txt(b.timeLabel || b.time),
                 txt(b.durationLabel || b.duration),
                 txt(b.staffName || b.providerName || b.resourceName),
+                txt(b.locationLabel),
               ].filter(Boolean);
               return (
                 '<div class="hist-row"><div class="book-date"><span class="d">' +
@@ -425,6 +439,9 @@
                 esc(txt(b.title || b.serviceLabel || 'Besök')) +
                 '</div>' +
                 (meta.length ? '<div class="book-meta">' + esc(meta.join(' · ')) + '</div>' : '') +
+                (txt(b.notes)
+                  ? '<div class="book-meta">Anteckning · ' + esc(txt(b.notes)) + '</div>'
+                  : '') +
                 '</div><span class="q-status green">Genomförd</span></div>'
               );
             })

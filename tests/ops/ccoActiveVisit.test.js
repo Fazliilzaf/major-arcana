@@ -18,6 +18,8 @@ test('active visit defaults to scheduled_today for visible today booking without
           startsAt: new Date().toISOString(),
           serviceName: 'Konsultation',
           resourceLabel: 'Erik Holm',
+          locationLabel: 'Rum 2',
+          notes: 'Kontrollera donorområdet före behandlingen.',
         },
       ],
       historyBookings: [],
@@ -29,6 +31,8 @@ test('active visit defaults to scheduled_today for visible today booking without
   assert.equal(payload.visible, true);
   assert.equal(payload.state, 'scheduled_today');
   assert.equal(payload.bookingId, 'booking-1');
+  assert.equal(payload.locationLabel, 'Rum 2');
+  assert.equal(payload.bookingNote, 'Kontrollera donorområdet före behandlingen.');
   assert.equal(payload.blockers[0].code, 'health_declaration');
 });
 

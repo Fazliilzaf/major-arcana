@@ -240,6 +240,8 @@ function normalizeBookingReadout({
   serviceId = '',
   serviceLabel = '',
   resourceLabel = '',
+  locationLabel = '',
+  notes = '',
   status = 'confirmed',
   source = 'internal',
   id = '',
@@ -278,6 +280,8 @@ function normalizeBookingReadout({
     staffName,
     practitioner: staffName,
     resourceLabel: staffName,
+    locationLabel: normalizeText(locationLabel) || null,
+    notes: normalizeText(notes) || null,
     status: normalizeText(status) || 'confirmed',
     source,
   };
@@ -354,6 +358,8 @@ function collectBookingReadouts({
         durationMinutes: clientoBooking.durationMinutes,
         serviceLabel: clientoBooking.serviceLabel,
         resourceLabel: clientoBooking.staffName,
+        locationLabel: clientoBooking.locationName,
+        notes: clientoBooking.notes,
         status: clientoBooking.status,
         source: 'cliento',
       })

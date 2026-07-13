@@ -218,7 +218,11 @@
       '</div>' +
       '<div class="s2-treatment-sub">' +
       esc(av.statusLine || '') +
-      '</div></div>' +
+      '</div>' +
+      (av.bookingNote
+        ? '<div class="s2-treatment-sub">Anteckning · ' + esc(av.bookingNote) + '</div>'
+        : '') +
+      '</div>' +
       (av.practitioner
         ? '<div class="s2-staff">' +
           esc(av.practitioner) +
@@ -1157,6 +1161,12 @@
         esc(title) +
         '</b><small>' +
         esc(startsAt ? startsAt.slice(0, 16).replace('T', ' · ') : 'Tid saknas') +
+        (txt(booking && booking.locationLabel)
+          ? ' · ' + esc(txt(booking.locationLabel))
+          : '') +
+        (txt(booking && booking.notes)
+          ? '<br>Anteckning · ' + esc(txt(booking.notes))
+          : '') +
         '</small></span>' +
         chip(status === 'completed' ? 'ok' : 'warn', status) +
         '</div>'
@@ -1361,6 +1371,7 @@
             txt(b.timeLabel || b.time),
             txt(b.durationLabel || b.duration),
             txt(b.practitioner || b.staffName || b.providerName || b.resourceName),
+            txt(b.locationLabel),
           ].filter(Boolean);
           return (
             '<div class="booking-row"><div class="b-date">' +
@@ -1373,6 +1384,7 @@
             '</div>' +
             '<div class="b-meta">' +
             esc(bookingMeta.join(' · ')) +
+            (txt(b.notes) ? '<br>Anteckning · ' + esc(txt(b.notes)) : '') +
             '</div></div>' +
             chip(done ? 'ok' : 'info', done ? 'Genomförd' : 'Bokad') +
             '<button class="j-btn" data-kk-ord48-open-calendar data-patient-id="' +

@@ -341,3 +341,28 @@ test('V11 och V12 behåller kompakt facit-hierarki för besöksrum', () => {
   assert.match(v12Css, /@media \(max-width: 834px\)[\s\S]*v12-canon-visit-photo-grid/);
   assert.match(v12Css, /@media \(max-width: 600px\)[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/);
 });
+
+test('Cliento-bokningens plats och anteckning når V11 och V12', () => {
+  const enrichment = fs.readFileSync(
+    path.join(ROOT, 'src', 'ops', 'ccoKunderBookingEnrichment.js'),
+    'utf8'
+  );
+  const activeVisit = fs.readFileSync(path.join(ROOT, 'src', 'ops', 'ccoActiveVisit.js'), 'utf8');
+  const adapter = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v11-rail-adapters.js'),
+    'utf8'
+  );
+  const canon = fs.readFileSync(
+    path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js'),
+    'utf8'
+  );
+
+  assert.match(enrichment, /locationLabel: clientoBooking\.locationName/);
+  assert.match(enrichment, /notes: clientoBooking\.notes/);
+  assert.match(activeVisit, /bookingNote: normalizeText\(scheduled\?\.notes/);
+  assert.match(adapter, /visit\.locationLabel/);
+  assert.match(adapter, /bookingNote/);
+  assert.match(v11, /Anteckning ·/);
+  assert.match(canon, /booking\.locationLabel/);
+  assert.match(canon, /booking\.notes/);
+});
