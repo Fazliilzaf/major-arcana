@@ -4596,8 +4596,27 @@
         return attachmentIsImage(attachment) ? 'Bild' : 'Bilaga';
       }
 
+      function attachmentIsInlineMailAsset(attachment, message) {
+        const item = attachment && typeof attachment === 'object' ? attachment : {};
+        const disposition = normalizeText(item.disposition || item.contentDisposition).toLowerCase();
+        if (item.isInline === true || item.inline === true || disposition === 'inline') return true;
+
+        const contentId = normalizeText(item.contentId).replace(/^<|>$/g, '');
+        if (!contentId) return false;
+        const html = messageBodyHtml(message).toLowerCase();
+        return html.includes(`cid:${contentId.toLowerCase()}`);
+      }
+
       function renderMessageAttachments(message) {
-        const attachments = Array.isArray(message?.attachments) ? message.attachments : [];
+        // Inline-resurser (t.ex. loggor/GIF:ar i en mailsignatur) behövs i
+        // message.attachments för att cid:-bilderna ska kunna renderas i den
+        // sandboxade mailkroppen. De är däremot inte användarbilagor och ska
+        // därför varken räknas eller visas en andra gång under mailet.
+        const attachments = Array.isArray(message?.attachments)
+          ? message.attachments.filter(
+              (attachment) => !attachmentIsInlineMailAsset(attachment, message)
+            )
+          : [];
         if (!attachments.length) return '';
         const total = attachments.length;
         const imageCount = attachments.filter(attachmentIsImage).length;
