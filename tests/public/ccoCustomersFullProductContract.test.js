@@ -191,6 +191,10 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   assert.match(canon, /data-encounter-id=/);
   assert.match(
     canon,
+    /function s7\(photos, visitSegments, patientId\)[\s\S]*data-v12-photo-edit[\s\S]*data-encounter-id="'[\s\S]*p\.encounterId/
+  );
+  assert.match(
+    canon,
     /function s7\(photos, visitSegments, patientId\)[\s\S]*data-patient-file-id=/
   );
   assert.match(canon, /function s7\(photos, visitSegments, patientId\)/);
