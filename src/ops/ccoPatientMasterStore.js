@@ -779,7 +779,23 @@ async function createCcoPatientMasterStore({ filePath }) {
           .filter((email) => targets.has(email))
       );
       for (const email of patientEmails) {
-        matches[email].push(clonePatient(patient));
+        matches[email].push({
+          id: normalizeText(patient?.id),
+          patientId: normalizeText(patient?.id),
+          displayName: normalizeText(patient?.displayName),
+          primaryEmail: normalizeEmail(patient?.primaryEmail),
+          emails: asArray(patient?.emails).map(normalizeEmail).filter(Boolean),
+          cliento: {
+            emails: asArray(asObject(patient?.cliento).emails)
+              .map(normalizeEmail)
+              .filter(Boolean),
+          },
+          pipedrive: {
+            emails: asArray(asObject(patient?.pipedrive).emails)
+              .map(normalizeEmail)
+              .filter(Boolean),
+          },
+        });
       }
     }
     return { matches };
