@@ -679,6 +679,29 @@ test('worklist truth, consumer and shadow carry backfilled customer identity fro
         capabilityAnalysisStore,
         ccoCustomerStore,
         ccoMailboxTruthStore,
+        patientMasterStore: {
+          async listPatients() {
+            return {
+              patients: [
+                {
+                  id: 'patient-strong-uuid',
+                  displayName: 'Strong Patient',
+                  primaryEmail: 'strong@example.com',
+                },
+                {
+                  id: 'patient-dup-a',
+                  displayName: 'Duplicate A',
+                  primaryEmail: 'weak@example.com',
+                },
+                {
+                  id: 'patient-dup-b',
+                  displayName: 'Duplicate B',
+                  emails: ['weak@example.com'],
+                },
+              ],
+            };
+          },
+        },
         tenantConfigStore: {
           async getTenantConfig() {
             return {};
@@ -725,6 +748,13 @@ test('worklist truth, consumer and shadow carry backfilled customer identity fro
         consumerRows.get('conv-strong')?.customerIdentity?.canonicalCustomerId,
         'cust-strong-1'
       );
+      assert.equal(consumerRows.get('conv-strong')?.patientId, 'patient-strong-uuid');
+      assert.equal(consumerRows.get('conv-strong')?.patientDisplayName, 'Strong Patient');
+      assert.equal(consumerRows.get('conv-strong')?.patientMatch?.status, 'matched');
+      assert.equal(consumerRows.get('conv-weak')?.patientId, null);
+      assert.equal(consumerRows.get('conv-weak')?.patientMatch?.status, 'ambiguous');
+      assert.equal(consumerRows.get('conv-null')?.patientId, null);
+      assert.equal(consumerRows.get('conv-null')?.patientMatch?.status, 'unmatched');
       assert.equal(truthRows.get('conv-weak')?.customerIdentity, null);
       assert.equal(consumerRows.get('conv-weak')?.customerIdentity, null);
       assert.equal(truthRows.get('conv-null')?.customerIdentity, null);

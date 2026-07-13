@@ -54,6 +54,7 @@ const {
   resolveWorklistEvidenceFields,
 } = require('../ops/ccoMailboxTruthWorklistReadModel');
 const { createCcoMailboxTruthWorklistShadow } = require('../ops/ccoMailboxTruthWorklistShadow');
+const { resolveConversationPatients } = require('../ops/ccoConversationPatientResolver');
 
 const CCO_LIFECYCLE_AUDIT_STATES = new Set([
   'NEW',
@@ -8287,6 +8288,7 @@ async function buildWorklistConsumerContext({
   ccoConversationStateStore = null,
   ccoMailIngestionStore = null,
   clientoBookingStore = null,
+  patientMasterStore = null,
   customerState = null,
   mailboxIds = [],
   limit = 120,
@@ -8344,13 +8346,37 @@ async function buildWorklistConsumerContext({
       ? ccoMailboxTruthStore.getDeltaSyncReport({ mailboxIds })
       : null;
 
+  const consumerModel = worklistReadModel
+    ? worklistReadModel.buildConsumerModel({
+        mailboxIds,
+        limit,
+      })
+    : null;
+  if (consumerModel && Array.isArray(consumerModel.rows)) {
+    const matches = await resolveConversationPatients(
+      consumerModel.rows.map((row) => ({ tenantId, email: row?.customer?.email || '' })),
+      { patientMasterStore }
+    );
+    consumerModel.rows = consumerModel.rows.map((row, index) => {
+      const patientMatch = matches[index] || {
+        patientId: null,
+        displayName: null,
+        matchedBy: null,
+        confidence: 0,
+        status: 'store_unavailable',
+      };
+      return {
+        ...row,
+        patientId: patientMatch.status === 'matched' ? patientMatch.patientId : null,
+        patientDisplayName:
+          patientMatch.status === 'matched' ? patientMatch.displayName || null : null,
+        patientMatch,
+      };
+    });
+  }
+
   return {
-    consumerModel: worklistReadModel
-      ? worklistReadModel.buildConsumerModel({
-          mailboxIds,
-          limit,
-        })
-      : null,
+    consumerModel,
     latestEntry: diagnostics?.latestEntry || enrichmentBaseline?.selectedEntry || null,
     latestObservedEntry:
       diagnostics?.latestObservedEntry || enrichmentBaseline?.latestObservedEntry || null,
@@ -9343,6 +9369,7 @@ function toCcoRuntimeWorklistConsumerHandler({
   ccoConversationStateStore = null,
   ccoMailIngestionStore = null,
   clientoBookingStore = null,
+  patientMasterStore = null,
 }) {
   return async (req, res) => {
     try {
@@ -9377,6 +9404,7 @@ function toCcoRuntimeWorklistConsumerHandler({
         ccoConversationStateStore,
         ccoMailIngestionStore,
         clientoBookingStore,
+        patientMasterStore,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
       });
@@ -9736,6 +9764,7 @@ function createCapabilitiesRouter({
   ccoCustomerStore = null,
   runtimeMetricsStore = null,
   clientoBookingStore = null,
+  patientMasterStore = null,
   postOpReviewStore = null,
   templateStore = null,
   adminTasksStore = null,
@@ -10076,6 +10105,7 @@ function createCapabilitiesRouter({
         ccoConversationStateStore,
         ccoMailIngestionStore,
         clientoBookingStore,
+        patientMasterStore,
       })
     )
   );

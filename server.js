@@ -13900,6 +13900,7 @@ process.once('SIGTERM', () => {
       ccoCustomerStore,
       runtimeMetricsStore,
       clientoBookingStore,
+      patientMasterStore: ccoPatientMasterStore,
       postOpReviewStore,
       scheduler,
       graphReadConnector,

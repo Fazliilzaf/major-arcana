@@ -3028,7 +3028,7 @@
             ★ AI Skicka friskförsäkran
           </button>
           <button class="quick-pill" style="flex: 1">📅 Öppna bokning</button>
-          <button class="quick-pill" style="flex: 1">👤 Kunddossiér</button>
+          <button class="quick-pill" style="flex: 1" data-action="open-patient-dossier" type="button">👤 Kunddossiér</button>
           <button class="quick-pill quick-pill--success" style="flex: 1">✓ Markera klar</button>
         </div>
       </aside>
@@ -3822,6 +3822,10 @@
             normalizeText(customer.customerId) ||
             normalizeText(customer.id) ||
             normalizeText(row.customerId),
+          patientId: normalizeText(row.patientId),
+          patientDisplayName: normalizeText(row.patientDisplayName),
+          patientMatch:
+            row.patientMatch && typeof row.patientMatch === 'object' ? row.patientMatch : null,
           customerEmail,
           contactReference,
           customerPhone: normalizeText(customer.phone || customer.phoneNumber),
@@ -3936,6 +3940,8 @@
           source: 'konversationer-live',
           conversationKey: thread.conversationKey,
           customerId: thread.customerId,
+          patientId: thread.patientId,
+          patientMatch: thread.patientMatch,
           customerName: thread.from || 'Okänd kund',
           customerSub: `${thread.subj || 'Konversation'} · ${thread.unread ? 'Behöver svar' : 'CCO-tråd'}`,
           avatar: thread.init || (thread.from || '?').slice(0, 1),
@@ -4216,14 +4222,26 @@
         if (ai) ai.style.display = 'none';
         const aiBtn = document.querySelector('.ctx-actions .quick-pill--ai');
         if (aiBtn) aiBtn.style.display = 'none';
+        const dossierButton = document.querySelector('[data-action="open-patient-dossier"]');
         const chips = document.querySelector('.ctx-chips');
         const metaline = document.querySelector('.ctx-metaline');
         if (!thread) {
+          if (dossierButton) dossierButton.disabled = true;
           if (chips) chips.innerHTML = '';
           if (metaline) metaline.innerHTML = '';
           return;
         }
         const name = normalizeText(thread.from) || 'Okänd kund';
+        if (dossierButton) {
+          dossierButton.disabled = false;
+          dossierButton.dataset.patientId = normalizeText(thread.patientId);
+          dossierButton.dataset.patientMatchStatus = normalizeText(thread.patientMatch?.status);
+          dossierButton.title = thread.patientId
+            ? `Öppna kunddossier för ${normalizeText(thread.patientDisplayName) || name}`
+            : thread.patientMatch?.status === 'ambiguous'
+              ? 'Flera kunder har samma e-post. Välj kund manuellt.'
+              : 'Ingen kund är kopplad till denna konversation.';
+        }
         const email = normalizeText(thread.customerEmail);
         const phone = normalizeText(thread.customerPhone);
         const mailbox = normalizeText(thread.mailboxAddress) || LIVE_MAILBOX_IDS[0];
@@ -5606,8 +5624,32 @@
           setTimeout(() => t.remove(), 320);
         }, 2400);
       }
+      const dossierButton = document.querySelector('[data-action="open-patient-dossier"]');
+      if (dossierButton) {
+        dossierButton.addEventListener('click', (event) => {
+          event.preventDefault();
+          const patientId = normalizeText(dossierButton.dataset.patientId);
+          const status = normalizeText(dossierButton.dataset.patientMatchStatus);
+          if (!patientId || status !== 'matched') {
+            toast(
+              status === 'ambiguous'
+                ? 'Flera kunder har samma e-post. Ingen kund öppnades.'
+                : 'Ingen kund är kopplad till denna konversation.'
+            );
+            return;
+          }
+          const params = new URLSearchParams({
+            view: 'customers',
+            v9: 'on',
+            v11rail: 'on',
+            v12workspace: 'on',
+            patientId,
+          });
+          window.open(`/staff?${params.toString()}`, '_blank', 'noopener');
+        });
+      }
       document
-        .querySelectorAll('.quick-pill, .composer-send, .nav-btn:not([data-action])')
+        .querySelectorAll('.quick-pill:not([data-action]), .composer-send, .nav-btn:not([data-action])')
         .forEach((b) =>
           b.addEventListener('click', (e) => {
             e.preventDefault();
