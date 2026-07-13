@@ -539,8 +539,13 @@ function createCmStore({ filePath }) {
   }
 
   function getNeedsReview() {
+    // Endast pending — avvisade/godkända ska inte ligga kvar i granska-kön
+    // (samma filter som getInbox; upptäckt vid ägar-städning 2026-07-13).
     return state.expenseRecords.filter(
-      (r) => isOpenCandidate(r) && r.flags.some((f) => REVIEW_FLAGS.includes(f))
+      (r) =>
+        isOpenCandidate(r) &&
+        r.approvalStatus === 'pending' &&
+        r.flags.some((f) => REVIEW_FLAGS.includes(f))
     );
   }
 
