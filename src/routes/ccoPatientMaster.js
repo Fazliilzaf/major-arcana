@@ -876,11 +876,14 @@ function createCcoPatientMasterRouter({
     if (typeof resolvePatientAssetStore === 'function') {
       const assetStore = await resolvePatientAssetStore();
       if (assetStore?.listAssetsForPatient) {
-        const identityPopulation = await patientMasterStore.listPatients({
-          tenantId: actor.tenantId,
-          limit: 20000,
-          offset: 0,
-        });
+        const identityPopulation =
+          typeof patientMasterStore.listPatients === 'function'
+            ? await patientMasterStore.listPatients({
+                tenantId: actor.tenantId,
+                limit: 20000,
+                offset: 0,
+              })
+            : { patients: [] };
         const patientIds = await resolvePatientAssetIds({
           patientId: patient.id,
           patient,
