@@ -30,6 +30,7 @@ const {
 } = require('../ops/ccoDriveAssetInternalization');
 const {
   diagnoseGhostVisibleAssets,
+  diagnoseGhostVisibleAssetPage,
   summarizeChecksumInventoryCoverage,
 } = require('../ops/ccoGhostVisibleAssetDiagnosis');
 const { repairGhostVisibleAssets } = require('../ops/ccoGhostVisibleAssetRepair');
@@ -2162,6 +2163,53 @@ function createCcoPatientMasterRouter({
           failed: Boolean(state.lastError),
           state,
         });
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/assets/diagnose-ghost-visible/page',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        const storage = stores.secureStorage || stores.storage || null;
+        if (!assetStore) {
+          return res.status(503).json({ error: 'Asset store saknas på servern.' });
+        }
+        const report = await diagnoseGhostVisibleAssetPage({
+          assetStore,
+          storage,
+          tenantId: actor.tenantId,
+          importRunId: normalizeText(req.body?.importRunId) || null,
+          patientIds: Array.isArray(req.body?.patientIds)
+            ? req.body.patientIds.map(normalizeText).filter(Boolean)
+            : null,
+          offset: Math.max(0, Number(req.body?.offset) || 0),
+          pageSize: Math.max(1, Math.min(Number(req.body?.pageSize) || 500, 2000)),
+          sampleSize: clampPreviewLimit(req.body?.sampleSize, 25),
+          maskSamples: req.body?.includeReviewDetails !== true,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.assets_diagnose_ghost_visible_page',
+          outcome: 'success',
+          targetType: 'cco_patient_assets',
+          targetId: String(report.pagination.offset),
+          metadata: {
+            zeroWrites: true,
+            scanned: report.pagination.scanned,
+            ghostRenderCandidates: report.stats.ghostRenderCandidates,
+            hasMore: report.pagination.hasMore,
+          },
+        });
+        return res.json(report);
       })
   );
 
