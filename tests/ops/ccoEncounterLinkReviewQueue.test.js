@@ -60,3 +60,23 @@ test('buildEncounterLinkReviewQueue masks identifying details by default', () =>
   assert.equal(report.groups[0].assets[0].fileName, null);
   assert.equal(report.groups[0].assets[0].path, null);
 });
+
+test('buildEncounterLinkReviewQueue excludes media already owned by a canonical patient id', () => {
+  const report = buildEncounterLinkReviewQueue({
+    patients: [{ id: 'patient-direct', displayName: 'Direct Patient' }],
+    assets: [
+      {
+        id: 'asset-direct',
+        patientId: 'patient-direct',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        category: 'photo_during',
+        mimeType: 'image/jpeg',
+      },
+    ],
+  });
+
+  assert.equal(report.stats.missingEncounterId, 1);
+  assert.equal(report.stats.reviewGroups, 0);
+  assert.equal(report.stats.reviewAssets, 0);
+  assert.deepEqual(report.groups, []);
+});
