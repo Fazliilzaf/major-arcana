@@ -196,6 +196,51 @@ test('resolvePatientAssetIds only uses name fallback when the exact match is uni
   assert.deepEqual(ids, ['patient-uuid-3']);
 });
 
+test('resolvePatientAssetIds includes multiple path aliases when canonical name is population-unique', async () => {
+  const patient = { id: 'patient-khalid', displayName: 'Khalid Ahmed Mohamed' };
+  const ids = await resolvePatientAssetIds({
+    patientId: patient.id,
+    patient,
+    patientPopulation: [patient, { id: 'patient-other', displayName: 'Other Person' }],
+    tenantId: 'hair-tp-clinic',
+    customerStore: makeCustomerStore({}),
+    assetStore: makeAssetStore([
+      {
+        patientId: 'cliento-khalid-a',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        originalDrivePath: 'Mars 2026/Khalid Ahmed Mohamed/IMG_001.jpg',
+      },
+      {
+        patientId: 'cliento-khalid-b',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        originalDrivePath: 'Mars 2026/Khalid Ahmed Mohamed/IMG_002.jpg',
+      },
+    ]),
+  });
+
+  assert.deepEqual(ids, ['patient-khalid', 'cliento-khalid-a', 'cliento-khalid-b']);
+});
+
+test('resolvePatientAssetIds rejects path aliases when canonical name is duplicated', async () => {
+  const patient = { id: 'patient-sam-1', displayName: 'Sam Same' };
+  const ids = await resolvePatientAssetIds({
+    patientId: patient.id,
+    patient,
+    patientPopulation: [patient, { id: 'patient-sam-2', displayName: 'Sam Same' }],
+    tenantId: 'hair-tp-clinic',
+    customerStore: makeCustomerStore({}),
+    assetStore: makeAssetStore([
+      {
+        patientId: 'cliento-sam',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        originalDrivePath: 'Mars 2026/Sam Same/IMG_001.jpg',
+      },
+    ]),
+  });
+
+  assert.deepEqual(ids, ['patient-sam-1']);
+});
+
 test('assetToPatientFile exposes thumbnails only for patient-visible verified assets', () => {
   const visible = assetToPatientFile({
     id: 'asset-1',
