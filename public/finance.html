@@ -2909,7 +2909,9 @@
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
-                body: '{}',
+                // force: ägaren har uttryckligen bett om omläsning — kör även
+                // poster som autopiloten redan försökt på denna version
+                body: JSON.stringify({ force: true, limit: 20 }),
               });
               const d = await r.json().catch(() => ({}));
               if (!r.ok) alert('Om-extraktion: ' + (d.error || r.status));

@@ -473,6 +473,16 @@ function createCmStore({ filePath }) {
       .slice(0, Math.max(1, limit));
   }
 
+  // ORD-72b: minns att om-extraktion försökts på denna processorversion —
+  // schemakörningar hoppar över redan-försökta (force=true kör om ändå).
+  function markReextractAttempt(recordId, processorVersion) {
+    const record = getExpenseRecordById(recordId);
+    if (!record) return null;
+    record.reextractAttemptVersion = Number(processorVersion) || 0;
+    record.reextractAttemptAt = nowIso();
+    return record;
+  }
+
   // ORD-72: fyll ENDAST tomma fält ur en ny extraktion — befintliga värden
   // (inkl. ägar-redigerade) skrivs aldrig över. Flaggor räknas om.
   function applyReextraction(recordId, extraction = {}) {
@@ -630,6 +640,7 @@ function createCmStore({ filePath }) {
     getRawItemById,
     listUnprocessedRawItems,
     listRecordsMissingAmount,
+    markReextractAttempt,
     applyReextraction,
     getInbox,
     getNeedsReview,

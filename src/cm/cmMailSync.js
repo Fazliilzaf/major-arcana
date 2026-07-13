@@ -520,7 +520,7 @@ function createCmMailSync({
   // (rawBodyText + ev. bilagor) — fyller endast tomma fält, skriver aldrig
   // över befintliga värden. Redan promotade utgifter i CFO backfillas om
   // deras amountSek fortfarande är tomt.
-  async function reextractMissingAmounts({ limit = 10 } = {}) {
+  async function reextractMissingAmounts({ limit = 10, force = false } = {}) {
     const results = {
       ok: true,
       candidates: 0,
@@ -528,11 +528,24 @@ function createCmMailSync({
       updatedRecords: 0,
       updatedCfo: 0,
       skippedNoSource: 0,
+      skippedAlreadyTried: 0,
       errors: [],
       syncedAt: nowIso(),
     };
     const budget = { remaining: Math.min(maxExtractPerSync, limit) };
-    const records = cmStore.listRecordsMissingAmount({ limit });
+    // ORD-72b: om-försök inte samma record varje schemakörning — attempt-
+    // markören på recordet minns processorversionen. force=true (UI-knappen)
+    // kör om ändå. Utan detta bränns AI-budgeten på samma poster för evigt
+    // och kön bakom dem nås aldrig.
+    const records = cmStore
+      .listRecordsMissingAmount({ limit: limit * 4 })
+      .filter((r) => force || r.reextractAttemptVersion !== CM_PROCESSOR_VERSION)
+      .slice(0, Math.max(1, limit));
+    results.skippedAlreadyTried = force
+      ? 0
+      : cmStore
+          .listRecordsMissingAmount({ limit: limit * 4 })
+          .filter((r) => r.reextractAttemptVersion === CM_PROCESSOR_VERSION).length;
     results.candidates = records.length;
 
     for (const record of records) {
@@ -547,6 +560,9 @@ function createCmMailSync({
       }
       if (!rawItem || (!normalizeText(rawItem.rawBodyText) && !rawItem.hasAttachments)) {
         results.skippedNoSource++;
+        // Inget källmail → kan aldrig lyckas på denna version; markera så
+        // posten inte blockerar kön varje körning.
+        cmStore.markReextractAttempt?.(record.id, CM_PROCESSOR_VERSION);
         continue;
       }
 
@@ -568,6 +584,7 @@ function createCmMailSync({
         }
         budget.remaining -= 1;
         results.attempted++;
+        cmStore.markReextractAttempt?.(record.id, CM_PROCESSOR_VERSION);
         const ex = await runExtraction({
           subject: rawItem.subject,
           bodyText: rawItem.rawBodyText,
