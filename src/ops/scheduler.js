@@ -326,6 +326,9 @@ function createScheduler({
   releaseGovernanceStore = null,
   postOpReviewStore = null,
   postOpAutoTriggerDeps = null,
+  // ORD-69: lazy getter — CM-storen monteras EFTER schedulern i server.js,
+  // därför hämtas deps vid körning i stället för vid konstruktion.
+  getCmMailSyncDeps = null,
   bookingStore = null,
   marketingCampaignDraftsStore = null,
   marketingContentAssetsStore = null,
@@ -4051,6 +4054,33 @@ function createScheduler({
     });
   }
 
+  // ORD-69 · CM kvitto@-intag: delta-sync (nya mail) + reprocess (mail utan
+  // kandidat, t.ex. misslyckad extraktion). AI-budgeten per körning gäller
+  // (CM_MAX_EXTRACT_PER_SYNC, default 10) — max ~480 extraktioner/dygn vid
+  // 30-minutersintervall, i praktiken långt färre (bara nya/oprocessade).
+  // Beslut förblir mänskliga: jobbet skapar KANDIDATER, aldrig godkännanden.
+  async function runCmMailSync() {
+    const deps = typeof getCmMailSyncDeps === 'function' ? getCmMailSyncDeps() : null;
+    if (!deps?.cmStore || !deps?.graphReadConnector) {
+      return { status: 'skipped', reason: 'cm_deps_missing' };
+    }
+    const { createCmMailSync } = require('../cm/cmMailSync');
+    const sync = createCmMailSync(deps);
+    const mailbox = process.env.CM_MAIL_ACCOUNT || 'kvitto@hairtpclinic.com';
+    const syncResult = await sync.syncAll(mailbox);
+    const reprocessResult = await sync.reprocessUnprocessed({ limit: 10 });
+    return {
+      status: 'ok',
+      mailbox,
+      imported: syncResult.totalImported,
+      newRecords: (syncResult.totalRecords || 0) + (reprocessResult.records || 0),
+      reprocessed: reprocessResult.reprocessed,
+      errors:
+        (syncResult.folders || []).reduce((s, f) => s + (f.errors?.length || 0), 0) +
+        (reprocessResult.errors?.length || 0),
+    };
+  }
+
   const jobDefinitions = [
     {
       id: 'coo_daily_brief',
@@ -4223,6 +4253,12 @@ function createScheduler({
           ? toHoursMs(config.schedulerCcoCustomerRemindersIntervalHours, 6)
           : 0,
       run: runCcoCustomerReminders,
+    },
+    {
+      id: 'cm_mail_sync',
+      name: 'CM kvitto@-intag: delta-sync + reprocess (ORD-69)',
+      intervalMs: toMinutesMs(config.schedulerCmMailSyncIntervalMinutes, 30),
+      run: runCmMailSync,
     },
     {
       id: 'restore_drill_preview',

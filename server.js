@@ -53,6 +53,9 @@ app.use(express.json({ limit: '10mb' }));
 
 let ccoRequireAuthMiddleware = null;
 let sharedPatientAssetStorePromise = null;
+// ORD-69: CM-storen monteras efter schedulern — deps sätts vid CM-mount och
+// hämtas lazy av cm_mail_sync-jobbet (samma mönster som ccoRequireAuthMiddleware).
+let cmMailSyncSchedulerDeps = null;
 let sharedAssetImportRunStorePromise = null;
 let sharedAssetReviewQueueStorePromise = null;
 let sharedSecureStoragePromise = null;
@@ -12918,6 +12921,8 @@ process.once('SIGTERM', () => {
   const scheduler = createScheduler({
     config: schedulerConfig,
     authStore,
+    // ORD-69: lazy — se cmMailSyncSchedulerDeps-holdern (sätts vid CM-mount)
+    getCmMailSyncDeps: () => cmMailSyncSchedulerDeps,
     templateStore,
     capabilityAnalysisStore,
     runtimeMetricsStore,
@@ -14068,6 +14073,12 @@ process.once('SIGTERM', () => {
       secureStorage: app.locals.ccoSecureStorage || null,
     })
   );
+  // ORD-69: tänd schemalagt kvitto@-intag (cm_mail_sync-jobbet hämtar lazy)
+  cmMailSyncSchedulerDeps = {
+    cmStore,
+    graphReadConnector: graphReadConnector || null,
+    secureStorage: app.locals.ccoSecureStorage || null,
+  };
 
   // ORD-67 · CF.9: voucher-sync dryRun + gated skarp körning (ägar-GO 2026-07-13)
   app.use(

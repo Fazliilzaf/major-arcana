@@ -1162,6 +1162,11 @@ const config = {
     process.env.ARCANA_SCHEDULER_ALERT_PROBE_INTERVAL_MINUTES,
     15
   ),
+  // ORD-69: CM kvitto@-intag — delta-sync + reprocess. 0 = av.
+  schedulerCmMailSyncIntervalMinutes: asInt(
+    process.env.ARCANA_SCHEDULER_CM_MAIL_SYNC_INTERVAL_MINUTES,
+    30
+  ),
   schedulerIncidentAutoEscalationEnabled: asBool(
     process.env.ARCANA_SCHEDULER_INCIDENT_AUTO_ESCALATION_ENABLED,
     true
