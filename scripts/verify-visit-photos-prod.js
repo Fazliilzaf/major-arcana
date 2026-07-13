@@ -217,9 +217,11 @@ async function runViewport(browser, token, viewport, commit) {
   await ensurePatientOpen(page, PATIENT_ID);
   await waitForDetail(page, PATIENT_ID);
   await dismissTour(page);
-  await page.waitForFunction(() => document.querySelector('[data-v11-rk-besok] .hist-row'), {
-    timeout: 120000,
-  });
+  await page.waitForFunction(
+    () => document.querySelector('[data-v11-rk-besok] .hist-row'),
+    undefined,
+    { timeout: 120000 }
+  );
   await waitForDecodedImages('[data-v11-rk-besok] img[data-patient-file-id]', page);
 
   const v11Shot = path.join(OUT_DIR, `${viewport.name}-v11-besok-${commit}.png`);
