@@ -141,6 +141,12 @@ test('V11 facit-actions A–S återanvänder riktiga profil-, besöks- och navig
   assert.match(ui, /\[data-patient-action\]/);
 });
 
+test('V11 Foton visar stillbilder medan film ligger under respektive besök', () => {
+  assert.match(v11, /photo && photo\.isImage !== false/);
+  assert.match(v11, /v11-rk__visit-video-grid/);
+  assert.match(v11, /<video controls preload="metadata" playsinline data-patient-file-id=/);
+});
+
 test('V12 facitkontroller öppnar befintliga journal-, boknings- och svarsstudioflöden', () => {
   const canon = fs.readFileSync(
     path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js'),

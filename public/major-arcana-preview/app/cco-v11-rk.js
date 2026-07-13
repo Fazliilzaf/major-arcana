@@ -539,7 +539,9 @@
     }
 
     /* M · FOTON */
-    var ph = arr(photos && photos.items ? photos.items : photos);
+    var ph = arr(photos && photos.items ? photos.items : photos).filter(function (photo) {
+      return photo && photo.isImage !== false;
+    });
     if (ph.length) {
       out += secOpen(
         'foto',
