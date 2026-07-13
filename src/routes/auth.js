@@ -397,10 +397,13 @@ function createAuthRouter({
         (membership) => String(membership?.role || '').toUpperCase() === ROLE_OWNER
       );
       const hasAdminRoleMembership = hasAdminMembership(memberships);
+      const configuredOwnerAccountBypassed =
+        Boolean(normalizedBootstrapOwnerEmail) && email === normalizedBootstrapOwnerEmail;
       const ownerMfaBypassed = isOwnerMfaBypassed(req);
       const ownerAdminClientBypassed = hasAdminRoleMembership && isMajorArcanaAdminClient(req);
       const requiresMfa =
         ownerMfaRequired === true &&
+        !configuredOwnerAccountBypassed &&
         !ownerMfaBypassed &&
         !ownerAdminClientBypassed &&
         (hasOwnerMembership ? true : Boolean(user?.mfaRequired));
@@ -429,6 +432,7 @@ function createAuthRouter({
             tenantRequested: tenantId || null,
             setupRequired: Boolean(pendingMfa.setupRequired),
             tenantCount: memberships.length,
+            configuredOwnerAccountBypassed,
             ownerMfaBypassed,
             ownerAdminClientBypassed,
           },

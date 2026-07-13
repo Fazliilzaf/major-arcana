@@ -114,6 +114,61 @@ test('owner login bypasses MFA on configured prelaunch hosts only', async () => 
   });
 });
 
+test('configured bootstrap owner account bypasses MFA on the production host', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-auth-owner-account-bypass-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+
+  await authStore.bootstrapOwner({
+    tenantId: 'tenant-a',
+    email: 'owner@example.com',
+    password: 'secret12345',
+    forcePasswordReset: true,
+    forceMfaReset: true,
+  });
+
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createAuthRouter({
+      authStore,
+      requireAuth: (_req, _res, next) => next(),
+      requireRole: () => (_req, _res, next) => next(),
+      requireTenantScope: () => (_req, _res, next) => next(),
+      ownerMfaRequired: true,
+      bootstrapOwnerEmail: 'OWNER@EXAMPLE.COM',
+      loginSessionRotationScope: 'none',
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-host': 'arcana.hairtpclinic.com',
+      },
+      body: JSON.stringify({
+        email: 'owner@example.com',
+        password: 'secret12345',
+        tenantId: 'tenant-a',
+      }),
+    });
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(typeof payload.token, 'string');
+    assert.equal(payload.requiresMfa, undefined);
+  });
+});
+
 test('owner login skips MFA entirely when owner MFA is disabled in config', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-auth-owner-mfa-disabled-'));
   const authStore = await createAuthStore({
