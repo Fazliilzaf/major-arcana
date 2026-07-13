@@ -62,59 +62,68 @@ async function repairGhostVisibleAssets({
   const repairable = diagnosis.cases.filter(isRepairableCase);
   const results = [];
   const errors = [];
+  const useBatchPersist =
+    !dryRun &&
+    typeof assetStore.beginBatch === 'function' &&
+    typeof assetStore.flushBatch === 'function';
 
-  for (const row of repairable) {
-    if (dryRun) {
-      results.push({
-        action: 'would_repair',
-        patientId: row.patientId,
-        canonicalAssetId: row.canonicalAssetId,
-        duplicateAssetId: row.duplicateAssetId,
-        checksum: row.checksum,
-        siblingStorageKey: row.siblingStorageKey,
-      });
-      continue;
-    }
-
-    try {
-      const updated = await assetStore.reattachGhostVisibleBlobFromSibling(
-        row.canonicalAssetId,
-        row.duplicateAssetId,
-        {
-          storage,
-          actor,
-          reason: importRunId ? `ghost_visible_repair:${importRunId}` : 'ghost_visible_repair',
-        }
-      );
-      results.push({
-        action: 'repaired',
-        patientId: row.patientId,
-        canonicalAssetId: row.canonicalAssetId,
-        duplicateAssetId: row.duplicateAssetId,
-        checksum: updated.checksum,
-        storageKey: updated.storageKey,
-        status: updated.status,
-      });
-    } catch (error) {
-      if (
-        Number(error?.statusCode) === 409 &&
-        /redan verifierad blob/i.test(String(error.message))
-      ) {
+  if (useBatchPersist) assetStore.beginBatch();
+  try {
+    for (const row of repairable) {
+      if (dryRun) {
         results.push({
-          action: 'already_repaired',
+          action: 'would_repair',
           patientId: row.patientId,
           canonicalAssetId: row.canonicalAssetId,
           duplicateAssetId: row.duplicateAssetId,
+          checksum: row.checksum,
+          siblingStorageKey: row.siblingStorageKey,
         });
         continue;
       }
-      errors.push({
-        canonicalAssetId: row.canonicalAssetId,
-        duplicateAssetId: row.duplicateAssetId,
-        code: normalizeText(error?.code) || 'repair_failed',
-        message: error?.message || String(error),
-      });
+
+      try {
+        const updated = await assetStore.reattachGhostVisibleBlobFromSibling(
+          row.canonicalAssetId,
+          row.duplicateAssetId,
+          {
+            storage,
+            actor,
+            reason: importRunId ? `ghost_visible_repair:${importRunId}` : 'ghost_visible_repair',
+          }
+        );
+        results.push({
+          action: 'repaired',
+          patientId: row.patientId,
+          canonicalAssetId: row.canonicalAssetId,
+          duplicateAssetId: row.duplicateAssetId,
+          checksum: updated.checksum,
+          storageKey: updated.storageKey,
+          status: updated.status,
+        });
+      } catch (error) {
+        if (
+          Number(error?.statusCode) === 409 &&
+          /redan verifierad blob/i.test(String(error.message))
+        ) {
+          results.push({
+            action: 'already_repaired',
+            patientId: row.patientId,
+            canonicalAssetId: row.canonicalAssetId,
+            duplicateAssetId: row.duplicateAssetId,
+          });
+          continue;
+        }
+        errors.push({
+          canonicalAssetId: row.canonicalAssetId,
+          duplicateAssetId: row.duplicateAssetId,
+          code: normalizeText(error?.code) || 'repair_failed',
+          message: error?.message || String(error),
+        });
+      }
     }
+  } finally {
+    if (useBatchPersist) await assetStore.flushBatch();
   }
 
   const stats = {
