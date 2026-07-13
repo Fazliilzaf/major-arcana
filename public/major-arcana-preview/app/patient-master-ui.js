@@ -15163,6 +15163,18 @@
       if (!needsStaffLogin()) {
         void loadPatientDetail(startup.patientId);
       }
+    } else if (startup.patientId && isCustomersShellActive()) {
+      // Desktop-djuplänkar ska inte vara beroende av att den globala kundlistan
+      // hinner färdigt först. Starta samma canonical detail-läsning direkt;
+      // inflight-registret deduplicerar om list-bootstrapen når samma patient.
+      runtime.selectedPatientId = startup.patientId;
+      if (!railHasPatientDetailShell()) {
+        renderDetailLoadingSkeleton(startup.patientId);
+      }
+      if (!needsStaffLogin()) {
+        void loadPatientDetail(startup.patientId);
+      }
+      onCustomersViewOpen();
     } else if (isCustomersShellActive()) {
       onCustomersViewOpen();
     } else {
