@@ -7,7 +7,10 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { resolveConversationPatient } = require('../../src/ops/ccoConversationPatientResolver');
+const {
+  resolveConversationPatient,
+  resolveConversationPatients,
+} = require('../../src/ops/ccoConversationPatientResolver');
 
 function storeWith(patients) {
   return {
@@ -113,4 +116,32 @@ test('store saknas → store_unavailable, kraschar inte', async () => {
   const r = await resolveConversationPatient({ email: 'a@b.se' }, {});
   assert.equal(r.status, 'store_unavailable');
   assert.equal(r.patientId, null);
+});
+
+test('batch-resolver läser patient-mastern en gång och behåller ordningen', async () => {
+  let calls = 0;
+  const patientMasterStore = {
+    async listPatients() {
+      calls += 1;
+      return {
+        patients: [
+          { id: 'patient-a', displayName: 'Anna', primaryEmail: 'anna@example.com' },
+          { id: 'patient-b', displayName: 'Bo', primaryEmail: 'bo@example.com' },
+        ],
+      };
+    },
+  };
+  const rows = await resolveConversationPatients(
+    [{ email: 'bo@example.com' }, { email: 'missing@example.com' }, { email: 'anna@example.com' }],
+    { patientMasterStore }
+  );
+  assert.equal(calls, 1);
+  assert.deepEqual(
+    rows.map((row) => row.patientId),
+    ['patient-b', null, 'patient-a']
+  );
+  assert.deepEqual(
+    rows.map((row) => row.status),
+    ['matched', 'unmatched', 'matched']
+  );
 });

@@ -594,6 +594,19 @@ test('konversationer wires the customer context panel to the selected live threa
   assert.match(script, /renderThreadContextPanel\(null\)/);
 });
 
+test('konversationer deep-links only canonical matched patientIds to the customer workspace', () => {
+  const html = readHtml();
+  const script = liveScript(html);
+  assert.match(script, /patientId: normalizeText\(row\.patientId\)/);
+  assert.match(script, /patientMatch:\s*row\.patientMatch/);
+  assert.match(html, /data-action="open-patient-dossier"/);
+  assert.match(script, /status !== 'matched'/);
+  assert.match(script, /view: 'customers'/);
+  assert.match(script, /v11rail: 'on'/);
+  assert.match(script, /v12workspace: 'on'/);
+  assert.doesNotMatch(script, /patientId:\s*normalizeText\(row\.customerId\)/);
+});
+
 test('konversationer live inbox script parses', () => {
   const html = readHtml();
   assert.doesNotThrow(() => new Function(liveScript(html)));

@@ -110,4 +110,35 @@ async function resolveConversationPatient(ref = {}, stores = {}) {
   };
 }
 
-module.exports = { resolveConversationPatient, matchEmailSources, normalizeEmail };
+async function resolveConversationPatients(refs = [], stores = {}) {
+  const { patientMasterStore } = stores;
+  const safeRefs = Array.isArray(refs) ? refs : [];
+  if (typeof patientMasterStore?.listPatients !== 'function') {
+    return safeRefs.map(() => ({
+      patientId: null,
+      displayName: null,
+      matchedBy: null,
+      confidence: 0,
+      status: 'store_unavailable',
+    }));
+  }
+
+  const tenantId = text(safeRefs.find((ref) => text(ref?.tenantId))?.tenantId) || 'hairtpclinic';
+  const result = await patientMasterStore.listPatients({ tenantId, limit: 20000 });
+  const patients = Array.isArray(result?.patients) ? result.patients : [];
+  const snapshotStore = {
+    listPatients: async () => ({ patients, total: patients.length }),
+  };
+  return Promise.all(
+    safeRefs.map((ref) =>
+      resolveConversationPatient({ ...ref, tenantId }, { patientMasterStore: snapshotStore })
+    )
+  );
+}
+
+module.exports = {
+  resolveConversationPatient,
+  resolveConversationPatients,
+  matchEmailSources,
+  normalizeEmail,
+};
