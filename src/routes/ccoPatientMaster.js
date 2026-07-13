@@ -82,6 +82,10 @@ const {
 const {
   repairCanonicalAssetPatientLinks,
 } = require('../ops/ccoCanonicalAssetPatientRepair');
+const {
+  getCanonicalPatientRepairJobState,
+  startCanonicalPatientRepairJob,
+} = require('../ops/ccoCanonicalAssetPatientRepairAsyncJob');
 const { gateMigrationIndexFiles } = require('../ops/ccoPatientMasterMigrationIndexGate');
 const { buildVisitSegments } = require('../ops/ccoPatientVisitSegments');
 const {
@@ -2363,8 +2367,45 @@ function createCcoPatientMasterRouter({
           limit: 20000,
           offset: 0,
         });
+        const assets = assetStore.listItemsForEnrichment(actor.tenantId);
+        if (!dryRun) {
+          const started = startCanonicalPatientRepairJob({
+            assets,
+            patients: asArray(listed?.patients),
+            assetStore,
+            tenantId: actor.tenantId,
+            batchSize: limit,
+            actor: { userId: actor.userId, role: actor.role, tenantId: actor.tenantId },
+            onComplete: async (state) => {
+              await authStore.addAuditEvent({
+                tenantId: actor.tenantId,
+                actorUserId: actor.userId,
+                action: 'cco.patient_master.assets_repair_canonical_patient_links',
+                outcome: 'success',
+                targetType: 'cco_patient_assets',
+                targetId: 'strong_identity_async',
+                metadata: { ...(state.stats || {}), dryRun: false, zeroWrites: false },
+              });
+            },
+          });
+          if (started.already) {
+            return res.status(409).json({
+              ok: false,
+              error: 'canonical_patient_repair_job_running',
+              pollUrl: '/api/v1/cco-patient-master/assets/repair-canonical-patient-links/job',
+              state: started.state,
+            });
+          }
+          return res.status(202).json({
+            ok: true,
+            accepted: true,
+            async: true,
+            pollUrl: '/api/v1/cco-patient-master/assets/repair-canonical-patient-links/job',
+            state: started.state,
+          });
+        }
         const report = await repairCanonicalAssetPatientLinks({
-          assets: assetStore.listItemsForEnrichment(actor.tenantId),
+          assets,
           patients: asArray(listed?.patients),
           assetStore,
           dryRun,
@@ -2382,6 +2423,25 @@ function createCcoPatientMasterRouter({
           metadata: { ...report.stats, dryRun, zeroWrites: report.zeroWrites },
         });
         return res.json({ ok: true, ...report });
+      })
+  );
+
+  router.get(
+    '/cco-patient-master/assets/repair-canonical-patient-links/job',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async () => {
+        const state = getCanonicalPatientRepairJobState();
+        return res.json({
+          ok: true,
+          zeroWrites: true,
+          running: state.running,
+          completed: !state.running && Boolean(state.finishedAt),
+          failed: Boolean(state.lastError),
+          error: state.lastError,
+          state,
+        });
       })
   );
 

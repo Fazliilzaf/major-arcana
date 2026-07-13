@@ -628,6 +628,8 @@ test('assets/repair-canonical-patient-links är owner-gated och kräver stark co
     /repair-canonical-patient-links[\s\S]*?requireRole\(ROLE_OWNER\)[\s\S]*?REPAIR CANONICAL PATIENT LINKS/
   );
   assert.match(source, /repairCanonicalAssetPatientLinks/);
+  assert.match(source, /startCanonicalPatientRepairJob/);
+  assert.match(source, /repair-canonical-patient-links\/job/);
 });
 
 test('assets/repair-encounter-links batchar persist vid skarp repair', () => {
