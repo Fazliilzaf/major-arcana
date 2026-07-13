@@ -5648,7 +5648,10 @@
             v12workspace: 'on',
             patientId,
           });
-          window.open(`/staff?${params.toString()}`, '_blank', 'noopener');
+          // Behall samma flik sa den autentiserade admin-sessionen foljer med.
+          // sessionStorage delas inte med en ny noopener-flik, vilket gjorde att
+          // patientlistan syntes men V11/V12-dossiern fastnade pa "Laddar kund".
+          window.location.assign(`/staff?${params.toString()}`);
         });
       }
       document
