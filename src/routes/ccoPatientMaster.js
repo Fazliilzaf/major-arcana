@@ -86,6 +86,7 @@ const {
   isMediaAsset,
   previewEncounterLinkRepair,
 } = require('../ops/ccoEncounterLinkRepair');
+const { buildEncounterLinkReviewQueue } = require('../ops/ccoEncounterLinkReviewQueue');
 const { hydratePatientHealthProjection } = require('../ops/ccoPatientMasterStore');
 
 function normalizeText(value) {
@@ -2275,6 +2276,45 @@ function createCcoPatientMasterRouter({
           metadata: { zeroWrites: true, ...report.stats },
         });
         return res.json(report);
+      })
+  );
+
+  router.get(
+    '/cco-patient-master/assets/encounter-link-review-queue',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const includeDetails = String(req.query?.includeDetails || '').toLowerCase() === 'true';
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        if (!assetStore?.listItemsForEnrichment) {
+          return res.status(503).json({ error: 'Asset store saknar populationsindex.' });
+        }
+        const listed = await patientMasterStore.listPatients({
+          tenantId: actor.tenantId,
+          limit: 20000,
+          offset: 0,
+        });
+        const report = buildEncounterLinkReviewQueue({
+          assets: assetStore.listItemsForEnrichment(actor.tenantId),
+          patients: asArray(listed?.patients),
+          includeDetails,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.assets_encounter_link_review_queue',
+          outcome: 'success',
+          targetType: 'cco_patient_assets',
+          targetId: 'manual_review',
+          metadata: { ...report.stats, zeroWrites: true, includeDetails },
+        });
+        return res.json({ ok: true, ...report });
       })
   );
 
