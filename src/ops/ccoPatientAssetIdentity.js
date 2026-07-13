@@ -304,6 +304,19 @@ function resolveCanonicalPatientsForAssets({ patients, assets }) {
     }))
     .filter((row) => row.patientId);
   const canonicalPatientIds = new Set(patientRows.map((row) => row.patientId));
+  const patientsByPnrSuffix = new Map();
+  const patientsByExactName = new Map();
+  for (const row of patientRows) {
+    if (row.pnr.length >= 8) {
+      const suffix = row.pnr.slice(-8);
+      if (!patientsByPnrSuffix.has(suffix)) patientsByPnrSuffix.set(suffix, []);
+      patientsByPnrSuffix.get(suffix).push(row);
+    }
+    if (row.name) {
+      if (!patientsByExactName.has(row.name)) patientsByExactName.set(row.name, []);
+      patientsByExactName.get(row.name).push(row);
+    }
+  }
 
   return asArray(assets).map((asset) => {
     const assetPatientId = normalizeText(asset?.patientId);
@@ -328,16 +341,28 @@ function resolveCanonicalPatientsForAssets({ patients, assets }) {
     const haystack = fields.join(' / ');
     const haystackDigits = normalizeDigits(haystack);
     const segments = haystack.split(/[\\/]/).map(normalizeName).filter(Boolean);
-    const pnrMatches = patientRows.filter(
-      (row) => row.pnr.length >= 8 && haystackDigits.includes(row.pnr)
-    );
-    const exactNameMatches = patientRows.filter(
-      (row) => row.name && segments.some((segment) => segment === row.name)
-    );
-    const prefixNameMatches = patientRows.filter(
-      (row) =>
-        row.name && segments.some((segment) => segment.startsWith(`${row.name} `))
-    );
+    const pnrPatientIds = new Set();
+    for (let index = 0; index <= haystackDigits.length - 8; index += 1) {
+      const suffix = haystackDigits.slice(index, index + 8);
+      for (const row of patientsByPnrSuffix.get(suffix) || []) {
+        if (haystackDigits.includes(row.pnr)) pnrPatientIds.add(row.patientId);
+      }
+    }
+    const exactNamePatientIds = new Set();
+    for (const segment of segments) {
+      for (const row of patientsByExactName.get(segment) || []) {
+        exactNamePatientIds.add(row.patientId);
+      }
+    }
+    const pnrMatches = patientRows.filter((row) => pnrPatientIds.has(row.patientId));
+    const exactNameMatches = patientRows.filter((row) => exactNamePatientIds.has(row.patientId));
+    const prefixNameMatches =
+      pnrMatches.length || exactNameMatches.length
+        ? []
+        : patientRows.filter(
+            (row) =>
+              row.name && segments.some((segment) => segment.startsWith(`${row.name} `))
+          );
     const matches = pnrMatches.length
       ? pnrMatches
       : exactNameMatches.length
