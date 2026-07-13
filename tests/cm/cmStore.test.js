@@ -82,6 +82,20 @@ test('markHandedOff sätter handed_off + cfoExpenseId + syns i dashboard', async
   assert.equal(store.getNeedsReview().filter((r) => r.id === record.id).length, 0);
 });
 
+test('ORD-70: dashboard räknar senaste 24h (mail + kandidater)', async () => {
+  const store = createCmStore({ filePath: await tmpStorePath('cm.json') });
+  store.importRawItem({
+    sourceType: 'email',
+    internetMessageId: '<h24-1@test>',
+    subject: 'Kvitto idag',
+    rawBodyText: 'Kvitto 100 kr',
+  });
+  store.createExpenseRecord({ expenseType: 'receipt', supplierName: 'X', confidenceScore: 90 });
+  const dash = store.getDashboard();
+  assert.equal(dash.importedLast24h, 1);
+  assert.equal(dash.recordsLast24h, 1);
+});
+
 test('syncState persisteras och överlever reload', async () => {
   const filePath = await tmpStorePath('cm.json');
   const store = createCmStore({ filePath });

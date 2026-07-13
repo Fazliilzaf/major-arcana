@@ -18,9 +18,18 @@ function createCmRouter({
   const ROLE_OWNER = 'OWNER';
   const ROLE_STAFF = 'STAFF';
 
-  // Dashboard
+  // Dashboard — ORD-70: inkl. auto-intagets senaste körning (statusraden i UI:t)
   router.get('/cm/dashboard', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), (req, res) => {
-    return res.json({ ok: true, ...cmStore.getDashboard() });
+    const mailbox = process.env.CM_MAIL_ACCOUNT || 'kvitto@hairtpclinic.com';
+    const autoSync = cmStore.getSyncState(mailbox, '_scheduler') || null;
+    const folderSync = cmStore.getSyncState(mailbox, 'inbox') || null;
+    return res.json({
+      ok: true,
+      ...cmStore.getDashboard(),
+      autoSync,
+      lastFolderSyncAt: folderSync?.lastSyncAt || null,
+      maxExtractPerSync: Math.max(0, Number(process.env.CM_MAX_EXTRACT_PER_SYNC) || 10),
+    });
   });
 
   // Inbox

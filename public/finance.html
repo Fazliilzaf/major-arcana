@@ -936,7 +936,9 @@
             <button class="btn" data-action="cm-refresh">↻ Uppdatera</button>
           </div>
         </h2>
-        <div class="kpis" id="cm-kpis" style="margin-bottom: 10px"></div>
+        <div class="kpis" id="cm-kpis" style="margin-bottom: 6px"></div>
+        <!-- ORD-70: auto-intagets statusrad — vad autopiloten gjort och när -->
+        <div class="receipt-meta" id="cm-autostatus" style="margin: 0 4px 10px"></div>
         <div class="receipts-list" id="cm-list"><div class="empty">Hämtar…</div></div>
       </div>
 
@@ -2709,6 +2711,47 @@
                   '</div></div>'
               )
               .join('');
+            // ORD-70: auto-intagets statusrad — vad, hur mycket, när, nästa gång
+            const statusEl = document.getElementById('cm-autostatus');
+            if (statusEl) {
+              const auto = dash.autoSync;
+              const fmtT = (d) =>
+                d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+              const period =
+                'Senaste 24h: <strong>' +
+                (dash.importedLast24h || 0) +
+                ' mail → ' +
+                (dash.recordsLast24h || 0) +
+                ' kandidater</strong>';
+              if (auto && auto.lastRunAt) {
+                const t = new Date(auto.lastRunAt);
+                const next = new Date(t.getTime() + (auto.intervalMinutes || 30) * 60000);
+                statusEl.innerHTML =
+                  '🤖 <strong>Auto-intag ' +
+                  ((auto.errors || 0) > 0 ? 'körde med fel' : 'aktivt') +
+                  ':</strong> senaste körning ' +
+                  fmtT(t) +
+                  ' — ' +
+                  (auto.imported || 0) +
+                  ' nya mail · ' +
+                  (auto.reprocessed || 0) +
+                  ' omlästa · ' +
+                  (auto.newRecords || 0) +
+                  ' nya kandidater · ' +
+                  (auto.errors || 0) +
+                  ' fel &nbsp;·&nbsp; nästa ca ' +
+                  fmtT(next) +
+                  ' (var ' +
+                  (auto.intervalMinutes || 30) +
+                  ':e min, AI-tak ' +
+                  (dash.maxExtractPerSync != null ? dash.maxExtractPerSync : 10) +
+                  '/körning) &nbsp;·&nbsp; ' +
+                  period;
+              } else {
+                statusEl.innerHTML =
+                  '🤖 Auto-intag: väntar på första schemalagda körningen (var 30:e min). ' + period;
+              }
+            }
             const seen = new Set();
             const rows = [];
             for (const r of review.concat(inbox)) {
