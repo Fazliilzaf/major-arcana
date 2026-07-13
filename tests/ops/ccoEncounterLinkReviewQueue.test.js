@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { buildEncounterLinkReviewQueue } = require('../../src/ops/ccoEncounterLinkReviewQueue');
 
-test('buildEncounterLinkReviewQueue groups only unresolved and ambiguous media', () => {
+test('buildEncounterLinkReviewQueue groups all media that still needs encounter review', () => {
   const report = buildEncounterLinkReviewQueue({
     patients: [
       { id: 'patient-sam-1', displayName: 'Sam Same' },
@@ -62,7 +62,7 @@ test('buildEncounterLinkReviewQueue masks identifying details by default', () =>
   assert.equal(report.groups[0].assets[0].path, null);
 });
 
-test('buildEncounterLinkReviewQueue excludes media already owned by a canonical patient id', () => {
+test('buildEncounterLinkReviewQueue exposes canonical media as encounter-only review', () => {
   const report = buildEncounterLinkReviewQueue({
     patients: [{ id: 'patient-direct', displayName: 'Direct Patient' }],
     assets: [
@@ -78,12 +78,14 @@ test('buildEncounterLinkReviewQueue excludes media already owned by a canonical 
 
   assert.equal(report.stats.missingEncounterId, 1);
   assert.equal(report.stats.identityResolved, 1);
-  assert.equal(report.stats.reviewGroups, 0);
-  assert.equal(report.stats.reviewAssets, 0);
-  assert.deepEqual(report.groups, []);
+  assert.equal(report.stats.reviewGroups, 1);
+  assert.equal(report.stats.reviewAssets, 1);
+  assert.equal(report.stats.encounterOnlyAssets, 1);
+  assert.equal(report.groups[0].status, 'AWAITING_MANUAL_ENCOUNTER');
+  assert.deepEqual(report.groups[0].resolutionRequires, ['encounterId']);
 });
 
-test('buildEncounterLinkReviewQueue keeps only unresolved files from a shared alias', () => {
+test('buildEncounterLinkReviewQueue separates resolved and unresolved files from a shared alias', () => {
   const report = buildEncounterLinkReviewQueue({
     patients: [{ id: 'patient-lisa', displayName: 'Lisa Karlsson', personnummer: '020405-7160' }],
     assets: [
@@ -107,6 +109,11 @@ test('buildEncounterLinkReviewQueue keeps only unresolved files from a shared al
 
   assert.equal(report.stats.missingEncounterId, 2);
   assert.equal(report.stats.identityResolved, 1);
-  assert.equal(report.stats.reviewAssets, 1);
-  assert.equal(report.groups[0].assets[0].assetId, 'asset-unresolved');
+  assert.equal(report.stats.reviewAssets, 2);
+  assert.equal(report.stats.encounterOnlyAssets, 1);
+  assert.equal(report.stats.identityAndEncounterAssets, 1);
+  assert.deepEqual(
+    report.groups.flatMap((group) => group.assets.map((asset) => asset.assetId)).sort(),
+    ['asset-resolved', 'asset-unresolved']
+  );
 });
