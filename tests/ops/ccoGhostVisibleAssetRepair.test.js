@@ -133,6 +133,40 @@ test('repairGhostVisibleAssets commit reparerar ghost + sibling kvar', async () 
   }
 });
 
+test('repairGhostVisibleAssets använder en batchpersistens för skarp repair', async () => {
+  const rig = await makeRig();
+  try {
+    await seedGhostPair(rig);
+    let begins = 0;
+    let flushes = 0;
+    const originalBegin = rig.assetStore.beginBatch;
+    const originalFlush = rig.assetStore.flushBatch;
+    rig.assetStore.beginBatch = () => {
+      begins += 1;
+      return originalBegin();
+    };
+    rig.assetStore.flushBatch = async () => {
+      flushes += 1;
+      return originalFlush();
+    };
+
+    const report = await repairGhostVisibleAssets({
+      assetStore: rig.assetStore,
+      storage: rig.storage,
+      tenantId: 'hair_tp',
+      importRunId: 'run-repair-1',
+      dryRun: false,
+      actor: { role: 'OWNER', userId: 'owner-1' },
+    });
+
+    assert.equal(report.stats.repaired, 1);
+    assert.equal(begins, 1);
+    assert.equal(flushes, 1);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
 test('reattachGhostVisibleBlobFromSibling blockerar cross-patient', async () => {
   const rig = await makeRig();
   try {
