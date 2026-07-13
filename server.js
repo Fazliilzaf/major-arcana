@@ -881,6 +881,7 @@ let ccoBookingCaseStore = null;
     // Photo annotations
     app.post(
       '/api/v1/cco-photo-annotations',
+      requireCcoAuthenticated,
       attachRole,
       requireAnyRole(['doctor', 'staff', 'owner']),
       jsonParser,
@@ -945,6 +946,7 @@ let ccoBookingCaseStore = null;
     // Treatment plans
     app.post(
       '/api/v1/cco-treatment-plans',
+      requireCcoAuthenticated,
       attachRole,
       requireAnyRole(['doctor', 'staff', 'owner']),
       jsonParser,

@@ -20,11 +20,12 @@ function nowIso() {
 }
 
 function isRepairableCase(row = {}) {
+  const siblingStatus = normalizeText(row.siblingStatus);
   return (
     row.kind === 'ghost_visible_with_blob_sibling' &&
     normalizeText(row.canonicalAssetId) &&
     normalizeText(row.duplicateAssetId) &&
-    normalizeText(row.siblingStatus) === 'DUPLICATE' &&
+    ['DUPLICATE', 'VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(siblingStatus) &&
     !row.crossPatientSibling
   );
 }
@@ -131,7 +132,7 @@ async function repairGhostVisibleAssets({
     dryRun: Boolean(dryRun),
     zeroWrites: Boolean(dryRun),
     model:
-      'Ghost VISIBLE/VERIFIED utan blob → kopiera storageKey/checksum från blob-sibling (typ DUPLICATE)',
+      'Ghost VISIBLE/VERIFIED utan blob → kopiera storageKey/checksum från verifierad same-patient blob-sibling',
     stats,
     results,
     errors,

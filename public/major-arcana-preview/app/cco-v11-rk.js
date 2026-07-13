@@ -751,11 +751,15 @@
     var title = [vt || txt(seg.label) || 'Besök', txt(seg.timeRange)].filter(Boolean).join(' · ');
     var allImages = arr(seg.images);
     var imgs = allImages.slice(0, 3);
+    var allVideos = arr(seg.videos);
+    var videos = allVideos.slice(0, 1);
     var allDocs = arr(seg.documents);
     var docs = allDocs.slice(0, 3);
     var counts = [];
     if (allImages.length)
       counts.push(allImages.length + (allImages.length === 1 ? ' foto' : ' foton'));
+    if (allVideos.length)
+      counts.push(allVideos.length + (allVideos.length === 1 ? ' film' : ' filmer'));
     if (allDocs.length) counts.push(allDocs.length + ' dokument');
     var conf = txt(seg.confidence);
     var badge =
@@ -841,9 +845,29 @@
           : '<div class="file-row">' + inner + '</div>';
       })
       .join('');
+    var videoGrid = videos.length
+      ? '<div class="v11-rk__visit-video-grid">' +
+        videos
+          .map(function (video) {
+            var assetId = txt(video.assetId || video.fileId || video.id);
+            if (!assetId) return '';
+            return (
+              '<div class="v11-rk__visit-video">' +
+              '<video controls preload="metadata" playsinline data-patient-file-id="' +
+              esc(assetId) +
+              '" aria-label="' +
+              esc(txt(video.fileName || 'Besoksfilm')) +
+              '"></video>' +
+              '<span class="lbl">Film</span>' +
+              '</div>'
+            );
+          })
+          .join('') +
+        '</div>'
+      : '';
     var more =
       '<button type="button" class="sec-link v11-rk__visit-open" data-v9-section-link="foto">Öppna hela besöket</button>';
-    return head + reasonLine + photoGrid + docRows + more;
+    return head + reasonLine + photoGrid + videoGrid + docRows + more;
   }
 
   function hydrateBesok(mount) {

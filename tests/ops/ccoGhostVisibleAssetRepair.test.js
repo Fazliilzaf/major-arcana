@@ -177,7 +177,7 @@ test('reattachGhostVisibleBlobFromSibling blockerar cross-patient', async () => 
   }
 });
 
-test('isRepairableCase kräver DUPLICATE-sibling', () => {
+test('isRepairableCase accepterar verifierad same-patient blob-sibling', () => {
   assert.equal(
     isRepairableCase({
       kind: 'ghost_visible_with_blob_sibling',
@@ -196,11 +196,11 @@ test('isRepairableCase kräver DUPLICATE-sibling', () => {
       siblingStatus: 'VISIBLE_ON_PATIENT_CARD',
       crossPatientSibling: false,
     }),
-    false
+    true
   );
 });
 
-test('reattachGhostVisibleBlobFromSibling blockerar icke-DUPLICATE sibling', async () => {
+test('reattachGhostVisibleBlobFromSibling accepterar verifierad VISIBLE sibling', async () => {
   const rig = await makeRig();
   try {
     const body = Buffer.from('%PDF-non-duplicate');
@@ -232,13 +232,13 @@ test('reattachGhostVisibleBlobFromSibling blockerar icke-DUPLICATE sibling', asy
       status: 'VERIFIED_IN_CCO',
     });
 
-    await assert.rejects(
-      () =>
-        rig.assetStore.reattachGhostVisibleBlobFromSibling(canonical.id, sibling.id, {
-          storage: rig.storage,
-        }),
-      (err) => err.statusCode === 409 && /DUPLICATE-sibling/.test(err.message)
+    const updated = await rig.assetStore.reattachGhostVisibleBlobFromSibling(
+      canonical.id,
+      sibling.id,
+      { storage: rig.storage }
     );
+    assert.equal(updated.storageKey, sibling.storageKey);
+    assert.equal(await blobExistsOnStorage(updated, rig.storage), true);
   } finally {
     await fs.rm(rig.tmp, { recursive: true, force: true });
   }
