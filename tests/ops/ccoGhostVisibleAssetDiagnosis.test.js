@@ -10,10 +10,41 @@ const { createCcoPatientAssetStore } = require('../../src/ops/ccoPatientAssetSto
 const { createLocalProvider } = require('../../src/ops/ccoSecureStorageProvider');
 const {
   diagnoseGhostVisibleAssets,
+  diagnoseGhostVisibleAssetPage,
   blobExistsOnStorage,
   summarizeChecksumInventoryCoverage,
   buildBlobExistenceCache,
 } = require('../../src/ops/ccoGhostVisibleAssetDiagnosis');
+
+test('diagnoseGhostVisibleAssetPage scans only requested render-candidate page', async () => {
+  const existsCalls = [];
+  const items = Array.from({ length: 6 }, (_, index) => ({
+    id: `asset-${index}`,
+    patientId: 'patient-page',
+    status: 'VISIBLE_ON_PATIENT_CARD',
+    storageKey: `blob-${index}`,
+    checksum: `checksum-${index}`,
+    fileSize: 10,
+  }));
+  const report = await diagnoseGhostVisibleAssetPage({
+    assetStore: { listItemsForEnrichment: () => items },
+    storage: {
+      async exists(key) {
+        existsCalls.push(key);
+        return false;
+      },
+    },
+    offset: 2,
+    pageSize: 2,
+    maskSamples: false,
+  });
+
+  assert.deepEqual(existsCalls.sort(), ['blob-2', 'blob-3']);
+  assert.equal(report.pagination.scanned, 2);
+  assert.equal(report.pagination.totalRenderCandidates, 6);
+  assert.equal(report.pagination.nextOffset, 4);
+  assert.equal(report.stats.ghostRenderCandidates, 2);
+});
 
 test('buildBlobExistenceCache deduplicerar storageKey och begränsar parallellismen', async () => {
   let active = 0;

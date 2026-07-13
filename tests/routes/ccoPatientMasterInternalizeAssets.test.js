@@ -918,6 +918,30 @@ test('assets/diagnose-ghost-visible async returnerar 202 och kan pollas', async 
   }
 });
 
+test('assets/diagnose-ghost-visible/page är paginerad och read-only', async () => {
+  const fixture = await makeFixture();
+  try {
+    await withServer(fixture.app, async (base) => {
+      const response = await fetch(
+        `${base}/api/v1/cco-patient-master/assets/diagnose-ghost-visible/page`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ offset: 0, pageSize: 25 }),
+        }
+      );
+      const body = await response.json();
+      assert.equal(response.status, 200);
+      assert.equal(body.zeroWrites, true);
+      assert.equal(body.pagination.offset, 0);
+      assert.equal(body.pagination.pageSize, 25);
+      assert.equal(body.pagination.hasMore, false);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
 async function seedRouteGhostPair(fixture, importRunId = 'run-route-repair') {
   const body = Buffer.from('%PDF-route-repair');
   const put = await fixture.storage.putObject({

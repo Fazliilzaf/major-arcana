@@ -275,6 +275,160 @@ async function diagnoseGhostVisibleAssets({
   };
 }
 
+async function diagnoseGhostVisibleAssetPage({
+  assetStore = null,
+  storage = null,
+  tenantId = null,
+  importRunId = null,
+  patientIds = null,
+  offset = 0,
+  pageSize = 500,
+  sampleSize = 25,
+  maskSamples = true,
+  storageConcurrency = 16,
+} = {}) {
+  if (!assetStore || typeof assetStore.listItemsForEnrichment !== 'function') {
+    throw new Error('assetStore.listItemsForEnrichment krävs.');
+  }
+  const items = assetStore.listItemsForEnrichment(tenantId);
+  const patientFilter = asArray(patientIds).map(normalizeText).filter(Boolean);
+  const patientSet = patientFilter.length ? new Set(patientFilter) : null;
+  const renderCandidates = items.filter(
+    (asset) =>
+      isBundleRenderCandidate(asset) &&
+      (!patientSet || patientSet.has(normalizeText(asset.patientId)))
+  );
+  const safeOffset = Math.max(0, Number(offset) || 0);
+  const safePageSize = Math.max(1, Math.min(Number(pageSize) || 500, 2000));
+  const targets = renderCandidates.slice(safeOffset, safeOffset + safePageSize);
+
+  const byChecksum = new Map();
+  const bySignature = new Map();
+  for (const asset of items) {
+    const checksum = normalizeText(asset.checksum);
+    if (checksum) {
+      if (!byChecksum.has(checksum)) byChecksum.set(checksum, []);
+      byChecksum.get(checksum).push(asset);
+    }
+    const signature = [
+      normalizeText(asset.patientId),
+      Number(asset.fileSize) || 0,
+      normalizeText(asset.documentDate),
+    ].join('|');
+    if (!bySignature.has(signature)) bySignature.set(signature, []);
+    bySignature.get(signature).push(asset);
+  }
+
+  const targetCache = await buildBlobExistenceCache(
+    targets,
+    storage,
+    storageConcurrency
+  );
+  const ghosts = targets.filter((asset) => !blobExistsFromCache(asset, targetCache));
+  const siblingCandidates = [];
+  for (const ghost of ghosts) {
+    const checksum = normalizeText(ghost.checksum);
+    const signature = [
+      normalizeText(ghost.patientId),
+      Number(ghost.fileSize) || 0,
+      normalizeText(ghost.documentDate),
+    ].join('|');
+    siblingCandidates.push(
+      ...(checksum ? byChecksum.get(checksum) || [] : []).filter(
+        (candidate) => normalizeText(candidate.id) !== normalizeText(ghost.id)
+      )
+    );
+    if (!checksum && hasBinaryMetadata(ghost)) {
+      siblingCandidates.push(
+        ...(bySignature.get(signature) || []).filter(
+          (candidate) => normalizeText(candidate.id) !== normalizeText(ghost.id)
+        )
+      );
+    }
+  }
+  const siblingCache = await buildBlobExistenceCache(
+    siblingCandidates,
+    storage,
+    storageConcurrency
+  );
+  const runFilter = normalizeText(importRunId) || null;
+  const cases = [];
+  for (const asset of ghosts) {
+    const checksum = normalizeText(asset.checksum);
+    const signature = [
+      normalizeText(asset.patientId),
+      Number(asset.fileSize) || 0,
+      normalizeText(asset.documentDate),
+    ].join('|');
+    const candidates = checksum
+      ? byChecksum.get(checksum) || []
+      : bySignature.get(signature) || [];
+    const verified = candidates.filter((candidate) =>
+      blobExistsFromCache(candidate, siblingCache)
+    );
+    const sibling = pickBlobSibling(verified, asset);
+    if (
+      runFilter &&
+      normalizeText(sibling?.importRunId) !== runFilter &&
+      normalizeText(asset.importRunId) !== runFilter
+    ) {
+      continue;
+    }
+    cases.push({
+      kind: sibling ? 'ghost_visible_with_blob_sibling' : 'ghost_visible_no_blob_sibling',
+      patientId: asset.patientId,
+      canonicalAssetId: asset.id,
+      canonicalStatus: asset.status,
+      duplicateAssetId: sibling?.id || null,
+      siblingStatus: sibling?.status || null,
+      siblingImportRunId: sibling?.importRunId || null,
+      checksum: checksum || normalizeText(sibling?.checksum) || null,
+      canonicalStorageKey: normalizeText(asset.storageKey) || null,
+      siblingStorageKey: normalizeText(sibling?.storageKey) || null,
+      originalDriveFileId:
+        normalizeText(asset.originalDriveFileId) ||
+        normalizeText(sibling?.originalDriveFileId) ||
+        null,
+      canonicalFileName: normalizeText(asset.originalFileName) || null,
+      category: normalizeText(asset.category) || null,
+      documentDate: normalizeText(asset.documentDate) || null,
+      sourceSystem: normalizeText(asset.sourceSystem) || null,
+      bundlePointsToCanonical: true,
+      bundleDownloadWould404: true,
+      siblingDownloadLikely200: Boolean(sibling),
+      crossPatientSibling:
+        Boolean(sibling) && normalizeText(sibling.patientId) !== normalizeText(asset.patientId),
+    });
+  }
+  const nextOffset = safeOffset + targets.length;
+  const samples = cases.slice(0, Math.max(0, Number(sampleSize) || 25));
+  return {
+    generatedAt: nowIso(),
+    dryRun: true,
+    zeroWrites: true,
+    pagination: {
+      offset: safeOffset,
+      pageSize: safePageSize,
+      scanned: targets.length,
+      totalRenderCandidates: renderCandidates.length,
+      nextOffset: nextOffset < renderCandidates.length ? nextOffset : null,
+      hasMore: nextOffset < renderCandidates.length,
+    },
+    stats: {
+      scannedAssets: targets.length,
+      ghostRenderCandidates: cases.length,
+      withBlobSibling: cases.filter((row) => row.kind === 'ghost_visible_with_blob_sibling')
+        .length,
+      withoutBlobSibling: cases.filter((row) => row.kind === 'ghost_visible_no_blob_sibling')
+        .length,
+      crossPatientSibling: cases.filter((row) => row.crossPatientSibling).length,
+      importRunIdFilter: runFilter,
+    },
+    samples: maskSamples ? samples.map(maskCase) : samples,
+    cases: maskSamples ? cases.map(maskCase) : cases,
+  };
+}
+
 /**
  * Read-only inventory hint: how many verified assets are indexable by checksum vs driveFileId.
  * Used to plan checksum-aware alreadyInternal (PR C).
@@ -310,6 +464,7 @@ module.exports = {
   buildBlobExistenceCache,
   buildVerifiedBlobIndex,
   diagnoseGhostVisibleAssets,
+  diagnoseGhostVisibleAssetPage,
   summarizeChecksumInventoryCoverage,
   pickBlobSibling,
 };
