@@ -922,6 +922,8 @@
               esc(patientId) +
               '" data-asset-id="' +
               esc(assetId) +
+              '" data-encounter-id="' +
+              esc(txt(p.encounterId)) +
               '" data-photo-src="' +
               esc(openRef) +
               '" data-photo-name="' +
@@ -930,6 +932,8 @@
               esc(txt(p.zone || p.phase)) +
               '" data-photo-date="' +
               esc(date) +
+              '" data-photo-capture="' +
+              esc(txt(p.capturedAt || p.captureDate)) +
               '"'
             : '') +
           '>' +
