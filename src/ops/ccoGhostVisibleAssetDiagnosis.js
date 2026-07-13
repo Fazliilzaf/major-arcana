@@ -40,6 +40,50 @@ async function blobExistsOnStorage(asset = {}, storage = null) {
   }
 }
 
+async function mapWithConcurrency(items, concurrency, worker) {
+  const rows = asArray(items);
+  const results = new Array(rows.length);
+  let cursor = 0;
+  const width = Math.max(1, Math.min(Number(concurrency) || 1, rows.length || 1));
+  await Promise.all(
+    Array.from({ length: width }, async () => {
+      while (cursor < rows.length) {
+        const index = cursor;
+        cursor += 1;
+        results[index] = await worker(rows[index], index);
+      }
+    })
+  );
+  return results;
+}
+
+async function buildBlobExistenceCache(items = [], storage = null, concurrency = 16) {
+  const keys = [
+    ...new Set(
+      asArray(items)
+        .filter(hasBinaryMetadata)
+        .map((asset) => normalizeText(asset.storageKey))
+        .filter(Boolean)
+    ),
+  ];
+  if (!storage || typeof storage.exists !== 'function') {
+    return new Map(keys.map((key) => [key, true]));
+  }
+  const checks = await mapWithConcurrency(keys, concurrency, async (key) => {
+    try {
+      return [key, Boolean(await storage.exists(key))];
+    } catch {
+      return [key, false];
+    }
+  });
+  return new Map(checks);
+}
+
+function blobExistsFromCache(asset = {}, cache = new Map()) {
+  if (!hasBinaryMetadata(asset)) return false;
+  return cache.get(normalizeText(asset.storageKey)) === true;
+}
+
 function isBundleRenderCandidate(asset = {}) {
   return RENDER_STATUSES.has(normalizeText(asset.status));
 }
@@ -77,13 +121,13 @@ function pickBlobSibling(candidates = [], ghost = {}) {
   return best.candidate;
 }
 
-async function buildVerifiedBlobIndex(items = [], storage = null) {
+function buildVerifiedBlobIndex(items = [], blobCache = new Map()) {
   const byChecksum = new Map();
   const byDriveFileId = new Map();
   let verifiedBlobCount = 0;
 
   for (const asset of asArray(items)) {
-    if (!(await blobExistsOnStorage(asset, storage))) continue;
+    if (!blobExistsFromCache(asset, blobCache)) continue;
     verifiedBlobCount += 1;
     const checksum = normalizeText(asset.checksum);
     if (checksum) {
@@ -133,13 +177,15 @@ async function diagnoseGhostVisibleAssets({
   limit = 500,
   sampleSize = 25,
   maskSamples = true,
+  storageConcurrency = 16,
 } = {}) {
   if (!assetStore || typeof assetStore.listItemsForEnrichment !== 'function') {
     throw new Error('assetStore.listItemsForEnrichment krävs.');
   }
 
   const items = assetStore.listItemsForEnrichment(tenantId);
-  const blobIndex = await buildVerifiedBlobIndex(items, storage);
+  const blobCache = await buildBlobExistenceCache(items, storage, storageConcurrency);
+  const blobIndex = buildVerifiedBlobIndex(items, blobCache);
   const patientFilter = asArray(patientIds).map(normalizeText).filter(Boolean);
   const patientSet = patientFilter.length ? new Set(patientFilter) : null;
   const runFilter = normalizeText(importRunId) || null;
@@ -148,7 +194,7 @@ async function diagnoseGhostVisibleAssets({
   for (const asset of items) {
     if (!isBundleRenderCandidate(asset)) continue;
     if (patientSet && !patientSet.has(normalizeText(asset.patientId))) continue;
-    if (await blobExistsOnStorage(asset, storage)) continue;
+    if (blobExistsFromCache(asset, blobCache)) continue;
 
     const checksum = normalizeText(asset.checksum);
     let siblings = checksum ? blobIndex.byChecksum.get(checksum) || [] : [];
@@ -242,11 +288,12 @@ async function summarizeChecksumInventoryCoverage({
     throw new Error('assetStore.listItemsForEnrichment krävs.');
   }
   const items = assetStore.listItemsForEnrichment(tenantId);
-  const blobIndex = await buildVerifiedBlobIndex(items, storage);
+  const blobCache = await buildBlobExistenceCache(items, storage);
+  const blobIndex = buildVerifiedBlobIndex(items, blobCache);
   let renderWithoutBlob = 0;
   for (const asset of items) {
     if (!isBundleRenderCandidate(asset)) continue;
-    if (!(await blobExistsOnStorage(asset, storage))) renderWithoutBlob += 1;
+    if (!blobExistsFromCache(asset, blobCache)) renderWithoutBlob += 1;
   }
   return {
     verifiedBlobAssets: blobIndex.verifiedBlobCount,
@@ -260,6 +307,7 @@ async function summarizeChecksumInventoryCoverage({
 module.exports = {
   RENDER_STATUSES,
   blobExistsOnStorage,
+  buildBlobExistenceCache,
   buildVerifiedBlobIndex,
   diagnoseGhostVisibleAssets,
   summarizeChecksumInventoryCoverage,

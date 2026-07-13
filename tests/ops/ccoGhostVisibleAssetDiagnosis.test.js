@@ -12,7 +12,36 @@ const {
   diagnoseGhostVisibleAssets,
   blobExistsOnStorage,
   summarizeChecksumInventoryCoverage,
+  buildBlobExistenceCache,
 } = require('../../src/ops/ccoGhostVisibleAssetDiagnosis');
+
+test('buildBlobExistenceCache deduplicerar storageKey och begränsar parallellismen', async () => {
+  let active = 0;
+  let maxActive = 0;
+  let calls = 0;
+  const storage = {
+    async exists() {
+      calls += 1;
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active -= 1;
+      return true;
+    },
+  };
+  const assets = Array.from({ length: 40 }, (_, index) => ({
+    storageKey: `blob-${index % 10}`,
+    checksum: `checksum-${index}`,
+    fileSize: 10,
+  }));
+
+  const cache = await buildBlobExistenceCache(assets, storage, 4);
+
+  assert.equal(cache.size, 10);
+  assert.equal(calls, 10);
+  assert.ok(maxActive <= 4);
+  assert.ok(maxActive > 1);
+});
 
 async function makeRig() {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'ghost-visible-diagnose-'));
