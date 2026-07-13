@@ -11294,6 +11294,7 @@ const {
   createInMemoryRateLimitStore,
   createRedisRateLimitStore,
 } = require('./src/security/rateLimitStores');
+const { shouldBypassOwnerLoginRateLimit } = require('./src/security/ownerLoginRateLimit');
 const { createRedisConnection } = require('./src/infra/redisClient');
 const { createAuthRouter } = require('./src/routes/auth');
 const { createTemplateStore } = require('./src/templates/store');
@@ -12158,11 +12159,23 @@ process.once('SIGTERM', () => {
   // Log brute-force attempts to audit
   const originalLoginRateLimiter = loginRateLimiter;
   const loginRateLimiterWithAudit = async (req, res, next) => {
+    const loginEmail =
+      typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    // Ownern ska alltid kunna nå den riktiga lösenords- och MFA-kontrollen.
+    // Exakt match mot den serverkonfigurerade adressen; övriga konton behåller
+    // brute-force-skyddet och dess 15-minutersfönster.
+    if (
+      shouldBypassOwnerLoginRateLimit({
+        loginEmail,
+        configuredOwnerEmail: config.bootstrapOwnerEmail,
+      })
+    ) {
+      return next();
+    }
     const origJson = res.json.bind(res);
     res.json = function (body) {
       if (res.statusCode === 429) {
-        const email =
-          typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+        const email = loginEmail;
         console.warn(`[auth-rate-limit] BLOCKED login brute-force: ip=${req.ip} email=${email}`);
         if (authStore && typeof authStore.addAuditEvent === 'function') {
           authStore
