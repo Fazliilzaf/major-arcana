@@ -145,3 +145,39 @@ test('batch-resolver läser patient-mastern en gång och behåller ordningen', a
     ['matched', 'unmatched', 'matched']
   );
 });
+
+test('batch-resolver använder smalt e-postuppslag när store stöder det', async () => {
+  let batchCalls = 0;
+  const patientMasterStore = {
+    async findPatientsByEmails({ emails }) {
+      batchCalls += 1;
+      assert.deepEqual(emails, ['bo@example.com', 'anna@example.com']);
+      return {
+        matches: {
+          'bo@example.com': [
+            { id: 'patient-b', displayName: 'Bo', primaryEmail: 'bo@example.com' },
+          ],
+          'anna@example.com': [
+            { id: 'patient-a', displayName: 'Anna', primaryEmail: 'anna@example.com' },
+          ],
+        },
+      };
+    },
+    async listPatients() {
+      assert.fail('full patient list must not be read');
+    },
+  };
+  const rows = await resolveConversationPatients(
+    [{ email: 'bo@example.com' }, { email: 'missing' }, { email: 'anna@example.com' }],
+    { patientMasterStore }
+  );
+  assert.equal(batchCalls, 1);
+  assert.deepEqual(
+    rows.map((row) => row.patientId),
+    ['patient-b', null, 'patient-a']
+  );
+  assert.deepEqual(
+    rows.map((row) => row.status),
+    ['matched', 'no_email', 'matched']
+  );
+});

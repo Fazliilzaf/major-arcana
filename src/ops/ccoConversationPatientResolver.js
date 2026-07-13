@@ -113,7 +113,10 @@ async function resolveConversationPatient(ref = {}, stores = {}) {
 async function resolveConversationPatients(refs = [], stores = {}) {
   const { patientMasterStore } = stores;
   const safeRefs = Array.isArray(refs) ? refs : [];
-  if (typeof patientMasterStore?.listPatients !== 'function') {
+  if (
+    typeof patientMasterStore?.findPatientsByEmails !== 'function' &&
+    typeof patientMasterStore?.listPatients !== 'function'
+  ) {
     return safeRefs.map(() => ({
       patientId: null,
       displayName: null,
@@ -124,6 +127,22 @@ async function resolveConversationPatients(refs = [], stores = {}) {
   }
 
   const tenantId = text(safeRefs.find((ref) => text(ref?.tenantId))?.tenantId) || 'hairtpclinic';
+  if (typeof patientMasterStore.findPatientsByEmails === 'function') {
+    const emails = [...new Set(safeRefs.map((ref) => normalizeEmail(ref?.email)).filter(isEmail))];
+    const result = await patientMasterStore.findPatientsByEmails({ tenantId, emails });
+    const matches = result?.matches && typeof result.matches === 'object' ? result.matches : {};
+    return Promise.all(
+      safeRefs.map((ref) => {
+        const email = normalizeEmail(ref?.email);
+        const patients = Array.isArray(matches[email]) ? matches[email] : [];
+        return resolveConversationPatient(
+          { ...ref, tenantId },
+          { patientMasterStore: { listPatients: async () => ({ patients }) } }
+        );
+      })
+    );
+  }
+
   const result = await patientMasterStore.listPatients({ tenantId, limit: 20000 });
   const patients = Array.isArray(result?.patients) ? result.patients : [];
   const snapshotStore = {
