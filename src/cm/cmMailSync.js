@@ -62,7 +62,8 @@ function buildCombinedText({ subject, bodyText, pdfText }) {
   const safeBody = normalizeText(bodyText);
   const safePdf = normalizeText(pdfText);
   if (safeSubject) parts.push(`Ämne: ${safeSubject}`);
-  if (safeBody) parts.push(`Mailtext:\n${safePdf ? safeBody.slice(0, 2500) : safeBody.slice(0, 6000)}`);
+  if (safeBody)
+    parts.push(`Mailtext:\n${safePdf ? safeBody.slice(0, 2500) : safeBody.slice(0, 6000)}`);
   if (safePdf) parts.push(`Bilaga (PDF-text):\n${safePdf.slice(0, 5000)}`);
   return parts.join('\n\n').slice(0, 8000);
 }
@@ -100,7 +101,9 @@ function createCmMailSync({
   graphReadConnector,
   cmStore,
   secureStorage = null,
+  cfoExpenseStore = null, // ORD-72: backfill av belopp på redan promotade utgifter
   fetchImpl = globalThis.fetch,
+  extractDocumentImpl = extractDocument, // ORD-72: injicerbar för tester
   maxExtractPerSync = Math.max(0, Number(process.env.CM_MAX_EXTRACT_PER_SYNC) || 10),
 } = {}) {
   // Connectorn exponerar ingen list-metod för bilagor — rått Graph-anrop via
@@ -149,7 +152,10 @@ function createCmMailSync({
       key,
       body: content.buffer,
       contentType: content.contentType || att.contentType || 'application/octet-stream',
-      metadata: { source: 'cm-mail-attachment', originalFileName: content.name || att.name || null },
+      metadata: {
+        source: 'cm-mail-attachment',
+        originalFileName: content.name || att.name || null,
+      },
     });
     return {
       storageKey: put?.storageKey || key,
@@ -169,7 +175,8 @@ function createCmMailSync({
     try {
       attachments = await listMessageAttachments(mailboxId, messageId);
     } catch (err) {
-      if (!rawItem.flags.includes('ATTACHMENT_UNREADABLE')) rawItem.flags.push('ATTACHMENT_UNREADABLE');
+      if (!rawItem.flags.includes('ATTACHMENT_UNREADABLE'))
+        rawItem.flags.push('ATTACHMENT_UNREADABLE');
       errors.push({ messageId, error: `attachments-list: ${err.message}` });
       return out;
     }
@@ -188,7 +195,8 @@ function createCmMailSync({
       try {
         stored = await storeAttachment(mailboxId, messageId, att);
       } catch (err) {
-        if (!rawItem.flags.includes('ATTACHMENT_UNREADABLE')) rawItem.flags.push('ATTACHMENT_UNREADABLE');
+        if (!rawItem.flags.includes('ATTACHMENT_UNREADABLE'))
+          rawItem.flags.push('ATTACHMENT_UNREADABLE');
         errors.push({ messageId, error: `attachment: ${err.message}` });
       }
       if (!stored) continue;
@@ -227,11 +235,11 @@ function createCmMailSync({
   // annars kombinerad text (ämne + mailtext + PDF-text).
   async function runExtraction({ subject, bodyText, pdfText, imageInput }) {
     if (imageInput && !pdfText) {
-      return extractDocument({ ...imageInput, source: 'email' });
+      return extractDocumentImpl({ ...imageInput, source: 'email' });
     }
     const combined = buildCombinedText({ subject, bodyText, pdfText });
     if (combined.length <= 40) return { ok: false, error: 'för lite underlag' };
-    return extractDocument({ text: combined, source: 'email' });
+    return extractDocumentImpl({ text: combined, source: 'email' });
   }
 
   function createRecordFromExtraction(extraction, { documentId, rawItemId }) {
@@ -507,10 +515,125 @@ function createCmMailSync({
     return all;
   }
 
+  // ORD-72 (ägar-beställning: "läs av beloppet i inkommande mail"):
+  // records som saknar totalbelopp läses om ur det SPARADE källmailet
+  // (rawBodyText + ev. bilagor) — fyller endast tomma fält, skriver aldrig
+  // över befintliga värden. Redan promotade utgifter i CFO backfillas om
+  // deras amountSek fortfarande är tomt.
+  async function reextractMissingAmounts({ limit = 10 } = {}) {
+    const results = {
+      ok: true,
+      candidates: 0,
+      attempted: 0,
+      updatedRecords: 0,
+      updatedCfo: 0,
+      skippedNoSource: 0,
+      errors: [],
+      syncedAt: nowIso(),
+    };
+    const budget = { remaining: Math.min(maxExtractPerSync, limit) };
+    const records = cmStore.listRecordsMissingAmount({ limit });
+    results.candidates = records.length;
+
+    for (const record of records) {
+      if (budget.remaining <= 0) break;
+
+      // Källmail: direkt via record.rawItemId, annars via dokumentets koppling
+      // (pre-ORD-68-records saknar rawItemId men kan ha dokument).
+      let rawItem = record.rawItemId ? cmStore.getRawItemById(record.rawItemId) : null;
+      if (!rawItem && record.documentId) {
+        const doc = cmStore.getDocumentById(record.documentId);
+        if (doc?.rawItemId) rawItem = cmStore.getRawItemById(doc.rawItemId);
+      }
+      if (!rawItem || (!normalizeText(rawItem.rawBodyText) && !rawItem.hasAttachments)) {
+        results.skippedNoSource++;
+        continue;
+      }
+
+      const ledger = cmStore.addLedgerEntry({
+        rawItemId: rawItem.id,
+        processorVersion: CM_PROCESSOR_VERSION,
+        filterVersion: CM_FILTER_VERSION,
+        status: 'reextracting',
+      });
+      try {
+        let harvest = { pdfText: null, imageInput: null, firstDocument: null };
+        if (rawItem.hasAttachments && rawItem.mailMessageId && rawItem.sourceId) {
+          harvest = await harvestAttachments({
+            mailboxId: rawItem.sourceId,
+            messageId: rawItem.mailMessageId,
+            rawItem,
+            errors: results.errors,
+          });
+        }
+        budget.remaining -= 1;
+        results.attempted++;
+        const ex = await runExtraction({
+          subject: rawItem.subject,
+          bodyText: rawItem.rawBodyText,
+          pdfText: harvest.pdfText,
+          imageInput: harvest.imageInput,
+        });
+        if (!ex.ok || !ex.extraction) {
+          if (!ex.ok) results.errors.push({ recordId: record.id, error: `extract: ${ex.error}` });
+          cmStore.completeLedgerEntry(ledger.id, { status: 'failed', errorMessage: ex.error });
+          continue;
+        }
+
+        const applied = cmStore.applyReextraction(record.id, {
+          amountIncVat: ex.extraction.amountIncVat,
+          amountExVat: ex.extraction.amountExVat,
+          vatAmount: ex.extraction.vatAmount,
+          date: ex.extraction.date,
+          dueDate: ex.extraction.dueDate,
+          supplierName: ex.extraction.supplier,
+          invoiceNumber: ex.extraction.invoiceNumber,
+          receiptNumber: ex.extraction.receiptNumber,
+        });
+        if (applied?.changed?.length) {
+          results.updatedRecords++;
+
+          // Backfill i CFO: fyll ENDAST om utgiftens belopp fortfarande är tomt.
+          if (record.cfoExpenseId && cfoExpenseStore?.getById) {
+            try {
+              const expense = await cfoExpenseStore.getById(record.cfoExpenseId);
+              if (expense && !expense.amountSek && applied.record.amountIncVat) {
+                await cfoExpenseStore.updateExpense({
+                  id: record.cfoExpenseId,
+                  patch: {
+                    amountSek: applied.record.amountIncVat,
+                    ...(expense.vatSek || !applied.record.vatAmount
+                      ? {}
+                      : { vatSek: applied.record.vatAmount }),
+                  },
+                  actor: 'cm-reextract',
+                });
+                results.updatedCfo++;
+              }
+            } catch (err) {
+              results.errors.push({ recordId: record.id, error: `cfo-backfill: ${err.message}` });
+            }
+          }
+        }
+        cmStore.completeLedgerEntry(ledger.id, {
+          status: 'done',
+          expenseRecordId: record.id,
+        });
+      } catch (err) {
+        cmStore.completeLedgerEntry(ledger.id, { status: 'failed', errorMessage: err.message });
+        results.errors.push({ recordId: record.id, error: err.message });
+      }
+    }
+
+    await cmStore.persist();
+    return results;
+  }
+
   return {
     syncFolder,
     syncAll,
     reprocessUnprocessed,
+    reextractMissingAmounts,
     listMessageAttachments,
     buildCombinedText,
     stripHtml,

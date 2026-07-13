@@ -933,6 +933,7 @@
           <div class="section-actions">
             <button class="btn" data-action="cm-mail-sync">✉ Synka mail</button>
             <button class="btn" data-action="cm-reprocess" title="Läs om mail som saknar kandidat — hämtar bilagor i efterhand">⟳ Läs om oprocessade</button>
+            <button class="btn" data-action="cm-reextract" title="Läs om källmailen för kandidater som saknar belopp — fyller bara tomma fält">⟲ Hämta belopp ur mail</button>
             <button class="btn" data-action="cm-refresh">↻ Uppdatera</button>
           </div>
         </h2>
@@ -2738,6 +2739,8 @@
                   ' omlästa · ' +
                   (auto.newRecords || 0) +
                   ' nya kandidater · ' +
+                  (auto.reextracted || 0) +
+                  ' belopp ifyllda · ' +
                   (auto.errors || 0) +
                   ' fel &nbsp;·&nbsp; nästa ca ' +
                   fmtT(next) +
@@ -2893,6 +2896,38 @@
             }
             b.disabled = false;
             b.textContent = '⟳ Läs om oprocessade';
+          });
+        // ORD-72: hämta saknade belopp ur sparade källmail — fyller bara tomma fält
+        document
+          .querySelector('[data-action="cm-reextract"]')
+          .addEventListener('click', async (ev) => {
+            const b = ev.currentTarget;
+            b.disabled = true;
+            b.textContent = 'Läser mail…';
+            try {
+              const r = await fetch('/api/v1/cm/reextract-missing', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{}',
+              });
+              const d = await r.json().catch(() => ({}));
+              if (!r.ok) alert('Om-extraktion: ' + (d.error || r.status));
+              else if (d.candidates === 0) alert('Inga kandidater saknar belopp.');
+              else
+                alert(
+                  `Om-extraktion: ${d.updatedRecords || 0} av ${d.candidates} fick nya fält` +
+                    (d.updatedCfo ? ` · ${d.updatedCfo} CFO-utgifter backfillade` : '') +
+                    (d.skippedNoSource ? ` · ${d.skippedNoSource} utan sparat källmail` : '') +
+                    (d.errors?.length ? ` · ${d.errors.length} fel` : '')
+                );
+              await loadCm();
+              if (typeof window.arcanaCfReload === 'function') window.arcanaCfReload();
+            } catch (err) {
+              alert('Om-extraktionsfel: ' + err.message);
+            }
+            b.disabled = false;
+            b.textContent = '⟲ Hämta belopp ur mail';
           });
         document.querySelector('[data-action="cm-refresh"]').addEventListener('click', loadCm);
         loadCm();

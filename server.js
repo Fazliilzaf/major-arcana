@@ -14090,6 +14090,8 @@ process.once('SIGTERM', () => {
     cmStore,
     graphReadConnector: graphReadConnector || null,
     secureStorage: app.locals.ccoSecureStorage || null,
+    // ORD-72: om-extraktion backfillar promotade utgifter vars belopp är tomt
+    cfoExpenseStore: app.locals.cfoExpenseStore || null,
   };
 
   // ORD-67 · CF.9: voucher-sync dryRun + gated skarp körning (ägar-GO 2026-07-13)

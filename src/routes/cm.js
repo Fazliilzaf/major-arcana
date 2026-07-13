@@ -217,9 +217,7 @@ function createCmRouter({
     // Env CM_MAIL_ACCOUNT överrider; fallbacken gör UI-knappen fungerande
     // utan env-deploy. Verifierad läsbar via Graph 2026-07-13 (19 mail import).
     const mailboxId =
-      req.body?.mailboxId ||
-      process.env.CM_MAIL_ACCOUNT ||
-      'kvitto@hairtpclinic.com';
+      req.body?.mailboxId || process.env.CM_MAIL_ACCOUNT || 'kvitto@hairtpclinic.com';
     if (!mailboxId)
       return res
         .status(400)
@@ -243,6 +241,25 @@ function createCmRouter({
     const limit = Math.min(50, Math.max(1, Number(req.body?.limit) || 10));
     try {
       const result = await mailSync.reprocessUnprocessed({ limit });
+      return res.json(result);
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // ORD-72 · Om-extraktion: records som saknar totalbelopp läses om ur det
+  // SPARADE källmailet (mailtext + bilagor). Fyller endast tomma fält och
+  // backfillar redan promotade CFO-utgifter vars belopp fortfarande är tomt.
+  router.post('/cm/reextract-missing', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    const mailSync = createCmMailSync({
+      graphReadConnector,
+      cmStore,
+      secureStorage,
+      cfoExpenseStore,
+    });
+    const limit = Math.min(50, Math.max(1, Number(req.body?.limit) || 10));
+    try {
+      const result = await mailSync.reextractMissingAmounts({ limit });
       return res.json(result);
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message });

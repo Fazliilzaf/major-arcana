@@ -313,3 +313,158 @@ test('syncFolder utan delta-API → ärligt fel (ingen tyst no-op)', async () =>
   assert.equal(result.ok, false);
   assert.match(result.error, /delta-API/);
 });
+
+// ─── ORD-72 · Om-extraktion av saknade belopp ur sparat källmail ───
+
+function fakeExtractorReturning(extraction) {
+  const calls = [];
+  const impl = async (input) => {
+    calls.push(input);
+    return { ok: true, extraction };
+  };
+  impl.calls = calls;
+  return impl;
+}
+
+test('reextractMissingAmounts: fyller tomma fält ur källmailet, rör aldrig befintliga', async () => {
+  const cmStore = await tmpStore();
+  const { rawItem } = cmStore.importRawItem({
+    sourceType: 'email',
+    sourceId: 'kvitto@test.se',
+    mailMessageId: 'mm-1',
+    internetMessageId: '<mm-1@test>',
+    subject: 'Kvitto Foodora',
+    fromEmail: 'no-reply@foodora.se',
+    rawBodyText: 'Tack för din beställning! Totalt: 402,00 kr varav moms 43,07 kr',
+    hasAttachments: false,
+  });
+  const record = cmStore.createExpenseRecord({
+    rawItemId: rawItem.id,
+    expenseType: 'receipt',
+    supplierName: 'Foodora AB', // befintligt värde — får INTE skrivas över
+    confidenceScore: 70,
+  });
+  assert.ok(record.flags.includes('MISSING_TOTAL_AMOUNT'));
+
+  const extractor = fakeExtractorReturning({
+    documentType: 'receipt',
+    supplier: 'FEL-LEVERANTÖR AB', // ska ignoreras (fältet är redan satt)
+    amountIncVat: 402,
+    vatAmount: 43.07,
+    date: '2026-07-02',
+    confidenceScore: 90,
+  });
+  const sync = createCmMailSync({
+    graphReadConnector: makeFixtureConnector({ messages: [] }),
+    cmStore,
+    extractDocumentImpl: extractor,
+  });
+
+  const result = await sync.reextractMissingAmounts({ limit: 10 });
+  assert.equal(result.candidates, 1);
+  assert.equal(result.updatedRecords, 1);
+  assert.equal(result.errors.length, 0);
+
+  const updated = cmStore.getExpenseRecordById(record.id);
+  assert.equal(updated.amountIncVat, 402);
+  assert.equal(updated.vatAmount, 43.07);
+  assert.equal(updated.date, '2026-07-02');
+  assert.equal(updated.supplierName, 'Foodora AB'); // orörd
+  assert.ok(!updated.flags.includes('MISSING_TOTAL_AMOUNT'));
+  assert.ok(!updated.flags.includes('MISSING_VAT'));
+
+  // Källmailet skickades till extraktorn (mailtext-vägen)
+  assert.equal(extractor.calls.length, 1);
+  assert.match(extractor.calls[0].text, /402,00 kr/);
+
+  // Andra körningen: inget kvar att göra
+  const again = await sync.reextractMissingAmounts({ limit: 10 });
+  assert.equal(again.candidates, 0);
+});
+
+test('reextractMissingAmounts: backfillar promotad CFO-utgift endast när belopp saknas', async () => {
+  const cmStore = await tmpStore();
+  const { rawItem } = cmStore.importRawItem({
+    sourceType: 'email',
+    sourceId: 'kvitto@test.se',
+    mailMessageId: 'mm-2',
+    internetMessageId: '<mm-2@test>',
+    subject: 'Kvitto',
+    fromEmail: 'x@y.se',
+    rawBodyText: 'Summa att betala: 1 000 kr inkl. moms 200 kr — tack för köpet',
+    hasAttachments: false,
+  });
+  const record = cmStore.createExpenseRecord({
+    rawItemId: rawItem.id,
+    expenseType: 'receipt',
+    supplierName: 'Test AB',
+    confidenceScore: 80,
+  });
+  // Simulera promote (ORD-63): CFO äger utgiften, beloppet är tomt
+  record.cfoExpenseId = 'cfo-1';
+  record.bookkeepingStatus = 'handed_off';
+
+  const cfoCalls = [];
+  const cfoExpenseStore = {
+    async getById(id) {
+      return { id, amountSek: null, vatSek: null };
+    },
+    async updateExpense(args) {
+      cfoCalls.push(args);
+      return { id: args.id };
+    },
+  };
+  const sync = createCmMailSync({
+    graphReadConnector: makeFixtureConnector({ messages: [] }),
+    cmStore,
+    cfoExpenseStore,
+    extractDocumentImpl: fakeExtractorReturning({
+      documentType: 'receipt',
+      amountIncVat: 1000,
+      vatAmount: 200,
+      confidenceScore: 85,
+    }),
+  });
+
+  const result = await sync.reextractMissingAmounts({ limit: 5 });
+  assert.equal(result.updatedRecords, 1);
+  assert.equal(result.updatedCfo, 1);
+  assert.equal(cfoCalls.length, 1);
+  assert.equal(cfoCalls[0].id, 'cfo-1');
+  assert.equal(cfoCalls[0].patch.amountSek, 1000);
+  assert.equal(cfoCalls[0].patch.vatSek, 200);
+  assert.equal(cfoCalls[0].actor, 'cm-reextract');
+});
+
+test('reextractMissingAmounts: utan källmail → skippedNoSource, extraktorfel → ärligt fel', async () => {
+  const cmStore = await tmpStore();
+  // Record utan rawItemId och utan dokument — inget att läsa ur
+  cmStore.createExpenseRecord({ expenseType: 'receipt', confidenceScore: 50 });
+  // Record med källmail men extraktorn felar
+  const { rawItem } = cmStore.importRawItem({
+    sourceType: 'email',
+    sourceId: 'kvitto@test.se',
+    mailMessageId: 'mm-3',
+    internetMessageId: '<mm-3@test>',
+    subject: 'Faktura utan nyckel',
+    fromEmail: 'x@y.se',
+    rawBodyText: 'Fakturabelopp: 500 kr — betalas inom 30 dagar från fakturadatum',
+    hasAttachments: false,
+  });
+  cmStore.createExpenseRecord({
+    rawItemId: rawItem.id,
+    expenseType: 'invoice',
+    confidenceScore: 60,
+  });
+
+  const sync = createCmMailSync({
+    graphReadConnector: makeFixtureConnector({ messages: [] }),
+    cmStore,
+    extractDocumentImpl: async () => ({ ok: false, error: 'OPENAI_API_KEY saknas' }),
+  });
+  const result = await sync.reextractMissingAmounts({ limit: 10 });
+  assert.equal(result.candidates, 2);
+  assert.equal(result.skippedNoSource, 1);
+  assert.equal(result.updatedRecords, 0);
+  assert.ok(result.errors.some((e) => /OPENAI_API_KEY saknas/.test(e.error)));
+});
