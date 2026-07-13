@@ -15,6 +15,7 @@ test('findPatientsByEmails returnerar alla canonical-träffar utan full listklon
     id: 'patient-a',
     displayName: 'Anna',
     primaryEmail: 'anna@example.com',
+    drive: { files: [{ id: 'large-dossier-file', content: 'x'.repeat(10000) }] },
   });
   await store.upsertPatient({
     tenantId: 'hair-tp-clinic',
@@ -43,4 +44,14 @@ test('findPatientsByEmails returnerar alla canonical-träffar utan full listklon
     ['patient-b', 'patient-c']
   );
   assert.deepEqual(result.matches['missing@example.com'], []);
+  assert.equal(result.matches['anna@example.com'][0].drive, undefined);
+  assert.deepEqual(Object.keys(result.matches['anna@example.com'][0]).sort(), [
+    'cliento',
+    'displayName',
+    'emails',
+    'id',
+    'patientId',
+    'pipedrive',
+    'primaryEmail',
+  ]);
 });
