@@ -8323,6 +8323,18 @@ async function buildWorklistConsumerContext({
         limit,
       })
     : null;
+  // Consumer-ytan behöver de redan materialiserade smart-signalerna, men inte
+  // den dyra shadow-diffen. Läs därför bara den persistenta analysbaselinen här.
+  const enrichmentBaseline = diagnostics
+    ? null
+    : selectLatestWorklistLegacyBaseline({
+        entries: await listWorklistEnrichmentEntries({
+          capabilityAnalysisStore,
+          tenantId,
+          limit: 50,
+        }),
+        mailboxIds,
+      });
   const truthCoverage =
     ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
       ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds })
@@ -8339,10 +8351,13 @@ async function buildWorklistConsumerContext({
           limit,
         })
       : null,
-    latestEntry: diagnostics?.latestEntry || null,
-    latestObservedEntry: diagnostics?.latestObservedEntry || null,
-    latestOutputData: diagnostics?.latestOutputData || null,
-    baselineSelection: diagnostics?.baselineSelection || null,
+    latestEntry: diagnostics?.latestEntry || enrichmentBaseline?.selectedEntry || null,
+    latestObservedEntry:
+      diagnostics?.latestObservedEntry || enrichmentBaseline?.latestObservedEntry || null,
+    latestOutputData:
+      diagnostics?.latestOutputData || enrichmentBaseline?.selectedOutputData || null,
+    baselineSelection:
+      diagnostics?.baselineSelection || enrichmentBaseline?.selection || null,
     truthCoverage,
     deltaCoverage,
     shadowDiffReport: diagnostics?.diffReport || null,
