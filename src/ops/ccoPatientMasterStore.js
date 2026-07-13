@@ -760,6 +760,31 @@ async function createCcoPatientMasterStore({ filePath }) {
     return found ? clonePatient(found) : null;
   }
 
+  async function findPatientsByEmails({ tenantId, emails = [] } = {}) {
+    const targets = new Set(asArray(emails).map(normalizeEmail).filter(Boolean));
+    const matches = Object.fromEntries([...targets].map((email) => [email, []]));
+    if (!targets.size) return { matches };
+
+    const bucket = tenantBucket(state, tenantId);
+    for (const patient of bucket.patients) {
+      if (patient?.matchStatus === 'merged') continue;
+      const patientEmails = new Set(
+        [
+          patient?.primaryEmail,
+          ...asArray(patient?.emails),
+          ...asArray(asObject(patient?.cliento).emails),
+          ...asArray(asObject(patient?.pipedrive).emails),
+        ]
+          .map(normalizeEmail)
+          .filter((email) => targets.has(email))
+      );
+      for (const email of patientEmails) {
+        matches[email].push(clonePatient(patient));
+      }
+    }
+    return { matches };
+  }
+
   async function findPatientByPhone({ tenantId, phone } = {}) {
     // phoneMatchKey (sista 9 siffror) förenar svenska format: 070…, +4670…, 004670…
     const key = phoneMatchKey(phone);
@@ -1530,6 +1555,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     setAttendance,
     dismissMergeReviewGroup,
     findPatientByEmail,
+    findPatientsByEmails,
     findPatientByPhone,
     getPatient,
     getTenantStats,
