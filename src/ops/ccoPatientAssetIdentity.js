@@ -208,19 +208,17 @@ function collectAssetStoreAliases({ patient, patientPopulation, tenantId, assetS
     if (exactSegmentMatch) exactNamePatientIds.add(row.patientId);
   }
 
-  if (!aliases.length) {
-    if (population.length && (pnrIsUnique || nameIsUnique)) {
-      const canonicalPatientId = normalizeText(patient?.id);
-      resolveCanonicalPatientsForAssetAliases({
-        patients: population,
-        assets: renderableRows,
-      })
-        .filter((mapping) => mapping.canonicalPatientId === canonicalPatientId)
-        .forEach((mapping) => pushUnique(aliases, mapping.assetPatientId));
-      exactNamePatientIds.forEach((id) => pushUnique(aliases, id));
-    } else if (!population.length && exactNamePatientIds.size === 1) {
-      pushUnique(aliases, [...exactNamePatientIds][0]);
-    }
+  if (population.length && (pnrIsUnique || nameIsUnique)) {
+    const canonicalPatientId = normalizeText(patient?.id);
+    resolveCanonicalPatientsForAssetAliases({
+      patients: population,
+      assets: renderableRows,
+    })
+      .filter((mapping) => mapping.canonicalPatientId === canonicalPatientId)
+      .forEach((mapping) => pushUnique(aliases, mapping.assetPatientId));
+    exactNamePatientIds.forEach((id) => pushUnique(aliases, id));
+  } else if (!aliases.length && !population.length && exactNamePatientIds.size === 1) {
+    pushUnique(aliases, [...exactNamePatientIds][0]);
   }
 
   return aliases;

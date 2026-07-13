@@ -221,6 +221,39 @@ test('resolvePatientAssetIds includes multiple path aliases when canonical name 
   assert.deepEqual(ids, ['patient-khalid', 'cliento-khalid-a', 'cliento-khalid-b']);
 });
 
+test('resolvePatientAssetIds keeps safe name aliases after a personnummer alias matched', async () => {
+  const patient = {
+    id: 'patient-khalid',
+    displayName: 'Khalid Ahmed Mohamed',
+    personnummer: '19941210-3971',
+  };
+  const ids = await resolvePatientAssetIds({
+    patientId: patient.id,
+    patient,
+    patientPopulation: [patient, { id: 'patient-other', displayName: 'Other Person' }],
+    tenantId: 'hair-tp-clinic',
+    customerStore: makeCustomerStore({}),
+    assetStore: makeAssetStore([
+      {
+        patientId: 'cliento-khalid-pnr',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        relativePath: 'Mars 2026/Khalid Ahmed Mohamed - 19941210-3971/journal.pdf',
+      },
+      {
+        patientId: 'cliento-khalid-name',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        relativePath: 'Mars 2026/Khalid Ahmed Mohamed/IMG_001.jpg',
+      },
+    ]),
+  });
+
+  assert.deepEqual(ids, [
+    'patient-khalid',
+    'cliento-khalid-pnr',
+    'cliento-khalid-name',
+  ]);
+});
+
 test('resolvePatientAssetIds rejects path aliases when canonical name is duplicated', async () => {
   const patient = { id: 'patient-sam-1', displayName: 'Sam Same' };
   const ids = await resolvePatientAssetIds({
