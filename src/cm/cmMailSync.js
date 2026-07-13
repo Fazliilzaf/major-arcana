@@ -1,29 +1,26 @@
 'use strict';
 
 /**
- * CM Mail Sync v2 — ORD-64 (2026-07-12).
+ * CM Mail Sync v3 — ORD-64 (delta-sync) + ORD-67f (ImmutableId) + ORD-68.
  *
- * Omskriven på microsoftGraphReadConnectors FAKTISKA API. v1 anropade
- * `listMessages` som aldrig funnits på connectorn → syncen var död kod.
+ * ORD-68 (2026-07-13, ägar-beställning: "agenten måste läsa själva
+ * mail-innehållet, inte bara PDF-filer"):
+ *  - KOMBINERAD extraktion: ämne + mailtext + PDF-text skickas i SAMMA
+ *    AI-anrop (tidigare valdes EN källa — belopp i mailtexten tappades när
+ *    en PDF fanns, och tvärtom). Bild-kvitton går fortsatt vision-vägen.
+ *  - Strukturbevarande HTML→text: tabellrader/stycken blir egna rader så
+ *    belopp behåller sitt sammanhang.
+ *  - REPROCESS: rawItems utan expense-record kan läsas om (t.ex. de 19
+ *    första kvitto@-mailen vars bilagor 400:ade före ORD-67f) — hämtar
+ *    bilagor i efterhand och kör om extraktionen. Ledger spårar försöken.
  *
- * v2:
- *  - Äkta delta-sync via fetchMailboxTruthFolderDeltaPage; cursor (deltaLink)
- *    persisteras per mailbox+folderType i cmStore.syncState.
- *  - Original (hela Graph-meddelandet som JSON) arkiveras i secure storage
- *    innan processning — raderas aldrig (BFN 7 år).
- *  - Bilagor: PDF/bild (ej inline, ≤10 MB) hämtas via
- *    fetchMessageAttachmentContent → secure storage → cmStore.createDocument.
- *  - Extraktion: PDF-text via pdf-parse → AI · bild → vision · annars body-text.
- *    Kostnadstak: CM_MAX_EXTRACT_PER_SYNC extraktioner per körning (default 10).
- *  - Processing ledger per item (processorVersion/filterVersion) — reprocess-underlag.
- *
- * Read-only mot Graph. Ingen mailbox-write. Order: ORD-64-cm-pipeline-hardening.md
+ * Read-only mot Graph. Original raderas aldrig (BFN 7 år).
  */
 
 const crypto = require('node:crypto');
 const { extractDocument } = require('./cmAiExtractor');
 
-const CM_PROCESSOR_VERSION = 2;
+const CM_PROCESSOR_VERSION = 3;
 const CM_FILTER_VERSION = 1;
 const DEFAULT_FOLDER_TYPES = ['inbox'];
 const MAX_PAGES_PER_RUN = 3;
@@ -39,13 +36,35 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+// ORD-68: bevara radstruktur — tabellrader/stycken blir egna rader så belopp
+// inte tappar sitt sammanhang när HTML-mail plattas till text.
 function stripHtml(html) {
   return String(html || '')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<\/(p|div|tr|li|h[1-6]|table)>/gi, '\n')
+    .replace(/<(br|hr)\s*\/?>/gi, '\n')
+    .replace(/<td[^>]*>/gi, ' | ')
     .replace(/<[^>]*>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s*\n\s*/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+// ORD-68: allt underlag i samma AI-anrop. PDF-texten är oftast rikast —
+// mailtexten kortas när PDF finns så båda ryms i extraktorns 8000-fönster.
+function buildCombinedText({ subject, bodyText, pdfText }) {
+  const parts = [];
+  const safeSubject = normalizeText(subject);
+  const safeBody = normalizeText(bodyText);
+  const safePdf = normalizeText(pdfText);
+  if (safeSubject) parts.push(`Ämne: ${safeSubject}`);
+  if (safeBody) parts.push(`Mailtext:\n${safePdf ? safeBody.slice(0, 2500) : safeBody.slice(0, 6000)}`);
+  if (safePdf) parts.push(`Bilaga (PDF-text):\n${safePdf.slice(0, 5000)}`);
+  return parts.join('\n\n').slice(0, 8000);
 }
 
 function sha8(value) {
@@ -94,9 +113,8 @@ function createCmMailSync({
     const res = await fetchImpl(url, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        // ORD-67f: delta-sidorna hämtas med immutable-IDs (preferImmutableIds i
-        // connectorn) — samma Prefer-header KRÄVS här, annars Graph 400 på id:t.
-        // Verifierat live mot kvitto@ 2026-07-13 (alla attachments-list gav 400).
+        // ORD-67f: delta-sidorna hämtas med immutable-IDs — samma Prefer-header
+        // KRÄVS här, annars Graph 400 på id:t (verifierat live 2026-07-13).
         Prefer: 'IdType="ImmutableId"',
       },
     });
@@ -131,10 +149,7 @@ function createCmMailSync({
       key,
       body: content.buffer,
       contentType: content.contentType || att.contentType || 'application/octet-stream',
-      metadata: {
-        source: 'cm-mail-attachment',
-        originalFileName: content.name || att.name || null,
-      },
+      metadata: { source: 'cm-mail-attachment', originalFileName: content.name || att.name || null },
     });
     return {
       storageKey: put?.storageKey || key,
@@ -145,13 +160,109 @@ function createCmMailSync({
     };
   }
 
+  // ORD-68: gemensam bilage-skörd för sync + reprocess. Returnerar PDF-text,
+  // ev. bild-input och första dokumentet. Muterar rawItem-flaggor vid fel.
+  async function harvestAttachments({ mailboxId, messageId, rawItem, errors }) {
+    const out = { pdfText: null, imageInput: null, firstDocument: null };
+    if (!messageId || !secureStorage?.putObject) return out;
+    let attachments = [];
+    try {
+      attachments = await listMessageAttachments(mailboxId, messageId);
+    } catch (err) {
+      if (!rawItem.flags.includes('ATTACHMENT_UNREADABLE')) rawItem.flags.push('ATTACHMENT_UNREADABLE');
+      errors.push({ messageId, error: `attachments-list: ${err.message}` });
+      return out;
+    }
+    const usable = attachments
+      .filter(
+        (a) =>
+          a &&
+          !a.isInline &&
+          (Number(a.size) || 0) <= MAX_ATTACHMENT_BYTES &&
+          /(pdf|image\/)/i.test(normalizeText(a.contentType))
+      )
+      .slice(0, MAX_ATTACHMENTS_PER_MESSAGE);
+
+    for (const att of usable) {
+      let stored = null;
+      try {
+        stored = await storeAttachment(mailboxId, messageId, att);
+      } catch (err) {
+        if (!rawItem.flags.includes('ATTACHMENT_UNREADABLE')) rawItem.flags.push('ATTACHMENT_UNREADABLE');
+        errors.push({ messageId, error: `attachment: ${err.message}` });
+      }
+      if (!stored) continue;
+      const isPdf = /pdf/i.test(normalizeText(stored.contentType));
+      if (isPdf) rawItem.hasPdf = true;
+      else rawItem.hasImage = true;
+      const doc = cmStore.createDocument({
+        rawItemId: rawItem.id,
+        documentType: 'unknown',
+        fileName: stored.name || '',
+        mimeType: stored.contentType || '',
+        storagePath: stored.storageKey,
+        fileHash: stored.checksum || '',
+        source: isPdf ? 'pdf' : 'image',
+      });
+      if (!out.firstDocument) out.firstDocument = doc;
+
+      if (isPdf && !out.pdfText) {
+        const pdfParse = getPdfParse();
+        if (pdfParse) {
+          const parsed = await pdfParse(stored.buffer).catch(() => null);
+          const text = normalizeText(parsed?.text);
+          if (text.length > 40) out.pdfText = text;
+        }
+      } else if (!isPdf && !out.imageInput) {
+        out.imageInput = {
+          imageBase64: stored.buffer.toString('base64'),
+          mimeType: stored.contentType || 'image/jpeg',
+        };
+      }
+    }
+    return out;
+  }
+
+  // ORD-68: en extraktion, alla källor. Bild-kvitto utan PDF → vision;
+  // annars kombinerad text (ämne + mailtext + PDF-text).
+  async function runExtraction({ subject, bodyText, pdfText, imageInput }) {
+    if (imageInput && !pdfText) {
+      return extractDocument({ ...imageInput, source: 'email' });
+    }
+    const combined = buildCombinedText({ subject, bodyText, pdfText });
+    if (combined.length <= 40) return { ok: false, error: 'för lite underlag' };
+    return extractDocument({ text: combined, source: 'email' });
+  }
+
+  function createRecordFromExtraction(extraction, { documentId, rawItemId }) {
+    const confidence = Number(extraction.confidenceScore) || 0;
+    return cmStore.createExpenseRecord({
+      documentId: documentId || null,
+      rawItemId: rawItemId || null,
+      expenseType: extraction.documentType,
+      supplierName: extraction.supplier,
+      invoiceNumber: extraction.invoiceNumber,
+      receiptNumber: extraction.receiptNumber,
+      orderNumber: extraction.orderNumber,
+      date: extraction.date,
+      dueDate: extraction.dueDate,
+      amountExVat: extraction.amountExVat,
+      vatAmount: extraction.vatAmount,
+      amountIncVat: extraction.amountIncVat,
+      currency: extraction.currency,
+      category: extraction.category,
+      confidenceScore: confidence,
+      flags: confidence < 70 ? ['NEEDS_MANUAL_REVIEW', 'LOW_CONFIDENCE_EXTRACTION'] : [],
+    });
+  }
+
   async function processMessage({ mailboxId, folderType, message, results, budget }) {
     if (!isEconomyCandidate(message)) {
       results.skipped++;
       return;
     }
 
-    const bodyText = stripHtml(message.body?.content || message.bodyPreview || '').slice(0, 5000);
+    const bodyText = stripHtml(message.body?.content || message.bodyPreview || '').slice(0, 6000);
     const importResult = cmStore.importRawItem({
       sourceType: 'email',
       sourceId: mailboxId,
@@ -182,97 +293,34 @@ function createCmMailSync({
       const originalKey = await archiveOriginal(message).catch(() => null);
       if (originalKey) rawItem.originalStorageKey = originalKey;
 
-      let extractInput = null;
-      let firstDocument = null;
-
-      if (message.hasAttachments === true && secureStorage?.putObject) {
-        let attachments = [];
-        try {
-          attachments = await listMessageAttachments(mailboxId, message.id);
-        } catch (err) {
-          rawItem.flags.push('ATTACHMENT_UNREADABLE');
-          results.errors.push({ messageId: message.id, error: `attachments-list: ${err.message}` });
-        }
-        const usable = attachments
-          .filter(
-            (a) =>
-              a &&
-              !a.isInline &&
-              (Number(a.size) || 0) <= MAX_ATTACHMENT_BYTES &&
-              /(pdf|image\/)/i.test(normalizeText(a.contentType))
-          )
-          .slice(0, MAX_ATTACHMENTS_PER_MESSAGE);
-
-        for (const att of usable) {
-          let stored = null;
-          try {
-            stored = await storeAttachment(mailboxId, message.id, att);
-          } catch (err) {
-            rawItem.flags.push('ATTACHMENT_UNREADABLE');
-            results.errors.push({ messageId: message.id, error: `attachment: ${err.message}` });
-          }
-          if (!stored) continue;
-          const isPdf = /pdf/i.test(normalizeText(stored.contentType));
-          if (isPdf) rawItem.hasPdf = true;
-          else rawItem.hasImage = true;
-          const doc = cmStore.createDocument({
-            rawItemId: rawItem.id,
-            documentType: 'unknown',
-            fileName: stored.name || '',
-            mimeType: stored.contentType || '',
-            storagePath: stored.storageKey,
-            fileHash: stored.checksum || '',
-            source: isPdf ? 'pdf' : 'image',
-          });
-          if (!firstDocument) firstDocument = doc;
-
-          if (!extractInput) {
-            if (isPdf) {
-              const pdfParse = getPdfParse();
-              if (pdfParse) {
-                const parsed = await pdfParse(stored.buffer).catch(() => null);
-                const text = normalizeText(parsed?.text).slice(0, 8000);
-                if (text.length > 40) extractInput = { text };
-              }
-            } else {
-              extractInput = {
-                imageBase64: stored.buffer.toString('base64'),
-                mimeType: stored.contentType || 'image/jpeg',
-              };
-            }
-          }
-        }
+      let harvest = { pdfText: null, imageInput: null, firstDocument: null };
+      if (message.hasAttachments === true) {
+        harvest = await harvestAttachments({
+          mailboxId,
+          messageId: message.id,
+          rawItem,
+          errors: results.errors,
+        });
       }
 
-      if (!extractInput && bodyText.length > 40) extractInput = { text: bodyText };
-
       let record = null;
-      if (extractInput && budget.remaining > 0) {
+      if (budget.remaining > 0) {
         budget.remaining -= 1;
-        const ex = await extractDocument({ ...extractInput, source: 'email' });
+        const ex = await runExtraction({
+          subject: rawItem.subject,
+          bodyText,
+          pdfText: harvest.pdfText,
+          imageInput: harvest.imageInput,
+        });
         if (
           ex.ok &&
           ex.extraction &&
           ex.extraction.documentType !== 'unknown' &&
           (Number(ex.extraction.confidenceScore) || 0) >= 50
         ) {
-          const confidence = Number(ex.extraction.confidenceScore) || 0;
-          record = cmStore.createExpenseRecord({
-            documentId: firstDocument?.id || null,
-            expenseType: ex.extraction.documentType,
-            supplierName: ex.extraction.supplier,
-            invoiceNumber: ex.extraction.invoiceNumber,
-            receiptNumber: ex.extraction.receiptNumber,
-            orderNumber: ex.extraction.orderNumber,
-            date: ex.extraction.date,
-            dueDate: ex.extraction.dueDate,
-            amountExVat: ex.extraction.amountExVat,
-            vatAmount: ex.extraction.vatAmount,
-            amountIncVat: ex.extraction.amountIncVat,
-            currency: ex.extraction.currency,
-            category: ex.extraction.category,
-            confidenceScore: confidence,
-            flags: confidence < 70 ? ['NEEDS_MANUAL_REVIEW', 'LOW_CONFIDENCE_EXTRACTION'] : [],
+          record = createRecordFromExtraction(ex.extraction, {
+            documentId: harvest.firstDocument?.id,
+            rawItemId: rawItem.id,
           });
           results.records++;
         } else if (!ex.ok) {
@@ -282,7 +330,7 @@ function createCmMailSync({
 
       cmStore.completeLedgerEntry(ledger.id, {
         status: 'done',
-        documentId: firstDocument?.id || null,
+        documentId: harvest.firstDocument?.id || null,
         expenseRecordId: record?.id || null,
       });
       results.imported++;
@@ -290,6 +338,78 @@ function createCmMailSync({
       cmStore.completeLedgerEntry(ledger.id, { status: 'failed', errorMessage: err.message });
       results.errors.push({ messageId: message.id, error: err.message });
     }
+  }
+
+  // ORD-68: läs om rawItems som saknar expense-record — hämtar bilagor i
+  // efterhand (t.ex. mail synkade före ORD-67f) och kör om extraktionen på
+  // kombinerat underlag. Manuella items utan mail-id körs body-only.
+  async function reprocessUnprocessed({ limit = 10 } = {}) {
+    const results = {
+      ok: true,
+      candidates: 0,
+      reprocessed: 0,
+      records: 0,
+      errors: [],
+      syncedAt: nowIso(),
+    };
+    const budget = { remaining: Math.min(maxExtractPerSync, limit) };
+    const items = cmStore.listUnprocessedRawItems({ limit });
+    results.candidates = items.length;
+
+    for (const rawItem of items) {
+      if (budget.remaining <= 0) break;
+      const ledger = cmStore.addLedgerEntry({
+        rawItemId: rawItem.id,
+        processorVersion: CM_PROCESSOR_VERSION,
+        filterVersion: CM_FILTER_VERSION,
+        status: 'reprocessing',
+      });
+      try {
+        let harvest = { pdfText: null, imageInput: null, firstDocument: null };
+        if (rawItem.hasAttachments && rawItem.mailMessageId && rawItem.sourceId) {
+          harvest = await harvestAttachments({
+            mailboxId: rawItem.sourceId,
+            messageId: rawItem.mailMessageId,
+            rawItem,
+            errors: results.errors,
+          });
+        }
+        budget.remaining -= 1;
+        const ex = await runExtraction({
+          subject: rawItem.subject,
+          bodyText: rawItem.rawBodyText,
+          pdfText: harvest.pdfText,
+          imageInput: harvest.imageInput,
+        });
+        let record = null;
+        if (
+          ex.ok &&
+          ex.extraction &&
+          ex.extraction.documentType !== 'unknown' &&
+          (Number(ex.extraction.confidenceScore) || 0) >= 50
+        ) {
+          record = createRecordFromExtraction(ex.extraction, {
+            documentId: harvest.firstDocument?.id,
+            rawItemId: rawItem.id,
+          });
+          results.records++;
+        } else if (!ex.ok) {
+          results.errors.push({ rawItemId: rawItem.id, error: `extract: ${ex.error}` });
+        }
+        cmStore.completeLedgerEntry(ledger.id, {
+          status: 'done',
+          documentId: harvest.firstDocument?.id || null,
+          expenseRecordId: record?.id || null,
+        });
+        results.reprocessed++;
+      } catch (err) {
+        cmStore.completeLedgerEntry(ledger.id, { status: 'failed', errorMessage: err.message });
+        results.errors.push({ rawItemId: rawItem.id, error: err.message });
+      }
+    }
+
+    await cmStore.persist();
+    return results;
   }
 
   async function syncFolder(mailboxId, folderType = 'inbox') {
@@ -387,7 +507,16 @@ function createCmMailSync({
     return all;
   }
 
-  return { syncFolder, syncAll, listMessageAttachments, CM_PROCESSOR_VERSION, CM_FILTER_VERSION };
+  return {
+    syncFolder,
+    syncAll,
+    reprocessUnprocessed,
+    listMessageAttachments,
+    buildCombinedText,
+    stripHtml,
+    CM_PROCESSOR_VERSION,
+    CM_FILTER_VERSION,
+  };
 }
 
 module.exports = {
@@ -395,4 +524,6 @@ module.exports = {
   DEFAULT_FOLDER_TYPES,
   CM_PROCESSOR_VERSION,
   CM_FILTER_VERSION,
+  buildCombinedText,
+  stripHtml,
 };

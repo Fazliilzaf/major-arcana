@@ -932,6 +932,7 @@
           <span class="meta" id="cm-count">0</span>
           <div class="section-actions">
             <button class="btn" data-action="cm-mail-sync">✉ Synka mail</button>
+            <button class="btn" data-action="cm-reprocess" title="Läs om mail som saknar kandidat — hämtar bilagor i efterhand">⟳ Läs om oprocessade</button>
             <button class="btn" data-action="cm-refresh">↻ Uppdatera</button>
           </div>
         </h2>
@@ -2825,6 +2826,30 @@
             }
             b.disabled = false;
             b.textContent = '✉ Synka mail';
+          });
+        // ORD-68: läs om mail utan kandidat — hämtar bilagor i efterhand
+        document
+          .querySelector('[data-action="cm-reprocess"]')
+          .addEventListener('click', async (ev) => {
+            const b = ev.currentTarget;
+            b.disabled = true;
+            b.textContent = 'Läser om…';
+            try {
+              const r = await fetch('/api/v1/cm/reprocess', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{}',
+              });
+              const d = await r.json().catch(() => ({}));
+              if (!r.ok) alert('Reprocess: ' + (d.error || r.status));
+              else if (d.candidates === 0) alert('Inga oprocessade mail att läsa om.');
+              await loadCm();
+            } catch (err) {
+              alert('Reprocess-fel: ' + err.message);
+            }
+            b.disabled = false;
+            b.textContent = '⟳ Läs om oprocessade';
           });
         document.querySelector('[data-action="cm-refresh"]').addEventListener('click', loadCm);
         loadCm();

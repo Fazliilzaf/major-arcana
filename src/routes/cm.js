@@ -221,8 +221,23 @@ function createCmRouter({
         : DEFAULT_FOLDER_TYPES;
     const result = await mailSync.syncAll(mailboxId, folderTypes);
     // Bugbot PR #831: maska inte folder-fel — ok speglar att ALLA mappar lyckades.
+    // (reprocess-routen nedan hanterar items som redan passerat delta-cursorn)
     const allOk = (result.folders || []).every((f) => f?.ok !== false);
     return res.status(allOk ? 200 : 502).json({ ok: allOk, ...result });
+  });
+
+  // ORD-68 · Reprocess: läs om rawItems utan expense-record — hämtar bilagor
+  // i efterhand (mail som passerat delta-cursorn, t.ex. före ORD-67f) och kör
+  // om extraktionen på kombinerat underlag (ämne + mailtext + PDF).
+  router.post('/cm/reprocess', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    const mailSync = createCmMailSync({ graphReadConnector, cmStore, secureStorage });
+    const limit = Math.min(50, Math.max(1, Number(req.body?.limit) || 10));
+    try {
+      const result = await mailSync.reprocessUnprocessed({ limit });
+      return res.json(result);
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
   });
 
   // AI extraction — skicka bild eller text, få strukturerad data tillbaka
