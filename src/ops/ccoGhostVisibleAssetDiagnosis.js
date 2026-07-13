@@ -115,6 +115,9 @@ function maskCase(row = {}) {
     originalDriveFileId: row.originalDriveFileId
       ? maskValue(row.originalDriveFileId, { keepStart: 4, keepEnd: 4 })
       : null,
+    canonicalFileName: row.canonicalFileName
+      ? maskValue(row.canonicalFileName, { keepStart: 8, keepEnd: 8 })
+      : null,
   };
 }
 
@@ -186,6 +189,10 @@ async function diagnoseGhostVisibleAssets({
       canonicalStorageKey: normalizeText(asset.storageKey) || null,
       siblingStorageKey: sibling ? normalizeText(sibling.storageKey) : null,
       originalDriveFileId: driveFileId,
+      canonicalFileName: normalizeText(asset.originalFileName) || null,
+      category: normalizeText(asset.category) || null,
+      documentDate: normalizeText(asset.documentDate) || null,
+      sourceSystem: normalizeText(asset.sourceSystem) || null,
       bundlePointsToCanonical: true,
       bundleDownloadWould404: true,
       siblingDownloadLikely200: Boolean(sibling),
