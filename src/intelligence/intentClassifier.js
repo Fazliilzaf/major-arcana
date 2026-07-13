@@ -57,7 +57,10 @@ const DETERMINISTIC_INTENT_RULES = Object.freeze([
   }),
   Object.freeze({
     id: 'cancellation',
-    baseWeight: 17,
+    // Cancellation messages commonly mention an existing booking. Keep this
+    // above booking_request so "bokad tid ... avboka" gets the actionable
+    // cancellation label instead of looking like a new booking request.
+    baseWeight: 21,
     patterns: Object.freeze([
       /\b(avboka|avbokning|omboka|cancel|cancellation|reschedule|stalla in|kan inte komma)\b/i,
     ]),

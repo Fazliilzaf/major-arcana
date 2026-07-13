@@ -58,6 +58,16 @@ test('Intent classifier maps cancellation deterministically', async () => {
   assert.equal(result.confidence >= 0.6, true);
 });
 
+test('Intent classifier prioritizes cancellation when an existing booking is mentioned', async () => {
+  const result = await classifyIntent(
+    'Hej, jag har en bokad tid den 13/6 kl 12:00 som jag vill avboka.'
+  );
+
+  assert.equal(result.intent, 'cancellation');
+  assert.equal(result.confidence >= 0.6, true);
+  assert.equal(result.source, 'deterministic');
+});
+
 test('Intent classifier maps follow-up deterministically', async () => {
   const result = await classifyIntent('Kan ni aterkoppla med en follow up om status?');
   assert.equal(result.intent, 'follow_up');
