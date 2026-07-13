@@ -67,6 +67,10 @@ test('sena V11/V12-renderare ersätter laddningsläget utan legacy-fallback', ()
   assert.match(html, /arcana:customer-product-renderers-ready/);
   assert.match(ui, /addEventListener\('arcana:customer-product-renderers-ready'/);
   assert.match(ui, /refreshFullCustomerProductWhenReady/);
+  assert.match(
+    ui,
+    /runtime\.detailShellOnly \|\| loadingShell[\s\S]*renderDetailPanel\(\{ preserveRailScroll: true \}\)/
+  );
   assert.doesNotMatch(ui, /Scaffold aktiv \(\?v11rail=on\)/);
 });
 

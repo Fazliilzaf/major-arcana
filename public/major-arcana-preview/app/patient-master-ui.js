@@ -12863,7 +12863,10 @@
       if (token !== detailPanelPaintToken) return;
       if (normalizeText(runtime.selectedPatientId) !== normalizeText(patientId)) return;
       if (!runtime.detail?.card) return;
-      if (runtime.detailShellOnly) {
+      const loadingShell = document.querySelector(
+        '[data-patient-master-rail] [data-customer-product-loading]'
+      );
+      if (runtime.detailShellOnly || loadingShell) {
         renderDetailPanel({ preserveRailScroll: true });
         return;
       }
