@@ -366,3 +366,17 @@ test('Cliento-bokningens plats och anteckning når V11 och V12', () => {
   assert.match(canon, /booking\.locationLabel/);
   assert.match(canon, /booking\.notes/);
 });
+
+test('V11 och V12 behåller activeVisit när det tunga dossier-bundle-anropet fallerar', () => {
+  assert.match(ui, /function resolveDossierBundleForCustomerProduct\(\)/);
+  assert.match(ui, /if \(loaded\) return loaded/);
+  assert.match(ui, /activeVisit: detail\.activeVisit/);
+  assert.match(
+    ui,
+    /function renderV11RailDetailShell[\s\S]*resolveDossierBundleForCustomerProduct\(\)/
+  );
+  assert.match(
+    ui,
+    /function renderV12WorkspaceDetailShell[\s\S]*resolveDossierBundleForCustomerProduct\(\)/
+  );
+});

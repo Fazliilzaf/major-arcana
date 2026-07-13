@@ -6643,6 +6643,20 @@
     });
   }
 
+  function resolveDossierBundleForCustomerProduct() {
+    const loaded = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
+    if (loaded) return loaded;
+    const detail = runtime.detail || null;
+    if (!detail?.activeVisit) return null;
+    return {
+      activeVisit: detail.activeVisit,
+      card: detail.card || null,
+      bookings: detail.bookings || null,
+      upcomingBookings: asArray(detail.upcomingBookings),
+      historyBookings: asArray(detail.historyBookings),
+    };
+  }
+
   /**
    * V11-RAIL Fas 3 · Block 0 — tom rail-shell.
    * Återanvänder enbart befintliga close-/scroll-hooks (data-v9-dossier-close,
@@ -6660,7 +6674,7 @@
   ) {
     // Bygg bcard på samma sätt som legacy referens-path (card + dossierBundle.card)
     // så adaptrarna får samma Pipedrive-dossier-data. Ren data in, ingen UI-koppling.
-    const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
+    const dossierBundle = resolveDossierBundleForCustomerProduct();
     const bcard =
       dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
         ? Object.assign({}, card, dossierBundle.card)
@@ -6768,7 +6782,7 @@
     patient,
     { tab, lite = false } = {}
   ) {
-    const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
+    const dossierBundle = resolveDossierBundleForCustomerProduct();
     const bcard =
       dossierBundle && dossierBundle.card && typeof dossierBundle.card === 'object'
         ? Object.assign({}, card, dossierBundle.card)
