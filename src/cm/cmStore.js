@@ -465,6 +465,50 @@ function createCmStore({ filePath }) {
     return state.expenseRecords.find((r) => r.id === id) || null;
   }
 
+  // ORD-72: records som saknar totalbelopp — om-extraktionskandidater.
+  // Avvisade hoppas över (ägaren har redan dömt ut dem).
+  function listRecordsMissingAmount({ limit = 10 } = {}) {
+    return state.expenseRecords
+      .filter((r) => !r.amountIncVat && r.approvalStatus !== 'rejected')
+      .slice(0, Math.max(1, limit));
+  }
+
+  // ORD-72: fyll ENDAST tomma fält ur en ny extraktion — befintliga värden
+  // (inkl. ägar-redigerade) skrivs aldrig över. Flaggor räknas om.
+  function applyReextraction(recordId, extraction = {}) {
+    const record = getExpenseRecordById(recordId);
+    if (!record) return null;
+    const changed = [];
+    const fill = (field, value, numeric = false) => {
+      const v = numeric ? Number(value) || 0 : normalizeText(value);
+      const empty = numeric ? !record[field] : !record[field];
+      if (empty && (numeric ? v > 0 : v)) {
+        record[field] = v;
+        changed.push(field);
+      }
+    };
+    fill('amountIncVat', extraction.amountIncVat, true);
+    fill('amountExVat', extraction.amountExVat, true);
+    fill('vatAmount', extraction.vatAmount, true);
+    fill('date', extraction.date);
+    fill('dueDate', extraction.dueDate);
+    fill('supplierName', extraction.supplierName);
+    fill('invoiceNumber', extraction.invoiceNumber);
+    fill('receiptNumber', extraction.receiptNumber);
+    if (changed.length === 0) return { record, changed };
+
+    const drop = new Set();
+    if (record.amountIncVat) drop.add('MISSING_TOTAL_AMOUNT');
+    if (record.vatAmount) drop.add('MISSING_VAT');
+    if (record.supplierName) drop.add('MISSING_SUPPLIER');
+    if (record.invoiceNumber) drop.add('MISSING_INVOICE_NUMBER');
+    if (record.dueDate) drop.add('MISSING_DUE_DATE');
+    record.flags = record.flags.filter((f) => !drop.has(f));
+    record.updatedAt = nowIso();
+    audit('cm.expense_record.reextracted', { recordId, changed });
+    return { record, changed };
+  }
+
   function getDocumentById(id) {
     return state.documents.find((d) => d.id === id) || null;
   }
@@ -585,6 +629,8 @@ function createCmStore({ filePath }) {
     getDocumentById,
     getRawItemById,
     listUnprocessedRawItems,
+    listRecordsMissingAmount,
+    applyReextraction,
     getInbox,
     getNeedsReview,
     getInvoices,

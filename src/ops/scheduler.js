@@ -4069,15 +4069,20 @@ function createScheduler({
     const mailbox = process.env.CM_MAIL_ACCOUNT || 'kvitto@hairtpclinic.com';
     const syncResult = await sync.syncAll(mailbox);
     const reprocessResult = await sync.reprocessUnprocessed({ limit: 10 });
+    // ORD-72: records utan totalbelopp läses om ur sparat källmail — fyller
+    // endast tomma fält (5/körning för att inte äta hela AI-budgeten).
+    const reextractResult = await sync.reextractMissingAmounts({ limit: 5 });
     const summary = {
       status: 'ok',
       mailbox,
       imported: syncResult.totalImported,
       newRecords: (syncResult.totalRecords || 0) + (reprocessResult.records || 0),
       reprocessed: reprocessResult.reprocessed,
+      reextracted: reextractResult.updatedRecords || 0,
       errors:
         (syncResult.folders || []).reduce((s, f) => s + (f.errors?.length || 0), 0) +
-        (reprocessResult.errors?.length || 0),
+        (reprocessResult.errors?.length || 0) +
+        (reextractResult.errors?.length || 0),
     };
     // ORD-70: persistera körnings-summeringen så finance.html kan visa
     // "auto-intag: senaste körning …" utan att fråga scheduler-endpointen.
