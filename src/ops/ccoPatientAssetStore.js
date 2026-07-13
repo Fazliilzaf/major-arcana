@@ -1091,6 +1091,66 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
   }
 
   /**
+   * Migration-only: återställ REJECTED pipedrive_import och koppla till patient.
+   * Bypassar terminal REJECTED-state för kontrollerad datareparation (owner/script).
+   */
+  async function restoreRejectedAndLinkPatient(
+    assetId,
+    { patientId = null, actor = {}, reason = null } = {}
+  ) {
+    const id = normalizeText(assetId);
+    const existing = state.items[id];
+    if (!existing) {
+      const e = new Error(`asset ${id} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    if (existing.status !== 'REJECTED') {
+      const e = new Error(
+        `restoreRejectedAndLinkPatient: kräver status REJECTED (var ${existing.status}). Asset: ${id}`
+      );
+      e.statusCode = 409;
+      throw e;
+    }
+    if (existing.sourceSystem !== 'pipedrive_import') {
+      const e = new Error(
+        `restoreRejectedAndLinkPatient: endast pipedrive_import (var ${existing.sourceSystem}).`
+      );
+      e.statusCode = 409;
+      throw e;
+    }
+    const pId = normalizeText(patientId);
+    if (!pId || pId === 'unknown') {
+      const e = new Error(
+        'restoreRejectedAndLinkPatient: patientId krävs (får inte vara "unknown").'
+      );
+      e.statusCode = 400;
+      throw e;
+    }
+    const previousPatientId = existing.patientId || null;
+    const merged = normalizeAsset(
+      {
+        ...existing,
+        patientId: pId,
+        confidence: 'medium',
+        isPatientVisible: true,
+        status: 'VISIBLE_ON_PATIENT_CARD',
+      },
+      existing
+    );
+    state.items[id] = merged;
+    await save();
+    logAudit(auditLog, 'asset.migration_restored_from_rejected', merged, actor, 'ok', {
+      previousPatientId,
+      newPatientId: pId,
+      previousStatus: 'REJECTED',
+      newStatus: merged.status,
+      reason: reason || null,
+    });
+    return { ...merged };
+  }
+
+  /**
    * Hard-delete — endast för icke-kliniskt-verifierade tekniska fel.
    * Guards:
    *   - `technicalReason` + `actor.userId` krävs (audit-spår)
@@ -1362,6 +1422,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     linkAssetToPatient,
     linkAssetToEncounter,
     softDeleteAsset,
+    restoreRejectedAndLinkPatient,
     hardDeleteAsset,
     listItemsForEnrichment,
     stats,
