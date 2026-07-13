@@ -428,6 +428,54 @@ test('assets/preview-encounter-links är read-only och maskerar föreslagna foto
   }
 });
 
+test('assets/preview-encounter-link-population inventerar direkt utan patient-sweep', async () => {
+  const fixture = await makeFixture();
+  try {
+    await fixture.assetStore.addAsset({
+      patientId: 'patient-population',
+      sourceSystem: 'drive_import',
+      sourceRecordId: 'photo-population-1',
+      originalFileName: 'IMG_1001.jpg',
+      mimeType: 'image/jpeg',
+      category: 'photo_before',
+      documentDate: '2026-05-05',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+    await fixture.assetStore.addAsset({
+      patientId: 'patient-population',
+      sourceSystem: 'drive_import',
+      sourceRecordId: 'photo-population-2',
+      originalFileName: 'IMG_1002.jpg',
+      mimeType: 'image/jpeg',
+      category: 'photo_after',
+      documentDate: '2026-05-05',
+      encounterId: 'encounter-population-1',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+
+    await withServer(fixture.app, async (base) => {
+      const res = await fetch(
+        `${base}/api/v1/cco-patient-master/assets/preview-encounter-link-population`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ sampleSize: 10 }),
+        }
+      );
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.zeroWrites, true);
+      assert.equal(json.stats.mediaAssets, 2);
+      assert.equal(json.stats.alreadyLinked, 1);
+      assert.equal(json.stats.missingEncounterId, 1);
+      assert.equal(json.stats.affectedPatients, 1);
+      assert.match(json.patientIds[0], /\*\*\*/);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
 test('encounter preview begränsar samtidig patientmaterialisering', () => {
   const source = require('node:fs').readFileSync(
     path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
