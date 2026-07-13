@@ -83,6 +83,9 @@ const {
   repairCanonicalAssetPatientLinks,
 } = require('../ops/ccoCanonicalAssetPatientRepair');
 const {
+  repairReviewedAssetPatientLinks,
+} = require('../ops/ccoReviewedAssetPatientRepair');
+const {
   getCanonicalPatientRepairJobState,
   startCanonicalPatientRepairJob,
 } = require('../ops/ccoCanonicalAssetPatientRepairAsyncJob');
@@ -2461,6 +2464,52 @@ function createCcoPatientMasterRouter({
           error: state.lastError,
           state,
         });
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/assets/repair-reviewed-patient-links',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const dryRun = req.body?.dryRun !== false;
+        if (!dryRun && normalizeText(req.body?.confirmText) !== 'REPAIR REVIEWED PATIENT LINKS') {
+          return res.status(400).json({
+            error: 'confirmText maste vara REPAIR REVIEWED PATIENT LINKS vid skarp korning.',
+          });
+        }
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        if (!assetStore?.getAsset || !assetStore?.linkAssetToPatient) {
+          return res.status(503).json({ error: 'Asset store saknar patient-link repair.' });
+        }
+        const listed = await patientMasterStore.listPatients({
+          tenantId: actor.tenantId,
+          limit: 20000,
+          offset: 0,
+        });
+        const report = await repairReviewedAssetPatientLinks({
+          assignments: req.body?.assignments,
+          assetStore,
+          patients: asArray(listed?.patients),
+          dryRun,
+          actor: { userId: actor.userId, role: actor.role },
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.assets_repair_reviewed_patient_links',
+          outcome: 'success',
+          targetType: 'cco_patient_assets',
+          targetId: 'reviewed_identity',
+          metadata: { ...report.stats, dryRun, zeroWrites: report.zeroWrites },
+        });
+        return res.json({ ok: true, ...report });
       })
   );
 

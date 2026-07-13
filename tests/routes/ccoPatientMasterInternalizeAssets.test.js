@@ -657,6 +657,19 @@ test('assets/link-encounter kräver owner och verifierar patient, asset och enco
   assert.match(source, /asset_link_encounter_reviewed/);
 });
 
+test('reviewed patient-link repair is owner-gated, audited and confirm-protected', () => {
+  const source = require('node:fs').readFileSync(
+    path.join(__dirname, '../../src/routes/ccoPatientMaster.js'),
+    'utf8'
+  );
+  assert.match(source, /assets\/repair-reviewed-patient-links/);
+  assert.match(
+    source,
+    /repair-reviewed-patient-links[\s\S]*?requireRole\(ROLE_OWNER\)[\s\S]*?REPAIR REVIEWED PATIENT LINKS/
+  );
+  assert.match(source, /cco\.patient_master\.assets_repair_reviewed_patient_links/);
+});
+
 test('assets/internalize commit async returnerar 202 och avslutar job', async () => {
   resetInternalizeJobStateForTests();
   const fixture = await makeFixture({
