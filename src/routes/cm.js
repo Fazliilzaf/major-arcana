@@ -258,8 +258,11 @@ function createCmRouter({
       cfoExpenseStore,
     });
     const limit = Math.min(50, Math.max(1, Number(req.body?.limit) || 10));
+    // force=true (UI-knappen): kör om även poster som redan försökts på
+    // denna processorversion. Schemakörningar kör utan force.
+    const force = req.body?.force === true;
     try {
-      const result = await mailSync.reextractMissingAmounts({ limit });
+      const result = await mailSync.reextractMissingAmounts({ limit, force });
       return res.json(result);
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message });

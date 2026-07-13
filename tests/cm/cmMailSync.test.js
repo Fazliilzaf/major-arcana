@@ -468,3 +468,46 @@ test('reextractMissingAmounts: utan källmail → skippedNoSource, extraktorfel 
   assert.equal(result.updatedRecords, 0);
   assert.ok(result.errors.some((e) => /OPENAI_API_KEY saknas/.test(e.error)));
 });
+
+test('reextractMissingAmounts: redan-försökta hoppas över, force kör om', async () => {
+  const cmStore = await tmpStore();
+  const { rawItem } = cmStore.importRawItem({
+    sourceType: 'email',
+    sourceId: 'kvitto@test.se',
+    mailMessageId: 'mm-4',
+    internetMessageId: '<mm-4@test>',
+    subject: 'Kvitto utan belopp i texten',
+    fromEmail: 'x@y.se',
+    rawBodyText: 'Tack för ditt köp hos oss! Kvittot bifogas separat i nästa mail.',
+    hasAttachments: false,
+  });
+  cmStore.createExpenseRecord({
+    rawItemId: rawItem.id,
+    expenseType: 'receipt',
+    supplierName: 'Test AB',
+    confidenceScore: 60,
+  });
+
+  // Extraktorn hittar inget belopp
+  const extractor = fakeExtractorReturning({ documentType: 'receipt', confidenceScore: 55 });
+  const sync = createCmMailSync({
+    graphReadConnector: makeFixtureConnector({ messages: [] }),
+    cmStore,
+    extractDocumentImpl: extractor,
+  });
+
+  const first = await sync.reextractMissingAmounts({ limit: 5 });
+  assert.equal(first.attempted, 1);
+  assert.equal(first.updatedRecords, 0);
+
+  // Andra körningen: posten är markerad som försökt → ingen ny AI-spend
+  const second = await sync.reextractMissingAmounts({ limit: 5 });
+  assert.equal(second.attempted, 0);
+  assert.equal(second.skippedAlreadyTried, 1);
+  assert.equal(extractor.calls.length, 1);
+
+  // force=true (UI-knappen) kör om ändå
+  const forced = await sync.reextractMissingAmounts({ limit: 5, force: true });
+  assert.equal(forced.attempted, 1);
+  assert.equal(extractor.calls.length, 2);
+});
