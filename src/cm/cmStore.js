@@ -270,6 +270,7 @@ function createCmStore({ filePath }) {
 
   function createExpenseRecord({
     documentId,
+    rawItemId,
     expenseType,
     supplierName,
     invoiceNumber,
@@ -291,6 +292,7 @@ function createCmStore({ filePath }) {
     const record = {
       id: crypto.randomUUID(),
       documentId: normalizeText(documentId),
+      rawItemId: normalizeText(rawItemId), // ORD-68: koppling raw→record för reprocess
       expenseType: DOCUMENT_TYPES.includes(expenseType) ? expenseType : 'unknown',
       supplierName: normalizeText(supplierName),
       invoiceNumber: normalizeText(invoiceNumber),
@@ -442,6 +444,23 @@ function createCmStore({ filePath }) {
 
   // ─── QUERIES ───
 
+  function getRawItemById(id) {
+    return state.rawItems.find((r) => r.id === id) || null;
+  }
+
+  // ORD-68: rawItems som aldrig fått en expense-record (via ledger ELLER
+  // record.rawItemId) — reprocess-kandidater. FAILED-status ingår (retry).
+  function listUnprocessedRawItems({ limit = 10 } = {}) {
+    const processedIds = new Set();
+    for (const entry of state.processingLedger) {
+      if (entry.expenseRecordId) processedIds.add(entry.rawItemId);
+    }
+    for (const record of state.expenseRecords) {
+      if (record.rawItemId) processedIds.add(record.rawItemId);
+    }
+    return state.rawItems.filter((r) => !processedIds.has(r.id)).slice(0, Math.max(1, limit));
+  }
+
   function getExpenseRecordById(id) {
     return state.expenseRecords.find((r) => r.id === id) || null;
   }
@@ -556,6 +575,8 @@ function createCmStore({ filePath }) {
     completeLedgerEntry,
     getExpenseRecordById,
     getDocumentById,
+    getRawItemById,
+    listUnprocessedRawItems,
     getInbox,
     getNeedsReview,
     getInvoices,

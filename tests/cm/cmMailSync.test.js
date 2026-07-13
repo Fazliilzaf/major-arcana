@@ -10,7 +10,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { createCmStore } = require('../../src/cm/cmStore');
-const { createCmMailSync } = require('../../src/cm/cmMailSync');
+const { createCmMailSync, buildCombinedText, stripHtml } = require('../../src/cm/cmMailSync');
 
 delete process.env.OPENAI_API_KEY;
 
@@ -220,6 +220,90 @@ test('syncFolder: ogiltig delta-token → cursor nollställs + omstart utan curs
     cmStore.getSyncState('kons@test.se', 'inbox').deltaLink,
     'https://graph/delta?token=FRESH'
   );
+});
+
+test('ORD-68: stripHtml bevarar rad- och tabellstruktur', () => {
+  const html =
+    '<table><tr><td>Totalt</td><td>1 250 kr</td></tr><tr><td>Moms</td><td>250 kr</td></tr></table><p>Tack för ditt köp!</p>';
+  const text = stripHtml(html);
+  assert.match(text, /Totalt \| 1 250 kr/);
+  assert.match(text, /Moms \| 250 kr/);
+  // radbrytning mellan raderna — beloppen blandas inte ihop
+  assert.ok(text.indexOf('1 250 kr') < text.indexOf('Moms'));
+  assert.ok(text.includes('\n'));
+});
+
+test('ORD-68: buildCombinedText kombinerar ämne + mailtext + PDF i samma underlag', () => {
+  const combined = buildCombinedText({
+    subject: 'Faktura 2026-100',
+    bodyText: 'Hej! Se bifogad faktura på 1 250 kr.',
+    pdfText: 'FAKTURA\nLeverantör: Telia AB\nTotalt: 1250,00 SEK',
+  });
+  assert.match(combined, /Ämne: Faktura 2026-100/);
+  assert.match(combined, /Mailtext:\n/);
+  assert.match(combined, /Bilaga \(PDF-text\):\n/);
+  assert.match(combined, /Telia AB/);
+  assert.ok(combined.length <= 8000);
+});
+
+test('ORD-68: reprocess hämtar bilagor i efterhand för rawItems utan record', async () => {
+  const cmStore = await tmpStore();
+  // Simulera mail som synkades FÖRE bilage-fixen: rawItem finns, ingen record,
+  // ledger-entry utan expenseRecordId (som efter en misslyckad extraktion).
+  const { rawItem } = cmStore.importRawItem({
+    sourceType: 'email',
+    sourceId: 'kvitto@test.se',
+    mailMessageId: 'm-old-1',
+    internetMessageId: '<old-1@test>',
+    subject: 'Er faktura från Telia',
+    rawBodyText: 'Se bifogad faktura. Totalt 1 250 kr.',
+    hasAttachments: true,
+  });
+  const led = cmStore.addLedgerEntry({ rawItemId: rawItem.id });
+  cmStore.completeLedgerEntry(led.id, { status: 'done', expenseRecordId: null });
+
+  const connector = makeFixtureConnector({ messages: [] });
+  const secureStorage = makeFakeSecureStorage();
+  const fetchImpl = async (url, init) => {
+    assert.equal(init?.headers?.Prefer, 'IdType="ImmutableId"');
+    return {
+      ok: true,
+      async json() {
+        return {
+          value: [
+            {
+              id: 'a9',
+              name: 'faktura.pdf',
+              contentType: 'application/pdf',
+              size: 999,
+              isInline: false,
+            },
+          ],
+        };
+      },
+    };
+  };
+  const sync = createCmMailSync({
+    graphReadConnector: connector,
+    cmStore,
+    secureStorage,
+    fetchImpl,
+  });
+
+  const result = await sync.reprocessUnprocessed({ limit: 5 });
+  assert.equal(result.candidates, 1);
+  assert.equal(result.reprocessed, 1);
+  // Bilagan hämtades och arkiverades i efterhand
+  assert.equal(connector.calls.attachmentContent.length, 1);
+  assert.ok(secureStorage.objects.some((o) => o.key.startsWith('cm/receipts/')));
+  assert.equal(cmStore.getDashboard().totalDocuments, 1);
+  // Extraktionen körs utan OPENAI_API_KEY → fel loggas ärligt (inga tysta hopp)
+  assert.ok(result.errors.some((e) => /OPENAI_API_KEY saknas/.test(e.error)));
+
+  // Item med record är INTE reprocess-kandidat
+  cmStore.createExpenseRecord({ rawItemId: rawItem.id, expenseType: 'invoice', confidenceScore: 90 });
+  const again = await sync.reprocessUnprocessed({ limit: 5 });
+  assert.equal(again.candidates, 0);
 });
 
 test('syncFolder utan delta-API → ärligt fel (ingen tyst no-op)', async () => {
