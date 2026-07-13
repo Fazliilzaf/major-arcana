@@ -11,12 +11,20 @@ const PATIENT_UI = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'pat
 const V11_RK = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v11-rk.js');
 const V10_SKIN = path.join(ROOT, 'public', 'major-arcana-preview', 'cco-v10-skin.css');
 const SUBNAV = path.join(ROOT, 'public', 'admin', 'cco-subnav.js');
+const DEEP_LINK_BOOT = path.join(
+  ROOT,
+  'public',
+  'major-arcana-preview',
+  'app',
+  'mobile-deeplink-boot.js'
+);
 
 const html = fs.readFileSync(INDEX_HTML, 'utf8');
 const ui = fs.readFileSync(PATIENT_UI, 'utf8');
 const v11 = fs.readFileSync(V11_RK, 'utf8');
 const v10Skin = fs.readFileSync(V10_SKIN, 'utf8');
 const subnav = fs.readFileSync(SUBNAV, 'utf8');
+const deepLinkBoot = fs.readFileSync(DEEP_LINK_BOOT, 'utf8');
 
 test('admin#cco Kunder monterar hela skarpa kundprodukten', () => {
   assert.match(subnav, /CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on'/);
@@ -94,6 +102,17 @@ test('patientId-djuplänk bevarar admin-, V11- och V12-kontraktet', () => {
   assert.match(ui, /ccoCustomerPatient: id/);
   assert.match(ui, /rail\.querySelector\('\[data-v11-rail-shell="1"\]'\)/);
   assert.match(ui, /rail\.querySelector\('\[data-v12-workspace-shell="1"\]'\)/);
+});
+
+test('desktop patientId använder befintlig tidig prefetch med serverhanterad session', () => {
+  assert.match(deepLinkBoot, /const mobileViewport = isMobileViewport\(\)/);
+  assert.match(
+    deepLinkBoot,
+    /prefetchPatientDetail\(deepLink\.patientId, token\.length > 8 \? token : '', \{/
+  );
+  assert.match(deepLinkBoot, /\.\.\.\(token \? \{ Authorization: `Bearer \$\{token\}` \} : \{\}\)/);
+  assert.match(deepLinkBoot, /if \(hydrateRail\) hydrateWhenRailReady/);
+  assert.doesNotMatch(deepLinkBoot, /if \(!isMobileViewport\(\)\) return/);
 });
 
 test('Kunder-skalets aktivering startar patientId före browser-token-returen', () => {

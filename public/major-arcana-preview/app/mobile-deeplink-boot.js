@@ -170,7 +170,7 @@
     );
   }
 
-  function prefetchPatientDetail(patientId, token) {
+  function prefetchPatientDetail(patientId, token, { hydrateRail = false } = {}) {
     if (window.__ARCANA_PATIENT_PREFETCH__ || window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__) return;
     window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__ = true;
     fetch(
@@ -181,7 +181,7 @@
       {
         headers: {
           Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       }
     )
@@ -189,7 +189,7 @@
       .then((payload) => {
         if (!payload || window.__ARCANA_PATIENT_PREFETCH__) return;
         window.__ARCANA_PATIENT_PREFETCH__ = { patientId, payload };
-        hydrateWhenRailReady(payload, patientId);
+        if (hydrateRail) hydrateWhenRailReady(payload, patientId);
       })
       .catch(() => {})
       .finally(() => {
@@ -197,9 +197,9 @@
       });
   }
 
-  if (!isMobileViewport()) return;
+  const mobileViewport = isMobileViewport();
 
-  if (isMobileCustomersRoute()) {
+  if (mobileViewport && isMobileCustomersRoute()) {
     window.__ARCANA_DEFER_APP_BUNDLE__ = true;
     window.__ARCANA_STAFF_BUNDLE_SPLIT__ = true;
     primeMobileShellEarly();
@@ -207,10 +207,10 @@
 
   const deepLink = parseDeepLink();
   if (deepLink) {
-    markDeepLinkPrime(deepLink.patientId);
+    if (mobileViewport) markDeepLinkPrime(deepLink.patientId);
     const token = readStaffToken();
-    if (token.length > 8) {
-      prefetchPatientDetail(deepLink.patientId, token);
-    }
+    prefetchPatientDetail(deepLink.patientId, token.length > 8 ? token : '', {
+      hydrateRail: mobileViewport,
+    });
   }
 })();
