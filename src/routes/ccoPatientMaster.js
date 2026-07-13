@@ -1222,13 +1222,27 @@ function createCcoPatientMasterRouter({
       return { ready: false, documents: null, error: 'document_bundle_unavailable' };
     }
     const card = patientMasterStore.buildPatientCardReadout(patient);
-    const bundle = await buildPatientDocumentBundle({
+    let bundle = await buildPatientDocumentBundle({
       tenantId: actor.tenantId,
       patientId: patient.id,
       card,
       journalEntries,
       documentInstanceStore,
     });
+    if (typeof resolvePatientAssetStore === 'function') {
+      const assetStore = await resolvePatientAssetStore();
+      if (assetStore?.listAssetsForPatient) {
+        const {
+          mergePipedriveHistoricalDocuments,
+        } = require('../ops/ccoPipedriveHistoricalDocuments');
+        const pipedriveAssets = (assetStore.listAssetsForPatient(patient.id) || []).filter(
+          (row) => row?.sourceSystem === 'pipedrive_import'
+        );
+        if (pipedriveAssets.length) {
+          bundle = mergePipedriveHistoricalDocuments(bundle, pipedriveAssets);
+        }
+      }
+    }
     return bundle;
   }
 

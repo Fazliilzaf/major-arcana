@@ -92,6 +92,7 @@ const VALID_SOURCE_SYSTEMS = Object.freeze([
   'aisia_ds3',
   'cco_journal_sign', // P0.J.222 — auto-PDF vid signering av CCO-journal
   'getaccept_import',
+  'pipedrive_import',
   'm365_halso',
 ]);
 

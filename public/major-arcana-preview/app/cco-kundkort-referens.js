@@ -1709,6 +1709,7 @@
     return (
       cat === 'agreement' ||
       src === 'getaccept_import' ||
+      src === 'pipedrive_import' ||
       /behandlingsavtal|getaccept|ögonlocksplastik.*avtal|ogonlocksplastik.*avtal/i.test(name)
     );
   }
@@ -1732,6 +1733,9 @@
     if (d) metaParts.push(d);
     if (best && String(best.sourceSystem || '').toLowerCase() === 'getaccept_import') {
       metaParts.push('GetAccept');
+    }
+    if (best && String(best.sourceSystem || '').toLowerCase() === 'pipedrive_import') {
+      metaParts.push('Pipedrive');
     }
     if (!url) {
       return buildDocViewRow(
