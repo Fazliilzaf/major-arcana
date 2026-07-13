@@ -92,6 +92,42 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+async function buildEncounterAssetAliasesByCanonicalPatient({
+  tenantId,
+  patientMasterStore,
+  assetStore,
+}) {
+  if (!assetStore?.listItemsForEnrichment) return new Map();
+  const missingMedia = assetStore
+    .listItemsForEnrichment(tenantId)
+    .filter(
+      (asset) =>
+        ['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(asset?.status) &&
+        isMediaAsset(asset) &&
+        !normalizeText(asset.encounterId)
+    );
+  if (!missingMedia.length) return new Map();
+  const listed = await patientMasterStore.listPatients({
+    tenantId,
+    limit: 20000,
+    offset: 0,
+  });
+  const aliasesByCanonical = new Map();
+  for (const mapping of resolveCanonicalPatientsForAssetAliases({
+    patients: asArray(listed?.patients),
+    assets: missingMedia,
+  })) {
+    const canonicalPatientId = normalizeText(mapping.canonicalPatientId);
+    const assetPatientId = normalizeText(mapping.assetPatientId);
+    if (!canonicalPatientId || !assetPatientId) continue;
+    if (!aliasesByCanonical.has(canonicalPatientId)) {
+      aliasesByCanonical.set(canonicalPatientId, []);
+    }
+    aliasesByCanonical.get(canonicalPatientId).push(assetPatientId);
+  }
+  return aliasesByCanonical;
+}
+
 function parseIncludeDriveFiles(value) {
   const normalized = String(value ?? '1')
     .trim()
@@ -2256,6 +2292,12 @@ function createCcoPatientMasterRouter({
           return res.status(503).json({ error: 'Asset store saknas på servern.' });
         }
 
+        const encounterAliasesByCanonical = await buildEncounterAssetAliasesByCanonicalPatient({
+          tenantId: actor.tenantId,
+          patientMasterStore,
+          assetStore,
+        });
+
         let patients = [];
         if (requestedPatientIds.length) {
           patients = (
@@ -2293,6 +2335,9 @@ function createCcoPatientMasterRouter({
             customerStore,
             assetStore,
           });
+          for (const alias of encounterAliasesByCanonical.get(patient.id) || []) {
+            if (!ids.includes(alias)) ids.push(alias);
+          }
           const seen = new Set();
           const assets = [];
           for (const id of ids) {
@@ -2389,6 +2434,12 @@ function createCcoPatientMasterRouter({
         if (!assetStore?.linkAssetToEncounter) {
           return res.status(503).json({ error: 'Asset store saknar encounter-repair.' });
         }
+
+        const encounterAliasesByCanonical = await buildEncounterAssetAliasesByCanonicalPatient({
+          tenantId: actor.tenantId,
+          patientMasterStore,
+          assetStore,
+        });
         const patients = (
           await Promise.all(
             patientIds.map((patientId) =>
@@ -2412,6 +2463,9 @@ function createCcoPatientMasterRouter({
             customerStore,
             assetStore,
           });
+          for (const alias of encounterAliasesByCanonical.get(patient.id) || []) {
+            if (!ids.includes(alias)) ids.push(alias);
+          }
           const seen = new Set();
           const assets = [];
           for (const id of ids) {
