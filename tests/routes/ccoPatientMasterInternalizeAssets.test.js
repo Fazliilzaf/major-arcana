@@ -431,8 +431,15 @@ test('assets/preview-encounter-links är read-only och maskerar föreslagna foto
 test('assets/preview-encounter-link-population inventerar direkt utan patient-sweep', async () => {
   const fixture = await makeFixture();
   try {
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: TENANT,
+      id: 'patient-population',
+      displayName: 'Population Patient',
+      cliento: { sourceId: 'cliento-population' },
+      matchStatus: 'matched',
+    });
     await fixture.assetStore.addAsset({
-      patientId: 'patient-population',
+      patientId: 'cliento-population',
       sourceSystem: 'drive_import',
       sourceRecordId: 'photo-population-1',
       originalFileName: 'IMG_1001.jpg',
@@ -442,7 +449,7 @@ test('assets/preview-encounter-link-population inventerar direkt utan patient-sw
       status: 'VISIBLE_ON_PATIENT_CARD',
     });
     await fixture.assetStore.addAsset({
-      patientId: 'patient-population',
+      patientId: 'cliento-population',
       sourceSystem: 'drive_import',
       sourceRecordId: 'photo-population-2',
       originalFileName: 'IMG_1002.jpg',
@@ -470,6 +477,9 @@ test('assets/preview-encounter-link-population inventerar direkt utan patient-sw
       assert.equal(json.stats.missingEncounterId, 1);
       assert.equal(json.stats.affectedPatients, 1);
       assert.match(json.patientIds[0], /\*\*\*/);
+      assert.equal(json.canonicalPatientIds.length, 1);
+      assert.equal(json.unresolvedPatientIds.length, 0);
+      assert.match(json.patientMappings[0].canonicalPatientId, /\*\*\*/);
     });
   } finally {
     await fs.rm(fixture.tmp, { recursive: true, force: true });
