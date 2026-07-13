@@ -8,8 +8,8 @@
  * (rosa) bara på kryssruta + räls/avatar — aldrig rosa-tvättad text/bakgrund.
  *
  * Hopfällbara sektioner (sticky). Auto-sync (ingen manuell knapp) — läser
- * spegeln på schema. Datakontraktet ("resten") kopplas på senare; modulen läser
- * GET /api/v1/cco/runtime/mailboxes när den finns, annars "väntar på data".
+ * spegeln på schema. Valet dispatchas till inkorgens befintliga worklist-lager;
+ * status läses från GET /api/v1/cco/runtime/mailboxes.
  *
  * Ändrar ingen live-send. Ingen ny färg — allt via befintliga CCO-tokens.
  */
@@ -327,7 +327,7 @@
         statusById = map;
         renderRows();
       } catch (_e) {
-        /* datakontraktet ("resten") kommer senare — designen står ändå */
+        /* Statusspegeln är best-effort; worklist-filtret fungerar ändå. */
       }
     }
 
