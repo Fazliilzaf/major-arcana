@@ -301,7 +301,11 @@ test('ORD-68: reprocess hämtar bilagor i efterhand för rawItems utan record', 
   assert.ok(result.errors.some((e) => /OPENAI_API_KEY saknas/.test(e.error)));
 
   // Item med record är INTE reprocess-kandidat
-  cmStore.createExpenseRecord({ rawItemId: rawItem.id, expenseType: 'invoice', confidenceScore: 90 });
+  cmStore.createExpenseRecord({
+    rawItemId: rawItem.id,
+    expenseType: 'invoice',
+    confidenceScore: 90,
+  });
   const again = await sync.reprocessUnprocessed({ limit: 5 });
   assert.equal(again.candidates, 0);
 });
@@ -328,6 +332,8 @@ function fakeExtractorReturning(extraction) {
 
 test('reextractMissingAmounts: fyller tomma fält ur källmailet, rör aldrig befintliga', async () => {
   const cmStore = await tmpStore();
+  // ORD-72c-scenariot från prod: delta gav bara preview (~200 tecken) UTAN
+  // belopp — fulla mailkroppen (med beloppet) hämtas via Graph i efterhand.
   const { rawItem } = cmStore.importRawItem({
     sourceType: 'email',
     sourceId: 'kvitto@test.se',
@@ -335,7 +341,7 @@ test('reextractMissingAmounts: fyller tomma fält ur källmailet, rör aldrig be
     internetMessageId: '<mm-1@test>',
     subject: 'Kvitto Foodora',
     fromEmail: 'no-reply@foodora.se',
-    rawBodyText: 'Tack för din beställning! Totalt: 402,00 kr varav moms 43,07 kr',
+    rawBodyText: 'Tack för din beställning! Ditt kvitto finns i detta mail.',
     hasAttachments: false,
   });
   const record = cmStore.createExpenseRecord({
@@ -354,9 +360,26 @@ test('reextractMissingAmounts: fyller tomma fält ur källmailet, rör aldrig be
     date: '2026-07-02',
     confidenceScore: 90,
   });
+  // Graph message-GET (full body) — ORD-72c: preview <500 tecken triggar hämtning
+  const fullBodyFetch = async (url, init) => {
+    assert.match(url, /messages\/mm-1\?\$select=subject,body/);
+    assert.equal(init?.headers?.Prefer, 'IdType="ImmutableId"');
+    return {
+      ok: true,
+      async json() {
+        return {
+          body: {
+            content:
+              '<html><body><table><tr><td>Summa</td><td>Totalt: 402,00 kr varav moms 43,07 kr</td></tr></table></body></html>',
+          },
+        };
+      },
+    };
+  };
   const sync = createCmMailSync({
     graphReadConnector: makeFixtureConnector({ messages: [] }),
     cmStore,
+    fetchImpl: fullBodyFetch,
     extractDocumentImpl: extractor,
   });
 
@@ -373,9 +396,11 @@ test('reextractMissingAmounts: fyller tomma fält ur källmailet, rör aldrig be
   assert.ok(!updated.flags.includes('MISSING_TOTAL_AMOUNT'));
   assert.ok(!updated.flags.includes('MISSING_VAT'));
 
-  // Källmailet skickades till extraktorn (mailtext-vägen)
+  // Extraktorn fick den HÄMTADE fulla mailtexten (inte preview-stumpen)
   assert.equal(extractor.calls.length, 1);
   assert.match(extractor.calls[0].text, /402,00 kr/);
+  // rawItem uppgraderades så framtida körningar slipper Graph-anropet
+  assert.match(cmStore.getRawItemById(rawItem.id).rawBodyText, /402,00 kr/);
 
   // Andra körningen: inget kvar att göra
   const again = await sync.reextractMissingAmounts({ limit: 10 });
@@ -391,7 +416,10 @@ test('reextractMissingAmounts: backfillar promotad CFO-utgift endast när belopp
     internetMessageId: '<mm-2@test>',
     subject: 'Kvitto',
     fromEmail: 'x@y.se',
-    rawBodyText: 'Summa att betala: 1 000 kr inkl. moms 200 kr — tack för köpet',
+    // ≥500 tecken → fulla body:n finns redan, ingen Graph-hämtning behövs
+    rawBodyText:
+      'Summa att betala: 1 000 kr inkl. moms 200 kr — tack för köpet. ' +
+      'Orderdetaljer och leveransvillkor: '.repeat(15),
     hasAttachments: false,
   });
   const record = cmStore.createExpenseRecord({
@@ -460,6 +488,14 @@ test('reextractMissingAmounts: utan källmail → skippedNoSource, extraktorfel 
   const sync = createCmMailSync({
     graphReadConnector: makeFixtureConnector({ messages: [] }),
     cmStore,
+    // full-body-hämtningen felar → fail-open till preview, ärligt fel loggas
+    fetchImpl: async () => ({
+      ok: false,
+      status: 500,
+      async json() {
+        return {};
+      },
+    }),
     extractDocumentImpl: async () => ({ ok: false, error: 'OPENAI_API_KEY saknas' }),
   });
   const result = await sync.reextractMissingAmounts({ limit: 10 });
@@ -478,7 +514,10 @@ test('reextractMissingAmounts: redan-försökta hoppas över, force kör om', as
     internetMessageId: '<mm-4@test>',
     subject: 'Kvitto utan belopp i texten',
     fromEmail: 'x@y.se',
-    rawBodyText: 'Tack för ditt köp hos oss! Kvittot bifogas separat i nästa mail.',
+    // ≥500 tecken → ingen Graph-hämtning; extraktorn hittar ändå inget belopp
+    rawBodyText:
+      'Tack för ditt köp hos oss! Kvittot bifogas separat i nästa mail. ' +
+      'Information om din beställning och våra villkor: '.repeat(12),
     hasAttachments: false,
   });
   cmStore.createExpenseRecord({

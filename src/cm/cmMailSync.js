@@ -20,7 +20,9 @@
 const crypto = require('node:crypto');
 const { extractDocument } = require('./cmAiExtractor');
 
-const CM_PROCESSOR_VERSION = 3;
+// v4 (ORD-72c): full mailbody hämtas när delta bara gav preview — bumpen
+// nollar reextract-attempt-markörer så alla poster får omtag med fullt underlag.
+const CM_PROCESSOR_VERSION = 4;
 const CM_FILTER_VERSION = 1;
 const DEFAULT_FOLDER_TYPES = ['inbox'];
 const MAX_PAGES_PER_RUN = 3;
@@ -124,6 +126,25 @@ function createCmMailSync({
     if (!res.ok) throw new Error(`Graph attachments-list ${res.status}`);
     const data = await res.json();
     return Array.isArray(data?.value) ? data.value : [];
+  }
+
+  // ORD-72c: Graph-delta levererar ofta bara bodyPreview (~200 tecken) —
+  // "läs mailinnehållet" kräver fulla body:n. Rått follow-up-anrop per
+  // meddelande (samma mönster + ImmutableId-Prefer som attachments-listan).
+  async function fetchFullMessageBody(mailboxId, messageId) {
+    const accessToken = await graphReadConnector.fetchAccessToken();
+    const url =
+      `${graphReadConnector.graphBaseUrl}/users/${encodeURIComponent(mailboxId)}` +
+      `/messages/${encodeURIComponent(messageId)}?$select=subject,body,bodyPreview`;
+    const res = await fetchImpl(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Prefer: 'IdType="ImmutableId"',
+      },
+    });
+    if (!res.ok) throw new Error(`Graph message-fetch ${res.status}`);
+    const data = await res.json();
+    return stripHtml(data?.body?.content || data?.bodyPreview || '');
   }
 
   async function archiveOriginal(message) {
@@ -270,7 +291,18 @@ function createCmMailSync({
       return;
     }
 
-    const bodyText = stripHtml(message.body?.content || message.bodyPreview || '').slice(0, 6000);
+    // ORD-72c: delta ger ofta bara bodyPreview (~200 tecken) — hämta fulla
+    // body:n innan import så extraktionen får hela mailinnehållet (belopp
+    // ligger ofta långt ner i kvitto-HTML). Fail-open till preview vid fel.
+    let bodyText = stripHtml(message.body?.content || message.bodyPreview || '').slice(0, 6000);
+    if (!message.body?.content && message.id) {
+      try {
+        const fullBody = await fetchFullMessageBody(mailboxId, message.id);
+        if (fullBody) bodyText = fullBody.slice(0, 6000);
+      } catch (err) {
+        results.errors.push({ messageId: message.id, error: `full-body: ${err.message}` });
+      }
+    }
     const importResult = cmStore.importRawItem({
       sourceType: 'email',
       sourceId: mailboxId,
@@ -382,10 +414,25 @@ function createCmMailSync({
             errors: results.errors,
           });
         }
+        // ORD-72c: kort rawBodyText = delta gav bara preview — hämta hela mailet
+        let bodyText = rawItem.rawBodyText || '';
+        if (bodyText.length < 500 && rawItem.mailMessageId && rawItem.sourceId) {
+          try {
+            const fullBody = await fetchFullMessageBody(rawItem.sourceId, rawItem.mailMessageId);
+            // Fulla kroppen vinner alltid när den finns — strippad HTML kan
+            // vara KORTARE än previewn fast den innehåller beloppet.
+            if (fullBody) {
+              bodyText = fullBody.slice(0, 6000);
+              rawItem.rawBodyText = bodyText;
+            }
+          } catch (err) {
+            results.errors.push({ rawItemId: rawItem.id, error: `full-body: ${err.message}` });
+          }
+        }
         budget.remaining -= 1;
         const ex = await runExtraction({
           subject: rawItem.subject,
-          bodyText: rawItem.rawBodyText,
+          bodyText,
           pdfText: harvest.pdfText,
           imageInput: harvest.imageInput,
         });
@@ -582,12 +629,28 @@ function createCmMailSync({
             errors: results.errors,
           });
         }
+        // ORD-72c: kort rawBodyText = delta gav bara preview — hämta hela
+        // mailet och uppgradera rawItem så framtida körningar slipper anropet.
+        let bodyText = rawItem.rawBodyText || '';
+        if (bodyText.length < 500 && rawItem.mailMessageId && rawItem.sourceId) {
+          try {
+            const fullBody = await fetchFullMessageBody(rawItem.sourceId, rawItem.mailMessageId);
+            // Fulla kroppen vinner alltid när den finns — strippad HTML kan
+            // vara KORTARE än previewn fast den innehåller beloppet.
+            if (fullBody) {
+              bodyText = fullBody.slice(0, 6000);
+              rawItem.rawBodyText = bodyText;
+            }
+          } catch (err) {
+            results.errors.push({ recordId: record.id, error: `full-body: ${err.message}` });
+          }
+        }
         budget.remaining -= 1;
         results.attempted++;
         cmStore.markReextractAttempt?.(record.id, CM_PROCESSOR_VERSION);
         const ex = await runExtraction({
           subject: rawItem.subject,
-          bodyText: rawItem.rawBodyText,
+          bodyText,
           pdfText: harvest.pdfText,
           imageInput: harvest.imageInput,
         });
