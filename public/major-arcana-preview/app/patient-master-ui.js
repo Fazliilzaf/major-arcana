@@ -8500,11 +8500,11 @@
       const fileId = normalizeText(img.dataset.patientFileId);
       if (!fileId || img.dataset.loaded === 'true') return;
       img.classList.add('is-loading');
-      let objectUrl = await fetchPatientFileObjectUrl(fileId, {
-        preferThumbnail: img.tagName === 'IMG',
-      });
-      if (!objectUrl) {
-        await new Promise((resolve) => window.setTimeout(resolve, 300));
+      let objectUrl = '';
+      for (let attempt = 0; attempt < 3 && !objectUrl; attempt += 1) {
+        if (attempt > 0) {
+          await new Promise((resolve) => window.setTimeout(resolve, attempt * 500));
+        }
         objectUrl = await fetchPatientFileObjectUrl(fileId, {
           preferThumbnail: img.tagName === 'IMG',
         });
@@ -8560,6 +8560,7 @@
         img.src = objectUrl;
         void attachVideoPoster(img);
       }
+      img.classList.remove('is-broken');
       img.dataset.loaded = 'true';
       const tileLink = img.tagName === 'IMG' ? img.closest('a.patient-master-image-tile') : null;
       if (tileLink) tileLink.href = objectUrl;
@@ -8607,7 +8608,17 @@
         const variant = normalizeText(img.dataset.journalPhotoVariant);
         if (!photoId || img.dataset.loaded === 'true') return;
         img.classList.add('is-loading');
-        const objectUrl = await fetchJournalPhotoObjectUrl(photoId, variant);
+        let objectUrl = '';
+        for (let attempt = 0; attempt < 3 && !objectUrl; attempt += 1) {
+          if (attempt > 0) {
+            await new Promise((resolve) => window.setTimeout(resolve, attempt * 500));
+          }
+          try {
+            objectUrl = await fetchJournalPhotoObjectUrl(photoId, variant);
+          } catch {
+            objectUrl = '';
+          }
+        }
         img.classList.remove('is-loading');
         if (!objectUrl) {
           if (variant && !img.dataset.fallbackTried) {
@@ -8647,7 +8658,11 @@
           }
         };
         img.src = objectUrl;
+        img.classList.remove('is-broken');
         img.dataset.loaded = 'true';
+        img.parentElement
+          ?.querySelectorAll(':scope > .customers-utility-button')
+          .forEach((button) => button.remove());
         const previewLink = img.closest('a[data-journal-photo-link]');
         if (previewLink) previewLink.href = objectUrl;
       })

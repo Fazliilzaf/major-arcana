@@ -361,6 +361,13 @@ test('foto-editorn hämtar native asset via auth blob utan direkt URL-fallback',
   assert.doesNotMatch(ui, /image\.src = objUrl \|\| src/);
 });
 
+test('V12 besöksmedia återhämtar journalbild och film efter transient 502', () => {
+  assert.match(ui, /attempt < 3 && !objectUrl/);
+  assert.match(ui, /window\.setTimeout\(resolve, attempt \* 500\)/);
+  assert.match(ui, /img\.classList\.remove\('is-broken'\);\s*img\.dataset\.loaded = 'true'/);
+  assert.match(ui, /querySelectorAll\(':scope > \.customers-utility-button'\)/);
+});
+
 test('listfas visar segment/insikts-placeholder tills enriched customers-shell landar', () => {
   assert.match(ui, /function isCustomerShellEnrichmentPending\(\)/);
   assert.match(ui, /function isCustomerSegmentEnrichmentPending\(segmentStats\)/);
