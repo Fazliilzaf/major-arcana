@@ -111,6 +111,8 @@ describe('cliento web booking enrichment chain', () => {
             status: 'upcoming',
             serviceLabel: 'Fysisk konsultation',
             staffName: 'Fysisk konsultation',
+            locationName: 'Rum 2',
+            notes: 'Ta med tidigare behandlingsplan.',
             source: 'cliento_web_mail',
           },
         ],
@@ -132,6 +134,8 @@ describe('cliento web booking enrichment chain', () => {
       assert.equal(activeVisit.visible, true);
       assert.equal(activeVisit.state, 'scheduled_today');
       assert.equal(activeVisit.serviceLabel, 'Fysisk konsultation');
+      assert.equal(activeVisit.locationLabel, 'Rum 2');
+      assert.equal(activeVisit.bookingNote, 'Ta med tidigare behandlingsplan.');
     } finally {
       global.Date = originalDate;
     }

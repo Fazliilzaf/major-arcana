@@ -396,6 +396,9 @@ function buildBookingEntry(booking) {
       normalizeText(booking?.serviceLabel || booking?.serviceName || booking?.title) || 'Bokning',
     status: normalizeText(booking?.status) || 'confirmed',
     resourceLabel: normalizeText(booking?.resourceLabel || booking?.staff) || null,
+    locationLabel:
+      normalizeText(booking?.locationLabel || booking?.locationName || booking?.roomLabel) || null,
+    notes: normalizeText(booking?.notes || booking?.note) || null,
   };
 }
 

@@ -176,6 +176,8 @@ function buildActiveVisitPayload({
       startsAt: null,
       serviceLabel: null,
       practitionerLabel: null,
+      locationLabel: null,
+      bookingNote: null,
       checkedInAt: null,
       startedAt: null,
       completedAt: null,
@@ -205,6 +207,14 @@ function buildActiveVisitPayload({
       normalizeText(
         visitEncounter?.resourceLabel || scheduled?.staff || scheduled?.resourceLabel
       ) || null,
+    locationLabel:
+      normalizeText(
+        visitEncounter?.locationLabel ||
+          visitEncounter?.roomLabel ||
+          scheduled?.locationLabel ||
+          scheduled?.locationName
+      ) || null,
+    bookingNote: normalizeText(scheduled?.notes || scheduled?.note) || null,
     checkedInAt,
     startedAt,
     completedAt,
