@@ -57,6 +57,7 @@ const { recordTenantAccessCheck } = require('./tenantAccessCheck');
 const {
   computeCcoInboxEnrichmentCoverage,
   hasCcoEnrichmentSignals,
+  resolveEnrichmentRowConversationId,
 } = require('./ccoInboxEnrichmentCoverage');
 const {
   saveCcoInboxEnrichmentCheckpoint,
@@ -3441,6 +3442,7 @@ function createScheduler({
     canaryLimit = 0,
     phase = 'full',
     targetConversationIds = [],
+    refreshExisting = false,
   } = {}) {
     const mailboxIds = resolveCcoHistoryMailboxIds(config);
     if (mailboxIds.length === 0) {
@@ -3571,7 +3573,16 @@ function createScheduler({
 
     const batchRuns = [];
     let coverageAfterBootstrap = await computeCoverage(rollingBaseline);
-    let remainingGapIds = asSchedulerStringArray(coverageAfterBootstrap.gapConversationIds);
+    const existingEnrichmentIds = refreshExisting
+      ? asSchedulerStringArray(
+          baselineRows
+            .filter((row) => hasCcoEnrichmentSignals(row))
+            .map((row) => resolveEnrichmentRowConversationId(row))
+        )
+      : [];
+    let remainingGapIds = refreshExisting
+      ? existingEnrichmentIds
+      : asSchedulerStringArray(coverageAfterBootstrap.gapConversationIds);
     const scopedTargetIds = asSchedulerStringArray(targetConversationIds)
       .map((item) => normalizeText(item))
       .filter(Boolean);
@@ -3646,6 +3657,7 @@ function createScheduler({
           entryId: batchResult?.entryId || null,
           persisted: Boolean(batchResult?.persisted),
         });
+        await new Promise((resolve) => setImmediate(resolve));
       }
 
       const nextCoverage = await computeCoverage(rollingBaseline);
@@ -3658,6 +3670,7 @@ function createScheduler({
       previousGapCount = nextGapCount;
       coverageAfterBootstrap = nextCoverage;
       remainingGapIds = asSchedulerStringArray(nextCoverage.gapConversationIds);
+      if (refreshExisting) break;
       if (
         effectivePhase === 'canary' ||
         (effectiveCanaryLimit > 0 && processedConversationCount >= effectiveCanaryLimit)
@@ -3726,6 +3739,8 @@ function createScheduler({
       phase: effectivePhase,
       canaryLimit: effectiveCanaryLimit || null,
       targetConversationIds: scopedTargetIds.length > 0 ? scopedTargetIds : null,
+      refreshExisting,
+      refreshExistingConversationCount: existingEnrichmentIds.length,
       processedConversationCount,
       coverageBefore,
       fullBootstrap,
@@ -4455,6 +4470,7 @@ function createScheduler({
       canaryLimit,
       phase,
       targetConversationIds,
+      refreshExisting,
     } = {}
   ) {
     const job = jobDefinitions.find((item) => item.id === jobId);
@@ -4518,6 +4534,7 @@ function createScheduler({
         canaryLimit,
         phase,
         targetConversationIds,
+        refreshExisting,
       });
       const durationMs = Date.now() - startedAtMs;
       logJobMemory('success');

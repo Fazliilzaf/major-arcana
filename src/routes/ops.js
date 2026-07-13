@@ -2050,7 +2050,7 @@ function createOpsRouter({
           });
         }
 
-        if (phase === 'run' || phase === 'canary' || phase === 'full') {
+        if (phase === 'run' || phase === 'canary' || phase === 'full' || phase === 'refresh') {
           if (!go) {
             return res.status(400).json({ error: `${phase} kräver go=true.` });
           }
@@ -2062,6 +2062,7 @@ function createOpsRouter({
             Math.min(9338, Number.parseInt(String(body.canaryLimit ?? '500'), 10) || 500)
           );
           const runPhase = phase === 'canary' ? 'canary' : 'full';
+          const refreshExisting = phase === 'refresh' || parseBoolean(body.refreshExisting, false);
           enrichmentBackfillJobs.set(jobId, {
             jobId,
             phase: runPhase,
@@ -2070,6 +2071,7 @@ function createOpsRouter({
             startedAt: new Date().toISOString(),
             tenantId,
             canaryLimit: phase === 'canary' ? canaryLimit : null,
+            refreshExisting,
           });
 
           res.json({
@@ -2078,6 +2080,7 @@ function createOpsRouter({
             jobId,
             status: 'running',
             canaryLimit: phase === 'canary' ? canaryLimit : null,
+            refreshExisting,
             pollUrl: `/api/v1/ops/cco/enrichment/backfill/status/${jobId}`,
           });
 
@@ -2089,6 +2092,7 @@ function createOpsRouter({
                 tenantId,
                 canaryLimit: phase === 'canary' ? canaryLimit : 0,
                 phase: runPhase,
+                refreshExisting,
               });
               const mailboxIds = resolveCcoHistoryMailboxIds(config);
               let coverage = null;
@@ -2152,7 +2156,7 @@ function createOpsRouter({
 
         return res.status(400).json({
           error:
-            'phase måste vara snapshot, restore-capability, reload-capability, run, canary eller full.',
+            'phase måste vara snapshot, restore-capability, reload-capability, run, canary, full eller refresh.',
         });
       } catch (error) {
         console.error('[ops/cco/enrichment/backfill/run]', error);

@@ -5,6 +5,7 @@ const {
   buildEnrichmentRowConversationKey,
   hasCcoEnrichmentSignals,
   resolveGapConversationId,
+  resolveEnrichmentRowConversationId,
   computeCcoInboxEnrichmentCoverage,
 } = require('../../src/ops/ccoInboxEnrichmentCoverage');
 
@@ -34,6 +35,24 @@ test('resolveGapConversationId prefers canonical conversationKey', () => {
       mailboxConversationId: 'AAQkMissing',
     }),
     canonicalKey
+  );
+});
+
+test('resolveEnrichmentRowConversationId prefers persisted canonical key', () => {
+  assert.equal(
+    resolveEnrichmentRowConversationId({
+      conversationKey: 'kons@hairtpclinic.com:canonical',
+      mailboxId: 'kons@hairtpclinic.com',
+      conversationId: 'legacy',
+    }),
+    'kons@hairtpclinic.com:canonical'
+  );
+  assert.equal(
+    resolveEnrichmentRowConversationId({
+      mailboxId: 'kons@hairtpclinic.com',
+      conversationId: 'fallback',
+    }),
+    'kons@hairtpclinic.com:fallback'
   );
 });
 
@@ -117,4 +136,45 @@ test('computeCcoInboxEnrichmentCoverage reports gap for truth rows without enric
     }).includes('AAQkEnriched'),
     true
   );
+});
+
+test('computeCcoInboxEnrichmentCoverage scopes reads per mailbox and yields between chunks', async () => {
+  const mailboxIds = ['kons@hairtpclinic.com', 'fazli@hairtpclinic.com'];
+  const listCalls = [];
+  let yieldCount = 0;
+  const truthStore = {
+    listMessages({ mailboxIds: requestedMailboxIds } = {}) {
+      listCalls.push(requestedMailboxIds);
+      const mailboxId = requestedMailboxIds[0];
+      return Array.from({ length: 30 }, (_, index) => ({
+        mailboxId,
+        mailboxAddress: mailboxId,
+        conversationId: `${mailboxId}-conversation-${index}`,
+        mailboxConversationId: `${mailboxId}-conversation-${index}`,
+        folderType: 'inbox',
+        direction: 'inbound',
+        isRead: false,
+        receivedAt: new Date().toISOString(),
+        subject: `Message ${index}`,
+      }));
+    },
+  };
+  const capabilityAnalysisStore = { async list() { return []; } };
+
+  const coverage = await computeCcoInboxEnrichmentCoverage({
+    tenantId: 'hair-tp-clinic',
+    mailboxIds,
+    capabilityAnalysisStore,
+    ccoMailboxTruthStore: truthStore,
+    customerState: null,
+    eventLoopYieldEveryRows: 25,
+    yieldControl: async () => {
+      yieldCount += 1;
+    },
+  });
+
+  assert.deepEqual(listCalls, [[mailboxIds[0]], [mailboxIds[1]]]);
+  assert.equal(coverage.truthConversationCount, 60);
+  assert.equal(coverage.gapCount, 60);
+  assert.equal(yieldCount, 4);
 });
