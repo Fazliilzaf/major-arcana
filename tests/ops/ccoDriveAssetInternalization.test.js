@@ -404,9 +404,11 @@ test('verified ghost med saknad Drive-källa flyttas till NEEDS_REVIEW', async (
       rows: [
         {
           patientId: canonical.patientId,
-          sourceRecordId: canonical.id,
+          canonicalAssetId: canonical.id,
+          sourceRecordId: 'legacy-index-row',
           file: {
-            sourceRecordId: canonical.id,
+            canonicalAssetId: canonical.id,
+            sourceRecordId: 'legacy-index-row',
             driveFileId: canonical.originalDriveFileId,
             fileName: 'journal.pdf',
             mimeType: 'application/pdf',
