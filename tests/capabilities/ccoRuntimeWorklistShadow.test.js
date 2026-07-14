@@ -85,6 +85,56 @@ test('runtime worklist consumer rejects broad mailbox sweeps before reading trut
   });
 });
 
+test('runtime worklist consumer honours an explicit Hälso mailbox scope', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-worklist-halso-'));
+  const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
+    filePath: path.join(tempDir, 'cco-mailbox-truth.json'),
+  });
+  try {
+    await seedFolder(ccoMailboxTruthStore, {
+      mailboxId: 'halso@hairtpclinic.com',
+      folderType: 'inbox',
+      messages: [
+        inboxMessage({
+          mailboxId: 'halso@hairtpclinic.com',
+          conversationId: 'halso-conversation',
+          graphMessageId: 'halso-message',
+          subject: 'Hälsodeklaration',
+          preview: 'Här kommer min hälsodeklaration.',
+          receivedAt: '2026-07-14T08:00:00.000Z',
+        }),
+      ],
+    });
+
+    const app = express();
+    app.use(express.json());
+    const auth = createMockAuth('OWNER');
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore: { async addAuditEvent() {} },
+        capabilityAnalysisStore: null,
+        ccoMailboxTruthStore,
+        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/worklist/consumer?mailboxIds=halso@hairtpclinic.com&limit=20`
+      );
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      assert.deepEqual(payload.mailboxIds, ['halso@hairtpclinic.com']);
+      assert.deepEqual(payload.rows.map((row) => row.mailboxId), ['halso@hairtpclinic.com']);
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 async function seedFolder(store, { mailboxId, folderType, messages = [] }) {
   await store.recordFolderPage({
     account: {
