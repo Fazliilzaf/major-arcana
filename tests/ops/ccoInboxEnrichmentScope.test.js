@@ -1,7 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { mergeWorklistEnrichmentOutput } = require('../../src/routes/capabilities');
+const {
+  mergeWorklistEnrichmentOutput,
+  resolveLatestWorklistEnrichmentBaseline,
+} = require('../../src/routes/capabilities');
 
 test('mergeWorklistEnrichmentOutput matches scoped and raw conversation ids', () => {
   const baseOutput = {
@@ -61,4 +64,49 @@ test('mergeWorklistEnrichmentOutput preserves base enrichment when delta lacks s
   assert.equal(updated?.intent, 'consultation');
   assert.equal(updated?.workflowLane, 'action_now');
   assert.equal(updated?.slaStatus, 'warning');
+});
+
+test('latest complete mailbox baseline replaces a larger stale baseline', async () => {
+  const enrichedRow = (conversationId, intent) => ({
+    conversationId,
+    mailboxId: 'kons@hairtpclinic.com',
+    intent,
+    workflowLane: 'action_now',
+  });
+  const staleRows = Array.from({ length: 153 }, (_, index) =>
+    enrichedRow(`stale-${index}`, 'booking_request')
+  );
+  const freshRows = Array.from({ length: 103 }, (_, index) =>
+    enrichedRow(index === 0 ? 'dennis' : `fresh-${index}`, index === 0 ? 'cancellation' : 'follow_up')
+  );
+  const entries = [
+    {
+      id: 'fresh-entry',
+      ts: '2026-07-14T10:30:00.000Z',
+      input: { mailboxIds: ['kons@hairtpclinic.com'] },
+      output: { data: { generatedAt: '2026-07-14T10:30:00.000Z', conversationWorklist: freshRows } },
+    },
+    {
+      id: 'stale-entry',
+      ts: '2026-07-13T08:38:00.000Z',
+      input: { mailboxIds: ['kons@hairtpclinic.com'] },
+      output: { data: { generatedAt: '2026-07-13T08:38:00.000Z', conversationWorklist: staleRows } },
+    },
+  ];
+  const capabilityAnalysisStore = {
+    async list({ capabilityName }) {
+      return capabilityName === 'AnalyzeInbox' ? entries : [];
+    },
+  };
+
+  const baseline = await resolveLatestWorklistEnrichmentBaseline({
+    capabilityAnalysisStore,
+    tenantId: 'hair-tp-clinic',
+    mailboxIds: ['kons@hairtpclinic.com'],
+  });
+
+  assert.equal(baseline.selection.selectedEntryId, 'fresh-entry');
+  assert.equal(baseline.selection.strategy, 'latest_enriched_scope_match');
+  assert.equal(baseline.selectedConversationWorklist.length, 103);
+  assert.equal(baseline.selectedConversationWorklist[0]?.intent, 'cancellation');
 });

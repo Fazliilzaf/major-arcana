@@ -7923,8 +7923,8 @@ function selectLatestWorklistLegacyBaseline({ entries = [], mailboxIds = [] } = 
       .filter(Boolean)
   );
   const latestObservedEntry = safeEntries[0] || null;
-  let bestScopeMatchedEntry = null;
-  let bestFallbackEntry = null;
+  let latestScopeMatchedEntry = null;
+  let latestFallbackEntry = null;
   let skippedEmptyEntries = 0;
   let skippedScopeMismatchEntries = 0;
 
@@ -7947,30 +7947,12 @@ function selectLatestWorklistLegacyBaseline({ entries = [], mailboxIds = [] } = 
       summary,
       enrichedCount,
     };
-    if (
-      !bestScopeMatchedEntry ||
-      enrichedCount > bestScopeMatchedEntry.enrichedCount ||
-      (enrichedCount === bestScopeMatchedEntry.enrichedCount &&
-        getWorklistLegacyBaselineObservedAt(entry).localeCompare(
-          getWorklistLegacyBaselineObservedAt(bestScopeMatchedEntry.entry)
-        ) > 0)
-    ) {
-      bestScopeMatchedEntry = candidate;
-    }
-    if (
-      !bestFallbackEntry ||
-      enrichedCount > bestFallbackEntry.enrichedCount ||
-      (enrichedCount === bestFallbackEntry.enrichedCount &&
-        getWorklistLegacyBaselineObservedAt(entry).localeCompare(
-          getWorklistLegacyBaselineObservedAt(bestFallbackEntry.entry)
-        ) > 0)
-    ) {
-      bestFallbackEntry = candidate;
-    }
+    if (!latestScopeMatchedEntry) latestScopeMatchedEntry = candidate;
+    if (!latestFallbackEntry) latestFallbackEntry = candidate;
   }
 
-  const selected = bestScopeMatchedEntry ||
-    bestFallbackEntry || {
+  const selected = latestScopeMatchedEntry ||
+    latestFallbackEntry || {
       entry: latestObservedEntry,
       summary: buildWorklistLegacyBaselineEntrySummary(latestObservedEntry),
       enrichedCount: countEnrichedWorklistRows(
@@ -7978,10 +7960,10 @@ function selectLatestWorklistLegacyBaseline({ entries = [], mailboxIds = [] } = 
       ),
     };
 
-  const strategy = bestScopeMatchedEntry
-    ? 'best_enriched_scope_match'
-    : bestFallbackEntry
-      ? 'best_enriched_fallback'
+  const strategy = latestScopeMatchedEntry
+    ? 'latest_enriched_scope_match'
+    : latestFallbackEntry
+      ? 'latest_enriched_fallback'
       : 'latest_entry';
 
   return {
