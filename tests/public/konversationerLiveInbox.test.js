@@ -30,6 +30,12 @@ test('konversationer live inbox starts from contact and safely fans out wider ma
   assert.match(html, /function chunkMailboxIds\(/);
   assert.match(html, /for \(const mailboxChunk of chunkMailboxIds\(requestMailboxIds\)\)/);
   assert.match(html, /currentThreads = mergeWorklistThreads\(normalizedThreads\)/);
+  const mergeHelper = html.match(
+    /function mergeWorklistThreads\(threads\) \{([\s\S]*?)\n      \}\n\n      async function loadLiveInbox/
+  );
+  assert.ok(mergeHelper, 'multi-mailbox merge helper must exist');
+  assert.match(mergeHelper[1], /thread\.conversationKey/);
+  assert.doesNotMatch(mergeHelper[1], /thread\.patientId|thread\.customerEmail/);
   assert.match(html, /\/api\/v1\/cco\/runtime\/worklist\/consumer\?mailboxIds=/);
   assert.match(html, /'&limit=500'/);
   assert.match(html, /credentials:\s*'include'/);

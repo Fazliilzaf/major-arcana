@@ -5410,8 +5410,6 @@
         const merged = new Map();
         for (const thread of threads) {
           const identity =
-            normalizeText(thread.patientId).toLowerCase() ||
-            normalizeText(thread.customerEmail).toLowerCase() ||
             normalizeText(thread.conversationKey).toLowerCase() ||
             normalizeText(thread.id).toLowerCase();
           const current = merged.get(identity);
