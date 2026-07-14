@@ -112,9 +112,14 @@ function resolveEnrichmentIndexMatch(enrichmentIndex = new Map(), candidateKeys 
     if (enrichmentIndex.has(normalizedKey)) {
       return enrichmentIndex.get(normalizedKey);
     }
-    const colonIndex = normalizedKey.lastIndexOf(':');
+    const rollupIndex = normalizedKey.indexOf('::');
+    const canonicalThreadKey = rollupIndex > 0 ? normalizedKey.slice(0, rollupIndex) : normalizedKey;
+    if (canonicalThreadKey !== normalizedKey && enrichmentIndex.has(canonicalThreadKey)) {
+      return enrichmentIndex.get(canonicalThreadKey);
+    }
+    const colonIndex = canonicalThreadKey.lastIndexOf(':');
     if (colonIndex > 0) {
-      const suffix = normalizedKey.slice(colonIndex + 1);
+      const suffix = canonicalThreadKey.slice(colonIndex + 1);
       if (suffix && enrichmentIndex.has(suffix)) {
         return enrichmentIndex.get(suffix);
       }
