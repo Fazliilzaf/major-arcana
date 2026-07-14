@@ -92,6 +92,12 @@ async function recoverCcoInboxEnrichmentBaseline({
   }
   if (!ccoMailboxTruthStore) throw new Error('Mailbox truth store saknas.');
 
+  if (typeof ccoMailboxTruthStore.ensureMailboxLoaded === 'function') {
+    for (const mailboxId of asArray(mailboxIds)) {
+      await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+    }
+  }
+
   const safeLabel = validateBackupLabel(label);
   const sourcePath = path.join(
     path.resolve(backupDir || path.join(stateRoot, 'backups')),

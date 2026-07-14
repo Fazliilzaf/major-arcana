@@ -73,6 +73,10 @@ test('verified recovery selects current-truth overlap, merges live delta and pub
     },
   };
   const truthStore = {
+    loadedMailboxIds: [],
+    async ensureMailboxLoaded(requestedMailboxId) {
+      this.loadedMailboxIds.push(requestedMailboxId);
+    },
     listMessages({ mailboxIds }) {
       assert.deepEqual(mailboxIds, [mailboxId]);
       return ['one', 'two', 'three'].map((id) => ({
@@ -104,6 +108,7 @@ test('verified recovery selects current-truth overlap, merges live delta and pub
   assert.equal(preview.selectedEntryId, 'current-overlap');
   assert.equal(preview.current.enrichedConversationCount, 1);
   assert.equal(preview.merged.enrichedConversationCount, 3);
+  assert.deepEqual(truthStore.loadedMailboxIds, [mailboxId]);
   assert.equal(appended.length, 0);
 
   const committed = await recoverCcoInboxEnrichmentBaseline({
@@ -120,6 +125,7 @@ test('verified recovery selects current-truth overlap, merges live delta and pub
   });
   assert.equal(committed.publishedEntryId, 'published-recovery');
   assert.equal(appended.length, 1);
+  assert.deepEqual(truthStore.loadedMailboxIds, [mailboxId, mailboxId]);
 
   const checkpoint = await loadCcoInboxEnrichmentCheckpoint({
     stateRoot,
