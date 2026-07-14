@@ -11,6 +11,7 @@ const { createLocalProvider } = require('../../src/ops/ccoSecureStorageProvider'
 const { blobExistsOnStorage } = require('../../src/ops/ccoGhostVisibleAssetDiagnosis');
 const {
   isRepairableCase,
+  quarantineUnrecoverableGhostVisibleAssets,
   repairGhostVisibleAssets,
 } = require('../../src/ops/ccoGhostVisibleAssetRepair');
 
@@ -162,6 +163,46 @@ test('repairGhostVisibleAssets använder en batchpersistens för skarp repair', 
     assert.equal(report.stats.repaired, 1);
     assert.equal(begins, 1);
     assert.equal(flushes, 1);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
+test('quarantineUnrecoverableGhostVisibleAssets dry-run och commit döljer no-source ghost', async () => {
+  const rig = await makeRig();
+  try {
+    const ghost = await rig.assetStore.addAsset({
+      patientId: 'pat-no-source',
+      sourceSystem: 'cco_journal_sign',
+      originalFileName: 'journal.pdf',
+      storageProvider: 'local',
+      storageKey: 'missing/no-source.pdf',
+      checksum: 'sha256:no-source',
+      fileSize: 123,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      documentDate: '2026-05-30',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+
+    const preview = await quarantineUnrecoverableGhostVisibleAssets({
+      assetStore: rig.assetStore,
+      storage: rig.storage,
+      dryRun: true,
+    });
+    assert.equal(preview.stats.unrecoverable, 1);
+    assert.equal(preview.stats.wouldQuarantine, 1);
+    assert.equal(rig.assetStore.getAsset(ghost.id).status, 'VISIBLE_ON_PATIENT_CARD');
+
+    const committed = await quarantineUnrecoverableGhostVisibleAssets({
+      assetStore: rig.assetStore,
+      storage: rig.storage,
+      dryRun: false,
+      actor: { role: 'OWNER', userId: 'owner-1' },
+    });
+    assert.equal(committed.stats.quarantined, 1);
+    assert.equal(committed.stats.failed, 0);
+    assert.equal(rig.assetStore.getAsset(ghost.id).status, 'NEEDS_REVIEW');
   } finally {
     await fs.rm(rig.tmp, { recursive: true, force: true });
   }

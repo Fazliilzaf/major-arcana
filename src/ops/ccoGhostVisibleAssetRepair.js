@@ -250,8 +250,101 @@ async function repairGhostVisibleAssetsFromImportRun({
   };
 }
 
+async function quarantineUnrecoverableGhostVisibleAssets({
+  assetStore = null,
+  storage = null,
+  tenantId = null,
+  limit = 100,
+  dryRun = true,
+  actor = {},
+} = {}) {
+  if (!assetStore || typeof assetStore.transitionStatus !== 'function') {
+    throw new Error('assetStore.transitionStatus krävs.');
+  }
+
+  const diagnosis = await diagnoseGhostVisibleAssets({
+    assetStore,
+    storage,
+    tenantId,
+    limit,
+    sampleSize: 0,
+    maskSamples: false,
+  });
+  const candidates = diagnosis.cases.filter(
+    (row) =>
+      row.kind === 'ghost_visible_no_blob_sibling' &&
+      !normalizeText(row.originalDriveFileId) &&
+      normalizeText(row.canonicalAssetId)
+  );
+  const results = [];
+  const errors = [];
+  const useBatchPersist =
+    !dryRun &&
+    typeof assetStore.beginBatch === 'function' &&
+    typeof assetStore.flushBatch === 'function';
+
+  if (useBatchPersist) assetStore.beginBatch();
+  try {
+    for (const row of candidates) {
+      if (dryRun) {
+        results.push({
+          action: 'would_quarantine',
+          patientId: row.patientId,
+          canonicalAssetId: row.canonicalAssetId,
+          sourceSystem: row.sourceSystem,
+          category: row.category,
+        });
+        continue;
+      }
+      try {
+        const updated = await assetStore.transitionStatus(
+          row.canonicalAssetId,
+          'NEEDS_REVIEW',
+          {
+            actor,
+            reason: 'ghost_visible_unrecoverable_no_source',
+          }
+        );
+        results.push({
+          action: 'quarantined',
+          patientId: row.patientId,
+          canonicalAssetId: row.canonicalAssetId,
+          sourceSystem: row.sourceSystem,
+          category: row.category,
+          status: updated?.status || 'NEEDS_REVIEW',
+        });
+      } catch (error) {
+        errors.push({
+          canonicalAssetId: row.canonicalAssetId,
+          code: normalizeText(error?.code) || 'quarantine_failed',
+          message: error?.message || String(error),
+        });
+      }
+    }
+  } finally {
+    if (useBatchPersist) await assetStore.flushBatch();
+  }
+
+  return {
+    generatedAt: nowIso(),
+    dryRun: Boolean(dryRun),
+    zeroWrites: Boolean(dryRun),
+    model: 'Ghost VISIBLE utan blob, sibling eller Drive-källa → NEEDS_REVIEW',
+    stats: {
+      diagnosisCases: diagnosis.cases.length,
+      unrecoverable: candidates.length,
+      wouldQuarantine: results.filter((row) => row.action === 'would_quarantine').length,
+      quarantined: results.filter((row) => row.action === 'quarantined').length,
+      failed: errors.length,
+    },
+    results,
+    errors,
+  };
+}
+
 module.exports = {
   repairGhostVisibleAssets,
   repairGhostVisibleAssetsFromImportRun,
+  quarantineUnrecoverableGhostVisibleAssets,
   isRepairableCase,
 };
