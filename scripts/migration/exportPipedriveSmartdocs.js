@@ -58,23 +58,9 @@ function parseArgs(argv) {
   return args;
 }
 
-function classifyDocumentKind(name = '', description = '') {
-  const haystack = `${name} ${description}`.toLowerCase();
-  const agreementHints = [
-    'behandlingsavtal',
-    'avtal',
-    'agreement',
-    'signed',
-    'signerad',
-    'signature',
-    'underskrift',
-    'contract',
-  ];
-  const offerHints = ['offert', 'quote', 'proposal', 'behandlingsplan', 'offer', 'kostnadsf'];
-  if (agreementHints.some((hint) => haystack.includes(hint))) return 'agreement';
-  if (offerHints.some((hint) => haystack.includes(hint))) return 'offer';
-  return 'other';
-}
+const {
+  classifyPipedriveDocumentKind: classifyDocumentKind,
+} = require('./lib/pipedriveSmartdocsImport');
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

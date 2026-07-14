@@ -24,7 +24,7 @@ function inferDocumentKind(asset = {}) {
     section === 'samtycken_avtal' ||
     category === 'agreement' ||
     sub.includes('agreement') ||
-    /avtal|agreement|behandlingsavtal/.test(name)
+    /avtal|agreement|behandlingsavtal|aff[aä]r/.test(name)
   ) {
     return 'agreement';
   }

@@ -7,6 +7,7 @@ const {
   buildPipedrivePatientIndex,
   resolvePatientForManifestItem,
   mapDocumentKindToAssetMeta,
+  classifyPipedriveDocumentKind,
   extractPersonNameFromFileName,
 } = require('../../scripts/migration/lib/pipedriveSmartdocsImport');
 const {
@@ -39,6 +40,29 @@ test('resolvePatientForManifestItem matches smartdoc filename via pipedrive pers
 test('mapDocumentKindToAssetMeta maps offer and agreement', () => {
   assert.equal(mapDocumentKindToAssetMeta('offer').patientCardSection, 'offert');
   assert.equal(mapDocumentKindToAssetMeta('agreement').category, 'agreement');
+});
+
+test('classifyPipedriveDocumentKind treats Affär smartdocs as agreements', () => {
+  assert.equal(
+    classifyPipedriveDocumentKind('Affär Lars McLachlan 2025-10-11 16-51-11.pdf'),
+    'agreement'
+  );
+  assert.equal(
+    classifyPipedriveDocumentKind('John Lindvall affär 2025-12-10 17-33-53.pdf'),
+    'agreement'
+  );
+  assert.equal(classifyPipedriveDocumentKind('Offert Erik 2024-01-01.pdf'), 'offer');
+});
+
+test('inferDocumentKind recognizes Affär filename without metadata backfill', () => {
+  assert.equal(
+    inferDocumentKind({
+      patientCardSection: 'ovrigt',
+      category: 'other',
+      originalFileName: 'Affär Samuel Brandt 2025-08-21 12-18-39.pdf',
+    }),
+    'agreement'
+  );
 });
 
 test('extractPersonNameFromFileName parses dated smartdoc names', () => {
