@@ -116,6 +116,7 @@
     "verify:customer-list-prod": "node ./scripts/verify-customer-list-prod.js",
     "verify:photo-review-prod": "node ./scripts/verify-photo-review-prod.js",
     "verify:import-review-prod": "node ./scripts/verify-import-review-prod.js",
+    "verify:pipedrive-smartdocs-prod": "node ./scripts/verify-pipedrive-smartdocs-prod.js",
     "verify:internalize-run-prod": "node ./scripts/verify-internalize-run-prod.js",
     "verify:encounter-link-preview-prod": "node ./scripts/preview-encounter-link-repair-prod.js",
     "review:encounter-link-queue-prod": "node ./scripts/review-encounter-link-queue-prod.js",
