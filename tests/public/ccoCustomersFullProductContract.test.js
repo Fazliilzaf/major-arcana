@@ -116,6 +116,17 @@ test('patientId-djuplänk bevarar admin-, V11- och V12-kontraktet', () => {
   assert.match(ui, /rail\.querySelector\('\[data-v12-workspace-shell="1"\]'\)/);
 });
 
+test('kall patient-summary får slutföras utan åttasekunders abort', () => {
+  assert.match(
+    ui,
+    /function fetchPatientDetailFromApi[\s\S]*?setTimeout\(\(\) => controller\.abort\(\), 60_000\)/
+  );
+  assert.doesNotMatch(
+    ui,
+    /function fetchPatientDetailFromApi[\s\S]{0,500}?controller\.abort\(\), 8000\)/
+  );
+});
+
 test('desktop patientId använder befintlig tidig prefetch med serverhanterad session', () => {
   assert.match(deepLinkBoot, /const mobileViewport = isMobileViewport\(\)/);
   assert.match(
