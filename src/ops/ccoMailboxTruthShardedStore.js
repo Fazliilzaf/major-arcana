@@ -165,6 +165,7 @@ async function createCcoMailboxTruthShardedStore({
   legacyFilePath = '',
   maxSyncRuns = 200,
   lazyPreload = true,
+  maxLoadedShards = 2,
 } = {}) {
   const resolvedBase = path.resolve(String(baseDir || '').trim());
   if (!resolvedBase) {
@@ -189,7 +190,25 @@ async function createCcoMailboxTruthShardedStore({
     );
   }
 
+  // Mailbox shards can be large (especially historical accounts such as Fazli
+  // and Contact). Keep only a small LRU window in process memory: the active
+  // CCO selector needs at most two mailboxes, while old selections remain on
+  // the persistent disk and can be reopened on demand.
   const shardCache = new Map();
+  const safeMaxLoadedShards = Math.max(1, Number(maxLoadedShards) || 2);
+
+  function touchShard(mailboxId = '', store = null) {
+    const safeMailboxId = normalizeMailboxId(mailboxId);
+    if (!safeMailboxId || !store) return null;
+    // Map insertion order is the LRU order. Reinsert on use.
+    shardCache.delete(safeMailboxId);
+    shardCache.set(safeMailboxId, store);
+    while (shardCache.size > safeMaxLoadedShards) {
+      const oldestMailboxId = shardCache.keys().next().value;
+      shardCache.delete(oldestMailboxId);
+    }
+    return store;
+  }
 
   async function loadShard(mailboxId = '') {
     const safeMailboxId = normalizeMailboxId(mailboxId);
@@ -197,7 +216,7 @@ async function createCcoMailboxTruthShardedStore({
       throw new Error('Mailbox truth shard saknar mailboxId.');
     }
     if (shardCache.has(safeMailboxId)) {
-      return shardCache.get(safeMailboxId);
+      return touchShard(safeMailboxId, shardCache.get(safeMailboxId));
     }
     const shardPath = path.join(mailboxesDir, `${encodeMailboxId(safeMailboxId)}.json`);
     const store = await createCcoMailboxTruthStore({
@@ -206,8 +225,7 @@ async function createCcoMailboxTruthShardedStore({
       deferConversationRebuild: true,
       deferInitialSave: true,
     });
-    shardCache.set(safeMailboxId, store);
-    return store;
+    return touchShard(safeMailboxId, store);
   }
 
   function registerShardMailboxes(entryName = '', store, target = []) {
@@ -233,7 +251,7 @@ async function createCcoMailboxTruthShardedStore({
       mailboxIdsForShard.push(fromFileName);
     }
     for (const mailboxId of [...new Set(mailboxIdsForShard)]) {
-      shardCache.set(mailboxId, store);
+      touchShard(mailboxId, store);
     }
     return [...new Set(mailboxIdsForShard)];
   }
