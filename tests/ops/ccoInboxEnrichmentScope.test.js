@@ -66,6 +66,33 @@ test('mergeWorklistEnrichmentOutput preserves base enrichment when delta lacks s
   assert.equal(updated?.slaStatus, 'warning');
 });
 
+test('mergeWorklistEnrichmentOutput applies Graph rows scoped by contact-form rollup key', () => {
+  const baseOutput = {
+    generatedAt: '2026-05-01T00:00:00.000Z',
+    conversationWorklist: [{ conversationId: 'AAQkKeep', intent: 'admin' }],
+    needsReplyToday: [],
+  };
+  const deltaOutput = {
+    conversationWorklist: [
+      { conversationId: 'AAQkContactForm', intent: 'booking_request', workflowLane: 'action_now' },
+    ],
+    needsReplyToday: [],
+  };
+
+  const merged = mergeWorklistEnrichmentOutput(baseOutput, deltaOutput, {
+    scopeConversationIds: [
+      'kons@hairtpclinic.com:AAQkContactForm::contact-form:patient%40example.com',
+    ],
+  });
+
+  assert.equal(merged.conversationWorklist.length, 2);
+  const enriched = merged.conversationWorklist.find(
+    (row) => row.conversationId === 'AAQkContactForm'
+  );
+  assert.equal(enriched?.intent, 'booking_request');
+  assert.equal(enriched?.workflowLane, 'action_now');
+});
+
 test('latest complete mailbox baseline replaces a larger stale baseline', async () => {
   const enrichedRow = (conversationId, intent) => ({
     conversationId,
