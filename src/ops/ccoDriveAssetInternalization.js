@@ -113,6 +113,7 @@ function normalizeDriveAssetRow(input = {}) {
     originalDrivePath: relativePath,
     originalFileName: fileName,
     mimeType: normalizeText(file.mimeType) || 'application/octet-stream',
+    fileSize: Math.max(0, Number(file.fileSize ?? input.fileSize) || 0),
     documentDate:
       normalizeText(input.documentDate) ||
       normalizeText(file.documentDate) ||
@@ -288,20 +289,27 @@ async function inventoryDriveAssets({
   const stats = {
     scanned: 0,
     eligible: 0,
+    eligibleBytes: 0,
     alreadyInternal: 0,
+    alreadyInternalBytes: 0,
     remaining: 0,
+    remainingBytes: 0,
     missingDriveFileId: 0,
     missingPatientId: 0,
     reviewQueued: 0,
     duplicateInputDriveFileIds: 0,
     byFamily: { documents: 0, images: 0, other: 0 },
+    byFamilyBytes: { documents: 0, images: 0, other: 0 },
     byMonthFolder: {},
   };
   const remainingRows = [];
 
   for (const row of reportRows) {
+    const family = mimeFamily(row.mimeType, row.originalFileName);
+    const fileSize = Math.max(0, Number(row.fileSize) || 0);
     stats.scanned += 1;
-    stats.byFamily[mimeFamily(row.mimeType, row.originalFileName)] += 1;
+    stats.byFamily[family] += 1;
+    stats.byFamilyBytes[family] += fileSize;
     const monthFolder = extractMonthFolder(row.originalDrivePath);
     if (!stats.byMonthFolder[monthFolder]) {
       stats.byMonthFolder[monthFolder] = {
@@ -330,9 +338,11 @@ async function inventoryDriveAssets({
       continue;
     }
     stats.eligible += 1;
+    stats.eligibleBytes += fileSize;
     const existing = findExistingInternalAsset(row, index);
     if (existing) {
       stats.alreadyInternal += 1;
+      stats.alreadyInternalBytes += fileSize;
       stats.byMonthFolder[monthFolder].alreadyInternal += 1;
       if (samples.length < sampleSize) {
         samples.push({
@@ -346,6 +356,7 @@ async function inventoryDriveAssets({
       continue;
     }
     stats.remaining += 1;
+    stats.remainingBytes += fileSize;
     stats.byMonthFolder[monthFolder].remaining += 1;
     remainingRows.push(row);
     if (samples.length < sampleSize) {
@@ -354,7 +365,7 @@ async function inventoryDriveAssets({
         patientId: maskValue(row.patientId, { keepStart: 4, keepEnd: 4 }),
         driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
         name: maskValue(row.originalFileName, { keepStart: 1, keepEnd: 1 }),
-        family: mimeFamily(row.mimeType, row.originalFileName),
+        family,
       });
     }
   }

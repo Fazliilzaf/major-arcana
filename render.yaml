@@ -31,7 +31,7 @@ services:
       # Vid diskhojning i Dashboard: uppdatera sizeGB har OMEDELBART.
       name: disk
       mountPath: /var/data
-      sizeGB: 50
+      sizeGB: 150
     envVars:
       - key: ARCANA_STATE_ROOT
         value: /var/data
