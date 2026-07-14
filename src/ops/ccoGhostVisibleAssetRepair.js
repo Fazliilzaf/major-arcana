@@ -149,7 +149,109 @@ async function repairGhostVisibleAssets({
   };
 }
 
+async function repairGhostVisibleAssetsFromImportRun({
+  assetStore = null,
+  storage = null,
+  tenantId = null,
+  importRunId = null,
+  limit = 500,
+  actor = {},
+} = {}) {
+  if (!assetStore || typeof assetStore.listItemsForEnrichment !== 'function') {
+    throw new Error('assetStore.listItemsForEnrichment krävs.');
+  }
+  if (typeof assetStore.reattachGhostVisibleBlobFromSibling !== 'function') {
+    throw new Error('assetStore.reattachGhostVisibleBlobFromSibling krävs.');
+  }
+  const runId = normalizeText(importRunId);
+  if (!runId) throw new Error('importRunId krävs för riktad repair.');
+
+  const items = assetStore.listItemsForEnrichment(tenantId);
+  const runSiblings = items.filter(
+    (asset) => normalizeText(asset.importRunId) === runId && normalizeText(asset.originalDriveFileId)
+  );
+  const siblingByDriveId = new Map();
+  for (const sibling of runSiblings) {
+    if (!normalizeText(sibling.storageKey) || !normalizeText(sibling.checksum)) continue;
+    if (storage?.exists && !(await storage.exists(sibling.storageKey))) continue;
+    siblingByDriveId.set(normalizeText(sibling.originalDriveFileId), sibling);
+  }
+
+  const repairable = [];
+  for (const canonical of items) {
+    if (repairable.length >= Math.max(1, Number(limit) || 500)) break;
+    if (!['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(normalizeText(canonical.status))) {
+      continue;
+    }
+    const driveFileId = normalizeText(canonical.originalDriveFileId);
+    const sibling = siblingByDriveId.get(driveFileId);
+    if (!sibling || normalizeText(sibling.id) === normalizeText(canonical.id)) continue;
+    if (normalizeText(sibling.patientId) !== normalizeText(canonical.patientId)) continue;
+    if (storage?.exists && (await storage.exists(canonical.storageKey))) continue;
+    repairable.push({ canonical, sibling });
+  }
+
+  const results = [];
+  const errors = [];
+  const useBatchPersist =
+    typeof assetStore.beginBatch === 'function' && typeof assetStore.flushBatch === 'function';
+  if (useBatchPersist) assetStore.beginBatch();
+  try {
+    for (const { canonical, sibling } of repairable) {
+      try {
+        const updated = await assetStore.reattachGhostVisibleBlobFromSibling(
+          canonical.id,
+          sibling.id,
+          { storage, actor, reason: `ghost_visible_repair:${runId}` }
+        );
+        results.push({
+          action: 'repaired',
+          patientId: canonical.patientId,
+          canonicalAssetId: canonical.id,
+          duplicateAssetId: sibling.id,
+          checksum: updated.checksum,
+          storageKey: updated.storageKey,
+          status: updated.status,
+        });
+      } catch (error) {
+        errors.push({
+          canonicalAssetId: canonical.id,
+          duplicateAssetId: sibling.id,
+          code: normalizeText(error?.code) || 'repair_failed',
+          message: error?.message || String(error),
+        });
+      }
+    }
+  } finally {
+    if (useBatchPersist) await assetStore.flushBatch();
+  }
+
+  return {
+    generatedAt: nowIso(),
+    dryRun: false,
+    zeroWrites: false,
+    model: 'Riktad run-repair via originalDriveFileId; ingen global blob-scan',
+    stats: {
+      diagnosisCases: repairable.length,
+      repairable: repairable.length,
+      wouldRepair: 0,
+      repaired: results.length,
+      alreadyRepaired: 0,
+      failed: errors.length,
+      importRunIdFilter: runId,
+    },
+    results,
+    errors,
+    diagnosisStats: {
+      scannedAssets: items.length,
+      runSiblings: runSiblings.length,
+      verifiedRunSiblings: siblingByDriveId.size,
+    },
+  };
+}
+
 module.exports = {
   repairGhostVisibleAssets,
+  repairGhostVisibleAssetsFromImportRun,
   isRepairableCase,
 };

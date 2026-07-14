@@ -5,7 +5,10 @@
  * Körs endast i commit-kontext (ej dry-run). Använder samma gated repair som PR B.
  */
 
-const { repairGhostVisibleAssets } = require('./ccoGhostVisibleAssetRepair');
+const {
+  repairGhostVisibleAssets,
+  repairGhostVisibleAssetsFromImportRun,
+} = require('./ccoGhostVisibleAssetRepair');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -30,14 +33,19 @@ async function autoRepairGhostVisibleAfterInternalize({
   actor = {},
   enabled = true,
   limit = 500,
+  targetedByDriveFileId = false,
 } = {}) {
   const stats = internalizeReport?.stats || {};
   const runId = normalizeText(internalizeReport?.runId) || null;
   const duplicateCount = Number(stats.duplicate) || 0;
+  const importedCount = Number(stats.imported) || 0;
+  const repairCandidateCount = duplicateCount + (targetedByDriveFileId ? importedCount : 0);
 
   const baseMeta = {
     enabled: Boolean(enabled),
     duplicateCount,
+    importedCount,
+    targetedByDriveFileId: Boolean(targetedByDriveFileId),
     runId,
   };
 
@@ -57,7 +65,7 @@ async function autoRepairGhostVisibleAfterInternalize({
       repair: null,
     };
   }
-  if (duplicateCount <= 0) {
+  if (repairCandidateCount <= 0) {
     return {
       triggered: false,
       skippedReason: 'no_duplicates',
@@ -66,15 +74,24 @@ async function autoRepairGhostVisibleAfterInternalize({
     };
   }
 
-  const repair = await repairGhostVisibleAssets({
-    assetStore,
-    storage,
-    tenantId,
-    importRunId: runId,
-    limit,
-    dryRun: false,
-    actor,
-  });
+  const repair = targetedByDriveFileId
+    ? await repairGhostVisibleAssetsFromImportRun({
+        assetStore,
+        storage,
+        tenantId,
+        importRunId: runId,
+        limit,
+        actor,
+      })
+    : await repairGhostVisibleAssets({
+        assetStore,
+        storage,
+        tenantId,
+        importRunId: runId,
+        limit,
+        dryRun: false,
+        actor,
+      });
 
   return {
     triggered: true,
@@ -92,6 +109,7 @@ async function finalizeInternalizeReportWithAutoRepair({
   actor = {},
   enabled = true,
   limit = 500,
+  targetedByDriveFileId = false,
 } = {}) {
   const ghostAutoRepair = await autoRepairGhostVisibleAfterInternalize({
     internalizeReport: report,
@@ -101,6 +119,7 @@ async function finalizeInternalizeReportWithAutoRepair({
     actor,
     enabled,
     limit,
+    targetedByDriveFileId,
   });
   return {
     ...report,

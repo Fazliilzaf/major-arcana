@@ -97,6 +97,56 @@ test('autoRepairGhostVisibleAfterInternalize reparerar ghost efter duplicate-run
   }
 });
 
+test('riktad auto-repair kopplar importerad run-sibling utan global diagnos', async () => {
+  const rig = await makeRig();
+  try {
+    const body = Buffer.from('%PDF-targeted-repair');
+    const put = await rig.storage.putObject({
+      key: '2026/07/targeted.pdf',
+      body,
+      contentType: 'application/pdf',
+    });
+    const canonical = await rig.assetStore.addAsset({
+      patientId: 'pat-targeted',
+      sourceSystem: 'drive_import',
+      originalDriveFileId: 'drive-targeted',
+      storageKey: 'missing/targeted.pdf',
+      checksum: put.checksum,
+      fileSize: body.length,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+    await rig.assetStore.addAsset({
+      patientId: 'pat-targeted',
+      sourceSystem: 'drive_import',
+      importRunId: 'run-targeted',
+      originalDriveFileId: 'drive-targeted',
+      storageKey: put.storageKey,
+      checksum: put.checksum,
+      fileSize: body.length,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+
+    const result = await autoRepairGhostVisibleAfterInternalize({
+      internalizeReport: { runId: 'run-targeted', stats: { imported: 1, duplicate: 0 } },
+      assetStore: rig.assetStore,
+      storage: rig.storage,
+      targetedByDriveFileId: true,
+      actor: { userId: 'test' },
+    });
+
+    assert.equal(result.triggered, true);
+    assert.equal(result.targetedByDriveFileId, true);
+    assert.equal(result.repair.stats.repaired, 1);
+    assert.equal(await blobExistsOnStorage(rig.assetStore.getAsset(canonical.id), rig.storage), true);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
 test('finalizeInternalizeReportWithAutoRepair bifogar ghostAutoRepair på report', async () => {
   const rig = await makeRig();
   try {

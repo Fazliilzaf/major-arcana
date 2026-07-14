@@ -430,6 +430,7 @@ async function prepareInternalizeExecution({
       requireDocumentDateSource: dateGate?.requireDocumentDateSource ?? false,
       allowedDocumentDateSources: dateGate?.allowedDocumentDateSources ?? null,
       knownMissingBlobRows: renderCandidatesOnly,
+      targetedGhostRepair: renderCandidatesOnly,
     },
   };
 }
@@ -1919,6 +1920,7 @@ function createCcoPatientMasterRouter({
             tenantId: actor.tenantId,
             actor: importActor,
             enabled: autoRepairGhostVisible,
+            targetedByDriveFileId: renderCandidatesOnly,
           });
         }
         const safeReport = redactInternalizeReport(report);
