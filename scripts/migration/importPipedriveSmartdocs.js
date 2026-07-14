@@ -183,7 +183,11 @@ async function main() {
       }
 
       const match = resolvePatientForManifestItem(item, patientIndex, peopleIndex);
-      const meta = mapDocumentKindToAssetMeta(item.documentKind);
+      const meta = mapDocumentKindToAssetMeta(
+        item.documentKind,
+        item.fileName,
+        extractDocumentDate(item.fileName, item.addTime)
+      );
       const sourcePath = path.join(args.exportRoot, item.storageRelativePath);
       if (!fs.existsSync(sourcePath)) {
         totals.failed += 1;
@@ -219,7 +223,10 @@ async function main() {
         sourceSystem: 'pipedrive_import',
         sourceRecordId,
         originalFileName: item.fileName,
-        displayName: meta.displayName ? `${meta.displayName}: ${item.fileName}` : item.fileName,
+        displayName: meta.displayName || item.fileName,
+        documentTitle: meta.documentTitle || meta.displayName || item.fileName,
+        visitLabel: meta.visitLabel || null,
+        encounterType: meta.encounterType || null,
         storageProvider: 'local',
         storageKey: args.dryRun ? storageKey : storageKey,
         checksum: sha256,

@@ -232,7 +232,7 @@ async function main() {
   }
 
   const assets = await api(token, `/api/v1/cco/patients/${CANARY.agreementPatientId}/assets`);
-  const pipedriveRows = (assets.body?.assets || assets.body?.items || []).filter(
+  const pipedriveRows = (assets.body?.items || assets.body?.assets || []).filter(
     (row) => row?.sourceSystem === 'pipedrive_import'
   );
   report.checks.patientAssetsApi = { count: pipedriveRows.length, status: assets.status };

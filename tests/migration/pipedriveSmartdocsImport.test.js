@@ -42,6 +42,23 @@ test('mapDocumentKindToAssetMeta maps offer and agreement', () => {
   assert.equal(mapDocumentKindToAssetMeta('agreement').category, 'agreement');
 });
 
+test('buildPipedriveOvrigtDisplayMeta builds readable smartdoc labels', () => {
+  const {
+    buildPipedriveOvrigtDisplayMeta,
+  } = require('../../scripts/migration/lib/pipedriveSmartdocsImport');
+  const meta = buildPipedriveOvrigtDisplayMeta('Amar Choucair 2026-07-11 16-34-41.pdf');
+  assert.equal(meta.displayName, 'Smartdoc · 2026-07-11 16:34');
+  assert.equal(meta.visitLabel, 'Pipedrive 2026-07-11');
+  assert.equal(meta.subCategory, 'pipedrive_smartdoc');
+  assert.equal(meta.captureDate, '2026-07-11');
+});
+
+test('mapDocumentKindToAssetMeta other uses smartdoc naming from filename', () => {
+  const meta = mapDocumentKindToAssetMeta('other', 'Neven Wallén 2026-07-11 16-11-54.pdf');
+  assert.equal(meta.displayName, 'Smartdoc · 2026-07-11 16:11');
+  assert.equal(meta.patientCardSection, 'ovrigt');
+});
+
 test('classifyPipedriveDocumentKind treats Affär smartdocs as agreements', () => {
   assert.equal(
     classifyPipedriveDocumentKind('Affär Lars McLachlan 2025-10-11 16-51-11.pdf'),

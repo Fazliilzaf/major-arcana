@@ -279,7 +279,33 @@ function classifyPipedriveDocumentKind(name = '', description = '') {
   return 'other';
 }
 
-function mapDocumentKindToAssetMeta(documentKind = 'other') {
+function buildPipedriveOvrigtDisplayMeta(originalFileName = '', documentDate = null) {
+  const fileName = normalizeText(originalFileName);
+  const dateFromName = fileName.match(/(\d{4}-\d{2}-\d{2})/);
+  const timeFromName = fileName.match(/\d{4}-\d{2}-\d{2}\s+(\d{1,2})-(\d{1,2})/);
+  const docDate = dateFromName ? dateFromName[1] : normalizeText(documentDate).slice(0, 10);
+  let timeLabel = '';
+  if (timeFromName) {
+    timeLabel = ` ${String(timeFromName[1]).padStart(2, '0')}:${String(timeFromName[2]).padStart(2, '0')}`;
+  }
+  const displayName = docDate ? `Smartdoc · ${docDate}${timeLabel}` : 'Pipedrive smartdoc';
+  return {
+    displayName,
+    documentTitle: displayName,
+    visitLabel: docDate ? `Pipedrive ${docDate}` : 'Pipedrive',
+    subCategory: 'pipedrive_smartdoc',
+    encounterType: 'konsultation',
+    captureDate: docDate || null,
+    captureDateSource: dateFromName ? 'pipedrive_filename' : 'pipedrive_import',
+    captureDateConfidence: dateFromName ? 'high' : 'medium',
+  };
+}
+
+function mapDocumentKindToAssetMeta(
+  documentKind = 'other',
+  originalFileName = '',
+  documentDate = null
+) {
   const kind = normalizeText(documentKind).toLowerCase() || 'other';
   if (kind === 'offer') {
     return {
@@ -300,8 +326,7 @@ function mapDocumentKindToAssetMeta(documentKind = 'other') {
   return {
     category: 'other',
     patientCardSection: 'ovrigt',
-    subCategory: 'pipedrive_document',
-    displayName: 'Pipedrive-dokument',
+    ...buildPipedriveOvrigtDisplayMeta(originalFileName, documentDate),
   };
 }
 
@@ -327,6 +352,7 @@ module.exports = {
   resolvePatientByFileName,
   extractPersonNameFromFileName,
   classifyPipedriveDocumentKind,
+  buildPipedriveOvrigtDisplayMeta,
   sanitizeExtractedPersonName,
   extractEmailFromFileName,
   mapDocumentKindToAssetMeta,
