@@ -182,16 +182,16 @@ function clampOffset(value) {
   return Math.floor(parsed);
 }
 
-function clampInternalizeLimit(value, fallback = 50) {
+function clampInternalizeLimit(value, fallback = 50, maximum = 200) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-  return Math.max(1, Math.min(200, Math.floor(parsed)));
+  return Math.max(1, Math.min(maximum, Math.floor(parsed)));
 }
 
 function clampInternalizeConcurrency(value, fallback = 1) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-  return Math.max(1, Math.min(8, Math.floor(parsed)));
+  return Math.max(1, Math.min(16, Math.floor(parsed)));
 }
 
 function clampPreviewLimit(value, fallback = 10) {
@@ -1836,7 +1836,7 @@ function createCcoPatientMasterRouter({
       handle(req, res, async (actor) => {
         const dryRun = parseDryRun(req.body?.dryRun, true);
         const asyncCommit = !dryRun && parseAsyncCommit(req.body?.async, true);
-        const limit = clampInternalizeLimit(req.body?.limit, 50);
+        const limit = clampInternalizeLimit(req.body?.limit, 50, 1000);
         const offset = clampOffset(req.body?.offset);
         const concurrency = clampInternalizeConcurrency(req.body?.concurrency, 1);
         const dateGate = parseInternalizeDateGateOptions(req.body);
