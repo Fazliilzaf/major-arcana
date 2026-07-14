@@ -6,16 +6,27 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function existingAttachment(assetStore, sourceRecordId) {
-  if (!assetStore?.listItemsForEnrichment || !sourceRecordId) return null;
-  return (
-    assetStore
-      .listItemsForEnrichment()
-      .find(
-        (asset) =>
-          asset?.sourceSystem === 'm365_halso' && asset?.sourceRecordId === sourceRecordId
-      ) || null
+function attachmentSourceRecordId(rawMessage, attachment) {
+  const messageId = normalizeText(rawMessage?.id);
+  const attachmentId = normalizeText(attachment?.id);
+  return messageId && attachmentId ? `${messageId}:${attachmentId}` : '';
+}
+
+function existingAttachments(assetStore, sourceRecordId) {
+  if (!assetStore?.listItemsForEnrichment || !sourceRecordId) return [];
+  return assetStore.listItemsForEnrichment().filter(
+    (asset) => asset?.sourceSystem === 'm365_halso' && asset?.sourceRecordId === sourceRecordId
   );
+}
+
+async function promoteStoredAttachment(assetStore, asset, actor) {
+  if (asset.status === 'DUPLICATE') {
+    await assetStore.transitionStatus(asset.id, 'VERIFIED_IN_CCO', {
+      actor,
+      reason: 'halso_form_pdf_checksum_verified',
+    });
+  }
+  await assetStore.markAsVisibleOnPatientCard(asset.id, { actor });
 }
 
 async function importHalsoFormAttachments({
@@ -34,12 +45,33 @@ async function importHalsoFormAttachments({
     return { imported: 0, duplicate: 0, skipped: attachments.length, failed: 0, runId: null };
   }
 
-  const pending = attachments.filter((attachment) => {
-    const sourceRecordId = `${normalizeText(rawMessage.id)}:${normalizeText(attachment.id)}`;
-    return sourceRecordId && !existingAttachment(stores.assetStore, sourceRecordId);
-  });
+  const stats = { imported: 0, duplicate: 0, skipped: 0, failed: 0 };
+  const resolvedActor = { ...actor, tenantId };
+  const pending = [];
+  for (const attachment of attachments) {
+    const sourceRecordId = attachmentSourceRecordId(rawMessage, attachment);
+    if (!sourceRecordId) {
+      stats.skipped += 1;
+      continue;
+    }
+    const existing = existingAttachments(stores.assetStore, sourceRecordId);
+    if (existing.some((asset) => asset.status === 'VISIBLE_ON_PATIENT_CARD')) {
+      stats.skipped += 1;
+      continue;
+    }
+    const recoverable =
+      existing.find((asset) => asset.status === 'VERIFIED_IN_CCO') ||
+      existing.find((asset) => asset.status === 'DUPLICATE');
+    if (recoverable) {
+      await promoteStoredAttachment(stores.assetStore, recoverable, resolvedActor);
+      if (recoverable.status === 'DUPLICATE') stats.duplicate += 1;
+      else stats.imported += 1;
+      continue;
+    }
+    pending.push({ attachment, sourceRecordId });
+  }
   if (!pending.length) {
-    return { imported: 0, duplicate: 0, skipped: attachments.length, failed: 0, runId: null };
+    return { ...stats, runId: null };
   }
 
   const runId = await stores.importRunStore.startRun(
@@ -52,17 +84,15 @@ async function importHalsoFormAttachments({
     reviewQueueStore: stores.reviewQueueStore,
     storage: stores.secureStorage,
   });
-  const stats = { imported: 0, duplicate: 0, skipped: attachments.length - pending.length, failed: 0 };
-
   try {
-    for (const attachment of pending) {
+    for (const { attachment, sourceRecordId } of pending) {
       const result = await pipeline.importSingleAsset({
         sourceSystem: 'm365_halso',
         importRunId: runId,
         tenantId,
-        actor: { ...actor, tenantId },
+        actor: resolvedActor,
         sourceRecord: {
-          sourceRecordId: `${normalizeText(rawMessage.id)}:${normalizeText(attachment.id)}`,
+          sourceRecordId,
           patientId: formResult.patientId,
           originalFileName: normalizeText(attachment.name) || 'halso-form.pdf',
           mimeType: normalizeText(attachment.contentType) || 'application/pdf',
@@ -71,20 +101,16 @@ async function importHalsoFormAttachments({
         },
       });
       if (result?.status === 'DUPLICATE') {
-        await stores.assetStore.transitionStatus(result.asset.id, 'VERIFIED_IN_CCO', {
-          actor: { ...actor, tenantId },
-          reason: 'halso_form_pdf_checksum_verified',
-        });
-        await stores.assetStore.markAsVisibleOnPatientCard(result.asset.id, {
-          actor: { ...actor, tenantId },
-        });
+        await promoteStoredAttachment(stores.assetStore, result.asset, resolvedActor);
+        await stores.importRunStore.incrementCounter(runId, 'totalImported', 1);
+        await stores.importRunStore.incrementCounter(runId, 'totalVerified', 1);
         stats.duplicate += 1;
       }
       else if (result?.ok) stats.imported += 1;
       else stats.failed += 1;
     }
   } finally {
-    await stores.importRunStore.finishRun(runId, { actor: { ...actor, tenantId } });
+    await stores.importRunStore.finishRun(runId, { actor: resolvedActor });
   }
 
   return { ...stats, runId };
