@@ -513,6 +513,39 @@ test('renderCandidatesOnly samlar endast renderbara ghosts med Drive-id', async 
   assert.equal(result.rowSources.assetStoreDriveIds, 1);
 });
 
+test('verifierad ghost-kö hoppar över global blob-indexering', async () => {
+  let globalIndexReads = 0;
+  const report = await inventoryDriveAssets({
+    assetStore: {
+      listItemsForEnrichment: () => {
+        globalIndexReads += 1;
+        throw new Error('global asset-index ska inte läsas');
+      },
+    },
+    storage: {
+      exists: async () => {
+        throw new Error('globala storage-checkar ska inte köras');
+      },
+    },
+    knownMissingBlobRows: true,
+    rows: [
+      {
+        patientId: 'patient-ghost',
+        file: {
+          driveFileId: 'drive-ghost',
+          fileName: 'journal.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+    ],
+  });
+
+  assert.equal(globalIndexReads, 0);
+  assert.equal(report.stats.eligible, 1);
+  assert.equal(report.stats.alreadyInternal, 0);
+  assert.equal(report.stats.remaining, 1);
+});
+
 test('previewInternalizeCandidates maskerar och hittar pilotWindow utan unknown_month', async () => {
   const rig = await makeRig();
   try {

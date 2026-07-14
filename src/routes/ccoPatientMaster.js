@@ -429,6 +429,7 @@ async function prepareInternalizeExecution({
       excludeUnknownMonth: dateGate?.excludeUnknownMonth ?? true,
       requireDocumentDateSource: dateGate?.requireDocumentDateSource ?? false,
       allowedDocumentDateSources: dateGate?.allowedDocumentDateSources ?? null,
+      knownMissingBlobRows: renderCandidatesOnly,
     },
   };
 }
