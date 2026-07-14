@@ -43,6 +43,9 @@ async function withServer(app, run) {
 function makeApp({
   shadowSendEnabled = false,
   graphSendConnector = null,
+  graphReadConnector = null,
+  mailboxIdsForSync = [],
+  ccoMailboxTruthStore = null,
   sendTestRecipient = '',
   auditEvents = null,
   postSendMailboxSync = null,
@@ -52,8 +55,10 @@ function makeApp({
   app.use(
     '/api/v1',
     createCcoConversationRouter({
-      ccoMailboxTruthStore: { listMessages: () => MESSAGES },
+      ccoMailboxTruthStore: ccoMailboxTruthStore || { listMessages: () => MESSAGES },
       graphSendConnector,
+      graphReadConnector,
+      mailboxIdsForSync,
       shadowSendEnabled,
       sendTestRecipient,
       postSendMailboxSync,
@@ -218,6 +223,53 @@ test('E1: settings/info rapporterar send.mode=shadow och shadow=true', async () 
     assert.equal(payload.send.shadow, true);
     assert.equal(payload.send.mode, 'shadow');
     assert.equal(payload.send.enabled, false, 'shadow är inte skarp sändning');
+  });
+});
+
+test('mailbox-väljaren får aktiv status och endast aggregat för varje konfigurerad mailbox', async () => {
+  const app = makeApp({
+    graphReadConnector: {},
+    mailboxIdsForSync: ['kons@hairtpclinic.com', 'halso@hairtpclinic.com'],
+    ccoMailboxTruthStore: {
+      listMessages: () => [],
+      getCompletenessReport({ mailboxIds }) {
+        return {
+          accountReports: mailboxIds.map((mailboxId) => ({
+            mailboxId,
+            accountStatus: 'VERIFIED',
+            folderCounts: [
+              { folderType: 'inbox', totalItemCount: mailboxId.startsWith('halso') ? 13 : 129 },
+              { folderType: 'sent', totalItemCount: 4 },
+            ],
+          })),
+        };
+      },
+    },
+  });
+  await withServer(app, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco/runtime/mailboxes`);
+    assert.equal(res.status, 200);
+    const payload = await res.json();
+    assert.equal(payload.ok, true);
+    assert.equal(payload.syncEnabled, true);
+    assert.deepEqual(payload.mailboxes, [
+      {
+        id: 'kons@hairtpclinic.com',
+        mailboxId: 'kons@hairtpclinic.com',
+        active: true,
+        status: 'active',
+        completenessStatus: 'VERIFIED',
+        counts: { inbox: 129, sent: 4 },
+      },
+      {
+        id: 'halso@hairtpclinic.com',
+        mailboxId: 'halso@hairtpclinic.com',
+        active: true,
+        status: 'active',
+        completenessStatus: 'VERIFIED',
+        counts: { inbox: 13, sent: 4 },
+      },
+    ]);
   });
 });
 

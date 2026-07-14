@@ -234,6 +234,8 @@
       }
       const c = st.counts || {};
       const sync = relTime(st.lastSyncAt);
+      if (st.active === false) return el('span', { class: 'errc' }, 'synk avstängd');
+      if (c.inbox == null && c.sent == null) return el('span', {}, 'aktiv · väntar på första synken');
       const txt =
         (c.inbox != null ? c.inbox : '–') +
         ' ink · ' +
@@ -321,7 +323,7 @@
     async function loadStatus() {
       try {
         const r = await fetch('/api/v1/cco/runtime/mailboxes', { cache: 'no-store' });
-        if (!r.ok) return;
+      if (!r.ok) return;
         const j = await r.json().catch(() => ({}));
         const list = Array.isArray(j && j.mailboxes) ? j.mailboxes : [];
         const map = {};
