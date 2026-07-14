@@ -1794,9 +1794,20 @@
     var name = txt(card.displayName || card.name);
     // Kontext-detalj (facit: "· PRP 2/3 pågår · Rum 2") ur aktivt besök.
     var ctxParts = [name];
-    if (av && txt(av.title)) ctxParts.push(txt(av.title) + ' pågår');
+    var visitState = txt(av && av.state).toLowerCase();
+    var visitSuffix =
+      visitState === 'completed_today'
+        ? 'avslutat'
+        : visitState === 'scheduled_today'
+          ? 'planerat idag'
+          : visitState === 'checked_in'
+            ? 'incheckad'
+            : 'pågår';
+    if (av && txt(av.title)) ctxParts.push(txt(av.title) + ' ' + visitSuffix);
     if (av && txt(av.room)) ctxParts.push(txt(av.room));
     var msg = nextStep && nextStep.what ? '⚡ ' + txt(nextStep.what) : 'Förbered nästa steg';
+    var primaryAction = txt(av && av.primary && av.primary.action) || 'journal';
+    var primaryLabel = txt(av && av.primary && av.primary.label) || 'Starta journal';
     return (
       '<div class="v12-canon__sticky"><div class="v12-canon__sticky-inner">' +
       '<div class="sticky-context">' +
@@ -1805,7 +1816,11 @@
       esc(msg) +
       '</b></div>' +
       '<button class="sticky-btn sec" data-v11-active-visit-action="photo">📷 Foto</button>' +
-      '<button class="sticky-btn primary" data-v11-active-visit-action="journal">📝 Starta journal</button>' +
+      '<button class="sticky-btn primary" data-v11-active-visit-action="' +
+      esc(primaryAction) +
+      '">' +
+      esc(primaryLabel) +
+      '</button>' +
       '</div></div>'
     );
   }
