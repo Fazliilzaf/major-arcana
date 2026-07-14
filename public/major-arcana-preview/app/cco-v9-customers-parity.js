@@ -24,6 +24,31 @@
     return Array.isArray(value) ? value : value == null || value === '' ? [] : [value];
   }
 
+  function trimText(value) {
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  function withInlineAssetPreviewUrl(viewUrl) {
+    const raw = trimText(viewUrl);
+    if (!raw) return '';
+    return /[?&]inline=1/.test(raw) ? raw : `${raw}${raw.includes('?') ? '&' : '?'}inline=1`;
+  }
+
+  function openV11DocumentAssetPreview(viewUrl, title) {
+    const inlineUrl = withInlineAssetPreviewUrl(viewUrl);
+    if (!inlineUrl) return false;
+    const label = trimText(title) || 'Dokument';
+    if (typeof global.__kkOpenDocument === 'function') {
+      global.__kkOpenDocument(inlineUrl, label);
+      return true;
+    }
+    return false;
+  }
+
+  function rowHasAssetPreview(row) {
+    return Boolean(trimText(row?.viewUrl));
+  }
+
   /** Owner facit: kunder-mockup-v10.html */
   function usesV10KundkortFacit() {
     return global.__ARCANA_V10_KUNDKORT_FACIT !== false;
@@ -2245,10 +2270,15 @@
       journeyStep: row.journeyStep || meta.journeyStep || '',
       previewable:
         row.previewable === true ||
+        Boolean(trimText(row.viewUrl)) ||
         meta.filler === 'system_auto' ||
         /^auto_/.test(registryId) ||
         /^offert_/.test(registryId) ||
+        /^pipedrive_historical_/.test(registryId) ||
         global.CcoHairtpDocumentCloud?.isInteractiveRegistryId?.(registryId) === true,
+      viewUrl: trimText(row.viewUrl),
+      assetId: trimText(row.assetId),
+      sourceSystem: trimText(row.sourceSystem),
     };
   }
 
@@ -2413,7 +2443,16 @@
       })(),
       flow: item.flow || defaults.flow || 'tp',
       journeyStep: item.journeyStep || defaults.journeyStep || '',
-      previewable: item.previewable === true || item.filler === 'auto',
+      viewUrl: trimText(item.viewUrl),
+      assetId: trimText(item.assetId),
+      sourceSystem: trimText(item.sourceSystem),
+      previewable:
+        item.previewable === true ||
+        item.filler === 'auto' ||
+        Boolean(trimText(item.viewUrl)) ||
+        /^pipedrive_historical_/.test(
+          String(item.registryId || item.documentTypeId || defaults.registryId || '')
+        ),
       dashed:
         status === 'planned' ||
         item.planned === true ||
@@ -2436,11 +2475,14 @@
       row.contentStatus && row.contentStatus !== 'FULL' && row.blockers?.length
         ? `<span class="v11-doc-row__blocker" title="${escapeHtml(row.blockers[0])}">!</span>`
         : '';
+    const hasAssetPreview = rowHasAssetPreview(row);
     const isClickable =
       row.previewable === true ||
+      hasAssetPreview ||
       row.filler === 'auto' ||
       (row.registryId && /^auto_/.test(row.registryId)) ||
       (row.registryId && /^offert_/.test(row.registryId)) ||
+      (row.registryId && /^pipedrive_historical_/.test(row.registryId)) ||
       global.CcoHairtpDocumentCloud?.isInteractiveRegistryId?.(row.registryId) === true;
     const isAutoPreview =
       row.filler === 'auto' || (row.registryId && /^auto_/.test(row.registryId));
@@ -2451,7 +2493,7 @@
         global.CcoHairtpDocumentCloud?.isSteg8RegistryId?.(row.registryId));
     const previewHint = isAutoPreview
       ? '<span class="v11-doc-row__preview" aria-hidden="true">Visa mall</span>'
-      : isStaffPreview
+      : isStaffPreview || hasAssetPreview
         ? '<span class="v11-doc-row__preview" aria-hidden="true">Öppna</span>'
         : '';
     return `
@@ -2464,6 +2506,8 @@
         data-v11-doc-status="${escapeHtml(row.status)}"
         data-v11-doc-content-status="${escapeHtml(row.contentStatus || '')}"
         data-v11-doc-previewable="${isClickable ? '1' : '0'}"
+        data-v11-doc-view-url="${escapeHtml(row.viewUrl || '')}"
+        data-v11-doc-title="${escapeHtml(row.title || '')}"
         ${isClickable ? 'role="button" tabindex="0"' : ''}
       >
         <div class="v11-doc-row__main">
@@ -3248,9 +3292,16 @@
   function handleV11DocumentRowActivate(root, row) {
     void root;
     if (!row) return;
-    const registryId = row.getAttribute('data-v11-doc-registry') || '';
     const previewable = row.getAttribute('data-v11-doc-previewable') === '1';
-    if (!registryId || !previewable) return;
+    if (!previewable) return;
+    const viewUrl = row.getAttribute('data-v11-doc-view-url') || '';
+    const title =
+      row.getAttribute('data-v11-doc-title') ||
+      row.getAttribute('data-v11-doc-registry') ||
+      'Dokument';
+    if (openV11DocumentAssetPreview(viewUrl, title)) return;
+    const registryId = row.getAttribute('data-v11-doc-registry') || '';
+    if (!registryId) return;
     if (global.CcoHairtpDocumentCloud?.activateRegistryDocument?.(registryId)) return;
   }
 
@@ -4597,6 +4648,8 @@
     buildIntelligentJourneyBubbles,
     renderIntelligentJourneyBubblesHtml,
     bindIntelligentJourney,
+    openV11DocumentAssetPreview,
+    handleV11DocumentRowActivate,
     renderDossierScrollHtml,
     renderDossierQuickPillsHtml,
     bindDossierScroll,

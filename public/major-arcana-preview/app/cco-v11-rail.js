@@ -784,6 +784,10 @@
               esc(it.status) +
               '" data-v11-doc-previewable="' +
               (it.previewable ? '1' : '0') +
+              '" data-v11-doc-view-url="' +
+              esc(it.viewUrl || '') +
+              '" data-v11-doc-title="' +
+              esc(it.title || 'Offert') +
               '"' +
               (it.previewable ? ' role="button" tabindex="0"' : '') +
               '>' +

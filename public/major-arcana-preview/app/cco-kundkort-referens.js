@@ -1177,8 +1177,12 @@
   }
 
   function referensRegistryInteractive(doc) {
+    if (!doc) return false;
+    if (doc.viewUrl) return true;
+    if (String(doc.sourceSystem || '').toLowerCase() === 'pipedrive_import') return true;
     var registryId = referensAutoDocRegistryId(doc);
     if (!registryId) return false;
+    if (/^pipedrive_historical_/.test(registryId)) return true;
     if (
       window.CcoHairtpDocumentCloud &&
       typeof window.CcoHairtpDocumentCloud.isInteractiveRegistryId === 'function'
@@ -1193,6 +1197,7 @@
     var registryId = referensAutoDocRegistryId(doc);
     var filler = doc.filler || 'patient';
     var flow = doc.flow || 'tp';
+    var viewUrl = doc.viewUrl ? esc(doc.viewUrl) : '';
     return (
       ' data-kk-registry-doc="' +
       esc(registryId) +
@@ -1202,7 +1207,11 @@
       esc(filler) +
       '" data-v11-doc-flow="' +
       esc(flow) +
-      '" data-v11-doc-previewable="1" role="button" tabindex="0"'
+      '" data-v11-doc-previewable="1" data-v11-doc-view-url="' +
+      viewUrl +
+      '" data-v11-doc-title="' +
+      esc(doc.title || registryId) +
+      '" role="button" tabindex="0"'
     );
   }
 
@@ -6627,6 +6636,21 @@
     window.__kkLiftsBound = true;
     function openRegistryDocFromReferens(row) {
       if (!row) return false;
+      if (row.getAttribute('data-v11-doc-previewable') === '1') {
+        if (
+          window.CcoV9CustomersParity &&
+          typeof window.CcoV9CustomersParity.handleV11DocumentRowActivate === 'function'
+        ) {
+          window.CcoV9CustomersParity.handleV11DocumentRowActivate(document, row);
+          return true;
+        }
+        var viewUrl = row.getAttribute('data-v11-doc-view-url') || '';
+        var title = row.getAttribute('data-v11-doc-title') || 'Dokument';
+        if (viewUrl && typeof window.__kkOpenDocument === 'function') {
+          window.__kkOpenDocument(viewUrl, title);
+          return true;
+        }
+      }
       var registryId =
         row.getAttribute('data-kk-registry-doc') ||
         row.getAttribute('data-kk-auto-doc-preview') ||

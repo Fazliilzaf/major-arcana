@@ -1026,6 +1026,7 @@
     item = item || {};
     var registryId = text(item.registryId || item.documentTypeId);
     var status = (text(item.status) || 'planned').toLowerCase();
+    var viewUrl = text(item.viewUrl);
     return {
       title: text(item.title) || text(item.name) || text(item.label) || 'Offert',
       amount: text(item.amount) || text(item.total),
@@ -1033,7 +1034,12 @@
       statusLabel: text(item.statusLabel) || OFFER_STATUS_LABELS[status] || status,
       journeyStep: text(item.journeyStep),
       registryId: registryId,
-      previewable: item.previewable === true || /^offert_/.test(registryId),
+      viewUrl: viewUrl,
+      previewable:
+        item.previewable === true ||
+        /^offert_/.test(registryId) ||
+        /^pipedrive_historical_/.test(registryId) ||
+        Boolean(viewUrl),
     };
   }
 
