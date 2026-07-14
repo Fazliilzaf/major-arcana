@@ -127,6 +127,14 @@ test('kall patient-summary får slutföras utan åttasekunders abort', () => {
   );
 });
 
+test('V11/V12 visar summary före tung filberikning även på desktop', () => {
+  assert.match(
+    ui,
+    /const useLite = preferLite \|\| isMobileViewport\(\) \|\| isV9CustomersEnabled\(\)/
+  );
+  assert.match(ui, /function enrichPatientDriveFiles\(patientId\)/);
+});
+
 test('desktop patientId använder befintlig tidig prefetch med serverhanterad session', () => {
   assert.match(deepLinkBoot, /const mobileViewport = isMobileViewport\(\)/);
   assert.match(
