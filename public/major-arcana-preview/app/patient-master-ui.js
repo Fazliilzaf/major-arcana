@@ -13021,7 +13021,10 @@
       return prefetched.payload;
     }
 
-    const useLite = preferLite || isMobileViewport();
+    // V11/V12 already enrich native files after the dossier shell is visible.
+    // Use the same lite-first path on desktop so a cold full asset bundle cannot
+    // block the entire customer card.
+    const useLite = preferLite || isMobileViewport() || isV9CustomersEnabled();
     const apiPromise = fetchPatientDetailFromApi(patientId, { includeDriveFiles: !useLite });
     if (!window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__) {
       return apiPromise;
