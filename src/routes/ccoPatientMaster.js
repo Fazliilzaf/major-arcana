@@ -434,6 +434,7 @@ async function prepareInternalizeExecution({
       sampleSize: 5,
       driveThrottleMs: 75,
       concurrency,
+      checkpointEvery: Math.min(500, Math.max(100, Math.floor(limit / 2))),
       tenantId: actor.tenantId,
       actor: importActor,
       dateGateActive: Boolean(dateGate?.active),
