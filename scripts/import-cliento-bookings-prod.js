@@ -12,7 +12,7 @@ const BASE = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').
 const CONFIRM_TEXT = 'IMPORT CLIENTO BOOKINGS';
 
 function parseArgs(argv) {
-  const args = { csv: '', commit: false, confirmText: '', batchSize: 250 };
+  const args = { csv: '', commit: false, confirmText: '', batchSize: 250, offset: 0 };
   for (let index = 2; index < argv.length; index += 1) {
     const flag = argv[index];
     if (flag === '--csv') args.csv = path.resolve(argv[++index]);
@@ -20,7 +20,7 @@ function parseArgs(argv) {
     else if (flag === '--confirm-text') args.confirmText = String(argv[++index] || '');
     else if (flag === '--batch-size') {
       args.batchSize = Math.max(1, Math.min(500, Number(argv[++index]) || 250));
-    }
+    } else if (flag === '--offset') args.offset = Math.max(0, Number(argv[++index]) || 0);
   }
   if (!args.csv || !fs.existsSync(args.csv))
     throw new Error('--csv måste peka på en befintlig fil');
@@ -75,6 +75,7 @@ async function main() {
     rejected: 0,
     batches: 0,
     dryRun: !args.commit,
+    startOffset: args.offset,
   };
   if (!args.commit) {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -83,7 +84,7 @@ async function main() {
 
   const token = fetchOwnerToken();
   const source = path.basename(args.csv);
-  for (let offset = 0; offset < mapped.bookings.length; offset += args.batchSize) {
+  for (let offset = args.offset; offset < mapped.bookings.length; offset += args.batchSize) {
     const bookings = mapped.bookings.slice(offset, offset + args.batchSize);
     const result = await postBatch({ token, bookings, source });
     report.imported += Number(result.accepted) || 0;
