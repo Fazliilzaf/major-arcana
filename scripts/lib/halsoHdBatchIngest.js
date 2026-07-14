@@ -547,6 +547,7 @@ module.exports = {
   selectBatchSlice,
   appendReviewQueueLine,
   buildReviewQueueEntry,
+  buildStructuredFormUpsert,
   processOneHalsoMessage,
   runHalsoBatchIngest,
   loadDedupState,

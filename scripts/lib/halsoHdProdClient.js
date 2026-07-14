@@ -136,6 +136,24 @@ async function putPatient(token, body) {
   return payload;
 }
 
+async function putPatientFormsBatch(token, items) {
+  const { payload } = await fetchWithRetry(
+    `${BASE}/api/v1/cco-patient-master/patient/forms/batch`,
+    {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'x-arcana-client': 'major_arcana_admin',
+      },
+      body: JSON.stringify({ confirmText: 'UPSERT PATIENT FORMS', items }),
+    },
+    { label: `POST patient forms batch (${items.length})`, timeoutMs: 120000 }
+  );
+  return payload;
+}
+
 async function fetchAssetBuffer(token, assetId) {
   const res = await fetch(`${BASE}/api/v1/cco/assets/${encodeURIComponent(assetId)}/download`, {
     headers: {
@@ -160,6 +178,7 @@ module.exports = {
   fetchProdPatients,
   fetchPatient,
   putPatient,
+  putPatientFormsBatch,
   fetchAssetBuffer,
   fetchWithRetry,
 };

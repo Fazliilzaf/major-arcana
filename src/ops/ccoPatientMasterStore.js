@@ -844,6 +844,12 @@ async function createCcoPatientMasterStore({ filePath }) {
     });
   }
 
+  async function upsertPatients(inputs = []) {
+    const patients = asArray(inputs).map((input) => applyPatientPatch(input));
+    if (patients.length) await save();
+    return patients.map(clonePatient);
+  }
+
   async function listPatients({ tenantId, query = '', flags = [], limit = 100, offset = 0 } = {}) {
     const bucket = tenantBucket(state, tenantId);
     const q = normalizeKey(query);
@@ -1584,6 +1590,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     mergePipedriveProfiles,
     setPatientAccess,
     upsertPatient,
+    upsertPatients,
     patientKey,
   };
 }

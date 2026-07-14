@@ -1310,3 +1310,95 @@ test('journey-audit requires OWNER role', async () => {
     await fs.rm(fixture.tmp, { recursive: true, force: true });
   }
 });
+
+test('patient forms batch applies HD and FF with one owner-gated request', async () => {
+  const fixture = await makeFixture();
+  try {
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: TENANT,
+      id: 'forms-patient-1',
+      displayName: 'Forms Patient',
+      matchStatus: 'matched',
+    });
+    await withServer(fixture.app, async (base) => {
+      const response = await fetch(
+        `${base}/api/v1/cco-patient-master/patient/forms/batch`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            confirmText: 'UPSERT PATIENT FORMS',
+            items: [
+              {
+                patientId: 'forms-patient-1',
+                personnummer: '19800101-1234',
+                formType: 'health_declaration',
+                structuredForm: { signedAt: '2026-07-01T10:00:00.000Z', answers: [] },
+                allergies: ['Penicillin'],
+              },
+              {
+                patientId: 'forms-patient-1',
+                personnummer: '19800101-1234',
+                formType: 'fitness_certificate',
+                structuredForm: { signedAt: '2026-07-02T10:00:00.000Z', answers: [] },
+              },
+            ],
+          }),
+        }
+      );
+      const body = await response.json();
+      assert.equal(response.status, 200);
+      assert.equal(body.applied, 2);
+      assert.deepEqual(body.skipped, []);
+
+      const patient = await fixture.patientMasterStore.getPatient({
+        tenantId: TENANT,
+        patientId: 'forms-patient-1',
+      });
+      assert.equal(patient.personnummer, '19800101-1234');
+      assert.equal(patient.healthDeclaration.signedAt, '2026-07-01T10:00:00.000Z');
+      assert.equal(patient.fitnessCertificate.signedAt, '2026-07-02T10:00:00.000Z');
+      assert.deepEqual(patient.allergies, ['Penicillin']);
+      assert.equal(
+        fixture.authStore.events.some(
+          (event) => event.action === 'cco.patient_master.forms.batch_write'
+        ),
+        true
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('patient forms batch requires OWNER and exact confirmation', async () => {
+  const owner = await makeFixture();
+  const staff = await makeFixture({ role: 'STAFF' });
+  try {
+    await withServer(owner.app, async (base) => {
+      const response = await fetch(
+        `${base}/api/v1/cco-patient-master/patient/forms/batch`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ items: [{}] }),
+        }
+      );
+      assert.equal(response.status, 400);
+    });
+    await withServer(staff.app, async (base) => {
+      const response = await fetch(
+        `${base}/api/v1/cco-patient-master/patient/forms/batch`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ confirmText: 'UPSERT PATIENT FORMS', items: [{}] }),
+        }
+      );
+      assert.equal(response.status, 403);
+    });
+  } finally {
+    await fs.rm(owner.tmp, { recursive: true, force: true });
+    await fs.rm(staff.tmp, { recursive: true, force: true });
+  }
+});

@@ -1847,6 +1847,75 @@ function createCcoPatientMasterRouter({
   );
 
   router.post(
+    '/cco-patient-master/patient/forms/batch',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        if (normalizeText(body.confirmText) !== 'UPSERT PATIENT FORMS') {
+          return res.status(400).json({ error: 'confirmText måste vara UPSERT PATIENT FORMS.' });
+        }
+        const items = asArray(body.items).slice(0, 100);
+        if (!items.length) return res.status(400).json({ error: 'items krävs.' });
+
+        const patches = [];
+        const skipped = [];
+        for (let index = 0; index < items.length; index += 1) {
+          const item = items[index] && typeof items[index] === 'object' ? items[index] : {};
+          const patientId = normalizeText(item.patientId);
+          const formType = normalizeText(item.formType);
+          const structuredForm =
+            item.structuredForm && typeof item.structuredForm === 'object'
+              ? item.structuredForm
+              : null;
+          if (!patientId || !structuredForm || !['health_declaration', 'fitness_certificate'].includes(formType)) {
+            skipped.push({ index, patientId: patientId || null, reason: 'invalid_form_patch' });
+            continue;
+          }
+          const existing = await patientMasterStore.getPatient({
+            tenantId: actor.tenantId,
+            patientId,
+          });
+          if (!existing) {
+            skipped.push({ index, patientId, reason: 'patient_not_found' });
+            continue;
+          }
+          patches.push({
+            tenantId: actor.tenantId,
+            id: patientId,
+            personnummer: existing.personnummer || normalizeText(item.personnummer),
+            ...(formType === 'fitness_certificate'
+              ? { fitnessCertificate: structuredForm }
+              : { healthDeclaration: structuredForm, allergies: asArray(item.allergies) }),
+            halsoHdBackfill:
+              item.halsoHdBackfill && typeof item.halsoHdBackfill === 'object'
+                ? item.halsoHdBackfill
+                : existing.halsoHdBackfill,
+          });
+        }
+
+        const patients = await patientMasterStore.upsertPatients(patches);
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.forms.batch_write',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: `batch:${patients.length}`,
+          metadata: { requested: items.length, applied: patients.length, skipped: skipped.length },
+        });
+        return res.json({
+          ok: true,
+          requested: items.length,
+          applied: patients.length,
+          patientIds: patients.map((patient) => patient.id),
+          skipped,
+        });
+      })
+  );
+
+  router.post(
     '/cco-patient-master/patient/attendance',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
