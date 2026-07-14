@@ -3712,7 +3712,10 @@ function createScheduler({
       } else {
         finalPersist = await persistAnalyzeInboxWorklistOutput({
           tenantId,
-          mailboxIds,
+          // rollingBaseline starts from the selected global baseline and only
+          // replaces the scoped rows. Keep the full mailbox contract so the
+          // consumer selects this merged entry instead of the stale baseline.
+          mailboxIds: refreshExisting ? configuredMailboxIds : mailboxIds,
           trigger: effectiveTrigger,
           actorUserId,
           mode: 'full_backfill_final',
