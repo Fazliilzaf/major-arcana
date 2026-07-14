@@ -357,6 +357,13 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
   function beginBatch() {
     __batchDepth += 1;
   }
+  async function checkpointBatch() {
+    if (__batchDepth === 0 || !__batchDirty) return false;
+    __batchDirty = false;
+    state.updatedAt = nowIso();
+    await writeJsonAtomic(filePath, state);
+    return true;
+  }
   async function flushBatch() {
     if (__batchDepth > 0) __batchDepth -= 1;
     if (__batchDepth === 0 && __batchDirty) {
@@ -1402,6 +1409,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
 
   return {
     beginBatch,
+    checkpointBatch,
     flushBatch,
     addAsset,
     transitionStatus,
