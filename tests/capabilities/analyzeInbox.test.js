@@ -1479,3 +1479,45 @@ test('AnalyzeInbox excludes conversation when outbound is newer than inbound', a
     Date.now = originalNow;
   }
 });
+
+test('AnalyzeInbox scopes canonical Graph conversation by contact-form rollup key', async () => {
+  const mailboxId = 'kons@hairtpclinic.com';
+  const graphConversationId = 'AAQkProductionGraphThread';
+  const canonicalConversationId = `${mailboxId}:${graphConversationId}`;
+  const output = await new analyzeInboxCapability().execute({
+    tenantId: 'tenant-a',
+    actor: { id: 'owner-a', role: 'OWNER' },
+    channel: 'admin',
+    requestId: 'req-inbox-contact-form-rollup-scope',
+    correlationId: 'corr-inbox-contact-form-rollup-scope',
+    input: {
+      maxDrafts: 2,
+      conversationIds: [
+        `${canonicalConversationId}::contact-form:patient%40example.com`,
+      ],
+    },
+    systemStateSnapshot: {
+      conversations: [
+        {
+          conversationId: canonicalConversationId,
+          mailboxId,
+          subject: 'Kontaktformular',
+          status: 'open',
+          messages: [
+            {
+              messageId: 'msg-contact-form-rollup',
+              direction: 'inbound',
+              sentAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+              bodyPreview: 'Hej, jag vill boka en konsultation.',
+              mailboxId,
+            },
+          ],
+        },
+      ],
+      timestamps: { capturedAt: new Date().toISOString() },
+    },
+  });
+
+  assert.equal(output.data.conversationEnrichment.length, 1);
+  assert.equal(output.data.conversationEnrichment[0].conversationId, canonicalConversationId);
+});

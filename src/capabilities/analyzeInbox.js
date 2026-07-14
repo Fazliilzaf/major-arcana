@@ -206,6 +206,12 @@ function buildConversationScopeSet(scopeConversationIds = []) {
     const normalized = normalizeIdentifier(item, 320).toLowerCase();
     if (!normalized) continue;
     scopeSet.add(normalized);
+    const rollupIndex = normalized.indexOf('::');
+    const mailboxSeparatorIndex = normalized.indexOf(':');
+    if (rollupIndex > mailboxSeparatorIndex + 1) {
+      scopeSet.add(normalized.slice(0, rollupIndex));
+      scopeSet.add(normalized.slice(mailboxSeparatorIndex + 1, rollupIndex));
+    }
     const colonIndex = normalized.lastIndexOf(':');
     if (colonIndex > 0 && colonIndex < normalized.length - 1) {
       scopeSet.add(normalized.slice(colonIndex + 1));
@@ -219,6 +225,8 @@ function conversationMatchesScope(conversationId = '', scopeSet = new Set()) {
   const normalized = normalizeIdentifier(conversationId, 320).toLowerCase();
   if (!normalized) return false;
   if (scopeSet.has(normalized)) return true;
+  const rollupIndex = normalized.indexOf('::');
+  if (rollupIndex > 0 && scopeSet.has(normalized.slice(0, rollupIndex))) return true;
   const colonIndex = normalized.lastIndexOf(':');
   if (colonIndex > 0 && scopeSet.has(normalized.slice(colonIndex + 1))) return true;
   return false;
