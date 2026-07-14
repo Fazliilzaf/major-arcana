@@ -4611,6 +4611,41 @@ let ccoBookingCaseStore = null;
       }
     );
 
+    // POST /api/v1/cco/assets/:assetId/migration-purge-non-patient — owner-only, REJECTED pipedrive_import
+    app.post(
+      '/api/v1/cco/assets/:assetId/migration-purge-non-patient',
+      requireCcoAuthenticated,
+      attachRole,
+      requireAnyRole(['owner']),
+      express.json({ limit: '8kb' }),
+      async (req, res) => {
+        try {
+          const assetId = req.params.assetId;
+          const reason = String(req.body?.reason || 'pipedrive_non_patient_orphan').slice(0, 500);
+          const store = await resolveSharedPatientAssetStore();
+          if (!store) return res.status(503).json({ error: 'asset_store_not_initialized' });
+          const asset = store.getAsset?.(assetId);
+          if (!asset) return res.status(404).json({ error: 'asset saknas' });
+          if (asset.sourceSystem !== 'pipedrive_import' || asset.status !== 'REJECTED') {
+            return res.status(409).json({
+              error: `migration-purge kräver REJECTED pipedrive_import (var ${asset.status}/${asset.sourceSystem})`,
+            });
+          }
+          if (typeof store.hardDeleteAsset !== 'function') {
+            return res.status(503).json({ error: 'asset_hard_delete_unavailable' });
+          }
+          const actor = { userId: req.role?.userId || 'owner', role: req.role?.role || 'owner' };
+          const result = await store.hardDeleteAsset(assetId, {
+            technicalReason: reason,
+            actor,
+          });
+          res.json({ ok: true, assetId, purged: Boolean(result) });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
+
     // POST /api/v1/cco/assets/:assetId/soft-delete — markera bild som dold (PDL-retention behåller fysisk fil 10 år)
     app.post(
       '/api/v1/cco/assets/:assetId/soft-delete',

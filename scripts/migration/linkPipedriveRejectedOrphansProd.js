@@ -28,7 +28,10 @@ const {
   buildPipedrivePatientIndex,
   extractPersonNameFromFileName,
   resolvePatientByFileName,
+  sanitizeExtractedPersonName,
+  extractEmailFromFileName,
   nameKey,
+  foldName,
 } = require('./lib/pipedriveSmartdocsImport');
 
 const ROOT = path.join(__dirname, '../..');
@@ -42,25 +45,33 @@ const DEFAULT_ICLOUD_ROOT = path.join(
   os.homedir(),
   'Library/Mobile Documents/com~apple~CloudDocs/_ARKIV-iCloud-Major-Arcana-2.0/Migration-data'
 );
+const DEFAULT_ICLOUD_PDF_DIR = path.join(
+  DEFAULT_ICLOUD_ROOT,
+  'pipedrive-smartdocs-2026-07-12/pdfs/other'
+);
 
 function parseArgs(argv) {
   const args = {
     dryRun: true,
-    rejectPatchPath: path.join(ROOT, 'data/reports/pipedrive-needs-review-reject-patch.json'),
+    rejectPatchPath: path.join(ROOT, 'data/reports/pipedrive-rejected-prod-remaining-patch.json'),
     peopleCsv: path.join(DEFAULT_ICLOUD_ROOT, 'pipedrive-2026-05-24/personer-2026-05-24.csv'),
     reportPath: path.join(ROOT, 'data/reports/pipedrive-rejected-link-plan.json'),
+    icloudPdfDir: DEFAULT_ICLOUD_PDF_DIR,
     minConfidence: 0.7,
     usePipedriveApi: true,
-    pipedriveDelayMs: 150,
+    pipedriveDelayMs: 350,
+    aggressive: false,
   };
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i];
     if (token === '--write') args.dryRun = false;
     else if (token === '--dry-run') args.dryRun = true;
+    else if (token === '--aggressive') args.aggressive = true;
     else if (token === '--no-pipedrive-api') args.usePipedriveApi = false;
     else if (token === '--reject-patch') args.rejectPatchPath = argv[++i];
     else if (token === '--people-csv') args.peopleCsv = argv[++i];
     else if (token === '--report') args.reportPath = argv[++i];
+    else if (token === '--icloud-pdfs') args.icloudPdfDir = argv[++i];
   }
   return args;
 }
@@ -105,7 +116,101 @@ function loadPeopleCsv(csvPath) {
 }
 
 function isNonPatientTemplate(fileName = '') {
-  return /^(guide|efterv[aå]rdsguide|mall|template)[-_\s]/i.test(fileName);
+  const fn = String(fileName || '');
+  if (/^(guide|efterv[aå]rdsguide|mall|template)[-_\s]/i.test(fn)) return true;
+  if (/adobe_transaction/i.test(fn)) return true;
+  if (/anteckningar fr[aå]n bes[oö]ket/i.test(fn)) return true;
+  if (/anst[aä]llningsavtal/i.test(fn)) return true;
+  if (/\bavi[\s_]/i.test(fn)) return true;
+  if (/bestridande_faktura/i.test(fn)) return true;
+  if (/bokningsbekr[aä]ftelse_hotel/i.test(fn)) return true;
+  if (/notifiering om f[oö]rfallen faktura/i.test(fn)) return true;
+  if (/^\d{8,}\.pdf$/i.test(fn)) return false;
+  if (/^\d+\.pdf$/i.test(fn)) return false;
+  return false;
+}
+
+function findLocalPdfPath(sourceRecordId, icloudPdfDir) {
+  const id = String(sourceRecordId || '').trim();
+  if (!id || !icloudPdfDir || !fs.existsSync(icloudPdfDir)) return null;
+  const hit = fs.readdirSync(icloudPdfDir).find((name) => name.startsWith(`${id}-`));
+  return hit ? path.join(icloudPdfDir, hit) : null;
+}
+
+function extractHintsFromPdfText(text = '') {
+  const normalized = String(text || '').replace(/\s+/g, ' ');
+  const hints = { extractedName: null, dealId: null };
+  const toMatch = normalized.match(/\bTo:\s*([A-ZÅÄÖa-zåäö][A-Za-zÅÄÖåäö'’\- ]{1,60})/);
+  if (toMatch) hints.extractedName = sanitizeExtractedPersonName(toMatch[1]);
+  if (!hints.extractedName) {
+    const hiMatch = normalized.match(/\bHi\s+([A-ZÅÄÖ][a-zåäö]+(?:\s+[A-ZÅÄÖ][a-zåäö]+)?)/);
+    if (hiMatch) hints.extractedName = sanitizeExtractedPersonName(hiMatch[1]);
+  }
+  const dealMatch = normalized.match(/faktura nr\s+(\d{1,5})\b/i);
+  if (dealMatch) hints.dealId = dealMatch[1];
+  const dottedMatch = String(text).match(/Bilder\.har\.([A-Za-zÅÄÖåäö]+)/i);
+  if (dottedMatch) hints.extractedName = sanitizeExtractedPersonName(dottedMatch[1]);
+  return hints;
+}
+
+async function readPdfHints(sourceRecordId, icloudPdfDir, pdfTextCache) {
+  const cacheKey = String(sourceRecordId || '');
+  if (!cacheKey) return null;
+  if (pdfTextCache.has(cacheKey)) return pdfTextCache.get(cacheKey);
+  const pdfPath = findLocalPdfPath(sourceRecordId, icloudPdfDir);
+  if (!pdfPath) {
+    pdfTextCache.set(cacheKey, null);
+    return null;
+  }
+  try {
+    const pdfParse = require('pdf-parse');
+    const data = await pdfParse(fs.readFileSync(pdfPath));
+    const hints = extractHintsFromPdfText(data.text || '');
+    if (/notifiering om f[oö]rfallen faktura|fortnox ab|ocr-nummer/i.test(data.text || '')) {
+      hints.nonPatient = true;
+    }
+    pdfTextCache.set(cacheKey, hints);
+    return hints;
+  } catch {
+    pdfTextCache.set(cacheKey, null);
+    return null;
+  }
+}
+
+function buildPatientPayloadFromName(name) {
+  const parts = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return {
+    tenantId: TENANT_ID,
+    displayName: name,
+    firstName: parts[0] || name,
+    lastName: parts.slice(1).join(' '),
+    matchStatus: 'needs_review',
+    pipedrive: {
+      source: 'pipedrive',
+      name,
+      firstName: parts[0] || name,
+      lastName: parts.slice(1).join(' '),
+      matchMethod: 'pipedrive_rejected_filename_import',
+      matchConfidence: 0.6,
+      importedAt: new Date().toISOString(),
+    },
+  };
+}
+
+function filterPipedriveSearchHits(hits = [], extractedName = '') {
+  const target = foldName(sanitizeExtractedPersonName(extractedName));
+  if (!target) return [];
+  return hits.filter((person) => {
+    const candidate = foldName(person?.name || '');
+    return (
+      candidate === target ||
+      candidate.startsWith(`${target} `) ||
+      target.startsWith(`${candidate} `)
+    );
+  });
 }
 
 function normalizePipedriveApiPerson(apiPerson = {}) {
@@ -130,43 +235,71 @@ function normalizePipedriveApiPerson(apiPerson = {}) {
   };
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function createPipedriveApiClient() {
   const companyDomain = String(process.env.PIPEDRIVE_COMPANY_DOMAIN || '').trim();
   const apiToken = String(process.env.PIPEDRIVE_API_TOKEN || '').trim();
   if (!companyDomain || !apiToken) return null;
 
-  async function pipedriveGet(pathname, searchParams = {}) {
-    const url = new URL(`https://${companyDomain}.pipedrive.com/api/v1${pathname}`);
-    for (const [key, value] of Object.entries(searchParams)) {
-      if (value != null && value !== '') url.searchParams.set(key, String(value));
+  async function pipedriveGet(pathname, searchParams = {}, { attempts = 5 } = {}) {
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      const url = new URL(`https://${companyDomain}.pipedrive.com/api/v1${pathname}`);
+      for (const [key, value] of Object.entries(searchParams)) {
+        if (value != null && value !== '') url.searchParams.set(key, String(value));
+      }
+      url.searchParams.set('api_token', apiToken);
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      const payload = await res.json().catch(() => ({}));
+      if (res.status === 429 || res.status === 402) {
+        const waitMs = Math.max(Number(res.headers.get('retry-after') || 0) * 1000, 2000 * attempt);
+        await sleep(waitMs);
+        continue;
+      }
+      if (!res.ok || payload.success === false) {
+        const message = payload.error || payload.error_info || payload.message || res.statusText;
+        throw new Error(`Pipedrive ${pathname} → ${res.status}: ${message}`);
+      }
+      return payload;
     }
-    url.searchParams.set('api_token', apiToken);
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok || payload.success === false) {
-      const message = payload.error || payload.error_info || payload.message || res.statusText;
-      throw new Error(`Pipedrive ${pathname} → ${res.status}: ${message}`);
-    }
-    return payload;
+    throw new Error(`Pipedrive ${pathname} → rate limited after ${attempts} attempts`);
   }
 
   return {
-    async searchPersonByName(name) {
+    async searchPersonByEmail(email) {
       const payload = await pipedriveGet('/persons/search', {
-        term: name,
-        fields: 'name,email,phone',
+        term: email,
+        fields: 'email',
         limit: 10,
         exact_match: 1,
       });
       const items = Array.isArray(payload.data?.items) ? payload.data.items : [];
-      return items
-        .map((entry) => entry?.item)
-        .filter(Boolean)
-        .filter((person) => nameKey(person.name) === nameKey(name));
+      return items.map((entry) => entry?.item).filter(Boolean);
+    },
+    async searchPersonByName(name, { exactMatch = true } = {}) {
+      const payload = await pipedriveGet('/persons/search', {
+        term: name,
+        fields: 'name,email,phone',
+        limit: 10,
+        exact_match: exactMatch ? 1 : 0,
+      });
+      const items = Array.isArray(payload.data?.items) ? payload.data.items : [];
+      const mapped = items.map((entry) => entry?.item).filter(Boolean);
+      return filterPipedriveSearchHits(mapped, name);
     },
     async getPerson(personId) {
       const payload = await pipedriveGet(`/persons/${personId}`);
       return normalizePipedriveApiPerson(payload.data || {});
+    },
+    async getFile(fileId) {
+      const payload = await pipedriveGet(`/files/${fileId}`);
+      return payload.data || {};
+    },
+    async getDeal(dealId) {
+      const payload = await pipedriveGet(`/deals/${dealId}`);
+      return payload.data || {};
     },
   };
 }
@@ -282,10 +415,129 @@ function resolvePersonIdFromCsv(fileName, peopleIndex, lookup, peopleById, minCo
   return null;
 }
 
-async function resolvePersonForAsset(fileName, ctx) {
-  const extracted = extractPersonNameFromFileName(fileName);
-  if (!extracted) return { reason: 'no_extracted_name' };
+async function resolvePersonFromDealId(dealId, ctx) {
+  if (!ctx.pipedriveApi || !dealId) return null;
+  const cacheKey = `deal:${dealId}`;
+  if (ctx.dealPersonCache.has(cacheKey)) return ctx.dealPersonCache.get(cacheKey);
+  try {
+    const deal = await ctx.pipedriveApi.getDeal(dealId);
+    const rawPersonId = deal?.person_id;
+    const personId =
+      rawPersonId && typeof rawPersonId === 'object' ? rawPersonId.value : rawPersonId || null;
+    if (!personId) {
+      ctx.dealPersonCache.set(cacheKey, null);
+      return null;
+    }
+    const person = await ctx.pipedriveApi.getPerson(personId);
+    const resolved = { person, method: 'pipedrive_deal_id_filename' };
+    ctx.dealPersonCache.set(cacheKey, resolved);
+    if (ctx.pipedriveDelayMs > 0) await sleep(ctx.pipedriveDelayMs);
+    return resolved;
+  } catch {
+    ctx.dealPersonCache.set(cacheKey, null);
+    return null;
+  }
+}
+
+async function resolveAmbiguousPipedrivePersons(extracted, ctx) {
+  if (!ctx.pipedriveApi) return null;
+  let hits = await ctx.pipedriveApi.searchPersonByName(extracted, { exactMatch: true });
+  if (hits.length <= 1) {
+    hits = await ctx.pipedriveApi.searchPersonByName(extracted, { exactMatch: false });
+    hits = filterPipedriveSearchHits(hits, extracted);
+  }
+  if (hits.length <= 1) return null;
+  const resolved = [];
+  for (const hit of hits) {
+    const person = await ctx.pipedriveApi.getPerson(hit.id);
+    const candidates = findPatientsForPipedrivePerson(ctx.lookup, person, {
+      enableNameFallback: true,
+    }).filter((item) => item.confidence >= 0.55);
+    if (candidates.length === 1) {
+      resolved.push({
+        person,
+        patientId: candidates[0].patient.id,
+        method: 'pipedrive_api_disambiguated',
+      });
+    } else if (candidates.length === 0) {
+      resolved.push({ person, patientId: null, method: 'pipedrive_api_create' });
+    }
+    if (ctx.pipedriveDelayMs > 0) await sleep(ctx.pipedriveDelayMs);
+  }
+  const withPatient = resolved.filter((row) => row.patientId);
+  if (withPatient.length === 1) return withPatient[0];
+  const createOnly = resolved.filter((row) => !row.patientId);
+  if (createOnly.length === 1 && resolved.length === createOnly.length) {
+    return createOnly[0];
+  }
+  return null;
+}
+
+async function resolvePersonForAsset(fileName, ctx, { sourceRecordId = '' } = {}) {
   if (isNonPatientTemplate(fileName)) return { reason: 'non_patient_template' };
+
+  const baseName = String(fileName || '').replace(/\.pdf$/i, '');
+  if (/^\d{1,5}$/.test(baseName)) {
+    const fromDeal = await resolvePersonFromDealId(baseName, ctx);
+    if (fromDeal?.person) return fromDeal;
+  }
+
+  const pdfHints = await readPdfHints(sourceRecordId, ctx.icloudPdfDir, ctx.pdfTextCache);
+  if (pdfHints?.dealId) {
+    const fromDeal = await resolvePersonFromDealId(pdfHints.dealId, ctx);
+    if (fromDeal?.person) {
+      return { ...fromDeal, method: 'pipedrive_deal_id_pdf_text' };
+    }
+  }
+  if (pdfHints?.nonPatient && !/^\d{1,5}$/.test(baseName)) {
+    return { reason: 'non_patient_pdf_invoice' };
+  }
+
+  let extracted = sanitizeExtractedPersonName(extractPersonNameFromFileName(fileName));
+  if (!extracted && pdfHints?.extractedName) extracted = pdfHints.extractedName;
+
+  const emailFromFile = extractEmailFromFileName(fileName);
+  if (emailFromFile && ctx.pipedriveApi) {
+    const cacheKey = `email:${emailFromFile}`;
+    if (!ctx.apiPersonCache.has(cacheKey)) {
+      const hits = await ctx.pipedriveApi.searchPersonByEmail(emailFromFile);
+      if (hits.length === 1) {
+        const person = await ctx.pipedriveApi.getPerson(hits[0].id);
+        ctx.apiPersonCache.set(cacheKey, person);
+      } else {
+        ctx.apiPersonCache.set(cacheKey, hits.length > 1 ? { ambiguous: hits.length } : null);
+      }
+      if (ctx.pipedriveDelayMs > 0) await sleep(ctx.pipedriveDelayMs);
+    }
+    const cached = ctx.apiPersonCache.get(cacheKey);
+    if (cached && !cached.ambiguous && cached.personId) {
+      return { person: cached, method: 'pipedrive_api_email' };
+    }
+  }
+
+  if (!extracted) {
+    if (ctx.pipedriveApi && sourceRecordId) {
+      const cacheKey = `file:${sourceRecordId}`;
+      if (!ctx.filePersonCache.has(cacheKey)) {
+        try {
+          const file = await ctx.pipedriveApi.getFile(sourceRecordId);
+          const personId = file?.person_id || file?.personId;
+          if (personId) {
+            const person = await ctx.pipedriveApi.getPerson(personId);
+            ctx.filePersonCache.set(cacheKey, person);
+          } else {
+            ctx.filePersonCache.set(cacheKey, null);
+          }
+          if (ctx.pipedriveDelayMs > 0) await sleep(ctx.pipedriveDelayMs);
+        } catch {
+          ctx.filePersonCache.set(cacheKey, null);
+        }
+      }
+      const person = ctx.filePersonCache.get(cacheKey);
+      if (person?.personId) return { person, method: 'pipedrive_file_person_id' };
+    }
+    return { reason: 'no_extracted_name' };
+  }
 
   const fromCsv = resolvePersonIdFromCsv(
     fileName,
@@ -299,14 +551,21 @@ async function resolvePersonForAsset(fileName, ctx) {
   }
 
   if (ctx.pipedriveApi) {
-    const cacheKey = nameKey(extracted) || extracted.toLowerCase();
+    const cacheKey = foldName(extracted) || extracted.toLowerCase();
     if (!ctx.apiPersonCache.has(cacheKey)) {
-      const hits = await ctx.pipedriveApi.searchPersonByName(extracted);
+      let hits = await ctx.pipedriveApi.searchPersonByName(extracted, { exactMatch: true });
+      if (hits.length !== 1) {
+        hits = await ctx.pipedriveApi.searchPersonByName(extracted, { exactMatch: false });
+        hits = filterPipedriveSearchHits(hits, extracted);
+      }
       if (hits.length === 1) {
         const person = await ctx.pipedriveApi.getPerson(hits[0].id);
         ctx.apiPersonCache.set(cacheKey, person);
       } else {
-        ctx.apiPersonCache.set(cacheKey, hits.length > 1 ? { ambiguous: hits.length } : null);
+        ctx.apiPersonCache.set(
+          cacheKey,
+          hits.length > 1 ? { ambiguous: hits.length, extracted } : null
+        );
       }
       if (ctx.pipedriveDelayMs > 0) await sleep(ctx.pipedriveDelayMs);
     }
@@ -314,7 +573,22 @@ async function resolvePersonForAsset(fileName, ctx) {
     if (cached && !cached.ambiguous && cached.personId) {
       return { person: cached, method: 'pipedrive_api_search' };
     }
-    if (cached?.ambiguous) return { reason: 'pipedrive_api_ambiguous', extractedName: extracted };
+    if (cached?.ambiguous) {
+      const disambiguated = await resolveAmbiguousPipedrivePersons(extracted, ctx);
+      if (disambiguated?.person) {
+        if (disambiguated.patientId) {
+          return {
+            patientId: disambiguated.patientId,
+            method: disambiguated.method,
+            extractedName: extracted,
+          };
+        }
+        return { person: disambiguated.person, method: disambiguated.method };
+      }
+      if (!ctx.aggressive) {
+        return { reason: 'pipedrive_api_ambiguous', extractedName: extracted };
+      }
+    }
   }
 
   const direct = resolvePatientByFileName(fileName, ctx.patientIndex);
@@ -323,6 +597,26 @@ async function resolvePersonForAsset(fileName, ctx) {
       patientId: direct.patientId,
       method: direct.method,
       extractedName: direct.extractedName,
+    };
+  }
+
+  if (ctx.aggressive && extracted && nameKey(extracted)) {
+    return {
+      person: {
+        personId: `filename:${foldName(extracted)}`,
+        name: extracted,
+        firstName: extracted.split(/\s+/)[0] || extracted,
+        lastName: extracted.split(/\s+/).slice(1).join(' '),
+        emails: [],
+        phones: [],
+        primaryEmail: '',
+        primaryPhone: '',
+        personnummer: '',
+        organization: '',
+        owner: '',
+        fromFilenameOnly: true,
+      },
+      method: 'filename_only_aggressive',
     };
   }
 
@@ -357,10 +651,6 @@ function buildPatientPayloadFromPerson(person, deals = []) {
       importedAt: new Date().toISOString(),
     },
   };
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function migrationLinkAsset(token, assetId, patientId, { attempts = 6 } = {}) {
@@ -417,10 +707,14 @@ async function main() {
   const token = args.dryRun ? null : getProdToken();
   let prodPatients = [];
   if (args.dryRun) {
-    const masterPath = path.join(ROOT, 'data/cco-patient-master.json');
-    if (fs.existsSync(masterPath)) {
-      const master = JSON.parse(fs.readFileSync(masterPath, 'utf8'));
-      prodPatients = master.tenants?.[TENANT_ID]?.patients || [];
+    try {
+      prodPatients = await fetchAllProdPatients(getProdToken());
+    } catch {
+      const masterPath = path.join(ROOT, 'data/cco-patient-master.json');
+      if (fs.existsSync(masterPath)) {
+        const master = JSON.parse(fs.readFileSync(masterPath, 'utf8'));
+        prodPatients = master.tenants?.[TENANT_ID]?.patients || [];
+      }
     }
   } else {
     prodPatients = await fetchAllProdPatients(token);
@@ -436,7 +730,12 @@ async function main() {
     minConfidence: args.minConfidence,
     pipedriveApi,
     pipedriveDelayMs: args.pipedriveDelayMs,
+    icloudPdfDir: args.icloudPdfDir,
+    aggressive: args.aggressive,
     apiPersonCache: new Map(),
+    filePersonCache: new Map(),
+    dealPersonCache: new Map(),
+    pdfTextCache: new Map(),
   };
 
   const plan = [];
@@ -445,7 +744,9 @@ async function main() {
 
   for (const asset of rejectedAssets) {
     const fileName = asset.originalFileName || asset.displayName || '';
-    const resolved = await resolvePersonForAsset(fileName, ctx);
+    const resolved = await resolvePersonForAsset(fileName, ctx, {
+      sourceRecordId: asset.sourceRecordId || '',
+    });
 
     if (resolved.patientId) {
       plan.push({
@@ -469,9 +770,18 @@ async function main() {
     }
 
     const { person, method } = resolved;
-    const candidates = findPatientsForPipedrivePerson(lookup, person, {
+    let candidates = findPatientsForPipedrivePerson(lookup, person, {
       enableNameFallback: false,
     }).filter((item) => item.confidence >= args.minConfidence);
+
+    if (candidates.length !== 1) {
+      const fallbackCandidates = findPatientsForPipedrivePerson(lookup, person, {
+        enableNameFallback: true,
+      }).filter((item) => item.confidence >= 0.55);
+      if (fallbackCandidates.length === 1) {
+        candidates = fallbackCandidates;
+      }
+    }
 
     if (candidates.length === 1) {
       plan.push({
@@ -508,7 +818,9 @@ async function main() {
 
   if (!args.dryRun) {
     for (const [personId, entry] of patientsToCreate.entries()) {
-      const payload = buildPatientPayloadFromPerson(entry.person);
+      const payload = entry.person.fromFilenameOnly
+        ? buildPatientPayloadFromName(entry.person.name)
+        : buildPatientPayloadFromPerson(entry.person);
       const result = await requestJson('PUT', '/api/v1/cco-patient-master/patient', token, payload);
       const prodId = result?.patient?.id || result?.id;
       if (!prodId) {
@@ -544,6 +856,7 @@ async function main() {
   const report = {
     generatedAt: new Date().toISOString(),
     dryRun: args.dryRun,
+    aggressive: args.aggressive,
     rejectedTotal: rejectedAssets.length,
     linkPlanCount: plan.length,
     unresolvedCount: unresolved.length,
@@ -563,6 +876,7 @@ async function main() {
         newPatientsCount: report.newPatientsCount,
         unresolvedCount: report.unresolvedCount,
         pipedriveApi: Boolean(pipedriveApi),
+        aggressive: args.aggressive,
         reportPath: args.reportPath,
       },
       null,
