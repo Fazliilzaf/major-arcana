@@ -30,6 +30,7 @@ test('exports canonical enums per owner-spec', () => {
   assert.deepEqual([...VALID_SOURCE_SYSTEMS].sort(), [
     'drive',
     'drive_import',
+    'm365_halso',
     'meridiq',
     'old_cco',
   ]);

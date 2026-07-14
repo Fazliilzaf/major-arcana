@@ -8,12 +8,14 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 
 const { createCcoHalsoHealthDeclarationIngest } = require('./ccoHalsoHealthDeclarationIngest');
+const { importHalsoFormAttachments } = require('./ccoHalsoFormAttachmentImport');
 const {
   scanHalsoInboxCorpus,
   readIndexLines,
   readJsonFile,
   writeJsonAtomic,
   fetchMessageBody,
+  fetchMessagePdfAttachments,
   normalizeGraphMessage,
   getGraphToken,
   DEFAULT_MAILBOX,
@@ -45,6 +47,7 @@ async function runCcoHalsoHdScheduledMailboxIngest({
   tenantId = 'hair-tp-clinic',
   trigger = 'scheduled',
   patientMasterStore = null,
+  resolveAssetStores = null,
   config = {},
   logger = console,
 } = {}) {
@@ -109,7 +112,20 @@ async function runCcoHalsoHdScheduledMailboxIngest({
   });
 
   const graphToken = await getGraphToken();
-  const stats = { processed: 0, imported: 0, updated: 0, duplicate: 0, needsReview: 0, failed: 0 };
+  const stats = {
+    processed: 0,
+    imported: 0,
+    updated: 0,
+    duplicate: 0,
+    needsReview: 0,
+    failed: 0,
+    attachmentImported: 0,
+    attachmentDuplicate: 0,
+    attachmentSkipped: 0,
+    attachmentFailed: 0,
+  };
+  const assetStores =
+    typeof resolveAssetStores === 'function' ? await resolveAssetStores().catch(() => null) : null;
 
   for (const header of headers) {
     stats.processed += 1;
@@ -122,6 +138,33 @@ async function runCcoHalsoHdScheduledMailboxIngest({
         tenantId,
         persist: true,
       });
+      if (assetStores && result.patientId && !result.needsReview) {
+        try {
+          const attachments = await fetchMessagePdfAttachments(
+            graphToken,
+            mailbox,
+            header.id
+          );
+          const attachmentResult = await importHalsoFormAttachments({
+            attachments,
+            rawMessage,
+            formResult: result,
+            tenantId,
+            stores: assetStores,
+          });
+          stats.attachmentImported += attachmentResult.imported;
+          stats.attachmentDuplicate += attachmentResult.duplicate;
+          stats.attachmentSkipped += attachmentResult.skipped;
+          stats.attachmentFailed += attachmentResult.failed;
+        } catch (error) {
+          stats.attachmentFailed += 1;
+          logger?.error?.(
+            '[halso-hd-scheduler] attachment import failed',
+            header.id,
+            error?.message || error
+          );
+        }
+      }
       if (result.skipped && result.reason === 'duplicate') stats.duplicate += 1;
       else if (result.needsReview) stats.needsReview += 1;
       else if (result.imported) {

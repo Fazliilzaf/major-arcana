@@ -231,6 +231,52 @@ async function fetchMessageBody(token, mailbox, messageId) {
   return payload;
 }
 
+async function fetchMessagePdfAttachments(
+  token,
+  mailbox,
+  messageId,
+  { maxBytes = 10 * 1024 * 1024 } = {}
+) {
+  const baseUrl = `${GRAPH}/users/${encodeURIComponent(mailbox)}/messages/${encodeURIComponent(
+    messageId
+  )}/attachments`;
+  const page = await graphGet(
+    token,
+    `${baseUrl}?$select=id,name,contentType,size,isInline&$top=50`
+  );
+  const candidates = (page.value || []).filter((attachment) => {
+    const name = String(attachment?.name || '').toLowerCase();
+    const contentType = String(attachment?.contentType || '').toLowerCase();
+    const size = Number(attachment?.size || 0);
+    return (
+      attachment?.isInline !== true &&
+      (contentType === 'application/pdf' || name.endsWith('.pdf')) &&
+      size > 0 &&
+      size <= maxBytes
+    );
+  });
+
+  const attachments = [];
+  for (const candidate of candidates) {
+    const full = await graphGet(
+      token,
+      `${baseUrl}/${encodeURIComponent(
+        candidate.id
+      )}?$select=id,name,contentType,size,isInline,contentBytes`
+    );
+    const body = Buffer.from(String(full.contentBytes || ''), 'base64');
+    if (!body.length || body.length > maxBytes) continue;
+    attachments.push({
+      id: full.id || candidate.id,
+      name: full.name || candidate.name || 'halso-form.pdf',
+      contentType: full.contentType || candidate.contentType || 'application/pdf',
+      size: body.length,
+      body,
+    });
+  }
+  return attachments;
+}
+
 function normalizeGraphMessage(msg, mailbox) {
   const { htmlToText } = require('../../src/ops/ccoHalsoHealthDeclarationParser');
   const bodyHtml = msg.body?.content || '';
@@ -258,6 +304,7 @@ module.exports = {
   readIndexLines,
   getGraphToken,
   fetchMessageBody,
+  fetchMessagePdfAttachments,
   normalizeGraphMessage,
   appendIndexLine,
   writeJsonAtomic,
