@@ -4,10 +4,9 @@
  *
  * Vilka klinikbrevlådor CCO läser in som KUNDKONVERSATIONER.
  *
- * Curated default = de personliga/team-inkorgar som får riktig kundmail.
- * Rena funktions-/notisadresser (marknad, kvitto, booking, halso …) ingestas
- * INTE som kundkonversationer — de är utskicks-/notisadresser, och brus-
- * filtret (ccoConversationThreadStore / nonPatientRules) hanterar övrigt brus.
+ * Curated default = de CCO-brevlådor som operatören kan välja i Konversationer.
+ * Brusfiltreringen sker på meddelande-/trådnivå, inte genom att göra en synlig
+ * brevlåda omöjlig att läsa. Det gör mailbox-väljaren konsekvent med API:t.
  *
  * Prioritet (första icke-tomma vinner):
  *   1. ARCANA_MAILBOX_ALLOWLIST (env)   — driftsätts per miljö, full override
@@ -18,15 +17,17 @@
  * konfigändring, inte en kodändring.
  * ────────────────────────────────────────────────────────────────────────── */
 
-// OWNER-BESLUT (A1): kundkonversations-inkorgar. `marknad@` är medvetet
-// EXKLUDERAD (marknadsföring/utskick, inte klinisk kunddialog). Lägg till den
-// igen här eller via ARCANA_MAILBOX_ALLOWLIST om owner vill ingesta den.
+// CCO:s synliga mailboxar. ENV kan fortfarande uttryckligen begränsa listan
+// per miljö, men default får aldrig göra en synlig väljare overksam.
 const CURATED_CUSTOMER_MAILBOX_ALLOWLIST = Object.freeze([
   'info@hairtpclinic.com',
   'contact@hairtpclinic.com',
   'kons@hairtpclinic.com',
   'egzona@hairtpclinic.com',
   'fazli@hairtpclinic.com',
+  'marknad@hairtpclinic.com',
+  'kvitto@hairtpclinic.com',
+  'halso@hairtpclinic.com',
 ]);
 
 function normalizeMailboxList(value) {

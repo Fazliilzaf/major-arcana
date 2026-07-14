@@ -12,20 +12,18 @@ const {
   resolveIngestMailboxAllowlist,
 } = require('../../src/ops/ccoMailboxAllowlist');
 
-test('A1: curated default = kundinkorgar, marknad/funktionsadresser exkluderade', () => {
+test('A1: curated default omfattar samtliga synliga CCO-mailboxar', () => {
   assert.deepEqual([...CURATED_CUSTOMER_MAILBOX_ALLOWLIST].sort(), [
     'contact@hairtpclinic.com',
     'egzona@hairtpclinic.com',
     'fazli@hairtpclinic.com',
+    'halso@hairtpclinic.com',
     'info@hairtpclinic.com',
     'kons@hairtpclinic.com',
-  ]);
-  for (const excluded of [
-    'marknad@hairtpclinic.com',
     'kvitto@hairtpclinic.com',
-    'booking@hairtpclinic.com',
-    'halso@hairtpclinic.com',
-  ]) {
+    'marknad@hairtpclinic.com',
+  ]);
+  for (const excluded of ['booking@hairtpclinic.com']) {
     assert.ok(
       !CURATED_CUSTOMER_MAILBOX_ALLOWLIST.includes(excluded),
       `${excluded} ska inte ingesta som kundkonversation`

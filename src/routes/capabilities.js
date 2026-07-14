@@ -78,6 +78,10 @@ const CCO_GRAPH_READ_DEFAULT_ALLOWLIST = Object.freeze([
   'kons@hairtpclinic.com',
   'marknad@hairtpclinic.com',
   'kvitto@hairtpclinic.com',
+  // Hälso visas i CCO:s brevlåde-väljare och har en egen CCO-ingest. Det måste
+  // därför vara giltigt även i worklistens hårda lässcope, annars faller ett
+  // explicit Hälso-val tyst tillbaka till standardmailboxarna.
+  'halso@hairtpclinic.com',
 ]);
 const CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET = new Set(
   CCO_GRAPH_READ_DEFAULT_ALLOWLIST.map((item) => normalizeText(item).toLowerCase()).filter(Boolean)
