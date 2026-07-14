@@ -74,6 +74,18 @@ test('visit-segments reads native CCO assets without migration-index payload', a
   assert.match(requestedUrl, /includeDriveFiles=0/);
 });
 
+test('summary-primed visit segments avoid a duplicate API read', async () => {
+  let calls = 0;
+  const api = loadVisitSegmentsUi(() => {
+    calls += 1;
+    return Promise.reject(new Error('fetch should not run'));
+  });
+  assert.equal(api.primeVisitSegments('patient-1', [{ date: '2026-07-13' }]), true);
+  const result = await api.fetchVisitSegments('patient-1', 'token');
+  assert.equal(calls, 0);
+  assert.equal(result.length, 1);
+});
+
 test('fetchVisitSegmentsOrEmpty returns [] when visit-segments API fails', async () => {
   const api = loadVisitSegmentsUi(() =>
     Promise.resolve({

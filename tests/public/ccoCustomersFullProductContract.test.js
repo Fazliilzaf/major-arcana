@@ -143,6 +143,10 @@ test('V11/V12 första summary använder bounded lite-context', () => {
   );
 });
 
+test('summary primar befintlig visit-segments-renderare före V11 hydration', () => {
+  assert.match(ui, /CcoKundkortVisitSegments\?\.primeVisitSegments\?\.\(/);
+});
+
 test('desktop patientId använder befintlig tidig prefetch med serverhanterad session', () => {
   assert.match(deepLinkBoot, /const mobileViewport = isMobileViewport\(\)/);
   assert.match(
