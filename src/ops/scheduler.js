@@ -3444,6 +3444,7 @@ function createScheduler({
     targetConversationIds = [],
     refreshExisting = false,
     requestedMailboxIds = [],
+    publishCanary = false,
   } = {}) {
     const configuredMailboxIds = resolveCcoHistoryMailboxIds(config);
     const requestedMailboxSet = new Set(
@@ -3701,7 +3702,7 @@ function createScheduler({
           canaryLimit: effectiveCanaryLimit || null,
         },
       });
-      if (effectivePhase === 'canary') {
+      if (effectivePhase === 'canary' && !publishCanary) {
         finalPersist = {
           ok: true,
           skipped: true,
@@ -3715,10 +3716,10 @@ function createScheduler({
           // rollingBaseline starts from the selected global baseline and only
           // replaces the scoped rows. Keep the full mailbox contract so the
           // consumer selects this merged entry instead of the stale baseline.
-          mailboxIds: refreshExisting ? configuredMailboxIds : mailboxIds,
+          mailboxIds: configuredMailboxIds,
           trigger: effectiveTrigger,
           actorUserId,
-          mode: 'full_backfill_final',
+          mode: effectivePhase === 'canary' ? 'bounded_backfill_final' : 'full_backfill_final',
           outputData: rollingBaseline,
           scopedConversationCount: 0,
         });
@@ -3751,6 +3752,7 @@ function createScheduler({
       targetConversationIds: scopedTargetIds.length > 0 ? scopedTargetIds : null,
       refreshExisting,
       requestedMailboxIds,
+      publishCanary: Boolean(publishCanary),
       refreshExistingConversationCount: existingEnrichmentIds.length,
       processedConversationCount,
       coverageBefore,

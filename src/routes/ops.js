@@ -2063,6 +2063,7 @@ function createOpsRouter({
           );
           const runPhase = phase === 'canary' ? 'canary' : 'full';
           const refreshExisting = phase === 'refresh' || parseBoolean(body.refreshExisting, false);
+          const publishCanary = phase === 'canary' && parseBoolean(body.publishCanary, false);
           const requestedMailboxIds = Array.from(
             new Set(
               (Array.isArray(body.mailboxIds) ? body.mailboxIds : [])
@@ -2085,6 +2086,7 @@ function createOpsRouter({
             canaryLimit: phase === 'canary' ? canaryLimit : null,
             refreshExisting,
             requestedMailboxIds,
+            publishCanary,
           });
 
           res.json({
@@ -2095,6 +2097,7 @@ function createOpsRouter({
             canaryLimit: phase === 'canary' ? canaryLimit : null,
             refreshExisting,
             requestedMailboxIds,
+            publishCanary,
             pollUrl: `/api/v1/ops/cco/enrichment/backfill/status/${jobId}`,
           });
 
@@ -2108,6 +2111,7 @@ function createOpsRouter({
                 phase: runPhase,
                 refreshExisting,
                 requestedMailboxIds,
+                publishCanary,
               });
               const mailboxIds = resolveCcoHistoryMailboxIds(config);
               let coverage = null;
