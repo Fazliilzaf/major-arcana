@@ -127,7 +127,6 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
   let skippedNoId = 0;
   let skippedNoDate = 0;
   let skippedNoEmail = 0;
-  let skippedCancelled = 0;
 
   let working = rows;
   if (limit > 0) working = rows.slice(0, limit);
@@ -144,10 +143,6 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       continue;
     }
     const status = mapClientoCsvStatus(row['Status'], startsAt);
-    if (status === 'cancelled') {
-      skippedCancelled += 1;
-      continue;
-    }
     const customerEmail =
       normalizeEmail(row['E-post'] || row['Epost'] || row['Email']) ||
       emailByClientoId.get(clientoCustomerId) ||
@@ -160,13 +155,18 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       bookingId: normalizeText(row['Boknings-id']) || `cliento_${clientoCustomerId}_${startsAt}`,
       customerEmail,
       customerName: normalizeText(row['Kundnamn'] || row['Namn']),
+      customerPhone: normalizeText(row['Telefon'] || row['Mobil'] || row['Telefonnummer']),
       serviceLabel: normalizeText(row['Tjänstens namn'] || row['Tjänst']),
       staffName: normalizeText(row['Resursnamn'] || row['Resurs']),
       locationName: normalizeText(row['Plats'] || row['Klinik']),
       startsAt,
       status,
+      rawStatus: normalizeText(row['Status']),
       source: 'cliento_csv',
       clientoCustomerId,
+      notes: normalizeText(
+        row['Anteckningar'] || row['Anteckning'] || row['Noteringar'] || row['Kommentar']
+      ),
     });
   }
 
@@ -178,7 +178,7 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       skippedNoId,
       skippedNoDate,
       skippedNoEmail,
-      skippedCancelled,
+      skippedCancelled: 0,
     },
   };
 }

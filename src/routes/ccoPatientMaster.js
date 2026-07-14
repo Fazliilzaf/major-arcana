@@ -87,12 +87,8 @@ const {
   resolveCanonicalPatientsForAssetAliases,
   resolvePatientAssetIds,
 } = require('../ops/ccoPatientAssetIdentity');
-const {
-  repairCanonicalAssetPatientLinks,
-} = require('../ops/ccoCanonicalAssetPatientRepair');
-const {
-  repairReviewedAssetPatientLinks,
-} = require('../ops/ccoReviewedAssetPatientRepair');
+const { repairCanonicalAssetPatientLinks } = require('../ops/ccoCanonicalAssetPatientRepair');
+const { repairReviewedAssetPatientLinks } = require('../ops/ccoReviewedAssetPatientRepair');
 const {
   getCanonicalPatientRepairJobState,
   startCanonicalPatientRepairJob,
@@ -106,6 +102,7 @@ const {
 } = require('../ops/ccoEncounterLinkRepair');
 const { buildEncounterLinkReviewQueue } = require('../ops/ccoEncounterLinkReviewQueue');
 const { hydratePatientHealthProjection } = require('../ops/ccoPatientMasterStore');
+const { buildClientoLedJourneyAudit } = require('../ops/ccoClientoLedJourneyAudit');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -198,6 +195,12 @@ function clampPreviewLimit(value, fallback = 10) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return Math.max(1, Math.min(100, Math.floor(parsed)));
+}
+
+function clampJourneyAuditLimit(value, fallback = 500) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.max(1, Math.min(1000, Math.floor(parsed)));
 }
 
 function clampGhostRepairLimit(value, fallback = 100) {
@@ -805,6 +808,83 @@ function createCcoPatientMasterRouter({
             : await load();
         await auditRead(req, actor, actor.tenantId, 'cco.patient_master.stats.read');
         return res.json({ stats });
+      })
+  );
+
+  router.get(
+    '/cco-patient-master/journey-audit',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const listed = await patientMasterStore.listPatients({
+          tenantId: actor.tenantId,
+          limit: 20000,
+          offset: 0,
+        });
+        const patients = asArray(listed?.patients);
+        const bookingBundle = await loadKunderBookingIndex(config, actor.tenantId, patients, {
+          includeClientoBookings: true,
+        });
+        const resolvedStores =
+          typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          resolvedStores?.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        const rawAssets =
+          typeof assetStore?.listItemsForEnrichment === 'function'
+            ? assetStore.listItemsForEnrichment(actor.tenantId)
+            : [];
+        const canonicalAssets = rawAssets.slice();
+        const assetsByAlias = new Map();
+        for (const asset of rawAssets) {
+          const assetPatientId = normalizeText(asset?.patientId);
+          if (!assetPatientId) continue;
+          if (!assetsByAlias.has(assetPatientId)) assetsByAlias.set(assetPatientId, []);
+          assetsByAlias.get(assetPatientId).push(asset);
+        }
+        const canonicalIds = new Set(patients.map((patient) => normalizeText(patient?.id)));
+        for (const mapping of resolveCanonicalPatientsForAssetAliases({
+          patients,
+          assets: rawAssets.filter((asset) => !canonicalIds.has(normalizeText(asset?.patientId))),
+        })) {
+          const canonicalPatientId = normalizeText(mapping.canonicalPatientId);
+          const assetPatientId = normalizeText(mapping.assetPatientId);
+          if (!canonicalPatientId || !assetPatientId) continue;
+          for (const asset of assetsByAlias.get(assetPatientId) || []) {
+            canonicalAssets.push({ ...asset, patientId: canonicalPatientId });
+          }
+        }
+
+        const audit = buildClientoLedJourneyAudit({
+          patients,
+          clientoBookings: bookingBundle.clientoBookings,
+          assets: canonicalAssets,
+        });
+        const onlyGaps = parseExcludeUnknownMonth(req.query.onlyGaps, true);
+        const sourceRows = onlyGaps ? audit.reviewQueue : audit.rows;
+        const offset = clampOffset(req.query.offset);
+        const limit = clampJourneyAuditLimit(req.query.limit, 500);
+        const rows = sourceRows.slice(offset, offset + limit);
+        await auditRead(req, actor, actor.tenantId, 'cco.patient_master.journey_audit.read');
+        return res.json({
+          ok: true,
+          zeroWrites: true,
+          summary: audit.summary,
+          bookingCoverage: bookingBundle.coverage,
+          bookingSources: bookingBundle.sources,
+          page: {
+            onlyGaps,
+            offset,
+            limit,
+            returned: rows.length,
+            total: sourceRows.length,
+            hasMore: offset + rows.length < sourceRows.length,
+          },
+          rows,
+        });
       })
   );
 
@@ -2157,8 +2237,7 @@ function createCcoPatientMasterRouter({
                 metadata: {
                   async: true,
                   zeroWrites: true,
-                  ghostRenderCandidates:
-                    completedReport.stats?.ghostRenderCandidates ?? 0,
+                  ghostRenderCandidates: completedReport.stats?.ghostRenderCandidates ?? 0,
                   withBlobSibling: completedReport.stats?.withBlobSibling ?? 0,
                   importRunId: importRunId || null,
                 },
@@ -2449,7 +2528,9 @@ function createCcoPatientMasterRouter({
           );
         const media = renderable.filter(isMediaAsset);
         const missing = media.filter((asset) => !normalizeText(asset.encounterId));
-        const patients = [...new Set(missing.map((asset) => normalizeText(asset.patientId)).filter(Boolean))];
+        const patients = [
+          ...new Set(missing.map((asset) => normalizeText(asset.patientId)).filter(Boolean)),
+        ];
         const patientList = await patientMasterStore.listPatients({
           tenantId: actor.tenantId,
           limit: 20000,
@@ -2471,7 +2552,9 @@ function createCcoPatientMasterRouter({
         const pathMappings = new Map(
           resolveCanonicalPatientsForAssetAliases({
             patients: asArray(patientList?.patients),
-            assets: missing.filter((asset) => !canonicalByAlias.has(normalizeText(asset.patientId))),
+            assets: missing.filter(
+              (asset) => !canonicalByAlias.has(normalizeText(asset.patientId))
+            ),
           }).map((row) => [row.assetPatientId, row])
         );
         const patientMappings = patients.map((assetPatientId) => {

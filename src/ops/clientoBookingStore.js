@@ -10,7 +10,8 @@
  *       "${tenantId}::${customerEmail-lowercased}": [
  *         { bookingId, customerEmail, customerName, serviceLabel,
  *           staffName, locationName, startsAt, endsAt, status, source,
- *           notes, createdAt, updatedAt }
+ *           notes, customerPhone, clientoCustomerId, rawStatus,
+ *           createdAt, updatedAt }
  *       ]
  *     },
  *     imports: { tenantId → { lastImportAt, lastSource, totalRows, accepted, rejected } }
@@ -31,7 +32,13 @@ function normalizeText(value) {
 }
 
 function normalizeEmail(value) {
-  return normalizeText(value).toLowerCase().replace(/^mailto:/, '');
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/^mailto:/, '');
+}
+
+function normalizePhone(value) {
+  return normalizeText(value).replace(/\s+/g, ' ');
 }
 
 function asObject(value) {
@@ -71,6 +78,8 @@ function normalizeBooking(input = {}) {
     bookingId,
     customerEmail,
     customerName: normalizeText(safe.customerName),
+    customerPhone: normalizePhone(safe.customerPhone || safe.phone),
+    clientoCustomerId: normalizeText(safe.clientoCustomerId || safe.customerId),
     serviceLabel: normalizeText(safe.serviceLabel || safe.service),
     staffName: normalizeText(safe.staffName || safe.staff),
     locationName: normalizeText(safe.locationName || safe.location),
@@ -80,8 +89,10 @@ function normalizeBooking(input = {}) {
       ? Number(safe.durationMinutes)
       : null,
     status: normalizeText(safe.status) || 'unknown', // upcoming | completed | cancelled | no_show | unknown
+    rawStatus: normalizeText(safe.rawStatus),
     source: normalizeText(safe.source) || 'cliento',
     notes: normalizeText(safe.notes),
+    sourceMessageId: normalizeText(safe.sourceMessageId || safe.internetMessageId),
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
@@ -154,7 +165,29 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     const existingIdx = list.findIndex((b) => b.bookingId === normalized.bookingId);
     if (existingIdx >= 0) {
       const existing = list[existingIdx];
-      list[existingIdx] = { ...existing, ...normalized, updatedAt: nowIso() };
+      const preserveWhenBlank = [
+        'customerName',
+        'customerPhone',
+        'clientoCustomerId',
+        'serviceLabel',
+        'staffName',
+        'locationName',
+        'rawStatus',
+        'notes',
+        'sourceMessageId',
+      ];
+      const merged = {
+        ...existing,
+        ...normalized,
+        createdAt: existing.createdAt,
+        updatedAt: nowIso(),
+      };
+      for (const field of preserveWhenBlank) {
+        if (!normalizeText(normalized[field]) && normalizeText(existing[field])) {
+          merged[field] = existing[field];
+        }
+      }
+      list[existingIdx] = merged;
     } else {
       list.push(normalized);
     }

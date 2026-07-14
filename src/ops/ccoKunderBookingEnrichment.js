@@ -165,6 +165,9 @@ function normalizeEmail(value) {
 function phoneMatchKey(value) {
   const digits = normalizeText(value).replace(/\D/g, '');
   if (digits.length < 6) return '';
+  if (digits.startsWith('46') && digits.length >= 10) {
+    return `0${digits.slice(2)}`.slice(-10);
+  }
   return digits.slice(-10);
 }
 
@@ -740,6 +743,7 @@ async function loadKunderBookingIndex(
     engineBookings: [],
     bookingCases: [],
     encounters: [],
+    clientoBookings: [],
   };
   try {
     if (!bookingStoresPromise) {
@@ -833,6 +837,7 @@ async function loadKunderBookingIndex(
       engineBookings,
       bookingCases,
       encounters,
+      clientoBookings,
     };
   } catch {
     return empty;
@@ -900,6 +905,8 @@ function computeVisitTrendFromBundle({
 module.exports = {
   TREATMENT_SEGMENT_DEFS,
   buildBookingSignalsIndex,
+  buildPatientLookupMaps,
+  resolvePatientIdFromClientoBooking,
   getBookingSignals,
   applyBookingToReadout,
   loadKunderBookingIndex,
