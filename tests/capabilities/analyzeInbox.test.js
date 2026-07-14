@@ -657,6 +657,13 @@ test('AnalyzeInbox keeps systemmail out of the active worklist and sprint-drivin
     );
     assert.equal(byConversation.has('conv-system-mail'), false);
     assert.equal(byConversation.get('conv-actionable-mail')?.messageClassification, 'actionable');
+    const enrichmentByConversation = new Map(
+      output.data.conversationEnrichment.map((item) => [item.conversationId, item])
+    );
+    assert.equal(
+      enrichmentByConversation.get('conv-system-mail')?.messageClassification,
+      'system_mail'
+    );
 
     const needsReplyIds = new Set(output.data.needsReplyToday.map((item) => item.conversationId));
     assert.equal(needsReplyIds.has('conv-system-mail'), false);
@@ -1464,6 +1471,8 @@ test('AnalyzeInbox excludes conversation when outbound is newer than inbound', a
     });
 
     assert.equal(output.data.conversationWorklist.length, 0);
+    assert.equal(output.data.conversationEnrichment.length, 1);
+    assert.equal(output.data.conversationEnrichment[0].messageClassification, 'actionable');
     assert.equal(output.data.needsReplyToday.length, 0);
     assert.equal(output.data.urgentConversations.length, 0);
   } finally {
