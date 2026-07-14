@@ -135,6 +135,14 @@ test('V11/V12 visar summary före tung filberikning även på desktop', () => {
   assert.match(ui, /function enrichPatientDriveFiles\(patientId\)/);
 });
 
+test('V11/V12 första summary använder bounded lite-context', () => {
+  assert.match(
+    ui,
+    /patient\/summary\?patientId=.*includeDriveFiles=\$\{driveQuery\}&lite=1/,
+    'första kundrenderingen ska inte vänta på betalning och övrig sidokontext'
+  );
+});
+
 test('desktop patientId använder befintlig tidig prefetch med serverhanterad session', () => {
   assert.match(deepLinkBoot, /const mobileViewport = isMobileViewport\(\)/);
   assert.match(
