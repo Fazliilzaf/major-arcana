@@ -1127,7 +1127,10 @@
     var fileCount = (files && files.count) || 0;
 
     function docRow(it, fillerAuto) {
-      var previewable = it.previewable === true;
+      var previewable =
+        it.previewable === true ||
+        Boolean(String(it.viewUrl || '').trim()) ||
+        /^pipedrive_historical_/.test(String(it.registryId || ''));
       var meta =
         (it.journeyStep
           ? '<span class="v12-workspace__doc-step">steg ' + esc(it.journeyStep) + '</span>'
@@ -1143,6 +1146,10 @@
         esc(it.status) +
         '" data-v11-doc-previewable="' +
         (previewable ? '1' : '0') +
+        '" data-v11-doc-view-url="' +
+        esc(it.viewUrl || '') +
+        '" data-v11-doc-title="' +
+        esc(it.title || 'Dokument') +
         '"' +
         (previewable ? ' role="button" tabindex="0"' : '') +
         '>' +
