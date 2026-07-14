@@ -12973,7 +12973,7 @@
     const driveQuery = includeDriveFiles ? '1' : '0';
     const endpoint = includeJournal
       ? `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}&includeJournal=1`
-      : `/api/v1/cco-patient-master/patient/summary?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}`;
+      : `/api/v1/cco-patient-master/patient/summary?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}&lite=1`;
     const detailPolicy = window.ArcanaCcoData?.policy?.PATIENT_DETAIL || {
       staleTime: 90000,
       gcTime: 300000,

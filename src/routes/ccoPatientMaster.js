@@ -871,7 +871,7 @@ function createCcoPatientMasterRouter({
   async function buildPatientPayload(
     actor,
     patient,
-    { includeJournal = true, includeDriveFiles = true } = {}
+    { includeJournal = true, includeDriveFiles = true, includePaymentContext = true } = {}
   ) {
     let card = patientMasterStore.buildPatientCardReadout(patient);
     let bookingContext = {
@@ -935,14 +935,23 @@ function createCcoPatientMasterRouter({
     if (typeof resolvePatientAssetStore === 'function') {
       const assetStore = await resolvePatientAssetStore();
       if (assetStore?.listAssetsForPatient) {
-        const identityPopulation =
+        const loadIdentityPopulation = () =>
           typeof patientMasterStore.listPatients === 'function'
-            ? await patientMasterStore.listPatients({
+            ? patientMasterStore.listPatients({
                 tenantId: actor.tenantId,
                 limit: 20000,
                 offset: 0,
               })
             : { patients: [] };
+        const identityPopulation = readCache
+          ? (
+              await readCache.wrap(
+                readCache.buildKey('patient-asset-identity-population', actor.tenantId),
+                300_000,
+                loadIdentityPopulation
+              )
+            ).value
+          : await loadIdentityPopulation();
         const patientIds = await resolvePatientAssetIds({
           patientId: patient.id,
           patient,
@@ -1061,7 +1070,7 @@ function createCcoPatientMasterRouter({
       historyBookings: bookingContext.historyBookings,
       driveJournalNativePilot: nativePilotMeta,
       communicationMessages: buildCommunicationMessages(patient),
-      ...(await buildPaymentContext(actor, patient)),
+      ...(includePaymentContext ? await buildPaymentContext(actor, patient) : {}),
     };
   }
 
@@ -1158,6 +1167,7 @@ function createCcoPatientMasterRouter({
         const payload = await buildPatientPayload(actor, patient, {
           includeJournal: true,
           includeDriveFiles,
+          includePaymentContext: req.query.lite !== '1',
         });
         return res.json(payload);
       })
@@ -1190,6 +1200,7 @@ function createCcoPatientMasterRouter({
         const payload = await buildPatientPayload(actor, patient, {
           includeJournal: true,
           includeDriveFiles: parseIncludeDriveFiles(req.query.includeDriveFiles),
+          includePaymentContext: false,
         });
         const visitPayload = buildVisitSegments({
           customerId: patient.id,

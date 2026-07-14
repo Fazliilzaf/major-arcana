@@ -662,6 +662,16 @@ test('visit-segments-rutten laddar journal för status och journalbilder', () =>
     source,
     /patient\/visit-segments[\s\S]*?buildPatientPayload\(actor, patient, \{[\s\S]*?includeJournal: true/
   );
+  assert.match(
+    source,
+    /patient\/visit-segments[\s\S]*?buildPatientPayload\(actor, patient, \{[\s\S]*?includePaymentContext: false/,
+    'visit-segments ska inte bygga betalning och övrig sidokontext'
+  );
+  assert.match(
+    source,
+    /patient-asset-identity-population[\s\S]*?300_000/,
+    'asset-aliaspopulationen ska återanvändas mellan kundöppningar'
+  );
 });
 
 test('inferVisitTypeFromFiles maps operation and consultation tokens', () => {
