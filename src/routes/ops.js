@@ -58,6 +58,9 @@ const {
   summarizeWorklistSignals,
 } = require('../ops/ccoInboxEnrichmentBackfillPlan');
 const { diagnoseEnrichmentBaselineRecovery } = require('../ops/ccoInboxEnrichmentBaselineDiagnose');
+const {
+  recoverCcoInboxEnrichmentBaseline,
+} = require('../ops/ccoInboxEnrichmentBaselineRecovery');
 const { resolveCheckpointPath } = require('../ops/ccoInboxEnrichmentCheckpoint');
 const { clearWorklistConsumerResponseCache } = require('../routes/capabilities');
 const {
@@ -1960,6 +1963,48 @@ function createOpsRouter({
           return res.json({ ok: true, phase: 'snapshot', dir, copied });
         }
 
+        if (phase === 'recover-baseline') {
+          const dryRun = parseBoolean(body.dryRun, true);
+          if (!dryRun && !go) {
+            return res.status(400).json({ error: 'recover-baseline commit kräver go=true.' });
+          }
+          const label = normalizeText(body.label);
+          if (!label) {
+            return res.status(422).json({ error: 'recover-baseline kräver label.' });
+          }
+          const mailboxIds = resolveCcoHistoryMailboxIds(config);
+          const recovery = await recoverCcoInboxEnrichmentBaseline({
+            tenantId,
+            mailboxIds,
+            stateRoot: config.stateRoot,
+            backupDir: config.backupDir || path.join(config.stateRoot, 'backups'),
+            capabilityAnalysisStorePath: config.capabilityAnalysisStorePath,
+            capabilityAnalysisStore,
+            ccoMailboxTruthStore,
+            ccoCustomerStore,
+            label,
+            actorUserId: req.auth.userId,
+            dryRun,
+          });
+          await authStore.addAuditEvent({
+            tenantId: req.auth.tenantId,
+            actorUserId: req.auth.userId,
+            action: 'ops.cco.enrichment.baseline.recover',
+            outcome: 'success',
+            targetType: 'ops',
+            targetId: 'cco_enrichment_baseline_recovery',
+            metadata: {
+              dryRun,
+              label,
+              selectedEntryId: recovery.selectedEntryId,
+              publishedEntryId: recovery.publishedEntryId || null,
+              currentEnriched: recovery.current?.enrichedConversationCount,
+              mergedEnriched: recovery.merged?.enrichedConversationCount,
+            },
+          });
+          return res.json(recovery);
+        }
+
         if (phase === 'restore-capability' || phase === 'reload-capability') {
           if (!go) {
             return res.status(400).json({ error: `${phase} kräver go=true.` });
@@ -2175,7 +2220,7 @@ function createOpsRouter({
 
         return res.status(400).json({
           error:
-            'phase måste vara snapshot, restore-capability, reload-capability, run, canary, full eller refresh.',
+            'phase måste vara snapshot, recover-baseline, restore-capability, reload-capability, run, canary, full eller refresh.',
         });
       } catch (error) {
         console.error('[ops/cco/enrichment/backfill/run]', error);

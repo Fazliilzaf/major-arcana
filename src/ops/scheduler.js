@@ -62,7 +62,6 @@ const {
 const {
   saveCcoInboxEnrichmentCheckpoint,
   loadCcoInboxEnrichmentCheckpoint,
-  clearCcoInboxEnrichmentCheckpoint,
   countEnrichedRows,
 } = require('./ccoInboxEnrichmentCheckpoint');
 const {
@@ -3740,9 +3739,19 @@ function createScheduler({
           scopedConversationCount: 0,
         });
         if (finalPersist?.ok) {
-          await clearCcoInboxEnrichmentCheckpoint({
+          await saveCcoInboxEnrichmentCheckpoint({
             stateRoot: config.stateRoot,
             tenantId,
+            outputData: rollingBaseline,
+            metadata: {
+              batchCount: batchRuns.length,
+              enrichedRowCount: countEnrichedRows(rollingBaseline),
+              phase: 'published_baseline',
+              processedConversationCount,
+              canaryLimit: effectiveCanaryLimit || null,
+              entryId: finalPersist.entryId || null,
+              mailboxIds: configuredMailboxIds,
+            },
           });
         }
       }

@@ -219,3 +219,41 @@ test('partial scoped checkpoint never replaces a complete global baseline', asyn
   assert.equal(baseline.selection.selectedEntryId, 'complete-refresh');
   assert.deepEqual(baseline.selection.selectedMailboxIds, completeMailboxIds);
 });
+
+test('baseline resolver requests the full analysis-store history horizon', async () => {
+  let requestedLimit = 0;
+  const capabilityAnalysisStore = {
+    async list({ capabilityName, limit }) {
+      requestedLimit = Math.max(requestedLimit, limit);
+      if (capabilityName !== 'AnalyzeInbox' || limit < 1000) return [];
+      return [
+        {
+          id: 'deep-baseline',
+          ts: '2026-07-13T10:00:00.000Z',
+          input: { mailboxIds: ['kons@hairtpclinic.com'] },
+          output: {
+            data: {
+              conversationWorklist: [
+                {
+                  conversationId: 'deep',
+                  mailboxId: 'kons@hairtpclinic.com',
+                  intent: 'follow_up',
+                  workflowLane: 'action_now',
+                },
+              ],
+            },
+          },
+        },
+      ];
+    },
+  };
+
+  const baseline = await resolveLatestWorklistEnrichmentBaseline({
+    capabilityAnalysisStore,
+    tenantId: 'hair-tp-clinic',
+    mailboxIds: ['kons@hairtpclinic.com'],
+  });
+
+  assert.equal(requestedLimit, 1000);
+  assert.equal(baseline.selection.selectedEntryId, 'deep-baseline');
+});

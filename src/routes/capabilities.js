@@ -55,6 +55,10 @@ const {
 } = require('../ops/ccoMailboxTruthWorklistReadModel');
 const { createCcoMailboxTruthWorklistShadow } = require('../ops/ccoMailboxTruthWorklistShadow');
 const { resolveConversationPatients } = require('../ops/ccoConversationPatientResolver');
+const {
+  loadCcoInboxEnrichmentCheckpoint,
+  countEnrichedRows: countCheckpointEnrichedRows,
+} = require('../ops/ccoInboxEnrichmentCheckpoint');
 
 const CCO_LIFECYCLE_AUDIT_STATES = new Set([
   'NEW',
@@ -206,7 +210,7 @@ async function listWorklistEnrichmentEntries({
   tenantId = '',
   limit = 50,
 } = {}) {
-  const safeLimit = Math.max(1, Math.min(500, Number(limit) || 50));
+  const safeLimit = Math.max(1, Math.min(1000, Number(limit) || 50));
   const perSourceLimit = Math.max(safeLimit, 50);
   const [ccoEntries, analyzeEntries] = await Promise.all([
     listCapabilityEntriesByName({
@@ -434,6 +438,38 @@ async function resolveLatestWorklistEnrichmentBaseline({
     entries,
     mailboxIds,
   });
+}
+
+async function resolvePublishedWorklistEnrichmentBaseline({
+  baseline = null,
+  stateRoot = '',
+  tenantId = '',
+} = {}) {
+  if (!normalizeText(stateRoot)) return baseline;
+  const checkpoint = await loadCcoInboxEnrichmentCheckpoint({ stateRoot, tenantId });
+  const storeEnrichedCount = Number(baseline?.selection?.selectedEnrichedRowCount || 0);
+  const checkpointEnrichedCount = checkpoint?.ok
+    ? Number(checkpoint.enrichedRowCount || countCheckpointEnrichedRows(checkpoint.outputData))
+    : 0;
+  if (!checkpoint?.ok || !checkpoint.outputData || checkpointEnrichedCount <= storeEnrichedCount) {
+    return baseline;
+  }
+  return {
+    latestObservedEntry: baseline?.latestObservedEntry || null,
+    selectedEntry: { id: 'published-checkpoint', ts: checkpoint.savedAt },
+    selectedOutputData: checkpoint.outputData,
+    selectedConversationWorklist: asArray(checkpoint.outputData.conversationWorklist),
+    selectedNeedsReplyToday: asArray(checkpoint.outputData.needsReplyToday),
+    selectedConversationEnrichment: asArray(checkpoint.outputData.conversationEnrichment),
+    selection: {
+      strategy: 'published_checkpoint',
+      latestObservedEntryId: normalizeText(baseline?.latestObservedEntry?.id) || null,
+      selectedEntryId: 'published-checkpoint',
+      selectedRowCount: Number(checkpoint.rowCount || 0),
+      selectedEnrichedRowCount: checkpointEnrichedCount,
+      selectedMailboxIds: asArray(checkpoint.metadata?.mailboxIds),
+    },
+  };
 }
 const CCO_HISTORY_SIGNAL_RESCHEDULE_PATTERN =
   /\b(ombok|boka om|avbok|cancel|cancell|resched|ny tid|andra tid|ändra tid|flytta tid)\b/i;
@@ -8321,6 +8357,7 @@ async function buildWorklistConsumerContext({
   mailboxIds = [],
   limit = 120,
   includeDiagnostics = false,
+  stateRoot = '',
 } = {}) {
   const resolvedCustomerState = await resolveWorklistCustomerState({
     tenantId,
@@ -8355,7 +8392,7 @@ async function buildWorklistConsumerContext({
     : null;
   // Consumer-ytan behöver de redan materialiserade smart-signalerna, men inte
   // den dyra shadow-diffen. Läs därför bara den persistenta analysbaselinen här.
-  const enrichmentBaseline = diagnostics
+  let enrichmentBaseline = diagnostics
     ? null
     : selectLatestWorklistLegacyBaseline({
         entries: await listWorklistEnrichmentEntries({
@@ -8365,6 +8402,13 @@ async function buildWorklistConsumerContext({
         }),
         mailboxIds,
       });
+  if (!diagnostics) {
+    enrichmentBaseline = await resolvePublishedWorklistEnrichmentBaseline({
+      baseline: enrichmentBaseline,
+      stateRoot,
+      tenantId,
+    });
+  }
   const truthCoverage =
     ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
       ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds })
@@ -9398,6 +9442,7 @@ function toCcoRuntimeWorklistConsumerHandler({
   ccoMailIngestionStore = null,
   clientoBookingStore = null,
   patientMasterStore = null,
+  stateRoot = '',
 }) {
   return async (req, res) => {
     try {
@@ -9433,6 +9478,7 @@ function toCcoRuntimeWorklistConsumerHandler({
         ccoMailIngestionStore,
         clientoBookingStore,
         patientMasterStore,
+        stateRoot,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
       });
@@ -10134,6 +10180,7 @@ function createCapabilitiesRouter({
         ccoMailIngestionStore,
         clientoBookingStore,
         patientMasterStore,
+        stateRoot: config.stateRoot,
       })
     )
   );
@@ -10392,4 +10439,5 @@ module.exports = {
   clearWorklistConsumerResponseCache,
   mergeWorklistEnrichmentOutput,
   resolveLatestWorklistEnrichmentBaseline,
+  resolvePublishedWorklistEnrichmentBaseline,
 };
