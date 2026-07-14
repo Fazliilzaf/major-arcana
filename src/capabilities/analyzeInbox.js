@@ -2672,15 +2672,14 @@ class AnalyzeInboxCapability extends BaseCapability {
         needsReplyStatus,
       };
 
-      if (workItem.messageClassification !== 'system_mail') {
-        const laneFields = deriveConversationWorklistLaneFields({
-          slaStatus: workItem.slaStatus,
-          intent: workItem.intent,
-          subject: conversation.subject,
-          latestInboundPreview: workItem.latestInboundPreview,
-          waitingOn: conversation.waitingOn,
-        });
-        conversationEnrichment.push({
+      const enrichmentLaneFields = deriveConversationWorklistLaneFields({
+        slaStatus: workItem.slaStatus,
+        intent: workItem.intent,
+        subject: conversation.subject,
+        latestInboundPreview: workItem.latestInboundPreview,
+        waitingOn: conversation.waitingOn,
+      });
+      conversationEnrichment.push({
           conversationId: workItem.conversationId,
           messageId: workItem.messageId,
           mailboxId: workItem.mailboxId,
@@ -2726,12 +2725,11 @@ class AnalyzeInboxCapability extends BaseCapability {
           recommendedAction: workItem.recommendedAction,
           escalationRequired: workItem.escalationRequired,
           needsReplyStatus: workItem.needsReplyStatus,
-          workflowLane: laneFields.workflowLane,
-          bookingState: laneFields.bookingState,
-          needsMedicalReview: laneFields.needsMedicalReview,
-          waitingOn: laneFields.waitingOn,
-        });
-      }
+        workflowLane: enrichmentLaneFields.workflowLane,
+        bookingState: enrichmentLaneFields.bookingState,
+        needsMedicalReview: enrichmentLaneFields.needsMedicalReview,
+        waitingOn: enrichmentLaneFields.waitingOn,
+      });
 
       if (unanswered && workItem.messageClassification !== 'system_mail') {
         const laneFields = deriveConversationWorklistLaneFields({
