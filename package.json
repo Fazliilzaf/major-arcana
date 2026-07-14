@@ -120,6 +120,7 @@
     "verify:pipedrive-smartdocs-prod": "node ./scripts/verify-pipedrive-smartdocs-prod.js",
     "verify:internalize-run-prod": "node ./scripts/verify-internalize-run-prod.js",
     "verify:encounter-link-preview-prod": "node ./scripts/preview-encounter-link-repair-prod.js",
+    "preview:pipedrive-encounter-links-prod": "node ./scripts/migration/previewPipedriveEncounterLinksProd.js --ssh-local",
     "review:encounter-link-queue-prod": "node ./scripts/review-encounter-link-queue-prod.js",
     "verify:drive-import-review-prod": "node ./scripts/verify-drive-import-review-prod.js",
     "apply:drive-import-review-prod": "node ./scripts/apply-drive-import-review-prod.js",

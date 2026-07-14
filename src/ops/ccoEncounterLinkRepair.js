@@ -33,6 +33,21 @@ function isMediaAsset(asset = {}) {
   );
 }
 
+function isPipedriveSmartdocAsset(asset = {}) {
+  if (normalizeText(asset.sourceSystem) !== 'pipedrive_import') return false;
+  if (!['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(normalizeText(asset.status))) {
+    return false;
+  }
+  const section = normalizeText(asset.patientCardSection).toLowerCase();
+  if (section === 'offert' || section === 'samtycken_avtal') return false;
+  const mime = normalizeText(asset.mimeType).toLowerCase();
+  return mime === 'application/pdf' || normalizeText(asset.category).toLowerCase() === 'other';
+}
+
+function isEncounterLinkCandidate(asset = {}) {
+  return isMediaAsset(asset) || isPipedriveSmartdocAsset(asset);
+}
+
 function maskCandidates(candidates = []) {
   return asArray(candidates).map((id) => maskValue(id, { keepStart: 5, keepEnd: 4 }));
 }
@@ -104,8 +119,10 @@ function buildEncounterLinkRepairPlan({ patientInputs = [] } = {}) {
   });
   const mappings = mapAssetsToEncounters(canonicalAssets, registry);
   const assetById = new Map(canonicalAssets.map((asset) => [asset.id, asset]));
-  const mediaMappings = mappings.filter((mapping) => isMediaAsset(assetById.get(mapping.assetId)));
-  const missingMappings = mediaMappings.filter(
+  const candidateMappings = mappings.filter((mapping) =>
+    isEncounterLinkCandidate(assetById.get(mapping.assetId))
+  );
+  const missingMappings = candidateMappings.filter(
     (mapping) => !assetById.get(mapping.assetId)?.encounterId
   );
   const linkable = missingMappings.filter((mapping) =>
@@ -113,14 +130,18 @@ function buildEncounterLinkRepairPlan({ patientInputs = [] } = {}) {
   );
   const review = missingMappings.filter((mapping) => mapping.confidence === 'review');
   const noDate = missingMappings.filter((mapping) => mapping.reason === 'missing_date');
+  const pipedriveSmartdocs = candidateMappings.filter((mapping) =>
+    isPipedriveSmartdocAsset(assetById.get(mapping.assetId))
+  ).length;
   return {
     canonicalAssets,
     registryInputs,
-    mediaMappings,
+    mediaMappings: candidateMappings,
     missingMappings,
     linkable,
     review,
     noDate,
+    pipedriveSmartdocs,
     assetById,
   };
 }
@@ -135,6 +156,7 @@ function previewEncounterLinkRepair({ patientInputs = [], sampleSize = 25 } = {}
     linkable,
     review,
     noDate,
+    pipedriveSmartdocs,
     assetById,
   } = plan;
   const samples = [];
@@ -153,6 +175,7 @@ function previewEncounterLinkRepair({ patientInputs = [], sampleSize = 25 } = {}
       patientsScanned: registryInputs.length,
       assetsScanned: canonicalAssets.length,
       mediaAssets: mediaMappings.length,
+      pipedriveSmartdocs,
       alreadyLinked: mediaMappings.length - missingMappings.length,
       missingEncounterId: missingMappings.length,
       linkable: linkable.length,
@@ -168,5 +191,7 @@ function previewEncounterLinkRepair({ patientInputs = [], sampleSize = 25 } = {}
 module.exports = {
   buildEncounterLinkRepairPlan,
   isMediaAsset,
+  isPipedriveSmartdocAsset,
+  isEncounterLinkCandidate,
   previewEncounterLinkRepair,
 };

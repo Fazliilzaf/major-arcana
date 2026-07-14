@@ -37,6 +37,9 @@ function inferEncounterType(text = '') {
 }
 
 function inferEncounterTypeFromAsset(asset = {}) {
+  const explicitType = normalizeText(asset.encounterType).toLowerCase();
+  if (explicitType === 'konsultation' || explicitType === 'consultation') return 'consultation';
+
   const fileName = normalizeText(asset.originalFileName);
   const folder = normalizeText(asset.originalDrivePath);
   const filteredFolder = folder
@@ -242,6 +245,31 @@ function buildEncounterRegistry({ journalEntries = [], bookings = [], assets = [
       source: 'journal_asset',
       sourceRefs: [asset.id],
       confidence: encounterType === 'other' ? 'low' : 'medium',
+    });
+  }
+
+  for (const asset of assets) {
+    if (normalizeText(asset.sourceSystem) !== 'pipedrive_import') continue;
+    if (!['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(normalizeText(asset.status))) {
+      continue;
+    }
+    const section = normalizeText(asset.patientCardSection).toLowerCase();
+    if (section === 'offert' || section === 'samtycken_avtal') continue;
+    const patientId = normalizeText(asset.patientId);
+    const date = assetEncounterDate(asset);
+    if (!patientId || !date || patientId === 'unknown') continue;
+    const encounterType = inferEncounterTypeFromAsset(asset) || 'consultation';
+    addCandidate(patientId, {
+      encounterId: stableEncounterId({ patientId, date, encounterType, sessionNumber: null }),
+      patientId,
+      date,
+      encounterType,
+      sessionNumber: null,
+      visitLabel: normalizeText(asset.visitLabel) || encounterVisitLabel(encounterType, null),
+      source: 'pipedrive_smartdoc',
+      sourceRefs: [asset.id],
+      confidence: 'medium',
+      occurredAt: normalizeText(asset.captureDateTime) || null,
     });
   }
 
@@ -459,7 +487,6 @@ function matchAssetToEncounter(asset = {}, registryForPatient = new Map()) {
       encounterType: sameDay[0].encounterType,
     };
   }
-
 
   const assetTimeMs = assetEncounterTimeMs(asset);
   if (assetTimeMs) {

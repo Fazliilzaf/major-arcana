@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   buildEncounterLinkRepairPlan,
+  isPipedriveSmartdocAsset,
   previewEncounterLinkRepair,
 } = require('../../src/ops/ccoEncounterLinkRepair');
 
@@ -111,7 +112,71 @@ test('previewEncounterLinkRepair skickar tvetydig foto-matchning till review', (
     report.samples[0].candidateDetails.map((candidate) => candidate.encounterType).sort(),
     ['consultation', 'prp_hair']
   );
-  assert.ok(report.samples[0].candidateDetails.every((candidate) => /\*\*\*/.test(candidate.encounterId)));
+  assert.ok(
+    report.samples[0].candidateDetails.every((candidate) => /\*\*\*/.test(candidate.encounterId))
+  );
+});
+
+test('isPipedriveSmartdocAsset identifierar ovrigt-PDF men inte offert/avtal', () => {
+  assert.equal(
+    isPipedriveSmartdocAsset({
+      sourceSystem: 'pipedrive_import',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      patientCardSection: 'ovrigt',
+      mimeType: 'application/pdf',
+      category: 'other',
+    }),
+    true
+  );
+  assert.equal(
+    isPipedriveSmartdocAsset({
+      sourceSystem: 'pipedrive_import',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      patientCardSection: 'offert',
+      mimeType: 'application/pdf',
+    }),
+    false
+  );
+  assert.equal(
+    isPipedriveSmartdocAsset({
+      sourceSystem: 'pipedrive_import',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      patientCardSection: 'samtycken_avtal',
+      mimeType: 'application/pdf',
+    }),
+    false
+  );
+});
+
+test('previewEncounterLinkRepair inkluderar pipedrive smartdoc utan encounterId', () => {
+  const report = previewEncounterLinkRepair({
+    patientInputs: [
+      {
+        patientId: 'canonical-patient-1',
+        assets: [
+          {
+            id: 'pd-smartdoc-1',
+            patientId: 'canonical-patient-1',
+            sourceSystem: 'pipedrive_import',
+            status: 'VISIBLE_ON_PATIENT_CARD',
+            patientCardSection: 'ovrigt',
+            mimeType: 'application/pdf',
+            category: 'other',
+            encounterType: 'konsultation',
+            documentDate: '2026-07-11',
+            displayName: 'Smartdoc · 2026-07-11 16:13',
+          },
+        ],
+      },
+    ],
+    sampleSize: 5,
+  });
+
+  assert.equal(report.stats.pipedriveSmartdocs, 1);
+  assert.equal(report.stats.missingEncounterId, 1);
+  assert.equal(report.stats.linkable, 1);
+  assert.equal(report.samples[0].confidence, 'high');
+  assert.ok(report.samples[0].proposedEncounterId);
 });
 
 test('redan länkade media räknas men föreslås inte igen', () => {

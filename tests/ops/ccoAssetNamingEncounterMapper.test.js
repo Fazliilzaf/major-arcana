@@ -142,8 +142,24 @@ test('foto mitt emellan två tider förblir review', () => {
 
 test('identiska encounter-ID:n på samma dag räknas som en kandidat', () => {
   const registry = new Map([
-    ['alias-a', { encounterId: 'same-encounter', date: '2026-05-05', encounterType: 'other', confidence: 'medium' }],
-    ['alias-b', { encounterId: 'same-encounter', date: '2026-05-05', encounterType: 'other', confidence: 'medium' }],
+    [
+      'alias-a',
+      {
+        encounterId: 'same-encounter',
+        date: '2026-05-05',
+        encounterType: 'other',
+        confidence: 'medium',
+      },
+    ],
+    [
+      'alias-b',
+      {
+        encounterId: 'same-encounter',
+        date: '2026-05-05',
+        encounterType: 'other',
+        confidence: 'medium',
+      },
+    ],
   ]);
   const result = matchAssetToEncounter(
     { patientId: 'patient-1', mimeType: 'image/jpeg', documentDate: '2026-05-05' },
@@ -155,8 +171,19 @@ test('identiska encounter-ID:n på samma dag räknas som en kandidat', () => {
 
 test('ensam explicit encounter vinner över härledda kandidater samma dag', () => {
   const registry = new Map([
-    ['explicit', { encounterId: 'explicit', date: '2026-05-05', encounterType: 'consultation', confidence: 'high' }],
-    ['derived', { encounterId: 'derived', date: '2026-05-05', encounterType: 'other', confidence: 'medium' }],
+    [
+      'explicit',
+      {
+        encounterId: 'explicit',
+        date: '2026-05-05',
+        encounterType: 'consultation',
+        confidence: 'high',
+      },
+    ],
+    [
+      'derived',
+      { encounterId: 'derived', date: '2026-05-05', encounterType: 'other', confidence: 'medium' },
+    ],
   ]);
   const result = matchAssetToEncounter(
     { patientId: 'patient-1', mimeType: 'image/jpeg', documentDate: '2026-05-05' },
@@ -169,8 +196,19 @@ test('ensam explicit encounter vinner över härledda kandidater samma dag', () 
 
 test('två explicita encounters samma dag förblir review utan tidsvinnare', () => {
   const registry = new Map([
-    ['explicit-a', { encounterId: 'explicit-a', date: '2026-05-05', encounterType: 'consultation', confidence: 'high' }],
-    ['explicit-b', { encounterId: 'explicit-b', date: '2026-05-05', encounterType: 'other', confidence: 'high' }],
+    [
+      'explicit-a',
+      {
+        encounterId: 'explicit-a',
+        date: '2026-05-05',
+        encounterType: 'consultation',
+        confidence: 'high',
+      },
+    ],
+    [
+      'explicit-b',
+      { encounterId: 'explicit-b', date: '2026-05-05', encounterType: 'other', confidence: 'high' },
+    ],
   ]);
   const result = matchAssetToEncounter(
     { patientId: 'patient-1', mimeType: 'image/jpeg', documentDate: '2026-05-05' },
@@ -182,8 +220,19 @@ test('två explicita encounters samma dag förblir review utan tidsvinnare', () 
 
 test('ensam specifik behandling vinner över generisk other samma dag', () => {
   const registry = new Map([
-    ['operation', { encounterId: 'operation', date: '2026-05-05', encounterType: 'transplant_fue', confidence: 'medium' }],
-    ['generic', { encounterId: 'generic', date: '2026-05-05', encounterType: 'other', confidence: 'medium' }],
+    [
+      'operation',
+      {
+        encounterId: 'operation',
+        date: '2026-05-05',
+        encounterType: 'transplant_fue',
+        confidence: 'medium',
+      },
+    ],
+    [
+      'generic',
+      { encounterId: 'generic', date: '2026-05-05', encounterType: 'other', confidence: 'medium' },
+    ],
   ]);
   const result = matchAssetToEncounter(
     { patientId: 'patient-1', mimeType: 'image/jpeg', documentDate: '2026-05-05' },
@@ -196,8 +245,19 @@ test('ensam specifik behandling vinner över generisk other samma dag', () => {
 
 test('två olika specifika behandlingar samma dag förblir review', () => {
   const registry = new Map([
-    ['operation', { encounterId: 'operation', date: '2026-05-05', encounterType: 'transplant_fue', confidence: 'medium' }],
-    ['prp', { encounterId: 'prp', date: '2026-05-05', encounterType: 'prp_hair', confidence: 'medium' }],
+    [
+      'operation',
+      {
+        encounterId: 'operation',
+        date: '2026-05-05',
+        encounterType: 'transplant_fue',
+        confidence: 'medium',
+      },
+    ],
+    [
+      'prp',
+      { encounterId: 'prp', date: '2026-05-05', encounterType: 'prp_hair', confidence: 'medium' },
+    ],
   ]);
   const result = matchAssetToEncounter(
     { patientId: 'patient-1', mimeType: 'image/jpeg', documentDate: '2026-05-05' },
@@ -209,8 +269,19 @@ test('två olika specifika behandlingar samma dag förblir review', () => {
 
 test('tydlig assettyp skapar typed fallback när dagens kandidater är inkompatibla', () => {
   const registry = new Map([
-    ['fue', { encounterId: 'fue', date: '2026-05-05', encounterType: 'transplant_fue', confidence: 'medium' }],
-    ['prp', { encounterId: 'prp', date: '2026-05-05', encounterType: 'prp_hair', confidence: 'medium' }],
+    [
+      'fue',
+      {
+        encounterId: 'fue',
+        date: '2026-05-05',
+        encounterType: 'transplant_fue',
+        confidence: 'medium',
+      },
+    ],
+    [
+      'prp',
+      { encounterId: 'prp', date: '2026-05-05', encounterType: 'prp_hair', confidence: 'medium' },
+    ],
   ]);
   const result = matchAssetToEncounter(
     {
@@ -224,5 +295,38 @@ test('tydlig assettyp skapar typed fallback när dagens kandidater är inkompati
   assert.equal(result.reason, 'date_and_asset_type_fallback');
   assert.equal(result.encounterType, 'transplant_dhi');
   assert.equal(result.confidence, 'medium');
+  assert.ok(result.encounterId);
+});
+
+test('pipedrive smartdoc registreras i registry och länkas via konsultation', () => {
+  const smartdoc = {
+    id: 'pd-1',
+    patientId: 'patient-1',
+    sourceSystem: 'pipedrive_import',
+    status: 'VISIBLE_ON_PATIENT_CARD',
+    patientCardSection: 'ovrigt',
+    mimeType: 'application/pdf',
+    category: 'other',
+    encounterType: 'konsultation',
+    documentDate: '2026-07-11',
+    captureDateTime: '2026-07-11T14:13:00Z',
+  };
+  const registry = buildEncounterRegistry({ assets: [smartdoc] });
+  assert.equal(inferEncounterTypeFromAsset(smartdoc), 'consultation');
+  const result = matchAssetToEncounter(
+    {
+      id: 'pd-2',
+      patientId: 'patient-1',
+      sourceSystem: 'pipedrive_import',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      patientCardSection: 'ovrigt',
+      mimeType: 'application/pdf',
+      encounterType: 'konsultation',
+      documentDate: '2026-07-11',
+    },
+    registry.get('patient-1')
+  );
+  assert.equal(result.confidence, 'high');
+  assert.equal(result.encounterType, 'consultation');
   assert.ok(result.encounterId);
 });
