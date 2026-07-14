@@ -97,6 +97,39 @@ test('mergeWorklistEnrichmentOutput applies Graph rows scoped by contact-form ro
   assert.equal(enriched?.workflowLane, 'action_now');
 });
 
+test('mergeWorklistEnrichmentOutput preserves additive enrichment for answered conversations', () => {
+  const merged = mergeWorklistEnrichmentOutput(
+    {
+      conversationEnrichment: [
+        { conversationId: 'AAQkKeep', intent: 'admin', workflowLane: 'admin' },
+      ],
+      conversationWorklist: [],
+      needsReplyToday: [],
+    },
+    {
+      conversationEnrichment: [
+        {
+          conversationId: 'kons@hairtpclinic.com:AAQkAnswered',
+          intent: 'pricing_question',
+          workflowLane: 'commercial',
+          isUnanswered: false,
+        },
+      ],
+      conversationWorklist: [],
+      needsReplyToday: [],
+    },
+    { scopeConversationIds: ['kons@hairtpclinic.com:AAQkAnswered'] }
+  );
+
+  assert.equal(merged.conversationEnrichment.length, 2);
+  assert.equal(
+    merged.conversationEnrichment.find((row) => row.conversationId.includes('AAQkAnswered'))
+      ?.intent,
+    'pricing_question'
+  );
+  assert.equal(merged.conversationWorklist.length, 0);
+});
+
 test('latest complete mailbox baseline replaces a larger stale baseline', async () => {
   const enrichedRow = (conversationId, intent) => ({
     conversationId,

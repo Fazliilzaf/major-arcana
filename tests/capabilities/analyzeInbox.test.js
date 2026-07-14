@@ -95,6 +95,17 @@ test('AnalyzeInbox returns schema-valid output with max 5 suggested drafts', asy
   assert.equal(typeof output.data.conversationWorklist?.[0]?.stagnated, 'boolean');
   assert.equal(typeof output.data.conversationWorklist?.[0]?.stagnationHours, 'number');
   assert.equal(typeof output.data.conversationWorklist?.[0]?.followUpSuggested, 'boolean');
+  assert.equal(Array.isArray(output.data.conversationEnrichment), true);
+  assert.equal(
+    output.data.conversationEnrichment.some((row) => row.conversationId === 'conv-1'),
+    true,
+    'answered conversations retain enrichment signals'
+  );
+  assert.equal(
+    output.data.conversationWorklist.some((row) => row.conversationId === 'conv-1'),
+    false,
+    'answered conversations stay out of the operational reply worklist'
+  );
   assert.equal(typeof output.data.conversationWorklist?.[0]?.customerKey, 'string');
   assert.equal(typeof output.data.conversationWorklist?.[0]?.customerSummary?.customerName, 'string');
   assert.equal(

@@ -257,7 +257,12 @@ function buildWorklistEnrichmentPayload({
   const outputData = asObject(latestOutputData);
   const conversationWorklist = asArray(outputData.conversationWorklist);
   const needsReplyToday = asArray(outputData.needsReplyToday);
-  if (conversationWorklist.length === 0 && needsReplyToday.length === 0) {
+  const conversationEnrichment = asArray(outputData.conversationEnrichment);
+  if (
+    conversationWorklist.length === 0 &&
+    needsReplyToday.length === 0 &&
+    conversationEnrichment.length === 0
+  ) {
     return null;
   }
   return {
@@ -270,9 +275,11 @@ function buildWorklistEnrichmentPayload({
       normalizeText(latestEntry?.capabilityName) ||
       normalizeText(latestEntry?.capability?.name) ||
       null,
-    rowCount: conversationWorklist.length + needsReplyToday.length,
+    rowCount:
+      conversationWorklist.length + needsReplyToday.length + conversationEnrichment.length,
     conversationWorklist,
     needsReplyToday,
+    conversationEnrichment,
     bootstrapReady: true,
     baselineSelection:
       baselineSelection && typeof baselineSelection === 'object' ? baselineSelection : null,
@@ -402,6 +409,11 @@ function mergeWorklistEnrichmentOutput(
     needsReplyToday: mergeWorklistEnrichmentRows(
       safeBase.needsReplyToday,
       safeDelta.needsReplyToday,
+      scopeConversationIds
+    ),
+    conversationEnrichment: mergeWorklistEnrichmentRows(
+      safeBase.conversationEnrichment,
+      safeDelta.conversationEnrichment,
       scopeConversationIds
     ),
     generatedAt: new Date().toISOString(),
@@ -7856,17 +7868,20 @@ function buildWorklistLegacyBaselineEntrySummary(entry = {}) {
   const nestedOutputData = asObject(directOutputData.data);
   const outputData =
     Array.isArray(directOutputData.conversationWorklist) ||
-    Array.isArray(directOutputData.needsReplyToday)
+    Array.isArray(directOutputData.needsReplyToday) ||
+    Array.isArray(directOutputData.conversationEnrichment)
       ? directOutputData
       : Array.isArray(nestedOutputData.conversationWorklist) ||
-          Array.isArray(nestedOutputData.needsReplyToday)
+          Array.isArray(nestedOutputData.needsReplyToday) ||
+          Array.isArray(nestedOutputData.conversationEnrichment)
         ? nestedOutputData
         : directOutputData;
   const conversationWorklist = asArray(outputData.conversationWorklist);
   const needsReplyToday = asArray(outputData.needsReplyToday);
+  const conversationEnrichment = asArray(outputData.conversationEnrichment);
   const rowMailboxIds = Array.from(
     new Set(
-      [...conversationWorklist, ...needsReplyToday]
+      [...conversationWorklist, ...needsReplyToday, ...conversationEnrichment]
         .map((row) =>
           normalizeText(
             row?.mailboxId || row?.mailboxAddress || row?.userPrincipalName
@@ -7883,7 +7898,9 @@ function buildWorklistLegacyBaselineEntrySummary(entry = {}) {
     outputData,
     conversationWorklist,
     needsReplyToday,
-    rowCount: conversationWorklist.length + needsReplyToday.length,
+    conversationEnrichment,
+    rowCount:
+      conversationWorklist.length + needsReplyToday.length + conversationEnrichment.length,
     mailboxIds,
   };
 }
@@ -7900,9 +7917,17 @@ function getWorklistLegacyBaselineObservedAt(entry = {}) {
 }
 
 function countEnrichedWorklistRows(summary = {}) {
-  return [...asArray(summary.conversationWorklist), ...asArray(summary.needsReplyToday)].filter(
-    (row) => hasWorklistEnrichmentSignals(row)
-  ).length;
+  const rows = [
+    ...asArray(summary.conversationEnrichment),
+    ...asArray(summary.conversationWorklist),
+    ...asArray(summary.needsReplyToday),
+  ];
+  return new Set(
+    rows
+      .filter((row) => hasWorklistEnrichmentSignals(row))
+      .map((row) => normalizeWorklistRowConversationId(row))
+      .filter(Boolean)
+  ).size;
 }
 
 function hasWorklistEnrichmentSignals(row = {}) {
@@ -7992,6 +8017,7 @@ function selectLatestWorklistLegacyBaseline({ entries = [], mailboxIds = [] } = 
     selectedOutputData: selected.summary.outputData,
     selectedConversationWorklist: selected.summary.conversationWorklist,
     selectedNeedsReplyToday: selected.summary.needsReplyToday,
+    selectedConversationEnrichment: selected.summary.conversationEnrichment,
     selection: {
       strategy,
       latestObservedEntryId: normalizeText(latestObservedEntry?.id) || null,

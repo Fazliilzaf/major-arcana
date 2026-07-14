@@ -52,3 +52,19 @@ test('checkpoint save/load roundtrip preserves enrichment rows', async () => {
   assert.equal(missing.ok, false);
   assert.equal(missing.reason, 'checkpoint_missing');
 });
+
+test('checkpoint counts unique conversations across enrichment and worklist views', () => {
+  const row = {
+    conversationId: 'AAQkShared',
+    intent: 'booking_request',
+    workflowLane: 'booking',
+  };
+  assert.equal(
+    countEnrichedRows({
+      conversationEnrichment: [row, { ...row }],
+      conversationWorklist: [row],
+      needsReplyToday: [row],
+    }),
+    1
+  );
+});

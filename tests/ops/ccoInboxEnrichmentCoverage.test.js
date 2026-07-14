@@ -99,7 +99,7 @@ test('computeCcoInboxEnrichmentCoverage reports gap for truth rows without enric
           output: {
             data: {
               generatedAt: '2026-05-20T12:00:00.000Z',
-              conversationWorklist: [
+              conversationEnrichment: [
                 {
                   conversationId: 'AAQkEnriched',
                   mailboxId,
@@ -107,6 +107,7 @@ test('computeCcoInboxEnrichmentCoverage reports gap for truth rows without enric
                   workflowLane: 'action_now',
                 },
               ],
+              conversationWorklist: [],
               needsReplyToday: [],
             },
           },

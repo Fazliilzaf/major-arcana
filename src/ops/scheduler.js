@@ -3179,6 +3179,9 @@ function createScheduler({
     }
 
     const rowCount =
+      (Array.isArray(outputData?.conversationEnrichment)
+        ? outputData.conversationEnrichment.length
+        : 0) +
       (Array.isArray(outputData?.conversationWorklist)
         ? outputData.conversationWorklist.length
         : 0) + (Array.isArray(outputData?.needsReplyToday) ? outputData.needsReplyToday.length : 0);
@@ -3523,6 +3526,9 @@ function createScheduler({
       tenantId,
     });
     const baselineRows = [
+      ...(Array.isArray(enrichmentBaseline?.selectedConversationEnrichment)
+        ? enrichmentBaseline.selectedConversationEnrichment
+        : []),
       ...(Array.isArray(enrichmentBaseline?.selectedConversationWorklist)
         ? enrichmentBaseline.selectedConversationWorklist
         : []),
