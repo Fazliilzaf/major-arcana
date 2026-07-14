@@ -120,6 +120,7 @@
     "verify:pipedrive-smartdocs-prod": "node ./scripts/verify-pipedrive-smartdocs-prod.js",
     "verify:internalize-run-prod": "node ./scripts/verify-internalize-run-prod.js",
     "verify:cliento-journeys-prod": "node ./scripts/verify-cliento-led-customer-journeys-prod.js",
+    "import:cliento-bookings-prod": "node ./scripts/import-cliento-bookings-prod.js",
     "verify:encounter-link-preview-prod": "node ./scripts/preview-encounter-link-repair-prod.js",
     "preview:pipedrive-encounter-links-prod": "node ./scripts/migration/previewPipedriveEncounterLinksProd.js --ssh-local",
     "apply:pipedrive-encounter-links-prod": "node ./scripts/migration/applyPipedriveEncounterLinksProd.js --write",

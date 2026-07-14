@@ -14,6 +14,10 @@ function normalizeEmail(value) {
     .replace(/^mailto:/, '');
 }
 
+function normalizePhone(value) {
+  return normalizeText(value).replace(/\D+/g, '');
+}
+
 function extractTreatmentDate(s) {
   if (!s) return null;
   const match = String(s).match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
@@ -82,11 +86,15 @@ function parseCsv(text) {
 }
 
 function mapClientoCsvStatus(rawStatus, startsAtIso) {
-  const status = normalizeText(rawStatus);
-  if (status === 'Avbokad') return 'cancelled';
-  if (status === 'No show') return 'no_show';
-  if (status === 'Show' || status === 'Klar') return 'completed';
-  if (status === 'Bokad') {
+  const status = normalizeText(rawStatus)
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
+  if (status === 'avbokad' || status === 'cancelled' || status === 'canceled') {
+    return 'cancelled';
+  }
+  if (status === 'noshow') return 'no_show';
+  if (status === 'show' || status === 'klar' || status === 'done') return 'completed';
+  if (status === 'bokad' || status === 'booked') {
     const ms = Date.parse(startsAtIso || '');
     if (Number.isFinite(ms) && ms > Date.now()) return 'upcoming';
     return 'completed';
@@ -97,6 +105,41 @@ function mapClientoCsvStatus(rawStatus, startsAtIso) {
     return 'completed';
   }
   return 'unknown';
+}
+
+function joinNotes(...values) {
+  return [...new Set(values.map(normalizeText).filter(Boolean))].join('\n\n');
+}
+
+function buildCsvIdentityLookups(rows = []) {
+  const emailsByClientoId = new Map();
+  const emailsByPhone = new Map();
+  const add = (map, key, email) => {
+    if (!key || !email) return;
+    if (!map.has(key)) map.set(key, new Set());
+    map.get(key).add(email);
+  };
+  for (const row of rows) {
+    const email = normalizeEmail(
+      row['Kund e-post'] || row['E-post'] || row['Epost'] || row['Email']
+    );
+    add(emailsByClientoId, normalizeText(row['Kund-id']), email);
+    add(
+      emailsByPhone,
+      normalizePhone(
+        row['Kund (mobilnummer)'] || row['Telefon'] || row['Mobil'] || row['Telefonnummer']
+      ),
+      email
+    );
+  }
+  const uniqueValue = (map, key) => {
+    const values = map.get(key);
+    return values?.size === 1 ? [...values][0] : '';
+  };
+  return {
+    emailForClientoId: (id) => uniqueValue(emailsByClientoId, id),
+    emailForPhone: (phone) => uniqueValue(emailsByPhone, phone),
+  };
 }
 
 function buildClientoIdEmailLookup(patients = []) {
@@ -127,46 +170,62 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
   let skippedNoId = 0;
   let skippedNoDate = 0;
   let skippedNoEmail = 0;
+  let missingClientoId = 0;
 
   let working = rows;
   if (limit > 0) working = rows.slice(0, limit);
+  const csvLookups = buildCsvIdentityLookups(rows);
 
   for (const row of working) {
     const clientoCustomerId = normalizeText(row['Kund-id']);
-    if (!clientoCustomerId) {
-      skippedNoId += 1;
-      continue;
-    }
+    if (!clientoCustomerId) missingClientoId += 1;
     const startsAt = extractTreatmentDateTime(row['Starttid']);
     if (!startsAt) {
       skippedNoDate += 1;
       continue;
     }
     const status = mapClientoCsvStatus(row['Status'], startsAt);
+    const customerPhone = normalizeText(
+      row['Kund (mobilnummer)'] || row['Telefon'] || row['Mobil'] || row['Telefonnummer']
+    );
     const customerEmail =
-      normalizeEmail(row['E-post'] || row['Epost'] || row['Email']) ||
+      normalizeEmail(row['Kund e-post'] || row['E-post'] || row['Epost'] || row['Email']) ||
+      csvLookups.emailForClientoId(clientoCustomerId) ||
       emailByClientoId.get(clientoCustomerId) ||
+      csvLookups.emailForPhone(normalizePhone(customerPhone)) ||
       '';
-    if (!customerEmail) {
+    if (!customerEmail && !clientoCustomerId && !normalizePhone(customerPhone)) {
       skippedNoEmail += 1;
       continue;
     }
+    if (!clientoCustomerId) skippedNoId += 1;
+    const serviceLabel = normalizeText(row['Tjänstens namn'] || row['Tjänst']);
     bookings.push({
-      bookingId: normalizeText(row['Boknings-id']) || `cliento_${clientoCustomerId}_${startsAt}`,
+      bookingId:
+        normalizeText(row['Boknings-id']) ||
+        `cliento_${clientoCustomerId || customerEmail}_${startsAt}_${serviceLabel}`,
       customerEmail,
       customerName: normalizeText(row['Kundnamn'] || row['Namn']),
-      customerPhone: normalizeText(row['Telefon'] || row['Mobil'] || row['Telefonnummer']),
-      serviceLabel: normalizeText(row['Tjänstens namn'] || row['Tjänst']),
+      customerPhone,
+      serviceLabel,
       staffName: normalizeText(row['Resursnamn'] || row['Resurs']),
       locationName: normalizeText(row['Plats'] || row['Klinik']),
       startsAt,
+      endsAt: extractTreatmentDateTime(row['Sluttid']),
+      durationMinutes: Number.parseInt(row['Bokningens längd'], 10) || null,
       status,
       rawStatus: normalizeText(row['Status']),
       source: 'cliento_csv',
       clientoCustomerId,
-      notes: normalizeText(
-        row['Anteckningar'] || row['Anteckning'] || row['Noteringar'] || row['Kommentar']
+      notes: joinNotes(
+        row['Bokningsanteckning'],
+        row['Meddelande från kund'],
+        row['Anteckningar'],
+        row['Anteckning'],
+        row['Noteringar'],
+        row['Kommentar']
       ),
+      sourceMessageId: normalizeText(row['Bokningsreferens']),
     });
   }
 
@@ -178,6 +237,7 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       skippedNoId,
       skippedNoDate,
       skippedNoEmail,
+      missingClientoId,
       skippedCancelled: 0,
     },
   };

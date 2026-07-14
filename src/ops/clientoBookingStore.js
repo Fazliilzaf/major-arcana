@@ -41,6 +41,10 @@ function normalizePhone(value) {
   return normalizeText(value).replace(/\s+/g, ' ');
 }
 
+function normalizePhoneKey(value) {
+  return normalizeText(value).replace(/\D+/g, '');
+}
+
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
@@ -67,19 +71,32 @@ function toBucketKey(tenantId, customerEmail) {
   return `${t}::${e}`;
 }
 
+function toBookingBucketKey(tenantId, booking) {
+  const t = normalizeText(tenantId);
+  if (!t) return null;
+  const email = normalizeEmail(booking?.customerEmail);
+  if (email) return `${t}::${email}`;
+  const clientoCustomerId = normalizeText(booking?.clientoCustomerId);
+  if (clientoCustomerId) return `${t}::cliento:${clientoCustomerId}`;
+  const phone = normalizePhoneKey(booking?.customerPhone);
+  return phone ? `${t}::phone:${phone}` : null;
+}
+
 function normalizeBooking(input = {}) {
   const safe = asObject(input);
   const customerEmail = normalizeEmail(safe.customerEmail);
+  const customerPhone = normalizePhone(safe.customerPhone || safe.phone);
+  const clientoCustomerId = normalizeText(safe.clientoCustomerId || safe.customerId);
   const bookingId = normalizeText(safe.bookingId) || normalizeText(safe.id);
-  if (!bookingId || !customerEmail) return null;
+  if (!bookingId || (!customerEmail && !customerPhone && !clientoCustomerId)) return null;
   const startsAt = safe.startsAt ? new Date(safe.startsAt).toISOString() : null;
   const endsAt = safe.endsAt ? new Date(safe.endsAt).toISOString() : null;
   return {
     bookingId,
     customerEmail,
     customerName: normalizeText(safe.customerName),
-    customerPhone: normalizePhone(safe.customerPhone || safe.phone),
-    clientoCustomerId: normalizeText(safe.clientoCustomerId || safe.customerId),
+    customerPhone,
+    clientoCustomerId,
     serviceLabel: normalizeText(safe.serviceLabel || safe.service),
     staffName: normalizeText(safe.staffName || safe.staff),
     locationName: normalizeText(safe.locationName || safe.location),
@@ -159,7 +176,7 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
   async function upsertBooking({ tenantId, booking }) {
     const normalized = normalizeBooking(booking);
     if (!normalized) return null;
-    const key = toBucketKey(tenantId, normalized.customerEmail);
+    const key = toBookingBucketKey(tenantId, normalized);
     if (!key) return null;
     const list = asArray(state.bookings[key]);
     const existingIdx = list.findIndex((b) => b.bookingId === normalized.bookingId);
