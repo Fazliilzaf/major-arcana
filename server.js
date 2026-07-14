@@ -872,6 +872,7 @@ let ccoBookingCaseStore = null;
           technicalInfo: {
             sourceAnnotationId: annotation.id,
             sourceAssetId: annotation.sourceAssetId || null,
+            sourceJournalPhotoId: annotation.sourceJournalPhotoId || null,
             selectedFor: annotation.selectedFor || [],
           },
           selectedFor: Array.isArray(annotation.selectedFor) ? annotation.selectedFor : [],

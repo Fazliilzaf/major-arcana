@@ -1624,13 +1624,14 @@
     const o = opts || {};
     const patientId = o.patientId || '';
     const sourceAssetId = o.assetId || '';
+    const sourceJournalPhotoId = o.journalPhotoId || '';
     const encounterId = o.encounterId || '';
     const src = o.src || '';
     const name = o.name || 'Bild';
     const zone = o.zone || '';
     const docDate = o.docDate || '';
     const captureDate = o.captureDate || docDate || '';
-    if (!src) return;
+    if (!src && !sourceJournalPhotoId) return;
     document.querySelector('.v12-photo-editor-overlay')?.remove();
     const overlay = document.createElement('div');
     overlay.className = 'v12-photo-editor-overlay';
@@ -1686,7 +1687,9 @@
       }
       let objUrl = '';
       try {
-        if (sourceAssetId) {
+        if (sourceJournalPhotoId) {
+          objUrl = await fetchJournalPhotoObjectUrl(sourceJournalPhotoId);
+        } else if (sourceAssetId) {
           objUrl = await fetchPatientFileObjectUrl(sourceAssetId, { preferThumbnail: true });
         }
       } catch (_e) {
@@ -1797,6 +1800,7 @@
             customerId: patientId,
             patientId,
             sourceAssetId,
+            sourceJournalPhotoId,
             encounterId,
             documentDate: docDate,
             captureDate,
@@ -2014,6 +2018,7 @@
             (ctx && ctx.card && ctx.card.id) ||
             '',
           assetId: photoEdit.getAttribute('data-asset-id') || '',
+          journalPhotoId: photoEdit.getAttribute('data-journal-photo-id') || '',
           encounterId: photoEdit.getAttribute('data-encounter-id') || '',
           src: photoEdit.getAttribute('data-photo-src') || '',
           name: photoEdit.getAttribute('data-photo-name') || 'Bild',
@@ -9128,6 +9133,7 @@
     openV12PhotoEditor({
       patientId: photoEdit.getAttribute('data-patient-id') || '',
       assetId: photoEdit.getAttribute('data-asset-id') || '',
+      journalPhotoId: photoEdit.getAttribute('data-journal-photo-id') || '',
       encounterId: photoEdit.getAttribute('data-encounter-id') || '',
       src: photoEdit.getAttribute('data-photo-src') || '',
       name: photoEdit.getAttribute('data-photo-name') || 'Bild',
