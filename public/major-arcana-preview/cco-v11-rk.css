@@ -648,6 +648,10 @@
   background: var(--green-bg);
   color: var(--green);
 }
+.v11-rk .pill.unknown {
+  background: var(--info-bg);
+  color: var(--info);
+}
 .v11-rk .pill.yes {
   background: var(--amber-bg);
   color: var(--amber);
