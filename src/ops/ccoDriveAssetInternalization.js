@@ -103,6 +103,8 @@ function normalizeDriveAssetRow(input = {}) {
 
   return {
     sourceRecordId,
+    canonicalAssetId:
+      normalizeText(file.canonicalAssetId) || normalizeText(input.canonicalAssetId) || null,
     driveFileId,
     patientId:
       normalizeText(input.patientId) ||
@@ -186,6 +188,7 @@ async function collectDriveRowsFromAssetStore(
         mimeType: asset.mimeType || null,
         fileSize: Number(asset.fileSize) || 0,
         sourceRecordId: normalizeText(asset.sourceRecordId) || asset.id,
+        canonicalAssetId: asset.id,
         id: asset.id,
       },
       documentDate: asset.documentDate || null,
@@ -909,20 +912,30 @@ async function internalizeDriveAssets({
       if (
         knownMissingBlobRows &&
         isMissingDriveSourceError(error) &&
-        normalizeText(row.sourceRecordId) &&
+        normalizeText(row.canonicalAssetId) &&
         typeof assetStore.transitionStatus === 'function'
       ) {
-        await assetStore.transitionStatus(row.sourceRecordId, 'NEEDS_REVIEW', {
-          actor,
-          reason: 'drive_source_missing_during_blob_recovery',
-        });
-        stats.needsReview += 1;
-        errors.push({
-          driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
-          code: 'drive_source_missing_quarantined',
-          message: 'Drive-källan saknas; canonical asset flyttad till NEEDS_REVIEW.',
-        });
-        return;
+        try {
+          await assetStore.transitionStatus(row.canonicalAssetId, 'NEEDS_REVIEW', {
+            actor,
+            reason: 'drive_source_missing_during_blob_recovery',
+          });
+          stats.needsReview += 1;
+          errors.push({
+            driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
+            code: 'drive_source_missing_quarantined',
+            message: 'Drive-källan saknas; canonical asset flyttad till NEEDS_REVIEW.',
+          });
+          return;
+        } catch (quarantineError) {
+          stats.failed += 1;
+          errors.push({
+            driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
+            code: 'drive_source_quarantine_failed',
+            message: quarantineError.message,
+          });
+          return;
+        }
       }
       stats.failed += 1;
       errors.push({
