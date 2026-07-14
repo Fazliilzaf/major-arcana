@@ -2866,6 +2866,64 @@ function createCcoConversationRouter({
     }
   });
 
+  // ----- Mailbox-väljarens status-spegel (PUBLIC, endast aggregat) -----
+  // GET /cco/runtime/mailboxes
+  // Frontendens vänsterräls behöver per mailbox visa vad som faktiskt kan
+  // väljas. Läs endast completeness-rapporten: den materialiserar inte alla
+  // mejl och exponerar inga adresser, ämnen eller bodies.
+  router.get('/cco/runtime/mailboxes', (_req, res) => {
+    try {
+      const configuredMailboxIds = Array.from(
+        new Set(
+          asArray(mailboxIdsForSync)
+            .map((value) => normalizeText(value).toLowerCase())
+            .filter(Boolean)
+        )
+      );
+      const report =
+        ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
+          ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds: configuredMailboxIds })
+          : null;
+      const reportByMailboxId = new Map(
+        asArray(report?.accountReports).map((account) => [
+          normalizeText(account?.mailboxId).toLowerCase(),
+          asObject(account),
+        ])
+      );
+      const mailboxes = configuredMailboxIds.map((mailboxId) => {
+        const account = reportByMailboxId.get(mailboxId) || {};
+        const counts = {};
+        for (const folder of asArray(account.folderCounts)) {
+          const folderType = normalizeText(folder?.folderType).toLowerCase();
+          if (folderType === 'inbox' || folderType === 'sent') {
+            counts[folderType] = Math.max(0, Number(folder?.totalItemCount) || 0);
+          }
+        }
+        return {
+          id: mailboxId,
+          mailboxId,
+          active: Boolean(graphReadConnector),
+          status: graphReadConnector ? 'active' : 'inactive',
+          completenessStatus: normalizeText(account.accountStatus) || 'NOT VERIFIED',
+          counts: {
+            inbox: counts.inbox || 0,
+            sent: counts.sent || 0,
+          },
+        };
+      });
+      return res.json({
+        ok: true,
+        syncEnabled: Boolean(graphReadConnector),
+        mailboxes,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
+    }
+  });
+
   // ----- Dashboard: KPI-aggregat -----
   // GET /cco/runtime/dashboard?days=7
   router.get('/cco/runtime/dashboard', authMiddleware, (req, res) => {
