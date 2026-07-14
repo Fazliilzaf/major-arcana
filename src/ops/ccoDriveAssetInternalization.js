@@ -184,10 +184,18 @@ async function collectDriveRowsFromAssetStore(
         originalDrivePath: asset.originalDrivePath || null,
         originalFileName: asset.originalFileName || null,
         mimeType: asset.mimeType || null,
+        fileSize: Number(asset.fileSize) || 0,
         sourceRecordId: normalizeText(asset.sourceRecordId) || asset.id,
         id: asset.id,
       },
       documentDate: asset.documentDate || null,
+    });
+  }
+  if (renderCandidatesOnly) {
+    rows.sort((left, right) => {
+      const leftSize = Number(left.file?.fileSize) || Number.MAX_SAFE_INTEGER;
+      const rightSize = Number(right.file?.fileSize) || Number.MAX_SAFE_INTEGER;
+      return leftSize - rightSize;
     });
   }
   return rows;

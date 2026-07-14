@@ -513,6 +513,39 @@ test('renderCandidatesOnly samlar endast renderbara ghosts med Drive-id', async 
   assert.equal(result.rowSources.assetStoreDriveIds, 1);
 });
 
+test('renderCandidatesOnly prioriterar små recovery-filer före stora', async () => {
+  const assets = [
+    {
+      id: 'large-ghost',
+      patientId: 'patient-1',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      originalDriveFileId: 'drive-large',
+      storageKey: 'missing-large',
+      checksum: 'checksum-large',
+      fileSize: 500_000_000,
+    },
+    {
+      id: 'small-ghost',
+      patientId: 'patient-2',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      originalDriveFileId: 'drive-small',
+      storageKey: 'missing-small',
+      checksum: 'checksum-small',
+      fileSize: 25_000,
+    },
+  ];
+  const result = await collectDriveRowsForInternalization({
+    assetStore: { listItemsForEnrichment: () => assets },
+    storage: { exists: async () => false },
+    renderCandidatesOnly: true,
+  });
+
+  assert.deepEqual(
+    result.rows.map((row) => row.file.driveFileId),
+    ['drive-small', 'drive-large']
+  );
+});
+
 test('verifierad ghost-kö hoppar över global blob-indexering', async () => {
   let globalIndexReads = 0;
   const report = await inventoryDriveAssets({
