@@ -199,7 +199,12 @@ test('konversationer derives booking chips from the local worklist booking conte
 test('konversationer maps verified worklist enrichment to smart inbox chips', () => {
   const html = readHtml();
 
-  assert.match(html, /function buildWorklistEnrichmentLookup\(enrichment = \{\}\)/);
+  assert.match(html, /function buildWorklistEnrichmentLookup\(enrichment\)/);
+  assert.match(
+    html,
+    /enrichment = enrichment && typeof enrichment === 'object' \? enrichment : \{\};/
+  );
+  assert.match(html, /rows\.filter\(\(row\) => row && typeof row === 'object'\)\.forEach/);
   assert.match(html, /function findWorklistEnrichment\(row = \{\}, lookup = new Map\(\)\)/);
   assert.match(html, /intentConfidence/);
   assert.match(html, /confidence >= 0\.6/);
