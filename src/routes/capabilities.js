@@ -7947,8 +7947,18 @@ function selectLatestWorklistLegacyBaseline({ entries = [], mailboxIds = [] } = 
       summary,
       enrichedCount,
     };
-    if (!latestScopeMatchedEntry) latestScopeMatchedEntry = candidate;
-    if (!latestFallbackEntry) latestFallbackEntry = candidate;
+    if (
+      !latestScopeMatchedEntry ||
+      summary.mailboxIds.length > latestScopeMatchedEntry.summary.mailboxIds.length
+    ) {
+      latestScopeMatchedEntry = candidate;
+    }
+    if (
+      !latestFallbackEntry ||
+      summary.mailboxIds.length > latestFallbackEntry.summary.mailboxIds.length
+    ) {
+      latestFallbackEntry = candidate;
+    }
   }
 
   const selected = latestScopeMatchedEntry ||
@@ -7961,9 +7971,9 @@ function selectLatestWorklistLegacyBaseline({ entries = [], mailboxIds = [] } = 
     };
 
   const strategy = latestScopeMatchedEntry
-    ? 'latest_enriched_scope_match'
+    ? 'latest_widest_scope_match'
     : latestFallbackEntry
-      ? 'latest_enriched_fallback'
+      ? 'latest_widest_fallback'
       : 'latest_entry';
 
   return {

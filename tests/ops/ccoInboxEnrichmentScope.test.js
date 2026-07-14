@@ -106,7 +106,52 @@ test('latest complete mailbox baseline replaces a larger stale baseline', async 
   });
 
   assert.equal(baseline.selection.selectedEntryId, 'fresh-entry');
-  assert.equal(baseline.selection.strategy, 'latest_enriched_scope_match');
+  assert.equal(baseline.selection.strategy, 'latest_widest_scope_match');
   assert.equal(baseline.selectedConversationWorklist.length, 103);
   assert.equal(baseline.selectedConversationWorklist[0]?.intent, 'cancellation');
+});
+
+test('partial scoped checkpoint never replaces a complete global baseline', async () => {
+  const entry = ({ id, generatedAt, mailboxIds, count }) => ({
+    id,
+    ts: generatedAt,
+    input: { mailboxIds },
+    output: {
+      data: {
+        generatedAt,
+        conversationWorklist: Array.from({ length: count }, (_, index) => ({
+          conversationId: `${id}-${index}`,
+          mailboxId: mailboxIds[0],
+          intent: 'follow_up',
+        })),
+      },
+    },
+  });
+  const completeMailboxIds = [
+    'kons@hairtpclinic.com',
+    'contact@hairtpclinic.com',
+    'halso@hairtpclinic.com',
+    'egzona@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+    'marknad@hairtpclinic.com',
+    'kvitto@hairtpclinic.com',
+  ];
+  const entries = [
+    entry({ id: 'partial-checkpoint', generatedAt: '2026-07-14T11:00:00.000Z', mailboxIds: ['kons@hairtpclinic.com'], count: 25 }),
+    entry({ id: 'complete-refresh', generatedAt: '2026-07-14T10:00:00.000Z', mailboxIds: completeMailboxIds, count: 21 }),
+  ];
+  const capabilityAnalysisStore = {
+    async list({ capabilityName }) {
+      return capabilityName === 'AnalyzeInbox' ? entries : [];
+    },
+  };
+
+  const baseline = await resolveLatestWorklistEnrichmentBaseline({
+    capabilityAnalysisStore,
+    tenantId: 'hair-tp-clinic',
+    mailboxIds: ['kons@hairtpclinic.com'],
+  });
+
+  assert.equal(baseline.selection.selectedEntryId, 'complete-refresh');
+  assert.deepEqual(baseline.selection.selectedMailboxIds, completeMailboxIds);
 });
