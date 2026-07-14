@@ -1270,6 +1270,7 @@ test('journey-audit scans every patient from Cliento truth without writes', asyn
       const json = await res.json();
       assert.equal(res.status, 200);
       assert.equal(json.zeroWrites, true);
+      assert.equal(json.cached, false);
       assert.equal(json.summary.patientsScanned, 2);
       assert.equal(json.summary.patientsWithClientoHistory, 1);
       assert.equal(json.summary.patientsWithoutClientoHistory, 1);
@@ -1284,6 +1285,14 @@ test('journey-audit scans every patient from Cliento truth without writes', asyn
         ),
         true
       );
+
+      const cachedResponse = await fetch(
+        `${base}/api/v1/cco-patient-master/journey-audit?onlyGaps=0&limit=100`
+      );
+      const cachedJson = await cachedResponse.json();
+      assert.equal(cachedResponse.status, 200);
+      assert.equal(cachedJson.cached, true);
+      assert.equal(cachedJson.generatedAt, json.generatedAt);
     });
   } finally {
     await fs.rm(fixture.tmp, { recursive: true, force: true });

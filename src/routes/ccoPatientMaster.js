@@ -84,6 +84,7 @@ const {
 const { enrichJournalEntriesWithMetadata } = require('../ops/ccoJournalMetadataEnrichment');
 const {
   assetToPatientFile,
+  resolveCanonicalPatientsForAssets,
   resolveCanonicalPatientsForAssetAliases,
   resolvePatientAssetIds,
 } = require('../ops/ccoPatientAssetIdentity');
@@ -766,6 +767,7 @@ function createCcoPatientMasterRouter({
   requireRole,
 }) {
   const router = express.Router();
+  const journeyAuditCache = new Map();
 
   async function auditRead(req, actor, targetId, action) {
     await authStore.addAuditEvent({
@@ -817,52 +819,60 @@ function createCcoPatientMasterRouter({
     requireRole(ROLE_OWNER),
     async (req, res) =>
       handle(req, res, async (actor) => {
-        const listed = await patientMasterStore.listPatients({
-          tenantId: actor.tenantId,
-          limit: 20000,
-          offset: 0,
-        });
-        const patients = asArray(listed?.patients);
-        const bookingBundle = await loadKunderBookingIndex(config, actor.tenantId, patients, {
-          includeClientoBookings: true,
-        });
-        const resolvedStores =
-          typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
-        const assetStore =
-          resolvedStores?.assetStore ||
-          (typeof resolvePatientAssetStore === 'function'
-            ? await resolvePatientAssetStore()
-            : null);
-        const rawAssets =
-          typeof assetStore?.listItemsForEnrichment === 'function'
-            ? assetStore.listItemsForEnrichment(actor.tenantId)
-            : [];
-        const canonicalAssets = rawAssets.slice();
-        const assetsByAlias = new Map();
-        for (const asset of rawAssets) {
-          const assetPatientId = normalizeText(asset?.patientId);
-          if (!assetPatientId) continue;
-          if (!assetsByAlias.has(assetPatientId)) assetsByAlias.set(assetPatientId, []);
-          assetsByAlias.get(assetPatientId).push(asset);
-        }
-        const canonicalIds = new Set(patients.map((patient) => normalizeText(patient?.id)));
-        for (const mapping of resolveCanonicalPatientsForAssetAliases({
-          patients,
-          assets: rawAssets.filter((asset) => !canonicalIds.has(normalizeText(asset?.patientId))),
-        })) {
-          const canonicalPatientId = normalizeText(mapping.canonicalPatientId);
-          const assetPatientId = normalizeText(mapping.assetPatientId);
-          if (!canonicalPatientId || !assetPatientId) continue;
-          for (const asset of assetsByAlias.get(assetPatientId) || []) {
-            canonicalAssets.push({ ...asset, patientId: canonicalPatientId });
-          }
+        const priorSnapshot = journeyAuditCache.get(actor.tenantId);
+        let snapshot = priorSnapshot && priorSnapshot.expiresAt > Date.now() ? priorSnapshot : null;
+        if (!snapshot) {
+          const listed = await patientMasterStore.listPatients({
+            tenantId: actor.tenantId,
+            limit: 20000,
+            offset: 0,
+          });
+          const patients = asArray(listed?.patients);
+          const bookingBundle = await loadKunderBookingIndex(config, actor.tenantId, patients, {
+            includeClientoBookings: true,
+          });
+          const resolvedStores =
+            typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+          const assetStore =
+            resolvedStores?.assetStore ||
+            (typeof resolvePatientAssetStore === 'function'
+              ? await resolvePatientAssetStore()
+              : null);
+          const rawAssets =
+            typeof assetStore?.listItemsForEnrichment === 'function'
+              ? assetStore.listItemsForEnrichment(actor.tenantId)
+              : [];
+          const assetsById = new Map(
+            rawAssets.map((asset) => [normalizeText(asset?.id), asset]).filter(([id]) => id)
+          );
+          const canonicalAssets = resolveCanonicalPatientsForAssets({
+            patients,
+            assets: rawAssets,
+          })
+            .map((mapping) => {
+              const asset = assetsById.get(normalizeText(mapping.assetId));
+              const canonicalPatientId = normalizeText(mapping.canonicalPatientId);
+              return asset && canonicalPatientId
+                ? { ...asset, patientId: canonicalPatientId }
+                : null;
+            })
+            .filter(Boolean);
+
+          snapshot = {
+            audit: buildClientoLedJourneyAudit({
+              patients,
+              clientoBookings: bookingBundle.clientoBookings,
+              assets: canonicalAssets,
+            }),
+            bookingCoverage: bookingBundle.coverage,
+            bookingSources: bookingBundle.sources,
+            generatedAt: new Date().toISOString(),
+            expiresAt: Date.now() + 5 * 60 * 1000,
+          };
+          journeyAuditCache.set(actor.tenantId, snapshot);
         }
 
-        const audit = buildClientoLedJourneyAudit({
-          patients,
-          clientoBookings: bookingBundle.clientoBookings,
-          assets: canonicalAssets,
-        });
+        const audit = snapshot.audit;
         const onlyGaps = parseExcludeUnknownMonth(req.query.onlyGaps, true);
         const sourceRows = onlyGaps ? audit.reviewQueue : audit.rows;
         const offset = clampOffset(req.query.offset);
@@ -873,8 +883,10 @@ function createCcoPatientMasterRouter({
           ok: true,
           zeroWrites: true,
           summary: audit.summary,
-          bookingCoverage: bookingBundle.coverage,
-          bookingSources: bookingBundle.sources,
+          bookingCoverage: snapshot.bookingCoverage,
+          bookingSources: snapshot.bookingSources,
+          generatedAt: snapshot.generatedAt,
+          cached: snapshot === priorSnapshot,
           page: {
             onlyGaps,
             offset,
