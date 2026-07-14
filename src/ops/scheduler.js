@@ -3443,8 +3443,15 @@ function createScheduler({
     phase = 'full',
     targetConversationIds = [],
     refreshExisting = false,
+    requestedMailboxIds = [],
   } = {}) {
-    const mailboxIds = resolveCcoHistoryMailboxIds(config);
+    const configuredMailboxIds = resolveCcoHistoryMailboxIds(config);
+    const requestedMailboxSet = new Set(
+      asSchedulerStringArray(requestedMailboxIds).map((item) => item.toLowerCase())
+    );
+    const mailboxIds = requestedMailboxSet.size
+      ? configuredMailboxIds.filter((mailboxId) => requestedMailboxSet.has(mailboxId.toLowerCase()))
+      : configuredMailboxIds;
     if (mailboxIds.length === 0) {
       return {
         tenantId,
@@ -3740,6 +3747,7 @@ function createScheduler({
       canaryLimit: effectiveCanaryLimit || null,
       targetConversationIds: scopedTargetIds.length > 0 ? scopedTargetIds : null,
       refreshExisting,
+      requestedMailboxIds,
       refreshExistingConversationCount: existingEnrichmentIds.length,
       processedConversationCount,
       coverageBefore,
@@ -4471,6 +4479,7 @@ function createScheduler({
       phase,
       targetConversationIds,
       refreshExisting,
+      requestedMailboxIds,
     } = {}
   ) {
     const job = jobDefinitions.find((item) => item.id === jobId);
@@ -4535,6 +4544,7 @@ function createScheduler({
         phase,
         targetConversationIds,
         refreshExisting,
+        requestedMailboxIds,
       });
       const durationMs = Date.now() - startedAtMs;
       logJobMemory('success');
