@@ -935,34 +935,61 @@ function createCcoPatientMasterRouter({
     if (typeof resolvePatientAssetStore === 'function') {
       const assetStore = await resolvePatientAssetStore();
       if (assetStore?.listAssetsForPatient) {
-        const loadIdentityPopulation = () =>
-          typeof patientMasterStore.listPatients === 'function'
-            ? patientMasterStore.listPatients({
-                tenantId: actor.tenantId,
-                limit: 20000,
-                offset: 0,
-              })
-            : { patients: [] };
-        const identityPopulation = readCache
-          ? (
-              await readCache.wrap(
-                readCache.buildKey('patient-asset-identity-population', actor.tenantId),
-                300_000,
-                loadIdentityPopulation
-              )
-            ).value
-          : await loadIdentityPopulation();
-        const patientIds = await resolvePatientAssetIds({
-          patientId: patient.id,
-          patient,
-          patientPopulation: asArray(identityPopulation?.patients),
-          tenantId: actor.tenantId,
-          customerStore,
-          assetStore,
-        });
+        const directPatientIds = [
+          patient.id,
+          patient?.cliento?.sourceId,
+          patient?.cliento?.canonicalCustomerId,
+          patient?.cliento?.customerKey,
+        ]
+          .map(normalizeText)
+          .filter((id, index, rows) => id && rows.indexOf(id) === index);
+        const directRowsByPatientId = new Map();
+        let hasRenderableDirectAsset = false;
+        for (const id of directPatientIds) {
+          const rows = assetStore.listAssetsForPatient(id, {}, { actor: { role: 'system' } }) || [];
+          directRowsByPatientId.set(id, rows);
+          if (
+            rows.some((asset) =>
+              ['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(asset?.status)
+            )
+          ) {
+            hasRenderableDirectAsset = true;
+          }
+        }
+        let patientIds = directPatientIds;
+        if (!hasRenderableDirectAsset) {
+          const loadIdentityPopulation = () =>
+            typeof patientMasterStore.listPatients === 'function'
+              ? patientMasterStore.listPatients({
+                  tenantId: actor.tenantId,
+                  limit: 20000,
+                  offset: 0,
+                })
+              : { patients: [] };
+          const identityPopulation = readCache
+            ? (
+                await readCache.wrap(
+                  readCache.buildKey('patient-asset-identity-population', actor.tenantId),
+                  300_000,
+                  loadIdentityPopulation
+                )
+              ).value
+            : await loadIdentityPopulation();
+          patientIds = await resolvePatientAssetIds({
+            patientId: patient.id,
+            patient,
+            patientPopulation: asArray(identityPopulation?.patients),
+            tenantId: actor.tenantId,
+            customerStore,
+            assetStore,
+          });
+        }
         const seen = new Set();
         for (const id of patientIds) {
-          const rows = assetStore.listAssetsForPatient(id, {}, { actor: { role: 'system' } }) || [];
+          const rows =
+            directRowsByPatientId.get(id) ||
+            assetStore.listAssetsForPatient(id, {}, { actor: { role: 'system' } }) ||
+            [];
           for (const row of rows) {
             if (!row?.id || seen.has(row.id)) continue;
             seen.add(row.id);
