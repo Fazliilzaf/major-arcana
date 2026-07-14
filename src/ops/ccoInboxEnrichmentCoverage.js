@@ -191,6 +191,7 @@ async function computeCcoInboxEnrichmentCoverage({
         selectedOutputData: baselineOutputDataOverride,
         selectedConversationWorklist: asArray(baselineOutputDataOverride.conversationWorklist),
         selectedNeedsReplyToday: asArray(baselineOutputDataOverride.needsReplyToday),
+        selectedConversationEnrichment: asArray(baselineOutputDataOverride.conversationEnrichment),
         selectedEntry: null,
       }
     : await resolveLatestWorklistEnrichmentBaseline({
@@ -204,6 +205,7 @@ async function computeCcoInboxEnrichmentCoverage({
     const checkpoint = await loadCcoInboxEnrichmentCheckpoint({ stateRoot, tenantId });
     if (checkpoint?.ok && checkpoint.outputData) {
       const storeEnriched = [
+        ...asArray(baseline?.selectedConversationEnrichment),
         ...asArray(baseline?.selectedConversationWorklist),
         ...asArray(baseline?.selectedNeedsReplyToday),
       ].filter((row) => hasCcoEnrichmentSignals(row)).length;
@@ -215,6 +217,7 @@ async function computeCcoInboxEnrichmentCoverage({
           selectedOutputData: checkpoint.outputData,
           selectedConversationWorklist: asArray(checkpoint.outputData.conversationWorklist),
           selectedNeedsReplyToday: asArray(checkpoint.outputData.needsReplyToday),
+          selectedConversationEnrichment: asArray(checkpoint.outputData.conversationEnrichment),
           selectedEntry: { id: 'checkpoint', ts: checkpoint.savedAt },
         };
       }
@@ -222,6 +225,7 @@ async function computeCcoInboxEnrichmentCoverage({
   }
 
   const enrichmentRows = [
+    ...asArray(effectiveBaseline?.selectedConversationEnrichment),
     ...asArray(effectiveBaseline?.selectedConversationWorklist),
     ...asArray(effectiveBaseline?.selectedNeedsReplyToday),
   ];

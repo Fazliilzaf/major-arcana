@@ -47,10 +47,18 @@ function resolveCheckpointPath(stateRoot = '', tenantId = '') {
 
 function countEnrichedRows(outputData = {}) {
   const rows = [
+    ...asArray(outputData.conversationEnrichment),
     ...asArray(outputData.conversationWorklist),
     ...asArray(outputData.needsReplyToday),
   ];
-  return rows.filter((row) => hasCheckpointEnrichmentSignals(row)).length;
+  return new Set(
+    rows
+      .filter((row) => hasCheckpointEnrichmentSignals(row))
+      .map((row) =>
+        normalizeText(row.conversationKey || row.conversationId || row.messageId || row.id).toLowerCase()
+      )
+      .filter(Boolean)
+  ).size;
 }
 
 async function saveCcoInboxEnrichmentCheckpoint({
@@ -69,7 +77,9 @@ async function saveCcoInboxEnrichmentCheckpoint({
     savedAt: new Date().toISOString(),
     enrichedRowCount: countEnrichedRows(outputData),
     rowCount:
-      asArray(outputData.conversationWorklist).length + asArray(outputData.needsReplyToday).length,
+      asArray(outputData.conversationEnrichment).length +
+      asArray(outputData.conversationWorklist).length +
+      asArray(outputData.needsReplyToday).length,
     outputData,
     metadata: asObject(metadata),
   };
@@ -91,7 +101,8 @@ async function loadCcoInboxEnrichmentCheckpoint({ stateRoot = '', tenantId = '' 
     const outputData = asObject(parsed?.outputData);
     if (
       !Array.isArray(outputData.conversationWorklist) &&
-      !Array.isArray(outputData.needsReplyToday)
+      !Array.isArray(outputData.needsReplyToday) &&
+      !Array.isArray(outputData.conversationEnrichment)
     ) {
       return { ok: false, reason: 'checkpoint_empty', filePath };
     }

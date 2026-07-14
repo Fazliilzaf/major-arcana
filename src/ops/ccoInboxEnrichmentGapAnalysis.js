@@ -653,6 +653,7 @@ async function analyzeCcoInboxEnrichmentGaps({
     mailboxIds,
   });
   const enrichmentRows = [
+    ...asArray(baseline?.selectedConversationEnrichment),
     ...asArray(baseline?.selectedConversationWorklist),
     ...asArray(baseline?.selectedNeedsReplyToday),
   ];

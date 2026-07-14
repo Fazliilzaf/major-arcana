@@ -3545,6 +3545,9 @@
       function buildWorklistEnrichmentLookup(enrichment = {}) {
         const lookup = new Map();
         const rows = [
+          ...(Array.isArray(enrichment.conversationEnrichment)
+            ? enrichment.conversationEnrichment
+            : []),
           ...(Array.isArray(enrichment.conversationWorklist)
             ? enrichment.conversationWorklist
             : []),

@@ -423,9 +423,15 @@
           ? truthPrimaryPayload.enrichment
           : null;
       if (!enrichment) {
-        return { conversationWorklist: [], needsReplyToday: [], metadata: {} };
+        return {
+          conversationEnrichment: [],
+          conversationWorklist: [],
+          needsReplyToday: [],
+          metadata: {},
+        };
       }
       return {
+        conversationEnrichment: asArray(enrichment.conversationEnrichment),
         conversationWorklist: asArray(enrichment.conversationWorklist),
         needsReplyToday: asArray(enrichment.needsReplyToday),
         metadata: {
@@ -440,6 +446,7 @@
     function hasTruthPrimaryServerEnrichment(truthPrimaryPayload) {
       const enrichment = resolveTruthPrimaryEnrichmentLegacyData(truthPrimaryPayload);
       return (
+        asArray(enrichment.conversationEnrichment).length > 0 ||
         asArray(enrichment.conversationWorklist).length > 0 ||
         asArray(enrichment.needsReplyToday).length > 0
       );

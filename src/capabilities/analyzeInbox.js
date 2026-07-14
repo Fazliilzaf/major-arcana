@@ -2247,6 +2247,7 @@ class AnalyzeInboxCapability extends BaseCapability {
     const slaBreaches = [];
     const riskFlags = [];
     const conversationWorklist = [];
+    const conversationEnrichment = [];
     const inboundFeed = [];
     const outboundFeed = [];
     const customerSummariesByKey = new Map();
@@ -2671,6 +2672,67 @@ class AnalyzeInboxCapability extends BaseCapability {
         needsReplyStatus,
       };
 
+      if (workItem.messageClassification !== 'system_mail') {
+        const laneFields = deriveConversationWorklistLaneFields({
+          slaStatus: workItem.slaStatus,
+          intent: workItem.intent,
+          subject: conversation.subject,
+          latestInboundPreview: workItem.latestInboundPreview,
+          waitingOn: conversation.waitingOn,
+        });
+        conversationEnrichment.push({
+          conversationId: workItem.conversationId,
+          messageId: workItem.messageId,
+          mailboxId: workItem.mailboxId,
+          mailboxAddress: workItem.mailboxAddress || null,
+          userPrincipalName: workItem.userPrincipalName || null,
+          subject: conversation.subject,
+          sender: workItem.sender,
+          latestInboundPreview: workItem.latestInboundPreview,
+          hoursSinceInbound: workItem.hoursSinceInbound,
+          lastInboundAt: workItem.lastInboundAt,
+          lastOutboundAt: workItem.lastOutboundAt,
+          slaStatus: workItem.slaStatus,
+          hoursRemaining: workItem.hoursRemaining,
+          slaThreshold: workItem.slaThreshold,
+          hasUnreadInbound: workItem.hasUnreadInbound,
+          isUnanswered: workItem.isUnanswered,
+          unansweredThresholdHours: workItem.unansweredThresholdHours,
+          stagnated: workItem.stagnated,
+          stagnationHours: workItem.stagnationHours,
+          followUpSuggested: workItem.followUpSuggested,
+          intent: workItem.intent,
+          intentConfidence: workItem.intentConfidence,
+          tone: workItem.tone,
+          toneConfidence: workItem.toneConfidence,
+          priorityLevel: workItem.priorityLevel,
+          priorityScore: workItem.priorityScore,
+          priorityReasons: workItem.priorityReasons,
+          messageClassification: workItem.messageClassification,
+          customerKey: workItem.customerKey,
+          customerSummary: workItem.customerSummary,
+          tempoProfile: workItem.tempoProfile,
+          recommendedFollowUpDelayDays: workItem.recommendedFollowUpDelayDays,
+          ctaIntensity: workItem.ctaIntensity,
+          followUpSuggestedAt: workItem.followUpSuggestedAt,
+          followUpTimingReason: workItem.followUpTimingReason,
+          followUpUrgencyLevel: workItem.followUpUrgencyLevel,
+          followUpManualApprovalRequired: workItem.followUpManualApprovalRequired,
+          estimatedWorkMinutes: workItem.estimatedWorkMinutes,
+          workloadBreakdown: workItem.workloadBreakdown,
+          dominantRisk: workItem.dominantRisk,
+          riskStackScore: workItem.riskStackScore,
+          riskStackExplanation: workItem.riskStackExplanation,
+          recommendedAction: workItem.recommendedAction,
+          escalationRequired: workItem.escalationRequired,
+          needsReplyStatus: workItem.needsReplyStatus,
+          workflowLane: laneFields.workflowLane,
+          bookingState: laneFields.bookingState,
+          needsMedicalReview: laneFields.needsMedicalReview,
+          waitingOn: laneFields.waitingOn,
+        });
+      }
+
       if (unanswered && workItem.messageClassification !== 'system_mail') {
         const laneFields = deriveConversationWorklistLaneFields({
           slaStatus: workItem.slaStatus,
@@ -2936,6 +2998,7 @@ class AnalyzeInboxCapability extends BaseCapability {
         urgentConversations: urgentConversations.slice(0, 25),
         needsReplyToday: needsReplyToday.slice(0, 50),
         conversationWorklist: conversationWorklist.slice(0, 120),
+        conversationEnrichment: conversationEnrichment.slice(0, 1200),
         inboundFeed: inboundFeed.slice(0, 1200),
         outboundFeed: outboundFeed.slice(0, 1200),
         slaBreaches: slaBreaches.slice(0, 50),
@@ -2952,6 +3015,12 @@ class AnalyzeInboxCapability extends BaseCapability {
     };
   }
 }
+
+AnalyzeInboxCapability.outputSchema.properties.data.required.push('conversationEnrichment');
+AnalyzeInboxCapability.outputSchema.properties.data.properties.conversationEnrichment = {
+  ...AnalyzeInboxCapability.outputSchema.properties.data.properties.conversationWorklist,
+  maxItems: 1200,
+};
 
 module.exports = {
   AnalyzeInboxCapability,
