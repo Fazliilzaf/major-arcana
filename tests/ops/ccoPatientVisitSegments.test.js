@@ -581,6 +581,9 @@ test('GET /patient/visit-segments returns grouped payload', async (t) => {
       personnummer: '19900101-1234',
     }),
     buildPatientCardReadout: (patient) => ({ patientId: patient.id }),
+    listPatients: async () => {
+      throw new Error('direct canonical asset must not scan the full patient population');
+    },
   };
 
   const migrationIndexStore = {
