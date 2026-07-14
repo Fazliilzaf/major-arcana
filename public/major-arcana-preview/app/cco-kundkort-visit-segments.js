@@ -55,12 +55,24 @@
     var pid = String(patientId || '').trim();
     if (!pid) return Promise.resolve([]);
     var headers = authHeaders(token || readStaffToken());
-    return fetch(
-      '/api/v1/cco-patient-master/patient/visit-segments?patientId=' + encodeURIComponent(pid),
-      { credentials: 'same-origin', headers: headers }
-    )
+    var url =
+      '/api/v1/cco-patient-master/patient/visit-segments?patientId=' + encodeURIComponent(pid);
+    var retryable = { 429: true, 502: true, 503: true, 504: true };
+    function attempt(index) {
+      return fetch(url, { credentials: 'same-origin', headers: headers }).then(function (res) {
+        if (res.ok) return res;
+        if (retryable[res.status] && index < 2) {
+          return new Promise(function (resolve) {
+            global.setTimeout(resolve, index === 0 ? 500 : 1500);
+          }).then(function () {
+            return attempt(index + 1);
+          });
+        }
+        throw new Error('HTTP ' + res.status);
+      });
+    }
+    return attempt(0)
       .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
       })
       .then(function (body) {
