@@ -1110,6 +1110,10 @@ test('assets/internalize klampar requested limit till max 200', async () => {
       assert.equal(over.status, 200);
       assert.equal(over.body.limit, 200);
       assert.equal(fixture.authStore.events.at(-1).metadata.limit, 200);
+
+      const concurrent = await postJson(base, { dryRun: true, concurrency: 99 });
+      assert.equal(concurrent.status, 200);
+      assert.equal(concurrent.body.concurrency, 8);
     });
   } finally {
     await fs.rm(fixture.tmp, { recursive: true, force: true });
