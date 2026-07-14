@@ -239,6 +239,25 @@ test('resolveCanonicalPatientsForAssets keeps personnummer matching across path 
   assert.equal(mappings[0].reason, 'personnummer_path');
 });
 
+test('resolveCanonicalPatientsForAssets keeps prefix-name matching with the indexed resolver', () => {
+  const mappings = resolveCanonicalPatientsForAssets({
+    patients: [
+      { id: 'patient-abdirahman', displayName: 'Abdirahman Hussein' },
+      { id: 'patient-other', displayName: 'Anna Andersson' },
+    ],
+    assets: [
+      {
+        id: 'asset-photo',
+        patientId: 'legacy-folder',
+        relativePath: 'Maj 2026/Abdirahman Hussein konsultation/IMG_001.jpg',
+      },
+    ],
+  });
+
+  assert.equal(mappings[0].canonicalPatientId, 'patient-abdirahman');
+  assert.equal(mappings[0].reason, 'name_prefix_path');
+});
+
 test('resolveCanonicalPatientsForAssetAliases leaves ambiguous exact names unresolved', () => {
   const mappings = resolveCanonicalPatientsForAssetAliases({
     patients: [
@@ -329,11 +348,7 @@ test('resolvePatientAssetIds keeps safe name aliases after a personnummer alias 
     ]),
   });
 
-  assert.deepEqual(ids, [
-    'patient-khalid',
-    'cliento-khalid-pnr',
-    'cliento-khalid-name',
-  ]);
+  assert.deepEqual(ids, ['patient-khalid', 'cliento-khalid-pnr', 'cliento-khalid-name']);
 });
 
 test('resolvePatientAssetIds rejects path aliases when canonical name is duplicated', async () => {

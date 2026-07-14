@@ -161,24 +161,19 @@ function collectAssetStoreAliases({ patient, patientPopulation, tenantId, assetS
 
   const rows = assetStore.listItemsForEnrichment(tenantId) || [];
   const acceptedStatuses = new Set(['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO']);
-  const renderableRows = rows.filter(
-    (row) => row?.patientId && acceptedStatuses.has(row.status)
-  );
+  const renderableRows = rows.filter((row) => row?.patientId && acceptedStatuses.has(row.status));
   const exactNamePatientIds = new Set();
   const population = asArray(patientPopulation);
   const pnrIsUnique =
     pnr.length >= 8 &&
     population.filter(
-      (row) =>
-        normalizeDigits(row?.personnummer || row?.personalNumber || row?.pnr) === pnr
+      (row) => normalizeDigits(row?.personnummer || row?.personalNumber || row?.pnr) === pnr
     ).length === 1;
   const nameIsUnique =
     Boolean(name) &&
     population.filter(
       (row) =>
-        normalizeName(
-          row?.displayName || row?.fullName || row?.name || row?.cliento?.name
-        ) === name
+        normalizeName(row?.displayName || row?.fullName || row?.name || row?.cliento?.name) === name
     ).length === 1;
 
   for (const row of renderableRows) {
@@ -236,7 +231,9 @@ function resolveCanonicalPatientsForAssetAliases({ patients, assets }) {
     }))
     .filter((row) => row.patientId && (row.pnr.length >= 8 || row.name));
   const canonicalPatientIds = new Set(
-    asArray(patients).map((patient) => normalizeText(patient?.id)).filter(Boolean)
+    asArray(patients)
+      .map((patient) => normalizeText(patient?.id))
+      .filter(Boolean)
   );
   const assetsByAlias = new Map();
   for (const asset of asArray(assets)) {
@@ -304,8 +301,10 @@ function resolveCanonicalPatientsForAssets({ patients, assets }) {
     }))
     .filter((row) => row.patientId);
   const canonicalPatientIds = new Set(patientRows.map((row) => row.patientId));
+  const patientsById = new Map(patientRows.map((row) => [row.patientId, row]));
   const patientsByPnrSuffix = new Map();
   const patientsByExactName = new Map();
+  const patientsByFirstNameToken = new Map();
   for (const row of patientRows) {
     if (row.pnr.length >= 8) {
       const suffix = row.pnr.slice(-8);
@@ -315,6 +314,9 @@ function resolveCanonicalPatientsForAssets({ patients, assets }) {
     if (row.name) {
       if (!patientsByExactName.has(row.name)) patientsByExactName.set(row.name, []);
       patientsByExactName.get(row.name).push(row);
+      const firstToken = row.name.split(' ')[0];
+      if (!patientsByFirstNameToken.has(firstToken)) patientsByFirstNameToken.set(firstToken, []);
+      patientsByFirstNameToken.get(firstToken).push(row);
     }
   }
 
@@ -354,15 +356,23 @@ function resolveCanonicalPatientsForAssets({ patients, assets }) {
         exactNamePatientIds.add(row.patientId);
       }
     }
-    const pnrMatches = patientRows.filter((row) => pnrPatientIds.has(row.patientId));
-    const exactNameMatches = patientRows.filter((row) => exactNamePatientIds.has(row.patientId));
+    const pnrMatches = [...pnrPatientIds].map((id) => patientsById.get(id)).filter(Boolean);
+    const exactNameMatches = [...exactNamePatientIds]
+      .map((id) => patientsById.get(id))
+      .filter(Boolean);
     const prefixNameMatches =
       pnrMatches.length || exactNameMatches.length
         ? []
-        : patientRows.filter(
-            (row) =>
-              row.name && segments.some((segment) => segment.startsWith(`${row.name} `))
-          );
+        : [
+            ...new Map(
+              segments.flatMap((segment) => {
+                const firstToken = segment.split(' ')[0];
+                return (patientsByFirstNameToken.get(firstToken) || [])
+                  .filter((row) => segment.startsWith(`${row.name} `))
+                  .map((row) => [row.patientId, row]);
+              })
+            ).values(),
+          ];
     const matches = pnrMatches.length
       ? pnrMatches
       : exactNameMatches.length
@@ -372,8 +382,7 @@ function resolveCanonicalPatientsForAssets({ patients, assets }) {
     return {
       assetId,
       assetPatientId,
-      canonicalPatientId:
-        candidatePatientIds.length === 1 ? candidatePatientIds[0] : null,
+      canonicalPatientId: candidatePatientIds.length === 1 ? candidatePatientIds[0] : null,
       reason:
         candidatePatientIds.length > 1
           ? 'ambiguous_path_identity'
