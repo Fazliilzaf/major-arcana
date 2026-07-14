@@ -18,6 +18,7 @@ const { createCcoAssetImportRunStore } = require('../../src/ops/ccoAssetImportRu
 const { createCcoAssetReviewQueueStore } = require('../../src/ops/ccoAssetReviewQueueStore');
 const { createLocalProvider } = require('../../src/ops/ccoSecureStorageProvider');
 const { blobExistsOnStorage } = require('../../src/ops/ccoGhostVisibleAssetDiagnosis');
+const { createClientoBookingStore } = require('../../src/ops/clientoBookingStore');
 
 const TENANT = 'hair-tp-clinic';
 
@@ -169,6 +170,7 @@ async function makeFixture({
     filePath: path.join(tmp, 'review.json'),
   });
   const storage = createLocalProvider({ rootPath: path.join(tmp, 'storage') });
+  const clientoBookingStorePath = path.join(tmp, 'cliento-bookings.json');
   const app = express();
   app.use(express.json());
   app.use(
@@ -176,7 +178,13 @@ async function makeFixture({
     createCcoPatientMasterRouter({
       patientMasterStore,
       authStore,
-      config: { defaultTenantId: TENANT },
+      config: {
+        defaultTenantId: TENANT,
+        clientoBookingStorePath,
+        ccoBookingEngineStorePath: path.join(tmp, 'booking-engine.json'),
+        ccoBookingStorePath: path.join(tmp, 'booking-cases.json'),
+        ccoTreatmentEncounterStorePath: path.join(tmp, 'encounters.json'),
+      },
       requireAuth: authStore.requireAuth.bind(authStore),
       requireRole,
       resolveAssetStores: async () => ({
@@ -198,6 +206,7 @@ async function makeFixture({
     importRunStore,
     reviewQueueStore,
     storage,
+    clientoBookingStorePath,
   };
 }
 
@@ -1209,10 +1218,84 @@ test('assets/repair-ghost-visible kräver stark bekräftelse för global repair'
       const fixed = fixture.assetStore.getAsset(canonical.id);
       assert.equal(fixed.storageKey, put.storageKey);
       assert.equal(await blobExistsOnStorage(fixed, fixture.storage), true);
+      assert.equal(fixture.authStore.events.at(-1).metadata.scopeAllRepairable, true);
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('journey-audit scans every patient from Cliento truth without writes', async () => {
+  const fixture = await makeFixture();
+  try {
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: TENANT,
+      id: 'journey-patient-1',
+      displayName: 'Journey Patient',
+      primaryEmail: 'journey@example.com',
+      primaryPhone: '+46701234567',
+      matchStatus: 'matched',
+    });
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: TENANT,
+      id: 'journey-patient-2',
+      displayName: 'No History Patient',
+      primaryEmail: 'no-history@example.com',
+      matchStatus: 'matched',
+    });
+    const clientoStore = await createClientoBookingStore({
+      filePath: fixture.clientoBookingStorePath,
+    });
+    await clientoStore.importBatch({
+      tenantId: TENANT,
+      source: 'test-cliento-history.csv',
+      bookings: [
+        {
+          bookingId: 'journey-booking-1',
+          customerEmail: 'journey@example.com',
+          startsAt: '2026-05-21T17:15:00.000Z',
+          status: 'completed',
+          rawStatus: 'Show',
+          serviceLabel: 'Konsultation',
+          notes: 'Konsultation genomförd',
+          source: 'cliento_csv',
+        },
+      ],
+    });
+
+    await withServer(fixture.app, async (base) => {
+      const res = await fetch(
+        `${base}/api/v1/cco-patient-master/journey-audit?onlyGaps=0&limit=100`
+      );
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.zeroWrites, true);
+      assert.equal(json.summary.patientsScanned, 2);
+      assert.equal(json.summary.patientsWithClientoHistory, 1);
+      assert.equal(json.summary.patientsWithoutClientoHistory, 1);
+      assert.equal(json.summary.gapCounts.healthDeclaration, 1);
+      const journey = json.rows.find((row) => row.patientId === 'journey-patient-1');
+      assert.equal(journey.stage, 'consultation_only');
+      assert.deepEqual(journey.gaps, ['healthDeclaration']);
+      assert.equal(journey.notes[0].note, 'Konsultation genomförd');
       assert.equal(
-        fixture.authStore.events.at(-1).metadata.scopeAllRepairable,
+        fixture.authStore.events.some(
+          (event) => event.action === 'cco.patient_master.journey_audit.read'
+        ),
         true
       );
+    });
+  } finally {
+    await fs.rm(fixture.tmp, { recursive: true, force: true });
+  }
+});
+
+test('journey-audit requires OWNER role', async () => {
+  const fixture = await makeFixture({ role: 'STAFF' });
+  try {
+    await withServer(fixture.app, async (base) => {
+      const res = await fetch(`${base}/api/v1/cco-patient-master/journey-audit`);
+      assert.equal(res.status, 403);
     });
   } finally {
     await fs.rm(fixture.tmp, { recursive: true, force: true });

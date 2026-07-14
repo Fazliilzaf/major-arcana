@@ -4,7 +4,10 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const { createClientoBookingStore, normalizeBooking } = require('../../src/ops/clientoBookingStore');
+const {
+  createClientoBookingStore,
+  normalizeBooking,
+} = require('../../src/ops/clientoBookingStore');
 
 test('importBatch with blank tenantId accepts nothing', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-blank-'));
@@ -48,6 +51,25 @@ test('normalizeBooking strips mailto prefix from customerEmail', () => {
   });
   assert.ok(b);
   assert.equal(b.customerEmail, 'person@example.com');
+});
+
+test('normalizeBooking preserves Cliento journey identity, status and notes', () => {
+  const b = normalizeBooking({
+    bookingId: 'journey-1',
+    customerEmail: 'journey@example.com',
+    customerPhone: '070 123 45 67',
+    clientoCustomerId: 'cl-99',
+    status: 'no_show',
+    rawStatus: 'No show',
+    notes: 'Kunden kom inte till konsultationen.',
+    sourceMessageId: '<message-1@cliento.com>',
+  });
+  assert.equal(b.customerPhone, '070 123 45 67');
+  assert.equal(b.clientoCustomerId, 'cl-99');
+  assert.equal(b.status, 'no_show');
+  assert.equal(b.rawStatus, 'No show');
+  assert.equal(b.notes, 'Kunden kom inte till konsultationen.');
+  assert.equal(b.sourceMessageId, '<message-1@cliento.com>');
 });
 
 test('getBookingsForCustomer returns empty for blank tenantId or customerEmail', async () => {
@@ -108,11 +130,50 @@ test('bookings persist across store instances after flush', async () => {
   await first.flush();
 
   const second = await createClientoBookingStore({ filePath });
-  const rows = second.getBookingsForCustomer({ tenantId: 'tenant-re', customerEmail: 'keep@x.com' });
+  const rows = second.getBookingsForCustomer({
+    tenantId: 'tenant-re',
+    customerEmail: 'keep@x.com',
+  });
   assert.equal(rows.length, 1);
   assert.equal(rows[0].bookingId, 'persist-b1');
   assert.equal(rows[0].notes, 'reload me');
 
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('partial booking update does not erase Cliento notes, phone or original createdAt', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-preserve-'));
+  const filePath = path.join(dir, 'bookings.json');
+  const store = await createClientoBookingStore({ filePath });
+  await store.upsertBooking({
+    tenantId: 'tenant-preserve',
+    booking: {
+      bookingId: 'preserve-1',
+      customerEmail: 'preserve@example.com',
+      customerPhone: '0701234567',
+      notes: 'No show enligt Cliento',
+      status: 'no_show',
+    },
+  });
+  const before = store.getBookingsForCustomer({
+    tenantId: 'tenant-preserve',
+    customerEmail: 'preserve@example.com',
+  })[0];
+  await store.upsertBooking({
+    tenantId: 'tenant-preserve',
+    booking: {
+      bookingId: 'preserve-1',
+      customerEmail: 'preserve@example.com',
+      status: 'no_show',
+    },
+  });
+  const after = store.getBookingsForCustomer({
+    tenantId: 'tenant-preserve',
+    customerEmail: 'preserve@example.com',
+  })[0];
+  assert.equal(after.customerPhone, '0701234567');
+  assert.equal(after.notes, 'No show enligt Cliento');
+  assert.equal(after.createdAt, before.createdAt);
   await fs.rm(dir, { recursive: true, force: true });
 });
 
@@ -177,8 +238,9 @@ test('importBatch upserts and getBookingsForCustomer reads bucket', async () => 
   const removed = await store.clearTenant({ tenantId: 'tenant-1' });
   assert.equal(removed, 1);
   assert.equal(
-    store.getBookingsForCustomer({ tenantId: 'tenant-1', customerEmail: 'patient@example.com' }).length,
-    0,
+    store.getBookingsForCustomer({ tenantId: 'tenant-1', customerEmail: 'patient@example.com' })
+      .length,
+    0
   );
 
   await fs.rm(dir, { recursive: true, force: true });
@@ -191,7 +253,10 @@ test('importBatch rejects invalid rows and still records import stats', async ()
 
   const r = await store.importBatch({
     tenantId: 't2',
-    bookings: [{ bookingId: '', customerEmail: 'x@y.z' }, { bookingId: 'ok', customerEmail: 'x@y.z' }],
+    bookings: [
+      { bookingId: '', customerEmail: 'x@y.z' },
+      { bookingId: 'ok', customerEmail: 'x@y.z' },
+    ],
   });
   assert.equal(r.accepted, 1);
   assert.equal(r.rejected, 1);

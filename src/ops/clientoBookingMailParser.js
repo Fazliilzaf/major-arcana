@@ -164,6 +164,10 @@ function parseClientoWebBookingMail(rawMessage = {}) {
     status,
     source: 'cliento_web_mail',
     notes: subject || null,
+    sourceMessageId:
+      normalizeText(rawMessage.internetMessageId) ||
+      normalizeText(rawMessage.id || rawMessage.graphMessageId) ||
+      null,
     receivedAt: normalizeText(rawMessage.receivedDateTime) || null,
   };
 }
