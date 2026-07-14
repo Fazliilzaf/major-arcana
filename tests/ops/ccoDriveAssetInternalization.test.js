@@ -129,6 +129,7 @@ test('inventory är dry-run och räknar redan internaliserade + review utan skri
             driveFileId: 'drive-2',
             fileName: 'foto.jpg',
             mimeType: 'image/jpeg',
+            fileSize: 2048,
           },
         },
         { file: { id: 'idx-3', driveFileId: 'drive-3', fileName: 'okand.pdf' } },
@@ -141,6 +142,9 @@ test('inventory är dry-run och räknar redan internaliserade + review utan skri
     assert.equal(report.stats.remaining, 1);
     assert.equal(report.stats.reviewQueued, 2);
     assert.equal(report.stats.byFamily.images, 1);
+    assert.equal(report.stats.eligibleBytes, 2048);
+    assert.equal(report.stats.remainingBytes, 2048);
+    assert.equal(report.stats.byFamilyBytes.images, 2048);
   } finally {
     await fs.rm(rig.tmp, { recursive: true, force: true });
   }
