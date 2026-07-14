@@ -315,6 +315,17 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   assert.match(ui, /const encounterId = o\.encounterId/);
   assert.match(ui, /const sourceJournalPhotoId = o\.journalPhotoId/);
   assert.match(ui, /fetchJournalPhotoObjectUrl\(sourceJournalPhotoId\)/);
+  assert.match(ui, /canvas\.dataset\.imageReady = 'false'/);
+  assert.match(ui, /if \(saveControl\) saveControl\.disabled = true/);
+  assert.match(
+    ui,
+    /ctx\.drawImage\(image, 0, 0, canvas\.width, canvas\.height\);[\s\S]*canvas\.dataset\.imageReady = 'true'/
+  );
+  assert.match(ui, /function start\(ev\) \{\s*if \(!imageReady\) return;/);
+  assert.match(
+    ui,
+    /const saveBtn = event\.target\.closest\('\[data-pe-save\]'\);[\s\S]*if \(!imageReady\)/
+  );
   assert.match(v11, /data-journal-photo-id=/);
   assert.match(canon, /data-journal-photo-id=/);
   assert.match(ui, /encounterId,\n\s+documentDate: docDate/);
