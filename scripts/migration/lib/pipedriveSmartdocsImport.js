@@ -12,27 +12,58 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-function nameKey(value) {
-  const text = normalizeText(value)
+function foldName(value) {
+  return normalizeText(value)
     .toLowerCase()
     .normalize('NFKD')
     .replace(/\p{M}+/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function nameKey(value) {
+  const text = foldName(value);
   if (!text) return '';
   if (text.split(' ').length < 2) return '';
   return text;
 }
 
+function singleNameKey(value) {
+  const text = foldName(value);
+  if (!text) return '';
+  if (text.split(' ').length !== 1) return '';
+  return text;
+}
+
+function sanitizeExtractedPersonName(value = '') {
+  let text = normalizeText(value);
+  if (!text) return '';
+  text = text
+    .replace(/^aff[aä]r\s+/iu, '')
+    .replace(/\s+aff[aä]r\s*$/iu, '')
+    .replace(/\s+aff[aä]r\s+/giu, ' ')
+    .trim();
+  return text;
+}
+
 function extractPersonNameFromFileName(fileName = '') {
   const base = normalizeText(fileName).replace(/\.pdf$/i, '');
+  const dotted = base.match(/bilder\.har\.([a-zåäö]+)/i);
+  if (dotted) return sanitizeExtractedPersonName(dotted[1]);
   const dated = base.match(/^(.+?)\s+\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}-\d{1,2}(?:-\d{0,4})?)?$/i);
-  if (dated) return normalizeText(dated[1]);
+  if (dated) return sanitizeExtractedPersonName(dated[1]);
+  const affar = base.match(/^aff[aä]r\s+(.+?)\s+\d{4}-\d{2}-\d{2}/iu);
+  if (affar) return sanitizeExtractedPersonName(affar[1]);
   const smart = base.match(/^(.+?)\s+(?:offert|quote|avtal|smart)/i);
-  if (smart) return normalizeText(smart[1]);
+  if (smart) return sanitizeExtractedPersonName(smart[1]);
   const singleBeforeDate = base.match(/^([A-Za-zÀ-ÖØ-öø-ÿ'’-]+)\s+\d{4}-\d{2}-\d{2}/u);
-  if (singleBeforeDate) return normalizeText(singleBeforeDate[1]);
+  if (singleBeforeDate) return sanitizeExtractedPersonName(singleBeforeDate[1]);
   return '';
+}
+
+function extractEmailFromFileName(fileName = '') {
+  const match = String(fileName || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return match ? match[0].toLowerCase() : '';
 }
 
 function buildPipedrivePeopleNameIndex(peopleRows = []) {
@@ -52,6 +83,7 @@ function buildPipedrivePatientIndex(patients = [], { tenantId = 'hair-tp-clinic'
   const byPersonId = new Map();
   const byDealId = new Map();
   const byName = new Map();
+  const bySingleName = new Map();
   const byEmail = new Map();
   const byPhone = new Map();
 
@@ -74,11 +106,18 @@ function buildPipedrivePatientIndex(patients = [], { tenantId = 'hair-tp-clinic'
       patient.displayName,
       pipedrive.name,
       `${patient.firstName || ''} ${patient.lastName || ''}`,
+      patient.firstName,
     ]) {
       const key = nameKey(candidate);
-      if (!key) continue;
-      if (!byName.has(key)) byName.set(key, []);
-      byName.get(key).push(patient);
+      if (key) {
+        if (!byName.has(key)) byName.set(key, []);
+        byName.get(key).push(patient);
+      }
+      const singleKey = singleNameKey(candidate);
+      if (singleKey) {
+        if (!bySingleName.has(singleKey)) bySingleName.set(singleKey, []);
+        bySingleName.get(singleKey).push(patient);
+      }
     }
     for (const email of [
       patient.primaryEmail,
@@ -105,7 +144,7 @@ function buildPipedrivePatientIndex(patients = [], { tenantId = 'hair-tp-clinic'
     }
   }
 
-  return { byPersonId, byDealId, byName, byEmail, byPhone };
+  return { byPersonId, byDealId, byName, bySingleName, byEmail, byPhone };
 }
 
 function resolvePersonIdFromFileName(fileName = '', peopleIndex = {}) {
@@ -131,24 +170,49 @@ function resolvePersonIdFromFileName(fileName = '', peopleIndex = {}) {
 function resolvePatientByFileName(fileName = '', index = {}) {
   const extracted = extractPersonNameFromFileName(fileName);
   const key = nameKey(extracted);
-  if (!key) return { patientId: null, confidence: 'low', method: 'filename_no_name' };
-  const matches = index.byName?.get(key) || [];
-  if (matches.length === 1) {
-    return {
-      patientId: matches[0].id,
-      confidence: 'high',
-      method: 'smartdoc_filename',
-      extractedName: extracted,
-    };
+  if (key) {
+    const matches = index.byName?.get(key) || [];
+    if (matches.length === 1) {
+      return {
+        patientId: matches[0].id,
+        confidence: 'high',
+        method: 'smartdoc_filename',
+        extractedName: extracted,
+      };
+    }
+    if (matches.length > 1) {
+      return {
+        patientId: null,
+        confidence: 'low',
+        method: 'filename_ambiguous',
+        extractedName: extracted,
+        candidateCount: matches.length,
+      };
+    }
   }
-  if (matches.length > 1) {
-    return {
-      patientId: null,
-      confidence: 'low',
-      method: 'filename_ambiguous',
-      extractedName: extracted,
-      candidateCount: matches.length,
-    };
+  const singleKey = singleNameKey(extracted);
+  if (singleKey) {
+    const matches = index.bySingleName?.get(singleKey) || [];
+    if (matches.length === 1) {
+      return {
+        patientId: matches[0].id,
+        confidence: 'high',
+        method: 'smartdoc_single_name',
+        extractedName: extracted,
+      };
+    }
+    if (matches.length > 1) {
+      return {
+        patientId: null,
+        confidence: 'low',
+        method: 'filename_single_ambiguous',
+        extractedName: extracted,
+        candidateCount: matches.length,
+      };
+    }
+  }
+  if (!extracted) {
+    return { patientId: null, confidence: 'low', method: 'filename_no_name' };
   }
   return {
     patientId: null,
@@ -243,7 +307,11 @@ module.exports = {
   resolvePatientForManifestItem,
   resolvePatientByFileName,
   extractPersonNameFromFileName,
+  sanitizeExtractedPersonName,
+  extractEmailFromFileName,
   mapDocumentKindToAssetMeta,
   buildChecksumIndex,
   nameKey,
+  singleNameKey,
+  foldName,
 };
