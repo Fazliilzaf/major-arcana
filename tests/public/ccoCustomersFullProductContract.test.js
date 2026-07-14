@@ -9,6 +9,7 @@ const ROOT = path.join(__dirname, '..', '..');
 const INDEX_HTML = path.join(ROOT, 'public', 'major-arcana-preview', 'index.html');
 const PATIENT_UI = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'patient-master-ui.js');
 const V11_RK = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v11-rk.js');
+const V12_CANON = path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-v12-canon.js');
 const V10_SKIN = path.join(ROOT, 'public', 'major-arcana-preview', 'cco-v10-skin.css');
 const SUBNAV = path.join(ROOT, 'public', 'admin', 'cco-subnav.js');
 const DEEP_LINK_BOOT = path.join(
@@ -22,6 +23,7 @@ const DEEP_LINK_BOOT = path.join(
 const html = fs.readFileSync(INDEX_HTML, 'utf8');
 const ui = fs.readFileSync(PATIENT_UI, 'utf8');
 const v11 = fs.readFileSync(V11_RK, 'utf8');
+const v12Canon = fs.readFileSync(V12_CANON, 'utf8');
 const v10Skin = fs.readFileSync(V10_SKIN, 'utf8');
 const subnav = fs.readFileSync(SUBNAV, 'utf8');
 const deepLinkBoot = fs.readFileSync(DEEP_LINK_BOOT, 'utf8');
@@ -63,6 +65,16 @@ test('kundrad öppnar V11-dossier och V11-sektion öppnar V12 Content Canon', ()
   assert.match(ui, /window\.CcoV12Canon\.render\(ctx\)/);
   assert.match(ui, /data-v12-workspace-shell="1"/);
   assert.match(ui, /data-customer-product-loading="v11"/);
+});
+
+test('V12 sticky följer aktivt besöks state och primäråtgärd', () => {
+  assert.match(v12Canon, /visitState === 'completed_today'/);
+  assert.match(v12Canon, /var primaryAction = txt\(av && av\.primary && av\.primary\.action\)/);
+  assert.match(v12Canon, /var primaryLabel = txt\(av && av\.primary && av\.primary\.label\)/);
+  assert.doesNotMatch(
+    v12Canon,
+    /ctxParts\.push\(txt\(av\.title\) \+ ' pågår'\)/
+  );
 });
 
 test('sena V11/V12-renderare ersätter laddningsläget utan legacy-fallback', () => {
