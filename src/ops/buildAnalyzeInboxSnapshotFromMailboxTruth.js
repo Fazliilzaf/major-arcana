@@ -83,6 +83,10 @@ function resolveConversationFilterSet(conversationIds = []) {
     const normalized = normalizeText(rawId);
     if (!normalized) continue;
     filterSet.add(normalized);
+    const rollupSuffixIndex = normalized.indexOf('::');
+    if (rollupSuffixIndex > 0) {
+      filterSet.add(normalized.slice(0, rollupSuffixIndex));
+    }
     const colonIndex = normalized.lastIndexOf(':');
     if (colonIndex > 0) {
       filterSet.add(normalized.slice(colonIndex + 1));
@@ -102,6 +106,8 @@ function conversationMatchesFilter(
   );
   for (const candidate of candidates) {
     if (filterSet.has(candidate)) return true;
+    const rollupSuffixIndex = candidate.indexOf('::');
+    if (rollupSuffixIndex > 0 && filterSet.has(candidate.slice(0, rollupSuffixIndex))) return true;
     const colonIndex = candidate.lastIndexOf(':');
     if (colonIndex > 0 && filterSet.has(candidate.slice(colonIndex + 1))) return true;
   }
