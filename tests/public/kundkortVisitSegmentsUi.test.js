@@ -12,7 +12,7 @@ const VISIT_SEGMENTS_PATH = path.join(PREVIEW_ROOT, 'app/cco-kundkort-visit-segm
 
 function loadVisitSegmentsUi(fetchImpl) {
   const sandbox = {
-    window: {},
+    window: { setTimeout: (resolve) => resolve() },
     document: { querySelector: () => null },
     fetch:
       fetchImpl || (() => Promise.resolve({ ok: true, json: async () => ({ visitSegments: [] }) })),
@@ -44,6 +44,24 @@ test('index.html loads visit-segments before referens with defer on both', () =>
   const referensTag = scriptTagForSrc(html, 'cco-kundkort-referens.js');
   assert.match(visitTag, /\bdefer\b/, 'visit-segments script must use defer');
   assert.match(referensTag, /\bdefer\b/, 'referens script must use defer');
+});
+
+test('fetchVisitSegments retries transient 502 before returning visit rooms', async () => {
+  let calls = 0;
+  const api = loadVisitSegmentsUi(() => {
+    calls += 1;
+    if (calls < 3) return Promise.resolve({ ok: false, status: 502 });
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => ({ visitSegments: [{ date: '2026-07-13' }] }),
+    });
+  });
+
+  const result = await api.fetchVisitSegmentsOrEmpty('patient-1', 'token');
+  assert.equal(calls, 3);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].date, '2026-07-13');
 });
 
 test('fetchVisitSegmentsOrEmpty returns [] when visit-segments API fails', async () => {
