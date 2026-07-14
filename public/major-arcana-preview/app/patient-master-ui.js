@@ -1659,10 +1659,18 @@
     document.body.appendChild(overlay);
     const canvas = overlay.querySelector('canvas');
     const ctx = canvas.getContext('2d');
+    const saveControl = overlay.querySelector('[data-pe-save]');
+    const note = overlay.querySelector('.v12-pe-note');
+    let imageReady = false;
     let color = '#d45b4f';
     let drawing = false;
     let strokes = [];
     let current = null;
+    canvas.width = 1;
+    canvas.height = 1;
+    canvas.dataset.imageReady = 'false';
+    if (saveControl) saveControl.disabled = true;
+    if (note) note.textContent = 'Laddar originalbild…';
     const image = new Image();
     image.onload = () => {
       const maxW = Math.min(1040, Math.max(360, window.innerWidth - 80));
@@ -1671,9 +1679,12 @@
       canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
       canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
       ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      imageReady = true;
+      canvas.dataset.imageReady = 'true';
+      if (saveControl) saveControl.disabled = false;
+      if (note) note.textContent = 'Rita med mus/trackpad. Originalbilden ändras inte.';
     };
     image.onerror = () => {
-      const note = overlay.querySelector('.v12-pe-note');
       if (note) note.textContent = 'Kunde inte öppna bilden för redigering.';
     };
     // Bilden ligger bakom auth (Bearer) — en <img>-request skickar inte token.
@@ -1712,6 +1723,7 @@
       };
     }
     function start(ev) {
+      if (!imageReady) return;
       ev.preventDefault();
       drawing = true;
       current = { color, points: [point(ev)] };
@@ -1784,7 +1796,10 @@
       }
       const saveBtn = event.target.closest('[data-pe-save]');
       if (!saveBtn) return;
-      const note = overlay.querySelector('.v12-pe-note');
+      if (!imageReady) {
+        if (note) note.textContent = 'Vänta tills originalbilden har laddats.';
+        return;
+      }
       if (!strokes.length) {
         if (note) note.textContent = 'Rita minst en markering innan du sparar.';
         return;
