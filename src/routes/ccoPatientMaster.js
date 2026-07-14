@@ -33,7 +33,10 @@ const {
   diagnoseGhostVisibleAssetPage,
   summarizeChecksumInventoryCoverage,
 } = require('../ops/ccoGhostVisibleAssetDiagnosis');
-const { repairGhostVisibleAssets } = require('../ops/ccoGhostVisibleAssetRepair');
+const {
+  quarantineUnrecoverableGhostVisibleAssets,
+  repairGhostVisibleAssets,
+} = require('../ops/ccoGhostVisibleAssetRepair');
 const {
   getGhostVisibleDiagnosisJobState,
   startGhostVisibleDiagnosisJob,
@@ -2300,6 +2303,63 @@ function createCcoPatientMasterRouter({
             failed: report.stats?.failed ?? 0,
             importRunId: importRunId || null,
             scopeAllRepairable,
+          },
+        });
+
+        return res.json({ ok: true, ...report });
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/assets/quarantine-unrecoverable-ghost-visible',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const dryRun = parseDryRun(req.body?.dryRun, true);
+        if (!dryRun && normalizeText(req.body?.confirmText) !== 'QUARANTINE UNRECOVERABLE GHOSTS') {
+          return res.status(400).json({
+            error: 'Bekräfta med confirmText: "QUARANTINE UNRECOVERABLE GHOSTS"',
+          });
+        }
+
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
+        const storage = stores.secureStorage || stores.storage || null;
+        if (!assetStore) {
+          return res.status(503).json({ error: 'Asset store saknas på servern.' });
+        }
+
+        const report = await quarantineUnrecoverableGhostVisibleAssets({
+          assetStore,
+          storage,
+          tenantId: actor.tenantId,
+          limit: clampGhostRepairLimit(req.body?.limit, 100),
+          dryRun,
+          actor: {
+            role: actor.role || ROLE_OWNER,
+            userId: actor.userId || 'cco-patient-master-quarantine-unrecoverable-ghosts',
+            tenantId: actor.tenantId,
+          },
+        });
+
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.assets_quarantine_unrecoverable_ghost_visible',
+          outcome: report.errors?.length ? 'partial' : 'success',
+          targetType: 'cco_patient_assets',
+          targetId: 'unrecoverable_ghosts',
+          metadata: {
+            dryRun,
+            zeroWrites: report.zeroWrites,
+            unrecoverable: report.stats?.unrecoverable ?? 0,
+            quarantined: report.stats?.quarantined ?? 0,
+            failed: report.stats?.failed ?? 0,
           },
         });
 
