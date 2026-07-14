@@ -179,3 +179,58 @@ test('computeCcoInboxEnrichmentCoverage scopes reads per mailbox and yields betw
   assert.equal(coverage.gapCount, 60);
   assert.equal(yieldCount, 4);
 });
+
+test('coverage matches Graph enrichment to a contact-form rollup conversation key', async () => {
+  const mailboxId = 'kons@hairtpclinic.com';
+  const graphId = 'AAQkContactFormGraphId=';
+  const truthStore = {
+    listMessages() {
+      return [
+        {
+          mailboxId,
+          conversationId: `${mailboxId}:${graphId}::contact-form:patient%40example.com`,
+          conversationKey: `${mailboxId}:${graphId}::contact-form:patient%40example.com`,
+          folderType: 'inbox',
+          direction: 'inbound',
+          isRead: false,
+          receivedAt: new Date().toISOString(),
+          subject: 'Kontaktformulär',
+        },
+      ];
+    },
+  };
+  const capabilityAnalysisStore = {
+    async list() {
+      return [
+        {
+          id: 'entry-rollup',
+          ts: '2026-07-14T08:00:00.000Z',
+          input: { mailboxIds: [mailboxId] },
+          output: {
+            data: {
+              conversationEnrichment: [
+                {
+                  conversationId: `${mailboxId}:${graphId}`,
+                  mailboxId,
+                  intent: 'booking_request',
+                  workflowLane: 'booking',
+                },
+              ],
+            },
+          },
+        },
+      ];
+    },
+  };
+
+  const coverage = await computeCcoInboxEnrichmentCoverage({
+    tenantId: 'hair-tp-clinic',
+    mailboxIds: [mailboxId],
+    capabilityAnalysisStore,
+    ccoMailboxTruthStore: truthStore,
+  });
+
+  assert.equal(coverage.truthConversationCount, 1);
+  assert.equal(coverage.enrichedConversationCount, 1);
+  assert.equal(coverage.gapCount, 0);
+});
