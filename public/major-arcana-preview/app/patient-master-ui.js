@@ -12966,7 +12966,10 @@
     { includeDriveFiles = true, includeJournal = false } = {}
   ) {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
-    const timeoutId = controller ? window.setTimeout(() => controller.abort(), 8000) : 0;
+    // A cold patient-master summary can legitimately take 30–40 seconds while
+    // the persistent indexes warm. Keep the loading dossier visible instead of
+    // aborting an otherwise successful response after eight seconds.
+    const timeoutId = controller ? window.setTimeout(() => controller.abort(), 60_000) : 0;
     const driveQuery = includeDriveFiles ? '1' : '0';
     const endpoint = includeJournal
       ? `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}&includeJournal=1`
