@@ -22,10 +22,42 @@ test('importBatch with blank tenantId accepts nothing', async () => {
   await fs.rm(dir, { recursive: true, force: true });
 });
 
-test('normalizeBooking returns null without bookingId or customerEmail', () => {
+test('normalizeBooking returns null without bookingId or customer identity', () => {
   assert.equal(normalizeBooking({}), null);
   assert.equal(normalizeBooking({ bookingId: 'x' }), null);
   assert.equal(normalizeBooking({ customerEmail: 'a@b.co' }), null);
+});
+
+test('normalizeBooking accepts phone or Cliento id when historical email is missing', () => {
+  const byPhone = normalizeBooking({ bookingId: 'phone-only', customerPhone: '070 123 45 67' });
+  const byClientoId = normalizeBooking({
+    bookingId: 'cliento-only',
+    clientoCustomerId: 'client-123',
+  });
+  assert.ok(byPhone);
+  assert.ok(byClientoId);
+  assert.equal(byPhone.customerEmail, '');
+  assert.equal(byClientoId.clientoCustomerId, 'client-123');
+});
+
+test('importBatch retains phone-only historical bookings for population matching', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-phone-'));
+  const filePath = path.join(dir, 'bookings.json');
+  const store = await createClientoBookingStore({ filePath });
+  const result = await store.importBatch({
+    tenantId: 'tenant-phone',
+    bookings: [
+      {
+        bookingId: 'phone-history-1',
+        customerPhone: '070 123 45 67',
+        clientoCustomerId: 'client-phone',
+        status: 'completed',
+      },
+    ],
+  });
+  assert.equal(result.accepted, 1);
+  assert.equal(store.listAllBookings({ tenantId: 'tenant-phone' }).length, 1);
+  await fs.rm(dir, { recursive: true, force: true });
 });
 
 test('normalizeBooking uses id when bookingId missing', () => {
