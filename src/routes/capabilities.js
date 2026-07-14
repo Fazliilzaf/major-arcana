@@ -289,6 +289,15 @@ function buildWorklistConversationScopeSet(scopeConversationIds = []) {
     const normalized = normalizeText(item).toLowerCase();
     if (!normalized) continue;
     scopeSet.add(normalized);
+
+    // Rollup keys can append a synthetic customer identity after the mailbox
+    // conversation id, for example mailbox:graph-id::contact-form:email. The
+    // analyzer returns graph-id, so keep that canonical alias in the scope.
+    const rollupIndex = normalized.indexOf('::');
+    const mailboxSeparatorIndex = normalized.indexOf(':');
+    if (rollupIndex > mailboxSeparatorIndex + 1) {
+      scopeSet.add(normalized.slice(mailboxSeparatorIndex + 1, rollupIndex));
+    }
     const colonIndex = normalized.lastIndexOf(':');
     if (colonIndex > 0 && colonIndex < normalized.length - 1) {
       scopeSet.add(normalized.slice(colonIndex + 1));
