@@ -53,3 +53,22 @@ test('V11 behaller explicita HD-svar fran formularparsern', () => {
   assert.match(html, /Allergier<\/span><span class="pill no">NEJ/);
   assert.match(html, /Pågående mediciner<\/span><span class="pill yes">JA/);
 });
+
+test('V11 ateranvander den interna dokumentmodalen for signerad HD', () => {
+  const html = renderWithHealth({
+    status: 'signed',
+    signedAt: '2026-07-14',
+    viewUrl: '/api/v1/cco/assets/hd-1/download?inline=1',
+    documentTitle: 'Hälsodeklaration',
+    allergies: [],
+    medications: { items: [], known: false },
+    contraindications: [],
+    answers: [],
+  });
+
+  assert.match(
+    html,
+    /data-kk-open-doc="\/api\/v1\/cco\/assets\/hd-1\/download\?inline=1"/
+  );
+  assert.match(html, /data-kk-doc-title="Hälsodeklaration">Öppna PDF/);
+});

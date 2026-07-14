@@ -565,6 +565,8 @@
     return {
       status: status,
       signedAt: hd ? text(hd.signedAt) : '',
+      viewUrl: hd ? text(hd.viewUrl) : '',
+      documentTitle: hd ? text(hd.documentTitle) || 'Hälsodeklaration' : '',
       source: source,
       allergies: allergies,
       contraindications: contraindications,
@@ -676,13 +678,28 @@
             : s.status === 'neutral'
               ? 'neutral'
               : 'todo';
+      var medForm = journeyMedFormSlug(s.label);
+      var form =
+        medForm === 'health_declaration'
+          ? card && card.healthDeclaration
+          : medForm === 'fitness_certificate'
+            ? card && card.fitnessCertificate
+            : null;
       return {
         id: s.step,
         label: text(s.label),
         note: text(s.meta),
         state: state,
         jump: journeyJumpSlug(s.label),
-        medForm: journeyMedFormSlug(s.label),
+        medForm: medForm,
+        viewUrl: text(form && form.viewUrl),
+        documentTitle:
+          text(form && form.documentTitle) ||
+          (medForm === 'health_declaration'
+            ? 'Hälsodeklaration'
+            : medForm === 'fitness_certificate'
+              ? 'Friskförsäkran'
+              : ''),
       };
     });
     var doneCount = steps.filter(function (s) {

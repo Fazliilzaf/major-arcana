@@ -312,6 +312,13 @@
           '<div class="hd-rows">' +
           (rows || '<div class="hd-row"><span class="hd-q">Inga registrerade svar</span></div>') +
           '</div><div class="hd-foot">' +
+          (health.viewUrl
+            ? '<button type="button" data-kk-open-doc="' +
+              esc(txt(health.viewUrl)) +
+              '" data-kk-doc-title="' +
+              esc(txt(health.documentTitle) || 'Hälsodeklaration') +
+              '">Öppna PDF</button>'
+            : '') +
           '<button type="button" data-v12-open-module="health">Visa historik</button>' +
           '<button type="button" data-v12-open-module="health">Redigera svar</button>' +
           '<button type="button" data-patient-action="copy-patient-link">Kopiera länk</button>' +
@@ -347,16 +354,24 @@
                   : s.state === 'active'
                     ? '<span class="sub">Pågår</span>'
                     : '<span class="sub">Kommande</span>';
+              var tag = s.viewUrl ? 'button' : 'div';
+              var docAttrs = s.viewUrl
+                ? ' type="button" data-kk-open-doc="' +
+                  esc(txt(s.viewUrl)) +
+                  '" data-kk-doc-title="' +
+                  esc(txt(s.documentTitle) || txt(s.label)) +
+                  '"'
+                : '';
               return (
-                '<div class="j-step ' +
+                '<' + tag + ' class="j-step ' +
                 st +
-                '"><span class="badge">' +
+                '"' + docAttrs + '><span class="badge">' +
                 badge +
                 '</span><span class="label">' +
                 esc(txt(s.label)) +
                 '</span>' +
                 tail +
-                '</div>'
+                '</' + tag + '>'
               );
             })
             .join('') +
