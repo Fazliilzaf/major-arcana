@@ -63,6 +63,20 @@ async function graphGet(token, url) {
   return payload;
 }
 
+async function graphGetBuffer(token, url) {
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/octet-stream',
+    },
+  });
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}));
+    throw new Error(payload.error?.message || `${res.status} Graph GET`);
+  }
+  return Buffer.from(await res.arrayBuffer());
+}
+
 function buildInboxMessagesUrl(mailbox, { since = '', pageSize = 100, scope = 'mailbox' } = {}) {
   const select = 'id,subject,receivedDateTime,internetMessageId,from';
   const top = Math.min(Math.max(pageSize, 1), 250);
@@ -258,18 +272,15 @@ async function fetchMessagePdfAttachments(
 
   const attachments = [];
   for (const candidate of candidates) {
-    const full = await graphGet(
+    const body = await graphGetBuffer(
       token,
-      `${baseUrl}/${encodeURIComponent(
-        candidate.id
-      )}?$select=id,name,contentType,size,isInline,contentBytes`
+      `${baseUrl}/${encodeURIComponent(candidate.id)}/$value`
     );
-    const body = Buffer.from(String(full.contentBytes || ''), 'base64');
     if (!body.length || body.length > maxBytes) continue;
     attachments.push({
-      id: full.id || candidate.id,
-      name: full.name || candidate.name || 'halso-form.pdf',
-      contentType: full.contentType || candidate.contentType || 'application/pdf',
+      id: candidate.id,
+      name: candidate.name || 'halso-form.pdf',
+      contentType: candidate.contentType || 'application/pdf',
       size: body.length,
       body,
     });

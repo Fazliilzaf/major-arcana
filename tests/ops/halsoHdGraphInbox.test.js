@@ -24,12 +24,7 @@ test('fetchMessagePdfAttachments returns decoded non-inline PDFs only', async ()
     }
     return {
       ok: true,
-      json: async () => ({
-        id: 'pdf-1',
-        name: 'Halsodeklaration.pdf',
-        contentType: 'application/pdf',
-        contentBytes: Buffer.from('%PDF-test').toString('base64'),
-      }),
+      arrayBuffer: async () => Buffer.from('%PDF-test'),
     };
   };
 
@@ -39,6 +34,7 @@ test('fetchMessagePdfAttachments returns decoded non-inline PDFs only', async ()
     assert.equal(result[0].id, 'pdf-1');
     assert.equal(result[0].body.toString(), '%PDF-test');
     assert.equal(calls.length, 2);
+    assert.match(calls[1], /\/attachments\/pdf-1\/\$value$/);
   } finally {
     global.fetch = originalFetch;
   }
