@@ -3605,10 +3605,20 @@ function createScheduler({
     }
     const effectiveCanaryLimit = Math.max(0, Math.min(9338, Number(canaryLimit) || 0));
     const effectivePhase = normalizeText(phase) === 'canary' ? 'canary' : 'full';
+    const resumeMatchingCanaryCheckpoint =
+      effectivePhase === 'canary' &&
+      publishCanary &&
+      checkpoint?.ok === true &&
+      normalizeText(checkpoint?.metadata?.phase) === 'canary' &&
+      Number(checkpoint?.metadata?.canaryLimit || 0) === effectiveCanaryLimit &&
+      Number(checkpoint?.metadata?.processedConversationCount || 0) >= effectiveCanaryLimit;
     if (effectiveCanaryLimit > 0) {
       remainingGapIds = remainingGapIds.slice(0, effectiveCanaryLimit);
     }
-    let processedConversationCount = 0;
+    if (resumeMatchingCanaryCheckpoint) remainingGapIds = [];
+    let processedConversationCount = resumeMatchingCanaryCheckpoint
+      ? Number(checkpoint.metadata.processedConversationCount || 0)
+      : 0;
     let previousGapCount = Number(coverageAfterBootstrap.gapCount || 0);
     let stallRounds = 0;
     let batchesSinceCheckpoint = 0;
@@ -3753,6 +3763,7 @@ function createScheduler({
       refreshExisting,
       requestedMailboxIds,
       publishCanary: Boolean(publishCanary),
+      resumedMatchingCanaryCheckpoint: resumeMatchingCanaryCheckpoint,
       refreshExistingConversationCount: existingEnrichmentIds.length,
       processedConversationCount,
       coverageBefore,
@@ -4485,6 +4496,7 @@ function createScheduler({
       targetConversationIds,
       refreshExisting,
       requestedMailboxIds,
+      publishCanary,
     } = {}
   ) {
     const job = jobDefinitions.find((item) => item.id === jobId);
@@ -4550,6 +4562,7 @@ function createScheduler({
         targetConversationIds,
         refreshExisting,
         requestedMailboxIds,
+        publishCanary,
       });
       const durationMs = Date.now() - startedAtMs;
       logJobMemory('success');

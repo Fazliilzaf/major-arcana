@@ -33,6 +33,8 @@ function parseArgs(argv) {
     wait: false,
     waitMinutes: 90,
     pollSeconds: 60,
+    boundedLimit: 0,
+    mailboxId: '',
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -76,6 +78,16 @@ function parseArgs(argv) {
     }
     if (item === '--poll-seconds') {
       args.pollSeconds = Number(argv[index + 1] || 60);
+      index += 1;
+      continue;
+    }
+    if (item === '--bounded-limit') {
+      args.boundedLimit = Math.max(0, Number.parseInt(argv[index + 1] || '0', 10) || 0);
+      index += 1;
+      continue;
+    }
+    if (item === '--mailbox') {
+      args.mailboxId = normalizeText(argv[index + 1]).toLowerCase();
       index += 1;
     }
   }
@@ -254,6 +266,21 @@ async function triggerBackfill({ baseUrl, token, tenantId }) {
   });
 }
 
+async function triggerBoundedBackfill({ baseUrl, token, tenantId, mailboxId, limit }) {
+  return fetchJson(baseUrl, '/api/v1/ops/cco/enrichment/backfill/run', {
+    method: 'POST',
+    token,
+    body: {
+      phase: 'canary',
+      go: true,
+      tenantId,
+      mailboxIds: [mailboxId],
+      canaryLimit: limit,
+      publishCanary: true,
+    },
+  });
+}
+
 function printCoverage(coverage) {
   console.log(
     JSON.stringify(
@@ -291,6 +318,31 @@ async function main() {
   }
 
   const token = auth.token;
+
+  if (args.boundedLimit > 0) {
+    if (!args.mailboxId) throw new Error('--bounded-limit kräver --mailbox.');
+    const started = await triggerBoundedBackfill({
+      baseUrl: args.baseUrl,
+      token,
+      tenantId: args.tenantId,
+      mailboxId: args.mailboxId,
+      limit: args.boundedLimit,
+    });
+    console.log(JSON.stringify(started, null, 2));
+    const pollPath = normalizeText(started?.pollUrl);
+    if (!pollPath) throw new Error('Bounded backfill saknar pollUrl.');
+    const deadline = Date.now() + Math.max(1, args.waitMinutes) * 60 * 1000;
+    while (Date.now() < deadline) {
+      const status = await fetchJson(args.baseUrl, pollPath, { token });
+      console.log(JSON.stringify(status, null, 2));
+      if (status?.status === 'success') return;
+      if (status?.status === 'error') {
+        throw new Error(status?.error || 'Bounded backfill misslyckades.');
+      }
+      await sleep(Math.max(5, args.pollSeconds) * 1000);
+    }
+    throw new Error('Timeout waiting for bounded backfill.');
+  }
 
   if (args.trigger) {
     console.log('[cco-full-backfill] Triggering cco_inbox_enrichment_full_backfill ...');
@@ -340,4 +392,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseArgs, readCoverage, triggerBackfill };
+module.exports = { parseArgs, readCoverage, triggerBackfill, triggerBoundedBackfill };
