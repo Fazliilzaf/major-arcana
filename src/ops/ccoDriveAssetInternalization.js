@@ -794,6 +794,7 @@ async function internalizeDriveAssets({
   driveRetryMaxDelayMs = 5000,
   driveThrottleMs = 0,
   concurrency = 1,
+  checkpointEvery = 100,
   tenantId = 'hair-tp-clinic',
   actor = { role: 'system', userId: 'ord-34-drive-internalize', tenantId },
   dateGateActive = false,
@@ -961,7 +962,22 @@ async function internalizeDriveAssets({
   // Säkert i single-process: delad konsekvent in-memory-store + atomiska
   // helstate-skrivningar (temp+rename) → last-write-wins men alltid komplett.
   const poolSize = Math.max(1, Number(concurrency) || 1);
+  const checkpointSize = Math.max(0, Math.floor(Number(checkpointEvery) || 0));
   let __idx = 0;
+  let __completed = 0;
+  let __checkpointChain = Promise.resolve();
+  const checkpointAfterRow = async () => {
+    __completed += 1;
+    if (
+      checkpointSize === 0 ||
+      __completed % checkpointSize !== 0 ||
+      typeof assetStore.checkpointBatch !== 'function'
+    ) {
+      return;
+    }
+    __checkpointChain = __checkpointChain.then(() => assetStore.checkpointBatch());
+    await __checkpointChain;
+  };
   if (typeof assetStore.beginBatch === 'function') assetStore.beginBatch();
   try {
     await Promise.all(
@@ -971,9 +987,11 @@ async function internalizeDriveAssets({
           __idx += 1;
           if (i >= batch.length) break;
           await processRow(batch[i]);
+          await checkpointAfterRow();
         }
       })
     );
+    await __checkpointChain;
   } finally {
     // Skriv index 1× för hela chunken (även vid fel) → storen lämnas aldrig i batch-läge.
     if (typeof assetStore.flushBatch === 'function') await assetStore.flushBatch();

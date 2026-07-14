@@ -33,6 +33,31 @@ async function makeStore() {
   return { tmp, filePath, audit, store };
 }
 
+test('checkpointBatch persistar pågående batch utan att avsluta batchläget', async () => {
+  const { tmp, filePath, store } = await makeStore();
+  try {
+    store.beginBatch();
+    const first = await store.addAsset({ ...BASE_ASSET, sourceRecordId: 'checkpoint-1' });
+
+    const before = await createCcoPatientAssetStore({ filePath });
+    assert.equal(before.getAsset(first.id), null);
+
+    assert.equal(await store.checkpointBatch(), true);
+    const afterCheckpoint = await createCcoPatientAssetStore({ filePath });
+    assert.ok(afterCheckpoint.getAsset(first.id));
+
+    const second = await store.addAsset({ ...BASE_ASSET, sourceRecordId: 'checkpoint-2' });
+    const beforeFlush = await createCcoPatientAssetStore({ filePath });
+    assert.equal(beforeFlush.getAsset(second.id), null);
+
+    await store.flushBatch();
+    const afterFlush = await createCcoPatientAssetStore({ filePath });
+    assert.ok(afterFlush.getAsset(second.id));
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
 const BASE_ASSET = Object.freeze({
   patientId: 'pat-001',
   sourceSystem: 'drive',

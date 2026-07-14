@@ -210,6 +210,54 @@ test('commit laddar Drive-binär, använder korrekt Drive-namn med åäö och bl
   }
 });
 
+test('commit checkpointar asset-index under en lång parallell batch', async () => {
+  const rig = await makeRig();
+  try {
+    let checkpoints = 0;
+    const checkpointBatch = rig.assetStore.checkpointBatch.bind(rig.assetStore);
+    rig.assetStore.checkpointBatch = async () => {
+      checkpoints += 1;
+      return checkpointBatch();
+    };
+    const driveClient = {
+      async getFileMetadata(driveFileId) {
+        return { name: `${driveFileId}.jpg`, modifiedTime: '2026-01-01T12:00:00.000Z' };
+      },
+      async downloadBuffer(driveFileId) {
+        return Buffer.from(`image-${driveFileId}`);
+      },
+    };
+    const rows = ['drive-checkpoint-1', 'drive-checkpoint-2'].map((driveFileId, index) => ({
+      patientId: 'patient-checkpoint',
+      file: {
+        id: `idx-checkpoint-${index}`,
+        driveFileId,
+        fileName: `${driveFileId}.jpg`,
+        relativePath: `Hair TP Clinic/2026-01-01/${driveFileId}.jpg`,
+        mimeType: 'image/jpeg',
+      },
+    }));
+
+    const report = await internalizeDriveAssets({
+      rows,
+      assetStore: rig.assetStore,
+      importRunStore: rig.importRunStore,
+      reviewQueueStore: rig.reviewQueueStore,
+      pipeline: rig.pipeline,
+      driveClient,
+      dryRun: false,
+      go: true,
+      concurrency: 2,
+      checkpointEvery: 1,
+    });
+
+    assert.equal(report.stats.imported, 2);
+    assert.equal(checkpoints, 2);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
 test('commit härleder encounterId från Drive-mappens datum och session', async () => {
   const rig = await makeRig();
   try {
