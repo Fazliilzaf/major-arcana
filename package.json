@@ -106,6 +106,7 @@
     "migration:import-pipedrive-smartdocs": "node scripts/migration/importPipedriveSmartdocs.js",
     "migration:resolve-pipedrive-smartdocs-review": "node scripts/migration/resolvePipedriveSmartdocsReview.js",
     "sync:pipedrive-pdfs-render-prod": "node scripts/sync-pipedrive-pdfs-to-render-prod.js",
+    "migration:backfill-pipedrive-sections-prod": "node scripts/migration/backfillPipedriveAssetSectionsProd.js",
     "migration:resolve-pipedrive-ambiguous": "node scripts/migration/resolvePipedriveAmbiguous.js --tenant hair-tp-clinic",
     "migration:import-journals": "node scripts/migration/importHistoricalJournals.js",
     "migration:spot-check": "node scripts/migration/spotCheckPatientIndex.js",

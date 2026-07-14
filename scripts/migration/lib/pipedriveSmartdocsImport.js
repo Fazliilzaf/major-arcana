@@ -260,6 +260,25 @@ function resolvePatientForManifestItem(item = {}, index = {}, peopleIndex = {}) 
   };
 }
 
+function classifyPipedriveDocumentKind(name = '', description = '') {
+  const haystack = `${name} ${description}`.toLowerCase();
+  if (/\baff[aä]r\b/u.test(haystack)) return 'agreement';
+  const agreementHints = [
+    'behandlingsavtal',
+    'avtal',
+    'agreement',
+    'signed',
+    'signerad',
+    'signature',
+    'underskrift',
+    'contract',
+  ];
+  const offerHints = ['offert', 'quote', 'proposal', 'behandlingsplan', 'offer', 'kostnadsf'];
+  if (agreementHints.some((hint) => haystack.includes(hint))) return 'agreement';
+  if (offerHints.some((hint) => haystack.includes(hint))) return 'offer';
+  return 'other';
+}
+
 function mapDocumentKindToAssetMeta(documentKind = 'other') {
   const kind = normalizeText(documentKind).toLowerCase() || 'other';
   if (kind === 'offer') {
@@ -307,6 +326,7 @@ module.exports = {
   resolvePatientForManifestItem,
   resolvePatientByFileName,
   extractPersonNameFromFileName,
+  classifyPipedriveDocumentKind,
   sanitizeExtractedPersonName,
   extractEmailFromFileName,
   mapDocumentKindToAssetMeta,
