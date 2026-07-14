@@ -64,6 +64,16 @@ test('fetchVisitSegments retries transient 502 before returning visit rooms', as
   assert.equal(result[0].date, '2026-07-13');
 });
 
+test('visit-segments reads native CCO assets without migration-index payload', async () => {
+  let requestedUrl = '';
+  const api = loadVisitSegmentsUi((url) => {
+    requestedUrl = url;
+    return Promise.resolve({ ok: true, status: 200, json: async () => ({ visitSegments: [] }) });
+  });
+  await api.fetchVisitSegments('patient-1', 'token');
+  assert.match(requestedUrl, /includeDriveFiles=0/);
+});
+
 test('fetchVisitSegmentsOrEmpty returns [] when visit-segments API fails', async () => {
   const api = loadVisitSegmentsUi(() =>
     Promise.resolve({

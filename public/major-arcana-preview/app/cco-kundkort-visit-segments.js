@@ -56,7 +56,8 @@
     if (!pid) return Promise.resolve([]);
     var headers = authHeaders(token || readStaffToken());
     var url =
-      '/api/v1/cco-patient-master/patient/visit-segments?patientId=' + encodeURIComponent(pid);
+      '/api/v1/cco-patient-master/patient/visit-segments?includeDriveFiles=0&patientId=' +
+      encodeURIComponent(pid);
     var retryable = { 429: true, 502: true, 503: true, 504: true };
     function attempt(index) {
       return fetch(url, { credentials: 'same-origin', headers: headers }).then(function (res) {
