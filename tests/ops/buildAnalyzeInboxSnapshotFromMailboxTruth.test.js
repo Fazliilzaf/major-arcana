@@ -132,3 +132,32 @@ test('buildAnalyzeInboxSnapshotFromMailboxTruth includes scoped conversations ou
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('scoped contact-form rollup key matches its mailbox conversation truth key', () => {
+  const mailboxId = 'kons@hairtpclinic.com';
+  const conversationId = 'AAQkContactForm';
+  const ccoMailboxTruthStore = {
+    listMessages() {
+      return [{
+        mailboxId,
+        conversationId,
+        graphMessageId: 'graph-contact-form',
+        folderType: 'inbox',
+        receivedAt: '2026-07-14T08:00:00.000Z',
+        subject: 'Dennis Gustafsson Kontaktformulär',
+        bodyPreview: 'Jag har en bokad tid och måste avboka den tiden.',
+        from: { address: 'no-reply@info.hairtpclinic.se', name: 'Kontaktformulär' },
+      }];
+    },
+  };
+
+  const built = buildAnalyzeInboxSnapshotFromMailboxTruth({
+    ccoMailboxTruthStore,
+    mailboxIds: [mailboxId],
+    conversationIds: [`${mailboxId}:${conversationId}::contact-form:dennis%40example.com`],
+  });
+
+  assert.equal(built.ok, true);
+  assert.equal(built.snapshot.conversations.length, 1);
+  assert.equal(built.snapshot.conversations[0].conversationId, `${mailboxId}:${conversationId}`);
+});
