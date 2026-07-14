@@ -41,7 +41,8 @@ test('visar ärligt datakontrakt i stället för oinkopplade mapp-/dagfilter', (
 });
 
 test('sticky val i localStorage + läser mailboxes-endpointen', () => {
-  assert.match(source, /cco_mailbox_valjare_v1/);
+  assert.match(source, /cco_mailbox_valjare_v2/);
+  assert.match(source, /mailboxIds: \['contact@hairtpclinic\.com'\]/);
   assert.match(source, /localStorage/);
   assert.match(source, /'\/api\/v1\/cco\/runtime\/mailboxes'/);
   // Väntar-på-data-status när kontraktet ännu inte finns.
@@ -51,7 +52,10 @@ test('sticky val i localStorage + läser mailboxes-endpointen', () => {
 test('driver inkorgen via selection-change till det befintliga datalagret', () => {
   assert.match(source, /cco:mailbox-selection-change/);
   assert.match(page, /document\.addEventListener\('cco:mailbox-selection-change'/);
-  assert.match(page, /liveWorklistUrl\(requestMailboxIds\)/);
+  assert.match(page, /liveWorklistUrl\(mailboxChunk\)/);
+  assert.match(page, /WORKLIST_MAX_MAILBOXES_PER_REQUEST = 2/);
+  assert.match(page, /for \(const mailboxChunk of chunkMailboxIds\(requestMailboxIds\)\)/);
+  assert.match(page, /currentThreads = mergeWorklistThreads\(normalizedThreads\)/);
   assert.match(page, /selectedMailboxIds = requested/);
   assert.doesNotMatch(page, /const LIVE_WORKLIST_URL/);
 });

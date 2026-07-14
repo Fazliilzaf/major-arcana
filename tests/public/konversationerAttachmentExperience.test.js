@@ -41,8 +41,8 @@ test('mejl med många bilagor begränsar initial DOM men bevarar alla filer', ()
   assert.match(html, /<details class="msg-attachments-more">/);
 });
 
-test('inkommande och utgående bilagor stöds för både kons och fazli', () => {
-  assert.match(html, /LIVE_MAILBOX_IDS\s*=\s*\['kons@hairtpclinic\.com', 'fazli@hairtpclinic\.com'\]/);
+test('inkommande och utgående bilagor stöds med contact som första mailbox', () => {
+  assert.match(html, /LIVE_MAILBOX_IDS\s*=\s*\['contact@hairtpclinic\.com'\]/);
   assert.match(html, /rawDir === 'outgoing' \|\| rawDir === 'outbound' \|\| rawDir === 'sent'/);
   assert.match(html, /<div class="msg is-\$\{dir\}">/);
   assert.match(html, /renderMessageAttachments\(message\)/);

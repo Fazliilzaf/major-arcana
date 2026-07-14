@@ -19,13 +19,17 @@ function liveScript(html) {
   return script;
 }
 
-test('konversationer live inbox uses kons + fazli worklist consumer as first real data source', () => {
+test('konversationer live inbox starts from contact and safely fans out wider mailbox selections', () => {
   const html = readHtml();
 
   assert.match(
     html,
-    /const LIVE_MAILBOX_IDS = \['kons@hairtpclinic\.com', 'fazli@hairtpclinic\.com'\]/
+    /const LIVE_MAILBOX_IDS = \['contact@hairtpclinic\.com'\]/
   );
+  assert.match(html, /const WORKLIST_MAX_MAILBOXES_PER_REQUEST = 2/);
+  assert.match(html, /function chunkMailboxIds\(/);
+  assert.match(html, /for \(const mailboxChunk of chunkMailboxIds\(requestMailboxIds\)\)/);
+  assert.match(html, /currentThreads = mergeWorklistThreads\(normalizedThreads\)/);
   assert.match(html, /\/api\/v1\/cco\/runtime\/worklist\/consumer\?mailboxIds=/);
   assert.match(html, /'&limit=500'/);
   assert.match(html, /credentials:\s*'include'/);
@@ -204,7 +208,7 @@ test('konversationer maps verified worklist enrichment to smart inbox chips', ()
   assert.match(html, /followUpSuggested === true \|\| enrichment\.stagnated === true/);
   assert.match(
     html,
-    /normalizeLiveThread\(row, index, findWorklistEnrichment\(row, enrichmentLookup\)\)/
+    /normalizeLiveThread\([\s\S]*?row,[\s\S]*?normalizedThreads\.length,[\s\S]*?findWorklistEnrichment\(row, enrichmentLookup\)[\s\S]*?\)/
   );
 });
 
