@@ -282,6 +282,10 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   assert.match(v11, /__ccoHydratePatientFileImages/);
   assert.match(ui, /window\.__ccoHydratePatientFileImages/);
   assert.match(ui, /const encounterId = o\.encounterId/);
+  assert.match(ui, /const sourceJournalPhotoId = o\.journalPhotoId/);
+  assert.match(ui, /fetchJournalPhotoObjectUrl\(sourceJournalPhotoId\)/);
+  assert.match(v11, /data-journal-photo-id=/);
+  assert.match(canon, /data-journal-photo-id=/);
   assert.match(ui, /encounterId,\n\s+documentDate: docDate/);
 });
 

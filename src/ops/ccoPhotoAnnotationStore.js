@@ -66,6 +66,9 @@ function normalizeAnnotation(input = {}, existing = {}) {
     customerId: customerId || patientId,
     patientId: patientId || customerId,
     sourceAssetId: normalizeText(safe.sourceAssetId || safe.assetId || ex.sourceAssetId) || null,
+    sourceJournalPhotoId:
+      normalizeText(safe.sourceJournalPhotoId || safe.journalPhotoId || ex.sourceJournalPhotoId) ||
+      null,
     derivedAssetId:
       normalizeText(safe.derivedAssetId || safe.savedAssetId || ex.derivedAssetId) || null,
     encounterId: normalizeText(safe.encounterId || ex.encounterId) || null,

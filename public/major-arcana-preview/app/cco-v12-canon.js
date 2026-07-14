@@ -1013,7 +1013,7 @@
       var href = txt(image && image.openRef);
       var name = txt(image && image.fileName) || 'Foto';
       var label = txt(image && (image.timeLabel || image.takenAt)).slice(0, 16) || 'Foto';
-      var editable = Boolean(assetId && href);
+      var editable = Boolean((assetId && href) || journalPhotoId);
       var drawLabel = image && image.offerReady ? '✓ Vald till plan' : '✎ Rita';
       return (
         '<a class="photo-tile over patient-master-image-tile v12-canon-visit-photo"' +
@@ -1023,6 +1023,8 @@
             esc(patientId) +
             '" data-asset-id="' +
             esc(assetId) +
+            '" data-journal-photo-id="' +
+            esc(journalPhotoId) +
             '" data-encounter-id="' +
             esc(txt(image && image.encounterId)) +
             '" data-photo-src="' +

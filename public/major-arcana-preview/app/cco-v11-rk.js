@@ -838,7 +838,7 @@
           .map(function (im) {
             var assetId = txt(im.assetId);
             var journalPhotoId = txt(im.journalPhotoId);
-            var editable = Boolean(assetId && im.openRef);
+            var editable = Boolean((assetId && im.openRef) || journalPhotoId);
             return (
               '<div class="photo-tile raw' +
               (editable ? ' photo-tile--editable' : '') +
@@ -848,6 +848,8 @@
                   esc(patientId) +
                   '" data-asset-id="' +
                   esc(assetId) +
+                  '" data-journal-photo-id="' +
+                  esc(journalPhotoId) +
                   '" data-encounter-id="' +
                   esc(txt(im.encounterId)) +
                   '" data-photo-src="' +
