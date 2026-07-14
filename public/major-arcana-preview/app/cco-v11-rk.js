@@ -293,13 +293,13 @@
         // Fallback: aggregat ur allergier/mediciner/flaggor när svar saknas.
         rows += hAllergies.length
           ? hdRow('Allergier', 'JA · ' + txt(hAllergies[0]), 'danger')
-          : hdRow('Allergier', 'NEJ', 'no');
+          : hdRow('Allergier', 'Ej registrerat', 'unknown');
         rows += hMeds.length
           ? hdRow('Pågående mediciner', 'JA · ' + hMeds.length + ' st', 'yes')
           : hdRow(
               'Pågående mediciner',
-              health.medications && health.medications.known ? 'JA' : 'NEJ',
-              health.medications && health.medications.known ? 'yes' : 'no'
+              health.medications && health.medications.known ? 'JA' : 'Ej registrerat',
+              health.medications && health.medications.known ? 'yes' : 'unknown'
             );
         hContra.forEach(function (c) {
           rows += hdRow(txt(c.text), 'JA', c.level === 'red' ? 'danger' : 'yes');
