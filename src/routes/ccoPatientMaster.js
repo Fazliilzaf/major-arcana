@@ -188,6 +188,12 @@ function clampInternalizeLimit(value, fallback = 50) {
   return Math.max(1, Math.min(200, Math.floor(parsed)));
 }
 
+function clampInternalizeConcurrency(value, fallback = 1) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.max(1, Math.min(8, Math.floor(parsed)));
+}
+
 function clampPreviewLimit(value, fallback = 10) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
@@ -342,6 +348,7 @@ async function prepareInternalizeExecution({
   dryRun,
   limit,
   offset,
+  concurrency = 1,
   dateGate = null,
   renderCandidatesOnly = false,
   resolveAssetStores,
@@ -426,6 +433,7 @@ async function prepareInternalizeExecution({
       offset,
       sampleSize: 5,
       driveThrottleMs: 75,
+      concurrency,
       tenantId: actor.tenantId,
       actor: importActor,
       dateGateActive: Boolean(dateGate?.active),
@@ -444,6 +452,7 @@ async function auditInternalizeOutcome({
   dryRun,
   limit,
   offset,
+  concurrency = 1,
   rowsCollected,
   rowSources,
   safeReport,
@@ -462,6 +471,7 @@ async function auditInternalizeOutcome({
       asyncMode,
       limit,
       offset,
+      concurrency,
       rowsCollected,
       rowSources,
       stats: safeReport?.stats || {},
@@ -1828,6 +1838,7 @@ function createCcoPatientMasterRouter({
         const asyncCommit = !dryRun && parseAsyncCommit(req.body?.async, true);
         const limit = clampInternalizeLimit(req.body?.limit, 50);
         const offset = clampOffset(req.body?.offset);
+        const concurrency = clampInternalizeConcurrency(req.body?.concurrency, 1);
         const dateGate = parseInternalizeDateGateOptions(req.body);
         const renderCandidatesOnly = req.body?.renderCandidatesOnly === true;
 
@@ -1847,6 +1858,7 @@ function createCcoPatientMasterRouter({
             dryRun,
             limit,
             offset,
+            concurrency,
             dateGate,
             renderCandidatesOnly,
             resolveAssetStores,
@@ -1880,6 +1892,7 @@ function createCcoPatientMasterRouter({
             ...internalizeParams,
             limit,
             offset,
+            concurrency,
             tenantId: actor.tenantId,
             autoRepairGhostVisible,
             redactReport: redactInternalizeReport,
@@ -1891,6 +1904,7 @@ function createCcoPatientMasterRouter({
                 dryRun: false,
                 limit,
                 offset,
+                concurrency,
                 rowsCollected: rows.length,
                 rowSources,
                 safeReport,
@@ -1909,6 +1923,7 @@ function createCcoPatientMasterRouter({
                 dryRun: false,
                 limit,
                 offset,
+                concurrency,
                 rowsCollected: rows.length,
                 rowSources,
                 safeReport: null,
@@ -1933,6 +1948,7 @@ function createCcoPatientMasterRouter({
             accepted: true,
             limit,
             offset,
+            concurrency,
             dateGate: dateGate.active
               ? {
                   excludeUnknownMonth: dateGate.excludeUnknownMonth,
@@ -1972,6 +1988,7 @@ function createCcoPatientMasterRouter({
           dryRun,
           limit,
           offset,
+          concurrency,
           rowsCollected: rows.length,
           rowSources,
           safeReport,
@@ -1989,6 +2006,7 @@ function createCcoPatientMasterRouter({
           autoRepairGhostVisible,
           limit,
           offset,
+          concurrency,
           dateGate: dateGate.active
             ? {
                 excludeUnknownMonth: dateGate.excludeUnknownMonth,
