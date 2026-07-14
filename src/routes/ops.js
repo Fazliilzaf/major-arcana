@@ -2063,6 +2063,18 @@ function createOpsRouter({
           );
           const runPhase = phase === 'canary' ? 'canary' : 'full';
           const refreshExisting = phase === 'refresh' || parseBoolean(body.refreshExisting, false);
+          const requestedMailboxIds = Array.from(
+            new Set(
+              (Array.isArray(body.mailboxIds) ? body.mailboxIds : [])
+                .map((mailboxId) => normalizeText(mailboxId).toLowerCase())
+                .filter(Boolean)
+            )
+          );
+          if (refreshExisting && requestedMailboxIds.length === 0) {
+            return res.status(400).json({
+              error: 'refresh kräver minst ett explicit mailboxId.',
+            });
+          }
           enrichmentBackfillJobs.set(jobId, {
             jobId,
             phase: runPhase,
@@ -2072,6 +2084,7 @@ function createOpsRouter({
             tenantId,
             canaryLimit: phase === 'canary' ? canaryLimit : null,
             refreshExisting,
+            requestedMailboxIds,
           });
 
           res.json({
@@ -2081,6 +2094,7 @@ function createOpsRouter({
             status: 'running',
             canaryLimit: phase === 'canary' ? canaryLimit : null,
             refreshExisting,
+            requestedMailboxIds,
             pollUrl: `/api/v1/ops/cco/enrichment/backfill/status/${jobId}`,
           });
 
@@ -2093,6 +2107,7 @@ function createOpsRouter({
                 canaryLimit: phase === 'canary' ? canaryLimit : 0,
                 phase: runPhase,
                 refreshExisting,
+                requestedMailboxIds,
               });
               const mailboxIds = resolveCcoHistoryMailboxIds(config);
               let coverage = null;
