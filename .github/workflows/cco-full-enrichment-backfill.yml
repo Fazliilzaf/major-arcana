@@ -8,6 +8,16 @@ on:
         required: false
         default: "90"
         type: string
+      batch_limit:
+        description: "Bounded published batch size (0 runs legacy full backfill)"
+        required: false
+        default: "0"
+        type: string
+      mailbox:
+        description: "Mailbox for bounded batch"
+        required: false
+        default: "kons@hairtpclinic.com"
+        type: string
 
 permissions:
   contents: read
@@ -17,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      BASE_URL: https://arcana.hairtpclinic.se
+      BASE_URL: https://arcana.hairtpclinic.com
       ARCANA_DEFAULT_TENANT: hair-tp-clinic
       ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
       ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
@@ -39,6 +49,7 @@ jobs:
         run: npm ci
 
       - name: Run full CCO enrichment backfill
+        if: ${{ inputs.batch_limit == '0' }}
         run: |
           chmod +x scripts/extract-owner-token.sh
           export ARCANA_AUTH_TOKEN="$(bash scripts/extract-owner-token.sh)"
@@ -46,3 +57,15 @@ jobs:
             --trigger \
             --wait \
             --wait-minutes="${{ inputs.wait_minutes }}"
+
+      - name: Run bounded published CCO enrichment batch
+        if: ${{ inputs.batch_limit != '0' }}
+        run: |
+          chmod +x scripts/extract-owner-token.sh
+          export ARCANA_AUTH_TOKEN="$(bash scripts/extract-owner-token.sh)"
+          node scripts/run-cco-full-enrichment-backfill.js \
+            --base-url="https://arcana.hairtpclinic.com" \
+            --bounded-limit "${{ inputs.batch_limit }}" \
+            --mailbox "${{ inputs.mailbox }}" \
+            --wait-minutes "${{ inputs.wait_minutes }}" \
+            --poll-seconds 10
