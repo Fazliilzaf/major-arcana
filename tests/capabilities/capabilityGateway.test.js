@@ -23,6 +23,7 @@ const LOCKED_GRAPH_READ_ALLOWLIST = Object.freeze([
   'kons@hairtpclinic.com',
   'marknad@hairtpclinic.com',
   'kvitto@hairtpclinic.com',
+  'halso@hairtpclinic.com',
 ]);
 
 test.beforeEach(() => {
@@ -1375,7 +1376,7 @@ test('AnalyzeInbox uses locked default Graph read allowlist when ARCANA_MAILBOX_
     assert.equal(graphCalls[0].allowlistMode, true);
     assert.equal(graphCalls[0].fullTenant, true);
     assert.equal(graphCalls[0].userScope, 'all');
-    assert.equal(graphCalls[0].maxUsers, 7);
+    assert.equal(graphCalls[0].maxUsers, 8);
     assert.deepEqual(graphCalls[0].allowlistMailboxIds, [...LOCKED_GRAPH_READ_ALLOWLIST]);
     assert.deepEqual(graphCalls[0].mailboxIds, [...LOCKED_GRAPH_READ_ALLOWLIST]);
     assert.deepEqual(graphCalls[0].mailboxIndexes, []);
@@ -1716,7 +1717,7 @@ test('AnalyzeInbox still uses locked default Graph read allowlist when send allo
     assert.equal(graphCalls[0].allowlistMode, true);
     assert.equal(graphCalls[0].fullTenant, true);
     assert.equal(graphCalls[0].userScope, 'all');
-    assert.equal(graphCalls[0].maxUsers, 7);
+    assert.equal(graphCalls[0].maxUsers, 8);
     assert.deepEqual(graphCalls[0].allowlistMailboxIds, [...LOCKED_GRAPH_READ_ALLOWLIST]);
     assert.deepEqual(graphCalls[0].mailboxIds, [...LOCKED_GRAPH_READ_ALLOWLIST]);
   } finally {

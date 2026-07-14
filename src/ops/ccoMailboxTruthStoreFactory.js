@@ -7,6 +7,7 @@ async function createConfiguredCcoMailboxTruthStore(config = {}) {
       baseDir: config.ccoMailboxTruthShardDir,
       legacyFilePath: config.ccoMailboxTruthStorePath,
       lazyPreload: config.ccoMailboxTruthLazyPreload !== false,
+      maxLoadedShards: config.ccoMailboxTruthMaxLoadedShards,
     });
   }
   return createCcoMailboxTruthStore({

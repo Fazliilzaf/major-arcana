@@ -195,8 +195,12 @@ test('utan injicerad allowlist faller routern tillbaka på curated default (kons
       'curated default ska innehålla kons@hairtpclinic.com'
     );
     assert.ok(
-      !body.allowlistedMailboxes.includes('marknad@hairtpclinic.com'),
-      'marknad@ ska inte ingå (utskicksadress)'
+      body.allowlistedMailboxes.includes('marknad@hairtpclinic.com'),
+      'curated default ska omfatta synliga CCO-mailboxar'
+    );
+    assert.ok(
+      body.allowlistedMailboxes.includes('halso@hairtpclinic.com'),
+      'curated default ska omfatta Hälso-väljaren'
     );
   });
 });

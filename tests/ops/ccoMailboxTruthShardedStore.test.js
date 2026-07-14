@@ -160,3 +160,47 @@ test('mailbox truth store with deferred conversations omits conversations from d
 
   await fs.rm(tempDir, { recursive: true, force: true });
 });
+
+test('sharded store keeps a bounded LRU cache while mailbox selections change', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-mailbox-truth-lru-'));
+  const baseDir = path.join(tempDir, 'cco-mailbox-truth');
+  const mailboxIds = ['a@hairtpclinic.com', 'b@hairtpclinic.com', 'c@hairtpclinic.com'];
+
+  for (const mailboxId of mailboxIds) {
+    const fileName = `${mailboxId.replace(/[^a-z0-9]+/g, '_')}.json`;
+    const filePath = path.join(baseDir, 'mailboxes', fileName);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(
+      filePath,
+      JSON.stringify({
+        version: 1,
+        accounts: { [mailboxId]: { mailboxId } },
+        folders: {},
+        messages: {},
+        conversations: {},
+        syncCheckpoints: {},
+        syncRuns: [],
+      }),
+      'utf8'
+    );
+  }
+
+  const store = await createCcoMailboxTruthShardedStore({
+    baseDir,
+    legacyFilePath: path.join(tempDir, 'no-legacy-mailbox-truth.json'),
+    lazyPreload: true,
+    maxLoadedShards: 2,
+  });
+  await store.ensureMailboxLoaded(mailboxIds[0]);
+  await store.ensureMailboxLoaded(mailboxIds[1]);
+  await store.ensureMailboxLoaded(mailboxIds[2]);
+
+  assert.deepEqual(store.listLoadedMailboxes(), [mailboxIds[1], mailboxIds[2]]);
+
+  // Reopening an evicted mailbox must still work from disk and evict the LRU
+  // entry instead of retaining a third whole mailbox in memory.
+  await store.ensureMailboxLoaded(mailboxIds[0]);
+  assert.deepEqual(store.listLoadedMailboxes(), [mailboxIds[0], mailboxIds[2]]);
+
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
