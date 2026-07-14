@@ -680,6 +680,13 @@ async function downloadDriveFile(row, driveClient) {
   throw new Error('driveClient.downloadBuffer krävs för commit.');
 }
 
+function isMissingDriveSourceError(error = {}) {
+  return (
+    Number(error?.statusCode || error?.status) === 404 ||
+    /file not found|not found.*drive|drive.*not found/i.test(String(error?.message || ''))
+  );
+}
+
 function filterInternalizeRemainingRows(
   remainingRows = [],
   {
@@ -899,6 +906,24 @@ async function internalizeDriveAssets({
         });
       }
     } catch (error) {
+      if (
+        knownMissingBlobRows &&
+        isMissingDriveSourceError(error) &&
+        normalizeText(row.sourceRecordId) &&
+        typeof assetStore.transitionStatus === 'function'
+      ) {
+        await assetStore.transitionStatus(row.sourceRecordId, 'NEEDS_REVIEW', {
+          actor,
+          reason: 'drive_source_missing_during_blob_recovery',
+        });
+        stats.needsReview += 1;
+        errors.push({
+          driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
+          code: 'drive_source_missing_quarantined',
+          message: 'Drive-källan saknas; canonical asset flyttad till NEEDS_REVIEW.',
+        });
+        return;
+      }
       stats.failed += 1;
       errors.push({
         driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
@@ -1234,6 +1259,7 @@ module.exports = {
   parseFolderEncounter,
   buildInternalizeCandidatePreviewRow,
   buildDriveEncounterFields,
+  isMissingDriveSourceError,
   findConsecutivePilotWindow,
   buildPilotWindowSearch,
   evaluatePilotWindowFailure,
