@@ -12979,12 +12979,17 @@
       gcTime: 300000,
     };
     try {
-      return await apiRequest(endpoint, {
+      const payload = await apiRequest(endpoint, {
         ...(controller ? { signal: controller.signal } : {}),
         cacheKey: `patient-detail:${normalizeText(patientId)}:${includeJournal ? 'full' : 'summary'}:${driveQuery}`,
         staleTime: detailPolicy.staleTime,
         gcTime: detailPolicy.gcTime,
       });
+      window.CcoKundkortVisitSegments?.primeVisitSegments?.(
+        patientId,
+        asArray(payload?.visitSegments)
+      );
+      return payload;
     } finally {
       if (timeoutId) window.clearTimeout(timeoutId);
     }

@@ -51,9 +51,21 @@
     }
   }
 
+  var primedSegmentsByPatient = Object.create(null);
+
+  function primeVisitSegments(patientId, visitSegments) {
+    var pid = String(patientId || '').trim();
+    if (!pid || !Array.isArray(visitSegments)) return false;
+    primedSegmentsByPatient[pid] = visitSegments;
+    return true;
+  }
+
   function fetchVisitSegments(patientId, token) {
     var pid = String(patientId || '').trim();
     if (!pid) return Promise.resolve([]);
+    if (Object.prototype.hasOwnProperty.call(primedSegmentsByPatient, pid)) {
+      return Promise.resolve(primedSegmentsByPatient[pid]);
+    }
     var headers = authHeaders(token || readStaffToken());
     var url =
       '/api/v1/cco-patient-master/patient/visit-segments?includeDriveFiles=0&patientId=' +
@@ -301,6 +313,7 @@
     VISIT_TYPE_LABELS: VISIT_TYPE_LABELS,
     fetchVisitSegments: fetchVisitSegments,
     fetchVisitSegmentsOrEmpty: fetchVisitSegmentsOrEmpty,
+    primeVisitSegments: primeVisitSegments,
     renderBesokInnerFromVisitSegments: renderBesokInnerFromVisitSegments,
     patchBesokSection: patchBesokSection,
     countDatedSegments: countDatedSegments,
