@@ -158,6 +158,7 @@ function createPublicWebEventsRouter({ executionGateway, webBridgeAuditStore, co
                 source: payload.source,
                 submittedAt: payload.submittedAt,
                 ...sanitizeMetadataFlat(payload.metadata),
+                ...extractAttribution(payload.metadata),
               },
             });
             return { stored: true, eventId: stored.id };
@@ -180,6 +181,60 @@ function createPublicWebEventsRouter({ executionGateway, webBridgeAuditStore, co
   });
 
   return router;
+}
+
+/**
+ * Bevarar annons-attribution + match-hashar från webbens `matchbridge` som
+ * PLATTA skalära nycklar, så de överlever metadata-flattningen (både här och i
+ * webBridgeAuditStore) i stället för att slängas som nästlat objekt.
+ *
+ * Grunden för deal-nivå-CAC: hashad e-post/telefon (match_*) matchar senare
+ * Cliento-bokningen mot rätt kampanj; attr_* skrivs till Pipedrive-affären.
+ * Inga namn, inga behandlingsnamn — bara neutrala id + hashar.
+ */
+function extractAttribution(metadata) {
+  const mb =
+    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? metadata.matchbridge
+      : null;
+  if (!mb || typeof mb !== 'object' || Array.isArray(mb)) return {};
+
+  const out = {};
+  const put = (key, val) => {
+    if (typeof val === 'string' && val.trim()) out[key] = val.trim().slice(0, 200);
+    else if (typeof val === 'number' && Number.isFinite(val)) out[key] = val;
+  };
+
+  // Hashad PII för senare Cliento-match-join (samma sha256-recept som webben).
+  put('match_email_sha256', mb.email_sha256);
+  put('match_phone_sha256', mb.phone_sha256);
+
+  const a = mb.attribution && typeof mb.attribution === 'object' ? mb.attribution : {};
+  put('attr_utm_source', a.utm_source);
+  put('attr_utm_medium', a.utm_medium);
+  put('attr_utm_campaign', a.utm_campaign);
+  put('attr_utm_content', a.utm_content);
+  put('attr_utm_term', a.utm_term);
+  put('attr_gclid', a.gclid);
+  put('attr_gbraid', a.gbraid);
+  put('attr_wbraid', a.wbraid);
+  put('attr_fbclid', a.fbclid);
+  put('attr_landing_page', a.landing_page);
+  put('attr_first_touch', a.first_touch);
+
+  // Härledd kanal för snabb CAC-gruppering.
+  const src = typeof a.utm_source === 'string' ? a.utm_source : '';
+  const channel =
+    /google/i.test(src) || a.gclid || a.gbraid || a.wbraid
+      ? 'google'
+      : /facebook|instagram|meta|\bfb\b|\big\b/i.test(src) || a.fbclid
+        ? 'meta'
+        : src
+          ? src.toLowerCase()
+          : undefined;
+  if (channel) out.attr_channel = channel;
+
+  return out;
 }
 
 function sanitizeMetadataFlat(value) {
