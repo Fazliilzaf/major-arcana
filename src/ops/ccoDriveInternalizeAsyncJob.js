@@ -61,6 +61,7 @@ async function executeInternalizeJob(ctx = {}) {
         actor: ctx.actor,
         enabled: ctx.autoRepairGhostVisible !== false,
         limit: ctx.autoRepairLimit ?? 500,
+        targetedByDriveFileId: ctx.targetedGhostRepair === true,
       });
     }
     jobState.runId = report.runId || null;
