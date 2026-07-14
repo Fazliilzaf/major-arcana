@@ -31,7 +31,13 @@ const path = require('node:path');
 
 const SCHEMA_VERSION = '1.0.0';
 
-const VALID_SOURCE_SYSTEMS = Object.freeze(['drive', 'drive_import', 'meridiq', 'old_cco']);
+const VALID_SOURCE_SYSTEMS = Object.freeze([
+  'drive',
+  'drive_import',
+  'meridiq',
+  'old_cco',
+  'm365_halso',
+]);
 
 const VALID_MODES = Object.freeze(['full', 'incremental', 'review_resolve']);
 

@@ -338,6 +338,7 @@ function createScheduler({
   alertNotifier = null,
   journalStore = null,
   patientMasterStore = null,
+  resolveAssetStores = null,
   bookingEngineStore = null,
   treatmentAgreementStore = null,
   patientCareStateStore = null,
@@ -2704,6 +2705,7 @@ function createScheduler({
       tenantId: tenantId || config.defaultTenantId,
       trigger,
       patientMasterStore,
+      resolveAssetStores,
       config,
       logger,
     });
