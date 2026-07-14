@@ -3531,6 +3531,7 @@
       }
 
       function worklistEnrichmentKeys(row = {}) {
+        row = row && typeof row === 'object' ? row : {};
         const mailbox = canonicalHairTpMailbox(
           normalizeText(row.mailboxAddress) ||
             normalizeText(row.mailboxId) ||
@@ -3555,7 +3556,8 @@
         );
       }
 
-      function buildWorklistEnrichmentLookup(enrichment = {}) {
+      function buildWorklistEnrichmentLookup(enrichment) {
+        enrichment = enrichment && typeof enrichment === 'object' ? enrichment : {};
         const lookup = new Map();
         const rows = [
           ...(Array.isArray(enrichment.conversationEnrichment)
@@ -3566,7 +3568,7 @@
             : []),
           ...(Array.isArray(enrichment.needsReplyToday) ? enrichment.needsReplyToday : []),
         ];
-        rows.forEach((row) => {
+        rows.filter((row) => row && typeof row === 'object').forEach((row) => {
           worklistEnrichmentKeys(row).forEach((key) => {
             const current = lookup.get(key);
             lookup.set(key, current ? { ...current, ...row } : row);
@@ -5535,7 +5537,7 @@
           scopedPayloads.forEach(({ payload }) => {
             const rows = Array.isArray(payload?.rows) ? payload.rows : [];
             const enrichmentLookup = buildWorklistEnrichmentLookup(payload?.enrichment);
-            rows.forEach((row) => {
+            rows.filter((row) => row && typeof row === 'object').forEach((row) => {
               normalizedThreads.push(
                 normalizeLiveThread(
                   row,
