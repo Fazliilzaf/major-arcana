@@ -266,8 +266,11 @@ async function inventoryDriveAssets({
   assetStore = null,
   storage = null,
   sampleSize = 5,
+  knownMissingBlobRows = false,
 } = {}) {
-  const index = await buildExistingAssetIndex(assetStore, storage);
+  const index = knownMissingBlobRows
+    ? { byDriveFileId: new Map(), bySourceRecordId: new Map() }
+    : await buildExistingAssetIndex(assetStore, storage);
   const seenDrive = new Map();
   const reportRows = asArray(rows).map(normalizeDriveAssetRow);
   const samples = [];
@@ -768,9 +771,16 @@ async function internalizeDriveAssets({
   excludeUnknownMonth = true,
   requireDocumentDateSource = false,
   allowedDocumentDateSources = null,
+  knownMissingBlobRows = false,
 } = {}) {
   if (!assetStore) throw new Error('assetStore krävs.');
-  const inventory = await inventoryDriveAssets({ rows, assetStore, storage, sampleSize });
+  const inventory = await inventoryDriveAssets({
+    rows,
+    assetStore,
+    storage,
+    sampleSize,
+    knownMissingBlobRows,
+  });
   const dateGateOpts = dateGateActive
     ? { excludeUnknownMonth, requireDocumentDateSource, allowedDocumentDateSources }
     : null;
