@@ -15,7 +15,9 @@
  */
 
 (function () {
-  const LS_KEY = 'cco_mailbox_valjare_v1';
+  // v2 starts from Contact and intentionally leaves the old all-mailbox v1
+  // selection behind. The worklist API accepts at most two mailboxes/request.
+  const LS_KEY = 'cco_mailbox_valjare_v2';
   const REFRESH_MS = 120000; // auto-läs spegeln var 2:a minut (ingen live-fetch per öppning)
   // id → { label, sub, rail }. Rälsfärger ur befintlig CCO-palett (inga nya färger).
   const MAILBOXES = [
@@ -58,7 +60,7 @@
     },
   ];
   const DEFAULT_STATE = {
-    mailboxIds: MAILBOXES.map((m) => m.id),
+    mailboxIds: ['contact@hairtpclinic.com'],
     folder: 'inbox',
     windowDays: 90,
     collapsed: { mailboxes: false, scope: true }, // FILTER hopfällt som default (tar minimal plats)

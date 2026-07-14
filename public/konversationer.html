@@ -3144,7 +3144,8 @@
         },
       ];
 
-      const LIVE_MAILBOX_IDS = ['kons@hairtpclinic.com', 'fazli@hairtpclinic.com'];
+      const LIVE_MAILBOX_IDS = ['contact@hairtpclinic.com'];
+      const WORKLIST_MAX_MAILBOXES_PER_REQUEST = 2;
       let selectedMailboxIds = LIVE_MAILBOX_IDS.slice();
 
       function liveWorklistUrl(mailboxIds = selectedMailboxIds) {
@@ -3159,6 +3160,18 @@
         if (!mailboxIds.length) return 'inga brevlådor';
         if (mailboxIds.length === 1) return mailboxIds[0];
         return mailboxIds.length + ' brevlådor';
+      }
+
+      function chunkMailboxIds(mailboxIds = selectedMailboxIds) {
+        const unique = mailboxIds
+          .map((value) => normalizeText(value).toLowerCase())
+          .filter(Boolean)
+          .filter((value, index, all) => all.indexOf(value) === index);
+        const chunks = [];
+        for (let index = 0; index < unique.length; index += WORKLIST_MAX_MAILBOXES_PER_REQUEST) {
+          chunks.push(unique.slice(index, index + WORKLIST_MAX_MAILBOXES_PER_REQUEST));
+        }
+        return chunks;
       }
       const AVATAR_BACKGROUNDS = [
         'linear-gradient(180deg,#d8c1f0,#b48ad6)',
@@ -3816,6 +3829,7 @@
           subj: cleanSubject || '(utan ämne)',
           preview: cleanPreview,
           when: formatWhen(timing.latestMessageAt || timing.lastInboundAt),
+          latestAtMs: Date.parse(timing.latestMessageAt || timing.lastInboundAt || '') || 0,
           source,
           mailboxAddress,
           mailboxTrail,
@@ -5359,7 +5373,7 @@
       } else {
         renderLiveInboxStatus(
           'Laddar CCO-inkorg',
-          'Hämtar CCO-trådar från kons@hairtpclinic.com...'
+          `Hämtar CCO-trådar från ${selectedMailboxLabel()}...`
         );
         renderLivePaneStatus('Laddar Konversationer', 'Hämtar CCO-trådar från CCO-pipelinen.');
         // Dölj fabricerade demo-fält i kund-panelen direkt (aldrig påhittad data
@@ -5375,9 +5389,11 @@
         if (status === 401)
           return 'Inloggning krävs (HTTP 401) — admin-token saknas eller är utgången.';
         if (status === 403)
-          return 'Åtkomst nekad (HTTP 403) — inloggad roll/tenant saknar behörighet till kons@.';
+          return 'Åtkomst nekad (HTTP 403) — inloggad roll/tenant saknar behörighet till vald brevlåda.';
+        if (status === 422)
+          return 'Brevlådevalet är för brett (HTTP 422) — worklist-anropet får innehålla högst två brevlådor.';
         if (status === 503)
-          return 'Worklist-data ej tillgänglig ännu (HTTP 503) — pipelinen har inga rader för kons@.';
+          return 'Worklist-data ej tillgänglig ännu (HTTP 503) — pipelinen har inga rader för vald brevlåda.';
         if (status === 500) return 'Serverfel (HTTP 500) — worklist-consumer kunde inte byggas.';
         if (status > 0) return `Oväntat svar (HTTP ${status}) från CCO-worklist.`;
         return 'Nätverksfel — nådde inte CCO-worklist.';
@@ -5389,6 +5405,45 @@
       let liveInboxRetryTimer = null;
       let liveInboxFetchInFlight = false;
       let liveInboxReloadQueued = false;
+
+      function mergeWorklistThreads(threads) {
+        const merged = new Map();
+        for (const thread of threads) {
+          const identity =
+            normalizeText(thread.patientId).toLowerCase() ||
+            normalizeText(thread.customerEmail).toLowerCase() ||
+            normalizeText(thread.conversationKey).toLowerCase() ||
+            normalizeText(thread.id).toLowerCase();
+          const current = merged.get(identity);
+          if (!current) {
+            merged.set(identity, thread);
+            continue;
+          }
+          const newer = (thread.latestAtMs || 0) > (current.latestAtMs || 0) ? thread : current;
+          const older = newer === thread ? current : thread;
+          newer.memberKeys = [
+            ...new Set([...(newer.memberKeys || []), ...(older.memberKeys || [])]),
+          ].slice(0, 50);
+          newer.mailboxTrail = [
+            ...new Set([...(newer.mailboxTrail || []), ...(older.mailboxTrail || [])]),
+          ];
+          newer.messageLookupKeys = [
+            ...new Set([
+              ...(newer.messageLookupKeys || []),
+              ...(older.messageLookupKeys || []),
+            ]),
+          ];
+          newer.tags = [...(newer.tags || []), ...(older.tags || [])].filter(
+            (tag, index, all) => all.findIndex((candidate) => candidate.label === tag.label) === index
+          );
+          newer.unread = newer.unread || older.unread;
+          newer.needsReply = newer.needsReply || older.needsReply;
+          merged.set(identity, newer);
+        }
+        return [...merged.values()].sort(
+          (left, right) => (right.latestAtMs || 0) - (left.latestAtMs || 0)
+        );
+      }
 
       async function loadLiveInbox({ background = false } = {}) {
         if (window.location.protocol === 'file:') return;
@@ -5414,47 +5469,54 @@
         let failureStatus = 0;
         let failureReason = '';
         try {
-          let response;
-          try {
-            response = await fetch(liveWorklistUrl(requestMailboxIds), {
-              credentials: 'include',
-              headers: withAdminAuthHeaders({ Accept: 'application/json' }),
-            });
-          } catch (networkError) {
-            // Fetchen nådde aldrig servern (DNS/TLS/timeout/bruten anslutning).
-            // Bevara browserns exakta felnamn så infra-fel kan skiljas från
-            // JSON-fel i nästa felsökningssteg.
-            failureReason = `Nätverksfel — nådde inte CCO-worklist (${
-              networkError?.name || 'NetworkError'
-            }: ${networkError?.message || 'okänt'}).`;
-            throw networkError;
-          }
-          if (!response.ok) {
-            failureStatus = response.status;
-            throw new Error(
-              response.status === 401 ? 'login_required' : `worklist_${response.status}`
-            );
-          }
-          let payload;
-          try {
-            payload = await response.json();
-          } catch (parseError) {
-            // 2xx men ingen giltig JSON → något serverar fel innehåll
-            // (HTML/redirect) för API-vägen. Fånga status + content-type så vi
-            // ser exakt vad som returneras.
-            failureReason = `Servern svarade utan giltig JSON (HTTP ${
-              response.status
-            }, content-type: ${response.headers.get('content-type') || 'okänd'}).`;
-            throw parseError;
+          const scopedPayloads = [];
+          for (const mailboxChunk of chunkMailboxIds(requestMailboxIds)) {
+            let response;
+            try {
+              // Kör sekventiellt för att inte skapa en ny belastningstopp när
+              // "Alla" är valt. Varje anrop följer serverns max-två-kontrakt.
+              response = await fetch(liveWorklistUrl(mailboxChunk), {
+                credentials: 'include',
+                headers: withAdminAuthHeaders({ Accept: 'application/json' }),
+              });
+            } catch (networkError) {
+              failureReason = `Nätverksfel — nådde inte CCO-worklist (${
+                networkError?.name || 'NetworkError'
+              }: ${networkError?.message || 'okänt'}).`;
+              throw networkError;
+            }
+            if (!response.ok) {
+              failureStatus = response.status;
+              throw new Error(
+                response.status === 401 ? 'login_required' : `worklist_${response.status}`
+              );
+            }
+            try {
+              scopedPayloads.push({
+                mailboxIds: mailboxChunk,
+                payload: await response.json(),
+              });
+            } catch (parseError) {
+              failureReason = `Servern svarade utan giltig JSON (HTTP ${
+                response.status
+              }, content-type: ${response.headers.get('content-type') || 'okänd'}).`;
+              throw parseError;
+            }
           }
           liveInboxAttempt = 0;
-          const truthReports = Array.isArray(payload?.truthCoverage?.accountReports)
-            ? payload.truthCoverage.accountReports
-            : [];
+          const truthReports = scopedPayloads.flatMap(({ payload }) =>
+            Array.isArray(payload?.truthCoverage?.accountReports)
+              ? payload.truthCoverage.accountReports
+              : []
+          );
           const truthFolderCounts = truthReports.flatMap((report) =>
             Array.isArray(report?.folderCounts) ? report.folderCounts : []
           );
-          const truthMessageCount = Number(payload?.truthCoverage?.metadata?.messageCount);
+          const truthMessageCount = scopedPayloads.reduce(
+            (total, { payload }) =>
+              total + Number(payload?.truthCoverage?.metadata?.messageCount || 0),
+            0
+          );
           const inboxMessageCount = truthFolderCounts
             .filter((folder) => folder?.folderType === 'inbox')
             .reduce((total, folder) => total + Number(folder?.totalItemCount || 0), 0);
@@ -5464,18 +5526,28 @@
               : inboxMessageCount > 0
                 ? inboxMessageCount
                 : null;
-          const rows = Array.isArray(payload?.rows) ? payload.rows : [];
           if (requestMailboxKey !== selectedMailboxIds.join(',')) {
             liveInboxReloadQueued = true;
             return;
           }
-          const enrichmentLookup = buildWorklistEnrichmentLookup(payload?.enrichment);
           const previousSelection = selectedLiveThread;
           const previousSelectionKey = normalizeText(previousSelection?.conversationKey);
           const previousSelectionId = normalizeText(previousSelection?.id);
-          currentThreads = rows.map((row, index) =>
-            normalizeLiveThread(row, index, findWorklistEnrichment(row, enrichmentLookup))
-          );
+          const normalizedThreads = [];
+          scopedPayloads.forEach(({ payload }) => {
+            const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+            const enrichmentLookup = buildWorklistEnrichmentLookup(payload?.enrichment);
+            rows.forEach((row) => {
+              normalizedThreads.push(
+                normalizeLiveThread(
+                  row,
+                  normalizedThreads.length,
+                  findWorklistEnrichment(row, enrichmentLookup)
+                )
+              );
+            });
+          });
+          currentThreads = mergeWorklistThreads(normalizedThreads);
           if (!currentThreads.length) {
             renderInboxThreads(currentThreads, {
               activeTab: currentInboxTab,
@@ -5513,9 +5585,9 @@
             // bakgrundsuppdateringen inte förändrade den valda tråden.
             setSvarstudioLiveContext(selectedThread, selectedLiveMessages);
           }
-          if (!background && rows.length && window.CCOPolish?.showToast) {
+          if (!background && currentThreads.length && window.CCOPolish?.showToast) {
             window.CCOPolish.showToast(
-              `CCO-inkorg: ${rows.length} trådar från ${selectedMailboxLabel(requestMailboxIds)}`,
+              `CCO-inkorg: ${currentThreads.length} trådar från ${selectedMailboxLabel(requestMailboxIds)}`,
               'success'
             );
           }
@@ -5701,6 +5773,6 @@
     </script>
     <script src="/cco-komm-panel.js?v=20260531c" defer></script>
     <script src="/konversationer-bottom-actions.js?v=20260708c-svarstudio-cache" defer></script>
-    <script src="/konversationer-mailbox-valjare.js?v=20260708a" defer></script>
+    <script src="/konversationer-mailbox-valjare.js?v=20260714a" defer></script>
   </body>
 </html>
