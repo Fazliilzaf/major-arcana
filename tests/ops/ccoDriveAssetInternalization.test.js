@@ -386,6 +386,60 @@ test('commit kräver explicit GO', async () => {
   }
 });
 
+test('verified ghost med saknad Drive-källa flyttas till NEEDS_REVIEW', async () => {
+  const rig = await makeRig();
+  try {
+    const canonical = await rig.assetStore.addAsset({
+      patientId: 'pat-missing-drive',
+      sourceSystem: 'drive_import',
+      originalDriveFileId: 'drive-missing',
+      storageKey: 'missing/blob.pdf',
+      checksum: 'missing-checksum',
+      fileSize: 123,
+      mimeType: 'application/pdf',
+      category: 'journal',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+    });
+    const report = await internalizeDriveAssets({
+      rows: [
+        {
+          patientId: canonical.patientId,
+          sourceRecordId: canonical.id,
+          file: {
+            sourceRecordId: canonical.id,
+            driveFileId: canonical.originalDriveFileId,
+            fileName: 'journal.pdf',
+            mimeType: 'application/pdf',
+          },
+        },
+      ],
+      assetStore: rig.assetStore,
+      importRunStore: rig.importRunStore,
+      reviewQueueStore: rig.reviewQueueStore,
+      pipeline: rig.pipeline,
+      storage: rig.storage,
+      driveClient: {
+        getFileMetadata: async () => {
+          const error = new Error('File not found: drive-missing.');
+          error.statusCode = 404;
+          throw error;
+        },
+        downloadBuffer: async () => Buffer.from('unused'),
+      },
+      dryRun: false,
+      go: true,
+      knownMissingBlobRows: true,
+    });
+
+    assert.equal(report.stats.failed, 0);
+    assert.equal(report.stats.needsReview, 1);
+    assert.equal(report.errors[0].code, 'drive_source_missing_quarantined');
+    assert.equal(rig.assetStore.getAsset(canonical.id).status, 'NEEDS_REVIEW');
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
 test('collectDriveRowsForInternalization läser asset store när patient-master saknar attachments', async () => {
   const rig = await makeRig();
   try {
