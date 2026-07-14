@@ -40,10 +40,26 @@ function normalizeProdPatientRow(row = {}) {
   };
 }
 
-async function fetchWithRetry(url, options = {}, { attempts = 4, label = 'request' } = {}) {
+async function fetchWithRetry(
+  url,
+  options = {},
+  { attempts = 4, label = 'request', timeoutMs = 30000 } = {}
+) {
   let lastPayload = null;
+  let lastError = null;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const res = await fetch(url, options);
+    let res;
+    try {
+      res = await fetch(url, {
+        ...options,
+        signal: options.signal || AbortSignal.timeout(timeoutMs),
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts) throw error;
+      await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+      continue;
+    }
     const payload = await res.json().catch(() => ({}));
     if (res.ok) return { res, payload };
     lastPayload = payload;
@@ -55,7 +71,7 @@ async function fetchWithRetry(url, options = {}, { attempts = 4, label = 'reques
     }
     await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
   }
-  throw new Error(lastPayload?.error || `${label} failed`);
+  throw lastError || new Error(lastPayload?.error || `${label} failed`);
 }
 
 async function fetchProdPatients(token, { maxPatients = 20000 } = {}) {
@@ -145,4 +161,5 @@ module.exports = {
   fetchPatient,
   putPatient,
   fetchAssetBuffer,
+  fetchWithRetry,
 };

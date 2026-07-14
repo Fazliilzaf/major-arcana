@@ -22,6 +22,7 @@ const {
   filterMailIndexByFormType,
   normalizeFormTypeFilter,
 } = require('./lib/halsoHdFormTypeFilter');
+const { buildHalsoPipedriveIdentityBridge } = require('./lib/halsoHdPipedriveIdentityBridge');
 
 const ROOT = path.join(__dirname, '..');
 const DEFAULT_INDEX = path.join(ROOT, 'data/reports/halso-hd-corpus-index.jsonl');
@@ -43,13 +44,16 @@ function parseArgs(argv) {
     dryRun: true,
     commit: false,
     formType: '',
+    pipedrivePeople: '',
   };
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i];
     if (token === '--batch') args.batch = Number(argv[++i]) || 1;
     else if (token === '--batch-size') args.batchSize = Number(argv[++i]) || 50;
     else if (token === '--form-type') args.formType = normalizeFormTypeFilter(argv[++i] || '');
+    else if (token === '--pipedrive-people') args.pipedrivePeople = path.resolve(argv[++i] || '');
     else if (token === '--index') args.index = path.resolve(argv[++i] || '');
+    else if (token === '--checkpoint') args.corpusCheckpoint = path.resolve(argv[++i] || '');
     else if (token === '--dedup') args.dedup = path.resolve(argv[++i] || '');
     else if (token === '--review-queue') args.reviewQueue = path.resolve(argv[++i] || '');
     else if (token === '--out') args.out = path.resolve(argv[++i] || '');
@@ -100,10 +104,18 @@ async function main() {
   console.error(
     `Hämtar ${useLocalPatients ? 'lokal' : 'prod'} patient-master (en gång per batch)…`
   );
-  const patients = useLocalPatients
+  let patients = useLocalPatients
     ? loadLocalPatientMaster(process.env.CCO_PATIENT_MASTER_PATH || DEFAULT_PATIENT_MASTER)
     : await fetchProdPatients(token || getProdToken());
   console.error(`Patienter laddade: ${patients.length}${useLocalPatients ? ' (lokal)' : ''}`);
+  let identityBridgeStats = null;
+  if (args.pipedrivePeople) {
+    const csvText = await fs.readFile(args.pipedrivePeople, 'utf8');
+    const bridge = buildHalsoPipedriveIdentityBridge(csvText, patients);
+    patients = bridge.patients;
+    identityBridgeStats = bridge.stats;
+    console.error(`Pipedrive identity bridge: ${bridge.stats.linked} säkra PNR-kopplingar`);
+  }
 
   const runId = `halso-batch-${args.batch}-${new Date().toISOString().slice(0, 10)}`;
   let lastProgress = 0;
@@ -135,6 +147,7 @@ async function main() {
     ingestFlagNote: 'ARCANA_CCO_HALSO_HD_INGEST_ENABLED=false — PUT-modell som Cliento',
     bootstrapNote: 'ARCANA_BOOTSTRAP_MAILBOX_BACKFILL=false — ingen bootstrap/OOM-väg',
     runId,
+    identityBridgeStats,
     ...result,
     generatedAt: new Date().toISOString(),
   };

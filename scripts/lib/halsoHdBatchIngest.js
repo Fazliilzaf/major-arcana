@@ -361,6 +361,7 @@ async function processOneHalsoMessage({
       ...existing,
       tenantId: existing.tenantId || TENANT_ID,
       id: match.patientId,
+      personnummer: existing.personnummer || parsed.personnummer || '',
       halsoHdBackfill: {
         runId,
         formType: parsed.formType || 'health_declaration',
