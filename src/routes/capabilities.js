@@ -296,6 +296,7 @@ function buildWorklistConversationScopeSet(scopeConversationIds = []) {
     const rollupIndex = normalized.indexOf('::');
     const mailboxSeparatorIndex = normalized.indexOf(':');
     if (rollupIndex > mailboxSeparatorIndex + 1) {
+      scopeSet.add(normalized.slice(0, rollupIndex));
       scopeSet.add(normalized.slice(mailboxSeparatorIndex + 1, rollupIndex));
     }
     const colonIndex = normalized.lastIndexOf(':');

@@ -74,7 +74,11 @@ test('mergeWorklistEnrichmentOutput applies Graph rows scoped by contact-form ro
   };
   const deltaOutput = {
     conversationWorklist: [
-      { conversationId: 'AAQkContactForm', intent: 'booking_request', workflowLane: 'action_now' },
+      {
+        conversationId: 'kons@hairtpclinic.com:AAQkContactForm',
+        intent: 'booking_request',
+        workflowLane: 'action_now',
+      },
     ],
     needsReplyToday: [],
   };
@@ -87,7 +91,7 @@ test('mergeWorklistEnrichmentOutput applies Graph rows scoped by contact-form ro
 
   assert.equal(merged.conversationWorklist.length, 2);
   const enriched = merged.conversationWorklist.find(
-    (row) => row.conversationId === 'AAQkContactForm'
+    (row) => row.conversationId === 'kons@hairtpclinic.com:AAQkContactForm'
   );
   assert.equal(enriched?.intent, 'booking_request');
   assert.equal(enriched?.workflowLane, 'action_now');
