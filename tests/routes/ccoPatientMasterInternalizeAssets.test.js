@@ -1097,7 +1097,7 @@ test('assets/internalize dryRun kör inte auto-repair', async () => {
   }
 });
 
-test('assets/internalize klampar requested limit till max 200', async () => {
+test('assets/internalize klampar requested limit och concurrency till säkra maxvärden', async () => {
   const fixture = await makeFixture();
   try {
     await withServer(fixture.app, async (base) => {
@@ -1106,14 +1106,14 @@ test('assets/internalize klampar requested limit till max 200', async () => {
       assert.equal(at200.body.limit, 200);
       assert.equal(fixture.authStore.events.at(-1).metadata.limit, 200);
 
-      const over = await postJson(base, { dryRun: true, limit: 500 });
+      const over = await postJson(base, { dryRun: true, limit: 5000 });
       assert.equal(over.status, 200);
-      assert.equal(over.body.limit, 200);
-      assert.equal(fixture.authStore.events.at(-1).metadata.limit, 200);
+      assert.equal(over.body.limit, 1000);
+      assert.equal(fixture.authStore.events.at(-1).metadata.limit, 1000);
 
       const concurrent = await postJson(base, { dryRun: true, concurrency: 99 });
       assert.equal(concurrent.status, 200);
-      assert.equal(concurrent.body.concurrency, 8);
+      assert.equal(concurrent.body.concurrency, 16);
     });
   } finally {
     await fs.rm(fixture.tmp, { recursive: true, force: true });
