@@ -145,6 +145,46 @@ test('mailbox truth store preserves small SVG template icons but strips base64 p
   await fs.rm(tempDir, { recursive: true, force: true });
 });
 
+test('worklist-läsningen behåller kontaktformsidentitet men lämnar rik maildata i trådvägen', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-worklist-summary-'));
+  const filePath = path.join(tempDir, 'mailbox.json');
+  const store = await createCcoMailboxTruthStore({ filePath, deferConversationRebuild: true });
+
+  await store.recordFolderPage({
+    runId: 'run-worklist-summary-1',
+    account: { mailboxId: 'kons@hairtpclinic.com', mailboxAddress: 'kons@hairtpclinic.com' },
+    folder: { folderType: 'inbox', totalItemCount: 1, messageCollectionCount: 1 },
+    messages: [
+      {
+        mailboxId: 'kons@hairtpclinic.com',
+        graphMessageId: 'worklist-summary-1',
+        folderType: 'inbox',
+        conversationId: 'contact-form',
+        subject: 'Sudarshan Kontaktformulär',
+        bodyPreview: 'Från: Sudarshan E-post: sudarshan@example.com Telefon: 0701112233',
+        bodyHtml:
+          '<p>Från: Sudarshan E-post: sudarshan@example.com Telefon: 0701112233 Hur kan vi hjälpa dig? Jag behöver hjälp inför min behandling.</p><img src="cid:logo-1">',
+        attachments: [{ id: 'logo-1', name: 'logo.png', contentType: 'image/png' }],
+        from: { address: 'wordpress@hairtpclinic.se', name: 'WordPress' },
+      },
+    ],
+    nextPageUrl: null,
+    complete: true,
+  });
+
+  const [summary] = store.listWorklistMessages({ mailboxIds: ['kons@hairtpclinic.com'] });
+  assert.equal(summary.bodyText.includes('sudarshan@example.com'), true);
+  assert.deepEqual(summary.from, { address: 'wordpress@hairtpclinic.se', name: 'WordPress' });
+  assert.equal(Object.hasOwn(summary, 'bodyHtml'), false);
+  assert.equal(Object.hasOwn(summary, 'attachments'), false);
+
+  const [richMessage] = store.listMessages({ mailboxIds: ['kons@hairtpclinic.com'] });
+  assert.match(richMessage.bodyHtml, /cid:logo-1/);
+  assert.equal(richMessage.attachments[0]?.id, 'logo-1');
+
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
 test('mailbox truth store self-heals a corrupt JSON state file at startup', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-mailbox-truth-store-'));
   const filePath = path.join(tempDir, 'cco-mailbox-truth.json');
