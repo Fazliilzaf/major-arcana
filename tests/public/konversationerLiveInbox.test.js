@@ -19,13 +19,18 @@ function liveScript(html) {
   return script;
 }
 
-test('konversationer live inbox starts from contact and safely fans out wider mailbox selections', () => {
+test('konversationer live inbox starts from every active mailbox and safely fans out requests', () => {
   const html = readHtml();
 
-  assert.match(
-    html,
-    /const LIVE_MAILBOX_IDS = \['contact@hairtpclinic\.com'\]/
-  );
+  for (const mailbox of [
+    'kons@hairtpclinic.com',
+    'contact@hairtpclinic.com',
+    'egzona@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+    'marknad@hairtpclinic.com',
+    'kvitto@hairtpclinic.com',
+    'halso@hairtpclinic.com',
+  ]) assert.match(html, new RegExp("'" + mailbox.replace('@', '@') + "'"));
   assert.match(html, /const WORKLIST_MAX_MAILBOXES_PER_REQUEST = 2/);
   assert.match(html, /function chunkMailboxIds\(/);
   assert.match(html, /for \(const mailboxChunk of chunkMailboxIds\(requestMailboxIds\)\)/);
