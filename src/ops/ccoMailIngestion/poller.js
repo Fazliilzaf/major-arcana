@@ -1,8 +1,24 @@
 'use strict';
 
 const KONS_MAILBOX = 'kons@hairtpclinic.com';
+const CONTACT_MAILBOX = 'contact@hairtpclinic.com';
+const EGZONA_MAILBOX = 'egzona@hairtpclinic.com';
 const FAZLI_MAILBOX = 'fazli@hairtpclinic.com';
-const LIVE_MAILBOXES = Object.freeze([KONS_MAILBOX, FAZLI_MAILBOX]);
+const MARKNAD_MAILBOX = 'marknad@hairtpclinic.com';
+const KVITTO_MAILBOX = 'kvitto@hairtpclinic.com';
+const HALSO_MAILBOX = 'halso@hairtpclinic.com';
+
+// Only these explicitly approved CCO mailboxes may run in the automatic
+// read-only delta loop. The loop still processes one mailbox at a time.
+const LIVE_MAILBOXES = Object.freeze([
+  KONS_MAILBOX,
+  CONTACT_MAILBOX,
+  EGZONA_MAILBOX,
+  FAZLI_MAILBOX,
+  MARKNAD_MAILBOX,
+  KVITTO_MAILBOX,
+  HALSO_MAILBOX,
+]);
 
 function normalizeEmail(value = '') {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -28,8 +44,9 @@ function resolveInitialDelayMs(config = {}) {
 }
 
 /**
- * Narrow live reader for KONS when the global scheduler is deliberately off.
- * It is read-only, only handles KONS, and never touches the send connector.
+ * Narrow live reader when the global scheduler is deliberately off.
+ * It is read-only, runs one approved mailbox at a time, and never touches the
+ * send connector or the raw ingestion archive.
  */
 function createCcoMailIngestionPoller({
   config = {},
@@ -55,51 +72,66 @@ function createCcoMailIngestionPoller({
   let inFlight = false;
 
   async function runOnce() {
-    if (!enabled) return { skipped: true, reason: 'kons_poller_disabled' };
-    if (inFlight) return { skipped: true, reason: 'kons_poller_in_flight' };
+    if (!enabled) return { skipped: true, reason: 'mailbox_poller_disabled' };
+    if (inFlight) return { skipped: true, reason: 'mailbox_poller_in_flight' };
 
     inFlight = true;
     try {
       const results = [];
       for (const mailboxEmail of mailboxEmails) {
-        const result = await syncService.runDeltaSync({
-          mailboxIds: [mailboxEmail],
-          folderTypes: ['inbox', 'sent'],
-          pageSize: Math.max(1, Number(config.ccoMailIngestionPollDeltaPageSize) || 25),
-          maxPagesPerFolder: Math.max(
-            1,
-            Number(config.ccoMailIngestionPollDeltaMaxPages) || 1
-          ),
-        });
-        results.push({ mailboxEmail, result });
+        try {
+          const result = await syncService.runDeltaSync({
+            mailboxIds: [mailboxEmail],
+            folderTypes: ['inbox', 'sent'],
+            pageSize: Math.max(1, Number(config.ccoMailIngestionPollDeltaPageSize) || 25),
+            maxPagesPerFolder: Math.max(
+              1,
+              Number(config.ccoMailIngestionPollDeltaMaxPages) || 1
+            ),
+          });
+          results.push({ mailboxEmail, result, error: null });
+        } catch (error) {
+          const message = error?.message || 'mailbox_delta_sync_failed';
+          logger?.error?.(`[cco-mailbox-poller] mailbox=${mailboxEmail} failed`, message);
+          // One unreachable mailbox must never pause the rest of CCO's inboxes.
+          results.push({ mailboxEmail, result: null, error: message });
+        }
       }
       const changed = results.reduce(
         (sum, item) => sum + Number(item.result?.affectedConversationIds?.length || 0),
         0
       );
+      const failedMailboxIds = results.filter((item) => item.error).map((item) => item.mailboxEmail);
+      const completedAt = new Date().toISOString();
       logger?.log?.(
         `[cco-mailbox-poller] cycle klar mailboxes=${mailboxEmails.join(',')} ` +
-          `truthChanged=${changed}`
+          `truthChanged=${changed} failed=${failedMailboxIds.length}`
       );
       if (changed > 0 && typeof runtimeStreamRouter?.broadcast === 'function') {
         runtimeStreamRouter.broadcast('worklist_updated', {
           source: 'cco_mailbox_poller',
           mailboxIds: mailboxEmails,
           truthChanged: changed,
-          completedAt: new Date().toISOString(),
+          completedAt,
         });
       }
-      return { skipped: false, mailboxEmails, results };
-    } catch (error) {
-      logger?.error?.('[cco-mailbox-poller] cycle failed', error?.message || error);
-      return { skipped: false, error: error?.message || 'mailbox_poller_failed' };
+      if (typeof runtimeStreamRouter?.broadcast === 'function') {
+        runtimeStreamRouter.broadcast('mailbox_sync_updated', {
+          source: 'cco_mailbox_poller',
+          mailboxIds: mailboxEmails,
+          failedMailboxIds,
+          truthChanged: changed,
+          completedAt,
+        });
+      }
+      return { skipped: false, mailboxEmails, failedMailboxIds, results };
     } finally {
       inFlight = false;
     }
   }
 
   function start() {
-    if (!enabled) return { started: false, reason: 'kons_poller_disabled' };
+    if (!enabled) return { started: false, reason: 'mailbox_poller_disabled' };
     if (intervalId) return { started: true, alreadyRunning: true, mailboxEmails };
 
     const intervalMs = resolveIntervalMs(config);
@@ -135,9 +167,14 @@ function createCcoMailIngestionPoller({
 }
 
 module.exports = {
+  CONTACT_MAILBOX,
+  EGZONA_MAILBOX,
   KONS_MAILBOX,
+  HALSO_MAILBOX,
+  KVITTO_MAILBOX,
   FAZLI_MAILBOX,
   LIVE_MAILBOXES,
+  MARKNAD_MAILBOX,
   createCcoMailIngestionPoller,
   resolveIntervalMs,
   resolveInitialDelayMs,
