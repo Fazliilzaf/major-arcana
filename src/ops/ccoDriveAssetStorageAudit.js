@@ -57,6 +57,7 @@ async function auditNonverifiedAssetStoragePage({
   pageSize = 500,
   sampleSize = 25,
   maskSamples = true,
+  includePassedDetails = false,
   storageConcurrency = 16,
 } = {}) {
   if (!assetStore || typeof assetStore.listItemsForEnrichment !== 'function') {
@@ -96,8 +97,11 @@ async function auditNonverifiedAssetStoragePage({
     };
   });
   const failed = findings.filter((finding) => !finding.pass);
+  const passed = findings.filter((finding) => finding.pass);
   const nextOffset = safeOffset + page.length;
-  const samples = failed.slice(0, Math.max(0, Number(sampleSize) || 25));
+  const safeSampleSize = Math.max(0, Number(sampleSize) || 25);
+  const samples = failed.slice(0, safeSampleSize);
+  const passedSamples = includePassedDetails ? passed.slice(0, safeSampleSize) : [];
   return {
     generatedAt: new Date().toISOString(),
     dryRun: true,
@@ -123,6 +127,9 @@ async function auditNonverifiedAssetStoragePage({
       }, {}),
     },
     samples: maskSamples ? samples.map(maskFinding) : samples,
+    // Owner-only callers can opt in while reconciling a stranded import.
+    // The default remains failure-only so normal audits do not expose healthy asset details.
+    passedSamples: maskSamples ? passedSamples.map(maskFinding) : passedSamples,
     findings: maskSamples ? failed.map(maskFinding) : failed,
   };
 }
