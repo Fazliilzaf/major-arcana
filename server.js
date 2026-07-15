@@ -40,6 +40,10 @@ const {
 const {
   createSecureStorageProvider: createSharedSecureStorageProvider,
 } = require('./src/ops/ccoSecureStorageProvider');
+const {
+  createDriveIngestRuntimeControl,
+  evaluateDriveIngestHardGate,
+} = require('./src/ops/ccoDriveIngestRuntimeControl');
 
 const { getClientoConfigForBrand, getKnowledgeDirForBrand } = require('./src/brand/runtimeConfig');
 const { createCorsPolicy } = require('./src/security/corsPolicy');
@@ -10100,7 +10104,18 @@ try {
     lastError: null,
     stopRequested: false,
   };
+  const __ingestRuntime = createDriveIngestRuntimeControl({
+    stateRoot: process.env.ARCANA_STATE_ROOT || '/var/data',
+  });
+  const __ingestRunnerId = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   async function __runDriveIngestLoop({ chunk, concurrency }) {
+    const lease = __ingestRuntime.acquireLease({ ownerId: __ingestRunnerId });
+    if (!lease.acquired) {
+      __ingestState.running = false;
+      __ingestState.finishedAt = new Date().toISOString();
+      __ingestState.lastError = 'drive_ingest_lease_held';
+      return;
+    }
     try {
       const {
         internalizeDriveAssets,
@@ -10177,6 +10192,13 @@ try {
         'ingest-progress.json'
       );
       while (!__ingestState.stopRequested) {
+        const control = __ingestRuntime.readControl();
+        if (control.paused) {
+          __ingestState.stopRequested = true;
+          __ingestState.pauseReason = control.reason;
+          break;
+        }
+        __ingestRuntime.heartbeat({ ownerId: __ingestRunnerId });
         const report = await internalizeDriveAssets({
           rows,
           assetStore: stores.assetStore,
@@ -10208,6 +10230,20 @@ try {
           /* best-effort */
         }
         invalidateAssetQaCache();
+        const hardGate = evaluateDriveIngestHardGate(st);
+        if (hardGate) {
+          __ingestRuntime.pause({
+            reason: `hard_gate:${hardGate.reason}`,
+            details: {
+              ...hardGate,
+              runId: report?.runId || null,
+              processedChunks: __ingestState.processedChunks,
+            },
+          });
+          __ingestState.hardGate = hardGate;
+          __ingestState.stopRequested = true;
+          break;
+        }
         if (!st.batchSize) break;
         await new Promise((r) => setTimeout(r, 500));
       }
@@ -10216,6 +10252,7 @@ try {
     } finally {
       __ingestState.running = false;
       __ingestState.finishedAt = new Date().toISOString();
+      __ingestRuntime.releaseLease({ ownerId: __ingestRunnerId });
     }
   }
   app.post(
@@ -10252,6 +10289,7 @@ try {
         }
       }
       if (action === 'stop') {
+        __ingestRuntime.pause({ reason: 'manual_stop' });
         __ingestState.stopRequested = true;
         return res.json({ ok: true, stopRequested: true, state: __ingestState });
       }
@@ -10261,6 +10299,7 @@ try {
         }
         const chunk = Math.max(1, Math.min(200, Number(req.query.chunk || 40)));
         const concurrency = Math.max(1, Math.min(8, Number(req.query.concurrency || 4)));
+        __ingestRuntime.resume();
         __ingestState = {
           running: true,
           startedAt: new Date().toISOString(),
@@ -10291,13 +10330,14 @@ try {
   // idempotent (hoppar över redan internaliserade assets) så återinträde är säkert.
   // Slås av med ARCANA_ASSET_INGEST_AUTORESUME=false. Körs ej i test eller PR-previews.
   const __ingestAutoResumeEnabled =
-    String(process.env.ARCANA_ASSET_INGEST_AUTORESUME ?? 'true').toLowerCase() !== 'false' &&
+    String(process.env.ARCANA_ASSET_INGEST_AUTORESUME ?? 'false').toLowerCase() === 'true' &&
     process.env.NODE_ENV !== 'test' &&
     String(process.env.IS_PULL_REQUEST || '').toLowerCase() !== 'true';
   let __ingestAutoResumeBackoffUntil = 0;
   async function __maybeAutoResumeIngest() {
     try {
       if (!__ingestAutoResumeEnabled) return;
+      if (__ingestRuntime.readControl().paused) return;
       if (__ingestState.running) return;
       if (Date.now() < __ingestAutoResumeBackoffUntil) return;
       // Kör bara där Drive är konfigurerat (undviker fel-spam i local/preview).
