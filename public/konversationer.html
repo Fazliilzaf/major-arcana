@@ -3204,6 +3204,20 @@
         return String(value ?? '').trim();
       }
 
+      // Gmail visar ibland en egen informationsrad om en ovanlig avsändare.
+      // Den är inte en del av kundens mail och får aldrig tränga undan den
+      // verkliga förhandsvisningen i CCO-inkorgen.
+      function stripMailboxSafetyNotice(value = '') {
+        return normalizeText(value)
+          .replace(
+            /(?:Du\s+får\s+inte\s+e-post\s+ofta\s+från\s+[^\n.]+\.\s*Läs\s+om\s+varför\s+det\s+här\s+är\s+viktigt\.?|You\s+don't\s+often\s+get\s+email\s+from\s+[^\n.]+\.\s*Learn\s+why\s+this\s+is\s+important\.?)/gi,
+            ''
+          )
+          .replace(/\n{3,}/g, '\n\n')
+          .replace(/[ \t]{2,}/g, ' ')
+          .trim();
+      }
+
       function adminAuthToken() {
         try {
           return (
@@ -3817,7 +3831,7 @@
           threadName && rawPreview.toLowerCase().startsWith(threadName.toLowerCase())
             ? normalizeText(rawPreview.slice(threadName.length).replace(/^[\s:–—-]+/, ''))
             : rawPreview;
-        const cleanPreview = normalizeText(
+        const cleanPreview = stripMailboxSafetyNotice(
           previewWithoutName.replace(
             /^Från:\s*[^\n]*?\s+E-post:\s*(?:\[[^\]]*\]|\S+)\s+Telefon:\s*(?:\[[^\]]*\]|\S+)\s*/i,
             ''
@@ -4645,7 +4659,7 @@
         const body = message && typeof message.body === 'object' ? message.body : null;
         const uniqueBody =
           message && typeof message.uniqueBody === 'object' ? message.uniqueBody : null;
-        return [
+        return stripMailboxSafetyNotice([
           mailDocument?.primaryBodyText,
           mailDocument?.bodyText,
           rawJson?.bodyText,
@@ -4662,7 +4676,7 @@
           message?.bodyPreview,
           message?.preview,
           message?.snippet,
-        ].reduce((best, candidate) => chooseRicherMailText(best, candidate, preview), '');
+        ].reduce((best, candidate) => chooseRicherMailText(best, candidate, preview), ''));
       }
 
       function messageBodyHtml(message) {
