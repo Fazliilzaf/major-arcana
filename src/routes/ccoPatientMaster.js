@@ -34,6 +34,7 @@ const {
   summarizeChecksumInventoryCoverage,
 } = require('../ops/ccoGhostVisibleAssetDiagnosis');
 const { auditNonverifiedAssetStoragePage } = require('../ops/ccoDriveAssetStorageAudit');
+const { quarantineMetadataWithoutBinary } = require('../ops/ccoMetadataWithoutBinaryReview');
 const {
   quarantineUnrecoverableGhostVisibleAssets,
   repairGhostVisibleAssets,
@@ -2480,6 +2481,55 @@ function createCcoPatientMasterRouter({
             checked: report.stats.checked,
             failed: report.findings.length,
             hasMore: report.pagination.hasMore,
+          },
+        });
+        return res.json(report);
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/assets/quarantine-metadata-without-binary',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const dryRun = parseDryRun(req.body?.dryRun, true);
+        const importRunId = normalizeText(req.body?.importRunId);
+        if (!importRunId) {
+          return res.status(400).json({ error: 'importRunId krävs.' });
+        }
+        if (!dryRun && normalizeText(req.body?.confirmText) !== 'QUARANTINE METADATA WITHOUT BINARY') {
+          return res.status(409).json({
+            error: 'Commit kräver confirmText: QUARANTINE METADATA WITHOUT BINARY',
+          });
+        }
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        if (!stores.assetStore || !stores.reviewQueueStore) {
+          return res.status(503).json({ error: 'Asset store eller review queue saknas på servern.' });
+        }
+        const report = await quarantineMetadataWithoutBinary({
+          assetStore: stores.assetStore,
+          reviewQueueStore: stores.reviewQueueStore,
+          tenantId: actor.tenantId,
+          importRunId,
+          dryRun,
+          expectedCount: Number.isFinite(Number(req.body?.expectedCount))
+            ? Number(req.body.expectedCount)
+            : null,
+          actor: { tenantId: actor.tenantId, userId: actor.userId, role: ROLE_OWNER },
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.assets_quarantine_metadata_without_binary',
+          outcome: 'success',
+          targetType: 'cco_patient_assets',
+          targetId: importRunId,
+          metadata: {
+            dryRun,
+            candidates: report.stats.candidates,
+            quarantined: report.stats.quarantined,
+            enqueued: report.stats.enqueued,
           },
         });
         return res.json(report);
