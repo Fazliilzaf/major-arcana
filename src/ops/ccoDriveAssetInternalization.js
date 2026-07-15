@@ -287,7 +287,12 @@ async function inventoryDriveAssets({
     ? { byDriveFileId: new Map(), bySourceRecordId: new Map() }
     : await buildExistingAssetIndex(assetStore, storage);
   const quarantinedByDriveFileId =
-    quarantineIndex || (assetStore ? await buildDriveImportQuarantineIndex(assetStore) : new Map());
+    quarantineIndex ||
+    (knownMissingBlobRows
+      ? new Map()
+      : assetStore
+        ? await buildDriveImportQuarantineIndex(assetStore)
+        : new Map());
   const seenDrive = new Map();
   const reportRows = asArray(rows).map(normalizeDriveAssetRow);
   const samples = [];
