@@ -15,6 +15,7 @@ const {
   matchPatientOrEntity,
 } = require('../../src/ops/ccoMailIngestion/pipeline');
 const {
+  createMicrosoftGraphChangeNotifications,
   validateClientState,
   parseNotificationMailboxEmail,
 } = require('../../src/infra/microsoftGraphChangeNotifications');
@@ -401,4 +402,95 @@ test('parseNotificationMailboxEmail extracts mailbox from resource path', () => 
     }),
     'contact@hairtpclinic.com'
   );
+});
+
+test('Graph webhook queues the existing local cycle and returns without waiting for Graph work', async () => {
+  const calls = [];
+  const broadcasts = [];
+  const notifications = createMicrosoftGraphChangeNotifications({
+    config: {
+      graphChangeNotificationClientState: 'webhook-secret',
+      ccoMailIngestionMode: 'read_only',
+    },
+    mailboxAllowlist: ['contact@hairtpclinic.com'],
+    syncService: {
+      async runMailboxCycle(options) {
+        calls.push(options);
+        return { deltaResult: { affectedConversationIds: ['conversation-1'] } };
+      },
+    },
+    runtimeStreamRouter: {
+      broadcast(event, payload) {
+        broadcasts.push({ event, payload });
+      },
+    },
+    logger: { log() {}, warn() {}, error() {} },
+  });
+
+  const result = await notifications.handleNotifications({
+    value: [
+      {
+        clientState: 'webhook-secret',
+        resource: "users('contact@hairtpclinic.com')/mailFolders('Inbox')/messages",
+      },
+      // Graph skickar ofta flera notiser för samma ändring. Bara en lokal cykel ska köras.
+      {
+        clientState: 'webhook-secret',
+        resource: "users('contact@hairtpclinic.com')/mailFolders('Inbox')/messages",
+      },
+    ],
+  });
+
+  assert.equal(result.accepted, 2);
+  assert.equal(result.triggered[0].queued, true);
+  assert.equal(result.triggered[1].coalesced, true);
+  assert.equal(calls.length, 0, 'webhook-svaret väntar inte på delta-synken');
+
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(calls, [
+    {
+      mailboxEmail: 'contact@hairtpclinic.com',
+      mode: 'read_only',
+      trigger: 'webhook',
+      createdBy: 'graph_webhook',
+    },
+  ]);
+  assert.equal(broadcasts[0].event, 'worklist_updated');
+  assert.equal(broadcasts[0].payload.source, 'cco_graph_webhook');
+});
+
+test('Graph webhook ignores mailboxes outside the CCO allowlist', async () => {
+  const notifications = createMicrosoftGraphChangeNotifications({
+    config: { graphChangeNotificationClientState: 'webhook-secret' },
+    mailboxAllowlist: ['contact@hairtpclinic.com'],
+    syncService: { runMailboxCycle: async () => assert.fail('ska inte köras') },
+    logger: { log() {}, warn() {}, error() {} },
+  });
+  const result = await notifications.handleNotifications({
+    value: [
+      {
+        clientState: 'webhook-secret',
+        resource: "users('outside@hairtpclinic.com')/mailFolders('Inbox')/messages",
+      },
+    ],
+  });
+  assert.equal(result.triggered[0].reason, 'mailbox_not_allowlisted');
+});
+
+test('saving a Graph subscription renewal retains its mailbox identity', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-subscription-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  await store.saveGraphSubscription({
+    id: 'subscription-1',
+    mailboxEmail: 'contact@hairtpclinic.com',
+    graphUserId: 'contact@hairtpclinic.com',
+  });
+  const renewed = await store.saveGraphSubscription({
+    id: 'subscription-1',
+    expirationDateTime: '2026-07-17T10:00:00.000Z',
+  });
+  assert.equal(renewed.mailboxEmail, 'contact@hairtpclinic.com');
+  assert.equal(renewed.graphUserId, 'contact@hairtpclinic.com');
+  await fs.unlink(filePath).catch(() => {});
 });

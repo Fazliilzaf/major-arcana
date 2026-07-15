@@ -933,7 +933,9 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     const id = normalizeText(subscription.id);
     if (!id) return null;
     state.graphSubscriptions[id] = {
+      ...(state.graphSubscriptions[id] || {}),
       ...subscription,
+      id,
       updatedAt: nowIso(),
     };
     await save();

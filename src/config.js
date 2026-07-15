@@ -392,7 +392,7 @@ const config = {
   ),
   graphChangeNotificationClientState: asNonEmptyString(
     process.env.ARCANA_GRAPH_CHANGE_NOTIFICATION_CLIENT_STATE,
-    'arcana-cco-mail-ingestion'
+    ''
   ),
   graphBaseUrl: asNonEmptyString(
     process.env.ARCANA_GRAPH_BASE_URL,

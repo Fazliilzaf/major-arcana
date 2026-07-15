@@ -1,6 +1,6 @@
 # CCO Mail Foundation Status
 
-Senast uppdaterad: 2026-07-07
+Senast uppdaterad: 2026-07-15
 
 ## Syfte
 
@@ -45,6 +45,13 @@ Kort sammanfattat:
 - ingen ny design eller palett i detta spår; UI-copy ska vara svensk
 - auth-regeln är bearer-token, inte cookies
 - prodmiljön är `arcana.hairtpclinic.com` på Render, 8 GB-instans, persistent disk `/var/data`
+
+### Snabb inkommande synk (Graph push + lokal lagring)
+
+- Microsoft Graph change notifications är en optional, explicit flagg-gated acceleration av samma lokala kedja: `Graph delta → truth-store → ingestion → CCO-worklist`
+- en webhook svarar `202` direkt och köar högst en lokal synk per berörd, allowlistad mailbox; den gör aldrig en live-fetch när en tråd öppnas
+- subscriptioner skapas/förnyas för den aktiva CCO-allowlisten och förnyas av schedulern; den befintliga pollern ligger kvar som fallback
+- aktivering kräver `ARCANA_GRAPH_CHANGE_NOTIFICATIONS_ENABLED=true`, en riktig `ARCANA_GRAPH_CHANGE_NOTIFICATION_CLIENT_STATE` samt fungerande Graph read-konfiguration
 
 ### OOM/502-serien, låst baseline efter #650
 

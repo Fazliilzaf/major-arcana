@@ -3836,10 +3836,19 @@ function createScheduler({
     if (!config.graphChangeNotificationsEnabled) {
       return { tenantId, skipped: true, reason: 'graph_change_notifications_disabled' };
     }
-    if (
-      !graphChangeNotifications ||
-      typeof graphChangeNotifications.renewSubscription !== 'function'
-    ) {
+    if (!graphChangeNotifications) {
+      return { tenantId, skipped: true, reason: 'graph_change_notifications_unavailable' };
+    }
+    if (typeof graphChangeNotifications.ensureInboxSubscriptions === 'function') {
+      try {
+        const result = await graphChangeNotifications.ensureInboxSubscriptions();
+        return { tenantId, skipped: false, ...result };
+      } catch (error) {
+        logger?.error?.('[scheduler] cco_graph_subscription_renewal failed', sanitizeError(error));
+        throw error;
+      }
+    }
+    if (typeof graphChangeNotifications.renewSubscription !== 'function') {
       return { tenantId, skipped: true, reason: 'graph_change_notifications_unavailable' };
     }
     const mailboxEmail = normalizeText(config.ccoMailIngestionDefaultMailbox);
