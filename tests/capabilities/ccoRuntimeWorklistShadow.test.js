@@ -135,6 +135,131 @@ test('runtime worklist consumer honours an explicit Hälso mailbox scope', async
   }
 });
 
+test('runtime worklist consumer rolls exact patient aliases across mailboxes but leaves ambiguous emails separate', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-patient-rollup-'));
+  const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
+    filePath: path.join(tempDir, 'cco-mailbox-truth.json'),
+  });
+  try {
+    await seedFolder(ccoMailboxTruthStore, {
+      mailboxId: 'kons@hairtpclinic.com',
+      folderType: 'inbox',
+      messages: [
+        inboxMessage({
+          mailboxId: 'kons@hairtpclinic.com',
+          conversationId: 'anna-kons',
+          graphMessageId: 'anna-kons-message',
+          subject: 'Fråga till kons',
+          preview: 'Jag behöver hjälp med min bokning.',
+          receivedAt: '2026-07-15T08:00:00.000Z',
+          from: { address: 'anna.private@example.test', name: 'Anna Karlsson' },
+        }),
+        inboxMessage({
+          mailboxId: 'kons@hairtpclinic.com',
+          conversationId: 'shared-kons',
+          graphMessageId: 'shared-kons-message',
+          subject: 'Delad adress',
+          preview: 'Fråga från delad adress.',
+          receivedAt: '2026-07-15T08:10:00.000Z',
+          from: { address: 'shared@example.test', name: 'Oklar kund' },
+        }),
+      ],
+    });
+    await seedFolder(ccoMailboxTruthStore, {
+      mailboxId: 'contact@hairtpclinic.com',
+      folderType: 'inbox',
+      messages: [
+        inboxMessage({
+          mailboxId: 'contact@hairtpclinic.com',
+          conversationId: 'anna-contact',
+          graphMessageId: 'anna-contact-message',
+          subject: 'Fråga till contact',
+          preview: 'Samma kund från en annan adress.',
+          receivedAt: '2026-07-15T08:20:00.000Z',
+          from: { address: 'anna.work@example.test', name: 'Anna Karlsson' },
+        }),
+        inboxMessage({
+          mailboxId: 'contact@hairtpclinic.com',
+          conversationId: 'shared-contact',
+          graphMessageId: 'shared-contact-message',
+          subject: 'Delad adress',
+          preview: 'Samma delade adress i annan mailbox.',
+          receivedAt: '2026-07-15T08:30:00.000Z',
+          from: { address: 'shared@example.test', name: 'Oklar kund' },
+        }),
+      ],
+    });
+
+    const app = express();
+    app.use(express.json());
+    const auth = createMockAuth('OWNER');
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore: { async addAuditEvent() {} },
+        ccoMailboxTruthStore,
+        patientMasterStore: {
+          async findPatientsByEmails({ emails }) {
+            const matches = Object.fromEntries(emails.map((email) => [email, []]));
+            for (const email of emails) {
+              if (email === 'anna.private@example.test' || email === 'anna.work@example.test') {
+                matches[email] = [
+                  {
+                    id: 'patient-anna-uuid',
+                    displayName: 'Anna Karlsson',
+                    primaryEmail: 'anna.private@example.test',
+                    emails: ['anna.work@example.test'],
+                  },
+                ];
+              }
+              if (email === 'shared@example.test') {
+                matches[email] = [
+                  { id: 'patient-a', displayName: 'Patient A', primaryEmail: email },
+                  { id: 'patient-b', displayName: 'Patient B', primaryEmail: email },
+                ];
+              }
+            }
+            return { matches };
+          },
+        },
+        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/worklist/consumer?mailboxIds=kons@hairtpclinic.com,contact@hairtpclinic.com&limit=19`
+      );
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+
+      const annaRows = payload.rows.filter(
+        (row) => row.patientId === 'patient-anna-uuid'
+      );
+      assert.equal(annaRows.length, 1, 'två alias ska bli en kundtråd');
+      assert.equal(annaRows[0].customerIdentity.canonicalCustomerId, 'patient-anna-uuid');
+      assert.equal(annaRows[0].patientMatch.status, 'matched');
+      assert.equal(annaRows[0].rollup.enabled, true);
+      assert.deepEqual(
+        [...annaRows[0].rollup.underlyingMailboxIds].sort(),
+        ['contact@hairtpclinic.com', 'kons@hairtpclinic.com']
+      );
+
+      const ambiguousRows = payload.rows.filter(
+        (row) => row.customer.email === 'shared@example.test'
+      );
+      assert.equal(ambiguousRows.length, 2, 'delad e-post får aldrig auto-rollas ihop');
+      assert.ok(ambiguousRows.every((row) => row.patientId === null));
+      assert.ok(ambiguousRows.every((row) => row.patientMatch.status === 'ambiguous'));
+      assert.ok(ambiguousRows.every((row) => row.rollup.enabled === false));
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 async function seedFolder(store, { mailboxId, folderType, messages = [] }) {
   await store.recordFolderPage({
     account: {
@@ -796,7 +921,12 @@ test('worklist truth, consumer and shadow carry backfilled customer identity fro
       );
       assert.equal(
         consumerRows.get('conv-strong')?.customerIdentity?.canonicalCustomerId,
-        'cust-strong-1'
+        'patient-strong-uuid',
+        'consumer-rollupen ska använda patient.id som canonical id vid exakt match'
+      );
+      assert.equal(
+        consumerRows.get('conv-strong')?.identityProvenance?.source,
+        'patient_master'
       );
       assert.equal(consumerRows.get('conv-strong')?.patientId, 'patient-strong-uuid');
       assert.equal(consumerRows.get('conv-strong')?.patientDisplayName, 'Strong Patient');

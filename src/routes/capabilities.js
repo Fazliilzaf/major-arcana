@@ -54,7 +54,10 @@ const {
   resolveWorklistEvidenceFields,
 } = require('../ops/ccoMailboxTruthWorklistReadModel');
 const { createCcoMailboxTruthWorklistShadow } = require('../ops/ccoMailboxTruthWorklistShadow');
-const { resolveConversationPatients } = require('../ops/ccoConversationPatientResolver');
+const {
+  applyPatientRollupIdentity,
+  resolveConversationPatients,
+} = require('../ops/ccoConversationPatientResolver');
 const {
   loadCcoInboxEnrichmentCheckpoint,
   countEnrichedRows: countCheckpointEnrichedRows,
@@ -8422,19 +8425,52 @@ async function buildWorklistConsumerContext({
       ? ccoMailboxTruthStore.getDeltaSyncReport({ mailboxIds })
       : null;
 
+  const normalizedLimit = Number(limit);
+  const readLimit =
+    normalizedLimit === 1000
+      ? 5000
+      : Number.isFinite(normalizedLimit) && normalizedLimit > 0
+        ? normalizedLimit
+        : 5000;
+  let patientMatchByEmail = new Map();
+  let worklistReadModelPayload = worklistReadModel
+    ? worklistReadModel.buildReadModel({ mailboxIds, limit: readLimit })
+    : null;
+  if (worklistReadModelPayload && Array.isArray(worklistReadModelPayload.rows)) {
+    const patientRefs = worklistReadModelPayload.rows.map((row) => ({
+      tenantId,
+      email: row?.customerEmail || '',
+    }));
+    const matches = await resolveConversationPatients(patientRefs, { patientMasterStore });
+    patientMatchByEmail = new Map(
+      patientRefs.map((ref, index) => [
+        normalizeText(ref.email).toLowerCase(),
+        matches[index] || {
+          patientId: null,
+          displayName: null,
+          matchedBy: null,
+          confidence: 0,
+          status: 'store_unavailable',
+        },
+      ])
+    );
+    worklistReadModelPayload = {
+      ...worklistReadModelPayload,
+      rows: applyPatientRollupIdentity(worklistReadModelPayload.rows, matches),
+    };
+  }
   const consumerModel = worklistReadModel
     ? worklistReadModel.buildConsumerModel({
         mailboxIds,
         limit,
+        readModel: worklistReadModelPayload,
       })
     : null;
   if (consumerModel && Array.isArray(consumerModel.rows)) {
-    const matches = await resolveConversationPatients(
-      consumerModel.rows.map((row) => ({ tenantId, email: row?.customer?.email || '' })),
-      { patientMasterStore }
-    );
     consumerModel.rows = consumerModel.rows.map((row, index) => {
-      const patientMatch = matches[index] || {
+      const patientMatch = patientMatchByEmail.get(
+        normalizeText(row?.customer?.email || '').toLowerCase()
+      ) || {
         patientId: null,
         displayName: null,
         matchedBy: null,

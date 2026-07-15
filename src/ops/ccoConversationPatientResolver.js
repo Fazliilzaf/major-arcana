@@ -55,6 +55,62 @@ function matchEmailSources(patient, target) {
 }
 
 /**
+ * Skapar den säkra, tillfälliga identitet som CCO-rollupen använder under en
+ * worklist-läsning. Den skrivs aldrig tillbaka till patient- eller mejlstore.
+ *
+ * Varje exakt, entydig patientmatch använder patient.id som canonical id. Vi
+ * lämnar verifierad e-post/telefon tomma medvetet: en patient kan ha flera
+ * legitima e-postadresser och de ska kunna samlas utan att aliasen ser ut som
+ * en hård konflikt i rollupens skydd.
+ */
+function buildPatientRollupIdentity(match = {}, email = '') {
+  if (text(match.status) !== 'matched') return null;
+  const patientId = text(match.patientId);
+  const customerEmail = normalizeEmail(email);
+  if (!patientId || !customerEmail) return null;
+  return {
+    customerIdentity: {
+      customerKey: patientId,
+      customerName: text(match.displayName) || null,
+      customerEmail,
+      customerPhone: null,
+      canonicalCustomerId: patientId,
+      canonicalContactId: null,
+      explicitMergeGroupId: null,
+      verifiedPersonalEmailNormalized: null,
+      verifiedPhoneE164: null,
+      identitySource: 'backend',
+      identityConfidence: 'strong',
+    },
+    identityProvenance: {
+      source: 'patient_master',
+      patientId,
+      matchedBy: text(match.matchedBy) || 'email',
+      confidence: Number(match.confidence) || 0,
+    },
+  };
+}
+
+/**
+ * Applicerar enbart entydiga patientmatchningar på flyktiga worklist-rader.
+ * Ambiguous/unmatched lämnas helt orörda, så de kan aldrig auto-länkas eller
+ * rollas ihop genom patientmastern.
+ */
+function applyPatientRollupIdentity(rows = [], matches = []) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const safeMatches = Array.isArray(matches) ? matches : [];
+  return safeRows.map((row, index) => {
+    const overlay = buildPatientRollupIdentity(safeMatches[index], row?.customerEmail);
+    if (!overlay) return row;
+    return {
+      ...row,
+      customerIdentity: overlay.customerIdentity,
+      identityProvenance: overlay.identityProvenance,
+    };
+  });
+}
+
+/**
  * @param {{tenantId?:string, email:string}} ref
  * @param {{patientMasterStore:object}} stores
  * @returns {Promise<{patientId:string|null, displayName:string|null,
@@ -156,6 +212,8 @@ async function resolveConversationPatients(refs = [], stores = {}) {
 }
 
 module.exports = {
+  applyPatientRollupIdentity,
+  buildPatientRollupIdentity,
   resolveConversationPatient,
   resolveConversationPatients,
   matchEmailSources,

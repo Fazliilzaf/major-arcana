@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
 
 const repoRoot = path.resolve(__dirname, '../..');
 const htmlPath = path.join(repoRoot, 'public', 'konversationer.html');
@@ -19,7 +20,48 @@ function liveScript(html) {
   return script;
 }
 
-test('konversationer live inbox starts from every active mailbox and safely fans out requests', () => {
+function liveRollupHelpers() {
+  const script = liveScript(readHtml());
+  const sliceBetween = (startMarker, endMarker) => {
+    const start = script.indexOf(startMarker);
+    const end = script.indexOf(endMarker, start);
+    assert.ok(start >= 0 && end > start, `live helper ${startMarker} must exist`);
+    return script.slice(start, end);
+  };
+  const source = [
+    sliceBetween('function canonicalMailboxIds(', 'function threadMatchesMailboxScope('),
+    sliceBetween('function threadMatchesMailboxScope(', 'function threadForMailboxScope('),
+    sliceBetween('function threadForMailboxScope(', 'const AVATAR_BACKGROUNDS'),
+    sliceBetween('function mergeWorklistThreads(', 'async function loadLiveInbox('),
+  ].join('\n');
+  const context = {
+    normalizeText: (value) => String(value || '').trim(),
+    canonicalHairTpMailbox: (value) => String(value || '').trim().toLowerCase(),
+  };
+  vm.createContext(context);
+  vm.runInContext(source, context);
+  return context;
+}
+
+function patientThread({ mailboxAddress, patientId, patientMatch, latestAtMs = 0 }) {
+  return {
+    id: `${mailboxAddress}:${patientId || 'unknown'}`,
+    conversationKey: `${mailboxAddress}:conversation`,
+    mailboxAddress,
+    mailboxId: mailboxAddress,
+    mailboxTrail: [mailboxAddress],
+    patientId,
+    patientMatch,
+    latestAtMs,
+    memberKeys: [`${mailboxAddress}:member`],
+    messageLookupKeys: [`${mailboxAddress}:message`],
+    tags: [],
+    unread: false,
+    needsReply: false,
+  };
+}
+
+test('konversationer live inbox safely fans out all mailboxes while selected mailboxes stay as the visible scope', () => {
   const html = readHtml();
 
   for (const mailbox of [
@@ -34,13 +76,31 @@ test('konversationer live inbox starts from every active mailbox and safely fans
   assert.match(html, /const WORKLIST_MAX_MAILBOXES_PER_REQUEST = 2/);
   assert.match(html, /function chunkMailboxIds\(/);
   assert.match(html, /for \(const mailboxChunk of chunkMailboxIds\(requestMailboxIds\)\)/);
-  assert.match(html, /currentThreads = mergeWorklistThreads\(normalizedThreads\)/);
+  assert.match(
+    html,
+    /const requestMailboxIds = canonicalMailboxIds\(LIVE_MAILBOX_IDS\)/,
+    'the selected mailbox is an anchor filter, not a customer-history boundary'
+  );
+  assert.match(html, /const selectedScopeMailboxIds = canonicalMailboxIds\(selectedMailboxIds\)/);
+  assert.match(
+    html,
+    /currentThreads = mergeWorklistThreads\(normalizedThreads\)\s*\.map\(\(thread\) => threadForMailboxScope\(thread, selectedScopeMailboxIds\)\)\s*\.filter\(Boolean\)/
+  );
+  assert.match(html, /function threadMatchesMailboxScope\(thread = \{\}, mailboxIds = \[\]\)/);
+  assert.match(html, /function threadForMailboxScope\(thread = \{\}, mailboxIds = \[\]\)/);
   const mergeHelper = html.match(
     /function mergeWorklistThreads\(threads\) \{([\s\S]*?)\n      \}\n\n      async function loadLiveInbox/
   );
   assert.ok(mergeHelper, 'multi-mailbox merge helper must exist');
   assert.match(mergeHelper[1], /thread\.conversationKey/);
-  assert.doesNotMatch(mergeHelper[1], /thread\.patientId|thread\.customerEmail/);
+  assert.match(mergeHelper[1], /thread\.patientId/);
+  assert.match(mergeHelper[1], /patientMatchStatus === 'matched'/);
+  assert.doesNotMatch(
+    mergeHelper[1],
+    /thread\.customerEmail/,
+    'email alone must never merge customer histories across mailboxes'
+  );
+  assert.match(html, /params\.set\('mailboxId', mailboxHints\.join\(','\)\)/);
   assert.match(html, /\/api\/v1\/cco\/runtime\/worklist\/consumer\?mailboxIds=/);
   assert.match(html, /'&limit=500'/);
   assert.match(html, /credentials:\s*'include'/);
@@ -64,6 +124,60 @@ test('konversationer live inbox starts from every active mailbox and safely fans
     /visar demo tills inloggning\/data finns/,
     'web/admin must not silently fall back to demo when live fetch fails'
   );
+});
+
+test('a mailbox view keeps the verified customer timeline from the other mailbox', () => {
+  const { mergeWorklistThreads, threadForMailboxScope } = liveRollupHelpers();
+  const merged = mergeWorklistThreads([
+    patientThread({
+      mailboxAddress: 'contact@hairtpclinic.com',
+      patientId: 'patient-1',
+      patientMatch: { status: 'matched' },
+      latestAtMs: 10,
+    }),
+    patientThread({
+      mailboxAddress: 'fazli@hairtpclinic.com',
+      patientId: 'patient-1',
+      patientMatch: { status: 'matched' },
+      latestAtMs: 20,
+    }),
+  ]);
+
+  assert.equal(merged.length, 1, 'the same verified patient gets one customer row');
+  const fazliView = threadForMailboxScope(merged[0], ['fazli@hairtpclinic.com']);
+  assert.equal(fazliView.mailboxAddress, 'fazli@hairtpclinic.com');
+  assert.deepEqual([...fazliView.mailboxTrail], [
+    'fazli@hairtpclinic.com',
+    'contact@hairtpclinic.com',
+  ]);
+  assert.equal(fazliView.memberKeys.length, 2, 'both mailbox message keys remain available');
+
+  const contactView = threadForMailboxScope(merged[0], ['contact@hairtpclinic.com']);
+  assert.equal(contactView.mailboxAddress, 'contact@hairtpclinic.com');
+  assert.deepEqual([...contactView.mailboxTrail], [
+    'contact@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+  ]);
+});
+
+test('ambiguous patient matches remain separate across mailbox views', () => {
+  const { mergeWorklistThreads } = liveRollupHelpers();
+  const merged = mergeWorklistThreads([
+    patientThread({
+      mailboxAddress: 'contact@hairtpclinic.com',
+      patientId: '',
+      patientMatch: { status: 'ambiguous' },
+      latestAtMs: 10,
+    }),
+    patientThread({
+      mailboxAddress: 'fazli@hairtpclinic.com',
+      patientId: '',
+      patientMatch: { status: 'ambiguous' },
+      latestAtMs: 20,
+    }),
+  ]);
+
+  assert.equal(merged.length, 2, 'uncertain identity must never combine customer histories');
 });
 
 test('konversationer initializes live inbox state before the first status render', () => {

@@ -55,7 +55,10 @@ test('driver inkorgen via selection-change till det befintliga datalagret', () =
   assert.match(page, /liveWorklistUrl\(mailboxChunk\)/);
   assert.match(page, /WORKLIST_MAX_MAILBOXES_PER_REQUEST = 2/);
   assert.match(page, /for \(const mailboxChunk of chunkMailboxIds\(requestMailboxIds\)\)/);
-  assert.match(page, /currentThreads = mergeWorklistThreads\(normalizedThreads\)/);
+  assert.match(
+    page,
+    /currentThreads = mergeWorklistThreads\(normalizedThreads\)\s*\.map\(\(thread\) => threadForMailboxScope\(thread, selectedScopeMailboxIds\)\)\s*\.filter\(Boolean\)/
+  );
   assert.match(page, /selectedMailboxIds = requested/);
   assert.doesNotMatch(page, /const LIVE_WORKLIST_URL/);
 });
@@ -67,7 +70,10 @@ test('tomt mailbox-val tömmer inkorgen ärligt i stället för att visa föreg�
 
 test('sen selection vinner över ett redan pågående worklist-anrop', () => {
   assert.match(page, /liveInboxReloadQueued = true/);
-  assert.match(page, /requestMailboxKey !== selectedMailboxIds\.join\(','\)/);
+  assert.match(
+    page,
+    /selectionMailboxKey !== canonicalMailboxIds\(selectedMailboxIds\)\.join\(','\)/
+  );
 });
 
 test('ingen ny färg: använder befintliga CCO-tokens', () => {
