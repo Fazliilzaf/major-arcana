@@ -553,6 +553,60 @@ test('verified ghost with corrupt legacy checksum recovers from the exact Drive 
   }
 });
 
+test('verified ghost with a zero-byte exact Drive source is quarantined for review', async () => {
+  const rig = await makeRig();
+  try {
+    const empty = Buffer.alloc(0);
+    await rig.storage.putObject({ body: empty, contentType: 'image/heic' });
+    const canonical = await rig.assetStore.addAsset({
+      patientId: 'pat-drive-zero-byte',
+      sourceSystem: 'drive_import',
+      originalDriveFileId: 'drive-zero-byte',
+      storageKey: 'missing/corrupt.heic',
+      checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      fileSize: 0,
+      mimeType: 'image/heic',
+      category: 'photo_during',
+      status: 'VERIFIED_IN_CCO',
+    });
+    const report = await internalizeDriveAssets({
+      rows: [
+        {
+          patientId: canonical.patientId,
+          canonicalAssetId: canonical.id,
+          sourceRecordId: canonical.id,
+          file: {
+            canonicalAssetId: canonical.id,
+            sourceRecordId: canonical.id,
+            driveFileId: canonical.originalDriveFileId,
+            fileName: 'IMG_0002.HEIC',
+            mimeType: 'image/heic',
+          },
+        },
+      ],
+      assetStore: rig.assetStore,
+      importRunStore: rig.importRunStore,
+      reviewQueueStore: rig.reviewQueueStore,
+      pipeline: rig.pipeline,
+      storage: rig.storage,
+      driveClient: {
+        getFileMetadata: async () => ({ name: 'IMG_0002.HEIC', mimeType: 'image/heic' }),
+        downloadBuffer: async () => empty,
+      },
+      dryRun: false,
+      go: true,
+      knownMissingBlobRows: true,
+    });
+
+    assert.equal(report.stats.needsReview, 1);
+    assert.equal(report.stats.failed, 0);
+    assert.equal(report.errors[0].code, 'drive_source_invalid_quarantined');
+    assert.equal(rig.assetStore.getAsset(canonical.id).status, 'NEEDS_REVIEW');
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
 test('collectDriveRowsForInternalization läser asset store när patient-master saknar attachments', async () => {
   const rig = await makeRig();
   try {
