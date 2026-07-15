@@ -6,12 +6,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function loadAdapters() {
+function loadAdapters(windowOverrides = {}) {
   const src = fs.readFileSync(
     path.join(__dirname, '../../public/major-arcana-preview/app/cco-v11-rail-adapters.js'),
     'utf8'
   );
-  const sandbox = { window: {}, console };
+  const sandbox = { window: { ...windowOverrides }, console };
   vm.runInNewContext(`${src}\n;this.exports = window.CcoV11RailAdapters;`, sandbox);
   return sandbox.exports;
 }
@@ -67,6 +67,50 @@ test('buildHealthPreview exponerar per-frågesvar (answers)', () => {
   assert.equal(hp.answers[0].risk, 'red');
   assert.equal(hp.answers[0].detail, 'Penicillin');
   assert.equal(hp.answers[1].risk, '');
+});
+
+test('buildHealthPreview bevarar intern CCO-lank till HD-dokument', () => {
+  const hp = A.buildHealthPreview({
+    healthDeclaration: {
+      signedAt: '2026-06-12',
+      viewUrl: '/api/v1/cco/assets/hd-1/download?inline=1',
+      documentTitle: 'Hälsodeklaration',
+    },
+  });
+  assert.equal(hp.viewUrl, '/api/v1/cco/assets/hd-1/download?inline=1');
+  assert.equal(hp.documentTitle, 'Hälsodeklaration');
+});
+
+test('buildJourneyFromState bevarar interna HD- och FF-dokumentlankar', () => {
+  const adapters = loadAdapters({
+    CcoKundkortKkx: {
+      buildCanonicalJourneyLive() {
+        return {
+          activeStep: 3,
+          steps: [
+            { step: 3, label: 'Hälsodeklaration', status: 'done', meta: 'Signerad' },
+            { step: 8, label: 'Friskförsäkran', status: 'future', meta: '' },
+          ],
+        };
+      },
+    },
+  });
+  const journey = adapters.buildJourneyFromState(
+    {
+      healthDeclaration: {
+        viewUrl: '/api/v1/cco/assets/hd-1/download?inline=1',
+        documentTitle: 'Hälsodeklaration',
+      },
+      fitnessCertificate: {
+        viewUrl: '/api/v1/cco/assets/ff-1/download?inline=1',
+        documentTitle: 'Friskförsäkran',
+      },
+    },
+    [],
+    {}
+  );
+  assert.equal(journey.steps[0].viewUrl, '/api/v1/cco/assets/hd-1/download?inline=1');
+  assert.equal(journey.steps[1].viewUrl, '/api/v1/cco/assets/ff-1/download?inline=1');
 });
 
 test('buildCommunicationFromState läser communicationMessages med preview + dir', () => {

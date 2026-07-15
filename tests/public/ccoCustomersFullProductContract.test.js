@@ -67,6 +67,12 @@ test('kundrad öppnar V11-dossier och V11-sektion öppnar V12 Content Canon', ()
   assert.match(ui, /data-customer-product-loading="v11"/);
 });
 
+test('V11 HD och FF ateranvander intern dokumentmodal utan att oppna V12', () => {
+  assert.match(v11, /data-kk-open-doc/);
+  assert.match(v11, /data-kk-doc-title/);
+  assert.match(ui, /\[data-kk-open-doc\]/);
+});
+
 test('V12 sticky följer aktivt besöks state och primäråtgärd', () => {
   assert.match(v12Canon, /visitState === 'completed_today'/);
   assert.match(v12Canon, /var primaryAction = txt\(av && av\.primary && av\.primary\.action\)/);
