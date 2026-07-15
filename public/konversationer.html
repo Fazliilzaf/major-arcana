@@ -3181,6 +3181,48 @@
         }
         return chunks;
       }
+
+      function canonicalMailboxIds(mailboxIds = []) {
+        return Array.from(
+          new Set(
+            (Array.isArray(mailboxIds) ? mailboxIds : [])
+              .map((value) => canonicalHairTpMailbox(value))
+              .filter(Boolean)
+          )
+        );
+      }
+
+      function threadMatchesMailboxScope(thread = {}, mailboxIds = []) {
+        const selected = new Set(canonicalMailboxIds(mailboxIds));
+        if (!selected.size) return false;
+        const trail = canonicalMailboxIds([
+          thread.mailboxAddress,
+          thread.mailboxId,
+          ...(Array.isArray(thread.mailboxTrail) ? thread.mailboxTrail : []),
+        ]);
+        return trail.some((mailboxId) => selected.has(mailboxId));
+      }
+
+      function threadForMailboxScope(thread = {}, mailboxIds = []) {
+        if (!threadMatchesMailboxScope(thread, mailboxIds)) return null;
+        const selected = new Set(canonicalMailboxIds(mailboxIds));
+        const mailboxTrail = canonicalMailboxIds([
+          thread.mailboxAddress,
+          thread.mailboxId,
+          ...(Array.isArray(thread.mailboxTrail) ? thread.mailboxTrail : []),
+        ]);
+        const orderedMailboxTrail = [
+          ...mailboxTrail.filter((mailboxId) => selected.has(mailboxId)),
+          ...mailboxTrail.filter((mailboxId) => !selected.has(mailboxId)),
+        ];
+        const primaryMailbox = orderedMailboxTrail[0] || thread.mailboxAddress || thread.mailboxId;
+        return {
+          ...thread,
+          mailboxAddress: primaryMailbox,
+          mailboxId: primaryMailbox,
+          mailboxTrail: orderedMailboxTrail,
+        };
+      }
       const AVATAR_BACKGROUNDS = [
         'linear-gradient(180deg,#d8c1f0,#b48ad6)',
         'linear-gradient(180deg,#c5d8a8,#92b86e)',
@@ -5238,8 +5280,12 @@
           // nycklar bär inte alltid mailbox-prefix, och utan hint faller servern
           // tillbaka till att läsa ALLA shards (combine+sort av hela storen) per
           // trådöppning — det som gör att "Laddar från CCO-pipelinen" dröjer.
-          const scopedMailbox = normalizeText(thread.mailboxAddress || thread.mailboxId);
-          if (scopedMailbox) params.set('mailboxId', scopedMailbox);
+          const mailboxHints = canonicalMailboxIds([
+            thread.mailboxAddress,
+            thread.mailboxId,
+            ...(Array.isArray(thread.mailboxTrail) ? thread.mailboxTrail : []),
+          ]).slice(0, 10);
+          if (mailboxHints.length) params.set('mailboxId', mailboxHints.join(','));
           const queryString = params.toString() ? `?${params.toString()}` : '';
           const fetchStartedAt =
             typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
@@ -5433,7 +5479,10 @@
       function mergeWorklistThreads(threads) {
         const merged = new Map();
         for (const thread of threads) {
+          const patientId = normalizeText(thread.patientId).toLowerCase();
+          const patientMatchStatus = normalizeText(thread.patientMatch?.status).toLowerCase();
           const identity =
+            (patientId && patientMatchStatus === 'matched' ? `patient:${patientId}` : '') ||
             normalizeText(thread.conversationKey).toLowerCase() ||
             normalizeText(thread.id).toLowerCase();
           const current = merged.get(identity);
@@ -5485,8 +5534,13 @@
           return;
         }
         liveInboxFetchInFlight = true;
-        const requestMailboxIds = selectedMailboxIds.slice();
-        const requestMailboxKey = requestMailboxIds.join(',');
+        // Vald mailbox styr vilken kundrad som syns, men inte hur mycket av den
+        // kundens lokala historik vi läser. Samma säkra två-i-taget-hämtning som
+        // "Alla" används för att en Fazli-rad också ska visa kundens Contact/Kons-
+        // meddelanden när patientkopplingen är entydig.
+        const selectedScopeMailboxIds = canonicalMailboxIds(selectedMailboxIds);
+        const requestMailboxIds = canonicalMailboxIds(LIVE_MAILBOX_IDS);
+        const selectionMailboxKey = selectedScopeMailboxIds.join(',');
         clearTimeout(liveInboxRetryTimer);
         let failureStatus = 0;
         let failureReason = '';
@@ -5531,14 +5585,32 @@
               ? payload.truthCoverage.accountReports
               : []
           );
-          const truthFolderCounts = truthReports.flatMap((report) =>
+          const scopedTruthReports = truthReports.filter((report) =>
+            selectedScopeMailboxIds.includes(
+              canonicalHairTpMailbox(report?.mailboxId || report?.mailboxAddress)
+            )
+          );
+          const truthFolderCounts = scopedTruthReports.flatMap((report) =>
             Array.isArray(report?.folderCounts) ? report.folderCounts : []
           );
-          const truthMessageCount = scopedPayloads.reduce(
-            (total, { payload }) =>
-              total + Number(payload?.truthCoverage?.metadata?.messageCount || 0),
+          const truthMessageCountFromReports = truthFolderCounts.reduce(
+            (total, folder) => total + Number(folder?.materializedMessageCount || 0),
             0
           );
+          // Äldre coverage-payloads saknar räkning per accountReport. Behåll då
+          // den befintliga metadata-fallbacken för de chunks där ankarmailboxen
+          // finns; den påverkar bara statusraden, aldrig kundrollupen.
+          const truthMessageCount =
+            truthMessageCountFromReports ||
+            scopedPayloads
+              .filter(({ mailboxIds }) =>
+                mailboxIds.some((mailboxId) => selectedScopeMailboxIds.includes(mailboxId))
+              )
+              .reduce(
+                (total, { payload }) =>
+                  total + Number(payload?.truthCoverage?.metadata?.messageCount || 0),
+                0
+              );
           const inboxMessageCount = truthFolderCounts
             .filter((folder) => folder?.folderType === 'inbox')
             .reduce((total, folder) => total + Number(folder?.totalItemCount || 0), 0);
@@ -5548,7 +5620,7 @@
               : inboxMessageCount > 0
                 ? inboxMessageCount
                 : null;
-          if (requestMailboxKey !== selectedMailboxIds.join(',')) {
+          if (selectionMailboxKey !== canonicalMailboxIds(selectedMailboxIds).join(',')) {
             liveInboxReloadQueued = true;
             return;
           }
@@ -5569,7 +5641,9 @@
               );
             });
           });
-          currentThreads = mergeWorklistThreads(normalizedThreads);
+          currentThreads = mergeWorklistThreads(normalizedThreads)
+            .map((thread) => threadForMailboxScope(thread, selectedScopeMailboxIds))
+            .filter(Boolean);
           if (!currentThreads.length) {
             renderInboxThreads(currentThreads, {
               activeTab: currentInboxTab,
@@ -5577,7 +5651,7 @@
             });
             renderLivePaneStatus(
               'CCO-inkorgen är tom',
-              `Inga trådar returnerades från ${selectedMailboxLabel(requestMailboxIds)}. Detta är ett STOP-läge, inte demo.`
+              `Inga trådar returnerades från ${selectedMailboxLabel(selectedScopeMailboxIds)}. Detta är ett STOP-läge, inte demo.`
             );
             return;
           }
@@ -5609,7 +5683,7 @@
           }
           if (!background && currentThreads.length && window.CCOPolish?.showToast) {
             window.CCOPolish.showToast(
-              `CCO-inkorg: ${currentThreads.length} trådar från ${selectedMailboxLabel(requestMailboxIds)}`,
+              `CCO-inkorg: ${currentThreads.length} trådar från ${selectedMailboxLabel(selectedScopeMailboxIds)}`,
               'success'
             );
           }

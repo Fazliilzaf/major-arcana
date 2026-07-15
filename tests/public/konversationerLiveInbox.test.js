@@ -19,7 +19,7 @@ function liveScript(html) {
   return script;
 }
 
-test('konversationer live inbox starts from every active mailbox and safely fans out requests', () => {
+test('konversationer live inbox safely fans out all mailboxes while selected mailboxes stay as the visible scope', () => {
   const html = readHtml();
 
   for (const mailbox of [
@@ -34,13 +34,31 @@ test('konversationer live inbox starts from every active mailbox and safely fans
   assert.match(html, /const WORKLIST_MAX_MAILBOXES_PER_REQUEST = 2/);
   assert.match(html, /function chunkMailboxIds\(/);
   assert.match(html, /for \(const mailboxChunk of chunkMailboxIds\(requestMailboxIds\)\)/);
-  assert.match(html, /currentThreads = mergeWorklistThreads\(normalizedThreads\)/);
+  assert.match(
+    html,
+    /const requestMailboxIds = canonicalMailboxIds\(LIVE_MAILBOX_IDS\)/,
+    'the selected mailbox is an anchor filter, not a customer-history boundary'
+  );
+  assert.match(html, /const selectedScopeMailboxIds = canonicalMailboxIds\(selectedMailboxIds\)/);
+  assert.match(
+    html,
+    /currentThreads = mergeWorklistThreads\(normalizedThreads\)\s*\.map\(\(thread\) => threadForMailboxScope\(thread, selectedScopeMailboxIds\)\)\s*\.filter\(Boolean\)/
+  );
+  assert.match(html, /function threadMatchesMailboxScope\(thread = \{\}, mailboxIds = \[\]\)/);
+  assert.match(html, /function threadForMailboxScope\(thread = \{\}, mailboxIds = \[\]\)/);
   const mergeHelper = html.match(
     /function mergeWorklistThreads\(threads\) \{([\s\S]*?)\n      \}\n\n      async function loadLiveInbox/
   );
   assert.ok(mergeHelper, 'multi-mailbox merge helper must exist');
   assert.match(mergeHelper[1], /thread\.conversationKey/);
-  assert.doesNotMatch(mergeHelper[1], /thread\.patientId|thread\.customerEmail/);
+  assert.match(mergeHelper[1], /thread\.patientId/);
+  assert.match(mergeHelper[1], /patientMatchStatus === 'matched'/);
+  assert.doesNotMatch(
+    mergeHelper[1],
+    /thread\.customerEmail/,
+    'email alone must never merge customer histories across mailboxes'
+  );
+  assert.match(html, /params\.set\('mailboxId', mailboxHints\.join\(','\)\)/);
   assert.match(html, /\/api\/v1\/cco\/runtime\/worklist\/consumer\?mailboxIds=/);
   assert.match(html, /'&limit=500'/);
   assert.match(html, /credentials:\s*'include'/);
