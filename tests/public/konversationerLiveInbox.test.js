@@ -29,6 +29,7 @@ function liveRollupHelpers() {
     return script.slice(start, end);
   };
   const source = [
+    sliceBetween('function chunkMailboxIds(', 'function canonicalMailboxIds('),
     sliceBetween('function canonicalMailboxIds(', 'function threadMatchesMailboxScope('),
     sliceBetween('function threadMatchesMailboxScope(', 'function threadForMailboxScope('),
     sliceBetween('function threadForMailboxScope(', 'const AVATAR_BACKGROUNDS'),
@@ -37,6 +38,7 @@ function liveRollupHelpers() {
   const context = {
     normalizeText: (value) => String(value || '').trim(),
     canonicalHairTpMailbox: (value) => String(value || '').trim().toLowerCase(),
+    WORKLIST_MAX_MAILBOXES_PER_REQUEST: 2,
   };
   vm.createContext(context);
   vm.runInContext(source, context);
@@ -75,12 +77,17 @@ test('konversationer live inbox safely fans out all mailboxes while selected mai
   ]) assert.match(html, new RegExp("'" + mailbox.replace('@', '@') + "'"));
   assert.match(html, /const WORKLIST_MAX_MAILBOXES_PER_REQUEST = 2/);
   assert.match(html, /function chunkMailboxIds\(/);
-  assert.match(html, /for \(const mailboxChunk of chunkMailboxIds\(requestMailboxIds\)\)/);
   assert.match(
     html,
-    /const requestMailboxIds = canonicalMailboxIds\(LIVE_MAILBOX_IDS\)/,
-    'the selected mailbox is an anchor filter, not a customer-history boundary'
+    /const requestMailboxChunks = worklistMailboxChunks\(selectedScopeMailboxIds\)/,
+    'the selected mailbox is read first, then remaining customer history follows'
   );
+  assert.match(html, /function worklistMailboxChunks\(selectedMailboxIds = \[\], mailboxIds = LIVE_MAILBOX_IDS\)/);
+  assert.match(html, /for \(const mailboxChunk of requestMailboxChunks\)/);
+  assert.match(html, /const failedMailboxChunks = \[\];/);
+  assert.match(html, /if \(!selectedMailboxLoaded\)/);
+  assert.match(html, /let liveInboxPartialFailureKey = '';/);
+  assert.match(html, /partialFailureKey !== liveInboxPartialFailureKey/);
   assert.match(html, /const selectedScopeMailboxIds = canonicalMailboxIds\(selectedMailboxIds\)/);
   assert.match(
     html,
@@ -124,6 +131,34 @@ test('konversationer live inbox safely fans out all mailboxes while selected mai
     /visar demo tills inloggning\/data finns/,
     'web/admin must not silently fall back to demo when live fetch fails'
   );
+});
+
+test('the selected mailbox loads alone before the remaining customer history', () => {
+  const { worklistMailboxChunks } = liveRollupHelpers();
+  const allMailboxes = [
+    'kons@hairtpclinic.com',
+    'contact@hairtpclinic.com',
+    'egzona@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+    'marknad@hairtpclinic.com',
+    'kvitto@hairtpclinic.com',
+    'halso@hairtpclinic.com',
+  ];
+  const chunks = worklistMailboxChunks(['fazli@hairtpclinic.com'], allMailboxes);
+
+  assert.deepEqual([...chunks[0]], ['fazli@hairtpclinic.com']);
+  assert.deepEqual(
+    [...chunks.slice(1).flat()],
+    [
+      'kons@hairtpclinic.com',
+      'contact@hairtpclinic.com',
+      'egzona@hairtpclinic.com',
+      'marknad@hairtpclinic.com',
+      'kvitto@hairtpclinic.com',
+      'halso@hairtpclinic.com',
+    ]
+  );
+  assert.ok(chunks.every((chunk) => chunk.length <= 2), 'server two-mailbox limit remains intact');
 });
 
 test('a mailbox view keeps the verified customer timeline from the other mailbox', () => {

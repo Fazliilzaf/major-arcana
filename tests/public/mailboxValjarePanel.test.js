@@ -54,7 +54,8 @@ test('driver inkorgen via selection-change till det befintliga datalagret', () =
   assert.match(page, /document\.addEventListener\('cco:mailbox-selection-change'/);
   assert.match(page, /liveWorklistUrl\(mailboxChunk\)/);
   assert.match(page, /WORKLIST_MAX_MAILBOXES_PER_REQUEST = 2/);
-  assert.match(page, /for \(const mailboxChunk of chunkMailboxIds\(requestMailboxIds\)\)/);
+  assert.match(page, /for \(const mailboxChunk of requestMailboxChunks\)/);
+  assert.match(page, /function worklistMailboxChunks\(/);
   assert.match(
     page,
     /currentThreads = mergeWorklistThreads\(normalizedThreads\)\s*\.map\(\(thread\) => threadForMailboxScope\(thread, selectedScopeMailboxIds\)\)\s*\.filter\(Boolean\)/
