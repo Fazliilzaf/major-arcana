@@ -13396,6 +13396,31 @@ process.once('SIGTERM', () => {
     defaultSyncMailboxIds,
     `(source=${defaultSyncMailboxSource}, count=${defaultSyncMailboxIds.length})`
   );
+  ccoGraphChangeNotifications.configureRuntime({
+    mailboxAllowlist: defaultSyncMailboxIds,
+    runtimeStreamRouter: ccoRuntimeStreamRouter,
+  });
+  // Graph push är ett komplement till delta-pollern: webhooken väcker samma
+  // lokala truth/ingestion-väg. Den här explicit flagg-gated starten skapar
+  // eller förnyar en subscription per aktiv CCO-brevlåda efter att appen lyssnar.
+  if (
+    config.graphChangeNotificationsEnabled === true &&
+    config.graphReadEnabled === true &&
+    ccoGraphChangeNotifications.isWebhookReady()
+  ) {
+    setTimeout(() => {
+      ccoGraphChangeNotifications
+        .ensureInboxSubscriptions({ mailboxEmails: defaultSyncMailboxIds })
+        .then((result) => {
+          console.log(
+            `[graph-webhook] subscriptions säkrade för ${result.mailboxEmails.length} CCO-brevlådor`
+          );
+        })
+        .catch((error) => {
+          console.error('[graph-webhook] subscription setup misslyckades', error?.message || error);
+        });
+    }, 15000).unref?.();
+  }
 
   // CCO Conversation messages — full tråd-historik + AI-summary + reply + Klar/Senare + notes + sync
   app.use(

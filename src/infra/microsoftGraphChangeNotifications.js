@@ -6,6 +6,11 @@ function normalizeEmail(value = '') {
   return normalizeText(value).toLowerCase();
 }
 
+function normalizeMailboxEmails(values = []) {
+  const raw = Array.isArray(values) ? values : [values];
+  return [...new Set(raw.map(normalizeEmail).filter(Boolean))];
+}
+
 function addHours(date, hours = 48) {
   return new Date(date.getTime() + hours * 60 * 60 * 1000).toISOString();
 }
@@ -40,8 +45,49 @@ function createMicrosoftGraphChangeNotifications({
   graphReadConnector = null,
   ingestionStore = null,
   syncService = null,
+  mailboxAllowlist = [],
+  runtimeStreamRouter = null,
   logger = console,
 } = {}) {
+  let allowedMailboxEmails = new Set(normalizeMailboxEmails(mailboxAllowlist));
+  let activeRuntimeStreamRouter = runtimeStreamRouter;
+  const mailboxCycles = new Map();
+
+  function isAllowedMailbox(mailboxEmail = '') {
+    const normalized = normalizeEmail(mailboxEmail);
+    return allowedMailboxEmails.size === 0 || allowedMailboxEmails.has(normalized);
+  }
+
+  function configureRuntime({ mailboxAllowlist: nextMailboxAllowlist, runtimeStreamRouter: nextRouter } = {}) {
+    if (nextMailboxAllowlist) {
+      allowedMailboxEmails = new Set(normalizeMailboxEmails(nextMailboxAllowlist));
+    }
+    if (nextRouter) activeRuntimeStreamRouter = nextRouter;
+  }
+
+  function isWebhookReady() {
+    return Boolean(
+      normalizeText(config.publicBaseUrl) && normalizeText(config.graphChangeNotificationClientState)
+    );
+  }
+
+  function listSubscriptions() {
+    const subscriptions = Object.values(ingestionStore?.getState?.()?.graphSubscriptions || {});
+    return subscriptions.filter((subscription) =>
+      isAllowedMailbox(subscription?.mailboxEmail || subscription?.graphUserId)
+    );
+  }
+
+  function findSubscription(mailboxEmail = '') {
+    const normalized = normalizeEmail(mailboxEmail);
+    return listSubscriptions()
+      .filter((subscription) => normalizeEmail(subscription.mailboxEmail) === normalized)
+      .sort((left, right) =>
+        String(right.updatedAt || right.expirationDateTime || '').localeCompare(
+          String(left.updatedAt || left.expirationDateTime || '')
+        )
+      )[0] || null;
+  }
   async function createInboxSubscription({ mailboxEmail = '', graphUserId = '' } = {}) {
     if (!graphReadConnector || typeof graphReadConnector.fetchAccessToken !== 'function') {
       throw new Error('graph_read_connector_unavailable');
@@ -50,10 +96,16 @@ function createMicrosoftGraphChangeNotifications({
     if (!userId) {
       throw new Error('mailbox_user_id_missing');
     }
+    if (!isAllowedMailbox(mailboxEmail || userId)) {
+      throw new Error('mailbox_not_allowlisted_for_graph_notifications');
+    }
 
     const accessToken = await graphReadConnector.fetchAccessToken();
     const notificationUrl = buildWebhookUrl(config);
     const clientState = normalizeText(config.graphChangeNotificationClientState);
+    if (!isWebhookReady()) {
+      throw new Error('graph_change_notification_config_incomplete');
+    }
     const expirationDateTime = addHours(new Date(), 48);
     const resource = `/users/${encodeURIComponent(userId)}/mailFolders('Inbox')/messages`;
 
@@ -128,8 +180,85 @@ function createMicrosoftGraphChangeNotifications({
     return payload;
   }
 
+  async function ensureInboxSubscriptions({ mailboxEmails = [] } = {}) {
+    const requested = normalizeMailboxEmails(
+      mailboxEmails.length > 0 ? mailboxEmails : [...allowedMailboxEmails]
+    );
+    const results = [];
+    for (const mailboxEmail of requested) {
+      if (!isAllowedMailbox(mailboxEmail)) {
+        results.push({ mailboxEmail, skipped: true, reason: 'mailbox_not_allowlisted' });
+        continue;
+      }
+
+      const existing = findSubscription(mailboxEmail);
+      try {
+        const subscription = existing
+          ? await renewSubscription(existing.id)
+          : await createInboxSubscription({ mailboxEmail, graphUserId: mailboxEmail });
+        results.push({
+          mailboxEmail,
+          action: existing ? 'renewed' : 'created',
+          subscription,
+        });
+      } catch (error) {
+        // A deleted Graph subscription cannot be renewed. Replace only that one.
+        if (existing && /not found|does not exist|resource not found/i.test(normalizeText(error?.message))) {
+          const subscription = await createInboxSubscription({
+            mailboxEmail,
+            graphUserId: mailboxEmail,
+          });
+          results.push({ mailboxEmail, action: 'recreated', subscription });
+          continue;
+        }
+        throw error;
+      }
+    }
+    return { mailboxEmails: requested, results };
+  }
+
   async function handleValidationRequest(validationToken = '') {
     return normalizeText(validationToken);
+  }
+
+  function queueMailboxCycle(mailboxEmail = '') {
+    const normalized = normalizeEmail(mailboxEmail);
+    if (!isAllowedMailbox(normalized)) {
+      return { mailboxEmail: normalized, queued: false, reason: 'mailbox_not_allowlisted' };
+    }
+    if (!normalized || !syncService?.runMailboxCycle) {
+      return { mailboxEmail: normalized, queued: false, reason: 'sync_service_unavailable' };
+    }
+    if (mailboxCycles.has(normalized)) {
+      return { mailboxEmail: normalized, queued: false, coalesced: true };
+    }
+
+    const job = { mailboxEmail: normalized, queuedAt: new Date().toISOString() };
+    mailboxCycles.set(normalized, job);
+    setImmediate(async () => {
+      try {
+        const result = await syncService.runMailboxCycle({
+          mailboxEmail: normalized,
+          mode: config.ccoMailIngestionMode || 'read_only',
+          trigger: 'webhook',
+          createdBy: 'graph_webhook',
+        });
+        const changed = Number(result?.deltaResult?.affectedConversationIds?.length || 0);
+        if (changed > 0 && typeof activeRuntimeStreamRouter?.broadcast === 'function') {
+          activeRuntimeStreamRouter.broadcast('worklist_updated', {
+            source: 'cco_graph_webhook',
+            mailboxIds: [normalized],
+            truthChanged: changed,
+            completedAt: new Date().toISOString(),
+          });
+        }
+      } catch (error) {
+        logger?.error?.(`[graph-webhook] sync failed mailbox=${normalized}`, error);
+      } finally {
+        mailboxCycles.delete(normalized);
+      }
+    });
+    return { ...job, queued: true };
   }
 
   async function handleNotifications(body = {}) {
@@ -144,18 +273,14 @@ function createMicrosoftGraphChangeNotifications({
       }
 
       const mailboxEmail = parseNotificationMailboxEmail(notification);
-      if (!mailboxEmail || !syncService) {
+      if (!mailboxEmail) {
         continue;
       }
-
-      logger?.log?.(`[graph-webhook] trigger sync mailbox=${mailboxEmail}`);
-      const result = await syncService.runMailboxCycle({
-        mailboxEmail,
-        mode: config.ccoMailIngestionMode || 'read_only',
-        trigger: 'webhook',
-        createdBy: 'graph_webhook',
-      });
-      triggered.push({ mailboxEmail, result });
+      const queued = queueMailboxCycle(mailboxEmail);
+      if (queued.reason === 'mailbox_not_allowlisted') {
+        logger?.warn?.(`[graph-webhook] mailbox utanför allowlist ignorerad: ${mailboxEmail}`);
+      }
+      triggered.push(queued);
     }
 
     return { accepted: notifications.length, triggered };
@@ -165,6 +290,11 @@ function createMicrosoftGraphChangeNotifications({
     buildWebhookUrl,
     createInboxSubscription,
     renewSubscription,
+    ensureInboxSubscriptions,
+    listSubscriptions,
+    queueMailboxCycle,
+    configureRuntime,
+    isWebhookReady,
     handleValidationRequest,
     handleNotifications,
     validateClientState,

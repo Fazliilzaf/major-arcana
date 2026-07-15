@@ -89,7 +89,9 @@ function createCcoMailIngestionRouter({
         enabled: config.ccoMailIngestionEnabled === true,
         mode: config.ccoMailIngestionMode || 'read_only',
         webhookEnabled: config.graphChangeNotificationsEnabled === true,
+        webhookReady: graphNotifications?.isWebhookReady?.() === true,
         webhookUrl: graphNotifications?.buildWebhookUrl?.(config) || null,
+        graphSubscriptions: graphNotifications?.listSubscriptions?.() || [],
         allowlistedMailboxes: [...allowlistedMailboxes],
         jobs: ingestionWorker?.listJobs?.() || [],
         dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }),
@@ -468,14 +470,22 @@ ${unmatched
             .status(503)
             .json({ error: 'Graph change notifications är avstängda i config.' });
         }
-        const mailboxEmail = normalizeEmail(
-          req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
-        );
-        const subscription = await graphNotifications.createInboxSubscription({
-          mailboxEmail,
-          graphUserId: mailboxEmail,
+        if (!graphNotifications?.isWebhookReady?.()) {
+          return res.status(503).json({ error: 'Graph webhook saknar säker konfiguration.' });
+        }
+        const requested = Array.isArray(req.body?.mailboxIds)
+          ? req.body.mailboxIds
+          : [req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox];
+        const mailboxIds = [...new Set(requested.map(normalizeEmail).filter(Boolean))];
+        for (const mailboxEmail of mailboxIds) assertAllowlistedMailbox(mailboxEmail);
+        const result = await graphNotifications.ensureInboxSubscriptions({
+          mailboxEmails: mailboxIds,
         });
-        return res.json({ ok: true, subscription });
+        return res.json({
+          ok: true,
+          ...result,
+          subscription: result.results?.[0]?.subscription || null,
+        });
       })
   );
 
@@ -490,6 +500,9 @@ ${unmatched
 
       if (!config.graphChangeNotificationsEnabled) {
         return res.status(503).json({ error: 'webhook_disabled' });
+      }
+      if (!graphNotifications?.isWebhookReady?.()) {
+        return res.status(503).json({ error: 'webhook_not_ready' });
       }
 
       const result = await graphNotifications.handleNotifications(req.body || {});
