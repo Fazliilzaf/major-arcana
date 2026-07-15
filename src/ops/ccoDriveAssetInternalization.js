@@ -225,9 +225,10 @@ async function collectDriveRowsForInternalization({
   tenantId = 'hair-tp-clinic',
   renderCandidatesOnly = false,
 } = {}) {
-  const pmRows = patientMasterState && !renderCandidatesOnly
-    ? collectPatientMasterDriveRows(patientMasterState, tenantId)
-    : [];
+  const pmRows =
+    patientMasterState && !renderCandidatesOnly
+      ? collectPatientMasterDriveRows(patientMasterState, tenantId)
+      : [];
   const assetRows = assetStore
     ? await collectDriveRowsFromAssetStore(assetStore, {
         storage,
@@ -857,6 +858,7 @@ async function internalizeDriveAssets({
     imported: 0,
     needsReview: 0,
     duplicate: 0,
+    recoveredGhost: 0,
     failed: 0,
     skipped: inventory.stats.reviewQueued,
   };
@@ -901,6 +903,26 @@ async function internalizeDriveAssets({
           body,
         },
       });
+      let recoveredGhost = false;
+      if (
+        knownMissingBlobRows &&
+        result.status === 'DUPLICATE' &&
+        normalizeText(row.canonicalAssetId) &&
+        normalizeText(result.asset?.id) &&
+        typeof assetStore.recoverGhostVisibleBlobFromDriveSource === 'function'
+      ) {
+        await assetStore.recoverGhostVisibleBlobFromDriveSource(
+          row.canonicalAssetId,
+          result.asset.id,
+          {
+            storage,
+            actor,
+            reason: 'exact_original_drive_file_recovery',
+          }
+        );
+        stats.recoveredGhost += 1;
+        recoveredGhost = true;
+      }
       if (result.status === 'DUPLICATE') stats.duplicate += 1;
       else if (result.status === 'NEEDS_REVIEW') stats.needsReview += 1;
       else stats.imported += 1;
@@ -918,6 +940,7 @@ async function internalizeDriveAssets({
           treatmentType: driveMetadata.treatmentType,
           sessionNumber: driveMetadata.sessionNumber,
           visitLabel: driveMetadata.visitLabel,
+          recoveredGhost,
         });
       }
     } catch (error) {
