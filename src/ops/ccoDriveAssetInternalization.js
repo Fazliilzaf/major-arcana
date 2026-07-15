@@ -944,22 +944,33 @@ async function internalizeDriveAssets({
         });
       }
     } catch (error) {
+      const quarantineGhost =
+        isMissingDriveSourceError(error) || error?.code === 'DRIVE_RECOVERY_SOURCE_INVALID';
       if (
         knownMissingBlobRows &&
-        isMissingDriveSourceError(error) &&
+        quarantineGhost &&
         normalizeText(row.canonicalAssetId) &&
         typeof assetStore.transitionStatus === 'function'
       ) {
         try {
           await assetStore.transitionStatus(row.canonicalAssetId, 'NEEDS_REVIEW', {
             actor,
-            reason: 'drive_source_missing_during_blob_recovery',
+            reason:
+              error?.code === 'DRIVE_RECOVERY_SOURCE_INVALID'
+                ? 'drive_source_invalid_during_blob_recovery'
+                : 'drive_source_missing_during_blob_recovery',
           });
           stats.needsReview += 1;
           errors.push({
             driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
-            code: 'drive_source_missing_quarantined',
-            message: 'Drive-källan saknas; canonical asset flyttad till NEEDS_REVIEW.',
+            code:
+              error?.code === 'DRIVE_RECOVERY_SOURCE_INVALID'
+                ? 'drive_source_invalid_quarantined'
+                : 'drive_source_missing_quarantined',
+            message:
+              error?.code === 'DRIVE_RECOVERY_SOURCE_INVALID'
+                ? 'Drive-källan saknar en verifierbar binär; canonical asset flyttad till NEEDS_REVIEW.'
+                : 'Drive-källan saknas; canonical asset flyttad till NEEDS_REVIEW.',
           });
           return;
         } catch (quarantineError) {

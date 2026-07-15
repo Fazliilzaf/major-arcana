@@ -915,6 +915,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     ) {
       const e = new Error('Drive-recovery source saknar verifierad binärmetadata.');
       e.statusCode = 409;
+      e.code = 'DRIVE_RECOVERY_SOURCE_INVALID';
       throw e;
     }
     if (!storage || typeof storage.exists !== 'function') {
@@ -926,6 +927,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       if (!(await storage.exists(sourceKey))) {
         const e = new Error('Drive-recovery source-blob saknas i storage.');
         e.statusCode = 409;
+        e.code = 'DRIVE_RECOVERY_SOURCE_INVALID';
         throw e;
       }
       const canonicalKey = normalizeText(canonical.storageKey);
