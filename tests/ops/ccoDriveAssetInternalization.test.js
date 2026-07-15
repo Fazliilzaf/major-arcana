@@ -21,6 +21,9 @@ const {
   previewInternalizeCandidates,
   findConsecutivePilotWindow,
   buildPilotWindowSearch,
+  classifyDriveImportFailure,
+  reconcileInternalizeChunkStats,
+  isDriveImportQuarantinedAsset,
 } = require('../../src/ops/ccoDriveAssetInternalization');
 
 test('media med starkt datum får date-only fallback när behandlingstyp saknas', () => {
@@ -1078,4 +1081,152 @@ test('parseFolderEncounter: månad+år i samma mapp → folder_month', () => {
     preview.encounterId,
     `${expectedEncounterId.slice(0, 6)}***${expectedEncounterId.slice(-4)}`
   );
+});
+
+test('classifyDriveImportFailure skiljer transient, saknad källa och permanent fel', () => {
+  assert.equal(classifyDriveImportFailure({ status: 429, message: 'rate limit' }), 'transient');
+  assert.equal(
+    classifyDriveImportFailure({ statusCode: 404, message: 'File not found: drive-x' }),
+    'permanent_missing_source'
+  );
+  assert.equal(classifyDriveImportFailure({ status: 403, message: 'forbidden' }), 'permanent');
+});
+
+test('reconcileInternalizeChunkStats kräver attempted = imported + duplicate + needsReview + failed + deferredTransient', () => {
+  assert.deepEqual(
+    reconcileInternalizeChunkStats({
+      attempted: 4,
+      imported: 2,
+      duplicate: 1,
+      needsReview: 0,
+      failed: 0,
+      deferredTransient: 1,
+    }),
+    { ok: true, attempted: 4, accounted: 4 }
+  );
+  assert.throws(
+    () =>
+      reconcileInternalizeChunkStats({
+        attempted: 3,
+        imported: 2,
+        duplicate: 0,
+        needsReview: 0,
+        failed: 0,
+        deferredTransient: 0,
+      }),
+    /chunk_reconciliation_failed/
+  );
+});
+
+test('transient Drive-fel efter retry lämnar originalDriveFileId kvar i remaining-kön', async () => {
+  const rig = await makeRig();
+  try {
+    const rows = [
+      {
+        patientId: 'patient-transient',
+        file: {
+          id: 'idx-transient',
+          driveFileId: 'drive-transient-1',
+          fileName: 'journal.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/Juni/journal.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+    ];
+    const driveClient = {
+      async getFileMetadata() {
+        const error = new Error('temporary backend error');
+        error.status = 503;
+        throw error;
+      },
+      async downloadBuffer() {
+        return Buffer.from('unused');
+      },
+    };
+    const first = await internalizeDriveAssets({
+      rows,
+      assetStore: rig.assetStore,
+      importRunStore: rig.importRunStore,
+      reviewQueueStore: rig.reviewQueueStore,
+      pipeline: rig.pipeline,
+      driveClient,
+      dryRun: false,
+      go: true,
+      driveRetryAttempts: 2,
+      driveRetryBaseDelayMs: 1,
+      driveRetryMaxDelayMs: 1,
+    });
+    assert.equal(first.stats.attempted, 1);
+    assert.equal(first.stats.deferredTransient, 1);
+    assert.equal(first.stats.failed, 0);
+
+    const inventory = await inventoryDriveAssets({
+      rows,
+      assetStore: rig.assetStore,
+      storage: rig.storage,
+    });
+    assert.equal(inventory.stats.remaining, 1);
+    assert.equal(
+      normalizeDriveAssetRow(inventory.remainingRows[0]).driveFileId,
+      'drive-transient-1'
+    );
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
+test('permanent Drive-fel quarantinar till NEEDS_REVIEW med originalDriveFileId och review-kö', async () => {
+  const rig = await makeRig();
+  try {
+    const rows = [
+      {
+        patientId: 'patient-permanent',
+        file: {
+          id: 'idx-permanent',
+          driveFileId: 'drive-permanent-1',
+          fileName: 'journal.pdf',
+          relativePath: 'Hair TP Clinic 2024/Bokade/Juni/journal.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+    ];
+    const report = await internalizeDriveAssets({
+      rows,
+      assetStore: rig.assetStore,
+      importRunStore: rig.importRunStore,
+      reviewQueueStore: rig.reviewQueueStore,
+      pipeline: rig.pipeline,
+      driveClient: {
+        async getFileMetadata() {
+          const error = new Error('forbidden');
+          error.status = 403;
+          throw error;
+        },
+        async downloadBuffer() {
+          return Buffer.from('unused');
+        },
+      },
+      dryRun: false,
+      go: true,
+      driveRetryAttempts: 1,
+    });
+    assert.equal(report.stats.failed, 0);
+    assert.equal(report.stats.needsReview, 1);
+    const asset = rig.assetStore.listItemsForEnrichment()[0];
+    assert.equal(asset.originalDriveFileId, 'drive-permanent-1');
+    assert.equal(asset.status, 'NEEDS_REVIEW');
+    assert.match(asset.reviewReason, /^drive_import_/);
+    assert.equal(isDriveImportQuarantinedAsset(asset), true);
+    assert.equal(rig.reviewQueueStore.listPending().length, 1);
+
+    const inventory = await inventoryDriveAssets({
+      rows,
+      assetStore: rig.assetStore,
+      storage: rig.storage,
+    });
+    assert.equal(inventory.stats.remaining, 0);
+    assert.equal(inventory.stats.quarantined, 1);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
 });
