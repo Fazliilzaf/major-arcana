@@ -23,6 +23,10 @@ const MAX_STORED_BODY_TEXT_CHARS = 16000;
 // bli ett nytt råmail-arkiv. Inline-bilder hanteras som Graph-bilagor vid
 // visning, inte som base64 i truth-sharden.
 const MAX_STORED_BODY_HTML_CHARS = 24000;
+// Inkorgen behöver bara ett litet, säkert läsurval för sortering, identitet och
+// kontaktformulär. Rå HTML, inline-resurser och bilageobjekt läses först när
+// operatören öppnar en specifik tråd.
+const MAX_WORKLIST_BODY_TEXT_CHARS = 4000;
 
 function toStoredBodyHtml(value = '') {
   const html = normalizeText(value);
@@ -306,6 +310,82 @@ function toMessageSortIso(message = {}) {
     normalizeText(message.createdAt) ||
     ''
   );
+}
+
+function truncateWorklistText(value = '') {
+  const text = normalizeText(value);
+  return text ? text.slice(0, MAX_WORKLIST_BODY_TEXT_CHARS) : '';
+}
+
+function toWorklistParticipant(value = {}) {
+  if (typeof value === 'string') return normalizeText(value) || null;
+  const safeValue = asObject(value);
+  const emailAddress = asObject(safeValue.emailAddress);
+  const address = normalizeText(safeValue.address || safeValue.email || emailAddress.address);
+  const name = normalizeText(safeValue.name || emailAddress.name);
+  if (!address && !name) return null;
+  return {
+    address: address || undefined,
+    name: name || undefined,
+  };
+}
+
+function toWorklistParticipants(values = []) {
+  return asArray(values)
+    .slice(0, 100)
+    .map((value) => toWorklistParticipant(value))
+    .filter(Boolean);
+}
+
+function toWorklistMessageSummary(message = {}) {
+  const safeMessage = asObject(message);
+  return {
+    mailboxId: normalizeText(safeMessage.mailboxId),
+    mailboxAddress: normalizeText(safeMessage.mailboxAddress),
+    userPrincipalName: normalizeText(safeMessage.userPrincipalName),
+    mailboxConversationId: normalizeText(safeMessage.mailboxConversationId),
+    conversationId: normalizeText(safeMessage.conversationId),
+    graphMessageId: normalizeText(safeMessage.graphMessageId),
+    messageId: normalizeText(safeMessage.messageId),
+    id: normalizeText(safeMessage.id),
+    internetMessageId: normalizeText(safeMessage.internetMessageId),
+    folderType: normalizeText(safeMessage.folderType),
+    direction: normalizeText(safeMessage.direction),
+    isRead: safeMessage.isRead === true ? true : safeMessage.isRead === false ? false : undefined,
+    subject: normalizeText(safeMessage.subject),
+    bodyPreview: truncateWorklistText(safeMessage.bodyPreview),
+    // Kontaktformulärens kundidentitet finns ibland först efter Graph-previewen.
+    // Ren text är begränsad; rik HTML används aldrig i worklisten.
+    bodyText: truncateWorklistText(
+      safeMessage.bodyText || safeMessage.body_text || safeMessage.text || safeMessage.snippet
+    ),
+    receivedAt: normalizeText(safeMessage.receivedAt),
+    sentAt: normalizeText(safeMessage.sentAt),
+    lastModifiedAt: normalizeText(safeMessage.lastModifiedAt),
+    createdAt: normalizeText(safeMessage.createdAt),
+    from: toWorklistParticipant(safeMessage.from),
+    sender: toWorklistParticipant(safeMessage.sender),
+    toRecipients: toWorklistParticipants(safeMessage.toRecipients),
+    ccRecipients: toWorklistParticipants(safeMessage.ccRecipients),
+    bccRecipients: toWorklistParticipants(safeMessage.bccRecipients),
+    replyToRecipients: toWorklistParticipants(safeMessage.replyToRecipients),
+    recipients: toWorklistParticipants(safeMessage.recipients),
+    senderEmail: normalizeText(safeMessage.senderEmail),
+    senderName: normalizeText(safeMessage.senderName),
+    counterpartyEmail: normalizeText(safeMessage.counterpartyEmail),
+    fromEmail: normalizeText(safeMessage.fromEmail),
+    fromName: normalizeText(safeMessage.fromName),
+    customerEmail: normalizeText(safeMessage.customerEmail),
+    customerKey: normalizeText(safeMessage.customerKey),
+    // Dessa fält är små identitetsbevis. De behövs för säkra patientkopplingar
+    // men innehåller inte mailkropp eller bilagedata.
+    customerIdentity: safeMessage.customerIdentity,
+    identity: safeMessage.identity,
+    hardConflictSignals: safeMessage.hardConflictSignals,
+    mergeReviewDecisionsByPairId: safeMessage.mergeReviewDecisionsByPairId,
+    identityProvenance: safeMessage.identityProvenance,
+    provenance: safeMessage.provenance,
+  };
 }
 
 function hydrateStoredMessage(message = {}, fallbackMailboxId = '') {
@@ -976,12 +1056,11 @@ async function createCcoMailboxTruthStore({
     return checkpointKey ? { ...(state.syncCheckpoints[checkpointKey] || {}) } : null;
   }
 
-  function listMessages({
+  function selectMessages({
     mailboxIds = [],
     folderTypes = [],
     sinceIso = null,
     untilIso = null,
-    limit = 0,
   } = {}) {
     const safeMailboxIds = asArray(mailboxIds)
       .map((item) => normalizeMailboxId(item))
@@ -995,9 +1074,7 @@ async function createCcoMailboxTruthStore({
     const safeUntilIso = normalizeText(untilIso);
     const sinceMs = safeSinceIso ? Date.parse(safeSinceIso) : NaN;
     const untilMs = safeUntilIso ? Date.parse(safeUntilIso) : NaN;
-    const safeLimit = Math.max(0, Number(limit) || 0);
-
-    const rows = Object.values(state.messages)
+    return Object.values(state.messages)
       .filter((message) => {
         const safeMessage = asObject(message);
         const mailboxId = normalizeMailboxId(safeMessage.mailboxId);
@@ -1011,13 +1088,38 @@ async function createCcoMailboxTruthStore({
         if (Number.isFinite(untilMs) && (!Number.isFinite(sortMs) || sortMs > untilMs))
           return false;
         return true;
-      })
+      });
+  }
+
+  function listMessages({
+    mailboxIds = [],
+    folderTypes = [],
+    sinceIso = null,
+    untilIso = null,
+    limit = 0,
+  } = {}) {
+    const safeLimit = Math.max(0, Number(limit) || 0);
+    const rows = selectMessages({ mailboxIds, folderTypes, sinceIso, untilIso })
       .map((message) => {
         const { persistedAt, ...rest } = asObject(message);
         return { ...rest };
       })
       .sort((left, right) => toMessageSortIso(right).localeCompare(toMessageSortIso(left)));
 
+    return safeLimit > 0 ? rows.slice(0, safeLimit) : rows;
+  }
+
+  function listWorklistMessages({
+    mailboxIds = [],
+    folderTypes = [],
+    sinceIso = null,
+    untilIso = null,
+    limit = 0,
+  } = {}) {
+    const safeLimit = Math.max(0, Number(limit) || 0);
+    const rows = selectMessages({ mailboxIds, folderTypes, sinceIso, untilIso })
+      .map((message) => toWorklistMessageSummary(message))
+      .sort((left, right) => toMessageSortIso(right).localeCompare(toMessageSortIso(left)));
     return safeLimit > 0 ? rows.slice(0, safeLimit) : rows;
   }
 
@@ -1318,6 +1420,7 @@ async function createCcoMailboxTruthStore({
     getAccountState,
     getSyncCheckpoint,
     listMessages,
+    listWorklistMessages,
     toNormalizedModel,
     getCompletenessReport,
     getDeltaSyncReport,

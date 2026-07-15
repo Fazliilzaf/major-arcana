@@ -1155,11 +1155,21 @@ function createCcoMailboxTruthWorklistReadModel({
   }
   const customerIdentityLookup = buildCustomerIdentityLookup(customerState);
 
-  function buildConversationRows({ mailboxIds = [] } = {}) {
-    const messages = store.listMessages({
-      mailboxIds,
-      folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
-    });
+  function buildConversationRows({ mailboxIds = [], messages: suppliedMessages = null } = {}) {
+    // Trådöppningen använder fortsatt den rika truth-posten. Worklisten behöver
+    // däremot bara metadata och en begränsad textbit. Det förhindrar att HTML,
+    // inlinebilder och bilagedata kopieras för varje inkorgsuppdatering.
+    const messages = Array.isArray(suppliedMessages)
+      ? suppliedMessages
+      : typeof store.listWorklistMessages === 'function'
+        ? store.listWorklistMessages({
+            mailboxIds,
+            folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
+          })
+        : store.listMessages({
+            mailboxIds,
+            folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
+          });
     const grouped = new Map();
     const contactFormEmailsByBaseKey = collectContactFormEmailsByBaseKey(messages);
 
@@ -1414,15 +1424,14 @@ function createCcoMailboxTruthWorklistReadModel({
   }
 
   function buildReadModel({ mailboxIds = [], limit = 250 } = {}) {
-    const inScopeRows = listWorklistRows({
-      mailboxIds,
-      limit,
-      includeOutOfScopeDraftReview: false,
-    });
-    const outOfScopeRows = listWorklistRows({
-      mailboxIds,
-      includeOutOfScopeDraftReview: true,
-    }).filter((row) => row.outOfScopeDraftReview === true);
+    // Bygg den valda mailboxens kundrader en gång. Tidigare byggdes samma
+    // meddelandekorpus två gånger, vilket gjorde en stor mailbox till en
+    // minnesspik och kunde slå ut health-checken.
+    const allRows = buildConversationRows({ mailboxIds });
+    const safeLimit = Math.max(0, Number(limit) || 0);
+    const inScopeCandidates = allRows.filter((row) => row.outOfScopeDraftReview !== true);
+    const inScopeRows = safeLimit > 0 ? inScopeCandidates.slice(0, safeLimit) : inScopeCandidates;
+    const outOfScopeRows = allRows.filter((row) => row.outOfScopeDraftReview === true);
 
     return {
       generatedAt: new Date().toISOString(),

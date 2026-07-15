@@ -148,6 +148,47 @@ test('worklist read model keeps human replies actionable even after automated re
   assert.equal(consumer.rows[0].state.messageClassification, 'actionable');
 });
 
+test('consumer bygger en mailboxkorpus en gång via den smala worklist-läsningen', () => {
+  const mailboxId = 'contact@hairtpclinic.com';
+  let worklistReads = 0;
+  let richReads = 0;
+  const model = createCcoMailboxTruthWorklistReadModel({
+    store: {
+      listMessages() {
+        richReads += 1;
+        throw new Error('den rika läsvägen ska inte användas av worklisten');
+      },
+      listWorklistMessages() {
+        worklistReads += 1;
+        return [
+          {
+            mailboxId,
+            mailboxAddress: mailboxId,
+            userPrincipalName: mailboxId,
+            mailboxConversationId: `${mailboxId}:patient-1`,
+            conversationId: 'patient-1',
+            graphMessageId: 'patient-1-message',
+            folderType: 'inbox',
+            direction: 'inbound',
+            isRead: false,
+            subject: 'Fråga inför behandling',
+            bodyPreview: 'Hej, jag behöver hjälp inför mitt besök.',
+            from: { address: 'patient@example.com', name: 'Patient' },
+            receivedAt: '2026-07-15T09:00:00.000Z',
+          },
+        ];
+      },
+    },
+  });
+
+  const consumer = model.buildConsumerModel({ mailboxIds: [mailboxId] });
+
+  assert.equal(worklistReads, 1);
+  assert.equal(richReads, 0);
+  assert.equal(consumer.rows.length, 1);
+  assert.equal(consumer.rows[0].customer.email, 'patient@example.com');
+});
+
 test('consumer worklist sorts every mailbox by latest activity before unread priority', () => {
   const mailboxId = 'fazli@hairtpclinic.com';
   const model = createCcoMailboxTruthWorklistReadModel({

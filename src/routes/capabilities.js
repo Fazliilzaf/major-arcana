@@ -236,7 +236,16 @@ async function listWorklistEnrichmentEntries({
   return [...asArray(ccoEntries), ...asArray(analyzeEntries)];
 }
 
-function buildWorklistIngestionPayload({ ingestionStore = null, mailboxIds = [] } = {}) {
+function buildWorklistIngestionPayload({
+  ingestionStore = null,
+  mailboxIds = [],
+  includeDiagnostics = false,
+} = {}) {
+  // Den rika ingestion-diagnostiken traverserar hela råmailarkivet. Operatörens
+  // inkorg använder inte payloaden; radnivåns review-signal kommer redan från
+  // truth-readmodelens ingestion-projektion. Läs därför bara diagnostiken från
+  // explicita drift/readout-vägar, aldrig vid varje UI-refresh.
+  if (includeDiagnostics !== true) return null;
   if (!ingestionStore || typeof ingestionStore.buildDashboardSummary !== 'function') {
     return null;
   }
@@ -9537,6 +9546,7 @@ function toCcoRuntimeWorklistConsumerHandler({
       const ingestion = buildWorklistIngestionPayload({
         ingestionStore: ccoMailIngestionStore,
         mailboxIds: query.mailboxIds,
+        includeDiagnostics: false,
       });
 
       const responsePayload = {
