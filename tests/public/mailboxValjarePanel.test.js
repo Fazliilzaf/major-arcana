@@ -40,9 +40,9 @@ test('visar ärligt datakontrakt i stället för oinkopplade mapp-/dagfilter', (
   assert.doesNotMatch(source, /value: 90, label: '90'/);
 });
 
-test('sticky val i localStorage + läser mailboxes-endpointen', () => {
-  assert.match(source, /cco_mailbox_valjare_v2/);
-  assert.match(source, /mailboxIds: \['contact@hairtpclinic\.com'\]/);
+test('sticky val migrerar från Contact-only till alla produktionsmailboxar', () => {
+  assert.match(source, /cco_mailbox_valjare_v3/);
+  assert.match(source, /mailboxIds: MAILBOXES\.map\(\(mailbox\) => mailbox\.id\)/);
   assert.match(source, /localStorage/);
   assert.match(source, /'\/api\/v1\/cco\/runtime\/mailboxes'/);
   // Väntar-på-data-status när kontraktet ännu inte finns.
