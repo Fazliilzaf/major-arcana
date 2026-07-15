@@ -40,6 +40,10 @@ const {
 const {
   createSecureStorageProvider: createSharedSecureStorageProvider,
 } = require('./src/ops/ccoSecureStorageProvider');
+const {
+  createDriveIngestRuntimeControl,
+  evaluateDriveIngestHardGate,
+} = require('./src/ops/ccoDriveIngestRuntimeControl');
 
 const { getClientoConfigForBrand, getKnowledgeDirForBrand } = require('./src/brand/runtimeConfig');
 const { createCorsPolicy } = require('./src/security/corsPolicy');
@@ -10100,7 +10104,18 @@ try {
     lastError: null,
     stopRequested: false,
   };
+  const __ingestRuntime = createDriveIngestRuntimeControl({
+    stateRoot: process.env.ARCANA_STATE_ROOT || '/var/data',
+  });
+  const __ingestRunnerId = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   async function __runDriveIngestLoop({ chunk, concurrency }) {
+    const lease = __ingestRuntime.acquireLease({ ownerId: __ingestRunnerId });
+    if (!lease.acquired) {
+      __ingestState.running = false;
+      __ingestState.finishedAt = new Date().toISOString();
+      __ingestState.lastError = 'drive_ingest_lease_held';
+      return;
+    }
     try {
       const {
         internalizeDriveAssets,
@@ -10177,6 +10192,13 @@ try {
         'ingest-progress.json'
       );
       while (!__ingestState.stopRequested) {
+        const control = __ingestRuntime.readControl();
+        if (control.paused) {
+          __ingestState.stopRequested = true;
+          __ingestState.pauseReason = control.reason;
+          break;
+        }
+        __ingestRuntime.heartbeat({ ownerId: __ingestRunnerId });
         const report = await internalizeDriveAssets({
           rows,
           assetStore: stores.assetStore,
@@ -10208,6 +10230,20 @@ try {
           /* best-effort */
         }
         invalidateAssetQaCache();
+        const hardGate = evaluateDriveIngestHardGate(st);
+        if (hardGate) {
+          __ingestRuntime.pause({
+            reason: `hard_gate:${hardGate.reason}`,
+            details: {
+              ...hardGate,
+              runId: report?.runId || null,
+              processedChunks: __ingestState.processedChunks,
+            },
+          });
+          __ingestState.hardGate = hardGate;
+          __ingestState.stopRequested = true;
+          break;
+        }
         if (!st.batchSize) break;
         await new Promise((r) => setTimeout(r, 500));
       }
@@ -10216,6 +10252,7 @@ try {
     } finally {
       __ingestState.running = false;
       __ingestState.finishedAt = new Date().toISOString();
+      __ingestRuntime.releaseLease({ ownerId: __ingestRunnerId });
     }
   }
   app.post(
@@ -10252,6 +10289,7 @@ try {
         }
       }
       if (action === 'stop') {
+        __ingestRuntime.pause({ reason: 'manual_stop' });
         __ingestState.stopRequested = true;
         return res.json({ ok: true, stopRequested: true, state: __ingestState });
       }
@@ -10261,6 +10299,7 @@ try {
         }
         const chunk = Math.max(1, Math.min(200, Number(req.query.chunk || 40)));
         const concurrency = Math.max(1, Math.min(8, Number(req.query.concurrency || 4)));
+        __ingestRuntime.resume();
         __ingestState = {
           running: true,
           startedAt: new Date().toISOString(),
@@ -10284,6 +10323,85 @@ try {
       return res.json({ ok: true, state: __ingestState });
     }
   );
+
+  // ── Serversidig auto-resume för Drive-asset-ingesten ──
+  // Tar bort beroendet av en extern (browser-token) ping för att hålla ingesten vid liv.
+  // __ingestState ligger i minnet och nollställs vid varje omdeploy/omstart; loopen är
+  // idempotent (hoppar över redan internaliserade assets) så återinträde är säkert.
+  // Slås av med ARCANA_ASSET_INGEST_AUTORESUME=false. Körs ej i test eller PR-previews.
+  const __ingestAutoResumeEnabled =
+    String(process.env.ARCANA_ASSET_INGEST_AUTORESUME ?? 'false').toLowerCase() === 'true' &&
+    process.env.NODE_ENV !== 'test' &&
+    String(process.env.IS_PULL_REQUEST || '').toLowerCase() !== 'true';
+  let __ingestAutoResumeBackoffUntil = 0;
+  async function __maybeAutoResumeIngest() {
+    try {
+      if (!__ingestAutoResumeEnabled) return;
+      if (__ingestRuntime.readControl().paused) return;
+      if (__ingestState.running) return;
+      if (Date.now() < __ingestAutoResumeBackoffUntil) return;
+      // Kör bara där Drive är konfigurerat (undviker fel-spam i local/preview).
+      let saOk = false;
+      try {
+        const { loadServiceAccountFromEnv } = require('./src/lib/googleDriveClient');
+        saOk = !!(loadServiceAccountFromEnv() || {}).ok;
+      } catch {
+        saOk = false;
+      }
+      if (!saOk) {
+        __ingestAutoResumeBackoffUntil = Date.now() + 6 * 60 * 60 * 1000;
+        return;
+      }
+      const chunk = Math.max(1, Math.min(200, Number(process.env.ARCANA_ASSET_INGEST_CHUNK || 25)));
+      const concurrency = Math.max(
+        1,
+        Math.min(8, Number(process.env.ARCANA_ASSET_INGEST_CONCURRENCY || 1))
+      );
+      __ingestState = {
+        running: true,
+        startedAt: new Date().toISOString(),
+        finishedAt: null,
+        totalRows: 0,
+        processedChunks: 0,
+        attempted: 0,
+        imported: 0,
+        needsReview: 0,
+        duplicate: 0,
+        failed: 0,
+        remaining: null,
+        lastError: null,
+        stopRequested: false,
+        chunk,
+        concurrency,
+        autoResumed: true,
+      };
+      // Loopen självterminerar när inget återstår (batchSize 0). Backa av efter fel,
+      // eller idla längre om det inte fanns något att göra (attempted === 0).
+      __runDriveIngestLoop({ chunk, concurrency })
+        .then(() => {
+          if (__ingestState.lastError) {
+            __ingestAutoResumeBackoffUntil = Date.now() + 30 * 60 * 1000;
+          } else if ((__ingestState.attempted || 0) === 0) {
+            __ingestAutoResumeBackoffUntil = Date.now() + 6 * 60 * 60 * 1000;
+          }
+        })
+        .catch(() => {
+          __ingestAutoResumeBackoffUntil = Date.now() + 30 * 60 * 1000;
+        });
+    } catch {
+      /* watchdog får aldrig kasta */
+    }
+  }
+  if (__ingestAutoResumeEnabled) {
+    const __t0 = setTimeout(() => {
+      __maybeAutoResumeIngest();
+    }, 30 * 1000);
+    if (typeof __t0.unref === 'function') __t0.unref();
+    const __ti = setInterval(() => {
+      __maybeAutoResumeIngest();
+    }, 15 * 60 * 1000);
+    if (typeof __ti.unref === 'function') __ti.unref();
+  }
 
   // ── P0.G: Per-patient asset-listning för patientkort ──
   app.get(

@@ -176,6 +176,7 @@ async function collectDriveRowsFromAssetStore(
     }
     const driveFileId = normalizeText(asset.originalDriveFileId);
     if (!driveFileId) continue;
+    if (isDriveImportQuarantinedAsset(asset)) continue;
     const patientId = normalizeText(asset.patientId);
     if (!patientId || patientId === 'unknown') continue;
     if (await assetBlobVerifiedOnStorage(asset, storage)) continue;
@@ -280,10 +281,18 @@ async function inventoryDriveAssets({
   storage = null,
   sampleSize = 5,
   knownMissingBlobRows = false,
+  quarantineIndex = null,
 } = {}) {
   const index = knownMissingBlobRows
     ? { byDriveFileId: new Map(), bySourceRecordId: new Map() }
     : await buildExistingAssetIndex(assetStore, storage);
+  const quarantinedByDriveFileId =
+    quarantineIndex ||
+    (knownMissingBlobRows
+      ? new Map()
+      : assetStore
+        ? await buildDriveImportQuarantineIndex(assetStore)
+        : new Map());
   const seenDrive = new Map();
   const reportRows = asArray(rows).map(normalizeDriveAssetRow);
   const samples = [];
@@ -298,6 +307,7 @@ async function inventoryDriveAssets({
     missingDriveFileId: 0,
     missingPatientId: 0,
     reviewQueued: 0,
+    quarantined: 0,
     duplicateInputDriveFileIds: 0,
     byFamily: { documents: 0, images: 0, other: 0 },
     byFamilyBytes: { documents: 0, images: 0, other: 0 },
@@ -336,6 +346,10 @@ async function inventoryDriveAssets({
       stats.missingPatientId += 1;
       stats.reviewQueued += 1;
       stats.byMonthFolder[monthFolder].reviewQueued += 1;
+      continue;
+    }
+    if (quarantinedByDriveFileId.has(row.driveFileId)) {
+      stats.quarantined += 1;
       continue;
     }
     stats.eligible += 1;
@@ -702,6 +716,110 @@ function isMissingDriveSourceError(error = {}) {
   );
 }
 
+function classifyDriveImportFailure(error = {}) {
+  if (isMissingDriveSourceError(error) || error?.code === 'DRIVE_RECOVERY_SOURCE_INVALID') {
+    return 'permanent_missing_source';
+  }
+  if (isRetryableDriveError(error)) return 'transient';
+  return 'permanent';
+}
+
+function isDriveImportQuarantinedAsset(asset = {}) {
+  const driveFileId = normalizeText(asset.originalDriveFileId);
+  if (!driveFileId) return false;
+  if (asset.status === 'FAILED_IMPORT') return true;
+  if (asset.status !== 'NEEDS_REVIEW') return false;
+  const reason = normalizeText(asset.reviewReason || asset.statusChangeReason);
+  return /^drive_import_|^drive_source_/.test(reason);
+}
+
+async function buildDriveImportQuarantineIndex(assetStore) {
+  const byDriveFileId = new Map();
+  if (!assetStore || typeof assetStore.listItemsForEnrichment !== 'function') {
+    return byDriveFileId;
+  }
+  for (const asset of asArray(assetStore.listItemsForEnrichment())) {
+    if (!isDriveImportQuarantinedAsset(asset)) continue;
+    const driveFileId = normalizeText(asset.originalDriveFileId);
+    if (driveFileId && !byDriveFileId.has(driveFileId)) byDriveFileId.set(driveFileId, asset);
+  }
+  return byDriveFileId;
+}
+
+function reconcileInternalizeChunkStats(stats = {}) {
+  const attempted = Number(stats.attempted) || 0;
+  const accounted =
+    (Number(stats.imported) || 0) +
+    (Number(stats.duplicate) || 0) +
+    (Number(stats.needsReview) || 0) +
+    (Number(stats.failed) || 0) +
+    (Number(stats.deferredTransient) || 0);
+  if (attempted !== accounted) {
+    const error = new Error(
+      `chunk_reconciliation_failed: attempted=${attempted} accounted=${accounted}`
+    );
+    error.code = 'CHUNK_RECONCILIATION_FAILED';
+    error.details = { attempted, accounted, stats: { ...stats } };
+    throw error;
+  }
+  return { ok: true, attempted, accounted };
+}
+
+async function quarantineDriveImportFailure({
+  row,
+  assetStore,
+  reviewQueueStore,
+  error,
+  actor,
+  reason = null,
+} = {}) {
+  if (!assetStore) throw new Error('assetStore krävs för quarantine.');
+  if (!reviewQueueStore) throw new Error('reviewQueueStore krävs för quarantine.');
+  const quarantineReason =
+    normalizeText(reason) || normalizeText(error?.code) || 'drive_import_permanent_failure';
+  const quarantineMessage = normalizeText(error?.message) || quarantineReason;
+  const canonicalId = normalizeText(row.canonicalAssetId);
+  let asset =
+    canonicalId && typeof assetStore.getAsset === 'function'
+      ? assetStore.getAsset(canonicalId)
+      : null;
+  if (asset) {
+    asset = await assetStore.transitionStatus(canonicalId, 'NEEDS_REVIEW', {
+      actor,
+      reason: quarantineReason,
+    });
+  } else {
+    asset = await assetStore.addAsset(
+      {
+        patientId: row.patientId,
+        sourceSystem: 'drive_import',
+        sourceRecordId: row.sourceRecordId,
+        originalDriveFileId: row.driveFileId,
+        originalDrivePath: row.originalDrivePath,
+        originalFileName: row.originalFileName,
+        mimeType: row.mimeType,
+        fileSize: Math.max(0, Number(row.fileSize) || 0),
+        storageKey: 'pending-no-binary',
+        category: 'other',
+        status: 'NEEDS_REVIEW',
+        reviewReason: quarantineReason,
+        confidence: 'low',
+      },
+      { actor }
+    );
+  }
+  await reviewQueueStore.enqueue(
+    {
+      assetId: asset.id,
+      reason: 'unknown_format',
+      suggestedPatientId: row.patientId,
+      confidence: 'high',
+    },
+    { actor }
+  );
+  return { asset, quarantineReason, quarantineMessage };
+}
+
 function filterInternalizeRemainingRows(
   remainingRows = [],
   {
@@ -860,6 +978,7 @@ async function internalizeDriveAssets({
     duplicate: 0,
     recoveredGhost: 0,
     failed: 0,
+    deferredTransient: 0,
     skipped: inventory.stats.reviewQueued,
   };
   const samples = [];
@@ -925,6 +1044,7 @@ async function internalizeDriveAssets({
       }
       if (result.status === 'DUPLICATE') stats.duplicate += 1;
       else if (result.status === 'NEEDS_REVIEW') stats.needsReview += 1;
+      else if (result.status === 'FAILED_IMPORT' || result.ok === false) stats.failed += 1;
       else stats.imported += 1;
       if (samples.length < sampleSize) {
         samples.push({
@@ -944,8 +1064,10 @@ async function internalizeDriveAssets({
         });
       }
     } catch (error) {
+      const failureClass = classifyDriveImportFailure(error);
       const quarantineGhost =
-        isMissingDriveSourceError(error) || error?.code === 'DRIVE_RECOVERY_SOURCE_INVALID';
+        failureClass === 'permanent_missing_source' ||
+        error?.code === 'DRIVE_RECOVERY_SOURCE_INVALID';
       if (
         knownMissingBlobRows &&
         quarantineGhost &&
@@ -983,12 +1105,45 @@ async function internalizeDriveAssets({
           return;
         }
       }
-      stats.failed += 1;
-      errors.push({
-        driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
-        code: normalizeText(error.code),
-        message: error.message,
-      });
+      if (failureClass === 'transient') {
+        stats.deferredTransient += 1;
+        errors.push({
+          driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
+          code: 'drive_transient_deferred',
+          message: error.message,
+        });
+        return;
+      }
+      try {
+        const quarantined = await quarantineDriveImportFailure({
+          row,
+          assetStore,
+          reviewQueueStore,
+          error,
+          actor,
+          reason:
+            failureClass === 'permanent_missing_source'
+              ? 'drive_source_missing_during_import'
+              : 'drive_import_permanent_failure',
+        });
+        stats.needsReview += 1;
+        errors.push({
+          driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
+          assetId: maskValue(quarantined.asset?.id, { keepStart: 4, keepEnd: 4 }),
+          code:
+            failureClass === 'permanent_missing_source'
+              ? 'drive_source_missing_quarantined'
+              : 'drive_import_permanent_quarantined',
+          message: quarantined.quarantineMessage,
+        });
+      } catch (quarantineError) {
+        stats.failed += 1;
+        errors.push({
+          driveRef: maskValue(row.driveFileId, { keepStart: 4, keepEnd: 4 }),
+          code: 'drive_import_quarantine_failed',
+          message: quarantineError.message,
+        });
+      }
     }
   };
 
@@ -1030,6 +1185,8 @@ async function internalizeDriveAssets({
     // Skriv index 1× för hela chunken (även vid fel) → storen lämnas aldrig i batch-läge.
     if (typeof assetStore.flushBatch === 'function') await assetStore.flushBatch();
   }
+
+  reconcileInternalizeChunkStats(stats);
 
   const run = await importRunStore.finishRun(runId, { actor });
   return {
@@ -1335,7 +1492,13 @@ module.exports = {
   parseFolderEncounter,
   buildInternalizeCandidatePreviewRow,
   buildDriveEncounterFields,
+  buildDriveImportQuarantineIndex,
+  classifyDriveImportFailure,
   isMissingDriveSourceError,
+  isDriveImportQuarantinedAsset,
+  isRetryableDriveError,
+  reconcileInternalizeChunkStats,
+  quarantineDriveImportFailure,
   findConsecutivePilotWindow,
   buildPilotWindowSearch,
   evaluatePilotWindowFailure,
