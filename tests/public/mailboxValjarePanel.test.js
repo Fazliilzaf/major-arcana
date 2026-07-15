@@ -40,13 +40,14 @@ test('visar ärligt datakontrakt i stället för oinkopplade mapp-/dagfilter', (
   assert.doesNotMatch(source, /value: 90, label: '90'/);
 });
 
-test('sticky val migrerar från Contact-only till alla produktionsmailboxar', () => {
+test('sticky val migrerar från Contact-only till alla produktionsmailboxar med ärlig status', () => {
   assert.match(source, /cco_mailbox_valjare_v3/);
   assert.match(source, /mailboxIds: MAILBOXES\.map\(\(mailbox\) => mailbox\.id\)/);
   assert.match(source, /localStorage/);
   assert.match(source, /'\/api\/v1\/cco\/runtime\/mailboxes'/);
-  // Väntar-på-data-status när kontraktet ännu inte finns.
-  assert.match(source, /väntar på data/);
+  assert.match(source, /status hämtas/);
+  assert.match(source, /lastSyncAt/);
+  assert.match(source, /cco:mailbox-status-refresh/);
 });
 
 test('driver inkorgen via selection-change till det befintliga datalagret', () => {

@@ -19,7 +19,9 @@
   // två, så användaren får hela CCO utan en belastningstopp eller gammalt sparat
   // Contact-only-val från v2.
   const LS_KEY = 'cco_mailbox_valjare_v3';
-  const REFRESH_MS = 120000; // auto-läs spegeln var 2:a minut (ingen live-fetch per öppning)
+  // Statusspegeln är bara aggregat från lokal truth-store. En minut ger ärlig
+  // färskhetsinfo utan Graph-läsning eller ny worklist-belastning.
+  const REFRESH_MS = 60000;
   // id → { label, sub, rail }. Rälsfärger ur befintlig CCO-palett (inga nya färger).
   const MAILBOXES = [
     { id: 'kons@hairtpclinic.com', label: 'Kons', sub: 'kons@hairtpclinic.com', rail: '#9c2c62' },
@@ -225,7 +227,7 @@
     }
     function statusMeta(id) {
       const st = statusById[id];
-      if (!st) return el('span', {}, 'väntar på data');
+      if (!st) return el('span', {}, 'status hämtas…');
       if (st.error) {
         return el(
           'span',
@@ -236,13 +238,13 @@
       const c = st.counts || {};
       const sync = relTime(st.lastSyncAt);
       if (st.active === false) return el('span', { class: 'errc' }, 'synk avstängd');
-      if (c.inbox == null && c.sent == null) return el('span', {}, 'aktiv · väntar på första synken');
+      if (c.inbox == null && c.sent == null) return el('span', {}, 'aktiv · ingen lokal status');
       const txt =
         (c.inbox != null ? c.inbox : '–') +
         ' ink · ' +
         (c.sent != null ? c.sent : '–') +
         ' skick' +
-        (sync ? ' · synk ' + sync : '');
+        (sync ? ' · synk ' + sync : ' · delta ' + (st.deltaStatus || 'ej startad').toLowerCase());
       return el('span', {}, txt);
     }
 
@@ -338,6 +340,9 @@
 
     renderRows();
     loadStatus();
+    // Pollern meddelar direkt efter en read-only delta-runda. Då speglar vi den
+    // lokala truth-statusen utan att trigga Graph eller röra operatörens val.
+    document.addEventListener('cco:mailbox-status-refresh', loadStatus);
     // Auto-sync: läs spegeln på schema. Ingen manuell knapp, ingen live-fetch per öppning.
     try {
       window.setInterval(loadStatus, REFRESH_MS);

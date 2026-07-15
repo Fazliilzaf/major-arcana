@@ -2890,8 +2890,25 @@ function createCcoConversationRouter({
           asObject(account),
         ])
       );
+      const deltaReport =
+        ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getDeltaSyncReport === 'function'
+          ? ccoMailboxTruthStore.getDeltaSyncReport({ mailboxIds: configuredMailboxIds })
+          : null;
+      const deltaByMailboxId = new Map(
+        asArray(deltaReport?.accountReports).map((account) => [
+          normalizeText(account?.mailboxId).toLowerCase(),
+          asObject(account),
+        ])
+      );
+      const latestIso = (values = []) => {
+        const timestamps = asArray(values)
+          .map((value) => normalizeText(value))
+          .filter((value) => Number.isFinite(Date.parse(value)));
+        return timestamps.sort((left, right) => Date.parse(right) - Date.parse(left))[0] || null;
+      };
       const mailboxes = configuredMailboxIds.map((mailboxId) => {
         const account = reportByMailboxId.get(mailboxId) || {};
+        const deltaAccount = deltaByMailboxId.get(mailboxId) || {};
         const counts = {};
         for (const folder of asArray(account.folderCounts)) {
           const folderType = normalizeText(folder?.folderType).toLowerCase();
@@ -2899,12 +2916,35 @@ function createCcoConversationRouter({
             counts[folderType] = Math.max(0, Number(folder?.totalItemCount) || 0);
           }
         }
+        const checkpoints = Object.entries(asObject(deltaAccount.checkpointsByFolderType))
+          .filter(([folderType]) => ['inbox', 'sent'].includes(normalizeText(folderType)))
+          .map(([, checkpoint]) => asObject(checkpoint))
+          .filter((checkpoint) => Object.keys(checkpoint).length > 0);
+        const failedCheckpoint = checkpoints.find((checkpoint) =>
+          ['error', 'resync_required'].includes(normalizeText(checkpoint.syncStatus).toLowerCase())
+        );
         return {
           id: mailboxId,
           mailboxId,
           active: Boolean(graphReadConnector),
           status: graphReadConnector ? 'active' : 'inactive',
           completenessStatus: normalizeText(account.accountStatus) || 'NOT VERIFIED',
+          deltaStatus: normalizeText(deltaAccount.accountStatus) || 'NOT STARTED',
+          lastSyncAt: latestIso(
+            checkpoints.flatMap((checkpoint) => [
+              checkpoint.lastSuccessfulAt,
+              checkpoint.lastCompletedAt,
+              checkpoint.lastUpdatedAt,
+            ])
+          ),
+          lastAttemptAt: latestIso(checkpoints.map((checkpoint) => checkpoint.lastAttemptedAt)),
+          error: failedCheckpoint
+            ? {
+                code: normalizeText(failedCheckpoint.lastErrorCode) || 'delta_sync_error',
+                message: normalizeText(failedCheckpoint.lastErrorMessage) || 'Delta-synk misslyckades.',
+                lastAttemptAt: normalizeText(failedCheckpoint.lastAttemptedAt) || null,
+              }
+            : null,
           counts: {
             inbox: counts.inbox || 0,
             sent: counts.sent || 0,

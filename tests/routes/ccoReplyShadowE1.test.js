@@ -244,6 +244,26 @@ test('mailbox-väljaren får aktiv status och endast aggregat för varje konfigu
           })),
         };
       },
+      getDeltaSyncReport({ mailboxIds }) {
+        return {
+          accountReports: mailboxIds.map((mailboxId) => ({
+            mailboxId,
+            accountStatus: 'DELTA ARMED',
+            checkpointsByFolderType: {
+              inbox: {
+                syncStatus: 'delta_armed',
+                lastSuccessfulAt: '2026-07-15T12:00:00.000Z',
+                lastAttemptedAt: '2026-07-15T12:00:00.000Z',
+              },
+              sent: {
+                syncStatus: 'delta_armed',
+                lastSuccessfulAt: '2026-07-15T11:59:00.000Z',
+                lastAttemptedAt: '2026-07-15T11:59:00.000Z',
+              },
+            },
+          })),
+        };
+      },
     },
   });
   await withServer(app, async (baseUrl) => {
@@ -259,6 +279,10 @@ test('mailbox-väljaren får aktiv status och endast aggregat för varje konfigu
         active: true,
         status: 'active',
         completenessStatus: 'VERIFIED',
+        deltaStatus: 'DELTA ARMED',
+        lastSyncAt: '2026-07-15T12:00:00.000Z',
+        lastAttemptAt: '2026-07-15T12:00:00.000Z',
+        error: null,
         counts: { inbox: 129, sent: 4 },
       },
       {
@@ -267,6 +291,10 @@ test('mailbox-väljaren får aktiv status och endast aggregat för varje konfigu
         active: true,
         status: 'active',
         completenessStatus: 'VERIFIED',
+        deltaStatus: 'DELTA ARMED',
+        lastSyncAt: '2026-07-15T12:00:00.000Z',
+        lastAttemptAt: '2026-07-15T12:00:00.000Z',
+        error: null,
         counts: { inbox: 13, sent: 4 },
       },
     ]);
