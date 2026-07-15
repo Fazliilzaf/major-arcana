@@ -2425,6 +2425,7 @@ function createCcoPatientMasterRouter({
           pageSize: Math.max(1, Math.min(Number(req.body?.pageSize) || 500, 2000)),
           sampleSize: clampPreviewLimit(req.body?.sampleSize, 25),
           maskSamples: req.body?.includeReviewDetails !== true,
+          includePassedDetails: req.body?.includeReviewDetails === true,
         });
         await authStore.addAuditEvent({
           tenantId: actor.tenantId,

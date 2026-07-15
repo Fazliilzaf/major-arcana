@@ -30,6 +30,23 @@ test('audits nonverified asset blobs without writes', async () => {
   assert.equal(report.findings.length, 2);
 });
 
+test('includes passed samples only when explicitly requested', async () => {
+  const report = await auditNonverifiedAssetStoragePage({
+    assetStore: {
+      listItemsForEnrichment() {
+        return [{ id: 'asset-good', status: 'IMPORTING', storageKey: 'good' }];
+      },
+    },
+    storage: { exists: async () => true },
+    maskSamples: false,
+    includePassedDetails: true,
+  });
+
+  assert.equal(report.findings.length, 0);
+  assert.equal(report.passedSamples.length, 1);
+  assert.equal(report.passedSamples[0].assetId, 'asset-good');
+});
+
 test('paginates only target statuses', async () => {
   const report = await auditNonverifiedAssetStoragePage({
     assetStore: {
