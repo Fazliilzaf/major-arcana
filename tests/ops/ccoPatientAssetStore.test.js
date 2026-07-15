@@ -58,6 +58,52 @@ test('checkpointBatch persistar pågående batch utan att avsluta batchläget', 
   }
 });
 
+test('recoverGhostVisibleBlobFromDriveSource replaces corrupt legacy metadata from exact Drive source', async () => {
+  const { tmp, store } = await makeStore();
+  const { createLocalProvider } = require('../../src/ops/ccoSecureStorageProvider');
+  const storage = createLocalProvider({ rootPath: path.join(tmp, 'storage') });
+  try {
+    const body = Buffer.from('exact-original-drive-image');
+    const put = await storage.putObject({ body, contentType: 'image/heic' });
+    const canonical = await store.addAsset({
+      ...BASE_ASSET,
+      patientId: 'pat-drive-recovery',
+      originalDriveFileId: 'drive-exact',
+      storageKey: 'missing/corrupt.heic',
+      checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      fileSize: 0,
+      mimeType: 'image/heic',
+      category: 'photo_during',
+      status: 'VERIFIED_IN_CCO',
+    });
+    const source = await store.addAsset({
+      ...BASE_ASSET,
+      patientId: canonical.patientId,
+      originalDriveFileId: 'drive-exact',
+      storageKey: put.storageKey,
+      checksum: put.checksum,
+      fileSize: body.length,
+      mimeType: 'image/heic',
+      category: 'photo_during',
+      status: 'DUPLICATE',
+    });
+
+    const restored = await store.recoverGhostVisibleBlobFromDriveSource(canonical.id, source.id, {
+      storage,
+      actor: { userId: 'test' },
+      reason: 'unit_test',
+    });
+
+    assert.equal(restored.status, 'VERIFIED_IN_CCO');
+    assert.equal(restored.storageKey, put.storageKey);
+    assert.equal(restored.checksum, put.checksum);
+    assert.equal(restored.fileSize, body.length);
+    assert.equal(await storage.exists(restored.storageKey), true);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
 const BASE_ASSET = Object.freeze({
   patientId: 'pat-001',
   sourceSystem: 'drive',

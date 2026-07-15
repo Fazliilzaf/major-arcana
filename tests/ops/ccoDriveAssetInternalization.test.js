@@ -494,6 +494,65 @@ test('verified ghost med saknad Drive-källa flyttas till NEEDS_REVIEW', async (
   }
 });
 
+test('verified ghost with corrupt legacy checksum recovers from the exact Drive source', async () => {
+  const rig = await makeRig();
+  try {
+    const body = Buffer.from('exact-drive-heic');
+    await rig.storage.putObject({ body, contentType: 'image/heic' });
+    const canonical = await rig.assetStore.addAsset({
+      patientId: 'pat-drive-recovery',
+      sourceSystem: 'drive_import',
+      originalDriveFileId: 'drive-exact',
+      storageKey: 'missing/corrupt.heic',
+      checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      fileSize: 0,
+      mimeType: 'image/heic',
+      category: 'photo_during',
+      status: 'VERIFIED_IN_CCO',
+    });
+    const report = await internalizeDriveAssets({
+      rows: [
+        {
+          patientId: canonical.patientId,
+          canonicalAssetId: canonical.id,
+          sourceRecordId: canonical.id,
+          file: {
+            canonicalAssetId: canonical.id,
+            sourceRecordId: canonical.id,
+            driveFileId: canonical.originalDriveFileId,
+            fileName: 'IMG_0001.HEIC',
+            mimeType: 'image/heic',
+          },
+        },
+      ],
+      assetStore: rig.assetStore,
+      importRunStore: rig.importRunStore,
+      reviewQueueStore: rig.reviewQueueStore,
+      pipeline: rig.pipeline,
+      storage: rig.storage,
+      driveClient: {
+        getFileMetadata: async () => ({ name: 'IMG_0001.HEIC', mimeType: 'image/heic' }),
+        downloadBuffer: async () => body,
+      },
+      dryRun: false,
+      go: true,
+      knownMissingBlobRows: true,
+    });
+
+    assert.equal(report.stats.duplicate, 1);
+    assert.equal(report.stats.recoveredGhost, 1);
+    assert.equal(report.stats.failed, 0);
+    const restored = rig.assetStore.getAsset(canonical.id);
+    assert.equal(
+      restored.checksum,
+      (await rig.storage.putObject({ body, contentType: 'image/heic' })).checksum
+    );
+    assert.equal(await rig.storage.exists(restored.storageKey), true);
+  } finally {
+    await fs.rm(rig.tmp, { recursive: true, force: true });
+  }
+});
+
 test('collectDriveRowsForInternalization läser asset store när patient-master saknar attachments', async () => {
   const rig = await makeRig();
   try {

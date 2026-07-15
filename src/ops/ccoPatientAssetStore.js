@@ -851,6 +851,125 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     return { ...merged };
   }
 
+  /**
+   * A legacy ghost can carry a checksum for an empty/failed historical write.
+   * When the exact original Drive file has just been downloaded again, its
+   * duplicate import is authoritative even though the old checksum differs.
+   */
+  async function recoverGhostVisibleBlobFromDriveSource(
+    canonicalAssetId,
+    sourceAssetId,
+    { storage = null, actor = {}, reason = null } = {}
+  ) {
+    const canonicalId = normalizeText(canonicalAssetId);
+    const sourceId = normalizeText(sourceAssetId);
+    const canonical = state.items[canonicalId];
+    const source = state.items[sourceId];
+
+    if (!canonical || !source) {
+      const e = new Error('canonical eller source asset saknas.');
+      e.statusCode = 404;
+      throw e;
+    }
+    if (canonicalId === sourceId) {
+      const e = new Error('canonical och source får inte vara samma asset.');
+      e.statusCode = 400;
+      throw e;
+    }
+    if (!['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(normalizeText(canonical.status))) {
+      const e = new Error('Drive-recovery kräver synlig eller verifierad canonical asset.');
+      e.statusCode = 409;
+      throw e;
+    }
+    if (normalizeText(source.status) !== 'DUPLICATE') {
+      const e = new Error('Drive-recovery kräver en ny DUPLICATE från exakt källfil.');
+      e.statusCode = 409;
+      throw e;
+    }
+    if (normalizeText(canonical.patientId) !== normalizeText(source.patientId)) {
+      const e = new Error('cross-patient Drive-recovery är inte tillåten.');
+      e.statusCode = 409;
+      throw e;
+    }
+
+    const canonicalDriveId = normalizeText(canonical.originalDriveFileId);
+    const sourceDriveId = normalizeText(source.originalDriveFileId);
+    if (!canonicalDriveId || canonicalDriveId !== sourceDriveId) {
+      const e = new Error(
+        'Drive-recovery kräver samma originalDriveFileId på canonical och source.'
+      );
+      e.statusCode = 409;
+      throw e;
+    }
+
+    const sourceKey = normalizeText(source.storageKey);
+    const sourceChecksum = normalizeText(source.checksum);
+    const sourceSize = Number(source.fileSize);
+    const sourceMime = normalizeText(source.mimeType);
+    if (
+      !sourceKey ||
+      sourceKey === 'pending-no-binary' ||
+      !sourceChecksum ||
+      !(sourceSize > 0) ||
+      !sourceMime
+    ) {
+      const e = new Error('Drive-recovery source saknar verifierad binärmetadata.');
+      e.statusCode = 409;
+      throw e;
+    }
+    if (!storage || typeof storage.exists !== 'function') {
+      const e = new Error('Drive-recovery kräver storage.exists.');
+      e.statusCode = 503;
+      throw e;
+    }
+    try {
+      if (!(await storage.exists(sourceKey))) {
+        const e = new Error('Drive-recovery source-blob saknas i storage.');
+        e.statusCode = 409;
+        throw e;
+      }
+      const canonicalKey = normalizeText(canonical.storageKey);
+      if (
+        canonicalKey &&
+        canonicalKey !== 'pending-no-binary' &&
+        (await storage.exists(canonicalKey))
+      ) {
+        const e = new Error('canonical asset har redan verifierad blob.');
+        e.statusCode = 409;
+        throw e;
+      }
+    } catch (error) {
+      if (error?.statusCode) throw error;
+      const e = new Error(`storage.exists misslyckades: ${error.message}`);
+      e.statusCode = 500;
+      throw e;
+    }
+
+    const merged = normalizeAsset(
+      {
+        ...canonical,
+        storageProvider:
+          normalizeText(source.storageProvider) || canonical.storageProvider || 'local',
+        storageKey: sourceKey,
+        checksum: sourceChecksum,
+        fileSize: sourceSize,
+        mimeType: sourceMime,
+        thumbnailKey: source.thumbnailKey || canonical.thumbnailKey || null,
+      },
+      canonical
+    );
+    state.items[canonicalId] = merged;
+    await save();
+    logAudit(auditLog, 'asset.ghost_visible_recovered_from_drive_source', merged, actor, 'ok', {
+      reason: reason || null,
+      sourceAssetId: sourceId,
+      originalDriveFileId: sourceDriveId,
+      previousStorageKey: canonical.storageKey || null,
+      previousChecksum: canonical.checksum || null,
+    });
+    return { ...merged };
+  }
+
   async function recordChecksumVerified(id, checksum, { actor = {} } = {}) {
     const assetId = normalizeText(id);
     const existing = state.items[assetId];
@@ -1426,6 +1545,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     patchAssetNamingMetadata,
     attachImportedBinary,
     reattachGhostVisibleBlobFromSibling,
+    recoverGhostVisibleBlobFromDriveSource,
     recordChecksumVerified,
     linkAssetToPatient,
     linkAssetToEncounter,
