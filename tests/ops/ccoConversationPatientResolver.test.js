@@ -8,6 +8,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  applyPatientRollupIdentity,
+  buildPatientRollupIdentity,
   resolveConversationPatient,
   resolveConversationPatients,
 } = require('../../src/ops/ccoConversationPatientResolver');
@@ -56,6 +58,29 @@ test('cliento_* används INTE som canonical id — patientId är patient.id', as
   assert.doesNotMatch(r.patientId, /^cliento_/);
   assert.equal(r.matchedBy, 'cliento.emails');
   assert.equal(r.confidence, 0.9);
+});
+
+test('rollup-identitet använder patient.id men behandlar e-postalias som legitima', () => {
+  const overlay = buildPatientRollupIdentity(
+    {
+      status: 'matched',
+      patientId: 'patient-uuid-1',
+      displayName: 'Anna Karlsson',
+      matchedBy: 'emails',
+      confidence: 0.9,
+    },
+    'anna.work@example.com'
+  );
+
+  assert.equal(overlay.customerIdentity.canonicalCustomerId, 'patient-uuid-1');
+  assert.equal(overlay.customerIdentity.customerEmail, 'anna.work@example.com');
+  assert.equal(overlay.customerIdentity.verifiedPersonalEmailNormalized, null);
+  assert.equal(overlay.customerIdentity.verifiedPhoneE164, null);
+  assert.equal(overlay.identityProvenance.source, 'patient_master');
+
+  const row = { customerEmail: 'shared@example.com', customerIdentity: { customerKey: 'legacy' } };
+  const [untouched] = applyPatientRollupIdentity([row], [{ status: 'ambiguous' }]);
+  assert.equal(untouched, row, 'ambiguous match får inte ändra eller länka raden');
 });
 
 test('match via pipedrive.emails', async () => {
