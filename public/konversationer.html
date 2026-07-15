@@ -3192,6 +3192,19 @@
         );
       }
 
+      function worklistMailboxChunks(selectedMailboxIds = [], mailboxIds = LIVE_MAILBOX_IDS) {
+        const selected = canonicalMailboxIds(selectedMailboxIds);
+        const all = canonicalMailboxIds(mailboxIds);
+        if (!selected.length) return [];
+        // Ett enskilt valt konto ska aldrig dela sitt första läsanrop med ett
+        // annat konto. Då kan ett tillfälligt fel i t.ex. Kons inte blockera
+        // Fazlis egen arbetsvy. Resterande lokal historik läses fortfarande
+        // säkert två i taget, efter ankaret.
+        const selectedChunks = selected.length === 1 ? [selected] : chunkMailboxIds(selected);
+        const remaining = all.filter((mailboxId) => !selected.includes(mailboxId));
+        return [...selectedChunks, ...chunkMailboxIds(remaining)];
+      }
+
       function threadMatchesMailboxScope(thread = {}, mailboxIds = []) {
         const selected = new Set(canonicalMailboxIds(mailboxIds));
         if (!selected.size) return false;
@@ -5475,6 +5488,7 @@
       let liveInboxRetryTimer = null;
       let liveInboxFetchInFlight = false;
       let liveInboxReloadQueued = false;
+      let liveInboxPartialFailureKey = '';
 
       function mergeWorklistThreads(threads) {
         const merged = new Map();
@@ -5539,14 +5553,15 @@
         // "Alla" används för att en Fazli-rad också ska visa kundens Contact/Kons-
         // meddelanden när patientkopplingen är entydig.
         const selectedScopeMailboxIds = canonicalMailboxIds(selectedMailboxIds);
-        const requestMailboxIds = canonicalMailboxIds(LIVE_MAILBOX_IDS);
+        const requestMailboxChunks = worklistMailboxChunks(selectedScopeMailboxIds);
         const selectionMailboxKey = selectedScopeMailboxIds.join(',');
         clearTimeout(liveInboxRetryTimer);
         let failureStatus = 0;
         let failureReason = '';
         try {
           const scopedPayloads = [];
-          for (const mailboxChunk of chunkMailboxIds(requestMailboxIds)) {
+          const failedMailboxChunks = [];
+          for (const mailboxChunk of requestMailboxChunks) {
             let response;
             try {
               // Kör sekventiellt för att inte skapa en ny belastningstopp när
@@ -5556,16 +5571,19 @@
                 headers: withAdminAuthHeaders({ Accept: 'application/json' }),
               });
             } catch (networkError) {
-              failureReason = `Nätverksfel — nådde inte CCO-worklist (${
+              const reason = `Nätverksfel — nådde inte CCO-worklist (${
                 networkError?.name || 'NetworkError'
               }: ${networkError?.message || 'okänt'}).`;
-              throw networkError;
+              failedMailboxChunks.push({ mailboxIds: mailboxChunk, status: 0, reason });
+              continue;
             }
             if (!response.ok) {
-              failureStatus = response.status;
-              throw new Error(
-                response.status === 401 ? 'login_required' : `worklist_${response.status}`
-              );
+              failedMailboxChunks.push({
+                mailboxIds: mailboxChunk,
+                status: response.status,
+                reason: describeWorklistFailure(response.status),
+              });
+              continue;
             }
             try {
               scopedPayloads.push({
@@ -5573,11 +5591,26 @@
                 payload: await response.json(),
               });
             } catch (parseError) {
-              failureReason = `Servern svarade utan giltig JSON (HTTP ${
+              const reason = `Servern svarade utan giltig JSON (HTTP ${
                 response.status
               }, content-type: ${response.headers.get('content-type') || 'okänd'}).`;
-              throw parseError;
+              failedMailboxChunks.push({
+                mailboxIds: mailboxChunk,
+                status: response.status,
+                reason,
+              });
             }
+          }
+          const selectedMailboxLoaded = scopedPayloads.some(({ mailboxIds }) =>
+            mailboxIds.some((mailboxId) => selectedScopeMailboxIds.includes(mailboxId))
+          );
+          if (!selectedMailboxLoaded) {
+            const selectedFailure = failedMailboxChunks.find(({ mailboxIds }) =>
+              mailboxIds.some((mailboxId) => selectedScopeMailboxIds.includes(mailboxId))
+            );
+            failureStatus = selectedFailure?.status || 0;
+            failureReason = selectedFailure?.reason || 'CCO-worklist svarade utan data.';
+            throw new Error('selected_mailbox_unavailable');
           }
           liveInboxAttempt = 0;
           const truthReports = scopedPayloads.flatMap(({ payload }) =>
@@ -5686,6 +5719,25 @@
               `CCO-inkorg: ${currentThreads.length} trådar från ${selectedMailboxLabel(selectedScopeMailboxIds)}`,
               'success'
             );
+          }
+          const partialFailureKey = failedMailboxChunks
+            .flatMap(({ mailboxIds }) => mailboxIds)
+            .sort()
+            .join(',');
+          if (!partialFailureKey) liveInboxPartialFailureKey = '';
+          if (
+            partialFailureKey &&
+            partialFailureKey !== liveInboxPartialFailureKey &&
+            window.CCOPolish?.showToast
+          ) {
+            const failedLabels = failedMailboxChunks
+              .flatMap(({ mailboxIds }) => mailboxIds)
+              .join(', ');
+            window.CCOPolish.showToast(
+              `Historik från ${failedLabels} kunde inte läsas just nu. Din valda inkorg är fortfarande laddad.`,
+              'warning'
+            );
+            liveInboxPartialFailureKey = partialFailureKey;
           }
         } catch (error) {
           console.warn('[cco-live-inbox] worklist kunde inte laddas', error);
