@@ -92,6 +92,16 @@ test('konversationer live inbox reuses admin Bearer token for CCO API calls', ()
   assert.match(html, /headers:\s*withAdminAuthHeaders\(\{\s*Accept:\s*'application\/json'\s*\}\)/);
 });
 
+test('konversationer removes Gmail safety notices without hiding the customer preview', () => {
+  const html = readHtml();
+
+  assert.match(html, /function stripMailboxSafetyNotice\(value = ''\)/);
+  assert.match(html, /Du\\s\+får\\s\+inte\\s\+e-post\\s\+ofta\\s\+från/);
+  assert.match(html, /You\\s\+don't\\s\+often\\s\+get\\s\+email\\s\+from/);
+  assert.match(html, /const cleanPreview = stripMailboxSafetyNotice\(/);
+  assert.match(html, /return stripMailboxSafetyNotice\(\[/);
+});
+
 test('konversationer web/admin shows explicit live STOP states instead of demo fallback', () => {
   const html = readHtml();
 
