@@ -10208,6 +10208,45 @@ try {
           /* best-effort */
         }
         invalidateAssetQaCache();
+
+        // Hård-gate efter varje chunk. Samma stoppvillkor som den säkra runnern.
+        // SÄKERHET: vid tripped gate ELLER om själva utvärderingen kastar →
+        // persistera en paus, sätt stopRequested och bryt. Fortsätt aldrig.
+        try {
+          const gateMod = require('./src/ops/ccoAssetIngestPauseGate');
+          const STATE_ROOT = process.env.ARCANA_STATE_ROOT || '/var/data';
+          let snap = null;
+          try {
+            snap = await buildAssetQaSnapshot({ tenantId: 'hair_tp' });
+          } catch {
+            snap = null;
+          }
+          const gate = gateMod.evaluateHardGate({ state: __ingestState, snapshot: snap });
+          if (gate.tripped) {
+            gateMod.writePause(STATE_ROOT, { reason: gate.reason, detail: gate.detail });
+            __ingestState.stopRequested = true;
+            __ingestState.pausedReason = gate.reason;
+            __ingestState.lastError = __ingestState.lastError || 'hard_gate:' + gate.reason;
+            break;
+          }
+        } catch (gateErr) {
+          // Gate-utvärderingen kastade — fail safe: paus + stopp + break.
+          try {
+            const gateMod2 = require('./src/ops/ccoAssetIngestPauseGate');
+            const STATE_ROOT2 = process.env.ARCANA_STATE_ROOT || '/var/data';
+            gateMod2.writePause(STATE_ROOT2, {
+              reason: 'gate_error',
+              detail: String((gateErr && gateErr.message) || gateErr),
+            });
+          } catch {
+            /* writePause kastar aldrig; extra skydd */
+          }
+          __ingestState.stopRequested = true;
+          __ingestState.pausedReason = 'gate_error';
+          __ingestState.lastError = __ingestState.lastError || 'hard_gate:gate_error';
+          break;
+        }
+
         if (!st.batchSize) break;
         await new Promise((r) => setTimeout(r, 500));
       }
@@ -10251,11 +10290,31 @@ try {
           return res.status(500).json({ error: e.message });
         }
       }
+      const __pauseMod = require('./src/ops/ccoAssetIngestPauseGate');
+      const STATE_ROOT = process.env.ARCANA_STATE_ROOT || '/var/data';
       if (action === 'stop') {
+        // Manuellt stopp = persistent paus. Watchdogen får INTE återstarta efter
+        // detta (eller efter deploy/omstart) förrän action=resume kallas explicit.
         __ingestState.stopRequested = true;
-        return res.json({ ok: true, stopRequested: true, state: __ingestState });
+        __pauseMod.writePause(STATE_ROOT, { reason: 'manual_stop' });
+        return res.json({
+          ok: true,
+          stopRequested: true,
+          paused: true,
+          state: __ingestState,
+        });
       }
-      if (action === 'start') {
+      if (action === 'start' || action === 'resume') {
+        if (action === 'resume') {
+          // Operatörens explicita avblockering: rensa den persistenta pausen.
+          __pauseMod.clearPause(STATE_ROOT);
+        } else {
+          // start: vägra starta medan en persistent paus finns kvar.
+          const pause = __pauseMod.readPause(STATE_ROOT);
+          if (pause) {
+            return res.json({ ok: false, paused: true, pause });
+          }
+        }
         if (__ingestState.running) {
           return res.json({ ok: true, already: true, state: __ingestState });
         }
@@ -10279,9 +10338,19 @@ try {
           concurrency,
         };
         __runDriveIngestLoop({ chunk, concurrency });
+        if (action === 'resume') {
+          return res.json({
+            ok: true,
+            resumed: true,
+            started: true,
+            chunk,
+            concurrency,
+            state: __ingestState,
+          });
+        }
         return res.json({ ok: true, started: true, chunk, concurrency, state: __ingestState });
       }
-      return res.json({ ok: true, state: __ingestState });
+      return res.json({ ok: true, state: __ingestState, pause: __pauseMod.readPause(STATE_ROOT) });
     }
   );
 
@@ -10289,17 +10358,28 @@ try {
   // Tar bort beroendet av en extern (browser-token) ping för att hålla ingesten vid liv.
   // __ingestState ligger i minnet och nollställs vid varje omdeploy/omstart; loopen är
   // idempotent (hoppar över redan internaliserade assets) så återinträde är säkert.
-  // Slås av med ARCANA_ASSET_INGEST_AUTORESUME=false. Körs ej i test eller PR-previews.
+  // AV som standard (opt-in). Slås PÅ endast med ARCANA_ASSET_INGEST_AUTORESUME=true
+  // (explicit Render-env). Körs aldrig i test eller PR-previews.
   const __ingestAutoResumeEnabled =
-    String(process.env.ARCANA_ASSET_INGEST_AUTORESUME ?? 'true').toLowerCase() !== 'false' &&
+    String(process.env.ARCANA_ASSET_INGEST_AUTORESUME || '').toLowerCase() === 'true' &&
     process.env.NODE_ENV !== 'test' &&
     String(process.env.IS_PULL_REQUEST || '').toLowerCase() !== 'true';
   let __ingestAutoResumeBackoffUntil = 0;
   async function __maybeAutoResumeIngest() {
     try {
-      if (!__ingestAutoResumeEnabled) return;
-      if (__ingestState.running) return;
-      if (Date.now() < __ingestAutoResumeBackoffUntil) return;
+      const pauseMod = require('./src/ops/ccoAssetIngestPauseGate');
+      const STATE_ROOT = process.env.ARCANA_STATE_ROOT || '/var/data';
+      // Persistent paus (manuellt stopp eller tripped hård-gate) överlever
+      // deploy/omstart — respektera den tills action=resume kallas.
+      const pause = pauseMod.readPause(STATE_ROOT);
+      const decision = pauseMod.shouldAutoResume({
+        enabled: __ingestAutoResumeEnabled,
+        running: __ingestState.running,
+        paused: !!pause,
+        now: Date.now(),
+        backoffUntil: __ingestAutoResumeBackoffUntil,
+      });
+      if (!decision.resume) return;
       // Kör bara där Drive är konfigurerat (undviker fel-spam i local/preview).
       let saOk = false;
       try {
@@ -10357,9 +10437,12 @@ try {
       __maybeAutoResumeIngest();
     }, 30 * 1000);
     if (typeof __t0.unref === 'function') __t0.unref();
-    const __ti = setInterval(() => {
-      __maybeAutoResumeIngest();
-    }, 15 * 60 * 1000);
+    const __ti = setInterval(
+      () => {
+        __maybeAutoResumeIngest();
+      },
+      15 * 60 * 1000
+    );
     if (typeof __ti.unref === 'function') __ti.unref();
   }
 
