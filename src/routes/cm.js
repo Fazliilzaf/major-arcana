@@ -309,6 +309,61 @@ function createCmRouter({
     }
   );
 
+  // ORD-75b · Omkoppling: promotade CFO-utgifter som saknar underlag får
+  // originalmail + bilagor kopplade i efterhand (avdragsbevis-kedjan bakåt).
+  router.post(
+    '/cm/relink-expense-attachments',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!cfoExpenseStore?.listExpenses || !cfoExpenseStore?.updateExpense) {
+        return res.status(502).json({ ok: false, error: 'cfoExpenseStore saknas' });
+      }
+      const results = { ok: true, checked: 0, relinked: 0, skipped: 0, errors: [] };
+      try {
+        const expenses = await cfoExpenseStore.listExpenses({ limit: 500 });
+        const list = Array.isArray(expenses) ? expenses : expenses?.items || [];
+        for (const e of list) {
+          if (Array.isArray(e.attachmentKeys) && e.attachmentKeys.length > 0) continue;
+          const recId = (String(e.notes || '').match(/cm-record ([0-9a-f-]{36})/) || [])[1];
+          if (!recId) continue;
+          results.checked++;
+          const record = cmStore.getExpenseRecordById(recId);
+          if (!record) {
+            results.skipped++;
+            continue;
+          }
+          const keys = [];
+          if (record.documentId) {
+            const doc = cmStore.getDocumentById(record.documentId);
+            if (doc?.storagePath) keys.push(doc.storagePath);
+          }
+          const rawItem = record.rawItemId ? cmStore.getRawItemById(record.rawItemId) : null;
+          if (rawItem?.originalStorageKey && !keys.includes(rawItem.originalStorageKey)) {
+            keys.push(rawItem.originalStorageKey);
+          }
+          if (!keys.length) {
+            results.skipped++;
+            continue;
+          }
+          try {
+            await cfoExpenseStore.updateExpense({
+              id: e.id,
+              patch: { attachmentKeys: keys },
+              actor: 'cm-relink-ord75',
+            });
+            results.relinked++;
+          } catch (err) {
+            results.errors.push({ expenseId: e.id, error: err.message });
+          }
+        }
+        return res.json(results);
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   // AI extraction — skicka bild eller text, få strukturerad data tillbaka
   router.post('/cm/extract', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), async (req, res) => {
     const { imageBase64, mimeType, text, source } = req.body || {};
