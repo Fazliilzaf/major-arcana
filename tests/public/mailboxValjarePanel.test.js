@@ -20,8 +20,8 @@ test('modulen laddas i konversationer.html', () => {
   assert.match(page, /konversationer-mailbox-valjare\.js/);
 });
 
-test('alla åtta brevlådor finns (Kons, Contact, Egzona, Fazli, Marknad, Kvitto, Hälso + Alla)', () => {
-  for (const label of ['Kons', 'Contact', 'Egzona', 'Fazli', 'Marknad', 'Kvitto', 'Hälso']) {
+test('alla produktionsbrevlådor finns (inklusive Info) samt Alla-valet', () => {
+  for (const label of ['Kons', 'Info', 'Contact', 'Egzona', 'Fazli', 'Marknad', 'Kvitto', 'Hälso']) {
     assert.match(source, new RegExp("label: '" + label + "'"));
   }
   // "Alla" = select-all i UI:t.
@@ -40,8 +40,8 @@ test('visar ärligt datakontrakt i stället för oinkopplade mapp-/dagfilter', (
   assert.doesNotMatch(source, /value: 90, label: '90'/);
 });
 
-test('sticky val migrerar från Contact-only till alla produktionsmailboxar med ärlig status', () => {
-  assert.match(source, /cco_mailbox_valjare_v3/);
+test('sticky val migrerar till alla produktionsmailboxar med ärlig status', () => {
+  assert.match(source, /cco_mailbox_valjare_v4/);
   assert.match(source, /mailboxIds: MAILBOXES\.map\(\(mailbox\) => mailbox\.id\)/);
   assert.match(source, /localStorage/);
   assert.match(source, /'\/api\/v1\/cco\/runtime\/mailboxes'/);

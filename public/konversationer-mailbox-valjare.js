@@ -15,16 +15,23 @@
  */
 
 (function () {
-  // v3 börjar med samtliga produktionsbrevlådor. Worklisten chunkar dem två och
-  // två, så användaren får hela CCO utan en belastningstopp eller gammalt sparat
-  // Contact-only-val från v2.
-  const LS_KEY = 'cco_mailbox_valjare_v3';
+  // v4 börjar med samtliga produktionsbrevlådor. En tidigare sparad begränsning
+  // får aldrig dölja ett nyligen aktiverat konto när CCO öppnas första gången
+  // efter den här migrationen. Efteråt är användarens egna filter fortsatt
+  // sticky som vanligt.
+  const LS_KEY = 'cco_mailbox_valjare_v4';
   // Statusspegeln är bara aggregat från lokal truth-store. En minut ger ärlig
   // färskhetsinfo utan Graph-läsning eller ny worklist-belastning.
   const REFRESH_MS = 60000;
   // id → { label, sub, rail }. Rälsfärger ur befintlig CCO-palett (inga nya färger).
   const MAILBOXES = [
     { id: 'kons@hairtpclinic.com', label: 'Kons', sub: 'kons@hairtpclinic.com', rail: '#9c2c62' },
+    {
+      id: 'info@hairtpclinic.com',
+      label: 'Info',
+      sub: 'info@hairtpclinic.com',
+      rail: 'var(--rail-info, #4a7ba8)',
+    },
     {
       id: 'contact@hairtpclinic.com',
       label: 'Contact',
