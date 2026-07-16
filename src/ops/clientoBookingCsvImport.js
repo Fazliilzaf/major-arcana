@@ -200,6 +200,17 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
     }
     if (!clientoCustomerId) skippedNoId += 1;
     const serviceLabel = normalizeText(row['Tjänstens namn'] || row['Tjänst']);
+    const bookingNotes = normalizeText(row['Bokningsanteckning']);
+    const customerMessage = normalizeText(row['Meddelande från kund']);
+    const internalNotes = joinNotes(
+      row['Anteckningar'],
+      row['Anteckning'],
+      row['Noteringar'],
+      row['Kommentar']
+    );
+    const treatmentNotes = normalizeText(
+      row['Behandlingsanteckning'] || row['Behandlingsnotering'] || row['Beskrivning']
+    );
     bookings.push({
       bookingId:
         normalizeText(row['Boknings-id']) ||
@@ -217,14 +228,11 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       rawStatus: normalizeText(row['Status']),
       source: 'cliento_csv',
       clientoCustomerId,
-      notes: joinNotes(
-        row['Bokningsanteckning'],
-        row['Meddelande från kund'],
-        row['Anteckningar'],
-        row['Anteckning'],
-        row['Noteringar'],
-        row['Kommentar']
-      ),
+      bookingNotes,
+      customerMessage,
+      internalNotes,
+      treatmentNotes,
+      notes: joinNotes(bookingNotes, customerMessage, internalNotes, treatmentNotes),
       sourceMessageId: normalizeText(row['Bokningsreferens']),
     });
   }

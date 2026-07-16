@@ -866,16 +866,75 @@
       text(item.title) || text(item.type) || text(item.serviceLabel) || text(item.nextBookingType);
     var sub = text(item.area) || text(item.sub) || text(item.resourceLabel);
     var st = bookingStaff(item.sub || sub);
+    var rawState = text(item.status || item.state) || 'planned';
+    var stateKey = rawState.toLowerCase().replace(/[\s-]+/g, '_');
+    var stateLabels = {
+      upcoming: 'Bokad',
+      confirmed: 'Bokad',
+      reserved: 'Bokad',
+      completed: 'Genomförd',
+      cancelled: 'Avbokad',
+      canceled: 'Avbokad',
+      no_show: 'Utebliven',
+    };
+    var notes = [];
+    [
+      ['Bokningsanteckning', item.bookingNotes],
+      ['Kundmeddelande', item.customerMessage],
+      ['Intern anteckning', item.internalNotes],
+      ['Behandlingsanteckning', item.treatmentNotes],
+    ].forEach(function (row) {
+      if (text(row[1])) notes.push({ label: row[0], text: text(row[1]) });
+    });
+    toArray(item.journalNotes).forEach(function (note) {
+      if (text(note && note.text)) {
+        notes.push({ label: text(note.label) || 'Journalnotering', text: text(note.text) });
+      }
+    });
+    if (!notes.length && text(item.notes))
+      notes.push({ label: 'Anteckning', text: text(item.notes) });
     return {
       iso: iso,
       whenLong: whenLong,
       whenShort: whenShort,
       title: title || 'Besök',
       sub: sub,
-      state: text(item.state) || 'planned',
-      stateLabel: text(item.stateLabel),
+      state: stateKey,
+      stateLabel: text(item.stateLabel) || stateLabels[stateKey] || rawState,
       staff: st.staff,
       initials: st.initials,
+      patientId: text(item.patientId),
+      encounterId: text(item.encounterId),
+      notes: notes,
+    };
+  }
+
+  function bookingFromVisitSegment(segment) {
+    segment = segment || {};
+    var booking = segment.booking || {};
+    var encounter = segment.encounter || {};
+    var journalNotes = [];
+    toArray(segment.journals).forEach(function (journal) {
+      toArray(journal && journal.notes).forEach(function (note) {
+        journalNotes.push({
+          label: text(note && note.label) || text(journal.title) || 'Journalnotering',
+          text: text(note && note.text),
+        });
+      });
+    });
+    return {
+      iso: booking.startsAt || encounter.startsAt || segment.date,
+      title: booking.title || encounter.serviceLabel || 'Besök',
+      resourceLabel: booking.resourceLabel || encounter.resourceLabel,
+      status: booking.status || encounter.status || 'completed',
+      patientId: booking.patientId,
+      encounterId: segment.encounterId || booking.encounterId || encounter.encounterId,
+      notes: booking.notes,
+      bookingNotes: booking.bookingNotes,
+      customerMessage: booking.customerMessage,
+      internalNotes: booking.internalNotes,
+      treatmentNotes: booking.treatmentNotes,
+      journalNotes: journalNotes,
     };
   }
 
@@ -951,8 +1010,26 @@
     card = card || {};
     bcard = bcard || {};
     var rows = [];
+    var visitSegments = toArray(dossierBundle && dossierBundle.visitSegments).filter(
+      function (segment) {
+        if (
+          !segment ||
+          (!segment.booking && !segment.encounter && !toArray(segment.journals).length)
+        ) {
+          return false;
+        }
+        var visit = bookingFromVisitSegment(segment);
+        var state = text(visit.status)
+          .toLowerCase()
+          .replace(/[\s-]+/g, '_');
+        if (['completed', 'cancelled', 'canceled', 'no_show'].indexOf(state) >= 0) return true;
+        var at = Date.parse(visit.iso || '');
+        return isFinite(at) && at < Date.now();
+      }
+    );
+    if (visitSegments.length) rows = visitSegments.map(bookingFromVisitSegment);
     var kkx = global.CcoKundkortKkx;
-    if (kkx && typeof kkx.resolveReferensBookingExtras === 'function') {
+    if (!rows.length && kkx && typeof kkx.resolveReferensBookingExtras === 'function') {
       try {
         var bx = kkx.resolveReferensBookingExtras(card, dossierBundle || {}, {
           occasionTimeline:
@@ -966,12 +1043,9 @@
     if (!rows.length) rows = toArray(card.bookingHistory);
     if (!rows.length) rows = toArray(bcard.bookingHistory);
 
-    var items = rows
-      .map(normalizeBooking)
-      .filter(function (it) {
-        return it.whenLong || it.title;
-      })
-      .slice(0, 8);
+    var items = rows.map(normalizeBooking).filter(function (it) {
+      return it.whenLong || it.title;
+    });
 
     return { items: items, count: items.length };
   }

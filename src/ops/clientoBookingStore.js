@@ -97,6 +97,8 @@ function normalizeBooking(input = {}) {
     customerName: normalizeText(safe.customerName),
     customerPhone,
     clientoCustomerId,
+    patientId: normalizeText(safe.patientId),
+    encounterId: normalizeText(safe.encounterId || safe.treatmentEncounterId),
     serviceLabel: normalizeText(safe.serviceLabel || safe.service),
     staffName: normalizeText(safe.staffName || safe.staff),
     locationName: normalizeText(safe.locationName || safe.location),
@@ -108,6 +110,10 @@ function normalizeBooking(input = {}) {
     status: normalizeText(safe.status) || 'unknown', // upcoming | completed | cancelled | no_show | unknown
     rawStatus: normalizeText(safe.rawStatus),
     source: normalizeText(safe.source) || 'cliento',
+    bookingNotes: normalizeText(safe.bookingNotes),
+    customerMessage: normalizeText(safe.customerMessage),
+    internalNotes: normalizeText(safe.internalNotes),
+    treatmentNotes: normalizeText(safe.treatmentNotes),
     notes: normalizeText(safe.notes),
     sourceMessageId: normalizeText(safe.sourceMessageId || safe.internetMessageId),
     createdAt: nowIso(),
@@ -186,10 +192,16 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
         'customerName',
         'customerPhone',
         'clientoCustomerId',
+        'patientId',
+        'encounterId',
         'serviceLabel',
         'staffName',
         'locationName',
         'rawStatus',
+        'bookingNotes',
+        'customerMessage',
+        'internalNotes',
+        'treatmentNotes',
         'notes',
         'sourceMessageId',
       ];
@@ -257,7 +269,7 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     let totalCustomers = 0;
     let totalBookings = 0;
     let upcoming = 0;
-    let nowMs = Date.now();
+    const nowMs = Date.now();
     for (const [key, list] of Object.entries(state.bookings)) {
       if (t && !key.startsWith(t + '::')) continue;
       totalCustomers += 1;

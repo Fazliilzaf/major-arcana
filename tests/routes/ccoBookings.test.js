@@ -1296,6 +1296,88 @@ test('cco bookings calendar rebook uppdaterar ärende via bookingCaseId', async 
   }
 });
 
+test('calendar-bundle exposes the same canonical Cliento visit used by Kunder', async () => {
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: {
+        async listCasesInRange() {
+          return [];
+        },
+      },
+      clientoBookingStore: {
+        listAllBookings() {
+          return [
+            {
+              bookingId: 'cliento-calendar-1',
+              customerEmail: 'canonical@example.com',
+              customerName: 'Canonical Patient',
+              startsAt: '2026-05-20T09:00:00.000Z',
+              endsAt: '2026-05-20T09:30:00.000Z',
+              status: 'cancelled',
+              serviceLabel: 'PRP',
+              bookingNotes: 'Avbokad via telefon',
+              internalNotes: 'Ring åter',
+            },
+          ];
+        },
+      },
+      treatmentEncounterStore: {
+        listEncountersForEnrichment() {
+          return [
+            {
+              patientId: 'patient-canonical',
+              encounterId: 'encounter-canonical',
+              bookingId: 'cliento-calendar-1',
+              startsAt: '2026-05-20T09:00:00.000Z',
+            },
+          ];
+        },
+      },
+      patientMasterStore: {
+        async listPatients() {
+          return {
+            patients: [
+              {
+                id: 'patient-canonical',
+                primaryEmail: 'canonical@example.com',
+                emails: [],
+                phones: [],
+                fileSummary: {},
+              },
+            ],
+          };
+        },
+      },
+      authStore: {
+        async getSessionContextByToken() {
+          return null;
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: { defaultTenantId: 'tenant-a', brand: 'hair-tp-clinic', brandByHost: {} },
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(
+      `${baseUrl}/cco-bookings/calendar-bundle?fromDate=2026-05-20&toDate=2026-05-20`
+    );
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.visits.length, 1);
+    assert.equal(payload.visits[0].patientId, 'patient-canonical');
+    assert.equal(payload.visits[0].encounterId, 'encounter-canonical');
+    assert.equal(payload.visits[0].status, 'cancelled');
+    assert.equal(payload.visits[0].bookingNotes, 'Avbokad via telefon');
+    assert.equal(payload.visits[0].internalNotes, 'Ring åter');
+  });
+});
+
 test('cco bookings calendar-signals returns operational signals for date range', async () => {
   const fixture = await createFixture();
   try {

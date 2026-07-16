@@ -70,6 +70,7 @@ function createCcoClientoBookingIngest({
         endsAt: parsed.endsAt,
         status: parsed.status,
         source: parsed.source,
+        bookingNotes: parsed.notes,
         notes: parsed.notes,
       },
     });

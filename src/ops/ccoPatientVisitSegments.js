@@ -346,6 +346,25 @@ function resolveJournalDate(entry) {
   return '';
 }
 
+function collectJournalNoteLines(fields, prefix = '', lines = []) {
+  if (!fields || typeof fields !== 'object' || lines.length >= 100) return lines;
+  for (const [key, value] of Object.entries(fields)) {
+    const label = prefix ? `${prefix} · ${key}` : key;
+    if (value && typeof value === 'object') {
+      collectJournalNoteLines(value, label, lines);
+      continue;
+    }
+    if (!/(note|anteck|notering|comment|bed[oö]m|assessment|summary|sammanfatt|plan)/i.test(key)) {
+      continue;
+    }
+    const text = Array.isArray(value)
+      ? value.map(normalizeText).filter(Boolean).join(', ')
+      : normalizeText(value);
+    if (text) lines.push({ label, text });
+  }
+  return lines;
+}
+
 function buildJournalEntry(entry) {
   return {
     entryId: normalizeText(entry?.entryId) || null,
@@ -356,6 +375,8 @@ function buildJournalEntry(entry) {
     status: normalizeText(entry?.status) || 'draft',
     locked: Boolean(entry?.locked),
     canEdit: entry?.canEdit !== false && !entry?.locked,
+    visibility: normalizeText(entry?.visibility) || 'shared',
+    notes: collectJournalNoteLines(entry?.fields),
   };
 }
 
@@ -390,6 +411,8 @@ function buildBookingEntry(booking) {
   const startsAt = resolveStartsAt(booking);
   return {
     bookingId: normalizeText(booking?.bookingId || booking?.id) || null,
+    patientId: normalizeText(booking?.patientId) || null,
+    encounterId: normalizeText(booking?.encounterId || booking?.treatmentEncounterId) || null,
     startsAt: startsAt || null,
     endsAt: normalizeTimelineDateTime(booking?.endsAt || booking?.endAt) || null,
     title:
@@ -399,6 +422,10 @@ function buildBookingEntry(booking) {
     locationLabel:
       normalizeText(booking?.locationLabel || booking?.locationName || booking?.roomLabel) || null,
     notes: normalizeText(booking?.notes || booking?.note) || null,
+    bookingNotes: normalizeText(booking?.bookingNotes) || null,
+    customerMessage: normalizeText(booking?.customerMessage) || null,
+    internalNotes: normalizeText(booking?.internalNotes) || null,
+    treatmentNotes: normalizeText(booking?.treatmentNotes) || null,
   };
 }
 
@@ -550,6 +577,9 @@ function seedBookingRooms(segments, bookings) {
             segment.encounter?.bookingId === booking.bookingId
         ) || null
       : null;
+    if (!target && booking.encounterId) {
+      target = segments.find((segment) => segment.encounterId === booking.encounterId) || null;
+    }
     if (!target) {
       const timeLabel = formatTimeLabel(booking.startsAt);
       const candidates = segments.filter(
@@ -561,9 +591,14 @@ function seedBookingRooms(segments, bookings) {
       if (candidates.length === 1) target = candidates[0];
     }
     if (!target) {
-      target = createEmptyVisitRoom({ date, startsAt: booking.startsAt });
+      target = createEmptyVisitRoom({
+        date,
+        startsAt: booking.startsAt,
+        encounterId: booking.encounterId,
+      });
       segments.push(target);
     }
+    if (!target.encounterId && booking.encounterId) target.encounterId = booking.encounterId;
     target.booking = booking;
   }
 }

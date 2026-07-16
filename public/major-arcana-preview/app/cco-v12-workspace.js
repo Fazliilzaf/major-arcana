@@ -667,6 +667,17 @@
       );
     }
     function historyRow(it) {
+      var notes = (it.notes || [])
+        .map(function (note) {
+          return (
+            '<div class="v12-workspace__booking-note"><strong>' +
+            esc(note.label || 'Anteckning') +
+            ':</strong> ' +
+            esc(note.text || '') +
+            '</div>'
+          );
+        })
+        .join('');
       return (
         '<li class="v12-workspace__booking"><button type="button" class="v12-workspace__booking-row v12-workspace__booking-row--history" data-v9-section-link="historik">' +
         '<span class="v12-workspace__booking-when"><span class="v12-workspace__booking-date">' +
@@ -679,7 +690,17 @@
         esc(it.title) +
         '</span>' +
         (it.sub ? '<span class="v12-workspace__booking-sub">' + esc(it.sub) + '</span>' : '') +
-        '</span><span class="v12-workspace__booking-done" aria-hidden="true">✓</span></button></li>'
+        '</span>' +
+        (it.stateLabel
+          ? '<span class="v12-workspace__booking-status" data-state="' +
+            esc(it.state) +
+            '">' +
+            esc(it.stateLabel) +
+            '</span>'
+          : '') +
+        '</button>' +
+        (notes ? '<div class="v12-workspace__booking-notes">' + notes + '</div>' : '') +
+        '</li>'
       );
     }
 

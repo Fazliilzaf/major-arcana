@@ -1018,7 +1018,7 @@ function createCcoPatientMasterRouter({
       visitEncounters = await treatmentEncounterStore.listByPatient({
         tenantId: actor.tenantId,
         patientId: patient.id,
-        limit: 20,
+        limit: 5000,
       });
     }
 
@@ -1493,6 +1493,7 @@ function createCcoPatientMasterRouter({
           paymentHistoryMeta: payload.paymentHistoryMeta || null,
           driveFiles: payload.driveFiles || [],
           occasionTimeline: payload.occasionTimeline || [],
+          visitSegments: payload.visitSegments || [],
           communicationMessages: payload.communicationMessages || [],
           driveJournalNativePilot: payload.driveJournalNativePilot || null,
           ready: true,

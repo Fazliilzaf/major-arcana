@@ -18,6 +18,49 @@ function loadAdapters(windowOverrides = {}) {
 
 const A = loadAdapters();
 
+test('V11/V12 history uses canonical visit segments without truncating statuses or notes', () => {
+  const history = A.buildHistoryFromExtras(
+    { id: 'patient-canonical' },
+    {},
+    {
+      visitSegments: [
+        {
+          date: '2026-05-20',
+          encounterId: 'encounter-canonical',
+          booking: {
+            patientId: 'patient-canonical',
+            startsAt: '2026-05-20T09:00:00.000Z',
+            title: 'PRP',
+            status: 'no_show',
+            internalNotes: 'Ring åter',
+            treatmentNotes: 'Ingen behandling utförd',
+          },
+          journals: [
+            {
+              title: 'PRP-journal',
+              notes: [{ label: 'assessment', text: 'Medicinsk bedömning' }],
+            },
+          ],
+        },
+      ],
+    },
+    []
+  );
+  assert.equal(history.count, 1);
+  assert.equal(history.items[0].patientId, 'patient-canonical');
+  assert.equal(history.items[0].encounterId, 'encounter-canonical');
+  assert.equal(history.items[0].state, 'no_show');
+  assert.equal(history.items[0].stateLabel, 'Utebliven');
+  assert.deepEqual(
+    Array.from(history.items[0].notes, (note) => `${note.label}:${note.text}`),
+    [
+      'Intern anteckning:Ring åter',
+      'Behandlingsanteckning:Ingen behandling utförd',
+      'assessment:Medicinsk bedömning',
+    ]
+  );
+});
+
 test('buildStepAssets mappar dokument → rätt steg via filnamn', () => {
   const journey = {
     steps: [

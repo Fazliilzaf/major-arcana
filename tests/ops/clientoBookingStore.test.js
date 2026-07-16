@@ -94,6 +94,11 @@ test('normalizeBooking preserves Cliento journey identity, status and notes', ()
     status: 'no_show',
     rawStatus: 'No show',
     notes: 'Kunden kom inte till konsultationen.',
+    bookingNotes: 'Bokningsnot',
+    internalNotes: 'Intern not',
+    treatmentNotes: 'Behandlingsnot',
+    patientId: 'patient-canonical',
+    encounterId: 'encounter-1',
     sourceMessageId: '<message-1@cliento.com>',
   });
   assert.equal(b.customerPhone, '070 123 45 67');
@@ -101,6 +106,11 @@ test('normalizeBooking preserves Cliento journey identity, status and notes', ()
   assert.equal(b.status, 'no_show');
   assert.equal(b.rawStatus, 'No show');
   assert.equal(b.notes, 'Kunden kom inte till konsultationen.');
+  assert.equal(b.bookingNotes, 'Bokningsnot');
+  assert.equal(b.internalNotes, 'Intern not');
+  assert.equal(b.treatmentNotes, 'Behandlingsnot');
+  assert.equal(b.patientId, 'patient-canonical');
+  assert.equal(b.encounterId, 'encounter-1');
   assert.equal(b.sourceMessageId, '<message-1@cliento.com>');
 });
 

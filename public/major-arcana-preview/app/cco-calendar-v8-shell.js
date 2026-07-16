@@ -2259,7 +2259,23 @@
     var title = booked
       ? slot.title || slot.serviceLabel || 'Bokning'
       : 'Ledig' + (slot.resourceLabel ? ' · ' + slot.resourceLabel : '');
-    var sub = booked ? slot.resourceLabel || '' : slot.serviceLabel || '';
+    var sub = booked
+      ? [slot.customerName || slot.patientName || '', slot.resourceLabel || '']
+          .filter(Boolean)
+          .join(' · ')
+      : slot.serviceLabel || '';
+    var noteText = [
+      slot.bookingNotes,
+      slot.customerMessage,
+      slot.internalNotes,
+      slot.treatmentNotes,
+      slot.notes,
+    ]
+      .filter(Boolean)
+      .filter(function (value, index, rows) {
+        return rows.indexOf(value) === index;
+      })
+      .join('\n\n');
     return (
       '<div class="booking" data-source="' +
       (booked ? 'info' : 'open') +
@@ -2277,6 +2293,12 @@
       v8Esc(slot.serviceLabel || '') +
       '" data-v8-st="' +
       v8Esc(booked ? slot.status || 'Bekräftad' : 'Ledig tid') +
+      '" data-v8-patient-id="' +
+      v8Esc(slot.patientId || '') +
+      '" data-v8-patient-name="' +
+      v8Esc(slot.customerName || slot.patientName || '') +
+      '" data-v8-notes="' +
+      v8Esc(noteText) +
       '" style="top:' +
       Math.round(top) +
       'px;height:' +
@@ -2411,7 +2433,7 @@
     try {
       var d = card.dataset || {};
       var booked = d.v8Open !== '1';
-      var name = booked ? d.v8Title || 'Bokning' : 'Ledig tid';
+      var name = booked ? d.v8PatientName || d.v8Title || 'Bokning' : 'Ledig tid';
       var intel = root.querySelector('.intel-shell');
       if (!intel) return;
       var setText = function (sel, val) {
@@ -2423,6 +2445,21 @@
         '.intel-meta',
         (booked ? 'Bokning' : 'Öppen lucka') + (d.v8Res ? ' · ' + d.v8Res : '')
       );
+      var reason = intel.querySelector('.ai-reason');
+      if (reason) reason.textContent = d.v8Notes || 'Inga anteckningar registrerade för besöket.';
+      var actions = intel.querySelector('.intel-actions');
+      if (actions) {
+        var existingLink = actions.querySelector('[data-v8-open-canonical-patient]');
+        if (existingLink) existingLink.remove();
+        if (d.v8PatientId) {
+          var patientLink = document.createElement('a');
+          patientLink.className = 'quick-pill';
+          patientLink.dataset.v8OpenCanonicalPatient = '1';
+          patientLink.href = '/staff?view=customers&patientId=' + encodeURIComponent(d.v8PatientId);
+          patientLink.textContent = 'Öppna kund i V11/V12';
+          actions.prepend(patientLink);
+        }
+      }
       var av = intel.querySelector('.intel-avatar');
       if (av) {
         av.textContent = booked

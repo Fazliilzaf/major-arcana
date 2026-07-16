@@ -757,6 +757,20 @@ html[data-cco-mobile-shell="on"]
   width: 100%;
 }
 
+.v12-workspace__booking-notes {
+  margin: 4px 12px 10px 82px;
+  display: grid;
+  gap: 4px;
+  color: var(--v12-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.v12-workspace__booking-note strong {
+  color: var(--v12-ink);
+}
+
 /* ===== Kundens nuläge-modul (sektion 1) ===== */
 .v12-workspace__cs-identity {
   display: flex;

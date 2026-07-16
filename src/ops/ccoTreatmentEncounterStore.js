@@ -155,7 +155,7 @@ async function createCcoTreatmentEncounterStore({ filePath }) {
           normalizeText(item.patientId) === normalizeText(patientId)
       )
       .sort((a, b) => Date.parse(b.startsAt || b.updatedAt) - Date.parse(a.startsAt || a.updatedAt))
-      .slice(0, Math.max(1, Math.min(200, Number(limit) || 50)))
+      .slice(0, Math.max(1, Math.min(5000, Number(limit) || 50)))
       .map(cloneEncounter);
   }
 

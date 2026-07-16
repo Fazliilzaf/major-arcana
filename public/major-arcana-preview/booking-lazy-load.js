@@ -1,7 +1,7 @@
 "use strict";
 
 (function initBookingLazyLoad() {
-  const VERSION = "build-cal-v8-17-dossier";
+  const VERSION = "canonical-visit-history-1";
   const CSS_HREF = `./cco-calendar.css?v=${VERSION}`;
   const SCRIPTS = Object.freeze({
     shared: `./booking-calendar-shared.js?v=${VERSION}`,

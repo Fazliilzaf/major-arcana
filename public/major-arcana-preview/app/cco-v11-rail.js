@@ -645,6 +645,17 @@
         '<ul class="v11-rail__history-list">' +
         h.items
           .map(function (it) {
+            var notes = (it.notes || [])
+              .map(function (note) {
+                return (
+                  '<div class="v11-rail__history-note"><strong>' +
+                  esc(note.label || 'Anteckning') +
+                  ':</strong> ' +
+                  esc(note.text || '') +
+                  '</div>'
+                );
+              })
+              .join('');
             return (
               '<li class="v11-rail__history-item">' +
               '<button type="button" class="v11-rail__history-row" data-v9-section-link="historik">' +
@@ -662,8 +673,15 @@
               '</span>' +
               (it.sub ? '<span class="v11-rail__history-sub">' + esc(it.sub) + '</span>' : '') +
               '</span>' +
-              '<span class="v11-rail__history-badge" aria-hidden="true">✓</span>' +
+              (it.stateLabel
+                ? '<span class="v11-rail__booking-status" data-state="' +
+                  esc(it.state) +
+                  '">' +
+                  esc(it.stateLabel) +
+                  '</span>'
+                : '') +
               '</button>' +
+              (notes ? '<div class="v11-rail__history-notes">' + notes + '</div>' : '') +
               '</li>'
             );
           })

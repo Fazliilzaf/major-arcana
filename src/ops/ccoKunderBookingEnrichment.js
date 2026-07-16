@@ -175,27 +175,51 @@ function buildPatientLookupMaps(patients = []) {
   const emailToPatient = new Map();
   const clientoIdToPatient = new Map();
   const phoneToPatient = new Map();
+  const patientIds = new Set();
+  const ambiguous = { emails: new Set(), clientoIds: new Set(), phones: new Set() };
+  const addUnique = (map, conflicts, key, patientId) => {
+    if (!key || conflicts.has(key)) return;
+    const existing = map.get(key);
+    if (existing && existing !== patientId) {
+      map.delete(key);
+      conflicts.add(key);
+      return;
+    }
+    map.set(key, patientId);
+  };
   for (const patient of asArray(patients)) {
     const patientId = normalizeText(patient.id);
     if (!patientId) continue;
+    patientIds.add(patientId);
     const emails = new Set(
       [patient.primaryEmail, ...asArray(patient.emails)].map(normalizeEmail).filter(Boolean)
     );
     for (const email of emails) {
-      if (!emailToPatient.has(email)) emailToPatient.set(email, patientId);
+      addUnique(emailToPatient, ambiguous.emails, email, patientId);
     }
-    const clientoId = normalizeText(asObject(patient.cliento).sourceId);
-    if (clientoId && !clientoIdToPatient.has(clientoId)) {
-      clientoIdToPatient.set(clientoId, patientId);
+    const cliento = asObject(patient.cliento);
+    const clientoIds = new Set(
+      [cliento.sourceId, cliento.canonicalCustomerId, cliento.customerKey]
+        .map(normalizeText)
+        .filter(Boolean)
+    );
+    for (const identity of asArray(patient.identities)) {
+      if (normalizeKey(identity?.source || identity?.system) === 'cliento') {
+        const id = normalizeText(identity?.sourceId || identity?.externalId || identity?.id);
+        if (id) clientoIds.add(id);
+      }
+    }
+    for (const clientoId of clientoIds) {
+      addUnique(clientoIdToPatient, ambiguous.clientoIds, clientoId, patientId);
     }
     const phones = new Set(
       [patient.primaryPhone, ...asArray(patient.phones)].map(phoneMatchKey).filter(Boolean)
     );
     for (const phone of phones) {
-      if (!phoneToPatient.has(phone)) phoneToPatient.set(phone, patientId);
+      addUnique(phoneToPatient, ambiguous.phones, phone, patientId);
     }
   }
-  return { emailToPatient, clientoIdToPatient, phoneToPatient };
+  return { emailToPatient, clientoIdToPatient, phoneToPatient, patientIds, ambiguous };
 }
 
 function buildEmailToPatientMap(patients = []) {
@@ -203,6 +227,8 @@ function buildEmailToPatientMap(patients = []) {
 }
 
 function resolvePatientIdFromClientoBooking(clientoBooking, lookup) {
+  const explicitPatientId = normalizeText(clientoBooking.patientId);
+  if (explicitPatientId && lookup.patientIds?.has(explicitPatientId)) return explicitPatientId;
   const email = normalizeEmail(clientoBooking.customerEmail);
   if (email && lookup.emailToPatient.has(email)) {
     return lookup.emailToPatient.get(email);
@@ -245,6 +271,12 @@ function normalizeBookingReadout({
   resourceLabel = '',
   locationLabel = '',
   notes = '',
+  bookingNotes = '',
+  customerMessage = '',
+  internalNotes = '',
+  treatmentNotes = '',
+  encounterId = '',
+  patientName = '',
   status = 'confirmed',
   source = 'internal',
   id = '',
@@ -285,6 +317,12 @@ function normalizeBookingReadout({
     resourceLabel: staffName,
     locationLabel: normalizeText(locationLabel) || null,
     notes: normalizeText(notes) || null,
+    bookingNotes: normalizeText(bookingNotes) || null,
+    customerMessage: normalizeText(customerMessage) || null,
+    internalNotes: normalizeText(internalNotes) || null,
+    treatmentNotes: normalizeText(treatmentNotes) || null,
+    encounterId: normalizeText(encounterId) || null,
+    patientName: normalizeText(patientName) || null,
     status: normalizeText(status) || 'confirmed',
     source,
   };
@@ -295,16 +333,45 @@ function collectBookingReadouts({
   engineBookings = [],
   bookingCases = [],
   clientoBookings = [],
+  encounters = [],
   lookup = buildPatientLookupMaps(patients),
 } = {}) {
   const emailToPatient = lookup.emailToPatient;
   const rows = [];
+  const encounterByBookingId = new Map();
+  const encountersByPatient = new Map();
+  for (const encounter of asArray(encounters)) {
+    const patientId = normalizeText(encounter.patientId);
+    const bookingId = normalizeText(encounter.bookingId);
+    if (bookingId && patientId) encounterByBookingId.set(`${patientId}::${bookingId}`, encounter);
+    if (patientId) {
+      if (!encountersByPatient.has(patientId)) encountersByPatient.set(patientId, []);
+      encountersByPatient.get(patientId).push(encounter);
+    }
+  }
+  const resolveEncounterId = (patientId, booking) => {
+    const explicit = normalizeText(booking?.encounterId || booking?.treatmentEncounterId);
+    if (explicit) return explicit;
+    const bookingId = normalizeText(booking?.bookingId || booking?.id);
+    const exact = bookingId ? encounterByBookingId.get(`${patientId}::${bookingId}`) : null;
+    if (exact) return normalizeText(exact.encounterId);
+    const startsAtMs = parseMs(booking?.startsAt || booking?.slot?.startsAt);
+    if (startsAtMs == null) return '';
+    const candidates = asArray(encountersByPatient.get(patientId)).filter((encounter) => {
+      const encounterMs = parseMs(encounter.startsAt);
+      return encounterMs != null && Math.abs(encounterMs - startsAtMs) <= 5 * 60 * 1000;
+    });
+    return candidates.length === 1 ? normalizeText(candidates[0].encounterId) : '';
+  };
   const push = (row) => {
     if (row) rows.push(row);
   };
 
   for (const booking of asArray(engineBookings)) {
-    const patientId = emailToPatient.get(normalizeEmail(booking.customerEmail));
+    const patientId =
+      (lookup.patientIds?.has(normalizeText(booking.patientId)) &&
+        normalizeText(booking.patientId)) ||
+      emailToPatient.get(normalizeEmail(booking.customerEmail));
     if (!patientId) continue;
     const slot = asObject(booking.slot);
     push(
@@ -317,7 +384,10 @@ function collectBookingReadouts({
         serviceId: slot.serviceId,
         serviceLabel: slot.serviceLabel,
         resourceLabel: slot.resourceLabel,
+        notes: booking.notes,
         status: booking.status,
+        encounterId: resolveEncounterId(patientId, booking),
+        patientName: booking.customerName,
         source: 'cco_booking_engine',
       })
     );
@@ -338,11 +408,17 @@ function collectBookingReadouts({
           serviceId: safeSlot.serviceId,
           serviceLabel: safeSlot.serviceLabel,
           resourceLabel: safeSlot.resourceLabel,
+          notes: bookingCase.notes,
           status:
             normalizeKey(bookingCase.status) === 'confirmed_external'
               ? 'confirmed'
               : bookingCase.status,
           source: 'cco_booking_store',
+          encounterId: resolveEncounterId(patientId, {
+            ...safeSlot,
+            bookingId: bookingCase.bookingId,
+          }),
+          patientName: bookingCase.customerName,
         })
       );
     }
@@ -351,7 +427,6 @@ function collectBookingReadouts({
   for (const clientoBooking of asArray(clientoBookings)) {
     const patientId = resolvePatientIdFromClientoBooking(clientoBooking, lookup);
     if (!patientId) continue;
-    if (normalizeKey(clientoBooking.status) === 'cancelled') continue;
     push(
       normalizeBookingReadout({
         patientId,
@@ -363,8 +438,14 @@ function collectBookingReadouts({
         resourceLabel: clientoBooking.staffName,
         locationLabel: clientoBooking.locationName,
         notes: clientoBooking.notes,
+        bookingNotes: clientoBooking.bookingNotes,
+        customerMessage: clientoBooking.customerMessage,
+        internalNotes: clientoBooking.internalNotes,
+        treatmentNotes: clientoBooking.treatmentNotes,
         status: clientoBooking.status,
         source: 'cliento',
+        encounterId: resolveEncounterId(patientId, clientoBooking),
+        patientName: clientoBooking.customerName,
       })
     );
   }
@@ -390,7 +471,9 @@ function collectBookingReadouts({
       out.set(row.patientId, { upcomingBookings: [], historyBookings: [] });
     }
     const bucket = out.get(row.patientId);
-    if (isFutureVisit(row.startsAt, now)) bucket.upcomingBookings.push(row);
+    const status = normalizeKey(row.status);
+    const historical = ['completed', 'cancelled', 'canceled', 'no_show'].includes(status);
+    if (!historical && isFutureVisit(row.startsAt, now)) bucket.upcomingBookings.push(row);
     else bucket.historyBookings.push(row);
   }
   for (const value of out.values()) {
@@ -517,6 +600,7 @@ function buildBookingSignalsIndex({
     engineBookings,
     bookingCases,
     clientoBookings,
+    encounters,
     lookup,
   });
 
@@ -622,7 +706,6 @@ function buildBookingSignalsIndex({
     const sig = getOrCreate(index, patientId);
     if (!sig) continue;
     const status = normalizeKey(clientoBooking.status);
-    if (status === 'cancelled') continue;
     const startsAt = normalizeText(clientoBooking.startsAt);
     if (!startsAt) continue;
     const slot = {
@@ -632,6 +715,10 @@ function buildBookingSignalsIndex({
     };
     if (status === 'no_show') {
       sig.noShowCount += 1;
+      if (isPastVisit(startsAt)) bumpActivityAt(sig, startsAt);
+      continue;
+    }
+    if (status === 'cancelled' || status === 'canceled') {
       if (isPastVisit(startsAt)) bumpActivityAt(sig, startsAt);
       continue;
     }
@@ -905,6 +992,7 @@ function computeVisitTrendFromBundle({
 module.exports = {
   TREATMENT_SEGMENT_DEFS,
   buildBookingSignalsIndex,
+  collectBookingReadouts,
   buildPatientLookupMaps,
   resolvePatientIdFromClientoBooking,
   getBookingSignals,

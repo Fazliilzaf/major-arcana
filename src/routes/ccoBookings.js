@@ -31,6 +31,7 @@ const { assertTreatmentBookingAllowed } = require('../ops/ccoTreatmentBookingGat
 const { buildCalendarSignalsIndex } = require('../ops/bookingCalendarSignals');
 const { buildMissingFormsReport } = require('../ops/ccoPatientCareOps');
 const { normalizeBookingReminderLeadTimeConfig } = require('../ops/bookingReminderLeadTime');
+const { collectBookingReadouts } = require('../ops/ccoKunderBookingEnrichment');
 
 const WORKSPACE_ID = 'major-arcana-preview';
 const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
@@ -446,6 +447,8 @@ function buildOfferDraft({ bookingCase }) {
 function createCcoBookingsRouter({
   bookingStore,
   bookingEngineStore = null,
+  clientoBookingStore = null,
+  treatmentEncounterStore = null,
   historyStore = null,
   patientSystemStore = null,
   treatmentAgreementStore = null,
@@ -825,6 +828,45 @@ function createCcoBookingsRouter({
                 limit: 200,
               });
 
+        let visits = [];
+        if (patientMasterStore && clientoBookingStore) {
+          try {
+            const population = await patientMasterStore.listPatients({
+              tenantId: context.tenantId,
+              limit: 20000,
+              offset: 0,
+            });
+            const patients = asArray(population?.patients);
+            const engineBookings = bookingEngineStore?.listBookingsForEnrichment
+              ? asArray(bookingEngineStore.listBookingsForEnrichment(context.tenantId))
+              : [];
+            const clientoBookings = clientoBookingStore.listAllBookings
+              ? asArray(clientoBookingStore.listAllBookings({ tenantId: context.tenantId }))
+              : [];
+            const encounters = treatmentEncounterStore?.listEncountersForEnrichment
+              ? asArray(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId))
+              : [];
+            const byPatient = collectBookingReadouts({
+              patients,
+              engineBookings,
+              bookingCases: cases,
+              clientoBookings,
+              encounters,
+            });
+            visits = [...byPatient.values()]
+              .flatMap((bucket) => [
+                ...asArray(bucket.upcomingBookings),
+                ...asArray(bucket.historyBookings),
+              ])
+              .filter((visit) => {
+                const date = normalizeText(visit.startsAt).slice(0, 10);
+                return date && date >= fromDate && date <= toDate;
+              });
+          } catch (error) {
+            console.warn('[cco-bookings] canonical calendar visits unavailable', error?.message);
+          }
+        }
+
         let leadTimeConfig = normalizeBookingReminderLeadTimeConfig({});
         if (settingsStore && typeof settingsStore.getTenantSettings === 'function') {
           const settings = await settingsStore.getTenantSettings({ tenantId: context.tenantId });
@@ -883,6 +925,7 @@ function createCcoBookingsRouter({
           slots,
           blocks,
           cases,
+          visits,
           leadTime: signals.leadTime,
           byCaseId: signals.byCaseId,
         };

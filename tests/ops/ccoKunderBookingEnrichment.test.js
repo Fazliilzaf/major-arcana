@@ -7,9 +7,26 @@ const {
   getBookingSignals,
   isTodayVisit,
   isThisWeekVisit,
+  buildPatientLookupMaps,
+  resolvePatientIdFromClientoBooking,
 } = require('../../src/ops/ccoKunderBookingEnrichment');
 
 describe('ccoKunderBookingEnrichment', () => {
+  it('does not guess a canonical patient when Cliento identity is ambiguous', () => {
+    const lookup = buildPatientLookupMaps([
+      { id: 'p-a', primaryEmail: 'shared@example.com', cliento: { sourceId: 'shared-cliento' } },
+      { id: 'p-b', primaryEmail: 'shared@example.com', cliento: { sourceId: 'shared-cliento' } },
+    ]);
+    assert.equal(
+      resolvePatientIdFromClientoBooking(
+        { customerEmail: 'shared@example.com', clientoCustomerId: 'shared-cliento' },
+        lookup
+      ),
+      null
+    );
+    assert.equal(lookup.ambiguous.emails.has('shared@example.com'), true);
+    assert.equal(lookup.ambiguous.clientoIds.has('shared-cliento'), true);
+  });
   it('flags upcoming engine booking with treatment label', () => {
     const startsAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
     const patients = [
@@ -195,6 +212,51 @@ describe('ccoKunderBookingEnrichment', () => {
     assert.equal(sig.noShowCount, 1);
     assert.equal(sig.completedVisitCount, 0);
     assert.equal(sig.lastVisitAt, null);
+  });
+
+  it('keeps cancelled and no-show visits in canonical history with notes and encounter link', () => {
+    const past = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const patients = [
+      {
+        id: 'p-history',
+        primaryEmail: 'history@example.com',
+        emails: [],
+        flags: [],
+        fileSummary: {},
+      },
+    ];
+    const { index } = buildBookingSignalsIndex({
+      patients,
+      engineBookings: [],
+      bookingCases: [],
+      encounters: [
+        {
+          patientId: 'p-history',
+          encounterId: 'enc-history',
+          bookingId: 'cancelled-history',
+          startsAt: past,
+        },
+      ],
+      clientoBookings: [
+        {
+          bookingId: 'cancelled-history',
+          customerEmail: 'history@example.com',
+          startsAt: past,
+          status: 'cancelled',
+          serviceLabel: 'PRP',
+          bookingNotes: 'Avbokad per telefon',
+          internalNotes: 'Behöver ny tid',
+          treatmentNotes: 'Ingen behandling utförd',
+        },
+      ],
+    });
+    const [visit] = getBookingSignals(index, 'p-history').historyBookings;
+    assert.equal(visit.patientId, 'p-history');
+    assert.equal(visit.encounterId, 'enc-history');
+    assert.equal(visit.status, 'cancelled');
+    assert.equal(visit.bookingNotes, 'Avbokad per telefon');
+    assert.equal(visit.internalNotes, 'Behöver ny tid');
+    assert.equal(visit.treatmentNotes, 'Ingen behandling utförd');
   });
 
   it('derives activity from pipedrive treatment dates on patient', () => {
