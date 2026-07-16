@@ -521,67 +521,72 @@ async function commitBucket1WithPreflight({
     };
   }
 
+  // One atomic disk write per pack (not per asset) — required for prod-scale index.
+  const useBatchPersist =
+    typeof assetStore.beginBatch === 'function' && typeof assetStore.flushBatch === 'function';
+  if (useBatchPersist) assetStore.beginBatch();
+
   let applied = 0;
-  for (const row of targets) {
-    const assetId = row.asset.id;
-    const siblingAssetId = row.sibling.id;
-    try {
-      const currentAssets =
-        typeof assetStore._state === 'function'
-          ? Object.values(assetStore._state().items || {})
-          : allAssets;
-      await applyBucket1DuplicateMark({
-        assetStore,
-        assetId,
-        siblingAssetId,
-        actor,
-        hasBlob,
-        visibleByChecksum:
-          currentAssets != null ? buildVisibleByChecksum(currentAssets) : visibleByChecksum,
-      });
-      applied += 1;
-    } catch (err) {
-      return {
-        ok: false,
-        phase: 'apply',
-        applied,
-        writes: applied,
-        zeroWrites: false,
-        mutationsStarted: true,
-        attempted: applied + 1,
-        partialApply: true,
-        stoppedAt: {
+  try {
+    for (const row of targets) {
+      const assetId = row.asset.id;
+      const siblingAssetId = row.sibling.id;
+      try {
+        // Visible sibling map is stable across this pack (we only mark NR→DUPLICATE).
+        await applyBucket1DuplicateMark({
+          assetStore,
           assetId,
           siblingAssetId,
-          code: err.code || 'apply_failed',
-          message: String(err.message || err).slice(0, 300),
-        },
-        preflight,
-        errors: [
-          {
+          actor,
+          hasBlob,
+          visibleByChecksum,
+        });
+        applied += 1;
+      } catch (err) {
+        return {
+          ok: false,
+          phase: 'apply',
+          applied,
+          writes: applied,
+          zeroWrites: false,
+          mutationsStarted: true,
+          attempted: applied + 1,
+          partialApply: true,
+          stoppedAt: {
             assetId,
             siblingAssetId,
             code: err.code || 'apply_failed',
             message: String(err.message || err).slice(0, 300),
           },
-        ],
-      };
+          preflight,
+          errors: [
+            {
+              assetId,
+              siblingAssetId,
+              code: err.code || 'apply_failed',
+              message: String(err.message || err).slice(0, 300),
+            },
+          ],
+        };
+      }
     }
-  }
 
-  return {
-    ok: true,
-    phase: 'complete',
-    applied,
-    writes: applied,
-    zeroWrites: applied === 0,
-    mutationsStarted: applied > 0,
-    attempted: applied,
-    partialApply: false,
-    stoppedAt: null,
-    preflight,
-    errors: [],
-  };
+    return {
+      ok: true,
+      phase: 'complete',
+      applied,
+      writes: applied,
+      zeroWrites: applied === 0,
+      mutationsStarted: applied > 0,
+      attempted: applied,
+      partialApply: false,
+      stoppedAt: null,
+      preflight,
+      errors: [],
+    };
+  } finally {
+    if (useBatchPersist) await assetStore.flushBatch();
+  }
 }
 
 module.exports = {
