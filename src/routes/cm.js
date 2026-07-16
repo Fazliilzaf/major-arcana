@@ -269,6 +269,19 @@ function createCmRouter({
     }
   });
 
+  // ORD-73 · IMAP-intag (info@fazli.se hos one.com — utanför M365-tenanten).
+  // Fail-closed: kräver CM_IMAP_ENABLED + user/password i env.
+  router.post('/cm/imap-sync', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    try {
+      const { createCmImapSync } = require('../cm/cmImapSync');
+      const imapSync = createCmImapSync({ cmStore, secureStorage });
+      const result = await imapSync.syncInbox();
+      return res.status(result.ok ? 200 : 502).json(result);
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
   // AI extraction — skicka bild eller text, få strukturerad data tillbaka
   router.post('/cm/extract', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), async (req, res) => {
     const { imageBase64, mimeType, text, source } = req.body || {};
