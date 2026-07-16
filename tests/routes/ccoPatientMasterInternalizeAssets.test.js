@@ -406,6 +406,18 @@ test('assets/internalize/preview-candidates lämnar endast filkontext för expli
   assert.match(source, /includeReviewDetails,/);
 });
 
+test('nonverified storage audit visar passerade samples endast vid explicit owner-review', () => {
+  const source = require('node:fs').readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
+    'utf8'
+  );
+  const routeStart = source.indexOf("'/cco-patient-master/assets/audit-nonverified-storage/page'");
+  assert.notEqual(routeStart, -1);
+  const routeSource = source.slice(routeStart, routeStart + 2200);
+  assert.match(routeSource, /maskSamples: req\.body\?\.includeReviewDetails !== true/);
+  assert.match(routeSource, /includePassedDetails: req\.body\?\.includeReviewDetails === true/);
+});
+
 test('assets/preview-encounter-links är read-only och maskerar föreslagna fotolänkar', async () => {
   const fixture = await makeFixture();
   try {
