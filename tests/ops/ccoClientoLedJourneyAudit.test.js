@@ -43,6 +43,25 @@ describe('ccoClientoLedJourneyAudit', () => {
     assert.equal(row.notes[0].note, 'Dök inte upp');
   });
 
+  it('does not fabricate missing documents for an American-spelled cancelled booking', () => {
+    const row = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'b-canceled',
+          startsAt: '2026-05-21T17:15:00.000Z',
+          serviceLabel: 'PRP hår',
+          status: 'canceled',
+          source: 'cliento_csv',
+        },
+      ],
+    });
+
+    assert.equal(row.stage, 'cancelled_only');
+    assert.equal(row.cancelledCount, 1);
+    assert.deepEqual(row.gaps, []);
+  });
+
   it('prefers authoritative CSV status over Microsoft booking-notification inference', () => {
     const row = auditPatientJourney({
       patient: { id: 'p1' },
