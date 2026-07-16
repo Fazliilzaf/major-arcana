@@ -128,11 +128,18 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
   const attendanceUnverifiedCount = history.filter(
     (row) => normalizeKey(row?.source) === 'cliento_web_mail'
   ).length;
+  const hasAuthoritativeBooking = history.some(
+    (row) => normalizeKey(row?.source) !== 'cliento_web_mail'
+  );
   const evidence = summarizeEvidence(patient, assets);
 
-  // HD is sent after a booking. FF is a one-time patient requirement at the
-  // initial attended treatment, rather than a new requirement for every PRP session.
-  const hdExpected = (hasConsultationBooking || hasTreatmentBooking) && !nonAttendedOnly;
+  // HD is sent after an authoritative booking. FF is a one-time patient
+  // requirement at the initial attended treatment, rather than a new
+  // requirement for every PRP session.
+  const hdExpected =
+    hasAuthoritativeBooking &&
+    (hasConsultationBooking || hasTreatmentBooking) &&
+    !nonAttendedOnly;
   const ffExpected = hasAttendedTreatment && !nonAttendedOnly;
   const offerExpected = hasTreatmentBooking && !nonAttendedOnly;
   const agreementExpected = hasHairTransplantBooking && !nonAttendedOnly;
