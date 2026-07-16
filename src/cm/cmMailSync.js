@@ -284,7 +284,11 @@ function createCmMailSync({
       return extractDocumentImpl({ ...imageInput, source: 'email' });
     }
     const combined = buildCombinedText({ subject, bodyText, pdfText });
-    if (combined.length <= 40) return { ok: false, error: 'för lite underlag' };
+    if (combined.length <= 40) {
+      // ORD-74c: tomt mail är deterministiskt otydbart — retry hjälper aldrig.
+      // "Läst men ingen köpdata" → olöst-kön i stället för evig reprocess.
+      return { ok: true, extraction: { documentType: 'unknown', confidenceScore: 0 } };
+    }
     return extractDocumentImpl({ text: combined, source: 'email' });
   }
 
