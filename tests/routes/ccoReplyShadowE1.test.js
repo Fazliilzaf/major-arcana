@@ -350,8 +350,38 @@ test('extern IMAP-mailbox får provider-metadata utan att ändra Graph-kontrakte
       lastSyncAt: null,
       lastAttemptAt: null,
       error: null,
-      counts: { inbox: 2, sent: 0 },
+      counts: { inbox: 2, sent: null },
     });
+  });
+});
+
+test('mailbox-väljaren skiljer saknad lokal status från en tom mailbox', async () => {
+  const app = makeApp({
+    graphReadConnector: {},
+    mailboxIdsForSync: ['kons@hairtpclinic.com'],
+    ccoMailboxTruthStore: {
+      listMessages: () => [],
+      getCompletenessReport() {
+        return {
+          accountReports: [
+            {
+              mailboxId: 'kons@hairtpclinic.com',
+              accountStatus: 'NOT VERIFIED',
+              folderCounts: [],
+            },
+          ],
+        };
+      },
+      getDeltaSyncReport() {
+        return { accountReports: [] };
+      },
+    },
+  });
+  await withServer(app, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco/runtime/mailboxes`);
+    assert.equal(res.status, 200);
+    const payload = await res.json();
+    assert.deepEqual(payload.mailboxes[0].counts, { inbox: null, sent: null });
   });
 });
 
