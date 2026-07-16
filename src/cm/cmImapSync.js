@@ -189,7 +189,11 @@ function createCmImapSync({
       return extractDocumentImpl({ ...imageInput, source: 'email' });
     }
     const combined = buildCombinedText({ subject, bodyText, pdfText });
-    if (combined.length <= 40) return { ok: false, error: 'för lite underlag' };
+    if (combined.length <= 40) {
+      // ORD-74c: tomt/innehållslöst mail är deterministiskt otydbart — retry
+      // hjälper aldrig. Behandla som "läst men ingen köpdata" → olöst-kön.
+      return { ok: true, extraction: { documentType: 'unknown', confidenceScore: 0 } };
+    }
     return extractDocumentImpl({ text: combined, source: 'email' });
   }
 
