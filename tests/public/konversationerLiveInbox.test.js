@@ -63,7 +63,7 @@ function patientThread({ mailboxAddress, patientId, patientMatch, latestAtMs = 0
   };
 }
 
-test('konversationer live inbox safely fans out all mailboxes while selected mailboxes stay as the visible scope', () => {
+test('konversationer live inbox scopes worklist reads to the selected mailboxes', () => {
   const html = readHtml();
 
   for (const mailbox of [
@@ -80,9 +80,9 @@ test('konversationer live inbox safely fans out all mailboxes while selected mai
   assert.match(
     html,
     /const requestMailboxChunks = worklistMailboxChunks\(selectedScopeMailboxIds\)/,
-    'the selected mailbox is read first, then remaining customer history follows'
+    'the selected mailbox selection controls every worklist request'
   );
-  assert.match(html, /function worklistMailboxChunks\(selectedMailboxIds = \[\], mailboxIds = LIVE_MAILBOX_IDS\)/);
+  assert.match(html, /function worklistMailboxChunks\(selectedMailboxIds = \[\]\)/);
   assert.match(html, /for \(const mailboxChunk of requestMailboxChunks\)/);
   assert.match(html, /const failedMailboxChunks = \[\];/);
   assert.match(html, /if \(!selectedMailboxLoaded\)/);
@@ -133,66 +133,31 @@ test('konversationer live inbox safely fans out all mailboxes while selected mai
   );
 });
 
-test('the selected mailbox loads alone before the remaining customer history', () => {
+test('a single selected mailbox makes exactly one scoped worklist request', () => {
   const { worklistMailboxChunks } = liveRollupHelpers();
-  const allMailboxes = [
-    'kons@hairtpclinic.com',
-    'contact@hairtpclinic.com',
-    'egzona@hairtpclinic.com',
-    'fazli@hairtpclinic.com',
-    'marknad@hairtpclinic.com',
-    'kvitto@hairtpclinic.com',
-    'halso@hairtpclinic.com',
-  ];
-  const chunks = worklistMailboxChunks(['fazli@hairtpclinic.com'], allMailboxes);
+  const chunks = worklistMailboxChunks(['fazli@hairtpclinic.com']);
 
-  assert.deepEqual([...chunks[0]], ['fazli@hairtpclinic.com']);
   assert.deepEqual(
-    [...chunks.slice(1).flat()],
-    [
-      'kons@hairtpclinic.com',
-      'contact@hairtpclinic.com',
-      'egzona@hairtpclinic.com',
-      'marknad@hairtpclinic.com',
-      'kvitto@hairtpclinic.com',
-      'halso@hairtpclinic.com',
-    ]
+    [...chunks].map((chunk) => [...chunk]),
+    [['fazli@hairtpclinic.com']]
   );
   assert.ok(chunks.every((chunk) => chunk.length <= 2), 'server two-mailbox limit remains intact');
 });
 
-test('a mailbox view keeps the verified customer timeline from the other mailbox', () => {
-  const { mergeWorklistThreads, threadForMailboxScope } = liveRollupHelpers();
-  const merged = mergeWorklistThreads([
-    patientThread({
-      mailboxAddress: 'contact@hairtpclinic.com',
-      patientId: 'patient-1',
-      patientMatch: { status: 'matched' },
-      latestAtMs: 10,
-    }),
-    patientThread({
-      mailboxAddress: 'fazli@hairtpclinic.com',
-      patientId: 'patient-1',
-      patientMatch: { status: 'matched' },
-      latestAtMs: 20,
-    }),
-  ]);
+test('a mailbox view only renders the worklist row returned for that mailbox', () => {
+  const { threadForMailboxScope } = liveRollupHelpers();
+  const fazliRow = patientThread({
+    mailboxAddress: 'fazli@hairtpclinic.com',
+    patientId: 'patient-1',
+    patientMatch: { status: 'matched' },
+    latestAtMs: 20,
+  });
 
-  assert.equal(merged.length, 1, 'the same verified patient gets one customer row');
-  const fazliView = threadForMailboxScope(merged[0], ['fazli@hairtpclinic.com']);
+  const fazliView = threadForMailboxScope(fazliRow, ['fazli@hairtpclinic.com']);
   assert.equal(fazliView.mailboxAddress, 'fazli@hairtpclinic.com');
-  assert.deepEqual([...fazliView.mailboxTrail], [
-    'fazli@hairtpclinic.com',
-    'contact@hairtpclinic.com',
-  ]);
-  assert.equal(fazliView.memberKeys.length, 2, 'both mailbox message keys remain available');
-
-  const contactView = threadForMailboxScope(merged[0], ['contact@hairtpclinic.com']);
-  assert.equal(contactView.mailboxAddress, 'contact@hairtpclinic.com');
-  assert.deepEqual([...contactView.mailboxTrail], [
-    'contact@hairtpclinic.com',
-    'fazli@hairtpclinic.com',
-  ]);
+  assert.deepEqual([...fazliView.mailboxTrail], ['fazli@hairtpclinic.com']);
+  assert.equal(fazliView.memberKeys.length, 1, 'the selected mailbox owns its worklist row');
+  assert.equal(threadForMailboxScope(fazliRow, ['contact@hairtpclinic.com']), null);
 });
 
 test('ambiguous patient matches remain separate across mailbox views', () => {
