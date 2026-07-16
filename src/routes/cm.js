@@ -186,13 +186,21 @@ function createCmRouter({
       const documents = record.documentId
         ? [cmStore.getDocumentById(record.documentId)].filter(Boolean)
         : [];
+      // ORD-75: originalmailet är underlaget — följer med till CFO-utgiften
+      const rawItem = record.rawItemId ? cmStore.getRawItemById(record.rawItemId) : null;
       const actor = {
         userId: req.user?.id || req.user?.email || 'owner',
         role: 'owner',
         via: 'cm-promote',
       };
       try {
-        const result = await promoteRecordToCfo({ record, documents, cfoExpenseStore, actor });
+        const result = await promoteRecordToCfo({
+          record,
+          documents,
+          rawItem,
+          cfoExpenseStore,
+          actor,
+        });
         if (!result.ok) return res.status(502).json(result);
         cmStore.markHandedOff(record.id, {
           cfoExpenseId: result.cfoExpense.id,
@@ -281,6 +289,25 @@ function createCmRouter({
       return res.status(500).json({ ok: false, error: err.message });
     }
   });
+
+  // ORD-75 · Backfill av underlags-pekare: rawItems från IMAP-skörden som
+  // saknar originalStorageKey får sina arkiv-pekare (avdragsbevis-kedjan).
+  router.post(
+    '/cm/imap-backfill-originals',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const { createCmImapSync } = require('../cm/cmImapSync');
+        const imapSync = createCmImapSync({ cmStore, secureStorage });
+        const limit = Math.min(100, Math.max(1, Number(req.body?.limit) || 50));
+        const result = await imapSync.backfillOriginals({ limit });
+        return res.status(result.ok ? 200 : 502).json(result);
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
 
   // AI extraction — skicka bild eller text, få strukturerad data tillbaka
   router.post('/cm/extract', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), async (req, res) => {

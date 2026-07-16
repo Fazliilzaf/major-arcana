@@ -138,3 +138,35 @@ test('promoteRecordToCfo utan store → tydligt fel', async () => {
   assert.equal(result.ok, false);
   assert.match(result.error, /cfoExpenseStore saknas/);
 });
+
+test('ORD-75: originalmailet följer med som underlag vid promote', async () => {
+  const { buildCfoExpenseFields } = require('../../src/cm/cmCfoHandoff');
+  // Mail utan bilaga — originalet ÄR kvittot
+  const utanBilaga = buildCfoExpenseFields({
+    record: { id: 'r1', amountIncVat: 500, supplierName: 'X', confidenceScore: 90 },
+    documents: [],
+    rawItem: { originalStorageKey: 'cm/raw-mail/2026-07/imap-info-42-abc.eml' },
+    validCategories: [],
+  });
+  assert.deepEqual(utanBilaga.attachmentKeys, ['cm/raw-mail/2026-07/imap-info-42-abc.eml']);
+
+  // Mail MED bilaga — både bilagan och originalet följer med
+  const medBilaga = buildCfoExpenseFields({
+    record: { id: 'r2', amountIncVat: 900, supplierName: 'Y', confidenceScore: 90 },
+    documents: [{ storagePath: 'cm/receipts/2026-07/abc-faktura.pdf' }],
+    rawItem: { originalStorageKey: 'cm/raw-mail/2026-07/imap-info-43-def.eml' },
+    validCategories: [],
+  });
+  assert.deepEqual(medBilaga.attachmentKeys, [
+    'cm/receipts/2026-07/abc-faktura.pdf',
+    'cm/raw-mail/2026-07/imap-info-43-def.eml',
+  ]);
+
+  // Utan rawItem (bakåtkompatibelt) — bara bilagor
+  const utanRaw = buildCfoExpenseFields({
+    record: { id: 'r3', amountIncVat: 100, supplierName: 'Z', confidenceScore: 90 },
+    documents: [{ storagePath: 'cm/receipts/2026-07/x.pdf' }],
+    validCategories: [],
+  });
+  assert.deepEqual(utanRaw.attachmentKeys, ['cm/receipts/2026-07/x.pdf']);
+});

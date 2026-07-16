@@ -302,3 +302,54 @@ test('ORD-74: tekniskt AI-fel skapar INTE olöst record (retry via reprocess)', 
   // rawItem utan record → reprocess-kandidat (retry när AI:n mår bra igen)
   assert.equal(cmStore.listUnprocessedRawItems({ limit: 5 }).length, 1);
 });
+
+test('ORD-75: originalStorageKey sätts vid import + backfillOriginals fyller gamla', async () => {
+  const cmStore = await tmpStore();
+  const storage = fakeSecureStorage();
+  const { imapClientFactory, parseMessageImpl } = makeFixtures({
+    61: {
+      subject: 'Kvitto direkt',
+      from: 'a@b.se',
+      date: '2026-07-01T10:00:00Z',
+      messageId: '<direkt-61@b>',
+      text: 'Kvitto: totalt 100 kr inkl moms, betald med kort idag.',
+      html: '',
+      attachments: [],
+    },
+  });
+  const sync = createCmImapSync({
+    cmStore,
+    secureStorage: storage,
+    imapClientFactory,
+    parseMessageImpl,
+    env: ENV,
+    extractDocumentImpl: async () => ({
+      ok: true,
+      extraction: {
+        documentType: 'receipt',
+        supplier: 'B',
+        amountIncVat: 100,
+        confidenceScore: 85,
+      },
+    }),
+  });
+  await sync.syncInbox();
+  const nytt = cmStore.listRawItems().find((r) => r.mailMessageId === 'imap:61');
+  assert.match(nytt.originalStorageKey, /^cm\/raw-mail\//);
+
+  // Gammalt item utan pekare (pre-ORD-75) → backfill hämtar om och sätter
+  const { rawItem: gammalt } = cmStore.importRawItem({
+    sourceType: 'email',
+    sourceId: 'info@fazli.se',
+    mailMessageId: 'imap:62',
+    internetMessageId: '<gammal-62@b>',
+    subject: 'Gammalt kvitto',
+    fromEmail: 'a@b.se',
+    rawBodyText: 'text',
+    hasAttachments: false,
+  });
+  assert.ok(!gammalt.originalStorageKey);
+  const bf = await sync.backfillOriginals({ limit: 10 });
+  assert.equal(bf.backfilled, 1);
+  assert.match(cmStore.getRawItemById(gammalt.id).originalStorageKey, /^cm\/raw-mail\//);
+});

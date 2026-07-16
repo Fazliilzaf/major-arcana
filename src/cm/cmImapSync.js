@@ -308,9 +308,13 @@ function createCmImapSync({
           const rawItem = importResult.rawItem;
           results.imported++;
 
-          await archiveOriginal(uid, msg.source).catch((err) =>
-            results.errors.push({ uid, error: `arkiv: ${err.message}` })
-          );
+          // ORD-75: pekaren till originalet sparas på rawItem — underlaget
+          // (bevis för avdrag) följer med till CFO-utgiften vid promote.
+          const originalKey = await archiveOriginal(uid, msg.source).catch((err) => {
+            results.errors.push({ uid, error: `arkiv: ${err.message}` });
+            return null;
+          });
+          if (originalKey) rawItem.originalStorageKey = originalKey;
 
           const harvest = await harvestAttachments({
             uid,
@@ -382,7 +386,63 @@ function createCmImapSync({
     }
   }
 
-  return { syncInbox, readImapConfig: () => ({ ...cfg, password: cfg.password ? '***' : '' }) };
+  /**
+   * ORD-75 · Backfill: rawItems som importerades innan originalStorageKey
+   * sattes (hela 2024-skörden) får sina arkiv-pekare i efterhand — mailet
+   * hämtas om via UID och arkiveras. Underlaget = bevis för avdrag.
+   */
+  async function backfillOriginals({ limit = 50 } = {}) {
+    const results = { ok: true, candidates: 0, backfilled: 0, errors: [], syncedAt: nowIso() };
+    if (!cfg.enabled || !cfg.user || !cfg.password) {
+      return { ...results, ok: false, error: 'IMAP ej konfigurerat' };
+    }
+    const targets = (cmStore.listRawItems ? cmStore.listRawItems() : [])
+      .filter(
+        (r) =>
+          r.sourceId === cfg.user &&
+          /^imap:\d+$/.test(r.mailMessageId || '') &&
+          !r.originalStorageKey
+      )
+      .slice(0, Math.max(1, limit));
+    results.candidates = targets.length;
+    if (!targets.length) return results;
+
+    const factory = imapClientFactory || defaultClientFactory;
+    let client = null;
+    try {
+      client = await factory();
+      for (const rawItem of targets) {
+        const uid = Number(rawItem.mailMessageId.split(':')[1]);
+        try {
+          const msg = await client.fetchOne(String(uid), { source: true }, { uid: true });
+          if (!msg?.source) continue;
+          const key = await archiveOriginal(uid, msg.source);
+          if (key) {
+            rawItem.originalStorageKey = key;
+            results.backfilled++;
+          }
+        } catch (err) {
+          results.errors.push({ uid, error: err.message });
+        }
+      }
+      await cmStore.persist();
+      return results;
+    } catch (err) {
+      return { ...results, ok: false, error: err.message };
+    } finally {
+      try {
+        await client?.logout?.();
+      } catch {
+        /* stäng tyst */
+      }
+    }
+  }
+
+  return {
+    syncInbox,
+    backfillOriginals,
+    readImapConfig: () => ({ ...cfg, password: cfg.password ? '***' : '' }),
+  };
 }
 
 module.exports = { createCmImapSync, CM_PROCESSOR_VERSION, CM_FILTER_VERSION };

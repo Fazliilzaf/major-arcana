@@ -101,13 +101,22 @@ function mapCategory(rawCategory, validCategories) {
  * Bygg cfoExpense-fields ur ett CM-expense-record (+ ev. kopplade dokument).
  * validCategories = cfoExpenseStore.VALID_CATEGORIES (skickas in för att slippa hård koppling).
  */
-function buildCfoExpenseFields({ record, documents = [], validCategories = [] } = {}) {
+function buildCfoExpenseFields({
+  record,
+  documents = [],
+  rawItem = null,
+  validCategories = [],
+} = {}) {
   if (!record || typeof record !== 'object') throw new Error('record krävs');
 
   const amountSek =
     record.amountIncVat || (record.amountExVat || 0) + (record.vatAmount || 0) || null;
 
   const attachmentKeys = documents.map((d) => normalizeText(d?.storagePath)).filter(Boolean);
+  // ORD-75 (ägar-krav: underlag = bevis för avdrag): originalmailet följer
+  // ALLTID med som underlag — för mail utan bilaga ÄR mailet kvittot.
+  const originalKey = normalizeText(rawItem?.originalStorageKey);
+  if (originalKey && !attachmentKeys.includes(originalKey)) attachmentKeys.push(originalKey);
 
   const refParts = [
     record.expenseType ? `typ ${record.expenseType}` : null,
@@ -159,6 +168,7 @@ async function findExistingCfoExpenseForRecord({ record, cfoExpenseStore }) {
 async function promoteRecordToCfo({
   record,
   documents = [],
+  rawItem = null,
   cfoExpenseStore,
   actor,
   validCategories: providedCategories,
@@ -179,7 +189,7 @@ async function promoteRecordToCfo({
       : Array.isArray(cfoExpenseStore.VALID_CATEGORIES)
         ? cfoExpenseStore.VALID_CATEGORIES
         : [];
-  const fields = buildCfoExpenseFields({ record, documents, validCategories });
+  const fields = buildCfoExpenseFields({ record, documents, rawItem, validCategories });
   const cfoExpense = await cfoExpenseStore.createExpense({ actor, fields });
   return { ok: true, cfoExpense, fields, reused: false };
 }
