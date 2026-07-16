@@ -183,6 +183,10 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
 
   return {
     patientId: normalizeText(patient?.id),
+    patientName:
+      normalizeText(patient?.displayName) ||
+      normalizeText(patient?.name) ||
+      normalizeText(patient?.fullName),
     stage,
     bookingCount: history.length,
     attendedCount: attended.length,
