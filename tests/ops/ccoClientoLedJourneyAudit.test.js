@@ -43,6 +43,25 @@ describe('ccoClientoLedJourneyAudit', () => {
     assert.equal(row.notes[0].note, 'Dök inte upp');
   });
 
+  it('does not fabricate missing documents for an American-spelled cancelled booking', () => {
+    const row = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'b-canceled',
+          startsAt: '2026-05-21T17:15:00.000Z',
+          serviceLabel: 'PRP hår',
+          status: 'canceled',
+          source: 'cliento_csv',
+        },
+      ],
+    });
+
+    assert.equal(row.stage, 'cancelled_only');
+    assert.equal(row.cancelledCount, 1);
+    assert.deepEqual(row.gaps, []);
+  });
+
   it('prefers authoritative CSV status over Microsoft booking-notification inference', () => {
     const row = auditPatientJourney({
       patient: { id: 'p1' },
@@ -86,7 +105,7 @@ describe('ccoClientoLedJourneyAudit', () => {
     assert.deepEqual(row.gaps, []);
   });
 
-  it('requires the full pre-treatment chain for an upcoming hair-transplant booking', () => {
+  it('expects HD, offer and agreement for an upcoming hair-transplant booking, but defers FF to treatment day', () => {
     const row = auditPatientJourney({
       patient: { id: 'p1' },
       bookings: [
@@ -99,7 +118,52 @@ describe('ccoClientoLedJourneyAudit', () => {
         },
       ],
     });
-    assert.deepEqual(row.gaps, ['healthDeclaration', 'fitnessCertificate', 'offer', 'agreement']);
+    assert.deepEqual(row.gaps, ['healthDeclaration', 'offer', 'agreement']);
+    assert.equal(row.requirements.fitnessCertificate.status, 'not_expected');
+  });
+
+  it('expects HD after a scheduled consultation', () => {
+    const row = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'future-consultation',
+          startsAt: '2099-06-10T08:00:00.000Z',
+          serviceLabel: 'Online konsultation',
+          status: 'upcoming',
+          source: 'cliento_csv',
+        },
+      ],
+    });
+    assert.deepEqual(row.gaps, ['healthDeclaration']);
+  });
+
+  it('requires FF only once PRP treatment has been attended', () => {
+    const upcoming = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'future-prp',
+          startsAt: '2099-06-10T08:00:00.000Z',
+          serviceLabel: 'PRP hår',
+          status: 'upcoming',
+        },
+      ],
+    });
+    assert.deepEqual(upcoming.gaps, ['healthDeclaration', 'offer']);
+
+    const attended = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'attended-prp',
+          startsAt: '2026-05-22T10:00:00.000Z',
+          serviceLabel: 'PRP hår',
+          status: 'completed',
+        },
+      ],
+    });
+    assert.deepEqual(attended.gaps, ['healthDeclaration', 'fitnessCertificate', 'offer']);
   });
 
   it('requires HD after an attended consultation but not treatment documents yet', () => {
@@ -148,6 +212,41 @@ describe('ccoClientoLedJourneyAudit', () => {
     assert.equal(row.stage, 'prp');
     assert.deepEqual(row.gaps, []);
     assert.equal(row.requirements.agreement.status, 'not_expected');
+  });
+
+  it('does not create a new FF gap for a later PRP session once the patient has signed it', () => {
+    const row = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'prp-1',
+          startsAt: '2026-05-22T10:00:00.000Z',
+          serviceLabel: 'PRP hår 1/3',
+          status: 'completed',
+        },
+        {
+          bookingId: 'prp-2',
+          startsAt: '2026-06-22T10:00:00.000Z',
+          serviceLabel: 'PRP hår 2/3',
+          status: 'completed',
+        },
+      ],
+      assets: [
+        asset({ sourceSystem: 'm365_halso', category: 'form', originalFileName: 'HD.pdf' }),
+        asset({
+          sourceSystem: 'm365_halso',
+          category: 'other',
+          originalFileName: 'Friskförsäkran.pdf',
+        }),
+        asset({
+          sourceSystem: 'pipedrive_import',
+          patientCardSection: 'offert',
+          originalFileName: 'Offert PRP.pdf',
+        }),
+      ],
+    });
+    assert.equal(row.requirements.fitnessCertificate.status, 'verified');
+    assert.deepEqual(row.gaps, []);
   });
 
   it('flags missing agreement for attended hair transplant and does not accept a deal as a PDF', () => {

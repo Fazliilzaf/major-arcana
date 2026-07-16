@@ -8,7 +8,7 @@ const { isFitnessCertificateAsset, isHealthDeclarationAsset } = require('./ccoKu
 const { inferDocumentKind } = require('./ccoPipedriveHistoricalDocuments');
 
 const ATTENDED_STATUSES = new Set(['completed', 'show', 'klar']);
-const NON_ATTENDED_STATUSES = new Set(['cancelled', 'no_show']);
+const NON_ATTENDED_STATUSES = new Set(['cancelled', 'canceled', 'no_show']);
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -107,10 +107,15 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
     .sort((a, b) => Date.parse(a?.startsAt || '') - Date.parse(b?.startsAt || ''));
   const attended = history.filter(isAttended);
   const noShows = history.filter((row) => normalizeKey(row?.status) === 'no_show');
-  const cancelled = history.filter((row) => normalizeKey(row?.status) === 'cancelled');
+  const cancelled = history.filter((row) =>
+    ['cancelled', 'canceled'].includes(normalizeKey(row?.status))
+  );
   const attendedKinds = new Set(attended.map((row) => classifyService(row.serviceLabel)));
   const allKinds = new Set(history.map((row) => classifyService(row.serviceLabel)));
+  const hasConsultationBooking = allKinds.has('consultation');
   const hasAttendedConsultation = attendedKinds.has('consultation');
+  const hasAttendedTreatment =
+    attendedKinds.has('prp') || attendedKinds.has('hair_transplant');
   const hasHairTransplant = attendedKinds.has('hair_transplant');
   const hasTreatmentBooking = allKinds.has('prp') || allKinds.has('hair_transplant');
   const hasHairTransplantBooking = allKinds.has('hair_transplant');
@@ -121,14 +126,24 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
   const noShowOnly =
     nonAttendedOnly && history.some((row) => normalizeKey(row?.status) === 'no_show');
   const cancelledOnly =
-    nonAttendedOnly && history.every((row) => normalizeKey(row?.status) === 'cancelled');
+    nonAttendedOnly &&
+    history.every((row) => ['cancelled', 'canceled'].includes(normalizeKey(row?.status)));
   const attendanceUnverifiedCount = history.filter(
     (row) => normalizeKey(row?.source) === 'cliento_web_mail'
   ).length;
+  const hasAuthoritativeBooking = history.some(
+    (row) => normalizeKey(row?.source) !== 'cliento_web_mail'
+  );
   const evidence = summarizeEvidence(patient, assets);
 
-  const hdExpected = (hasAttendedConsultation || hasTreatmentBooking) && !nonAttendedOnly;
-  const ffExpected = hasTreatmentBooking && !nonAttendedOnly;
+  // HD is sent after an authoritative booking. FF is a one-time patient
+  // requirement at the initial attended treatment, rather than a new
+  // requirement for every PRP session.
+  const hdExpected =
+    hasAuthoritativeBooking &&
+    (hasConsultationBooking || hasTreatmentBooking) &&
+    !nonAttendedOnly;
+  const ffExpected = hasAttendedTreatment && !nonAttendedOnly;
   const offerExpected = hasTreatmentBooking && !nonAttendedOnly;
   const agreementExpected = hasHairTransplantBooking && !nonAttendedOnly;
   const requirements = {
@@ -136,7 +151,7 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
       hdExpected,
       evidence.healthDeclaration,
       hdExpected
-        ? 'attended_or_progressed_cliento_journey'
+        ? 'booked_or_progressed_cliento_journey'
         : nonAttendedOnly
           ? 'no_show_or_cancelled_only'
           : 'no_attended_visit'
@@ -144,7 +159,7 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
     fitnessCertificate: requirement(
       ffExpected,
       evidence.fitnessCertificate,
-      ffExpected ? 'attended_treatment' : 'no_attended_treatment'
+      ffExpected ? 'attended_treatment_day' : 'no_attended_treatment_day'
     ),
     offer: requirement(
       offerExpected,
