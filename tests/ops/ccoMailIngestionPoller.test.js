@@ -15,6 +15,7 @@ const {
   createCcoMailIngestionPoller,
   resolveInitialDelayMs,
   resolveIntervalMs,
+  resolveMaxMailboxesPerCycle,
   resolvePollMailboxes,
 } = require('../../src/ops/ccoMailIngestion/poller');
 
@@ -31,7 +32,7 @@ test('mailbox-pollern är avstängd utan explicit gate', async () => {
   assert.deepEqual(await poller.runOnce(), { skipped: true, reason: 'mailbox_poller_disabled' });
 });
 
-test('mailbox-pollern kör godkända mailboxar sekventiellt och read_only', async () => {
+test('mailbox-pollern roterar en mailbox per read_only-runda', async () => {
   const calls = [];
   const broadcasts = [];
   let scheduled = null;
@@ -102,41 +103,18 @@ test('mailbox-pollern kör godkända mailboxar sekventiellt och read_only', asyn
       pageSize: 25,
       maxPagesPerFolder: 1,
     },
-    {
-      mailboxIds: [FAZLI_MAILBOX],
-      folderTypes: ['inbox', 'sent'],
-      pageSize: 25,
-      maxPagesPerFolder: 1,
-    },
-    {
-      mailboxIds: [KONS_MAILBOX],
-      folderTypes: ['inbox', 'sent'],
-      pageSize: 25,
-      maxPagesPerFolder: 1,
-    },
-    {
-      mailboxIds: [CONTACT_MAILBOX],
-      folderTypes: ['inbox', 'sent'],
-      pageSize: 25,
-      maxPagesPerFolder: 1,
-    },
-    {
-      mailboxIds: [FAZLI_MAILBOX],
-      folderTypes: ['inbox', 'sent'],
-      pageSize: 25,
-      maxPagesPerFolder: 1,
-    },
   ]);
   assert.equal(broadcasts.length, 4);
   assert.equal(broadcasts[0].event, 'worklist_updated');
-  assert.equal(broadcasts[0].payload.truthChanged, 3);
-  assert.deepEqual(broadcasts[0].payload.mailboxIds, [KONS_MAILBOX, CONTACT_MAILBOX, FAZLI_MAILBOX]);
+  assert.equal(broadcasts[0].payload.truthChanged, 1);
+  assert.deepEqual(broadcasts[0].payload.mailboxIds, [KONS_MAILBOX]);
   assert.equal(broadcasts[1].event, 'mailbox_sync_updated');
+  assert.deepEqual(broadcasts[2].payload.mailboxIds, [CONTACT_MAILBOX]);
   assert.equal(broadcasts[2].event, 'worklist_updated');
   assert.equal(broadcasts[3].event, 'mailbox_sync_updated');
 });
 
-test('mailbox-pollern fortsätter med nästa konto om ett konto fallerar', async () => {
+test('mailbox-pollern fortsätter med nästa konto efter en misslyckad runda', async () => {
   const calls = [];
   const poller = createCcoMailIngestionPoller({
     config: {
@@ -155,11 +133,13 @@ test('mailbox-pollern fortsätter med nästa konto om ett konto fallerar', async
     logger: { log() {}, error() {} },
   });
 
-  const result = await poller.runOnce();
+  const failedResult = await poller.runOnce();
+  const recoveredResult = await poller.runOnce();
   assert.deepEqual(calls, [KONS_MAILBOX, CONTACT_MAILBOX]);
-  assert.deepEqual(result.failedMailboxIds, [KONS_MAILBOX]);
-  assert.equal(result.results[0].error, 'graph_timeout');
-  assert.deepEqual(result.results[1].result.affectedConversationIds, ['contact-thread']);
+  assert.deepEqual(failedResult.failedMailboxIds, [KONS_MAILBOX]);
+  assert.equal(failedResult.results[0].error, 'graph_timeout');
+  assert.deepEqual(recoveredResult.failedMailboxIds, []);
+  assert.deepEqual(recoveredResult.results[0].result.affectedConversationIds, ['contact-thread']);
 });
 
 test('mailbox-pollern tillåter alla CCO-mailboxar och avvisar övriga konton', () => {
@@ -201,4 +181,7 @@ test('mailbox-pollern tillåter alla CCO-mailboxar och avvisar övriga konton', 
   assert.equal(resolveIntervalMs({ ccoMailIngestionPollIntervalMinutes: 0 }), 60000);
   assert.equal(resolveInitialDelayMs({ ccoMailIngestionPollInitialDelayMs: 0 }), 10000);
   assert.equal(resolveInitialDelayMs({}), 120000);
+  assert.equal(resolveMaxMailboxesPerCycle({}, 8), 1);
+  assert.equal(resolveMaxMailboxesPerCycle({ ccoMailIngestionPollMaxMailboxesPerCycle: 3 }, 8), 3);
+  assert.equal(resolveMaxMailboxesPerCycle({ ccoMailIngestionPollMaxMailboxesPerCycle: 99 }, 8), 8);
 });

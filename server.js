@@ -14564,7 +14564,7 @@ process.once('SIGTERM', () => {
       });
 
     // Den globala schedulern kan vara avstängd under stabilisering. Den här
-    // separata grinden håller endast KONS synkad, read-only och utan send-väg.
+    // separata grinden håller CCO-mailboxarna synkade, read-only och utan send-väg.
     const ccoMailIngestionPoller = createCcoMailIngestionPoller({
       config,
       syncService: ccoMailIngestionSyncService,

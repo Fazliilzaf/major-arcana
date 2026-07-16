@@ -333,8 +333,8 @@ const config = {
     process.env.ARCANA_CCO_MAIL_INGESTION_STARTUP_RESUME_DELAY_MS,
     120000
   ),
-  // Smal KONS-poller. Kör oberoende av den globala schedulern och kan bara
-  // läsa inbox + skickat via den redan read-only ingestion-pipelinen.
+  // Smal, read-only CCO-poller. Kör inbox + skickat genom den befintliga
+  // ingestion-pipelinen med ett begränsat antal mailboxar per runda.
   ccoMailIngestionPollEnabled: asBool(process.env.ARCANA_CCO_MAIL_INGESTION_POLL_ENABLED, false),
   ccoMailIngestionPollIntervalMinutes: asInt(
     process.env.ARCANA_CCO_MAIL_INGESTION_POLL_INTERVAL_MINUTES,
@@ -343,6 +343,10 @@ const config = {
   ccoMailIngestionPollInitialDelayMs: asInt(
     process.env.ARCANA_CCO_MAIL_INGESTION_POLL_INITIAL_DELAY_MS,
     120000
+  ),
+  ccoMailIngestionPollMaxMailboxesPerCycle: asInt(
+    process.env.ARCANA_CCO_MAIL_INGESTION_POLL_MAX_MAILBOXES_PER_CYCLE,
+    1
   ),
   ccoMailIngestionPollTruthLimit: asInt(
     process.env.ARCANA_CCO_MAIL_INGESTION_POLL_TRUTH_LIMIT,
