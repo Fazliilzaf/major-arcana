@@ -1560,6 +1560,7 @@ function createCcoConversationRouter({
   sendTestRecipient = '',
   runtimeStreamRouter = null,
   mailboxIdsForSync = [],
+  mailboxRuntimeStatusProvider = null,
   syncLookbackDays = 14,
   ccoConversationStateStore = null,
   ccoConversationNotesStore = null,
@@ -2907,6 +2908,11 @@ function createCcoConversationRouter({
         return timestamps.sort((left, right) => Date.parse(right) - Date.parse(left))[0] || null;
       };
       const mailboxes = configuredMailboxIds.map((mailboxId) => {
+        const runtimeStatus =
+          typeof mailboxRuntimeStatusProvider === 'function'
+            ? asObject(mailboxRuntimeStatusProvider({ mailboxId }))
+            : {};
+        const isExternalMailbox = normalizeText(runtimeStatus.provider) === 'imap';
         const account = reportByMailboxId.get(mailboxId) || {};
         const deltaAccount = deltaByMailboxId.get(mailboxId) || {};
         const counts = {};
@@ -2926,8 +2932,21 @@ function createCcoConversationRouter({
         return {
           id: mailboxId,
           mailboxId,
-          active: Boolean(graphReadConnector),
-          status: graphReadConnector ? 'active' : 'inactive',
+          // Keep the established Graph response contract unchanged. Only the
+          // server-declared external mailbox carries provider/label metadata
+          // for the CCO selector to add it at runtime.
+          ...(isExternalMailbox
+            ? {
+                label: normalizeText(runtimeStatus.label) || null,
+                provider: 'imap',
+              }
+            : {}),
+          active: isExternalMailbox ? runtimeStatus.active === true : Boolean(graphReadConnector),
+          status: isExternalMailbox
+            ? normalizeText(runtimeStatus.status) || (runtimeStatus.active === true ? 'active' : 'inactive')
+            : graphReadConnector
+              ? 'active'
+              : 'inactive',
           completenessStatus: normalizeText(account.accountStatus) || 'NOT VERIFIED',
           deltaStatus: normalizeText(deltaAccount.accountStatus) || 'NOT STARTED',
           lastSyncAt: latestIso(
@@ -2953,7 +2972,13 @@ function createCcoConversationRouter({
       });
       return res.json({
         ok: true,
-        syncEnabled: Boolean(graphReadConnector),
+        syncEnabled: Boolean(graphReadConnector) || configuredMailboxIds.some((mailboxId) => {
+          const runtimeStatus =
+            typeof mailboxRuntimeStatusProvider === 'function'
+              ? asObject(mailboxRuntimeStatusProvider({ mailboxId }))
+              : {};
+          return runtimeStatus.active === true;
+        }),
         mailboxes,
         generatedAt: new Date().toISOString(),
       });

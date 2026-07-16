@@ -27,6 +27,7 @@ function createCcoMailIngestionSyncService({
   healthDeclarationIngest = null,
   clientoBookingIngest = null,
   portalNudge = null,
+  imapMailboxSync = null,
   logger = console,
 } = {}) {
   if (!ingestionStore) {
@@ -68,6 +69,7 @@ function createCcoMailIngestionSyncService({
     mode = 'read_only',
     folderTypes = MAILBOX_FOLDER_TYPES,
     limit = 0,
+    messageIds = null,
   } = {}) {
     const normalizedMailbox = normalizeEmail(mailboxEmail);
     const truth = await openTruthStore();
@@ -78,12 +80,21 @@ function createCcoMailIngestionSyncService({
       graphUserId: normalizedMailbox,
     });
 
+    const hasMessageIdScope = Array.isArray(messageIds);
+    const requestedMessageIds = new Set(
+      asArray(messageIds)
+        .map((value) => normalizeText(value))
+        .filter(Boolean)
+    );
     const messages = truth.listMessages({
       mailboxIds: [normalizedMailbox],
       folderTypes,
       sinceIso,
       limit: Math.max(0, Number(limit) || 0),
-    });
+    }).filter(
+      (message) =>
+        !hasMessageIdScope || requestedMessageIds.has(normalizeText(message?.graphMessageId))
+    );
 
     const totalFetched = messages.length;
     let totalSaved = 0;
@@ -349,12 +360,108 @@ function createCcoMailIngestionSyncService({
     }
   }
 
+  async function runImapMailboxCycle({
+    mailboxEmail = '',
+    mode = 'read_only',
+    trigger = 'poller',
+    createdBy = 'system',
+  } = {}) {
+    const normalizedMailbox = normalizeEmail(mailboxEmail);
+    if (!normalizedMailbox) return { skipped: true, reason: 'mailbox_email_missing' };
+    if (!imapMailboxSync || typeof imapMailboxSync.syncMailbox !== 'function') {
+      return { skipped: true, reason: 'cco_imap_sync_unavailable' };
+    }
+    const configured =
+      typeof imapMailboxSync.getConfiguredMailboxIds === 'function'
+        ? new Set(imapMailboxSync.getConfiguredMailboxIds())
+        : new Set();
+    if (!configured.has(normalizedMailbox)) {
+      return { skipped: true, reason: 'cco_imap_mailbox_not_configured' };
+    }
+
+    const syncState = ingestionStore.getState()?.mailSyncState?.[normalizedMailbox];
+    if (syncState?.paused === true) return { skipped: true, reason: 'mailbox_paused' };
+
+    const account = ingestionStore.ensureMailAccount({
+      email: normalizedMailbox,
+      tenantId: config.defaultTenant || config.defaultTenantId || 'hair-tp-clinic',
+      userId: normalizedMailbox,
+      graphUserId: `imap:${normalizedMailbox}`,
+    });
+    const importRun = await ingestionStore.startImportRun({
+      mailAccountId: account.id,
+      mode: 'imap_uid_sync',
+      createdBy,
+    });
+
+    try {
+      const imapResult = await imapMailboxSync.syncMailbox();
+      if (imapResult.mailboxEmail !== normalizedMailbox) {
+        throw new Error('cco_imap_mailbox_mismatch');
+      }
+      const changedMessageIds = asArray(imapResult.changedMessageIds)
+        .map((value) => normalizeText(value))
+        .filter(Boolean);
+      const ingestResult = await ingestTruthMessages({
+        mailboxEmail: normalizedMailbox,
+        importRunId: importRun.id,
+        mode,
+        folderTypes: ['inbox', 'sent'],
+        messageIds: changedMessageIds,
+      });
+      const processResult =
+        mode === 'dry_run'
+          ? { processed: 0, failed: 0, results: [] }
+          : await processQueue({
+              mailboxEmail: normalizedMailbox,
+              mode,
+              maxMessages: Number(config.ccoMailIngestionMaxProcessPerCycle || 25),
+            });
+      await ingestionStore.finishImportRun(importRun.id, {
+        status: imapResult.ok ? 'completed' : 'completed_with_errors',
+        totalFetched: ingestResult.totalFetched,
+        totalSaved: ingestResult.totalSaved,
+        totalDuplicates: ingestResult.totalDuplicates,
+        totalProcessed: processResult.processed,
+        totalFailed: processResult.failed,
+        error: imapResult.ok ? null : normalizeText(imapResult.error) || 'imap_sync_completed_with_errors',
+      });
+      await ingestionStore.appendAudit({
+        type: 'cco_imap_mailbox_cycle_completed',
+        mailboxEmail: normalizedMailbox,
+        trigger,
+        mode,
+        importRunId: importRun.id,
+        folderResults: asArray(imapResult.folders).map((folder) => ({
+          folderType: normalizeText(folder?.folderType),
+          imported: Number(folder?.imported || 0),
+          remainingBacklog: Number(folder?.remainingBacklog || 0),
+        })),
+      });
+      return {
+        skipped: false,
+        mailboxEmail: normalizedMailbox,
+        importRunId: importRun.id,
+        imapResult,
+        ingestResult,
+        processResult,
+      };
+    } catch (error) {
+      await ingestionStore.finishImportRun(importRun.id, {
+        status: 'failed',
+        error: normalizeText(error?.message) || 'cco_imap_cycle_failed',
+      });
+      throw error;
+    }
+  }
+
   return {
     runDeltaSync,
     ingestTruthMessages,
     processQueue,
     runMailboxImport,
     runMailboxCycle,
+    runImapMailboxCycle,
   };
 }
 
