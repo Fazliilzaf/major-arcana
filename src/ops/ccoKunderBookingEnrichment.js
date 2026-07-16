@@ -594,6 +594,137 @@ function collectBookingReadouts({
   return out;
 }
 
+const CANONICAL_BOOKING_STATUSES = new Set([
+  'confirmed',
+  'upcoming',
+  'completed',
+  'cancelled',
+  'canceled',
+  'no_show',
+]);
+const CANONICAL_BOOKING_SOURCES = new Set(['cco_booking_engine', 'cco_booking_store', 'cliento']);
+
+function canonicalIntegritySource(value) {
+  const source = normalizeText(value);
+  return CANONICAL_BOOKING_SOURCES.has(source) ? source : 'unknown';
+}
+
+function buildCanonicalBookingIntegrityReport({
+  patients = [],
+  byPatient = new Map(),
+  encounters = [],
+} = {}) {
+  const canonicalPatientIds = new Set(
+    asArray(patients)
+      .map((patient) => normalizeText(patient?.id))
+      .filter(Boolean)
+  );
+  const issues = [];
+  const byStatus = {};
+  const bySource = {};
+  const noteCoverage = {
+    notes: 0,
+    bookingNotes: 0,
+    customerMessage: 0,
+    internalNotes: 0,
+    treatmentNotes: 0,
+  };
+  const seenVisitIds = new Set();
+  const encounterPatientById = new Map(
+    asArray(encounters)
+      .map((encounter) => [
+        normalizeText(encounter?.encounterId),
+        normalizeText(encounter?.patientId),
+      ])
+      .filter(([encounterId]) => encounterId)
+  );
+  let totalVisits = 0;
+  let visitsWithEncounter = 0;
+
+  const addIssue = (code, visit, bucketPatientId) => {
+    issues.push({
+      code,
+      bookingId: maskExternalId(visit?.id) || null,
+      patientId: maskExternalId(visit?.patientId || bucketPatientId) || null,
+      date: parseMs(visit?.startsAt) == null ? null : slotDateKey(visit?.startsAt) || null,
+      source: canonicalIntegritySource(visit?.source),
+    });
+  };
+
+  for (const [rawBucketPatientId, bucket] of byPatient instanceof Map ? byPatient : new Map()) {
+    const bucketPatientId = normalizeText(rawBucketPatientId);
+    const visits = [...asArray(bucket?.upcomingBookings), ...asArray(bucket?.historyBookings)];
+    for (const visit of visits) {
+      totalVisits += 1;
+      const patientId = normalizeText(visit?.patientId);
+      const bookingId = normalizeText(visit?.id);
+      const source = canonicalIntegritySource(visit?.source);
+      const status = normalizeKey(visit?.status) || 'missing';
+      const statusBucket = CANONICAL_BOOKING_STATUSES.has(status) ? status : 'invalid';
+      byStatus[statusBucket] = (byStatus[statusBucket] || 0) + 1;
+      bySource[source] = (bySource[source] || 0) + 1;
+
+      for (const field of Object.keys(noteCoverage)) {
+        if (normalizeText(visit?.[field])) noteCoverage[field] += 1;
+        if (visit?.[field] != null && typeof visit[field] !== 'string') {
+          addIssue(`invalid_${field}_type`, visit, bucketPatientId);
+        }
+      }
+      const encounterId = normalizeText(visit?.encounterId);
+      if (encounterId) {
+        visitsWithEncounter += 1;
+        if (!encounterPatientById.has(encounterId)) {
+          addIssue('unknown_encounter_id', visit, bucketPatientId);
+        } else if (encounterPatientById.get(encounterId) !== patientId) {
+          addIssue('encounter_patient_mismatch', visit, bucketPatientId);
+        }
+      }
+
+      if (!patientId) addIssue('missing_patient_id', visit, bucketPatientId);
+      else if (!canonicalPatientIds.has(patientId)) {
+        addIssue('unknown_patient_id', visit, bucketPatientId);
+      }
+      if (patientId && bucketPatientId && patientId !== bucketPatientId) {
+        addIssue('patient_bucket_mismatch', visit, bucketPatientId);
+      }
+      if (!bookingId) addIssue('missing_booking_id', visit, bucketPatientId);
+      if (!normalizeText(visit?.startsAt) || parseMs(visit?.startsAt) == null) {
+        addIssue('invalid_starts_at', visit, bucketPatientId);
+      }
+      if (!CANONICAL_BOOKING_STATUSES.has(status)) {
+        addIssue('invalid_status', visit, bucketPatientId);
+      }
+
+      if (bookingId) {
+        const visitId = `${source}::${bookingId}`;
+        if (seenVisitIds.has(visitId)) addIssue('duplicate_visit_id', visit, bucketPatientId);
+        seenVisitIds.add(visitId);
+      }
+    }
+  }
+
+  const byIssue = {};
+  for (const issue of issues) byIssue[issue.code] = (byIssue[issue.code] || 0) + 1;
+  return {
+    zeroWrites: true,
+    readOnly: true,
+    ok: issues.length === 0,
+    totalPatients: canonicalPatientIds.size,
+    totalVisits,
+    totalIssues: issues.length,
+    byStatus,
+    bySource,
+    noteCoverage,
+    encounterCoverage: {
+      withEncounter: visitsWithEncounter,
+      withoutEncounter: totalVisits - visitsWithEncounter,
+    },
+    byIssue,
+    issues: issues.slice(0, 200),
+    issueSamplesTruncated: issues.length > 200,
+  };
+}
+
 function bumpActivityAt(sig, iso) {
   const next = normalizeText(iso);
   if (!next) return;
@@ -1104,6 +1235,7 @@ module.exports = {
   TREATMENT_SEGMENT_DEFS,
   buildBookingSignalsIndex,
   collectBookingReadouts,
+  buildCanonicalBookingIntegrityReport,
   buildUnlinkedClientoBookingReview,
   buildPatientLookupMaps,
   resolvePatientIdFromClientoBooking,

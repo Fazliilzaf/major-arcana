@@ -38,6 +38,12 @@ Den här sektionen gäller bokningshistoriken i #999 och ersätter den äldre di
 
 ### Read-only reviewrapport
 
+- [ ] Läs först `GET /api/v1/cco-bookings/canonical-integrity` i samma inloggade prod-session.
+- [ ] Svaret har `Cache-Control: no-store`, `zeroWrites: true`, `readOnly: true` och `ok: true`.
+- [ ] Kontrollera `byStatus`, `bySource`, `noteCoverage` och `encounterCoverage` mot deployens canonical population.
+- [ ] `totalIssues` ska vara `0`; annars är det **STOPP** och maskerade `issues` utreds utan writes.
+- [ ] Rapporten får inte innehålla råa patient-id:n, boknings-id:n, namn, e-post, telefon eller anteckningstext.
+
 - [ ] Läs `GET /api/v1/cco-bookings/cliento-unlinked-review` i samma inloggade prod-session.
 - [ ] Svaret har `Cache-Control: no-store`, `zeroWrites: true` och endast GET används.
 - [ ] För den låsta Cliento-snapshoten är `total: 55`; avvikelse är **STOPP** och utreds via `byReason`.

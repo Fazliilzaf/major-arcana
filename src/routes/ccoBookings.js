@@ -33,6 +33,7 @@ const { buildMissingFormsReport } = require('../ops/ccoPatientCareOps');
 const { normalizeBookingReminderLeadTimeConfig } = require('../ops/bookingReminderLeadTime');
 const {
   collectBookingReadouts,
+  buildCanonicalBookingIntegrityReport,
   buildUnlinkedClientoBookingReview,
 } = require('../ops/ccoKunderBookingEnrichment');
 
@@ -968,6 +969,62 @@ function createCcoBookingsRouter({
         patients: asArray(population?.patients),
         clientoBookings: asArray(clientoBookings),
       });
+      return res.json({
+        tenantId: context.tenantId,
+        generatedAt: new Date().toISOString(),
+        ...report,
+      });
+    })
+  );
+
+  router.get('/cco-bookings/canonical-integrity', async (req, res) =>
+    handle(req, res, async (context) => {
+      res.set('Cache-Control', 'no-store');
+      if (!patientMasterStore || !clientoBookingStore) {
+        return res.json({
+          tenantId: context.tenantId,
+          generatedAt: new Date().toISOString(),
+          zeroWrites: true,
+          readOnly: true,
+          ok: false,
+          unavailable: true,
+          reason: 'canonical_booking_sources_unavailable',
+        });
+      }
+
+      const population = await patientMasterStore.listPatients({
+        tenantId: context.tenantId,
+        limit: 20000,
+        offset: 0,
+      });
+      const patients = asArray(population?.patients);
+      const engineBookings = bookingEngineStore?.listBookingsForEnrichment
+        ? asArray(bookingEngineStore.listBookingsForEnrichment(context.tenantId))
+        : [];
+      const bookingCases =
+        typeof bookingStore.listCases === 'function'
+          ? asArray(
+              await bookingStore.listCases({
+                tenantId: context.tenantId,
+                sort: 'recent',
+                limit: 20000,
+              })
+            )
+          : [];
+      const clientoBookings = clientoBookingStore.listAllBookings
+        ? asArray(clientoBookingStore.listAllBookings({ tenantId: context.tenantId }))
+        : [];
+      const encounters = treatmentEncounterStore?.listEncountersForEnrichment
+        ? asArray(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId))
+        : [];
+      const byPatient = collectBookingReadouts({
+        patients,
+        engineBookings,
+        bookingCases,
+        clientoBookings,
+        encounters,
+      });
+      const report = buildCanonicalBookingIntegrityReport({ patients, byPatient, encounters });
       return res.json({
         tenantId: context.tenantId,
         generatedAt: new Date().toISOString(),

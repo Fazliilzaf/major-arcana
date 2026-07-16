@@ -9,6 +9,7 @@ const {
   isThisWeekVisit,
   buildPatientLookupMaps,
   buildUnlinkedClientoBookingReview,
+  buildCanonicalBookingIntegrityReport,
   resolvePatientIdFromClientoBooking,
 } = require('../../src/ops/ccoKunderBookingEnrichment');
 
@@ -86,6 +87,47 @@ describe('ccoKunderBookingEnrichment', () => {
     assert.equal(report.rows[0].encounterId, null);
     assert.equal(report.rows[0].readOnly, true);
     assert.equal(report.rows[0].linkAllowed, false);
+  });
+
+  it('reports canonical booking integrity without exposing raw patient or booking ids', () => {
+    const report = buildCanonicalBookingIntegrityReport({
+      patients: [{ id: 'patient-secret-123' }],
+      byPatient: new Map([
+        [
+          'patient-secret-123',
+          {
+            upcomingBookings: [],
+            historyBookings: [
+              {
+                id: 'booking-secret-456',
+                patientId: 'patient-secret-123',
+                startsAt: 'not-a-date',
+                status: 'secret-status@example.com',
+                source: 'secret-source@example.com',
+                encounterId: 'encounter-secret-789',
+                bookingNotes: 'bevarad',
+                internalNotes: 'bevarad',
+              },
+            ],
+          },
+        ],
+      ]),
+      encounters: [{ encounterId: 'encounter-secret-789', patientId: 'patient-other' }],
+    });
+
+    assert.equal(report.zeroWrites, true);
+    assert.equal(report.readOnly, true);
+    assert.equal(report.ok, false);
+    assert.equal(report.totalVisits, 1);
+    assert.equal(report.byIssue.invalid_starts_at, 1);
+    assert.equal(report.byIssue.invalid_status, 1);
+    assert.equal(report.byIssue.encounter_patient_mismatch, 1);
+    assert.equal(report.noteCoverage.bookingNotes, 1);
+    assert.equal(report.noteCoverage.internalNotes, 1);
+    assert.doesNotMatch(
+      JSON.stringify(report),
+      /patient-secret-123|booking-secret-456|encounter-secret-789|patient-other|secret-status|secret-source/
+    );
   });
   it('flags upcoming engine booking with treatment label', () => {
     const startsAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
