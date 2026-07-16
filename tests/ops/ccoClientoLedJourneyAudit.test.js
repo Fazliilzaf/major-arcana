@@ -86,7 +86,7 @@ describe('ccoClientoLedJourneyAudit', () => {
     assert.deepEqual(row.gaps, []);
   });
 
-  it('requires the full pre-treatment chain for an upcoming hair-transplant booking', () => {
+  it('expects HD, offer and agreement for an upcoming hair-transplant booking, but defers FF to treatment day', () => {
     const row = auditPatientJourney({
       patient: { id: 'p1' },
       bookings: [
@@ -99,7 +99,52 @@ describe('ccoClientoLedJourneyAudit', () => {
         },
       ],
     });
-    assert.deepEqual(row.gaps, ['healthDeclaration', 'fitnessCertificate', 'offer', 'agreement']);
+    assert.deepEqual(row.gaps, ['healthDeclaration', 'offer', 'agreement']);
+    assert.equal(row.requirements.fitnessCertificate.status, 'not_expected');
+  });
+
+  it('expects HD after a scheduled consultation', () => {
+    const row = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'future-consultation',
+          startsAt: '2099-06-10T08:00:00.000Z',
+          serviceLabel: 'Online konsultation',
+          status: 'upcoming',
+          source: 'cliento_csv',
+        },
+      ],
+    });
+    assert.deepEqual(row.gaps, ['healthDeclaration']);
+  });
+
+  it('requires FF only once PRP treatment has been attended', () => {
+    const upcoming = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'future-prp',
+          startsAt: '2099-06-10T08:00:00.000Z',
+          serviceLabel: 'PRP hår',
+          status: 'upcoming',
+        },
+      ],
+    });
+    assert.deepEqual(upcoming.gaps, ['healthDeclaration', 'offer']);
+
+    const attended = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'attended-prp',
+          startsAt: '2026-05-22T10:00:00.000Z',
+          serviceLabel: 'PRP hår',
+          status: 'completed',
+        },
+      ],
+    });
+    assert.deepEqual(attended.gaps, ['healthDeclaration', 'fitnessCertificate', 'offer']);
   });
 
   it('requires HD after an attended consultation but not treatment documents yet', () => {
