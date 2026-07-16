@@ -418,6 +418,19 @@ test('nonverified storage audit visar passerade samples endast vid explicit owne
   assert.match(routeSource, /includePassedDetails: req\.body\?\.includeReviewDetails === true/);
 });
 
+test('stuck import reconciliation är owner-gated och kräver exakt bekräftelse vid write', () => {
+  const source = require('node:fs').readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'routes', 'ccoPatientMaster.js'),
+    'utf8'
+  );
+  const routeStart = source.indexOf("'/cco-patient-master/assets/reconcile-stuck-import'");
+  assert.notEqual(routeStart, -1);
+  const routeSource = source.slice(routeStart, routeStart + 2600);
+  assert.match(routeSource, /requireRole\(ROLE_OWNER\)/);
+  assert.match(routeSource, /RECONCILE STUCK IMPORT/);
+  assert.match(routeSource, /dryRun = parseDryRun\(req\.body\?\.dryRun, true\)/);
+});
+
 test('assets/preview-encounter-links är read-only och maskerar föreslagna fotolänkar', async () => {
   const fixture = await makeFixture();
   try {
