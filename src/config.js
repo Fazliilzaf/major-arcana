@@ -356,6 +356,28 @@ const config = {
     process.env.ARCANA_CCO_MAIL_INGESTION_POLL_DELTA_MAX_PAGES,
     1
   ),
+  // External IMAP for CCO is intentionally separate from CM_IMAP_* (Finance).
+  // It is read-only and disabled until its own CCO variables are configured.
+  ccoImapEnabled: asBool(process.env.ARCANA_CCO_IMAP_ENABLED, false),
+  ccoImapHost: asNonEmptyString(process.env.ARCANA_CCO_IMAP_HOST, 'imap.one.com'),
+  ccoImapPort: asInt(process.env.ARCANA_CCO_IMAP_PORT, 993),
+  ccoImapUser: asNonEmptyString(process.env.ARCANA_CCO_IMAP_USER, ''),
+  ccoImapPassword: String(process.env.ARCANA_CCO_IMAP_PASSWORD || ''),
+  ccoImapSince: asNonEmptyString(process.env.ARCANA_CCO_IMAP_SINCE, '2026-01-01'),
+  ccoImapFolders: asStringArray(process.env.ARCANA_CCO_IMAP_FOLDERS || 'inbox,sent'),
+  ccoImapInboxFolder: asNonEmptyString(process.env.ARCANA_CCO_IMAP_INBOX_FOLDER, 'INBOX'),
+  ccoImapSentFolder: asNonEmptyString(process.env.ARCANA_CCO_IMAP_SENT_FOLDER, 'Sent'),
+  ccoImapMaxMessagesPerCycle: asInt(process.env.ARCANA_CCO_IMAP_MAX_MESSAGES_PER_CYCLE, 25),
+  ccoImapMaxMessageBytes: asInt(
+    process.env.ARCANA_CCO_IMAP_MAX_MESSAGE_BYTES,
+    25 * 1024 * 1024
+  ),
+  ccoImapPollEnabled: asBool(process.env.ARCANA_CCO_IMAP_POLL_ENABLED, false),
+  ccoImapPollIntervalMinutes: asInt(process.env.ARCANA_CCO_IMAP_POLL_INTERVAL_MINUTES, 3),
+  ccoImapPollInitialDelayMs: asInt(
+    process.env.ARCANA_CCO_IMAP_POLL_INITIAL_DELAY_MS,
+    120000
+  ),
   ccoHalsoMailboxEmail: asNonEmptyString(
     process.env.ARCANA_CCO_HALSO_MAILBOX_EMAIL,
     'halso@hairtpclinic.com'

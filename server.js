@@ -11609,6 +11609,8 @@ const { createCcoMailIngestionSyncService } = require('./src/ops/ccoMailIngestio
 const { createPortalNudgeIngestionHook } = require('./src/ops/ccoPortalNudgeIngestionHook');
 const { createCcoMailIngestionWorker } = require('./src/ops/ccoMailIngestion/worker');
 const { createCcoMailIngestionPoller } = require('./src/ops/ccoMailIngestion/poller');
+const { createCcoImapMailboxSync } = require('./src/ops/ccoImapMailboxSync');
+const { createCcoImapMailboxPoller } = require('./src/ops/ccoImapMailboxPoller');
 const {
   createMicrosoftGraphChangeNotifications,
 } = require('./src/infra/microsoftGraphChangeNotifications');
@@ -13076,6 +13078,15 @@ process.once('SIGTERM', () => {
     maxTotalBytes: config.ccoMailAssetCacheMaxTotalBytes,
   });
   app.locals.ccoMailAssetCache = runtimeMailAssetCache;
+  // External mailboxes (for example One.com) are isolated from Finance's
+  // CM_IMAP_* pipeline and from Microsoft Graph. The sync is read-only and
+  // keeps rich mail assets in the same local CCO cache as Graph mail.
+  const ccoImapMailboxSync = createCcoImapMailboxSync({
+    truthStore: ccoMailboxTruthStore,
+    assetCache: runtimeMailAssetCache,
+    logger: console,
+  });
+  app.locals.ccoImapMailboxSync = ccoImapMailboxSync;
   const graphReadConnector = createRuntimeGraphReadConnector();
 
   // DD1: shared graphSendConnector så scheduler (daily-digest) och
@@ -13109,6 +13120,7 @@ process.once('SIGTERM', () => {
     documentTriage: ccoDocumentTriageEngine,
     healthDeclarationIngest: ccoHalsoHealthDeclarationIngest,
     clientoBookingIngest: ccoClientoBookingIngest,
+    imapMailboxSync: ccoImapMailboxSync,
     // Auto-nudge vid ny inbound: förbereder ett needs_approval-utkast med den
     // magiska portal-länken för känd inbound-kund. Stores resolveras lazy från
     // app.locals (de wire:as senare i boot) → ingen ordningsberoende. Skickar
@@ -13555,11 +13567,21 @@ process.once('SIGTERM', () => {
       envAllowlist: process.env.ARCANA_MAILBOX_ALLOWLIST,
       schedulerHistoryMailboxIds: schedulerCcoHistoryMailboxIds,
     });
+  const ccoImapMailboxIds =
+    config.ccoMailIngestionEnabled === true && config.ccoMailIngestionMode === 'read_only'
+      ? ccoImapMailboxSync.getConfiguredMailboxIds()
+      : [];
+  const ccoRuntimeMailboxIds = Array.from(
+    new Set([...defaultSyncMailboxIds, ...ccoImapMailboxIds])
+  );
   console.log(
     '[server] defaultSyncMailboxIds for /cco/runtime/sync:',
     defaultSyncMailboxIds,
     `(source=${defaultSyncMailboxSource}, count=${defaultSyncMailboxIds.length})`
   );
+  if (ccoImapMailboxIds.length > 0) {
+    console.log('[server] CCO external IMAP mailbox enabled:', ccoImapMailboxIds);
+  }
   ccoGraphChangeNotifications.configureRuntime({
     mailboxAllowlist: defaultSyncMailboxIds,
     runtimeStreamRouter: ccoRuntimeStreamRouter,
@@ -13602,7 +13624,9 @@ process.once('SIGTERM', () => {
       // E1 steg 2 — skarpt utskick omdirigerat till ägar-testadress (ingen kund nås).
       sendTestRecipient: String(process.env.ARCANA_MAIL_SEND_TEST_RECIPIENT || '').trim(),
       runtimeStreamRouter: ccoRuntimeStreamRouter,
-      mailboxIdsForSync: defaultSyncMailboxIds,
+      mailboxIdsForSync: ccoRuntimeMailboxIds,
+      mailboxRuntimeStatusProvider: ({ mailboxId }) =>
+        ccoImapMailboxSync.getMailboxStatus(mailboxId),
       syncLookbackDays: Number(process.env.ARCANA_CCO_SYNC_LOOKBACK_DAYS) || 14,
       ccoConversationStateStore,
       ccoConversationNotesStore,
@@ -14547,6 +14571,15 @@ process.once('SIGTERM', () => {
     });
     app.locals.ccoMailIngestionPoller = ccoMailIngestionPoller;
     ccoMailIngestionPoller.start();
+
+    const ccoImapMailboxPoller = createCcoImapMailboxPoller({
+      config,
+      syncService: ccoMailIngestionSyncService,
+      runtimeStreamRouter: ccoRuntimeStreamRouter,
+      logger: console,
+    });
+    app.locals.ccoImapMailboxPoller = ccoImapMailboxPoller;
+    ccoImapMailboxPoller.start();
   }
 })().catch((error) => {
   runtimeState.ready = false;

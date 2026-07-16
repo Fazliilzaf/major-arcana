@@ -69,6 +69,21 @@
       rail: 'var(--rail-info, #4a7ba8)',
     },
   ];
+
+  function addRuntimeMailbox(status = {}) {
+    const id = String(status.id || status.mailboxId || '').trim().toLowerCase();
+    if (!id || MAILBOXES.some((mailbox) => mailbox.id === id)) return false;
+    // Only a server-declared external CCO mailbox may extend the selector.
+    // This keeps Finance/other IMAP accounts out of the operator worklist.
+    if (String(status.provider || '').toLowerCase() !== 'imap') return false;
+    MAILBOXES.push({
+      id,
+      label: String(status.label || 'Extern mail').trim() || 'Extern mail',
+      sub: id,
+      rail: 'var(--rail-fazli, #7c3aed)',
+    });
+    return true;
+  }
   const DEFAULT_STATE = {
     mailboxIds: MAILBOXES.map((mailbox) => mailbox.id),
     folder: 'inbox',
@@ -339,6 +354,19 @@
         const map = {};
         for (const m of list) if (m && m.id) map[m.id] = m;
         statusById = map;
+        let addedRuntimeMailbox = false;
+        for (const mailbox of list) {
+          addedRuntimeMailbox = addRuntimeMailbox(mailbox) || addedRuntimeMailbox;
+        }
+        // New configured CCO mailboxes join the initial all-mailboxes view.
+        // A later explicit user deselection remains sticky in localStorage.
+        if (addedRuntimeMailbox) {
+          for (const mailbox of MAILBOXES) {
+            if (!state.mailboxIds.includes(mailbox.id)) state.mailboxIds.push(mailbox.id);
+          }
+          saveState(state);
+          dispatchChange(state);
+        }
         renderRows();
       } catch (_e) {
         /* Statusspegeln är best-effort; worklist-filtret fungerar ändå. */
