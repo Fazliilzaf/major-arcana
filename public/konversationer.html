@@ -50,10 +50,14 @@
         --rose-pill-top: rgba(252, 233, 240, 0.98);
         --rose-pill-bottom: rgba(241, 207, 220, 0.95);
         --accent-studio: #bb4779;
+        --rail-kons: #bb4779;
         --rail-fazli: #7c3aed;
         --rail-egzona: #a37433;
         --rail-contact: #2596a8;
         --rail-info: #84756b;
+        --rail-marknad: #b87935;
+        --rail-kvitto: #4a8268;
+        --rail-halso: #5f8270;
         --calendar-accent: #c8821e;
         --calendar-accent-soft: rgba(200, 130, 30, 0.14);
         --calendar-accent-glow: rgba(200, 130, 30, 0.22);
@@ -1039,6 +1043,56 @@
         display: flex;
         align-items: center;
         gap: 5px;
+      }
+      .msg-meta time {
+        white-space: nowrap;
+      }
+      .msg-mailbox-chip {
+        --msg-mailbox-color: var(--rail-info);
+        --msg-mailbox-surface: rgba(132, 117, 107, 0.13);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 20px;
+        padding: 2px 7px;
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        border-radius: 999px;
+        background: var(--msg-mailbox-surface);
+        color: var(--msg-mailbox-color);
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      .msg-mailbox-icon {
+        font-size: 10px;
+        line-height: 1;
+      }
+      .msg-mailbox-chip--kons {
+        --msg-mailbox-color: var(--rail-kons);
+        --msg-mailbox-surface: rgba(187, 71, 121, 0.13);
+      }
+      .msg-mailbox-chip--contact {
+        --msg-mailbox-color: var(--rail-contact);
+        --msg-mailbox-surface: rgba(37, 150, 168, 0.13);
+      }
+      .msg-mailbox-chip--egzona {
+        --msg-mailbox-color: var(--rail-egzona);
+        --msg-mailbox-surface: rgba(163, 116, 51, 0.13);
+      }
+      .msg-mailbox-chip--fazli {
+        --msg-mailbox-color: var(--rail-fazli);
+        --msg-mailbox-surface: rgba(124, 58, 237, 0.12);
+      }
+      .msg-mailbox-chip--marknad {
+        --msg-mailbox-color: var(--rail-marknad);
+        --msg-mailbox-surface: rgba(184, 121, 53, 0.13);
+      }
+      .msg-mailbox-chip--kvitto {
+        --msg-mailbox-color: var(--rail-kvitto);
+        --msg-mailbox-surface: rgba(74, 130, 104, 0.13);
+      }
+      .msg-mailbox-chip--halso {
+        --msg-mailbox-color: var(--rail-halso);
+        --msg-mailbox-surface: rgba(95, 130, 112, 0.13);
       }
       .msg.is-outgoing .msg-meta {
         justify-content: flex-end;
@@ -2879,7 +2933,10 @@
                 Hej! Jag vill gärna boka PRP-behandling och föredrar fredag morgon om det går.
                 Annars funkar måndag eftermiddag också. Tack!
               </div>
-              <div class="msg-meta">Anna Karlsson · 09:14 · contact@</div>
+              <div class="msg-meta">
+                <span class="msg-mailbox-chip msg-mailbox-chip--contact" title="contact@hairtpclinic.com"><span class="msg-mailbox-icon" aria-hidden="true">✉</span><span>Contact</span></span>
+                <time datetime="2026-05-26T09:14:00+02:00">26 maj · 09:14</time>
+              </div>
             </div>
           </div>
 
@@ -2893,7 +2950,9 @@
                 emot att träffa dig! 🌿
               </div>
               <div class="msg-meta">
-                <span style="color: var(--cco-status-success)">✓ läst</span> · Egzona · 14:30
+                <span style="color: var(--cco-status-success)">✓ läst</span>
+                <span class="msg-mailbox-chip msg-mailbox-chip--egzona" title="egzona@hairtpclinic.com"><span class="msg-mailbox-icon" aria-hidden="true">✉</span><span>Egzona</span></span>
+                <time datetime="2026-05-26T14:30:00+02:00">26 maj · 14:30</time>
               </div>
             </div>
           </div>
@@ -2904,7 +2963,10 @@
             </div>
             <div>
               <div class="msg-bubble">Tack! Behöver jag göra något innan?</div>
-              <div class="msg-meta">Anna Karlsson · igår 16:45</div>
+              <div class="msg-meta">
+                <span class="msg-mailbox-chip msg-mailbox-chip--contact" title="contact@hairtpclinic.com"><span class="msg-mailbox-icon" aria-hidden="true">✉</span><span>Contact</span></span>
+                <time datetime="2026-05-25T16:45:00+02:00">25 maj · 16:45</time>
+              </div>
             </div>
           </div>
 
@@ -2935,7 +2997,8 @@
                 särskilt med mig?
               </div>
               <div class="msg-meta">
-                Anna Karlsson · 08:42 ·
+                <span class="msg-mailbox-chip msg-mailbox-chip--contact" title="contact@hairtpclinic.com"><span class="msg-mailbox-icon" aria-hidden="true">✉</span><span>Contact</span></span>
+                <time datetime="2026-05-26T08:42:00+02:00">26 maj · 08:42</time>
                 <span style="color: var(--accent-studio); font-weight: 800">OLÄST</span>
               </div>
             </div>
@@ -4609,6 +4672,54 @@
         return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
       }
 
+      const MAILBOX_META_PRESENTATION = Object.freeze({
+        'kons@hairtpclinic.com': { label: 'Kons', tone: 'kons' },
+        'info@hairtpclinic.com': { label: 'Info', tone: 'info' },
+        'contact@hairtpclinic.com': { label: 'Contact', tone: 'contact' },
+        'egzona@hairtpclinic.com': { label: 'Egzona', tone: 'egzona' },
+        'fazli@hairtpclinic.com': { label: 'Fazli', tone: 'fazli' },
+        'marknad@hairtpclinic.com': { label: 'Marknad', tone: 'marknad' },
+        'kvitto@hairtpclinic.com': { label: 'Kvitto', tone: 'kvitto' },
+        'halso@hairtpclinic.com': { label: 'Hälso', tone: 'halso' },
+      });
+
+      function mailboxMetaPresentation(mailbox) {
+        const address = canonicalHairTpMailbox(mailbox);
+        const known = MAILBOX_META_PRESENTATION[address];
+        if (known) return { ...known, address };
+        const compact = compactMailbox(address);
+        return {
+          label: compact ? compact.charAt(0).toUpperCase() + compact.slice(1) : 'Mailbox',
+          tone: 'info',
+          address,
+        };
+      }
+
+      function messageDateTimeLabel(value) {
+        const iso = normalizeText(value);
+        if (!iso) return '';
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) return iso;
+        const dateLabel = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' });
+        const timeLabel = messageTimeLabel(iso);
+        return timeLabel ? `${dateLabel} · ${timeLabel}` : dateLabel;
+      }
+
+      function renderMessageMeta(message, fallbackMailbox = '') {
+        const mailbox = canonicalHairTpMailbox(
+          normalizeText(message?.mailboxId) ||
+            normalizeText(message?.mailboxAddress) ||
+            normalizeText(fallbackMailbox)
+        );
+        const presentation = mailboxMetaPresentation(mailbox);
+        const stamp = messageDateTimeLabel(message?.time);
+        const datetime = normalizeText(message?.time);
+        const dateMarkup = stamp
+          ? `<time${datetime ? ` datetime="${escapeHtml(datetime)}"` : ''}>${escapeHtml(stamp)}</time>`
+          : '';
+        return `<div class="msg-meta"><span class="msg-mailbox-chip msg-mailbox-chip--${escapeHtml(presentation.tone)}" title="${escapeHtml(presentation.address || presentation.label)}"><span class="msg-mailbox-icon" aria-hidden="true">✉</span><span>${escapeHtml(presentation.label)}</span></span>${dateMarkup}</div>`;
+      }
+
       function isAllowedMailUrl(value, { image = false } = {}) {
         const url = normalizeText(value);
         if (!url) return false;
@@ -5189,7 +5300,7 @@
                 <div>
                   ${renderMessageBubbleInner(message)}
                   ${renderMessageAttachments(message)}
-                  <div class="msg-meta">${escapeHtml(from)} · ${escapeHtml(messageTimeLabel(message.time))} · ${escapeHtml(mailbox)}</div>
+                  ${renderMessageMeta(message, mailbox)}
                   ${renderMessageDuplicateNote(message)}
                 </div>
               </div>
@@ -5530,7 +5641,7 @@
       }
 
       async function loadLiveInbox({ background = false } = {}) {
-        if (window.location.protocol === 'file:') return;
+        if (STATIC_DEMO_PREVIEW || window.location.protocol === 'file:') return;
         if (liveInboxFetchInFlight) {
           liveInboxReloadQueued = true;
           return;

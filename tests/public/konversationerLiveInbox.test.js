@@ -474,6 +474,35 @@ test('konversationstråden visar senaste mailet överst utan att mutera API-ordn
   assert.match(html, /mount\.innerHTML = newestFirst/);
 });
 
+test('konversationstråden visar datum och färgkodad mailbox, inte full mailboxadress, i meddelandets meta', () => {
+  const html = readHtml();
+
+  assert.match(html, /const MAILBOX_META_PRESENTATION = Object\.freeze/);
+  for (const mailbox of [
+    'kons@hairtpclinic.com',
+    'info@hairtpclinic.com',
+    'contact@hairtpclinic.com',
+    'egzona@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+    'marknad@hairtpclinic.com',
+    'kvitto@hairtpclinic.com',
+    'halso@hairtpclinic.com',
+  ]) assert.match(html, new RegExp("'" + mailbox.replace('@', '@') + "'"));
+  assert.match(html, /function messageDateTimeLabel\(value\)/);
+  assert.match(html, /day: 'numeric', month: 'long'/);
+  assert.match(html, /function renderMessageMeta\(message, fallbackMailbox = ''\)/);
+  assert.match(html, /msg-mailbox-chip--\$\{escapeHtml\(presentation\.tone\)\}/);
+  assert.match(html, /msg-mailbox-icon/);
+  assert.match(html, /✉/);
+  assert.match(html, /\$\{renderMessageMeta\(message, mailbox\)\}/);
+  assert.match(html, /if \(STATIC_DEMO_PREVIEW \|\| window\.location\.protocol === 'file:'\) return;/);
+  assert.doesNotMatch(
+    html,
+    /<div class="msg-meta">\$\{escapeHtml\(from\)\} · \$\{escapeHtml\(messageTimeLabel\(message\.time\)\)\} · \$\{escapeHtml\(mailbox\)\}<\/div>/,
+    'live message meta must not keep rendering the full mailbox address'
+  );
+});
+
 test('kontaktformulär utan kundmail scopas från formulärtexten, inte generisk rubrik', () => {
   const html = readHtml();
 
