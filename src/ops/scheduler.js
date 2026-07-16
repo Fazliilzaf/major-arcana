@@ -3185,7 +3185,8 @@ function createScheduler({
         : 0) +
       (Array.isArray(outputData?.conversationWorklist)
         ? outputData.conversationWorklist.length
-        : 0) + (Array.isArray(outputData?.needsReplyToday) ? outputData.needsReplyToday.length : 0);
+        : 0) +
+      (Array.isArray(outputData?.needsReplyToday) ? outputData.needsReplyToday.length : 0);
 
     if (!persistResult) {
       return {
@@ -4156,17 +4157,38 @@ function createScheduler({
     // ORD-72: records utan totalbelopp läses om ur sparat källmail — fyller
     // endast tomma fält (5/körning för att inte äta hela AI-budgeten).
     const reextractResult = await sync.reextractMissingAmounts({ limit: 5 });
+    // ORD-73: IMAP-lådan (info@fazli.se, one.com) synkas i samma jobb —
+    // fail-closed: syncInbox gör ingenting utan env-creds.
+    let imapResult = { imported: 0, records: 0, errors: [] };
+    try {
+      const { createCmImapSync } = require('../cm/cmImapSync');
+      const imapSync = createCmImapSync({
+        cmStore: deps.cmStore,
+        secureStorage: deps.secureStorage || null,
+      });
+      const r = await imapSync.syncInbox();
+      if (r.ok) imapResult = r;
+      else if (!/CM_IMAP_ENABLED/.test(r.error || '')) {
+        imapResult.errors = [{ error: r.error }];
+      }
+    } catch (err) {
+      imapResult.errors = [{ error: `imap: ${err.message}` }];
+    }
     const summary = {
       status: 'ok',
       mailbox,
-      imported: syncResult.totalImported,
-      newRecords: (syncResult.totalRecords || 0) + (reprocessResult.records || 0),
+      imported: (syncResult.totalImported || 0) + (imapResult.imported || 0),
+      newRecords:
+        (syncResult.totalRecords || 0) + (reprocessResult.records || 0) + (imapResult.records || 0),
       reprocessed: reprocessResult.reprocessed,
       reextracted: reextractResult.updatedRecords || 0,
+      imapImported: imapResult.imported || 0,
+      imapBacklog: imapResult.remainingBacklog || 0,
       errors:
         (syncResult.folders || []).reduce((s, f) => s + (f.errors?.length || 0), 0) +
         (reprocessResult.errors?.length || 0) +
-        (reextractResult.errors?.length || 0),
+        (reextractResult.errors?.length || 0) +
+        (imapResult.errors?.length || 0),
     };
     // ORD-70: persistera körnings-summeringen så finance.html kan visa
     // "auto-intag: senaste körning …" utan att fråga scheduler-endpointen.

@@ -934,6 +934,7 @@
             <button class="btn" data-action="cm-mail-sync">✉ Synka mail</button>
             <button class="btn" data-action="cm-reprocess" title="Läs om mail som saknar kandidat — hämtar bilagor i efterhand">⟳ Läs om oprocessade</button>
             <button class="btn" data-action="cm-reextract" title="Läs om källmailen för kandidater som saknar belopp — fyller bara tomma fält">⟲ Hämta belopp ur mail</button>
+            <button class="btn" data-action="cm-imap-sync" title="Synka info@fazli.se (one.com) — kräver CM_IMAP-env">✉ Synka info@</button>
             <button class="btn" data-action="cm-refresh">↻ Uppdatera</button>
           </div>
         </h2>
@@ -2741,6 +2742,12 @@
                   ' nya kandidater · ' +
                   (auto.reextracted || 0) +
                   ' belopp ifyllda · ' +
+                  ((auto.imapImported || 0) > 0 || (auto.imapBacklog || 0) > 0
+                    ? (auto.imapImported || 0) +
+                      ' från info@ (' +
+                      (auto.imapBacklog || 0) +
+                      ' kvar i historiken) · '
+                    : '') +
                   (auto.errors || 0) +
                   ' fel &nbsp;·&nbsp; nästa ca ' +
                   fmtT(next) +
@@ -2930,6 +2937,35 @@
             }
             b.disabled = false;
             b.textContent = '⟲ Hämta belopp ur mail';
+          });
+        // ORD-73: manuell synk av info@fazli.se (one.com IMAP)
+        document
+          .querySelector('[data-action="cm-imap-sync"]')
+          .addEventListener('click', async (ev) => {
+            const b = ev.currentTarget;
+            b.disabled = true;
+            b.textContent = 'Synkar info@…';
+            try {
+              const r = await fetch('/api/v1/cm/imap-sync', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{}',
+              });
+              const d = await r.json().catch(() => ({}));
+              if (!r.ok) alert('info@-synk: ' + (d.error || r.status));
+              else
+                alert(
+                  `info@fazli.se: ${d.imported || 0} nya mail · ${d.records || 0} kandidater` +
+                    (d.remainingBacklog ? ` · ${d.remainingBacklog} kvar i historiken (autopiloten tar dem)` : '') +
+                    (d.errors?.length ? ` · ${d.errors.length} fel` : '')
+                );
+              await loadCm();
+            } catch (err) {
+              alert('info@-synkfel: ' + err.message);
+            }
+            b.disabled = false;
+            b.textContent = '✉ Synka info@';
           });
         document.querySelector('[data-action="cm-refresh"]').addEventListener('click', loadCm);
         loadCm();
