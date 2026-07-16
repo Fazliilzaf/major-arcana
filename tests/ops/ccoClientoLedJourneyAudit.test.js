@@ -257,7 +257,12 @@ describe('ccoClientoLedJourneyAudit', () => {
   it('audits every patient and matches Cliento history by phone when email differs', () => {
     const result = buildClientoLedJourneyAudit({
       patients: [
-        { id: 'p1', primaryEmail: 'one@example.com', primaryPhone: '+46701234567' },
+        {
+          id: 'p1',
+          displayName: 'Testkund Ett',
+          primaryEmail: 'one@example.com',
+          primaryPhone: '+46701234567',
+        },
         { id: 'p2', primaryEmail: 'two@example.com' },
       ],
       clientoBookings: [
@@ -275,6 +280,7 @@ describe('ccoClientoLedJourneyAudit', () => {
     assert.equal(result.summary.patientsWithClientoHistory, 1);
     assert.equal(result.summary.patientsWithoutClientoHistory, 1);
     assert.equal(result.rows.find((row) => row.patientId === 'p1').bookingCount, 1);
+    assert.equal(result.rows.find((row) => row.patientId === 'p1').patientName, 'Testkund Ett');
     assert.equal(result.rows.find((row) => row.patientId === 'p2').stage, 'no_cliento_history');
   });
 });
