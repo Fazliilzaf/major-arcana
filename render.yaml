@@ -54,6 +54,11 @@ services:
       # Pro Plus 8 GB RAM — default V8 heap ~2 GB gav exit 134 vid boot-backfill.
       - key: NODE_OPTIONS
         value: "--max-old-space-size=6144"
+      # En heap-snapshot kan själv använda flera GB RAM när Drive-inventeringen
+      # bygger ett stort index. Behåll larmet, men skriv inte snapshot automatiskt
+      # i den skarpa tjänsten.
+      - key: ARCANA_MEMORY_WATCHDOG_SNAPSHOT_ENABLED
+        value: "false"
       - key: TRUST_PROXY
         value: "true"
       - key: ARCANA_AI_PROVIDER
