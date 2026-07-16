@@ -199,7 +199,10 @@ function createCcoPhotoReviewRouter({
     ? { ...pilotConfig, projectRoot: pilotConfig.projectRoot || PHOTO_REVIEW_REPO_ROOT }
     : null;
 
-  router.use(requireCcoAuthenticated);
+  // Routern monteras under /api/v1/cco. Grinda bara foto-granskningsvägarna,
+  // annars fångar den andra CCO-endpoints som avsiktligt har egen auth, t.ex.
+  // Microsoft Graphs publika webhook-validering.
+  router.use('/photo-review', requireCcoAuthenticated);
 
   router.get(
     '/photo-review/summary',
