@@ -10230,7 +10230,34 @@ try {
           /* best-effort */
         }
         invalidateAssetQaCache();
-        const hardGate = evaluateDriveIngestHardGate(st);
+        // The import report can count a transient review condition even when no
+        // review asset was persisted. Only persisted run assets may pause the
+        // long-running worker for review; failed imports remain fail-closed.
+        const { summarizeDriveIngestRunAssets } = require('./src/ops/ccoDriveIngestRunObservability');
+        const persistedRunAssets = report?.runId
+          ? summarizeDriveIngestRunAssets(
+              stores.assetStore.listItemsForEnrichment(),
+              report.runId,
+              { limit: 1 }
+            )
+          : { byStatus: {} };
+        const persistedNeedsReview =
+          Number(persistedRunAssets.byStatus?.NEEDS_REVIEW) || 0;
+        const rawNeedsReview = Number(st.needsReview) || 0;
+        if (rawNeedsReview !== persistedNeedsReview) {
+          __ingestState.warning = {
+            reason: 'run_stats_review_count_mismatch',
+            runId: report?.runId || null,
+            reportedNeedsReview: rawNeedsReview,
+            persistedNeedsReview,
+          };
+        } else {
+          delete __ingestState.warning;
+        }
+        const hardGate = evaluateDriveIngestHardGate({
+          ...st,
+          needsReview: persistedNeedsReview,
+        });
         if (hardGate) {
           __ingestRuntime.pause({
             reason: `hard_gate:${hardGate.reason}`,

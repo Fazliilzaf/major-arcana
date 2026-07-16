@@ -64,3 +64,17 @@ test('hard gates include failed and needs-review rows', () => {
   });
   assert.equal(evaluateDriveIngestHardGate({ imported: 3 }), null);
 });
+
+test('a caller can replace transient report review counts with persisted run counts', () => {
+  const reportStats = { imported: 130, needsReview: 1, failed: 0 };
+  const persistedNeedsReview = 0;
+
+  assert.equal(
+    evaluateDriveIngestHardGate({ ...reportStats, needsReview: persistedNeedsReview }),
+    null
+  );
+  assert.deepEqual(
+    evaluateDriveIngestHardGate({ ...reportStats, needsReview: 1 }),
+    { reason: 'needs_review', count: 1 }
+  );
+});
