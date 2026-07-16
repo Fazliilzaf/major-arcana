@@ -226,7 +226,7 @@ describe('ccoClientoLedJourneyAudit', () => {
         }),
       ],
     });
-    assert.equal(row.requirements.fitnessCertificate.status, 'present');
+    assert.equal(row.requirements.fitnessCertificate.status, 'verified');
     assert.deepEqual(row.gaps, []);
   });
 
