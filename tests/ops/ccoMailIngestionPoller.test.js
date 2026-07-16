@@ -8,6 +8,7 @@ const {
   EGZONA_MAILBOX,
   FAZLI_MAILBOX,
   HALSO_MAILBOX,
+  INFO_MAILBOX,
   KONS_MAILBOX,
   KVITTO_MAILBOX,
   MARKNAD_MAILBOX,
@@ -161,13 +162,13 @@ test('mailbox-pollern fortsätter med nästa konto om ett konto fallerar', async
   assert.deepEqual(result.results[1].result.affectedConversationIds, ['contact-thread']);
 });
 
-test('mailbox-pollern avvisar konton utanför den låsta live-listan', () => {
+test('mailbox-pollern tillåter alla CCO-mailboxar och avvisar övriga konton', () => {
   const poller = createCcoMailIngestionPoller({
     config: {
       ccoMailIngestionPollEnabled: true,
       ccoMailIngestionEnabled: true,
       ccoMailIngestionMode: 'read_only',
-      ccoMailIngestionDefaultMailbox: 'info@hairtpclinic.com',
+      ccoMailIngestionDefaultMailbox: 'booking@hairtpclinic.com',
     },
     syncService: { runDeltaSync: async () => assert.fail('ska inte köras') },
   });
@@ -176,17 +177,19 @@ test('mailbox-pollern avvisar konton utanför den låsta live-listan', () => {
     resolvePollMailboxes({
     ccoMailIngestionPollMailboxes: [
       KONS_MAILBOX,
+      INFO_MAILBOX,
       CONTACT_MAILBOX,
       EGZONA_MAILBOX,
       FAZLI_MAILBOX,
       MARKNAD_MAILBOX,
       KVITTO_MAILBOX,
       HALSO_MAILBOX,
-      'info@hairtpclinic.com',
+      'booking@hairtpclinic.com',
     ],
     }),
     [
       KONS_MAILBOX,
+      INFO_MAILBOX,
       CONTACT_MAILBOX,
       EGZONA_MAILBOX,
       FAZLI_MAILBOX,

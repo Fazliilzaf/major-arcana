@@ -1,6 +1,7 @@
 'use strict';
 
 const KONS_MAILBOX = 'kons@hairtpclinic.com';
+const INFO_MAILBOX = 'info@hairtpclinic.com';
 const CONTACT_MAILBOX = 'contact@hairtpclinic.com';
 const EGZONA_MAILBOX = 'egzona@hairtpclinic.com';
 const FAZLI_MAILBOX = 'fazli@hairtpclinic.com';
@@ -12,6 +13,7 @@ const HALSO_MAILBOX = 'halso@hairtpclinic.com';
 // read-only delta loop. The loop still processes one mailbox at a time.
 const LIVE_MAILBOXES = Object.freeze([
   KONS_MAILBOX,
+  INFO_MAILBOX,
   CONTACT_MAILBOX,
   EGZONA_MAILBOX,
   FAZLI_MAILBOX,
@@ -169,6 +171,7 @@ function createCcoMailIngestionPoller({
 module.exports = {
   CONTACT_MAILBOX,
   EGZONA_MAILBOX,
+  INFO_MAILBOX,
   KONS_MAILBOX,
   HALSO_MAILBOX,
   KVITTO_MAILBOX,

@@ -68,6 +68,7 @@ test('konversationer live inbox scopes worklist reads to the selected mailboxes'
 
   for (const mailbox of [
     'kons@hairtpclinic.com',
+    'info@hairtpclinic.com',
     'contact@hairtpclinic.com',
     'egzona@hairtpclinic.com',
     'fazli@hairtpclinic.com',
