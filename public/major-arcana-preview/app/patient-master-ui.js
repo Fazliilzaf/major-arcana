@@ -245,6 +245,7 @@
     reviewGroupsLoading: false,
     journeyAudit: null,
     journeyAuditLoading: false,
+    journeyAuditLoadingMore: false,
     draftProposals: null,
     draftProposalsLoading: false,
     draftProposalsPatientId: '',
@@ -4674,6 +4675,7 @@
     offer: 'Offert',
     agreement: 'Avtal',
   });
+  const JOURNEY_AUDIT_PAGE_SIZE = 500;
 
   function ensureJourneyAuditDrawer() {
     let drawer = document.querySelector('[data-customer-journey-audit-drawer]');
@@ -4744,7 +4746,45 @@
           })
           .join('')}
       </div>
+      ${
+        audit.page?.hasMore
+          ? `<div class="v9-intel-drawer__actions">
+              <button class="nav-btn" type="button" data-customer-journey-audit-load-more ${runtime.journeyAuditLoadingMore ? 'disabled' : ''}>
+                ${runtime.journeyAuditLoadingMore ? 'Laddar fler…' : 'Visa fler avvikelser'}
+              </button>
+            </div>`
+          : ''
+      }
       <p class="v9-intel-drawer__intro">${Number(summary.bookingsMatched || 0)} Cliento-bokningar matchade · read-only kontroll.</p>`;
+  }
+
+  async function loadJourneyAuditPage({ reset = false } = {}) {
+    const current = runtime.journeyAudit || { rows: [], summary: {}, page: {} };
+    const offset = reset ? 0 : asArray(current.rows).length;
+    if (!reset && (!current.page?.hasMore || runtime.journeyAuditLoadingMore)) return;
+    if (reset) runtime.journeyAuditLoading = true;
+    else runtime.journeyAuditLoadingMore = true;
+    renderJourneyAuditDrawer();
+    try {
+      const page = await apiRequest(
+        `/api/v1/cco-patient-master/journey-audit?onlyGaps=1&offset=${offset}&limit=${JOURNEY_AUDIT_PAGE_SIZE}`,
+        { timeoutMs: 60_000 }
+      );
+      runtime.journeyAudit = reset
+        ? page
+        : {
+            ...page,
+            rows: asArray(current.rows).concat(asArray(page.rows)),
+            page: { ...page.page, offset: 0 },
+          };
+    } catch (error) {
+      if (reset) runtime.journeyAudit = { rows: [], summary: {} };
+      setStatus(error.message || 'Kunde inte läsa kundresegranskningen.', 'error');
+    } finally {
+      runtime.journeyAuditLoading = false;
+      runtime.journeyAuditLoadingMore = false;
+      renderJourneyAuditDrawer();
+    }
   }
 
   async function openJourneyAuditDrawer() {
@@ -4757,20 +4797,7 @@
     drawer.hidden = false;
     drawer.setAttribute('aria-hidden', 'false');
     drawer.classList.add('is-open');
-    runtime.journeyAuditLoading = true;
-    renderJourneyAuditDrawer();
-    try {
-      runtime.journeyAudit = await apiRequest(
-        '/api/v1/cco-patient-master/journey-audit?onlyGaps=1&offset=0&limit=500',
-        { timeoutMs: 60_000 }
-      );
-    } catch (error) {
-      runtime.journeyAudit = { rows: [], summary: {} };
-      setStatus(error.message || 'Kunde inte läsa kundresegranskningen.', 'error');
-    } finally {
-      runtime.journeyAuditLoading = false;
-      renderJourneyAuditDrawer();
-    }
+    await loadJourneyAuditPage({ reset: true });
   }
 
   async function dismissMergeReviewGroup(groupId) {
@@ -14480,6 +14507,12 @@
       const journeyAuditClose = event.target.closest('[data-customer-journey-audit-close]');
       if (journeyAuditClose) {
         closeJourneyAuditDrawer();
+        return;
+      }
+
+      const journeyAuditLoadMore = event.target.closest('[data-customer-journey-audit-load-more]');
+      if (journeyAuditLoadMore && runtime.mode === 'register') {
+        void loadJourneyAuditPage();
         return;
       }
 
