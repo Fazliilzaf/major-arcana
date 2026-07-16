@@ -3192,17 +3192,15 @@
         );
       }
 
-      function worklistMailboxChunks(selectedMailboxIds = [], mailboxIds = LIVE_MAILBOX_IDS) {
+      function worklistMailboxChunks(selectedMailboxIds = []) {
         const selected = canonicalMailboxIds(selectedMailboxIds);
-        const all = canonicalMailboxIds(mailboxIds);
         if (!selected.length) return [];
-        // Ett enskilt valt konto ska aldrig dela sitt första läsanrop med ett
-        // annat konto. Då kan ett tillfälligt fel i t.ex. Kons inte blockera
-        // Fazlis egen arbetsvy. Resterande lokal historik läses fortfarande
-        // säkert två i taget, efter ankaret.
-        const selectedChunks = selected.length === 1 ? [selected] : chunkMailboxIds(selected);
-        const remaining = all.filter((mailboxId) => !selected.includes(mailboxId));
-        return [...selectedChunks, ...chunkMailboxIds(remaining)];
+        // Worklistan är ägd av mailboxväljaren: Kons ska bara läsa Kons,
+        // Fazli bara Fazli. Att sedan läsa alla övriga mailboxar gjorde varje
+        // 10-sekunders uppdatering till ett sju-shards-svep och kunde slå ut
+        // CCO-worklist med 502. Kundens samlade historik hör hemma när tråden
+        // öppnas, aldrig i den återkommande inkorgsläsningen.
+        return chunkMailboxIds(selected);
       }
 
       function threadMatchesMailboxScope(thread = {}, mailboxIds = []) {
@@ -5548,10 +5546,9 @@
           return;
         }
         liveInboxFetchInFlight = true;
-        // Vald mailbox styr vilken kundrad som syns, men inte hur mycket av den
-        // kundens lokala historik vi läser. Samma säkra två-i-taget-hämtning som
-        // "Alla" används för att en Fazli-rad också ska visa kundens Contact/Kons-
-        // meddelanden när patientkopplingen är entydig.
+        // Vald mailbox styr både synliga kundrader och worklist-läsningen.
+        // Det håller den återkommande uppdateringen liten och förutsägbar även
+        // när flera CCO-konton är aktiva.
         const selectedScopeMailboxIds = canonicalMailboxIds(selectedMailboxIds);
         const requestMailboxChunks = worklistMailboxChunks(selectedScopeMailboxIds);
         const selectionMailboxKey = selectedScopeMailboxIds.join(',');
