@@ -28,6 +28,27 @@ test('normalizeBooking returns null without bookingId or customer identity', () 
   assert.equal(normalizeBooking({ customerEmail: 'a@b.co' }), null);
 });
 
+test('store retains identityless Cliento rows in the existing booking model for review', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-unlinked-'));
+  const store = await createClientoBookingStore({ filePath: path.join(dir, 'bookings.json') });
+  const result = await store.importBatch({
+    tenantId: 'tenant-review',
+    bookings: [
+      {
+        bookingId: 'review-1',
+        source: 'cliento_csv',
+        startsAt: '2024-07-02T09:00:00.000Z',
+      },
+    ],
+  });
+  assert.equal(result.accepted, 1);
+  const rows = store.listAllBookings({ tenantId: 'tenant-review' });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].bookingId, 'review-1');
+  assert.equal(rows[0].patientId, '');
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
 test('normalizeBooking accepts phone or Cliento id when historical email is missing', () => {
   const byPhone = normalizeBooking({ bookingId: 'phone-only', customerPhone: '070 123 45 67' });
   const byClientoId = normalizeBooking({

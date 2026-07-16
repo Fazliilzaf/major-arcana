@@ -31,7 +31,10 @@ const { assertTreatmentBookingAllowed } = require('../ops/ccoTreatmentBookingGat
 const { buildCalendarSignalsIndex } = require('../ops/bookingCalendarSignals');
 const { buildMissingFormsReport } = require('../ops/ccoPatientCareOps');
 const { normalizeBookingReminderLeadTimeConfig } = require('../ops/bookingReminderLeadTime');
-const { collectBookingReadouts } = require('../ops/ccoKunderBookingEnrichment');
+const {
+  collectBookingReadouts,
+  buildUnlinkedClientoBookingReview,
+} = require('../ops/ccoKunderBookingEnrichment');
 
 const WORKSPACE_ID = 'major-arcana-preview';
 const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
@@ -937,6 +940,39 @@ function createCcoBookingsRouter({
       }
       const payload = await build();
       return res.json({ ...payload, cacheHit: false });
+    })
+  );
+
+  router.get('/cco-bookings/cliento-unlinked-review', async (req, res) =>
+    handle(req, res, async (context) => {
+      res.set('Cache-Control', 'no-store');
+      if (!patientMasterStore || !clientoBookingStore) {
+        return res.json({
+          tenantId: context.tenantId,
+          generatedAt: new Date().toISOString(),
+          zeroWrites: true,
+          total: 0,
+          byReason: {},
+          rows: [],
+        });
+      }
+      const population = await patientMasterStore.listPatients({
+        tenantId: context.tenantId,
+        limit: 20000,
+        offset: 0,
+      });
+      const clientoBookings = clientoBookingStore.listAllBookings
+        ? clientoBookingStore.listAllBookings({ tenantId: context.tenantId })
+        : [];
+      const report = buildUnlinkedClientoBookingReview({
+        patients: asArray(population?.patients),
+        clientoBookings: asArray(clientoBookings),
+      });
+      return res.json({
+        tenantId: context.tenantId,
+        generatedAt: new Date().toISOString(),
+        ...report,
+      });
     })
   );
 

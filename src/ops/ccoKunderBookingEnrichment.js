@@ -244,6 +244,117 @@ function resolvePatientIdFromClientoBooking(clientoBooking, lookup) {
   return null;
 }
 
+function maskEmail(value) {
+  const email = normalizeEmail(value);
+  if (!email) return '';
+  const [local = '', domain = ''] = email.split('@');
+  if (!domain) return `${local.slice(0, 1) || '*'}***`;
+  const domainParts = domain.split('.');
+  const suffix = domainParts.length > 1 ? `.${domainParts.at(-1)}` : '';
+  return `${local.slice(0, 1) || '*'}***@${domain.slice(0, 1) || '*'}***${suffix}`;
+}
+
+function maskPhone(value) {
+  const digits = normalizeText(value).replace(/\D/g, '');
+  return digits ? `***${digits.slice(-4)}` : '';
+}
+
+function maskExternalId(value) {
+  const id = normalizeText(value);
+  if (!id) return '';
+  if (id.length <= 4) return `${id.slice(0, 1)}***`;
+  return `${id.slice(0, 2)}***${id.slice(-2)}`;
+}
+
+function buildUnlinkedClientoBookingReview({ patients = [], clientoBookings = [] } = {}) {
+  const lookup = buildPatientLookupMaps(patients);
+  const rows = [];
+
+  for (const booking of asArray(clientoBookings)) {
+    const explicitPatientId = normalizeText(booking?.patientId);
+    if (explicitPatientId && lookup.patientIds.has(explicitPatientId)) continue;
+
+    const identities = [
+      {
+        type: 'email',
+        key: normalizeEmail(booking?.customerEmail),
+        masked: maskEmail(booking?.customerEmail),
+        map: lookup.emailToPatient,
+        ambiguous: lookup.ambiguous.emails,
+      },
+      {
+        type: 'cliento_customer_id',
+        key: normalizeText(booking?.clientoCustomerId || booking?.customerId),
+        masked: maskExternalId(booking?.clientoCustomerId || booking?.customerId),
+        map: lookup.clientoIdToPatient,
+        ambiguous: lookup.ambiguous.clientoIds,
+      },
+      {
+        type: 'phone',
+        key: phoneMatchKey(booking?.customerPhone || booking?.phone),
+        masked: maskPhone(booking?.customerPhone || booking?.phone),
+        map: lookup.phoneToPatient,
+        ambiguous: lookup.ambiguous.phones,
+      },
+    ].filter((identity) => identity.key);
+
+    const collisions = identities.filter((identity) => identity.ambiguous.has(identity.key));
+    const uniqueMatches = new Set(
+      identities.map((identity) => identity.map.get(identity.key)).filter(Boolean)
+    );
+
+    let reasonCode = '';
+    let reason = '';
+    if (explicitPatientId) {
+      reasonCode = 'explicit_patient_not_found';
+      reason =
+        'Angivet canonical patientId finns inte i patientpopulationen; ingen reservmatchning gjordes.';
+    } else if (collisions.length) {
+      const labels = collisions.map((identity) => identity.type).join(', ');
+      reasonCode = 'identity_collision';
+      reason = `Identitetsgrund matchar flera canonical patienter (${labels}); ingen koppling gjordes.`;
+    } else if (uniqueMatches.size > 1) {
+      reasonCode = 'conflicting_identity_matches';
+      reason =
+        'Olika identitetsgrunder pekar på olika canonical patienter; ingen koppling gjordes.';
+    } else if (uniqueMatches.size === 1) {
+      continue;
+    } else if (!identities.length) {
+      reasonCode = 'missing_identity';
+      reason = 'E-post, telefon och Cliento kund-id saknas; posten kan inte kopplas säkert.';
+    } else {
+      reasonCode = 'no_canonical_match';
+      reason = 'Maskerade identitetsgrunder finns men matchar ingen canonical patient.';
+    }
+
+    const identityBasis = identities.map((identity) => ({
+      type: identity.type,
+      masked: identity.masked,
+    }));
+    if (!identityBasis.length) identityBasis.push({ type: 'none', masked: 'saknas' });
+    rows.push({
+      bookingId: normalizeText(booking?.bookingId || booking?.id) || null,
+      date: slotDateKey(booking?.startsAt) || null,
+      startsAt: normalizeText(booking?.startsAt) || null,
+      identityBasis,
+      reasonCode,
+      reason,
+      patientId: null,
+      encounterId: null,
+      readOnly: true,
+      linkAllowed: false,
+    });
+  }
+
+  rows.sort((left, right) => {
+    const byDate = String(left.startsAt || '').localeCompare(String(right.startsAt || ''));
+    return byDate || String(left.bookingId || '').localeCompare(String(right.bookingId || ''));
+  });
+  const byReason = {};
+  for (const row of rows) byReason[row.reasonCode] = (byReason[row.reasonCode] || 0) + 1;
+  return { zeroWrites: true, total: rows.length, byReason, rows };
+}
+
 function buildBookingDedupeKey(patientId, startsAt, serviceName) {
   const day = slotDateKey(startsAt);
   const time = normalizeText(startsAt).slice(11, 16);
@@ -993,6 +1104,7 @@ module.exports = {
   TREATMENT_SEGMENT_DEFS,
   buildBookingSignalsIndex,
   collectBookingReadouts,
+  buildUnlinkedClientoBookingReview,
   buildPatientLookupMaps,
   resolvePatientIdFromClientoBooking,
   getBookingSignals,

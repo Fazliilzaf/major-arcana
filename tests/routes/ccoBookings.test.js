@@ -1378,6 +1378,71 @@ test('calendar-bundle exposes the same canonical Cliento visit used by Kunder', 
   });
 });
 
+test('cliento unlinked review is read-only, masked and never returns a patient suggestion', async () => {
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: {},
+      clientoBookingStore: {
+        listAllBookings() {
+          return [
+            {
+              bookingId: 'collision-1',
+              customerEmail: 'shared@example.com',
+              startsAt: '2024-07-02T09:00:00.000Z',
+            },
+            {
+              bookingId: 'missing-1',
+              startsAt: '2024-07-03T09:00:00.000Z',
+            },
+          ];
+        },
+      },
+      patientMasterStore: {
+        async listPatients() {
+          return {
+            patients: [
+              { id: 'patient-a', primaryEmail: 'shared@example.com' },
+              { id: 'patient-b', primaryEmail: 'shared@example.com' },
+            ],
+          };
+        },
+      },
+      authStore: {
+        async getSessionContextByToken() {
+          return null;
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: { defaultTenantId: 'tenant-a', brand: 'hair-tp-clinic', brandByHost: {} },
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/cco-bookings/cliento-unlinked-review`);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('cache-control'), /no-store/);
+    const payload = await response.json();
+    assert.equal(payload.zeroWrites, true);
+    assert.equal(payload.total, 2);
+    assert.equal(payload.byReason.identity_collision, 1);
+    assert.equal(payload.byReason.missing_identity, 1);
+    assert.equal(
+      payload.rows.every((row) => row.patientId === null),
+      true
+    );
+    assert.equal(
+      payload.rows.every((row) => row.linkAllowed === false),
+      true
+    );
+    assert.doesNotMatch(JSON.stringify(payload), /shared@example\.com|patient-a|patient-b/);
+  });
+});
+
 test('cco bookings calendar-signals returns operational signals for date range', async () => {
   const fixture = await createFixture();
   try {

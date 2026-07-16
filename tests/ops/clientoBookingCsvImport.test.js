@@ -80,6 +80,26 @@ describe('clientoBookingCsvImport', () => {
     assert.equal(bookings[0].customerPhone, '070 999 88 77');
   });
 
+  it('retains identityless Cliento rows for read-only review instead of dropping them', () => {
+    const { bookings, stats } = rowsToClientoBookings(
+      [
+        {
+          Starttid: '2024-07-02 09:00',
+          Status: 'Show',
+          'Boknings-id': 'identityless-1',
+          'Tjänstens namn': 'Konsultation',
+        },
+      ],
+      new Map()
+    );
+    assert.equal(stats.accepted, 1);
+    assert.equal(stats.reviewNoIdentity, 1);
+    assert.equal(bookings[0].bookingId, 'identityless-1');
+    assert.equal(bookings[0].customerEmail, '');
+    assert.equal(bookings[0].customerPhone, '');
+    assert.equal(bookings[0].clientoCustomerId, '');
+  });
+
   it('builds bookings with cliento id email lookup', () => {
     const lookup = buildClientoIdEmailLookup([
       {

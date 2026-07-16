@@ -8,6 +8,7 @@ const {
   isTodayVisit,
   isThisWeekVisit,
   buildPatientLookupMaps,
+  buildUnlinkedClientoBookingReview,
   resolvePatientIdFromClientoBooking,
 } = require('../../src/ops/ccoKunderBookingEnrichment');
 
@@ -26,6 +27,65 @@ describe('ccoKunderBookingEnrichment', () => {
     );
     assert.equal(lookup.ambiguous.emails.has('shared@example.com'), true);
     assert.equal(lookup.ambiguous.clientoIds.has('shared-cliento'), true);
+  });
+
+  it('excludes a uniquely matched booking from the unlinked review report', () => {
+    const report = buildUnlinkedClientoBookingReview({
+      patients: [{ id: 'p-unique', primaryEmail: 'unique@example.com' }],
+      clientoBookings: [
+        {
+          bookingId: 'booking-unique',
+          customerEmail: 'unique@example.com',
+          startsAt: '2024-07-01T09:00:00.000Z',
+        },
+      ],
+    });
+    assert.equal(report.zeroWrites, true);
+    assert.equal(report.total, 0);
+    assert.deepEqual(report.rows, []);
+  });
+
+  it('reports an identity collision with masked basis and no patient suggestion', () => {
+    const report = buildUnlinkedClientoBookingReview({
+      patients: [
+        { id: 'p-a', primaryEmail: 'shared@example.com' },
+        { id: 'p-b', primaryEmail: 'shared@example.com' },
+      ],
+      clientoBookings: [
+        {
+          bookingId: 'booking-collision',
+          customerEmail: 'shared@example.com',
+          startsAt: '2024-07-02T09:00:00.000Z',
+        },
+      ],
+    });
+    assert.equal(report.total, 1);
+    assert.equal(report.rows[0].reasonCode, 'identity_collision');
+    assert.equal(report.rows[0].identityBasis[0].masked, 's***@e***.com');
+    assert.equal(report.rows[0].patientId, null);
+    assert.equal(report.rows[0].linkAllowed, false);
+    assert.doesNotMatch(JSON.stringify(report.rows[0]), /shared@example\.com|p-a|p-b/);
+  });
+
+  it('keeps a missing-identity review row explicitly unlinked', () => {
+    const report = buildUnlinkedClientoBookingReview({
+      patients: [{ id: 'p-any', primaryEmail: 'any@example.com' }],
+      clientoBookings: [
+        {
+          bookingId: 'booking-unlinked',
+          startsAt: '2024-07-03T09:00:00.000Z',
+        },
+      ],
+    });
+    assert.equal(report.total, 1);
+    assert.equal(report.rows[0].bookingId, 'booking-unlinked');
+    assert.equal(report.rows[0].date, '2024-07-03');
+    assert.equal(report.rows[0].reasonCode, 'missing_identity');
+    assert.deepEqual(report.rows[0].identityBasis, [{ type: 'none', masked: 'saknas' }]);
+    assert.equal(report.rows[0].patientId, null);
+    assert.equal(report.rows[0].encounterId, null);
+    assert.equal(report.rows[0].readOnly, true);
+    assert.equal(report.rows[0].linkAllowed, false);
   });
   it('flags upcoming engine booking with treatment label', () => {
     const startsAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();

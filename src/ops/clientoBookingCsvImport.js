@@ -169,7 +169,8 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
   const bookings = [];
   let skippedNoId = 0;
   let skippedNoDate = 0;
-  let skippedNoEmail = 0;
+  const skippedNoEmail = 0;
+  let reviewNoIdentity = 0;
   let missingClientoId = 0;
 
   let working = rows;
@@ -195,8 +196,7 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       csvLookups.emailForPhone(normalizePhone(customerPhone)) ||
       '';
     if (!customerEmail && !clientoCustomerId && !normalizePhone(customerPhone)) {
-      skippedNoEmail += 1;
-      continue;
+      reviewNoIdentity += 1;
     }
     if (!clientoCustomerId) skippedNoId += 1;
     const serviceLabel = normalizeText(row['Tjänstens namn'] || row['Tjänst']);
@@ -245,6 +245,7 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       skippedNoId,
       skippedNoDate,
       skippedNoEmail,
+      reviewNoIdentity,
       missingClientoId,
       skippedCancelled: 0,
     },
