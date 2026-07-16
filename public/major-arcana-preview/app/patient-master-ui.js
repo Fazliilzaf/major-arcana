@@ -243,6 +243,9 @@
     automation: null,
     reviewGroups: null,
     reviewGroupsLoading: false,
+    journeyAudit: null,
+    journeyAuditLoading: false,
+    journeyAuditLoadingMore: false,
     draftProposals: null,
     draftProposalsLoading: false,
     draftProposalsPatientId: '',
@@ -4664,6 +4667,137 @@
       runtime.reviewGroupsLoading = false;
       renderReviewGroupsPanel();
     }
+  }
+
+  const JOURNEY_GAP_LABELS = Object.freeze({
+    healthDeclaration: 'Hälsodeklaration',
+    fitnessCertificate: 'Friskförsäkran',
+    offer: 'Offert',
+    agreement: 'Avtal',
+  });
+  const JOURNEY_AUDIT_PAGE_SIZE = 500;
+
+  function ensureJourneyAuditDrawer() {
+    let drawer = document.querySelector('[data-customer-journey-audit-drawer]');
+    if (drawer) return drawer;
+    const surface = els.shell?.querySelector('.customers-surface');
+    if (!surface) return null;
+    drawer = document.createElement('aside');
+    drawer.className = 'v9-intel-drawer v9-journey-review-drawer';
+    drawer.hidden = true;
+    drawer.setAttribute('aria-hidden', 'true');
+    drawer.setAttribute('data-customer-journey-audit-drawer', '');
+    drawer.innerHTML = `
+      <div class="v9-intel-drawer__backdrop" data-customer-journey-audit-close tabindex="-1" aria-hidden="true"></div>
+      <div class="v9-intel-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="customer-journey-audit-title">
+        <header class="v9-intel-drawer__head">
+          <strong id="customer-journey-audit-title">Granska kundresa</strong>
+          <button type="button" class="v9-intel-drawer__close" data-customer-journey-audit-close aria-label="Stäng">✕</button>
+        </header>
+        <div class="v9-intel-drawer__body" data-customer-journey-audit-body></div>
+      </div>`;
+    surface.appendChild(drawer);
+    return drawer;
+  }
+
+  function closeJourneyAuditDrawer() {
+    const drawer = document.querySelector('[data-customer-journey-audit-drawer]');
+    if (!drawer) return;
+    drawer.classList.remove('is-open');
+    drawer.hidden = true;
+    drawer.setAttribute('aria-hidden', 'true');
+  }
+
+  function renderJourneyAuditDrawer() {
+    const drawer = ensureJourneyAuditDrawer();
+    const body = drawer?.querySelector('[data-customer-journey-audit-body]');
+    if (!body) return;
+    if (runtime.journeyAuditLoading) {
+      body.innerHTML = '<p class="v9-intel-drawer__intro">Kontrollerar bokningar, HD, offert, avtal och första PRP…</p>';
+      return;
+    }
+    const audit = runtime.journeyAudit || {};
+    const rows = asArray(audit.rows);
+    const summary = audit.summary || {};
+    if (!rows.length) {
+      body.innerHTML = '<p class="v9-intel-drawer__intro">Inga kundreseavvikelser att granska just nu.</p>';
+      return;
+    }
+    const pageMeta = audit.page?.hasMore
+      ? `Visar ${rows.length} av ${Number(audit.page.total || rows.length)} avvikelser.`
+      : `${rows.length} kund${rows.length === 1 ? '' : 'er'} att granska.`;
+    body.innerHTML = `
+      <p class="v9-intel-drawer__intro">${escapeHtml(pageMeta)} Klicka en kund för att öppna samma dossier.</p>
+      <div class="v9-intel-drawer__steps">
+        ${rows
+          .map((row) => {
+            const name = normalizeText(row.patientName) || 'Kund utan namn';
+            const gaps = asArray(row.gaps)
+              .map((gap) => JOURNEY_GAP_LABELS[gap] || gap)
+              .join(' · ');
+            const history = `${Number(row.bookingCount || 0)} bokningar · ${Number(row.attendedCount || 0)} genomförda`;
+            return `
+              <button class="v9-intel-drawer-step v9-intel-drawer-step--next" type="button"
+                data-customer-journey-audit-patient="${escapeHtml(row.patientId)}">
+                <span class="v9-intel-drawer-step__title">${escapeHtml(name)}</span>
+                <span class="v9-intel-drawer-step__meta">${escapeHtml(gaps || 'Granska kundresa')} · ${escapeHtml(history)}</span>
+                <span class="v9-intel-drawer-step__go">Öppna →</span>
+              </button>`;
+          })
+          .join('')}
+      </div>
+      ${
+        audit.page?.hasMore
+          ? `<div class="v9-intel-drawer__actions">
+              <button class="nav-btn" type="button" data-customer-journey-audit-load-more ${runtime.journeyAuditLoadingMore ? 'disabled' : ''}>
+                ${runtime.journeyAuditLoadingMore ? 'Laddar fler…' : 'Visa fler avvikelser'}
+              </button>
+            </div>`
+          : ''
+      }
+      <p class="v9-intel-drawer__intro">${Number(summary.bookingsMatched || 0)} Cliento-bokningar matchade · read-only kontroll.</p>`;
+  }
+
+  async function loadJourneyAuditPage({ reset = false } = {}) {
+    const current = runtime.journeyAudit || { rows: [], summary: {}, page: {} };
+    const offset = reset ? 0 : asArray(current.rows).length;
+    if (!reset && (!current.page?.hasMore || runtime.journeyAuditLoadingMore)) return;
+    if (reset) runtime.journeyAuditLoading = true;
+    else runtime.journeyAuditLoadingMore = true;
+    renderJourneyAuditDrawer();
+    try {
+      const page = await apiRequest(
+        `/api/v1/cco-patient-master/journey-audit?onlyGaps=1&offset=${offset}&limit=${JOURNEY_AUDIT_PAGE_SIZE}`,
+        { timeoutMs: 60_000 }
+      );
+      runtime.journeyAudit = reset
+        ? page
+        : {
+            ...page,
+            rows: asArray(current.rows).concat(asArray(page.rows)),
+            page: { ...page.page, offset: 0 },
+          };
+    } catch (error) {
+      if (reset) runtime.journeyAudit = { rows: [], summary: {} };
+      setStatus(error.message || 'Kunde inte läsa kundresegranskningen.', 'error');
+    } finally {
+      runtime.journeyAuditLoading = false;
+      runtime.journeyAuditLoadingMore = false;
+      renderJourneyAuditDrawer();
+    }
+  }
+
+  async function openJourneyAuditDrawer() {
+    if (needsStaffLogin()) {
+      setStatus('Logga in som owner för att läsa kundresegranskningen.', 'error');
+      return;
+    }
+    const drawer = ensureJourneyAuditDrawer();
+    if (!drawer) return;
+    drawer.hidden = false;
+    drawer.setAttribute('aria-hidden', 'false');
+    drawer.classList.add('is-open');
+    await loadJourneyAuditPage({ reset: true });
   }
 
   async function dismissMergeReviewGroup(groupId) {
@@ -14362,6 +14496,32 @@
             });
           return;
         }
+      }
+
+      const journeyAuditOpen = event.target.closest('[data-customer-journey-audit-open]');
+      if (journeyAuditOpen && runtime.mode === 'register') {
+        void openJourneyAuditDrawer();
+        return;
+      }
+
+      const journeyAuditClose = event.target.closest('[data-customer-journey-audit-close]');
+      if (journeyAuditClose) {
+        closeJourneyAuditDrawer();
+        return;
+      }
+
+      const journeyAuditLoadMore = event.target.closest('[data-customer-journey-audit-load-more]');
+      if (journeyAuditLoadMore && runtime.mode === 'register') {
+        void loadJourneyAuditPage();
+        return;
+      }
+
+      const journeyAuditPatient = event.target.closest('[data-customer-journey-audit-patient]');
+      if (journeyAuditPatient && runtime.mode === 'register') {
+        const patientId = normalizeText(journeyAuditPatient.dataset.customerJourneyAuditPatient);
+        closeJourneyAuditDrawer();
+        if (patientId) void loadPatientDetail(patientId);
+        return;
       }
 
       const modeButton = event.target.closest('[data-patient-master-mode]');
