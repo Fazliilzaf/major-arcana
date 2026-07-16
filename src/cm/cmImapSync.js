@@ -253,9 +253,13 @@ function createCmImapSync({
         lastUid > 0 && (!storedSince || new Date(cfg.since) < new Date(storedSince));
       if (rescanNeeded) lastUid = 0;
 
-      // UID-lista: cursor-läge (allt efter lastUid) eller backfill (SINCE-datum)
+      // UID-lista: cursor-läge (allt efter lastUid) eller backfill (SINCE-datum).
+      // ORD-74b: SINCE-datumet följer med ÄVEN i cursor-läget — annars sväljer
+      // cursorn hela lådan (16k+ mail före 2024) efter en rescan-batch.
       const searchQuery =
-        lastUid > 0 ? { uid: `${lastUid + 1}:*` } : { since: new Date(cfg.since) };
+        lastUid > 0
+          ? { uid: `${lastUid + 1}:*`, since: new Date(cfg.since) }
+          : { since: new Date(cfg.since) };
       const uids = (await client.search(searchQuery, { uid: true })) || [];
       // ':*' matchar alltid sista mailet även när inget nytt finns — filtrera
       const fresh = uids.filter((u) => u > lastUid).sort((a, b) => a - b);
