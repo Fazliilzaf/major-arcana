@@ -45,6 +45,7 @@ function makeApp({
   graphSendConnector = null,
   graphReadConnector = null,
   mailboxIdsForSync = [],
+  mailboxRuntimeStatusProvider = null,
   ccoMailboxTruthStore = null,
   sendTestRecipient = '',
   auditEvents = null,
@@ -59,6 +60,7 @@ function makeApp({
       graphSendConnector,
       graphReadConnector,
       mailboxIdsForSync,
+      mailboxRuntimeStatusProvider,
       shadowSendEnabled,
       sendTestRecipient,
       postSendMailboxSync,
@@ -298,6 +300,58 @@ test('mailbox-väljaren får aktiv status och endast aggregat för varje konfigu
         counts: { inbox: 13, sent: 4 },
       },
     ]);
+  });
+});
+
+test('extern IMAP-mailbox får provider-metadata utan att ändra Graph-kontraktet', async () => {
+  const mailboxId = 'info@fazli.se';
+  const app = makeApp({
+    mailboxIdsForSync: [mailboxId],
+    mailboxRuntimeStatusProvider: ({ mailboxId: requestedMailboxId }) =>
+      requestedMailboxId === mailboxId
+        ? { provider: 'imap', label: 'Info Fazli', active: true, status: 'active' }
+        : null,
+    ccoMailboxTruthStore: {
+      listMessages: () => [],
+      getCompletenessReport: () => ({
+        accountReports: [
+          {
+            mailboxId,
+            accountStatus: 'VERIFIED',
+            folderCounts: [{ folderType: 'inbox', totalItemCount: 2 }],
+          },
+        ],
+      }),
+      getDeltaSyncReport: () => ({
+        accountReports: [
+          {
+            mailboxId,
+            accountStatus: 'DELTA ARMED',
+            checkpointsByFolderType: {},
+          },
+        ],
+      }),
+    },
+  });
+  await withServer(app, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco/runtime/mailboxes`);
+    assert.equal(res.status, 200);
+    const payload = await res.json();
+    assert.equal(payload.syncEnabled, true);
+    assert.deepEqual(payload.mailboxes[0], {
+      id: mailboxId,
+      mailboxId,
+      label: 'Info Fazli',
+      provider: 'imap',
+      active: true,
+      status: 'active',
+      completenessStatus: 'VERIFIED',
+      deltaStatus: 'DELTA ARMED',
+      lastSyncAt: null,
+      lastAttemptAt: null,
+      error: null,
+      counts: { inbox: 2, sent: 0 },
+    });
   });
 });
 

@@ -2932,8 +2932,15 @@ function createCcoConversationRouter({
         return {
           id: mailboxId,
           mailboxId,
-          label: normalizeText(runtimeStatus.label) || null,
-          provider: normalizeText(runtimeStatus.provider) || 'microsoft_graph',
+          // Keep the established Graph response contract unchanged. Only the
+          // server-declared external mailbox carries provider/label metadata
+          // for the CCO selector to add it at runtime.
+          ...(isExternalMailbox
+            ? {
+                label: normalizeText(runtimeStatus.label) || null,
+                provider: 'imap',
+              }
+            : {}),
           active: isExternalMailbox ? runtimeStatus.active === true : Boolean(graphReadConnector),
           status: isExternalMailbox
             ? normalizeText(runtimeStatus.status) || (runtimeStatus.active === true ? 'active' : 'inactive')
