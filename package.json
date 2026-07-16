@@ -187,6 +187,7 @@
     "verify:journal-photos-backup-prod": "node ./scripts/verify-journal-photos-backup-prod.js",
     "verify:cco-care-sweep-prod": "node ./scripts/verify-cco-care-sweep-prod.js",
     "verify:cco-performance-baseline-prod": "node ./scripts/verify-cco-performance-baseline-prod.js",
+    "verify:cco-canonical-bookings-prod": "node ./scripts/verify-cco-canonical-bookings-prod.js",
     "rebuild:cco-indexes": "node ./scripts/rebuild-cco-indexes.js",
     "build:knowledge-embeddings": "node ./scripts/build-knowledge-embeddings.js",
     "verify:adaptive-layout-prod": "node ./scripts/verify-adaptive-layout-prod.js",

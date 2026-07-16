@@ -38,6 +38,8 @@ Den här sektionen gäller bokningshistoriken i #999 och ersätter den äldre di
 
 ### Read-only reviewrapport
 
+- [ ] Kör `BASE_URL=https://arcana.hairtpclinic.com ARCANA_SMOKE_BEARER_TOKEN=… npm run verify:cco-canonical-bookings-prod`.
+- [ ] Kommandot gör exakt två autentiserade GET-anrop och returnerar `ok: true`, `zeroWrites: true` och tom `errors`.
 - [ ] Läs först `GET /api/v1/cco-bookings/canonical-integrity` i samma inloggade prod-session.
 - [ ] Svaret har `Cache-Control: no-store`, `zeroWrites: true`, `readOnly: true` och `ok: true`.
 - [ ] Kontrollera `byStatus`, `bySource`, `noteCoverage` och `encounterCoverage` mot deployens canonical population.
