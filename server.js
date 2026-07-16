@@ -10288,6 +10288,25 @@ try {
           return res.status(500).json({ error: e.message });
         }
       }
+      if (action === 'run-assets') {
+        const { summarizeDriveIngestRunAssets } = require('./src/ops/ccoDriveIngestRunObservability');
+        const runId = String(req.query.runId || '').trim();
+        return ensureAssetStores()
+          .then((stores) =>
+            res.json({
+              ok: true,
+              zeroWrites: true,
+              ...summarizeDriveIngestRunAssets(
+                stores.assetStore.listItemsForEnrichment(),
+                runId,
+                { limit: Number(req.query.limit) || 200 }
+              ),
+            })
+          )
+          .catch((error) =>
+            res.status(400).json({ error: error.message || 'Kunde inte läsa import-run assets.' })
+          );
+      }
       if (action === 'stop') {
         __ingestRuntime.pause({ reason: 'manual_stop' });
         __ingestState.stopRequested = true;
