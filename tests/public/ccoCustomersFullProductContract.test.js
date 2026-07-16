@@ -57,6 +57,15 @@ test('Kunder visar och återanvänder den befintliga V9-sökningen', () => {
   );
 });
 
+test('Kunder återanvänder den read-only kundresegranskningen och öppnar canonical dossier', () => {
+  assert.match(html, /data-customer-journey-audit-open/);
+  assert.match(ui, /function openJourneyAuditDrawer\(\)/);
+  assert.match(ui, /journey-audit\?onlyGaps=1&offset=0&limit=500/);
+  assert.match(ui, /data-customer-journey-audit-patient/);
+  assert.match(ui, /void loadPatientDetail\(patientId\)/);
+  assert.match(ui, /read-only kontroll/);
+});
+
 test('kundrad öppnar V11-dossier och V11-sektion öppnar V12 Content Canon', () => {
   assert.match(ui, /window\.CcoV11RailKomplett\.render\(railCtx\)/);
   assert.match(ui, /data-v11-rail-shell="1"/);
