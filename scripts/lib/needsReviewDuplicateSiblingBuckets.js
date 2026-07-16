@@ -512,6 +512,9 @@ async function commitBucket1WithPreflight({
       phase: 'preflight',
       applied: 0,
       writes: 0,
+      zeroWrites: true,
+      mutationsStarted: false,
+      attempted: 0,
       preflight,
       stoppedAt: null,
       errors: preflight.failures,
@@ -523,13 +526,18 @@ async function commitBucket1WithPreflight({
     const assetId = row.asset.id;
     const siblingAssetId = row.sibling.id;
     try {
+      const currentAssets =
+        typeof assetStore._state === 'function'
+          ? Object.values(assetStore._state().items || {})
+          : allAssets;
       await applyBucket1DuplicateMark({
         assetStore,
         assetId,
         siblingAssetId,
         actor,
         hasBlob,
-        visibleByChecksum,
+        visibleByChecksum:
+          currentAssets != null ? buildVisibleByChecksum(currentAssets) : visibleByChecksum,
       });
       applied += 1;
     } catch (err) {
@@ -538,6 +546,9 @@ async function commitBucket1WithPreflight({
         phase: 'apply',
         applied,
         writes: applied,
+        zeroWrites: false,
+        mutationsStarted: true,
+        attempted: applied + 1,
         partialApply: true,
         stoppedAt: {
           assetId,
@@ -563,6 +574,9 @@ async function commitBucket1WithPreflight({
     phase: 'complete',
     applied,
     writes: applied,
+    zeroWrites: applied === 0,
+    mutationsStarted: applied > 0,
+    attempted: applied,
     partialApply: false,
     stoppedAt: null,
     preflight,

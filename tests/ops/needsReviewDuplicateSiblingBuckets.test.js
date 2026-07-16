@@ -261,6 +261,9 @@ describe('needsReviewDuplicateSiblingBuckets', () => {
     assert.equal(commit.ok, false);
     assert.equal(commit.phase, 'preflight');
     assert.equal(commit.writes, 0);
+    assert.equal(commit.zeroWrites, true);
+    assert.equal(commit.mutationsStarted, false);
+    assert.equal(commit.attempted, 0);
     assert.equal(commit.applied, 0);
     assert.equal(items['nr-ok'].status, 'NEEDS_REVIEW');
     assert.equal(items['nr-bad'].status, 'NEEDS_REVIEW');
@@ -322,6 +325,9 @@ describe('needsReviewDuplicateSiblingBuckets', () => {
     assert.equal(result.partialApply, true);
     assert.equal(result.applied, 1);
     assert.equal(result.writes, 1);
+    assert.equal(result.zeroWrites, false);
+    assert.equal(result.mutationsStarted, true);
+    assert.equal(result.attempted, 2);
     assert.equal(result.stoppedAt.assetId, 'nr-2');
     assert.equal(items['nr-1'].status, 'DUPLICATE');
     assert.equal(items['nr-2'].status, 'NEEDS_REVIEW');

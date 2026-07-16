@@ -29,15 +29,34 @@ const {
   resolveProdRepairRoots,
 } = require('./lib/needsReviewDuplicateSiblingBuckets');
 
-function argValue(flag) {
-  const argv = process.argv.slice(2);
-  const idx = argv.indexOf(flag);
-  if (idx === -1) return null;
-  return argv[idx + 1] || null;
+function argValue(flag, argv = process.argv.slice(2)) {
+  const values = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === flag) {
+      const value = argv[index + 1];
+      if (!value || value.startsWith('--')) throw new Error(`${flag} saknar värde`);
+      values.push(value);
+      index += 1;
+    } else if (token.startsWith(`${flag}=`)) {
+      const value = token.slice(flag.length + 1);
+      if (!value) throw new Error(`${flag} saknar värde`);
+      values.push(value);
+    }
+  }
+  const unique = [...new Set(values)];
+  if (unique.length > 1) throw new Error(`${flag} har motstridiga värden`);
+  return unique[0] || null;
 }
 
-function hasFlag(flag) {
-  return process.argv.slice(2).includes(flag);
+function hasFlag(flag, argv = process.argv.slice(2)) {
+  return argv.includes(flag);
+}
+
+function parseNonNegativeInteger(raw, flag) {
+  if (raw == null) return null;
+  if (!/^\d+$/.test(String(raw))) throw new Error(`${flag} måste vara ett heltal >= 0`);
+  return Number(raw);
 }
 
 function maskId(id) {
@@ -50,12 +69,10 @@ async function main() {
   const commit = hasFlag('--commit');
   const expectedRaw = argValue('--expectedCount');
   const limitRaw = argValue('--limit');
-  const allowNonProdRoot = hasFlag('--allow-non-prod-root');
 
   const roots = resolveProdRepairRoots({
     stateRoot: process.env.ARCANA_STATE_ROOT,
     storageRootEnv: process.env.ARCANA_CCO_SECURE_STORAGE_ROOT,
-    allowNonProdRoot,
   });
 
   if (!fs.existsSync(roots.assetsPath)) {
@@ -112,7 +129,7 @@ async function main() {
   });
 
   const b1 = report.buckets.b1_samePatient_siblingBlob;
-  const limit = limitRaw ? Math.max(0, Number(limitRaw)) : null;
+  const limit = parseNonNegativeInteger(limitRaw, '--limit');
   const targets = limit != null ? b1.slice(0, limit) : b1;
 
   const summary = {
@@ -171,8 +188,8 @@ async function main() {
   if (expectedRaw == null) {
     throw new Error('--expectedCount krävs vid --commit');
   }
-  const expected = Number(expectedRaw);
-  if (!Number.isFinite(expected) || expected !== targets.length) {
+  const expected = parseNonNegativeInteger(expectedRaw, '--expectedCount');
+  if (expected !== targets.length) {
     throw new Error(
       `--expectedCount mismatch: got ${expected}, targets=${targets.length} (full b1=${b1.length})`
     );
@@ -199,6 +216,9 @@ async function main() {
         phase: result.phase,
         applied: result.applied,
         writes: result.writes,
+        zeroWrites: result.zeroWrites,
+        mutationsStarted: result.mutationsStarted,
+        attempted: result.attempted,
         partialApply: Boolean(result.partialApply),
         stoppedAt: result.stoppedAt
           ? {
@@ -232,7 +252,16 @@ async function main() {
   if (!result.ok) process.exitCode = 2;
 }
 
-main().catch((err) => {
-  console.error(String(err && err.stack ? err.stack : err));
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(String(err && err.stack ? err.stack : err));
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  argValue,
+  hasFlag,
+  parseNonNegativeInteger,
+  main,
+};
