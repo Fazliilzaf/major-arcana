@@ -334,6 +334,65 @@ describe('needsReviewDuplicateSiblingBuckets', () => {
     assert.equal(transitions, 2); // one success + one failed attempt
   });
 
+  it('commit använder beginBatch/flushBatch (en disk-skrivning per pack)', async () => {
+    const items = {
+      'nr-1': asset({ id: 'nr-1', checksum: 'a', storageKey: 'key/nr-1-missing' }),
+      'vis-1': asset({
+        id: 'vis-1',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        checksum: 'a',
+        storageKey: 'key/vis-1',
+      }),
+      'nr-2': asset({ id: 'nr-2', checksum: 'b', storageKey: 'key/nr-2-missing' }),
+      'vis-2': asset({
+        id: 'vis-2',
+        status: 'VISIBLE_ON_PATIENT_CARD',
+        checksum: 'b',
+        storageKey: 'key/vis-2',
+      }),
+    };
+    let begins = 0;
+    let flushes = 0;
+    const store = {
+      beginBatch() {
+        begins += 1;
+      },
+      async flushBatch() {
+        flushes += 1;
+      },
+      getAsset: (id) => (items[id] ? { ...items[id] } : null),
+      async patchAssetNamingMetadata(id, patch) {
+        items[id] = {
+          ...items[id],
+          ...patch,
+          technicalInfo: { ...(items[id].technicalInfo || {}), ...(patch.technicalInfo || {}) },
+        };
+        return { ...items[id] };
+      },
+      async transitionStatus(id, status, { reason }) {
+        items[id] = { ...items[id], status, statusChangeReason: reason };
+        return { ...items[id] };
+      },
+    };
+    const blobs = new Set(['key/vis-1', 'key/vis-2']);
+    const result = await commitBucket1WithPreflight({
+      assetStore: store,
+      targets: [
+        { asset: items['nr-1'], sibling: items['vis-1'] },
+        { asset: items['nr-2'], sibling: items['vis-2'] },
+      ],
+      hasBlob: (key) => blobs.has(key),
+      allAssets: Object.values(items),
+      actor: { userId: 't' },
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.applied, 2);
+    assert.equal(begins, 1);
+    assert.equal(flushes, 1);
+    assert.equal(items['nr-1'].status, 'DUPLICATE');
+    assert.equal(items['nr-2'].status, 'DUPLICATE');
+  });
+
   it('applyBucket1DuplicateMark markerar DUPLICATE utan att röra patientId', async () => {
     const items = {
       'nr-1': asset({
