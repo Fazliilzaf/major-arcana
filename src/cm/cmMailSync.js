@@ -491,7 +491,21 @@ function createCmMailSync({
             rawItemId: rawItem.id,
           });
           results.records++;
-        } else if (!ex.ok) {
+        } else if (ex.ok) {
+          // ORD-74 (ägar-krav): "kan vi inte tyda ska vi inte hoppa" — AI:n
+          // läste mailet men fann ingen köpdata → olöst record i granska-kön
+          // så ägaren dömer själv. (Tekniska AI-fel retryas i stället.)
+          record = cmStore.createExpenseRecord({
+            rawItemId: rawItem.id,
+            documentId: harvest.firstDocument?.id || null,
+            expenseType: 'unknown',
+            supplierName: rawItem.fromEmail,
+            date: (rawItem.receivedAt || '').slice(0, 10),
+            confidenceScore: 0,
+            flags: ['NEEDS_MANUAL_REVIEW', 'LOW_CONFIDENCE_EXTRACTION'],
+          });
+          results.unresolved = (results.unresolved || 0) + 1;
+        } else {
           results.errors.push({ rawItemId: rawItem.id, error: `extract: ${ex.error}` });
         }
         cmStore.completeLedgerEntry(ledger.id, {

@@ -71,7 +71,7 @@ test('imap: fail-closed utan env-creds', async () => {
   assert.match(r2.error, /CM_IMAP_USER/);
 });
 
-test('imap: importerar ekonomimail, skippar övrigt, extraherar belopp, cursor sätts', async () => {
+test('imap: importerar ALLA mail (ORD-74), extraherar belopp, olöst för icke-köp, cursor sätts', async () => {
   const cmStore = await tmpStore();
   const storage = fakeSecureStorage();
   const { imapClientFactory, parseMessageImpl } = makeFixtures({
@@ -101,31 +101,39 @@ test('imap: importerar ekonomimail, skippar övrigt, extraherar belopp, cursor s
     parseMessageImpl,
     env: ENV,
     extractDocumentImpl: async (inp) => {
-      assert.match(inp.text, /8 463,00 kr/);
-      return {
-        ok: true,
-        extraction: {
-          documentType: 'receipt',
-          supplier: 'Leverantör AB',
-          amountIncVat: 8463,
-          vatAmount: 1692.6,
-          date: '2026-07-01',
-          confidenceScore: 92,
-        },
-      };
+      // ORD-74: extraktorn ser BÅDA mailen — kvittot ger data, nyhetsbrevet unknown
+      if (/8 463,00 kr/.test(inp.text)) {
+        return {
+          ok: true,
+          extraction: {
+            documentType: 'receipt',
+            supplier: 'Leverantör AB',
+            amountIncVat: 8463,
+            vatAmount: 1692.6,
+            date: '2026-07-01',
+            confidenceScore: 92,
+          },
+        };
+      }
+      return { ok: true, extraction: { documentType: 'unknown', confidenceScore: 5 } };
     },
   });
 
   const r = await sync.syncInbox();
   assert.equal(r.ok, true);
-  assert.equal(r.imported, 1);
-  assert.equal(r.skipped, 1);
+  assert.equal(r.imported, 2); // ORD-74: nyhetsbrevet importeras också
+  assert.equal(r.nonEconomy, 1);
   assert.equal(r.records, 1);
+  assert.equal(r.unresolved, 1); // nyhetsbrevet → olöst record i granska-kön
   assert.equal(r.errors.length, 0);
 
-  const rec = cmStore.getInbox().concat(cmStore.getNeedsReview())[0];
-  assert.equal(rec.amountIncVat, 8463);
+  const rec = cmStore
+    .getInbox()
+    .concat(cmStore.getNeedsReview())
+    .find((x) => x.amountIncVat === 8463);
   assert.equal(rec.supplierName, 'Leverantör AB');
+  const olost = cmStore.getNeedsReview().find((x) => x.expenseType === 'unknown');
+  assert.equal(olost.supplierName, 'nyheter@blogg.se');
 
   // Original arkiverat (BFN) + cursor persisterad
   assert.ok(storage.objects.some((o) => o.key.startsWith('cm/raw-mail/')));
@@ -211,4 +219,86 @@ test('imap: backlog utöver batchtaket rapporteras och cursorn stannar rätt', a
   assert.equal(r.scanned, 25); // MAX_MESSAGES_PER_RUN
   assert.equal(r.remainingBacklog, 5);
   assert.equal(cmStore.getSyncState('info@fazli.se', 'imap-inbox').lastUid, 124);
+});
+
+// ─── ORD-74 · Full historik från 2024 + varje mail räknas ───
+
+test('ORD-74: since flyttad bakåt nollar cursorn för om-skanning', async () => {
+  const cmStore = await tmpStore();
+  cmStore.setSyncState('info@fazli.se', 'imap-inbox', {
+    lastUid: 500,
+    backfillSince: '2026-01-01',
+  });
+  const { imapClientFactory, parseMessageImpl } = makeFixtures({
+    3: {
+      subject: 'Orderbekräftelse gammalt köp',
+      from: 'shop@x.se',
+      date: '2024-03-01T10:00:00Z',
+      messageId: '<gammal-3@x>',
+      text: 'Tack för din order! Totalt 100 kr betalas med kort.',
+      html: '',
+      attachments: [],
+    },
+    501: {
+      subject: 'Kvitto nytt köp',
+      from: 'shop@x.se',
+      date: '2026-07-01T10:00:00Z',
+      messageId: '<ny-501@x>',
+      text: 'Kvitto: totalt 200 kr inkl. moms.',
+      html: '',
+      attachments: [],
+    },
+  });
+  const sync = createCmImapSync({
+    cmStore,
+    imapClientFactory,
+    parseMessageImpl,
+    env: { ...ENV, CM_IMAP_SINCE: '2024-01-01' },
+    extractDocumentImpl: async () => ({
+      ok: true,
+      extraction: {
+        documentType: 'receipt',
+        supplier: 'X',
+        amountIncVat: 100,
+        confidenceScore: 80,
+      },
+    }),
+  });
+  const r = await sync.syncInbox();
+  // Cursor nollad → 2024-mailet (uid 3 < gamla cursorn 500) skannades OCKSÅ
+  assert.equal(r.scanned, 2);
+  assert.equal(r.imported, 2);
+  assert.equal(cmStore.getSyncState('info@fazli.se', 'imap-inbox').backfillSince, '2024-01-01');
+
+  // Andra körningen: samma since → ingen ny om-skanning (cursor-läge)
+  const r2 = await sync.syncInbox();
+  assert.equal(r2.imported, 0);
+});
+
+test('ORD-74: tekniskt AI-fel skapar INTE olöst record (retry via reprocess)', async () => {
+  const cmStore = await tmpStore();
+  const { imapClientFactory, parseMessageImpl } = makeFixtures({
+    8: {
+      subject: 'Kvitto på köp',
+      from: 'shop@y.se',
+      date: '2026-07-02T10:00:00Z',
+      messageId: '<k-8@y>',
+      text: 'Ditt kvitto: totalt 250 kr inklusive moms och frakt.',
+      html: '',
+      attachments: [],
+    },
+  });
+  const sync = createCmImapSync({
+    cmStore,
+    imapClientFactory,
+    parseMessageImpl,
+    env: ENV,
+    extractDocumentImpl: async () => ({ ok: false, error: 'OPENAI 429 rate limit' }),
+  });
+  const r = await sync.syncInbox();
+  assert.equal(r.imported, 1);
+  assert.equal(r.unresolved || 0, 0); // inget olöst-record vid tekniskt fel
+  assert.ok(r.errors.some((e) => /429/.test(e.error)));
+  // rawItem utan record → reprocess-kandidat (retry när AI:n mår bra igen)
+  assert.equal(cmStore.listUnprocessedRawItems({ limit: 5 }).length, 1);
 });
