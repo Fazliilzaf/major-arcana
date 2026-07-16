@@ -270,6 +270,26 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     return out;
   }
 
+  function listBookingsInRange({ tenantId, fromDate, toDate, limit = 0 } = {}) {
+    const from = normalizeText(fromDate).slice(0, 10);
+    const to = normalizeText(toDate).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) {
+      return [];
+    }
+    const t = normalizeText(tenantId);
+    const out = [];
+    for (const [key, list] of Object.entries(state.bookings)) {
+      if (t && !key.startsWith(t + '::')) continue;
+      for (const booking of asArray(list)) {
+        const date = normalizeText(booking?.startsAt).slice(0, 10);
+        if (!date || date < from || date > to) continue;
+        out.push(booking);
+        if (limit > 0 && out.length >= limit) return out;
+      }
+    }
+    return out;
+  }
+
   function summarize({ tenantId } = {}) {
     const t = normalizeText(tenantId);
     let totalCustomers = 0;
@@ -319,6 +339,7 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     importBatch,
     getBookingsForCustomer,
     listAllBookings,
+    listBookingsInRange,
     summarize,
     clearTenant,
     flush,

@@ -116,6 +116,7 @@
           </button>
           <button class="calm-toggle" id="calmToggle" title="Lugnt läge — sänk visuell stress när AI har många varningar"><span class="moon">☾</span>Lugnt</button>
           <button class="avatar-toggle" id="avatarToggle" title="Linear/Notion-mode — visa patientavatar istället för rail"><span>◐</span>Avatar</button>
+          <button class="quality-toggle" id="qualityToggle" type="button" title="Read-only kontroll av canonical bokningsdata"><span aria-hidden="true">✓</span>Datakvalitet</button>
           <div class="timemachine" id="timemachine" title="Tid-maskin — drag bakåt eller framåt">
             <svg class="timemachine-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 12a9 9 0 1 0 9-9"/><polyline points="3 4 3 10 9 10"/><polyline points="12 7 12 12 16 14"/>
@@ -443,6 +444,14 @@
       Kunden är <strong>inte redo</strong>. Saknar friskförsäkran och bokningen är imorgon kl 08:00.
       Skicka påminnelse nu.
     </div>
+    <section class="v8-visit-detail" data-v8-visit-detail hidden>
+      <div class="v8-visit-detail-head">
+        <span>Besöksdetalj</span>
+        <span class="v8-visit-status" data-v8-visit-status>—</span>
+      </div>
+      <div class="v8-visit-identifiers" data-v8-visit-identifiers></div>
+      <div class="v8-visit-notes" data-v8-visit-notes></div>
+    </section>
     <div class="intel-tabs">
       <button class="intel-tab active">Brief</button>
       <button class="intel-tab">Historik</button>
@@ -463,6 +472,39 @@
     <div class="intel-customer-view" id="intelCustomerView" style="display:flex;flex-direction:column;height:100%;"></div>
   </aside>
 </div>
+
+<section class="v8-quality-panel" id="v8QualityPanel" aria-hidden="true" aria-label="Datakvalitet för bokningar">
+  <div class="v8-quality-backdrop" data-v8-quality-close></div>
+  <div class="v8-quality-surface" role="dialog" aria-modal="true" aria-labelledby="v8QualityTitle">
+    <header class="v8-quality-head">
+      <div>
+        <div class="v8-quality-kicker">Read-only · canonical besöksdata</div>
+        <h2 id="v8QualityTitle">Datakvalitet</h2>
+        <p>Kalender och Kunder läser samma besöksunderlag. Inga kopplingar kan skrivas här.</p>
+      </div>
+      <button type="button" class="v8-quality-close" data-v8-quality-close aria-label="Stäng datakvalitet">×</button>
+    </header>
+    <div class="v8-quality-body">
+      <div class="v8-quality-loading" data-v8-quality-loading role="status">Läser canonical integritet…</div>
+      <div data-v8-quality-content hidden>
+        <div class="v8-quality-summary" data-v8-quality-summary></div>
+        <section class="v8-quality-section">
+          <div class="v8-quality-section-head">
+            <div><span class="v8-quality-label">Status och anteckningar</span><h3>Canonical population</h3></div>
+          </div>
+          <div class="v8-quality-metrics" data-v8-quality-metrics></div>
+        </section>
+        <section class="v8-quality-section">
+          <div class="v8-quality-section-head">
+            <div><span class="v8-quality-label">Manuell review · aldrig gissningskoppling</span><h3>Okopplade Cliento-bokningar</h3></div>
+            <div class="v8-quality-filters" data-v8-quality-filters></div>
+          </div>
+          <div class="v8-quality-review" data-v8-quality-review></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- ═══════════════════════════════════════════════════════════════
      INTERAKTION 9: APPLE WATCH WIDGET (floating, nere höger)
@@ -2297,6 +2339,20 @@
       v8Esc(slot.patientId || '') +
       '" data-v8-patient-name="' +
       v8Esc(slot.customerName || slot.patientName || '') +
+      '" data-v8-booking-id="' +
+      v8Esc(slot.bookingId || slot.id || '') +
+      '" data-v8-encounter-id="' +
+      v8Esc(slot.encounterId || '') +
+      '" data-v8-source="' +
+      v8Esc(slot.source || '') +
+      '" data-v8-booking-notes="' +
+      v8Esc(slot.bookingNotes || '') +
+      '" data-v8-customer-message="' +
+      v8Esc(slot.customerMessage || '') +
+      '" data-v8-internal-notes="' +
+      v8Esc(slot.internalNotes || '') +
+      '" data-v8-treatment-notes="' +
+      v8Esc(slot.treatmentNotes || '') +
       '" data-v8-notes="' +
       v8Esc(noteText) +
       '" style="top:' +
@@ -2439,6 +2495,57 @@
     return true;
   }
 
+  function populateCanonicalVisitDetail(intel, data, booked) {
+    var detail = intel.querySelector('[data-v8-visit-detail]');
+    if (!detail) return;
+    detail.hidden = !booked;
+    if (!booked) return;
+    var status = detail.querySelector('[data-v8-visit-status]');
+    if (status) {
+      status.textContent = data.v8St || 'Okänd';
+      status.dataset.state = String(data.v8St || '').toLowerCase();
+    }
+    var identifiers = detail.querySelector('[data-v8-visit-identifiers]');
+    if (identifiers) {
+      identifiers.textContent = [
+        data.v8BookingId ? 'Bokning ' + data.v8BookingId : '',
+        data.v8EncounterId ? 'Besök ' + data.v8EncounterId : 'Besök ej länkat',
+        data.v8Source ? 'Källa ' + data.v8Source : '',
+      ]
+        .filter(Boolean)
+        .join(' · ');
+    }
+    var noteRows = [
+      ['Bokningsanteckning', data.v8BookingNotes],
+      ['Kundmeddelande', data.v8CustomerMessage],
+      ['Intern anteckning', data.v8InternalNotes],
+      ['Behandlingsanteckning', data.v8TreatmentNotes],
+    ].filter(function (row) {
+      return String(row[1] || '').trim();
+    });
+    var notes = detail.querySelector('[data-v8-visit-notes]');
+    if (notes) {
+      notes.replaceChildren();
+      if (!noteRows.length) {
+        var empty = document.createElement('p');
+        empty.className = 'v8-visit-note-empty';
+        empty.textContent = 'Inga besöksspecifika anteckningar registrerade.';
+        notes.appendChild(empty);
+      } else {
+        noteRows.forEach(function (row) {
+          var item = document.createElement('div');
+          item.className = 'v8-visit-note';
+          var label = document.createElement('strong');
+          label.textContent = row[0];
+          var text = document.createElement('p');
+          text.textContent = row[1];
+          item.append(label, text);
+          notes.appendChild(item);
+        });
+      }
+    }
+  }
+
   // Fyll intel-shell (Operatörsstöd) ur ett klickat slot-korts riktiga data.
   function populateDossierFromCard(root, card) {
     try {
@@ -2458,6 +2565,7 @@
       );
       var reason = intel.querySelector('.ai-reason');
       if (reason) reason.textContent = d.v8Notes || 'Inga anteckningar registrerade för besöket.';
+      populateCanonicalVisitDetail(intel, d, booked);
       var actions = intel.querySelector('.intel-actions');
       if (actions) {
         var existingLink = actions.querySelector('[data-v8-open-canonical-patient]');
@@ -2507,6 +2615,219 @@
     } catch (e) {
       /* tyst */
     }
+  }
+
+  function v8QualityStatusLabel(status) {
+    var labels = {
+      upcoming: 'Bokad',
+      confirmed: 'Bokad',
+      completed: 'Genomförd',
+      cancelled: 'Avbokad',
+      canceled: 'Avbokad',
+      no_show: 'Utebliven',
+      invalid: 'Ogiltig',
+    };
+    return labels[status] || status || 'Okänd';
+  }
+
+  async function fetchV8QualityJson(path) {
+    var response = await fetch(path, {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) throw new Error(path + ' svarade ' + response.status);
+    return response.json();
+  }
+
+  function renderV8QualityPanel(root, integrity, review) {
+    var panel = root.querySelector('#v8QualityPanel');
+    if (!panel) return;
+    var summary = panel.querySelector('[data-v8-quality-summary]');
+    var metrics = panel.querySelector('[data-v8-quality-metrics]');
+    var filters = panel.querySelector('[data-v8-quality-filters]');
+    var reviewList = panel.querySelector('[data-v8-quality-review]');
+    var content = panel.querySelector('[data-v8-quality-content]');
+    var loading = panel.querySelector('[data-v8-quality-loading]');
+    var integrityOk =
+      integrity &&
+      integrity.ok === true &&
+      integrity.zeroWrites === true &&
+      Number(integrity.totalIssues) === 0;
+    var totalReview = Number(review && review.total) || 0;
+    var reviewOk = review && review.zeroWrites === true && totalReview === 55;
+    var summaryCards = [
+      ['Canonical besök', Number(integrity && integrity.totalVisits) || 0, 'neutral'],
+      ['Integritetsfel', Number(integrity && integrity.totalIssues) || 0, integrityOk ? 'ok' : 'stop'],
+      ['Okopplade review', totalReview, reviewOk ? 'review' : 'stop'],
+      ['Writes', 0, integrityOk && reviewOk ? 'ok' : 'stop'],
+    ];
+    if (summary) {
+      summary.innerHTML = summaryCards
+        .map(function (card) {
+          return (
+            '<article class="v8-quality-card" data-tone="' +
+            v8Esc(card[2]) +
+            '"><span>' +
+            v8Esc(card[0]) +
+            '</span><strong>' +
+            v8Esc(String(card[1])) +
+            '</strong></article>'
+          );
+        })
+        .join('');
+    }
+    var statusRows = Object.entries((integrity && integrity.byStatus) || {});
+    var noteCoverage = (integrity && integrity.noteCoverage) || {};
+    var encounter = (integrity && integrity.encounterCoverage) || {};
+    if (metrics) {
+      metrics.innerHTML =
+        '<div class="v8-quality-metric-group"><h4>Status</h4>' +
+        statusRows
+          .map(function (row) {
+            return (
+              '<div class="v8-quality-metric"><span>' +
+              v8Esc(v8QualityStatusLabel(row[0])) +
+              '</span><strong>' +
+              v8Esc(String(row[1])) +
+              '</strong></div>'
+            );
+          })
+          .join('') +
+        '</div><div class="v8-quality-metric-group"><h4>Anteckningar</h4>' +
+        [
+          ['Bokning', noteCoverage.bookingNotes],
+          ['Kund', noteCoverage.customerMessage],
+          ['Intern', noteCoverage.internalNotes],
+          ['Behandling', noteCoverage.treatmentNotes],
+        ]
+          .map(function (row) {
+            return (
+              '<div class="v8-quality-metric"><span>' +
+              row[0] +
+              '</span><strong>' +
+              v8Esc(String(Number(row[1]) || 0)) +
+              '</strong></div>'
+            );
+          })
+          .join('') +
+        '</div><div class="v8-quality-metric-group"><h4>Besökskoppling</h4>' +
+        '<div class="v8-quality-metric"><span>Med encounter</span><strong>' +
+        v8Esc(String(Number(encounter.withEncounter) || 0)) +
+        '</strong></div><div class="v8-quality-metric"><span>Utan encounter</span><strong>' +
+        v8Esc(String(Number(encounter.withoutEncounter) || 0)) +
+        '</strong></div></div>';
+    }
+
+    var rows = Array.isArray(review && review.rows) ? review.rows : [];
+    var reasons = Object.entries((review && review.byReason) || {});
+    var renderRows = function (reason) {
+      var visible = reason
+        ? rows.filter(function (row) {
+            return row && row.reasonCode === reason;
+          })
+        : rows;
+      if (!reviewList) return;
+      reviewList.innerHTML = visible.length
+        ? visible
+            .map(function (row) {
+              var identity = (Array.isArray(row.identityBasis) ? row.identityBasis : [])
+                .map(function (item) {
+                  return String((item && item.type) || '') + ': ' + String((item && item.masked) || '');
+                })
+                .filter(Boolean)
+                .join(' · ');
+              return (
+                '<article class="v8-quality-review-row"><div><strong>' +
+                v8Esc(row.bookingId || 'Saknat boknings-id') +
+                '</strong><span>' +
+                v8Esc(row.date || 'Okänt datum') +
+                ' · ' +
+                v8Esc(identity || 'Identitet saknas') +
+                '</span></div><div><span class="v8-quality-reason">' +
+                v8Esc(row.reasonCode || 'okänd_orsak') +
+                '</span><p>' +
+                v8Esc(row.reason || 'Ingen orsak angiven.') +
+                '</p></div></article>'
+              );
+            })
+            .join('')
+        : '<div class="v8-quality-empty">Inga review-poster i detta filter.</div>';
+    };
+    if (filters) {
+      filters.innerHTML =
+        '<button type="button" class="is-active" data-v8-quality-reason="">Alla ' +
+        v8Esc(String(totalReview)) +
+        '</button>' +
+        reasons
+          .map(function (reason) {
+            return (
+              '<button type="button" data-v8-quality-reason="' +
+              v8Esc(reason[0]) +
+              '">' +
+              v8Esc(reason[0]) +
+              ' ' +
+              v8Esc(String(reason[1])) +
+              '</button>'
+            );
+          })
+          .join('');
+      filters.querySelectorAll('[data-v8-quality-reason]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          filters.querySelectorAll('button').forEach(function (item) {
+            item.classList.toggle('is-active', item === button);
+          });
+          renderRows(button.dataset.v8QualityReason || '');
+        });
+      });
+    }
+    renderRows('');
+    if (loading) loading.hidden = true;
+    if (content) content.hidden = false;
+    panel.dataset.state = integrityOk && reviewOk ? 'ok' : 'stop';
+    var toggle = root.querySelector('#qualityToggle');
+    if (toggle) toggle.dataset.state = integrityOk && reviewOk ? 'ok' : 'stop';
+  }
+
+  function bindV8QualityPanel(root) {
+    var toggle = root.querySelector('#qualityToggle');
+    var panel = root.querySelector('#v8QualityPanel');
+    if (!toggle || !panel || panel.__v8Bound) return;
+    panel.__v8Bound = true;
+    var loaded = false;
+    var close = function () {
+      panel.classList.remove('is-open');
+      panel.setAttribute('aria-hidden', 'true');
+    };
+    panel.querySelectorAll('[data-v8-quality-close]').forEach(function (button) {
+      button.addEventListener('click', close);
+    });
+    toggle.addEventListener('click', async function () {
+      panel.classList.add('is-open');
+      panel.setAttribute('aria-hidden', 'false');
+      if (loaded) return;
+      loaded = true;
+      try {
+        var results = await Promise.all([
+          fetchV8QualityJson('/api/v1/cco-bookings/canonical-integrity'),
+          fetchV8QualityJson('/api/v1/cco-bookings/cliento-unlinked-review'),
+        ]);
+        renderV8QualityPanel(root, results[0], results[1]);
+      } catch (error) {
+        loaded = false;
+        var loading = panel.querySelector('[data-v8-quality-loading]');
+        if (loading) {
+          loading.textContent = 'STOPP · kunde inte läsa datakvalitet: ' + (error.message || error);
+          loading.dataset.state = 'stop';
+        }
+        panel.dataset.state = 'stop';
+        toggle.dataset.state = 'stop';
+      }
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && panel.classList.contains('is-open')) close();
+    });
   }
 
   // Facitens setMode hårdkodar titlarna ("Tor 28 maj" etc). Skriv om dem till
@@ -2579,6 +2900,7 @@
     // P1/P2: fyll vyerna med riktig data från det delade datalagret (async).
     populateMorgonReal(root);
     populateGridsReal(root);
+    bindV8QualityPanel(root);
     fixV8Titles(root);
     return root;
   }

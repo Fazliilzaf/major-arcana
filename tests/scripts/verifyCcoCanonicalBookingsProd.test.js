@@ -6,6 +6,8 @@ const {
   validateIntegrityPayload,
   validateUnlinkedPayload,
   runVerification,
+  buildEvidence,
+  renderEvidenceMarkdown,
 } = require('../../scripts/verify-cco-canonical-bookings-prod');
 
 function response(body, { status = 200, cacheControl = 'no-store' } = {}) {
@@ -117,4 +119,30 @@ test('canonical booking verifier requires explicit target, token and integer exp
       }),
     /heltal/
   );
+});
+
+test('verification evidence is PII-free and contains only aggregate proof', () => {
+  const evidence = buildEvidence({
+    baseUrl: 'https://arcana.example/private/path',
+    commit: 'abc123',
+    generatedAt: '2026-07-17T10:00:00.000Z',
+    result: {
+      ok: true,
+      zeroWrites: true,
+      requestMethods: ['GET', 'GET'],
+      expectedUnlinkedReviewCount: 55,
+      totalVisits: 1200,
+      unlinkedReviewCount: 55,
+      errors: [],
+      token: 'must-not-leak',
+      rows: [{ patientId: 'patient-secret', notes: 'private note' }],
+    },
+  });
+  const serialized = JSON.stringify(evidence);
+  assert.equal(evidence.targetOrigin, 'https://arcana.example');
+  assert.equal(evidence.totalVisits, 1200);
+  assert.doesNotMatch(serialized, /must-not-leak|patient-secret|private note|private\/path/);
+  const markdown = renderEvidenceMarkdown(evidence);
+  assert.match(markdown, /GODKÄND/);
+  assert.doesNotMatch(markdown, /patient-secret|private note/);
 });

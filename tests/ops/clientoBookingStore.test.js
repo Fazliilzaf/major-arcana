@@ -176,6 +176,65 @@ test('listAllBookings respects limit across customer buckets', async () => {
   await fs.rm(dir, { recursive: true, force: true });
 });
 
+test('listBookingsInRange returns only the requested tenant and calendar range', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-range-'));
+  const store = await createClientoBookingStore({ filePath: path.join(dir, 'bookings.json') });
+  await store.importBatch({
+    tenantId: 'tenant-range',
+    bookings: [
+      {
+        bookingId: 'before',
+        customerEmail: 'range@example.com',
+        startsAt: '2026-05-31T09:00:00.000Z',
+      },
+      {
+        bookingId: 'inside-a',
+        customerEmail: 'range@example.com',
+        startsAt: '2026-06-01T09:00:00.000Z',
+      },
+      {
+        bookingId: 'inside-b',
+        customerEmail: 'range@example.com',
+        startsAt: '2026-06-07T17:00:00.000Z',
+      },
+      {
+        bookingId: 'after',
+        customerEmail: 'range@example.com',
+        startsAt: '2026-06-08T09:00:00.000Z',
+      },
+    ],
+  });
+  await store.importBatch({
+    tenantId: 'tenant-other',
+    bookings: [
+      {
+        bookingId: 'other-tenant',
+        customerEmail: 'range@example.com',
+        startsAt: '2026-06-02T09:00:00.000Z',
+      },
+    ],
+  });
+
+  const rows = store.listBookingsInRange({
+    tenantId: 'tenant-range',
+    fromDate: '2026-06-01',
+    toDate: '2026-06-07',
+  });
+  assert.deepEqual(
+    rows.map((row) => row.bookingId),
+    ['inside-a', 'inside-b']
+  );
+  assert.deepEqual(
+    store.listBookingsInRange({
+      tenantId: 'tenant-range',
+      fromDate: '2026-06-07',
+      toDate: '2026-06-01',
+    }),
+    []
+  );
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
 test('bookings persist across store instances after flush', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-reload-'));
   const filePath = path.join(dir, 'bookings.json');

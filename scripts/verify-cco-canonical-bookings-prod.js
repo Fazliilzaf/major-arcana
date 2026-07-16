@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+const fs = require('node:fs/promises');
+
 /**
  * Read-only post-deploy verifier for #999.
  * Requires an explicit target and bearer token and only performs GET requests.
@@ -154,6 +156,43 @@ async function runVerification({ baseUrl, token, expectedCount = 55, fetchImpl =
   };
 }
 
+function buildEvidence({ result, baseUrl, commit = '', generatedAt = new Date().toISOString() }) {
+  const target = new URL(String(baseUrl || ''));
+  return {
+    schemaVersion: 1,
+    generatedAt,
+    targetOrigin: target.origin,
+    commit: String(commit || '').trim() || null,
+    readOnly: true,
+    zeroWrites: result?.zeroWrites === true,
+    requestMethods: Array.isArray(result?.requestMethods) ? [...result.requestMethods] : [],
+    ok: result?.ok === true,
+    expectedUnlinkedReviewCount: Number(result?.expectedUnlinkedReviewCount) || 0,
+    totalVisits: Number(result?.totalVisits) || 0,
+    unlinkedReviewCount: Number(result?.unlinkedReviewCount) || 0,
+    errors: Array.isArray(result?.errors) ? [...result.errors] : [],
+  };
+}
+
+function renderEvidenceMarkdown(evidence) {
+  const verdict = evidence.ok ? 'GODKÄND' : 'STOPP';
+  return [
+    '# Canonical bokningsverifiering',
+    '',
+    `- Resultat: ${verdict}`,
+    `- Tidpunkt: ${evidence.generatedAt}`,
+    `- Mål: ${evidence.targetOrigin}`,
+    `- Commit: ${evidence.commit || 'ej angiven'}`,
+    `- Read-only / writes: ${evidence.readOnly ? 'ja' : 'nej'} / ${evidence.zeroWrites ? '0' : 'avvikelse'}`,
+    `- Besök: ${evidence.totalVisits}`,
+    `- Okopplad review: ${evidence.unlinkedReviewCount} (förväntat ${evidence.expectedUnlinkedReviewCount})`,
+    `- Felkoder: ${evidence.errors.length ? evidence.errors.join(', ') : 'inga'}`,
+    '',
+    '_Rapporten innehåller inga patientidentifierare, bokningsrader, anteckningar eller tokens._',
+    '',
+  ].join('\n');
+}
+
 async function main() {
   const expectedRaw = process.env.EXPECTED_UNLINKED_REVIEW_COUNT || '55';
   if (!/^\d+$/.test(expectedRaw)) {
@@ -165,6 +204,17 @@ async function main() {
     expectedCount: Number(expectedRaw),
   });
   console.log(JSON.stringify(result, null, 2));
+  if (process.env.EVIDENCE_OUTPUT) {
+    const evidence = buildEvidence({
+      result,
+      baseUrl: process.env.BASE_URL,
+      commit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || '',
+    });
+    const output = process.env.EVIDENCE_OUTPUT;
+    await fs.writeFile(output, output.endsWith('.md')
+      ? renderEvidenceMarkdown(evidence)
+      : JSON.stringify(evidence, null, 2) + '\n', { flag: 'wx' });
+  }
   if (!result.ok) process.exitCode = 2;
 }
 
@@ -179,4 +229,6 @@ module.exports = {
   validateIntegrityPayload,
   validateUnlinkedPayload,
   runVerification,
+  buildEvidence,
+  renderEvidenceMarkdown,
 };

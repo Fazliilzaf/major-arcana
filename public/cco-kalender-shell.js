@@ -103,6 +103,8 @@
       upcoming: 'Bokad',
       pending: 'Reserverad',
       completed: 'Genomförd',
+      cancelled: 'Avbokad',
+      canceled: 'Avbokad',
       no_show: 'Uteblev',
       unknown: 'Okänd',
     };
@@ -112,6 +114,106 @@
   function sourceLabel(source) {
     return String(source || '').startsWith('cco_booking') ? 'CCO' :
       String(source || '').toLowerCase() === 'cliento' ? 'Cliento' : source || '—';
+  }
+
+  function stockholmParts(value) {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return { date: '', time: '' };
+    const parts = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return {
+      date: values.year + '-' + values.month + '-' + values.day,
+      time: values.hour + ':' + values.minute,
+    };
+  }
+
+  function canonicalVisitToSlot(visit) {
+    const start = stockholmParts(visit.startsAt || visit.startAt);
+    const end = stockholmParts(visit.endsAt);
+    return {
+      id: visit.id,
+      bookingId: visit.id,
+      patientId: visit.patientId || null,
+      encounterId: visit.encounterId || null,
+      patientName: visit.patientName || '',
+      date: start.date,
+      time: start.time,
+      endTime: end.time || '',
+      status: visit.status || 'confirmed',
+      serviceId: visit.serviceId || '',
+      serviceLabel: visit.serviceName || visit.title || 'Bokning',
+      resourceId: visit.resourceLabel || '_unassigned',
+      resourceLabel: visit.resourceLabel || 'Ej tilldelad',
+      source: visit.source || '',
+      notes: visit.notes || '',
+      bookingNotes: visit.bookingNotes || '',
+      customerMessage: visit.customerMessage || '',
+      internalNotes: visit.internalNotes || '',
+      treatmentNotes: visit.treatmentNotes || '',
+      startsAt: visit.startsAt || visit.startAt || '',
+      endsAt: visit.endsAt || '',
+    };
+  }
+
+  async function loadCanonicalVisits(fromDate, toDate, tenantId, role) {
+    const query = new URLSearchParams({ fromDate, toDate });
+    const response = await fetch('/api/v1/cco-bookings/calendar-bundle?' + query.toString(), {
+      headers: calendarHeaders({ tenantId, role }),
+    });
+    if (!response.ok) {
+      const error = new Error('HTTP ' + response.status);
+      error.status = response.status;
+      throw error;
+    }
+    const payload = await response.json();
+    return (Array.isArray(payload.visits) ? payload.visits : []).map(canonicalVisitToSlot);
+  }
+
+  function canonicalDayView(date, visits) {
+    const byResource = new Map();
+    visits.filter((slot) => slot.date === date).forEach((slot) => {
+      const key = slot.resourceId || '_unassigned';
+      if (!byResource.has(key)) {
+        byResource.set(key, { resourceId: key, resourceLabel: slot.resourceLabel, slots: [] });
+      }
+      byResource.get(key).slots.push(slot);
+    });
+    const rows = [...byResource.values()];
+    const all = rows.flatMap((resource) => resource.slots);
+    return {
+      date,
+      resources: rows,
+      totalSlots: all.length,
+      confirmedBookings: all.filter((slot) => ['confirmed', 'upcoming'].includes(slot.status)).length,
+      pendingReservations: all.filter((slot) => slot.status === 'pending').length,
+      sourceCounts: {
+        bookingEngine: all.filter((slot) => String(slot.source).startsWith('cco_booking')).length,
+        cliento: all.filter((slot) => slot.source === 'cliento').length,
+      },
+    };
+  }
+
+  function canonicalWeekView(startDate, visits) {
+    const start = new Date(startDate + 'T12:00:00.000Z');
+    const days = [];
+    for (let index = 0; index < 7; index += 1) {
+      const current = new Date(start);
+      current.setUTCDate(start.getUTCDate() + index);
+      const date = current.toISOString().slice(0, 10);
+      days.push(canonicalDayView(date, visits));
+    }
+    return { startDate, days, totalSlots: days.reduce((sum, day) => sum + day.totalSlots, 0) };
+  }
+
+  function openCanonicalPatient(patientId) {
+    if (!patientId || window.parent === window) return;
+    window.parent.postMessage(
+      { type: 'arcana:cco-open-customer-dossier', patientId },
+      window.location.origin
+    );
   }
 
   // ─── View-switch: kunder vs kalender ─────────────────────────────────────
@@ -237,9 +339,9 @@
         const endMin = slot.endTime ? timeToMinutes(slot.endTime) : startMin + 30;
         const top = Math.max(0, minutesToY(startMin));
         const height = Math.max(28, ((endMin - startMin) / 60) * HOUR_H - 2);
-        const tone = slot.status === 'confirmed' ? 'success'
+        const tone = ['confirmed', 'upcoming', 'completed'].includes(slot.status) ? 'success'
                    : slot.status === 'pending'   ? 'warning'
-                   : slot.status === 'cancelled' ? 'danger' : 'info';
+                   : ['cancelled', 'canceled', 'no_show'].includes(slot.status) ? 'danger' : 'info';
         col.appendChild(el('button', {
           class: 'cco-cal-booking' + (height < 38 ? ' cco-cal-booking--short' : ''),
           style: `top: ${top}px; height: ${height}px; border-left-color: ${color};`,
@@ -314,8 +416,8 @@
       ['Status', statusLabel(slot.status)],
       ['Behandling', slot.serviceLabel || slot.serviceId || '—'],
       ['Källa', sourceLabel(slot.source)],
-      ['E-post', slot.patientEmail || '—'],
-      ['Telefon', slot.patientPhone || '—'],
+      ['Canonical patientId', slot.patientId || 'Okopplad'],
+      ['Besökstillfälle', slot.encounterId || 'Saknas'],
     ];
     const detailList = el('dl', { class: 'cco-cal-read-details' });
     for (const [label, value] of details) {
@@ -323,6 +425,25 @@
       detailList.appendChild(el('dd', {}, value));
     }
     drawer.appendChild(detailList);
+    if (slot.patientId) {
+      drawer.appendChild(el('button', {
+        class: 'cco-cal-open-patient', type: 'button', onclick: () => openCanonicalPatient(slot.patientId),
+      }, 'Öppna samma patient i Kunder V11/V12'));
+    }
+    const noteFields = [
+      ['Bokningsanteckning', slot.bookingNotes || slot.notes],
+      ['Kundmeddelande', slot.customerMessage],
+      ['Intern anteckning', slot.internalNotes],
+      ['Behandlingsanteckning', slot.treatmentNotes],
+    ].filter((entry) => entry[1]);
+    const notes = el('section', { class: 'cco-cal-visit-notes' }, [
+      el('h4', {}, 'Anteckningar'),
+    ]);
+    if (!noteFields.length) notes.appendChild(el('p', {}, 'Inga anteckningar registrerade.'));
+    noteFields.forEach(([label, value]) => notes.appendChild(el('article', {}, [
+      el('strong', {}, label), el('p', {}, value),
+    ])));
+    drawer.appendChild(notes);
   }
 
   // ─── Drawer rendering (delas mellan desktop right-col + mobile bottom-sheet) ──
@@ -538,6 +659,98 @@
     }
   }
 
+  function metricCard(label, value, tone) {
+    return el('div', { class: 'cco-cal-quality-metric cco-cal-quality-metric--' + (tone || 'neutral') }, [
+      el('span', {}, label), el('strong', {}, String(value ?? '—')),
+    ]);
+  }
+
+  function renderQualityPanel(panel, integrity, review) {
+    const content = panel.querySelector('[data-quality-content]');
+    content.innerHTML = '';
+    const safe = integrity?.zeroWrites === true && integrity?.readOnly === true &&
+      integrity?.ok === true && review?.zeroWrites === true;
+    content.appendChild(el('div', { class: 'cco-cal-quality-state ' + (safe ? 'is-ok' : 'is-stop') }, [
+      el('strong', {}, safe ? 'Canonical kontroll godkänd' : 'STOPP · avvikelse i canonical kontroll'),
+      el('span', {}, 'Read-only · 0 writes'),
+    ]));
+    const metrics = el('div', { class: 'cco-cal-quality-metrics' }, [
+      metricCard('Besök', integrity?.totalVisits),
+      metricCard('Integritetsfel', integrity?.totalIssues, integrity?.totalIssues === 0 ? 'ok' : 'stop'),
+      metricCard('Med encounter', integrity?.encounterCoverage?.withEncounter),
+      metricCard('Utan encounter', integrity?.encounterCoverage?.withoutEncounter),
+      metricCard('Okopplad review', review?.total, Number(review?.total) === 55 ? 'ok' : 'stop'),
+    ]);
+    content.appendChild(metrics);
+
+    const status = el('section', { class: 'cco-cal-quality-section' }, [el('h4', {}, 'Status och anteckningstäckning')]);
+    const statusGrid = el('div', { class: 'cco-cal-quality-chips' });
+    Object.entries(integrity?.byStatus || {}).forEach(([key, value]) =>
+      statusGrid.appendChild(el('span', {}, statusLabel(key) + ' ' + value)));
+    Object.entries(integrity?.noteCoverage || {}).forEach(([key, value]) =>
+      statusGrid.appendChild(el('span', {}, key + ' ' + value)));
+    status.appendChild(statusGrid);
+    content.appendChild(status);
+
+    const reviewSection = el('section', { class: 'cco-cal-quality-section' }, [
+      el('h4', {}, 'Okopplade Cliento-poster · ingen gissningskoppling'),
+    ]);
+    const reasons = el('div', { class: 'cco-cal-quality-chips' });
+    Object.entries(review?.byReason || {}).forEach(([key, value]) =>
+      reasons.appendChild(el('span', {}, key + ' ' + value)));
+    reviewSection.appendChild(reasons);
+    const rows = el('div', { class: 'cco-cal-quality-rows' });
+    (Array.isArray(review?.rows) ? review.rows : []).forEach((row) => rows.appendChild(el('article', {}, [
+      el('div', {}, [el('strong', {}, row.bookingId || 'saknar id'), el('span', {}, row.date || 'saknar datum')]),
+      el('p', {}, (row.identityBasis || []).map((item) => item.type + ': ' + item.masked).join(' · ')),
+      el('p', {}, row.reason || row.reasonCode || 'Okänd orsak'),
+    ])));
+    if (!rows.childElementCount) rows.appendChild(el('p', {}, 'Inga review-poster.'));
+    reviewSection.appendChild(rows);
+    content.appendChild(reviewSection);
+  }
+
+  async function openQualityPanel(panel) {
+    panel.classList.add('is-open');
+    panel.setAttribute('aria-hidden', 'false');
+    const content = panel.querySelector('[data-quality-content]');
+    content.innerHTML = '<div class="cco-cal-empty">Läser canonical integritet…</div>';
+    try {
+      const headers = calendarHeaders({ tenantId: global.__ccoCalTenantId, role: global.__ccoCalRole });
+      const [integrityResponse, reviewResponse] = await Promise.all([
+        fetch('/api/v1/cco-bookings/canonical-integrity', { headers }),
+        fetch('/api/v1/cco-bookings/cliento-unlinked-review', { headers }),
+      ]);
+      if (!integrityResponse.ok || !reviewResponse.ok) throw new Error('HTTP-kontroll misslyckades');
+      renderQualityPanel(panel, await integrityResponse.json(), await reviewResponse.json());
+    } catch (error) {
+      content.innerHTML = '';
+      content.appendChild(el('div', { class: 'cco-cal-quality-state is-stop' },
+        'STOPP · kunde inte verifiera canonical data: ' + error.message));
+    }
+  }
+
+  function bindQualityPanel() {
+    if (!isReadOnlyMode() || document.getElementById('ccoCalQualityPanel')) return;
+    const actions = document.querySelector('.calendar-toolbar-actions');
+    if (!actions) return;
+    const panel = el('section', { id: 'ccoCalQualityPanel', class: 'cco-cal-quality-panel',
+      'aria-hidden': 'true', 'aria-label': 'Datakvalitet för bokningar' }, [
+      el('div', { class: 'cco-cal-quality-backdrop', onclick: () => close() }),
+      el('div', { class: 'cco-cal-quality-surface', role: 'dialog', 'aria-modal': 'true' }, [
+        el('header', {}, [
+          el('div', {}, [el('span', {}, 'READ-ONLY · CANONICAL BESÖKSDATA'), el('h3', {}, 'Datakvalitet')]),
+          el('button', { type: 'button', 'aria-label': 'Stäng', onclick: () => close() }, '×'),
+        ]),
+        el('div', { class: 'cco-cal-quality-content', 'data-quality-content': '' }),
+      ]),
+    ]);
+    const close = () => { panel.classList.remove('is-open'); panel.setAttribute('aria-hidden', 'true'); };
+    actions.prepend(el('button', { class: 'cco-cal-quality-button', type: 'button',
+      onclick: () => openQualityPanel(panel) }, 'Datakvalitet'));
+    document.body.appendChild(panel);
+  }
+
   function renderLiveStatus({ label, total, confirmed, pending, sourceCounts = {} }) {
     if (!isReadOnlyMode()) return;
     const status = document.querySelector('.calendar-status-bar');
@@ -613,6 +826,20 @@
     mount.innerHTML = '<div class="cco-cal-empty">Laddar dagens kalender…</div>';
 
     try {
+      if (isReadOnlyMode()) {
+        const visits = await loadCanonicalVisits(date, date, tenantId, role);
+        const dayView = canonicalDayView(date, visits);
+        mount.innerHTML = '';
+        mount.appendChild(renderDayGrid(dayView, onBookingClick));
+        updateDaySummary(dayView);
+        const title = document.getElementById('calTitle');
+        if (title) {
+          const d = new Date(date + 'T00:00:00');
+          title.textContent = d.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' }) +
+            ' · ' + dayView.totalSlots + ' bokningar';
+        }
+        return;
+      }
       const query = new URLSearchParams({ date });
       if (!isReadOnlyMode()) query.set('tenantId', tenantId);
       const res = await fetch('/api/v1/calendar/day?' + query.toString(), {
@@ -807,9 +1034,9 @@
         const top = Math.max(0, minutesToY(startMin));
         const height = Math.max(20, ((endMin - startMin) / 60) * HOUR_H - 2);
         const color = colorForResource(slot._resource?.resourceId || '');
-        const tone = slot.status === 'confirmed' ? 'success'
+        const tone = ['confirmed', 'upcoming', 'completed'].includes(slot.status) ? 'success'
                    : slot.status === 'pending'   ? 'warning'
-                   : slot.status === 'cancelled' ? 'danger' : 'info';
+                   : ['cancelled', 'canceled', 'no_show'].includes(slot.status) ? 'danger' : 'info';
         colBody.appendChild(el('button', {
           class: 'cco-cal-booking cco-cal-booking--compact',
           style: `top: ${top}px; height: ${height}px; border-left-color: ${color};`,
@@ -842,6 +1069,27 @@
     mount.innerHTML = '<div class="cco-cal-empty">Laddar vecka…</div>';
 
     try {
+      if (isReadOnlyMode()) {
+        const end = new Date(startDate + 'T12:00:00.000Z');
+        end.setUTCDate(end.getUTCDate() + 6);
+        const visits = await loadCanonicalVisits(startDate, end.toISOString().slice(0, 10), tenantId, role);
+        const weekView = canonicalWeekView(startDate, visits);
+        mount.innerHTML = '';
+        mount.appendChild(renderWeekGrid(weekView, onBookingClick));
+        const totals = weekView.days.reduce((summary, day) => {
+          summary.confirmed += day.confirmedBookings;
+          summary.pending += day.pendingReservations;
+          summary.sourceCounts.bookingEngine += day.sourceCounts.bookingEngine;
+          summary.sourceCounts.cliento += day.sourceCounts.cliento;
+          return summary;
+        }, { confirmed: 0, pending: 0, sourceCounts: { bookingEngine: 0, cliento: 0 } });
+        renderLiveStatus({ label: 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')),
+          total: weekView.totalSlots, ...totals });
+        const title = document.getElementById('calTitle');
+        if (title) title.textContent = 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')) +
+          ' · ' + weekView.totalSlots + ' bokningar';
+        return;
+      }
       const query = new URLSearchParams({ startDate });
       if (!isReadOnlyMode()) query.set('tenantId', tenantId);
       const res = await fetch('/api/v1/calendar/week?' + query.toString(), {
@@ -1149,6 +1397,7 @@
     applyView(view);
     if (view === 'calendar') {
       resetLiveReadUi();
+      bindQualityPanel();
       const dagTab = document.querySelector('.segment-tab[data-mode="dag"]');
       if (dagTab) {
         setTimeout(() => {

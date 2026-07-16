@@ -1298,6 +1298,7 @@ test('cco bookings calendar rebook uppdaterar ärende via bookingCaseId', async 
 
 test('calendar-bundle exposes the same canonical Cliento visit used by Kunder', async () => {
   const app = express();
+  let requestedClientoRange = null;
   app.use(express.json());
   app.use(
     '/api/v1',
@@ -1308,7 +1309,8 @@ test('calendar-bundle exposes the same canonical Cliento visit used by Kunder', 
         },
       },
       clientoBookingStore: {
-        listAllBookings() {
+        listBookingsInRange(options) {
+          requestedClientoRange = options;
           return [
             {
               bookingId: 'cliento-calendar-1',
@@ -1364,6 +1366,11 @@ test('calendar-bundle exposes the same canonical Cliento visit used by Kunder', 
   );
 
   await withServer(app, async (baseUrl) => {
+    const invalid = await fetch(
+      `${baseUrl}/cco-bookings/calendar-bundle?fromDate=2026-05-21&toDate=2026-05-20`
+    );
+    assert.equal(invalid.status, 400);
+    assert.equal((await invalid.json()).error, 'availability_range_invalid');
     const response = await fetch(
       `${baseUrl}/cco-bookings/calendar-bundle?fromDate=2026-05-20&toDate=2026-05-20`
     );
@@ -1375,6 +1382,11 @@ test('calendar-bundle exposes the same canonical Cliento visit used by Kunder', 
     assert.equal(payload.visits[0].status, 'cancelled');
     assert.equal(payload.visits[0].bookingNotes, 'Avbokad via telefon');
     assert.equal(payload.visits[0].internalNotes, 'Ring åter');
+    assert.deepEqual(requestedClientoRange, {
+      tenantId: 'tenant-a',
+      fromDate: '2026-05-20',
+      toDate: '2026-05-20',
+    });
   });
 });
 

@@ -788,6 +788,13 @@ function createCcoBookingsRouter({
       if (!fromDate || !toDate) {
         return res.status(400).json({ error: 'availability_range_missing' });
       }
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(fromDate) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(toDate) ||
+        fromDate > toDate
+      ) {
+        return res.status(400).json({ error: 'availability_range_invalid' });
+      }
 
       const cacheKey = readCache
         ? readCache.buildKey(
@@ -842,13 +849,39 @@ function createCcoBookingsRouter({
             });
             const patients = asArray(population?.patients);
             const engineBookings = bookingEngineStore?.listBookingsForEnrichment
-              ? asArray(bookingEngineStore.listBookingsForEnrichment(context.tenantId))
+              ? asArray(bookingEngineStore.listBookingsForEnrichment(context.tenantId)).filter(
+                  (booking) => {
+                    const date = normalizeText(booking?.slot?.startsAt || booking?.startsAt).slice(
+                      0,
+                      10
+                    );
+                    return date && date >= fromDate && date <= toDate;
+                  }
+                )
               : [];
-            const clientoBookings = clientoBookingStore.listAllBookings
-              ? asArray(clientoBookingStore.listAllBookings({ tenantId: context.tenantId }))
-              : [];
+            const clientoBookings = clientoBookingStore.listBookingsInRange
+              ? asArray(
+                  clientoBookingStore.listBookingsInRange({
+                    tenantId: context.tenantId,
+                    fromDate,
+                    toDate,
+                  })
+                )
+              : clientoBookingStore.listAllBookings
+                ? asArray(clientoBookingStore.listAllBookings({ tenantId: context.tenantId })).filter(
+                    (booking) => {
+                      const date = normalizeText(booking?.startsAt).slice(0, 10);
+                      return date && date >= fromDate && date <= toDate;
+                    }
+                  )
+                : [];
             const encounters = treatmentEncounterStore?.listEncountersForEnrichment
-              ? asArray(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId))
+              ? asArray(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId)).filter(
+                  (encounter) => {
+                    const date = normalizeText(encounter?.startsAt).slice(0, 10);
+                    return date && date >= fromDate && date <= toDate;
+                  }
+                )
               : [];
             const byPatient = collectBookingReadouts({
               patients,

@@ -38,8 +38,9 @@ Den här sektionen gäller bokningshistoriken i #999 och ersätter den äldre di
 
 ### Read-only reviewrapport
 
-- [ ] Kör `BASE_URL=https://arcana.hairtpclinic.com ARCANA_SMOKE_BEARER_TOKEN=… npm run verify:cco-canonical-bookings-prod`.
+- [ ] Kör `BASE_URL=https://arcana.hairtpclinic.com ARCANA_SMOKE_BEARER_TOKEN=… RENDER_GIT_COMMIT=… EVIDENCE_OUTPUT=cco-canonical-verification.md npm run verify:cco-canonical-bookings-prod`.
 - [ ] Kommandot gör exakt två autentiserade GET-anrop och returnerar `ok: true`, `zeroWrites: true` och tom `errors`.
+- [ ] Evidensfilen skapas fail-closed utan overwrite och innehåller bara mål-origin, commit, tidpunkt, totalsiffror och felkoder — aldrig token, patient-id, bokningsrader eller anteckningar.
 - [ ] Läs först `GET /api/v1/cco-bookings/canonical-integrity` i samma inloggade prod-session.
 - [ ] Svaret har `Cache-Control: no-store`, `zeroWrites: true`, `readOnly: true` och `ok: true`.
 - [ ] Kontrollera `byStatus`, `bySource`, `noteCoverage` och `encounterCoverage` mot deployens canonical population.
@@ -57,7 +58,7 @@ Den här sektionen gäller bokningshistoriken i #999 och ersätter den äldre di
 
 - [ ] Stoppa vid fel patient, olika `patientId`, fel besöksstatus, anteckningsläckage eller annat antal än 55.
 - [ ] För collision/no-match: dokumentera boknings-id och orsak, men sök inte fram och skriv aldrig en gissningskoppling.
-- [ ] Spara deploy-commit, tidpunkt, testade boknings-id:n, statusutfall och reviewrapportens totalsumma som verifieringsevidens.
+- [ ] Spara den PII-fria evidensfilen samt UI-kontrollens deploy-commit, tidpunkt, statusutfall och reviewrapportens totalsumma. Boknings-id:n hör endast hemma i den behörighetsstyrda granskningsvyn, inte i evidensfilen.
 
 ---
 
