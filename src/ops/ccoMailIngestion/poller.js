@@ -45,6 +45,13 @@ function resolveInitialDelayMs(config = {}) {
   return Number.isFinite(configured) ? Math.max(10000, configured) : 120000;
 }
 
+function resolveMaxMailboxesPerCycle(config = {}, totalMailboxes = 0) {
+  const configured = Number(config.ccoMailIngestionPollMaxMailboxesPerCycle);
+  const requested = Number.isFinite(configured) ? Math.floor(configured) : 1;
+  const bounded = Math.max(1, requested || 1);
+  return totalMailboxes > 0 ? Math.min(bounded, totalMailboxes) : bounded;
+}
+
 /**
  * Narrow live reader when the global scheduler is deliberately off.
  * It is read-only, runs one approved mailbox at a time, and never touches the
@@ -72,6 +79,7 @@ function createCcoMailIngestionPoller({
   let intervalId = null;
   let initialTimeoutId = null;
   let inFlight = false;
+  let nextMailboxIndex = 0;
 
   async function runOnce() {
     if (!enabled) return { skipped: true, reason: 'mailbox_poller_disabled' };
@@ -79,8 +87,15 @@ function createCcoMailIngestionPoller({
 
     inFlight = true;
     try {
+      const mailboxCount = resolveMaxMailboxesPerCycle(config, mailboxEmails.length);
+      const selectedMailboxEmails = Array.from(
+        { length: mailboxCount },
+        (_, offset) => mailboxEmails[(nextMailboxIndex + offset) % mailboxEmails.length]
+      );
+      // Advance before I/O so a temporarily failing mailbox cannot monopolize every cycle.
+      nextMailboxIndex = (nextMailboxIndex + selectedMailboxEmails.length) % mailboxEmails.length;
       const results = [];
-      for (const mailboxEmail of mailboxEmails) {
+      for (const mailboxEmail of selectedMailboxEmails) {
         try {
           const result = await syncService.runDeltaSync({
             mailboxIds: [mailboxEmail],
@@ -106,13 +121,13 @@ function createCcoMailIngestionPoller({
       const failedMailboxIds = results.filter((item) => item.error).map((item) => item.mailboxEmail);
       const completedAt = new Date().toISOString();
       logger?.log?.(
-        `[cco-mailbox-poller] cycle klar mailboxes=${mailboxEmails.join(',')} ` +
+        `[cco-mailbox-poller] cycle klar mailboxes=${selectedMailboxEmails.join(',')} ` +
           `truthChanged=${changed} failed=${failedMailboxIds.length}`
       );
       if (changed > 0 && typeof runtimeStreamRouter?.broadcast === 'function') {
         runtimeStreamRouter.broadcast('worklist_updated', {
           source: 'cco_mailbox_poller',
-          mailboxIds: mailboxEmails,
+          mailboxIds: selectedMailboxEmails,
           truthChanged: changed,
           completedAt,
         });
@@ -120,13 +135,19 @@ function createCcoMailIngestionPoller({
       if (typeof runtimeStreamRouter?.broadcast === 'function') {
         runtimeStreamRouter.broadcast('mailbox_sync_updated', {
           source: 'cco_mailbox_poller',
-          mailboxIds: mailboxEmails,
+          mailboxIds: selectedMailboxEmails,
           failedMailboxIds,
           truthChanged: changed,
           completedAt,
         });
       }
-      return { skipped: false, mailboxEmails, failedMailboxIds, results };
+      return {
+        skipped: false,
+        mailboxEmails: selectedMailboxEmails,
+        configuredMailboxEmails: mailboxEmails,
+        failedMailboxIds,
+        results,
+      };
     } finally {
       inFlight = false;
     }
@@ -181,5 +202,6 @@ module.exports = {
   createCcoMailIngestionPoller,
   resolveIntervalMs,
   resolveInitialDelayMs,
+  resolveMaxMailboxesPerCycle,
   resolvePollMailboxes,
 };
