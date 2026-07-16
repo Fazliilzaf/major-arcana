@@ -450,6 +450,11 @@ function createCmStore({ filePath }) {
     return state.rawItems.find((r) => r.id === id) || null;
   }
 
+  // ORD-75: läs-lista för underlags-backfill (originalStorageKey-pekare)
+  function listRawItems() {
+    return state.rawItems;
+  }
+
   // ORD-68: rawItems som aldrig fått en expense-record (via ledger ELLER
   // record.rawItemId) — reprocess-kandidater. FAILED-status ingår (retry).
   function listUnprocessedRawItems({ limit = 10 } = {}) {
@@ -645,6 +650,7 @@ function createCmStore({ filePath }) {
     getExpenseRecordById,
     getDocumentById,
     getRawItemById,
+    listRawItems,
     listUnprocessedRawItems,
     listRecordsMissingAmount,
     markReextractAttempt,
