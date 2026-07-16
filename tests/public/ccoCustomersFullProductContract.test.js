@@ -60,7 +60,10 @@ test('Kunder visar och återanvänder den befintliga V9-sökningen', () => {
 test('Kunder återanvänder den read-only kundresegranskningen och öppnar canonical dossier', () => {
   assert.match(html, /data-customer-journey-audit-open/);
   assert.match(ui, /function openJourneyAuditDrawer\(\)/);
-  assert.match(ui, /journey-audit\?onlyGaps=1&offset=0&limit=500/);
+  assert.match(ui, /const JOURNEY_AUDIT_PAGE_SIZE = 500/);
+  assert.match(ui, /function loadJourneyAuditPage\(/);
+  assert.match(ui, /data-customer-journey-audit-load-more/);
+  assert.match(ui, /offset=\$\{offset\}&limit=\$\{JOURNEY_AUDIT_PAGE_SIZE\}/);
   assert.match(ui, /data-customer-journey-audit-patient/);
   assert.match(ui, /void loadPatientDetail\(patientId\)/);
   assert.match(ui, /read-only kontroll/);
