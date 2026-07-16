@@ -19,12 +19,19 @@ function makeAsset(overrides = {}) {
   };
 }
 
+function assetStoreFor(asset, extra = {}) {
+  return {
+    listItemsForEnrichment: () => [asset],
+    ...extra,
+  };
+}
+
 test('inspects an importing asset with a persisted blob without writes', async () => {
   const asset = makeAsset();
   const result = await inspectStuckImport({
     tenantId: 'tenant-1',
     assetId: asset.id,
-    assetStore: { getAsset: () => asset },
+    assetStore: assetStoreFor(asset),
     storage: { exists: async () => true },
   });
   assert.equal(result.plan.repairable, true);
@@ -38,7 +45,7 @@ test('refuses status reconciliation when the binary is absent', async () => {
     tenantId: 'tenant-1',
     assetId: asset.id,
     dryRun: false,
-    assetStore: { getAsset: () => asset, transitionStatus: async () => assert.fail('must not write') },
+    assetStore: assetStoreFor(asset, { transitionStatus: async () => assert.fail('must not write') }),
     storage: { exists: async () => false },
   });
   assert.equal(result.reconciled, false);
@@ -52,14 +59,13 @@ test('reconciles exactly IMPORTING to VERIFIED_IN_CCO through the state machine'
     tenantId: 'tenant-1',
     assetId: asset.id,
     dryRun: false,
-    assetStore: {
-      getAsset: () => asset,
+    assetStore: assetStoreFor(asset, {
       transitionStatus: async (_id, status) => {
         transitions.push(status);
         asset.status = status;
         return { ...asset };
       },
-    },
+    }),
     storage: { exists: async () => true },
   });
   assert.deepEqual(transitions, ['IMPORTED_TO_CCO', 'VERIFIED_IN_CCO']);

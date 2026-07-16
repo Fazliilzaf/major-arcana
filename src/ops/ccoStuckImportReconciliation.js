@@ -10,16 +10,20 @@ function hasStorageKey(asset = {}) {
 }
 
 async function inspectStuckImport({ assetStore, storage, tenantId = null, assetId } = {}) {
-  if (!assetStore || typeof assetStore.getAsset !== 'function') {
-    throw new Error('assetStore.getAsset krävs.');
+  if (!assetStore || typeof assetStore.listItemsForEnrichment !== 'function') {
+    throw new Error('assetStore.listItemsForEnrichment krävs.');
   }
   if (!storage || typeof storage.exists !== 'function') {
     throw new Error('storage.exists krävs.');
   }
   const id = normalizeText(assetId);
   if (!id) throw new Error('assetId krävs.');
-  const asset = assetStore.getAsset(id);
-  if (!asset || (tenantId && normalizeText(asset.tenantId) !== normalizeText(tenantId))) {
+  // The audit uses this tenant-filtered index. Some legacy assets are present
+  // there before they are addressable through the direct id index.
+  const asset = assetStore
+    .listItemsForEnrichment(tenantId)
+    .find((candidate) => normalizeText(candidate?.id) === id);
+  if (!asset) {
     const error = new Error('Asset hittades inte.');
     error.statusCode = 404;
     throw error;
