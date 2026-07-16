@@ -35,6 +35,7 @@ const {
 } = require('../ops/ccoGhostVisibleAssetDiagnosis');
 const { auditNonverifiedAssetStoragePage } = require('../ops/ccoDriveAssetStorageAudit');
 const { quarantineMetadataWithoutBinary } = require('../ops/ccoMetadataWithoutBinaryReview');
+const { reconcileStuckImport } = require('../ops/ccoStuckImportReconciliation');
 const {
   quarantineUnrecoverableGhostVisibleAssets,
   repairGhostVisibleAssets,
@@ -2532,6 +2533,53 @@ function createCcoPatientMasterRouter({
             candidates: report.stats.candidates,
             quarantined: report.stats.quarantined,
             enqueued: report.stats.enqueued,
+          },
+        });
+        return res.json(report);
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/assets/reconcile-stuck-import',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const dryRun = parseDryRun(req.body?.dryRun, true);
+        const assetId = normalizeText(req.body?.assetId);
+        if (!assetId) return res.status(400).json({ error: 'assetId krävs.' });
+        if (!dryRun && normalizeText(req.body?.confirmText) !== 'RECONCILE STUCK IMPORT') {
+          return res.status(409).json({
+            error: 'Commit kräver confirmText: RECONCILE STUCK IMPORT',
+          });
+        }
+        const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
+        const assetStore =
+          stores.assetStore ||
+          (typeof resolvePatientAssetStore === 'function' ? await resolvePatientAssetStore() : null);
+        const storage = stores.secureStorage || stores.storage || null;
+        if (!assetStore || !storage) {
+          return res.status(503).json({ error: 'Asset store eller storage saknas på servern.' });
+        }
+        const report = await reconcileStuckImport({
+          assetStore,
+          storage,
+          tenantId: actor.tenantId,
+          assetId,
+          dryRun,
+          actor: { tenantId: actor.tenantId, userId: actor.userId, role: ROLE_OWNER },
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.assets_reconcile_stuck_import',
+          outcome: report.reconciled ? 'success' : 'preview',
+          targetType: 'cco_patient_asset',
+          targetId: assetId,
+          metadata: {
+            dryRun,
+            repairable: report.plan.repairable,
+            finalStatus: report.finalStatus,
           },
         });
         return res.json(report);
