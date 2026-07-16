@@ -43,13 +43,16 @@ test('Kalender consumes canonical visit rows with patient, status, encounter and
   assert.equal(event.treatmentNotes, 'Behandlingsanteckning');
 });
 
-test('calendar V8 links a clicked visit to the canonical V11/V12 patient', () => {
+test('calendar V8 sends a strict parent message for the canonical V11/V12 patient', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '../../public/major-arcana-preview/app/cco-calendar-v8-shell.js'),
     'utf8'
   );
   assert.match(source, /data-v8-patient-id/);
-  assert.match(source, /view=customers&patientId=/);
+  assert.match(source, /window\.parent\.postMessage\(/);
+  assert.match(source, /type: 'arcana:cco-open-customer-dossier', patientId: id/);
+  assert.match(source, /window\.location\.origin/);
+  assert.doesNotMatch(source, /patientLink\.href\s*=\s*['"]\/staff/);
   assert.match(source, /Öppna kund i V11\/V12/);
   assert.match(source, /data-v8-notes/);
 });

@@ -2428,6 +2428,17 @@
     }
   }
 
+  function openCanonicalPatientInAdmin(patientId) {
+    var id = String(patientId || '').trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(id)) return false;
+    if (!window.parent || window.parent === window) return false;
+    window.parent.postMessage(
+      { type: 'arcana:cco-open-customer-dossier', patientId: id },
+      window.location.origin
+    );
+    return true;
+  }
+
   // Fyll intel-shell (Operatörsstöd) ur ett klickat slot-korts riktiga data.
   function populateDossierFromCard(root, card) {
     try {
@@ -2452,11 +2463,16 @@
         var existingLink = actions.querySelector('[data-v8-open-canonical-patient]');
         if (existingLink) existingLink.remove();
         if (d.v8PatientId) {
-          var patientLink = document.createElement('a');
+          var patientLink = document.createElement('button');
+          patientLink.type = 'button';
           patientLink.className = 'quick-pill';
           patientLink.dataset.v8OpenCanonicalPatient = '1';
-          patientLink.href = '/staff?view=customers&patientId=' + encodeURIComponent(d.v8PatientId);
           patientLink.textContent = 'Öppna kund i V11/V12';
+          patientLink.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            openCanonicalPatientInAdmin(d.v8PatientId);
+          });
           actions.prepend(patientLink);
         }
       }
