@@ -2965,8 +2965,10 @@ function createCcoConversationRouter({
               }
             : null,
           counts: {
-            inbox: counts.inbox || 0,
-            sent: counts.sent || 0,
+            // Saknas folderCounts helt betyder det att status-spegeln inte har
+            // lokala siffror ännu - det är inte samma sak som en tom mailbox.
+            inbox: counts.inbox ?? null,
+            sent: counts.sent ?? null,
           },
         };
       });
