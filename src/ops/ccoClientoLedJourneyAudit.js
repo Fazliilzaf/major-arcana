@@ -130,7 +130,8 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
   ).length;
   const evidence = summarizeEvidence(patient, assets);
 
-  // HD is sent after a booking; FF is completed on the treatment day itself.
+  // HD is sent after a booking. FF is a one-time patient requirement at the
+  // initial attended treatment, rather than a new requirement for every PRP session.
   const hdExpected = (hasConsultationBooking || hasTreatmentBooking) && !nonAttendedOnly;
   const ffExpected = hasAttendedTreatment && !nonAttendedOnly;
   const offerExpected = hasTreatmentBooking && !nonAttendedOnly;
