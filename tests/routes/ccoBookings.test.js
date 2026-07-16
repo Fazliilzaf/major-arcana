@@ -1296,6 +1296,260 @@ test('cco bookings calendar rebook uppdaterar ärende via bookingCaseId', async 
   }
 });
 
+test('calendar-bundle exposes the same canonical Cliento visit used by Kunder', async () => {
+  const app = express();
+  let requestedClientoRange = null;
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: {
+        async listCasesInRange() {
+          return [];
+        },
+      },
+      clientoBookingStore: {
+        listBookingsInRange(options) {
+          requestedClientoRange = options;
+          return [
+            {
+              bookingId: 'cliento-calendar-1',
+              customerEmail: 'canonical@example.com',
+              customerName: 'Canonical Patient',
+              startsAt: '2026-05-20T09:00:00.000Z',
+              endsAt: '2026-05-20T09:30:00.000Z',
+              status: 'cancelled',
+              serviceLabel: 'PRP',
+              bookingNotes: 'Avbokad via telefon',
+              internalNotes: 'Ring åter',
+            },
+          ];
+        },
+      },
+      treatmentEncounterStore: {
+        listEncountersForEnrichment() {
+          return [
+            {
+              patientId: 'patient-canonical',
+              encounterId: 'encounter-canonical',
+              bookingId: 'cliento-calendar-1',
+              startsAt: '2026-05-20T09:00:00.000Z',
+            },
+          ];
+        },
+      },
+      patientMasterStore: {
+        async listPatients() {
+          return {
+            patients: [
+              {
+                id: 'patient-canonical',
+                primaryEmail: 'canonical@example.com',
+                emails: [],
+                phones: [],
+                fileSummary: {},
+              },
+            ],
+          };
+        },
+      },
+      authStore: {
+        async getSessionContextByToken() {
+          return null;
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: { defaultTenantId: 'tenant-a', brand: 'hair-tp-clinic', brandByHost: {} },
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const invalid = await fetch(
+      `${baseUrl}/cco-bookings/calendar-bundle?fromDate=2026-05-21&toDate=2026-05-20`
+    );
+    assert.equal(invalid.status, 400);
+    assert.equal((await invalid.json()).error, 'availability_range_invalid');
+    const response = await fetch(
+      `${baseUrl}/cco-bookings/calendar-bundle?fromDate=2026-05-20&toDate=2026-05-20`
+    );
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.visits.length, 1);
+    assert.equal(payload.visits[0].patientId, 'patient-canonical');
+    assert.equal(payload.visits[0].encounterId, 'encounter-canonical');
+    assert.equal(payload.visits[0].status, 'cancelled');
+    assert.equal(payload.visits[0].bookingNotes, 'Avbokad via telefon');
+    assert.equal(payload.visits[0].internalNotes, 'Ring åter');
+    assert.deepEqual(requestedClientoRange, {
+      tenantId: 'tenant-a',
+      fromDate: '2026-05-20',
+      toDate: '2026-05-20',
+    });
+  });
+});
+
+test('cliento unlinked review is read-only, masked and never returns a patient suggestion', async () => {
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: {},
+      clientoBookingStore: {
+        listAllBookings() {
+          return [
+            {
+              bookingId: 'collision-1',
+              customerEmail: 'shared@example.com',
+              startsAt: '2024-07-02T09:00:00.000Z',
+            },
+            {
+              bookingId: 'missing-1',
+              startsAt: '2024-07-03T09:00:00.000Z',
+            },
+          ];
+        },
+      },
+      patientMasterStore: {
+        async listPatients() {
+          return {
+            patients: [
+              { id: 'patient-a', primaryEmail: 'shared@example.com' },
+              { id: 'patient-b', primaryEmail: 'shared@example.com' },
+            ],
+          };
+        },
+      },
+      authStore: {
+        async getSessionContextByToken() {
+          return null;
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: { defaultTenantId: 'tenant-a', brand: 'hair-tp-clinic', brandByHost: {} },
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/cco-bookings/cliento-unlinked-review`);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('cache-control'), /no-store/);
+    const payload = await response.json();
+    assert.equal(payload.zeroWrites, true);
+    assert.equal(payload.total, 2);
+    assert.equal(payload.byReason.identity_collision, 1);
+    assert.equal(payload.byReason.missing_identity, 1);
+    assert.equal(
+      payload.rows.every((row) => row.patientId === null),
+      true
+    );
+    assert.equal(
+      payload.rows.every((row) => row.linkAllowed === false),
+      true
+    );
+    assert.doesNotMatch(JSON.stringify(payload), /shared@example\.com|patient-a|patient-b/);
+  });
+});
+
+test('canonical booking integrity audits the shared visit readout without writes or PII', async () => {
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: {
+        async listCases() {
+          return [];
+        },
+      },
+      clientoBookingStore: {
+        listAllBookings() {
+          return [
+            {
+              bookingId: 'integrity-upcoming',
+              customerEmail: 'integrity@example.com',
+              startsAt: '2030-07-01T09:00:00.000Z',
+              status: 'upcoming',
+              serviceLabel: 'Konsultation',
+              bookingNotes: 'Bokningsnotering',
+            },
+            {
+              bookingId: 'integrity-completed',
+              customerEmail: 'integrity@example.com',
+              startsAt: '2024-07-01T09:00:00.000Z',
+              status: 'completed',
+              serviceLabel: 'PRP',
+              treatmentNotes: 'Behandlingsnotering',
+            },
+            {
+              bookingId: 'integrity-cancelled',
+              customerEmail: 'integrity@example.com',
+              startsAt: '2024-07-02T09:00:00.000Z',
+              status: 'cancelled',
+              serviceLabel: 'PRP',
+              internalNotes: 'Intern notering',
+            },
+            {
+              bookingId: 'integrity-no-show',
+              customerEmail: 'integrity@example.com',
+              startsAt: '2024-07-03T09:00:00.000Z',
+              status: 'no_show',
+              serviceLabel: 'PRP',
+              customerMessage: 'Kundmeddelande',
+            },
+          ];
+        },
+      },
+      patientMasterStore: {
+        async listPatients() {
+          return {
+            patients: [{ id: 'patient-integrity', primaryEmail: 'integrity@example.com' }],
+          };
+        },
+      },
+      authStore: {
+        async getSessionContextByToken() {
+          return null;
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: { defaultTenantId: 'tenant-a', brand: 'hair-tp-clinic', brandByHost: {} },
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/cco-bookings/canonical-integrity`);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('cache-control'), /no-store/);
+    const payload = await response.json();
+    assert.equal(payload.zeroWrites, true);
+    assert.equal(payload.readOnly, true);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.totalVisits, 4);
+    assert.deepEqual(payload.byStatus, {
+      upcoming: 1,
+      completed: 1,
+      cancelled: 1,
+      no_show: 1,
+    });
+    assert.deepEqual(payload.noteCoverage, {
+      notes: 0,
+      bookingNotes: 1,
+      customerMessage: 1,
+      internalNotes: 1,
+      treatmentNotes: 1,
+    });
+    assert.deepEqual(payload.issues, []);
+    assert.doesNotMatch(JSON.stringify(payload), /integrity@example\.com|patient-integrity/);
+  });
+});
+
 test('cco bookings calendar-signals returns operational signals for date range', async () => {
   const fixture = await createFixture();
   try {

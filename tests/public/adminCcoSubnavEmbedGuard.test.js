@@ -12,6 +12,13 @@ const SUBNAV_JS = path.join(ROOT, 'public', 'admin', 'cco-subnav.js');
 const SHELL_CSS = path.join(ROOT, 'public', 'admin', 'cco-shell.css');
 const CONVERSATIONS_HTML = path.join(ROOT, 'public', 'konversationer.html');
 const INDEX_HTML = path.join(ROOT, 'public', 'major-arcana-preview', 'index.html');
+const CALENDAR_SHELL = path.join(
+  ROOT,
+  'public',
+  'major-arcana-preview',
+  'app',
+  'cco-calendar-v8-shell.js'
+);
 const ADMIN_EMBED_CONTRACT = path.join(
   ROOT,
   'public',
@@ -112,7 +119,10 @@ function runSubnavHarness({ saved = '', src = 'about:blank', liveUrl = 'about:bl
   };
 
   const window = {
-    location: { href: 'https://arcana.hairtpclinic.com/admin#cco', origin: 'https://arcana.hairtpclinic.com' },
+    location: {
+      href: 'https://arcana.hairtpclinic.com/admin#cco',
+      origin: 'https://arcana.hairtpclinic.com',
+    },
     addEventListener(type, listener) {
       windowListeners.set(type, listener);
     },
@@ -137,6 +147,7 @@ function runSubnavHarness({ saved = '', src = 'about:blank', liveUrl = 'about:bl
     frame,
     nav,
     stored,
+    window,
     workspace,
     emitWindow(type, event) {
       windowListeners.get(type)?.(event);
@@ -343,7 +354,11 @@ test('CCO-skalet behåller canonical patientId när Konversationer öppnar Kundd
 
   harness.emitWindow('message', {
     origin: 'https://arcana.hairtpclinic.com',
-    data: { type: 'arcana:cco-open-customer-dossier', patientId: 'f0086a8f-2133-4a5e-aa64-44bdbb3bf0a6' },
+    source: harness.frame.contentWindow,
+    data: {
+      type: 'arcana:cco-open-customer-dossier',
+      patientId: 'f0086a8f-2133-4a5e-aa64-44bdbb3bf0a6',
+    },
   });
 
   const expected =
@@ -364,10 +379,43 @@ test('CCO-skalet ignorerar externa eller ogiltiga patientdjuplänkar', () => {
   });
   harness.emitWindow('message', {
     origin: 'https://arcana.hairtpclinic.com',
+    source: harness.frame.contentWindow,
     data: { type: 'arcana:cco-open-customer-dossier', patientId: 'not a patient id' },
+  });
+  harness.emitWindow('message', {
+    origin: 'https://arcana.hairtpclinic.com',
+    source: {},
+    data: { type: 'arcana:cco-open-customer-dossier', patientId: 'patient-1' },
   });
 
   assert.equal(harness.frame.getAttribute('src'), before);
+});
+
+test('Kalenderklick stannar i admin#cco och öppnar samma canonical patient i V11/V12', () => {
+  const calendar = read(CALENDAR_SHELL);
+  const harness = runSubnavHarness({
+    saved: 'kalender',
+    src: '/kalender.html?embed=1',
+    liveUrl: 'https://arcana.hairtpclinic.com/kalender.html?embed=1',
+  });
+  const patientId = 'patient-canonical-42';
+  const adminUrl = harness.window.location.href;
+
+  assert.match(calendar, /window\.parent\.postMessage\(/);
+  assert.match(calendar, /window\.location\.origin/);
+  harness.emitWindow('message', {
+    origin: harness.window.location.origin,
+    source: harness.frame.contentWindow,
+    data: { type: 'arcana:cco-open-customer-dossier', patientId },
+  });
+
+  assert.equal(harness.window.location.href, adminUrl);
+  assert.equal(activeSection(harness), 'kunder');
+  assert.match(
+    harness.frame.getAttribute('src'),
+    /\/staff\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on&patientId=patient-canonical-42/
+  );
+  assert.equal(harness.frame.getAttribute('data-src'), harness.frame.getAttribute('src'));
 });
 
 test('konversationer embed gömmer bara dublettnav och bevarar sök samt riskkontroller', () => {

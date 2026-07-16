@@ -13738,6 +13738,8 @@ process.once('SIGTERM', () => {
     createCcoBookingsRouter({
       bookingStore: ccoBookingStore,
       bookingEngineStore: ccoBookingEngineStore,
+      clientoBookingStore,
+      treatmentEncounterStore: ccoTreatmentEncounterStore,
       treatmentAgreementStore: ccoTreatmentAgreementStore,
       patientMasterStore: ccoPatientMasterStore,
       patientCareStateStore,

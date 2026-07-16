@@ -28,6 +28,27 @@ test('normalizeBooking returns null without bookingId or customer identity', () 
   assert.equal(normalizeBooking({ customerEmail: 'a@b.co' }), null);
 });
 
+test('store retains identityless Cliento rows in the existing booking model for review', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-unlinked-'));
+  const store = await createClientoBookingStore({ filePath: path.join(dir, 'bookings.json') });
+  const result = await store.importBatch({
+    tenantId: 'tenant-review',
+    bookings: [
+      {
+        bookingId: 'review-1',
+        source: 'cliento_csv',
+        startsAt: '2024-07-02T09:00:00.000Z',
+      },
+    ],
+  });
+  assert.equal(result.accepted, 1);
+  const rows = store.listAllBookings({ tenantId: 'tenant-review' });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].bookingId, 'review-1');
+  assert.equal(rows[0].patientId, '');
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
 test('normalizeBooking accepts phone or Cliento id when historical email is missing', () => {
   const byPhone = normalizeBooking({ bookingId: 'phone-only', customerPhone: '070 123 45 67' });
   const byClientoId = normalizeBooking({
@@ -94,6 +115,11 @@ test('normalizeBooking preserves Cliento journey identity, status and notes', ()
     status: 'no_show',
     rawStatus: 'No show',
     notes: 'Kunden kom inte till konsultationen.',
+    bookingNotes: 'Bokningsnot',
+    internalNotes: 'Intern not',
+    treatmentNotes: 'Behandlingsnot',
+    patientId: 'patient-canonical',
+    encounterId: 'encounter-1',
     sourceMessageId: '<message-1@cliento.com>',
   });
   assert.equal(b.customerPhone, '070 123 45 67');
@@ -101,6 +127,11 @@ test('normalizeBooking preserves Cliento journey identity, status and notes', ()
   assert.equal(b.status, 'no_show');
   assert.equal(b.rawStatus, 'No show');
   assert.equal(b.notes, 'Kunden kom inte till konsultationen.');
+  assert.equal(b.bookingNotes, 'Bokningsnot');
+  assert.equal(b.internalNotes, 'Intern not');
+  assert.equal(b.treatmentNotes, 'Behandlingsnot');
+  assert.equal(b.patientId, 'patient-canonical');
+  assert.equal(b.encounterId, 'encounter-1');
   assert.equal(b.sourceMessageId, '<message-1@cliento.com>');
 });
 
@@ -142,6 +173,65 @@ test('listAllBookings respects limit across customer buckets', async () => {
   const capped = store.listAllBookings({ tenantId: 'tenant-lim', limit: 2 });
   assert.equal(capped.length, 2);
 
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('listBookingsInRange returns only the requested tenant and calendar range', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-range-'));
+  const store = await createClientoBookingStore({ filePath: path.join(dir, 'bookings.json') });
+  await store.importBatch({
+    tenantId: 'tenant-range',
+    bookings: [
+      {
+        bookingId: 'before',
+        customerEmail: 'range@example.com',
+        startsAt: '2026-05-31T09:00:00.000Z',
+      },
+      {
+        bookingId: 'inside-a',
+        customerEmail: 'range@example.com',
+        startsAt: '2026-06-01T09:00:00.000Z',
+      },
+      {
+        bookingId: 'inside-b',
+        customerEmail: 'range@example.com',
+        startsAt: '2026-06-07T17:00:00.000Z',
+      },
+      {
+        bookingId: 'after',
+        customerEmail: 'range@example.com',
+        startsAt: '2026-06-08T09:00:00.000Z',
+      },
+    ],
+  });
+  await store.importBatch({
+    tenantId: 'tenant-other',
+    bookings: [
+      {
+        bookingId: 'other-tenant',
+        customerEmail: 'range@example.com',
+        startsAt: '2026-06-02T09:00:00.000Z',
+      },
+    ],
+  });
+
+  const rows = store.listBookingsInRange({
+    tenantId: 'tenant-range',
+    fromDate: '2026-06-01',
+    toDate: '2026-06-07',
+  });
+  assert.deepEqual(
+    rows.map((row) => row.bookingId),
+    ['inside-a', 'inside-b']
+  );
+  assert.deepEqual(
+    store.listBookingsInRange({
+      tenantId: 'tenant-range',
+      fromDate: '2026-06-07',
+      toDate: '2026-06-01',
+    }),
+    []
+  );
   await fs.rm(dir, { recursive: true, force: true });
 });
 

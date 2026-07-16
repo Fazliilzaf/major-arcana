@@ -267,11 +267,12 @@
       }
     });
 
-    // Konversationer ligger i samma iframe som Kundprodukten. Låt därför
-    // admin-skalet äga den explicita patientdjuplänken, så patientId inte
+    // Konversationer och Kalender ligger i samma iframe som Kundprodukten. Låt
+    // därför admin-skalet äga den explicita patientdjuplänken, så patientId inte
     // ersätts av Kunder-flikens generella start-URL under iframe-navigering.
     window.addEventListener('message', function (event) {
-      if (!event || event.origin !== window.location.origin) return;
+      if (!event || event.origin !== window.location.origin || event.source !== frame.contentWindow)
+        return;
       var payload = event.data;
       if (!payload || payload.type !== 'arcana:cco-open-customer-dossier') return;
       openCustomerDossier(payload.patientId);

@@ -1191,6 +1191,20 @@
   overflow-wrap: anywhere;
 }
 
+.v11-rail__history-notes {
+  margin: 4px 10px 8px 78px;
+  display: grid;
+  gap: 4px;
+  color: var(--v11-rail-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.v11-rail__history-note strong {
+  color: var(--v11-rail-ink);
+}
+
 .v11-rail__history-badge {
   flex: none;
   display: inline-flex;

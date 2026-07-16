@@ -22,7 +22,12 @@
     offered: "Erbjuden",
     waiting_customer: "Väntar kund",
     confirmed_external: "Bekräftad",
-    cancelled: "Avbruten",
+    upcoming: "Bokad",
+    confirmed: "Bokad",
+    completed: "Genomförd",
+    no_show: "Utebliven",
+    cancelled: "Avbokad",
+    canceled: "Avbokad",
     closed: "Stängd",
     follow_up_completed: "Uppföljning klar",
   };
@@ -206,6 +211,7 @@
       return {
         slots: Array.isArray(bundle?.slots) ? bundle.slots : [],
         blocks: Array.isArray(bundle?.blocks) ? bundle.blocks : [],
+        visits: Array.isArray(bundle?.visits) ? bundle.visits : [],
       };
     } catch {
       const params = new URLSearchParams({ fromDate, toDate });
@@ -219,9 +225,10 @@
         return {
           slots: Array.isArray(payload?.slots) ? payload.slots : [],
           blocks: Array.isArray(payload?.blocks) ? payload.blocks : [],
+          visits: [],
         };
       } catch {
-        return { slots: [], blocks: [] };
+        return { slots: [], blocks: [], visits: [] };
       }
     }
   }
@@ -499,6 +506,27 @@
     return event;
   }
 
+  function buildCanonicalVisitEvent(visit) {
+    const status = normalizeKey(visit?.status) || "confirmed";
+    const event = {
+      ...visit,
+      kind: "booked",
+      eventKey: "",
+      bookingId: visit?.id || visit?.bookingId || "",
+      customerName: visit?.patientName || "",
+      patientId: visit?.patientId || "",
+      encounterId: visit?.encounterId || "",
+      caseStatus: status,
+      status: formatCaseStatus(status),
+      serviceLabel: visit?.serviceName || visit?.title || "Bokning",
+      resourceLabel: visit?.resourceLabel || visit?.staffName || "",
+      source: visit?.source || "canonical_visit",
+      durationMinutes: slotDurationMinutes(visit),
+    };
+    event.eventKey = eventKey(event);
+    return event;
+  }
+
   function buildBlockCalendarEvent(block) {
     const event = {
       ...block,
@@ -577,6 +605,7 @@
   function mergeCalendarEvents(
     availableSlots,
     bookingCases,
+    canonicalVisits,
     blocks,
     fromDate,
     toDate,
@@ -585,16 +614,25 @@
     const bookedEvents = [];
     const bookedKeys = new Set();
 
-    bookingCases.forEach((bookingCase) => {
-      const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
-      slots.forEach((slot) => {
-        const iso = slotIsoDate(slot);
-        if (!iso || iso < fromDate || iso > toDate) return;
-        const event = buildBookedCalendarEvent(bookingCase, slot, context);
-        bookedEvents.push(event);
-        bookedKeys.add(slotReservationKey(slot));
-      });
+    (canonicalVisits || []).forEach((visit) => {
+      const iso = slotIsoDate(visit);
+      if (!iso || iso < fromDate || iso > toDate) return;
+      const event = buildCanonicalVisitEvent(visit);
+      bookedEvents.push(event);
+      bookedKeys.add(slotReservationKey(visit));
     });
+
+    if (!bookedEvents.length)
+      bookingCases.forEach((bookingCase) => {
+        const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
+        slots.forEach((slot) => {
+          const iso = slotIsoDate(slot);
+          if (!iso || iso < fromDate || iso > toDate) return;
+          const event = buildBookedCalendarEvent(bookingCase, slot, context);
+          bookedEvents.push(event);
+          bookedKeys.add(slotReservationKey(slot));
+        });
+      });
 
     const openSlots = (availableSlots || [])
       .filter((slot) => !bookedKeys.has(slotReservationKey(slot)))
@@ -653,6 +691,7 @@
         mergeCalendarEvents(
           rangePayload.slots,
           bookingCases,
+          rangePayload.visits,
           rangePayload.blocks,
           fromDate,
           toDate,
@@ -670,6 +709,7 @@
     return mergeCalendarEvents(
       rangePayload.slots,
       bookingCases,
+      rangePayload.visits,
       rangePayload.blocks,
       fromDate,
       toDate,
@@ -1081,6 +1121,7 @@
     buildSlotAtTime,
     rebookCalendarBooking,
     buildBlockCalendarEvent,
+    buildCanonicalVisitEvent,
     classifyCalendarEvent,
     serviceTypeFor,
     findConflictKeys,

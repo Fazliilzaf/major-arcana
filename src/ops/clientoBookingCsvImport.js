@@ -169,7 +169,8 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
   const bookings = [];
   let skippedNoId = 0;
   let skippedNoDate = 0;
-  let skippedNoEmail = 0;
+  const skippedNoEmail = 0;
+  let reviewNoIdentity = 0;
   let missingClientoId = 0;
 
   let working = rows;
@@ -195,11 +196,21 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       csvLookups.emailForPhone(normalizePhone(customerPhone)) ||
       '';
     if (!customerEmail && !clientoCustomerId && !normalizePhone(customerPhone)) {
-      skippedNoEmail += 1;
-      continue;
+      reviewNoIdentity += 1;
     }
     if (!clientoCustomerId) skippedNoId += 1;
     const serviceLabel = normalizeText(row['Tjänstens namn'] || row['Tjänst']);
+    const bookingNotes = normalizeText(row['Bokningsanteckning']);
+    const customerMessage = normalizeText(row['Meddelande från kund']);
+    const internalNotes = joinNotes(
+      row['Anteckningar'],
+      row['Anteckning'],
+      row['Noteringar'],
+      row['Kommentar']
+    );
+    const treatmentNotes = normalizeText(
+      row['Behandlingsanteckning'] || row['Behandlingsnotering'] || row['Beskrivning']
+    );
     bookings.push({
       bookingId:
         normalizeText(row['Boknings-id']) ||
@@ -217,14 +228,11 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       rawStatus: normalizeText(row['Status']),
       source: 'cliento_csv',
       clientoCustomerId,
-      notes: joinNotes(
-        row['Bokningsanteckning'],
-        row['Meddelande från kund'],
-        row['Anteckningar'],
-        row['Anteckning'],
-        row['Noteringar'],
-        row['Kommentar']
-      ),
+      bookingNotes,
+      customerMessage,
+      internalNotes,
+      treatmentNotes,
+      notes: joinNotes(bookingNotes, customerMessage, internalNotes, treatmentNotes),
       sourceMessageId: normalizeText(row['Bokningsreferens']),
     });
   }
@@ -237,6 +245,7 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       skippedNoId,
       skippedNoDate,
       skippedNoEmail,
+      reviewNoIdentity,
       missingClientoId,
       skippedCancelled: 0,
     },

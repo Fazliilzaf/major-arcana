@@ -140,6 +140,8 @@ test('buildVisitSegments attaches journal to matching encounter and exposes jour
     status: 'signed',
     locked: true,
     canEdit: false,
+    visibility: 'shared',
+    notes: [],
   });
 });
 
@@ -314,6 +316,54 @@ test('buildVisitSegments merges encounter, booking, journal and file into one ro
   assert.equal(result.visitSegments[0].booking.bookingId, 'booking-complete');
   assert.equal(result.visitSegments[0].images.length, 1);
   assert.equal(result.visitSegments[0].journals.length, 1);
+});
+
+test('buildVisitSegments preserves canonical visit notes and joins by encounterId', () => {
+  const result = buildVisitSegments({
+    customerId: 'patient-notes',
+    encounters: [
+      {
+        patientId: 'patient-notes',
+        encounterId: 'enc-notes',
+        startsAt: '2026-06-01T09:00:00.000Z',
+      },
+    ],
+    bookings: [
+      {
+        id: 'booking-notes',
+        patientId: 'patient-notes',
+        encounterId: 'enc-notes',
+        startsAt: '2026-06-01T09:00:00.000Z',
+        status: 'cancelled',
+        bookingNotes: 'Bokningsanteckning',
+        customerMessage: 'Kundmeddelande',
+        internalNotes: 'Intern anteckning',
+        treatmentNotes: 'Behandlingsanteckning',
+      },
+    ],
+    journalEntries: [
+      {
+        entryId: 'journal-notes',
+        treatmentEncounterId: 'enc-notes',
+        updatedAt: '2026-06-01T09:30:00.000Z',
+        fields: {
+          notes: 'Journalnotering',
+          assessment: 'Medicinsk bedömning',
+          irrelevantValue: 'ska inte exponeras som notering',
+        },
+      },
+    ],
+  });
+  const [visit] = result.visitSegments;
+  assert.equal(visit.encounterId, 'enc-notes');
+  assert.equal(visit.booking.patientId, 'patient-notes');
+  assert.equal(visit.booking.status, 'cancelled');
+  assert.equal(visit.booking.internalNotes, 'Intern anteckning');
+  assert.equal(visit.booking.treatmentNotes, 'Behandlingsanteckning');
+  assert.deepEqual(visit.journals[0].notes, [
+    { label: 'notes', text: 'Journalnotering' },
+    { label: 'assessment', text: 'Medicinsk bedömning' },
+  ]);
 });
 
 test('buildVisitSegments sorts images by taken time ascending within segment', () => {

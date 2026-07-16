@@ -79,7 +79,10 @@ function toBookingBucketKey(tenantId, booking) {
   const clientoCustomerId = normalizeText(booking?.clientoCustomerId);
   if (clientoCustomerId) return `${t}::cliento:${clientoCustomerId}`;
   const phone = normalizePhoneKey(booking?.customerPhone);
-  return phone ? `${t}::phone:${phone}` : null;
+  if (phone) return `${t}::phone:${phone}`;
+  const source = normalizeText(booking?.source).toLowerCase();
+  const bookingId = normalizeText(booking?.bookingId);
+  return source.startsWith('cliento') && bookingId ? `${t}::unlinked:${bookingId}` : null;
 }
 
 function normalizeBooking(input = {}) {
@@ -88,7 +91,10 @@ function normalizeBooking(input = {}) {
   const customerPhone = normalizePhone(safe.customerPhone || safe.phone);
   const clientoCustomerId = normalizeText(safe.clientoCustomerId || safe.customerId);
   const bookingId = normalizeText(safe.bookingId) || normalizeText(safe.id);
-  if (!bookingId || (!customerEmail && !customerPhone && !clientoCustomerId)) return null;
+  const rawSource = normalizeText(safe.source);
+  const source = rawSource || 'cliento';
+  const hasIdentity = Boolean(customerEmail || customerPhone || clientoCustomerId);
+  if (!bookingId || (!hasIdentity && !rawSource.toLowerCase().startsWith('cliento'))) return null;
   const startsAt = safe.startsAt ? new Date(safe.startsAt).toISOString() : null;
   const endsAt = safe.endsAt ? new Date(safe.endsAt).toISOString() : null;
   return {
@@ -97,6 +103,8 @@ function normalizeBooking(input = {}) {
     customerName: normalizeText(safe.customerName),
     customerPhone,
     clientoCustomerId,
+    patientId: normalizeText(safe.patientId),
+    encounterId: normalizeText(safe.encounterId || safe.treatmentEncounterId),
     serviceLabel: normalizeText(safe.serviceLabel || safe.service),
     staffName: normalizeText(safe.staffName || safe.staff),
     locationName: normalizeText(safe.locationName || safe.location),
@@ -107,7 +115,11 @@ function normalizeBooking(input = {}) {
       : null,
     status: normalizeText(safe.status) || 'unknown', // upcoming | completed | cancelled | no_show | unknown
     rawStatus: normalizeText(safe.rawStatus),
-    source: normalizeText(safe.source) || 'cliento',
+    source,
+    bookingNotes: normalizeText(safe.bookingNotes),
+    customerMessage: normalizeText(safe.customerMessage),
+    internalNotes: normalizeText(safe.internalNotes),
+    treatmentNotes: normalizeText(safe.treatmentNotes),
     notes: normalizeText(safe.notes),
     sourceMessageId: normalizeText(safe.sourceMessageId || safe.internetMessageId),
     createdAt: nowIso(),
@@ -186,10 +198,16 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
         'customerName',
         'customerPhone',
         'clientoCustomerId',
+        'patientId',
+        'encounterId',
         'serviceLabel',
         'staffName',
         'locationName',
         'rawStatus',
+        'bookingNotes',
+        'customerMessage',
+        'internalNotes',
+        'treatmentNotes',
         'notes',
         'sourceMessageId',
       ];
@@ -252,12 +270,32 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     return out;
   }
 
+  function listBookingsInRange({ tenantId, fromDate, toDate, limit = 0 } = {}) {
+    const from = normalizeText(fromDate).slice(0, 10);
+    const to = normalizeText(toDate).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) {
+      return [];
+    }
+    const t = normalizeText(tenantId);
+    const out = [];
+    for (const [key, list] of Object.entries(state.bookings)) {
+      if (t && !key.startsWith(t + '::')) continue;
+      for (const booking of asArray(list)) {
+        const date = normalizeText(booking?.startsAt).slice(0, 10);
+        if (!date || date < from || date > to) continue;
+        out.push(booking);
+        if (limit > 0 && out.length >= limit) return out;
+      }
+    }
+    return out;
+  }
+
   function summarize({ tenantId } = {}) {
     const t = normalizeText(tenantId);
     let totalCustomers = 0;
     let totalBookings = 0;
     let upcoming = 0;
-    let nowMs = Date.now();
+    const nowMs = Date.now();
     for (const [key, list] of Object.entries(state.bookings)) {
       if (t && !key.startsWith(t + '::')) continue;
       totalCustomers += 1;
@@ -301,6 +339,7 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     importBatch,
     getBookingsForCustomer,
     listAllBookings,
+    listBookingsInRange,
     summarize,
     clearTenant,
     flush,

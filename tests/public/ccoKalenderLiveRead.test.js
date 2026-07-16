@@ -13,10 +13,11 @@ const css = fs.readFileSync(path.join(root, 'public/cco-kalender-shell.css'), 'u
 
 test('canonical calendar loads the existing live renderer in read-only mode', () => {
   const modeIndex = html.indexOf('window.CCO_CALENDAR_READ_ONLY = true');
-  const shellIndex = html.indexOf('/cco-kalender-shell.js?v=20260710a');
+  const shellMatch = html.match(/\/cco-kalender-shell\.js\?v=[^"']+/);
+  const shellIndex = shellMatch ? shellMatch.index : -1;
   assert.ok(modeIndex >= 0);
   assert.ok(shellIndex > modeIndex);
-  assert.match(html, /cco-kalender-shell\.css\?v=20260710a/);
+  assert.match(html, /cco-kalender-shell\.css\?v=[^"']+/);
 });
 
 test('live renderer uses the admin bearer token and recognizes /kalender.html', () => {
@@ -30,9 +31,9 @@ test('live renderer uses the admin bearer token and recognizes /kalender.html', 
 test('read-only mode disables write bridge and hides every fixture-only calendar surface', () => {
   assert.match(bridge, /CCO_CALENDAR_READ_ONLY === true/);
   assert.match(bridge, /write bridge disabled/);
-  assert.match(css, /data-cco-calendar-mode="live-read"[^\{]*\.morgon-story/);
-  assert.match(css, /data-cco-calendar-mode="live-read"[^\{]*\.mini-inbox/);
-  assert.match(css, /data-cco-calendar-mode="live-read"[^\{]*\.calendar-week/);
+  assert.match(css, /data-cco-calendar-mode="live-read"[^{]*\.morgon-story/);
+  assert.match(css, /data-cco-calendar-mode="live-read"[^{]*\.mini-inbox/);
+  assert.match(css, /data-cco-calendar-mode="live-read"[^{]*\.calendar-week/);
   assert.match(css, /segment-tab\[data-mode="resurs"\]/);
   assert.match(shell, /Inga bokningar registrerade för dagen\./);
   assert.doesNotMatch(

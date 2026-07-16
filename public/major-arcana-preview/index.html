@@ -15,11 +15,11 @@
     <!-- /admin#cco owns the global shell. Lock explicit admin embeds to their
          requested content before the asynchronous application bundle boots. -->
     <script src="./app/cco-admin-embed-contract.js?v=customer-full-product-contract-v1"></script>
-    <!-- ARCANA bundle URLs (content-hash: 787864adfa) -->
+    <!-- ARCANA bundle URLs (content-hash: 5f90b9b8d4) -->
     <script>
       window.__ARCANA_BUNDLE_URLS__ = {
-        full: './app.bundle.787864adfa.min.js',
-        staffCore: './app.bundle.staff-core.d69d4ad6a4.min.js',
+        full: './app.bundle.5f90b9b8d4.min.js',
+        staffCore: './app.bundle.staff-core.0ac1db0da8.min.js',
         staffDeferred: './app.bundle.staff-deferred.6d4631df1b.min.js',
       };
     </script>
@@ -157,8 +157,8 @@
     <link rel="stylesheet" href="./cco-dossier-v9d.css?v=v9d-1" />
     <link rel="stylesheet" href="./cco-v10-skin.css?v=v10tl-skin-36" />
     <link rel="stylesheet" href="./cco-v11-polish.css?v=ord25g-v1" />
-    <link rel="stylesheet" href="./cco-v11-rail.css?v=v11rail-polish-2" />
-    <link rel="stylesheet" href="./cco-v12-workspace.css?v=v12-dossier-launch-flow-v1" />
+    <link rel="stylesheet" href="./cco-v11-rail.css?v=canonical-visit-history-1" />
+    <link rel="stylesheet" href="./cco-v12-workspace.css?v=canonical-visit-history-1" />
     <link rel="stylesheet" href="./cco-v12-spine.css?v=v12spine-v1" />
     <link rel="stylesheet" href="./cco-v12-canon.css?v=visit-room-workflow-v1" />
     <link rel="stylesheet" href="./cco-v11-rk.css?v=visit-room-workflow-v1" />
@@ -3706,7 +3706,7 @@
                        Ordning: adapters före renderarna (CcoV11RailAdapters konsumeras vid render). -->
                   <script
                     defer
-                    src="./app/cco-v11-rail-adapters.js?v=v11v12-port-wiring-1"
+                    src="./app/cco-v11-rail-adapters.js?v=canonical-visit-history-1"
                   ></script>
                   <script defer src="./app/cco-v11-rk.js?v=visit-room-workflow-v1"></script>
                   <script defer src="./app/cco-v12-spine.js?v=v11v12-port-wiring-1"></script>
@@ -11623,12 +11623,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="/arcana-page-titles.js"></script>
     <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 787864adfa) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 5f90b9b8d4) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.787864adfa.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.d69d4ad6a4.min.js';
+        var fullSrc = urls.full || './app.bundle.5f90b9b8d4.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.0ac1db0da8.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.6d4631df1b.min.js';
 
         function injectScript(src, onload) {

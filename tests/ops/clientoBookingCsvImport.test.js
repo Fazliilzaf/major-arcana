@@ -54,6 +54,9 @@ describe('clientoBookingCsvImport', () => {
     assert.equal(bookings[0].customerPhone, '070 123 45 67');
     assert.equal(bookings[0].durationMinutes, 45);
     assert.equal(bookings[0].sourceMessageId, 'ref-1');
+    assert.equal(bookings[0].bookingNotes, 'Intern anteckning');
+    assert.equal(bookings[0].customerMessage, 'Kundens meddelande');
+    assert.equal(bookings[0].internalNotes, '');
     assert.equal(bookings[0].notes, 'Intern anteckning\n\nKundens meddelande');
   });
 
@@ -75,6 +78,26 @@ describe('clientoBookingCsvImport', () => {
     assert.equal(stats.skippedNoEmail, 0);
     assert.equal(bookings[0].customerEmail, '');
     assert.equal(bookings[0].customerPhone, '070 999 88 77');
+  });
+
+  it('retains identityless Cliento rows for read-only review instead of dropping them', () => {
+    const { bookings, stats } = rowsToClientoBookings(
+      [
+        {
+          Starttid: '2024-07-02 09:00',
+          Status: 'Show',
+          'Boknings-id': 'identityless-1',
+          'Tjänstens namn': 'Konsultation',
+        },
+      ],
+      new Map()
+    );
+    assert.equal(stats.accepted, 1);
+    assert.equal(stats.reviewNoIdentity, 1);
+    assert.equal(bookings[0].bookingId, 'identityless-1');
+    assert.equal(bookings[0].customerEmail, '');
+    assert.equal(bookings[0].customerPhone, '');
+    assert.equal(bookings[0].clientoCustomerId, '');
   });
 
   it('builds bookings with cliento id email lookup', () => {
@@ -134,6 +157,7 @@ describe('clientoBookingCsvImport', () => {
           'Boknings-id': 'noshow-1',
           'Tjänstens namn': 'PRP',
           Kommentar: 'Dök inte upp',
+          Beskrivning: 'Behandlingsnotering',
         },
       ],
       lookup
@@ -146,6 +170,8 @@ describe('clientoBookingCsvImport', () => {
     );
     assert.equal(bookings[0].customerPhone, '0790246587');
     assert.equal(bookings[0].notes, 'Avbokade via telefon');
-    assert.equal(bookings[1].notes, 'Dök inte upp');
+    assert.equal(bookings[1].notes, 'Dök inte upp\n\nBehandlingsnotering');
+    assert.equal(bookings[1].internalNotes, 'Dök inte upp');
+    assert.equal(bookings[1].treatmentNotes, 'Behandlingsnotering');
   });
 });
