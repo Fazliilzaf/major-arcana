@@ -195,6 +195,41 @@ describe('ccoClientoLedJourneyAudit', () => {
     assert.equal(row.requirements.agreement.status, 'not_expected');
   });
 
+  it('does not create a new FF gap for a later PRP session once the patient has signed it', () => {
+    const row = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'prp-1',
+          startsAt: '2026-05-22T10:00:00.000Z',
+          serviceLabel: 'PRP hår 1/3',
+          status: 'completed',
+        },
+        {
+          bookingId: 'prp-2',
+          startsAt: '2026-06-22T10:00:00.000Z',
+          serviceLabel: 'PRP hår 2/3',
+          status: 'completed',
+        },
+      ],
+      assets: [
+        asset({ sourceSystem: 'm365_halso', category: 'form', originalFileName: 'HD.pdf' }),
+        asset({
+          sourceSystem: 'm365_halso',
+          category: 'other',
+          originalFileName: 'Friskförsäkran.pdf',
+        }),
+        asset({
+          sourceSystem: 'pipedrive_import',
+          patientCardSection: 'offert',
+          originalFileName: 'Offert PRP.pdf',
+        }),
+      ],
+    });
+    assert.equal(row.requirements.fitnessCertificate.status, 'present');
+    assert.deepEqual(row.gaps, []);
+  });
+
   it('flags missing agreement for attended hair transplant and does not accept a deal as a PDF', () => {
     const row = auditPatientJourney({
       patient: { id: 'p1', pipedrive: { deals: [{ id: 'deal-1', value: 46000 }] } },
