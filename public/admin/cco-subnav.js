@@ -96,6 +96,20 @@
       return '';
     }
 
+    function normalizePatientId(value) {
+      return String(value || '').trim();
+    }
+
+    function isCanonicalPatientId(value) {
+      return /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(normalizePatientId(value));
+    }
+
+    function customerDossierUrl(patientId) {
+      var id = normalizePatientId(patientId);
+      if (!isCanonicalPatientId(id)) return '';
+      return SECTIONS.kunder + '&patientId=' + encodeURIComponent(id);
+    }
+
     function absoluteUrl(value) {
       var raw = String(value || '').trim();
       if (!raw || raw === 'about:blank') return raw;
@@ -165,8 +179,8 @@
       }
     }
 
-    function syncRouteState(key) {
-      var url = urlFor(key);
+    function syncRouteState(key, urlOverride) {
+      var url = urlOverride || urlFor(key);
       if (!url) return;
       var labelKey = key && key.indexOf('mer:') === 0 ? key.slice(4) : key;
       frame.setAttribute('data-src', url);
@@ -184,12 +198,12 @@
       }
     }
 
-    function navigateFrame(key) {
-      var url = urlFor(key);
+    function navigateFrame(key, urlOverride) {
+      var url = urlOverride || urlFor(key);
       if (!url) return;
-      var attrKey = keyForUrl(frame.getAttribute('src'));
-      var liveKey = keyForUrl(currentFrameUrl());
-      if (attrKey === key && (!liveKey || liveKey === key)) {
+      var currentSrc = String(frame.getAttribute('src') || '').trim();
+      var currentLiveUrl = currentFrameUrl();
+      if (sameUrl(currentSrc, url) && (!currentLiveUrl || sameUrl(currentLiveUrl, url))) {
         pendingKey = '';
         return;
       }
@@ -209,6 +223,13 @@
       // korrigera den faktiska iframen. Är den fortfarande blank lämnas själva
       // laddningen till admin.js, som då läser det nyss synkade data-src-värdet.
       if (loadNow || frameAlreadyStarted) navigateFrame(key);
+    }
+
+    function openCustomerDossier(patientId) {
+      var url = customerDossierUrl(patientId);
+      if (!url) return;
+      syncRouteState('kunder', url);
+      navigateFrame('kunder', url);
     }
 
     function closeMore() {
@@ -246,6 +267,16 @@
       }
     });
 
+    // Konversationer ligger i samma iframe som Kundprodukten. Låt därför
+    // admin-skalet äga den explicita patientdjuplänken, så patientId inte
+    // ersätts av Kunder-flikens generella start-URL under iframe-navigering.
+    window.addEventListener('message', function (event) {
+      if (!event || event.origin !== window.location.origin) return;
+      var payload = event.data;
+      if (!payload || payload.type !== 'arcana:cco-open-customer-dossier') return;
+      openCustomerDossier(payload.patientId);
+    });
+
     // Stäng dropdown vid klick utanför.
     document.addEventListener('click', function (event) {
       if (!moreMenu || moreMenu.hidden) return;
@@ -262,7 +293,7 @@
         if (loadedKey === pendingKey) {
           var completedKey = pendingKey;
           pendingKey = '';
-          syncRouteState(completedKey);
+          syncRouteState(completedKey, currentFrameUrl());
           return;
         }
         // Ett avslutat gammalt request får aldrig skriva över ett nyare klick.
@@ -273,7 +304,7 @@
 
       // Om iframen navigeras på annat sätt ska flikmarkeringen följa den sida
       // användaren faktiskt ser, inte ett gammalt sessionStorage-värde.
-      syncRouteState(loadedKey);
+      syncRouteState(loadedKey, currentFrameUrl());
     });
 
     // Initialt val: senast använda giltiga sektion. En ny session landar på

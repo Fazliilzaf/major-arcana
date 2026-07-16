@@ -5877,10 +5877,25 @@
             v12workspace: 'on',
             patientId,
           });
+          const dossierUrl = `/staff?${params.toString()}`;
           // Behall samma flik sa den autentiserade admin-sessionen foljer med.
           // sessionStorage delas inte med en ny noopener-flik, vilket gjorde att
           // patientlistan syntes men V11/V12-dossiern fastnade pa "Laddar kund".
-          window.location.assign(`/staff?${params.toString()}`);
+          // I admin#cco ar Konversationer en iframe. Skalets router far da
+          // patientId direkt, i stallet for att forst aterstalla Kunder till
+          // dess generella start-URL och tappa den valda kunden.
+          if (window.parent && window.parent !== window) {
+            try {
+              window.parent.postMessage(
+                { type: 'arcana:cco-open-customer-dossier', patientId },
+                window.location.origin
+              );
+              return;
+            } catch (_error) {
+              /* Standalone-fallback nedan. */
+            }
+          }
+          window.location.assign(dossierUrl);
         });
       }
       document

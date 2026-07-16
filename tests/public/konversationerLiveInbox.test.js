@@ -781,8 +781,8 @@ test('konversationer deep-links only canonical matched patientIds to the custome
   assert.match(html, /data-action="open-patient-dossier"/);
   assert.match(
     html,
-    /window\.location\.assign\(`\/staff\?\$\{params\.toString\(\)\}`\)/,
-    'kunddossier ska oppnas i samma flik sa admin-sessionen bevaras'
+    /window\.location\.assign\(dossierUrl\)/,
+    'fristående Konversationer ska behålla samma flik och admin-session'
   );
   assert.doesNotMatch(
     html,
@@ -798,6 +798,9 @@ test('konversationer deep-links only canonical matched patientIds to the custome
   assert.match(script, /v11rail: 'on'/);
   assert.match(script, /v12workspace: 'on'/);
   assert.doesNotMatch(script, /patientId:\s*normalizeText\(row\.customerId\)/);
+  assert.match(script, /type:\s*'arcana:cco-open-customer-dossier',\s*patientId/);
+  assert.match(script, /window\.parent\.postMessage\(/);
+  assert.match(script, /window\.location\.assign\(dossierUrl\)/);
 });
 
 test('konversationer live inbox script parses', () => {
