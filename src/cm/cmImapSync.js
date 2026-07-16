@@ -65,7 +65,8 @@ function readImapConfig(env = process.env) {
     port: Number(env.CM_IMAP_PORT) || 993,
     user: normalizeText(env.CM_IMAP_USER),
     password: env.CM_IMAP_PASSWORD || '',
-    since: normalizeText(env.CM_IMAP_SINCE) || '2026-01-01',
+    // ORD-74 (ägar-krav): minst från 2024-01-01 — mönster kräver flera år
+    since: normalizeText(env.CM_IMAP_SINCE) || '2024-01-01',
   };
 }
 
@@ -243,7 +244,14 @@ function createCmImapSync({
     try {
       client = await factory();
       const syncState = cmStore.getSyncState(cfg.user, 'imap-inbox') || {};
-      const lastUid = Number(syncState.lastUid) || 0;
+      let lastUid = Number(syncState.lastUid) || 0;
+
+      // ORD-74: om SINCE flyttats BAKÅT (t.ex. 2026→2024) nollas cursorn så
+      // hela den äldre historiken skannas om — dedupe skyddar mot dubbletter.
+      const storedSince = normalizeText(syncState.backfillSince);
+      const rescanNeeded =
+        lastUid > 0 && (!storedSince || new Date(cfg.since) < new Date(storedSince));
+      if (rescanNeeded) lastUid = 0;
 
       // UID-lista: cursor-läge (allt efter lastUid) eller backfill (SINCE-datum)
       const searchQuery =
@@ -264,10 +272,11 @@ function createCmImapSync({
           if (!msg?.source) continue;
           const parsed = await parse(msg.source);
 
-          if (!isEconomyCandidate(parsed)) {
-            results.skipped++;
-            continue;
-          }
+          // ORD-74 (ägar-krav): VARJE mail importeras — inget hoppas över.
+          // Icke-ekonomimail får lägre extraktionsprioritet men sparas och
+          // hamnar i olöst-kön om AI:n inte kan tyda dem.
+          const looksEconomic = isEconomyCandidate(parsed);
+          if (!looksEconomic) results.nonEconomy = (results.nonEconomy || 0) + 1;
 
           const bodyText = (normalizeText(parsed.text) || stripHtml(parsed.html)).slice(0, 6000);
           const importResult = cmStore.importRawItem({
@@ -321,7 +330,21 @@ function createCmImapSync({
               rawItemId: rawItem.id,
             });
             results.records++;
-          } else if (!ex.ok) {
+          } else if (ex.ok) {
+            // ORD-74: "kan vi inte tyda ska vi inte hoppa" — AI:n läste men
+            // fann ingen köpdata → olöst record i granska-kön; ägaren dömer.
+            // (Tekniska AI-fel lämnas utan record → reprocess retryar.)
+            cmStore.createExpenseRecord({
+              rawItemId: rawItem.id,
+              documentId: harvest.firstDocument?.id || null,
+              expenseType: 'unknown',
+              supplierName: normalizeText(parsed.from),
+              date: (parsed.date || '').slice(0, 10),
+              confidenceScore: 0,
+              flags: ['NEEDS_MANUAL_REVIEW', 'LOW_CONFIDENCE_EXTRACTION'],
+            });
+            results.unresolved = (results.unresolved || 0) + 1;
+          } else {
             results.errors.push({ uid, error: `extract: ${ex.error}` });
           }
         } catch (err) {
@@ -331,6 +354,7 @@ function createCmImapSync({
 
       cmStore.setSyncState(cfg.user, 'imap-inbox', {
         lastUid: highestUid,
+        backfillSince: cfg.since,
         remainingBacklog: Math.max(0, fresh.length - batch.length),
         lastRunAt: nowIso(),
       });

@@ -133,7 +133,9 @@ function createCmStore({ filePath }) {
   // ORD-64 · Rotationsskydd (crashloop-lärdomen 2026-07-10): håll store-filen
   // bounded. Äldsta raderna appendas till en .jsonl-arkivfil som ALDRIG läses
   // vid boot — original bevaras (BFN), boot-parse förblir liten.
-  const RAW_ITEMS_MAX = Math.max(100, Number(process.env.CM_RAW_ITEMS_MAX) || 2000);
+  // ORD-74: höjd default — full historik från 2024 (~2000+ mail) får inte
+  // rotera ut oprocessade rawItems ur storen innan extraktionen hunnit ikapp.
+  const RAW_ITEMS_MAX = Math.max(100, Number(process.env.CM_RAW_ITEMS_MAX) || 10000);
   const AUDIT_EVENTS_MAX = Math.max(500, Number(process.env.CM_AUDIT_EVENTS_MAX) || 5000);
 
   async function rotateIfNeeded() {
