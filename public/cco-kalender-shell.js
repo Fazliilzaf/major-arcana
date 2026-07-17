@@ -26,6 +26,10 @@
     return global.CCO_CALENDAR_ORIGINAL_V6 === true;
   }
 
+  function isCreateBookingEnabled() {
+    return global.CCO_CALENDAR_CREATE_BOOKING_ENABLED === true;
+  }
+
   function adminAuthToken() {
     try {
       return (
@@ -655,6 +659,247 @@
       el('p', { class: 'cco-cal-preflight-footnote' },
         'Ingen bekräftelse, flytt eller avbokning är tillgänglig i denna fas.'),
     ]);
+  }
+
+  function createBookingIdempotencyKey() {
+    const random = global.crypto && typeof global.crypto.randomUUID === 'function'
+      ? global.crypto.randomUUID()
+      : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+    return 'calendar-create-' + random;
+  }
+
+  function createBookingPayload({ patientId, serviceId, resourceId, practitionerId, startsAt }) {
+    return {
+      patientId: String(patientId || '').trim(),
+      serviceId: String(serviceId || '').trim(),
+      resourceId: String(resourceId || '').trim(),
+      practitionerId: String(practitionerId || '').trim(),
+      startsAt: String(startsAt || '').trim(),
+      timeZone: 'Europe/Stockholm',
+      identityAmbiguous: false,
+      linkAllowed: true,
+    };
+  }
+
+  function renderCreateServerPreflight(preflight) {
+    const section = el('section', {
+      class: 'cco-cal-preflight cco-cal-create-server-preflight',
+      'aria-label': 'Verifierad boknings-preflight',
+      dataset: { readOnly: 'true', actionAllowed: String(preflight.actionAllowed === true) },
+    });
+    section.appendChild(el('header', {}, [
+      el('div', {}, [
+        el('span', { class: 'cco-cal-preflight-kicker' }, 'READ-ONLY PREFLIGHT · 0 WRITES'),
+        el('h4', {}, 'Verifierad bokning'),
+      ]),
+      el('span', { class: 'cco-cal-preflight-stop' },
+        preflight.actionAllowed === true ? 'REDO' : 'BLOCKERAD'),
+    ]));
+    const fields = el('dl', { class: 'cco-cal-preflight-fields' });
+    [
+      ['Canonical patient', preflight.patient?.name || 'Saknas'],
+      ['Canonical patientId', preflight.patient?.patientId || 'Saknas'],
+      ['Behandling', preflight.service?.label || 'Saknas'],
+      ['Resurs', preflight.resource?.label || 'Saknas'],
+      ['Vårdgivare', preflight.practitioner?.label || 'Saknas'],
+      ['Tid', preflight.time ? preflight.time.local + ' · ' + preflight.time.timeZone : 'Saknas'],
+    ].forEach(([label, value]) => {
+      fields.appendChild(el('dt', {}, label));
+      fields.appendChild(el('dd', {}, value));
+    });
+    section.appendChild(fields);
+    const gates = el('ul', { class: 'cco-cal-preflight-gates' });
+    (preflight.gates || []).forEach((gate) => {
+      const passed = gate.status === 'pass';
+      gates.appendChild(el('li', { class: passed ? 'is-pass' : 'is-blocked' }, [
+        el('span', { 'aria-hidden': 'true' }, passed ? '✓' : '!'),
+        el('div', {}, [el('strong', {}, gate.label), el('p', {}, gate.detail)]),
+      ]));
+    });
+    section.appendChild(el('h5', {}, 'Säkerhetsgrindar'));
+    section.appendChild(gates);
+    return section;
+  }
+
+  async function openCreateBookingDrawer(slot) {
+    if (!isCreateBookingEnabled()) return;
+    const identityAmbiguous = slot?.identityAmbiguous === true || slot?.linkAllowed === false;
+    if (!slot?.patientId || identityAmbiguous) return;
+
+    const drawer = getDrawerMount();
+    drawer.innerHTML = '';
+    drawer.classList.add('is-open');
+    const close = () => {
+      drawer.classList.remove('is-open');
+      drawer.innerHTML = '';
+    };
+    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
+      el('h3', {}, 'Skapa bokning'),
+      el('div', { class: 'cco-cal-drawer-meta' }, 'Canonical patient · kontrollerat flöde'),
+      el('button', { class: 'cco-cal-drawer-close', type: 'button', onclick: close, 'aria-label': 'Stäng' }, '×'),
+    ]));
+
+    const patient = el('dl', { class: 'cco-cal-preflight-fields' }, [
+      el('dt', {}, 'Canonical patient'), el('dd', {}, slot.patientName || 'Namn saknas'),
+      el('dt', {}, 'Canonical patientId'), el('dd', {}, slot.patientId),
+    ]);
+    drawer.appendChild(patient);
+
+    const form = el('section', { class: 'cco-cal-create-controlled' });
+    const serviceSelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Behandling' });
+    const resourceSelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Resurs' });
+    const practitionerSelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Vårdgivare' });
+    const dateInput = el('input', { class: 'cco-cal-create-input', type: 'date', value: isoToday(), 'aria-label': 'Datum' });
+    const availabilitySelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Ledig Stockholm-tid' });
+    const message = el('p', { class: 'cco-cal-preflight-footnote', role: 'status' }, 'Laddar canonical katalog…');
+    const results = el('div', { class: 'cco-cal-create-results' });
+    const idempotencyKey = createBookingIdempotencyKey();
+    let catalog = { services: [], resources: [] };
+
+    function option(value, label) {
+      return el('option', { value }, label);
+    }
+    function fillCatalog() {
+      serviceSelect.innerHTML = '';
+      resourceSelect.innerHTML = '';
+      practitionerSelect.innerHTML = '';
+      (catalog.services || []).forEach((item) => serviceSelect.appendChild(option(item.id, item.label || item.id)));
+      (catalog.resources || []).forEach((item) => {
+        resourceSelect.appendChild(option(item.id, item.label || item.id));
+        practitionerSelect.appendChild(option(item.id, item.label || item.id));
+      });
+    }
+    async function loadAvailability() {
+      availabilitySelect.innerHTML = '';
+      results.innerHTML = '';
+      message.textContent = 'Kontrollerar lediga tider…';
+      const params = new URLSearchParams({
+        fromDate: dateInput.value,
+        toDate: dateInput.value,
+        resIds: resourceSelect.value,
+        srvIds: serviceSelect.value,
+      });
+      try {
+        const response = await fetch('/api/v1/cco-booking-engine/availability?' + params,
+          { headers: calendarHeaders() });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const payload = await response.json();
+        (payload.slots || []).forEach((available) => {
+          const local = stockholmParts(available.startsAt);
+          availabilitySelect.appendChild(option(available.startsAt,
+            local.date + ' kl ' + local.time + ' · Europe/Stockholm'));
+        });
+        message.textContent = availabilitySelect.options.length
+          ? 'Välj en tid och kör read-only preflight.'
+          : 'Inga lediga canonical tider för valt datum.';
+      } catch (_) {
+        message.textContent = 'Kunde inte läsa availability. Ingen bokning kan skapas.';
+      }
+    }
+
+    const preflightButton = el('button', {
+      class: 'quick-pill quick-pill--ai', type: 'button', disabled: 'disabled',
+    }, 'Kör read-only preflight');
+    preflightButton.addEventListener('click', async () => {
+      results.innerHTML = '';
+      if (!availabilitySelect.value) {
+        message.textContent = 'Välj en canonical ledig tid.';
+        return;
+      }
+      preflightButton.disabled = true;
+      const requestBody = createBookingPayload({
+        patientId: slot.patientId,
+        serviceId: serviceSelect.value,
+        resourceId: resourceSelect.value,
+        practitionerId: practitionerSelect.value,
+        startsAt: availabilitySelect.value,
+      });
+      try {
+        const response = await fetch('/api/v1/cco-booking-engine/create/preflight', {
+          method: 'POST',
+          headers: { ...calendarHeaders({ json: true }), 'x-idempotency-key': idempotencyKey },
+          body: JSON.stringify(requestBody),
+        });
+        const payload = await response.json();
+        if (!payload.preflight) throw new Error(payload.error || 'preflight_failed');
+        results.appendChild(renderCreateServerPreflight(payload.preflight));
+        if (payload.preflight.actionAllowed !== true) {
+          message.textContent = 'Preflight är blockerad. Ingen write har gjorts.';
+          return;
+        }
+        message.textContent = 'Preflight godkänd. Kontrollera allt och bekräfta uttryckligen.';
+        const confirmInput = el('input', {
+          class: 'cco-cal-create-input', type: 'text', autocomplete: 'off',
+          placeholder: 'Skriv SKAPA BOKNING', 'aria-label': 'Skriv SKAPA BOKNING för att bekräfta',
+        });
+        const confirmButton = el('button', {
+          class: 'quick-pill quick-pill--success', type: 'button', disabled: 'disabled',
+        }, 'Bekräfta och skapa bokning');
+        confirmInput.addEventListener('input', () => {
+          confirmButton.disabled = confirmInput.value !== 'SKAPA BOKNING';
+        });
+        confirmButton.addEventListener('click', async () => {
+          confirmButton.disabled = true;
+          try {
+            const confirmed = await fetch('/api/v1/cco-booking-engine/create/confirm', {
+              method: 'POST',
+              headers: { ...calendarHeaders({ json: true }), 'x-idempotency-key': idempotencyKey },
+              body: JSON.stringify({ ...requestBody, confirmText: confirmInput.value }),
+            });
+            const confirmedPayload = await confirmed.json();
+            if (!confirmed.ok) throw new Error(confirmedPayload.error || 'booking_create_failed');
+            results.innerHTML = '';
+            results.appendChild(el('div', { class: 'cco-cal-ready cco-cal-ready--ok', role: 'status' },
+              'Bokningen skapades. Booking ID: ' + confirmedPayload.booking.id));
+            message.textContent = confirmedPayload.idempotency?.replayed
+              ? 'Samma idempotenta resultat återlästes; ingen extra bokning skapades.'
+              : 'Reserve → confirm och append-only audit slutfördes.';
+          } catch (_) {
+            message.textContent = 'Bokningen skapades inte. Kontrollera konflikt och audit innan nytt försök.';
+            confirmButton.disabled = false;
+          }
+        });
+        results.appendChild(el('div', { class: 'cco-cal-create-confirm' }, [
+          el('p', { class: 'cco-cal-preflight-warning' },
+            'Detta är den enda write-punkten. Skriv exakt SKAPA BOKNING för att fortsätta.'),
+          confirmInput,
+          confirmButton,
+        ]));
+      } catch (_) {
+        message.textContent = 'Preflight misslyckades. Ingen write har gjorts.';
+      } finally {
+        preflightButton.disabled = false;
+      }
+    });
+
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Behandling'));
+    form.appendChild(serviceSelect);
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Resurs'));
+    form.appendChild(resourceSelect);
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Vårdgivare'));
+    form.appendChild(practitionerSelect);
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Datum'));
+    form.appendChild(dateInput);
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Ledig tid'));
+    form.appendChild(availabilitySelect);
+    form.appendChild(message);
+    form.appendChild(preflightButton);
+    form.appendChild(results);
+    drawer.appendChild(form);
+
+    [serviceSelect, resourceSelect, practitionerSelect, dateInput].forEach((input) => {
+      input.addEventListener('change', loadAvailability);
+    });
+    try {
+      const response = await fetch('/api/v1/cco-booking-engine/catalog', { headers: calendarHeaders() });
+      if (!response.ok) throw new Error('catalog_failed');
+      catalog = await response.json();
+      fillCatalog();
+      preflightButton.disabled = false;
+      await loadAvailability();
+    } catch (_) {
+      message.textContent = 'Canonical booking engine-katalog kunde inte läsas. Flödet är blockerat.';
+    }
   }
 
   // ─── Drawer rendering (delas mellan desktop right-col + mobile bottom-sheet) ──
@@ -1794,6 +2039,12 @@
           class: 'quick-pill quick-pill--success', type: 'button',
           onclick: () => openCanonicalPatient(slot.patientId),
         }, 'Öppna samma patient i Kunder V11/V12'));
+        if (isCreateBookingEnabled()) {
+          actions.appendChild(el('button', {
+            class: 'quick-pill quick-pill--ai', type: 'button',
+            onclick: () => openCreateBookingDrawer(slot),
+          }, 'Skapa bokning'));
+        }
       } else {
         actions.appendChild(el('button', {
           class: 'quick-pill quick-pill--success', type: 'button', disabled: 'disabled',
@@ -2319,7 +2570,8 @@
 
   global.CcoKalenderShell = isReadOnlyMode()
     ? { loadDay, loadWeek, applyView, renderDrawer: renderReadonlyDrawer,
-        buildCanonicalSidebarSummary, canonicalConflictCount, buildReadonlyBookingPreflight }
+        buildCanonicalSidebarSummary, canonicalConflictCount, buildReadonlyBookingPreflight,
+        createBookingPayload, openCreateBookingDrawer }
     : { loadDay, loadWeek, applyView, renderDrawer, openCreateBookingModal };
 
   if (document.readyState === 'loading') {

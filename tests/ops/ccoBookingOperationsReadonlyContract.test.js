@@ -54,7 +54,7 @@ test('active admin Calendar keeps every write surface disabled', () => {
   );
 });
 
-test('documented authorization gaps match the current mutation routes', () => {
+test('legacy mutation gaps stay isolated while controlled create is permissioned and audited', () => {
   const engineRoutes = read('src/routes/ccoBookingEngine.js');
   const calendarRoutes = read('src/routes/ccoBookings.js');
 
@@ -67,14 +67,20 @@ test('documented authorization gaps match the current mutation routes', () => {
     const block = routeBlock(engineRoutes, route);
     assert.match(block, /requireBookingContext\(context\)/);
     assert.doesNotMatch(block, /requireStaffRole\(context\)/);
+    assert.doesNotMatch(block, /x-idempotency-key|appendStrictAudit/);
   }
 
   assert.match(
     routeBlock(calendarRoutes, '/cco-bookings/calendar/rebook'),
     /requireStaffRole\(context\)/
   );
-  assert.doesNotMatch(engineRoutes, /x-idempotency-key/);
-  assert.doesNotMatch(engineRoutes, /ccoAuditLog|auditLog\.append/);
+  const preflight = routeBlock(engineRoutes, '/cco-booking-engine/create/preflight');
+  const confirm = routeBlock(engineRoutes, '/cco-booking-engine/create/confirm');
+  assert.match(engineRoutes, /requireBookingWrite\(context\)/);
+  assert.match(engineRoutes, /x-idempotency-key/);
+  assert.match(confirm, /reserveAndConfirmIdempotent/);
+  assert.match(confirm, /appendStrictAudit/);
+  assert.doesNotMatch(preflight, /reserveSlots|confirmBooking|reserveAndConfirmIdempotent/);
 });
 
 test('move remains a non-atomic cancel-reserve-confirm sequence', () => {

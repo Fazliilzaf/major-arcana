@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CCO Kalender · skapa bokning · lokal smoke</title>
+    <link rel="stylesheet" href="/public/cco-kalender-shell.css" />
+    <style>
+      :root {
+        --cco-color-brand: #3e2b26;
+        --cco-text-tertiary: #776b66;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #f4f0eb;
+        font-family: Inter, system-ui, sans-serif;
+      }
+      .intel-shell {
+        width: min(430px, 100%);
+        min-height: 720px;
+        margin: auto;
+        padding: 18px;
+        background: white;
+        border-radius: 18px;
+      }
+      .cco-cal-create-controlled {
+        display: grid;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .cco-cal-create-results {
+        display: grid;
+        gap: 12px;
+      }
+      .cco-cal-create-confirm {
+        display: grid;
+        gap: 10px;
+      }
+    </style>
+    <script>
+      window.CCO_CALENDAR_READ_ONLY = true;
+      window.CCO_CALENDAR_CREATE_BOOKING_ENABLED = true;
+      window.CCO_CALENDAR_ORIGINAL_V6 = false;
+      const realFetch = window.fetch.bind(window);
+      window.fetch = async (url, options = {}) => {
+        const href = String(url);
+        if (href.includes('/cco-booking-engine/catalog'))
+          return new Response(
+            JSON.stringify({
+              provider: 'cco_engine',
+              services: [{ id: 'consultation-physical', label: 'Konsultation på klinik' }],
+              resources: [{ id: 'egzona', label: 'Egzona Krasniqi' }],
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } }
+          );
+        if (href.includes('/cco-booking-engine/availability'))
+          return new Response(
+            JSON.stringify({
+              slots: [
+                {
+                  slotId: 'egzona::consultation-physical::2026-07-20T08:00:00.000Z',
+                  startsAt: '2026-07-20T08:00:00.000Z',
+                  serviceId: 'consultation-physical',
+                  resourceId: 'egzona',
+                },
+              ],
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } }
+          );
+        if (href.includes('/cco-booking-engine/create/preflight'))
+          return new Response(
+            JSON.stringify({
+              preflight: {
+                readOnly: true,
+                actionAllowed: true,
+                patient: { patientId: 'patient-local-smoke', name: 'Canonical Smoke Patient' },
+                service: { serviceId: 'consultation-physical', label: 'Konsultation på klinik' },
+                resource: { resourceId: 'egzona', label: 'Egzona Krasniqi' },
+                practitioner: { practitionerId: 'egzona', label: 'Egzona Krasniqi' },
+                time: {
+                  startsAt: '2026-07-20T08:00:00.000Z',
+                  local: '2026-07-20 10:00',
+                  timeZone: 'Europe/Stockholm',
+                },
+                gates: [
+                  'canonical_patient',
+                  'treatment',
+                  'resource',
+                  'practitioner',
+                  'stockholm_time',
+                  'availability',
+                  'write_permission',
+                  'idempotency',
+                  'append_only_audit',
+                  'recovery',
+                ].map((key) => ({
+                  key,
+                  label: key.replaceAll('_', ' '),
+                  status: 'pass',
+                  detail: 'Verifierad.',
+                })),
+                blockers: [],
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } }
+          );
+        if (href.includes('/cco-booking-engine/create/confirm')) {
+          throw new Error('Local visual smoke must never confirm a booking');
+        }
+        return realFetch(url, options);
+      };
+    </script>
+  </head>
+  <body>
+    <aside class="intel-shell" aria-label="Kalenderns befintliga drawer"></aside>
+    <script src="/public/cco-kalender-shell.js"></script>
+    <script>
+      window.CcoKalenderShell.openCreateBookingDrawer({
+        patientId: 'patient-local-smoke',
+        patientName: 'Canonical Smoke Patient',
+        identityAmbiguous: false,
+        linkAllowed: true,
+      });
+    </script>
+  </body>
+</html>

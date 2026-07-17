@@ -1,4 +1,6 @@
 const express = require('express');
+const crypto = require('crypto');
+const { roleHasPermission } = require('../security/ccoRbac');
 
 const {
   buildBookingCaseBlockerReadout,
@@ -30,6 +32,8 @@ function normalizeText(value) {
 }
 
 const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
+const CREATE_CONFIRM_TEXT = 'SKAPA BOKNING';
+const CLINIC_TIME_ZONE = 'Europe/Stockholm';
 
 function normalizeKey(value) {
   return normalizeText(value).toLowerCase();
@@ -312,6 +316,91 @@ function requireStaffRole(context) {
   throw error;
 }
 
+function requireBookingWrite(context) {
+  if (roleHasPermission(context?.actor?.role, 'bookings.write')) return;
+  const error = new Error('Behörigheten bookings.write krävs.');
+  error.statusCode = 403;
+  error.metadata = { requiredPermission: 'bookings.write' };
+  throw error;
+}
+
+function createAuditActor(req, context) {
+  return {
+    role: context.actor.role,
+    userId: context.actor.userId,
+    ip: normalizeText(req.headers['x-forwarded-for'] || req.socket?.remoteAddress)
+      .split(',')[0]
+      .trim(),
+  };
+}
+
+function appendStrictAudit(auditLog, event) {
+  if (!auditLog || typeof auditLog.appendStrict !== 'function') {
+    const error = new Error('Append-only CCO-audit är inte tillgänglig.');
+    error.statusCode = 503;
+    error.metadata = { code: 'audit_unavailable' };
+    throw error;
+  }
+  return auditLog.appendStrict(event);
+}
+
+function stockholmDateParts(value) {
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return null;
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('sv-SE', {
+      timeZone: CLINIC_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(parsed)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value])
+  );
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    time: `${parts.hour}:${parts.minute}`,
+  };
+}
+
+function patientEmail(patient = {}) {
+  return normalizeText(
+    patient.primaryEmail ||
+      patient.email ||
+      asArray(patient.emails)[0]?.value ||
+      asArray(patient.emails)[0]
+  );
+}
+
+function patientName(patient = {}) {
+  return normalizeText(
+    patient.displayName ||
+      patient.name ||
+      [patient.firstName, patient.lastName].filter(Boolean).join(' ')
+  );
+}
+
+function createRequestFingerprint(input = {}) {
+  const stable = {
+    patientId: normalizeText(input.patientId),
+    encounterId: normalizeText(input.encounterId),
+    serviceId: normalizeText(input.serviceId),
+    resourceId: normalizeText(input.resourceId),
+    practitionerId: normalizeText(input.practitionerId),
+    startsAt: normalizeText(input.startsAt),
+    timeZone: normalizeText(input.timeZone),
+  };
+  return crypto.createHash('sha256').update(JSON.stringify(stable)).digest('hex');
+}
+
+function createGate(key, label, passed, detail) {
+  return { key, label, status: passed ? 'pass' : 'blocked', detail };
+}
+
 function toCaseInput(context, body = {}) {
   return {
     tenantId: context.tenantId,
@@ -400,6 +489,7 @@ function createCcoBookingEngineRouter({
   authStore,
   config,
   graphSendConnector = null,
+  auditLog = null,
 }) {
   const router = express.Router();
 
@@ -516,6 +606,297 @@ function createCcoBookingEngineRouter({
       return res.status(500).json({ error: 'Kunde inte hantera CCO booking engine.' });
     }
   }
+
+  async function buildCreateBookingPreflight(req, context) {
+    requireBookingWrite(context);
+    const body = asObject(req.body);
+    const patientId = normalizeText(body.patientId);
+    const serviceId = normalizeText(body.serviceId);
+    const resourceId = normalizeText(body.resourceId);
+    const practitionerId = normalizeText(body.practitionerId);
+    const startsAt = normalizeText(body.startsAt);
+    const timeZone = normalizeText(body.timeZone);
+    const idempotencyKey = normalizeText(req.get('x-idempotency-key'));
+    const identityAmbiguous = body.identityAmbiguous === true || body.linkAllowed === false;
+    const patient =
+      patientId && patientMasterStore?.getPatient
+        ? await patientMasterStore.getPatient({ tenantId: context.tenantId, patientId })
+        : null;
+    const [services, resources] = await Promise.all([
+      bookingEngineStore.listServices(),
+      bookingEngineStore.listResources(),
+    ]);
+    const service = services.find((item) => normalizeText(item.id) === serviceId) || null;
+    const resource = resources.find((item) => normalizeText(item.id) === resourceId) || null;
+    const practitioner =
+      resources.find((item) => normalizeText(item.id) === practitionerId) || null;
+    const localTime = stockholmDateParts(startsAt);
+    let selectedSlot = null;
+    if (localTime && service && resource) {
+      const availability = await bookingEngineStore.listAvailability({
+        tenantId: context.tenantId,
+        fromDate: localTime.date,
+        toDate: localTime.date,
+        resIds: resourceId,
+        srvIds: serviceId,
+      });
+      selectedSlot =
+        availability.find(
+          (slot) =>
+            normalizeText(slot.startsAt) === new Date(startsAt).toISOString() &&
+            normalizeText(slot.serviceId) === serviceId &&
+            normalizeText(slot.resourceId) === resourceId
+        ) || null;
+    }
+    const email = patientEmail(patient);
+    const gates = [
+      createGate(
+        'canonical_patient',
+        'Canonical patientId',
+        Boolean(patient && patientId && !identityAmbiguous),
+        identityAmbiguous
+          ? 'Patientmatchningen är tvetydig.'
+          : patient
+            ? 'Canonical patient hittad.'
+            : 'Canonical patient saknas.'
+      ),
+      createGate(
+        'treatment',
+        'Behandling',
+        Boolean(service),
+        service ? service.label : 'Behandling saknas i booking engine-katalogen.'
+      ),
+      createGate(
+        'resource',
+        'Resurs',
+        Boolean(resource),
+        resource ? resource.label : 'Resurs saknas i booking engine-katalogen.'
+      ),
+      createGate(
+        'practitioner',
+        'Vårdgivare',
+        Boolean(practitioner && practitionerId === resourceId),
+        practitioner && practitionerId === resourceId
+          ? practitioner.label
+          : 'Vårdgivaren måste vara samma verifierade booking engine-resurs.'
+      ),
+      createGate(
+        'stockholm_time',
+        'Europe/Stockholm-tid',
+        timeZone === CLINIC_TIME_ZONE && Boolean(localTime),
+        localTime ? `${localTime.date} ${localTime.time} · ${CLINIC_TIME_ZONE}` : 'Ogiltig tid.'
+      ),
+      createGate(
+        'contact',
+        'Canonical kontakt',
+        Boolean(email),
+        email ? 'Canonical patient har bokningsbar e-post.' : 'Patienten saknar canonical e-post.'
+      ),
+      createGate(
+        'availability',
+        'Konfliktkontroll',
+        Boolean(selectedSlot),
+        selectedSlot
+          ? 'Tiden är fortfarande ledig.'
+          : 'Tiden är inte ledig eller saknas i availability.'
+      ),
+      createGate(
+        'write_permission',
+        'Behörighet bookings.write',
+        true,
+        'Verifierad staff-session har bookings.write.'
+      ),
+      createGate(
+        'idempotency',
+        'Idempotency',
+        /^[A-Za-z0-9._:-]{12,160}$/.test(idempotencyKey),
+        idempotencyKey ? 'Idempotency-key är satt.' : 'Idempotency-key saknas.'
+      ),
+      createGate(
+        'append_only_audit',
+        'Append-only audit',
+        Boolean(auditLog?.appendStrict),
+        auditLog?.appendStrict
+          ? 'Strict append-only audit är tillgänglig.'
+          : 'Audit är inte tillgänglig.'
+      ),
+      createGate(
+        'recovery',
+        'Återställning',
+        typeof bookingEngineStore.reserveAndConfirmIdempotent === 'function',
+        'Reserve→confirm körs med kompenserande återställning.'
+      ),
+    ];
+    const blockers = gates.filter((gate) => gate.status === 'blocked');
+    const fingerprint = createRequestFingerprint(body);
+    return {
+      readOnly: true,
+      actionAllowed: blockers.length === 0,
+      confirmTextRequired: CREATE_CONFIRM_TEXT,
+      patient: patient ? { patientId, name: patientName(patient), email } : null,
+      service: service ? { serviceId, label: service.label } : null,
+      resource: resource ? { resourceId, label: resource.label } : null,
+      practitioner: practitioner ? { practitionerId, label: practitioner.label } : null,
+      time: localTime
+        ? {
+            startsAt: new Date(startsAt).toISOString(),
+            local: `${localTime.date} ${localTime.time}`,
+            timeZone: CLINIC_TIME_ZONE,
+          }
+        : null,
+      selectedSlot,
+      gates,
+      blockers,
+      idempotencyKey,
+      requestFingerprint: fingerprint,
+      operationContext:
+        patient && email
+          ? {
+              tenantId: context.tenantId,
+              workspaceId: WORKSPACE_ID,
+              conversationId: `calendar-create:${patientId}:${crypto.createHash('sha256').update(idempotencyKey).digest('hex').slice(0, 16)}`,
+              customerEmail: email,
+              customerName: patientName(patient),
+            }
+          : null,
+    };
+  }
+
+  router.post('/cco-booking-engine/create/preflight', async (req, res) =>
+    handle(req, res, async (context) => {
+      const preflight = await buildCreateBookingPreflight(req, context);
+      return res
+        .status(preflight.actionAllowed ? 200 : 409)
+        .json({ provider: 'cco_engine', preflight });
+    })
+  );
+
+  router.post('/cco-booking-engine/create/confirm', async (req, res) =>
+    handle(req, res, async (context) => {
+      const preflight = await buildCreateBookingPreflight(req, context);
+      const existing = bookingEngineStore.findBookingByIdempotency?.({
+        tenantId: context.tenantId,
+        idempotencyKey: preflight.idempotencyKey,
+      });
+      if (existing) {
+        if (existing.requestFingerprint !== preflight.requestFingerprint) {
+          const error = new Error('Idempotency-key har redan använts med annat bokningsunderlag.');
+          error.statusCode = 409;
+          error.metadata = { code: 'idempotency_payload_mismatch' };
+          throw error;
+        }
+        const actor = createAuditActor(req, context);
+        appendStrictAudit(auditLog, {
+          action: 'bookings.create_replayed',
+          actor,
+          target: { kind: 'booking', id: existing.bookingId, tenantId: context.tenantId },
+          result: 'ok',
+          detail: { idempotencyKey: preflight.idempotencyKey },
+        });
+        return res.json({
+          provider: 'cco_engine',
+          ok: true,
+          booking: existing,
+          idempotency: { key: preflight.idempotencyKey, replayed: true },
+          audit: { appendOnly: true },
+          recovery: { compensated: false },
+        });
+      }
+      if (!preflight.actionAllowed) {
+        const error = new Error('Boknings-preflight är blockerad.');
+        error.statusCode = 409;
+        error.metadata = { code: 'preflight_blocked', preflight };
+        throw error;
+      }
+      if (normalizeText(req.body?.confirmText) !== CREATE_CONFIRM_TEXT) {
+        const error = new Error(`Explicit bekräftelse krävs: ${CREATE_CONFIRM_TEXT}`);
+        error.statusCode = 400;
+        error.metadata = { code: 'confirm_text_required', expected: CREATE_CONFIRM_TEXT };
+        throw error;
+      }
+      await enforceTreatmentBookingGate(preflight.operationContext, {
+        ...req.body,
+        patientId: preflight.patient.patientId,
+        selectedSlots: [preflight.selectedSlot],
+        serviceId: preflight.service.serviceId,
+      });
+      const actor = createAuditActor(req, context);
+      const auditTarget = {
+        kind: 'booking',
+        id: preflight.idempotencyKey,
+        tenantId: context.tenantId,
+      };
+      appendStrictAudit(auditLog, {
+        action: 'bookings.create_requested',
+        actor,
+        target: auditTarget,
+        result: 'ok',
+        detail: {
+          patientId: preflight.patient.patientId,
+          requestFingerprint: preflight.requestFingerprint,
+        },
+      });
+      try {
+        const input = {
+          ...preflight.operationContext,
+          patientId: preflight.patient.patientId,
+          canonicalPatientId: preflight.patient.patientId,
+          encounterId: normalizeText(req.body?.encounterId),
+          practitionerId: preflight.practitioner.practitionerId,
+          practitionerLabel: preflight.practitioner.label,
+          selectedSlots: [preflight.selectedSlot],
+          slot: preflight.selectedSlot,
+          idempotencyKey: preflight.idempotencyKey,
+          requestFingerprint: preflight.requestFingerprint,
+          ownerUserId: context.actor.userId,
+        };
+        const result = await bookingEngineStore.reserveAndConfirmIdempotent(input, {
+          onCommitted: async (booking) =>
+            appendStrictAudit(auditLog, {
+              action: 'bookings.create_committed',
+              actor,
+              target: { kind: 'booking', id: booking.bookingId, tenantId: context.tenantId },
+              result: 'ok',
+              detail: {
+                patientId: preflight.patient.patientId,
+                idempotencyKey: preflight.idempotencyKey,
+                requestFingerprint: preflight.requestFingerprint,
+              },
+            }),
+        });
+        if (result.replayed)
+          appendStrictAudit(auditLog, {
+            action: 'bookings.create_replayed',
+            actor,
+            target: { kind: 'booking', id: result.booking.bookingId, tenantId: context.tenantId },
+            result: 'ok',
+            detail: { idempotencyKey: preflight.idempotencyKey },
+          });
+        return res.json({
+          provider: 'cco_engine',
+          ok: true,
+          booking: result.booking,
+          idempotency: { key: preflight.idempotencyKey, replayed: result.replayed },
+          audit: { appendOnly: true },
+          recovery: { compensated: false },
+        });
+      } catch (error) {
+        const compensated = error?.metadata?.compensated === true;
+        appendStrictAudit(auditLog, {
+          action: compensated ? 'bookings.create_compensated' : 'bookings.create_failed',
+          actor,
+          target: auditTarget,
+          result: 'error',
+          detail: {
+            idempotencyKey: preflight.idempotencyKey,
+            code: error?.metadata?.code || '',
+            compensated,
+          },
+        });
+        throw error;
+      }
+    })
+  );
 
   router.get('/cco-booking-engine/legacy-catalog', async (req, res) =>
     handle(req, res, async (context) => {
