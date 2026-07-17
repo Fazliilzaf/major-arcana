@@ -5897,9 +5897,15 @@
           currentThreads = [];
           const detail = failureReason || describeWorklistFailure(failureStatus);
           // Övergående lägen: token ännu inte skriven av admin-skalet (401),
-          // pipeline ej redo (503) eller nätverks-/JSON-glapp (0) — försök igen
-          // med backoff. Permanenta lägen (403/500) visas direkt som fel.
-          const retriable = failureStatus === 0 || failureStatus === 401 || failureStatus === 503;
+          // en Render-omstart/gateway-glapp (502/503/504) eller nätverks-/JSON-
+          // glapp (0) — försök igen med backoff. Permanenta lägen (403/500)
+          // visas direkt som fel.
+          const retriable =
+            failureStatus === 0 ||
+            failureStatus === 401 ||
+            failureStatus === 502 ||
+            failureStatus === 503 ||
+            failureStatus === 504;
           if (retriable && liveInboxAttempt < LIVE_INBOX_MAX_ATTEMPTS) {
             liveInboxAttempt += 1;
             const waitMs = Math.min(4000, 400 * 2 ** (liveInboxAttempt - 1));

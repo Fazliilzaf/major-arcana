@@ -248,12 +248,13 @@ test('konversationer inbox surfaces the exact worklist failure status instead of
 test('konversationer inbox retries transient failures and recovers when the admin token arrives', () => {
   const html = readHtml();
 
-  // Övergående lägen (token ej satt än / pipeline ej redo / nätverksglapp)
-  // ska försökas igen med backoff; permanenta (403/500) visas direkt.
+  // Övergående lägen (token ej satt än / gateway vid omstart / pipeline ej
+  // redo / nätverksglapp) ska försökas igen med backoff; permanenta (403/500)
+  // visas direkt.
   assert.match(html, /const LIVE_INBOX_MAX_ATTEMPTS = 5/);
   assert.match(
     html,
-    /const retriable =\s*failureStatus === 0 \|\| failureStatus === 401 \|\| failureStatus === 503/
+    /const retriable =[\s\S]*failureStatus === 0[\s\S]*failureStatus === 401[\s\S]*failureStatus === 502[\s\S]*failureStatus === 503[\s\S]*failureStatus === 504/
   );
   assert.match(html, /const waitMs = Math\.min\(4000, 400 \* 2 \*\* \(liveInboxAttempt - 1\)\)/);
   assert.match(
