@@ -5391,6 +5391,7 @@ function toCcoRuntimeHistoryFidelityProbeQuery(query = {}) {
       safeQuery.messageId || safeQuery.graphMessageId || safeQuery.mailMessageId
     ),
     cid: normalizeCcoRuntimeContentId(safeQuery.cid || safeQuery.contentId),
+    includeAttachmentInventory: toBoolean(safeQuery.attachmentInventory, false),
   };
 }
 
@@ -7700,6 +7701,14 @@ function toCcoRuntimeHistoryFidelityProbeHandler({
         (attachment) => normalizeCcoRuntimeContentId(attachment?.contentId) === input.cid
       );
       const graphAttachment = matches[0] || null;
+      const attachmentInventory = input.includeAttachmentInventory
+        ? asArray(attachments).map((attachment) => ({
+            attachmentId: normalizeText(attachment?.id) || null,
+            contentId: normalizeCcoRuntimeContentId(attachment?.contentId) || null,
+            filename: normalizeText(attachment?.name) || null,
+            isInline: attachment?.isInline === true,
+          }))
+        : null;
       let localBlob = {
         available: null,
         state: 'not_checked_without_graph_attachment',
@@ -7725,6 +7734,11 @@ function toCcoRuntimeHistoryFidelityProbeHandler({
         cid: input.cid,
         graph: {
           attachmentCollectionRead: true,
+          attachmentCount: asArray(attachments).length,
+          inlineAttachmentCount: asArray(attachments).filter(
+            (attachment) => attachment?.isInline === true
+          ).length,
+          attachmentInventory,
           matchCount: matches.length,
           attachment: graphAttachment
             ? {

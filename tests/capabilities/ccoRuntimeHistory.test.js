@@ -2078,11 +2078,21 @@ test('runtime CID manifest stays local and a probe checks one Graph attachment w
             return [
               {
                 id: 'graph-attachment-1',
+                name: 'logo.png',
                 contentId: '<logo@cid>',
                 contentType: 'image/png',
                 isInline: true,
                 size: 1234,
                 contentBytesAvailable: true,
+              },
+              {
+                id: 'graph-attachment-2',
+                name: 'document.pdf',
+                contentId: '<different@cid>',
+                contentType: 'application/pdf',
+                isInline: false,
+                size: 4567,
+                contentBytesAvailable: false,
               },
             ];
           },
@@ -2119,6 +2129,9 @@ test('runtime CID manifest stays local and a probe checks one Graph attachment w
       assert.equal(probeResponse.status, 200);
       const probePayload = await probeResponse.json();
       assert.equal(probePayload.graph.attachmentCollectionRead, true);
+      assert.equal(probePayload.graph.attachmentCount, 2);
+      assert.equal(probePayload.graph.inlineAttachmentCount, 1);
+      assert.equal(probePayload.graph.attachmentInventory, null);
       assert.equal(probePayload.graph.attachment.attachmentId, 'graph-attachment-1');
       assert.equal(probePayload.graph.attachment.inlineContentBytesAvailable, true);
       assert.equal('contentBytes' in probePayload.graph.attachment, false);
@@ -2127,14 +2140,37 @@ test('runtime CID manifest stays local and a probe checks one Graph attachment w
       assert.equal(cacheGetCalls, 1);
       assert.equal(loadCalls, 2);
 
+      const inventoryResponse = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/history/fidelity/probe?mailboxId=contact@hairtpclinic.com&messageId=cid-gap-message&cid=logo%40cid&attachmentInventory=1`
+      );
+      assert.equal(inventoryResponse.status, 200);
+      const inventoryPayload = await inventoryResponse.json();
+      assert.deepEqual(inventoryPayload.graph.attachmentInventory, [
+        {
+          attachmentId: 'graph-attachment-1',
+          contentId: 'logo@cid',
+          filename: 'logo.png',
+          isInline: true,
+        },
+        {
+          attachmentId: 'graph-attachment-2',
+          contentId: 'different@cid',
+          filename: 'document.pdf',
+          isInline: false,
+        },
+      ]);
+      assert.equal('contentBytes' in inventoryPayload.graph.attachmentInventory[0], false);
+      assert.equal(graphProbeCalls, 2);
+      assert.equal(cacheGetCalls, 2);
+
       const missingMessage = await fetch(
         `${baseUrl}/api/v1/cco/runtime/history/fidelity/probe?mailboxId=contact@hairtpclinic.com&messageId=missing-message&cid=logo%40cid`
       );
       assert.equal(missingMessage.status, 404);
       const missingPayload = await missingMessage.json();
       assert.match(missingPayload.error, /Meddelandet finns inte lokalt/i);
-      assert.equal(graphProbeCalls, 1);
-      assert.equal(cacheGetCalls, 1);
+      assert.equal(graphProbeCalls, 2);
+      assert.equal(cacheGetCalls, 2);
     });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
