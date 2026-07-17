@@ -2373,6 +2373,39 @@ let ccoBookingCaseStore = null;
       }
     });
 
+    // ORD-CM-8 · GET /api/v1/cco-cf/expenses-tree — utgifts-inkorgens pyramid.
+    // Utan year/month: år+månads-aggregat (hela boken, ingen limit-cap).
+    // Med year&month: månadens fulla utgiftsobjekt. status=<expStatus>|vat_review.
+    app.get('/api/v1/cco-cf/expenses-tree', attachRole, requireAnyRole(cfRBAC), (req, res) => {
+      try {
+        const store = app.locals.cfoExpenseStore;
+        if (!store) return res.status(503).json({ error: 'expense store not ready' });
+        const q = String(req.query.status || '');
+        const opts = {
+          status: q && q !== 'all' && q !== 'vat_review' ? q : null,
+          vatReview: q === 'vat_review',
+        };
+        const summary = store.summary();
+        if (req.query.year && req.query.month) {
+          const expenses = store.listMonthExpenses({
+            year: String(req.query.year),
+            month: String(req.query.month),
+            ...opts,
+          });
+          return res.json({ ok: true, expenses, total: expenses.length, summary });
+        }
+        const years = store.aggregateByMonth(opts);
+        res.json({
+          ok: true,
+          years,
+          total: years.reduce((a, y) => a + y.count, 0),
+          summary,
+        });
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
     // GET /api/v1/cco-cf/expenses/:id
     app.get('/api/v1/cco-cf/expenses/:id', attachRole, requireAnyRole(cfRBAC), (req, res) => {
       try {
@@ -10233,7 +10266,9 @@ try {
         // The import report can count a transient review condition even when no
         // review asset was persisted. Only persisted run assets may pause the
         // long-running worker for review; failed imports remain fail-closed.
-        const { summarizeDriveIngestRunAssets } = require('./src/ops/ccoDriveIngestRunObservability');
+        const {
+          summarizeDriveIngestRunAssets,
+        } = require('./src/ops/ccoDriveIngestRunObservability');
         const persistedRunAssets = report?.runId
           ? summarizeDriveIngestRunAssets(
               stores.assetStore.listItemsForEnrichment(),
@@ -10241,8 +10276,7 @@ try {
               { limit: 1 }
             )
           : { byStatus: {} };
-        const persistedNeedsReview =
-          Number(persistedRunAssets.byStatus?.NEEDS_REVIEW) || 0;
+        const persistedNeedsReview = Number(persistedRunAssets.byStatus?.NEEDS_REVIEW) || 0;
         const rawNeedsReview = Number(st.needsReview) || 0;
         if (rawNeedsReview !== persistedNeedsReview) {
           __ingestState.warning = {
@@ -10316,18 +10350,18 @@ try {
         }
       }
       if (action === 'run-assets') {
-        const { summarizeDriveIngestRunAssets } = require('./src/ops/ccoDriveIngestRunObservability');
+        const {
+          summarizeDriveIngestRunAssets,
+        } = require('./src/ops/ccoDriveIngestRunObservability');
         const runId = String(req.query.runId || '').trim();
         return ensureAssetStores()
           .then((stores) =>
             res.json({
               ok: true,
               zeroWrites: true,
-              ...summarizeDriveIngestRunAssets(
-                stores.assetStore.listItemsForEnrichment(),
-                runId,
-                { limit: Number(req.query.limit) || 200 }
-              ),
+              ...summarizeDriveIngestRunAssets(stores.assetStore.listItemsForEnrichment(), runId, {
+                limit: Number(req.query.limit) || 200,
+              }),
             })
           )
           .catch((error) =>
@@ -10443,9 +10477,12 @@ try {
       __maybeAutoResumeIngest();
     }, 30 * 1000);
     if (typeof __t0.unref === 'function') __t0.unref();
-    const __ti = setInterval(() => {
-      __maybeAutoResumeIngest();
-    }, 15 * 60 * 1000);
+    const __ti = setInterval(
+      () => {
+        __maybeAutoResumeIngest();
+      },
+      15 * 60 * 1000
+    );
     if (typeof __ti.unref === 'function') __ti.unref();
   }
 

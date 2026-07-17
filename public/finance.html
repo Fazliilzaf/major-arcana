@@ -1139,6 +1139,8 @@
           >
         </div>
         <div id="expense-export-result" class="exp-export-result"></div>
+        <div id="exp-crumb" class="receipt-meta" style="margin: 0 4px 10px"></div>
+        <div class="kpis" id="exp-cards" style="display: none"></div>
         <div class="receipts-list" id="expenses-list">
           <div class="empty">Hämtar…</div>
         </div>
@@ -1703,19 +1705,50 @@
         let allExpenses = [];
         let expFilter = 'all';
         let openExpenseId = null;
+        // ORD-CM-8 · pyramid-lager för utgifts-inkorgen: år → månad → dag
+        const expVy = { year: null, month: null };
+        let expTräd = null;
+        const EXP_MÅN = {
+          '01': 'Januari',
+          '02': 'Februari',
+          '03': 'Mars',
+          '04': 'April',
+          '05': 'Maj',
+          '06': 'Juni',
+          '07': 'Juli',
+          '08': 'Augusti',
+          '09': 'September',
+          10: 'Oktober',
+          11: 'November',
+          12: 'December',
+          '??': 'Okänt datum',
+        };
 
         async function loadExpenses() {
           try {
-            const r = await fetch('/api/v1/cco-cf/expenses?limit=500', {
-              credentials: 'same-origin',
-            });
-            if (!r.ok) {
-              $('expenses-list').innerHTML = `<div class="empty">HTTP ${r.status}</div>`;
+            const statusQ =
+              expFilter && expFilter !== 'all' ? '&status=' + encodeURIComponent(expFilter) : '';
+            const monthQ =
+              expVy.year && expVy.month
+                ? '&year=' +
+                  encodeURIComponent(expVy.year) +
+                  '&month=' +
+                  encodeURIComponent(expVy.month)
+                : '';
+            const [tr, mr] = await Promise.all([
+              fetch('/api/v1/cco-cf/expenses-tree?v=1' + statusQ, { credentials: 'same-origin' }),
+              monthQ
+                ? fetch('/api/v1/cco-cf/expenses-tree?v=1' + statusQ + monthQ, {
+                    credentials: 'same-origin',
+                  })
+                : Promise.resolve(null),
+            ]);
+            if (!tr.ok) {
+              $('expenses-list').innerHTML = `<div class="empty">HTTP ${tr.status}</div>`;
               return;
             }
-            const data = await r.json();
-            allExpenses = data.expenses || [];
-            const s = data.summary || {};
+            expTräd = await tr.json();
+            const s = expTräd.summary || {};
             $('ec-all').textContent = s.total || 0;
             for (const k of [
               'new',
@@ -1729,12 +1762,16 @@
               const el = $('ec-' + k);
               if (el) el.textContent = s.byStatus?.[k] || 0;
             }
-            // CF.6: räkna vat_review separately
-            const vatReviewCount = allExpenses.filter(
-              (e) => e.vatReviewStatus === 'pending' || e.vatSuggestion
-            ).length;
             const vatEl = $('ec-vat_review');
-            if (vatEl) vatEl.textContent = vatReviewCount;
+            if (vatEl) vatEl.textContent = s.vatReviewPendingCount || 0;
+            allExpenses = [];
+            if (mr) {
+              if (!mr.ok) {
+                $('expenses-list').innerHTML = `<div class="empty">HTTP ${mr.status}</div>`;
+                return;
+              }
+              allExpenses = (await mr.json()).expenses || [];
+            }
             renderExpenses();
           } catch (err) {
             $('expenses-list').innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
@@ -1793,7 +1830,96 @@
       </div>`;
         }
 
+        function expRitaCrumb() {
+          const crumbEl = $('exp-crumb');
+          if (!crumbEl) return;
+          let html = '';
+          if (expVy.year) {
+            html += '<button class="btn" data-exp-nav="hem">‹ Alla år</button> ';
+            if (expVy.month)
+              html +=
+                '<button class="btn" data-exp-nav="år">‹ ' +
+                esc(expVy.year) +
+                '</button> <strong style="margin-left:6px">' +
+                esc(expVy.year) +
+                ' · ' +
+                (EXP_MÅN[expVy.month] || expVy.month) +
+                '</strong>';
+            else html += '<strong style="margin-left:6px">' + esc(expVy.year) + '</strong>';
+          } else html = 'Välj ett år — sedan månad — så ser du utgifterna dag för dag.';
+          crumbEl.innerHTML = html;
+          crumbEl.querySelectorAll('[data-exp-nav]').forEach((b) =>
+            b.addEventListener('click', () => {
+              if (b.getAttribute('data-exp-nav') === 'hem') {
+                expVy.year = null;
+                expVy.month = null;
+              } else expVy.month = null;
+              loadExpenses();
+            })
+          );
+        }
+
         function renderExpenses() {
+          expRitaCrumb();
+          const cardsEl = $('exp-cards');
+          if (!expVy.year || !expVy.month) {
+            $('expenses-list').innerHTML = '';
+            if (!expTräd || !expTräd.years || !expTräd.years.length) {
+              cardsEl.style.display = 'none';
+              $('expense-count').textContent = '0 utgifter';
+              $('expenses-list').innerHTML =
+                '<div class="empty">Inga utgifter med detta filter.</div>';
+              return;
+            }
+            $('expense-count').textContent = `${expTräd.total} utgifter`;
+            cardsEl.style.display = '';
+            if (!expVy.year) {
+              cardsEl.innerHTML = expTräd.years
+                .map(
+                  (y) =>
+                    '<div class="kpi kpi--click" data-exp-year="' +
+                    esc(y.year) +
+                    '"><div class="kpi-label">' +
+                    esc(y.year) +
+                    '</div><div class="kpi-value">' +
+                    esc(fmtSek(y.sum)) +
+                    '</div><div class="kpi-sub">' +
+                    y.count +
+                    ' utgifter</div></div>'
+                )
+                .join('');
+              cardsEl.querySelectorAll('[data-exp-year]').forEach((c) =>
+                c.addEventListener('click', () => {
+                  expVy.year = c.getAttribute('data-exp-year');
+                  renderExpenses();
+                })
+              );
+            } else {
+              const y = expTräd.years.find((x) => x.year === expVy.year);
+              cardsEl.innerHTML = (y ? y.months : [])
+                .map(
+                  (m) =>
+                    '<div class="kpi kpi--click" data-exp-month="' +
+                    esc(m.month) +
+                    '"><div class="kpi-label">' +
+                    (EXP_MÅN[m.month] || m.month) +
+                    '</div><div class="kpi-value">' +
+                    esc(fmtSek(m.sum)) +
+                    '</div><div class="kpi-sub">' +
+                    m.count +
+                    ' utgifter</div></div>'
+                )
+                .join('');
+              cardsEl.querySelectorAll('[data-exp-month]').forEach((c) =>
+                c.addEventListener('click', () => {
+                  expVy.month = c.getAttribute('data-exp-month');
+                  loadExpenses();
+                })
+              );
+            }
+            return;
+          }
+          cardsEl.style.display = 'none';
           const filtered =
             expFilter === 'all'
               ? allExpenses
@@ -1806,126 +1932,125 @@
               '<div class="empty">Inga utgifter med detta filter.</div>';
             return;
           }
-          $('expenses-list').innerHTML = filtered
-            .map((e) => {
-              const thumb = e.receiptId ? '📄' : '💳';
-              const customer = e.customerId
-                ? `<a class="receipt-customerlink" href="/major-arcana-preview/?view=customers&v9=on&customer=${esc(e.customerId)}" onclick="event.stopPropagation()">→ kundkort</a>`
+          const expRowHtml = (e) => {
+            const thumb = e.receiptId ? '📄' : '💳';
+            const customer = e.customerId
+              ? `<a class="receipt-customerlink" href="/major-arcana-preview/?view=customers&v9=on&customer=${esc(e.customerId)}" onclick="event.stopPropagation()">→ kundkort</a>`
+              : '';
+            const tail6 = (s) => String(s || '').slice(-6);
+            const enc = e.encounterId
+              ? `<span class="receipt-link-chip" title="encounterId: ${esc(e.encounterId)}">enc:${esc(tail6(e.encounterId))}</span>`
+              : '';
+            const tx = e.treatmentId
+              ? `<span class="receipt-link-chip" title="treatmentId: ${esc(e.treatmentId)}">tx:${esc(tail6(e.treatmentId))}</span>`
+              : '';
+            const offer = e.offerId
+              ? `<span class="receipt-link-chip" title="offerId: ${esc(e.offerId)}">offer:${esc(tail6(e.offerId))}</span>`
+              : '';
+            const fnxChip =
+              e.fortnoxSyncStatus !== 'synced'
+                ? `<span class="receipt-link-chip" style="background:#fdebd3;color:#7a4f12" title="${esc(e.fortnoxSyncStatus)}">fnx:${esc(e.fortnoxSyncStatus)}</span>`
                 : '';
-              const tail6 = (s) => String(s || '').slice(-6);
-              const enc = e.encounterId
-                ? `<span class="receipt-link-chip" title="encounterId: ${esc(e.encounterId)}">enc:${esc(tail6(e.encounterId))}</span>`
-                : '';
-              const tx = e.treatmentId
-                ? `<span class="receipt-link-chip" title="treatmentId: ${esc(e.treatmentId)}">tx:${esc(tail6(e.treatmentId))}</span>`
-                : '';
-              const offer = e.offerId
-                ? `<span class="receipt-link-chip" title="offerId: ${esc(e.offerId)}">offer:${esc(tail6(e.offerId))}</span>`
-                : '';
-              const fnxChip =
-                e.fortnoxSyncStatus !== 'synced'
-                  ? `<span class="receipt-link-chip" style="background:#fdebd3;color:#7a4f12" title="${esc(e.fortnoxSyncStatus)}">fnx:${esc(e.fortnoxSyncStatus)}</span>`
-                  : '';
-              // CF.5: supplier-koppling chip + "ny leverantör"-badge
-              let supplierChip = '';
-              if (e.supplierId) {
-                const vendor = vendorIndex[e.supplierId];
-                const vname = vendor ? vendor.name : e.supplierId.slice(-6);
-                supplierChip = `<span class="supplier-link-chip" title="${esc(e.supplierMatchType || 'manual')} match · confidence ${Math.round(100 * (e.supplierMatchConfidence || 1))}%">✓ ${esc(vname)}</span>`;
-              } else if (e.supplier && String(e.supplier).trim()) {
-                supplierChip = `<span class="new-supplier-badge" data-new-supplier="${esc(e.supplier)}" data-exp-id-for-supplier="${esc(e.id)}" title="Klicka för att skapa leverantör">＋ ny leverantör</span>`;
-              }
-              // CF.6: VAT-chip
-              let vatChip = '';
-              if (e.vatMode) {
-                const m = e.vatMode;
-                const cls = m.startsWith('standard')
-                  ? 'standard'
-                  : m === 'reverse_charge_eu' || m === 'reverse_charge_non_eu'
-                    ? 'reverse'
+            // CF.5: supplier-koppling chip + "ny leverantör"-badge
+            let supplierChip = '';
+            if (e.supplierId) {
+              const vendor = vendorIndex[e.supplierId];
+              const vname = vendor ? vendor.name : e.supplierId.slice(-6);
+              supplierChip = `<span class="supplier-link-chip" title="${esc(e.supplierMatchType || 'manual')} match · confidence ${Math.round(100 * (e.supplierMatchConfidence || 1))}%">✓ ${esc(vname)}</span>`;
+            } else if (e.supplier && String(e.supplier).trim()) {
+              supplierChip = `<span class="new-supplier-badge" data-new-supplier="${esc(e.supplier)}" data-exp-id-for-supplier="${esc(e.id)}" title="Klicka för att skapa leverantör">＋ ny leverantör</span>`;
+            }
+            // CF.6: VAT-chip
+            let vatChip = '';
+            if (e.vatMode) {
+              const m = e.vatMode;
+              const cls = m.startsWith('standard')
+                ? 'standard'
+                : m === 'reverse_charge_eu' || m === 'reverse_charge_non_eu'
+                  ? 'reverse'
+                  : m === 'non_deductible'
+                    ? 'non-deductible'
+                    : m === 'representation_limited'
+                      ? 'representation'
+                      : m === 'needs_review' || m === 'mixed'
+                        ? 'review'
+                        : 'standard';
+              const label =
+                m === 'reverse_charge_eu'
+                  ? 'EU rev-charge'
+                  : m === 'reverse_charge_non_eu'
+                    ? 'Non-EU rev-charge'
                     : m === 'non_deductible'
-                      ? 'non-deductible'
+                      ? 'Ej avdragsgill'
                       : m === 'representation_limited'
-                        ? 'representation'
-                        : m === 'needs_review' || m === 'mixed'
-                          ? 'review'
-                          : 'standard';
-                const label =
-                  m === 'reverse_charge_eu'
-                    ? 'EU rev-charge'
-                    : m === 'reverse_charge_non_eu'
-                      ? 'Non-EU rev-charge'
-                      : m === 'non_deductible'
-                        ? 'Ej avdragsgill'
-                        : m === 'representation_limited'
-                          ? 'Repr 50%'
-                          : m === 'needs_review'
-                            ? '⚠ moms granska'
-                            : m === 'mixed'
-                              ? 'Blandad moms'
-                              : m.replace('standard_', '') + '%';
-                vatChip = `<span class="vat-chip vat-chip--${cls}" title="vatMode: ${esc(m)}${e.deductibleVatSek !== null ? ' · deductible ' + e.deductibleVatSek : ''}">${esc(label)}</span>`;
-              } else if (e.vatSuggestion) {
-                vatChip = `<span class="vat-chip vat-chip--review" title="förslag: ${esc(e.vatSuggestion.suggestedVatMode)} · ${Math.round((e.vatSuggestion.confidence || 0) * 100)}%">→ momsförslag</span>`;
-              }
-              // CF.6: review-badge
-              const vatReviewBadge =
-                e.vatReviewStatus === 'pending'
-                  ? `<span class="vat-chip vat-chip--review" title="vat-review krävs">⚠ moms granska</span>`
-                  : e.vatReviewStatus === 'reviewed'
-                    ? `<span class="vat-chip vat-chip--reviewed">✓ moms ok</span>`
-                    : '';
-              // CF.7: recurring-chip + anomaly-flaggor
-              let recurringChip = '';
-              if (e.recurringExpenseId) {
-                const r = recurringIndex[e.recurringExpenseId];
-                const rname = r ? r.supplierName : e.recurringExpenseId.slice(-6);
-                recurringChip = `<span class="recurring-chip" title="Återkommande mall · ${Math.round(100 * (e.recurringMatchConfidence || 1))}%">🔁 ${esc(rname)}</span>`;
-              }
-              const recAnomalies =
-                Array.isArray(e.recurringAnomalies) && e.recurringAnomalies.length
-                  ? e.recurringAnomalies
-                      .map(
-                        (a) =>
-                          `<span class="recurring-anomaly" title="${esc(a.severity || 'medium')}">⚠ ${esc(a.kind.replace(/_/g, ' '))}</span>`
-                      )
-                      .join(' ')
+                        ? 'Repr 50%'
+                        : m === 'needs_review'
+                          ? '⚠ moms granska'
+                          : m === 'mixed'
+                            ? 'Blandad moms'
+                            : m.replace('standard_', '') + '%';
+              vatChip = `<span class="vat-chip vat-chip--${cls}" title="vatMode: ${esc(m)}${e.deductibleVatSek !== null ? ' · deductible ' + e.deductibleVatSek : ''}">${esc(label)}</span>`;
+            } else if (e.vatSuggestion) {
+              vatChip = `<span class="vat-chip vat-chip--review" title="förslag: ${esc(e.vatSuggestion.suggestedVatMode)} · ${Math.round((e.vatSuggestion.confidence || 0) * 100)}%">→ momsförslag</span>`;
+            }
+            // CF.6: review-badge
+            const vatReviewBadge =
+              e.vatReviewStatus === 'pending'
+                ? `<span class="vat-chip vat-chip--review" title="vat-review krävs">⚠ moms granska</span>`
+                : e.vatReviewStatus === 'reviewed'
+                  ? `<span class="vat-chip vat-chip--reviewed">✓ moms ok</span>`
                   : '';
-              const meta = [
-                e.supplier && esc(e.supplier),
-                supplierChip,
-                e.category && esc(e.category),
-                e.date && esc(fmtTs(e.date)),
-                e.paymentMethod && esc(e.paymentMethod),
-                e.vatRatePercent !== null && e.vatRatePercent !== undefined
-                  ? `moms ${esc(e.vatRatePercent)}%`
-                  : '',
-                vatChip,
-                vatReviewBadge,
-                recurringChip,
-                recAnomalies,
-                customer,
-                enc,
-                tx,
-                offer,
-                fnxChip,
-              ]
-                .filter(Boolean)
-                .join(' · ');
-              const editor = openExpenseId === e.id ? expEditorHtml(e) : '';
-              // CF.4: suggestion-block
-              let suggestionHtml = '';
-              if (e.suggestion && e.suggestion.bestMatch) {
-                const conf = Number(e.suggestion.bestMatch.confidence || 0);
-                const cls = conf >= 0.7 ? 'high' : conf <= 0.3 ? 'low' : 'med';
-                const fields = e.suggestion.bestMatch.suggestedFields || {};
-                const fieldPills = Object.entries(fields)
-                  .map(([k, v]) => `<span class="pill">${esc(k)}: ${esc(v)}</span>`)
-                  .join('');
-                const recurringPill = e.suggestion.recurring?.isRecurring
-                  ? `<span class="sugg-badge sugg-badge--recurring">🔁 Återkommande</span>`
-                  : '';
-                suggestionHtml = `
+            // CF.7: recurring-chip + anomaly-flaggor
+            let recurringChip = '';
+            if (e.recurringExpenseId) {
+              const r = recurringIndex[e.recurringExpenseId];
+              const rname = r ? r.supplierName : e.recurringExpenseId.slice(-6);
+              recurringChip = `<span class="recurring-chip" title="Återkommande mall · ${Math.round(100 * (e.recurringMatchConfidence || 1))}%">🔁 ${esc(rname)}</span>`;
+            }
+            const recAnomalies =
+              Array.isArray(e.recurringAnomalies) && e.recurringAnomalies.length
+                ? e.recurringAnomalies
+                    .map(
+                      (a) =>
+                        `<span class="recurring-anomaly" title="${esc(a.severity || 'medium')}">⚠ ${esc(a.kind.replace(/_/g, ' '))}</span>`
+                    )
+                    .join(' ')
+                : '';
+            const meta = [
+              e.supplier && esc(e.supplier),
+              supplierChip,
+              e.category && esc(e.category),
+              e.date && esc(fmtTs(e.date)),
+              e.paymentMethod && esc(e.paymentMethod),
+              e.vatRatePercent !== null && e.vatRatePercent !== undefined
+                ? `moms ${esc(e.vatRatePercent)}%`
+                : '',
+              vatChip,
+              vatReviewBadge,
+              recurringChip,
+              recAnomalies,
+              customer,
+              enc,
+              tx,
+              offer,
+              fnxChip,
+            ]
+              .filter(Boolean)
+              .join(' · ');
+            const editor = openExpenseId === e.id ? expEditorHtml(e) : '';
+            // CF.4: suggestion-block
+            let suggestionHtml = '';
+            if (e.suggestion && e.suggestion.bestMatch) {
+              const conf = Number(e.suggestion.bestMatch.confidence || 0);
+              const cls = conf >= 0.7 ? 'high' : conf <= 0.3 ? 'low' : 'med';
+              const fields = e.suggestion.bestMatch.suggestedFields || {};
+              const fieldPills = Object.entries(fields)
+                .map(([k, v]) => `<span class="pill">${esc(k)}: ${esc(v)}</span>`)
+                .join('');
+              const recurringPill = e.suggestion.recurring?.isRecurring
+                ? `<span class="sugg-badge sugg-badge--recurring">🔁 Återkommande</span>`
+                : '';
+              suggestionHtml = `
           <div class="sugg-actions">
             <div class="sugg-text">
               <span class="sugg-badge sugg-badge--${cls}">Förslag · ${Math.round(conf * 100)}%</span>
@@ -1937,8 +2062,8 @@
             <button class="btn" data-sugg-action="reject">✗ Avvisa</button>
             <button class="btn" data-sugg-action="save-as-rule">💾 Spara som regel</button>
           </div>`;
-              }
-              return `
+            }
+            return `
         <div>
           <div class="receipt exp-row" data-exp-id="${esc(e.id)}">
             <div class="receipt-thumb">${thumb}</div>
@@ -1953,6 +2078,37 @@
           ${suggestionHtml}
           ${editor}
         </div>`;
+          };
+          const dagar = new Map();
+          for (const e of filtered) {
+            const d = String(e.date || e.createdAt || '').slice(0, 10) || '??';
+            if (!dagar.has(d)) dagar.set(d, { datum: d, sum: 0, poster: [] });
+            const g = dagar.get(d);
+            g.sum += Number(e.amountSek) || 0;
+            g.poster.push(e);
+          }
+          const VDAG = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
+          $('expenses-list').innerHTML = [...dagar.values()]
+            .sort((a, b) => b.datum.localeCompare(a.datum))
+            .map((g) => {
+              const dt = new Date(g.datum + 'T12:00:00');
+              const rubrik = isNaN(dt.getTime())
+                ? 'Okänt datum'
+                : VDAG[dt.getDay()] +
+                  ' ' +
+                  dt.getDate() +
+                  ' ' +
+                  (EXP_MÅN[expVy.month] || '').toLowerCase();
+              return (
+                '<div class="receipt-meta" style="margin: 14px 4px 4px"><strong>' +
+                rubrik +
+                '</strong> · ' +
+                g.poster.length +
+                ' utgifter · ' +
+                esc(fmtSek(g.sum)) +
+                '</div>' +
+                g.poster.map(expRowHtml).join('')
+              );
             })
             .join('');
         }
@@ -2018,7 +2174,7 @@
             .forEach((p) => p.classList.remove('active'));
           pill.classList.add('active');
           expFilter = pill.dataset.expstatus;
-          renderExpenses();
+          loadExpenses();
         });
 
         // CF.6: VAT-action-delegation

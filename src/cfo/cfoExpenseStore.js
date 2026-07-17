@@ -473,6 +473,59 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     return list.slice(0, Math.max(1, Math.min(1000, limit)));
   }
 
+  // ORD-CM-8 · år/månads-aggregat för utgifts-inkorgens pyramid.
+  // Räknar hela boken (ingen limit-cap); datum = date med createdAt-fallback
+  // så ingen post försvinner ur lagren (ORD-74-principen).
+  function expenseMonthKey(e) {
+    const d = String(e.date || e.createdAt || '').slice(0, 10);
+    return { year: d.slice(0, 4) || 'okänt', month: d.slice(5, 7) || '??' };
+  }
+
+  function filterForTree(list, { status, vatReview } = {}) {
+    if (vatReview) return list.filter((e) => e.vatReviewStatus === 'pending' || e.vatSuggestion);
+    if (status) return list.filter((e) => e.status === status);
+    return list;
+  }
+
+  function aggregateByMonth({ status, vatReview } = {}) {
+    const rows = filterForTree(data.expenses, { status, vatReview });
+    const years = new Map();
+    for (const e of rows) {
+      const { year, month } = expenseMonthKey(e);
+      if (!years.has(year)) years.set(year, { year, count: 0, sum: 0, months: new Map() });
+      const y = years.get(year);
+      y.count += 1;
+      y.sum += Number(e.amountSek) || 0;
+      if (!y.months.has(month)) y.months.set(month, { month, count: 0, sum: 0 });
+      const m = y.months.get(month);
+      m.count += 1;
+      m.sum += Number(e.amountSek) || 0;
+    }
+    return [...years.values()]
+      .sort((a, b) => b.year.localeCompare(a.year))
+      .map((y) => ({
+        year: y.year,
+        count: y.count,
+        sum: Math.round(y.sum),
+        months: [...y.months.values()]
+          .sort((a, b) => b.month.localeCompare(a.month))
+          .map((m) => ({ month: m.month, count: m.count, sum: Math.round(m.sum) })),
+      }));
+  }
+
+  function listMonthExpenses({ year, month, status, vatReview } = {}) {
+    const rows = filterForTree(
+      data.expenses.filter((e) => {
+        const k = expenseMonthKey(e);
+        return k.year === String(year) && k.month === String(month);
+      }),
+      { status, vatReview }
+    );
+    return rows.sort((a, b) =>
+      String(b.date || b.createdAt).localeCompare(String(a.date || a.createdAt))
+    );
+  }
+
   function getById(id) {
     return data.expenses.find((e) => e.id === id) || null;
   }
@@ -892,6 +945,8 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     markFortnoxError,
     attachFile,
     listExpenses,
+    aggregateByMonth,
+    listMonthExpenses,
     listExportBatches,
     getById,
     summary,
