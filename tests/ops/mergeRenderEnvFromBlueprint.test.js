@@ -14,6 +14,14 @@ test('parseRenderYamlEnvDefaults läser value från render.yaml', () => {
   assert.ok(defaults.has('PUBLIC_BASE_URL'));
   assert.equal(defaults.get('ARCANA_STAFF_JOURNAL_OPEN_ACCESS'), 'false');
   assert.equal(defaults.get('ARCANA_CCO_IMAP_POLL_ENABLED'), 'true');
+  const ccoMailboxIds =
+    'kons@hairtpclinic.com,info@hairtpclinic.com,contact@hairtpclinic.com,' +
+    'egzona@hairtpclinic.com,fazli@hairtpclinic.com,marknad@hairtpclinic.com,' +
+    'kvitto@hairtpclinic.com,halso@hairtpclinic.com';
+  assert.equal(defaults.get('ARCANA_MAILBOX_ALLOWLIST'), ccoMailboxIds);
+  assert.equal(defaults.get('ARCANA_CCO_MAIL_INGESTION_POLL_MAILBOXES'), ccoMailboxIds);
+  assert.equal(defaults.get('ARCANA_CCO_MAIL_INGESTION_POLL_INTERVAL_MINUTES'), '1');
+  assert.equal(defaults.get('ARCANA_CCO_MAIL_INGESTION_POLL_MAX_MAILBOXES_PER_CYCLE'), '1');
   assert.ok(!defaults.has('OPENAI_API_KEY'), 'sync:false utan value ska inte ingå');
 });
 

@@ -82,9 +82,9 @@ services:
       - key: ARCANA_GRAPH_USER_SCOPE
         value: all
       - key: ARCANA_GRAPH_READ_DEFAULT_ALLOWLIST
-        value: kons@hairtpclinic.com
+        value: kons@hairtpclinic.com,info@hairtpclinic.com,contact@hairtpclinic.com,egzona@hairtpclinic.com,fazli@hairtpclinic.com,marknad@hairtpclinic.com,kvitto@hairtpclinic.com,halso@hairtpclinic.com
       - key: ARCANA_MAILBOX_ALLOWLIST
-        value: kons@hairtpclinic.com
+        value: kons@hairtpclinic.com,info@hairtpclinic.com,contact@hairtpclinic.com,egzona@hairtpclinic.com,fazli@hairtpclinic.com,marknad@hairtpclinic.com,kvitto@hairtpclinic.com,halso@hairtpclinic.com
       - key: ARCANA_GRAPH_SEND_ALLOWLIST
         sync: false
       - key: ARCANA_CCO_MARK_ANSWERED_CATEGORY
@@ -199,12 +199,18 @@ services:
         value: "50"
       - key: ARCANA_CCO_MAIL_INGESTION_STARTUP_RESUME_DELAY_MS
         value: "180000"
-      # När den globala schedulern är avstängd håller denna smala poller enbart
-      # kons@ synkad via read-only Graph delta (inbox + skickat).
+      # När den globala schedulern är avstängd synkar denna smala poller alla
+      # synliga CCO-mailboxar via read-only Graph delta (inkorg + skickat).
+      # Den kör fortfarande en mailbox åt gången för att inte bygga en bred
+      # Graph- eller minnestopp under den pågående stabiliseringen.
       - key: ARCANA_CCO_MAIL_INGESTION_POLL_ENABLED
         value: "true"
       - key: ARCANA_CCO_MAIL_INGESTION_POLL_INTERVAL_MINUTES
-        value: "3"
+        value: "1"
+      - key: ARCANA_CCO_MAIL_INGESTION_POLL_MAX_MAILBOXES_PER_CYCLE
+        value: "1"
+      - key: ARCANA_CCO_MAIL_INGESTION_POLL_MAILBOXES
+        value: kons@hairtpclinic.com,info@hairtpclinic.com,contact@hairtpclinic.com,egzona@hairtpclinic.com,fazli@hairtpclinic.com,marknad@hairtpclinic.com,kvitto@hairtpclinic.com,halso@hairtpclinic.com
       # One.com/externa CCO-mailboxar pollas separat och read-only. Denna
       # blueprint-flagga hindrar att en gammal dashboard-override lämnar dem
       # konfigurerade men passiva efter en omstart.
