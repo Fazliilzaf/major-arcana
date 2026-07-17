@@ -122,7 +122,7 @@ services:
         value: "true"
       # Byggfas: MFA av tills allt är klart (sätt true + owner_mfa_enforced vid go-live).
       # Webb-bokning: styrs av config.js default (true) — ingen env-override.
-      # ORD-74 2026-07-17: yaml avstämd mot Dashboard-värdenycklar; Blueprint autoSync
+      # ORD-74 2026-07-17: yaml avstämd mot Dashboard-värdenycklar; Blueprint autoSync (resume + sync trigger)
       # återupptas efter merge (pausad sedan env-wipe-incidenten 2026-06-10).
       # Om Render Dashboard fortfarande har ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false:
       # → TA BORT variabeln i Dashboard (inte ändra till true, TA BORT den).
