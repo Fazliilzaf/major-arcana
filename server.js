@@ -11638,6 +11638,7 @@ const { createTenantKnowledgeStore } = require('./src/knowledge/tenantKnowledgeS
 const { createMicrosoftGraphReadConnector } = require('./src/infra/microsoftGraphReadConnector');
 const { createMicrosoftGraphSendConnector } = require('./src/infra/microsoftGraphSendConnector');
 const { createScheduler } = require('./src/ops/scheduler');
+const { applySchedulerOverride } = require('./src/ops/schedulerOverride');
 const { createAlertNotifier } = require('./src/ops/alertNotifier');
 const { runStartupDiskGuard } = require('./src/ops/startupDiskGuard');
 const { waitForPersistentRoot } = require('./src/ops/persistentDir');
@@ -13224,6 +13225,9 @@ process.once('SIGTERM', () => {
   };
 
   const schedulerConfig = { ...config };
+  // ORD-74b: ägar-override från persistenta disken (Blueprint-sync pausad,
+  // env-editorn kräver mänsklig hand). Prod safe-mode nedan vinner alltid.
+  applySchedulerOverride(schedulerConfig, { logger: console });
   if (prodSafeMode && process.env.ARCANA_SCHEDULER_PROD_SAFE_MODE !== 'false') {
     schedulerConfig.schedulerEnabled = false;
     schedulerConfig.schedulerRunOnStartup = false;
