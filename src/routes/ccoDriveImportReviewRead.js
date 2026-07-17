@@ -67,6 +67,9 @@ function createCcoDriveImportReviewReadRouter({
 
   router.get('/cco/drive-import-review/queue', (req, res) => {
     try {
+      const queueFilter = String(req.query.queue || '').trim();
+      // Owner-117 Mer · quarantine is browse-only — no approve/reject UI.
+      const ownerBrowseOnly = queueFilter === 'owner_quarantine' || queueFilter === 'quarantine';
       const body = listQueue(
         dataDir,
         {
@@ -77,13 +80,16 @@ function createCcoDriveImportReviewReadRouter({
           matchGround: String(req.query.matchGround || 'all'),
           patientId: String(req.query.patientId || '').trim(),
           q: String(req.query.q || '').trim(),
-          queue: String(req.query.queue || '').trim(),
+          queue: queueFilter,
           quarantine: String(req.query.quarantine || '').trim(),
           limit: Number(req.query.limit) || 50,
           offset: Number(req.query.offset) || 0,
         },
-        { writeEnabled }
+        { writeEnabled: ownerBrowseOnly ? false : writeEnabled }
       );
+      if (ownerBrowseOnly) {
+        body.readOnlyOwnerQueue = true;
+      }
       return res.json(body);
     } catch (err) {
       console.error('[cco/drive-import-review/queue]', err);

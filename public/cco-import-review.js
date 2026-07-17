@@ -86,7 +86,10 @@
 
     root.querySelector('[data-source-filter]')?.addEventListener('change', (ev) => {
       sourceFilter = ev.target.value;
-      loadQueue({ reset: true }).catch(showError);
+      writeEnabled = !!summary?.writeEnabled && !isOwner117BrowseSource(sourceFilter);
+      updateModeBanner();
+      renderSummary();
+      loadQueue({ append: false }).catch(showError);
     });
     root.querySelector('[data-load-more]')?.addEventListener('click', () => {
       loadQueue({ append: true }).catch(showError);
@@ -102,6 +105,9 @@
     if (writeEnabled) {
       const rem = summary?.canary?.decisionsRemaining ?? '—';
       el.innerHTML = `<strong>CANARY WRITE PÅ</strong><p>Max 25 beslut · ${rem} kvar · endast stark kundmatch · ingen ny kund.</p>`;
+    } else if (isOwner117BrowseSource(sourceFilter)) {
+      el.innerHTML =
+        '<strong>ÄGARKÖ — ENDAST BROWSE</strong><p>Inga godkänn-, avvisa- eller autoåtgärdsknappar. Owner-117 closeout-yta.</p>';
     } else {
       el.innerHTML =
         '<strong>READ-ONLY — write AV</strong><p>Actions disabled tills ENABLE_CCO_OPERATOR_CANARY + ENABLE_IMPORT_REVIEW_WRITE.</p>';
@@ -248,9 +254,14 @@
     el.textContent = err?.message || String(err);
   }
 
+  function isOwner117BrowseSource(src) {
+    return ['getaccept', 'journal_sign', 'owner117', 'owner_queue'].includes(String(src || ''));
+  }
+
   async function loadSummary() {
     summary = await api('/summary');
-    writeEnabled = !!summary.writeEnabled;
+    // Owner-117 Mer · GetAccept / journal/sign: no beslutsknappar.
+    writeEnabled = !!summary.writeEnabled && !isOwner117BrowseSource(sourceFilter);
     renderSummary();
     updateModeBanner();
   }

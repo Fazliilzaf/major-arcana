@@ -154,7 +154,7 @@ function mapItemForUi(row, { writeEnabled = false } = {}) {
         id: 'approve_match',
         enabled: writeEnabled && strongMatch && !ownerReadOnly,
         note: ownerReadOnly
-          ? 'Ägarkö — ingen auto-approve'
+          ? 'Ägarkö — ingen godkänn/avvisa'
           : strongMatch
             ? 'Canary — ett beslut'
             : 'Kräver stark kundmatch',
@@ -162,17 +162,25 @@ function mapItemForUi(row, { writeEnabled = false } = {}) {
       {
         id: 'reject_match',
         enabled: writeEnabled && !ownerReadOnly,
-        note: writeEnabled ? 'Canary' : 'Write AV',
+        note: ownerReadOnly
+          ? 'Ägarkö — ingen godkänn/avvisa'
+          : writeEnabled
+            ? 'Canary'
+            : 'Write AV',
       },
       {
         id: 'leave_unresolved',
-        enabled: writeEnabled,
-        note: writeEnabled ? 'Canary' : 'Write AV',
+        enabled: writeEnabled && !ownerReadOnly,
+        note: ownerReadOnly ? 'Ägarkö — endast browse' : writeEnabled ? 'Canary' : 'Write AV',
       },
       {
         id: 'needs_owner_source',
-        enabled: writeEnabled,
-        note: writeEnabled ? 'Eskalera till owner' : 'Write AV',
+        enabled: writeEnabled && !ownerReadOnly,
+        note: ownerReadOnly
+          ? 'Ägarkö — endast browse'
+          : writeEnabled
+            ? 'Eskalera till owner'
+            : 'Write AV',
       },
     ],
   };

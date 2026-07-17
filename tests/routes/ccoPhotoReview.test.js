@@ -472,7 +472,8 @@ test('photo-review queue?manualUnclear=b5 filters to manual unclear ids with rea
       requireCcoAuthenticated: passAuth,
       attachRole,
       requirePermission: () => (_req, _res, next) => next(),
-      writeEnabled: false,
+      writeEnabled: true,
+      pilotConfig: { fullCohort: true, patientIds: [], maxDecisions: 25 },
       auditLog: createAudit(),
     })
   );
@@ -483,12 +484,15 @@ test('photo-review queue?manualUnclear=b5 filters to manual unclear ids with rea
       assert.equal(all.status, 200);
       const allBody = await all.json();
       assert.equal(allBody.total, 3);
+      assert.equal(allBody.writeEnabled, true);
 
       const scoped = await fetch(`${baseUrl}/photo-review/queue?manualUnclear=b5`);
       assert.equal(scoped.status, 200);
       const body = await scoped.json();
       assert.equal(body.total, 2);
       assert.equal(body.manualUnclear, 'b5');
+      assert.equal(body.writeEnabled, false);
+      assert.equal(body.readOnlyOwnerQueue, true);
       assert.deepEqual(
         body.items.map((i) => i.assetId),
         ['a-keep', 'a-zero']
