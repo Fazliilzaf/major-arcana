@@ -79,7 +79,7 @@ async function tmpStore() {
   return store;
 }
 
-test('syncFolder: importerar ekonomimail, skippar övrigt, sparar deltaLink + original', async () => {
+test('syncFolder: importerar ALLA mail (CM-4), sparar deltaLink + original', async () => {
   const cmStore = await tmpStore();
   const connector = makeFixtureConnector({
     messages: [
@@ -96,8 +96,9 @@ test('syncFolder: importerar ekonomimail, skippar övrigt, sparar deltaLink + or
 
   const result = await sync.syncFolder('kons@test.se', 'inbox');
   assert.equal(result.ok, true);
-  assert.equal(result.imported, 1);
-  assert.equal(result.skipped, 1);
+  // ORD-CM-4: "varje mail räknas" — nyhetsbrevet importeras OCKSÅ
+  assert.equal(result.imported, 2);
+  assert.equal(result.skipped, 1); // statistik: 1 icke-ekonomi
   assert.equal(result.duplicates, 0);
 
   // deltaLink persisterad
@@ -608,4 +609,116 @@ test('reextractMissingAmounts: mailMessageId-backfill via internetMessageId (ORD
   // id-lookup skedde och sparades på rawItem
   assert.ok(urls.some((u) => /\$filter=internetMessageId/.test(u)));
   assert.equal(cmStore.getRawItemById(rawItem.id).mailMessageId, 'immutable-id-777');
+});
+
+// ─── ORD-CM-5 · Undermappar + "Klara fortnox"-märkning ───
+
+test('CM-5: custom-mappar synkas och Klara fortnox-mail märks som redan bokförda', async () => {
+  const cmStore = await tmpStore();
+  const secureStorage = makeFakeSecureStorage();
+  const connector = makeFixtureConnector({ messages: [] });
+  const fetchImpl = async (url, init) => {
+    assert.equal(init?.headers?.Prefer, 'IdType="ImmutableId"');
+    if (/\/mailFolders\?/.test(url)) {
+      return {
+        ok: true,
+        async json() {
+          return {
+            value: [
+              { id: 'f-amex', displayName: 'AMEX', totalItemCount: 1 },
+              { id: 'f-klara', displayName: 'Klara fortnox', totalItemCount: 1 },
+              { id: 'f-sent', displayName: 'Skickat', totalItemCount: 99 }, // exkluderas
+            ],
+          };
+        },
+      };
+    }
+    if (/f-amex\/messages\/delta/.test(url)) {
+      return {
+        ok: true,
+        async json() {
+          return {
+            value: [
+              {
+                id: 'amex-1',
+                internetMessageId: '<amex-1@a>',
+                subject: 'Kortkvitto Amex',
+                from: { emailAddress: { address: 'noreply@amex.se' } },
+                receivedDateTime: '2026-07-01T10:00:00Z',
+                hasAttachments: false,
+                body: { content: 'Köp: 900 kr på Restaurang X, betalt med Amex-kortet.' },
+              },
+            ],
+            '@odata.deltaLink': 'https://graph/delta-amex',
+          };
+        },
+      };
+    }
+    if (/f-klara\/messages\/delta/.test(url)) {
+      return {
+        ok: true,
+        async json() {
+          return {
+            value: [
+              {
+                id: 'klar-1',
+                internetMessageId: '<klar-1@k>',
+                subject: 'Faktura Telia — bokförd',
+                from: { emailAddress: { address: 'ekonomi@telia.se' } },
+                receivedDateTime: '2026-06-01T10:00:00Z',
+                hasAttachments: false,
+                body: { content: 'Faktura: 450 kr inkl. moms. Betald och bokförd i Fortnox.' },
+              },
+            ],
+            '@odata.deltaLink': 'https://graph/delta-klara',
+          };
+        },
+      };
+    }
+    return {
+      ok: true,
+      async json() {
+        return { value: [] };
+      },
+    };
+  };
+  const sync = createCmMailSync({
+    graphReadConnector: connector,
+    cmStore,
+    secureStorage,
+    fetchImpl,
+    extractDocumentImpl: async (inp) => ({
+      ok: true,
+      extraction: {
+        documentType: /Telia/.test(inp.text) ? 'invoice' : 'receipt',
+        supplier: /Telia/.test(inp.text) ? 'Telia' : 'Restaurang X',
+        amountIncVat: /Telia/.test(inp.text) ? 450 : 900,
+        confidenceScore: 90,
+      },
+    }),
+  });
+
+  const result = await sync.syncAll('faktura@test.se');
+  const folderNames = result.folders.map((f) => f.folderType);
+  assert.ok(folderNames.includes('AMEX'));
+  assert.ok(folderNames.includes('Klara fortnox'));
+  assert.ok(!folderNames.includes('Skickat')); // exkluderad
+
+  // AMEX-kvittot är öppen kandidat
+  const amex = cmStore
+    .getInbox()
+    .concat(cmStore.getNeedsReview())
+    .find((r) => r.supplierName === 'Restaurang X');
+  assert.ok(amex);
+
+  // Klara fortnox-fakturan är märkt REDAN BOKFÖRD (exported) — inte kandidat
+  const telia = cmStore.getExported().find((r) => r.supplierName === 'Telia');
+  assert.ok(telia);
+  assert.equal(telia.externalAccountingId, 'pre-fortnox-manuell');
+
+  // Delta-cursor per mapp persisterad
+  assert.equal(
+    cmStore.getSyncState('faktura@test.se', 'custom:f-amex').deltaLink,
+    'https://graph/delta-amex'
+  );
 });

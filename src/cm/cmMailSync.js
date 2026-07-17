@@ -315,9 +315,11 @@ function createCmMailSync({
   }
 
   async function processMessage({ mailboxId, folderType, message, results, budget }) {
+    // ORD-CM-4 (ägar-regel "varje mail räknas", samma som IMAP-vägen sedan
+    // ORD-74): inget skippas — icke-ekonomimail importeras och hamnar i
+    // olöst-kön om AI:n inte hittar köpdata. skipped behålls som statistik.
     if (!isEconomyCandidate(message)) {
       results.skipped++;
-      return;
     }
 
     // ORD-72d: connectorns normaliserade delta-meddelanden bär graphMessageId
@@ -397,7 +399,26 @@ function createCmMailSync({
             rawItemId: rawItem.id,
           });
           results.records++;
-        } else if (!ex.ok) {
+          // ORD-CM-5: mail ur "Klara fortnox"-mappar är REDAN manuellt
+          // bokförda — märk exported direkt (dubblettskydd mot skarp sync).
+          if (/klara[ _-]?fortnox|bokf(ö|o)rd/i.test(folderType || '')) {
+            cmStore.markExported(record.id, { externalAccountingId: 'pre-fortnox-manuell' });
+            results.preBooked = (results.preBooked || 0) + 1;
+          }
+        } else if (ex.ok) {
+          // ORD-CM-4: "kan vi inte tyda ska vi inte hoppa" — olöst record i
+          // granska-kön (samma som reprocess/IMAP sedan ORD-74).
+          record = cmStore.createExpenseRecord({
+            rawItemId: rawItem.id,
+            documentId: harvest.firstDocument?.id || null,
+            expenseType: 'unknown',
+            supplierName: rawItem.fromEmail,
+            date: (rawItem.receivedAt || '').slice(0, 10),
+            confidenceScore: 0,
+            flags: ['NEEDS_MANUAL_REVIEW', 'LOW_CONFIDENCE_EXTRACTION'],
+          });
+          results.unresolved = (results.unresolved || 0) + 1;
+        } else {
           results.errors.push({ messageId, error: `extract: ${ex.error}` });
         }
       }
@@ -620,7 +641,116 @@ function createCmMailSync({
       all.totalDuplicates += result.duplicates || 0;
       all.totalRecords += result.records || 0;
     }
+    // ORD-CM-5: användarskapade mappar (AMEX, "Klara fortnox", …) synkas
+    // också — fakturor sorteras ofta undan från inkorgen.
+    try {
+      const custom = await syncCustomFolders(mailboxId);
+      for (const r of custom) {
+        all.folders.push(r);
+        all.totalImported += r.imported || 0;
+        all.totalDuplicates += r.duplicates || 0;
+        all.totalRecords += r.records || 0;
+      }
+    } catch (err) {
+      all.folders.push({ ok: false, folderType: 'custom', error: err.message });
+    }
     return all;
+  }
+
+  // ORD-CM-5 · Standardmappar som INTE är inköpskällor (sv + en).
+  const EXCLUDED_FOLDERS =
+    /^(inbox|inkorg|sent items?|skickat|deleted items?|borttagna objekt|drafts?|utkast|junk e?-?mail|skräppost|outbox|utkorg|archive|arkiv|conversation history|konversationshistorik|notes|anteckningar|sync issues|synkroniseringsproblem)$/i;
+
+  async function listCustomFolders(mailboxId) {
+    const accessToken = await graphReadConnector.fetchAccessToken();
+    const url =
+      `${graphReadConnector.graphBaseUrl}/users/${encodeURIComponent(mailboxId)}` +
+      `/mailFolders?$top=100&$select=id,displayName,totalItemCount`;
+    const res = await fetchImpl(url, {
+      headers: { Authorization: `Bearer ${accessToken}`, Prefer: 'IdType="ImmutableId"' },
+    });
+    if (!res.ok) throw new Error(`Graph mailFolders ${res.status}`);
+    const data = await res.json();
+    return (data?.value || []).filter(
+      (f) => f.totalItemCount > 0 && !EXCLUDED_FOLDERS.test(normalizeText(f.displayName))
+    );
+  }
+
+  // Delta-synk per användarmapp — rått Graph-anrop (connectorns delta-API
+  // stödjer bara standardmappar). Cursor per mapp i syncState.
+  async function syncCustomFolder(mailboxId, folder) {
+    const results = {
+      ok: true,
+      folderType: folder.displayName,
+      imported: 0,
+      duplicates: 0,
+      records: 0,
+      skipped: 0,
+      errors: [],
+    };
+    const stateKey = `custom:${folder.id}`;
+    const syncState = cmStore.getSyncState(mailboxId, stateKey) || {};
+    const accessToken = await graphReadConnector.fetchAccessToken();
+    let url =
+      syncState.deltaLink ||
+      `${graphReadConnector.graphBaseUrl}/users/${encodeURIComponent(mailboxId)}` +
+        `/mailFolders/${encodeURIComponent(folder.id)}/messages/delta?$top=25`;
+    const budget = { remaining: maxExtractPerSync };
+    let pages = 0;
+    try {
+      while (url && pages < MAX_PAGES_PER_RUN) {
+        pages++;
+        const res = await fetchImpl(url, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Prefer: 'IdType="ImmutableId"',
+          },
+        });
+        if (!res.ok) {
+          if (res.status === 410) {
+            cmStore.setSyncState(mailboxId, stateKey, { deltaLink: null });
+            results.errors.push({
+              error: 'delta-token ogiltig — nollställd, tas om nästa körning',
+            });
+            break;
+          }
+          throw new Error(`Graph folder-delta ${res.status}`);
+        }
+        const data = await res.json();
+        for (const message of data?.value || []) {
+          if (message['@removed']) continue;
+          await processMessage({
+            mailboxId,
+            folderType: folder.displayName,
+            message,
+            results,
+            budget,
+          });
+        }
+        if (data['@odata.deltaLink']) {
+          cmStore.setSyncState(mailboxId, stateKey, { deltaLink: data['@odata.deltaLink'] });
+          url = null;
+        } else {
+          url = data['@odata.nextLink'] || null;
+          if (!url) break;
+        }
+      }
+      await cmStore.persist();
+      return results;
+    } catch (err) {
+      results.ok = false;
+      results.errors.push({ error: err.message });
+      return results;
+    }
+  }
+
+  async function syncCustomFolders(mailboxId) {
+    const folders = await listCustomFolders(mailboxId);
+    const out = [];
+    for (const folder of folders) {
+      out.push(await syncCustomFolder(mailboxId, folder));
+    }
+    return out;
   }
 
   // ORD-72 (ägar-beställning: "läs av beloppet i inkommande mail"):
