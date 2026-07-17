@@ -36,19 +36,19 @@ function toStoredBodyHtml(value = '') {
   // data-URL får den aldrig göra shard-filen stor. CID-referenser behålls och
   // skrivs om till den lokala bilagevägen när tråden renderas.
   const preservedSmallSvgImages = [];
-  const protectedHtml = html.replace(
-    /data:image\/svg\+xml(?:;[^,"']*)?,[^"']+/gi,
-    (source) => {
-      if (source.length > 8192) return source;
-      const token = `__CCO_SMALL_SVG_${preservedSmallSvgImages.length}__`;
-      preservedSmallSvgImages.push(source);
-      return token;
-    }
-  );
+  const protectedHtml = html.replace(/data:image\/svg\+xml(?:;[^,"']*)?,[^"']+/gi, (source) => {
+    if (source.length > 8192) return source;
+    const token = `__CCO_SMALL_SVG_${preservedSmallSvgImages.length}__`;
+    preservedSmallSvgImages.push(source);
+    return token;
+  });
   const withoutEmbeddedImages = protectedHtml
     .replace(/\s(src|background)\s*=\s*(['"])\s*data:image\/[\s\S]*?\2/gi, ' $1="#"')
     .replace(/data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+/gi, '')
-    .replace(/__CCO_SMALL_SVG_(\d+)__/g, (_match, index) => preservedSmallSvgImages[Number(index)] || '');
+    .replace(
+      /__CCO_SMALL_SVG_(\d+)__/g,
+      (_match, index) => preservedSmallSvgImages[Number(index)] || ''
+    );
   return withoutEmbeddedImages.slice(0, MAX_STORED_BODY_HTML_CHARS);
 }
 
@@ -451,7 +451,8 @@ function hydrateStoredMessage(message = {}, fallbackMailboxId = '') {
   // "halva mailet" i CCO-läsytan. Svar med signatur/logga överlevde bara för att
   // deras HTML matchar img/table-grinden ovan. Text är billigt (ingen base64-
   // inline-bild), till skillnad från rik-HTML:en som spikade minnet i #646.
-  const fullBodyText = normalizeText(safeMessage.bodyText) || htmlToPlainTextForStore(sourceBodyHtml);
+  const fullBodyText =
+    normalizeText(safeMessage.bodyText) || htmlToPlainTextForStore(sourceBodyHtml);
   const cappedPreview = normalizeText(rest.bodyPreview);
   if (fullBodyText && fullBodyText.length > cappedPreview.length) {
     rest.bodyText = fullBodyText.slice(0, MAX_STORED_BODY_TEXT_CHARS);
@@ -647,7 +648,11 @@ async function createCcoMailboxTruthStore({
     ).length;
   }
 
-  if (mailboxIdsToRebuild.size > 0) {
+  // Sharded cold loads set deferConversationRebuild=true because the worklist
+  // rebuilds conversation rows from messages. Persisted shards also store
+  // conversations as {} (see toPersistedState), so an eager rebuild here was
+  // pure cold-path CPU on every ensureMailboxLoaded.
+  if (mailboxIdsToRebuild.size > 0 && deferConversationRebuild !== true) {
     for (const mailboxId of mailboxIdsToRebuild) {
       rebuildMailboxConversations(mailboxId);
     }
@@ -1100,21 +1105,18 @@ async function createCcoMailboxTruthStore({
     const safeUntilIso = normalizeText(untilIso);
     const sinceMs = safeSinceIso ? Date.parse(safeSinceIso) : NaN;
     const untilMs = safeUntilIso ? Date.parse(safeUntilIso) : NaN;
-    return Object.values(state.messages)
-      .filter((message) => {
-        const safeMessage = asObject(message);
-        const mailboxId = normalizeMailboxId(safeMessage.mailboxId);
-        const folderType = normalizeFolderType(safeMessage.folderType);
-        if (mailboxIdSet && !mailboxIdSet.has(mailboxId)) return false;
-        if (folderTypeSet && !folderTypeSet.has(folderType)) return false;
-        const sortIso = toMessageSortIso(safeMessage);
-        const sortMs = Date.parse(sortIso);
-        if (Number.isFinite(sinceMs) && (!Number.isFinite(sortMs) || sortMs < sinceMs))
-          return false;
-        if (Number.isFinite(untilMs) && (!Number.isFinite(sortMs) || sortMs > untilMs))
-          return false;
-        return true;
-      });
+    return Object.values(state.messages).filter((message) => {
+      const safeMessage = asObject(message);
+      const mailboxId = normalizeMailboxId(safeMessage.mailboxId);
+      const folderType = normalizeFolderType(safeMessage.folderType);
+      if (mailboxIdSet && !mailboxIdSet.has(mailboxId)) return false;
+      if (folderTypeSet && !folderTypeSet.has(folderType)) return false;
+      const sortIso = toMessageSortIso(safeMessage);
+      const sortMs = Date.parse(sortIso);
+      if (Number.isFinite(sinceMs) && (!Number.isFinite(sortMs) || sortMs < sinceMs)) return false;
+      if (Number.isFinite(untilMs) && (!Number.isFinite(sortMs) || sortMs > untilMs)) return false;
+      return true;
+    });
   }
 
   function listMessages({
@@ -1173,7 +1175,9 @@ async function createCcoMailboxTruthStore({
     const addSample = (sample) => {
       if (safeSampleLimit === 0) return;
       samples.push(sample);
-      samples.sort((left, right) => String(left.observedAt || '').localeCompare(String(right.observedAt || '')));
+      samples.sort((left, right) =>
+        String(left.observedAt || '').localeCompare(String(right.observedAt || ''))
+      );
       if (samples.length > safeSampleLimit) samples.pop();
     };
 
@@ -1301,7 +1305,9 @@ async function createCcoMailboxTruthStore({
       }
     }
 
-    entries.sort((left, right) => String(right.observedAt || '').localeCompare(String(left.observedAt || '')));
+    entries.sort((left, right) =>
+      String(right.observedAt || '').localeCompare(String(left.observedAt || ''))
+    );
     summary.entriesReturned = entries.length;
     return {
       mailboxIds: safeMailboxIds,
@@ -1366,6 +1372,15 @@ async function createCcoMailboxTruthStore({
         ).length,
       },
     };
+  }
+
+  function countUniqueMailboxConversations(messages = {}) {
+    const ids = new Set();
+    for (const message of Object.values(messages || {})) {
+      const id = normalizeText(message?.mailboxConversationId);
+      if (id) ids.add(id);
+    }
+    return ids.size;
   }
 
   function getCompletenessReport({ mailboxIds = [] } = {}) {
@@ -1446,7 +1461,14 @@ async function createCcoMailboxTruthStore({
         accountCount: accountReports.length,
         folderCount: Object.keys(state.folders).length,
         messageCount: Object.keys(state.messages).length,
-        conversationCount: Object.keys(state.conversations).length,
+        conversationCount: (() => {
+          const rebuiltCount = Object.keys(state.conversations).length;
+          if (rebuiltCount > 0) return rebuiltCount;
+          // When conversation rebuild is deferred, derive the same unique-id
+          // count the rebuild would have produced so consumer truthCoverage
+          // stays stable without paying cold rebuild cost.
+          return countUniqueMailboxConversations(state.messages);
+        })(),
         updatedAt: state.updatedAt || null,
       },
     };
