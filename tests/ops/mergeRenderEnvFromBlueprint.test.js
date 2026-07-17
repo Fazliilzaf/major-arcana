@@ -13,6 +13,7 @@ test('parseRenderYamlEnvDefaults läser value från render.yaml', () => {
   assert.equal(defaults.get('ARCANA_STATE_ROOT'), '/var/data');
   assert.ok(defaults.has('PUBLIC_BASE_URL'));
   assert.equal(defaults.get('ARCANA_STAFF_JOURNAL_OPEN_ACCESS'), 'false');
+  assert.equal(defaults.get('ARCANA_CCO_IMAP_POLL_ENABLED'), 'true');
   assert.ok(!defaults.has('OPENAI_API_KEY'), 'sync:false utan value ska inte ingå');
 });
 
