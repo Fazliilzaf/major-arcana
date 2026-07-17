@@ -118,6 +118,92 @@ function createCfoVoucherSyncRouter({
     }
   );
 
+  // ORD-CM-16 · Ägar-styrd gate-override (GET/POST/DELETE). Env-editorn i
+  // Render är maskinellt onåbar — detta är den granskningsbara vägen att tända
+  // gaten efter ägar-GO. Allt audit-loggas; DELETE återgår till env-styrning.
+  const fs = require('fs');
+  const path = require('path');
+  function overridePath() {
+    const root = process.env.ARCANA_STATE_ROOT || '/var/data';
+    return (
+      process.env.ARCANA_CFO_VOUCHER_SYNC_OVERRIDE_PATH ||
+      path.join(root, 'voucher-sync-override.json')
+    );
+  }
+  function auditGate(action, req, extra = {}) {
+    if (auditLog && typeof auditLog.record === 'function') {
+      try {
+        auditLog.record(action, { actor: req.ccoUser?.email || 'okänd', ...extra });
+      } catch {
+        /* audit är best-effort */
+      }
+    }
+  }
+  router.get('/cco-cf/voucher-sync/override', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
+    const p = overridePath();
+    try {
+      const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
+      return res.json({
+        ok: true,
+        exists: true,
+        voucherSyncEnabled: parsed?.voucherSyncEnabled === true,
+        path: p,
+      });
+    } catch {
+      return res.json({ ok: true, exists: false, voucherSyncEnabled: false, path: p });
+    }
+  });
+  router.post(
+    '/cco-cf/voucher-sync/override',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    express.json(),
+    (req, res) => {
+      if (req.body?.voucherSyncEnabled !== true) {
+        return res
+          .status(400)
+          .json({ ok: false, error: 'kräver { voucherSyncEnabled: true } — explicit ägar-GO' });
+      }
+      const p = overridePath();
+      try {
+        fs.writeFileSync(
+          p,
+          JSON.stringify(
+            {
+              voucherSyncEnabled: true,
+              setBy: req.ccoUser?.email || 'owner',
+              setAt: new Date().toISOString(),
+            },
+            null,
+            2
+          ) + '\n',
+          'utf8'
+        );
+      } catch (err) {
+        return res
+          .status(500)
+          .json({ ok: false, error: 'kunde inte skriva override: ' + err.message });
+      }
+      auditGate('cf.fortnox.voucher_gate_override_set', req, { path: p });
+      return res.json({ ok: true, voucherSyncEnabled: true, path: p });
+    }
+  );
+  router.delete(
+    '/cco-cf/voucher-sync/override',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    (req, res) => {
+      const p = overridePath();
+      try {
+        fs.unlinkSync(p);
+      } catch (err) {
+        if (err.code !== 'ENOENT') return res.status(500).json({ ok: false, error: err.message });
+      }
+      auditGate('cf.fortnox.voucher_gate_override_removed', req, { path: p });
+      return res.json({ ok: true, voucherSyncEnabled: false });
+    }
+  );
+
   return router;
 }
 
