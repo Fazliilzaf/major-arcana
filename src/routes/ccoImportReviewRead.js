@@ -25,7 +25,7 @@ function createCcoImportReviewReadRouter({
   }
   const router = express.Router();
   const root = projectRoot || path.join(__dirname, '../..');
-  const dataDir = path.join(root, 'data');
+  const dataDir = process.env.ARCANA_STATE_ROOT || path.join(root, 'data');
   const writeEnabled = config?.enableImportReviewWrite === true;
 
   router.use(requireCcoAuthenticated, attachRole, requirePermission('asset.review'));

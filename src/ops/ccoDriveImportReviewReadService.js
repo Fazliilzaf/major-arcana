@@ -264,6 +264,11 @@ function mapItemForUi(asset, directory, masterBucket = null) {
     mimeType: asset.mimeType || null,
     importedAt: asset.importedAt || null,
     importRunId: asset.importRunId || null,
+    reviewReason: asset.reviewReason || asset.statusChangeReason || null,
+    quarantined:
+      String(asset.reviewReason || asset.statusChangeReason || '') ===
+        'drive_source_missing_during_import' ||
+      Boolean(asset.technicalInfo?.driveImportQuarantined),
     customerCardHref: buildCustomerCardHref(asset.patientId),
     readOnly: true,
   };
@@ -305,11 +310,17 @@ function matchesFilters(item, filters) {
       item.assetId,
       item.driveFileId,
       item.suggestedPatientLabel,
+      item.reviewReason,
     ]
       .filter(Boolean)
       .join(' ')
       .toLowerCase();
     if (!hay.includes(needle)) return false;
+  }
+  if (filters.queue === 'owner_quarantine' || filters.quarantine === '1') {
+    if (!item.quarantined && item.reviewReason !== 'drive_source_missing_during_import') {
+      return false;
+    }
   }
   return true;
 }
@@ -409,6 +420,8 @@ function listQueue(dataRoot, filters = {}, { writeEnabled = false } = {}) {
       matchGround: filters.matchGround || 'all',
       patientId: filters.patientId || '',
       q: filters.q || '',
+      queue: filters.queue || '',
+      quarantine: filters.quarantine || '',
     },
     items: slice,
     writeEnabled,

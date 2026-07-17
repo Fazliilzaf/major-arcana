@@ -285,9 +285,7 @@
       op.innerHTML = `
         <strong>Operator progress</strong>
         <p class="cco-photo-review-muted">Totalt kö: ${fullQueue.length} bilder · ${new Set(fullQueue.map((i) => i.patientId)).size} kunder · filter: ${queue.length} bilder${
-          manualUnclearScope
-            ? ` · <strong>b5 manuell oklar</strong> (${escapeHtml(manualUnclearScope)})`
-            : ''
+          manualUnclearScope ? ` · <strong>b5 manuell oklar</strong> (kanonisk 15)` : ''
         }</p>
         ${
           curRow
@@ -616,13 +614,13 @@
     applyFocusPatientFromUrl();
     if (cursor >= queue.length) cursor = Math.max(0, queue.length - 1);
     writeEnabled = !!summary.writeEnabled;
-    updateProgressUI(progress, summary);
-    updateReadOnlyBanner(summary);
+    updateProgressUI(progress, summarySnapshot);
+    updateReadOnlyBanner(summarySnapshot);
     renderFilterBar();
     renderPatientList();
     renderFocus(currentItem());
     renderSessionPanel();
-    return { summary, progress };
+    return { summary: summarySnapshot, progress };
   }
 
   function updateReadOnlyBanner(summary) {

@@ -1,4 +1,4 @@
-/* global document, fetch, window */
+/* global document, fetch, window, URLSearchParams */
 'use strict';
 
 (() => {
@@ -67,9 +67,11 @@
           <h2>Kö</h2>
           <label class="cir-muted">Källa
             <select data-source-filter>
-              <option value="all">Alla (halso@ + GetAccept)</option>
-              <option value="halso">halso@</option>
+              <option value="all">Alla källor</option>
+              <option value="owner117">Ägarkö (GetAccept + journal/sign)</option>
               <option value="getaccept">GetAccept</option>
+              <option value="journal_sign">Journal/sign</option>
+              <option value="halso">halso@</option>
             </select>
           </label>
           <p class="cir-muted" data-queue-meta>—</p>
@@ -276,6 +278,20 @@
 
   async function boot() {
     renderShell();
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const src = String(params.get('source') || '').trim();
+      if (
+        src &&
+        ['all', 'halso', 'getaccept', 'journal_sign', 'owner117', 'owner_queue'].includes(src)
+      ) {
+        sourceFilter = src === 'owner_queue' ? 'owner117' : src;
+        const sel = document.querySelector('[data-source-filter]');
+        if (sel) sel.value = sourceFilter;
+      }
+    } catch {
+      /* ignore */
+    }
     await loadSummary();
     await loadQueue({ append: false });
   }
