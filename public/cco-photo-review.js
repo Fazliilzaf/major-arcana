@@ -613,7 +613,12 @@
     applyFilters();
     applyFocusPatientFromUrl();
     if (cursor >= queue.length) cursor = Math.max(0, queue.length - 1);
-    writeEnabled = !!summary.writeEnabled;
+    // Owner-117 Mer · b5: always browse-only (no Godkänn/Avvisa).
+    writeEnabled =
+      !!summary.writeEnabled && !manualUnclearScope && queueData.writeEnabled !== false;
+    if (manualUnclearScope) {
+      summarySnapshot = { ...summarySnapshot, writeEnabled: false };
+    }
     updateProgressUI(progress, summarySnapshot);
     updateReadOnlyBanner(summarySnapshot);
     renderFilterBar();

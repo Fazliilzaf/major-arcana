@@ -85,6 +85,10 @@ test('assets fallback synthesizes GetAccept + journal_sign owner rows', () => {
     const page = listQueue(tmp, { source: 'owner117', limit: 10 });
     assert.equal(page.total, 2);
     assert.ok(page.items.every((i) => i.readOnlyOwnerQueue === true));
+    assert.ok(
+      page.items.every((i) => (i.preparedActions || []).every((a) => a.enabled === false)),
+      'owner-117 browse: no enabled decide actions'
+    );
   } finally {
     if (prevAssets == null) delete process.env.ARCANA_CCO_PATIENT_ASSETS_PATH;
     else process.env.ARCANA_CCO_PATIENT_ASSETS_PATH = prevAssets;

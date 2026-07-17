@@ -159,3 +159,32 @@ test('authenticated GET queue returns 200 with fixture item', async () => {
     assert.equal(body.items[0].suggestedPatientLabel, 'Fixture Patient');
   });
 });
+
+test('owner_quarantine queue forces writeEnabled=false even when canary write is on', async () => {
+  await withFixture(async (dir) => {
+    const app = express();
+    app.use(
+      '/api/v1/ops',
+      createCcoDriveImportReviewReadRouter({
+        projectRoot: dir,
+        config: { enableDriveImportReviewWrite: true },
+        requireCcoAuthenticated: passAuth,
+        attachRole,
+        requirePermission: allowPerm,
+      })
+    );
+    const open = await get(app, '/api/v1/ops/cco/drive-import-review/queue?limit=1');
+    assert.equal(open.status, 200);
+    assert.equal((await open.json()).writeEnabled, true);
+
+    const scoped = await get(
+      app,
+      '/api/v1/ops/cco/drive-import-review/queue?queue=owner_quarantine&limit=10'
+    );
+    assert.equal(scoped.status, 200);
+    const body = await scoped.json();
+    assert.equal(body.writeEnabled, false);
+    assert.equal(body.readOnly, true);
+    assert.equal(body.readOnlyOwnerQueue, true);
+  });
+});

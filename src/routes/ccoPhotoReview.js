@@ -526,7 +526,9 @@ function createCcoPhotoReviewRouter({
           items.sort((a, b) => (order.get(a.assetId) ?? 1e9) - (order.get(b.assetId) ?? 1e9));
         }
 
-        const pilot = writeEnabled
+        // Owner-117 Mer · b5 is browse-only — never expose approve/reject here.
+        const effectiveWrite = manualScope ? false : !!writeEnabled;
+        const pilot = effectiveWrite
           ? pilotSummary(enrichedPilotConfig || {}, auditLog)
           : { active: false };
         if (pilot.active && pilot.patientIds?.length) {
@@ -535,8 +537,9 @@ function createCcoPhotoReviewRouter({
 
         res.json({
           total: items.length,
-          phase: reviewPhase(writeEnabled, pilotConfig),
-          writeEnabled: !!writeEnabled,
+          phase: reviewPhase(effectiveWrite, pilotConfig),
+          writeEnabled: effectiveWrite,
+          readOnlyOwnerQueue: manualScope ? true : undefined,
           manualUnclear: manualScope ? 'b5' : null,
           manualUnclearCounts: manualScope
             ? { ...(manualQueue?.counts || {}), canonicalVisible: items.length }

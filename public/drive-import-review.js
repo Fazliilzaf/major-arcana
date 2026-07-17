@@ -509,9 +509,12 @@
     const body = await api(`/queue${buildQuery()}`);
     queue = body.items || [];
     queueTotal = body.total || 0;
-    writeEnabled = body.writeEnabled === true;
+    // Owner-117 Mer · quarantine: browse-only even if global canary write is on.
+    const ownerBrowseOnly = filters.queue === 'owner_quarantine';
+    writeEnabled = body.writeEnabled === true && !ownerBrowseOnly;
     busy = false;
     renderRows();
+    renderReviewPanel();
   }
 
   async function boot() {
@@ -525,7 +528,7 @@
     renderShell();
     await requireReviewAuth();
     summary = await api('/summary');
-    writeEnabled = summary.writeEnabled === true;
+    writeEnabled = summary.writeEnabled === true && filters.queue !== 'owner_quarantine';
     renderModeBanner();
     renderSummary();
     renderFilters();
