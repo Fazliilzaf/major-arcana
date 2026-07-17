@@ -2381,8 +2381,16 @@ let ccoBookingCaseStore = null;
         const store = app.locals.cfoExpenseStore;
         if (!store) return res.status(503).json({ error: 'expense store not ready' });
         const q = String(req.query.status || '');
+        // ORD-CM-9: ägarvänliga statusgrupper (KPI-korten) + råa statusar
+        const GROUPS = {
+          att_hantera: ['new', 'needs_review', 'categorized'],
+          godkanda: ['approved', 'ready_for_export'],
+          exporterade: ['exported'],
+          avvisade: ['rejected'],
+        };
         const opts = {
-          status: q && q !== 'all' && q !== 'vat_review' ? q : null,
+          statuses: GROUPS[q] || null,
+          status: !GROUPS[q] && q && q !== 'all' && q !== 'vat_review' ? q : null,
           vatReview: q === 'vat_review',
         };
         const summary = store.summary();

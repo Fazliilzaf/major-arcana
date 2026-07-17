@@ -481,14 +481,16 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     return { year: d.slice(0, 4) || 'okänt', month: d.slice(5, 7) || '??' };
   }
 
-  function filterForTree(list, { status, vatReview } = {}) {
+  function filterForTree(list, { status, statuses, vatReview } = {}) {
     if (vatReview) return list.filter((e) => e.vatReviewStatus === 'pending' || e.vatSuggestion);
+    const set = Array.isArray(statuses) && statuses.length ? new Set(statuses) : null;
+    if (set) return list.filter((e) => set.has(e.status));
     if (status) return list.filter((e) => e.status === status);
     return list;
   }
 
-  function aggregateByMonth({ status, vatReview } = {}) {
-    const rows = filterForTree(data.expenses, { status, vatReview });
+  function aggregateByMonth({ status, statuses, vatReview } = {}) {
+    const rows = filterForTree(data.expenses, { status, statuses, vatReview });
     const years = new Map();
     for (const e of rows) {
       const { year, month } = expenseMonthKey(e);
@@ -513,13 +515,13 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
       }));
   }
 
-  function listMonthExpenses({ year, month, status, vatReview } = {}) {
+  function listMonthExpenses({ year, month, status, statuses, vatReview } = {}) {
     const rows = filterForTree(
       data.expenses.filter((e) => {
         const k = expenseMonthKey(e);
         return k.year === String(year) && k.month === String(month);
       }),
-      { status, vatReview }
+      { status, statuses, vatReview }
     );
     return rows.sort((a, b) =>
       String(b.date || b.createdAt).localeCompare(String(a.date || a.createdAt))

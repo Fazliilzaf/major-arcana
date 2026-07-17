@@ -1109,35 +1109,7 @@
             <button class="btn btn--primary" data-action="expense-export">Bygg exportpaket</button>
           </div>
         </h2>
-        <div class="filters" id="expense-filter-pills">
-          <span class="pill active" data-expstatus="all"
-            >Alla <span class="count" id="ec-all">0</span></span
-          >
-          <span class="pill" data-expstatus="new"
-            >Nya <span class="count" id="ec-new">0</span></span
-          >
-          <span class="pill" data-expstatus="needs_review"
-            >Behöver granskas <span class="count" id="ec-needs_review">0</span></span
-          >
-          <span class="pill" data-expstatus="categorized"
-            >Kategoriserade <span class="count" id="ec-categorized">0</span></span
-          >
-          <span class="pill" data-expstatus="approved"
-            >Godkända <span class="count" id="ec-approved">0</span></span
-          >
-          <span class="pill" data-expstatus="ready_for_export"
-            >Redo för export <span class="count" id="ec-ready_for_export">0</span></span
-          >
-          <span class="pill" data-expstatus="exported"
-            >Exporterade <span class="count" id="ec-exported">0</span></span
-          >
-          <span class="pill" data-expstatus="rejected"
-            >Avvisade <span class="count" id="ec-rejected">0</span></span
-          >
-          <span class="pill" data-expstatus="vat_review"
-            >Moms granska <span class="count" id="ec-vat_review">0</span></span
-          >
-        </div>
+        <div class="kpis" id="exp-kpis" style="margin-bottom: 6px"></div>
         <div id="expense-export-result" class="exp-export-result"></div>
         <div id="exp-crumb" class="receipt-meta" style="margin: 0 4px 10px"></div>
         <div class="kpis" id="exp-cards" style="display: none"></div>
@@ -1748,22 +1720,7 @@
               return;
             }
             expTräd = await tr.json();
-            const s = expTräd.summary || {};
-            $('ec-all').textContent = s.total || 0;
-            for (const k of [
-              'new',
-              'needs_review',
-              'categorized',
-              'approved',
-              'ready_for_export',
-              'exported',
-              'rejected',
-            ]) {
-              const el = $('ec-' + k);
-              if (el) el.textContent = s.byStatus?.[k] || 0;
-            }
-            const vatEl = $('ec-vat_review');
-            if (vatEl) vatEl.textContent = s.vatReviewPendingCount || 0;
+            ritaExpKpis(expTräd.summary || {});
             allExpenses = [];
             if (mr) {
               if (!mr.ok) {
@@ -1830,6 +1787,69 @@
       </div>`;
         }
 
+        const EXP_FILTER_ETIKETT = {
+          att_hantera: 'Att hantera',
+          godkanda: 'Godkända',
+          exporterade: 'Bokförda',
+          avvisade: 'Avvisade',
+          vat_review: 'Moms att granska',
+        };
+        function ritaExpKpis(s) {
+          const el = $('exp-kpis');
+          if (!el) return;
+          const by = s.byStatus || {};
+          const kort = [
+            {
+              label: 'Att hantera',
+              value: (by.new || 0) + (by.needs_review || 0) + (by.categorized || 0),
+              filter: 'att_hantera',
+              cls:
+                (by.new || 0) + (by.needs_review || 0) + (by.categorized || 0) > 0
+                  ? ' kpi--warn'
+                  : '',
+            },
+            {
+              label: 'Godkända',
+              value: (by.approved || 0) + (by.ready_for_export || 0),
+              filter: 'godkanda',
+              cls: '',
+            },
+            { label: 'Bokförda', value: by.exported || 0, filter: 'exporterade', cls: ' kpi--ok' },
+            { label: 'Avvisade', value: by.rejected || 0, filter: 'avvisade', cls: '' },
+          ];
+          if ((s.vatReviewPendingCount || 0) > 0)
+            kort.push({
+              label: 'Moms att granska',
+              value: s.vatReviewPendingCount,
+              filter: 'vat_review',
+              cls: ' kpi--warn',
+            });
+          el.innerHTML = kort
+            .map(
+              (k) =>
+                '<div class="kpi kpi--click' +
+                k.cls +
+                '" data-exp-filter="' +
+                k.filter +
+                '"><div class="kpi-label">' +
+                k.label +
+                (expFilter === k.filter ? ' ✓' : '') +
+                '</div><div class="kpi-value">' +
+                k.value +
+                '</div></div>'
+            )
+            .join('');
+          el.querySelectorAll('[data-exp-filter]').forEach((c) =>
+            c.addEventListener('click', () => {
+              const f = c.getAttribute('data-exp-filter');
+              expFilter = expFilter === f ? 'all' : f;
+              expVy.year = null;
+              expVy.month = null;
+              loadExpenses();
+            })
+          );
+        }
+
         function expRitaCrumb() {
           const crumbEl = $('exp-crumb');
           if (!crumbEl) return;
@@ -1847,6 +1867,11 @@
                 '</strong>';
             else html += '<strong style="margin-left:6px">' + esc(expVy.year) + '</strong>';
           } else html = 'Välj ett år — sedan månad — så ser du utgifterna dag för dag.';
+          if (EXP_FILTER_ETIKETT[expFilter])
+            html +=
+              ' <span style="margin-left:8px">(endast ' +
+              EXP_FILTER_ETIKETT[expFilter] +
+              ')</span>';
           crumbEl.innerHTML = html;
           crumbEl.querySelectorAll('[data-exp-nav]').forEach((b) =>
             b.addEventListener('click', () => {
@@ -1920,12 +1945,7 @@
             return;
           }
           cardsEl.style.display = 'none';
-          const filtered =
-            expFilter === 'all'
-              ? allExpenses
-              : expFilter === 'vat_review'
-                ? allExpenses.filter((e) => e.vatReviewStatus === 'pending' || e.vatSuggestion)
-                : allExpenses.filter((e) => e.status === expFilter);
+          const filtered = allExpenses;
           $('expense-count').textContent = `${filtered.length} utgifter`;
           if (filtered.length === 0) {
             $('expenses-list').innerHTML =
@@ -2164,18 +2184,6 @@
             alert('Fel: ' + err.message);
           }
         }
-
-        // Expense filter pills
-        document.getElementById('expense-filter-pills').addEventListener('click', (e) => {
-          const pill = e.target.closest('.pill[data-expstatus]');
-          if (!pill) return;
-          document
-            .querySelectorAll('#expense-filter-pills .pill')
-            .forEach((p) => p.classList.remove('active'));
-          pill.classList.add('active');
-          expFilter = pill.dataset.expstatus;
-          loadExpenses();
-        });
 
         // CF.6: VAT-action-delegation
         document.getElementById('expenses-list').addEventListener('click', async (ev) => {
