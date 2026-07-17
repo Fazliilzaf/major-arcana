@@ -100,16 +100,23 @@ function createCcoAuditLog({ filePath, maxCacheSize = MAX_CACHE_SIZE } = {}) {
     try {
       const raw = fs.readFileSync(filePath, 'utf8');
       const lines = raw.split('\n').filter(Boolean);
-      cache = lines.slice(-maxCacheSize).map((l) => {
-        try { return JSON.parse(l); } catch { return null; }
-      }).filter(Boolean);
+      cache = lines
+        .slice(-maxCacheSize)
+        .map((l) => {
+          try {
+            return JSON.parse(l);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
     } catch {
       cache = [];
     }
   }
   loadFromDisk();
 
-  function append(event = {}) {
+  function appendEntry(event = {}, { strict = false } = {}) {
     const entry = {
       ts: event.ts || new Date().toISOString(),
       actor: {
@@ -133,8 +140,19 @@ function createCcoAuditLog({ filePath, maxCacheSize = MAX_CACHE_SIZE } = {}) {
       if (cache.length > maxCacheSize) cache = cache.slice(-maxCacheSize);
     } catch (err) {
       console.error('[cco-audit] write failed:', err.message);
+      if (strict) throw err;
     }
     return entry;
+  }
+
+  function append(event = {}) {
+    return appendEntry(event);
+  }
+
+  // Mutations that must fail closed use this variant. Legacy callers keep the
+  // best-effort append contract above until they are migrated explicitly.
+  function appendStrict(event = {}) {
+    return appendEntry(event, { strict: true });
   }
 
   function query({ limit = 100, since = null, action = null, role = null, targetId = null } = {}) {
@@ -171,7 +189,7 @@ function createCcoAuditLog({ filePath, maxCacheSize = MAX_CACHE_SIZE } = {}) {
     };
   }
 
-  return { append, query, stats, _reload: loadFromDisk };
+  return { append, appendStrict, query, stats, _reload: loadFromDisk };
 }
 
 /**
@@ -188,7 +206,10 @@ function auditMiddleware(log, action) {
         actor: {
           role: req.cco?.role || req.auth?.role || 'unknown',
           userId: req.auth?.userId || null,
-          ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim(),
+          ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+            .toString()
+            .split(',')[0]
+            .trim(),
         },
         target: {
           kind: req.params?.id ? 'entity' : 'collection',

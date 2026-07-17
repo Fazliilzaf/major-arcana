@@ -13844,6 +13844,7 @@ process.once('SIGTERM', () => {
       authStore,
       config,
       graphSendConnector,
+      auditLog: ccoAuditLog,
     })
   );
 

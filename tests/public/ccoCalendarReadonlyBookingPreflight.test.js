@@ -120,7 +120,7 @@ test('read-only preflight exposes every operational safety gate and no mutation 
 
   const block = source.slice(
     source.indexOf('function buildReadonlyBookingPreflight'),
-    source.indexOf('// ─── Drawer rendering')
+    source.indexOf('function createBookingIdempotencyKey')
   );
   assert.doesNotMatch(
     block,
@@ -132,7 +132,7 @@ test('read-only preflight exposes every operational safety gate and no mutation 
     source.indexOf('global.CcoKalenderShell = isReadOnlyMode()') <
       source.indexOf("document.addEventListener('DOMContentLoaded', init)")
   );
-  assert.match(html, /cco-kalender-shell\.js\?v=20260717h/);
+  assert.match(html, /cco-kalender-shell\.js\?v=20260717i/);
   assert.match(visualFixture, /window\.CcoKalenderShell\.renderDrawer/);
   assert.match(visualFixture, /window\.CCO_CALENDAR_READ_ONLY = true/);
   assert.doesNotMatch(visualFixture, /fetch\s*\(|method\s*:\s*['"]POST/);

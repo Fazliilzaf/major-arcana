@@ -877,6 +877,12 @@ function normalizeBookingRecord(input = {}, { services = [], resources = [] } = 
     source: normalizeText(safe.source) || 'cco_engine',
     ownerUserId: normalizeText(safe.ownerUserId),
     ownerName: normalizeText(safe.ownerName),
+    canonicalPatientId: normalizeText(safe.canonicalPatientId || safe.patientId),
+    encounterId: normalizeText(safe.encounterId),
+    practitionerId: normalizeText(safe.practitionerId),
+    practitionerLabel: normalizeText(safe.practitionerLabel),
+    idempotencyKey: normalizeText(safe.idempotencyKey),
+    requestFingerprint: normalizeText(safe.requestFingerprint),
     confirmedAt: normalizeIso(safe.confirmedAt) || nowIso(),
     cancelledAt: normalizeIso(safe.cancelledAt),
     cancellationReason: normalizeText(safe.cancellationReason),
@@ -1109,6 +1115,9 @@ async function createCcoBookingEngineStore({ filePath }) {
     state.updatedAt = nowIso();
     await writeJsonAtomic(filePath, state);
   }
+
+  const createBookingInflight = new Map();
+  let createBookingMutationTail = Promise.resolve();
 
   if (
     migrated ||
@@ -1581,6 +1590,12 @@ async function createCcoBookingEngineStore({ filePath }) {
         customerName: input.customerName,
         ownerUserId: input.ownerUserId,
         ownerName: input.ownerName,
+        canonicalPatientId: input.canonicalPatientId || input.patientId,
+        encounterId: input.encounterId,
+        practitionerId: input.practitionerId,
+        practitionerLabel: input.practitionerLabel,
+        idempotencyKey: input.idempotencyKey,
+        requestFingerprint: input.requestFingerprint,
         slot,
         status: 'confirmed',
         confirmedAt: nowIso(),
@@ -1596,6 +1611,71 @@ async function createCcoBookingEngineStore({ filePath }) {
     }
     await save();
     return clone(bookingRecord);
+  }
+
+  function findBookingByIdempotency({ tenantId, idempotencyKey } = {}) {
+    const tenant = normalizeText(tenantId);
+    const key = normalizeText(idempotencyKey);
+    if (!tenant || !key) return null;
+    const booking = state.bookings.find(
+      (item) =>
+        item.tenantId === tenant &&
+        item.idempotencyKey === key &&
+        normalizeKey(item.status) === 'confirmed'
+    );
+    return booking ? clone(booking) : null;
+  }
+
+  async function reserveAndConfirmIdempotent(input = {}, { onCommitted } = {}) {
+    const tenantId = normalizeText(input.tenantId);
+    const idempotencyKey = normalizeText(input.idempotencyKey);
+    const requestFingerprint = normalizeText(input.requestFingerprint);
+    if (!tenantId || !idempotencyKey || !requestFingerprint) {
+      const error = new Error('Idempotency-key och request fingerprint krävs.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const existing = findBookingByIdempotency({ tenantId, idempotencyKey });
+    if (existing) {
+      if (existing.requestFingerprint !== requestFingerprint) {
+        const error = new Error('Idempotency-key har redan använts med annat bokningsunderlag.');
+        error.statusCode = 409;
+        error.metadata = { code: 'idempotency_payload_mismatch' };
+        throw error;
+      }
+      return { booking: existing, replayed: true, compensated: false };
+    }
+
+    const inflightKey = `${tenantId}:${idempotencyKey}`;
+    if (createBookingInflight.has(inflightKey)) return createBookingInflight.get(inflightKey);
+
+    const mutate = async () => {
+      const snapshot = clone(state);
+      try {
+        await reserveSlots(input);
+        const booking = await confirmBooking(input);
+        if (typeof onCommitted === 'function') await onCommitted(clone(booking));
+        return { booking, replayed: false, compensated: false };
+      } catch (error) {
+        Object.keys(state).forEach((key) => delete state[key]);
+        Object.assign(state, snapshot);
+        await save();
+        error.metadata = { ...(error.metadata || {}), compensated: true };
+        throw error;
+      }
+    };
+    // The compensation snapshot covers the complete booking-engine state.
+    // Serialize distinct create operations so one rollback can never undo a
+    // successful concurrent booking with another idempotency key.
+    const operation = createBookingMutationTail.then(mutate, mutate);
+    createBookingMutationTail = operation.catch(() => {});
+    createBookingInflight.set(inflightKey, operation);
+    try {
+      return await operation;
+    } finally {
+      createBookingInflight.delete(inflightKey);
+    }
   }
 
   async function cancelBooking(input = {}) {
@@ -1740,6 +1820,8 @@ async function createCcoBookingEngineStore({ filePath }) {
     renewReservations,
     getActiveReservations,
     confirmBooking,
+    findBookingByIdempotency,
+    reserveAndConfirmIdempotent,
     cancelBooking,
     rebookBooking,
     getCaseSummary,
