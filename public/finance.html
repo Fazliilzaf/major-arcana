@@ -1678,7 +1678,8 @@
         let expFilter = 'all';
         let openExpenseId = null;
         // ORD-CM-8 · pyramid-lager för utgifts-inkorgen: år → månad → dag
-        const expVy = { year: null, month: null };
+        // auto: hoppa direkt in i enda året/månaden (ORD-CM-12) — stängs av vid upp-navigering
+        const expVy = { year: null, month: null, auto: true };
         let expTräd = null;
         const EXP_MÅN = {
           '01': 'Januari',
@@ -1863,6 +1864,7 @@
               expFilter = expFilter === f ? 'all' : f;
               expVy.year = null;
               expVy.month = null;
+              expVy.auto = true;
               loadExpenses();
             })
           );
@@ -1893,6 +1895,7 @@
           crumbEl.innerHTML = html;
           crumbEl.querySelectorAll('[data-exp-nav]').forEach((b) =>
             b.addEventListener('click', () => {
+              expVy.auto = false;
               if (b.getAttribute('data-exp-nav') === 'hem') {
                 expVy.year = null;
                 expVy.month = null;
@@ -1903,6 +1906,20 @@
         }
 
         function renderExpenses() {
+          // ORD-CM-12 · auto-drill: ett enda år → gå in; en enda månad → visa raderna direkt.
+          if (expVy.auto && expTräd && expTräd.years && expTräd.years.length) {
+            if (!expVy.year && expTräd.years.length === 1) expVy.year = expTräd.years[0].year;
+            if (expVy.year && !expVy.month) {
+              const y = expTräd.years.find((x) => x.year === expVy.year);
+              if (y && y.months.length === 1) {
+                expVy.month = y.months[0].month;
+                expVy.auto = false;
+                loadExpenses();
+                return;
+              }
+            }
+            if (expVy.year) expVy.auto = false;
+          }
           expRitaCrumb();
           const cardsEl = $('exp-cards');
           if (!expVy.year || !expVy.month) {
@@ -2900,7 +2917,7 @@
         const crumb = document.getElementById('cmi-crumb');
         if (!list || !kpis || !countEl || !cards || !crumb) return;
         // ORD-CM-7 · samma pyramid som klumphanteringen: status → år → månad → dag
-        const vy = { status: 'all', year: null, month: null };
+        const vy = { status: 'all', year: null, month: null, auto: true };
         let träd = null;
         const kr = (n) => (Math.round(n) || 0).toLocaleString('sv-SE') + ' kr';
         const MÅN = {
@@ -2973,6 +2990,7 @@
                 vy.status = vy.status === f ? 'all' : f;
                 vy.year = null;
                 vy.month = null;
+                vy.auto = true;
                 loadCm();
               })
             );
@@ -3058,6 +3076,7 @@
           crumb.innerHTML = html;
           crumb.querySelectorAll('[data-nav]').forEach((b) =>
             b.addEventListener('click', () => {
+              vy.auto = false;
               if (b.getAttribute('data-nav') === 'hem') {
                 vy.year = null;
                 vy.month = null;
@@ -3067,6 +3086,15 @@
           );
         }
         function rita() {
+          // ORD-CM-12 · auto-drill in i enda året/månaden
+          if (vy.auto && träd && träd.years && träd.years.length) {
+            if (!vy.year && träd.years.length === 1) vy.year = träd.years[0].year;
+            if (vy.year) {
+              const y = träd.years.find((x) => x.year === vy.year);
+              if (!vy.month && y && y.months.length === 1) vy.month = y.months[0].month;
+              vy.auto = false;
+            }
+          }
           ritaCrumb();
           if (!träd || !träd.years || !träd.years.length) {
             cards.style.display = 'none';
@@ -3391,7 +3419,7 @@
           'ovrigt',
         ];
         let träd = null;
-        const vy = { year: null, month: null };
+        const vy = { year: null, month: null, auto: true };
         function esc(x) {
           const d = document.createElement('div');
           d.textContent = x == null ? '' : String(x);
@@ -3438,6 +3466,7 @@
           crumb.innerHTML = html;
           crumb.querySelectorAll('[data-nav]').forEach((b) =>
             b.addEventListener('click', () => {
+              vy.auto = false;
               if (b.getAttribute('data-nav') === 'hem') {
                 vy.year = null;
                 vy.month = null;
@@ -3448,6 +3477,15 @@
         }
 
         function rita() {
+          // ORD-CM-12 · auto-drill in i enda året/månaden
+          if (vy.auto && träd && träd.years && träd.years.length) {
+            if (!vy.year && träd.years.length === 1) vy.year = träd.years[0].year;
+            if (vy.year) {
+              const y = träd.years.find((x) => x.year === vy.year);
+              if (!vy.month && y && y.months.length === 1) vy.month = y.months[0].month;
+              vy.auto = false;
+            }
+          }
           ritaCrumb();
           if (!träd) return;
           if (!vy.year) return ritaÅr();
