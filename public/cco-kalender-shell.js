@@ -163,9 +163,15 @@
       status: visit.status || 'confirmed',
       serviceId: visit.serviceId || '',
       serviceLabel: visit.serviceName || visit.title || 'Bokning',
+      treatmentPresent: Boolean(visit.serviceName || visit.title || visit.serviceId),
       resourceId: visit.resourceLabel || '_unassigned',
       resourceLabel: visit.resourceLabel || 'Ej tilldelad',
+      staffName: visit.staffName || visit.staff || '',
+      practitioner: visit.practitioner || visit.providerName || visit.staffName || visit.staff || '',
       source: visit.source || '',
+      identityMatchStatus: visit.identityMatchStatus || visit.matchStatus || '',
+      identityAmbiguous: visit.identityAmbiguous === true,
+      linkAllowed: visit.linkAllowed !== false,
       notes: visit.notes || '',
       bookingNotes: visit.bookingNotes || '',
       customerMessage: visit.customerMessage || '',
@@ -507,6 +513,7 @@
         class: 'cco-cal-open-patient', type: 'button', onclick: () => openCanonicalPatient(slot.patientId),
       }, 'Öppna samma patient i Kunder V11/V12'));
     }
+    drawer.appendChild(renderReadonlyBookingPreflight(slot));
     const noteFields = [
       ['Bokningsanteckning', slot.bookingNotes || slot.notes],
       ['Kundmeddelande', slot.customerMessage],
@@ -521,6 +528,129 @@
       el('strong', {}, label), el('p', {}, value),
     ])));
     drawer.appendChild(notes);
+  }
+
+  function readonlyGate(key, label, passed, detail) {
+    return {
+      key,
+      label,
+      status: passed === true ? 'pass' : 'blocked',
+      detail,
+    };
+  }
+
+  function buildReadonlyBookingPreflight(slot = {}) {
+    const matchStatus = String(slot.identityMatchStatus || '').trim().toLowerCase();
+    const identityAmbiguous = slot.identityAmbiguous === true || slot.linkAllowed === false ||
+      ['ambiguous', 'collision', 'review_required', 'multiple_matches'].includes(matchStatus);
+    const patientId = identityAmbiguous ? '' : String(slot.patientId || '').trim();
+    const patientName = String(slot.patientName || '').trim();
+    const treatment = String(slot.serviceLabel || slot.serviceId || '').trim();
+    const hasTreatment = slot.treatmentPresent !== false && Boolean(treatment);
+    const resource = String(slot.resourceLabel || slot.resourceId || '').trim();
+    const practitioner = String(
+      slot.practitioner || slot.staffName || slot.providerName || ''
+    ).trim();
+    const bookingId = String(slot.bookingId || '').trim();
+    const encounterId = String(slot.encounterId || '').trim();
+    const timestamp = stockholmParts(slot.startsAt || slot.startAt || '');
+    const hasCanonicalTime = Boolean(timestamp.date && timestamp.time);
+    const timeLabel = hasCanonicalTime
+      ? timestamp.date + ' kl ' + timestamp.time + ' · Europe/Stockholm'
+      : 'Saknas eller är ogiltig';
+    const providerKey = String(slot.source || '').trim().toLowerCase();
+    const providerLabel = sourceLabel(slot.source) || 'Okänd provider';
+    const providerDetail = providerKey.includes('cliento')
+      ? 'Cliento write-adapter saknas.'
+      : providerKey.includes('cco')
+        ? 'CCO booking engine är spärrad i denna fas.'
+        : 'Provider saknar verifierat write-kontrakt.';
+
+    const gates = [
+      readonlyGate('canonical_patient', 'Canonical patientId', Boolean(patientId),
+        patientId ? 'Canonical patient är verifierad.' : 'Saknas; ingen patientkoppling får gissas.'),
+      readonlyGate('identity_unambiguous', 'Entydig identitet', !identityAmbiguous,
+        identityAmbiguous ? 'Identitetsmatchningen är tvetydig eller blockerad.' : 'Ingen tvetydighet markerad.'),
+      readonlyGate('booking_reference', 'Canonical bokningsreferens', Boolean(bookingId),
+        bookingId ? 'Bokningsreferens finns.' : 'Bokningsreferens saknas.'),
+      readonlyGate('treatment', 'Behandling', hasTreatment,
+        hasTreatment ? 'Behandling finns i canonical besöksdata.' : 'Behandling saknas.'),
+      readonlyGate('resource', 'Resurs', Boolean(resource && resource !== '_unassigned' && resource !== 'Ej tilldelad'),
+        resource && resource !== '_unassigned' && resource !== 'Ej tilldelad' ? 'Resurs finns.' : 'Resurs saknas eller är ej tilldelad.'),
+      readonlyGate('practitioner', 'Vårdgivare', Boolean(practitioner && practitioner !== 'Ej tilldelad'),
+        practitioner && practitioner !== 'Ej tilldelad' ? 'Vårdgivare finns.' : 'Vårdgivare saknas.'),
+      readonlyGate('stockholm_time', 'Europe/Stockholm-tid', hasCanonicalTime,
+        hasCanonicalTime ? 'Tiden är beräknad från canonical timestamp.' : 'Canonical timestamp saknas eller är ogiltig.'),
+      readonlyGate('encounter_policy', 'Besökstillfälle', Boolean(encounterId),
+        encounterId ? 'Canonical encounterId finns.' : 'Encounter saknas; explicit pre-visit-policy krävs före write.'),
+      readonlyGate('provider_write_contract', 'Provider-write', false, providerDetail),
+      readonlyGate('write_permission', 'Behörighet bookings.write', false,
+        'Explicit fail-closed write-behörighet är inte aktiverad.'),
+      readonlyGate('idempotency', 'Idempotency', false,
+        'Obligatorisk idempotency-key och request fingerprint saknas.'),
+      readonlyGate('append_only_audit', 'Append-only audit', false,
+        'Requested, committed, failed och compensated audit saknas.'),
+      readonlyGate('recovery', 'Återställning', false,
+        'Testad rollback eller kompensation saknas.'),
+    ];
+
+    return {
+      readOnly: true,
+      zeroWrites: true,
+      actionAllowed: false,
+      identityState: identityAmbiguous ? 'ambiguous' : patientId ? 'canonical' : 'missing',
+      provider: providerLabel,
+      fields: [
+        ['Canonical patient', patientName || 'Namn saknas'],
+        ['Canonical patientId', patientId || (identityAmbiguous ? 'Tvetydig · okopplad' : 'Saknas')],
+        ['Behandling', hasTreatment ? treatment : 'Saknas'],
+        ['Resurs', resource && resource !== '_unassigned' ? resource : 'Saknas'],
+        ['Vårdgivare', practitioner || 'Saknas'],
+        ['Tid', timeLabel],
+        ['Provider', providerLabel],
+      ],
+      gates,
+      blockers: gates.filter((gate) => gate.status === 'blocked'),
+    };
+  }
+
+  function renderReadonlyBookingPreflight(slot) {
+    const preflight = buildReadonlyBookingPreflight(slot);
+    const fields = el('dl', { class: 'cco-cal-preflight-fields' });
+    preflight.fields.forEach(([label, value]) => {
+      fields.appendChild(el('dt', {}, label));
+      fields.appendChild(el('dd', {}, value));
+    });
+    const gates = el('ul', { class: 'cco-cal-preflight-gates' });
+    preflight.gates.forEach((gate) => {
+      const passed = gate.status === 'pass';
+      gates.appendChild(el('li', { class: passed ? 'is-pass' : 'is-blocked' }, [
+        el('span', { 'aria-hidden': 'true' }, passed ? '✓' : '!'),
+        el('div', {}, [el('strong', {}, gate.label), el('p', {}, gate.detail)]),
+      ]));
+    });
+    return el('section', {
+      class: 'cco-cal-preflight',
+      'aria-label': 'Read-only boknings-preflight',
+      dataset: { readOnly: 'true', zeroWrites: 'true', actionAllowed: 'false' },
+    }, [
+      el('header', {}, [
+        el('div', {}, [
+          el('span', { class: 'cco-cal-preflight-kicker' }, 'READ-ONLY · 0 WRITES'),
+          el('h4', {}, 'Boknings-preflight'),
+        ]),
+        el('span', { class: 'cco-cal-preflight-stop' }, 'BLOCKERAD'),
+      ]),
+      preflight.identityState === 'ambiguous'
+        ? el('p', { class: 'cco-cal-preflight-warning' },
+          'Tvetydig identitet. Posten förblir okopplad och får aldrig kopplas genom gissning.')
+        : null,
+      fields,
+      el('h5', {}, 'Säkerhetsgrindar'),
+      gates,
+      el('p', { class: 'cco-cal-preflight-footnote' },
+        'Ingen bekräftelse, flytt eller avbokning är tillgänglig i denna fas.'),
+    ]);
   }
 
   // ─── Drawer rendering (delas mellan desktop right-col + mobile bottom-sheet) ──
@@ -1516,14 +1646,15 @@
     }
   }
 
+  global.CcoKalenderShell = isReadOnlyMode()
+    ? { loadDay, loadWeek, applyView, renderDrawer: renderReadonlyDrawer,
+        buildCanonicalSidebarSummary, canonicalConflictCount, buildReadonlyBookingPreflight }
+    : { loadDay, loadWeek, applyView, renderDrawer, openCreateBookingModal };
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
 
-  global.CcoKalenderShell = isReadOnlyMode()
-    ? { loadDay, loadWeek, applyView, renderDrawer: renderReadonlyDrawer,
-        buildCanonicalSidebarSummary, canonicalConflictCount }
-    : { loadDay, loadWeek, applyView, renderDrawer, openCreateBookingModal };
 })(window);
