@@ -173,6 +173,7 @@
       treatmentNotes: visit.treatmentNotes || '',
       startsAt: visit.startsAt || visit.startAt || '',
       endsAt: visit.endsAt || '',
+      durationMinutes: visit.durationMinutes || visit.duration || null,
     };
   }
 
@@ -224,6 +225,63 @@
       days.push(canonicalDayView(date, visits));
     }
     return { startDate, days, totalSlots: days.reduce((sum, day) => sum + day.totalSlots, 0) };
+  }
+
+  function isReturnVisit(slot) {
+    const value = [slot?.serviceId, slot?.serviceLabel]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return /follow_up|uppf[oö]lj|[aå]terbes[oö]k|kontroll/.test(value);
+  }
+
+  function canonicalConflictCount(visits) {
+    const active = (visits || []).filter((slot) =>
+      !['cancelled', 'canceled', 'no_show'].includes(String(slot.status || '').toLowerCase()));
+    if (active.length < 2) return 0;
+    const intervals = active.map((slot) => {
+      const start = Date.parse(slot.startsAt || '');
+      let end = Date.parse(slot.endsAt || '');
+      if (!Number.isFinite(end) && Number.isFinite(Number(slot.durationMinutes))) {
+        end = start + Number(slot.durationMinutes) * 60000;
+      }
+      const resourceId = String(slot.resourceId || '').trim();
+      if (!resourceId || resourceId === '_unassigned' || !Number.isFinite(start) ||
+          !Number.isFinite(end) || end <= start) return null;
+      return { id: slot.id, resourceId, start, end };
+    });
+    if (intervals.some((interval) => interval == null)) return null;
+    const conflicting = new Set();
+    for (let left = 0; left < intervals.length; left += 1) {
+      for (let right = left + 1; right < intervals.length; right += 1) {
+        const a = intervals[left];
+        const b = intervals[right];
+        if (a.resourceId === b.resourceId && a.start < b.end && b.start < a.end) {
+          conflicting.add(a.id || left);
+          conflicting.add(b.id || right);
+        }
+      }
+    }
+    return conflicting.size;
+  }
+
+  function buildCanonicalSidebarSummary(date, visits) {
+    const selectedDate = date || isoToday();
+    const weekStart = startOfWeek(selectedDate);
+    const weekEnd = new Date(weekStart + 'T12:00:00.000Z');
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+    const weekEndKey = weekEnd.toISOString().slice(0, 10);
+    const tomorrow = new Date(selectedDate + 'T12:00:00.000Z');
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const tomorrowKey = tomorrow.toISOString().slice(0, 10);
+    const rows = Array.isArray(visits) ? visits : [];
+    const selected = rows.filter((slot) => slot.date === selectedDate);
+    return {
+      tomorrow: rows.filter((slot) => slot.date === tomorrowKey).length,
+      week: rows.filter((slot) => slot.date >= weekStart && slot.date <= weekEndKey).length,
+      conflicts: canonicalConflictCount(selected),
+      returnVisits: selected.filter(isReturnVisit).length,
+    };
   }
 
   function openCanonicalPatient(patientId) {
@@ -658,7 +716,7 @@
       fixture.remove();
     });
     document.querySelectorAll('.side-link .count').forEach((count) => {
-      count.textContent = '—';
+      count.textContent = '…';
     });
     const status = document.querySelector('.calendar-status-bar');
     if (status) {
@@ -802,8 +860,6 @@
       resource.resourceId !== '_unassigned').length);
     updateSideCount('Bekräftade', dayView.confirmedBookings || 0);
     updateSideCount('Tentativa', dayView.pendingReservations || 0);
-    updateSideCount('Konflikt', null);
-    updateSideCount('Återbesök', null);
     renderLiveStatus({
       label: dayView.date || 'Dag',
       total: dayView.totalSlots,
@@ -813,23 +869,30 @@
     });
   }
 
-  async function refreshWeekSummary(date, tenantId, role) {
+  function renderCanonicalSidebarSummary(summary) {
+    updateSideCount('Imorgon', summary.tomorrow);
+    updateSideCount('Veckan', summary.week);
+    updateSideCount('Konflikt', summary.conflicts == null ? 'inga data' : summary.conflicts);
+    updateSideCount('Återbesök', summary.returnVisits);
+  }
+
+  async function refreshCanonicalSidebarSummary(date, tenantId, role) {
     if (!isReadOnlyMode()) return;
     try {
-      const startDate = startOfWeek(date || isoToday());
-      const response = await fetch(
-        '/api/v1/calendar/week?startDate=' + encodeURIComponent(startDate),
-        { headers: calendarHeaders({ tenantId, role }) }
-      );
-      if (!response.ok) return;
-      const weekView = await response.json();
-      const tomorrow = new Date((date || isoToday()) + 'T12:00:00.000Z');
+      const selectedDate = date || isoToday();
+      const startDate = startOfWeek(selectedDate);
+      const end = new Date(startDate + 'T12:00:00.000Z');
+      end.setUTCDate(end.getUTCDate() + 6);
+      const tomorrow = new Date(selectedDate + 'T12:00:00.000Z');
       tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-      const tomorrowKey = tomorrow.toISOString().slice(0, 10);
-      const tomorrowView = (weekView.days || []).find((day) => day.date === tomorrowKey);
-      updateSideCount('Imorgon', tomorrowView?.totalSlots || 0);
-      updateSideCount('Veckan', weekView.totalSlots || 0);
-    } catch (_) {}
+      if (tomorrow > end) end.setTime(tomorrow.getTime());
+      const visits = await loadCanonicalVisits(
+        startDate, end.toISOString().slice(0, 10), tenantId, role);
+      renderCanonicalSidebarSummary(buildCanonicalSidebarSummary(selectedDate, visits));
+    } catch (_) {
+      ['Imorgon', 'Veckan', 'Konflikt', 'Återbesök'].forEach((label) =>
+        updateSideCount(label, 'inga data'));
+    }
   }
 
   // ─── Main load ───────────────────────────────────────────────────────────
@@ -851,6 +914,7 @@
         mount.innerHTML = '';
         mount.appendChild(renderDayGrid(dayView, onBookingClick));
         updateDaySummary(dayView);
+        await refreshCanonicalSidebarSummary(date, tenantId, role);
         const title = document.getElementById('calTitle');
         if (title) {
           const d = new Date(date + 'T00:00:00');
@@ -879,7 +943,7 @@
       mount.innerHTML = '';
       mount.appendChild(renderDayGrid(dayView, onBookingClick));
       updateDaySummary(dayView);
-      refreshWeekSummary(date, tenantId, role);
+      refreshCanonicalSidebarSummary(date, tenantId, role);
 
       // Uppdatera title (existing #calTitle)
       const title = document.getElementById('calTitle');
@@ -1097,6 +1161,7 @@
         const weekView = canonicalWeekView(startDate, visits);
         mount.innerHTML = '';
         mount.appendChild(renderWeekGrid(weekView, onBookingClick));
+        await refreshCanonicalSidebarSummary(opts.date || isoToday(), tenantId, role);
         const totals = weekView.days.reduce((summary, day) => {
           summary.confirmed += day.confirmedBookings;
           summary.pending += day.pendingReservations;
@@ -1458,6 +1523,7 @@
   }
 
   global.CcoKalenderShell = isReadOnlyMode()
-    ? { loadDay, loadWeek, applyView, renderDrawer: renderReadonlyDrawer }
+    ? { loadDay, loadWeek, applyView, renderDrawer: renderReadonlyDrawer,
+        buildCanonicalSidebarSummary, canonicalConflictCount }
     : { loadDay, loadWeek, applyView, renderDrawer, openCreateBookingModal };
 })(window);
