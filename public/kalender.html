@@ -3990,17 +3990,35 @@
       body[data-cco-calendar-source='canonical-v6'] [hidden],
       body[data-cco-calendar-source='canonical-v6'] .mockup-label,
       body[data-cco-calendar-source='canonical-v6'] .caption,
-      body[data-cco-calendar-source='canonical-v6'] .mini-inbox,
-      body[data-cco-calendar-source='canonical-v6'] .calendar-busy,
-      body[data-cco-calendar-source='canonical-v6'] .vibe-strip,
-      body[data-cco-calendar-source='canonical-v6'] .watch-widget,
       body[data-cco-calendar-source='canonical-v6'] .watch-restore,
       body[data-cco-calendar-source='canonical-v6'] .voice-overlay,
-      body[data-cco-calendar-source='canonical-v6'] .voice-sheet,
-      body[data-cco-calendar-source='canonical-v6'] .mic-btn,
-      body[data-cco-calendar-source='canonical-v6'] .timemachine,
-      body[data-cco-calendar-source='canonical-v6'] .story-cta-row {
+      body[data-cco-calendar-source='canonical-v6'] .voice-sheet {
         display: none !important;
+      }
+      body[data-cco-calendar-source='canonical-v6'] .mic-btn[disabled],
+      body[data-cco-calendar-source='canonical-v6'] .timemachine[data-read-only='true'],
+      body[data-cco-calendar-source='canonical-v6'] .segment-tab[disabled],
+      body[data-cco-calendar-source='canonical-v6'] .story-cta[disabled] {
+        cursor: not-allowed;
+        opacity: 0.58;
+      }
+      body[data-cco-calendar-source='canonical-v6'] .watch-widget {
+        pointer-events: none;
+      }
+      body[data-cco-calendar-source='canonical-v6'] .mini-inbox .mail-thread {
+        cursor: default;
+      }
+      body[data-cco-calendar-source='canonical-v6'] .calendar-toolbar {
+        flex-wrap: wrap;
+      }
+      body[data-cco-calendar-source='canonical-v6'] .calendar-toolbar-main {
+        flex: 1 1 260px;
+        min-width: 260px;
+      }
+      body[data-cco-calendar-source='canonical-v6'] .calendar-toolbar-actions {
+        flex: 1 1 720px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
       }
       body[data-cco-calendar-source='canonical-v6'] .ai-reason::before {
         content: 'READ-ONLY';
@@ -5723,6 +5741,7 @@
       };
 
       tmSlider.addEventListener('input', () => {
+        if (window.CCO_CALENDAR_READ_ONLY === true) return;
         const v = tmSlider.value;
         const info = DAY_OFFSETS[v] || { label: 'Nutid', dir: 'now' };
         tmLabel.textContent = info.label;
@@ -5756,6 +5775,7 @@
 
       // Cmd+Z / Ctrl+Z = ångra senaste (här: visuell flash + toast + reset till nutid)
       document.addEventListener('keydown', (ev) => {
+        if (window.CCO_CALENDAR_READ_ONLY === true) return;
         if ((ev.metaKey || ev.ctrlKey) && ev.key === 'z' && !ev.shiftKey) {
           ev.preventDefault();
           const flash = document.createElement('div');
@@ -5789,7 +5809,7 @@
    KUNDSÖK (Cmd+K)
    ═══════════════════════════════════════════════════════════════ */
 
-      const CUSTOMERS = [
+      const LEGACY_PREVIEW_CUSTOMERS = [
         {
           name: 'Anna Karlsson',
           init: 'AK',
@@ -5881,6 +5901,7 @@
           badges: [{ kind: 'vip', label: 'VIP' }],
         },
       ];
+      const CUSTOMERS = window.CCO_CALENDAR_READ_ONLY ? [] : LEGACY_PREVIEW_CUSTOMERS;
 
       const globalSearch = document.getElementById('globalSearch');
       const globalSearchInput = document.getElementById('globalSearchInput');
@@ -6034,7 +6055,7 @@
       })();
     </script>
     <script src="/cco-kalender-bridge.js?v=20260710a" defer></script>
-    <script src="/cco-kalender-shell.js?v=20260717e" defer></script>
+    <script src="/cco-kalender-shell.js?v=20260717g" defer></script>
     <script>
       /* PR 10 — ta emot vald live-tråds kontext från admin#cco → Konversationer
          ("Öppna kalender"). Scopar kalendern till trådens kund via befintlig

@@ -46,3 +46,37 @@ test('read-only V6 mode disables writes and replaces fixture surfaces with canon
     /method\s*:\s*['"]POST|\/cco-booking-engine\/(confirm|cancel|rebook)/
   );
 });
+
+test('canonical V6 cards keep notes accessible without rendering the yellow note badge', () => {
+  const cardBlock = shell.slice(
+    shell.indexOf('function v6BookingCard'),
+    shell.indexOf('function v6UpdateSidebars')
+  );
+  assert.match(cardBlock, /const noteCount = bookingNoteCount\(slot\)/);
+  assert.match(cardBlock, /noteCount \? noteCount \+ ' anteckning\(ar\)' : null/);
+  assert.doesNotMatch(cardBlock, /booking-ai-badge/);
+  assert.match(cardBlock, /--rail-color:/);
+});
+
+test('original V6 home surfaces stay present and are canonical or honestly read-only', () => {
+  assert.match(html, /class="mini-inbox" id="miniInbox"/);
+  assert.match(html, /class="calendar-busy"/);
+  assert.match(html, /class="vibe-strip" id="vibeStrip"/);
+  assert.match(html, /class="watch-widget" id="watchWidget"/);
+  assert.match(html, /class="mic-btn"/);
+  assert.match(html, /class="timemachine"/);
+  assert.match(
+    html,
+    /const CUSTOMERS = window\.CCO_CALENDAR_READ_ONLY \? \[\] : LEGACY_PREVIEW_CUSTOMERS/
+  );
+  assert.match(shell, /function v6RenderMiniInboxState\(\)/);
+  assert.match(shell, /function v6UpdateBusy\(visits\)/);
+  assert.match(shell, /function v6UpdateVibe\(visits\)/);
+  assert.match(shell, /function v6UpdateWatch\(visits\)/);
+  assert.match(shell, /v6State\.mode = 'morgon'/);
+  assert.match(shell, /mic\.disabled = true/);
+  assert.match(shell, /slider\.disabled = true/);
+  assert.match(shell, /resourceTab\.disabled = true/);
+  assert.match(shell, /Ankomstskrivning avstängd/);
+  assert.doesNotMatch(shell, /querySelectorAll\('\.mini-inbox,[^\n]+\.story-cta-row'\)/);
+});
