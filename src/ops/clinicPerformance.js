@@ -94,6 +94,9 @@ function bookingDedupeKey(booking = {}) {
 function buildClinicPerformanceRow({
   bookingId = '',
   customerEmail = '',
+  customerPhone = '',
+  clientoCustomerId = '',
+  patientId = '',
   startsAt = '',
   status = '',
   source = '',
@@ -126,6 +129,10 @@ function buildClinicPerformanceRow({
   return {
     bookingId: normalizeText(bookingId),
     customerEmail: normalizeEmail(customerEmail),
+    // Matchningsfält för ORD-77 — används bara internt; exponeras aldrig i ClinicMetrics.
+    customerPhone: normalizeText(customerPhone),
+    clientoCustomerId: normalizeText(clientoCustomerId),
+    patientId: normalizeText(patientId),
     startsAt: normalizedStartsAt,
     status: normalizedStatus,
     source: normalizeText(source),
@@ -217,6 +224,9 @@ function collectFromBookingEngineStore({ bookingEngineStore = null, tenantId = '
       const row = buildClinicPerformanceRow({
         bookingId: booking.bookingId,
         customerEmail: booking.customerEmail,
+        customerPhone: booking.customerPhone || booking.phone,
+        clientoCustomerId: booking.clientoCustomerId || booking.customerId,
+        patientId: booking.patientId,
         startsAt: slot.startsAt,
         status: booking.status,
         source: 'cco_booking_engine',
@@ -250,6 +260,9 @@ function collectFromTreatmentEncounterStore({
       const row = buildClinicPerformanceRow({
         bookingId: encounter.bookingId || encounter.encounterId,
         customerEmail: encounter.customerEmail,
+        customerPhone: encounter.customerPhone || encounter.phone,
+        clientoCustomerId: encounter.clientoCustomerId || encounter.customerId,
+        patientId: encounter.patientId,
         startsAt: encounter.startsAt,
         status,
         source: 'cco_treatment_encounter',
@@ -272,6 +285,9 @@ function collectFromClientoBookingStore({ clientoBookingStore = null, tenantId =
       const row = buildClinicPerformanceRow({
         bookingId: booking.bookingId,
         customerEmail: booking.customerEmail,
+        customerPhone: booking.customerPhone || booking.phone,
+        clientoCustomerId: booking.clientoCustomerId || booking.customerId,
+        patientId: booking.patientId,
         startsAt: booking.startsAt,
         status: booking.status || 'confirmed',
         source: 'cliento',
@@ -317,6 +333,9 @@ function collectClinicPerformanceBookings({
   return [...byKey.values()].map((row) => ({
     bookingId: row.bookingId,
     customerEmail: row.customerEmail,
+    customerPhone: row.customerPhone,
+    clientoCustomerId: row.clientoCustomerId,
+    patientId: row.patientId,
     startsAt: row.startsAt,
     status: row.status,
     source: row.source,
@@ -332,6 +351,7 @@ function collectClinicPerformanceBookings({
  * @param {object|null} [args.financeDashboard] buildFinanceDashboard() output, or null
  * @param {Date} [args.now]                    reference time for the current-month window
  * @param {string|null} [args.tenantId]
+ * @param {object|null} [args.conversionFunnel] ORD-77 aggregat (ingen PII)
  * @returns {object} ClinicMetrics (source: "live")
  */
 function composeClinicMetrics({
@@ -339,6 +359,7 @@ function composeClinicMetrics({
   financeDashboard = null,
   now = new Date(),
   tenantId = null,
+  conversionFunnel = null,
 } = {}) {
   const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
   const prevMonthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1);
@@ -418,7 +439,21 @@ function composeClinicMetrics({
     'Live-data från major-arcanas gateway. Jämförelsen är hittills i månaden t.o.m. dagens kalenderdag mot samma kalenderdag i föregående månad. Intäkt/AOV: Fortnox betalda fakturor när anslutet, annars commercial-store-proxy.';
   const noShowCoverageNote = describeNoShowCoverage(noShowCoverage.current);
   const bookingsSplitNote = describeBookingsSplit(bookingsSplitCurrent, bookingsCurrent);
-  const extraNotes = [noShowCoverageNote, bookingsSplitNote].filter(Boolean).join(' ');
+  const funnelNote =
+    conversionFunnel && typeof conversionFunnel.dataNote === 'string'
+      ? conversionFunnel.dataNote
+      : null;
+  const extraNotes = [noShowCoverageNote, bookingsSplitNote, funnelNote].filter(Boolean).join(' ');
+  const funnelPayload =
+    conversionFunnel && typeof conversionFunnel === 'object'
+      ? {
+          stoppedAtOfferDays: conversionFunnel.stoppedAtOfferDays,
+          rollingDays: conversionFunnel.rollingDays,
+          period: conversionFunnel.period,
+          rolling90d: conversionFunnel.rolling90d,
+          ...(funnelNote ? { dataNote: funnelNote } : {}),
+        }
+      : null;
 
   return {
     tenantId: tenantId || null,
@@ -435,6 +470,7 @@ function composeClinicMetrics({
     noShowCoverage,
     utilizationRate: { current: null, previous: null },
     avgOrderValueSek: { current: avgOrderValueCurrent, previous: avgOrderValuePrevious },
+    ...(funnelPayload ? { conversionFunnel: funnelPayload } : {}),
     // channelSplit medvetet utelämnad — ingen ren kanalkälla ännu (v0.2b).
     notLiveYet: [
       'utilizationRate',
@@ -442,6 +478,7 @@ function composeClinicMetrics({
       ...(noShowRateCurrent === null || noShowRatePrevious === null ? ['noShowRate'] : []),
       ...(revenuePrevious === null ? ['revenueSek.previous'] : []),
       ...(avgOrderValuePrevious === null ? ['avgOrderValueSek.previous'] : []),
+      ...(!funnelPayload ? ['conversionFunnel'] : []),
     ],
     dataNote: extraNotes ? `${baseDataNote} ${extraNotes}` : baseDataNote,
     avgOrderValueNote:
