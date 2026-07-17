@@ -7510,6 +7510,46 @@ function toCcoRuntimeHistoryStatusHandler({
   };
 }
 
+function toCcoRuntimeHistoryFidelityHandler({ ccoMailboxTruthStore = null }) {
+  return async (req, res) => {
+    try {
+      const { mailboxId, mailboxIds } = toCcoRuntimeHistoryStatusQuery(req.query);
+      if (mailboxIds.length !== 1) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Välj exakt en mailbox för fidelity-inventering.',
+        });
+      }
+      const mailboxTruthHistory = createCcoMailboxTruthReadAdapter({
+        store: ccoMailboxTruthStore,
+      });
+      if (!mailboxTruthHistory || typeof mailboxTruthHistory.getFidelityInventory !== 'function') {
+        return res.status(503).json({
+          ok: false,
+          error: 'Mailbox truth-fidelity är inte tillgänglig just nu.',
+        });
+      }
+      const sampleLimit = clampInteger(req.query?.sampleLimit, 0, 50, 20);
+      const inventory = mailboxTruthHistory.getFidelityInventory({
+        mailboxIds,
+        sampleLimit,
+      });
+      return res.json({
+        ok: true,
+        source: 'mailbox_truth_store',
+        mailboxId,
+        mailboxIds,
+        inventory,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        ok: false,
+        error: error?.message || 'Fidelity-inventering kunde inte läsas.',
+      });
+    }
+  };
+}
+
 function toCcoRuntimeCalibrationSummaryHandler({ ccoHistoryStore = null }) {
   return async (req, res) => {
     try {
@@ -10173,6 +10213,17 @@ function createCapabilitiesRouter({
         ccoMailboxTruthStore,
         graphReadEnabled: isGraphReadOperational,
         scheduler,
+      })
+    )
+  );
+
+  router.get(
+    '/cco/runtime/history/fidelity',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toCcoRuntimeHistoryFidelityHandler({
+        ccoMailboxTruthStore,
       })
     )
   );

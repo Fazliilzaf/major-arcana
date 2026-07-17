@@ -1874,3 +1874,106 @@ test('runtime mail asset route streams attachment content for focus attachment a
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('runtime history fidelity inventory is local-only and requires one mailbox', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-runtime-fidelity-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  let inventoryCalls = 0;
+  const ccoMailboxTruthStore = {
+    listMessages() {
+      return [];
+    },
+    getCompletenessReport() {
+      return {};
+    },
+    getFidelityInventory({ mailboxIds, sampleLimit }) {
+      inventoryCalls += 1;
+      assert.deepEqual(mailboxIds, ['contact@hairtpclinic.com']);
+      assert.equal(sampleLimit, 5);
+      return {
+        mailboxIds,
+        sampleLimit,
+        summary: {
+          messages: 2,
+          htmlBodies: 1,
+          inlineImageTags: 1,
+          inlineCidReferences: 1,
+          mimeAvailable: 0,
+          declaredAttachments: 1,
+          attachmentMetadata: 0,
+          declaredAttachmentsWithoutMetadata: 1,
+          cidWithoutAttachmentMetadata: 1,
+          richCandidatesWithoutMime: 1,
+          fidelityGapCount: 1,
+        },
+        samples: [
+          {
+            messageId: 'local-only-message',
+            mailboxId: 'contact@hairtpclinic.com',
+            folderType: 'inbox',
+            observedAt: '2026-07-01T12:00:00.000Z',
+            reasons: ['cid_without_attachment_metadata'],
+          },
+        ],
+      };
+    },
+  };
+
+  try {
+    const app = express();
+    app.use(express.json());
+    const auth = createMockAuth('OWNER');
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore,
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+        ccoMailboxTruthStore,
+        graphReadConnector: {
+          async fetchMailboxTruthFolderPage() {
+            throw new Error('fidelity inventory must not read Graph');
+          },
+        },
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/history/fidelity?mailboxIds=contact@hairtpclinic.com&sampleLimit=5`
+      );
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      assert.equal(payload.ok, true);
+      assert.equal(payload.source, 'mailbox_truth_store');
+      assert.equal(payload.mailboxId, 'contact@hairtpclinic.com');
+      assert.equal(payload.inventory.summary.fidelityGapCount, 1);
+      assert.deepEqual(payload.inventory.samples[0]?.reasons, [
+        'cid_without_attachment_metadata',
+      ]);
+      assert.equal(inventoryCalls, 1);
+
+      const invalidScope = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/history/fidelity?mailboxIds=contact@hairtpclinic.com,fazli@hairtpclinic.com`
+      );
+      assert.equal(invalidScope.status, 400);
+      const invalidPayload = await invalidScope.json();
+      assert.match(invalidPayload.error, /exakt en mailbox/i);
+      assert.equal(inventoryCalls, 1);
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
