@@ -275,37 +275,43 @@ function composeClinicMetrics({
   // Same-day framing: "hittills i månaden t.o.m. dagens kalenderdag" jämförs
   // med "föregående månad t.o.m. samma kalenderdag". Det undviker att tidig
   // månad ser artificiellt svag ut bara för att vi jämför med en hel månad.
+  //
+  // ORD-75: no-show räknas ENBART på no-show-kapabla bokningar (Cliento / saknad
+  // source). Blandade källor nullar inte längre hela raten — täckningsgraden
+  // exponeras öppet i noShowCoverage + dataNote i stället.
   let bookingsCurrent = 0;
   let bookingsPrevious = 0;
+  let noShowCapableCurrent = 0;
+  let noShowCapablePrevious = 0;
   let noShowCurrent = 0;
   let noShowPrevious = 0;
-  let noShowHasLiveCoverageCurrent = true;
-  let noShowHasLiveCoveragePrevious = true;
   for (const b of Array.isArray(bookings) ? bookings : []) {
     const t = b && b.startsAt ? Date.parse(b.startsAt) : NaN;
     if (!Number.isFinite(t)) continue;
     if (t >= monthStart && t < currentPeriodEndExclusive) {
       bookingsCurrent += 1;
-      if (!bookingSourceSupportsNoShow(b)) noShowHasLiveCoverageCurrent = false;
-      if (b.status === 'no_show') noShowCurrent += 1;
+      if (bookingSourceSupportsNoShow(b)) {
+        noShowCapableCurrent += 1;
+        if (b.status === 'no_show') noShowCurrent += 1;
+      }
       continue;
     }
     if (t >= prevMonthStart && t < previousComparableEndExclusive) {
       bookingsPrevious += 1;
-      if (!bookingSourceSupportsNoShow(b)) noShowHasLiveCoveragePrevious = false;
-      if (b.status === 'no_show') noShowPrevious += 1;
+      if (bookingSourceSupportsNoShow(b)) {
+        noShowCapablePrevious += 1;
+        if (b.status === 'no_show') noShowPrevious += 1;
+      }
     }
   }
-  const noShowRateCurrent = noShowHasLiveCoverageCurrent
-    ? bookingsCurrent > 0
-      ? Number((noShowCurrent / bookingsCurrent).toFixed(4))
-      : 0
-    : null;
-  const noShowRatePrevious = noShowHasLiveCoveragePrevious
-    ? bookingsPrevious > 0
-      ? Number((noShowPrevious / bookingsPrevious).toFixed(4))
-      : 0
-    : null;
+  const noShowRateCurrent =
+    noShowCapableCurrent > 0 ? Number((noShowCurrent / noShowCapableCurrent).toFixed(4)) : null;
+  const noShowRatePrevious =
+    noShowCapablePrevious > 0 ? Number((noShowPrevious / noShowCapablePrevious).toFixed(4)) : null;
+  const noShowCoverage = {
+    current: { capable: noShowCapableCurrent, total: bookingsCurrent },
+    previous: { capable: noShowCapablePrevious, total: bookingsPrevious },
+  };
 
   // Intäkt betald denna månad ur finance-dashboarden (null om ej tillgänglig).
   const revenueCurrent =
@@ -328,6 +334,10 @@ function composeClinicMetrics({
       ? Math.round(revenuePrevious / bookingsPrevious)
       : null;
 
+  const baseDataNote =
+    'Live-data från major-arcanas gateway. Jämförelsen är hittills i månaden t.o.m. dagens kalenderdag mot samma kalenderdag i föregående månad. Intäkt/AOV: Fortnox betalda fakturor när anslutet, annars commercial-store-proxy.';
+  const noShowCoverageNote = describeNoShowCoverage(noShowCoverage.current);
+
   return {
     tenantId: tenantId || null,
     period: periodLabel(monthStartDate),
@@ -336,6 +346,7 @@ function composeClinicMetrics({
     bookings: { current: bookingsCurrent, previous: bookingsPrevious },
     revenueSek: { current: revenueCurrent, previous: revenuePrevious },
     noShowRate: { current: noShowRateCurrent, previous: noShowRatePrevious },
+    noShowCoverage,
     utilizationRate: { current: null, previous: null },
     avgOrderValueSek: { current: avgOrderValueCurrent, previous: avgOrderValuePrevious },
     // channelSplit medvetet utelämnad — ingen ren kanalkälla ännu (v0.2b).
@@ -346,11 +357,21 @@ function composeClinicMetrics({
       ...(revenuePrevious === null ? ['revenueSek.previous'] : []),
       ...(avgOrderValuePrevious === null ? ['avgOrderValueSek.previous'] : []),
     ],
-    dataNote:
-      'Live-data från major-arcanas gateway. Jämförelsen är hittills i månaden t.o.m. dagens kalenderdag mot samma kalenderdag i föregående månad. Intäkt/AOV: Fortnox betalda fakturor när anslutet, annars commercial-store-proxy.',
+    dataNote: noShowCoverageNote ? `${baseDataNote} ${noShowCoverageNote}` : baseDataNote,
     avgOrderValueNote:
       'Proxy: intäkt betald i perioden ÷ bokningar i samma period (bokningsdata saknar pris per bokning).',
   };
+}
+
+/** Mänsklig täckningsnot — alltid synlig när < 100 % av periodens bokningar ingår. */
+function describeNoShowCoverage({ capable = 0, total = 0 } = {}) {
+  if (!total || total < 1) return null;
+  if (capable >= total) return null;
+  if (capable < 1) {
+    return 'No-show saknas: perioden har inga Cliento-bokningar med no-show-stöd.';
+  }
+  const pct = Math.round((capable / total) * 100);
+  return `No-show räknas på Cliento-bokningarna (${pct} % av perioden).`;
 }
 
 module.exports = {
@@ -358,4 +379,6 @@ module.exports = {
   periodLabel,
   bookingTenantCandidates,
   collectClinicPerformanceBookings,
+  bookingSourceSupportsNoShow,
+  describeNoShowCoverage,
 };
