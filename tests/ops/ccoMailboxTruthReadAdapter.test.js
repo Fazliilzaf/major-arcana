@@ -206,3 +206,55 @@ test('getFidelityInventory identifies local MIME and attachment metadata gaps wi
     },
   ]);
 });
+
+test('getCidFidelityManifest partitions each missing CID without exposing mail content', () => {
+  const adapter = createCcoMailboxTruthReadAdapter({
+    store: mockStore([
+      {
+        graphMessageId: 'cid-gap-inbox',
+        mailboxId: 'clinic@demo.se',
+        folderType: 'inbox',
+        receivedAt: '2026-07-01T10:00:00.000Z',
+        bodyHtml: '<div><img src="cid:logo-a"><img src="cid:logo-b"></div>',
+        attachments: [{ id: 'asset-b', contentId: '<logo-b>', contentType: 'image/png' }],
+      },
+      {
+        graphMessageId: 'cid-gap-sent',
+        mailboxId: 'clinic@demo.se',
+        folderType: 'sent',
+        direction: 'outbound',
+        sentAt: '2026-07-02T10:00:00.000Z',
+        bodyHtml: '<div><img src="cid:signature-logo"></div>',
+        attachments: [],
+      },
+    ]),
+  });
+
+  const manifest = adapter.getCidFidelityManifest({
+    mailboxIds: ['clinic@demo.se'],
+    limit: 10,
+  });
+
+  assert.equal(manifest.summary.messagesWithMissingCidMetadata, 2);
+  assert.equal(manifest.summary.cidReferencesWithoutAttachmentMetadata, 2);
+  assert.deepEqual(manifest.summary.byFolderType, { inbox: 1, sent: 1 });
+  assert.deepEqual(manifest.summary.byMessageType, { inbound: 1, outbound: 1 });
+  assert.equal(manifest.entries.length, 2);
+  assert.deepEqual(manifest.entries[0], {
+    messageId: 'cid-gap-sent',
+    mailboxId: 'clinic@demo.se',
+    folderType: 'sent',
+    messageType: 'outbound',
+    observedAt: '2026-07-02T10:00:00.000Z',
+    attachmentId: null,
+    cid: 'signature-logo',
+    htmlReferencesCid: true,
+    localAttachmentMetadata: null,
+    localBlob: {
+      available: null,
+      state: 'not_addressable_without_attachment_metadata',
+    },
+  });
+  assert.equal('bodyHtml' in manifest.entries[0], false);
+  assert.equal('subject' in manifest.entries[0], false);
+});

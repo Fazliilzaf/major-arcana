@@ -1977,3 +1977,166 @@ test('runtime history fidelity inventory is local-only and requires one mailbox'
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('runtime CID manifest stays local and a probe checks one Graph attachment without writes', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-runtime-cid-probe-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  let loadCalls = 0;
+  let manifestCalls = 0;
+  let graphProbeCalls = 0;
+  let cacheGetCalls = 0;
+  const localMessage = {
+    graphMessageId: 'cid-gap-message',
+    mailboxId: 'contact@hairtpclinic.com',
+    graphUserId: 'contact@hairtpclinic.com',
+    folderType: 'inbox',
+    bodyHtml: '<div><img src="cid:logo@cid"></div>',
+    attachments: [],
+  };
+  const ccoMailboxTruthStore = {
+    listMessages() {
+      return [localMessage];
+    },
+    getCompletenessReport() {
+      return {};
+    },
+    async ensureMailboxLoaded(mailboxId) {
+      loadCalls += 1;
+      assert.equal(mailboxId, 'contact@hairtpclinic.com');
+    },
+    getCidFidelityManifest({ mailboxIds, limit }) {
+      manifestCalls += 1;
+      assert.deepEqual(mailboxIds, ['contact@hairtpclinic.com']);
+      assert.equal(limit, 10);
+      return {
+        mailboxIds,
+        limit,
+        summary: {
+          messagesWithMissingCidMetadata: 1,
+          cidReferencesWithoutAttachmentMetadata: 1,
+          entriesReturned: 1,
+          truncated: false,
+          byFolderType: { inbox: 1 },
+          byMessageType: { inbound: 1 },
+        },
+        entries: [
+          {
+            messageId: 'cid-gap-message',
+            mailboxId: 'contact@hairtpclinic.com',
+            folderType: 'inbox',
+            messageType: 'inbound',
+            observedAt: null,
+            attachmentId: null,
+            cid: 'logo@cid',
+            htmlReferencesCid: true,
+            localAttachmentMetadata: null,
+            localBlob: {
+              available: null,
+              state: 'not_addressable_without_attachment_metadata',
+            },
+          },
+        ],
+      };
+    },
+    findMessage({ mailboxId, messageId }) {
+      assert.equal(mailboxId, 'contact@hairtpclinic.com');
+      return messageId === 'cid-gap-message' ? localMessage : null;
+    },
+  };
+
+  try {
+    const app = express();
+    app.use(express.json());
+    const auth = createMockAuth('OWNER');
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore,
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+        ccoMailboxTruthStore,
+        graphReadConnector: {
+          async fetchMailboxTruthFolderPage() {
+            throw new Error('not used by CID diagnostic endpoints');
+          },
+          async probeMessageAttachments({ userId, messageId }) {
+            graphProbeCalls += 1;
+            assert.equal(userId, 'contact@hairtpclinic.com');
+            assert.equal(messageId, 'cid-gap-message');
+            return [
+              {
+                id: 'graph-attachment-1',
+                contentId: '<logo@cid>',
+                contentType: 'image/png',
+                isInline: true,
+                size: 1234,
+                contentBytesAvailable: true,
+              },
+            ];
+          },
+        },
+        ccoMailAssetCache: {
+          async get({ mailboxId, messageId, attachmentId }) {
+            cacheGetCalls += 1;
+            assert.deepEqual({ mailboxId, messageId, attachmentId }, {
+              mailboxId: 'contact@hairtpclinic.com',
+              messageId: 'cid-gap-message',
+              attachmentId: 'graph-attachment-1',
+            });
+            return { buffer: Buffer.from('cached-image') };
+          },
+        },
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const manifestResponse = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/history/fidelity/manifest?mailboxId=contact@hairtpclinic.com&limit=10`
+      );
+      assert.equal(manifestResponse.status, 200);
+      const manifestPayload = await manifestResponse.json();
+      assert.equal(manifestPayload.manifest.entries[0]?.cid, 'logo@cid');
+      assert.equal(manifestResponse.headers.get('cache-control'), 'no-store');
+      assert.equal(manifestCalls, 1);
+      assert.equal(graphProbeCalls, 0);
+      assert.equal(cacheGetCalls, 0);
+
+      const probeResponse = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/history/fidelity/probe?mailboxId=contact@hairtpclinic.com&messageId=cid-gap-message&cid=logo%40cid`
+      );
+      assert.equal(probeResponse.status, 200);
+      const probePayload = await probeResponse.json();
+      assert.equal(probePayload.graph.attachmentCollectionRead, true);
+      assert.equal(probePayload.graph.attachment.attachmentId, 'graph-attachment-1');
+      assert.equal(probePayload.graph.attachment.inlineContentBytesAvailable, true);
+      assert.equal('contentBytes' in probePayload.graph.attachment, false);
+      assert.deepEqual(probePayload.localBlob, { available: true, state: 'available' });
+      assert.equal(graphProbeCalls, 1);
+      assert.equal(cacheGetCalls, 1);
+      assert.equal(loadCalls, 2);
+
+      const missingMessage = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/history/fidelity/probe?mailboxId=contact@hairtpclinic.com&messageId=missing-message&cid=logo%40cid`
+      );
+      assert.equal(missingMessage.status, 404);
+      const missingPayload = await missingMessage.json();
+      assert.match(missingPayload.error, /Meddelandet finns inte lokalt/i);
+      assert.equal(graphProbeCalls, 1);
+      assert.equal(cacheGetCalls, 1);
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

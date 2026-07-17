@@ -2439,6 +2439,62 @@ test('MicrosoftGraphReadConnector enrichStoredMessagesWithMailAssets returns saf
   assert.equal(Boolean(attachmentRequest), true);
 });
 
+test('MicrosoftGraphReadConnector probeMessageAttachments reads metadata without returning asset bytes', async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const safeUrl = String(url);
+    calls.push(safeUrl);
+    if (safeUrl.includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({ body: { access_token: 'token-cid-probe' } });
+    }
+    if (safeUrl.includes('/messages/cid-probe-message/attachments')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            {
+              id: 'cid-probe-attachment',
+              name: 'logo.png',
+              contentType: 'image/png',
+              contentId: '<logo@cid>',
+              isInline: true,
+              size: 4096,
+              contentBytes: 'RkFLRQ==',
+            },
+          ],
+        },
+      });
+    }
+    throw new Error(`Unexpected URL: ${safeUrl}`);
+  };
+  const connector = createMicrosoftGraphReadConnector({
+    tenantId: 'tenant-id-cid-probe',
+    clientId: 'client-id-cid-probe',
+    clientSecret: 'client-secret-cid-probe',
+    userId: 'contact@hairtpclinic.com',
+    fetchImpl,
+  });
+
+  const attachments = await connector.probeMessageAttachments({
+    userId: 'contact@hairtpclinic.com',
+    messageId: 'cid-probe-message',
+  });
+
+  assert.deepEqual(attachments, [
+    {
+      id: 'cid-probe-attachment',
+      name: 'logo.png',
+      contentType: 'image/png',
+      contentId: '<logo@cid>',
+      isInline: true,
+      size: 4096,
+      sourceType: 'graph_file_attachment',
+      contentBytesAvailable: true,
+    },
+  ]);
+  assert.equal('contentBytes' in attachments[0], false);
+  assert.equal(calls.some((url) => url.includes('/$value')), false);
+});
+
 test('MicrosoftGraphReadConnector fetchMessageMimeContent returns raw MIME metadata for an open message', async () => {
   const calls = [];
   const fetchImpl = async (url) => {
