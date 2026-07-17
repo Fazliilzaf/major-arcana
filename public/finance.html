@@ -1787,6 +1787,24 @@
       </div>`;
         }
 
+        // ORD-CM-10 · visa årets ALLA månader — tomma som 0-kort (ej klickbara)
+        function expFullaMånader(months, year) {
+          const nu = new Date();
+          const iÅr = String(nu.getFullYear());
+          let sista = 12;
+          if (String(year) === iÅr) sista = nu.getMonth() + 1;
+          else if (String(year) > iÅr) return months;
+          if (!/^\d{4}$/.test(String(year))) return months;
+          const finns = new Map(months.map((m) => [m.month, m]));
+          const ut = [];
+          for (let i = sista; i >= 1; i--) {
+            const mm = String(i).padStart(2, '0');
+            ut.push(finns.get(mm) || { month: mm, count: 0, sum: 0, tom: true });
+          }
+          for (const m of months)
+            if (!/^\d{2}$/.test(m.month) || Number(m.month) > sista) ut.unshift(m);
+          return ut;
+        }
         const EXP_FILTER_ETIKETT = {
           att_hantera: 'Att hantera',
           godkanda: 'Godkända',
@@ -1921,11 +1939,13 @@
               );
             } else {
               const y = expTräd.years.find((x) => x.year === expVy.year);
-              cardsEl.innerHTML = (y ? y.months : [])
+              cardsEl.innerHTML = expFullaMånader(y ? y.months : [], expVy.year)
                 .map(
                   (m) =>
-                    '<div class="kpi kpi--click" data-exp-month="' +
-                    esc(m.month) +
+                    '<div class="kpi' +
+                    (m.tom
+                      ? '" style="opacity:.45'
+                      : ' kpi--click" data-exp-month="' + esc(m.month)) +
                     '"><div class="kpi-label">' +
                     (EXP_MÅN[m.month] || m.month) +
                     '</div><div class="kpi-value">' +
@@ -3082,16 +3102,34 @@
             })
           );
         }
+        // ORD-CM-10 · visa årets ALLA månader — tomma som 0-kort (ej klickbara)
+        function fullaMånader(months, year) {
+          const nu = new Date();
+          const iÅr = String(nu.getFullYear());
+          let sista = 12;
+          if (String(year) === iÅr) sista = nu.getMonth() + 1;
+          else if (String(year) > iÅr) return months;
+          if (!/^\d{4}$/.test(String(year))) return months;
+          const finns = new Map(months.map((m) => [m.month, m]));
+          const ut = [];
+          for (let i = sista; i >= 1; i--) {
+            const mm = String(i).padStart(2, '0');
+            ut.push(finns.get(mm) || { month: mm, count: 0, sum: 0, tom: true });
+          }
+          for (const m of months)
+            if (!/^\d{2}$/.test(m.month) || Number(m.month) > sista) ut.unshift(m);
+          return ut;
+        }
         function ritaMånader() {
           const y = träd.years.find((x) => x.year === vy.year);
           if (!y) return;
           list.innerHTML = '';
           cards.style.display = '';
-          cards.innerHTML = y.months
+          cards.innerHTML = fullaMånader(y.months, vy.year)
             .map(
               (m) =>
-                '<div class="kpi kpi--click" data-month="' +
-                esc(m.month) +
+                '<div class="kpi' +
+                (m.tom ? '" style="opacity:.45' : ' kpi--click" data-month="' + esc(m.month)) +
                 '"><div class="kpi-label">' +
                 (MÅN[m.month] || m.month) +
                 '</div><div class="kpi-value">' +
@@ -3445,16 +3483,34 @@
           );
         }
 
+        // ORD-CM-10 · visa årets ALLA månader — tomma som 0-kort (ej klickbara)
+        function fullaMånaderB(months, year) {
+          const nu = new Date();
+          const iÅr = String(nu.getFullYear());
+          let sista = 12;
+          if (String(year) === iÅr) sista = nu.getMonth() + 1;
+          else if (String(year) > iÅr) return months;
+          if (!/^\d{4}$/.test(String(year))) return months;
+          const finns = new Map(months.map((m) => [m.month, m]));
+          const ut = [];
+          for (let i = sista; i >= 1; i--) {
+            const mm = String(i).padStart(2, '0');
+            ut.push(finns.get(mm) || { month: mm, count: 0, sum: 0, tom: true });
+          }
+          for (const m of months)
+            if (!/^\d{2}$/.test(m.month) || Number(m.month) > sista) ut.unshift(m);
+          return ut;
+        }
         function ritaMånader() {
           const y = träd.years.find((x) => x.year === vy.year);
           if (!y) return;
           list.innerHTML = '';
           cards.style.display = '';
-          cards.innerHTML = y.months
+          cards.innerHTML = fullaMånaderB(y.months, vy.year)
             .map(
               (m) =>
-                '<div class="kpi kpi--click" data-month="' +
-                esc(m.month) +
+                '<div class="kpi' +
+                (m.tom ? '" style="opacity:.45' : ' kpi--click" data-month="' + esc(m.month)) +
                 '">' +
                 '<div class="kpi-label">' +
                 (MÅN[m.month] || m.month) +
