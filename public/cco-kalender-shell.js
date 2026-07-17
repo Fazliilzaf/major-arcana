@@ -116,6 +116,24 @@
       String(source || '').toLowerCase() === 'cliento' ? 'Cliento' : source || '—';
   }
 
+  function bookingNoteCount(slot) {
+    return [
+      slot && (slot.bookingNotes || slot.notes),
+      slot && slot.customerMessage,
+      slot && slot.internalNotes,
+      slot && slot.treatmentNotes,
+    ].filter(Boolean).length;
+  }
+
+  function bookingNoteIndicator(slot) {
+    const count = bookingNoteCount(slot);
+    if (!count) return null;
+    const label = count === 1 ? '1 anteckning' : count + ' anteckningar';
+    return el('span', {
+      class: 'cco-cal-note-indicator', title: label, 'aria-label': label,
+    }, '✎' + count);
+  }
+
   function stockholmParts(value) {
     const date = new Date(value);
     if (!Number.isFinite(date.getTime())) return { date: '', time: '' };
@@ -351,6 +369,7 @@
           el('div', { class: 'cco-cal-booking-time' }, formatTimeRange(slot.time, slot.endTime)),
           el('div', { class: 'cco-cal-booking-patient' }, slot.patientName || '(okänd patient)'),
           el('div', { class: 'cco-cal-booking-service' }, slot.serviceLabel || slot.serviceId || ''),
+          bookingNoteIndicator(slot),
           el('div', { class: 'cco-cal-booking-pills' }, [
             el('span', { class: `cco-cal-pill cco-cal-pill--${tone}` }, statusLabel(slot.status)),
           ]),
@@ -1046,6 +1065,8 @@
         }, [
           el('div', { class: 'cco-cal-booking-time' }, slot.time || ''),
           el('div', { class: 'cco-cal-booking-patient' }, slot.patientName || '—'),
+          el('div', { class: 'cco-cal-booking-service' }, slot.serviceLabel || slot.serviceId || ''),
+          bookingNoteIndicator(slot),
           el('div', { class: 'cco-cal-booking-pills' }, [
             el('span', { class: `cco-cal-pill cco-cal-pill--${tone}` }, statusLabel(slot.status)),
           ]),
