@@ -5,7 +5,10 @@ const os = require('node:os');
 const path = require('node:path');
 const express = require('express');
 
-const { createCapabilitiesRouter } = require('../../src/routes/capabilities');
+const {
+  createCapabilitiesRouter,
+  clearWorklistConsumerResponseCache,
+} = require('../../src/routes/capabilities');
 const { createCapabilityAnalysisStore } = require('../../src/capabilities/analysisStore');
 const { createAuthStore } = require('../../src/security/authStore');
 const { createCcoMailboxTruthStore } = require('../../src/ops/ccoMailboxTruthStore');
@@ -131,6 +134,84 @@ test('runtime worklist consumer honours an explicit Hälso mailbox scope', async
       assert.deepEqual(payload.rows.map((row) => row.mailboxId), ['halso@hairtpclinic.com']);
     });
   } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('runtime worklist consumer emits cold timing without changing its JSON contract', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-worklist-timing-'));
+  const mailboxId = 'contact@hairtpclinic.com';
+  const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
+    filePath: path.join(tempDir, 'cco-mailbox-truth.json'),
+  });
+  const timingEvents = [];
+  clearWorklistConsumerResponseCache();
+  try {
+    await seedFolder(ccoMailboxTruthStore, {
+      mailboxId,
+      folderType: 'inbox',
+      messages: [
+        inboxMessage({
+          mailboxId,
+          conversationId: 'timing-conversation',
+          graphMessageId: 'timing-message',
+          subject: 'Timingkontroll',
+          preview: 'Endast en läsande kontroll.',
+          receivedAt: '2026-07-17T08:00:00.000Z',
+        }),
+      ],
+    });
+
+    const app = express();
+    app.use(express.json());
+    const auth = createMockAuth('OWNER');
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore: { async addAuditEvent() {} },
+        capabilityAnalysisStore: null,
+        ccoMailboxTruthStore,
+        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+        worklistTimingLogger(entry) {
+          timingEvents.push(entry);
+        },
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const url = `${baseUrl}/api/v1/cco/runtime/worklist/consumer?mailboxIds=${encodeURIComponent(
+        mailboxId
+      )}&limit=20`;
+      const coldResponse = await fetch(url);
+      assert.equal(coldResponse.status, 200);
+      assert.equal(coldResponse.headers.get('X-CCO-Worklist-Cache'), 'miss');
+      assert.match(coldResponse.headers.get('Server-Timing') || '', /cco_data;dur=/);
+      assert.match(coldResponse.headers.get('Server-Timing') || '', /cco_enrichment;dur=/);
+      const coldPayload = await coldResponse.json();
+      assert.equal(Object.hasOwn(coldPayload, 'timing'), false);
+
+      assert.equal(timingEvents.length, 1);
+      assert.deepEqual(timingEvents[0].mailboxIds, [mailboxId]);
+      assert.equal(timingEvents[0].event, 'cco.worklist.consumer.cold_timing');
+      assert.equal(timingEvents[0].cache, 'miss');
+      assert.equal(Number.isFinite(timingEvents[0].dataReadMs), true);
+      assert.equal(Number.isFinite(timingEvents[0].enrichmentMs), true);
+      assert.equal(Number.isFinite(timingEvents[0].serializationMs), true);
+      assert.equal(timingEvents[0].dataReadMs >= 0, true);
+      assert.equal(timingEvents[0].enrichmentMs >= 0, true);
+      assert.equal(timingEvents[0].serializationMs >= 0, true);
+
+      const cachedResponse = await fetch(url);
+      assert.equal(cachedResponse.status, 200);
+      assert.equal(cachedResponse.headers.get('X-CCO-Worklist-Cache'), 'hit');
+      assert.equal(cachedResponse.headers.get('Server-Timing'), null);
+      assert.deepEqual(await cachedResponse.json(), coldPayload);
+      assert.equal(timingEvents.length, 1, 'cache-hit får ingen ny kallmätning');
+    });
+  } finally {
+    clearWorklistConsumerResponseCache();
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
