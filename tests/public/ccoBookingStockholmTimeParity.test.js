@@ -26,6 +26,24 @@ const railSource = fs.readFileSync(
   path.resolve(__dirname, '../..', 'public/major-arcana-preview/app/cco-v11-rk.js'),
   'utf8'
 );
+const patientMasterSource = fs.readFileSync(
+  path.resolve(__dirname, '../..', 'public/major-arcana-preview/app/patient-master-ui.js'),
+  'utf8'
+);
+
+function loadV12RailClickInference() {
+  const functionSource = patientMasterSource.match(
+    /function inferV12ModuleFromRailClick\(target\) \{[\s\S]*?\n  \}(?=\n\n  function scrollV12WorkspaceModule)/
+  );
+  assert.ok(functionSource, 'V11/V12 handoff inference should remain discoverable');
+  const sandbox = {
+    usesV12Workspace: () => true,
+    V12_RAIL_SECTION_MODULES: { upcoming: 'booking' },
+    V12_RAIL_CLASS_MODULES: [],
+  };
+  vm.runInNewContext(`${functionSource[0]}\nthis.infer = inferV12ModuleFromRailClick;`, sandbox);
+  return sandbox.infer;
+}
 
 test('Kalender och Kunder/V11/V12 visar samma Europe/Stockholm-tid', () => {
   const startsAt = '2026-07-17T10:00:00.000Z';
@@ -195,4 +213,47 @@ test('Visa audit öppnar readout utan att trigga V11/V12-handoff eller rerender'
   assert.match(requests[0].url, /\/api\/v1\/cco-audit\/booking\/booking-uat/);
   assert.match(details.textContent, /bookings\.create_requested/);
   assert.match(details.textContent, /bookings\.create_committed/);
+});
+
+test('capture-handoff ignorerar auditkontrollen men behåller vanliga bokningsradsklick', () => {
+  const { window } = parseHTML('<html><body><div id="rail"></div></body></html>');
+  const inferV12ModuleFromRailClick = loadV12RailClickInference();
+  const rail = window.document.getElementById('rail');
+  rail.innerHTML = `
+    <div data-v9-section-link="upcoming">
+      <button type="button" data-booking-row>Vanlig bokningsrad</button>
+      <details data-v11-booking-audit>
+        <summary>Visa audit</summary>
+        <div data-v11-booking-audit-readout>Read-only</div>
+      </details>
+    </div>`;
+
+  const handoffs = [];
+  rail.addEventListener(
+    'click',
+    (event) => {
+      const moduleName = inferV12ModuleFromRailClick(event.target);
+      if (!moduleName) return;
+      event.preventDefault();
+      event.stopPropagation();
+      handoffs.push(moduleName);
+    },
+    true
+  );
+
+  const details = rail.querySelector('[data-v11-booking-audit]');
+  details.addEventListener('click', (event) => event.stopPropagation());
+  const summary = details.querySelector('summary');
+  summary.addEventListener('click', () => {
+    details.open = true;
+  });
+
+  summary.dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }));
+  assert.equal(details.open, true);
+  assert.deepEqual(handoffs, []);
+
+  rail
+    .querySelector('[data-booking-row]')
+    .dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }));
+  assert.deepEqual(handoffs, ['booking']);
 });
