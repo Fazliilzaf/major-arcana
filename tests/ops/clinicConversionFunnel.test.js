@@ -200,3 +200,93 @@ test('betald konsultation via tjänstenamn räknas trots bookingKind=paying', ()
   assert.equal(funnel.period.consultations.booked, 1);
   assert.equal(funnel.period.consultations.show, 1);
 });
+
+test('ORD-77 komplettering: konsult→behandling via bokningshistorik utan offert', () => {
+  const funnel = composeConversionFunnel({
+    bookings: [
+      {
+        clientoCustomerId: 'cliento-42',
+        startsAt: '2026-06-02T09:00:00Z',
+        status: 'completed',
+        bookingKind: 'consultation',
+        serviceLabel: 'Fysisk konsultation',
+      },
+      {
+        clientoCustomerId: 'cliento-42',
+        startsAt: '2026-06-12T09:00:00Z',
+        status: 'completed',
+        bookingKind: 'paying',
+        serviceLabel: 'FUE hårtransplantation',
+      },
+      {
+        customerEmail: 'paket@exempel.se',
+        startsAt: '2026-06-03T09:00:00Z',
+        status: 'completed',
+        bookingKind: 'consultation',
+        serviceLabel: 'Online konsultation',
+      },
+      {
+        customerEmail: 'paket@exempel.se',
+        startsAt: '2026-06-14T09:00:00Z',
+        status: 'confirmed',
+        bookingKind: 'included_in_package',
+        serviceLabel: 'PRP efter TP',
+      },
+    ],
+    offers: [],
+    resolvePatientKey: () => null,
+    now: NOW,
+  });
+  assert.equal(funnel.period.offersSent, 0);
+  assert.equal(funnel.period.proceededToTreatment, 0);
+  assert.equal(funnel.period.coverage.via_offer, 0);
+  assert.equal(funnel.period.coverage.via_booking_history, 2);
+  assert.equal(funnel.period.rates.consultToTreatment, 1);
+  assert.match(funnel.dataNote || '', /via bokningshistorik/i);
+  const json = JSON.stringify(funnel);
+  assert.equal(json.includes('cliento-42'), false);
+  assert.equal(json.includes('paket@exempel.se'), false);
+});
+
+test('ORD-77 komplettering: via_offer prioriteras framför via_booking_history', () => {
+  const funnel = composeConversionFunnel({
+    bookings: [
+      {
+        patientId: 'p1',
+        startsAt: '2026-06-01T09:00:00Z',
+        status: 'completed',
+        bookingKind: 'consultation',
+        serviceLabel: 'Konsultation',
+      },
+      {
+        patientId: 'p1',
+        startsAt: '2026-06-10T09:00:00Z',
+        status: 'completed',
+        bookingKind: 'paying',
+        serviceLabel: 'FUE',
+      },
+      {
+        patientId: 'p2',
+        startsAt: '2026-06-02T09:00:00Z',
+        status: 'completed',
+        bookingKind: 'consultation',
+        serviceLabel: 'Konsultation',
+      },
+      {
+        patientId: 'p2',
+        startsAt: '2026-06-11T09:00:00Z',
+        status: 'completed',
+        bookingKind: 'paying',
+        serviceLabel: 'FUE',
+      },
+    ],
+    offers: [{ patientKey: 'p1', sentAt: '2026-06-05T10:00:00Z', status: 'sent' }],
+    resolvePatientKey: (b) => b.patientId,
+    now: NOW,
+  });
+  assert.equal(funnel.period.coverage.via_offer, 1);
+  assert.equal(funnel.period.coverage.via_booking_history, 1);
+  assert.equal(funnel.period.rates.consultToTreatment, 1);
+  assert.equal(funnel.period.proceededToTreatment, 1);
+  assert.equal(funnel.period.rates.offerToTreatment, 1);
+});

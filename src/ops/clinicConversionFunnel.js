@@ -6,6 +6,10 @@
  * KONSULTATION → OFFERT → BEHANDLING. All matching happens inside the clinic
  * system; the returned shape contains counts and rates only — never names,
  * emails, notes, or other person-identifying fields.
+ *
+ * ORD-77 komplettering: konsult→behandling räknas även ur Cliento-
+ * bokningshistorik (paying/included efter konsultation) utan krav på
+ * matchad offert. Coverage redovisar via_offer vs via_booking_history.
  */
 
 const { classifyBookingKind } = require('./clinicPerformance');
@@ -55,10 +59,25 @@ function isConsultationBooking(booking) {
 }
 
 function isTreatmentBooking(booking) {
+  // Konsultation (även betald) är aldrig "gått vidare till behandling".
+  if (isConsultationBooking(booking)) return false;
   const kind = normalizeText(booking.bookingKind) || classifyBookingKind(booking);
-  if (kind === 'consultation' || kind === 'included_in_package') return false;
+  // ORD-77 komplettering: paying / included_in_package = behandlingssteg i historiken.
+  if (kind === 'paying' || kind === 'included_in_package') return true;
   const service = classifyService(booking.serviceLabel || booking.service);
+  if (service === 'consultation' || service === 'follow_up') return false;
   return service === 'hair_transplant' || service === 'prp';
+}
+
+/** Intern kundnyckel — patientId först, annars Cliento-id/e-post (aldrig ut till CEO). */
+function bookingPatientKey(booking, resolvePatientKey) {
+  return (
+    normalizeText(resolvePatientKey(booking) || '') ||
+    normalizeText(booking.patientId || booking.patientKey) ||
+    normalizeText(booking.clientoCustomerId || booking.customerId) ||
+    normalizeText(booking.customerEmail).toLowerCase() ||
+    null
+  );
 }
 
 function isShowStatus(status) {
@@ -91,7 +110,14 @@ function emptyConsultations() {
 }
 
 function emptyCoverage() {
-  return { bookingsMatched: 0, bookingsTotal: 0, offersMatched: 0, offersTotal: 0 };
+  return {
+    bookingsMatched: 0,
+    bookingsTotal: 0,
+    offersMatched: 0,
+    offersTotal: 0,
+    via_offer: 0,
+    via_booking_history: 0,
+  };
 }
 
 function emptyWindowMetrics() {
@@ -133,7 +159,7 @@ function composeConversionFunnel({
     .map((b) => {
       const startsAtMs = parseMs(b.startsAt);
       if (startsAtMs == null) return null;
-      const patientKey = normalizeText(resolvePatientKey(b) || b.patientId || b.patientKey) || null;
+      const patientKey = bookingPatientKey(b, resolvePatientKey);
       return {
         patientKey,
         startsAtMs,
@@ -153,18 +179,22 @@ function composeConversionFunnel({
     })
     .filter(Boolean);
 
-  const firstTreatmentMsByPatient = new Map();
-  for (const b of bookingEvents) {
-    if (!b.isTreatment || !b.patientKey) continue;
-    const prev = firstTreatmentMsByPatient.get(b.patientKey);
-    if (prev == null || b.startsAtMs < prev)
-      firstTreatmentMsByPatient.set(b.patientKey, b.startsAtMs);
+  function firstTreatmentAfter(patientKey, afterMs) {
+    let best = null;
+    for (const b of bookingEvents) {
+      if (!b.isTreatment || b.patientKey !== patientKey) continue;
+      if (b.startsAtMs < afterMs) continue;
+      if (best == null || b.startsAtMs < best) best = b.startsAtMs;
+    }
+    return best;
   }
 
   function metricsForWindow(window) {
     const out = emptyWindowMetrics();
     const consultPatientsShow = new Set();
+    const earliestConsultShowMs = new Map();
     const offerPatientsInWindow = new Set();
+    const earliestOfferMs = new Map();
 
     for (const b of bookingEvents) {
       if (!inWindow(b.startsAtMs, window)) continue;
@@ -176,7 +206,13 @@ function composeConversionFunnel({
         out.consultations.noShow += 1;
       } else if (isShowStatus(b.status)) {
         out.consultations.show += 1;
-        if (b.patientKey) consultPatientsShow.add(b.patientKey);
+        if (b.patientKey) {
+          consultPatientsShow.add(b.patientKey);
+          const prev = earliestConsultShowMs.get(b.patientKey);
+          if (prev == null || b.startsAtMs < prev) {
+            earliestConsultShowMs.set(b.patientKey, b.startsAtMs);
+          }
+        }
       }
     }
 
@@ -187,47 +223,47 @@ function composeConversionFunnel({
         out.coverage.offersMatched += 1;
         out.offersSent += 1;
         offerPatientsInWindow.add(o.patientKey);
+        const prev = earliestOfferMs.get(o.patientKey);
+        if (prev == null || o.sentAtMs < prev) earliestOfferMs.set(o.patientKey, o.sentAtMs);
       }
     }
 
-    let proceeded = 0;
+    let offerProceeded = 0;
     let stopped = 0;
     for (const patientKey of offerPatientsInWindow) {
-      const offerTimes = offerEvents
-        .filter((o) => o.patientKey === patientKey && inWindow(o.sentAtMs, window))
-        .map((o) => o.sentAtMs);
-      const earliestOffer = Math.min(...offerTimes);
-      const treatmentMs = firstTreatmentMsByPatient.get(patientKey);
-      if (treatmentMs != null && treatmentMs >= earliestOffer) {
-        proceeded += 1;
+      const earliestOffer = earliestOfferMs.get(patientKey);
+      const treatmentMs = firstTreatmentAfter(patientKey, earliestOffer);
+      if (treatmentMs != null) {
+        offerProceeded += 1;
         continue;
       }
       if (nowMs - earliestOffer >= stopMs) stopped += 1;
     }
-    out.proceededToTreatment = proceeded;
+    out.proceededToTreatment = offerProceeded;
     out.stoppedAtOffer = stopped;
 
     let consultPatientsWithOffer = 0;
+    let viaOffer = 0;
+    let viaBookingHistory = 0;
     for (const patientKey of consultPatientsShow) {
       if (offerPatientsInWindow.has(patientKey)) consultPatientsWithOffer += 1;
+      const consultMs = earliestConsultShowMs.get(patientKey);
+      const treatmentMs = firstTreatmentAfter(patientKey, consultMs);
+      if (treatmentMs == null) continue;
+      // via_offer om matchad offert finns och skickades före (eller samma dag som) behandling.
+      const offerMs = earliestOfferMs.get(patientKey);
+      if (offerMs != null && offerMs <= treatmentMs) {
+        viaOffer += 1;
+      } else {
+        viaBookingHistory += 1;
+      }
     }
+    out.coverage.via_offer = viaOffer;
+    out.coverage.via_booking_history = viaBookingHistory;
+
     out.rates.consultToOffer = rate(consultPatientsWithOffer, consultPatientsShow.size);
-    out.rates.offerToTreatment = rate(proceeded, out.offersSent);
-    out.rates.consultToTreatment = rate(
-      [...consultPatientsShow].filter((id) => {
-        const t = firstTreatmentMsByPatient.get(id);
-        if (t == null) return false;
-        return bookingEvents.some(
-          (b) =>
-            b.patientKey === id &&
-            b.isConsultation &&
-            isShowStatus(b.status) &&
-            inWindow(b.startsAtMs, window) &&
-            t >= b.startsAtMs
-        );
-      }).length,
-      consultPatientsShow.size
-    );
+    out.rates.offerToTreatment = rate(offerProceeded, out.offersSent);
+    out.rates.consultToTreatment = rate(viaOffer + viaBookingHistory, consultPatientsShow.size);
 
     return out;
   }
@@ -240,6 +276,11 @@ function composeConversionFunnel({
     const miss = period.coverage.offersTotal - period.coverage.offersMatched;
     noteParts.push(
       `Konverteringstratt: ${miss} offert(er) utan patientkoppling räknas inte i offersSent (ärligt unknown).`
+    );
+  }
+  if (period.coverage.via_booking_history > 0) {
+    noteParts.push(
+      `Konsult→behandling: ${period.coverage.via_offer} via offert · ${period.coverage.via_booking_history} via bokningshistorik.`
     );
   }
   const stoppedForNote = Math.max(period.stoppedAtOffer || 0, rolling90d.stoppedAtOffer || 0);
@@ -292,6 +333,7 @@ module.exports = {
   offersFromCommercialCases,
   isConsultationBooking,
   isTreatmentBooking,
+  bookingPatientKey,
   DEFAULT_STOPPED_AT_OFFER_DAYS,
   DEFAULT_ROLLING_DAYS,
 };

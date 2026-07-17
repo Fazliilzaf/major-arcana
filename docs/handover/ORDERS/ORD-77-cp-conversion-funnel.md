@@ -34,17 +34,23 @@ Per fönster:
 
 - `consultations: { booked, show, noShow }`
 - `offersSent`
-- `proceededToTreatment`
+- `proceededToTreatment` — offert → behandling (nämnare för `offerToTreatment`)
 - `stoppedAtOffer` — offert äldre än X dagar utan behandling (**hittills**, inte definitivt tappad)
 - `rates: { consultToOffer, offerToTreatment, consultToTreatment }` (null om nämnare 0)
-- `coverage: { bookingsMatched, bookingsTotal, offersMatched, offersTotal }`
+- `coverage: { bookingsMatched, bookingsTotal, offersMatched, offersTotal, via_offer, via_booking_history }`
 
 ## Klassregler
 
 1. Konsultation: `bookingKind === 'consultation'` (ORD-76) eller tjänstenamn.
 2. Offert: `quoteStatus` ∈ {sent, accepted} + `quoteSentAt`.
-3. Behandling: `classifyService` ∈ {hair_transplant, prp} och **inte** consultation/follow_up/included_in_package.
-4. Matchning: patientId via email/clientoId/telefon — annars `unknown` i coverage, aldrig gissad konvertering.
+3. Behandling / "gått vidare": `paying` eller `included_in_package`, eller `classifyService` ∈ {hair_transplant, prp} — **inte** ny konsultation.
+4. Matchning: patientId via email/clientoId/telefon — annars `unknown` i coverage, aldrig gissad konvertering. Intern nyckel får falla tillbaka på `clientoCustomerId` / e-post.
+
+## Komplettering (ägare 2026-07-17)
+
+Konsult→behandling räknas **även** ur Cliento-bokningshistorik utan matchad offert.
+`coverage.via_offer` / `coverage.via_booking_history` attributerar konverteringarna
+(ömsesidigt uteslutande; offert vinner när den finns före behandling).
 
 ## Integritet
 
@@ -53,3 +59,4 @@ Mot CEO: endast antal + procent. Inga namn, e-post, personnummer, anteckningar.
 ## CEO-uppföljare (Claude)
 
 Tratt-sektion i fx-designen + agent-insikter (t.ex. följ upp offerter äldre än 3 veckor).
+Visa gärna `via_offer` vs `via_booking_history` i fotnot.
