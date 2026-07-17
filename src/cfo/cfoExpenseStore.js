@@ -344,7 +344,11 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     const e = data.expenses.find((x) => x.id === id);
     if (!e) throw new Error('expense finns ej');
     if (e.status === 'exported' && newStatus !== 'exported') {
-      throw new Error('exporterad expense kan inte ändra status');
+      // ORD-CM-15: exportpaketet är CSV/JSON — inget är bokfört förrän Fortnox-
+      // syncen körts. Avvisning (t.ex. källös/felaktig post) måste vara möjlig
+      // ända fram till skarp bokföring; övriga övergångar förblir låsta.
+      const kanAvvisas = newStatus === 'rejected' && e.fortnoxSyncStatus !== 'synced';
+      if (!kanAvvisas) throw new Error('exporterad expense kan inte ändra status');
     }
     const oldStatus = e.status;
     e.status = newStatus;
