@@ -35,7 +35,7 @@ function createCcoDriveImportReviewReadRouter({
 
   const router = express.Router();
   const root = projectRoot || path.join(__dirname, '../..');
-  const dataDir = path.join(root, 'data');
+  const dataDir = process.env.ARCANA_STATE_ROOT || path.join(root, 'data');
   const writeEnabled = config?.enableDriveImportReviewWrite === true;
 
   router.use(requireCcoAuthenticated, attachRole, requirePermission('asset.review'));
@@ -77,6 +77,8 @@ function createCcoDriveImportReviewReadRouter({
           matchGround: String(req.query.matchGround || 'all'),
           patientId: String(req.query.patientId || '').trim(),
           q: String(req.query.q || '').trim(),
+          queue: String(req.query.queue || '').trim(),
+          quarantine: String(req.query.quarantine || '').trim(),
           limit: Number(req.query.limit) || 50,
           offset: Number(req.query.offset) || 0,
         },

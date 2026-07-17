@@ -22,6 +22,7 @@
     matchGround: 'all',
     patientId: '',
     q: '',
+    queue: '',
   };
 
   function escapeHtml(v) {
@@ -498,6 +499,7 @@
     });
     if (filters.patientId) params.set('patientId', filters.patientId);
     if (filters.q) params.set('q', filters.q);
+    if (filters.queue) params.set('queue', filters.queue);
     return `?${params.toString()}`;
   }
 
@@ -513,6 +515,13 @@
   }
 
   async function boot() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const q = String(params.get('queue') || '').trim();
+      if (q === 'owner_quarantine' || q === 'quarantine') filters.queue = 'owner_quarantine';
+    } catch {
+      /* ignore */
+    }
     renderShell();
     await requireReviewAuth();
     summary = await api('/summary');

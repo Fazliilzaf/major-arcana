@@ -111,6 +111,7 @@ function resolvePhotoReviewStateRoot() {
 /**
  * Load b5 manual unclear queue (metadata only). No status writes.
  * Prod path: $ARCANA_STATE_ROOT/b5-manual-unclear-queue.json
+ * Canonical owner count = 15: exclude quarantine overlap (IMG_8579 in b3).
  */
 function loadB5ManualUnclearQueue(stateRoot = resolvePhotoReviewStateRoot()) {
   const candidates = [
@@ -147,6 +148,14 @@ function wantsB5ManualUnclear(query = {}) {
     .trim()
     .toLowerCase();
   return raw === 'b5' || raw === '1' || raw === 'true' || raw === 'b5_manual_unclear';
+}
+
+function isQuarantineOwnerOverlap(asset) {
+  const reason = String(asset?.reviewReason || asset?.statusChangeReason || '');
+  return (
+    reason === 'drive_source_missing_during_import' ||
+    Boolean(asset?.technicalInfo?.driveImportQuarantined)
+  );
 }
 
 function serializeReviewItem(asset, batchLabels, { writeEnabled = false, manualMeta = null } = {}) {
@@ -480,6 +489,7 @@ function createCcoPhotoReviewRouter({
         const allAssets = Object.values(assetStore._state().items || {});
         const manualScope = wantsB5ManualUnclear(req.query || {});
         const manualQueue = manualScope ? loadB5ManualUnclearQueue() : null;
+        const assetsById = new Map(allAssets.map((a) => [a.id, a]));
 
         let items = allAssets
           .filter(isPhotoReviewAsset)
@@ -504,7 +514,13 @@ function createCcoPhotoReviewRouter({
               },
             });
           }
-          items = items.filter((i) => manualQueue.byAssetId.has(i.assetId));
+          items = items.filter((i) => {
+            if (!manualQueue.byAssetId.has(i.assetId)) return false;
+            const asset = assetsById.get(i.assetId);
+            // Never double-count quarantine overlap in b5 (canonical 15).
+            if (asset && isQuarantineOwnerOverlap(asset)) return false;
+            return true;
+          });
           // Preserve queue file order for operator review.
           const order = new Map(manualQueue.items.map((row, idx) => [row.assetId, idx]));
           items.sort((a, b) => (order.get(a.assetId) ?? 1e9) - (order.get(b.assetId) ?? 1e9));
@@ -522,7 +538,9 @@ function createCcoPhotoReviewRouter({
           phase: reviewPhase(writeEnabled, pilotConfig),
           writeEnabled: !!writeEnabled,
           manualUnclear: manualScope ? 'b5' : null,
-          manualUnclearCounts: manualScope ? manualQueue?.counts || null : null,
+          manualUnclearCounts: manualScope
+            ? { ...(manualQueue?.counts || {}), canonicalVisible: items.length }
+            : null,
           items,
         });
       } catch (err) {
