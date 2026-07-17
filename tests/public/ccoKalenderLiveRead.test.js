@@ -9,15 +9,18 @@ const root = path.resolve(__dirname, '../..');
 const html = fs.readFileSync(path.join(root, 'public/kalender.html'), 'utf8');
 const shell = fs.readFileSync(path.join(root, 'public/cco-kalender-shell.js'), 'utf8');
 const bridge = fs.readFileSync(path.join(root, 'public/cco-kalender-bridge.js'), 'utf8');
-const css = fs.readFileSync(path.join(root, 'public/cco-kalender-shell.css'), 'utf8');
 
-test('canonical calendar loads the existing live renderer in read-only mode', () => {
+test('canonical calendar activates the original V6 renderer in read-only mode', () => {
   const modeIndex = html.indexOf('window.CCO_CALENDAR_READ_ONLY = true');
+  const originalIndex = html.indexOf('window.CCO_CALENDAR_ORIGINAL_V6 = true');
   const shellMatch = html.match(/\/cco-kalender-shell\.js\?v=[^"']+/);
   const shellIndex = shellMatch ? shellMatch.index : -1;
   assert.ok(modeIndex >= 0);
+  assert.ok(originalIndex > modeIndex);
   assert.ok(shellIndex > modeIndex);
-  assert.match(html, /cco-kalender-shell\.css\?v=[^"']+/);
+  assert.doesNotMatch(html, /cco-kalender-shell\.css\?v=[^"']+/);
+  assert.match(html, /class="calendar-week" id="calWeek"/);
+  assert.match(html, /src="\/cco-kalender-bridge\.js\?v=/);
 });
 
 test('live renderer uses the admin bearer token and recognizes /kalender.html', () => {
@@ -28,16 +31,18 @@ test('live renderer uses the admin bearer token and recognizes /kalender.html', 
   assert.match(shell, /calendar\/week\?' \+ query\.toString\(\)/);
 });
 
-test('read-only mode disables write bridge and hides every fixture-only calendar surface', () => {
+test('read-only V6 mode disables writes and replaces fixture surfaces with canonical data', () => {
   assert.match(bridge, /CCO_CALENDAR_READ_ONLY === true/);
   assert.match(bridge, /write bridge disabled/);
-  assert.match(css, /data-cco-calendar-mode="live-read"[^{]*\.morgon-story/);
-  assert.match(css, /data-cco-calendar-mode="live-read"[^{]*\.mini-inbox/);
-  assert.match(css, /data-cco-calendar-mode="live-read"[^{]*\.calendar-week/);
-  assert.match(css, /segment-tab\[data-mode="resurs"\]/);
-  assert.match(shell, /Inga bokningar registrerade för dagen\./);
+  assert.match(shell, /function initOriginalV6Calendar\(\)/);
+  assert.match(shell, /loadCanonicalVisits\(v6State\.weekStart, end/);
+  assert.match(shell, /slots\.innerHTML = ''/);
+  assert.match(shell, /v6RenderIntel\(slot\)/);
+  assert.match(shell, /READ-ONLY · 0 WRITES/);
+  assert.match(shell, /openCanonicalPatient\(slot\.patientId\)/);
+  assert.match(html, /data-cco-calendar-source='canonical-v6'/);
   assert.doesNotMatch(
-    shell.slice(shell.indexOf('global.CcoKalenderShell = isReadOnlyMode()')),
-    /\? \{[^}]*openCreateBookingModal/
+    shell.slice(shell.indexOf('// ─── Original V6'), shell.indexOf('// ─── Init: kollar URL-view')),
+    /method\s*:\s*['"]POST|\/cco-booking-engine\/(confirm|cancel|rebook)/
   );
 });

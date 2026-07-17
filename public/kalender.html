@@ -3978,7 +3978,59 @@
       }
     </style>
     <link rel="stylesheet" href="/cco-mobile.css?v=20260531a" />
-    <link rel="stylesheet" href="/cco-kalender-shell.css?v=20260717c" />
+    <script>
+      window.CCO_CALENDAR_READ_ONLY = true;
+      window.CCO_CALENDAR_ORIGINAL_V6 = true;
+      document.documentElement.classList.add('cco-v6-booting');
+    </script>
+    <style>
+      .cco-v6-booting .app-grid {
+        visibility: hidden;
+      }
+      body[data-cco-calendar-source='canonical-v6'] [hidden],
+      body[data-cco-calendar-source='canonical-v6'] .mockup-label,
+      body[data-cco-calendar-source='canonical-v6'] .caption,
+      body[data-cco-calendar-source='canonical-v6'] .mini-inbox,
+      body[data-cco-calendar-source='canonical-v6'] .calendar-busy,
+      body[data-cco-calendar-source='canonical-v6'] .vibe-strip,
+      body[data-cco-calendar-source='canonical-v6'] .watch-widget,
+      body[data-cco-calendar-source='canonical-v6'] .watch-restore,
+      body[data-cco-calendar-source='canonical-v6'] .voice-overlay,
+      body[data-cco-calendar-source='canonical-v6'] .voice-sheet,
+      body[data-cco-calendar-source='canonical-v6'] .mic-btn,
+      body[data-cco-calendar-source='canonical-v6'] .timemachine,
+      body[data-cco-calendar-source='canonical-v6'] .story-cta-row {
+        display: none !important;
+      }
+      body[data-cco-calendar-source='canonical-v6'] .ai-reason::before {
+        content: 'READ-ONLY';
+      }
+      body[data-cco-calendar-source='canonical-v6'] .booking {
+        cursor: pointer;
+      }
+      body[data-cco-calendar-source='canonical-v6'] .booking:focus-visible {
+        outline: 2px solid var(--calendar-accent);
+        outline-offset: 2px;
+      }
+      body[data-cco-calendar-source='canonical-v6'] .v6-empty {
+        position: absolute;
+        inset: 20px 8px auto;
+        padding: 12px;
+        border: 1px dashed rgba(132, 117, 107, 0.28);
+        border-radius: 10px;
+        color: var(--cco-text-tertiary);
+        font-size: 10px;
+        text-align: center;
+      }
+      body[data-cco-calendar-source='canonical-v6'] .intel-actions .quick-pill {
+        width: 100%;
+        justify-content: center;
+      }
+      body[data-cco-calendar-source='canonical-v6'] .intel-actions .quick-pill[disabled] {
+        cursor: not-allowed;
+        opacity: 0.72;
+      }
+    </style>
   </head>
   <body>
     <div class="mockup-label">v6 · DE VILDA</div>
@@ -5981,11 +6033,8 @@
         } catch (e) {}
       })();
     </script>
-    <script>
-      window.CCO_CALENDAR_READ_ONLY = true;
-    </script>
     <script src="/cco-kalender-bridge.js?v=20260710a" defer></script>
-    <script src="/cco-kalender-shell.js?v=20260717c" defer></script>
+    <script src="/cco-kalender-shell.js?v=20260717e" defer></script>
     <script>
       /* PR 10 — ta emot vald live-tråds kontext från admin#cco → Konversationer
          ("Öppna kalender"). Scopar kalendern till trådens kund via befintlig
