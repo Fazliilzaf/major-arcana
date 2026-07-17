@@ -186,3 +186,63 @@ test('bara exported + pending plockas upp', async () => {
   assert.equal(pending.length, 1);
   assert.equal(pending[0].id, 'exp_test1');
 });
+
+// ── ORD-CM-14 · vatMode-medveten kontering ──────────────────────────────────
+test('reverse_charge_eu: fiktiv moms 25 % som 2645 D / 2614 K, balanserad', () => {
+  const { buildVoucherPayload } = require('../../src/cfo/cfoFortnoxVoucherSync');
+  const p = buildVoucherPayload({
+    id: 'exp_rc',
+    supplier: 'Meta Platforms Ireland Limited',
+    amountSek: 7096,
+    vatSek: 0,
+    category: 'marknadsforing',
+    date: '2026-07-10',
+    vatMode: 'reverse_charge_eu',
+  });
+  const rows = p.Voucher.VoucherRows;
+  assert.equal(rows.length, 4);
+  assert.deepEqual(rows[0], { Account: 5900, Debit: 7096, Credit: 0 });
+  assert.deepEqual(rows[1], { Account: 2645, Debit: 1774, Credit: 0 });
+  assert.deepEqual(rows[2], { Account: 2614, Debit: 0, Credit: 1774 });
+  assert.deepEqual(rows[3], { Account: 1930, Debit: 0, Credit: 7096 });
+  assert.equal(p.meta.accountSource, 'vat_mode_reverse_charge_eu');
+  assert.equal(p.meta.balanced, true);
+  const debet = rows.reduce((a, r) => a + r.Debit, 0);
+  const kredit = rows.reduce((a, r) => a + r.Credit, 0);
+  assert.equal(debet, kredit);
+});
+
+test('representation_limited med deductibleVatSek: endast avdragsgill moms bryts ut', () => {
+  const { buildVoucherPayload } = require('../../src/cfo/cfoFortnoxVoucherSync');
+  const p = buildVoucherPayload({
+    id: 'exp_rep',
+    supplier: 'Foodora AB',
+    amountSek: 588,
+    vatSek: 63,
+    category: 'mat_representation',
+    vatMode: 'representation_limited',
+    deductibleVatSek: 36,
+  });
+  const rows = p.Voucher.VoucherRows;
+  assert.deepEqual(rows[rows.length - 1], { Account: 1930, Debit: 0, Credit: 588 });
+  const vatRow = rows.find((r) => r.Account === 2641);
+  assert.deepEqual(vatRow, { Account: 2641, Debit: 36, Credit: 0 });
+  const costRow = rows[0];
+  assert.equal(costRow.Debit, 552);
+  assert.equal(p.meta.balanced, true);
+});
+
+test('representation_limited UTAN deductibleVatSek: default-kontering + manuell-not', () => {
+  const { buildVoucherPayload } = require('../../src/cfo/cfoFortnoxVoucherSync');
+  const p = buildVoucherPayload({
+    id: 'exp_rep2',
+    supplier: 'Foodora AB',
+    amountSek: 588,
+    vatSek: 0,
+    category: 'mat_representation',
+    vatMode: 'representation_limited',
+    deductibleVatSek: null,
+  });
+  assert.equal(p.meta.accountSource, 'default_suggestion');
+  assert.ok(p.meta.notes.some((n) => n.includes('granska momsavdraget manuellt')));
+});
