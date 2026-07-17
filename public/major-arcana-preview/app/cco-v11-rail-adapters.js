@@ -879,7 +879,11 @@
       ? BOOKING_DAY_NAMES[dateTime.weekdayIndex] + ' ' + dateTime.time
       : text(item.whenShort) || text(item.day) || '';
     var title =
-      text(item.title) || text(item.type) || text(item.serviceLabel) || text(item.nextBookingType);
+      text(item.serviceDisplayName) ||
+      text(item.title) ||
+      text(item.type) ||
+      text(item.serviceLabel) ||
+      text(item.nextBookingType);
     var sub = text(item.area) || text(item.sub) || text(item.resourceLabel);
     var st = bookingStaff(item.sub || sub);
     var rawState = text(item.status || item.state) || 'planned';
@@ -920,7 +924,12 @@
       staff: st.staff,
       initials: st.initials,
       patientId: text(item.patientId),
+      bookingId: text(item.bookingId || item.id),
       encounterId: text(item.encounterId),
+      source: text(item.source),
+      auditAvailable:
+        item.auditAvailable === true ||
+        (text(item.source) === 'cco_booking_engine' && !!text(item.bookingId || item.id)),
       notes: notes,
     };
   }

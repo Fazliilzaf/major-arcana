@@ -168,6 +168,48 @@ describe('ccoKunderBookingEnrichment', () => {
     assert.equal(sig.upcomingBookings[0].practitioner, 'Fazli');
   });
 
+  it('keeps the canonical service catalog displayName on patient booking rows', () => {
+    const startsAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
+    const { index } = buildBookingSignalsIndex({
+      patients: [
+        {
+          id: 'patient-physical-consultation',
+          primaryEmail: 'physical@example.com',
+          emails: [],
+          flags: [],
+          fileSummary: {},
+        },
+      ],
+      services: [
+        {
+          id: 'consultation-physical',
+          label: 'Fysisk konsultation',
+        },
+      ],
+      engineBookings: [
+        {
+          bookingId: 'booking-physical-consultation',
+          tenantId: 't1',
+          patientId: 'patient-physical-consultation',
+          customerEmail: 'physical@example.com',
+          status: 'confirmed',
+          slot: {
+            startsAt,
+            serviceId: 'consultation-physical',
+            serviceLabel: 'Konsultation',
+            resourceLabel: 'Fazli Krasniqi',
+          },
+        },
+      ],
+    });
+
+    const booking = getBookingSignals(index, 'patient-physical-consultation').upcomingBookings[0];
+    assert.equal(booking.bookingId, 'booking-physical-consultation');
+    assert.equal(booking.serviceId, 'consultation-physical');
+    assert.equal(booking.serviceDisplayName, 'Fysisk konsultation');
+    assert.equal(booking.title, 'Fysisk konsultation');
+  });
+
   it('waitlist from booking case status', () => {
     const patients = [
       { id: 'p2', primaryEmail: 'b@example.com', emails: [], flags: [], fileSummary: {} },

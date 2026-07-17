@@ -6,6 +6,14 @@ const express = require('express');
 function createCcoAuditRouter({ ccoAuditLog, requireAuthenticated, attachRole, requireAnyRole }) {
   const router = express.Router();
 
+  const normalizeId = (value) => (typeof value === 'string' ? value.trim().slice(0, 200) : '');
+  const bookingAuditReadout = (event) => ({
+    action: event.action,
+    occurredAt: event.ts,
+    result: event.result,
+    traceId: event.traceId,
+  });
+
   // The audit router is mounted before auth bootstrap completes in server.js.
   // Use the lazy auth bridge only on /cco-audit so verified token context
   // exists before RBAC resolves req.auth.role. The router itself is mounted at
@@ -15,6 +23,51 @@ function createCcoAuditRouter({ ccoAuditLog, requireAuthenticated, attachRole, r
     typeof requireAuthenticated === 'function'
       ? requireAuthenticated
       : (_req, res) => res.status(503).json({ error: 'auth_not_ready' })
+  );
+
+  // Narrow read-only booking audit for the customer history. Staff receives
+  // only the create lifecycle facts for the requested canonical booking, not
+  // the general audit log or actor/IP metadata.
+  router.get(
+    '/cco-audit/booking/:bookingId',
+    attachRole,
+    requireAnyRole(['owner', 'operator']),
+    (req, res) => {
+      const bookingId = normalizeId(req.params.bookingId);
+      const patientId = normalizeId(req.query.patientId);
+      const tenantId = normalizeId(req.auth?.tenantId || req.cco?.tenantId);
+      if (!bookingId || !patientId) {
+        return res.status(400).json({ error: 'bookingId och canonical patientId krävs.' });
+      }
+
+      const belongsToScope = (event) => {
+        if (tenantId && normalizeId(event?.target?.tenantId) !== tenantId) return false;
+        return normalizeId(event?.detail?.patientId) === patientId;
+      };
+      const committed = ccoAuditLog
+        .query({ limit: 1000, action: 'bookings.create_committed', targetId: bookingId })
+        .find(belongsToScope);
+      const idempotencyKey = normalizeId(committed?.detail?.idempotencyKey);
+      const requested = idempotencyKey
+        ? ccoAuditLog
+            .query({
+              limit: 1000,
+              action: 'bookings.create_requested',
+              targetId: idempotencyKey,
+            })
+            .find(belongsToScope)
+        : null;
+      const items = [requested, committed].filter(Boolean).map(bookingAuditReadout);
+
+      return res.json({
+        readOnly: true,
+        zeroWrites: true,
+        bookingId,
+        patientId,
+        count: items.length,
+        items,
+      });
+    }
   );
 
   // GET /api/v1/cco-audit — bara owner+revisor

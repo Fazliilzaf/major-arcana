@@ -379,6 +379,7 @@ function normalizeBookingReadout({
   durationMinutes = null,
   serviceId = '',
   serviceLabel = '',
+  serviceDisplayName = '',
   resourceLabel = '',
   locationLabel = '',
   notes = '',
@@ -396,8 +397,9 @@ function normalizeBookingReadout({
   const pid = normalizeText(patientId);
   if (!pid || !start) return null;
   const title =
-    serviceIdToTreatmentLabel(serviceId) ||
+    normalizeText(serviceDisplayName) ||
     normalizeText(serviceLabel) ||
+    serviceIdToTreatmentLabel(serviceId) ||
     encounterTypeToTreatmentLabel(serviceId) ||
     'Bokning';
   const end = normalizeText(endsAt);
@@ -410,6 +412,7 @@ function normalizeBookingReadout({
   const durationLabel = Number.isFinite(resolvedDuration) ? `${resolvedDuration} min` : '';
   return {
     id: normalizeText(id) || buildBookingDedupeKey(pid, start, title),
+    bookingId: normalizeText(id) || null,
     patientId: pid,
     date: bookingDateLabel(start),
     dateLabel: bookingDateLabel(start),
@@ -421,6 +424,8 @@ function normalizeBookingReadout({
     durationMinutes: Number.isFinite(resolvedDuration) ? resolvedDuration : null,
     durationLabel,
     title,
+    serviceId: normalizeText(serviceId) || null,
+    serviceDisplayName: title,
     serviceName: title,
     staff: staffName,
     staffName,
@@ -445,10 +450,21 @@ function collectBookingReadouts({
   bookingCases = [],
   clientoBookings = [],
   encounters = [],
+  services = [],
   lookup = buildPatientLookupMaps(patients),
 } = {}) {
   const emailToPatient = lookup.emailToPatient;
   const rows = [];
+  const serviceDisplayNames = new Map(
+    asArray(services)
+      .map((service) => [
+        normalizeKey(service?.id),
+        normalizeText(service?.displayName || service?.label || service?.name),
+      ])
+      .filter(([serviceId, displayName]) => serviceId && displayName)
+  );
+  const resolveServiceDisplayName = (serviceId, fallback = '') =>
+    serviceDisplayNames.get(normalizeKey(serviceId)) || normalizeText(fallback);
   const encounterByBookingId = new Map();
   const encountersByPatient = new Map();
   for (const encounter of asArray(encounters)) {
@@ -494,6 +510,7 @@ function collectBookingReadouts({
         durationMinutes: slot.durationMinutes,
         serviceId: slot.serviceId,
         serviceLabel: slot.serviceLabel,
+        serviceDisplayName: resolveServiceDisplayName(slot.serviceId, slot.serviceLabel),
         resourceLabel: slot.resourceLabel,
         notes: booking.notes,
         status: booking.status,
@@ -518,6 +535,7 @@ function collectBookingReadouts({
           durationMinutes: safeSlot.durationMinutes,
           serviceId: safeSlot.serviceId,
           serviceLabel: safeSlot.serviceLabel,
+          serviceDisplayName: resolveServiceDisplayName(safeSlot.serviceId, safeSlot.serviceLabel),
           resourceLabel: safeSlot.resourceLabel,
           notes: bookingCase.notes,
           status:
@@ -546,6 +564,10 @@ function collectBookingReadouts({
         endsAt: clientoBooking.endsAt,
         durationMinutes: clientoBooking.durationMinutes,
         serviceLabel: clientoBooking.serviceLabel,
+        serviceDisplayName: resolveServiceDisplayName(
+          clientoBooking.serviceId,
+          clientoBooking.serviceLabel
+        ),
         resourceLabel: clientoBooking.staffName,
         locationLabel: clientoBooking.locationName,
         notes: clientoBooking.notes,
@@ -832,6 +854,7 @@ function buildBookingSignalsIndex({
   bookingCases = [],
   encounters = [],
   clientoBookings = [],
+  services = [],
 } = {}) {
   const index = new Map();
   const lookup = buildPatientLookupMaps(patients);
@@ -843,6 +866,7 @@ function buildBookingSignalsIndex({
     bookingCases,
     clientoBookings,
     encounters,
+    services,
     lookup,
   });
 
@@ -1111,6 +1135,10 @@ async function loadKunderBookingIndex(
       typeof stores.encounterStore.listEncountersForEnrichment === 'function'
         ? stores.encounterStore.listEncountersForEnrichment(tid)
         : [];
+    const services =
+      typeof stores.engineStore.listServices === 'function'
+        ? await stores.engineStore.listServices({})
+        : [];
 
     let clientoBookings = [];
     if (includeClientoBookings) {
@@ -1145,6 +1173,7 @@ async function loadKunderBookingIndex(
       bookingCases,
       encounters,
       clientoBookings,
+      services,
     });
 
     const hasAny =

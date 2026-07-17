@@ -498,6 +498,43 @@
 
   function buildUpcomingBookings(card, occasionTimeline) {
     const rows = [];
+    for (const booking of asArray(card?.upcomingBookings)) {
+      const startsAt = booking.startsAt || booking.startAt || booking.iso;
+      if (!startsAt || Date.parse(startsAt) < Date.now()) continue;
+      const staffLabel = booking.resourceLabel || booking.staffName || booking.practitioner || '';
+      const serviceDisplayName =
+        booking.serviceDisplayName ||
+        booking.serviceName ||
+        booking.serviceLabel ||
+        booking.title ||
+        booking.serviceId ||
+        'Bokning';
+      const rawStatus = String(booking.status || 'confirmed').toLowerCase();
+      const statusLabels = {
+        upcoming: 'Bokad',
+        confirmed: 'Bokad',
+        reserved: 'Bokad',
+        completed: 'Genomförd',
+        cancelled: 'Avbokad',
+        canceled: 'Avbokad',
+        no_show: 'Utebliven',
+      };
+      const row = bookingParts(
+        startsAt,
+        serviceDisplayName,
+        [serviceDisplayName, staffLabel].filter(Boolean).join(' · '),
+        rawStatus,
+        statusLabels[rawStatus] || booking.stateLabel || 'Bokad',
+        booking.source || resolveBookingSource(staffLabel)
+      );
+      row.bookingId = booking.bookingId || booking.id || '';
+      row.patientId = booking.patientId || card?.patientId || card?.id || '';
+      row.encounterId = booking.encounterId || '';
+      row.serviceId = booking.serviceId || '';
+      row.serviceDisplayName = serviceDisplayName;
+      row.auditAvailable = booking.source === 'cco_booking_engine' && Boolean(row.bookingId);
+      rows.push(row);
+    }
     if (card?.hasUpcomingBooking && card?.nextBookingAt) {
       const sub = [card.nextBookingType, card.nextBookingResourceLabel].filter(Boolean).join(' · ');
       const today = card.todayVisit === true;

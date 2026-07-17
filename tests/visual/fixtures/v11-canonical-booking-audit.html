@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="sv" data-v9-enabled="on">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>V11 canonical booking audit smoke</title>
+    <link rel="stylesheet" href="/public/major-arcana-preview/cco-v11-rk.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #f4f0e9;
+      }
+      #mount {
+        width: 420px;
+        min-height: 720px;
+        margin: 0 auto;
+      }
+    </style>
+    <script>
+      window.fetch = async function (url, options) {
+        if (String(url).includes('/api/v1/cco-audit/booking/')) {
+          if (!options || options.method !== 'GET') throw new Error('read-only GET required');
+          return {
+            ok: true,
+            json: async function () {
+              return {
+                readOnly: true,
+                zeroWrites: true,
+                items: [
+                  { action: 'bookings.create_requested', occurredAt: '2026-07-17T10:00:00.000Z' },
+                  { action: 'bookings.create_committed', occurredAt: '2026-07-17T10:00:01.000Z' },
+                ],
+              };
+            },
+          };
+        }
+        throw new Error('unexpected request');
+      };
+    </script>
+    <script defer src="/public/major-arcana-preview/app/cco-v11-rail-adapters.js"></script>
+    <script defer src="/public/major-arcana-preview/app/cco-v11-rk.js"></script>
+  </head>
+  <body>
+    <main id="mount" class="v11-rk" aria-label="V11 UAT-bokning"></main>
+    <script>
+      window.addEventListener('DOMContentLoaded', function () {
+        var card = {
+          patientId: 'cco-active-visit-uat-20260713',
+          displayName: 'Aktivt besök · UAT TEST',
+          hasUpcomingBooking: true,
+          nextBookingAt: '2026-07-25T10:00:00.000Z',
+          nextBookingType: 'Konsultation',
+          upcomingBookings: [
+            {
+              bookingId: 'da2d26af-7c5b-4249-ac63-623d1f1464f4',
+              patientId: 'cco-active-visit-uat-20260713',
+              startsAt: '2026-07-25T10:00:00.000Z',
+              serviceId: 'consultation-physical',
+              serviceDisplayName: 'Fysisk konsultation',
+              resourceLabel: 'Fazli Krasniqi',
+              status: 'confirmed',
+              source: 'cco_booking_engine',
+            },
+          ],
+        };
+        document.getElementById('mount').innerHTML = window.CcoV11RailKomplett.render({
+          card: card,
+          bcard: card,
+          dossierBundle: { upcomingBookings: card.upcomingBookings },
+          journalEntries: [],
+          driveFiles: [],
+        });
+      });
+    </script>
+  </body>
+</html>
