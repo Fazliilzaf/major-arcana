@@ -7,9 +7,11 @@ function createCcoAuditRouter({ ccoAuditLog, requireAuthenticated, attachRole, r
   const router = express.Router();
 
   // The audit router is mounted before auth bootstrap completes in server.js.
-  // Use the lazy auth bridge for every request so verified token context exists
-  // before RBAC resolves req.auth.role. Missing auth wiring must fail closed.
+  // Use the lazy auth bridge only on /cco-audit so verified token context
+  // exists before RBAC resolves req.auth.role. The router itself is mounted at
+  // /api/v1, where router-wide auth would also intercept public auth routes.
   router.use(
+    '/cco-audit',
     typeof requireAuthenticated === 'function'
       ? requireAuthenticated
       : (_req, res) => res.status(503).json({ error: 'auth_not_ready' })
