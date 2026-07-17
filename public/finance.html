@@ -937,7 +937,7 @@
       <!-- Anomalies -->
       <div class="anomalies" id="anomalies"></div>
 
-      <!-- ORD-CM-4 · Klumphantering: hela grupper i ett klick -->
+      <!-- ORD-CM-6 · Klumphantering: pyramid år → månad → företag → poster -->
       <div class="section" id="cm-bulk">
         <h2>
           Klumphantering
@@ -946,10 +946,8 @@
             <button class="btn" data-action="cmb-refresh">↻ Uppdatera</button>
           </div>
         </h2>
-        <div class="receipt-meta" style="margin: 0 4px 10px">
-          Promota eller avvisa alla kandidater från samma leverantör i ett klick. Godkännande för
-          bokföring sker fortfarande post för post.
-        </div>
+        <div id="cmb-crumb" class="receipt-meta" style="margin: 0 4px 10px"></div>
+        <div class="kpis" id="cmb-cards" style="display: none"></div>
         <div class="receipts-list" id="cmb-list"><div class="empty">Hämtar…</div></div>
       </div>
 
