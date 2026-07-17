@@ -68,18 +68,64 @@ function hasVisibleStatus(asset) {
   return ['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(asset?.status);
 }
 
-function summarizeEvidence(patient, assets) {
+/**
+ * Infer which Cliento-led journey an agreement asset belongs to.
+ * Prefer structured treatmentType / display labels over opaque GetAccept filenames.
+ */
+function classifyAgreementJourney(asset = {}) {
+  return classifyService(
+    [
+      asset?.treatmentType,
+      asset?.displayName,
+      asset?.documentTitle,
+      asset?.visitLabel,
+      asset?.serviceLabel,
+      asset?.originalFileName,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+}
+
+function isGetAcceptAgreementAsset(asset) {
+  if (normalizeKey(asset?.sourceSystem) !== 'getaccept_import') return false;
+  const category = normalizeKey(asset?.category);
+  if (category === 'agreement') return true;
+  return inferDocumentKind(asset) === 'agreement';
+}
+
+/**
+ * Agreement evidence for the Cliento-led journey audit.
+ * Pipedrive historical PDFs and VISIBLE/VERIFIED GetAccept agreements both count,
+ * but GetAccept must also match the required treatment journey (fail closed).
+ * Assets are already scoped to the canonical patient by buildClientoLedJourneyAudit.
+ * Pipedrive deals alone never count as a signed agreement PDF.
+ */
+function isAgreementEvidenceAsset(asset, { requiredJourney = null } = {}) {
+  const source = normalizeKey(asset?.sourceSystem);
+  if (source === 'pipedrive_import') {
+    return inferDocumentKind(asset) === 'agreement';
+  }
+  if (!isGetAcceptAgreementAsset(asset)) return false;
+  if (!requiredJourney) return false;
+  return classifyAgreementJourney(asset) === requiredJourney;
+}
+
+function isOfferEvidenceAsset(asset) {
+  return (
+    normalizeKey(asset?.sourceSystem) === 'pipedrive_import' && inferDocumentKind(asset) === 'offer'
+  );
+}
+
+function summarizeEvidence(patient, assets, { agreementJourney = 'hair_transplant' } = {}) {
   const visible = asArray(assets).filter(hasVisibleStatus);
   const structuredHd = Boolean(asObject(patient?.healthDeclaration).signedAt);
   const structuredFf = Boolean(asObject(patient?.fitnessCertificate).signedAt);
   const healthDeclaration = structuredHd || visible.some(isHealthDeclarationAsset);
   const fitnessCertificate = structuredFf || visible.some(isFitnessCertificateAsset);
-  const offer = visible.some(
-    (asset) => asset?.sourceSystem === 'pipedrive_import' && inferDocumentKind(asset) === 'offer'
-  );
-  const agreement = visible.some(
-    (asset) =>
-      asset?.sourceSystem === 'pipedrive_import' && inferDocumentKind(asset) === 'agreement'
+  const offer = visible.some(isOfferEvidenceAsset);
+  const agreement = visible.some((asset) =>
+    isAgreementEvidenceAsset(asset, { requiredJourney: agreementJourney })
   );
   const deals = asArray(asObject(patient?.pipedrive).deals);
   return {
@@ -114,8 +160,7 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
   const allKinds = new Set(history.map((row) => classifyService(row.serviceLabel)));
   const hasConsultationBooking = allKinds.has('consultation');
   const hasAttendedConsultation = attendedKinds.has('consultation');
-  const hasAttendedTreatment =
-    attendedKinds.has('prp') || attendedKinds.has('hair_transplant');
+  const hasAttendedTreatment = attendedKinds.has('prp') || attendedKinds.has('hair_transplant');
   const hasHairTransplant = attendedKinds.has('hair_transplant');
   const hasTreatmentBooking = allKinds.has('prp') || allKinds.has('hair_transplant');
   const hasHairTransplantBooking = allKinds.has('hair_transplant');
@@ -140,9 +185,7 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
   // requirement at the initial attended treatment, rather than a new
   // requirement for every PRP session.
   const hdExpected =
-    hasAuthoritativeBooking &&
-    (hasConsultationBooking || hasTreatmentBooking) &&
-    !nonAttendedOnly;
+    hasAuthoritativeBooking && (hasConsultationBooking || hasTreatmentBooking) && !nonAttendedOnly;
   const ffExpected = hasAttendedTreatment && !nonAttendedOnly;
   const offerExpected = hasTreatmentBooking && !nonAttendedOnly;
   const agreementExpected = hasHairTransplantBooking && !nonAttendedOnly;
@@ -263,8 +306,12 @@ function buildClientoLedJourneyAudit({ patients = [], clientoBookings = [], asse
 module.exports = {
   auditPatientJourney,
   buildClientoLedJourneyAudit,
+  classifyAgreementJourney,
   classifyService,
   dedupeClientoHistory,
+  isAgreementEvidenceAsset,
   isAttended,
+  isGetAcceptAgreementAsset,
+  isOfferEvidenceAsset,
   summarizeEvidence,
 };
