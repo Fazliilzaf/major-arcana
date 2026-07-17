@@ -217,3 +217,92 @@ test('mailbox truth store self-heals a corrupt JSON state file at startup', asyn
 
   await fs.rm(tempDir, { recursive: true, force: true });
 });
+
+test('deferConversationRebuild skips eager rebuild on load but keeps completeness conversationCount', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-mailbox-truth-defer-cold-'));
+  const filePath = path.join(tempDir, 'mailbox.json');
+
+  // Persist a shard the same way sharded cold loads see it: messages present,
+  // conversations emptied by toPersistedState.
+  await fs.writeFile(
+    filePath,
+    JSON.stringify(
+      {
+        version: 1,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        accounts: {
+          'contact@hairtpclinic.com': {
+            mailboxId: 'contact@hairtpclinic.com',
+            mailboxAddress: 'contact@hairtpclinic.com',
+          },
+        },
+        folders: {},
+        messages: {
+          'contact@hairtpclinic.com:msg-1': {
+            mailboxId: 'contact@hairtpclinic.com',
+            graphMessageId: 'msg-1',
+            folderType: 'inbox',
+            conversationId: 'thread-a',
+            mailboxConversationId: 'contact@hairtpclinic.com:thread-a',
+            subject: 'A',
+            receivedDateTime: '2026-01-02T10:00:00.000Z',
+          },
+          'contact@hairtpclinic.com:msg-2': {
+            mailboxId: 'contact@hairtpclinic.com',
+            graphMessageId: 'msg-2',
+            folderType: 'inbox',
+            conversationId: 'thread-a',
+            mailboxConversationId: 'contact@hairtpclinic.com:thread-a',
+            subject: 'A reply',
+            receivedDateTime: '2026-01-02T11:00:00.000Z',
+          },
+          'contact@hairtpclinic.com:msg-3': {
+            mailboxId: 'contact@hairtpclinic.com',
+            graphMessageId: 'msg-3',
+            folderType: 'inbox',
+            conversationId: 'thread-b',
+            mailboxConversationId: 'contact@hairtpclinic.com:thread-b',
+            subject: 'B',
+            receivedDateTime: '2026-01-03T10:00:00.000Z',
+          },
+        },
+        conversations: {},
+        syncCheckpoints: {},
+        syncRuns: [],
+      },
+      null,
+      2
+    ),
+    'utf8'
+  );
+
+  const deferred = await createCcoMailboxTruthStore({
+    filePath,
+    deferConversationRebuild: true,
+    deferInitialSave: true,
+  });
+  const deferredReport = deferred.getCompletenessReport({
+    mailboxIds: ['contact@hairtpclinic.com'],
+  });
+  // Eager rebuild would have filled state.conversations; deferred cold load must
+  // still report the unique conversation count for consumer truthCoverage.
+  assert.equal(deferredReport.metadata.conversationCount, 2);
+  assert.equal(deferredReport.metadata.messageCount, 3);
+  assert.equal(
+    deferred.listWorklistMessages({ mailboxIds: ['contact@hairtpclinic.com'] }).length,
+    3
+  );
+
+  const eager = await createCcoMailboxTruthStore({
+    filePath,
+    deferConversationRebuild: false,
+    deferInitialSave: true,
+  });
+  const eagerReport = eager.getCompletenessReport({
+    mailboxIds: ['contact@hairtpclinic.com'],
+  });
+  assert.equal(eagerReport.metadata.conversationCount, 2);
+
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
