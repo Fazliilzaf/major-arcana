@@ -226,14 +226,16 @@ services:
       # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
       - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
         value: "2147483648"
-      # ORD-78-frysläge — ORD-74 flippar till true när Drive-ingesten är klar.
-      # Blueprint-sync får INTE återställa "true" mitt i ingest (tänder schedulern).
+      # ORD-74 2026-07-17: Drive-ingest klar (disk stabil ~48h, granskningskö tom) —
+      # frysen lyft av Fazli ("kör igång"). Schedulern PÅ igen.
       - key: ARCANA_SCHEDULER_ENABLED
-        value: "false"
+        value: "true"
       - key: ARCANA_SCHEDULER_PROD_SAFE_MODE
         value: "false"
+      # Tom = alla obligatoriska jobb (inkl. tenant access-check, ORD-73). Kända gröna
+      # läget från 13/7; allowlisten saknade ORD-73-jobbet.
       - key: ARCANA_SCHEDULER_JOBS
-        value: alert_probe,backup_prune,cco_dashboard_snapshot_refresh,cco_daily_digest,cco_truth_delta_sync
+        value: ""
       # Inga startup-jobb under stabilisering; minskar Render-restart/OOM-risk.
       - key: ARCANA_SCHEDULER_RUN_ON_STARTUP
         value: "false"
