@@ -10806,6 +10806,20 @@ try {
   console.log(
     `[cco-drive-import-review] monterad write=${config.enableDriveImportReviewWrite ? 'CANARY' : 'READ-ONLY'}: GET/POST /api/v1/ops/cco/drive-import-review/*`
   );
+
+  // ORD-74c: ägar-styrd scheduler-override via API (owner-gated; se routerfilen).
+  const { createOpsSchedulerOverrideRouter } = require('./src/routes/opsSchedulerOverride');
+  const { requireAnyRole: rbacRequireAnyRole } = require('./src/security/ccoRbac');
+  app.use(
+    '/api/v1/ops',
+    createOpsSchedulerOverrideRouter({
+      requireCcoAuthenticated,
+      attachRole,
+      requireAnyRole: rbacRequireAnyRole,
+      auditLog: ccoAuditLog,
+    })
+  );
+  console.log('[ops-scheduler-override] monterad: GET/POST/DELETE /api/v1/ops/scheduler/override');
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);
 }
