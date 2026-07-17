@@ -1674,6 +1674,38 @@
     if (node) node.textContent = value;
   }
 
+  function v6SetStoryKicker(card, label) {
+    const kicker = card && card.querySelector('.story-card-kicker');
+    if (!kicker) return;
+    const icon = kicker.querySelector('.icon');
+    kicker.innerHTML = '';
+    if (icon) kicker.appendChild(icon);
+    kicker.appendChild(document.createTextNode(label));
+  }
+
+  function v6SetStoryHeadline(card, value, numberValue) {
+    const headline = card && card.querySelector('.story-card-headline');
+    if (!headline) return;
+    headline.innerHTML = '';
+    if (numberValue !== undefined && numberValue !== null) {
+      headline.appendChild(el('span', { class: 'num' }, String(numberValue)));
+      headline.appendChild(document.createTextNode(' ' + value));
+      return;
+    }
+    headline.textContent = value;
+  }
+
+  function v6StoryItem({ severity = 'ok', badge = '—', who, what, when = '' }) {
+    return el('div', { class: 'story-item', dataset: { severity } }, [
+      el('span', { class: 'badge' }, badge),
+      el('span', {}, [
+        el('span', { class: 'who' }, who),
+        el('span', { class: 'what' }, what),
+      ]),
+      el('span', { class: 'when' }, when),
+    ]);
+  }
+
   function v6RenderIntel(slot) {
     const shell = document.querySelector('.intel-shell');
     if (!shell) return;
@@ -1747,7 +1779,7 @@
     const tabs = shell.querySelector('.intel-tabs');
     if (tabs) {
       tabs.innerHTML = '';
-      ['Besök', 'Anteckningar', 'Säkerhetsgrindar'].forEach((label, index) => {
+      ['Besök', 'Historik', 'Filer', 'Anteckningar'].forEach((label, index) => {
         tabs.appendChild(el('button', {
           class: 'intel-tab' + (index === 0 ? ' active' : ''), type: 'button', disabled: 'disabled',
         }, label));
@@ -1762,10 +1794,20 @@
           class: 'quick-pill quick-pill--success', type: 'button',
           onclick: () => openCanonicalPatient(slot.patientId),
         }, 'Öppna samma patient i Kunder V11/V12'));
+      } else {
+        actions.appendChild(el('button', {
+          class: 'quick-pill quick-pill--success', type: 'button', disabled: 'disabled',
+        }, 'Välj besök för canonical patient'));
       }
-      actions.appendChild(el('button', {
-        class: 'quick-pill', type: 'button', disabled: 'disabled',
-      }, 'Boknings-preflight blockerad · inga skrivningar'));
+      [
+        ['quick-pill quick-pill--ai', 'Boknings-preflight · read-only'],
+        ['quick-pill quick-pill--ai', 'Säkerhetsgrindar · read-only'],
+        ['quick-pill', 'Anteckningar · read-only'],
+        ['quick-pill', 'Resurs och vårdgivare · read-only'],
+        ['quick-pill', 'Ombokning avstängd'],
+      ].forEach(([className, label]) => actions.appendChild(el('button', {
+        class: className, type: 'button', disabled: 'disabled',
+      }, label)));
     }
   }
 
@@ -1843,35 +1885,89 @@
   function v6UpdateStory(visits) {
     const today = isoToday();
     const todayVisits = visits.filter((slot) => slot.date === today);
-    const counts = v6StatusCounts(todayVisits);
     const greeting = document.querySelector('.greet-text');
     if (greeting) {
       const date = new Date(today + 'T12:00:00.000Z');
-      greeting.innerHTML = '';
-      greeting.appendChild(el('h1', {}, 'Dagens canonical bokningar'));
-      greeting.appendChild(el('p', {}, date.toLocaleDateString('sv-SE', {
-        timeZone: 'Europe/Stockholm', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-      }) + ' · Europe/Stockholm'));
+      const heading = greeting.querySelector('h1');
+      if (heading) {
+        heading.innerHTML = '';
+        heading.appendChild(document.createTextNode('God morgon, '));
+        heading.appendChild(el('span', {}, 'Fazli'));
+      }
+      v6SetText(greeting.querySelector('p'), date.toLocaleDateString('sv-SE', {
+        timeZone: 'Europe/Stockholm', weekday: 'long', day: 'numeric', month: 'long',
+      }) + ' · vecka ' + v6WeekNumber(today) + ' · Europe/Stockholm');
     }
-    const cards = document.querySelectorAll('.story-card');
-    const summaries = [
-      ['Idag', todayVisits.length + ' bokningar', todayVisits.length
-        ? 'Första ' + todayVisits.map((slot) => slot.time).sort()[0] + ' · sista ' +
-          todayVisits.map((slot) => slot.endTime || slot.time).sort().slice(-1)[0]
-        : 'Inga bokningar registrerade'],
-      ['Status', counts.booked + ' bokade', counts.cancelled + ' avbokade · ' + counts.noShow + ' uteblivna'],
-      ['Anteckningar', todayVisits.reduce((sum, slot) => sum + bookingNoteCount(slot), 0) + ' noter',
-        'Boknings-, kund-, interna och behandlingsanteckningar'],
-      ['Genomfört', counts.completed + ' besök', 'Canonical status · read-only'],
-    ];
-    cards.forEach((card, index) => {
-      const summary = summaries[index];
-      if (!summary) return;
-      v6SetText(card.querySelector('.story-card-kicker'), summary[0]);
-      v6SetText(card.querySelector('.story-card-headline'), summary[1]);
-      v6SetText(card.querySelector('.story-card-sub'), summary[2]);
-      card.querySelectorAll('.story-list, .day-spark, .ready-meter').forEach((node) => node.remove());
+
+    const todayCard = document.querySelector('.story-card[data-kind="idag"]');
+    v6SetStoryKicker(todayCard, 'Idag');
+    v6SetStoryHeadline(todayCard, 'bokningar', todayVisits.length);
+    const orderedTimes = todayVisits.map((slot) => slot.time).filter(Boolean).sort();
+    const orderedEnds = todayVisits.map((slot) => slot.endTime || slot.time).filter(Boolean).sort();
+    v6SetText(todayCard && todayCard.querySelector('.story-card-sub'), todayVisits.length
+      ? 'Första kl ' + orderedTimes[0] + ' · sista kl ' + orderedEnds.slice(-1)[0] + ' · canonical'
+      : 'Inga canonical bokningar registrerade idag');
+    const sparkBars = todayCard ? todayCard.querySelectorAll('.day-spark-bar') : [];
+    const hourly = Array.from({ length: sparkBars.length }, (_, index) => todayVisits.filter((slot) => {
+      const hour = Number(String(slot.time || '').slice(0, 2));
+      return hour === 7 + index;
+    }).length);
+    const hourlyMax = Math.max(1, ...hourly);
+    sparkBars.forEach((bar, index) => {
+      const count = hourly[index] || 0;
+      bar.style.height = count ? Math.max(20, Math.round((count / hourlyMax) * 90)) + '%' : '0%';
+      bar.title = count + ' canonical bokning' + (count === 1 ? '' : 'ar');
     });
+
+    const riskCard = document.querySelector('.story-card[data-kind="risker"]');
+    const safetyKeys = new Set([
+      'canonical_patient', 'identity_unambiguous', 'booking_reference', 'treatment',
+      'resource', 'practitioner', 'stockholm_time',
+    ]);
+    const risks = todayVisits.map((slot) => {
+      const gate = buildReadonlyBookingPreflight(slot).blockers.find((item) => safetyKeys.has(item.key));
+      return gate ? { slot, gate } : null;
+    }).filter(Boolean);
+    v6SetStoryKicker(riskCard, risks.length + ' risk' + (risks.length === 1 ? '' : 'er'));
+    v6SetStoryHeadline(riskCard, risks.length ? 'Hantera först' : 'Inga blockerare');
+    const riskList = riskCard && riskCard.querySelector('.story-list');
+    if (riskList) {
+      riskList.innerHTML = '';
+      if (!risks.length) {
+        riskList.appendChild(v6StoryItem({
+          severity: 'ok', badge: '✓', who: 'Canonical preflight',
+          what: '— inga lässäkerhetsblockerare idag', when: 'read-only',
+        }));
+      } else {
+        risks.slice(0, 3).forEach(({ slot, gate }) => riskList.appendChild(v6StoryItem({
+          severity: 'high', badge: '!', who: slot.patientName || 'Okopplad patient',
+          what: '— ' + gate.label + ' saknas', when: slot.time || '—',
+        })));
+      }
+    }
+
+    const opportunityCard = document.querySelector('.story-card[data-kind="mojligheter"]');
+    v6SetStoryKicker(opportunityCard, '0 möjligheter');
+    v6SetStoryHeadline(opportunityCard, 'Inga canonical förslag');
+    const opportunityList = opportunityCard && opportunityCard.querySelector('.story-list');
+    if (opportunityList) {
+      opportunityList.innerHTML = '';
+      opportunityList.appendChild(v6StoryItem({
+        badge: '★', who: 'Väntelista och luckförslag',
+        what: '— saknar verifierat backendkontrakt', when: '0 writes',
+      }));
+    }
+
+    const forecastCard = document.querySelector('.story-card[data-kind="klart"]');
+    v6SetStoryKicker(forecastCard, 'Prognos');
+    v6SetStoryHeadline(forecastCard, 'Saknar underlag');
+    v6SetText(forecastCard && forecastCard.querySelector('.story-card-sub'),
+      'Canonical bokningsdata innehåller ingen verifierad kapacitetsprognos.');
+    const forecastFill = forecastCard && forecastCard.querySelector('.ready-meter-fill');
+    if (forecastFill) forecastFill.style.width = '0%';
+    const forecastLabels = forecastCard ? forecastCard.querySelectorAll('.ready-meter-labels span') : [];
+    v6SetText(forecastLabels[0], 'Prognosdata');
+    v6SetText(forecastLabels[1], 'Saknas');
   }
 
   function v6RenderMiniInboxState() {
@@ -1879,18 +1975,22 @@
     if (!inbox) return;
     inbox.innerHTML = '';
     inbox.appendChild(el('div', { class: 'mini-inbox-kicker' }, [
-      document.createTextNode('Mini-inkorg '),
+      document.createTextNode('Inkorg '),
       el('span', { class: 'badge' }, 'READ-ONLY'),
     ]));
-    inbox.appendChild(el('div', {
+    [
+      ['Ingen canonical inkorgsdata', 'Inga obokade mejltrådar i kalenderkontraktet', 'Ärligt tomt läge'],
+      ['Dragning avstängd', 'Saknar verifierat boknings-write-kontrakt', 'Read-only'],
+      ['Bokningsmutationer blockerade', 'Ingen skapa, flytta eller avboka', '0 writes'],
+    ].forEach(([from, subject, meta]) => inbox.appendChild(el('div', {
       class: 'mail-thread', draggable: 'false',
       dataset: { canonicalState: 'unavailable', readOnly: 'true' },
     }, [
-      el('div', { class: 'mail-from' }, 'Ingen canonical inkorgsdata'),
-      el('div', { class: 'mail-subj' }, 'Kalenderkontraktet innehåller inga obokade mejltrådar.'),
-      el('div', { class: 'mail-meta' }, 'Ärligt tomt läge · ingen dragning'),
-      el('span', { class: 'mail-ai-hint' }, '0 writes'),
-    ]));
+      el('div', { class: 'mail-from' }, from),
+      el('div', { class: 'mail-subj' }, subject),
+      el('div', { class: 'mail-meta' }, meta),
+      el('span', { class: 'mail-ai-hint' }, 'READ-ONLY'),
+    ])));
   }
 
   function v6RenderStoryActions() {
@@ -1952,7 +2052,7 @@
       const dateKey = v6IsoOffset(v6State.weekStart, index);
       const count = visits.filter((slot) => slot.date === dateKey).length;
       const spans = node.querySelectorAll('span');
-      v6SetText(spans[0], '•');
+      v6SetText(spans[0], count >= 5 ? '🔆' : count >= 3 ? '⛅' : count ? '🌤️' : '☀️');
       v6SetText(node.querySelector('.vibe-label'), V6_DAY_NAMES[index]);
       v6SetText(node.querySelector('.vibe-tip'), count
         ? count + ' canonical bokning' + (count === 1 ? '' : 'ar')
@@ -2004,7 +2104,7 @@
       timeMachine.title = 'Tid-maskin är visuellt passiv i canonical read-only-läge';
       const slider = timeMachine.querySelector('input');
       if (slider) slider.disabled = true;
-      v6SetText(timeMachine.querySelector('.timemachine-label'), 'Read-only');
+      v6SetText(timeMachine.querySelector('.timemachine-label'), 'Nutid');
     }
     const resourceTab = document.querySelector('.segment-tab[data-mode="resurs"]');
     if (resourceTab) {
@@ -2051,7 +2151,7 @@
     const endKey = v6IsoOffset(v6State.weekStart, 6);
     const end = new Date(endKey + 'T12:00:00.000Z');
     if (v6State.mode === 'morgon') {
-      v6SetText(document.getElementById('calTitle'), 'God morgon');
+      v6SetText(document.getElementById('calTitle'), 'God morgon, Fazli');
     } else if (v6State.mode === 'dag') {
       const selectedDay = new Date(v6State.dayDate + 'T12:00:00.000Z');
       v6SetText(document.getElementById('calTitle'), V6_DAY_NAMES[(selectedDay.getUTCDay() + 6) % 7] +
@@ -2137,7 +2237,11 @@
       v6UpdateSidebars(v6State.visits);
       v6UpdateStory(v6State.visits);
       v6UpdateOriginalHome(v6State.visits);
-      v6RenderIntel(v6State.selected && v6State.visits.find((slot) => slot.id === v6State.selected.id));
+      const selected = v6State.selected && v6State.visits.find((slot) =>
+        slot.id === v6State.selected.id || slot.bookingId === v6State.selected.bookingId);
+      v6State.selected = selected || v6State.visits.find((slot) => slot.date === isoToday()) ||
+        v6State.visits.find((slot) => slot.date >= isoToday()) || v6State.visits[0] || null;
+      v6RenderIntel(v6State.selected);
       v6RenderSearch('');
     } catch (error) {
       v6State.visits = [];
