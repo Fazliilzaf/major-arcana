@@ -132,7 +132,7 @@ test('read-only preflight exposes every operational safety gate and no mutation 
     source.indexOf('global.CcoKalenderShell = isReadOnlyMode()') <
       source.indexOf("document.addEventListener('DOMContentLoaded', init)")
   );
-  assert.match(html, /cco-kalender-shell\.js\?v=20260717c/);
+  assert.match(html, /cco-kalender-shell\.js\?v=20260717e/);
   assert.match(visualFixture, /window\.CcoKalenderShell\.renderDrawer/);
   assert.match(visualFixture, /window\.CCO_CALENDAR_READ_ONLY = true/);
   assert.doesNotMatch(visualFixture, /fetch\s*\(|method\s*:\s*['"]POST/);

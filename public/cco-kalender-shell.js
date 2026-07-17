@@ -22,6 +22,10 @@
     return global.CCO_CALENDAR_READ_ONLY === true;
   }
 
+  function isOriginalV6Mode() {
+    return global.CCO_CALENDAR_ORIGINAL_V6 === true;
+  }
+
   function adminAuthToken() {
     try {
       return (
@@ -1104,7 +1108,7 @@
       }
       const data = await res.json();
       renderIntelligence(mount, data);
-    } catch (err) {
+    } catch (_err) {
       mount.innerHTML = '<div class="cco-cal-intel-empty">Kunde inte ladda insikter.</div>';
     }
   }
@@ -1607,11 +1611,422 @@
     }
   }
 
+  // ─── Original V6 · canonical read-only renderer ────────────────────────
+  // The V6 HTML remains the visual source of truth. This adapter only replaces
+  // its static preview values with the same canonical visit records used by the
+  // other CCO calendar views. It deliberately exposes no booking mutations.
+  const V6_HOUR_START = 6;
+  const V6_HOUR_HEIGHT = 62;
+  const V6_DAY_NAMES = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
+  const V6_MONTH_NAMES = [
+    'januari', 'februari', 'mars', 'april', 'maj', 'juni',
+    'juli', 'augusti', 'september', 'oktober', 'november', 'december',
+  ];
+  const v6State = { weekStart: '', dayDate: '', visits: [], selected: null, mode: 'vecka' };
+
+  function v6IsoOffset(dateKey, days) {
+    const date = new Date(dateKey + 'T12:00:00.000Z');
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function v6WeekStart(dateKey) {
+    const date = new Date(dateKey + 'T12:00:00.000Z');
+    const offset = (date.getUTCDay() + 6) % 7;
+    date.setUTCDate(date.getUTCDate() - offset);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function v6WeekNumber(dateKey) {
+    const date = new Date(dateKey + 'T12:00:00.000Z');
+    const day = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1, 12));
+    return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  }
+
+  function v6Initials(name) {
+    return String(name || '?').trim().split(/\s+/).slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase()).join('') || '?';
+  }
+
+  function v6StatusKey(status) {
+    const value = String(status || '').toLowerCase();
+    if (['cancelled', 'canceled', 'no_show'].includes(value)) return 'cancelled';
+    if (value === 'completed') return 'followup';
+    if (value === 'pending') return 'tentative';
+    return 'confirmed';
+  }
+
+  function v6StatusCounts(visits) {
+    const counts = { booked: 0, completed: 0, cancelled: 0, noShow: 0 };
+    visits.forEach((slot) => {
+      const status = String(slot.status || '').toLowerCase();
+      if (status === 'completed') counts.completed += 1;
+      else if (['cancelled', 'canceled'].includes(status)) counts.cancelled += 1;
+      else if (status === 'no_show') counts.noShow += 1;
+      else counts.booked += 1;
+    });
+    return counts;
+  }
+
+  function v6SetText(node, value) {
+    if (node) node.textContent = value;
+  }
+
+  function v6RenderIntel(slot) {
+    const shell = document.querySelector('.intel-shell');
+    if (!shell) return;
+    v6State.selected = slot || null;
+    shell.dataset.readOnly = 'true';
+    shell.dataset.zeroWrites = 'true';
+    v6SetText(shell.querySelector('.intel-avatar'), v6Initials(slot && slot.patientName));
+    v6SetText(shell.querySelector('.intel-name'), slot ? (slot.patientName || 'Okopplad patient') : 'Välj ett besök');
+    v6SetText(shell.querySelector('.intel-meta'), slot
+      ? statusLabel(slot.status) + ' · ' + sourceLabel(slot.source)
+      : 'Canonical bokningsdata · read-only');
+
+    const grid = shell.querySelector('.intel-grid');
+    if (grid) {
+      grid.innerHTML = '';
+      const rows = slot ? [
+        ['Canonical patientId', slot.patientId || 'Okopplad'],
+        ['Besökstillfälle', slot.encounterId || 'Saknas'],
+        ['Behandling', slot.serviceLabel || slot.serviceId || 'Saknas'],
+        ['Tid', slot.date + ' · ' + formatTimeRange(slot.time, slot.endTime) + ' · Europe/Stockholm'],
+        ['Resurs', slot.resourceLabel || 'Ej tilldelad'],
+        ['Vårdgivare', slot.practitioner || slot.staffName || 'Ej tilldelad'],
+        ['Källa', sourceLabel(slot.source)],
+        ['Status', statusLabel(slot.status)],
+      ] : [['Läge', 'Välj ett canonical besök i kalendern.']];
+      rows.forEach(([label, value]) => {
+        grid.appendChild(el('dt', {}, label));
+        grid.appendChild(el('dd', {}, value));
+      });
+    }
+
+    const ready = shell.querySelector('.ready-row');
+    if (ready) {
+      ready.innerHTML = '';
+      if (slot) {
+        const preflight = buildReadonlyBookingPreflight(slot);
+        preflight.gates.slice(0, 7).forEach((gate) => {
+          ready.appendChild(el('span', {
+            class: 'ready-pill',
+            dataset: { state: gate.status === 'pass' ? 'success' : 'warning' },
+            title: gate.detail,
+          }, (gate.status === 'pass' ? '✓ ' : '! ') + gate.label));
+        });
+      }
+      ready.appendChild(el('span', {
+        class: 'ready-pill', dataset: { state: 'warning' },
+      }, 'READ-ONLY · 0 WRITES'));
+    }
+
+    const notes = shell.querySelector('.ai-reason');
+    if (notes) {
+      notes.innerHTML = '';
+      const noteFields = slot ? [
+        ['Bokningsanteckning', slot.bookingNotes || slot.notes],
+        ['Kundmeddelande', slot.customerMessage],
+        ['Intern anteckning', slot.internalNotes],
+        ['Behandlingsanteckning', slot.treatmentNotes],
+      ].filter((entry) => entry[1]) : [];
+      if (!noteFields.length) {
+        notes.textContent = slot
+          ? 'Inga anteckningar registrerade för detta besök.'
+          : 'Välj ett besök för att visa canonical anteckningar.';
+      } else {
+        noteFields.forEach(([label, value]) => {
+          notes.appendChild(el('strong', {}, label));
+          notes.appendChild(el('p', {}, value));
+        });
+      }
+    }
+
+    const tabs = shell.querySelector('.intel-tabs');
+    if (tabs) {
+      tabs.innerHTML = '';
+      ['Besök', 'Anteckningar', 'Säkerhetsgrindar'].forEach((label, index) => {
+        tabs.appendChild(el('button', {
+          class: 'intel-tab' + (index === 0 ? ' active' : ''), type: 'button', disabled: 'disabled',
+        }, label));
+      });
+    }
+
+    const actions = shell.querySelector('.intel-actions');
+    if (actions) {
+      actions.innerHTML = '';
+      if (slot && slot.patientId && slot.linkAllowed !== false && !slot.identityAmbiguous) {
+        actions.appendChild(el('button', {
+          class: 'quick-pill quick-pill--success', type: 'button',
+          onclick: () => openCanonicalPatient(slot.patientId),
+        }, 'Öppna samma patient i Kunder V11/V12'));
+      }
+      actions.appendChild(el('button', {
+        class: 'quick-pill', type: 'button', disabled: 'disabled',
+      }, 'Boknings-preflight blockerad · inga skrivningar'));
+    }
+  }
+
+  function v6BookingCard(slot) {
+    const start = timeToMinutes(slot.time);
+    const fallbackEnd = slot.durationMinutes ? start + Number(slot.durationMinutes) : start + 30;
+    const end = slot.endTime ? timeToMinutes(slot.endTime) : fallbackEnd;
+    const top = Math.max(0, ((start - V6_HOUR_START * 60) / 60) * V6_HOUR_HEIGHT);
+    const height = Math.max(31, ((Math.max(end, start + 15) - start) / 60) * V6_HOUR_HEIGHT);
+    const card = el('button', {
+      class: 'booking', type: 'button',
+      style: 'top:' + top + 'px;height:' + height + 'px;--rail-color:' + colorForResource(slot.resourceId),
+      dataset: {
+        bookingId: slot.bookingId || slot.id || '', patientId: slot.patientId || '',
+        encounterId: slot.encounterId || '', status: v6StatusKey(slot.status), source: 'canonical',
+      },
+      onclick: (event) => { event.stopPropagation(); v6RenderIntel(slot); },
+    }, [
+      el('div', { class: 'booking-time' }, formatTimeRange(slot.time, slot.endTime)),
+      el('div', { class: 'booking-title' }, slot.serviceLabel || slot.serviceId || 'Bokning'),
+      el('div', { class: 'booking-sub' }, slot.patientName || 'Okopplad patient'),
+    ]);
+    const noteCount = bookingNoteCount(slot);
+    if (noteCount) card.appendChild(el('span', {
+      class: 'booking-ai-badge', title: noteCount + ' anteckning(ar)',
+    }, '✎ ' + noteCount));
+    card.setAttribute('aria-label', [slot.patientName || 'Okopplad patient',
+      slot.serviceLabel || 'Bokning', formatTimeRange(slot.time, slot.endTime),
+      statusLabel(slot.status)].join(' · '));
+    return card;
+  }
+
+  function v6UpdateSidebars(visits) {
+    const today = isoToday();
+    const tomorrow = v6IsoOffset(today, 1);
+    const selected = visits.filter((slot) => slot.date === today);
+    const counts = v6StatusCounts(visits);
+    const sideRows = document.querySelectorAll('.side-shell > .side-list .side-link');
+    const resources = new Set(visits.map((slot) => slot.resourceId).filter((id) => id && id !== '_unassigned'));
+    const sideValues = [selected.length, visits.filter((slot) => slot.date === tomorrow).length,
+      visits.length, resources.size];
+    sideRows.forEach((row, index) => v6SetText(row.querySelector('.count'), String(sideValues[index] || 0)));
+
+    const statusRows = document.querySelectorAll('.side-section .side-link');
+    const statusValues = [
+      ['Bokade', counts.booked], ['Genomförda', counts.completed],
+      ['Avbokade', counts.cancelled], ['Uteblivna', counts.noShow],
+    ];
+    statusRows.forEach((row, index) => {
+      const label = row.querySelector('span[style]');
+      const dot = label && label.querySelector('.dot');
+      if (label && statusValues[index]) {
+        label.textContent = '';
+        if (dot) label.appendChild(dot);
+        label.appendChild(document.createTextNode(statusValues[index][0]));
+      }
+      v6SetText(row.querySelector('.count'), String(statusValues[index] ? statusValues[index][1] : 0));
+    });
+
+    const pills = document.querySelectorAll('.calendar-status-bar .status-pill');
+    const pillValues = [
+      counts.booked + ' bokade', counts.completed + ' genomförda',
+      counts.cancelled + ' avbokade', counts.noShow + ' uteblivna',
+    ];
+    pills.forEach((pill, index) => {
+      if (pillValues[index]) {
+        const dot = pill.querySelector('.dot');
+        pill.textContent = '';
+        if (dot) pill.appendChild(dot);
+        pill.appendChild(document.createTextNode(pillValues[index]));
+      } else if (index >= pillValues.length) {
+        pill.hidden = true;
+      }
+    });
+  }
+
+  function v6UpdateStory(visits) {
+    const today = isoToday();
+    const todayVisits = visits.filter((slot) => slot.date === today);
+    const counts = v6StatusCounts(todayVisits);
+    const greeting = document.querySelector('.greet-text');
+    if (greeting) {
+      const date = new Date(today + 'T12:00:00.000Z');
+      greeting.innerHTML = '';
+      greeting.appendChild(el('h1', {}, 'Dagens canonical bokningar'));
+      greeting.appendChild(el('p', {}, date.toLocaleDateString('sv-SE', {
+        timeZone: 'Europe/Stockholm', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+      }) + ' · Europe/Stockholm'));
+    }
+    const cards = document.querySelectorAll('.story-card');
+    const summaries = [
+      ['Idag', todayVisits.length + ' bokningar', todayVisits.length
+        ? 'Första ' + todayVisits.map((slot) => slot.time).sort()[0] + ' · sista ' +
+          todayVisits.map((slot) => slot.endTime || slot.time).sort().slice(-1)[0]
+        : 'Inga bokningar registrerade'],
+      ['Status', counts.booked + ' bokade', counts.cancelled + ' avbokade · ' + counts.noShow + ' uteblivna'],
+      ['Anteckningar', todayVisits.reduce((sum, slot) => sum + bookingNoteCount(slot), 0) + ' noter',
+        'Boknings-, kund-, interna och behandlingsanteckningar'],
+      ['Genomfört', counts.completed + ' besök', 'Canonical status · read-only'],
+    ];
+    cards.forEach((card, index) => {
+      const summary = summaries[index];
+      if (!summary) return;
+      v6SetText(card.querySelector('.story-card-kicker'), summary[0]);
+      v6SetText(card.querySelector('.story-card-headline'), summary[1]);
+      v6SetText(card.querySelector('.story-card-sub'), summary[2]);
+      card.querySelectorAll('.story-list, .day-spark, .ready-meter').forEach((node) => node.remove());
+    });
+  }
+
+  function v6RenderWeek(visits) {
+    const week = document.getElementById('calWeek');
+    if (!week) return;
+    const days = week.querySelectorAll('.day-col');
+    const today = isoToday();
+    days.forEach((column, index) => {
+      const dateKey = v6IsoOffset(v6State.weekStart, index);
+      column.dataset.date = dateKey;
+      column.hidden = v6State.mode === 'dag' && dateKey !== v6State.dayDate;
+      column.classList.toggle('today', dateKey === today);
+      v6SetText(column.querySelector('.day-label'), V6_DAY_NAMES[index]);
+      v6SetText(column.querySelector('.day-date'), String(Number(dateKey.slice(8, 10))));
+      const slots = column.querySelector('.day-slots');
+      slots.innerHTML = '';
+      const dayVisits = visits.filter((slot) => slot.date === dateKey);
+      dayVisits.forEach((slot) => slots.appendChild(v6BookingCard(slot)));
+      if (!dayVisits.length) slots.appendChild(el('div', { class: 'v6-empty' }, 'Inga bokningar'));
+    });
+    week.style.gridTemplateColumns = v6State.mode === 'dag'
+      ? '28px minmax(0, 1fr)'
+      : '28px repeat(7, 1fr)';
+    const start = new Date(v6State.weekStart + 'T12:00:00.000Z');
+    const endKey = v6IsoOffset(v6State.weekStart, 6);
+    const end = new Date(endKey + 'T12:00:00.000Z');
+    if (v6State.mode === 'dag') {
+      const selectedDay = new Date(v6State.dayDate + 'T12:00:00.000Z');
+      v6SetText(document.getElementById('calTitle'), V6_DAY_NAMES[(selectedDay.getUTCDay() + 6) % 7] +
+        ' ' + selectedDay.getUTCDate() + ' ' + V6_MONTH_NAMES[selectedDay.getUTCMonth()] +
+        ' ' + selectedDay.getUTCFullYear());
+    } else {
+      v6SetText(document.getElementById('calTitle'),
+        start.getUTCDate() + ' ' + V6_MONTH_NAMES[start.getUTCMonth()] + ' – ' +
+        end.getUTCDate() + ' ' + V6_MONTH_NAMES[end.getUTCMonth()] + ' ' + end.getUTCFullYear());
+    }
+    v6SetText(document.querySelector('.week-pill .num'), String(v6WeekNumber(v6State.weekStart)));
+    const content = document.querySelector('.calendar-content');
+    if (content) content.dataset.mode = v6State.mode === 'morgon' ? 'morgon' : 'vecka';
+  }
+
+  function v6RenderSearch(query) {
+    const list = document.getElementById('searchPanelList');
+    const kicker = document.getElementById('searchPanelKicker');
+    if (!list) return;
+    const term = String(query || '').trim().toLocaleLowerCase('sv-SE');
+    const matches = v6State.visits.filter((slot) => !term || [slot.patientName, slot.serviceLabel,
+      slot.bookingId, slot.patientId].some((value) => String(value || '').toLocaleLowerCase('sv-SE').includes(term)));
+    list.innerHTML = '';
+    matches.slice(0, 30).forEach((slot) => {
+      list.appendChild(el('button', {
+        class: 'search-result', type: 'button', onclick: () => {
+          document.getElementById('searchOverlay')?.classList.remove('is-open');
+          v6RenderIntel(slot);
+          document.querySelector('.booking[data-booking-id="' + CSS.escape(slot.bookingId || slot.id) + '"]')?.focus();
+        },
+      }, [
+        el('span', { class: 'search-result-avatar' }, v6Initials(slot.patientName)),
+        el('span', { class: 'search-result-main' }, [
+          el('strong', {}, slot.patientName || 'Okopplad patient'),
+          el('small', {}, [slot.serviceLabel || 'Bokning', slot.date, slot.time, statusLabel(slot.status)].join(' · ')),
+        ]),
+      ]));
+    });
+    if (!matches.length) list.appendChild(el('div', { class: 'search-empty' }, 'Inga canonical träffar.'));
+    v6SetText(kicker, matches.length + ' canonical besök');
+  }
+
+  function v6BindControls() {
+    document.querySelectorAll('.segment-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        v6State.mode = ['morgon', 'dag'].includes(tab.dataset.mode) ? tab.dataset.mode : 'vecka';
+        if (v6State.mode === 'dag' && !v6State.dayDate) v6State.dayDate = isoToday();
+        v6RenderWeek(v6State.visits);
+      });
+    });
+    const nav = document.querySelectorAll('.calendar-toolbar-actions > .nav-btn');
+    const reload = (offset) => {
+      if (v6State.mode === 'dag') {
+        v6State.dayDate = offset === 0 ? isoToday() : v6IsoOffset(v6State.dayDate, offset > 0 ? 1 : -1);
+        v6State.weekStart = v6WeekStart(v6State.dayDate);
+      } else {
+        v6State.weekStart = offset === 0 ? v6WeekStart(isoToday()) : v6IsoOffset(v6State.weekStart, offset);
+        if (offset === 0) v6State.dayDate = isoToday();
+      }
+      v6Load();
+    };
+    nav[0]?.addEventListener('click', () => reload(-7));
+    nav[1]?.addEventListener('click', () => reload(0));
+    nav[2]?.addEventListener('click', () => reload(7));
+    const overlayInput = document.getElementById('searchOverlayInput');
+    const globalInput = document.getElementById('globalSearchInput');
+    overlayInput?.addEventListener('input', () => v6RenderSearch(overlayInput.value));
+    globalInput?.addEventListener('input', () => setTimeout(() => v6RenderSearch(globalInput.value), 0));
+    globalInput?.addEventListener('focus', () => setTimeout(() => v6RenderSearch(globalInput.value), 0));
+    document.addEventListener('keydown', (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        setTimeout(() => v6RenderSearch(document.getElementById('searchOverlayInput')?.value || ''), 0);
+      }
+    });
+  }
+
+  async function v6Load() {
+    const end = v6IsoOffset(v6State.weekStart, 6);
+    try {
+      v6State.visits = await loadCanonicalVisits(v6State.weekStart, end,
+        global.__ccoCalTenantId || 'hair_tp', global.__ccoCalRole || 'owner');
+      v6RenderWeek(v6State.visits);
+      v6UpdateSidebars(v6State.visits);
+      v6UpdateStory(v6State.visits);
+      v6RenderIntel(v6State.selected && v6State.visits.find((slot) => slot.id === v6State.selected.id));
+      v6RenderSearch('');
+    } catch (error) {
+      v6State.visits = [];
+      v6RenderWeek([]);
+      v6UpdateSidebars([]);
+      v6UpdateStory([]);
+      v6RenderIntel(null);
+      const title = document.getElementById('calTitle');
+      v6SetText(title, error && error.status === 401
+        ? 'Behörighet krävs för canonical kalenderdata'
+        : 'Canonical kalenderdata kunde inte hämtas');
+    } finally {
+      document.documentElement.classList.remove('cco-v6-booting');
+    }
+  }
+
+  function initOriginalV6Calendar() {
+    document.body.dataset.ccoCalendarSource = 'canonical-v6';
+    document.body.dataset.ccoCalendarMode = 'live-read';
+    document.querySelectorAll('.mini-inbox, .calendar-busy, .vibe-strip, .watch-widget, .watch-restore, ' +
+      '.voice-overlay, .voice-sheet, .mic-btn, .timemachine, .story-cta-row').forEach((node) => node.remove());
+    v6State.weekStart = v6WeekStart(isoToday());
+    v6State.dayDate = isoToday();
+    v6State.mode = 'vecka';
+    document.querySelectorAll('.segment-tab').forEach((tab) => {
+      tab.classList.toggle('active', tab.dataset.mode === 'vecka');
+      if (tab.dataset.mode === 'resurs') tab.hidden = true;
+    });
+    v6RenderIntel(null);
+    v6BindControls();
+    v6Load();
+  }
+
   // ─── Init: kollar URL-view ──────────────────────────────────────────────
   function init() {
     const view = detectViewFromUrl();
     applyView(view);
     if (view === 'calendar') {
+      if (isOriginalV6Mode()) {
+        initOriginalV6Calendar();
+        return;
+      }
       resetLiveReadUi();
       bindQualityPanel();
       const dagTab = document.querySelector('.segment-tab[data-mode="dag"]');
