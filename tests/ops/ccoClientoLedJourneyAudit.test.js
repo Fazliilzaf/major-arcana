@@ -273,6 +273,129 @@ describe('ccoClientoLedJourneyAudit', () => {
     assert.deepEqual(row.gaps, ['offer', 'agreement']);
   });
 
+  it('accepts VISIBLE GetAccept agreements as agreement evidence for a hair-transplant journey', () => {
+    const row = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'b-fue',
+          startsAt: '2026-06-10T08:00:00.000Z',
+          serviceLabel: 'FUE hårtransplantation',
+          status: 'completed',
+        },
+      ],
+      assets: [
+        asset({ sourceSystem: 'm365_halso', category: 'form', originalFileName: 'HD.pdf' }),
+        asset({
+          sourceSystem: 'm365_halso',
+          category: 'other',
+          originalFileName: 'Friskförsäkran.pdf',
+        }),
+        asset({
+          sourceSystem: 'pipedrive_import',
+          patientCardSection: 'offert',
+          originalFileName: 'Offert FUE.pdf',
+        }),
+        asset({
+          sourceSystem: 'getaccept_import',
+          category: 'agreement',
+          patientCardSection: 'samtycken_avtal',
+          originalFileName: 'getaccept-x66z9hzxzv3d-2025-07-31.pdf',
+        }),
+      ],
+    });
+    assert.equal(row.requirements.agreement.status, 'verified');
+    assert.equal(row.evidence.agreement, true);
+    assert.deepEqual(row.gaps, []);
+  });
+
+  it('accepts VERIFIED_IN_CCO GetAccept agreements but ignores NEEDS_REVIEW stubs', () => {
+    const verified = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'b-fue',
+          startsAt: '2026-06-10T08:00:00.000Z',
+          serviceLabel: 'FUE hårtransplantation',
+          status: 'completed',
+        },
+      ],
+      assets: [
+        asset({
+          sourceSystem: 'getaccept_import',
+          category: 'agreement',
+          status: 'VERIFIED_IN_CCO',
+          originalFileName: 'getaccept-verified.pdf',
+        }),
+      ],
+    });
+    assert.equal(verified.requirements.agreement.status, 'verified');
+
+    const needsReview = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'b-fue',
+          startsAt: '2026-06-10T08:00:00.000Z',
+          serviceLabel: 'FUE hårtransplantation',
+          status: 'completed',
+        },
+      ],
+      assets: [
+        asset({
+          sourceSystem: 'getaccept_import',
+          category: 'agreement',
+          status: 'NEEDS_REVIEW',
+          originalFileName: 'getaccept-stub.pdf',
+        }),
+      ],
+    });
+    assert.equal(needsReview.requirements.agreement.status, 'missing');
+    assert.ok(needsReview.gaps.includes('agreement'));
+  });
+
+  it('scopes GetAccept agreement evidence to the canonical patient only', () => {
+    const result = buildClientoLedJourneyAudit({
+      patients: [
+        {
+          id: 'p-ht',
+          displayName: 'HT Patient',
+          primaryEmail: 'ht@example.com',
+        },
+        {
+          id: 'p-other',
+          displayName: 'Other Patient',
+          primaryEmail: 'other@example.com',
+        },
+      ],
+      clientoBookings: [
+        {
+          bookingId: 'fue-1',
+          customerEmail: 'ht@example.com',
+          startsAt: '2026-06-10T08:00:00.000Z',
+          serviceLabel: 'FUE hårtransplantation',
+          status: 'completed',
+          source: 'cliento_csv',
+        },
+      ],
+      assets: [
+        asset({
+          patientId: 'p-other',
+          sourceSystem: 'getaccept_import',
+          category: 'agreement',
+          originalFileName: 'getaccept-wrong-patient.pdf',
+        }),
+      ],
+    });
+    const htRow = result.rows.find((row) => row.patientId === 'p-ht');
+    const otherRow = result.rows.find((row) => row.patientId === 'p-other');
+    assert.equal(htRow.bookingCount, 1);
+    assert.equal(htRow.evidence.agreement, false);
+    assert.ok(htRow.gaps.includes('agreement'));
+    assert.equal(otherRow.evidence.agreement, true);
+    assert.equal(otherRow.requirements.agreement.status, 'not_expected');
+  });
+
   it('audits every patient and matches Cliento history by phone when email differs', () => {
     const result = buildClientoLedJourneyAudit({
       patients: [

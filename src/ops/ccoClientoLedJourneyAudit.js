@@ -68,19 +68,39 @@ function hasVisibleStatus(asset) {
   return ['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(asset?.status);
 }
 
+/**
+ * Agreement evidence for the Cliento-led journey audit.
+ * Pipedrive historical PDFs and VISIBLE/VERIFIED GetAccept agreements both count.
+ * Assets are already scoped to the canonical patient by buildClientoLedJourneyAudit.
+ * Pipedrive deals alone never count as a signed agreement PDF.
+ */
+function isAgreementEvidenceAsset(asset) {
+  const source = normalizeKey(asset?.sourceSystem);
+  if (source === 'pipedrive_import') {
+    return inferDocumentKind(asset) === 'agreement';
+  }
+  if (source === 'getaccept_import') {
+    const category = normalizeKey(asset?.category);
+    if (category === 'agreement') return true;
+    return inferDocumentKind(asset) === 'agreement';
+  }
+  return false;
+}
+
+function isOfferEvidenceAsset(asset) {
+  return (
+    normalizeKey(asset?.sourceSystem) === 'pipedrive_import' && inferDocumentKind(asset) === 'offer'
+  );
+}
+
 function summarizeEvidence(patient, assets) {
   const visible = asArray(assets).filter(hasVisibleStatus);
   const structuredHd = Boolean(asObject(patient?.healthDeclaration).signedAt);
   const structuredFf = Boolean(asObject(patient?.fitnessCertificate).signedAt);
   const healthDeclaration = structuredHd || visible.some(isHealthDeclarationAsset);
   const fitnessCertificate = structuredFf || visible.some(isFitnessCertificateAsset);
-  const offer = visible.some(
-    (asset) => asset?.sourceSystem === 'pipedrive_import' && inferDocumentKind(asset) === 'offer'
-  );
-  const agreement = visible.some(
-    (asset) =>
-      asset?.sourceSystem === 'pipedrive_import' && inferDocumentKind(asset) === 'agreement'
-  );
+  const offer = visible.some(isOfferEvidenceAsset);
+  const agreement = visible.some(isAgreementEvidenceAsset);
   const deals = asArray(asObject(patient?.pipedrive).deals);
   return {
     healthDeclaration,
@@ -114,8 +134,7 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
   const allKinds = new Set(history.map((row) => classifyService(row.serviceLabel)));
   const hasConsultationBooking = allKinds.has('consultation');
   const hasAttendedConsultation = attendedKinds.has('consultation');
-  const hasAttendedTreatment =
-    attendedKinds.has('prp') || attendedKinds.has('hair_transplant');
+  const hasAttendedTreatment = attendedKinds.has('prp') || attendedKinds.has('hair_transplant');
   const hasHairTransplant = attendedKinds.has('hair_transplant');
   const hasTreatmentBooking = allKinds.has('prp') || allKinds.has('hair_transplant');
   const hasHairTransplantBooking = allKinds.has('hair_transplant');
@@ -140,9 +159,7 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
   // requirement at the initial attended treatment, rather than a new
   // requirement for every PRP session.
   const hdExpected =
-    hasAuthoritativeBooking &&
-    (hasConsultationBooking || hasTreatmentBooking) &&
-    !nonAttendedOnly;
+    hasAuthoritativeBooking && (hasConsultationBooking || hasTreatmentBooking) && !nonAttendedOnly;
   const ffExpected = hasAttendedTreatment && !nonAttendedOnly;
   const offerExpected = hasTreatmentBooking && !nonAttendedOnly;
   const agreementExpected = hasHairTransplantBooking && !nonAttendedOnly;
@@ -265,6 +282,8 @@ module.exports = {
   buildClientoLedJourneyAudit,
   classifyService,
   dedupeClientoHistory,
+  isAgreementEvidenceAsset,
   isAttended,
+  isOfferEvidenceAsset,
   summarizeEvidence,
 };
