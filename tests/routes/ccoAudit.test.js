@@ -136,6 +136,73 @@ test('verified auth is attached before audit RBAC resolves the role', async () =
   }
 });
 
+test('audit auth is route-scoped and leaves public login reachable without a session', async () => {
+  const app = express();
+  let authCalls = 0;
+  app.use(
+    '/api/v1',
+    createCcoAuditRouter({
+      ccoAuditLog: makeAuditLog(),
+      requireAuthenticated: (_req, res) => {
+        authCalls += 1;
+        return res.status(401).json({ error: 'authentication_required' });
+      },
+      attachRole: realAttachRole,
+      requireAnyRole: realRequireAnyRole,
+    })
+  );
+  app.post('/api/v1/auth/login', express.json(), (_req, res) => res.json({ reachable: true }));
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const baseUrl = `http://127.0.0.1:${server.address().port}/api/v1`;
+    const login = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    assert.equal(login.status, 200);
+    assert.equal((await login.json()).reachable, true);
+    assert.equal(authCalls, 0, 'audit auth must not run for /auth/login');
+
+    const anonymousAudit = await fetch(`${baseUrl}/cco-audit`);
+    assert.equal(anonymousAudit.status, 401);
+    assert.equal(authCalls, 1);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('cco-audit allows a verified owner through route-scoped auth', async () => {
+  const app = express();
+  app.use(
+    '/api/v1',
+    createCcoAuditRouter({
+      ccoAuditLog: makeAuditLog(),
+      requireAuthenticated: (req, res, next) => {
+        if (req.headers.authorization !== 'Bearer verified-owner') {
+          return res.status(401).json({ error: 'authentication_required' });
+        }
+        req.auth = { userId: 'owner-user', role: 'OWNER' };
+        return next();
+      },
+      attachRole: realAttachRole,
+      requireAnyRole: realRequireAnyRole,
+    })
+  );
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/api/v1/cco-audit`, {
+      headers: { authorization: 'Bearer verified-owner' },
+    });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).count, 1);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('audit router fails closed when authenticated middleware is not wired', async () => {
   const app = express();
   app.use(
