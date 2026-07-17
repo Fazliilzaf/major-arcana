@@ -77,6 +77,20 @@
     return labels[key] || raw || fallback;
   }
 
+  function bookingAuditDetailsHtml(booking, fallbackPatientId) {
+    var bookingId = txt(booking && booking.bookingId);
+    var patientId = txt((booking && booking.patientId) || fallbackPatientId);
+    if (!bookingId || !patientId || booking.auditAvailable !== true) return '';
+    return (
+      '<details class="book-audit" data-v11-booking-audit data-booking-id="' +
+      esc(bookingId) +
+      '" data-patient-id="' +
+      esc(patientId) +
+      '"><summary>Visa audit</summary>' +
+      '<div class="book-audit__readout" data-v11-booking-audit-readout>Read-only · öppna för att läsa create-händelser.</div></details>'
+    );
+  }
+
   function blockerModule(ruleId, labelText) {
     var value = (txt(ruleId) + ' ' + txt(labelText)).toLowerCase();
     if (/allerg|health|hälso|halso|medicin|kontra/.test(value)) return 'health';
@@ -450,7 +464,8 @@
                       .filter(Boolean)
                       .join(' · ')
                   ) +
-                  '</div>' + bookingNotesHtml(b.notes || b.bookingNotes) + '</div>' +
+                  '</div>' + bookingNotesHtml(b.notes || b.bookingNotes) +
+                  bookingAuditDetailsHtml(b, upReadout && upReadout.patientId) + '</div>' +
                   '<span class="q-status ' + (b.state === 'completed' ? 'green' : 'warn') + '">' +
                   esc(bookingStatusLabel(b, 'Bokad')) + '</span></div>'
                 );
@@ -1000,6 +1015,64 @@
       .catch(drop);
   }
 
+  function hydrateBookingAudit(details) {
+    if (!details || details.__v11AuditLoaded || details.__v11AuditLoading) return;
+    var bookingId = txt(details.getAttribute('data-booking-id'));
+    var patientId = txt(details.getAttribute('data-patient-id'));
+    var readout = details.querySelector('[data-v11-booking-audit-readout]');
+    if (!bookingId || !patientId || !readout || typeof global.fetch !== 'function') return;
+    details.__v11AuditLoading = true;
+    readout.textContent = 'Läser append-only audit…';
+    global
+      .fetch(
+        '/api/v1/cco-audit/booking/' +
+          encodeURIComponent(bookingId) +
+          '?patientId=' +
+          encodeURIComponent(patientId),
+        { method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' } }
+      )
+      .then(function (response) {
+        return response
+          .json()
+          .catch(function () { return {}; })
+          .then(function (payload) {
+            if (!response.ok) throw new Error(payload.error || 'audit_read_failed');
+            if (payload.readOnly !== true || payload.zeroWrites !== true) {
+              throw new Error('audit_readout_not_read_only');
+            }
+            return payload;
+          });
+      })
+      .then(function (payload) {
+        var items = arr(payload.items);
+        readout.innerHTML = items.length
+          ? items
+              .map(function (item) {
+                var when = txt(item.occurredAt);
+                var action = txt(item.action);
+                return (
+                  '<div class="book-audit__event"><strong>' +
+                  esc(action) +
+                  '</strong><span>' +
+                  esc(when ? new Date(when).toLocaleString('sv-SE') : 'Tid saknas') +
+                  '</span></div>'
+                );
+              })
+              .join('')
+          : '<span>Ingen create-audit hittades för bokningen.</span>';
+        details.__v11AuditLoaded = true;
+      })
+      .catch(function (error) {
+        readout.textContent =
+          error && /forbidden|403/.test(String(error.message))
+            ? 'Audit kräver owner/staff-behörighet.'
+            : 'Audit kunde inte läsas.';
+      })
+      .finally(function () {
+        details.__v11AuditLoading = false;
+      });
+  }
+
   function observeBesok() {
     var doc = global.document;
     if (!doc || !global.MutationObserver || global.__v11rkBesokObserving) return;
@@ -1021,8 +1094,30 @@
     obs.observe(doc.documentElement || doc.body || doc, { childList: true, subtree: true });
   }
 
+  function observeBookingAudit() {
+    var doc = global.document;
+    if (!doc || global.__v11BookingAuditObserving) return;
+    global.__v11BookingAuditObserving = true;
+    doc.addEventListener(
+      'toggle',
+      function (event) {
+        var details = event.target;
+        if (
+          details &&
+          details.open &&
+          details.matches &&
+          details.matches('[data-v11-booking-audit]')
+        ) {
+          hydrateBookingAudit(details);
+        }
+      },
+      true
+    );
+  }
+
   global.CcoV11RailKomplett = {
     render: render,
   };
   observeBesok();
+  observeBookingAudit();
 })(typeof window !== 'undefined' ? window : globalThis);

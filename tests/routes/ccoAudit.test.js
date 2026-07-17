@@ -67,6 +67,70 @@ test('GET /cco-audit med fel roll → 403', async () => {
   });
 });
 
+test('booking audit readout exposes only requested/committed to owner and staff', async () => {
+  const events = [
+    {
+      ts: '2026-07-17T10:00:00.000Z',
+      action: 'bookings.create_requested',
+      target: { id: 'idem-1', tenantId: 'tenant-a' },
+      detail: { patientId: 'patient-1' },
+      result: 'ok',
+      traceId: 'trace-requested',
+      actor: { role: 'owner', ip: '127.0.0.1' },
+    },
+    {
+      ts: '2026-07-17T10:00:01.000Z',
+      action: 'bookings.create_committed',
+      target: { id: 'booking-1', tenantId: 'tenant-a' },
+      detail: { patientId: 'patient-1', idempotencyKey: 'idem-1' },
+      result: 'ok',
+      traceId: 'trace-committed',
+      actor: { role: 'owner', ip: '127.0.0.1' },
+    },
+  ];
+  const auditLog = {
+    query({ action, targetId }) {
+      return events.filter(
+        (event) => event.action.includes(action) && (!targetId || event.target.id === targetId)
+      );
+    },
+    stats: () => ({ total: events.length }),
+    append: () => {
+      throw new Error('readout must never append');
+    },
+  };
+
+  await withServer(auditLog, async (baseUrl) => {
+    for (const role of ['owner', 'operator']) {
+      const response = await fetch(`${baseUrl}/cco-audit/booking/booking-1?patientId=patient-1`, {
+        headers: { 'x-test-role': role },
+      });
+      assert.equal(response.status, 200, `${role} ska få läsa bokningsaudit`);
+      const payload = await response.json();
+      assert.equal(payload.readOnly, true);
+      assert.equal(payload.zeroWrites, true);
+      assert.deepEqual(
+        payload.items.map((item) => item.action),
+        ['bookings.create_requested', 'bookings.create_committed']
+      );
+      assert.equal('actor' in payload.items[0], false);
+      assert.equal('detail' in payload.items[0], false);
+    }
+
+    const denied = await fetch(`${baseUrl}/cco-audit/booking/booking-1?patientId=patient-1`, {
+      headers: { 'x-test-role': 'personal' },
+    });
+    assert.equal(denied.status, 403);
+
+    const wrongPatient = await fetch(
+      `${baseUrl}/cco-audit/booking/booking-1?patientId=another-patient`,
+      { headers: { 'x-test-role': 'owner' } }
+    );
+    assert.equal(wrongPatient.status, 200);
+    assert.equal((await wrongPatient.json()).count, 0);
+  });
+});
+
 test('POST /cco-audit loggar med actor.role och returnerar traceId', async () => {
   const log = makeAuditLog();
   await withServer(log, async (baseUrl) => {

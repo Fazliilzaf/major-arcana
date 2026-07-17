@@ -161,7 +161,7 @@
     <link rel="stylesheet" href="./cco-v12-workspace.css?v=canonical-visit-history-1" />
     <link rel="stylesheet" href="./cco-v12-spine.css?v=v12spine-v1" />
     <link rel="stylesheet" href="./cco-v12-canon.css?v=visit-room-workflow-v1" />
-    <link rel="stylesheet" href="./cco-v11-rk.css?v=visit-room-workflow-v1" />
+    <link rel="stylesheet" href="./cco-v11-rk.css?v=booking-audit-readout-v1" />
     <!-- Konversationer v2 — skal-styling (scopad #cco-conv-v2-root; legacy-göm grindad på flaggan) -->
     <link rel="stylesheet" href="./app/cco-conversations-v2.css?v=conversations-v2-shell-v1" />
     <!-- Bokning v1 — facit-trogen MOBIL-styling (scopad #cco-book-v1-root; ≤834px) -->
@@ -3274,11 +3274,7 @@
                       >
                         ↓ Exportera
                       </button>
-                      <button
-                        class="nav-btn"
-                        type="button"
-                        data-customer-journey-audit-open
-                      >
+                      <button class="nav-btn" type="button" data-customer-journey-audit-open>
                         Granska kundresa
                       </button>
                       <button
@@ -3706,9 +3702,9 @@
                        Ordning: adapters före renderarna (CcoV11RailAdapters konsumeras vid render). -->
                   <script
                     defer
-                    src="./app/cco-v11-rail-adapters.js?v=canonical-visit-history-1"
+                    src="./app/cco-v11-rail-adapters.js?v=booking-audit-readout-v1"
                   ></script>
-                  <script defer src="./app/cco-v11-rk.js?v=visit-room-workflow-v1"></script>
+                  <script defer src="./app/cco-v11-rk.js?v=booking-audit-readout-v1"></script>
                   <script defer src="./app/cco-v12-spine.js?v=v11v12-port-wiring-1"></script>
                   <script
                     defer

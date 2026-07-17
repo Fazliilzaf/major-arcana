@@ -892,6 +892,36 @@
   margin-top: 1px;
   font-variant-numeric: tabular-nums;
 }
+.v11-rk .book-audit {
+  margin-top: 5px;
+  color: var(--ink-mute);
+}
+.v11-rk .book-audit summary {
+  width: max-content;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 750;
+  color: var(--ink-soft);
+}
+.v11-rk .book-audit__readout {
+  display: grid;
+  gap: 4px;
+  margin-top: 5px;
+  padding: 7px 8px;
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.58);
+  font-size: 9.5px;
+}
+.v11-rk .book-audit__event {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 8px;
+}
+.v11-rk .book-audit__event strong {
+  color: var(--ink);
+}
 
 /* J · JOURNALER */
 .v11-rk .j-row {
