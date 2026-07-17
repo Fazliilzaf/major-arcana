@@ -1073,6 +1073,27 @@
       });
   }
 
+  function bindBookingAudit(details) {
+    if (!details || details.__v11AuditClickBound) return;
+    details.__v11AuditClickBound = true;
+    details.addEventListener('click', function (event) {
+      // Auditkontrollen ligger inuti sektionens befintliga V11/V12-handoff.
+      // Behåll details-standardbeteendet, men låt aldrig klicket nå sektionen.
+      event.stopPropagation();
+    });
+  }
+
+  function bindBookingAudits(root) {
+    if (!root) return;
+    if (root.matches && root.matches('[data-v11-booking-audit]')) bindBookingAudit(root);
+    if (root.querySelectorAll) {
+      Array.prototype.forEach.call(
+        root.querySelectorAll('[data-v11-booking-audit]'),
+        bindBookingAudit
+      );
+    }
+  }
+
   function observeBesok() {
     var doc = global.document;
     if (!doc || !global.MutationObserver || global.__v11rkBesokObserving) return;
@@ -1098,6 +1119,19 @@
     var doc = global.document;
     if (!doc || global.__v11BookingAuditObserving) return;
     global.__v11BookingAuditObserving = true;
+    bindBookingAudits(doc);
+    if (global.MutationObserver) {
+      var auditObserver = new global.MutationObserver(function (mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+          var added = mutations[i].addedNodes || [];
+          for (var j = 0; j < added.length; j++) bindBookingAudits(added[j]);
+        }
+      });
+      auditObserver.observe(doc.documentElement || doc.body || doc, {
+        childList: true,
+        subtree: true,
+      });
+    }
     doc.addEventListener(
       'toggle',
       function (event) {

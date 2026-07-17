@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
+const { parseHTML } = require('linkedom');
 
 function loadBrowserModule(relativePath, exportName) {
   const source = fs.readFileSync(path.resolve(__dirname, '../..', relativePath), 'utf8');
@@ -122,4 +123,76 @@ test('V11 audit-readout är strikt GET/read-only och visar create-livscykeln', (
   assert.match(railSource, /payload\.readOnly !== true \|\| payload\.zeroWrites !== true/);
   assert.match(railSource, /create-händelser/);
   assert.doesNotMatch(railSource, /cco-booking-engine\/create\/(?:preflight|confirm)/);
+});
+
+test('Visa audit öppnar readout utan att trigga V11/V12-handoff eller rerender', async () => {
+  const { window } = parseHTML('<html><body><div id="mount"></div></body></html>');
+  const requests = [];
+  window.fetch = async (url, options) => {
+    requests.push({ url, options });
+    return {
+      ok: true,
+      async json() {
+        return {
+          readOnly: true,
+          zeroWrites: true,
+          items: [
+            { action: 'bookings.create_requested', occurredAt: '2026-07-17T10:00:00.000Z' },
+            { action: 'bookings.create_committed', occurredAt: '2026-07-17T10:00:01.000Z' },
+          ],
+        };
+      },
+    };
+  };
+
+  vm.runInNewContext(railSource, {
+    window,
+    console,
+    Date,
+    Intl,
+    Promise,
+    encodeURIComponent,
+    setTimeout,
+    clearTimeout,
+  });
+
+  const mount = window.document.getElementById('mount');
+  mount.innerHTML = `
+    <div data-v9-section-link="upcoming">
+      <details data-v11-booking-audit
+        data-booking-id="booking-uat"
+        data-patient-id="patient-uat">
+        <summary>Visa audit</summary>
+        <div data-v11-booking-audit-readout>Read-only</div>
+      </details>
+    </div>`;
+  await Promise.resolve();
+
+  const section = mount.querySelector('[data-v9-section-link]');
+  const details = mount.querySelector('[data-v11-booking-audit]');
+  const summary = details.querySelector('summary');
+  let handoffCount = 0;
+  let rerenderCount = 0;
+  section.addEventListener('click', () => {
+    handoffCount += 1;
+    rerenderCount += 1;
+  });
+  // linkedom saknar webbläsarens inbyggda details-toggle. Simulera endast
+  // standardbeteendet; produktens stopPropagation-handler testas oförändrad.
+  summary.addEventListener('click', () => {
+    details.open = true;
+    details.dispatchEvent(new window.Event('toggle', { bubbles: true }));
+  });
+
+  summary.dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(details.open, true);
+  assert.equal(handoffCount, 0);
+  assert.equal(rerenderCount, 0);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].options.method, 'GET');
+  assert.match(requests[0].url, /\/api\/v1\/cco-audit\/booking\/booking-uat/);
+  assert.match(details.textContent, /bookings\.create_requested/);
+  assert.match(details.textContent, /bookings\.create_committed/);
 });
