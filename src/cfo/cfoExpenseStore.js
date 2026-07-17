@@ -815,7 +815,10 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
   async function setVatMode({ id, vatMode, vatRatePercent, markedReview = false, actor } = {}) {
     const e = data.expenses.find((x) => x.id === id);
     if (!e) throw new Error('expense finns ej');
-    if (e.status === 'exported') throw new Error('exporterad expense kan inte ändra vatMode');
+    // ORD-CM-14: exportpaketet är bara CSV/JSON — inget är bokfört förrän
+    // Fortnox-syncen körts. Momsläget måste kunna rättas fram till dess.
+    if (e.status === 'exported' && e.fortnoxSyncStatus === 'synced')
+      throw new Error('Fortnox-syncad expense kan inte ändra vatMode');
     const { calculateVatBreakdown, VALID_VAT_MODES } = require('./cfoExpenseVatRules');
     if (vatMode && !VALID_VAT_MODES.includes(vatMode)) {
       throw new Error(`Okänd vatMode: ${vatMode}`);

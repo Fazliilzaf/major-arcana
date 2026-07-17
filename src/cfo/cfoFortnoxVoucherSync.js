@@ -45,6 +45,15 @@ const VAT_ACCOUNT = 2641; // Ingående moms
 const COUNTER_ACCOUNT = 1930; // Företagskonto (betalning)
 const DEFAULT_VOUCHER_SERIES = 'A';
 
+// ORD-CM-14 · Beräknad moms vid omvänd skattskyldighet (EU-tjänsteinköp):
+// 2614 = beräknad utgående moms 25 % (momsdeklaration ruta 30),
+// 2645 = beräknad ingående moms (ruta 48). Fiktiv moms beräknas på HELA
+// fakturabeloppet (Skatteverket/BAS-praxis). Debet 2645 + kredit 2614 tar ut
+// varandra — verifikatet balanserar och deklarationen får båda sidor.
+const REVERSE_CHARGE_OUT_ACCOUNT = 2614;
+const REVERSE_CHARGE_IN_ACCOUNT = 2645;
+const REVERSE_CHARGE_RATE = 0.25;
+
 function buildVoucherPayload(
   expense,
   { accountMap = DEFAULT_ACCOUNT_MAP, series = DEFAULT_VOUCHER_SERIES } = {}
@@ -53,9 +62,56 @@ function buildVoucherPayload(
   const vat = Number(expense.vatSek) || 0;
   const net = Math.round((gross - vat) * 100) / 100;
   const costAccount = accountMap[expense.category] || accountMap.annat;
-  const rows = [{ Account: costAccount, Debit: net, Credit: 0 }];
-  if (vat > 0) rows.push({ Account: VAT_ACCOUNT, Debit: vat, Credit: 0 });
-  rows.push({ Account: COUNTER_ACCOUNT, Debit: 0, Credit: gross });
+  const notes = [];
+  let rows;
+  let accountSource = 'default_suggestion';
+  let balanced;
+  if (expense.vatMode === 'reverse_charge_eu') {
+    // Ingen moms i fakturan — hela beloppet är kostnad; fiktiv moms 25 % läggs
+    // som 2614 K + 2645 D (netto noll, men deklarationen kräver båda raderna).
+    const fictiveVat = Math.round(gross * REVERSE_CHARGE_RATE * 100) / 100;
+    rows = [
+      { Account: costAccount, Debit: gross, Credit: 0 },
+      { Account: REVERSE_CHARGE_IN_ACCOUNT, Debit: fictiveVat, Credit: 0 },
+      { Account: REVERSE_CHARGE_OUT_ACCOUNT, Debit: 0, Credit: fictiveVat },
+      { Account: COUNTER_ACCOUNT, Debit: 0, Credit: gross },
+    ];
+    accountSource = 'vat_mode_reverse_charge_eu';
+    notes.push(
+      `Omvänd skattskyldighet EU-tjänst: fiktiv moms 25 % (${fictiveVat} kr) på hela beloppet — 2645 D / 2614 K.`
+    );
+    balanced = true;
+  } else if (
+    expense.vatMode === 'representation_limited' &&
+    expense.deductibleVatSek !== null &&
+    expense.deductibleVatSek !== undefined &&
+    Number.isFinite(Number(expense.deductibleVatSek))
+  ) {
+    // Representation: endast momsen på underlag ≤300 kr/person är avdragsgill.
+    // deductibleVatSek kommer från CF.6-beräkningen; resten ligger kvar i kostnaden.
+    const dedVat = Math.round(Number(expense.deductibleVatSek) * 100) / 100;
+    const cost = Math.round((gross - dedVat) * 100) / 100;
+    rows = [
+      { Account: costAccount, Debit: cost, Credit: 0 },
+      ...(dedVat > 0 ? [{ Account: VAT_ACCOUNT, Debit: dedVat, Credit: 0 }] : []),
+      { Account: COUNTER_ACCOUNT, Debit: 0, Credit: gross },
+    ];
+    accountSource = 'vat_mode_representation_limited';
+    notes.push(
+      `Representation: avdragsgill moms ${dedVat} kr (underlag max 300 kr/person), resten i kostnaden.`
+    );
+    balanced = Math.round((cost + dedVat - gross) * 100) === 0;
+  } else {
+    rows = [{ Account: costAccount, Debit: net, Credit: 0 }];
+    if (vat > 0) rows.push({ Account: VAT_ACCOUNT, Debit: vat, Credit: 0 });
+    rows.push({ Account: COUNTER_ACCOUNT, Debit: 0, Credit: gross });
+    balanced = Math.round((net + vat - gross) * 100) === 0;
+    if (expense.vatMode === 'representation_limited') {
+      notes.push(
+        'Representation utan beräknad avdragsgill moms (deductibleVatSek saknas) — granska momsavdraget manuellt.'
+      );
+    }
+  }
   return {
     Voucher: {
       Description:
@@ -67,8 +123,9 @@ function buildVoucherPayload(
     meta: {
       expenseId: expense.id,
       category: expense.category || null,
-      accountSource: 'default_suggestion',
-      balanced: Math.round((net + vat - gross) * 100) === 0,
+      accountSource,
+      balanced,
+      ...(notes.length ? { notes } : {}),
     },
   };
 }
