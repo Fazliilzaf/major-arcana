@@ -130,7 +130,7 @@ function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
 
   const lookup = buildPipedrivePatientLookup(patientDirectory);
 
-  // 1. Exakt e-post = confirmed (befintlig tröskel, oförändrad).
+  // Endast en exakt, normaliserad e-postträff får auto-binda patientId.
   if (counterpartyEmail) {
     const emailMatches = asArray(lookup.byEmail.get(counterpartyEmail));
     if (emailMatches.length === 1) {
@@ -162,23 +162,28 @@ function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
     }
   }
 
-  // 2. B1: exakt telefon mot verifierat patient-nr = confirmed. Namn/heuristik
-  //    blir aldrig confirmed här (endast exakt e-post eller exakt telefon).
-  //    Guardad — körs bara när ett nummer finns på meddelandet.
+  // Telefon kan ge en review-kandidat men får aldrig auto-binda patientId.
+  // Det bevarar befintliga kopplingar och lämnar beslutet till operatören.
   if (counterpartyPhone) {
     const phoneKey = phoneMatchKey(counterpartyPhone);
     const phoneMatches = phoneKey ? asArray(lookup.byPhone.get(phoneKey)) : [];
     if (phoneMatches.length === 1) {
       const patient = phoneMatches[0];
       return {
-        status: 'MATCHED',
-        confidence: 0.95,
-        patientId: patient.id || patient.patientId,
-        reason: 'exact_phone_match',
+        status: 'NEEDS_REVIEW',
+        confidence: 0.45,
+        patientId: null,
+        reason: 'exact_phone_match_requires_review',
         counterpartyEmail: counterpartyEmail || null,
         counterpartyPhone,
-        candidate: patient,
-        candidates: [patient],
+        candidates: [
+          {
+            patientId: patient.id || patient.patientId,
+            method: 'phone',
+            confidence: 0.45,
+            phone: counterpartyPhone,
+          },
+        ],
       };
     }
     if (phoneMatches.length > 1) {

@@ -1,13 +1,9 @@
 'use strict';
 
-/* B1 — telefonmatch/trösklar i matchPatientOrEntity.
+/* Kontrakt: endast exakt, unik, normaliserad e-post får sätta patientId.
  *
- * Ägarbeslut: exakt e-post ELLER exakt telefon (mot verifierat patient-nr) =
- * confirmed. Flera träffar = review. Namn/heuristik blir aldrig confirmed här.
- *
- * OBS: mail bär inget telefonnummer idag → telefongrenen är vilande för ren
- * mail och aktiveras först när en SMS-/enrichment-källa sätter ett nummer på
- * meddelandet (counterpartyPhone/fromPhone/senderPhone).
+ * Telefon kan vara underlag i review-kön, men blir aldrig en auto-bindning.
+ * Namn och annan heuristik är inte en del av kontraktet.
  */
 
 const test = require('node:test');
@@ -17,7 +13,37 @@ const { matchPatientOrEntity } = require('../../src/ops/ccoMailIngestion/pipelin
 
 const INBOUND = { folderType: 'inbox', mailboxId: 'info@hairtpclinic.com', direction: 'inbound' };
 
-test('B1: exakt telefon mot verifierat nr → MATCHED (confirmed)', () => {
+test('patientmatch: unik normaliserad e-post → MATCHED med patientId', () => {
+  const match = matchPatientOrEntity(
+    { ...INBOUND, fromEmail: '  ANNA@EXAMPLE.COM  ' },
+    {
+      patientDirectory: [
+        { id: 'p-1', primaryEmail: 'anna@example.com' },
+      ],
+    }
+  );
+  assert.equal(match.status, 'MATCHED');
+  assert.equal(match.patientId, 'p-1');
+  assert.equal(match.reason, 'exact_email_match');
+});
+
+test('patientmatch: dubbel e-post → NEEDS_REVIEW utan patientId', () => {
+  const match = matchPatientOrEntity(
+    { ...INBOUND, fromEmail: 'delad@example.com' },
+    {
+      patientDirectory: [
+        { id: 'p-1', primaryEmail: 'delad@example.com' },
+        { id: 'p-2', primaryEmail: 'DELAD@example.com' },
+      ],
+    }
+  );
+  assert.equal(match.status, 'NEEDS_REVIEW');
+  assert.equal(match.patientId, null);
+  assert.equal(match.reason, 'multiple_email_matches');
+  assert.equal(match.candidates.length, 2);
+});
+
+test('patientmatch: unik telefon → NEEDS_REVIEW utan auto-bindning', () => {
   const match = matchPatientOrEntity(
     { ...INBOUND, fromEmail: 'okand@example.com', counterpartyPhone: '0701234567' },
     {
@@ -26,12 +52,20 @@ test('B1: exakt telefon mot verifierat nr → MATCHED (confirmed)', () => {
       ],
     }
   );
-  assert.equal(match.status, 'MATCHED');
-  assert.equal(match.patientId, 'p-1');
-  assert.equal(match.reason, 'exact_phone_match');
+  assert.equal(match.status, 'NEEDS_REVIEW');
+  assert.equal(match.patientId, null, 'telefon får aldrig skriva patientId');
+  assert.equal(match.reason, 'exact_phone_match_requires_review');
+  assert.deepEqual(match.candidates, [
+    {
+      patientId: 'p-1',
+      method: 'phone',
+      confidence: 0.45,
+      phone: '0701234567',
+    },
+  ]);
 });
 
-test('B1: flera patienter med samma telefon → NEEDS_REVIEW utan bindning', () => {
+test('patientmatch: dubbel telefon → NEEDS_REVIEW utan patientId', () => {
   const match = matchPatientOrEntity(
     { ...INBOUND, counterpartyPhone: '+46701234567' },
     {
@@ -47,7 +81,7 @@ test('B1: flera patienter med samma telefon → NEEDS_REVIEW utan bindning', () 
   assert.ok(match.candidates.length >= 2);
 });
 
-test('B1: telefon utan katalogträff → UNMATCHED', () => {
+test('patientmatch: telefon utan katalogträff → UNMATCHED', () => {
   const match = matchPatientOrEntity(
     { ...INBOUND, counterpartyPhone: '+46709999999' },
     { patientDirectory: [{ id: 'p-1', primaryPhone: '+46701234567' }] }
@@ -56,7 +90,7 @@ test('B1: telefon utan katalogträff → UNMATCHED', () => {
   assert.equal(match.patientId, null);
 });
 
-test('B1: exakt e-post har företräde före telefon', () => {
+test('patientmatch: exakt e-post har företräde framför telefonkandidat', () => {
   const match = matchPatientOrEntity(
     { ...INBOUND, fromEmail: 'anna@example.com', counterpartyPhone: '+46701234567' },
     {
@@ -71,7 +105,7 @@ test('B1: exakt e-post har företräde före telefon', () => {
   assert.equal(match.reason, 'exact_email_match');
 });
 
-test('B1: varken e-post eller telefon → UNMATCHED (missing_counterparty_email)', () => {
+test('patientmatch: varken e-post eller telefon → UNMATCHED', () => {
   const match = matchPatientOrEntity(
     { ...INBOUND, fromEmail: '' },
     { patientDirectory: [{ id: 'p-1', primaryPhone: '+46701234567' }] }
@@ -80,7 +114,7 @@ test('B1: varken e-post eller telefon → UNMATCHED (missing_counterparty_email)
   assert.equal(match.reason, 'missing_counterparty_email');
 });
 
-test('B1: ren mail utan telefon → telefongrenen är vilande (endast e-post avgör)', () => {
+test('patientmatch: ren mail utan telefon → endast e-post avgör', () => {
   // Ingen counterpartyPhone → phone-grenen rör inget; okänd e-post → UNMATCHED.
   const match = matchPatientOrEntity(
     { ...INBOUND, fromEmail: 'okand@example.com' },
