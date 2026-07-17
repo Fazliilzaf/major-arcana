@@ -483,6 +483,81 @@ function createCmRouter({
     return res.json({ ok: true, years: ut, totalOpen: openBulkRecords().length });
   });
 
+  // ORD-CM-7 · Intags-pyramiden: samma lagerstruktur som klumphanteringen
+  // (ägar-krav: inte en platt 3800-lista). Utan year/month: år+månads-aggregat.
+  // Med year+month: dagens poster grupperade per dag. status=inbox|needs_review filtrerar.
+  function intakeRecords(status) {
+    let rows;
+    if (status === 'inbox') rows = cmStore.getInbox();
+    else if (status === 'needs_review') rows = cmStore.getNeedsReview();
+    else rows = [...cmStore.getInbox(), ...cmStore.getNeedsReview()];
+    return rows.filter((r, i, arr) => arr.findIndex((x) => x.id === r.id) === i);
+  }
+
+  router.get('/cm/intake-tree', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), (req, res) => {
+    const status = ['inbox', 'needs_review'].includes(req.query.status) ? req.query.status : 'all';
+    const rawById = rawIndex();
+    const rows = intakeRecords(status);
+    const qYear = String(req.query.year || '');
+    const qMonth = String(req.query.month || '');
+    if (qYear && qMonth) {
+      const days = new Map();
+      for (const r of rows) {
+        const d = recordDate(r, rawById);
+        if ((d.slice(0, 4) || 'okänt') !== qYear || (d.slice(5, 7) || '??') !== qMonth) continue;
+        const day = d.slice(8, 10) || '??';
+        if (!days.has(day))
+          days.set(day, { day, datum: d.slice(0, 10), count: 0, sum: 0, poster: [] });
+        const g = days.get(day);
+        g.count++;
+        g.sum += r.amountIncVat || 0;
+        const raw = r.rawItemId ? rawById.get(r.rawItemId) : null;
+        g.poster.push({
+          id: r.id,
+          tid: (raw?.receivedAt || '').slice(11, 16),
+          belopp: r.amountIncVat || 0,
+          typ: r.expenseType,
+          foretag: r.supplierName || raw?.fromEmail || 'Okänd',
+          amne: (raw?.subject || '').slice(0, 70),
+          granska: (r.flags || []).includes('NEEDS_MANUAL_REVIEW'),
+        });
+      }
+      const ut = [...days.values()]
+        .sort((a, b) => b.day.localeCompare(a.day))
+        .map((g) => ({
+          ...g,
+          sum: Math.round(g.sum),
+          poster: g.poster.sort((a, b) => b.tid.localeCompare(a.tid)),
+        }));
+      return res.json({ ok: true, days: ut, totalOpen: rows.length });
+    }
+    const years = new Map();
+    for (const r of rows) {
+      const d = recordDate(r, rawById);
+      const year = d.slice(0, 4) || 'okänt';
+      const month = d.slice(5, 7) || '??';
+      if (!years.has(year)) years.set(year, { year, count: 0, sum: 0, months: new Map() });
+      const y = years.get(year);
+      y.count++;
+      y.sum += r.amountIncVat || 0;
+      if (!y.months.has(month)) y.months.set(month, { month, count: 0, sum: 0 });
+      const m = y.months.get(month);
+      m.count++;
+      m.sum += r.amountIncVat || 0;
+    }
+    const ut = [...years.values()]
+      .sort((a, b) => b.year.localeCompare(a.year))
+      .map((y) => ({
+        year: y.year,
+        count: y.count,
+        sum: Math.round(y.sum),
+        months: [...y.months.values()]
+          .sort((a, b) => b.month.localeCompare(a.month))
+          .map((m) => ({ month: m.month, count: m.count, sum: Math.round(m.sum) })),
+      }));
+    return res.json({ ok: true, years: ut, totalOpen: rows.length });
+  });
+
   router.get('/cm/groups', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
     const rawById = rawIndex();
     const groups = new Map();

@@ -985,6 +985,8 @@
         <div class="kpis" id="cm-kpis" style="margin-bottom: 6px"></div>
         <!-- ORD-70: auto-intagets statusrad — vad autopiloten gjort och när -->
         <div class="receipt-meta" id="cm-autostatus" style="margin: 0 4px 10px"></div>
+        <div id="cmi-crumb" class="receipt-meta" style="margin: 0 4px 10px"></div>
+        <div class="kpis" id="cmi-cards" style="display: none"></div>
         <div class="receipts-list" id="cm-list"><div class="empty">Hämtar…</div></div>
       </div>
 
@@ -2710,7 +2712,28 @@
         const list = document.getElementById('cm-list');
         const kpis = document.getElementById('cm-kpis');
         const countEl = document.getElementById('cm-count');
-        if (!list || !kpis || !countEl) return;
+        const cards = document.getElementById('cmi-cards');
+        const crumb = document.getElementById('cmi-crumb');
+        if (!list || !kpis || !countEl || !cards || !crumb) return;
+        // ORD-CM-7 · samma pyramid som klumphanteringen: status → år → månad → dag
+        const vy = { status: 'all', year: null, month: null };
+        let träd = null;
+        const kr = (n) => (Math.round(n) || 0).toLocaleString('sv-SE') + ' kr';
+        const MÅN = {
+          '01': 'Januari',
+          '02': 'Februari',
+          '03': 'Mars',
+          '04': 'April',
+          '05': 'Maj',
+          '06': 'Juni',
+          '07': 'Juli',
+          '08': 'Augusti',
+          '09': 'September',
+          10: 'Oktober',
+          11: 'November',
+          12: 'December',
+          '??': 'Okänt datum',
+        };
         function esc(s) {
           return String(s == null ? '' : s).replace(
             /[&<>"']/g,
@@ -2719,10 +2742,10 @@
         }
         async function loadCm() {
           try {
-            const [dashR, inboxR, reviewR] = await Promise.all([
+            const statusQ = vy.status === 'all' ? '' : '?status=' + vy.status;
+            const [dashR, treeR] = await Promise.all([
               fetch('/api/v1/cm/dashboard', { credentials: 'same-origin' }),
-              fetch('/api/v1/cm/inbox', { credentials: 'same-origin' }),
-              fetch('/api/v1/cm/needs-review', { credentials: 'same-origin' }),
+              fetch('/api/v1/cm/intake-tree' + statusQ, { credentials: 'same-origin' }),
             ]);
             if (!dashR.ok) {
               list.innerHTML =
@@ -2730,14 +2753,14 @@
               return;
             }
             const dash = await dashR.json();
-            const inbox = inboxR.ok ? (await inboxR.json()).items || [] : [];
-            const review = reviewR.ok ? (await reviewR.json()).items || [] : [];
+            träd = treeR.ok ? await treeR.json() : null;
             kpis.innerHTML = [
-              { label: 'Inbox', value: dash.inbox || 0, cls: '' },
+              { label: 'Inbox', value: dash.inbox || 0, cls: ' kpi--click', filter: 'inbox' },
               {
                 label: 'Behöver granskas',
                 value: dash.needsReview || 0,
-                cls: (dash.needsReview || 0) > 0 ? ' kpi--warn' : '',
+                cls: ((dash.needsReview || 0) > 0 ? ' kpi--warn' : '') + ' kpi--click',
+                filter: 'needs_review',
               },
               { label: 'Överlämnade till CFO', value: dash.handedOff || 0, cls: ' kpi--ok' },
               {
@@ -2750,13 +2773,25 @@
                 (k) =>
                   '<div class="kpi' +
                   k.cls +
-                  '"><div class="kpi-label">' +
+                  '"' +
+                  (k.filter ? ' data-cmi-filter="' + k.filter + '"' : '') +
+                  '><div class="kpi-label">' +
                   k.label +
+                  (k.filter && vy.status === k.filter ? ' ✓' : '') +
                   '</div><div class="kpi-value">' +
                   k.value +
                   '</div></div>'
               )
               .join('');
+            kpis.querySelectorAll('[data-cmi-filter]').forEach((c) =>
+              c.addEventListener('click', () => {
+                const f = c.getAttribute('data-cmi-filter');
+                vy.status = vy.status === f ? 'all' : f;
+                vy.year = null;
+                vy.month = null;
+                loadCm();
+              })
+            );
             // ORD-70: auto-intagets statusrad — vad, hur mycket, när, nästa gång
             const statusEl = document.getElementById('cm-autostatus');
             if (statusEl) {
@@ -2806,65 +2841,166 @@
                   '🤖 Auto-intag: väntar på första schemalagda körningen (var 30:e min). ' + period;
               }
             }
-            const seen = new Set();
-            const rows = [];
-            for (const r of review.concat(inbox)) {
-              if (!r || r.cfoExpenseId || seen.has(r.id)) continue;
-              seen.add(r.id);
-              rows.push(r);
-            }
-            countEl.textContent = rows.length;
-            if (!rows.length) {
-              list.innerHTML =
-                '<div class="empty">Inga kandidater — synka mail eller ladda upp underlag.</div>';
+            countEl.textContent = (träd && träd.totalOpen) || 0;
+            rita();
+          } catch (err) {
+            list.innerHTML = '<div class="empty">Fel: ' + esc(err.message) + '</div>';
+          }
+        }
+        function ritaCrumb() {
+          const FILTER = {
+            all: '',
+            inbox: 'endast Inbox',
+            needs_review: 'endast Behöver granskas',
+          };
+          let html = '';
+          if (vy.year) {
+            html += '<button class="btn" data-nav="hem">‹ Alla år</button> ';
+            if (vy.month)
+              html +=
+                '<button class="btn" data-nav="år">‹ ' +
+                esc(vy.year) +
+                '</button> <strong style="margin-left:6px">' +
+                esc(vy.year) +
+                ' · ' +
+                (MÅN[vy.month] || vy.month) +
+                '</strong>';
+            else html += '<strong style="margin-left:6px">' + esc(vy.year) + '</strong>';
+          } else {
+            html = 'Välj ett år — sedan månad — så ser du varje dag för sig.';
+          }
+          if (FILTER[vy.status])
+            html += ' <span style="margin-left:8px">(' + FILTER[vy.status] + ')</span>';
+          crumb.innerHTML = html;
+          crumb.querySelectorAll('[data-nav]').forEach((b) =>
+            b.addEventListener('click', () => {
+              if (b.getAttribute('data-nav') === 'hem') {
+                vy.year = null;
+                vy.month = null;
+              } else vy.month = null;
+              rita();
+            })
+          );
+        }
+        function rita() {
+          ritaCrumb();
+          if (!träd || !träd.years || !träd.years.length) {
+            cards.style.display = 'none';
+            list.innerHTML =
+              '<div class="empty">Inga kandidater — synka mail eller ladda upp underlag.</div>';
+            return;
+          }
+          if (!vy.year) return ritaÅr();
+          if (!vy.month) return ritaMånader();
+          return ritaDagar();
+        }
+        function ritaÅr() {
+          list.innerHTML = '';
+          cards.style.display = '';
+          cards.innerHTML = träd.years
+            .map(
+              (y) =>
+                '<div class="kpi kpi--click" data-year="' +
+                esc(y.year) +
+                '"><div class="kpi-label">' +
+                esc(y.year) +
+                '</div><div class="kpi-value">' +
+                kr(y.sum) +
+                '</div><div class="kpi-sub">' +
+                y.count +
+                ' poster</div></div>'
+            )
+            .join('');
+          cards.querySelectorAll('[data-year]').forEach((c) =>
+            c.addEventListener('click', () => {
+              vy.year = c.getAttribute('data-year');
+              rita();
+            })
+          );
+        }
+        function ritaMånader() {
+          const y = träd.years.find((x) => x.year === vy.year);
+          if (!y) return;
+          list.innerHTML = '';
+          cards.style.display = '';
+          cards.innerHTML = y.months
+            .map(
+              (m) =>
+                '<div class="kpi kpi--click" data-month="' +
+                esc(m.month) +
+                '"><div class="kpi-label">' +
+                (MÅN[m.month] || m.month) +
+                '</div><div class="kpi-value">' +
+                kr(m.sum) +
+                '</div><div class="kpi-sub">' +
+                m.count +
+                ' poster</div></div>'
+            )
+            .join('');
+          cards.querySelectorAll('[data-month]').forEach((c) =>
+            c.addEventListener('click', () => {
+              vy.month = c.getAttribute('data-month');
+              rita();
+            })
+          );
+        }
+        async function ritaDagar() {
+          cards.style.display = 'none';
+          list.innerHTML = '<div class="empty">Hämtar…</div>';
+          try {
+            const statusQ = vy.status === 'all' ? '' : '&status=' + vy.status;
+            const r = await fetch(
+              '/api/v1/cm/intake-tree?year=' + vy.year + '&month=' + vy.month + statusQ,
+              { credentials: 'same-origin' }
+            );
+            const d = r.ok ? await r.json() : null;
+            if (!d || !d.days || !d.days.length) {
+              list.innerHTML = '<div class="empty">Inga poster den här månaden.</div>';
               return;
             }
-            list.innerHTML = rows
-              .slice(0, 50)
-              .map((r) => {
-                const needsReview = (r.flags || []).includes('NEEDS_MANUAL_REVIEW');
-                const flags = (r.flags || [])
-                  .slice(0, 3)
-                  .map(
-                    (f) =>
-                      '<span class="receipt-link-chip" title="' +
-                      esc(f) +
-                      '">' +
-                      esc(f.replace(/_/g, ' ').toLowerCase()) +
-                      '</span>'
-                  )
-                  .join(' ');
-                const icon =
-                  r.expenseType === 'invoice' ? '📄' : r.expenseType === 'receipt' ? '🧾' : '📦';
+            const VDAG = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
+            list.innerHTML = d.days
+              .map((g) => {
+                const dt = new Date(g.datum + 'T12:00:00');
+                const rubrik = isNaN(dt.getTime())
+                  ? 'Okänt datum'
+                  : VDAG[dt.getDay()] +
+                    ' ' +
+                    Number(g.day) +
+                    ' ' +
+                    (MÅN[vy.month] || '').toLowerCase();
                 return (
-                  '<div class="receipt">' +
-                  '<div class="receipt-thumb">' +
-                  icon +
+                  '<div class="receipt-meta" style="margin: 14px 4px 4px"><strong>' +
+                  rubrik +
+                  '</strong> · ' +
+                  g.count +
+                  ' poster · ' +
+                  kr(g.sum) +
                   '</div>' +
-                  '<div class="receipt-main"><div class="receipt-name">' +
-                  esc(r.supplierName || 'Okänd leverantör') +
-                  '</div>' +
-                  '<div class="receipt-meta"><span>' +
-                  esc(r.expenseType || 'okänd') +
-                  '</span><span>' +
-                  esc(r.date || '—') +
-                  '</span><span>confidence ' +
-                  (r.confidenceScore || 0) +
-                  '</span>' +
-                  flags +
-                  '</div></div>' +
-                  '<div class="receipt-amount">' +
-                  (Number(r.amountIncVat) || 0).toLocaleString('sv-SE') +
-                  ' kr</div>' +
-                  '<span class="receipt-status receipt-status--' +
-                  (needsReview ? 'needs_review' : 'new') +
-                  '">' +
-                  (needsReview ? 'Granska' : 'Kandidat') +
-                  '</span>' +
-                  '<button class="btn btn--primary" data-cm-promote="' +
-                  esc(r.id) +
-                  '">→ CFO</button>' +
-                  '</div>'
+                  g.poster
+                    .map(
+                      (p) =>
+                        '<div class="receipt"><div class="receipt-thumb">' +
+                        (p.typ === 'invoice' ? '📄' : p.typ === 'receipt' ? '🧾' : '✉️') +
+                        '</div><div class="receipt-main"><div class="receipt-name">' +
+                        esc(p.foretag) +
+                        '</div><div class="receipt-meta"><span>' +
+                        (p.tid || '—') +
+                        '</span><span>' +
+                        esc(p.typ || 'okänd') +
+                        '</span>' +
+                        (p.amne ? '<span>' + esc(p.amne) + '</span>' : '') +
+                        '</div></div><div class="receipt-amount">' +
+                        kr(p.belopp) +
+                        '</div><span class="receipt-status receipt-status--' +
+                        (p.granska ? 'needs_review' : 'new') +
+                        '">' +
+                        (p.granska ? 'Granska' : 'Kandidat') +
+                        '</span><button class="btn btn--primary" data-cm-promote="' +
+                        esc(p.id) +
+                        '">→ CFO</button></div>'
+                    )
+                    .join('')
                 );
               })
               .join('');
