@@ -6,6 +6,7 @@ const {
   periodLabel,
   bookingTenantCandidates,
   collectClinicPerformanceBookings,
+  classifyBookingKind,
 } = require('../../src/ops/clinicPerformance');
 
 // Fast referens-nu: 15 juni 2026 (UTC) → same-day-framing t.o.m. 15 juni,
@@ -232,7 +233,9 @@ test('ärlig partiell live: bel./kanal/revenue-trend fabriceras aldrig', () => {
   assert.equal(m.channelSplit, undefined);
   // Bokningstrend finns nu ärligt även om volymen är noll.
   assert.equal(m.bookings.previous, 0);
-  assert.equal(m.noShowRate.previous, 0);
+  // ORD-75: 0 no-show-kapabla → null (ingen fabricerad 0-rate).
+  assert.equal(m.noShowRate.previous, null);
+  assert.deepEqual(m.noShowCoverage.previous, { capable: 0, total: 0 });
   // Men revenue/AOV-trend finns fortfarande inte.
   assert.equal(m.revenueSek.previous, null);
   assert.equal(m.avgOrderValueSek.previous, null);
@@ -258,7 +261,7 @@ test('AOV previous beräknas när både previous-intäkt och previous-bokningar 
   assert.ok(!m.notLiveYet.includes('avgOrderValueSek.previous'));
 });
 
-test('no-show-rate blir null när live-källan saknar no-show-sanning', () => {
+test('no-show-rate blir null när perioden saknar no-show-kapabla bokningar', () => {
   const bookings = [
     {
       startsAt: '2026-06-02T09:00:00Z',
@@ -276,7 +279,45 @@ test('no-show-rate blir null när live-källan saknar no-show-sanning', () => {
   assert.equal(m.bookings.previous, 1);
   assert.equal(m.noShowRate.current, null);
   assert.equal(m.noShowRate.previous, null);
+  assert.deepEqual(m.noShowCoverage.current, { capable: 0, total: 1 });
+  assert.deepEqual(m.noShowCoverage.previous, { capable: 0, total: 1 });
   assert.ok(m.notLiveYet.includes('noShowRate'));
+  assert.match(m.dataNote, /inga Cliento-bokningar med no-show-stöd/i);
+});
+
+test('ORD-75: blandade källor → no-show ur Cliento-delmängd + synlig täckning', () => {
+  const bookings = [
+    { startsAt: '2026-06-02T09:00:00Z', status: 'no_show', source: 'cliento' },
+    { startsAt: '2026-06-03T09:00:00Z', status: 'completed', source: 'cliento' },
+    { startsAt: '2026-06-04T09:00:00Z', status: 'completed', source: 'cliento' },
+    { startsAt: '2026-06-05T09:00:00Z', status: 'completed', source: 'cco_booking_engine' },
+    { startsAt: '2026-05-04T09:00:00Z', status: 'no_show', source: 'cliento' },
+    { startsAt: '2026-05-05T09:00:00Z', status: 'completed', source: 'cco_treatment_encounter' },
+  ];
+  const m = composeClinicMetrics({ bookings, now: NOW });
+  assert.equal(m.bookings.current, 4);
+  assert.equal(m.bookings.previous, 2);
+  // 1 no-show / 3 Cliento i current; 1 no-show / 1 Cliento i previous
+  assert.equal(m.noShowRate.current, 0.3333);
+  assert.equal(m.noShowRate.previous, 1);
+  assert.deepEqual(m.noShowCoverage.current, { capable: 3, total: 4 });
+  assert.deepEqual(m.noShowCoverage.previous, { capable: 1, total: 2 });
+  assert.ok(!m.notLiveYet.includes('noShowRate'));
+  assert.match(m.dataNote, /No-show räknas på Cliento-bokningarna \(75 % av perioden\)/);
+});
+
+test('ORD-75: enbart Cliento → coverage 100 % utan täckningsnot', () => {
+  const bookings = [
+    { startsAt: '2026-06-02T09:00:00Z', status: 'no_show', source: 'cliento' },
+    { startsAt: '2026-06-03T09:00:00Z', status: 'completed', source: 'cliento' },
+    { startsAt: '2026-05-04T09:00:00Z', status: 'completed', source: 'cliento' },
+  ];
+  const m = composeClinicMetrics({ bookings, now: NOW });
+  assert.equal(m.noShowRate.current, 0.5);
+  assert.equal(m.noShowRate.previous, 0);
+  assert.deepEqual(m.noShowCoverage.current, { capable: 2, total: 2 });
+  assert.deepEqual(m.noShowCoverage.previous, { capable: 1, total: 1 });
+  assert.doesNotMatch(m.dataNote, /No-show räknas på Cliento/);
 });
 
 test('ingen intäkt → revenue och AOV blir null (inte 0-gissning)', () => {
@@ -286,13 +327,85 @@ test('ingen intäkt → revenue och AOV blir null (inte 0-gissning)', () => {
   assert.equal(m.avgOrderValueSek.current, null);
 });
 
-test('inga bokningar → noShowRate 0, AOV null', () => {
+test('inga bokningar → noShowRate null (0 kapabla), AOV null', () => {
   const m = composeClinicMetrics({
     bookings: [],
     financeDashboard: { invoices: { totalPaidThisMonthSek: 5000 } },
     now: NOW,
   });
   assert.equal(m.bookings.current, 0);
-  assert.equal(m.noShowRate.current, 0);
+  assert.equal(m.noShowRate.current, null);
+  assert.deepEqual(m.noShowCoverage.current, { capable: 0, total: 0 });
   assert.equal(m.avgOrderValueSek.current, null); // 0 bokningar → ingen division
+});
+
+test('ORD-76 classifyBookingKind: pris > 0 → paying', () => {
+  assert.equal(classifyBookingKind({ priceSek: 2500, serviceLabel: 'PRP Hår Standard' }), 'paying');
+  assert.equal(
+    classifyBookingKind({ priceSek: 0, serviceLabel: 'PRP efter TP' }),
+    'included_in_package'
+  );
+  assert.equal(
+    classifyBookingKind({ priceSek: 0, serviceLabel: 'Fysisk konsultation' }),
+    'consultation'
+  );
+  assert.equal(
+    classifyBookingKind({
+      priceSek: 0,
+      serviceLabel: 'PRP Hår Standard',
+      notes: 'Ingår i TP-paketet',
+    }),
+    'included_in_package'
+  );
+  assert.equal(classifyBookingKind({ priceSek: null, serviceLabel: 'Okänd tjänst' }), 'unknown');
+});
+
+test('ORD-76: bookingsSplit summerar till totalen; unknown redovisas öppet', () => {
+  const bookings = [
+    {
+      startsAt: '2026-06-02T09:00:00Z',
+      status: 'completed',
+      priceSek: 4300,
+      serviceLabel: 'PRP Hår Standard',
+    },
+    {
+      startsAt: '2026-06-03T09:00:00Z',
+      status: 'completed',
+      priceSek: 0,
+      serviceLabel: 'PRP efter TP',
+    },
+    {
+      startsAt: '2026-06-04T09:00:00Z',
+      status: 'completed',
+      priceSek: 0,
+      serviceLabel: 'TP uppföljning',
+    },
+    {
+      startsAt: '2026-06-05T09:00:00Z',
+      status: 'completed',
+      priceSek: 0,
+      serviceLabel: 'Konsultation',
+    },
+    {
+      startsAt: '2026-06-06T09:00:00Z',
+      status: 'completed',
+      priceSek: null,
+      serviceLabel: 'Okänd',
+      source: 'cco_booking_engine',
+    },
+  ];
+  const m = composeClinicMetrics({ bookings, now: NOW });
+  assert.equal(m.bookings.current, 5);
+  assert.deepEqual(m.bookingsSplit.current, {
+    paying: 1,
+    includedInPackage: 2,
+    consultations: 1,
+    unknown: 1,
+  });
+  const s = m.bookingsSplit.current;
+  assert.equal(s.paying + s.includedInPackage + s.consultations + s.unknown, m.bookings.current);
+  assert.match(m.dataNote, /Bokningsmix:/);
+  assert.match(m.dataNote, /oklassade/);
+  // Anteckningstext får inte läcka till CEO-payloaden.
+  assert.doesNotMatch(JSON.stringify(m), /Ingår i TP-paketet/);
 });

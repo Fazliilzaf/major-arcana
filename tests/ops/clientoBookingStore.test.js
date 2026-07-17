@@ -121,6 +121,7 @@ test('normalizeBooking preserves Cliento journey identity, status and notes', ()
     patientId: 'patient-canonical',
     encounterId: 'encounter-1',
     sourceMessageId: '<message-1@cliento.com>',
+    priceSek: '2 500 kr',
   });
   assert.equal(b.customerPhone, '070 123 45 67');
   assert.equal(b.clientoCustomerId, 'cl-99');
@@ -133,6 +134,7 @@ test('normalizeBooking preserves Cliento journey identity, status and notes', ()
   assert.equal(b.patientId, 'patient-canonical');
   assert.equal(b.encounterId, 'encounter-1');
   assert.equal(b.sourceMessageId, '<message-1@cliento.com>');
+  assert.equal(b.priceSek, 2500);
 });
 
 test('getBookingsForCustomer returns empty for blank tenantId or customerEmail', async () => {

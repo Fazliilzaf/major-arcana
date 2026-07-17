@@ -3478,6 +3478,15 @@ function createMonitorRouter({
           composeClinicMetrics,
           collectClinicPerformanceBookings,
         } = require('../ops/clinicPerformance');
+        const {
+          composeConversionFunnel,
+          offersFromCommercialCases,
+        } = require('../ops/clinicConversionFunnel');
+        const {
+          buildPatientLookupMaps,
+          resolvePatientIdFromClientoBooking,
+        } = require('../ops/ccoKunderBookingEnrichment');
+        const locals = req.app.locals || {};
         const bookings = collectClinicPerformanceBookings({
           clientoBookingStore,
           bookingEngineStore,
@@ -3490,7 +3499,6 @@ function createMonitorRouter({
         let financeDashboard = null;
         try {
           const { buildFinanceDashboard } = require('../cfo/cfoFinanceDashboardBuilder');
-          const locals = req.app.locals || {};
           financeDashboard = await buildFinanceDashboard({
             stores: {
               fortnoxStore: locals.cfoFortnoxStore,
@@ -3515,11 +3523,45 @@ function createMonitorRouter({
           financeDashboard = null; // ärligt: revenue blir null istället för gissad
         }
 
+        // ORD-77: konverteringstratt (aggregat only). Best-effort — saknad store
+        // ger null funnel / notLiveYet, aldrig fabricerade rater.
+        let conversionFunnel = null;
+        try {
+          let commercialCases = [];
+          if (typeof locals.ccoCommercialStore?.listCases === 'function') {
+            commercialCases = await locals.ccoCommercialStore.listCases();
+          }
+          const offers = offersFromCommercialCases(commercialCases, { tenantId });
+
+          let patients = [];
+          if (typeof locals.ccoPatientMasterStore?.listPatients === 'function') {
+            const listed = await locals.ccoPatientMasterStore.listPatients({
+              tenantId,
+              limit: 20000,
+              offset: 0,
+            });
+            patients = Array.isArray(listed?.patients) ? listed.patients : [];
+          }
+          const lookup = buildPatientLookupMaps(patients);
+          conversionFunnel = composeConversionFunnel({
+            bookings,
+            offers,
+            resolvePatientKey: (booking) => resolvePatientIdFromClientoBooking(booking, lookup),
+            now: new Date(),
+          });
+        } catch (funnelErr) {
+          console.warn(
+            `[monitor.clinic-performance] conversionFunnel error: ${funnelErr?.message || funnelErr}`
+          );
+          conversionFunnel = null;
+        }
+
         const metrics = composeClinicMetrics({
           bookings,
           financeDashboard,
           now: new Date(),
           tenantId,
+          conversionFunnel,
         });
 
         // Läsande audit-event (best-effort, blockerar aldrig svaret).

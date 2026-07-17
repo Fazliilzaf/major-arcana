@@ -94,26 +94,53 @@ function bookingDedupeKey(booking = {}) {
 function buildClinicPerformanceRow({
   bookingId = '',
   customerEmail = '',
+  customerPhone = '',
+  clientoCustomerId = '',
+  patientId = '',
   startsAt = '',
   status = '',
   source = '',
   serviceId = '',
   serviceLabel = '',
   resourceLabel = '',
+  priceSek = null,
+  notes = '',
+  bookingNotes = '',
+  internalNotes = '',
+  treatmentNotes = '',
+  customerMessage = '',
+  bookingKind = '',
 } = {}) {
   const normalizedStartsAt = normalizeText(startsAt);
   if (!normalizedStartsAt) return null;
   const normalizedStatus = normalizeText(status).toLowerCase();
   if (!normalizedStatus || normalizedStatus === 'cancelled') return null;
+  const kind =
+    normalizeText(bookingKind) ||
+    classifyBookingKind({
+      priceSek,
+      serviceLabel,
+      notes,
+      bookingNotes,
+      internalNotes,
+      treatmentNotes,
+      customerMessage,
+    });
   return {
     bookingId: normalizeText(bookingId),
     customerEmail: normalizeEmail(customerEmail),
+    // Matchningsfält för ORD-77 — används bara internt; exponeras aldrig i ClinicMetrics.
+    customerPhone: normalizeText(customerPhone),
+    clientoCustomerId: normalizeText(clientoCustomerId),
+    patientId: normalizeText(patientId),
     startsAt: normalizedStartsAt,
     status: normalizedStatus,
     source: normalizeText(source),
     serviceId: normalizeText(serviceId),
     serviceLabel: normalizeText(serviceLabel),
     resourceLabel: normalizeText(resourceLabel),
+    // bookingKind only — never notes/price toward CEO payload aggregates.
+    bookingKind: kind,
   };
 }
 
@@ -133,7 +160,55 @@ function bookingSourceSupportsNoShow(row = {}) {
   const source = normalizeText(row.source).toLowerCase();
   // cliento is the only source that can currently carry explicit no_show state.
   // Missing source is treated as test/legacy input and remains no-show-capable.
-  return !source || source === 'cliento';
+  return !source || source === 'cliento' || source === 'cliento_csv';
+}
+
+/**
+ * ORD-76: klassificera bokning som paying / included_in_package / consultation / unknown.
+ * Pris är primär markör; tjänstenamn sekundär; anteckningar tertiär (endast internt).
+ * Anteckningstext får ALDRIG lämna gatewayn — bara denna klass + aggregat.
+ */
+const PACKAGE_SERVICE_RE =
+  /efter\s*tp|uppf[oö]ljning|op[-\s]?dagen|underh[aå]ll\s*efter|prp\s*efter\s*tp|ing[aå]r\s*i\s*(tp[-\s]?)?paket|efterv[aå]rd/i;
+const CONSULTATION_SERVICE_RE = /konsultation|consultation|\bkonsult\b/i;
+const PACKAGE_NOTE_RE =
+  /ing[aå]r\s*i\s*(tp[-\s]?)?paketet|ing[aå]r\s*i\s*fastpriset|kompletterande\s+behandling\s+utan\s+kostnad|utan\s+kostnad|ing[aå]r\s*i\s*tp/i;
+
+function classifyBookingKind(booking = {}) {
+  const price =
+    typeof booking.priceSek === 'number' && Number.isFinite(booking.priceSek)
+      ? booking.priceSek
+      : null;
+  if (price !== null && price > 0) return 'paying';
+
+  const label = normalizeText(booking.serviceLabel || booking.service);
+  if (CONSULTATION_SERVICE_RE.test(label)) return 'consultation';
+  if (PACKAGE_SERVICE_RE.test(label)) return 'included_in_package';
+
+  const notesBlob = [
+    booking.notes,
+    booking.bookingNotes,
+    booking.internalNotes,
+    booking.treatmentNotes,
+    booking.customerMessage,
+  ]
+    .map((v) => normalizeText(v))
+    .filter(Boolean)
+    .join('\n');
+  if (notesBlob && PACKAGE_NOTE_RE.test(notesBlob)) return 'included_in_package';
+
+  return 'unknown';
+}
+
+function emptyBookingsSplit() {
+  return { paying: 0, includedInPackage: 0, consultations: 0, unknown: 0 };
+}
+
+function bumpBookingsSplit(split, kind) {
+  if (kind === 'paying') split.paying += 1;
+  else if (kind === 'included_in_package') split.includedInPackage += 1;
+  else if (kind === 'consultation') split.consultations += 1;
+  else split.unknown += 1;
 }
 
 function collectFromBookingEngineStore({ bookingEngineStore = null, tenantId = '' } = {}) {
@@ -149,6 +224,9 @@ function collectFromBookingEngineStore({ bookingEngineStore = null, tenantId = '
       const row = buildClinicPerformanceRow({
         bookingId: booking.bookingId,
         customerEmail: booking.customerEmail,
+        customerPhone: booking.customerPhone || booking.phone,
+        clientoCustomerId: booking.clientoCustomerId || booking.customerId,
+        patientId: booking.patientId,
         startsAt: slot.startsAt,
         status: booking.status,
         source: 'cco_booking_engine',
@@ -182,6 +260,9 @@ function collectFromTreatmentEncounterStore({
       const row = buildClinicPerformanceRow({
         bookingId: encounter.bookingId || encounter.encounterId,
         customerEmail: encounter.customerEmail,
+        customerPhone: encounter.customerPhone || encounter.phone,
+        clientoCustomerId: encounter.clientoCustomerId || encounter.customerId,
+        patientId: encounter.patientId,
         startsAt: encounter.startsAt,
         status,
         source: 'cco_treatment_encounter',
@@ -204,11 +285,20 @@ function collectFromClientoBookingStore({ clientoBookingStore = null, tenantId =
       const row = buildClinicPerformanceRow({
         bookingId: booking.bookingId,
         customerEmail: booking.customerEmail,
+        customerPhone: booking.customerPhone || booking.phone,
+        clientoCustomerId: booking.clientoCustomerId || booking.customerId,
+        patientId: booking.patientId,
         startsAt: booking.startsAt,
         status: booking.status || 'confirmed',
         source: 'cliento',
         serviceLabel: booking.serviceLabel,
         resourceLabel: booking.staffName,
+        priceSek: booking.priceSek,
+        notes: booking.notes,
+        bookingNotes: booking.bookingNotes,
+        internalNotes: booking.internalNotes,
+        treatmentNotes: booking.treatmentNotes,
+        customerMessage: booking.customerMessage,
       });
       if (row) rows.push(row);
     }
@@ -243,11 +333,15 @@ function collectClinicPerformanceBookings({
   return [...byKey.values()].map((row) => ({
     bookingId: row.bookingId,
     customerEmail: row.customerEmail,
+    customerPhone: row.customerPhone,
+    clientoCustomerId: row.clientoCustomerId,
+    patientId: row.patientId,
     startsAt: row.startsAt,
     status: row.status,
     source: row.source,
     serviceLabel: row.serviceLabel,
     resourceLabel: row.resourceLabel,
+    bookingKind: row.bookingKind || 'unknown',
   }));
 }
 
@@ -257,6 +351,7 @@ function collectClinicPerformanceBookings({
  * @param {object|null} [args.financeDashboard] buildFinanceDashboard() output, or null
  * @param {Date} [args.now]                    reference time for the current-month window
  * @param {string|null} [args.tenantId]
+ * @param {object|null} [args.conversionFunnel] ORD-77 aggregat (ingen PII)
  * @returns {object} ClinicMetrics (source: "live")
  */
 function composeClinicMetrics({
@@ -264,6 +359,7 @@ function composeClinicMetrics({
   financeDashboard = null,
   now = new Date(),
   tenantId = null,
+  conversionFunnel = null,
 } = {}) {
   const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
   const prevMonthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1);
@@ -275,37 +371,48 @@ function composeClinicMetrics({
   // Same-day framing: "hittills i månaden t.o.m. dagens kalenderdag" jämförs
   // med "föregående månad t.o.m. samma kalenderdag". Det undviker att tidig
   // månad ser artificiellt svag ut bara för att vi jämför med en hel månad.
+  //
+  // ORD-75: no-show räknas ENBART på no-show-kapabla bokningar (Cliento / saknad
+  // source). Blandade källor nullar inte längre hela raten — täckningsgraden
+  // exponeras öppet i noShowCoverage + dataNote i stället.
   let bookingsCurrent = 0;
   let bookingsPrevious = 0;
+  let noShowCapableCurrent = 0;
+  let noShowCapablePrevious = 0;
   let noShowCurrent = 0;
   let noShowPrevious = 0;
-  let noShowHasLiveCoverageCurrent = true;
-  let noShowHasLiveCoveragePrevious = true;
+  const bookingsSplitCurrent = emptyBookingsSplit();
+  const bookingsSplitPrevious = emptyBookingsSplit();
   for (const b of Array.isArray(bookings) ? bookings : []) {
     const t = b && b.startsAt ? Date.parse(b.startsAt) : NaN;
     if (!Number.isFinite(t)) continue;
+    const kind = b.bookingKind || classifyBookingKind(b);
     if (t >= monthStart && t < currentPeriodEndExclusive) {
       bookingsCurrent += 1;
-      if (!bookingSourceSupportsNoShow(b)) noShowHasLiveCoverageCurrent = false;
-      if (b.status === 'no_show') noShowCurrent += 1;
+      bumpBookingsSplit(bookingsSplitCurrent, kind);
+      if (bookingSourceSupportsNoShow(b)) {
+        noShowCapableCurrent += 1;
+        if (b.status === 'no_show') noShowCurrent += 1;
+      }
       continue;
     }
     if (t >= prevMonthStart && t < previousComparableEndExclusive) {
       bookingsPrevious += 1;
-      if (!bookingSourceSupportsNoShow(b)) noShowHasLiveCoveragePrevious = false;
-      if (b.status === 'no_show') noShowPrevious += 1;
+      bumpBookingsSplit(bookingsSplitPrevious, kind);
+      if (bookingSourceSupportsNoShow(b)) {
+        noShowCapablePrevious += 1;
+        if (b.status === 'no_show') noShowPrevious += 1;
+      }
     }
   }
-  const noShowRateCurrent = noShowHasLiveCoverageCurrent
-    ? bookingsCurrent > 0
-      ? Number((noShowCurrent / bookingsCurrent).toFixed(4))
-      : 0
-    : null;
-  const noShowRatePrevious = noShowHasLiveCoveragePrevious
-    ? bookingsPrevious > 0
-      ? Number((noShowPrevious / bookingsPrevious).toFixed(4))
-      : 0
-    : null;
+  const noShowRateCurrent =
+    noShowCapableCurrent > 0 ? Number((noShowCurrent / noShowCapableCurrent).toFixed(4)) : null;
+  const noShowRatePrevious =
+    noShowCapablePrevious > 0 ? Number((noShowPrevious / noShowCapablePrevious).toFixed(4)) : null;
+  const noShowCoverage = {
+    current: { capable: noShowCapableCurrent, total: bookingsCurrent },
+    previous: { capable: noShowCapablePrevious, total: bookingsPrevious },
+  };
 
   // Intäkt betald denna månad ur finance-dashboarden (null om ej tillgänglig).
   const revenueCurrent =
@@ -328,16 +435,42 @@ function composeClinicMetrics({
       ? Math.round(revenuePrevious / bookingsPrevious)
       : null;
 
+  const baseDataNote =
+    'Live-data från major-arcanas gateway. Jämförelsen är hittills i månaden t.o.m. dagens kalenderdag mot samma kalenderdag i föregående månad. Intäkt/AOV: Fortnox betalda fakturor när anslutet, annars commercial-store-proxy.';
+  const noShowCoverageNote = describeNoShowCoverage(noShowCoverage.current);
+  const bookingsSplitNote = describeBookingsSplit(bookingsSplitCurrent, bookingsCurrent);
+  const funnelNote =
+    conversionFunnel && typeof conversionFunnel.dataNote === 'string'
+      ? conversionFunnel.dataNote
+      : null;
+  const extraNotes = [noShowCoverageNote, bookingsSplitNote, funnelNote].filter(Boolean).join(' ');
+  const funnelPayload =
+    conversionFunnel && typeof conversionFunnel === 'object'
+      ? {
+          stoppedAtOfferDays: conversionFunnel.stoppedAtOfferDays,
+          rollingDays: conversionFunnel.rollingDays,
+          period: conversionFunnel.period,
+          rolling90d: conversionFunnel.rolling90d,
+          ...(funnelNote ? { dataNote: funnelNote } : {}),
+        }
+      : null;
+
   return {
     tenantId: tenantId || null,
     period: periodLabel(monthStartDate),
     previousPeriod: periodLabel(prevMonthStartDate),
     source: 'live',
     bookings: { current: bookingsCurrent, previous: bookingsPrevious },
+    bookingsSplit: {
+      current: bookingsSplitCurrent,
+      previous: bookingsSplitPrevious,
+    },
     revenueSek: { current: revenueCurrent, previous: revenuePrevious },
     noShowRate: { current: noShowRateCurrent, previous: noShowRatePrevious },
+    noShowCoverage,
     utilizationRate: { current: null, previous: null },
     avgOrderValueSek: { current: avgOrderValueCurrent, previous: avgOrderValuePrevious },
+    ...(funnelPayload ? { conversionFunnel: funnelPayload } : {}),
     // channelSplit medvetet utelämnad — ingen ren kanalkälla ännu (v0.2b).
     notLiveYet: [
       'utilizationRate',
@@ -345,12 +478,42 @@ function composeClinicMetrics({
       ...(noShowRateCurrent === null || noShowRatePrevious === null ? ['noShowRate'] : []),
       ...(revenuePrevious === null ? ['revenueSek.previous'] : []),
       ...(avgOrderValuePrevious === null ? ['avgOrderValueSek.previous'] : []),
+      ...(!funnelPayload ? ['conversionFunnel'] : []),
     ],
-    dataNote:
-      'Live-data från major-arcanas gateway. Jämförelsen är hittills i månaden t.o.m. dagens kalenderdag mot samma kalenderdag i föregående månad. Intäkt/AOV: Fortnox betalda fakturor när anslutet, annars commercial-store-proxy.',
+    dataNote: extraNotes ? `${baseDataNote} ${extraNotes}` : baseDataNote,
     avgOrderValueNote:
       'Proxy: intäkt betald i perioden ÷ bokningar i samma period (bokningsdata saknar pris per bokning).',
   };
+}
+
+/** Mänsklig täckningsnot — alltid synlig när < 100 % av periodens bokningar ingår. */
+function describeNoShowCoverage({ capable = 0, total = 0 } = {}) {
+  if (!total || total < 1) return null;
+  if (capable >= total) return null;
+  if (capable < 1) {
+    return 'No-show saknas: perioden har inga Cliento-bokningar med no-show-stöd.';
+  }
+  const pct = Math.round((capable / total) * 100);
+  return `No-show räknas på Cliento-bokningarna (${pct} % av perioden).`;
+}
+
+/** ORD-76: synlig split när unknown eller paketandel är relevant — alltid om unknown > 0. */
+function describeBookingsSplit(split = emptyBookingsSplit(), total = 0) {
+  if (!total || total < 1) return null;
+  const parts = [];
+  if (split.paying) parts.push(`${split.paying} betalande`);
+  if (split.includedInPackage) parts.push(`${split.includedInPackage} ingår i TP-paket`);
+  if (split.consultations) parts.push(`${split.consultations} konsultationer`);
+  if (split.unknown) parts.push(`${split.unknown} oklassade`);
+  if (!parts.length) return null;
+  // Visa alltid när unknown > 0 eller när det finns mer än en klass (annars trivialt).
+  const distinct =
+    Number(split.paying > 0) +
+    Number(split.includedInPackage > 0) +
+    Number(split.consultations > 0) +
+    Number(split.unknown > 0);
+  if (split.unknown < 1 && distinct < 2) return null;
+  return `Bokningsmix: ${parts.join(' · ')}.`;
 }
 
 module.exports = {
@@ -358,4 +521,8 @@ module.exports = {
   periodLabel,
   bookingTenantCandidates,
   collectClinicPerformanceBookings,
+  bookingSourceSupportsNoShow,
+  describeNoShowCoverage,
+  classifyBookingKind,
+  describeBookingsSplit,
 };
