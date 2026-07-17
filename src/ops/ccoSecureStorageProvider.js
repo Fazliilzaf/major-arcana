@@ -222,7 +222,24 @@ function createLocalProvider({ rootPath = DEFAULT_LOCAL_ROOT } = {}) {
     }
   }
 
-  async function putObject({ key = null, body, contentType = null, metadata = {} } = {}) {
+  // ORD-CM-13: acceptera BÅDA anropsformerna — objekt-form ({key, body, contentType,
+  // metadata}) och positionell (key, body, {contentType|mimeType, metadata}). Halva
+  // kodbasen (expense-exportern, finans-/revisorspaketen) använder positionell form
+  // och kraschade i prod medan testernas mockar var positionella och gick gröna.
+  async function putObject(arg1, positionalBody, positionalOpts) {
+    let key = null;
+    let body;
+    let contentType = null;
+    let metadata = {};
+    if (typeof arg1 === 'string' || positionalBody !== undefined) {
+      key = typeof arg1 === 'string' ? arg1 : null;
+      body = positionalBody;
+      const o = positionalOpts || {};
+      contentType = o.contentType || o.mimeType || null;
+      metadata = o.metadata || {};
+    } else {
+      ({ key = null, body, contentType = null, metadata = {} } = arg1 || {});
+    }
     const buf = bodyToBuffer(body);
     const checksum = crypto.createHash('sha256').update(buf).digest('hex');
     const size = buf.length;
