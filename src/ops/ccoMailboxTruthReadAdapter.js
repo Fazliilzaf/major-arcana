@@ -395,8 +395,103 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     };
   }
 
+  function getFidelityInventory({ mailboxIds = [], sampleLimit = 20 } = {}) {
+    if (typeof store.getFidelityInventory === 'function') {
+      return store.getFidelityInventory({ mailboxIds, sampleLimit });
+    }
+
+    // Fallbacken behåller adaptern testbar med enklare read-only stores.
+    // Produktionsstoren räknar direkt över sin lokala state utan att skapa
+    // en full kopia av meddelandena.
+    const safeSampleLimit = Math.max(0, Math.min(50, Number(sampleLimit) || 0));
+    const summary = {
+      messages: 0,
+      htmlBodies: 0,
+      inlineImageTags: 0,
+      inlineCidReferences: 0,
+      mimeAvailable: 0,
+      declaredAttachments: 0,
+      attachmentMetadata: 0,
+      declaredAttachmentsWithoutMetadata: 0,
+      cidWithoutAttachmentMetadata: 0,
+      richCandidatesWithoutMime: 0,
+      fidelityGapCount: 0,
+    };
+    const samples = [];
+    const addSample = (sample) => {
+      if (safeSampleLimit === 0) return;
+      samples.push(sample);
+      samples.sort((left, right) => String(left.observedAt || '').localeCompare(String(right.observedAt || '')));
+      if (samples.length > safeSampleLimit) samples.pop();
+    };
+
+    for (const rawMessage of store.listMessages({ mailboxIds })) {
+      const message = asObject(rawMessage);
+      const bodyHtml = normalizeText(message.bodyHtml);
+      const attachments = asArray(message.attachments);
+      const mimeAvailable = asObject(message.mime).available === true;
+      const hasInlineImage = /<img\b/i.test(bodyHtml);
+      const referencedCids = Array.from(
+        new Set(
+          Array.from(bodyHtml.matchAll(/\bcid:([^\s"'>]+)/gi))
+            .map((match) => normalizeText(match[1]).replace(/^<|>$/g, '').toLowerCase())
+            .filter(Boolean)
+        )
+      );
+      const attachmentCids = new Set(
+        attachments
+          .map((attachment) => normalizeText(asObject(attachment).contentId).replace(/^<|>$/g, '').toLowerCase())
+          .filter(Boolean)
+      );
+      const hasDeclaredAttachments = message.hasAttachments === true;
+      const missingAttachmentMetadata = hasDeclaredAttachments && attachments.length === 0;
+      const missingCidMetadata = referencedCids.some((contentId) => !attachmentCids.has(contentId));
+      // Remote image tags can render without a locally stored MIME document. Only
+      // attachments or CID references make a missing MIME document a fidelity gap.
+      const richCandidate = hasDeclaredAttachments || referencedCids.length > 0;
+      const reasons = [];
+
+      summary.messages += 1;
+      if (bodyHtml) summary.htmlBodies += 1;
+      if (hasInlineImage) summary.inlineImageTags += 1;
+      if (referencedCids.length > 0) summary.inlineCidReferences += 1;
+      if (mimeAvailable) summary.mimeAvailable += 1;
+      if (hasDeclaredAttachments) summary.declaredAttachments += 1;
+      summary.attachmentMetadata += attachments.length;
+      if (missingAttachmentMetadata) {
+        summary.declaredAttachmentsWithoutMetadata += 1;
+        reasons.push('declared_attachment_without_metadata');
+      }
+      if (missingCidMetadata) {
+        summary.cidWithoutAttachmentMetadata += 1;
+        reasons.push('cid_without_attachment_metadata');
+      }
+      if (richCandidate && !mimeAvailable) {
+        summary.richCandidatesWithoutMime += 1;
+      }
+      if (reasons.length > 0) {
+        summary.fidelityGapCount += 1;
+        addSample({
+          messageId: normalizeText(message.graphMessageId || message.messageId) || null,
+          mailboxId: normalizeMailboxId(message.mailboxId || message.mailboxAddress) || null,
+          folderType: normalizeFolderType(message.folderType),
+          observedAt: toMessageSortIso(message),
+          reasons,
+        });
+      }
+    }
+
+    return {
+      mailboxIds: asArray(mailboxIds).map(normalizeMailboxId).filter(Boolean),
+      sampleLimit: safeSampleLimit,
+      summary,
+      samples,
+    };
+  }
+
   return {
     getHistoryCoverage,
+    getFidelityInventory,
     listHistoryMessages,
     listHistoryEvents,
     searchHistoryMessages,

@@ -149,3 +149,60 @@ test('getHistoryCoverage marks incomplete when a folder is not VERIFIED', () => 
   assert.equal(cov.mailboxes[0].folderStatuses.inbox, 'VERIFIED');
   assert.equal(cov.mailboxes[0].folderStatuses.sent, 'MISSING');
 });
+
+test('getFidelityInventory identifies local MIME and attachment metadata gaps without reading content', () => {
+  const messages = [
+    {
+      graphMessageId: 'rich-missing-mime',
+      mailboxId: 'clinic@demo.se',
+      folderType: 'inbox',
+      receivedAt: '2025-01-01T10:00:00.000Z',
+      bodyHtml: '<p>Hej</p><img src="cid:logo-1">',
+      hasAttachments: true,
+      attachments: [],
+    },
+    {
+      graphMessageId: 'complete-rich-mail',
+      mailboxId: 'clinic@demo.se',
+      folderType: 'sent',
+      receivedAt: '2025-01-02T10:00:00.000Z',
+      bodyHtml: '<p>Hej</p><img src="cid:logo-2">',
+      hasAttachments: true,
+      attachments: [{ id: 'asset-2', contentId: '<logo-2>', contentType: 'image/png' }],
+      mime: { available: true },
+    },
+    {
+      graphMessageId: 'complete-local-rich-mail',
+      mailboxId: 'clinic@demo.se',
+      folderType: 'inbox',
+      receivedAt: '2025-01-03T10:00:00.000Z',
+      bodyHtml: '<p>Hej</p><img src="cid:logo-3">',
+      hasAttachments: true,
+      attachments: [{ id: 'asset-3', contentId: '<logo-3>', contentType: 'image/png' }],
+    },
+  ];
+  const adapter = createCcoMailboxTruthReadAdapter({ store: mockStore(messages) });
+  const inventory = adapter.getFidelityInventory({
+    mailboxIds: ['clinic@demo.se'],
+    sampleLimit: 10,
+  });
+
+  assert.equal(inventory.summary.messages, 3);
+  assert.equal(inventory.summary.mimeAvailable, 1);
+  assert.equal(inventory.summary.declaredAttachmentsWithoutMetadata, 1);
+  assert.equal(inventory.summary.cidWithoutAttachmentMetadata, 1);
+  assert.equal(inventory.summary.richCandidatesWithoutMime, 2);
+  assert.equal(inventory.summary.fidelityGapCount, 1);
+  assert.deepEqual(inventory.samples, [
+    {
+      messageId: 'rich-missing-mime',
+      mailboxId: 'clinic@demo.se',
+      folderType: 'inbox',
+      observedAt: '2025-01-01T10:00:00.000Z',
+      reasons: [
+        'declared_attachment_without_metadata',
+        'cid_without_attachment_metadata',
+      ],
+    },
+  ]);
+});
