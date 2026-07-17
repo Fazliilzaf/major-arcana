@@ -10820,6 +10820,20 @@ try {
     })
   );
   console.log('[ops-scheduler-override] monterad: GET/POST/DELETE /api/v1/ops/scheduler/override');
+
+  // ORD-75b: ägar-styrd Cliento-CSV-import via API (owner-gated; se routerfilen).
+  const { createOpsClientoBookingsImportRouter } = require('./src/routes/opsClientoBookingsImport');
+  app.use(
+    '/api/v1/ops',
+    createOpsClientoBookingsImportRouter({
+      config,
+      requireCcoAuthenticated,
+      attachRole,
+      requireAnyRole: rbacRequireAnyRole,
+      auditLog: ccoAuditLog,
+    })
+  );
+  console.log('[ops-cliento-import] monterad: POST /api/v1/ops/cliento/bookings-import');
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);
 }
