@@ -157,6 +157,9 @@ function createCfoFortnoxVoucherSync({
     const rows = Array.isArray(all) ? all : all?.expenses || [];
     return rows.filter(
       (e) =>
+        // ORD-CM-15: aldrig bokföra tomma verifikat — poster utan positivt
+        // belopp lämnas åt ägaren (avvisa eller komplettera).
+        Number(e.amountSek) > 0 &&
         e.status === 'exported' &&
         e.fortnoxExportPending === true &&
         ['pending', 'blocked_integration'].includes(e.fortnoxSyncStatus)
