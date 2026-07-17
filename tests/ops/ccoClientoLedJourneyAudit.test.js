@@ -300,6 +300,8 @@ describe('ccoClientoLedJourneyAudit', () => {
           sourceSystem: 'getaccept_import',
           category: 'agreement',
           patientCardSection: 'samtycken_avtal',
+          treatmentType: 'FUE',
+          displayName: '2025-07-31 · Avtal · FUE · signerad · GetAccept legacy',
           originalFileName: 'getaccept-x66z9hzxzv3d-2025-07-31.pdf',
         }),
       ],
@@ -325,6 +327,8 @@ describe('ccoClientoLedJourneyAudit', () => {
           sourceSystem: 'getaccept_import',
           category: 'agreement',
           status: 'VERIFIED_IN_CCO',
+          treatmentType: 'DHI',
+          displayName: 'Avtal · DHI · signerad · GetAccept legacy',
           originalFileName: 'getaccept-verified.pdf',
         }),
       ],
@@ -346,12 +350,73 @@ describe('ccoClientoLedJourneyAudit', () => {
           sourceSystem: 'getaccept_import',
           category: 'agreement',
           status: 'NEEDS_REVIEW',
+          treatmentType: 'FUE',
           originalFileName: 'getaccept-stub.pdf',
         }),
       ],
     });
     assert.equal(needsReview.requirements.agreement.status, 'missing');
     assert.ok(needsReview.gaps.includes('agreement'));
+  });
+
+  it('keeps the hair-transplant agreement gap when GetAccept is for another treatment journey', () => {
+    const row = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'b-fue',
+          startsAt: '2026-06-10T08:00:00.000Z',
+          serviceLabel: 'FUE hårtransplantation',
+          status: 'completed',
+        },
+      ],
+      assets: [
+        asset({
+          sourceSystem: 'getaccept_import',
+          category: 'agreement',
+          patientCardSection: 'samtycken_avtal',
+          treatmentType: 'PRP',
+          displayName: '2025-07-31 · Avtal · PRP · signerad · GetAccept legacy',
+          originalFileName: 'getaccept-prp-other-journey.pdf',
+        }),
+        asset({
+          sourceSystem: 'getaccept_import',
+          category: 'agreement',
+          patientCardSection: 'samtycken_avtal',
+          treatmentType: 'Ögonlock',
+          displayName: '2025-08-01 · Avtal · Curatiio ögonlock · signerad',
+          originalFileName: 'getaccept-curatiio-other-journey.pdf',
+        }),
+      ],
+    });
+    assert.equal(row.evidence.agreement, false);
+    assert.equal(row.requirements.agreement.status, 'missing');
+    assert.ok(row.gaps.includes('agreement'));
+  });
+
+  it('fails closed when GetAccept agreement has no classifiable treatment journey', () => {
+    const row = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'b-fue',
+          startsAt: '2026-06-10T08:00:00.000Z',
+          serviceLabel: 'FUE hårtransplantation',
+          status: 'completed',
+        },
+      ],
+      assets: [
+        asset({
+          sourceSystem: 'getaccept_import',
+          category: 'agreement',
+          displayName: '2023-11-22 · Avtal · Behandling · signerad · GetAccept legacy',
+          treatmentType: 'Behandling',
+          originalFileName: 'getaccept-92259u6qyzy5-2023-11-22.pdf',
+        }),
+      ],
+    });
+    assert.equal(row.evidence.agreement, false);
+    assert.ok(row.gaps.includes('agreement'));
   });
 
   it('scopes GetAccept agreement evidence to the canonical patient only', () => {
@@ -383,6 +448,8 @@ describe('ccoClientoLedJourneyAudit', () => {
           patientId: 'p-other',
           sourceSystem: 'getaccept_import',
           category: 'agreement',
+          treatmentType: 'FUE',
+          displayName: 'Avtal · FUE · signerad · GetAccept legacy',
           originalFileName: 'getaccept-wrong-patient.pdf',
         }),
       ],

@@ -69,22 +69,46 @@ function hasVisibleStatus(asset) {
 }
 
 /**
+ * Infer which Cliento-led journey an agreement asset belongs to.
+ * Prefer structured treatmentType / display labels over opaque GetAccept filenames.
+ */
+function classifyAgreementJourney(asset = {}) {
+  return classifyService(
+    [
+      asset?.treatmentType,
+      asset?.displayName,
+      asset?.documentTitle,
+      asset?.visitLabel,
+      asset?.serviceLabel,
+      asset?.originalFileName,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+}
+
+function isGetAcceptAgreementAsset(asset) {
+  if (normalizeKey(asset?.sourceSystem) !== 'getaccept_import') return false;
+  const category = normalizeKey(asset?.category);
+  if (category === 'agreement') return true;
+  return inferDocumentKind(asset) === 'agreement';
+}
+
+/**
  * Agreement evidence for the Cliento-led journey audit.
- * Pipedrive historical PDFs and VISIBLE/VERIFIED GetAccept agreements both count.
+ * Pipedrive historical PDFs and VISIBLE/VERIFIED GetAccept agreements both count,
+ * but GetAccept must also match the required treatment journey (fail closed).
  * Assets are already scoped to the canonical patient by buildClientoLedJourneyAudit.
  * Pipedrive deals alone never count as a signed agreement PDF.
  */
-function isAgreementEvidenceAsset(asset) {
+function isAgreementEvidenceAsset(asset, { requiredJourney = null } = {}) {
   const source = normalizeKey(asset?.sourceSystem);
   if (source === 'pipedrive_import') {
     return inferDocumentKind(asset) === 'agreement';
   }
-  if (source === 'getaccept_import') {
-    const category = normalizeKey(asset?.category);
-    if (category === 'agreement') return true;
-    return inferDocumentKind(asset) === 'agreement';
-  }
-  return false;
+  if (!isGetAcceptAgreementAsset(asset)) return false;
+  if (!requiredJourney) return false;
+  return classifyAgreementJourney(asset) === requiredJourney;
 }
 
 function isOfferEvidenceAsset(asset) {
@@ -93,14 +117,16 @@ function isOfferEvidenceAsset(asset) {
   );
 }
 
-function summarizeEvidence(patient, assets) {
+function summarizeEvidence(patient, assets, { agreementJourney = 'hair_transplant' } = {}) {
   const visible = asArray(assets).filter(hasVisibleStatus);
   const structuredHd = Boolean(asObject(patient?.healthDeclaration).signedAt);
   const structuredFf = Boolean(asObject(patient?.fitnessCertificate).signedAt);
   const healthDeclaration = structuredHd || visible.some(isHealthDeclarationAsset);
   const fitnessCertificate = structuredFf || visible.some(isFitnessCertificateAsset);
   const offer = visible.some(isOfferEvidenceAsset);
-  const agreement = visible.some(isAgreementEvidenceAsset);
+  const agreement = visible.some((asset) =>
+    isAgreementEvidenceAsset(asset, { requiredJourney: agreementJourney })
+  );
   const deals = asArray(asObject(patient?.pipedrive).deals);
   return {
     healthDeclaration,
@@ -280,10 +306,12 @@ function buildClientoLedJourneyAudit({ patients = [], clientoBookings = [], asse
 module.exports = {
   auditPatientJourney,
   buildClientoLedJourneyAudit,
+  classifyAgreementJourney,
   classifyService,
   dedupeClientoHistory,
   isAgreementEvidenceAsset,
   isAttended,
+  isGetAcceptAgreementAsset,
   isOfferEvidenceAsset,
   summarizeEvidence,
 };
