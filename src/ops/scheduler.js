@@ -4151,8 +4151,31 @@ function createScheduler({
     }
     const { createCmMailSync } = require('../cm/cmMailSync');
     const sync = createCmMailSync(deps);
-    const mailbox = process.env.CM_MAIL_ACCOUNT || 'kvitto@hairtpclinic.com';
-    const syncResult = await sync.syncAll(mailbox);
+    // ORD-CM-3 (ägar-krav: "importera alla fakturor"): leverantörsfakturor
+    // landar i klinikens huvudlådor, inte bara kvitto@ — synka en LISTA.
+    // CM_MAIL_ACCOUNTS (kommaseparerad) överrider; annars CM_MAIL_ACCOUNT;
+    // annars klinikens standardlådor. Delta-cursor är redan per mailbox.
+    const mailboxes = String(
+      process.env.CM_MAIL_ACCOUNTS ||
+        process.env.CM_MAIL_ACCOUNT ||
+        'kvitto@hairtpclinic.com,faktura@hairtpclinic.com,fazli@hairtpclinic.com,kons@hairtpclinic.com,kontakt@hairtpclinic.com,marknad@hairtpclinic.com,egzona@hairtpclinic.com'
+    )
+      .split(',')
+      .map((m) => m.trim())
+      .filter(Boolean);
+    const mailbox = mailboxes[0];
+    const syncResult = { folders: [], totalImported: 0, totalDuplicates: 0, totalRecords: 0 };
+    for (const mb of mailboxes) {
+      try {
+        const r = await sync.syncAll(mb);
+        syncResult.folders.push(...(r.folders || []));
+        syncResult.totalImported += r.totalImported || 0;
+        syncResult.totalDuplicates += r.totalDuplicates || 0;
+        syncResult.totalRecords += r.totalRecords || 0;
+      } catch (err) {
+        syncResult.folders.push({ ok: false, mailbox: mb, errors: [{ error: err.message }] });
+      }
+    }
     const reprocessResult = await sync.reprocessUnprocessed({ limit: 10 });
     // ORD-72: records utan totalbelopp läses om ur sparat källmail — fyller
     // endast tomma fält (5/körning för att inte äta hela AI-budgeten).
