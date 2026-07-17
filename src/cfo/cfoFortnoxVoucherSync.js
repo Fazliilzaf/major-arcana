@@ -112,10 +112,18 @@ function buildVoucherPayload(
       );
     }
   }
+  // ORD-CM-18: Fortnox validerar Description hårt ("Värdet innehåller ej
+  // tillåtna tecken" — prod-verifierat 2026-07-17 för '·' och '_'). Whitelist:
+  // bokstäver (inkl åäö), siffror, mellanslag och .,()-/&. Id:t utan exp_-prefix.
+  const beskrivning = `CF ${String(expense.id).replace(/^exp_/, '')}${
+    expense.supplier ? ` ${expense.supplier}` : ''
+  }`
+    .replace(/[^a-zA-Z0-9åäöÅÄÖéÉüÜ .,()\-/&]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   return {
     Voucher: {
-      Description:
-        `CF expense ${expense.id}${expense.supplier ? ` · ${expense.supplier}` : ''}`.slice(0, 100),
+      Description: beskrivning.slice(0, 100),
       TransactionDate: expense.date || nowIso().slice(0, 10),
       VoucherSeries: series,
       VoucherRows: rows,
