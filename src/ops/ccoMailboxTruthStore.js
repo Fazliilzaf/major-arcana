@@ -126,6 +126,32 @@ function normalizeFolderType(value = '') {
   return 'unknown';
 }
 
+function normalizeContentId(value = '') {
+  return normalizeText(value).replace(/^<|>$/g, '').toLowerCase();
+}
+
+function listReferencedContentIds(bodyHtml = '') {
+  return Array.from(
+    new Set(
+      Array.from(normalizeText(bodyHtml).matchAll(/\bcid:([^\s"'>]+)/gi))
+        .map((match) => normalizeContentId(match[1]))
+        .filter(Boolean)
+    )
+  );
+}
+
+function deriveFidelityMessageType(message = {}) {
+  const declaredDirection = normalizeText(asObject(message).direction).toLowerCase();
+  if (declaredDirection === 'inbound' || declaredDirection === 'outbound') {
+    return declaredDirection;
+  }
+  const folderType = normalizeFolderType(asObject(message).folderType);
+  if (folderType === 'inbox') return 'inbound';
+  if (folderType === 'sent') return 'outbound';
+  if (folderType === 'drafts') return 'outbound_draft';
+  return 'unknown';
+}
+
 async function readJson(filePath, fallbackValue) {
   try {
     const raw = await fs.readFile(filePath, 'utf8');
@@ -1161,16 +1187,10 @@ async function createCcoMailboxTruthStore({
       const attachments = asArray(message.attachments);
       const mimeAvailable = asObject(message.mime).available === true;
       const hasInlineImage = /<img\b/i.test(bodyHtml);
-      const referencedCids = Array.from(
-        new Set(
-          Array.from(bodyHtml.matchAll(/\bcid:([^\s"'>]+)/gi))
-            .map((match) => normalizeText(match[1]).replace(/^<|>$/g, '').toLowerCase())
-            .filter(Boolean)
-        )
-      );
+      const referencedCids = listReferencedContentIds(bodyHtml);
       const attachmentCids = new Set(
         attachments
-          .map((attachment) => normalizeText(asObject(attachment).contentId).replace(/^<|>$/g, '').toLowerCase())
+          .map((attachment) => normalizeContentId(asObject(attachment).contentId))
           .filter(Boolean)
       );
       const hasDeclaredAttachments = message.hasAttachments === true;
@@ -1216,6 +1236,85 @@ async function createCcoMailboxTruthStore({
       summary,
       samples,
     };
+  }
+
+  function getCidFidelityManifest({ mailboxIds = [], limit = 1000 } = {}) {
+    const safeMailboxIds = asArray(mailboxIds)
+      .map((item) => normalizeMailboxId(item))
+      .filter(Boolean);
+    const mailboxIdSet = safeMailboxIds.length > 0 ? new Set(safeMailboxIds) : null;
+    const safeLimit = Math.max(1, Math.min(1000, Number(limit) || 1000));
+    const entries = [];
+    const summary = {
+      messagesWithMissingCidMetadata: 0,
+      cidReferencesWithoutAttachmentMetadata: 0,
+      entriesReturned: 0,
+      truncated: false,
+      byFolderType: {},
+      byMessageType: {},
+    };
+
+    for (const rawMessage of Object.values(state.messages)) {
+      const message = asObject(rawMessage);
+      const mailboxId = normalizeMailboxId(message.mailboxId);
+      if (mailboxIdSet && !mailboxIdSet.has(mailboxId)) continue;
+
+      const referencedCids = listReferencedContentIds(message.bodyHtml);
+      if (referencedCids.length === 0) continue;
+      const attachmentCids = new Set(
+        asArray(message.attachments)
+          .map((attachment) => normalizeContentId(asObject(attachment).contentId))
+          .filter(Boolean)
+      );
+      const missingCids = referencedCids.filter((contentId) => !attachmentCids.has(contentId));
+      if (missingCids.length === 0) continue;
+
+      const folderType = normalizeFolderType(message.folderType);
+      const messageType = deriveFidelityMessageType(message);
+      const observedAt = toMessageSortIso(message) || null;
+      const messageId = normalizeText(message.graphMessageId || message.messageId) || null;
+      summary.messagesWithMissingCidMetadata += 1;
+
+      for (const cid of missingCids) {
+        summary.cidReferencesWithoutAttachmentMetadata += 1;
+        summary.byFolderType[folderType] = Number(summary.byFolderType[folderType] || 0) + 1;
+        summary.byMessageType[messageType] = Number(summary.byMessageType[messageType] || 0) + 1;
+        if (entries.length >= safeLimit) {
+          summary.truncated = true;
+          continue;
+        }
+        entries.push({
+          messageId,
+          mailboxId: mailboxId || null,
+          folderType,
+          messageType,
+          observedAt,
+          attachmentId: null,
+          cid,
+          htmlReferencesCid: true,
+          localAttachmentMetadata: null,
+          localBlob: {
+            available: null,
+            state: 'not_addressable_without_attachment_metadata',
+          },
+        });
+      }
+    }
+
+    entries.sort((left, right) => String(right.observedAt || '').localeCompare(String(left.observedAt || '')));
+    summary.entriesReturned = entries.length;
+    return {
+      mailboxIds: safeMailboxIds,
+      limit: safeLimit,
+      summary,
+      entries,
+    };
+  }
+
+  function findMessage({ mailboxId = '', messageId = '' } = {}) {
+    const key = toMessageKey(mailboxId, messageId);
+    const message = key ? state.messages[key] : null;
+    return message ? asObject(message) : null;
   }
 
   function toNormalizedModel() {
@@ -1517,6 +1616,8 @@ async function createCcoMailboxTruthStore({
     listMessages,
     listWorklistMessages,
     getFidelityInventory,
+    getCidFidelityManifest,
+    findMessage,
     toNormalizedModel,
     getCompletenessReport,
     getDeltaSyncReport,

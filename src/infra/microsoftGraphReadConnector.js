@@ -1753,6 +1753,36 @@ function createMicrosoftGraphReadConnector(config = {}) {
       );
   }
 
+  async function probeMessageAttachments({
+    userId,
+    messageId,
+    label = 'Microsoft Graph CCO CID fidelity probe',
+    timeoutMs = 7000,
+    requestMaxRetries = 1,
+    retryBaseDelayMs = 500,
+    retryMaxDelayMs = 5000,
+  } = {}) {
+    const safeUserId = normalizeText(userId);
+    const safeMessageId = normalizeText(messageId);
+    if (!safeUserId || !safeMessageId) return [];
+    const accessToken = await fetchAccessToken();
+    const attachments = await fetchMessageAttachments({
+      graphBaseUrl,
+      userId: safeUserId,
+      messageId: safeMessageId,
+      accessToken,
+      label,
+      timeoutMs,
+      requestMaxRetries,
+      retryBaseDelayMs,
+      retryMaxDelayMs,
+    });
+    return attachments.map(({ contentBytes, ...attachment }) => ({
+      ...attachment,
+      contentBytesAvailable: Boolean(contentBytes),
+    }));
+  }
+
   async function fetchMessageMimeContent({
     userId,
     messageId,
@@ -3321,6 +3351,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
     fetchInboxSnapshot,
     enrichStoredMessagesWithMailAssets,
     enrichStoredMessagesWithInlineHtmlAssets,
+    probeMessageAttachments,
     fetchMessageAttachmentContent,
     fetchMessageMimeContent,
     fetchMailboxTruthFolderPage,

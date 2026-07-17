@@ -5367,6 +5367,33 @@ function toCcoRuntimeHistoryStatusQuery(query = {}) {
   };
 }
 
+function normalizeCcoRuntimeContentId(value = '') {
+  return normalizeText(value).replace(/^<|>$/g, '').toLowerCase();
+}
+
+function listCcoRuntimeReferencedContentIds(bodyHtml = '') {
+  return Array.from(
+    new Set(
+      Array.from(normalizeText(bodyHtml).matchAll(/\bcid:([^\s"'>]+)/gi))
+        .map((match) => normalizeCcoRuntimeContentId(match[1]))
+        .filter(Boolean)
+    )
+  );
+}
+
+function toCcoRuntimeHistoryFidelityProbeQuery(query = {}) {
+  const { mailboxId, mailboxIds } = toCcoRuntimeHistoryStatusQuery(query);
+  const safeQuery = asObject(query);
+  return {
+    mailboxId,
+    mailboxIds,
+    messageId: normalizeText(
+      safeQuery.messageId || safeQuery.graphMessageId || safeQuery.mailMessageId
+    ),
+    cid: normalizeCcoRuntimeContentId(safeQuery.cid || safeQuery.contentId),
+  };
+}
+
 function toCcoRuntimeCalibrationSummaryQuery(query = {}) {
   const safeQuery = asObject(query);
   const mailboxIds = resolveCcoRuntimeHistoryMailboxIds(safeQuery);
@@ -7529,6 +7556,9 @@ function toCcoRuntimeHistoryFidelityHandler({ ccoMailboxTruthStore = null }) {
           error: 'Mailbox truth-fidelity är inte tillgänglig just nu.',
         });
       }
+      if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
+        await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+      }
       const sampleLimit = clampInteger(req.query?.sampleLimit, 0, 50, 20);
       const inventory = mailboxTruthHistory.getFidelityInventory({
         mailboxIds,
@@ -7545,6 +7575,174 @@ function toCcoRuntimeHistoryFidelityHandler({ ccoMailboxTruthStore = null }) {
       return res.status(500).json({
         ok: false,
         error: error?.message || 'Fidelity-inventering kunde inte läsas.',
+      });
+    }
+  };
+}
+
+function toCcoRuntimeHistoryFidelityManifestHandler({ ccoMailboxTruthStore = null }) {
+  return async (req, res) => {
+    try {
+      const { mailboxId, mailboxIds } = toCcoRuntimeHistoryStatusQuery(req.query);
+      if (mailboxIds.length !== 1) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Välj exakt en mailbox för CID-manifestet.',
+        });
+      }
+      const mailboxTruthHistory = createCcoMailboxTruthReadAdapter({
+        store: ccoMailboxTruthStore,
+      });
+      if (!mailboxTruthHistory || typeof mailboxTruthHistory.getCidFidelityManifest !== 'function') {
+        return res.status(503).json({
+          ok: false,
+          error: 'Mailbox truth-CID-manifest är inte tillgängligt just nu.',
+        });
+      }
+      if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
+        await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+      }
+      const limit = clampInteger(req.query?.limit, 1, 1000, 1000);
+      const manifest = mailboxTruthHistory.getCidFidelityManifest({ mailboxIds, limit });
+      res.setHeader('cache-control', 'no-store');
+      return res.json({
+        ok: true,
+        source: 'mailbox_truth_store',
+        mailboxId,
+        mailboxIds,
+        manifest,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        ok: false,
+        error: error?.message || 'CID-manifest kunde inte läsas.',
+      });
+    }
+  };
+}
+
+function toCcoRuntimeHistoryFidelityProbeHandler({
+  ccoMailboxTruthStore = null,
+  graphReadConnector = null,
+  graphReadEnabled = false,
+  ccoMailAssetCache = null,
+}) {
+  return async (req, res) => {
+    try {
+      const input = toCcoRuntimeHistoryFidelityProbeQuery(req.query);
+      if (input.mailboxIds.length !== 1) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Välj exakt en mailbox för CID-proben.',
+        });
+      }
+      if (!input.messageId || !input.cid) {
+        return res.status(400).json({
+          ok: false,
+          error: 'messageId och cid krävs för CID-proben.',
+        });
+      }
+      if (
+        graphReadEnabled !== true ||
+        !graphReadConnector ||
+        typeof graphReadConnector.probeMessageAttachments !== 'function'
+      ) {
+        return res.status(503).json({
+          ok: false,
+          error: 'Read-only Graph-probe är inte tillgänglig just nu.',
+        });
+      }
+      const mailboxTruthHistory = createCcoMailboxTruthReadAdapter({
+        store: ccoMailboxTruthStore,
+      });
+      if (!mailboxTruthHistory || typeof mailboxTruthHistory.findMessage !== 'function') {
+        return res.status(503).json({
+          ok: false,
+          error: 'Mailbox truth-data är inte tillgänglig för CID-proben.',
+        });
+      }
+      if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
+        await ccoMailboxTruthStore.ensureMailboxLoaded(input.mailboxId);
+      }
+      const message = mailboxTruthHistory.findMessage({
+        mailboxId: input.mailboxId,
+        messageId: input.messageId,
+      });
+      if (!message) {
+        return res.status(404).json({
+          ok: false,
+          error: 'Meddelandet finns inte lokalt i vald mailbox.',
+        });
+      }
+      const referencedCids = listCcoRuntimeReferencedContentIds(message.bodyHtml);
+      if (!referencedCids.includes(input.cid)) {
+        return res.status(404).json({
+          ok: false,
+          error: 'CID-referensen finns inte i det lokala HTML-underlaget.',
+        });
+      }
+      const locallyMappedAttachment = asArray(message.attachments).find(
+        (attachment) => normalizeCcoRuntimeContentId(attachment?.contentId) === input.cid
+      );
+      if (locallyMappedAttachment) {
+        return res.status(409).json({
+          ok: false,
+          error: 'CID-referensen har redan lokal bilagemetadata.',
+        });
+      }
+
+      const attachments = await graphReadConnector.probeMessageAttachments({
+        userId: normalizeText(message.graphUserId || message.userPrincipalName || input.mailboxId),
+        messageId: input.messageId,
+        label: `CCO CID fidelity probe (${input.mailboxId})`,
+      });
+      const matches = asArray(attachments).filter(
+        (attachment) => normalizeCcoRuntimeContentId(attachment?.contentId) === input.cid
+      );
+      const graphAttachment = matches[0] || null;
+      let localBlob = {
+        available: null,
+        state: 'not_checked_without_graph_attachment',
+      };
+      if (graphAttachment?.id && ccoMailAssetCache && typeof ccoMailAssetCache.get === 'function') {
+        const cached = await ccoMailAssetCache.get({
+          mailboxId: input.mailboxId,
+          messageId: input.messageId,
+          attachmentId: graphAttachment.id,
+        });
+        const buffer = Buffer.isBuffer(cached?.buffer) ? cached.buffer : Buffer.from(cached?.buffer || []);
+        localBlob = {
+          available: buffer.length > 0,
+          state: buffer.length > 0 ? 'available' : 'missing',
+        };
+      }
+      res.setHeader('cache-control', 'no-store');
+      return res.json({
+        ok: true,
+        source: 'read_only_graph_attachment_metadata',
+        mailboxId: input.mailboxId,
+        messageId: input.messageId,
+        cid: input.cid,
+        graph: {
+          attachmentCollectionRead: true,
+          matchCount: matches.length,
+          attachment: graphAttachment
+            ? {
+                attachmentId: normalizeText(graphAttachment.id) || null,
+                contentId: normalizeCcoRuntimeContentId(graphAttachment.contentId) || null,
+                contentType: normalizeText(graphAttachment.contentType) || null,
+                isInline: graphAttachment.isInline === true,
+                size: Number(graphAttachment.size) || 0,
+                inlineContentBytesAvailable: graphAttachment.contentBytesAvailable === true,
+              }
+            : null,
+        },
+        localBlob,
+      });
+    } catch (error) {
+      return res.status(Number(error?.status || 500) || 500).json({
+        ok: false,
+        error: error?.message || 'CID-proben kunde inte läsas.',
       });
     }
   };
@@ -10224,6 +10422,31 @@ function createCapabilitiesRouter({
     toRoleGuardedHandler(
       toCcoRuntimeHistoryFidelityHandler({
         ccoMailboxTruthStore,
+      })
+    )
+  );
+
+  router.get(
+    '/cco/runtime/history/fidelity/manifest',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toCcoRuntimeHistoryFidelityManifestHandler({
+        ccoMailboxTruthStore,
+      })
+    )
+  );
+
+  router.get(
+    '/cco/runtime/history/fidelity/probe',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toCcoRuntimeHistoryFidelityProbeHandler({
+        ccoMailboxTruthStore,
+        graphReadConnector: resolvedGraphReadConnector,
+        graphReadEnabled: isGraphReadOperational,
+        ccoMailAssetCache,
       })
     )
   );
