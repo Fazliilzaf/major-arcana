@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-07-17",
+  "phase": "read_only_contract_inventory",
+  "zeroWrites": true,
+  "releaseGate": "blocked_until_separate_go_and_all_action_gates_pass",
+  "activeSurface": {
+    "path": "/admin#cco",
+    "calendarReadOnly": true,
+    "writeBridgeDisabled": true
+  },
+  "canonicalIdentity": {
+    "requiredBeforeMutation": [
+      "tenantId",
+      "patientId",
+      "bookingId_or_new_booking_intent_id",
+      "encounterId_or_explicit_null_for_pre_visit",
+      "serviceId",
+      "resourceId",
+      "startsAt"
+    ],
+    "currentEngineKey": ["tenantId", "conversationId", "customerEmail"],
+    "gap": "The mutation engine is not yet keyed by canonical patientId and encounterId."
+  },
+  "providers": {
+    "cliento": {
+      "adapter": "src/infra/clientoApi.js",
+      "readMethods": ["getSettings", "getRefData", "getSlots", "getReviews", "getCustomers"],
+      "writeMethods": [],
+      "mutationCapability": "absent",
+      "releaseGate": "blocked"
+    },
+    "cco_engine": {
+      "store": "src/ops/ccoBookingEngineStore.js",
+      "caseStore": "src/ops/ccoBookingStore.js",
+      "mutationCapability": "implemented_but_not_release_safe",
+      "releaseGate": "blocked"
+    }
+  },
+  "actions": {
+    "create": {
+      "recommendedOrder": 1,
+      "existingApis": [
+        "POST /api/v1/cco-booking-engine/reservations",
+        "POST /api/v1/cco-booking-engine/confirm"
+      ],
+      "currentAuthorization": "Valid session and booking context; no explicit staff permission on the mutation routes.",
+      "currentAudit": "Mutable engine record plus booking-case events; no append-only ccoAuditLog event.",
+      "currentIdempotency": "No required idempotency key; retries can append duplicate case events and repeat side effects.",
+      "currentFailureHandling": "4xx conflicts are returned, but engine, case, patient360, journal and notification writes are not one transaction.",
+      "currentRecovery": "No explicit rollback endpoint; compensating cancellation would be required after a partial confirm flow.",
+      "releaseGate": "blocked",
+      "requiredBeforeGo": [
+        "bookings.write permission with fail-closed staff role",
+        "canonical patientId binding and explicit encounter policy",
+        "required idempotency key with payload fingerprint",
+        "append-only audit event before and after mutation",
+        "preflight of slot, service, resource and treatment gate",
+        "documented compensation for partial downstream writes",
+        "mail and notification side effects behind an explicit post-commit policy"
+      ]
+    },
+    "move": {
+      "recommendedOrder": 3,
+      "existingApis": [
+        "POST /api/v1/cco-booking-engine/rebook",
+        "POST /api/v1/cco-bookings/calendar/rebook"
+      ],
+      "currentAuthorization": "Calendar rebook requires OWNER or STAFF; generic engine rebook only requires a valid session and booking context.",
+      "currentAudit": "Booking chain fields and booking-case event exist; no append-only ccoAuditLog event.",
+      "currentIdempotency": "No required idempotency key.",
+      "currentFailureHandling": "The store saves cancel, reserve and confirm separately.",
+      "currentRecovery": "No automatic compensation; a failed reserve or confirm can leave the previous booking cancelled.",
+      "releaseGate": "blocked",
+      "requiredBeforeGo": [
+        "all create gates",
+        "single preflight before cancelling the old booking",
+        "atomic transaction or tested compensation that restores the previous booking",
+        "expected booking version to reject stale drag or double submit"
+      ]
+    },
+    "cancel": {
+      "recommendedOrder": 2,
+      "existingApis": ["POST /api/v1/cco-booking-engine/cancel"],
+      "currentAuthorization": "Valid session and booking context; no explicit staff permission on the mutation route.",
+      "currentAudit": "cancelledBy and booking-case event exist; no append-only ccoAuditLog event.",
+      "currentIdempotency": "No required idempotency key; a retry returns no active booking instead of replaying the first result.",
+      "currentFailureHandling": "Booking is persisted before patient360 and notification side effects; email failures are swallowed as skipped.",
+      "currentRecovery": "No restore endpoint; recovery requires recreating the exact prior booking.",
+      "releaseGate": "blocked",
+      "requiredBeforeGo": [
+        "all create authorization, canonical identity, idempotency and audit gates",
+        "expected booking version and explicit cancellation reason",
+        "read-only confirmation preview with policy impact",
+        "tested restore or exact compensating recreate procedure",
+        "notification policy separated from the booking commit"
+      ]
+    }
+  },
+  "recommendedFirstFlow": {
+    "name": "Create booking preflight",
+    "surface": "/admin#cco -> Calendar -> booking drawer",
+    "mode": "read_only",
+    "description": "Show canonical patient, proposed service/resource/time, encounter policy, provider capability and every unmet gate. Do not expose a confirm button.",
+    "futureMutationAfterGo": "Reserve then confirm a new CCO-engine booking with no existing booking changed before commit."
+  }
+}
