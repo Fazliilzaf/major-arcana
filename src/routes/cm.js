@@ -364,6 +364,113 @@ function createCmRouter({
     }
   );
 
+  // ORD-CM-4 · Klumphantering: gruppera öppna kandidater per leverantör/avsändare
+  function bulkGroupKey(record) {
+    const supplier = String(record.supplierName || '')
+      .trim()
+      .toLowerCase();
+    if (supplier) return `s:${supplier}`;
+    const raw = record.rawItemId ? cmStore.getRawItemById(record.rawItemId) : null;
+    const domain = String(raw?.fromEmail || '').split('@')[1] || 'okänd';
+    return `d:${domain.toLowerCase()}`;
+  }
+
+  function openBulkRecords() {
+    return [...cmStore.getInbox(), ...cmStore.getNeedsReview()].filter(
+      (r, i, arr) => arr.findIndex((x) => x.id === r.id) === i
+    );
+  }
+
+  router.get('/cm/groups', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
+    const groups = new Map();
+    for (const r of openBulkRecords()) {
+      const key = bulkGroupKey(r);
+      if (!groups.has(key)) {
+        const raw = r.rawItemId ? cmStore.getRawItemById(r.rawItemId) : null;
+        groups.set(key, {
+          key,
+          label: r.supplierName || (raw?.fromEmail || 'okänd').split('@')[1] || 'okänd',
+          count: 0,
+          sumIncVat: 0,
+          medBelopp: 0,
+          exempel: r.supplierName || raw?.subject || '',
+        });
+      }
+      const g = groups.get(key);
+      g.count++;
+      if (r.amountIncVat) {
+        g.sumIncVat += r.amountIncVat;
+        g.medBelopp++;
+      }
+    }
+    const list = [...groups.values()].sort((a, b) => b.count - a.count);
+    return res.json({ ok: true, groups: list, totalOpen: openBulkRecords().length });
+  });
+
+  // POST /cm/bulk {action:'promote'|'reject', groupKey, category?, reason?}
+  // Bulk skapar/kategoriserar/avvisar — GODKÄNNANDE förblir alltid mänskligt.
+  router.post('/cm/bulk', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    const { action, groupKey, category, reason } = req.body || {};
+    if (!['promote', 'reject'].includes(action) || !groupKey) {
+      return res.status(400).json({ ok: false, error: 'action (promote|reject) + groupKey krävs' });
+    }
+    const targets = openBulkRecords().filter((r) => bulkGroupKey(r) === groupKey);
+    const results = { ok: true, action, groupKey, matched: targets.length, done: 0, errors: [] };
+    const actor = {
+      userId: req.user?.id || req.user?.email || 'owner',
+      role: 'owner',
+      via: 'cm-bulk',
+    };
+    for (const record of targets) {
+      try {
+        if (action === 'reject') {
+          cmStore.reject(record.id, {
+            rejectedBy: actor.userId,
+            reason: reason || 'bulk-avvisad per grupp',
+          });
+          results.done++;
+          continue;
+        }
+        // promote — hoppa över poster utan belopp (kan inte bli verifikat)
+        if (!record.amountIncVat) {
+          results.errors.push({ recordId: record.id, error: 'saknar belopp — hoppad' });
+          continue;
+        }
+        const documents = record.documentId
+          ? [cmStore.getDocumentById(record.documentId)].filter(Boolean)
+          : [];
+        const rawItem = record.rawItemId ? cmStore.getRawItemById(record.rawItemId) : null;
+        const result = await promoteRecordToCfo({
+          record,
+          documents,
+          rawItem,
+          cfoExpenseStore,
+          actor,
+        });
+        if (!result.ok) {
+          results.errors.push({ recordId: record.id, error: result.error });
+          continue;
+        }
+        cmStore.markHandedOff(record.id, {
+          cfoExpenseId: result.cfoExpense.id,
+          actor: actor.userId,
+        });
+        if (category && cfoExpenseStore?.updateExpense) {
+          await cfoExpenseStore
+            .updateExpense({ id: result.cfoExpense.id, patch: { category }, actor: actor.userId })
+            .catch((err) =>
+              results.errors.push({ recordId: record.id, error: `kategori: ${err.message}` })
+            );
+        }
+        results.done++;
+      } catch (err) {
+        results.errors.push({ recordId: record.id, error: err.message });
+      }
+    }
+    await cmStore.persist();
+    return res.json(results);
+  });
+
   // AI extraction — skicka bild eller text, få strukturerad data tillbaka
   router.post('/cm/extract', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), async (req, res) => {
     const { imageBase64, mimeType, text, source } = req.body || {};

@@ -925,6 +925,22 @@
       <!-- Anomalies -->
       <div class="anomalies" id="anomalies"></div>
 
+      <!-- ORD-CM-4 · Klumphantering: hela grupper i ett klick -->
+      <div class="section" id="cm-bulk">
+        <h2>
+          Klumphantering
+          <span class="meta" id="cmb-count">0 grupper</span>
+          <div class="section-actions">
+            <button class="btn" data-action="cmb-refresh">↻ Uppdatera</button>
+          </div>
+        </h2>
+        <div class="receipt-meta" style="margin: 0 4px 10px">
+          Promota eller avvisa alla kandidater från samma leverantör i ett klick. Godkännande för
+          bokföring sker fortfarande post för post.
+        </div>
+        <div class="receipts-list" id="cmb-list"><div class="empty">Hämtar…</div></div>
+      </div>
+
       <!-- ORD-65 · CM · Mail- & kvittointag (intagsmotor → CFO äger livscykeln) -->
       <div class="section" id="cm-intake">
         <h2>
@@ -932,9 +948,27 @@
           <span class="meta" id="cm-count">0</span>
           <div class="section-actions">
             <button class="btn" data-action="cm-mail-sync">✉ Synka mail</button>
-            <button class="btn" data-action="cm-reprocess" title="Läs om mail som saknar kandidat — hämtar bilagor i efterhand">⟳ Läs om oprocessade</button>
-            <button class="btn" data-action="cm-reextract" title="Läs om källmailen för kandidater som saknar belopp — fyller bara tomma fält">⟲ Hämta belopp ur mail</button>
-            <button class="btn" data-action="cm-imap-sync" title="Synka info@fazli.se (one.com) — kräver CM_IMAP-env">✉ Synka info@</button>
+            <button
+              class="btn"
+              data-action="cm-reprocess"
+              title="Läs om mail som saknar kandidat — hämtar bilagor i efterhand"
+            >
+              ⟳ Läs om oprocessade
+            </button>
+            <button
+              class="btn"
+              data-action="cm-reextract"
+              title="Läs om källmailen för kandidater som saknar belopp — fyller bara tomma fält"
+            >
+              ⟲ Hämta belopp ur mail
+            </button>
+            <button
+              class="btn"
+              data-action="cm-imap-sync"
+              title="Synka info@fazli.se (one.com) — kräver CM_IMAP-env"
+            >
+              ✉ Synka info@
+            </button>
             <button class="btn" data-action="cm-refresh">↻ Uppdatera</button>
           </div>
         </h2>
@@ -2957,7 +2991,9 @@
               else
                 alert(
                   `info@fazli.se: ${d.imported || 0} nya mail · ${d.records || 0} kandidater` +
-                    (d.remainingBacklog ? ` · ${d.remainingBacklog} kvar i historiken (autopiloten tar dem)` : '') +
+                    (d.remainingBacklog
+                      ? ` · ${d.remainingBacklog} kvar i historiken (autopiloten tar dem)`
+                      : '') +
                     (d.errors?.length ? ` · ${d.errors.length} fel` : '')
                 );
               await loadCm();
@@ -2969,6 +3005,114 @@
           });
         document.querySelector('[data-action="cm-refresh"]').addEventListener('click', loadCm);
         loadCm();
+      })();
+
+      // ORD-CM-4 · Klumphantering: grupper per leverantör, en knapp per grupp
+      (function cmBulkSection() {
+        const list = document.getElementById('cmb-list');
+        const countEl = document.getElementById('cmb-count');
+        if (!list || !countEl) return;
+        function esc(s) {
+          const d = document.createElement('div');
+          d.textContent = s == null ? '' : String(s);
+          return d.innerHTML;
+        }
+        const KATEGORIER = [
+          '',
+          'marknadsforing',
+          'forbrukning',
+          'it_telefoni',
+          'utrustning',
+          'lokal',
+          'resor',
+          'mat_representation',
+          'utbildning',
+          'personal',
+          'ovrigt',
+        ];
+        async function loadGroups() {
+          list.innerHTML = '<div class="empty">Hämtar…</div>';
+          try {
+            const r = await fetch('/api/v1/cm/groups', { credentials: 'same-origin' });
+            const d = await r.json();
+            if (!r.ok || !d.ok) throw new Error(d.error || r.status);
+            countEl.textContent = d.groups.length + ' grupper · ' + d.totalOpen + ' öppna';
+            if (!d.groups.length) {
+              list.innerHTML = '<div class="empty">Inga öppna kandidater — allt är hanterat.</div>';
+              return;
+            }
+            list.innerHTML = d.groups
+              .map(
+                (g) =>
+                  '<div class="receipt-row" data-key="' +
+                  esc(g.key) +
+                  '">' +
+                  '<div style="flex:1"><strong>' +
+                  esc(g.label) +
+                  '</strong>' +
+                  '<div class="receipt-meta">' +
+                  g.count +
+                  ' st · ' +
+                  (g.sumIncVat
+                    ? Math.round(g.sumIncVat).toLocaleString('sv-SE') + ' kr'
+                    : 'utan belopp') +
+                  (g.medBelopp < g.count ? ' · ' + (g.count - g.medBelopp) + ' utan belopp' : '') +
+                  '</div></div>' +
+                  '<select class="btn" data-role="kat">' +
+                  KATEGORIER.map(
+                    (k) => '<option value="' + k + '">' + (k || 'kategori…') + '</option>'
+                  ).join('') +
+                  '</select> ' +
+                  '<button class="btn" data-role="promote">→ CFO alla</button> ' +
+                  '<button class="btn" data-role="reject">Avvisa alla</button>' +
+                  '</div>'
+              )
+              .join('');
+            list.querySelectorAll('.receipt-row').forEach((row) => {
+              const key = row.getAttribute('data-key');
+              row
+                .querySelector('[data-role="promote"]')
+                .addEventListener('click', () => bulk('promote', key, row));
+              row
+                .querySelector('[data-role="reject"]')
+                .addEventListener('click', () => bulk('reject', key, row));
+            });
+          } catch (err) {
+            list.innerHTML = '<div class="empty">Fel: ' + esc(err.message) + '</div>';
+          }
+        }
+        async function bulk(action, key, row) {
+          const kat = row.querySelector('[data-role="kat"]')?.value || '';
+          if (
+            action === 'reject' &&
+            !window.confirm('Avvisa ALLA i gruppen? (kan inte ångras i UI:t)')
+          )
+            return;
+          row.querySelectorAll('button').forEach((b) => (b.disabled = true));
+          try {
+            const r = await fetch('/api/v1/cm/bulk', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action, groupKey: key, category: kat || undefined }),
+            });
+            const d = await r.json();
+            if (!r.ok || !d.ok) throw new Error(d.error || r.status);
+            alert(
+              (action === 'promote' ? 'Promotade ' : 'Avvisade ') +
+                d.done +
+                ' av ' +
+                d.matched +
+                (d.errors.length ? ' · ' + d.errors.length + ' hoppade (t.ex. utan belopp)' : '')
+            );
+          } catch (err) {
+            alert('Bulk-fel: ' + err.message);
+          }
+          await loadGroups();
+          if (typeof window.arcanaCfReload === 'function') window.arcanaCfReload();
+        }
+        document.querySelector('[data-action="cmb-refresh"]').addEventListener('click', loadGroups);
+        loadGroups();
       })();
 
       // ORD-67 · CF.9 dryRun-granskning: verifikat-förslag utan write
