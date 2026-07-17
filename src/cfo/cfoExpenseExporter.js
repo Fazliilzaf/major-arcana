@@ -23,21 +23,21 @@ const CSV_HEADERS = [
   'expenseId',
   'date',
   'supplier',
-  'supplierId',                 // CF.5
+  'supplierId', // CF.5
   'category',
   'paymentMethod',
-  'amountSek',                  // = grossAmountSek
-  'vatSek',                     // = vatAmountSek
+  'amountSek', // = grossAmountSek
+  'vatSek', // = vatAmountSek
   'vatRatePercent',
-  'netAmountSek',               // = gross - vat
-  'vatMode',                    // CF.6
-  'reverseCharge',              // CF.6 (true/false)
-  'deductibleVatSek',           // CF.6
-  'nonDeductibleVatSek',        // CF.6
-  'vatReviewStatus',            // CF.6
-  'recurringExpenseId',         // CF.7
-  'recurringMatchConfidence',   // CF.7
-  'recurringAnomalyKinds',      // CF.7 (semikolon-separerade)
+  'netAmountSek', // = gross - vat
+  'vatMode', // CF.6
+  'reverseCharge', // CF.6 (true/false)
+  'deductibleVatSek', // CF.6
+  'nonDeductibleVatSek', // CF.6
+  'vatReviewStatus', // CF.6
+  'recurringExpenseId', // CF.7
+  'recurringMatchConfidence', // CF.7
+  'recurringAnomalyKinds', // CF.7 (semikolon-separerade)
   'receiptId',
   'customerId',
   'encounterId',
@@ -61,19 +61,25 @@ function csvEscape(value) {
 function toCsv(rows) {
   const lines = [CSV_HEADERS.join(',')];
   for (const row of rows) {
-    const net = (typeof row.amountSek === 'number' ? row.amountSek : 0)
-      - (typeof row.vatSek === 'number' ? row.vatSek : 0);
-    lines.push(CSV_HEADERS.map((h) => {
-      if (h === 'netAmountSek') return csvEscape(Number.isFinite(net) ? net.toFixed(2) : '');
-      // CF.3-fix 2026-06-02: header 'expenseId' mappar mot row.id (inte row.expenseId)
-      if (h === 'expenseId') return csvEscape(row.id);
-      // CF.7: anomaly-kinds som semikolon-separerade
-      if (h === 'recurringAnomalyKinds') {
-        return csvEscape(Array.isArray(row.recurringAnomalies)
-          ? row.recurringAnomalies.map((a) => a.kind).join(';') : '');
-      }
-      return csvEscape(row[h]);
-    }).join(','));
+    const net =
+      (typeof row.amountSek === 'number' ? row.amountSek : 0) -
+      (typeof row.vatSek === 'number' ? row.vatSek : 0);
+    lines.push(
+      CSV_HEADERS.map((h) => {
+        if (h === 'netAmountSek') return csvEscape(Number.isFinite(net) ? net.toFixed(2) : '');
+        // CF.3-fix 2026-06-02: header 'expenseId' mappar mot row.id (inte row.expenseId)
+        if (h === 'expenseId') return csvEscape(row.id);
+        // CF.7: anomaly-kinds som semikolon-separerade
+        if (h === 'recurringAnomalyKinds') {
+          return csvEscape(
+            Array.isArray(row.recurringAnomalies)
+              ? row.recurringAnomalies.map((a) => a.kind).join(';')
+              : ''
+          );
+        }
+        return csvEscape(row[h]);
+      }).join(',')
+    );
   }
   return lines.join('\n') + '\n';
 }
@@ -104,7 +110,7 @@ async function buildExpenseExportPackage({
   if (!expenseStore) throw new Error('expenseStore krävs');
   if (!secureStorage?.putObject) throw new Error('secureStorage krävs');
 
-  const realBatchId = batchId || ('expbatch_' + crypto.randomBytes(6).toString('hex'));
+  const realBatchId = batchId || 'expbatch_' + crypto.randomBytes(6).toString('hex');
 
   // Plocka ut expenses att exportera
   let rows;
@@ -113,7 +119,8 @@ async function buildExpenseExportPackage({
   } else {
     rows = expenseStore.listExpenses({
       status: statusFilter,
-      fromDate, toDate,
+      fromDate,
+      toDate,
       limit: 1000,
     });
   }
@@ -132,7 +139,10 @@ async function buildExpenseExportPackage({
   const jsonKey = `exports/expenses/${ym}/${realBatchId}.json`;
 
   const csvBody = toCsv(rows);
-  const totalAmount = rows.reduce((sum, r) => sum + (typeof r.amountSek === 'number' ? r.amountSek : 0), 0);
+  const totalAmount = rows.reduce(
+    (sum, r) => sum + (typeof r.amountSek === 'number' ? r.amountSek : 0),
+    0
+  );
   const totalVat = rows.reduce((sum, r) => sum + (typeof r.vatSek === 'number' ? r.vatSek : 0), 0);
 
   const jsonPayload = {
@@ -149,10 +159,18 @@ async function buildExpenseExportPackage({
       totalVatSek: totalVat,
       netAmountSek: totalAmount - totalVat,
       // CF.6: VAT-breakdown
-      totalDeductibleVatSek: rows.reduce((s, r) => s + (typeof r.deductibleVatSek === 'number' ? r.deductibleVatSek : 0), 0),
-      totalNonDeductibleVatSek: rows.reduce((s, r) => s + (typeof r.nonDeductibleVatSek === 'number' ? r.nonDeductibleVatSek : 0), 0),
+      totalDeductibleVatSek: rows.reduce(
+        (s, r) => s + (typeof r.deductibleVatSek === 'number' ? r.deductibleVatSek : 0),
+        0
+      ),
+      totalNonDeductibleVatSek: rows.reduce(
+        (s, r) => s + (typeof r.nonDeductibleVatSek === 'number' ? r.nonDeductibleVatSek : 0),
+        0
+      ),
       reverseChargeCount: rows.filter((r) => r.reverseCharge).length,
-      reverseChargeAmountSek: rows.filter((r) => r.reverseCharge).reduce((s, r) => s + (typeof r.amountSek === 'number' ? r.amountSek : 0), 0),
+      reverseChargeAmountSek: rows
+        .filter((r) => r.reverseCharge)
+        .reduce((s, r) => s + (typeof r.amountSek === 'number' ? r.amountSek : 0), 0),
     },
     fortnoxStatus: 'BLOCKED_INTEGRATION — exportpaket genererat manuellt, ingen sync mot Fortnox',
     expenses: rows.map((r) => ({
@@ -167,7 +185,7 @@ async function buildExpenseExportPackage({
       grossAmountSek: r.grossAmountSek ?? r.amountSek, // CF.6
       vatSek: r.vatSek,
       vatRatePercent: r.vatRatePercent,
-      netAmountSek: r.netAmountSek ?? (r.amountSek - (r.vatSek || 0)), // CF.6
+      netAmountSek: r.netAmountSek ?? r.amountSek - (r.vatSek || 0), // CF.6
       vatMode: r.vatMode, // CF.6
       reverseCharge: !!r.reverseCharge, // CF.6
       deductibleVatSek: r.deductibleVatSek, // CF.6
@@ -188,8 +206,18 @@ async function buildExpenseExportPackage({
   };
   const jsonBody = JSON.stringify(jsonPayload, null, 2) + '\n';
 
-  await secureStorage.putObject(csvKey, Buffer.from(csvBody, 'utf8'), { mimeType: 'text/csv' });
-  await secureStorage.putObject(jsonKey, Buffer.from(jsonBody, 'utf8'), { mimeType: 'application/json' });
+  // ORD-CM-13: providern (ccoSecureStorageProvider) tar OBJEKT-form {key, body,
+  // contentType} — positionell form gav body=undefined → 'body måste vara Buffer'.
+  await secureStorage.putObject({
+    key: csvKey,
+    body: Buffer.from(csvBody, 'utf8'),
+    contentType: 'text/csv',
+  });
+  await secureStorage.putObject({
+    key: jsonKey,
+    body: Buffer.from(jsonBody, 'utf8'),
+    contentType: 'application/json',
+  });
 
   // Markera expenses som exporterade
   const mark = await expenseStore.markExported({
@@ -200,7 +228,8 @@ async function buildExpenseExportPackage({
 
   try {
     auditLog?.append?.({
-      action: 'cf.export.created', kind: 'cf.export.created',
+      action: 'cf.export.created',
+      kind: 'cf.export.created',
       surface: 'cco.cf.expense',
       ts: new Date().toISOString(),
       actor,
@@ -208,7 +237,8 @@ async function buildExpenseExportPackage({
       detail: {
         batchId: realBatchId,
         count: rows.length,
-        csvKey, jsonKey,
+        csvKey,
+        jsonKey,
         totalAmountSek: totalAmount,
         totalVatSek: totalVat,
         fortnoxStatus: 'BLOCKED_INTEGRATION',
