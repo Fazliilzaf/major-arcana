@@ -57,6 +57,14 @@ function makeApp({
     '/api/v1',
     createCcoConversationRouter({
       ccoMailboxTruthStore: ccoMailboxTruthStore || { listMessages: () => MESSAGES },
+      requireAuth(req, _res, next) {
+        req.auth = {
+          tenantId: 'hair-tp-clinic',
+          userId: 'test-user',
+          role: req.headers['x-cco-role'] || 'owner',
+        };
+        next();
+      },
       graphSendConnector,
       graphReadConnector,
       mailboxIdsForSync,

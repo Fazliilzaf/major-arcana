@@ -50,6 +50,12 @@ test('sticky val migrerar till alla produktionsmailboxar med ärlig status', () 
   assert.match(source, /cco:mailbox-status-refresh/);
 });
 
+test('mailboxstatus använder samma Bearer-token som CCO-worklisten', () => {
+  assert.match(source, /function withConversationAuth\(headers = \{\}\)/);
+  assert.match(source, /window\.CCOConversationAuth\?\.headers/);
+  assert.match(source, /headers:\s*withConversationAuth\(\{ Accept: 'application\/json' \}\)/);
+});
+
 test('driver inkorgen via selection-change till det befintliga datalagret', () => {
   assert.match(source, /cco:mailbox-selection-change/);
   assert.match(page, /document\.addEventListener\('cco:mailbox-selection-change'/);

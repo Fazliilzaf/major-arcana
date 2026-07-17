@@ -6029,7 +6029,13 @@ function toCcoRuntimeHistoryHandler({
   };
 }
 
-function toCcoRuntimeMailAssetContentHandler({ ccoMailAssetCache = null }) {
+function toCcoRuntimeMailAssetContentHandler({
+  ccoMailAssetCache = null,
+  allowedMailboxIds = [],
+  tenantScopeId = '',
+}) {
+  const allowedMailboxIdSet = new Set(normalizeMailboxIdList(allowedMailboxIds, 50));
+  const expectedTenantId = normalizeText(tenantScopeId).toLowerCase();
   return async (req, res) => {
     try {
       const query = toCcoRuntimeMailAssetQuery(req.query);
@@ -6038,6 +6044,20 @@ function toCcoRuntimeMailAssetContentHandler({ ccoMailAssetCache = null }) {
           ok: false,
           error: 'mailboxId, messageId och attachmentId krävs för bilageåtkomst.',
         });
+      }
+
+      const actualTenantId = normalizeText(req.auth?.tenantId).toLowerCase();
+      if (expectedTenantId && actualTenantId !== expectedTenantId) {
+        return res.status(403).json({
+          ok: false,
+          error: 'tenant_scope_forbidden',
+        });
+      }
+      // The cache key intentionally includes mailboxId but has no tenant field.
+      // Fence every read to the active CCO mailbox inventory before looking up
+      // a byte, so a guessed legacy mailbox can never disclose cached content.
+      if (allowedMailboxIdSet.size > 0 && !allowedMailboxIdSet.has(query.mailboxId)) {
+        return res.status(404).json({ ok: false, error: 'Bilagan finns inte.' });
       }
 
       if (!ccoMailAssetCache || typeof ccoMailAssetCache.get !== 'function') {
@@ -10731,6 +10751,8 @@ function createCapabilitiesRouter({
     toRoleGuardedHandler(
       toCcoRuntimeMailAssetContentHandler({
         ccoMailAssetCache,
+        allowedMailboxIds: runtimeWorklistMailboxIds,
+        tenantScopeId: config.defaultTenantId,
       })
     )
   );
