@@ -6,6 +6,7 @@ const {
   periodLabel,
   bookingTenantCandidates,
   collectClinicPerformanceBookings,
+  classifyBookingKind,
 } = require('../../src/ops/clinicPerformance');
 
 // Fast referens-nu: 15 juni 2026 (UTC) → same-day-framing t.o.m. 15 juni,
@@ -336,4 +337,75 @@ test('inga bokningar → noShowRate null (0 kapabla), AOV null', () => {
   assert.equal(m.noShowRate.current, null);
   assert.deepEqual(m.noShowCoverage.current, { capable: 0, total: 0 });
   assert.equal(m.avgOrderValueSek.current, null); // 0 bokningar → ingen division
+});
+
+test('ORD-76 classifyBookingKind: pris > 0 → paying', () => {
+  assert.equal(classifyBookingKind({ priceSek: 2500, serviceLabel: 'PRP Hår Standard' }), 'paying');
+  assert.equal(
+    classifyBookingKind({ priceSek: 0, serviceLabel: 'PRP efter TP' }),
+    'included_in_package'
+  );
+  assert.equal(
+    classifyBookingKind({ priceSek: 0, serviceLabel: 'Fysisk konsultation' }),
+    'consultation'
+  );
+  assert.equal(
+    classifyBookingKind({
+      priceSek: 0,
+      serviceLabel: 'PRP Hår Standard',
+      notes: 'Ingår i TP-paketet',
+    }),
+    'included_in_package'
+  );
+  assert.equal(classifyBookingKind({ priceSek: null, serviceLabel: 'Okänd tjänst' }), 'unknown');
+});
+
+test('ORD-76: bookingsSplit summerar till totalen; unknown redovisas öppet', () => {
+  const bookings = [
+    {
+      startsAt: '2026-06-02T09:00:00Z',
+      status: 'completed',
+      priceSek: 4300,
+      serviceLabel: 'PRP Hår Standard',
+    },
+    {
+      startsAt: '2026-06-03T09:00:00Z',
+      status: 'completed',
+      priceSek: 0,
+      serviceLabel: 'PRP efter TP',
+    },
+    {
+      startsAt: '2026-06-04T09:00:00Z',
+      status: 'completed',
+      priceSek: 0,
+      serviceLabel: 'TP uppföljning',
+    },
+    {
+      startsAt: '2026-06-05T09:00:00Z',
+      status: 'completed',
+      priceSek: 0,
+      serviceLabel: 'Konsultation',
+    },
+    {
+      startsAt: '2026-06-06T09:00:00Z',
+      status: 'completed',
+      priceSek: null,
+      serviceLabel: 'Okänd',
+      source: 'cco_booking_engine',
+    },
+  ];
+  const m = composeClinicMetrics({ bookings, now: NOW });
+  assert.equal(m.bookings.current, 5);
+  assert.deepEqual(m.bookingsSplit.current, {
+    paying: 1,
+    includedInPackage: 2,
+    consultations: 1,
+    unknown: 1,
+  });
+  const s = m.bookingsSplit.current;
+  assert.equal(s.paying + s.includedInPackage + s.consultations + s.unknown, m.bookings.current);
+  assert.match(m.dataNote, /Bokningsmix:/);
+  assert.match(m.dataNote, /oklassade/);
+  // Anteckningstext får inte läcka till CEO-payloaden.
+  assert.doesNotMatch(JSON.stringify(m), /Ingår i TP-paketet/);
 });

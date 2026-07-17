@@ -2,7 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { createClientoBookingStore } = require('./clientoBookingStore');
+const { createClientoBookingStore, normalizePriceSek } = require('./clientoBookingStore');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -211,6 +211,14 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
     const treatmentNotes = normalizeText(
       row['Behandlingsanteckning'] || row['Behandlingsnotering'] || row['Beskrivning']
     );
+    const priceSek = normalizePriceSek(
+      row['Pris'] ||
+        row['Pris (inkl. moms)'] ||
+        row['Pris inkl. moms'] ||
+        row['Belopp'] ||
+        row['Kostnad'] ||
+        row['Price']
+    );
     bookings.push({
       bookingId:
         normalizeText(row['Boknings-id']) ||
@@ -228,6 +236,7 @@ function rowsToClientoBookings(rows, emailByClientoId, opts = {}) {
       rawStatus: normalizeText(row['Status']),
       source: 'cliento_csv',
       clientoCustomerId,
+      priceSek,
       bookingNotes,
       customerMessage,
       internalNotes,

@@ -60,6 +60,34 @@ describe('clientoBookingCsvImport', () => {
     assert.equal(bookings[0].notes, 'Intern anteckning\n\nKundens meddelande');
   });
 
+  it('ORD-76: maps Cliento Pris-kolumn till priceSek', () => {
+    const { bookings } = rowsToClientoBookings(
+      [
+        {
+          'Kund-id': 'client-1',
+          'Kund e-post': 'patient@example.com',
+          Starttid: '2024-05-13 14:30',
+          Status: 'Show',
+          'Boknings-id': 'priced-1',
+          'Tjänstens namn': 'PRP Hår Standard',
+          Pris: '2 500 kr',
+        },
+        {
+          'Kund-id': 'client-1',
+          'Kund e-post': 'patient@example.com',
+          Starttid: '2024-06-01 10:00',
+          Status: 'Show',
+          'Boknings-id': 'priced-0',
+          'Tjänstens namn': 'PRP efter TP',
+          Belopp: '0',
+        },
+      ],
+      new Map()
+    );
+    assert.equal(bookings[0].priceSek, 2500);
+    assert.equal(bookings[1].priceSek, 0);
+  });
+
   it('retains real export rows that only have phone and Cliento identity', () => {
     const { bookings, stats } = rowsToClientoBookings(
       [

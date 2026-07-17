@@ -10,7 +10,7 @@
  *       "${tenantId}::${customerEmail-lowercased}": [
  *         { bookingId, customerEmail, customerName, serviceLabel,
  *           staffName, locationName, startsAt, endsAt, status, source,
- *           notes, customerPhone, clientoCustomerId, rawStatus,
+ *           priceSek, notes, customerPhone, clientoCustomerId, rawStatus,
  *           createdAt, updatedAt }
  *       ]
  *     },
@@ -85,6 +85,25 @@ function toBookingBucketKey(tenantId, booking) {
   return source.startsWith('cliento') && bookingId ? `${t}::unlinked:${bookingId}` : null;
 }
 
+function normalizePriceSek(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.max(0, value);
+  let s = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/kr\.?|sek/g, '');
+  if (!s) return null;
+  // Europeiskt tusental: 2.500,00 → 2500.00
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    s = s.replace(',', '.');
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? Math.max(0, n) : null;
+}
+
 function normalizeBooking(input = {}) {
   const safe = asObject(input);
   const customerEmail = normalizeEmail(safe.customerEmail);
@@ -97,6 +116,13 @@ function normalizeBooking(input = {}) {
   if (!bookingId || (!hasIdentity && !rawSource.toLowerCase().startsWith('cliento'))) return null;
   const startsAt = safe.startsAt ? new Date(safe.startsAt).toISOString() : null;
   const endsAt = safe.endsAt ? new Date(safe.endsAt).toISOString() : null;
+  const priceSek = normalizePriceSek(
+    safe.priceSek !== undefined
+      ? safe.priceSek
+      : safe.price !== undefined
+        ? safe.price
+        : safe.amountSek
+  );
   return {
     bookingId,
     customerEmail,
@@ -116,6 +142,7 @@ function normalizeBooking(input = {}) {
     status: normalizeText(safe.status) || 'unknown', // upcoming | completed | cancelled | no_show | unknown
     rawStatus: normalizeText(safe.rawStatus),
     source,
+    priceSek,
     bookingNotes: normalizeText(safe.bookingNotes),
     customerMessage: normalizeText(safe.customerMessage),
     internalNotes: normalizeText(safe.internalNotes),
@@ -221,6 +248,10 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
         if (!normalizeText(normalized[field]) && normalizeText(existing[field])) {
           merged[field] = existing[field];
         }
+      }
+      // priceSek is numeric — preserve existing when the update omits/clears it.
+      if (normalized.priceSek === null && Number.isFinite(existing.priceSek)) {
+        merged.priceSek = existing.priceSek;
       }
       list[existingIdx] = merged;
     } else {
@@ -350,4 +381,5 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
 module.exports = {
   createClientoBookingStore,
   normalizeBooking,
+  normalizePriceSek,
 };

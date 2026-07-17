@@ -100,11 +100,29 @@ function buildClinicPerformanceRow({
   serviceId = '',
   serviceLabel = '',
   resourceLabel = '',
+  priceSek = null,
+  notes = '',
+  bookingNotes = '',
+  internalNotes = '',
+  treatmentNotes = '',
+  customerMessage = '',
+  bookingKind = '',
 } = {}) {
   const normalizedStartsAt = normalizeText(startsAt);
   if (!normalizedStartsAt) return null;
   const normalizedStatus = normalizeText(status).toLowerCase();
   if (!normalizedStatus || normalizedStatus === 'cancelled') return null;
+  const kind =
+    normalizeText(bookingKind) ||
+    classifyBookingKind({
+      priceSek,
+      serviceLabel,
+      notes,
+      bookingNotes,
+      internalNotes,
+      treatmentNotes,
+      customerMessage,
+    });
   return {
     bookingId: normalizeText(bookingId),
     customerEmail: normalizeEmail(customerEmail),
@@ -114,6 +132,8 @@ function buildClinicPerformanceRow({
     serviceId: normalizeText(serviceId),
     serviceLabel: normalizeText(serviceLabel),
     resourceLabel: normalizeText(resourceLabel),
+    // bookingKind only — never notes/price toward CEO payload aggregates.
+    bookingKind: kind,
   };
 }
 
@@ -133,7 +153,55 @@ function bookingSourceSupportsNoShow(row = {}) {
   const source = normalizeText(row.source).toLowerCase();
   // cliento is the only source that can currently carry explicit no_show state.
   // Missing source is treated as test/legacy input and remains no-show-capable.
-  return !source || source === 'cliento';
+  return !source || source === 'cliento' || source === 'cliento_csv';
+}
+
+/**
+ * ORD-76: klassificera bokning som paying / included_in_package / consultation / unknown.
+ * Pris är primär markör; tjänstenamn sekundär; anteckningar tertiär (endast internt).
+ * Anteckningstext får ALDRIG lämna gatewayn — bara denna klass + aggregat.
+ */
+const PACKAGE_SERVICE_RE =
+  /efter\s*tp|uppf[oö]ljning|op[-\s]?dagen|underh[aå]ll\s*efter|prp\s*efter\s*tp|ing[aå]r\s*i\s*(tp[-\s]?)?paket|efterv[aå]rd/i;
+const CONSULTATION_SERVICE_RE = /konsultation|consultation|\bkonsult\b/i;
+const PACKAGE_NOTE_RE =
+  /ing[aå]r\s*i\s*(tp[-\s]?)?paketet|ing[aå]r\s*i\s*fastpriset|kompletterande\s+behandling\s+utan\s+kostnad|utan\s+kostnad|ing[aå]r\s*i\s*tp/i;
+
+function classifyBookingKind(booking = {}) {
+  const price =
+    typeof booking.priceSek === 'number' && Number.isFinite(booking.priceSek)
+      ? booking.priceSek
+      : null;
+  if (price !== null && price > 0) return 'paying';
+
+  const label = normalizeText(booking.serviceLabel || booking.service);
+  if (CONSULTATION_SERVICE_RE.test(label)) return 'consultation';
+  if (PACKAGE_SERVICE_RE.test(label)) return 'included_in_package';
+
+  const notesBlob = [
+    booking.notes,
+    booking.bookingNotes,
+    booking.internalNotes,
+    booking.treatmentNotes,
+    booking.customerMessage,
+  ]
+    .map((v) => normalizeText(v))
+    .filter(Boolean)
+    .join('\n');
+  if (notesBlob && PACKAGE_NOTE_RE.test(notesBlob)) return 'included_in_package';
+
+  return 'unknown';
+}
+
+function emptyBookingsSplit() {
+  return { paying: 0, includedInPackage: 0, consultations: 0, unknown: 0 };
+}
+
+function bumpBookingsSplit(split, kind) {
+  if (kind === 'paying') split.paying += 1;
+  else if (kind === 'included_in_package') split.includedInPackage += 1;
+  else if (kind === 'consultation') split.consultations += 1;
+  else split.unknown += 1;
 }
 
 function collectFromBookingEngineStore({ bookingEngineStore = null, tenantId = '' } = {}) {
@@ -209,6 +277,12 @@ function collectFromClientoBookingStore({ clientoBookingStore = null, tenantId =
         source: 'cliento',
         serviceLabel: booking.serviceLabel,
         resourceLabel: booking.staffName,
+        priceSek: booking.priceSek,
+        notes: booking.notes,
+        bookingNotes: booking.bookingNotes,
+        internalNotes: booking.internalNotes,
+        treatmentNotes: booking.treatmentNotes,
+        customerMessage: booking.customerMessage,
       });
       if (row) rows.push(row);
     }
@@ -248,6 +322,7 @@ function collectClinicPerformanceBookings({
     source: row.source,
     serviceLabel: row.serviceLabel,
     resourceLabel: row.resourceLabel,
+    bookingKind: row.bookingKind || 'unknown',
   }));
 }
 
@@ -285,11 +360,15 @@ function composeClinicMetrics({
   let noShowCapablePrevious = 0;
   let noShowCurrent = 0;
   let noShowPrevious = 0;
+  const bookingsSplitCurrent = emptyBookingsSplit();
+  const bookingsSplitPrevious = emptyBookingsSplit();
   for (const b of Array.isArray(bookings) ? bookings : []) {
     const t = b && b.startsAt ? Date.parse(b.startsAt) : NaN;
     if (!Number.isFinite(t)) continue;
+    const kind = b.bookingKind || classifyBookingKind(b);
     if (t >= monthStart && t < currentPeriodEndExclusive) {
       bookingsCurrent += 1;
+      bumpBookingsSplit(bookingsSplitCurrent, kind);
       if (bookingSourceSupportsNoShow(b)) {
         noShowCapableCurrent += 1;
         if (b.status === 'no_show') noShowCurrent += 1;
@@ -298,6 +377,7 @@ function composeClinicMetrics({
     }
     if (t >= prevMonthStart && t < previousComparableEndExclusive) {
       bookingsPrevious += 1;
+      bumpBookingsSplit(bookingsSplitPrevious, kind);
       if (bookingSourceSupportsNoShow(b)) {
         noShowCapablePrevious += 1;
         if (b.status === 'no_show') noShowPrevious += 1;
@@ -337,6 +417,8 @@ function composeClinicMetrics({
   const baseDataNote =
     'Live-data från major-arcanas gateway. Jämförelsen är hittills i månaden t.o.m. dagens kalenderdag mot samma kalenderdag i föregående månad. Intäkt/AOV: Fortnox betalda fakturor när anslutet, annars commercial-store-proxy.';
   const noShowCoverageNote = describeNoShowCoverage(noShowCoverage.current);
+  const bookingsSplitNote = describeBookingsSplit(bookingsSplitCurrent, bookingsCurrent);
+  const extraNotes = [noShowCoverageNote, bookingsSplitNote].filter(Boolean).join(' ');
 
   return {
     tenantId: tenantId || null,
@@ -344,6 +426,10 @@ function composeClinicMetrics({
     previousPeriod: periodLabel(prevMonthStartDate),
     source: 'live',
     bookings: { current: bookingsCurrent, previous: bookingsPrevious },
+    bookingsSplit: {
+      current: bookingsSplitCurrent,
+      previous: bookingsSplitPrevious,
+    },
     revenueSek: { current: revenueCurrent, previous: revenuePrevious },
     noShowRate: { current: noShowRateCurrent, previous: noShowRatePrevious },
     noShowCoverage,
@@ -357,7 +443,7 @@ function composeClinicMetrics({
       ...(revenuePrevious === null ? ['revenueSek.previous'] : []),
       ...(avgOrderValuePrevious === null ? ['avgOrderValueSek.previous'] : []),
     ],
-    dataNote: noShowCoverageNote ? `${baseDataNote} ${noShowCoverageNote}` : baseDataNote,
+    dataNote: extraNotes ? `${baseDataNote} ${extraNotes}` : baseDataNote,
     avgOrderValueNote:
       'Proxy: intäkt betald i perioden ÷ bokningar i samma period (bokningsdata saknar pris per bokning).',
   };
@@ -374,6 +460,25 @@ function describeNoShowCoverage({ capable = 0, total = 0 } = {}) {
   return `No-show räknas på Cliento-bokningarna (${pct} % av perioden).`;
 }
 
+/** ORD-76: synlig split när unknown eller paketandel är relevant — alltid om unknown > 0. */
+function describeBookingsSplit(split = emptyBookingsSplit(), total = 0) {
+  if (!total || total < 1) return null;
+  const parts = [];
+  if (split.paying) parts.push(`${split.paying} betalande`);
+  if (split.includedInPackage) parts.push(`${split.includedInPackage} ingår i TP-paket`);
+  if (split.consultations) parts.push(`${split.consultations} konsultationer`);
+  if (split.unknown) parts.push(`${split.unknown} oklassade`);
+  if (!parts.length) return null;
+  // Visa alltid när unknown > 0 eller när det finns mer än en klass (annars trivialt).
+  const distinct =
+    Number(split.paying > 0) +
+    Number(split.includedInPackage > 0) +
+    Number(split.consultations > 0) +
+    Number(split.unknown > 0);
+  if (split.unknown < 1 && distinct < 2) return null;
+  return `Bokningsmix: ${parts.join(' · ')}.`;
+}
+
 module.exports = {
   composeClinicMetrics,
   periodLabel,
@@ -381,4 +486,6 @@ module.exports = {
   collectClinicPerformanceBookings,
   bookingSourceSupportsNoShow,
   describeNoShowCoverage,
+  classifyBookingKind,
+  describeBookingsSplit,
 };

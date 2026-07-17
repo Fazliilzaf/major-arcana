@@ -3,7 +3,8 @@
 **Status:** PR FÖRBEREDD · **MERGE BLOCKERAD** tills Drive-ingest-frysen släpper (samma gate som ORD-74)  
 **Repo:** major-arcana · **Prio:** P2 · **Byggare:** CURSOR  
 **Notion:** [ORD-75 · CP no-show](https://app.notion.com/p/3a0060ccc15b81d7af7df87f5397b9fc)  
-**OBS:** Separat från CM-ORD-75 (underlag/avdragsbevis) — samma ORD-nummer, annat spår.
+**OBS:** Separat från CM-ORD-75 (underlag/avdragsbevis) — samma ORD-nummer, annat spår.  
+**Kompis:** ORD-76 (betalande vs TP-paket) levereras i samma PR-gren.
 
 ---
 
