@@ -14188,6 +14188,7 @@ process.once('SIGTERM', () => {
       scheduler,
       graphReadConnector,
       ccoMailAssetCache: runtimeMailAssetCache,
+      ccoRuntimeMailboxIds,
       executiveDecisionFeed,
       marketingCampaignDraftsStore,
       marketingContentAssetsStore,

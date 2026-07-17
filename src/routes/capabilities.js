@@ -1392,6 +1392,29 @@ function resolveCcoRuntimeHistoryMailboxIds(input = {}) {
   return CCO_CUSTOMER_HISTORY_DEFAULT_MAILBOX_IDS.slice();
 }
 
+// Worklistan läser redan materialiserad CCO truth-data. Den kan därför, utöver
+// Graph-lådans hårda allowlist, läsa ett explicit konfigurerat CCO-IMAP-konto.
+// Detta vidgar aldrig Graph-läsning eller andra runtime-endpoints.
+function resolveCcoRuntimeWorklistMailboxIds(input = {}, runtimeMailboxIds = []) {
+  const safeInput = asObject(input);
+  const allowedMailboxIds = new Set([
+    ...CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET,
+    ...normalizeMailboxIdList(runtimeMailboxIds, 50),
+  ]);
+  const explicitMailboxIds = normalizeMailboxIdList(
+    parseMailboxIdValues(safeInput.mailboxIds, 50),
+    50
+  ).filter((mailboxId) => allowedMailboxIds.has(mailboxId));
+  if (explicitMailboxIds.length > 0) return explicitMailboxIds;
+
+  const fallbackMailboxId = toMailboxAddress(safeInput.mailboxId);
+  if (fallbackMailboxId && allowedMailboxIds.has(fallbackMailboxId)) {
+    return [fallbackMailboxId];
+  }
+
+  return CCO_CUSTOMER_HISTORY_DEFAULT_MAILBOX_IDS.slice();
+}
+
 function resolveAnalyzeInboxMailboxIds(input = {}) {
   const safeInput = asObject(input);
   const explicitMailboxIds = normalizeMailboxIdList(
@@ -5474,9 +5497,9 @@ function toCcoRuntimeShadowQuery(query = {}) {
   };
 }
 
-function toCcoRuntimeWorklistShadowQuery(query = {}) {
+function toCcoRuntimeWorklistShadowQuery(query = {}, { runtimeMailboxIds = [] } = {}) {
   const safeQuery = asObject(query);
-  const mailboxIds = resolveCcoRuntimeHistoryMailboxIds(safeQuery);
+  const mailboxIds = resolveCcoRuntimeWorklistMailboxIds(safeQuery, runtimeMailboxIds);
   return {
     mailboxId: mailboxIds[0] || CCO_KONS_HISTORY_DEFAULT_MAILBOX,
     mailboxIds,
@@ -9347,11 +9370,12 @@ function toCcoRuntimeWorklistShadowHandler({
   capabilityAnalysisStore = null,
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
+  runtimeMailboxIds = [],
 }) {
   return async (req, res) => {
     try {
       const tenantId = toTenantId(req);
-      const query = toCcoRuntimeWorklistShadowQuery(req.query);
+      const query = toCcoRuntimeWorklistShadowQuery(req.query, { runtimeMailboxIds });
       const context = await buildWorklistShadowContext({
         tenantId,
         capabilityAnalysisStore,
@@ -9412,11 +9436,12 @@ function toCcoRuntimeWorklistTruthHandler({
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
   ccoConversationStateStore = null,
+  runtimeMailboxIds = [],
 }) {
   return async (req, res) => {
     try {
       const tenantId = toTenantId(req);
-      const query = toCcoRuntimeWorklistShadowQuery(req.query);
+      const query = toCcoRuntimeWorklistShadowQuery(req.query, { runtimeMailboxIds });
       const context = await buildWorklistTruthContext({
         tenantId,
         capabilityAnalysisStore,
@@ -9492,11 +9517,12 @@ function toCcoRuntimeWorklistConsumerHandler({
   clientoBookingStore = null,
   patientMasterStore = null,
   stateRoot = '',
+  runtimeMailboxIds = [],
 }) {
   return async (req, res) => {
     try {
       const tenantId = toTenantId(req);
-      const query = toCcoRuntimeWorklistShadowQuery(req.query);
+      const query = toCcoRuntimeWorklistShadowQuery(req.query, { runtimeMailboxIds });
       if (query.mailboxIds.length > CCO_RUNTIME_WORKLIST_MAX_MAILBOX_IDS) {
         return res.status(422).json({
           ok: false,
@@ -9626,11 +9652,12 @@ function toCcoRuntimeWorklistConsumerReadoutHandler({
   ccoConversationStateStore = null,
   ccoMailIngestionStore = null,
   clientoBookingStore = null,
+  runtimeMailboxIds = [],
 }) {
   return async (req, res) => {
     try {
       const tenantId = toTenantId(req);
-      const query = toCcoRuntimeWorklistShadowQuery(req.query);
+      const query = toCcoRuntimeWorklistShadowQuery(req.query, { runtimeMailboxIds });
       const context = await buildWorklistConsumerContext({
         tenantId,
         capabilityAnalysisStore,
@@ -9902,10 +9929,12 @@ function createCapabilitiesRouter({
   graphSendConnector = null,
   graphSendConnectorFactory = createMicrosoftGraphSendConnector,
   appConfig = null,
+  ccoRuntimeMailboxIds = [],
 }) {
   const router = express.Router();
   const tenantConfigStore = tenantConfigStoreParam;
   const config = appConfig || require('../config');
+  const runtimeWorklistMailboxIds = normalizeMailboxIdList(ccoRuntimeMailboxIds, 50);
   const gateway =
     executionGateway ||
     createExecutionGateway({
@@ -10213,6 +10242,7 @@ function createCapabilitiesRouter({
         ccoMailboxTruthStore,
         ccoCustomerStore,
         ccoConversationStateStore,
+        runtimeMailboxIds: runtimeWorklistMailboxIds,
       })
     )
   );
@@ -10231,6 +10261,7 @@ function createCapabilitiesRouter({
         clientoBookingStore,
         patientMasterStore,
         stateRoot: config.stateRoot,
+        runtimeMailboxIds: runtimeWorklistMailboxIds,
       })
     )
   );
@@ -10247,6 +10278,7 @@ function createCapabilitiesRouter({
         ccoConversationStateStore,
         ccoMailIngestionStore,
         clientoBookingStore,
+        runtimeMailboxIds: runtimeWorklistMailboxIds,
       })
     )
   );
@@ -10260,6 +10292,7 @@ function createCapabilitiesRouter({
         capabilityAnalysisStore,
         ccoMailboxTruthStore,
         ccoCustomerStore,
+        runtimeMailboxIds: runtimeWorklistMailboxIds,
       })
     )
   );

@@ -135,6 +135,58 @@ test('runtime worklist consumer honours an explicit Hälso mailbox scope', async
   }
 });
 
+test('runtime worklist consumer honours a configured external CCO IMAP mailbox scope', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-worklist-imap-'));
+  const mailboxId = 'info@fazli.se';
+  const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
+    filePath: path.join(tempDir, 'cco-mailbox-truth.json'),
+  });
+  try {
+    await seedFolder(ccoMailboxTruthStore, {
+      mailboxId,
+      folderType: 'inbox',
+      messages: [
+        inboxMessage({
+          mailboxId,
+          conversationId: 'imap-conversation',
+          graphMessageId: 'imap-message',
+          subject: 'One.com-fråga',
+          preview: 'Ett externt mailbox-test.',
+          receivedAt: '2026-07-17T08:00:00.000Z',
+        }),
+      ],
+    });
+
+    const app = express();
+    app.use(express.json());
+    const auth = createMockAuth('OWNER');
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore: { async addAuditEvent() {} },
+        capabilityAnalysisStore: null,
+        ccoMailboxTruthStore,
+        ccoRuntimeMailboxIds: [mailboxId],
+        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/worklist/consumer?mailboxIds=${encodeURIComponent(mailboxId)}&limit=20`
+      );
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      assert.deepEqual(payload.mailboxIds, [mailboxId]);
+      assert.deepEqual(payload.rows.map((row) => row.mailboxId), [mailboxId]);
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('runtime worklist consumer rolls exact patient aliases across mailboxes but leaves ambiguous emails separate', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-patient-rollup-'));
   const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
