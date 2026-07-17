@@ -119,6 +119,72 @@ const ANALYZE_INBOX_HISTORY_IO_CONCURRENCY = 2;
 const analyzeInboxGraphSnapshotCache = new Map();
 const worklistConsumerResponseCache = new Map();
 
+function worklistTimingNowMs() {
+  return Number(process.hrtime.bigint()) / 1_000_000;
+}
+
+function createWorklistConsumerTiming({ mailboxIds = [] } = {}) {
+  return {
+    mailboxIds: normalizeMailboxIdList(mailboxIds, 50),
+    dataReadMs: 0,
+    enrichmentMs: 0,
+    serializationMs: 0,
+  };
+}
+
+function measureWorklistConsumerPhase(timing = null, phase = '', operation = () => null) {
+  const startedAt = worklistTimingNowMs();
+  try {
+    return operation();
+  } finally {
+    if (timing && Object.prototype.hasOwnProperty.call(timing, phase)) {
+      timing[phase] += worklistTimingNowMs() - startedAt;
+    }
+  }
+}
+
+async function measureWorklistConsumerAsyncPhase(
+  timing = null,
+  phase = '',
+  operation = async () => null
+) {
+  const startedAt = worklistTimingNowMs();
+  try {
+    return await operation();
+  } finally {
+    if (timing && Object.prototype.hasOwnProperty.call(timing, phase)) {
+      timing[phase] += worklistTimingNowMs() - startedAt;
+    }
+  }
+}
+
+function roundWorklistTimingMs(value = 0) {
+  return Math.round(Math.max(0, Number(value) || 0) * 10) / 10;
+}
+
+function buildWorklistConsumerServerTiming(timing = null) {
+  return [
+    `cco_data;dur=${roundWorklistTimingMs(timing?.dataReadMs)}`,
+    `cco_enrichment;dur=${roundWorklistTimingMs(timing?.enrichmentMs)}`,
+  ].join(', ');
+}
+
+function reportWorklistConsumerColdTiming({ timing = null, logger = null } = {}) {
+  if (!timing || typeof logger !== 'function') return;
+  try {
+    logger({
+      event: 'cco.worklist.consumer.cold_timing',
+      cache: 'miss',
+      mailboxIds: timing.mailboxIds,
+      dataReadMs: roundWorklistTimingMs(timing.dataReadMs),
+      enrichmentMs: roundWorklistTimingMs(timing.enrichmentMs),
+      serializationMs: roundWorklistTimingMs(timing.serializationMs),
+    });
+  } catch {
+    // Observability must never change an already-successful operator response.
+  }
+}
+
 async function mapSettledWithConcurrencyLimit(items = [], limit = 2, mapper = async () => null) {
   const safeItems = asArray(items);
   if (!safeItems.length) return [];
@@ -8636,18 +8702,26 @@ async function buildWorklistConsumerContext({
   includeDiagnostics = false,
   stateRoot = '',
 } = {}) {
-  const resolvedCustomerState = await resolveWorklistCustomerState({
-    tenantId,
-    customerState,
-    ccoCustomerStore,
-  });
+  const timing = createWorklistConsumerTiming({ mailboxIds });
+  const resolvedCustomerState = await measureWorklistConsumerAsyncPhase(
+    timing,
+    'dataReadMs',
+    () =>
+      resolveWorklistCustomerState({
+        tenantId,
+        customerState,
+        ccoCustomerStore,
+      })
+  );
   // The live operator endpoint only needs the consumer model. The shadow
   // comparison walks the same truth corpus again and belongs to the explicit
   // readout, not every inbox refresh.
-  await preloadMailboxTruthStoreForWorklist({
-    ccoMailboxTruthStore,
-    mailboxIds,
-  });
+  await measureWorklistConsumerAsyncPhase(timing, 'dataReadMs', () =>
+    preloadMailboxTruthStoreForWorklist({
+      ccoMailboxTruthStore,
+      mailboxIds,
+    })
+  );
   const worklistReadModel = createCcoMailboxTruthWorklistReadModel({
     store: ccoMailboxTruthStore,
     customerState: resolvedCustomerState,
@@ -8657,43 +8731,51 @@ async function buildWorklistConsumerContext({
     clientoBookingStore,
   });
   const diagnostics = includeDiagnostics
-    ? await buildWorklistShadowContext({
-        tenantId,
-        capabilityAnalysisStore,
-        ccoMailboxTruthStore,
-        ccoCustomerStore,
-        customerState: resolvedCustomerState,
-        mailboxIds,
-        limit,
-      })
+    ? await measureWorklistConsumerAsyncPhase(timing, 'enrichmentMs', () =>
+        buildWorklistShadowContext({
+          tenantId,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+          customerState: resolvedCustomerState,
+          mailboxIds,
+          limit,
+        })
+      )
     : null;
   // Consumer-ytan behöver de redan materialiserade smart-signalerna, men inte
   // den dyra shadow-diffen. Läs därför bara den persistenta analysbaselinen här.
   let enrichmentBaseline = diagnostics
     ? null
     : selectLatestWorklistLegacyBaseline({
-        entries: await listWorklistEnrichmentEntries({
-          capabilityAnalysisStore,
-          tenantId,
-          limit: 50,
-        }),
+        entries: await measureWorklistConsumerAsyncPhase(timing, 'enrichmentMs', () =>
+          listWorklistEnrichmentEntries({
+            capabilityAnalysisStore,
+            tenantId,
+            limit: 50,
+          })
+        ),
         mailboxIds,
       });
   if (!diagnostics) {
-    enrichmentBaseline = await resolvePublishedWorklistEnrichmentBaseline({
-      baseline: enrichmentBaseline,
-      stateRoot,
-      tenantId,
-    });
+    enrichmentBaseline = await measureWorklistConsumerAsyncPhase(timing, 'enrichmentMs', () =>
+      resolvePublishedWorklistEnrichmentBaseline({
+        baseline: enrichmentBaseline,
+        stateRoot,
+        tenantId,
+      })
+    );
   }
-  const truthCoverage =
+  const truthCoverage = measureWorklistConsumerPhase(timing, 'dataReadMs', () =>
     ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
       ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds })
-      : null;
-  const deltaCoverage =
+      : null
+  );
+  const deltaCoverage = measureWorklistConsumerPhase(timing, 'dataReadMs', () =>
     ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getDeltaSyncReport === 'function'
       ? ccoMailboxTruthStore.getDeltaSyncReport({ mailboxIds })
-      : null;
+      : null
+  );
 
   const normalizedLimit = Number(limit);
   const readLimit =
@@ -8703,15 +8785,17 @@ async function buildWorklistConsumerContext({
         ? normalizedLimit
         : 5000;
   let patientMatchByEmail = new Map();
-  let worklistReadModelPayload = worklistReadModel
-    ? worklistReadModel.buildReadModel({ mailboxIds, limit: readLimit })
-    : null;
+  let worklistReadModelPayload = measureWorklistConsumerPhase(timing, 'dataReadMs', () =>
+    worklistReadModel ? worklistReadModel.buildReadModel({ mailboxIds, limit: readLimit }) : null
+  );
   if (worklistReadModelPayload && Array.isArray(worklistReadModelPayload.rows)) {
     const patientRefs = worklistReadModelPayload.rows.map((row) => ({
       tenantId,
       email: row?.customerEmail || '',
     }));
-    const matches = await resolveConversationPatients(patientRefs, { patientMasterStore });
+    const matches = await measureWorklistConsumerAsyncPhase(timing, 'enrichmentMs', () =>
+      resolveConversationPatients(patientRefs, { patientMasterStore })
+    );
     patientMatchByEmail = new Map(
       patientRefs.map((ref, index) => [
         normalizeText(ref.email).toLowerCase(),
@@ -8724,18 +8808,20 @@ async function buildWorklistConsumerContext({
         },
       ])
     );
-    worklistReadModelPayload = {
+    worklistReadModelPayload = measureWorklistConsumerPhase(timing, 'enrichmentMs', () => ({
       ...worklistReadModelPayload,
       rows: applyPatientRollupIdentity(worklistReadModelPayload.rows, matches),
-    };
+    }));
   }
-  const consumerModel = worklistReadModel
-    ? worklistReadModel.buildConsumerModel({
-        mailboxIds,
-        limit,
-        readModel: worklistReadModelPayload,
-      })
-    : null;
+  const consumerModel = measureWorklistConsumerPhase(timing, 'enrichmentMs', () =>
+    worklistReadModel
+      ? worklistReadModel.buildConsumerModel({
+          mailboxIds,
+          limit,
+          readModel: worklistReadModelPayload,
+        })
+      : null
+  );
   if (consumerModel && Array.isArray(consumerModel.rows)) {
     consumerModel.rows = consumerModel.rows.map((row, index) => {
       const patientMatch = patientMatchByEmail.get(
@@ -8773,6 +8859,7 @@ async function buildWorklistConsumerContext({
       shadowDiffReport: diagnostics?.diffReport || null,
       mailboxIds,
     }),
+    timing,
   };
 }
 
@@ -9756,6 +9843,7 @@ function toCcoRuntimeWorklistConsumerHandler({
   patientMasterStore = null,
   stateRoot = '',
   runtimeMailboxIds = [],
+  worklistTimingLogger = null,
 }) {
   return async (req, res) => {
     try {
@@ -9802,16 +9890,20 @@ function toCcoRuntimeWorklistConsumerHandler({
         });
       }
 
-      const enrichment = buildWorklistEnrichmentPayload({
-        latestEntry: context.latestEntry,
-        latestOutputData: context.latestOutputData,
-        baselineSelection: context.baselineSelection,
-      });
-      const ingestion = buildWorklistIngestionPayload({
-        ingestionStore: ccoMailIngestionStore,
-        mailboxIds: query.mailboxIds,
-        includeDiagnostics: false,
-      });
+      const enrichment = measureWorklistConsumerPhase(context.timing, 'enrichmentMs', () =>
+        buildWorklistEnrichmentPayload({
+          latestEntry: context.latestEntry,
+          latestOutputData: context.latestOutputData,
+          baselineSelection: context.baselineSelection,
+        })
+      );
+      const ingestion = measureWorklistConsumerPhase(context.timing, 'enrichmentMs', () =>
+        buildWorklistIngestionPayload({
+          ingestionStore: ccoMailIngestionStore,
+          mailboxIds: query.mailboxIds,
+          includeDiagnostics: false,
+        })
+      );
 
       const responsePayload = {
         ok: true,
@@ -9873,7 +9965,15 @@ function toCcoRuntimeWorklistConsumerHandler({
 
       writeWorklistConsumerResponseCache(responseCacheKey, responsePayload);
       res.setHeader('X-CCO-Worklist-Cache', 'miss');
-      return res.json(responsePayload);
+      res.setHeader('Server-Timing', buildWorklistConsumerServerTiming(context.timing));
+      const serializationStartedAt = worklistTimingNowMs();
+      const response = res.json(responsePayload);
+      context.timing.serializationMs += worklistTimingNowMs() - serializationStartedAt;
+      reportWorklistConsumerColdTiming({
+        timing: context.timing,
+        logger: worklistTimingLogger,
+      });
+      return response;
     } catch (error) {
       return res.status(500).json({
         ok: false,
@@ -10168,6 +10268,7 @@ function createCapabilitiesRouter({
   graphSendConnectorFactory = createMicrosoftGraphSendConnector,
   appConfig = null,
   ccoRuntimeMailboxIds = [],
+  worklistTimingLogger = null,
 }) {
   const router = express.Router();
   const tenantConfigStore = tenantConfigStoreParam;
@@ -10536,6 +10637,10 @@ function createCapabilitiesRouter({
         patientMasterStore,
         stateRoot: config.stateRoot,
         runtimeMailboxIds: runtimeWorklistMailboxIds,
+        worklistTimingLogger:
+          typeof worklistTimingLogger === 'function'
+            ? worklistTimingLogger
+            : (entry) => console.info(JSON.stringify(entry)),
       })
     )
   );
