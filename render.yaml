@@ -226,9 +226,10 @@ services:
       # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
       - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
         value: "2147483648"
-      # Kons-pilot: truth-delta för mail-inflöde + tidigare prod-jobb (backup/alert/digest).
+      # ORD-78-frysläge — ORD-74 flippar till true när Drive-ingesten är klar.
+      # Blueprint-sync får INTE återställa "true" mitt i ingest (tänder schedulern).
       - key: ARCANA_SCHEDULER_ENABLED
-        value: "true"
+        value: "false"
       - key: ARCANA_SCHEDULER_PROD_SAFE_MODE
         value: "false"
       - key: ARCANA_SCHEDULER_JOBS

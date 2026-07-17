@@ -19,6 +19,7 @@ test('parseRenderYamlEnvDefaults läser value från render.yaml', () => {
   assert.equal(defaults.get('ARCANA_CCO_IMAP_POLL_ENABLED'), 'false');
   assert.equal(defaults.get('ARCANA_CCO_IMAP_POLL_INTERVAL_MINUTES'), '30');
   assert.equal(defaults.get('ARCANA_CCO_IMAP_MAX_MESSAGES_PER_CYCLE'), '25');
+  assert.equal(defaults.get('ARCANA_SCHEDULER_ENABLED'), 'false');
   const ccoMailboxIds =
     'kons@hairtpclinic.com,info@hairtpclinic.com,contact@hairtpclinic.com,' +
     'egzona@hairtpclinic.com,fazli@hairtpclinic.com,marknad@hairtpclinic.com,' +
