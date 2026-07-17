@@ -324,6 +324,7 @@ module.exports = [
       'public/cco-kunder-real.js',
       'public/cco-kunder-mobil-real.js',
       'public/cco-kunder-actions.js',
+      'public/cco-kalender-shell.js',
       'public/konversationer-bottom-actions.js',
       'public/konversationer-mailbox-valjare.js',
     ],
