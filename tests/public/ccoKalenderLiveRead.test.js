@@ -80,3 +80,40 @@ test('original V6 home surfaces stay present and are canonical or honestly read-
   assert.match(shell, /Ankomstskrivning avstängd/);
   assert.doesNotMatch(shell, /querySelectorAll\('\.mini-inbox,[^\n]+\.story-cta-row'\)/);
 });
+
+test('canonical hydration preserves the original rich morning component hierarchy', () => {
+  const storyBlock = shell.slice(
+    shell.indexOf('function v6UpdateStory'),
+    shell.indexOf('function v6RenderMiniInboxState')
+  );
+  assert.match(storyBlock, /story-card\[data-kind="idag"\]/);
+  assert.match(storyBlock, /story-card\[data-kind="risker"\]/);
+  assert.match(storyBlock, /story-card\[data-kind="mojligheter"\]/);
+  assert.match(storyBlock, /story-card\[data-kind="klart"\]/);
+  assert.match(storyBlock, /\.day-spark-bar/);
+  assert.match(storyBlock, /\.story-list/);
+  assert.match(storyBlock, /\.ready-meter-fill/);
+  assert.match(storyBlock, /God morgon, /);
+  assert.doesNotMatch(storyBlock, /\.story-list, \.day-spark, \.ready-meter/);
+  assert.doesNotMatch(storyBlock, /Dagens canonical bokningar/);
+});
+
+test('facit toolbar geometry and rich read-only rails are not replaced by a reduced shell', () => {
+  const canonicalStyle = html.slice(
+    html.indexOf("body[data-cco-calendar-source='canonical-v6']"),
+    html.indexOf('</style>', html.indexOf("body[data-cco-calendar-source='canonical-v6']"))
+  );
+  const intelBlock = shell.slice(
+    shell.indexOf('function v6RenderIntel'),
+    shell.indexOf('function v6BookingCard')
+  );
+  assert.doesNotMatch(canonicalStyle, /\.calendar-toolbar[^}]*flex-wrap:\s*wrap/s);
+  assert.doesNotMatch(canonicalStyle, /\.calendar-toolbar-actions[^}]*flex-wrap:\s*wrap/s);
+  assert.match(intelBlock, /\['Besök', 'Historik', 'Filer', 'Anteckningar'\]/);
+  assert.match(intelBlock, /Ombokning avstängd/);
+  assert.match(intelBlock, /openCanonicalPatient\(slot\.patientId\)/);
+  assert.match(shell, /v6State\.selected = selected \|\| v6State\.visits\.find/);
+  assert.match(shell, /'God morgon, Fazli'/);
+  assert.match(shell, /count >= 5 \? '🔆' : count >= 3 \? '⛅'/);
+  assert.match(shell, /\['Dragning avstängd', 'Saknar verifierat boknings-write-kontrakt'/);
+});
