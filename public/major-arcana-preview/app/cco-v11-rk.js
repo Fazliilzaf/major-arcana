@@ -51,41 +51,6 @@
     );
   }
 
-  function bookingNotesHtml(notes) {
-    if (typeof notes === 'string') {
-      return notes
-        ? '<div class="book-meta"><strong>Anteckning:</strong> ' + esc(notes) + '</div>'
-        : '';
-    }
-    return arr(notes)
-      .map(function (note) {
-        var noteText = txt(note && note.text);
-        if (!noteText) return '';
-        return (
-          '<div class="book-meta"><strong>' +
-          esc(txt(note.label) || 'Anteckning') +
-          ':</strong> ' +
-          esc(noteText) +
-          '</div>'
-        );
-      })
-      .join('');
-  }
-
-  function bookingStatusLabel(booking, fallback) {
-    var raw = txt(booking && (booking.stateLabel || booking.status || booking.state));
-    var key = raw.toLowerCase().replace(/[\s-]+/g, '_');
-    var labels = {
-      confirmed: 'Bokad',
-      upcoming: 'Bokad',
-      completed: 'Genomförd',
-      cancelled: 'Avbokad',
-      canceled: 'Avbokad',
-      no_show: 'Utebliven',
-    };
-    return labels[key] || raw || fallback;
-  }
-
   function blockerModule(ruleId, labelText) {
     var value = (txt(ruleId) + ' ' + txt(labelText)).toLowerCase();
     if (/allerg|health|hälso|halso|medicin|kontra/.test(value)) return 'health';
@@ -398,21 +363,15 @@
                   '"'
                 : '';
               return (
-                '<' +
-                tag +
-                ' class="j-step ' +
+                '<' + tag + ' class="j-step ' +
                 st +
-                '"' +
-                docAttrs +
-                '><span class="badge">' +
+                '"' + docAttrs + '><span class="badge">' +
                 badge +
                 '</span><span class="label">' +
                 esc(txt(s.label)) +
                 '</span>' +
                 tail +
-                '</' +
-                tag +
-                '>'
+                '</' + tag + '>'
               );
             })
             .join('') +
@@ -436,12 +395,7 @@
     }
 
     /* H · KOMMANDE BOKNINGAR */
-    var upReadout = call(
-      'buildBookingsFromExtras',
-      [ctx.card || {}, card, bundle, ctx.occasionTimeline],
-      { items: arr(bundle && bundle.upcomingBookings) }
-    );
-    var up = arr(upReadout && upReadout.items);
+    var up = arr(bundle && bundle.upcomingBookings);
     out += secOpen(
       'upcoming',
       'sec',
@@ -452,7 +406,7 @@
               .map(function (b) {
                 return (
                   '<div class="book-row"><div class="book-date"><span class="d">' +
-                  esc(txt(b.whenLong || b.dayLabel || b.day || '—')) +
+                  esc(txt(b.dayLabel || b.day || '—')) +
                   '</span></div>' +
                   '<div><div class="book-title">' +
                   esc(txt(b.title || b.serviceLabel || 'Bokning')) +
@@ -460,21 +414,16 @@
                   '<div class="book-meta">' +
                   esc(
                     [
-                      txt(b.whenShort || b.timeLabel || b.time),
-                      txt(b.sub || b.staffName || b.resourceLabel),
-                      txt(b.locationLabel),
+                      txt(b.timeLabel || b.time || ''),
+                      txt(b.staffName || b.resourceLabel || ''),
+                      txt(b.locationLabel || ''),
                     ]
                       .filter(Boolean)
                       .join(' · ')
                   ) +
-                  '</div>' +
-                  bookingNotesHtml(b.notes || b.bookingNotes) +
-                  '</div>' +
-                  '<span class="q-status ' +
-                  (b.state === 'completed' ? 'green' : 'warn') +
-                  '">' +
-                  esc(bookingStatusLabel(b, 'Bokad')) +
-                  '</span></div>'
+                  (txt(b.notes) ? '<br>Anteckning · ' + esc(txt(b.notes)) : '') +
+                  '</div></div>' +
+                  '<span class="q-status warn">Bokad</span></div>'
                 );
               })
               .join('')
@@ -482,12 +431,7 @@
     );
 
     /* I · BESÖK / TILLFÄLLEN (bokningshistorik enligt V11-facit) */
-    var historyReadout = call(
-      'buildHistoryFromExtras',
-      [ctx.card || {}, card, bundle, ctx.occasionTimeline],
-      { items: arr(bundle && bundle.historyBookings) }
-    );
-    var hist = arr(historyReadout && historyReadout.items);
+    var hist = arr(bundle && bundle.historyBookings);
     if (hist.length) {
       out += secOpen(
         'historik',
@@ -496,33 +440,24 @@
           hist
             .slice(0, 4)
             .map(function (b) {
+              var meta = [
+                txt(b.timeLabel || b.time),
+                txt(b.durationLabel || b.duration),
+                txt(b.staffName || b.providerName || b.resourceName),
+                txt(b.locationLabel),
+              ].filter(Boolean);
               return (
                 '<div class="hist-row"><div class="book-date"><span class="d">' +
-                esc(txt(b.whenLong || b.dayLabel || b.day || '—')) +
+                esc(txt(b.dayLabel || b.day || '—')) +
                 '</span></div>' +
                 '<div><div class="book-title">' +
                 esc(txt(b.title || b.serviceLabel || 'Besök')) +
                 '</div>' +
-                (txt(b.whenShort || b.timeLabel || b.time || b.sub)
-                  ? '<div class="book-meta">' +
-                    esc(
-                      [
-                        txt(b.whenShort || b.timeLabel || b.time),
-                        txt(b.durationLabel || b.duration),
-                        txt(b.sub || b.staffName || b.providerName || b.resourceName),
-                        txt(b.locationLabel),
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')
-                    ) +
-                    '</div>'
+                (meta.length ? '<div class="book-meta">' + esc(meta.join(' · ')) + '</div>' : '') +
+                (txt(b.notes)
+                  ? '<div class="book-meta">Anteckning · ' + esc(txt(b.notes)) + '</div>'
                   : '') +
-                bookingNotesHtml(b.notes || b.bookingNotes) +
-                '</div><span class="q-status ' +
-                (b.state === 'completed' ? 'green' : 'warn') +
-                '">' +
-                esc(bookingStatusLabel(b, 'Genomförd')) +
-                '</span></div>'
+                '</div><span class="q-status green">Genomförd</span></div>'
               );
             })
             .join('')
@@ -729,18 +664,18 @@
         'anteckningar',
         'sec',
         label('Anteckningar') +
-          notes
-            .slice(0, 3)
-            .map(function (e) {
-              return (
-                '<div class="note-row">' +
-                esc(txt(e.note || e.body || e.text || e.title)) +
-                '<div class="when">' +
-                esc(txt(e.dateLabel || e.date || '') + (e.author ? ' · ' + e.author : '')) +
-                '</div></div>'
-              );
-            })
-            .join('')
+        notes
+          .slice(0, 3)
+          .map(function (e) {
+            return (
+              '<div class="note-row">' +
+              esc(txt(e.note || e.body || e.text || e.title)) +
+              '<div class="when">' +
+              esc(txt(e.dateLabel || e.date || '') + (e.author ? ' · ' + e.author : '')) +
+              '</div></div>'
+            );
+          })
+          .join('')
       );
     }
 
@@ -751,33 +686,33 @@
         'kommunikation',
         'sec',
         label('Kommunikation') +
-          cm
-            .slice(0, 4)
-            .map(function (c) {
-              var dir = /ut|out/i.test(txt(c.dir || c.direction)) ? 'out' : 'in';
-              var ic = /sms/i.test(txt(c.type))
-                ? '📱'
-                : /call|phone|samtal|ring/i.test(txt(c.type))
-                  ? '📞'
-                  : '✉';
-              var sub = txt(c.text);
-              var pre = txt(c.preview);
-              return (
-                '<div class="comm-row"><span class="comm-icn ' +
-                dir +
-                '">' +
-                ic +
-                '</span>' +
-                '<div class="comm-text">' +
-                (sub ? '<b>' + esc(sub) + '</b>' : '') +
-                (pre ? (sub ? ' — ' : '') + esc(pre) : '') +
-                (!sub && !pre ? 'Meddelande' : '') +
-                '<div class="comm-meta">' +
-                esc(txt(c.meta || c.dateLabel || c.date || '')) +
-                '</div></div></div>'
-              );
-            })
-            .join('')
+        cm
+          .slice(0, 4)
+          .map(function (c) {
+            var dir = /ut|out/i.test(txt(c.dir || c.direction)) ? 'out' : 'in';
+            var ic = /sms/i.test(txt(c.type))
+              ? '📱'
+              : /call|phone|samtal|ring/i.test(txt(c.type))
+                ? '📞'
+                : '✉';
+            var sub = txt(c.text);
+            var pre = txt(c.preview);
+            return (
+              '<div class="comm-row"><span class="comm-icn ' +
+              dir +
+              '">' +
+              ic +
+              '</span>' +
+              '<div class="comm-text">' +
+              (sub ? '<b>' + esc(sub) + '</b>' : '') +
+              (pre ? (sub ? ' — ' : '') + esc(pre) : '') +
+              (!sub && !pre ? 'Meddelande' : '') +
+              '<div class="comm-meta">' +
+              esc(txt(c.meta || c.dateLabel || c.date || '')) +
+              '</div></div></div>'
+            );
+          })
+          .join('')
       );
     }
 
@@ -808,18 +743,18 @@
         'insights',
         'sec',
         label('Insikter') +
-          ins
-            .slice(0, 3)
-            .map(function (i) {
-              return (
-                '<div class="insight-row"><b>' +
-                esc(txt(i.title)) +
-                '</b>' +
-                (i.text ? ' ' + esc(txt(i.text)) : '') +
-                '</div>'
-              );
-            })
-            .join('')
+        ins
+          .slice(0, 3)
+          .map(function (i) {
+            return (
+              '<div class="insight-row"><b>' +
+              esc(txt(i.title)) +
+              '</b>' +
+              (i.text ? ' ' + esc(txt(i.text)) : '') +
+              '</div>'
+            );
+          })
+          .join('')
       );
     }
 
