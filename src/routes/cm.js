@@ -381,6 +381,89 @@ function createCmRouter({
     );
   }
 
+  // ORD-CM-6 · Pyramid-vy (ägar-krav: "sorterat i lager som en pyramid —
+  // år, månad, kategori, företag — lättåtkomligt för en människa").
+  function recordDate(r) {
+    if (/^\d{4}-\d{2}/.test(r.date || '')) return r.date;
+    const raw = r.rawItemId ? cmStore.getRawItemById(r.rawItemId) : null;
+    return (raw?.receivedAt || r.createdAt || '').slice(0, 10);
+  }
+
+  router.get('/cm/groups-tree', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
+    const years = new Map();
+    for (const r of openBulkRecords()) {
+      const d = recordDate(r);
+      const year = d.slice(0, 4) || 'okänt';
+      const month = d.slice(5, 7) || '??';
+      if (!years.has(year)) years.set(year, { year, count: 0, sum: 0, months: new Map() });
+      const y = years.get(year);
+      y.count++;
+      y.sum += r.amountIncVat || 0;
+      if (!y.months.has(month)) y.months.set(month, { month, count: 0, sum: 0, groups: new Map() });
+      const m = y.months.get(month);
+      m.count++;
+      m.sum += r.amountIncVat || 0;
+      const key = bulkGroupKey(r);
+      if (!m.groups.has(key)) {
+        const raw = r.rawItemId ? cmStore.getRawItemById(r.rawItemId) : null;
+        m.groups.set(key, {
+          key,
+          label: r.supplierName || (raw?.fromEmail || 'okänd').split('@')[1] || 'okänd',
+          count: 0,
+          sum: 0,
+          medBelopp: 0,
+          kategorier: new Map(),
+          poster: [],
+        });
+      }
+      const g = m.groups.get(key);
+      g.count++;
+      if (r.amountIncVat) {
+        g.sum += r.amountIncVat;
+        g.medBelopp++;
+      }
+      if (r.category) g.kategorier.set(r.category, (g.kategorier.get(r.category) || 0) + 1);
+      if (g.poster.length < 15) {
+        const raw = r.rawItemId ? cmStore.getRawItemById(r.rawItemId) : null;
+        g.poster.push({
+          id: r.id,
+          datum: d,
+          tid: (raw?.receivedAt || '').slice(11, 16),
+          belopp: r.amountIncVat || 0,
+          typ: r.expenseType,
+          amne: (raw?.subject || '').slice(0, 70),
+        });
+      }
+    }
+    const ut = [...years.values()]
+      .sort((a, b) => b.year.localeCompare(a.year))
+      .map((y) => ({
+        year: y.year,
+        count: y.count,
+        sum: Math.round(y.sum),
+        months: [...y.months.values()]
+          .sort((a, b) => b.month.localeCompare(a.month))
+          .map((m) => ({
+            month: m.month,
+            count: m.count,
+            sum: Math.round(m.sum),
+            groups: [...m.groups.values()]
+              .sort((a, b) => b.sum - a.sum || b.count - a.count)
+              .map((g) => ({
+                key: g.key,
+                label: g.label,
+                count: g.count,
+                sum: Math.round(g.sum),
+                medBelopp: g.medBelopp,
+                kategoriForslag:
+                  [...g.kategorier.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '',
+                poster: g.poster.sort((a, b) => b.datum.localeCompare(a.datum)),
+              })),
+          })),
+      }));
+    return res.json({ ok: true, years: ut, totalOpen: openBulkRecords().length });
+  });
+
   router.get('/cm/groups', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
     const groups = new Map();
     for (const r of openBulkRecords()) {
@@ -410,11 +493,20 @@ function createCmRouter({
   // POST /cm/bulk {action:'promote'|'reject', groupKey, category?, reason?}
   // Bulk skapar/kategoriserar/avvisar — GODKÄNNANDE förblir alltid mänskligt.
   router.post('/cm/bulk', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
-    const { action, groupKey, category, reason } = req.body || {};
+    const { action, groupKey, category, reason, year, month } = req.body || {};
     if (!['promote', 'reject'].includes(action) || !groupKey) {
       return res.status(400).json({ ok: false, error: 'action (promote|reject) + groupKey krävs' });
     }
-    const targets = openBulkRecords().filter((r) => bulkGroupKey(r) === groupKey);
+    // ORD-CM-6: valfritt år/månads-scope — bulk agerar bara inom öppnad nivå
+    const targets = openBulkRecords().filter((r) => {
+      if (bulkGroupKey(r) !== groupKey) return false;
+      if (year || month) {
+        const d = recordDate(r);
+        if (year && d.slice(0, 4) !== String(year)) return false;
+        if (month && d.slice(5, 7) !== String(month).padStart(2, '0')) return false;
+      }
+      return true;
+    });
     const results = { ok: true, action, groupKey, matched: targets.length, done: 0, errors: [] };
     const actor = {
       userId: req.user?.id || req.user?.email || 'owner',
