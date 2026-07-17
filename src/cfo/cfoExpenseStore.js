@@ -927,6 +927,22 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     return { ...e };
   }
 
+  // ORD-CM-17 · error → pending: transient fel (utgången OAuth, 502) ska kunna
+  // köras om efter åtgärd. Endast från 'error' — synced/syncing rörs aldrig.
+  async function markFortnoxRetry({ id, actor } = {}) {
+    const e = data.expenses.find((x) => x.id === id);
+    if (!e) throw new Error('expense finns ej');
+    if (e.fortnoxSyncStatus !== 'error')
+      throw new Error('endast error-poster kan återställas till pending');
+    e.fortnoxSyncStatus = 'pending';
+    e.fortnoxSyncError = null;
+    e.updatedAt = nowIso();
+    e.history.push({ status: e.status, at: nowIso(), by: actor, reason: 'fortnox-retry' });
+    await persist();
+    audit('cf.expense.fortnox_retry', { expenseId: id, actor });
+    return e;
+  }
+
   async function markFortnoxError({ id, error = '', actor } = {}) {
     const e = data.expenses.find((x) => x.id === id);
     if (!e) throw new Error('expense finns ej');
@@ -952,6 +968,7 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     markFortnoxSyncing,
     markFortnoxSynced,
     markFortnoxError,
+    markFortnoxRetry,
     attachFile,
     listExpenses,
     aggregateByMonth,
