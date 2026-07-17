@@ -28,6 +28,23 @@
     return asText(value).toLowerCase();
   }
 
+  function __canonicalMailboxAddress(value) {
+    const normalized = __normalizeKey(value);
+    if (!normalized) return "";
+
+    // Persisted selections can be either a local part or a full mailbox
+    // address. Keep a real address intact and discard a duplicated suffix
+    // from older renderers before building a worklist request.
+    const fullAddress = normalized.match(/^([^@\s]+)@([^@\s]+)(?:@[^\s]+)*$/);
+    if (fullAddress) {
+      return `${fullAddress[1]}@${fullAddress[2]}`;
+    }
+    if (!normalized.includes("@")) {
+      return `${normalized}@hairtpclinic.com`;
+    }
+    return "";
+  }
+
   function __formatHistoryTimestamp(value) {
     try {
       if (typeof formatHistoryTimestamp === "function") {
@@ -106,14 +123,14 @@
       if (persisted) {
         const parsed = JSON.parse(persisted);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          mailboxIds = parsed.slice(0, 1).map((k) => `${k}@hairtpclinic.com`);
+          mailboxIds = parsed.slice(0, 1).map(__canonicalMailboxAddress).filter(Boolean);
         }
       }
     } catch (_e) {
       /* tyst */
     }
     if (mailboxIds.length === 0) {
-      mailboxIds = __CUSTOMER_DEFAULT_MAILBOXES.map((k) => `${k}@hairtpclinic.com`);
+      mailboxIds = __CUSTOMER_DEFAULT_MAILBOXES.map(__canonicalMailboxAddress).filter(Boolean);
     }
     const params = new URLSearchParams();
     params.set("mailboxIds", mailboxIds.join(","));
