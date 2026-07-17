@@ -17,10 +17,15 @@ test('parseRenderYamlEnvDefaults läser value från render.yaml', () => {
   assert.ok(defaults.has('PUBLIC_BASE_URL'));
   assert.equal(defaults.get('ARCANA_STAFF_JOURNAL_OPEN_ACCESS'), 'false');
   assert.equal(defaults.get('ARCANA_CCO_IMAP_POLL_ENABLED'), 'false');
-  assert.equal(defaults.get('ARCANA_CCO_IMAP_POLL_INTERVAL_MINUTES'), '30');
+  assert.equal(defaults.get('ARCANA_CCO_IMAP_POLL_INTERVAL_MINUTES'), '3');
   assert.equal(defaults.get('ARCANA_CCO_IMAP_MAX_MESSAGES_PER_CYCLE'), '25');
-  // ORD-74 2026-07-17: frysen lyft — schedulern PÅ igen.
+  // ORD-74 2026-07-17: frysen lyft — schedulern PÅ igen; yaml avstämd mot Dashboard.
   assert.equal(defaults.get('ARCANA_SCHEDULER_ENABLED'), 'true');
+  assert.equal(defaults.get('ARCANA_SCHEDULER_RUN_ON_STARTUP'), 'true');
+  assert.equal(defaults.get('PUBLIC_BASE_URL'), 'https://arcana.hairtpclinic.com');
+  assert.equal(defaults.get('PHOTO_REVIEW_CANARY_MAX_DECISIONS'), '500');
+  assert.equal(defaults.get('DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS'), '317');
+  assert.equal(defaults.get('ARCANA_SCHEDULER_CCO_TRUTH_DELTA_INTERVAL_MINUTES'), '0');
   const ccoMailboxIds =
     'kons@hairtpclinic.com,info@hairtpclinic.com,contact@hairtpclinic.com,' +
     'egzona@hairtpclinic.com,fazli@hairtpclinic.com,marknad@hairtpclinic.com,' +
