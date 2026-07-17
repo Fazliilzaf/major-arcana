@@ -4447,7 +4447,7 @@
         const doc =
           '<!doctype html><html><head><meta charset="utf-8">' +
           '<base target="_blank">' +
-          '<style>body{margin:0;padding:10px 12px;font:13px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;color:#2b251f;background:#fffdfb;word-break:break-word}img{max-width:100%;height:auto}</style>' +
+          '<style>body{margin:0;padding:10px 12px;font:13px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;color:#2b251f;background:#fffdfb;word-break:break-word}img{max-width:100%;height:auto}.mail-inline-asset-missing{margin:8px 0 0;color:#766f65;font-size:11px;font-style:italic}</style>' +
           '</head><body>' +
           html +
           '</body></html>';
@@ -4771,7 +4771,42 @@
         doc.body.querySelectorAll('img').forEach((image) => {
           replaceKnownMailTemplateIcon(image);
         });
+        replaceUnresolvableInlineMailAssetsForDisplay(doc);
         return doc.body.innerHTML;
+      }
+
+      function replaceUnresolvableInlineMailAssetsForDisplay(doc) {
+        if (!doc?.body) return;
+        let missingInlineAssetCount = 0;
+
+        doc.body.querySelectorAll('img[src]').forEach((image) => {
+          const source = normalizeText(image.getAttribute('src'));
+          if (!/^cid:/i.test(source) && !/^about:blank(?:$|[?#])/i.test(source)) return;
+          image.remove();
+          missingInlineAssetCount += 1;
+        });
+
+        doc.body.querySelectorAll('[style]').forEach((element) => {
+          const style = normalizeText(element.getAttribute('style'));
+          if (!style) return;
+          const safeStyle = style.replace(
+            /url\(\s*(['"]?)cid:[^)'"\\]+\1\s*\)/gi,
+            () => {
+              missingInlineAssetCount += 1;
+              return 'none';
+            }
+          );
+          if (safeStyle !== style) element.setAttribute('style', safeStyle);
+        });
+
+        if (missingInlineAssetCount === 0) return;
+        const note = doc.createElement('p');
+        note.className = 'mail-inline-asset-missing';
+        note.textContent =
+          missingInlineAssetCount === 1
+            ? 'En inlinebild saknas i det här äldre mailet.'
+            : `${missingInlineAssetCount} inlinebilder saknas i det här äldre mailet.`;
+        doc.body.append(note);
       }
 
       function objectMailContent(value) {
