@@ -280,10 +280,7 @@ const config = {
   // CCO's operator selector displays at most two mailboxes at a time. Keep a
   // matching bounded shard cache so historical accounts cannot accumulate in
   // the Node heap as staff switch mailbox filters.
-  ccoMailboxTruthMaxLoadedShards: asInt(
-    process.env.ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS,
-    2
-  ),
+  ccoMailboxTruthMaxLoadedShards: asInt(process.env.ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS, 2),
   ccoMailboxTruthShardDir: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_MAILBOX_TRUTH_SHARD_DIR,
     stateRoot,
@@ -372,16 +369,12 @@ const config = {
   ccoImapInboxFolder: asNonEmptyString(process.env.ARCANA_CCO_IMAP_INBOX_FOLDER, 'INBOX'),
   ccoImapSentFolder: asNonEmptyString(process.env.ARCANA_CCO_IMAP_SENT_FOLDER, 'Sent'),
   ccoImapMaxMessagesPerCycle: asInt(process.env.ARCANA_CCO_IMAP_MAX_MESSAGES_PER_CYCLE, 25),
-  ccoImapMaxMessageBytes: asInt(
-    process.env.ARCANA_CCO_IMAP_MAX_MESSAGE_BYTES,
-    25 * 1024 * 1024
-  ),
+  ccoImapMaxMessageBytes: asInt(process.env.ARCANA_CCO_IMAP_MAX_MESSAGE_BYTES, 25 * 1024 * 1024),
   ccoImapPollEnabled: asBool(process.env.ARCANA_CCO_IMAP_POLL_ENABLED, false),
-  ccoImapPollIntervalMinutes: asInt(process.env.ARCANA_CCO_IMAP_POLL_INTERVAL_MINUTES, 3),
-  ccoImapPollInitialDelayMs: asInt(
-    process.env.ARCANA_CCO_IMAP_POLL_INITIAL_DELAY_MS,
-    120000
-  ),
+  // ORD-78: default 30 min after OOM from 3-min full-box pressure. Owners may
+  // raise frequency only after RSS-stable backfill verification.
+  ccoImapPollIntervalMinutes: asInt(process.env.ARCANA_CCO_IMAP_POLL_INTERVAL_MINUTES, 30),
+  ccoImapPollInitialDelayMs: asInt(process.env.ARCANA_CCO_IMAP_POLL_INITIAL_DELAY_MS, 120000),
   ccoHalsoMailboxEmail: asNonEmptyString(
     process.env.ARCANA_CCO_HALSO_MAILBOX_EMAIL,
     'halso@hairtpclinic.com'
