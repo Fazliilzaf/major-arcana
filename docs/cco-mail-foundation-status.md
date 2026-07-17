@@ -25,6 +25,10 @@ För riktad nästa teknisk plan för högre mailfidelity:
 
 - [`cco-mail-mime-fidelity-plan.md`](./cco-mail-mime-fidelity-plan.md)
 
+För avslutat historiskt CID-recovery-spår:
+
+- [`ops/cco-cid-recovery-closeout-2026-07-17.md`](./ops/cco-cid-recovery-closeout-2026-07-17.md)
+
 ## Nuvarande läge
 
 Mail foundation-spåret är inte längre bara planerat. Det är byggt i riktiga faser och därefter kopplat in i aktiv drift.
