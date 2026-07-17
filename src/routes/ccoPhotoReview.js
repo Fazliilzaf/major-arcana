@@ -104,7 +104,52 @@ function patientDocSummary(allAssets, patientId) {
   };
 }
 
-function serializeReviewItem(asset, batchLabels, { writeEnabled = false } = {}) {
+function resolvePhotoReviewStateRoot() {
+  return process.env.ARCANA_STATE_ROOT || path.join(REPO_ROOT, 'data');
+}
+
+/**
+ * Load b5 manual unclear queue (metadata only). No status writes.
+ * Prod path: $ARCANA_STATE_ROOT/b5-manual-unclear-queue.json
+ */
+function loadB5ManualUnclearQueue(stateRoot = resolvePhotoReviewStateRoot()) {
+  const candidates = [
+    path.join(stateRoot, 'b5-manual-unclear-queue.json'),
+    path.join(stateRoot, 'b5-photo-review-unclear-queue.json'),
+  ];
+  for (const filePath of candidates) {
+    if (!fs.existsSync(filePath)) continue;
+    try {
+      const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      const items = Array.isArray(raw?.items) ? raw.items : [];
+      const byAssetId = new Map();
+      for (const row of items) {
+        const id = String(row?.assetId || '').trim();
+        if (!id) continue;
+        byAssetId.set(id, {
+          assetId: id,
+          file: row.file || row.originalFileName || null,
+          reason: row.reason || (Array.isArray(row.reasons) ? row.reasons[0] : null) || null,
+          reasons: Array.isArray(row.reasons) ? row.reasons : row.reason ? [row.reason] : [],
+          patientId: row.patientId || null,
+        });
+      }
+      return { filePath, items: [...byAssetId.values()], byAssetId, counts: raw.counts || null };
+    } catch {
+      /* try next */
+    }
+  }
+  return { filePath: null, items: [], byAssetId: new Map(), counts: null };
+}
+
+function wantsB5ManualUnclear(query = {}) {
+  const raw = String(query.manualUnclear || query.queue || '')
+    .trim()
+    .toLowerCase();
+  return raw === 'b5' || raw === '1' || raw === 'true' || raw === 'b5_manual_unclear';
+}
+
+function serializeReviewItem(asset, batchLabels, { writeEnabled = false, manualMeta = null } = {}) {
   const classification = classify({
     mimeType: asset.mimeType,
     fileName: asset.originalFileName,
@@ -113,6 +158,11 @@ function serializeReviewItem(asset, batchLabels, { writeEnabled = false } = {}) 
   const hasStorageKey = !!(asset.storageKey && asset.storageKey !== 'pending-no-binary');
   const hasChecksum = !!asset.checksum;
   const previewAvailable = hasStorageKey && hasChecksum;
+  const documentDate = asset.documentDate
+    ? String(asset.documentDate).slice(0, 10)
+    : asset.captureDate
+      ? String(asset.captureDate).slice(0, 10)
+      : null;
   return {
     assetId: asset.id,
     patientId: asset.patientId,
@@ -129,6 +179,12 @@ function serializeReviewItem(asset, batchLabels, { writeEnabled = false } = {}) 
     priority: reviewPriority(classification),
     mimeType: asset.mimeType,
     fileName: redactFileName(asset.originalFileName),
+    // Scoped manual-unclear queue may expose original filename for operator matching.
+    originalFileName: manualMeta ? asset.originalFileName || null : null,
+    documentDate,
+    encounterId: asset.encounterId || null,
+    manualReason: manualMeta?.reason || null,
+    manualReasons: manualMeta?.reasons || null,
     importedAt: asset.importedAt || null,
     importRunId: asset.importRunId || null,
     batchLabel: batchLabels[asset.patientId] || null,
@@ -422,14 +478,37 @@ function createCcoPhotoReviewRouter({
       try {
         const { assetStore } = await resolveStores();
         const allAssets = Object.values(assetStore._state().items || {});
+        const manualScope = wantsB5ManualUnclear(req.query || {});
+        const manualQueue = manualScope ? loadB5ManualUnclearQueue() : null;
+
         let items = allAssets
           .filter(isPhotoReviewAsset)
-          .map((a) => serializeReviewItem(a, batchLabels, { writeEnabled }))
+          .map((a) =>
+            serializeReviewItem(a, batchLabels, {
+              writeEnabled,
+              manualMeta: manualQueue?.byAssetId.get(a.id) || null,
+            })
+          )
           .sort((a, b) => {
             const pc = a.patientId.localeCompare(b.patientId);
             if (pc !== 0) return pc;
             return a.priority - b.priority;
           });
+
+        if (manualScope) {
+          if (!manualQueue?.byAssetId.size) {
+            return res.status(404).json({
+              error: 'b5_manual_unclear_queue_missing',
+              detail: {
+                hint: 'Förväntar b5-manual-unclear-queue.json under ARCANA_STATE_ROOT',
+              },
+            });
+          }
+          items = items.filter((i) => manualQueue.byAssetId.has(i.assetId));
+          // Preserve queue file order for operator review.
+          const order = new Map(manualQueue.items.map((row, idx) => [row.assetId, idx]));
+          items.sort((a, b) => (order.get(a.assetId) ?? 1e9) - (order.get(b.assetId) ?? 1e9));
+        }
 
         const pilot = writeEnabled
           ? pilotSummary(enrichedPilotConfig || {}, auditLog)
@@ -442,6 +521,8 @@ function createCcoPhotoReviewRouter({
           total: items.length,
           phase: reviewPhase(writeEnabled, pilotConfig),
           writeEnabled: !!writeEnabled,
+          manualUnclear: manualScope ? 'b5' : null,
+          manualUnclearCounts: manualScope ? manualQueue?.counts || null : null,
           items,
         });
       } catch (err) {
@@ -591,6 +672,8 @@ module.exports = {
   isPhotoReviewAsset,
   serializeReviewItem,
   loadBatchLabelByPatient,
+  loadB5ManualUnclearQueue,
+  wantsB5ManualUnclear,
   patientDocSummary,
   buildUncertaintyReason,
   reviewPhase,

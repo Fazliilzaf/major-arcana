@@ -58,6 +58,28 @@
   let filterBodyArea = 'all';
   let summarySnapshot = null;
   let progressSnapshot = null;
+  let manualUnclearScope = null;
+
+  function resolveManualUnclearQuery() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const q = String(params.get('queue') || params.get('manualUnclear') || '')
+        .trim()
+        .toLowerCase();
+      if (q === 'b5' || q === 'b5_manual_unclear' || q === '1' || q === 'true') {
+        return 'b5';
+      }
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+
+  function queuePath() {
+    return manualUnclearScope
+      ? `/queue?manualUnclear=${encodeURIComponent(manualUnclearScope)}`
+      : '/queue';
+  }
 
   function headers() {
     const h = { 'content-type': 'application/json', 'x-cco-role': 'operator' };
@@ -262,7 +284,11 @@
       const curRow = pRows.find((r) => r.patientId === pid);
       op.innerHTML = `
         <strong>Operator progress</strong>
-        <p class="cco-photo-review-muted">Totalt kö: ${fullQueue.length} bilder · ${new Set(fullQueue.map((i) => i.patientId)).size} kunder · filter: ${queue.length} bilder</p>
+        <p class="cco-photo-review-muted">Totalt kö: ${fullQueue.length} bilder · ${new Set(fullQueue.map((i) => i.patientId)).size} kunder · filter: ${queue.length} bilder${
+          manualUnclearScope
+            ? ` · <strong>b5 manuell oklar</strong> (${escapeHtml(manualUnclearScope)})`
+            : ''
+        }</p>
         ${
           curRow
             ? `<p>Aktiv patient <code>${escapeHtml(pid?.slice(-12) || '')}</code>: ${curRow.viewed} visade · ${curRow.decided} beslut · ${curRow.pending} kvar i filter</p>`
@@ -421,6 +447,10 @@
           <p class="cco-photo-review-warning">${escapeHtml(item.notApprovedWarning)}</p>
           <dl class="cco-photo-review-dl">
             <div><dt>Patient</dt><dd><code>${escapeHtml(item.patientId)}</code></dd></div>
+            <div><dt>Fil</dt><dd>${escapeHtml(item.originalFileName || item.fileName || '—')}</dd></div>
+            <div><dt>Datum</dt><dd>${escapeHtml(item.documentDate || '—')}</dd></div>
+            <div><dt>Besök</dt><dd>${escapeHtml(item.encounterId || '—')}</dd></div>
+            <div><dt>Manuell orsak</dt><dd>${escapeHtml(item.manualReason || '—')}</dd></div>
             <div><dt>Batch</dt><dd>${escapeHtml(item.batchLabel || '—')}</dd></div>
             <div><dt>Stadium</dt><dd>${escapeHtml(stageIdFromItem(item))} · bodyArea ${escapeHtml(inferBodyArea(item))}</dd></div>
             <div><dt>Föreslagen</dt><dd>${escapeHtml(item.suggestedCategory)} (${escapeHtml(item.confidence)})</dd></div>
@@ -565,14 +595,23 @@
   }
 
   async function refreshQueue() {
+    manualUnclearScope = resolveManualUnclearQuery();
     const [summary, queueData, progress] = await Promise.all([
       api('/summary'),
-      api('/queue'),
+      api(queuePath()),
       api('/progress'),
     ]);
     fullQueue = queueData.items || [];
     summarySnapshot = summary;
     progressSnapshot = progress;
+    if (manualUnclearScope) {
+      summarySnapshot = {
+        ...summarySnapshot,
+        manualUnclear: queueData.manualUnclear || manualUnclearScope,
+        pendingPhotos: fullQueue.length,
+        patientsWithPendingPhotos: new Set(fullQueue.map((i) => i.patientId)).size,
+      };
+    }
     applyFilters();
     applyFocusPatientFromUrl();
     if (cursor >= queue.length) cursor = Math.max(0, queue.length - 1);

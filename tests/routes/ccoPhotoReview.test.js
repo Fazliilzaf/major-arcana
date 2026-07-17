@@ -390,3 +390,121 @@ test('photo-review pilot blocks non-pilot patient', async () => {
     (err) => err.message === 'pilot_patient_not_allowed'
   );
 });
+
+test('photo-review queue?manualUnclear=b5 filters to manual unclear ids with reason/date/visit', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const stateRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'b5-photo-review-'));
+  const prevRoot = process.env.ARCANA_STATE_ROOT;
+  process.env.ARCANA_STATE_ROOT = stateRoot;
+
+  fs.writeFileSync(
+    path.join(stateRoot, 'b5-manual-unclear-queue.json'),
+    JSON.stringify({
+      counts: { visible: 162, manualUnclear: 2 },
+      items: [
+        {
+          assetId: 'a-keep',
+          file: 'IMG_0716.DNG',
+          reason: 'missing_date',
+          patientId: 'pat-1',
+        },
+        {
+          assetId: 'a-zero',
+          file: 'IMG_8579.HEIC',
+          reason: 'zero_byte_corrupt_source',
+          patientId: 'pat-2',
+        },
+      ],
+    })
+  );
+
+  const items = {
+    'a-keep': {
+      id: 'a-keep',
+      patientId: 'pat-1',
+      status: 'NEEDS_REVIEW',
+      category: 'photo_during',
+      mimeType: 'image/x-adobe-dng',
+      storageKey: 'k1',
+      checksum: 'c1',
+      fileSize: 100,
+      originalFileName: 'IMG_0716.DNG',
+      documentDate: null,
+      encounterId: null,
+    },
+    'a-zero': {
+      id: 'a-zero',
+      patientId: 'pat-2',
+      status: 'NEEDS_REVIEW',
+      category: 'photo_during',
+      mimeType: 'image/heic',
+      storageKey: 'k2',
+      checksum: 'e3b0c44298fc',
+      fileSize: 0,
+      originalFileName: 'IMG_8579.HEIC',
+      documentDate: '2024-10-07',
+      encounterId: 'enc-1',
+    },
+    'a-other': {
+      id: 'a-other',
+      patientId: 'pat-9',
+      status: 'NEEDS_REVIEW',
+      category: 'photo_during',
+      mimeType: 'image/jpeg',
+      storageKey: 'k3',
+      checksum: 'c3',
+      fileSize: 50,
+      originalFileName: 'IMG_9999.JPG',
+    },
+  };
+  const store = createMockStore(items);
+  const app = express();
+  app.use((req, _res, next) => {
+    req.headers['x-cco-role'] = 'operator';
+    next();
+  });
+  app.use(
+    '/api/v1/cco',
+    createCcoPhotoReviewRouter({
+      resolveStores: async () => ({ assetStore: store }),
+      requireCcoAuthenticated: passAuth,
+      attachRole,
+      requirePermission: () => (_req, _res, next) => next(),
+      writeEnabled: false,
+      auditLog: createAudit(),
+    })
+  );
+
+  try {
+    await withServer(app, async (baseUrl) => {
+      const all = await fetch(`${baseUrl}/photo-review/queue`);
+      assert.equal(all.status, 200);
+      const allBody = await all.json();
+      assert.equal(allBody.total, 3);
+
+      const scoped = await fetch(`${baseUrl}/photo-review/queue?manualUnclear=b5`);
+      assert.equal(scoped.status, 200);
+      const body = await scoped.json();
+      assert.equal(body.total, 2);
+      assert.equal(body.manualUnclear, 'b5');
+      assert.deepEqual(
+        body.items.map((i) => i.assetId),
+        ['a-keep', 'a-zero']
+      );
+      assert.equal(body.items[0].manualReason, 'missing_date');
+      assert.equal(body.items[0].originalFileName, 'IMG_0716.DNG');
+      assert.equal(body.items[1].manualReason, 'zero_byte_corrupt_source');
+      assert.equal(body.items[1].documentDate, '2024-10-07');
+      assert.equal(body.items[1].encounterId, 'enc-1');
+      // Read-only: statuses unchanged
+      assert.equal(store.getAsset('a-keep').status, 'NEEDS_REVIEW');
+      assert.equal(store.getAsset('a-zero').status, 'NEEDS_REVIEW');
+    });
+  } finally {
+    if (prevRoot == null) delete process.env.ARCANA_STATE_ROOT;
+    else process.env.ARCANA_STATE_ROOT = prevRoot;
+    fs.rmSync(stateRoot, { recursive: true, force: true });
+  }
+});

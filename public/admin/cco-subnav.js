@@ -68,6 +68,8 @@
       signaturer: PREVIEW + 'cco-signaturer-v3.html',
       revisor: PREVIEW + 'cco-revisor-v3.html',
       showcase: PREVIEW + 'cco-showcase-v3.html',
+      // Minimal wire: reuse existing photo-review surface scoped to b5 manual unclear (16).
+      bildgranskning_b5: '/photo-review.html?queue=b5_manual_unclear',
     };
 
     var moreToggle = nav.querySelector('[data-cco-more-toggle]');
@@ -85,6 +87,7 @@
       signaturer: 'Signaturer',
       revisor: 'Revisor',
       showcase: 'Showcase',
+      bildgranskning_b5: 'Bildgranskning b5',
     };
 
     function urlFor(key) {
