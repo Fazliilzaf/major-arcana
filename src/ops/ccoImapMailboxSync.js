@@ -7,6 +7,11 @@
  * explicitly configured external mailbox into CCO's existing mailbox-truth
  * store, keeps a UID cursor per folder and puts attachment bytes in CCO's
  * existing asset cache. No message is sent, moved, marked read or deleted.
+ *
+ * ORD-78 (OOM 2026-07-17): never materialise/fetch the whole mailbox.
+ * Each cycle uses a bounded UID window (max N) + persisted cursor, with SINCE
+ * applied even in cursor mode (same lesson as CM ORD-74b). Prefer streaming
+ * fetch over search→all-UIDs→slice.
  */
 
 const crypto = require('node:crypto');
@@ -47,7 +52,9 @@ function readCcoImapConfig(env = process.env) {
     .split(/[\s,]+/)
     .map((value) => normalizeText(value).toLowerCase())
     .filter((value) => DEFAULT_FOLDER_TYPES.includes(value));
-  const folderTypes = Array.from(new Set(requestedFolders.length ? requestedFolders : DEFAULT_FOLDER_TYPES));
+  const folderTypes = Array.from(
+    new Set(requestedFolders.length ? requestedFolders : DEFAULT_FOLDER_TYPES)
+  );
   return {
     enabled: String(env.ARCANA_CCO_IMAP_ENABLED || '').toLowerCase() === 'true',
     host: normalizeText(env.ARCANA_CCO_IMAP_HOST) || 'imap.one.com',
@@ -59,7 +66,10 @@ function readCcoImapConfig(env = process.env) {
       env.ARCANA_CCO_IMAP_MAX_MESSAGES_PER_CYCLE,
       DEFAULT_MAX_MESSAGES_PER_CYCLE
     ),
-    maxMessageBytes: toPositiveInt(env.ARCANA_CCO_IMAP_MAX_MESSAGE_BYTES, DEFAULT_MAX_MESSAGE_BYTES),
+    maxMessageBytes: toPositiveInt(
+      env.ARCANA_CCO_IMAP_MAX_MESSAGE_BYTES,
+      DEFAULT_MAX_MESSAGE_BYTES
+    ),
     folderTypes,
     folderNames: {
       inbox: normalizeText(env.ARCANA_CCO_IMAP_INBOX_FOLDER) || 'INBOX',
@@ -99,7 +109,9 @@ function toThreadId(parsed = {}, uid = 0) {
 
 function toSafeAttachmentId(index, attachment = {}) {
   const safe = asObject(attachment);
-  const seed = [index, normalizeText(safe.filename), normalizeText(safe.contentId), safe.size].join(':');
+  const seed = [index, normalizeText(safe.filename), normalizeText(safe.contentId), safe.size].join(
+    ':'
+  );
   return `imap-att-${crypto.createHash('sha256').update(seed).digest('hex').slice(0, 24)}`;
 }
 
@@ -120,6 +132,82 @@ function toFolderCounts(mailbox = {}) {
     totalItemCount: Math.max(0, Number(safe.exists ?? safe.totalItemCount) || 0),
     unreadItemCount: Math.max(0, Number(safe.unseen ?? safe.unreadItemCount) || 0),
   };
+}
+
+function mailboxUidCeiling(mailbox = {}) {
+  const safe = asObject(mailbox);
+  const uidNext = Math.max(0, Number(safe.uidNext) || 0);
+  if (uidNext > 1) return uidNext - 1;
+  return Math.max(0, Number(safe.exists ?? safe.totalItemCount) || 0);
+}
+
+/**
+ * Resolve at most `limit` UIDs to fetch. Never returns an unbounded list.
+ * Incremental mode uses a closed UID window (from..to), not `from:*`.
+ */
+function resolveUidBatch({
+  lastUid = 0,
+  searchedUids = [],
+  limit = DEFAULT_MAX_MESSAGES_PER_CYCLE,
+  uidCeiling = 0,
+} = {}) {
+  const max = Math.max(1, Math.floor(Number(limit)) || DEFAULT_MAX_MESSAGES_PER_CYCLE);
+  const cursor = Math.max(0, Number(lastUid) || 0);
+  if (cursor > 0) {
+    const fromUid = cursor + 1;
+    const toUid = fromUid + max - 1;
+    const ceiling = Math.max(0, Number(uidCeiling) || 0);
+    const windowUids = asArray(searchedUids)
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > cursor && value <= toUid)
+      .sort((left, right) => left - right)
+      .slice(0, max);
+    const remainingBacklog =
+      ceiling > toUid
+        ? Math.max(0, ceiling - toUid)
+        : Math.max(0, ceiling - cursor - windowUids.length);
+    return {
+      batch: windowUids,
+      fromUid,
+      toUid,
+      remainingBacklog,
+      // Advance past empty windows so deleted-UID gaps cannot stall the cursor.
+      advanceToUid: windowUids.length ? Math.max(...windowUids) : Math.min(toUid, ceiling || toUid),
+    };
+  }
+  const sorted = asArray(searchedUids)
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((left, right) => left - right);
+  const remainingBacklog = Math.max(0, sorted.length - max);
+  const batch = sorted.slice(0, max);
+  // Drop the tail so callers cannot accidentally iterate the full mailbox list.
+  sorted.length = 0;
+  return {
+    batch,
+    fromUid: batch[0] || 0,
+    toUid: batch.length ? batch[batch.length - 1] : 0,
+    remainingBacklog,
+    advanceToUid: batch.length ? batch[batch.length - 1] : cursor,
+  };
+}
+
+function buildFolderSearchQuery({
+  lastUid = 0,
+  since,
+  limit = DEFAULT_MAX_MESSAGES_PER_CYCLE,
+} = {}) {
+  const sinceDate = since instanceof Date ? since : new Date(since);
+  const cursor = Math.max(0, Number(lastUid) || 0);
+  const max = Math.max(1, Math.floor(Number(limit)) || DEFAULT_MAX_MESSAGES_PER_CYCLE);
+  if (cursor > 0) {
+    const fromUid = cursor + 1;
+    const toUid = fromUid + max - 1;
+    // ORD-74b/ORD-78: SINCE stays in cursor mode so a low cursor cannot swallow
+    // the entire historical mailbox (info@ ~16k).
+    return { uid: `${fromUid}:${toUid}`, since: sinceDate };
+  }
+  return { since: sinceDate };
 }
 
 function createCcoImapMailboxSync({
@@ -238,7 +326,10 @@ function createCcoImapMailboxSync({
 
   async function toTruthMessage({ uid, folderType, parsed }) {
     const graphMessageId = `imap:${folderType}:${uid}`;
-    const attachments = await cacheAttachments({ messageId: graphMessageId, attachments: parsed.attachments });
+    const attachments = await cacheAttachments({
+      messageId: graphMessageId,
+      attachments: parsed.attachments,
+    });
     const from = toParticipants(parsed.from)[0] || null;
     const conversationId = toThreadId(parsed, uid);
     return {
@@ -262,7 +353,9 @@ function createCcoImapMailboxSync({
       inReplyTo: normalizeText(parsed.inReplyTo) || null,
       references: parsed.references || null,
       subject: normalizeText(parsed.subject),
-      bodyPreview: (normalizeText(parsed.text) || normalizeText(parsed.html).replace(/<[^>]+>/g, ' '))
+      bodyPreview: (
+        normalizeText(parsed.text) || normalizeText(parsed.html).replace(/<[^>]+>/g, ' ')
+      )
         .replace(/\s+/g, ' ')
         .slice(0, 512),
       bodyHtml: normalizeText(parsed.html) || '',
@@ -286,36 +379,61 @@ function createCcoImapMailboxSync({
   async function syncFolder({ client, folderType, runId }) {
     const folderName = config.folderNames[folderType];
     const opened = await client.mailboxOpen(folderName, { readOnly: true });
+    const mailboxMeta = opened || client.mailbox || {};
     const checkpoint = await getCheckpoint(folderType);
     const lastUid = parseLastUid(checkpoint);
-    const searchQuery = lastUid > 0 ? { uid: `${lastUid + 1}:*` } : { since: new Date(config.since) };
-    const uids = asArray(await client.search(searchQuery, { uid: true }))
-      .map((value) => Number(value))
-      .filter((value) => Number.isFinite(value) && value > lastUid)
-      .sort((left, right) => left - right);
-    const batch = uids.slice(0, config.maxMessagesPerCycle);
+    const searchQuery = buildFolderSearchQuery({
+      lastUid,
+      since: config.since,
+      limit: config.maxMessagesPerCycle,
+    });
+    const searchedUids = asArray(await client.search(searchQuery, { uid: true }));
+    const planned = resolveUidBatch({
+      lastUid,
+      searchedUids,
+      limit: config.maxMessagesPerCycle,
+      uidCeiling: mailboxUidCeiling(mailboxMeta),
+    });
+    // Drop search result ASAP — never keep a full-mailbox UID array around.
+    searchedUids.length = 0;
+
     const changes = [];
     const messageIds = [];
     const skippedTooLarge = [];
     let highestUid = lastUid;
-
     const parse = parseMessageImpl || defaultParseMessage;
-    for (const uid of batch) {
+
+    for (const uid of planned.batch) {
       highestUid = Math.max(highestUid, uid);
-      const raw = await client.fetchOne(String(uid), { source: true }, { uid: true });
-      const source = raw?.source;
-      if (!source) continue;
-      if (Buffer.byteLength(source) > config.maxMessageBytes) {
-        skippedTooLarge.push(uid);
-        continue;
+      let source = null;
+      try {
+        const raw = await client.fetchOne(String(uid), { source: true }, { uid: true });
+        source = raw?.source || null;
+        if (!source) continue;
+        if (Buffer.byteLength(source) > config.maxMessageBytes) {
+          skippedTooLarge.push(uid);
+          continue;
+        }
+        const parsed = await parse(source);
+        // Detach attachment buffers from the truth payload after cache write.
+        const message = await toTruthMessage({ uid, folderType, parsed });
+        if (Array.isArray(parsed.attachments)) {
+          for (const attachment of parsed.attachments) {
+            if (attachment && attachment.content) attachment.content = null;
+          }
+        }
+        changes.push({ changeType: 'upsert', graphMessageId: message.graphMessageId, message });
+        messageIds.push(message.graphMessageId);
+      } finally {
+        source = null;
       }
-      const parsed = await parse(source);
-      const message = await toTruthMessage({ uid, folderType, parsed });
-      changes.push({ changeType: 'upsert', graphMessageId: message.graphMessageId, message });
-      messageIds.push(message.graphMessageId);
     }
 
-    const counts = toFolderCounts(opened || client.mailbox);
+    // Persist cursor even when the window was empty (gap skip) so we never
+    // re-scan the same UID range forever after deletes.
+    highestUid = Math.max(highestUid, Number(planned.advanceToUid) || 0);
+
+    const counts = toFolderCounts(mailboxMeta);
     await truthStore.recordDeltaPage({
       runId,
       account: {
@@ -333,7 +451,7 @@ function createCcoImapMailboxSync({
         ...counts,
       },
       changes,
-      pageSize: batch.length,
+      pageSize: planned.batch.length,
       deltaLink: cursorLink({ folderType, uid: highestUid }),
       sourcePageUrl: `imap://${config.host}/${encodeURIComponent(folderName)}`,
       complete: true,
@@ -342,12 +460,13 @@ function createCcoImapMailboxSync({
     return {
       folderType,
       folderName,
-      scanned: batch.length,
+      scanned: planned.batch.length,
       imported: messageIds.length,
-      remainingBacklog: Math.max(0, uids.length - batch.length),
+      remainingBacklog: planned.remainingBacklog,
       messageIds,
       skippedTooLarge,
       lastUid: highestUid,
+      uidWindow: lastUid > 0 ? { from: planned.fromUid, to: planned.toUid } : null,
     };
   }
 
@@ -361,7 +480,8 @@ function createCcoImapMailboxSync({
       errors: [],
       syncedAt: nowIso(),
     };
-    if (!config.enabled) return { ...base, ok: false, error: 'ARCANA_CCO_IMAP_ENABLED är inte true' };
+    if (!config.enabled)
+      return { ...base, ok: false, error: 'ARCANA_CCO_IMAP_ENABLED är inte true' };
     if (!config.user || !config.password) {
       return { ...base, ok: false, error: 'ARCANA_CCO_IMAP_USER/ARCANA_CCO_IMAP_PASSWORD saknas' };
     }
@@ -385,7 +505,11 @@ function createCcoImapMailboxSync({
           base.errors.push({ folderType, error: message });
           await truthStore.recordDeltaError({
             runId: run.runId,
-            account: { mailboxId: config.user, mailboxAddress: config.user, graphUserId: `imap:${config.user}` },
+            account: {
+              mailboxId: config.user,
+              mailboxAddress: config.user,
+              graphUserId: `imap:${config.user}`,
+            },
             folderType,
             errorCode: 'imap_folder_sync_failed',
             errorMessage: message,
@@ -395,7 +519,9 @@ function createCcoImapMailboxSync({
       base.ok = base.errors.length === 0;
       await truthStore.finishDeltaRun(run.runId, {
         status: base.ok ? 'completed' : 'completed_with_errors',
-        error: base.errors.length ? base.errors.map((item) => `${item.folderType}:${item.error}`).join('; ') : null,
+        error: base.errors.length
+          ? base.errors.map((item) => `${item.folderType}:${item.error}`).join('; ')
+          : null,
       });
       return base;
     } catch (error) {
@@ -424,4 +550,8 @@ module.exports = {
   createCcoImapMailboxSync,
   readCcoImapConfig,
   parseLastUid,
+  resolveUidBatch,
+  buildFolderSearchQuery,
+  mailboxUidCeiling,
+  DEFAULT_MAX_MESSAGES_PER_CYCLE,
 };
