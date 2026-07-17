@@ -1789,12 +1789,10 @@
       el('div', { class: 'booking-sub' }, slot.patientName || 'Okopplad patient'),
     ]);
     const noteCount = bookingNoteCount(slot);
-    if (noteCount) card.appendChild(el('span', {
-      class: 'booking-ai-badge', title: noteCount + ' anteckning(ar)',
-    }, '✎ ' + noteCount));
     card.setAttribute('aria-label', [slot.patientName || 'Okopplad patient',
       slot.serviceLabel || 'Bokning', formatTimeRange(slot.time, slot.endTime),
-      statusLabel(slot.status)].join(' · '));
+      statusLabel(slot.status), noteCount ? noteCount + ' anteckning(ar)' : null]
+      .filter(Boolean).join(' · '));
     return card;
   }
 
@@ -1876,6 +1874,158 @@
     });
   }
 
+  function v6RenderMiniInboxState() {
+    const inbox = document.getElementById('miniInbox');
+    if (!inbox) return;
+    inbox.innerHTML = '';
+    inbox.appendChild(el('div', { class: 'mini-inbox-kicker' }, [
+      document.createTextNode('Mini-inkorg '),
+      el('span', { class: 'badge' }, 'READ-ONLY'),
+    ]));
+    inbox.appendChild(el('div', {
+      class: 'mail-thread', draggable: 'false',
+      dataset: { canonicalState: 'unavailable', readOnly: 'true' },
+    }, [
+      el('div', { class: 'mail-from' }, 'Ingen canonical inkorgsdata'),
+      el('div', { class: 'mail-subj' }, 'Kalenderkontraktet innehåller inga obokade mejltrådar.'),
+      el('div', { class: 'mail-meta' }, 'Ärligt tomt läge · ingen dragning'),
+      el('span', { class: 'mail-ai-hint' }, '0 writes'),
+    ]));
+  }
+
+  function v6RenderStoryActions() {
+    const row = document.querySelector('.story-cta-row');
+    if (!row) return;
+    row.innerHTML = '';
+    row.appendChild(el('button', {
+      class: 'story-cta story-cta--primary', type: 'button',
+      onclick: () => {
+        v6State.mode = 'vecka';
+        document.querySelectorAll('.segment-tab').forEach((tab) => {
+          tab.classList.toggle('active', tab.dataset.mode === 'vecka');
+        });
+        v6RenderWeek(v6State.visits);
+      },
+    }, '→ Öppna veckovyn'));
+    [
+      'Påminnelser · saknar write-kontrakt',
+      'Bokningsändringar · saknar write-kontrakt',
+      'Standupgenerering · saknar kontrakt',
+    ].forEach((label) => row.appendChild(el('button', {
+      class: 'story-cta', type: 'button', disabled: 'disabled',
+    }, label)));
+  }
+
+  function v6UpdateBusy(visits) {
+    const mount = document.querySelector('.calendar-busy');
+    if (!mount) return;
+    const groups = new Map();
+    visits.forEach((slot) => {
+      const label = slot.practitioner || slot.staffName || slot.resourceLabel || 'Ej tilldelad';
+      groups.set(label, (groups.get(label) || 0) + 1);
+    });
+    const rows = [...groups.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const max = Math.max(1, ...rows.map((entry) => entry[1]));
+    mount.innerHTML = '';
+    if (!rows.length) {
+      mount.appendChild(el('div', { class: 'busy-row', dataset: { canonicalEmpty: 'true' } }, [
+        el('span', { class: 'busy-name' }, 'Inga resursdata'),
+        el('div', { class: 'busy-track' }, el('div', { class: 'busy-fill', style: 'width:0%' })),
+        el('span', { class: 'busy-pct' }, '0 bokn.'),
+      ]));
+      return;
+    }
+    rows.forEach(([label, count]) => mount.appendChild(el('div', {
+      class: 'busy-row', title: 'Canonical bokningsfördelning, inte kapacitetsprocent',
+    }, [
+      el('span', { class: 'busy-name' }, label),
+      el('div', { class: 'busy-track' }, el('div', {
+        class: 'busy-fill', style: 'width:' + Math.round((count / max) * 100) + '%',
+      })),
+      el('span', { class: 'busy-pct' }, count + ' bokn.'),
+    ])));
+  }
+
+  function v6UpdateVibe(visits) {
+    const days = document.querySelectorAll('#vibeStrip .vibe-day');
+    days.forEach((node, index) => {
+      const dateKey = v6IsoOffset(v6State.weekStart, index);
+      const count = visits.filter((slot) => slot.date === dateKey).length;
+      const spans = node.querySelectorAll('span');
+      v6SetText(spans[0], '•');
+      v6SetText(node.querySelector('.vibe-label'), V6_DAY_NAMES[index]);
+      v6SetText(node.querySelector('.vibe-tip'), count
+        ? count + ' canonical bokning' + (count === 1 ? '' : 'ar')
+        : 'Inga bokningar registrerade');
+      node.dataset.date = dateKey;
+      node.dataset.canonicalCount = String(count);
+    });
+  }
+
+  function v6UpdateWatch(visits) {
+    const watch = document.getElementById('watchWidget');
+    if (!watch) return;
+    watch.hidden = false;
+    watch.classList.remove('is-hidden', 'is-dragging');
+    watch.dataset.readOnly = 'true';
+    watch.querySelectorAll('.watch-dismiss').forEach((node) => node.remove());
+    const next = visits.filter((slot) => {
+      const status = String(slot.status || '').toLowerCase();
+      return slot.date >= isoToday() && !['cancelled', 'canceled', 'no_show'].includes(status);
+    }).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
+    v6SetText(watch.querySelector('.clock'), next ? next.time : '—');
+    v6SetText(watch.querySelector('.watch-kicker'), next ? statusLabel(next.status) + ' · READ-ONLY' : 'INGA DATA · READ-ONLY');
+    v6SetText(watch.querySelector('.watch-title'), next ? (next.serviceLabel || 'Bokning') : 'Inget kommande besök');
+    v6SetText(watch.querySelector('.watch-sub'), next
+      ? (next.patientName || 'Okopplad patient') + ' · ' + (next.practitioner || next.resourceLabel || 'Ej tilldelad')
+      : 'Canonical kalenderunderlag');
+    v6SetText(watch.querySelector('.watch-ai-pill'), 'Canonical · 0 writes');
+    const swipe = watch.querySelector('.watch-swipe');
+    if (swipe) {
+      swipe.dataset.swipeState = '';
+      swipe.setAttribute('aria-disabled', 'true');
+      v6SetText(swipe.querySelector('.watch-swipe-label'), 'Ankomstskrivning avstängd');
+      v6SetText(swipe.querySelector('.watch-swipe-arrow'), '×');
+    }
+  }
+
+  function v6PrepareOriginalHome() {
+    v6RenderMiniInboxState();
+    v6RenderStoryActions();
+    const mic = document.getElementById('micBtn');
+    if (mic) {
+      mic.disabled = true;
+      mic.title = 'Röstbokning saknar verifierat write-kontrakt · read-only';
+      mic.setAttribute('aria-label', 'Röstbokning avstängd · read-only');
+    }
+    const timeMachine = document.getElementById('timemachine');
+    if (timeMachine) {
+      timeMachine.dataset.readOnly = 'true';
+      timeMachine.title = 'Tid-maskin är visuellt passiv i canonical read-only-läge';
+      const slider = timeMachine.querySelector('input');
+      if (slider) slider.disabled = true;
+      v6SetText(timeMachine.querySelector('.timemachine-label'), 'Read-only');
+    }
+    const resourceTab = document.querySelector('.segment-tab[data-mode="resurs"]');
+    if (resourceTab) {
+      resourceTab.hidden = false;
+      resourceTab.disabled = true;
+      resourceTab.title = 'Separat resursvy saknar verifierat read-kontrakt';
+    }
+    document.querySelectorAll('.voice-overlay, .voice-sheet, .watch-restore').forEach((node) => {
+      node.hidden = true;
+    });
+    v6UpdateBusy([]);
+    v6UpdateVibe([]);
+    v6UpdateWatch([]);
+  }
+
+  function v6UpdateOriginalHome(visits) {
+    v6UpdateBusy(visits);
+    v6UpdateVibe(visits);
+    v6UpdateWatch(visits);
+  }
+
   function v6RenderWeek(visits) {
     const week = document.getElementById('calWeek');
     if (!week) return;
@@ -1900,7 +2050,9 @@
     const start = new Date(v6State.weekStart + 'T12:00:00.000Z');
     const endKey = v6IsoOffset(v6State.weekStart, 6);
     const end = new Date(endKey + 'T12:00:00.000Z');
-    if (v6State.mode === 'dag') {
+    if (v6State.mode === 'morgon') {
+      v6SetText(document.getElementById('calTitle'), 'God morgon');
+    } else if (v6State.mode === 'dag') {
       const selectedDay = new Date(v6State.dayDate + 'T12:00:00.000Z');
       v6SetText(document.getElementById('calTitle'), V6_DAY_NAMES[(selectedDay.getUTCDay() + 6) % 7] +
         ' ' + selectedDay.getUTCDate() + ' ' + V6_MONTH_NAMES[selectedDay.getUTCMonth()] +
@@ -1984,6 +2136,7 @@
       v6RenderWeek(v6State.visits);
       v6UpdateSidebars(v6State.visits);
       v6UpdateStory(v6State.visits);
+      v6UpdateOriginalHome(v6State.visits);
       v6RenderIntel(v6State.selected && v6State.visits.find((slot) => slot.id === v6State.selected.id));
       v6RenderSearch('');
     } catch (error) {
@@ -1991,6 +2144,7 @@
       v6RenderWeek([]);
       v6UpdateSidebars([]);
       v6UpdateStory([]);
+      v6UpdateOriginalHome([]);
       v6RenderIntel(null);
       const title = document.getElementById('calTitle');
       v6SetText(title, error && error.status === 401
@@ -2004,14 +2158,12 @@
   function initOriginalV6Calendar() {
     document.body.dataset.ccoCalendarSource = 'canonical-v6';
     document.body.dataset.ccoCalendarMode = 'live-read';
-    document.querySelectorAll('.mini-inbox, .calendar-busy, .vibe-strip, .watch-widget, .watch-restore, ' +
-      '.voice-overlay, .voice-sheet, .mic-btn, .timemachine, .story-cta-row').forEach((node) => node.remove());
     v6State.weekStart = v6WeekStart(isoToday());
     v6State.dayDate = isoToday();
-    v6State.mode = 'vecka';
+    v6State.mode = 'morgon';
+    v6PrepareOriginalHome();
     document.querySelectorAll('.segment-tab').forEach((tab) => {
-      tab.classList.toggle('active', tab.dataset.mode === 'vecka');
-      if (tab.dataset.mode === 'resurs') tab.hidden = true;
+      tab.classList.toggle('active', tab.dataset.mode === 'morgon');
     });
     v6RenderIntel(null);
     v6BindControls();
