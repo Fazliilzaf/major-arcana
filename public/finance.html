@@ -351,6 +351,18 @@
         border-radius: 6px;
         cursor: help;
       }
+      .kpi--click {
+        cursor: pointer;
+        transition:
+          transform 0.12s ease,
+          box-shadow 0.12s ease;
+      }
+      .kpi--click:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          0 12px 28px rgba(56, 40, 28, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      }
       .empty {
         padding: 30px;
         text-align: center;
@@ -3007,12 +3019,14 @@
         loadCm();
       })();
 
-      // ORD-CM-6 · Pyramid-vyn: år → månad → företag → poster (mänsklig ordning)
+      // ORD-CM-6b · Pyramiden i CFO:s designspråk: kort → kort → rader
       (function cmBulkPyramid() {
+        const cards = document.getElementById('cmb-cards');
         const list = document.getElementById('cmb-list');
+        const crumb = document.getElementById('cmb-crumb');
         const countEl = document.getElementById('cmb-count');
-        if (!list || !countEl) return;
-        const MÅNADER = {
+        if (!cards || !list || !countEl) return;
+        const MÅN = {
           '01': 'Januari',
           '02': 'Februari',
           '03': 'Mars',
@@ -3040,6 +3054,8 @@
           'personal',
           'ovrigt',
         ];
+        let träd = null;
+        const vy = { year: null, month: null };
         function esc(x) {
           const d = document.createElement('div');
           d.textContent = x == null ? '' : String(x);
@@ -3048,134 +3064,220 @@
         function kr(n) {
           return Math.round(n).toLocaleString('sv-SE') + ' kr';
         }
-        async function load() {
+
+        async function hämta() {
           list.innerHTML = '<div class="empty">Hämtar…</div>';
+          cards.style.display = 'none';
           try {
             const r = await fetch('/api/v1/cm/groups-tree', { credentials: 'same-origin' });
             const d = await r.json();
             if (!r.ok || !d.ok) throw new Error(d.error || r.status);
+            träd = d;
             countEl.textContent = d.totalOpen + ' öppna poster';
-            if (!d.years.length) {
-              list.innerHTML = '<div class="empty">Allt är hanterat.</div>';
-              return;
-            }
-            list.innerHTML = d.years
-              .map(
-                (y, yi) =>
-                  '<details class="receipt-row" style="display:block"' +
-                  (yi === 0 ? ' open' : '') +
-                  '>' +
-                  '<summary style="cursor:pointer;padding:6px 0"><strong style="font-size:1.1em">' +
-                  esc(y.year) +
-                  '</strong>' +
-                  ' &nbsp;<span class="receipt-meta">' +
-                  y.count +
-                  ' poster · ' +
-                  kr(y.sum) +
-                  '</span></summary>' +
-                  y.months
-                    .map(
-                      (m) =>
-                        '<details style="margin-left:18px">' +
-                        '<summary style="cursor:pointer;padding:5px 0"><strong>' +
-                        (MÅNADER[m.month] || m.month) +
-                        '</strong>' +
-                        ' &nbsp;<span class="receipt-meta">' +
-                        m.count +
-                        ' poster · ' +
-                        kr(m.sum) +
-                        '</span></summary>' +
-                        m.groups
-                          .map(
-                            (g) =>
-                              '<details style="margin-left:18px" data-key="' +
-                              esc(g.key) +
-                              '" data-year="' +
-                              esc(y.year) +
-                              '" data-month="' +
-                              esc(m.month) +
-                              '">' +
-                              '<summary style="cursor:pointer;padding:4px 0"><strong>' +
-                              esc(g.label) +
-                              '</strong>' +
-                              ' &nbsp;<span class="receipt-meta">' +
-                              g.count +
-                              ' st · ' +
-                              (g.sum ? kr(g.sum) : 'utan belopp') +
-                              (g.medBelopp < g.count
-                                ? ' · ' + (g.count - g.medBelopp) + ' utan belopp'
-                                : '') +
-                              '</span></summary>' +
-                              '<div style="margin:6px 0 8px 18px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
-                              '<select class="btn" data-role="kat">' +
-                              KATEGORIER.map(
-                                (k) =>
-                                  '<option value="' +
-                                  k +
-                                  '"' +
-                                  (k && k === g.kategoriForslag ? ' selected' : '') +
-                                  '>' +
-                                  (k || 'kategori…') +
-                                  '</option>'
-                              ).join('') +
-                              '</select>' +
-                              '<button class="btn" data-role="promote">→ Bokföring (alla ' +
-                              g.medBelopp +
-                              ' med belopp)</button>' +
-                              '<button class="btn" data-role="reject">Avvisa alla ' +
-                              g.count +
-                              '</button></div>' +
-                              '<div style="margin-left:18px">' +
-                              g.poster
-                                .map(
-                                  (p) =>
-                                    '<div class="receipt-meta" style="padding:2px 0">' +
-                                    esc(p.datum) +
-                                    (p.tid ? ' ' + esc(p.tid) : '') +
-                                    ' · ' +
-                                    (p.belopp ? kr(p.belopp) : '—') +
-                                    ' · ' +
-                                    esc(p.typ) +
-                                    (p.amne ? ' · ' + esc(p.amne) : '') +
-                                    '</div>'
-                                )
-                                .join('') +
-                              (g.count > g.poster.length
-                                ? '<div class="receipt-meta">… och ' +
-                                  (g.count - g.poster.length) +
-                                  ' till (knapparna tar alla)</div>'
-                                : '') +
-                              '</div></details>'
-                          )
-                          .join('') +
-                        '</details>'
-                    )
-                    .join('') +
-                  '</details>'
-              )
-              .join('');
-            list.querySelectorAll('details[data-key]').forEach((grp) => {
-              const scope = {
-                groupKey: grp.getAttribute('data-key'),
-                year: grp.getAttribute('data-year'),
-                month: grp.getAttribute('data-month'),
-              };
-              grp
-                .querySelector('[data-role="promote"]')
-                .addEventListener('click', () => bulk('promote', scope, grp));
-              grp
-                .querySelector('[data-role="reject"]')
-                .addEventListener('click', () => bulk('reject', scope, grp));
-            });
+            rita();
           } catch (err) {
             list.innerHTML = '<div class="empty">Fel: ' + esc(err.message) + '</div>';
           }
         }
-        async function bulk(action, scope, grp) {
-          const kat = grp.querySelector('[data-role="kat"]')?.value || '';
-          if (action === 'reject' && !window.confirm('Avvisa ALLA i gruppen för den här månaden?'))
+
+        function ritaCrumb() {
+          let html = '';
+          if (vy.year) {
+            html += '<button class="btn" data-nav="hem">‹ Alla år</button> ';
+            if (vy.month) {
+              html += '<button class="btn" data-nav="år">‹ ' + esc(vy.year) + '</button> ';
+              html +=
+                '<strong style="margin-left:6px">' +
+                esc(vy.year) +
+                ' · ' +
+                (MÅN[vy.month] || vy.month) +
+                '</strong>';
+            } else {
+              html += '<strong style="margin-left:6px">' + esc(vy.year) + '</strong>';
+            }
+          } else {
+            html =
+              'Välj ett år — sedan månad — sedan hantera hela leverantörsgrupper med ett klick.';
+          }
+          crumb.innerHTML = html;
+          crumb.querySelectorAll('[data-nav]').forEach((b) =>
+            b.addEventListener('click', () => {
+              if (b.getAttribute('data-nav') === 'hem') {
+                vy.year = null;
+                vy.month = null;
+              } else vy.month = null;
+              rita();
+            })
+          );
+        }
+
+        function rita() {
+          ritaCrumb();
+          if (!träd) return;
+          if (!vy.year) return ritaÅr();
+          if (!vy.month) return ritaMånader();
+          return ritaGrupper();
+        }
+
+        function ritaÅr() {
+          list.innerHTML = '';
+          cards.style.display = '';
+          cards.innerHTML = träd.years
+            .map(
+              (y) =>
+                '<div class="kpi kpi--click" data-year="' +
+                esc(y.year) +
+                '">' +
+                '<div class="kpi-label">' +
+                esc(y.year) +
+                '</div>' +
+                '<div class="kpi-value">' +
+                kr(y.sum) +
+                '</div>' +
+                '<div class="kpi-sub">' +
+                y.count +
+                ' poster att hantera</div></div>'
+            )
+            .join('');
+          cards.querySelectorAll('[data-year]').forEach((c) =>
+            c.addEventListener('click', () => {
+              vy.year = c.getAttribute('data-year');
+              rita();
+            })
+          );
+        }
+
+        function ritaMånader() {
+          const y = träd.years.find((x) => x.year === vy.year);
+          if (!y) return;
+          list.innerHTML = '';
+          cards.style.display = '';
+          cards.innerHTML = y.months
+            .map(
+              (m) =>
+                '<div class="kpi kpi--click" data-month="' +
+                esc(m.month) +
+                '">' +
+                '<div class="kpi-label">' +
+                (MÅN[m.month] || m.month) +
+                '</div>' +
+                '<div class="kpi-value">' +
+                kr(m.sum) +
+                '</div>' +
+                '<div class="kpi-sub">' +
+                m.count +
+                ' poster</div></div>'
+            )
+            .join('');
+          cards.querySelectorAll('[data-month]').forEach((c) =>
+            c.addEventListener('click', () => {
+              vy.month = c.getAttribute('data-month');
+              rita();
+            })
+          );
+        }
+
+        function ritaGrupper() {
+          const y = träd.years.find((x) => x.year === vy.year);
+          const m = y && y.months.find((x) => x.month === vy.month);
+          if (!m) return;
+          cards.style.display = 'none';
+          list.innerHTML = m.groups
+            .map(
+              (g, gi) =>
+                '<div class="receipt" data-gi="' +
+                gi +
+                '">' +
+                '<div class="receipt-thumb">' +
+                (g.sum ? '🧾' : '✉️') +
+                '</div>' +
+                '<div class="receipt-main"><div class="receipt-name">' +
+                esc(g.label) +
+                '</div>' +
+                '<div class="receipt-meta"><span>' +
+                g.count +
+                ' st</span>' +
+                (g.count > g.medBelopp
+                  ? '<span>' + (g.count - g.medBelopp) + ' utan belopp</span>'
+                  : '') +
+                '</div></div>' +
+                '<div class="receipt-amount">' +
+                (g.sum ? kr(g.sum) : '—') +
+                '</div>' +
+                '<select class="btn" data-role="kat">' +
+                KATEGORIER.map(
+                  (k) =>
+                    '<option value="' +
+                    k +
+                    '"' +
+                    (k && k === g.kategoriForslag ? ' selected' : '') +
+                    '>' +
+                    (k || 'kategori…') +
+                    '</option>'
+                ).join('') +
+                '</select>' +
+                '<div style="display:flex;gap:6px">' +
+                '<button class="btn btn--primary" data-role="promote" title="Skicka alla med belopp till bokföringen">→ Bokföring</button>' +
+                '<button class="btn" data-role="reject" title="Avvisa hela gruppen denna månad">Avvisa</button>' +
+                '<button class="btn" data-role="visa" title="Visa posterna">▾</button></div></div>' +
+                '<div class="receipts-list" data-poster="' +
+                gi +
+                '" style="display:none;margin:2px 0 8px 46px">' +
+                g.poster
+                  .map(
+                    (p) =>
+                      '<div class="receipt"><div class="receipt-thumb">' +
+                      (p.typ === 'invoice' ? '📄' : p.typ === 'receipt' ? '🧾' : '✉️') +
+                      '</div>' +
+                      '<div class="receipt-main"><div class="receipt-name">' +
+                      esc(p.amne || p.typ) +
+                      '</div>' +
+                      '<div class="receipt-meta"><span>' +
+                      esc(p.datum) +
+                      (p.tid ? ' ' + esc(p.tid) : '') +
+                      '</span></div></div>' +
+                      '<div class="receipt-amount">' +
+                      (p.belopp ? kr(p.belopp) : '—') +
+                      '</div>' +
+                      '<span class="receipt-status receipt-status--' +
+                      (p.belopp ? 'new' : 'needs_review') +
+                      '">' +
+                      (p.belopp ? 'kandidat' : 'olöst') +
+                      '</span><span></span></div>'
+                  )
+                  .join('') +
+                (g.count > g.poster.length
+                  ? '<div class="empty" style="padding:8px">… och ' +
+                    (g.count - g.poster.length) +
+                    ' till — knapparna tar alla</div>'
+                  : '') +
+                '</div>'
+            )
+            .join('');
+          list.querySelectorAll('.receipt[data-gi]').forEach((rad) => {
+            const gi = rad.getAttribute('data-gi');
+            const g = m.groups[Number(gi)];
+            rad.querySelector('[data-role="visa"]').addEventListener('click', () => {
+              const pl = list.querySelector('[data-poster="' + gi + '"]');
+              pl.style.display = pl.style.display === 'none' ? '' : 'none';
+            });
+            rad
+              .querySelector('[data-role="promote"]')
+              .addEventListener('click', () => bulk('promote', g, rad));
+            rad
+              .querySelector('[data-role="reject"]')
+              .addEventListener('click', () => bulk('reject', g, rad));
+          });
+        }
+
+        async function bulk(action, g, rad) {
+          const kat = rad.querySelector('[data-role="kat"]')?.value || '';
+          if (
+            action === 'reject' &&
+            !window.confirm('Avvisa alla ' + g.count + ' från ' + g.label + ' den här månaden?')
+          )
             return;
-          grp.querySelectorAll('button').forEach((b) => (b.disabled = true));
+          rad.querySelectorAll('button').forEach((b) => (b.disabled = true));
           try {
             const r = await fetch('/api/v1/cm/bulk', {
               method: 'POST',
@@ -3183,29 +3285,23 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 action,
-                groupKey: scope.groupKey,
-                year: scope.year,
-                month: scope.month,
+                groupKey: g.key,
+                year: vy.year,
+                month: vy.month,
                 category: kat || undefined,
               }),
             });
             const d = await r.json();
             if (!r.ok || !d.ok) throw new Error(d.error || r.status);
-            alert(
-              (action === 'promote' ? 'Till bokföring: ' : 'Avvisade: ') +
-                d.done +
-                ' av ' +
-                d.matched +
-                (d.errors.length ? ' · ' + d.errors.length + ' hoppade' : '')
-            );
           } catch (err) {
             alert('Fel: ' + err.message);
           }
-          await load();
+          await hämta();
           if (typeof window.arcanaCfReload === 'function') window.arcanaCfReload();
         }
-        document.querySelector('[data-action="cmb-refresh"]').addEventListener('click', load);
-        load();
+
+        document.querySelector('[data-action="cmb-refresh"]').addEventListener('click', hämta);
+        hämta();
       })();
 
       // ORD-67 · CF.9 dryRun-granskning: verifikat-förslag utan write
