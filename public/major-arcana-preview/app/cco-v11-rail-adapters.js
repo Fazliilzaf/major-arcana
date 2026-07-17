@@ -237,12 +237,36 @@
 
   var ACTIVE_VISIT_STATES = ['scheduled_today', 'checked_in', 'in_progress', 'completed_today'];
 
-  function avTime(iso) {
-    if (!iso) return '';
+  var BOOKING_TIME_ZONE = 'Europe/Stockholm';
+
+  function bookingDateTimeParts(iso) {
+    if (!iso) return null;
     var d = new Date(iso);
-    return isNaN(d.getTime())
-      ? ''
-      : d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    if (isNaN(d.getTime())) return null;
+    var parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: BOOKING_TIME_ZONE,
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(d);
+    var values = {};
+    parts.forEach(function (part) {
+      values[part.type] = part.value;
+    });
+    return {
+      weekdayIndex: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(values.weekday),
+      day: Number(values.day),
+      monthIndex: Number(values.month) - 1,
+      time: values.hour + ':' + values.minute,
+    };
+  }
+
+  function avTime(iso) {
+    var dateTime = bookingDateTimeParts(iso);
+    return dateTime ? dateTime.time : '';
   }
 
   function avMinutesSince(iso) {
@@ -845,23 +869,15 @@
   function normalizeBooking(item) {
     item = item || {};
     var iso = text(item.iso) || text(item.at) || text(item.startsAt) || text(item.nextBookingAt);
-    var d = iso ? new Date(iso) : null;
-    var valid = d && !isNaN(d.getTime());
-    var whenLong =
-      text(item.whenLong) ||
-      (item.num != null && item.mon
-        ? text(item.num) + ' ' + String(item.mon).toLowerCase()
-        : valid
-          ? d.getDate() + ' ' + BOOKING_MONTHS[d.getMonth()]
-          : '');
-    var whenShort =
-      text(item.whenShort) ||
-      text(item.day) ||
-      (valid
-        ? BOOKING_DAY_NAMES[d.getDay()] +
-          ' ' +
-          d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
-        : '');
+    var dateTime = bookingDateTimeParts(iso);
+    var valid = Boolean(dateTime);
+    var whenLong = valid
+      ? dateTime.day + ' ' + BOOKING_MONTHS[dateTime.monthIndex]
+      : text(item.whenLong) ||
+        (item.num != null && item.mon ? text(item.num) + ' ' + String(item.mon).toLowerCase() : '');
+    var whenShort = valid
+      ? BOOKING_DAY_NAMES[dateTime.weekdayIndex] + ' ' + dateTime.time
+      : text(item.whenShort) || text(item.day) || '';
     var title =
       text(item.title) || text(item.type) || text(item.serviceLabel) || text(item.nextBookingType);
     var sub = text(item.area) || text(item.sub) || text(item.resourceLabel);

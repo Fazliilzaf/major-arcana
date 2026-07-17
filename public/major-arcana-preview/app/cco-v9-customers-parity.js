@@ -344,15 +344,38 @@
     'dec',
   ];
 
-  function formatBookingWhen(iso) {
+  const BOOKING_TIME_ZONE = 'Europe/Stockholm';
+
+  function bookingDateTimeParts(iso) {
     const d = iso ? new Date(iso) : null;
-    if (!d || Number.isNaN(d.getTime())) {
+    if (!d || Number.isNaN(d.getTime())) return null;
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: BOOKING_TIME_ZONE,
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(d);
+    const values = {};
+    for (const part of parts) values[part.type] = part.value;
+    const weekdayIndex = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(values.weekday);
+    return {
+      weekdayIndex,
+      day: Number(values.day),
+      monthIndex: Number(values.month) - 1,
+      time: `${values.hour}:${values.minute}`,
+    };
+  }
+
+  function formatBookingWhen(iso) {
+    const dateTime = bookingDateTimeParts(iso);
+    if (!dateTime) {
       return { whenLong: '—', whenShort: '' };
     }
-    const whenLong = `${d.getDate()} ${MONTH_SV[d.getMonth()]}`;
-    const hours = String(d.getHours()).padStart(2, '0');
-    const mins = String(d.getMinutes()).padStart(2, '0');
-    const whenShort = `${DAY_NAMES[d.getDay()]} ${hours}:${mins}`;
+    const whenLong = `${dateTime.day} ${MONTH_SV[dateTime.monthIndex]}`;
+    const whenShort = `${DAY_NAMES[dateTime.weekdayIndex]} ${dateTime.time}`;
     return { whenLong, whenShort };
   }
 
@@ -384,16 +407,16 @@
   }
 
   function bookingParts(iso, title, sub, state, stateLabel, source) {
-    const d = iso ? new Date(iso) : null;
-    const valid = d && !Number.isNaN(d.getTime());
+    const dateTime = bookingDateTimeParts(iso);
+    const valid = Boolean(dateTime);
     const when = formatBookingWhen(iso);
     return {
       iso,
       whenLong: when.whenLong,
       whenShort: when.whenShort,
-      day: valid ? DAY_NAMES[d.getDay()] : '—',
-      num: valid ? String(d.getDate()) : '—',
-      mon: valid ? MONTH_SHORT[d.getMonth()] : '',
+      day: valid ? DAY_NAMES[dateTime.weekdayIndex] : '—',
+      num: valid ? String(dateTime.day) : '—',
+      mon: valid ? MONTH_SHORT[dateTime.monthIndex] : '',
       title: title || 'Besök',
       sub: sub || '',
       area: treatmentAreaFromSub(sub),
