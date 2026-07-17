@@ -365,12 +365,26 @@ function createCmRouter({
   );
 
   // ORD-CM-4 · Klumphantering: gruppera öppna kandidater per leverantör/avsändare
-  function bulkGroupKey(record) {
+  // ORD-CM-6c: indexerad rawItem-lookup — find() per post över 3 500+ rawItems
+  // blockerade eventloopen i tiotals sekunder (O(n²)).
+  function rawIndex() {
+    const map = new Map();
+    if (typeof cmStore.listRawItems === 'function') {
+      for (const r of cmStore.listRawItems()) map.set(r.id, r);
+    }
+    return map;
+  }
+
+  function bulkGroupKey(record, rawById) {
     const supplier = String(record.supplierName || '')
       .trim()
       .toLowerCase();
     if (supplier) return `s:${supplier}`;
-    const raw = record.rawItemId ? cmStore.getRawItemById(record.rawItemId) : null;
+    const raw = record.rawItemId
+      ? rawById
+        ? rawById.get(record.rawItemId)
+        : cmStore.getRawItemById(record.rawItemId)
+      : null;
     const domain = String(raw?.fromEmail || '').split('@')[1] || 'okänd';
     return `d:${domain.toLowerCase()}`;
   }
@@ -383,16 +397,21 @@ function createCmRouter({
 
   // ORD-CM-6 · Pyramid-vy (ägar-krav: "sorterat i lager som en pyramid —
   // år, månad, kategori, företag — lättåtkomligt för en människa").
-  function recordDate(r) {
+  function recordDate(r, rawById) {
     if (/^\d{4}-\d{2}/.test(r.date || '')) return r.date;
-    const raw = r.rawItemId ? cmStore.getRawItemById(r.rawItemId) : null;
+    const raw = r.rawItemId
+      ? rawById
+        ? rawById.get(r.rawItemId)
+        : cmStore.getRawItemById(r.rawItemId)
+      : null;
     return (raw?.receivedAt || r.createdAt || '').slice(0, 10);
   }
 
   router.get('/cm/groups-tree', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
+    const rawById = rawIndex();
     const years = new Map();
     for (const r of openBulkRecords()) {
-      const d = recordDate(r);
+      const d = recordDate(r, rawById);
       const year = d.slice(0, 4) || 'okänt';
       const month = d.slice(5, 7) || '??';
       if (!years.has(year)) years.set(year, { year, count: 0, sum: 0, months: new Map() });
@@ -403,9 +422,9 @@ function createCmRouter({
       const m = y.months.get(month);
       m.count++;
       m.sum += r.amountIncVat || 0;
-      const key = bulkGroupKey(r);
+      const key = bulkGroupKey(r, rawById);
       if (!m.groups.has(key)) {
-        const raw = r.rawItemId ? cmStore.getRawItemById(r.rawItemId) : null;
+        const raw = r.rawItemId ? rawById.get(r.rawItemId) : null;
         m.groups.set(key, {
           key,
           label: r.supplierName || (raw?.fromEmail || 'okänd').split('@')[1] || 'okänd',
@@ -424,7 +443,7 @@ function createCmRouter({
       }
       if (r.category) g.kategorier.set(r.category, (g.kategorier.get(r.category) || 0) + 1);
       if (g.poster.length < 15) {
-        const raw = r.rawItemId ? cmStore.getRawItemById(r.rawItemId) : null;
+        const raw = r.rawItemId ? rawById.get(r.rawItemId) : null;
         g.poster.push({
           id: r.id,
           datum: d,
@@ -465,11 +484,12 @@ function createCmRouter({
   });
 
   router.get('/cm/groups', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
+    const rawById = rawIndex();
     const groups = new Map();
     for (const r of openBulkRecords()) {
-      const key = bulkGroupKey(r);
+      const key = bulkGroupKey(r, rawById);
       if (!groups.has(key)) {
-        const raw = r.rawItemId ? cmStore.getRawItemById(r.rawItemId) : null;
+        const raw = r.rawItemId ? rawById.get(r.rawItemId) : null;
         groups.set(key, {
           key,
           label: r.supplierName || (raw?.fromEmail || 'okänd').split('@')[1] || 'okänd',
@@ -498,10 +518,11 @@ function createCmRouter({
       return res.status(400).json({ ok: false, error: 'action (promote|reject) + groupKey krävs' });
     }
     // ORD-CM-6: valfritt år/månads-scope — bulk agerar bara inom öppnad nivå
+    const rawById = rawIndex();
     const targets = openBulkRecords().filter((r) => {
-      if (bulkGroupKey(r) !== groupKey) return false;
+      if (bulkGroupKey(r, rawById) !== groupKey) return false;
       if (year || month) {
-        const d = recordDate(r);
+        const d = recordDate(r, rawById);
         if (year && d.slice(0, 4) !== String(year)) return false;
         if (month && d.slice(5, 7) !== String(month).padStart(2, '0')) return false;
       }
