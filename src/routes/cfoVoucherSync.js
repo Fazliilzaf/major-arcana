@@ -188,6 +188,33 @@ function createCfoVoucherSyncRouter({
       return res.json({ ok: true, voucherSyncEnabled: true, path: p });
     }
   );
+  // ORD-CM-17 · återställ error-poster till pending (transient fel åtgärdat,
+  // t.ex. om-ansluten OAuth). Owner-only + audit; rör aldrig synced/syncing.
+  router.post(
+    '/cco-cf/voucher-sync/retry-errors',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!cfoExpenseStore)
+        return res.status(503).json({ ok: false, error: 'expense store ej monterad' });
+      try {
+        const errored = cfoExpenseStore.listExpenses({ fortnoxSyncStatus: 'error', limit: 1000 });
+        const results = [];
+        for (const e of errored) {
+          await cfoExpenseStore.markFortnoxRetry({
+            id: e.id,
+            actor: req.ccoUser?.email || 'owner',
+          });
+          results.push(e.id);
+        }
+        auditGate('cf.fortnox.voucher_retry_errors', req, { count: results.length });
+        return res.json({ ok: true, retried: results.length, expenseIds: results });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   router.delete(
     '/cco-cf/voucher-sync/override',
     requireAuth,
