@@ -3586,6 +3586,85 @@ function createMonitorRouter({
     }
   );
 
+  // ORD-79 — GET /monitor/finance-summary: intäkt + kostnader + resultat (aggregat only).
+  router.get(
+    '/monitor/finance-summary',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        const tenantId = req.auth.tenantId;
+        const locals = req.app.locals || {};
+        const { composeFinanceSummary } = require('../ops/financeSummary');
+
+        let financeDashboard = null;
+        try {
+          const { buildFinanceDashboard } = require('../cfo/cfoFinanceDashboardBuilder');
+          financeDashboard = await buildFinanceDashboard({
+            stores: {
+              fortnoxStore: locals.cfoFortnoxStore,
+              swishStore: locals.ccoSwishStore,
+              commercialStore: locals.ccoCommercialStore,
+              receiptStore: locals.cfoReceiptStore,
+              expenseStore: locals.cfoExpenseStore,
+              ruleStore: locals.cfoExpenseRuleStore,
+              vendorStore: locals.cfoFinanceVendorStore,
+              recurringStore: locals.cfoRecurringExpenseStore,
+              reviewStore: locals.cfoFinanceReviewStore,
+              monthlyCloseStore: locals.cfoFinanceMonthlyCloseStore,
+              fortnoxInvoiceLister: locals.cfoFortnoxInvoiceLister,
+            },
+            tenantId,
+            slice: 'invoices',
+          });
+        } catch (financeErr) {
+          console.warn(
+            `[monitor.finance-summary] financeDashboard error: ${financeErr?.message || financeErr}`
+          );
+          financeDashboard = null;
+        }
+
+        let expenses = [];
+        try {
+          if (typeof locals.cfoExpenseStore?.listExpenses === 'function') {
+            expenses = await locals.cfoExpenseStore.listExpenses({ limit: 1000 });
+          }
+        } catch (expenseErr) {
+          console.warn(
+            `[monitor.finance-summary] expenseStore error: ${expenseErr?.message || expenseErr}`
+          );
+          expenses = [];
+        }
+
+        const summary = composeFinanceSummary({
+          financeDashboard,
+          expenses,
+          now: new Date(),
+          tenantId,
+          fortnoxConnected: !!financeDashboard?.fortnox?.connected,
+        });
+
+        try {
+          await authStore?.addAuditEvent?.({
+            tenantId,
+            actorUserId: req.auth.userId,
+            action: 'monitor.finance_summary.read',
+            outcome: 'success',
+            targetType: 'finance_summary',
+            targetId: tenantId,
+          });
+        } catch (_auditErr) {
+          /* audit är best-effort */
+        }
+
+        return res.json(summary);
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte beräkna finance summary.' });
+      }
+    }
+  );
+
   return router;
 }
 

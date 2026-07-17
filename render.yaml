@@ -97,13 +97,13 @@ services:
       # UI-managed istället (Render exponerar dem då direkt till
       # process.env utan blueprint-rundtripp).
       # PUBLIC_BASE_URL maste matcha den faktiska basen (mejl-logga + lankar).
-      # ma.hairtpclinic.se CNAME:ar hit; andra INTE utan att verifiera mejlfloden.
+      # Prod custom domain (ORD-74 avstämning 2026-07-17 mot Dashboard).
       - key: PUBLIC_BASE_URL
-        value: https://major-arcana-frankfurt.onrender.com
+        value: https://arcana.hairtpclinic.com
       - key: CORS_ALLOWED_ORIGINS
         sync: false
       - key: ARCANA_BOOTSTRAP_MAILBOX_BACKFILL
-        value: "false"
+        value: "true"
       # Sänkt 2026-05-14 från 90 till 14 dagar. SIGABRT 134-grävning visade
       # att bootstrap laddade 4340 messages × 4 folders × 6 mailboxar i
       # ETT svep -> OOM på Standard 2GB. 14 d ger ~624 messages per
@@ -112,7 +112,7 @@ services:
       - key: ARCANA_BOOTSTRAP_MAILBOX_LOOKBACK_DAYS
         value: "14"
       - key: ARCANA_BOOTSTRAP_PREFERRED_MAILBOX
-        value: kons@hairtpclinic.com
+        value: contact@hairtpclinic.com
       - key: ARCANA_BOOTSTRAP_TENANT_ID
         value: hair-tp-clinic
       - key: ARCANA_BOOTSTRAP_DELAY_MS
@@ -122,8 +122,8 @@ services:
         value: "true"
       # Byggfas: MFA av tills allt är klart (sätt true + owner_mfa_enforced vid go-live).
       # Webb-bokning: styrs av config.js default (true) — ingen env-override.
-      # OBS 2026-06-10: blueprint-sync KAN radera envs (incident: ~35 nycklar wipade,
-      # se Notion-handoff 37b060cc-...-8132). autoSync ar PAUSAD tills heal-gate ar pa plats.
+      # ORD-74 2026-07-17: yaml avstämd mot Dashboard-värdenycklar; Blueprint autoSync
+      # återupptas efter merge (pausad sedan env-wipe-incidenten 2026-06-10).
       # Om Render Dashboard fortfarande har ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false:
       # → TA BORT variabeln i Dashboard (inte ändra till true, TA BORT den).
       # Då tar config.js default=true över.
@@ -169,12 +169,11 @@ services:
         sync: false
       - key: ARCANA_MIGRATION_INDEX_PATH
         value: /var/data/arcana/migration-index.json
-      # CCO inkorg: snabbare delta-sync och smalare scoped-analys (2026-05-20).
-      # Kons-pilot: delta-sync ar smalt allowlistat till kons@ nedan.
+      # CCO inkorg: scoped-analys. Truth-delta-interval 0 = av (Dashboard-läge ORD-74).
       - key: ARCANA_SCHEDULER_CCO_TRUTH_DELTA_INTERVAL_MINUTES
-        value: "5"
+        value: "0"
       - key: ARCANA_SCHEDULER_CCO_HISTORY_MAILBOX_IDS
-        value: kons@hairtpclinic.com
+        value: kons@hairtpclinic.com,info@hairtpclinic.com,contact@hairtpclinic.com,halso@hairtpclinic.com,egzona@hairtpclinic.com,fazli@hairtpclinic.com,marknad@hairtpclinic.com,kvitto@hairtpclinic.com
       - key: ARCANA_SCHEDULER_CCO_INBOX_SCOPED_LOOKBACK_DAYS
         value: "3"
       - key: ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER
@@ -190,9 +189,9 @@ services:
         value: "read_only"
       - key: ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX
         value: "kons@hairtpclinic.com"
-      # Graph webhooks stay off until ingestion pipeline is stable; delta + scheduler is enough.
+      # Graph change notifications — live Dashboard-läge (ORD-74 avstämning).
       - key: ARCANA_GRAPH_CHANGE_NOTIFICATIONS_ENABLED
-        value: "false"
+        value: "true"
       - key: ARCANA_GRAPH_CHANGE_NOTIFICATION_CLIENT_STATE
         value: "arcana-cco-mail-ingestion"
       - key: ARCANA_CCO_MAIL_INGESTION_QUEUE_BATCH_SIZE
@@ -217,7 +216,7 @@ services:
       - key: ARCANA_CCO_IMAP_POLL_ENABLED
         value: "false"
       - key: ARCANA_CCO_IMAP_POLL_INTERVAL_MINUTES
-        value: "30"
+        value: "3"
       - key: ARCANA_CCO_IMAP_MAX_MESSAGES_PER_CYCLE
         value: "25"
       # Separat queue-jobb avstangt; truth-delta-jobbet kor en liten ingestion-batch efter ny mail.
@@ -226,8 +225,8 @@ services:
       # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
       - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
         value: "2147483648"
-      # ORD-74 2026-07-17: Drive-ingest klar (disk stabil ~48h, granskningskö tom) —
-      # frysen lyft av Fazli ("kör igång"). Schedulern PÅ igen.
+      # ORD-74 2026-07-17: Drive-ingest klar — schedulern PÅ. Dashboard hade ENABLED=false
+      # medan override-filen tände den; yaml behåller true så sync+DELETE override blir ren env-styrning.
       - key: ARCANA_SCHEDULER_ENABLED
         value: "true"
       - key: ARCANA_SCHEDULER_PROD_SAFE_MODE
@@ -236,15 +235,15 @@ services:
       # läget från 13/7; allowlisten saknade ORD-73-jobbet.
       - key: ARCANA_SCHEDULER_JOBS
         value: ""
-      # Inga startup-jobb under stabilisering; minskar Render-restart/OOM-risk.
+      # Dashboard-läge (ORD-74): startup-jobb på efter fryslyft.
       - key: ARCANA_SCHEDULER_RUN_ON_STARTUP
-        value: "false"
+        value: "true"
       # Retention för state-backups (backup_prune) — defaults, explicit i blueprint.
       - key: ARCANA_BACKUP_RETENTION_MAX_FILES
         value: "50"
       - key: ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS
         value: "30"
-      # Photo Review — controlled completion canary (max 25 beslut/batch, ett beslut per bild)
+      # Photo Review canary — Dashboard-tak (ORD-74 avstämning).
       - key: ENABLE_CCO_OPERATOR_CANARY
         value: "true"
       - key: ENABLE_PHOTO_REVIEW_WRITE
@@ -252,14 +251,14 @@ services:
       - key: ENABLE_PHOTO_REVIEW_CANARY_ON_PROD
         value: "true"
       - key: PHOTO_REVIEW_CANARY_MAX_DECISIONS
-        value: "25"
+        value: "500"
       # Import Review — controlled completion canary (max 25 beslut/batch, stark match only)
       - key: ENABLE_IMPORT_REVIEW_WRITE
         value: "true"
       - key: IMPORT_REVIEW_CANARY_MAX_DECISIONS
         value: "25"
-      # Drive Import Review R2 — single-asset decisions (canary-gated)
+      # Drive Import Review R2 — Dashboard-tak (ORD-74 avstämning).
       - key: ENABLE_DRIVE_IMPORT_REVIEW_WRITE
         value: "true"
       - key: DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS
-        value: "300"
+        value: "317"
