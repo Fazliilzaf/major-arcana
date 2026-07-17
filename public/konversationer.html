@@ -4923,9 +4923,52 @@
         if (item.isInline === true || item.inline === true || disposition === 'inline') return true;
 
         const contentId = normalizeText(item.contentId).replace(/^<|>$/g, '');
-        if (!contentId) return false;
-        const html = messageBodyHtml(message).toLowerCase();
-        return html.includes(`cid:${contentId.toLowerCase()}`);
+        const html = messageBodyHtml(message);
+        if (contentId && html.toLowerCase().includes(`cid:${contentId.toLowerCase()}`)) return true;
+
+        // Vissa äldre Graph/MIME-poster har tappat contentId/isInline, trots att
+        // samma bild-URL redan ligger i signaturens HTML. Den är då en inline-resurs,
+        // inte en extra användarbilaga som ska visas en gång till under mailet.
+        return attachmentUrlAppearsInlineInMailHtml(item, html);
+      }
+
+      function canonicalMailAssetUrl(value) {
+        const raw = normalizeText(value).replace(/&amp;/gi, '&');
+        if (!raw) return '';
+        try {
+          const parsed = new URL(raw, window.location.href);
+          parsed.searchParams.sort();
+          return `${parsed.pathname}?${parsed.searchParams.toString()}`;
+        } catch {
+          return raw;
+        }
+      }
+
+      function attachmentUrlAppearsInlineInMailHtml(attachment, html) {
+        if (!attachmentIsImage(attachment)) return false;
+        const targetUrl = canonicalMailAssetUrl(attachmentUrl(attachment));
+        if (!targetUrl || !html || typeof DOMParser === 'undefined') return false;
+        try {
+          const documentFragment = new DOMParser().parseFromString(html, 'text/html');
+          const sourceUrls = [
+            ...documentFragment.querySelectorAll('img[src], source[src]'),
+          ].flatMap((element) => [
+            element.getAttribute('src'),
+            ...normalizeText(element.getAttribute('srcset'))
+              .split(',')
+              .map((candidate) => candidate.trim().split(/\s+/)[0]),
+          ]);
+          if (sourceUrls.some((value) => canonicalMailAssetUrl(value) === targetUrl)) return true;
+
+          return [...documentFragment.querySelectorAll('[style]')].some((element) => {
+            const style = normalizeText(element.getAttribute('style')).replace(/&amp;/gi, '&');
+            return [...style.matchAll(/url\(\s*['\"]?([^)'\"\s]+)['\"]?\s*\)/gi)].some(
+              (match) => canonicalMailAssetUrl(match[1]) === targetUrl
+            );
+          });
+        } catch {
+          return false;
+        }
       }
 
       function renderMessageAttachments(message) {

@@ -13,7 +13,10 @@ test('inline signaturresurser stannar i mailkroppen och visas inte som bilagor',
   assert.match(source, /item\.isInline === true/);
   assert.match(source, /item\.inline === true/);
   assert.match(source, /disposition === 'inline'/);
-  assert.match(source, /html\.includes\(`cid:\$\{contentId\.toLowerCase\(\)\}`\)/);
+  assert.match(source, /contentId && html\.toLowerCase\(\)\.includes\(`cid:\$\{contentId\.toLowerCase\(\)\}`\)/);
+  assert.match(source, /function attachmentUrlAppearsInlineInMailHtml\(attachment, html\)/);
+  assert.match(source, /if \(!attachmentIsImage\(attachment\)\) return false;/);
+  assert.match(source, /querySelectorAll\('img\[src\], source\[src\]'\)/);
   assert.match(
     source,
     /message\.attachments\.filter\([\s\S]*!attachmentIsInlineMailAsset\(attachment, message\)/

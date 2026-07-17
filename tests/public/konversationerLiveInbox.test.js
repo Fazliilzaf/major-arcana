@@ -566,6 +566,23 @@ test('konversationer renders full mail html and attachments safely', () => {
   assert.match(html, /body: messageBodyText\(message\)/);
   assert.match(html, /function renderMessageAttachments\(message\)/);
   assert.match(html, /function attachmentUrl\(attachment\)/);
+  assert.match(html, /function canonicalMailAssetUrl\(value\)/);
+  assert.match(html, /function attachmentUrlAppearsInlineInMailHtml\(attachment, html\)/);
+  assert.match(
+    html,
+    /if \(contentId && html\.toLowerCase\(\)\.includes\(`cid:\$\{contentId\.toLowerCase\(\)\}`\)\) return true;[\s\S]*return attachmentUrlAppearsInlineInMailHtml\(item, html\);/,
+    'äldre inline-bilder utan contentId ska inte bli dubbla bilagekort'
+  );
+  assert.match(
+    html,
+    /documentFragment\.querySelectorAll\('img\[src\], source\[src\]'\)/,
+    'en bild som redan ligger i mailkroppen ska klassas som inline'
+  );
+  assert.match(
+    html,
+    /documentFragment\.querySelectorAll\('\[style\]'\)/,
+    'bakgrundsbilder i företagssignaturer ska också klassas som inline'
+  );
   assert.match(html, /attachment\?\.inlineUrl/);
   assert.match(html, /attachment\?\.openUrl/);
   assert.match(html, /attachment\?\.downloadUrl/);

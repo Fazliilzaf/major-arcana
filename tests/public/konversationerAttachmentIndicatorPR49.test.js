@@ -37,6 +37,9 @@ function renderAttachmentsForTest(message) {
       }
       return '';
     },
+    messageBodyHtml() {
+      return '';
+    },
     formatAttachmentSize() {
       return '';
     },
