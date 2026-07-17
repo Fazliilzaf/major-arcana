@@ -47,7 +47,16 @@
   }
 
   // Stabil resurs-färg-palette (samma som cco-kalender.js)
-  const RESOURCE_COLORS = ['#7c3aed', '#a37433', '#2596a8', '#bb4779', '#4a8268', '#c8821e', '#84756b', '#5e8db8'];
+  const RESOURCE_COLORS = [
+    '#7c3aed',
+    '#a37433',
+    '#2596a8',
+    '#bb4779',
+    '#4a8268',
+    '#c8821e',
+    '#84756b',
+    '#5e8db8',
+  ];
   function colorForResource(resourceId) {
     if (!resourceId) return '#84756b';
     let hash = 0;
@@ -112,16 +121,48 @@
   }
 
   function sourceLabel(source) {
-    return String(source || '').startsWith('cco_booking') ? 'CCO' :
-      String(source || '').toLowerCase() === 'cliento' ? 'Cliento' : source || '—';
+    return String(source || '').startsWith('cco_booking')
+      ? 'CCO'
+      : String(source || '').toLowerCase() === 'cliento'
+        ? 'Cliento'
+        : source || '—';
+  }
+
+  function bookingNoteCount(slot) {
+    return [
+      slot && (slot.bookingNotes || slot.notes),
+      slot && slot.customerMessage,
+      slot && slot.internalNotes,
+      slot && slot.treatmentNotes,
+    ].filter(Boolean).length;
+  }
+
+  function bookingNoteIndicator(slot) {
+    const count = bookingNoteCount(slot);
+    if (!count) return null;
+    const label = count === 1 ? '1 anteckning' : count + ' anteckningar';
+    return el(
+      'span',
+      {
+        class: 'cco-cal-note-indicator',
+        title: label,
+        'aria-label': label,
+      },
+      '✎' + count
+    );
   }
 
   function stockholmParts(value) {
     const date = new Date(value);
     if (!Number.isFinite(date.getTime())) return { date: '', time: '' };
     const parts = new Intl.DateTimeFormat('sv-SE', {
-      timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+      timeZone: 'Europe/Stockholm',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
     }).formatToParts(date);
     const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
     return {
@@ -174,20 +215,23 @@
 
   function canonicalDayView(date, visits) {
     const byResource = new Map();
-    visits.filter((slot) => slot.date === date).forEach((slot) => {
-      const key = slot.resourceId || '_unassigned';
-      if (!byResource.has(key)) {
-        byResource.set(key, { resourceId: key, resourceLabel: slot.resourceLabel, slots: [] });
-      }
-      byResource.get(key).slots.push(slot);
-    });
+    visits
+      .filter((slot) => slot.date === date)
+      .forEach((slot) => {
+        const key = slot.resourceId || '_unassigned';
+        if (!byResource.has(key)) {
+          byResource.set(key, { resourceId: key, resourceLabel: slot.resourceLabel, slots: [] });
+        }
+        byResource.get(key).slots.push(slot);
+      });
     const rows = [...byResource.values()];
     const all = rows.flatMap((resource) => resource.slots);
     return {
       date,
       resources: rows,
       totalSlots: all.length,
-      confirmedBookings: all.filter((slot) => ['confirmed', 'upcoming'].includes(slot.status)).length,
+      confirmedBookings: all.filter((slot) => ['confirmed', 'upcoming'].includes(slot.status))
+        .length,
       pendingReservations: all.filter((slot) => slot.status === 'pending').length,
       sourceCounts: {
         bookingEngine: all.filter((slot) => String(slot.source).startsWith('cco_booking')).length,
@@ -222,7 +266,9 @@
       const params = new URLSearchParams(window.location.search);
       if (/\/kalender\.html$/i.test(window.location.pathname)) return 'calendar';
       return params.get('view') || 'customers';
-    } catch { return 'customers'; }
+    } catch {
+      return 'customers';
+    }
   }
 
   function applyView(view) {
@@ -232,13 +278,14 @@
     if (view === 'calendar' && isReadOnlyMode()) {
       body.setAttribute('data-cco-calendar-mode', 'live-read');
     }
-    if (calendarShell) calendarShell.hidden = (view !== 'calendar');
+    if (calendarShell) calendarShell.hidden = view !== 'calendar';
     // Uppdatera top-nav active state (mjuk — bryter inte existing)
     if (view === 'calendar') {
-      document.querySelectorAll('.top-nav a').forEach(a => {
+      document.querySelectorAll('.top-nav a').forEach((a) => {
         const href = a.getAttribute('href') || '';
         const isCalendar = href.includes('/kalender.html') || href.includes('view=calendar');
-        const isKunder = href.includes('/major-arcana-preview/?view=customers&v9=on') && !href.includes('view=');
+        const isKunder =
+          href.includes('/major-arcana-preview/?view=customers&v9=on') && !href.includes('view=');
         if (isCalendar) a.classList.add('active');
         else if (isKunder) a.classList.remove('active');
       });
@@ -284,8 +331,8 @@
   }
 
   function renderDayGrid(dayView, onBookingClick) {
-    const resources = (dayView.resources || []).filter(r => r.resourceId !== '_unassigned');
-    const unassigned = (dayView.resources || []).find(r => r.resourceId === '_unassigned');
+    const resources = (dayView.resources || []).filter((r) => r.resourceId !== '_unassigned');
+    const unassigned = (dayView.resources || []).find((r) => r.resourceId === '_unassigned');
     const totalResources = resources.length + (unassigned ? 1 : 0);
 
     if ((dayView.totalSlots || 0) === 0) {
@@ -301,7 +348,9 @@
     const hourCol = el('div', { class: 'cco-cal-hour-col' });
     hourCol.appendChild(el('div', { class: 'cco-cal-resource-spacer' })); // spacer för header-höjd
     for (let h = HOUR_START; h < HOUR_END; h++) {
-      hourCol.appendChild(el('div', { class: 'cco-cal-hour-row' }, String(h).padStart(2,'0') + ':00'));
+      hourCol.appendChild(
+        el('div', { class: 'cco-cal-hour-row' }, String(h).padStart(2, '0') + ':00')
+      );
     }
     grid.appendChild(hourCol);
 
@@ -313,16 +362,23 @@
       style: `grid-template-columns: repeat(${totalResources}, 1fr);`,
     });
     for (const r of resources) {
-      headers.appendChild(el('div', { class: 'cco-cal-resource-header' }, [
-        el('span', { class: 'cco-cal-resource-dot', style: `background: ${colorForResource(r.resourceId)}` }),
-        el('span', {}, r.resourceLabel || r.resourceId),
-      ]));
+      headers.appendChild(
+        el('div', { class: 'cco-cal-resource-header' }, [
+          el('span', {
+            class: 'cco-cal-resource-dot',
+            style: `background: ${colorForResource(r.resourceId)}`,
+          }),
+          el('span', {}, r.resourceLabel || r.resourceId),
+        ])
+      );
     }
     if (unassigned) {
-      headers.appendChild(el('div', { class: 'cco-cal-resource-header' }, [
-        el('span', { class: 'cco-cal-resource-dot', style: 'background: #84756b' }),
-        el('span', {}, 'Ej tilldelad'),
-      ]));
+      headers.appendChild(
+        el('div', { class: 'cco-cal-resource-header' }, [
+          el('span', { class: 'cco-cal-resource-dot', style: 'background: #84756b' }),
+          el('span', {}, 'Ej tilldelad'),
+        ])
+      );
     }
     right.appendChild(headers);
 
@@ -334,27 +390,57 @@
     const renderResourceCol = (r) => {
       const col = el('div', { class: 'cco-cal-resource-col' });
       const color = colorForResource(r.resourceId);
-      for (const slot of (r.slots || [])) {
+      for (const slot of r.slots || []) {
         const startMin = timeToMinutes(slot.time);
         const endMin = slot.endTime ? timeToMinutes(slot.endTime) : startMin + 30;
         const top = Math.max(0, minutesToY(startMin));
         const height = Math.max(28, ((endMin - startMin) / 60) * HOUR_H - 2);
-        const tone = ['confirmed', 'upcoming', 'completed'].includes(slot.status) ? 'success'
-                   : slot.status === 'pending'   ? 'warning'
-                   : ['cancelled', 'canceled', 'no_show'].includes(slot.status) ? 'danger' : 'info';
-        col.appendChild(el('button', {
-          class: 'cco-cal-booking' + (height < 38 ? ' cco-cal-booking--short' : ''),
-          style: `top: ${top}px; height: ${height}px; border-left-color: ${color};`,
-          dataset: { bookingid: slot.id },
-          onclick: (e) => { e.stopPropagation(); onBookingClick(slot, r); },
-        }, [
-          el('div', { class: 'cco-cal-booking-time' }, formatTimeRange(slot.time, slot.endTime)),
-          el('div', { class: 'cco-cal-booking-patient' }, slot.patientName || '(okänd patient)'),
-          el('div', { class: 'cco-cal-booking-service' }, slot.serviceLabel || slot.serviceId || ''),
-          el('div', { class: 'cco-cal-booking-pills' }, [
-            el('span', { class: `cco-cal-pill cco-cal-pill--${tone}` }, statusLabel(slot.status)),
-          ]),
-        ]));
+        const tone = ['confirmed', 'upcoming', 'completed'].includes(slot.status)
+          ? 'success'
+          : slot.status === 'pending'
+            ? 'warning'
+            : ['cancelled', 'canceled', 'no_show'].includes(slot.status)
+              ? 'danger'
+              : 'info';
+        col.appendChild(
+          el(
+            'button',
+            {
+              class: 'cco-cal-booking' + (height < 38 ? ' cco-cal-booking--short' : ''),
+              style: `top: ${top}px; height: ${height}px; border-left-color: ${color};`,
+              dataset: { bookingid: slot.id },
+              onclick: (e) => {
+                e.stopPropagation();
+                onBookingClick(slot, r);
+              },
+            },
+            [
+              el(
+                'div',
+                { class: 'cco-cal-booking-time' },
+                formatTimeRange(slot.time, slot.endTime)
+              ),
+              el(
+                'div',
+                { class: 'cco-cal-booking-patient' },
+                slot.patientName || '(okänd patient)'
+              ),
+              el(
+                'div',
+                { class: 'cco-cal-booking-service' },
+                slot.serviceLabel || slot.serviceId || ''
+              ),
+              bookingNoteIndicator(slot),
+              el('div', { class: 'cco-cal-booking-pills' }, [
+                el(
+                  'span',
+                  { class: `cco-cal-pill cco-cal-pill--${tone}` },
+                  statusLabel(slot.status)
+                ),
+              ]),
+            ]
+          )
+        );
       }
       cols.appendChild(col);
     };
@@ -377,15 +463,24 @@
     const treatment = slot.serviceId || '';
 
     let pills = {
-      patientId: null, encounterId: null, treatment,
-      journal: { status: 'missing' }, healthDeclaration: { status: 'missing' },
-      fitnessCertificate: { status: 'missing' }, consent: { status: 'missing' },
-      agreement: { status: 'missing' }, idVerification: { status: 'missing' },
-      readyForTreatment: false, blockingMissing: [],
+      patientId: null,
+      encounterId: null,
+      treatment,
+      journal: { status: 'missing' },
+      healthDeclaration: { status: 'missing' },
+      fitnessCertificate: { status: 'missing' },
+      consent: { status: 'missing' },
+      agreement: { status: 'missing' },
+      idVerification: { status: 'missing' },
+      readyForTreatment: false,
+      blockingMissing: [],
     };
     try {
-      const url = '/api/v1/calendar/booking/' + encodeURIComponent(slot.id) +
-        '/status-pills?tenantId=' + encodeURIComponent(tenantId) +
+      const url =
+        '/api/v1/calendar/booking/' +
+        encodeURIComponent(slot.id) +
+        '/status-pills?tenantId=' +
+        encodeURIComponent(tenantId) +
         (treatment ? '&treatment=' + encodeURIComponent(treatment) : '');
       const res = await fetch(url, { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
       if (res.ok) pills = await res.json();
@@ -405,13 +500,19 @@
       drawer.innerHTML = '';
       if (placeholder) placeholder.hidden = false;
     };
-    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
-      el('h3', {}, slot.patientName || '(okänd patient)'),
-      el('div', { class: 'cco-cal-drawer-meta' },
-        formatTimeRange(slot.time, slot.endTime) + ' · ' +
-        (slot.serviceLabel || slot.serviceId || 'Bokning')),
-      el('button', { class: 'cco-cal-drawer-close', onclick: close, 'aria-label': 'Stäng' }, '×'),
-    ]));
+    drawer.appendChild(
+      el('div', { class: 'cco-cal-drawer-head' }, [
+        el('h3', {}, slot.patientName || '(okänd patient)'),
+        el(
+          'div',
+          { class: 'cco-cal-drawer-meta' },
+          formatTimeRange(slot.time, slot.endTime) +
+            ' · ' +
+            (slot.serviceLabel || slot.serviceId || 'Bokning')
+        ),
+        el('button', { class: 'cco-cal-drawer-close', onclick: close, 'aria-label': 'Stäng' }, '×'),
+      ])
+    );
     const details = [
       ['Status', statusLabel(slot.status)],
       ['Behandling', slot.serviceLabel || slot.serviceId || '—'],
@@ -426,9 +527,17 @@
     }
     drawer.appendChild(detailList);
     if (slot.patientId) {
-      drawer.appendChild(el('button', {
-        class: 'cco-cal-open-patient', type: 'button', onclick: () => openCanonicalPatient(slot.patientId),
-      }, 'Öppna samma patient i Kunder V11/V12'));
+      drawer.appendChild(
+        el(
+          'button',
+          {
+            class: 'cco-cal-open-patient',
+            type: 'button',
+            onclick: () => openCanonicalPatient(slot.patientId),
+          },
+          'Öppna samma patient i Kunder V11/V12'
+        )
+      );
     }
     const noteFields = [
       ['Bokningsanteckning', slot.bookingNotes || slot.notes],
@@ -436,13 +545,11 @@
       ['Intern anteckning', slot.internalNotes],
       ['Behandlingsanteckning', slot.treatmentNotes],
     ].filter((entry) => entry[1]);
-    const notes = el('section', { class: 'cco-cal-visit-notes' }, [
-      el('h4', {}, 'Anteckningar'),
-    ]);
+    const notes = el('section', { class: 'cco-cal-visit-notes' }, [el('h4', {}, 'Anteckningar')]);
     if (!noteFields.length) notes.appendChild(el('p', {}, 'Inga anteckningar registrerade.'));
-    noteFields.forEach(([label, value]) => notes.appendChild(el('article', {}, [
-      el('strong', {}, label), el('p', {}, value),
-    ])));
+    noteFields.forEach(([label, value]) =>
+      notes.appendChild(el('article', {}, [el('strong', {}, label), el('p', {}, value)]))
+    );
     drawer.appendChild(notes);
   }
 
@@ -461,17 +568,29 @@
     };
     backdrop.onclick = close;
 
-    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
-      el('h3', {}, slot.patientName || '(okänd patient)'),
-      el('div', { class: 'cco-cal-drawer-meta' },
-        formatTimeRange(slot.time, slot.endTime) + ' · ' + (slot.serviceLabel || slot.serviceId || 'tjänst')),
-      el('button', { class: 'cco-cal-drawer-close', onclick: close, 'aria-label': 'Stäng' }, '×'),
-    ]));
+    drawer.appendChild(
+      el('div', { class: 'cco-cal-drawer-head' }, [
+        el('h3', {}, slot.patientName || '(okänd patient)'),
+        el(
+          'div',
+          { class: 'cco-cal-drawer-meta' },
+          formatTimeRange(slot.time, slot.endTime) +
+            ' · ' +
+            (slot.serviceLabel || slot.serviceId || 'tjänst')
+        ),
+        el('button', { class: 'cco-cal-drawer-close', onclick: close, 'aria-label': 'Stäng' }, '×'),
+      ])
+    );
 
     // Ready banner
     if (pills.readyForTreatment === true) {
-      drawer.appendChild(el('div', { class: 'cco-cal-ready cco-cal-ready--ok' },
-        '🟢 Ready for treatment — alla obligatoriska dokument signerade.'));
+      drawer.appendChild(
+        el(
+          'div',
+          { class: 'cco-cal-ready cco-cal-ready--ok' },
+          '🟢 Ready for treatment — alla obligatoriska dokument signerade.'
+        )
+      );
     } else if ((pills.blockingMissing || []).length > 0) {
       const LABEL = {
         healthDeclaration: 'Hälsodeklaration',
@@ -482,32 +601,37 @@
       };
       const list = el('ul', { class: 'cco-cal-blockers' });
       for (const b of pills.blockingMissing) list.appendChild(el('li', {}, LABEL[b] || b));
-      drawer.appendChild(el('div', { class: 'cco-cal-ready cco-cal-ready--blocked' }, [
-        el('strong', {}, '🔴 Inte redo för behandling'),
-        list,
-      ]));
+      drawer.appendChild(
+        el('div', { class: 'cco-cal-ready cco-cal-ready--blocked' }, [
+          el('strong', {}, '🔴 Inte redo för behandling'),
+          list,
+        ])
+      );
     }
 
     // Snabbactions med dynamisk primary
     const primary = computePrimary(pills, slot.bookingStatus);
     const ACTIONS = [
-      { id: 'checkin',       label: 'Ankommen',       icon: '✓' },
+      { id: 'checkin', label: 'Ankommen', icon: '✓' },
       { id: 'start-journal', label: 'Starta journal', icon: '📝' },
-      { id: 'send-form',     label: 'Skicka formulär',icon: '📋' },
-      { id: 'follow-up',     label: 'Återbesök',      icon: '↻' },
-      { id: 'no-show',       label: 'No-show',        icon: '✗' },
-      { id: 'open-card',     label: 'Öppna kort',     icon: '👤' },
+      { id: 'send-form', label: 'Skicka formulär', icon: '📋' },
+      { id: 'follow-up', label: 'Återbesök', icon: '↻' },
+      { id: 'no-show', label: 'No-show', icon: '✗' },
+      { id: 'open-card', label: 'Öppna kort', icon: '👤' },
     ];
     const actions = el('div', { class: 'cco-cal-actions' });
     for (const a of ACTIONS) {
-      actions.appendChild(el('button', {
-        class: 'cco-cal-action',
-        dataset: { primary: String(a.id === primary), action: a.id },
-        onclick: () => triggerAction(a.id, slot, pills),
-      }, [
-        el('span', { class: 'cco-cal-action-icon' }, a.icon),
-        el('span', {}, a.label),
-      ]));
+      actions.appendChild(
+        el(
+          'button',
+          {
+            class: 'cco-cal-action',
+            dataset: { primary: String(a.id === primary), action: a.id },
+            onclick: () => triggerAction(a.id, slot, pills),
+          },
+          [el('span', { class: 'cco-cal-action-icon' }, a.icon), el('span', {}, a.label)]
+        )
+      );
     }
     drawer.appendChild(actions);
 
@@ -516,18 +640,20 @@
     statusWrap.appendChild(el('div', { class: 'cco-cal-status-title' }, 'Dokument-status'));
     const rows = [
       ['Behandlingsjournal', pills.journal?.status],
-      ['Hälsodeklaration',   pills.healthDeclaration?.status],
-      ['Friskförsäkran',     pills.fitnessCertificate?.status],
-      ['Samtycke',           pills.consent?.status],
-      ['Behandlingsavtal',   pills.agreement?.status],
-      ['ID-verifierad',      pills.idVerification?.status],
+      ['Hälsodeklaration', pills.healthDeclaration?.status],
+      ['Friskförsäkran', pills.fitnessCertificate?.status],
+      ['Samtycke', pills.consent?.status],
+      ['Behandlingsavtal', pills.agreement?.status],
+      ['ID-verifierad', pills.idVerification?.status],
     ];
     for (const [label, status] of rows) {
       const p = pillForStatus(status || 'missing');
-      statusWrap.appendChild(el('div', { class: 'cco-cal-status-row' }, [
-        el('span', {}, label),
-        el('span', { class: `cco-cal-pill ${p.cls}` }, p.label),
-      ]));
+      statusWrap.appendChild(
+        el('div', { class: 'cco-cal-status-row' }, [
+          el('span', {}, label),
+          el('span', { class: `cco-cal-pill ${p.cls}` }, p.label),
+        ])
+      );
     }
     drawer.appendChild(statusWrap);
 
@@ -537,12 +663,18 @@
     loadIntelligence(slot, pills, intelMount);
 
     // Patient-snapshot
-    drawer.appendChild(el('div', { class: 'cco-cal-snapshot' }, [
-      el('div', { class: 'cco-cal-snapshot-name' }, slot.patientName || '—'),
-      el('div', { class: 'cco-cal-snapshot-meta' },
-        'Patient: ' + (pills.patientId || '—') +
-        (pills.encounterId ? ' · Encounter: ' + pills.encounterId.slice(0,8) + '…' : '')),
-    ]));
+    drawer.appendChild(
+      el('div', { class: 'cco-cal-snapshot' }, [
+        el('div', { class: 'cco-cal-snapshot-name' }, slot.patientName || '—'),
+        el(
+          'div',
+          { class: 'cco-cal-snapshot-meta' },
+          'Patient: ' +
+            (pills.patientId || '—') +
+            (pills.encounterId ? ' · Encounter: ' + pills.encounterId.slice(0, 8) + '…' : '')
+        ),
+      ])
+    );
 
     // Mini journal-feed (återanvänd cco-journal-feed-modulen)
     if (window.CcoJournalFeed && pills.patientId) {
@@ -562,15 +694,18 @@
   }
 
   function computePrimary(pills, bookingStatus) {
-    if (pills && Array.isArray(pills.blockingMissing) && pills.blockingMissing.length > 0) return 'send-form';
+    if (pills && Array.isArray(pills.blockingMissing) && pills.blockingMissing.length > 0)
+      return 'send-form';
     if (bookingStatus === 'checked_in') return 'start-journal';
     return 'checkin';
   }
 
   function pillForStatus(status) {
-    if (status === 'signed' || status === 'verified') return { cls: 'cco-cal-pill--success', label: '✓ Klar' };
-    if (status === 'draft' || status === 'sent')       return { cls: 'cco-cal-pill--warning', label: 'Påbörjad' };
-    if (status === 'missing')                          return { cls: 'cco-cal-pill--danger', label: '✗ Saknas' };
+    if (status === 'signed' || status === 'verified')
+      return { cls: 'cco-cal-pill--success', label: '✓ Klar' };
+    if (status === 'draft' || status === 'sent')
+      return { cls: 'cco-cal-pill--warning', label: 'Påbörjad' };
+    if (status === 'missing') return { cls: 'cco-cal-pill--danger', label: '✗ Saknas' };
     return { cls: 'cco-cal-pill--info', label: status || '?' };
   }
 
@@ -579,17 +714,31 @@
     const bookingId = slot.id;
     const tenantId = global.__ccoCalTenantId || 'hair_tp';
     const role = global.__ccoCalRole || 'owner';
-    const headers = { 'x-cco-role': role, 'x-cco-tenant': tenantId, 'Content-Type': 'application/json' };
+    const headers = {
+      'x-cco-role': role,
+      'x-cco-tenant': tenantId,
+      'Content-Type': 'application/json',
+    };
 
     if (actionId === 'open-card') {
-      if (pills.patientId) window.location.href = '/major-arcana-preview/?view=customers&v9=on&id=' + encodeURIComponent(pills.patientId);
+      if (pills.patientId)
+        window.location.href =
+          '/major-arcana-preview/?view=customers&v9=on&id=' + encodeURIComponent(pills.patientId);
       return;
     }
     if (actionId === 'start-journal') {
-      if (!pills.patientId) { alert('Patient ej kopplad'); return; }
-      window.open('/smart-anteckning.html?patientId=' + encodeURIComponent(pills.patientId) +
-        (pills.encounterId ? '&encounterId=' + encodeURIComponent(pills.encounterId) : '') +
-        '&tenantId=' + encodeURIComponent(tenantId), '_blank');
+      if (!pills.patientId) {
+        alert('Patient ej kopplad');
+        return;
+      }
+      window.open(
+        '/smart-anteckning.html?patientId=' +
+          encodeURIComponent(pills.patientId) +
+          (pills.encounterId ? '&encounterId=' + encodeURIComponent(pills.encounterId) : '') +
+          '&tenantId=' +
+          encodeURIComponent(tenantId),
+        '_blank'
+      );
       return;
     }
     if (actionId === 'send-form') {
@@ -597,17 +746,24 @@
       return;
     }
     const endpointMap = {
-      'checkin':   '/api/v1/cco-bookings/' + encodeURIComponent(bookingId) + '/checkin',
-      'no-show':   '/api/v1/cco-bookings/' + encodeURIComponent(bookingId) + '/no-show',
+      checkin: '/api/v1/cco-bookings/' + encodeURIComponent(bookingId) + '/checkin',
+      'no-show': '/api/v1/cco-bookings/' + encodeURIComponent(bookingId) + '/no-show',
       'follow-up': '/api/v1/cco-bookings/' + encodeURIComponent(bookingId) + '/follow-up',
     };
-    const body = actionId === 'no-show'    ? { reason: prompt('Anledning (valfri)?') || '' }
-               : actionId === 'follow-up'  ? { interval: prompt('Intervall (3m/6m/12m)?') || '' }
-               : {};
+    const body =
+      actionId === 'no-show'
+        ? { reason: prompt('Anledning (valfri)?') || '' }
+        : actionId === 'follow-up'
+          ? { interval: prompt('Intervall (3m/6m/12m)?') || '' }
+          : {};
     try {
-      const res = await fetch(endpointMap[actionId], { method: 'POST', headers, body: JSON.stringify(body) });
+      const res = await fetch(endpointMap[actionId], {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      });
       const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || ('HTTP ' + res.status));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'HTTP ' + res.status);
       showToast('✓ ' + actionId + ' loggad', 'ok');
     } catch (err) {
       showToast('✗ Misslyckades: ' + err.message, 'error');
@@ -615,7 +771,7 @@
   }
 
   function showToast(msg, kind) {
-    document.querySelectorAll('.cco-cal-toast').forEach(n => n.remove());
+    document.querySelectorAll('.cco-cal-toast').forEach((n) => n.remove());
     const toast = el('div', { class: 'cco-cal-toast cco-cal-toast--' + (kind || 'ok') }, msg);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3500);
@@ -631,13 +787,15 @@
 
   function resetLiveReadUi() {
     if (!isReadOnlyMode()) return;
-    document.querySelectorAll(
-      '.mockup-label, .caption, .mini-inbox, .morgon-story, .story-cta-row, ' +
-      '.calendar-busy, .vibe-strip, .calendar-week, .watch-widget, .watch-restore, ' +
-      '.voice-overlay, .voice-sheet, .search-overlay, .calm-banner'
-    ).forEach((fixture) => {
-      fixture.remove();
-    });
+    document
+      .querySelectorAll(
+        '.mockup-label, .caption, .mini-inbox, .morgon-story, .story-cta-row, ' +
+          '.calendar-busy, .vibe-strip, .calendar-week, .watch-widget, .watch-restore, ' +
+          '.voice-overlay, .voice-sheet, .search-overlay, .calm-banner'
+      )
+      .forEach((fixture) => {
+        fixture.remove();
+      });
     document.querySelectorAll('.side-link .count').forEach((count) => {
       count.textContent = '—';
     });
@@ -660,35 +818,54 @@
   }
 
   function metricCard(label, value, tone) {
-    return el('div', { class: 'cco-cal-quality-metric cco-cal-quality-metric--' + (tone || 'neutral') }, [
-      el('span', {}, label), el('strong', {}, String(value ?? '—')),
-    ]);
+    return el(
+      'div',
+      { class: 'cco-cal-quality-metric cco-cal-quality-metric--' + (tone || 'neutral') },
+      [el('span', {}, label), el('strong', {}, String(value ?? '—'))]
+    );
   }
 
   function renderQualityPanel(panel, integrity, review) {
     const content = panel.querySelector('[data-quality-content]');
     content.innerHTML = '';
-    const safe = integrity?.zeroWrites === true && integrity?.readOnly === true &&
-      integrity?.ok === true && review?.zeroWrites === true;
-    content.appendChild(el('div', { class: 'cco-cal-quality-state ' + (safe ? 'is-ok' : 'is-stop') }, [
-      el('strong', {}, safe ? 'Canonical kontroll godkänd' : 'STOPP · avvikelse i canonical kontroll'),
-      el('span', {}, 'Read-only · 0 writes'),
-    ]));
+    const safe =
+      integrity?.zeroWrites === true &&
+      integrity?.readOnly === true &&
+      integrity?.ok === true &&
+      review?.zeroWrites === true;
+    content.appendChild(
+      el('div', { class: 'cco-cal-quality-state ' + (safe ? 'is-ok' : 'is-stop') }, [
+        el(
+          'strong',
+          {},
+          safe ? 'Canonical kontroll godkänd' : 'STOPP · avvikelse i canonical kontroll'
+        ),
+        el('span', {}, 'Read-only · 0 writes'),
+      ])
+    );
     const metrics = el('div', { class: 'cco-cal-quality-metrics' }, [
       metricCard('Besök', integrity?.totalVisits),
-      metricCard('Integritetsfel', integrity?.totalIssues, integrity?.totalIssues === 0 ? 'ok' : 'stop'),
+      metricCard(
+        'Integritetsfel',
+        integrity?.totalIssues,
+        integrity?.totalIssues === 0 ? 'ok' : 'stop'
+      ),
       metricCard('Med encounter', integrity?.encounterCoverage?.withEncounter),
       metricCard('Utan encounter', integrity?.encounterCoverage?.withoutEncounter),
       metricCard('Okopplad review', review?.total, Number(review?.total) === 55 ? 'ok' : 'stop'),
     ]);
     content.appendChild(metrics);
 
-    const status = el('section', { class: 'cco-cal-quality-section' }, [el('h4', {}, 'Status och anteckningstäckning')]);
+    const status = el('section', { class: 'cco-cal-quality-section' }, [
+      el('h4', {}, 'Status och anteckningstäckning'),
+    ]);
     const statusGrid = el('div', { class: 'cco-cal-quality-chips' });
     Object.entries(integrity?.byStatus || {}).forEach(([key, value]) =>
-      statusGrid.appendChild(el('span', {}, statusLabel(key) + ' ' + value)));
+      statusGrid.appendChild(el('span', {}, statusLabel(key) + ' ' + value))
+    );
     Object.entries(integrity?.noteCoverage || {}).forEach(([key, value]) =>
-      statusGrid.appendChild(el('span', {}, key + ' ' + value)));
+      statusGrid.appendChild(el('span', {}, key + ' ' + value))
+    );
     status.appendChild(statusGrid);
     content.appendChild(status);
 
@@ -697,14 +874,26 @@
     ]);
     const reasons = el('div', { class: 'cco-cal-quality-chips' });
     Object.entries(review?.byReason || {}).forEach(([key, value]) =>
-      reasons.appendChild(el('span', {}, key + ' ' + value)));
+      reasons.appendChild(el('span', {}, key + ' ' + value))
+    );
     reviewSection.appendChild(reasons);
     const rows = el('div', { class: 'cco-cal-quality-rows' });
-    (Array.isArray(review?.rows) ? review.rows : []).forEach((row) => rows.appendChild(el('article', {}, [
-      el('div', {}, [el('strong', {}, row.bookingId || 'saknar id'), el('span', {}, row.date || 'saknar datum')]),
-      el('p', {}, (row.identityBasis || []).map((item) => item.type + ': ' + item.masked).join(' · ')),
-      el('p', {}, row.reason || row.reasonCode || 'Okänd orsak'),
-    ])));
+    (Array.isArray(review?.rows) ? review.rows : []).forEach((row) =>
+      rows.appendChild(
+        el('article', {}, [
+          el('div', {}, [
+            el('strong', {}, row.bookingId || 'saknar id'),
+            el('span', {}, row.date || 'saknar datum'),
+          ]),
+          el(
+            'p',
+            {},
+            (row.identityBasis || []).map((item) => item.type + ': ' + item.masked).join(' · ')
+          ),
+          el('p', {}, row.reason || row.reasonCode || 'Okänd orsak'),
+        ])
+      )
+    );
     if (!rows.childElementCount) rows.appendChild(el('p', {}, 'Inga review-poster.'));
     reviewSection.appendChild(rows);
     content.appendChild(reviewSection);
@@ -716,17 +905,26 @@
     const content = panel.querySelector('[data-quality-content]');
     content.innerHTML = '<div class="cco-cal-empty">Läser canonical integritet…</div>';
     try {
-      const headers = calendarHeaders({ tenantId: global.__ccoCalTenantId, role: global.__ccoCalRole });
+      const headers = calendarHeaders({
+        tenantId: global.__ccoCalTenantId,
+        role: global.__ccoCalRole,
+      });
       const [integrityResponse, reviewResponse] = await Promise.all([
         fetch('/api/v1/cco-bookings/canonical-integrity', { headers }),
         fetch('/api/v1/cco-bookings/cliento-unlinked-review', { headers }),
       ]);
-      if (!integrityResponse.ok || !reviewResponse.ok) throw new Error('HTTP-kontroll misslyckades');
+      if (!integrityResponse.ok || !reviewResponse.ok)
+        throw new Error('HTTP-kontroll misslyckades');
       renderQualityPanel(panel, await integrityResponse.json(), await reviewResponse.json());
     } catch (error) {
       content.innerHTML = '';
-      content.appendChild(el('div', { class: 'cco-cal-quality-state is-stop' },
-        'STOPP · kunde inte verifiera canonical data: ' + error.message));
+      content.appendChild(
+        el(
+          'div',
+          { class: 'cco-cal-quality-state is-stop' },
+          'STOPP · kunde inte verifiera canonical data: ' + error.message
+        )
+      );
     }
   }
 
@@ -734,20 +932,39 @@
     if (!isReadOnlyMode() || document.getElementById('ccoCalQualityPanel')) return;
     const actions = document.querySelector('.calendar-toolbar-actions');
     if (!actions) return;
-    const panel = el('section', { id: 'ccoCalQualityPanel', class: 'cco-cal-quality-panel',
-      'aria-hidden': 'true', 'aria-label': 'Datakvalitet för bokningar' }, [
-      el('div', { class: 'cco-cal-quality-backdrop', onclick: () => close() }),
-      el('div', { class: 'cco-cal-quality-surface', role: 'dialog', 'aria-modal': 'true' }, [
-        el('header', {}, [
-          el('div', {}, [el('span', {}, 'READ-ONLY · CANONICAL BESÖKSDATA'), el('h3', {}, 'Datakvalitet')]),
-          el('button', { type: 'button', 'aria-label': 'Stäng', onclick: () => close() }, '×'),
+    const panel = el(
+      'section',
+      {
+        id: 'ccoCalQualityPanel',
+        class: 'cco-cal-quality-panel',
+        'aria-hidden': 'true',
+        'aria-label': 'Datakvalitet för bokningar',
+      },
+      [
+        el('div', { class: 'cco-cal-quality-backdrop', onclick: () => close() }),
+        el('div', { class: 'cco-cal-quality-surface', role: 'dialog', 'aria-modal': 'true' }, [
+          el('header', {}, [
+            el('div', {}, [
+              el('span', {}, 'READ-ONLY · CANONICAL BESÖKSDATA'),
+              el('h3', {}, 'Datakvalitet'),
+            ]),
+            el('button', { type: 'button', 'aria-label': 'Stäng', onclick: () => close() }, '×'),
+          ]),
+          el('div', { class: 'cco-cal-quality-content', 'data-quality-content': '' }),
         ]),
-        el('div', { class: 'cco-cal-quality-content', 'data-quality-content': '' }),
-      ]),
-    ]);
-    const close = () => { panel.classList.remove('is-open'); panel.setAttribute('aria-hidden', 'true'); };
-    actions.prepend(el('button', { class: 'cco-cal-quality-button', type: 'button',
-      onclick: () => openQualityPanel(panel) }, 'Datakvalitet'));
+      ]
+    );
+    const close = () => {
+      panel.classList.remove('is-open');
+      panel.setAttribute('aria-hidden', 'true');
+    };
+    actions.prepend(
+      el(
+        'button',
+        { class: 'cco-cal-quality-button', type: 'button', onclick: () => openQualityPanel(panel) },
+        'Datakvalitet'
+      )
+    );
     document.body.appendChild(panel);
   }
 
@@ -769,8 +986,11 @@
         el('span', { class: 'dot' }),
         String(sourceCounts.bookingEngine || 0) + ' CCO',
       ]),
-      el('span', { class: 'status-pill status-pill--neutral' },
-        String(sourceCounts.cliento || 0) + ' Cliento'),
+      el(
+        'span',
+        { class: 'status-pill status-pill--neutral' },
+        String(sourceCounts.cliento || 0) + ' Cliento'
+      ),
       el('span', { class: 'spacer' }),
       el('span', { class: 'status-pill status-pill--neutral' }, String(total || 0) + ' totalt')
     );
@@ -779,8 +999,10 @@
   function updateDaySummary(dayView) {
     if (!isReadOnlyMode()) return;
     updateSideCount('Dagens mottagning', dayView.totalSlots || 0);
-    updateSideCount('Resurser', (dayView.resources || []).filter((resource) =>
-      resource.resourceId !== '_unassigned').length);
+    updateSideCount(
+      'Resurser',
+      (dayView.resources || []).filter((resource) => resource.resourceId !== '_unassigned').length
+    );
     updateSideCount('Bekräftade', dayView.confirmedBookings || 0);
     updateSideCount('Tentativa', dayView.pendingReservations || 0);
     updateSideCount('Konflikt', null);
@@ -835,8 +1057,11 @@
         const title = document.getElementById('calTitle');
         if (title) {
           const d = new Date(date + 'T00:00:00');
-          title.textContent = d.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' }) +
-            ' · ' + dayView.totalSlots + ' bokningar';
+          title.textContent =
+            d.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' }) +
+            ' · ' +
+            dayView.totalSlots +
+            ' bokningar';
         }
         return;
       }
@@ -847,11 +1072,13 @@
       });
       if (!res.ok) {
         if (res.status === 401) {
-          mount.innerHTML = '<div class="cco-cal-empty">Inloggningen saknas eller har gått ut.</div>';
+          mount.innerHTML =
+            '<div class="cco-cal-empty">Inloggningen saknas eller har gått ut.</div>';
           return;
         }
         if (res.status === 403) {
-          mount.innerHTML = '<div class="cco-cal-empty">Du saknar läsbehörighet till kalendern.</div>';
+          mount.innerHTML =
+            '<div class="cco-cal-empty">Du saknar läsbehörighet till kalendern.</div>';
           return;
         }
         throw new Error('HTTP ' + res.status);
@@ -866,8 +1093,11 @@
       const title = document.getElementById('calTitle');
       if (title && dayView.date) {
         const d = new Date(dayView.date + 'T00:00:00');
-        title.textContent = d.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' }) +
-          ' · ' + (dayView.totalSlots || 0) + ' bokningar';
+        title.textContent =
+          d.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' }) +
+          ' · ' +
+          (dayView.totalSlots || 0) +
+          ' bokningar';
       }
     } catch (err) {
       mount.innerHTML = '<div class="cco-cal-empty">Kunde inte ladda: ' + err.message + '</div>';
@@ -881,12 +1111,16 @@
     const treatment = slot.serviceId || pills.treatment || '';
     mount.innerHTML = '<div class="cco-cal-intel-loading">Laddar insikter…</div>';
     try {
-      const url = '/api/v1/calendar/booking/' + encodeURIComponent(slot.id) +
-        '/intelligence?tenantId=' + encodeURIComponent(tenantId) +
+      const url =
+        '/api/v1/calendar/booking/' +
+        encodeURIComponent(slot.id) +
+        '/intelligence?tenantId=' +
+        encodeURIComponent(tenantId) +
         (treatment ? '&treatment=' + encodeURIComponent(treatment) : '');
       const res = await fetch(url, { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
       if (!res.ok) {
-        mount.innerHTML = '<div class="cco-cal-intel-empty">Insikter ej tillgängliga (' + res.status + ').</div>';
+        mount.innerHTML =
+          '<div class="cco-cal-intel-empty">Insikter ej tillgängliga (' + res.status + ').</div>';
         return;
       }
       const data = await res.json();
@@ -904,65 +1138,120 @@
     // 1. Readiness
     const r = ins.readiness || {};
     const rTone = r.status === 'ready' ? 'ok' : r.status === 'blocked' ? 'danger' : 'info';
-    mount.appendChild(el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--' + rTone }, [
-      el('div', { class: 'cco-cal-intel-kicker' }, '✓ Ready-for-treatment'),
-      el('div', { class: 'cco-cal-intel-headline' },
-        r.status === 'ready' ? 'Klar för behandling' :
-        r.status === 'blocked' ? (r.blockingCount + ' dokument saknas') :
-        '— ingen behandling-mappning'),
-      r.hint ? el('div', { class: 'cco-cal-intel-sub' }, r.hint) : null,
-    ]));
+    mount.appendChild(
+      el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--' + rTone }, [
+        el('div', { class: 'cco-cal-intel-kicker' }, '✓ Ready-for-treatment'),
+        el(
+          'div',
+          { class: 'cco-cal-intel-headline' },
+          r.status === 'ready'
+            ? 'Klar för behandling'
+            : r.status === 'blocked'
+              ? r.blockingCount + ' dokument saknas'
+              : '— ingen behandling-mappning'
+        ),
+        r.hint ? el('div', { class: 'cco-cal-intel-sub' }, r.hint) : null,
+      ])
+    );
 
     // 2. Risk
     const rk = ins.risk || {};
     const rkTone = rk.level === 'high' ? 'danger' : rk.level === 'medium' ? 'warning' : 'ok';
-    mount.appendChild(el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--' + rkTone }, [
-      el('div', { class: 'cco-cal-intel-kicker' }, '⚠ Risk · no-show'),
-      el('div', { class: 'cco-cal-intel-headline' },
-        rk.level === 'high' ? 'Hög risk' :
-        rk.level === 'medium' ? 'Medel risk' :
-        rk.level === 'low' ? 'Låg risk' : '—'),
-      el('div', { class: 'cco-cal-intel-sub' },
-        'No-shows: ' + (rk.noShowCount || 0) +
-        ' · sena avbok: ' + (rk.lateCancelCount || 0)),
-      rk.hint ? el('div', { class: 'cco-cal-intel-sub cco-cal-intel-sub--italic' }, rk.hint) : null,
-    ]));
+    mount.appendChild(
+      el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--' + rkTone }, [
+        el('div', { class: 'cco-cal-intel-kicker' }, '⚠ Risk · no-show'),
+        el(
+          'div',
+          { class: 'cco-cal-intel-headline' },
+          rk.level === 'high'
+            ? 'Hög risk'
+            : rk.level === 'medium'
+              ? 'Medel risk'
+              : rk.level === 'low'
+                ? 'Låg risk'
+                : '—'
+        ),
+        el(
+          'div',
+          { class: 'cco-cal-intel-sub' },
+          'No-shows: ' + (rk.noShowCount || 0) + ' · sena avbok: ' + (rk.lateCancelCount || 0)
+        ),
+        rk.hint
+          ? el('div', { class: 'cco-cal-intel-sub cco-cal-intel-sub--italic' }, rk.hint)
+          : null,
+      ])
+    );
 
     // 3. Engagement + NBA
     const eng = ins.engagement || {};
     const nba = eng.nextBestAction;
-    mount.appendChild(el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--info' }, [
-      el('div', { class: 'cco-cal-intel-kicker' }, '⌘ Senaste kontakt'),
-      el('div', { class: 'cco-cal-intel-headline' },
-        eng.daysSinceContact === null ? 'Ingen kontakt registrerad' :
-        eng.daysSinceContact === 0 ? 'Idag' :
-        eng.daysSinceContact === 1 ? 'Igår' :
-        eng.daysSinceContact + ' dagar sedan'),
-      eng.lastContactKind ? el('div', { class: 'cco-cal-intel-sub' }, 'Senaste: ' + eng.lastContactKind) : null,
-      nba ? el('div', { class: 'cco-cal-intel-nba' }, [
-        el('span', { class: 'cco-cal-intel-nba-icon' }, '→'),
-        el('div', {}, [
-          el('strong', {}, 'Föreslagen åtgärd: ' + nba.action),
-          el('div', { class: 'cco-cal-intel-sub' }, nba.reason || ''),
-        ]),
-      ]) : null,
-    ]));
+    mount.appendChild(
+      el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--info' }, [
+        el('div', { class: 'cco-cal-intel-kicker' }, '⌘ Senaste kontakt'),
+        el(
+          'div',
+          { class: 'cco-cal-intel-headline' },
+          eng.daysSinceContact === null
+            ? 'Ingen kontakt registrerad'
+            : eng.daysSinceContact === 0
+              ? 'Idag'
+              : eng.daysSinceContact === 1
+                ? 'Igår'
+                : eng.daysSinceContact + ' dagar sedan'
+        ),
+        eng.lastContactKind
+          ? el('div', { class: 'cco-cal-intel-sub' }, 'Senaste: ' + eng.lastContactKind)
+          : null,
+        nba
+          ? el('div', { class: 'cco-cal-intel-nba' }, [
+              el('span', { class: 'cco-cal-intel-nba-icon' }, '→'),
+              el('div', {}, [
+                el('strong', {}, 'Föreslagen åtgärd: ' + nba.action),
+                el('div', { class: 'cco-cal-intel-sub' }, nba.reason || ''),
+              ]),
+            ])
+          : null,
+      ])
+    );
 
     // 4. Kommersiell
     const c = ins.commercial || {};
     const tier = c.ltvTier || 'standard';
-    const tierTone = tier === 'platinum' ? 'gold' : tier === 'gold' ? 'gold' : tier === 'silver' ? 'info' : tier === 'new' ? 'warning' : 'ok';
-    mount.appendChild(el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--' + tierTone }, [
-      el('div', { class: 'cco-cal-intel-kicker' }, '◆ Kommersiell · ' + tier.toUpperCase()),
-      el('div', { class: 'cco-cal-intel-headline' },
-        c.agreementState === 'signed' ? 'Avtal signerat' :
-        c.agreementState === 'sent' ? 'Avtal skickat' :
-        c.offerState === 'accepted' ? 'Offert accepterad' :
-        c.offerState === 'sent' ? 'Offert skickad' :
-        'Ingen aktiv affär'),
-      c.totalSignedValue ? el('div', { class: 'cco-cal-intel-sub' },
-        'LTV: ' + (c.totalSignedValue.toLocaleString('sv-SE') || c.totalSignedValue) + ' SEK') : null,
-    ]));
+    const tierTone =
+      tier === 'platinum'
+        ? 'gold'
+        : tier === 'gold'
+          ? 'gold'
+          : tier === 'silver'
+            ? 'info'
+            : tier === 'new'
+              ? 'warning'
+              : 'ok';
+    mount.appendChild(
+      el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--' + tierTone }, [
+        el('div', { class: 'cco-cal-intel-kicker' }, '◆ Kommersiell · ' + tier.toUpperCase()),
+        el(
+          'div',
+          { class: 'cco-cal-intel-headline' },
+          c.agreementState === 'signed'
+            ? 'Avtal signerat'
+            : c.agreementState === 'sent'
+              ? 'Avtal skickat'
+              : c.offerState === 'accepted'
+                ? 'Offert accepterad'
+                : c.offerState === 'sent'
+                  ? 'Offert skickad'
+                  : 'Ingen aktiv affär'
+        ),
+        c.totalSignedValue
+          ? el(
+              'div',
+              { class: 'cco-cal-intel-sub' },
+              'LTV: ' + (c.totalSignedValue.toLocaleString('sv-SE') || c.totalSignedValue) + ' SEK'
+            )
+          : null,
+      ])
+    );
   }
 
   // ═══ FAS 4: VECKOVY ════════════════════════════════════════════════════════
@@ -977,7 +1266,7 @@
     const dayNum = date.getUTCDay() || 7;
     date.setUTCDate(date.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-    return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    return Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
   }
 
   function ensureWeekMount() {
@@ -1003,7 +1292,9 @@
     const hourCol = el('div', { class: 'cco-cal-hour-col' });
     hourCol.appendChild(el('div', { class: 'cco-cal-week-header-spacer' }));
     for (let h = HOUR_START; h < HOUR_END; h++) {
-      hourCol.appendChild(el('div', { class: 'cco-cal-hour-row' }, String(h).padStart(2,'0') + ':00'));
+      hourCol.appendChild(
+        el('div', { class: 'cco-cal-hour-row' }, String(h).padStart(2, '0') + ':00')
+      );
     }
     grid.appendChild(hourCol);
 
@@ -1012,21 +1303,31 @@
       const dateObj = new Date(day.date + 'T12:00:00.000Z');
       const isToday = day.date === isoToday();
       const col = el('div', { class: 'cco-cal-week-day-col' });
-      col.appendChild(el('div', {
-        class: 'cco-cal-week-day-header' + (isToday ? ' is-today' : ''),
-      }, [
-        el('div', { class: 'cco-cal-week-day-name' }, dateObj.toLocaleDateString('sv-SE', {
-          weekday: 'short',
-          timeZone: 'UTC',
-        })),
-        el('div', { class: 'cco-cal-week-day-num' }, String(dateObj.getDate())),
-        el('div', { class: 'cco-cal-week-day-count' }, (day.totalSlots || 0) + ' bok.'),
-      ]));
+      col.appendChild(
+        el(
+          'div',
+          {
+            class: 'cco-cal-week-day-header' + (isToday ? ' is-today' : ''),
+          },
+          [
+            el(
+              'div',
+              { class: 'cco-cal-week-day-name' },
+              dateObj.toLocaleDateString('sv-SE', {
+                weekday: 'short',
+                timeZone: 'UTC',
+              })
+            ),
+            el('div', { class: 'cco-cal-week-day-num' }, String(dateObj.getDate())),
+            el('div', { class: 'cco-cal-week-day-count' }, (day.totalSlots || 0) + ' bok.'),
+          ]
+        )
+      );
 
       // Bokningar (alla resurser flat)
       const colBody = el('div', { class: 'cco-cal-week-day-body' });
-      const bookings = (day.resources || []).flatMap(r =>
-        (r.slots || []).map(s => ({ ...s, _resource: r }))
+      const bookings = (day.resources || []).flatMap((r) =>
+        (r.slots || []).map((s) => ({ ...s, _resource: r }))
       );
       for (const slot of bookings) {
         const startMin = timeToMinutes(slot.time);
@@ -1034,22 +1335,45 @@
         const top = Math.max(0, minutesToY(startMin));
         const height = Math.max(20, ((endMin - startMin) / 60) * HOUR_H - 2);
         const color = colorForResource(slot._resource?.resourceId || '');
-        const tone = ['confirmed', 'upcoming', 'completed'].includes(slot.status) ? 'success'
-                   : slot.status === 'pending'   ? 'warning'
-                   : ['cancelled', 'canceled', 'no_show'].includes(slot.status) ? 'danger' : 'info';
-        colBody.appendChild(el('button', {
-          class: 'cco-cal-booking cco-cal-booking--compact',
-          style: `top: ${top}px; height: ${height}px; border-left-color: ${color};`,
-          dataset: { bookingid: slot.id },
-          onclick: (e) => { e.stopPropagation(); onBookingClickFn(slot, slot._resource); },
-          title: (slot.time || '') + ' ' + (slot.patientName || ''),
-        }, [
-          el('div', { class: 'cco-cal-booking-time' }, slot.time || ''),
-          el('div', { class: 'cco-cal-booking-patient' }, slot.patientName || '—'),
-          el('div', { class: 'cco-cal-booking-pills' }, [
-            el('span', { class: `cco-cal-pill cco-cal-pill--${tone}` }, statusLabel(slot.status)),
-          ]),
-        ]));
+        const tone = ['confirmed', 'upcoming', 'completed'].includes(slot.status)
+          ? 'success'
+          : slot.status === 'pending'
+            ? 'warning'
+            : ['cancelled', 'canceled', 'no_show'].includes(slot.status)
+              ? 'danger'
+              : 'info';
+        colBody.appendChild(
+          el(
+            'button',
+            {
+              class: 'cco-cal-booking cco-cal-booking--compact',
+              style: `top: ${top}px; height: ${height}px; border-left-color: ${color};`,
+              dataset: { bookingid: slot.id },
+              onclick: (e) => {
+                e.stopPropagation();
+                onBookingClickFn(slot, slot._resource);
+              },
+              title: (slot.time || '') + ' ' + (slot.patientName || ''),
+            },
+            [
+              el('div', { class: 'cco-cal-booking-time' }, slot.time || ''),
+              el('div', { class: 'cco-cal-booking-patient' }, slot.patientName || '—'),
+              el(
+                'div',
+                { class: 'cco-cal-booking-service' },
+                slot.serviceLabel || slot.serviceId || ''
+              ),
+              bookingNoteIndicator(slot),
+              el('div', { class: 'cco-cal-booking-pills' }, [
+                el(
+                  'span',
+                  { class: `cco-cal-pill cco-cal-pill--${tone}` },
+                  statusLabel(slot.status)
+                ),
+              ]),
+            ]
+          )
+        );
       }
       col.appendChild(colBody);
       grid.appendChild(col);
@@ -1072,22 +1396,38 @@
       if (isReadOnlyMode()) {
         const end = new Date(startDate + 'T12:00:00.000Z');
         end.setUTCDate(end.getUTCDate() + 6);
-        const visits = await loadCanonicalVisits(startDate, end.toISOString().slice(0, 10), tenantId, role);
+        const visits = await loadCanonicalVisits(
+          startDate,
+          end.toISOString().slice(0, 10),
+          tenantId,
+          role
+        );
         const weekView = canonicalWeekView(startDate, visits);
         mount.innerHTML = '';
         mount.appendChild(renderWeekGrid(weekView, onBookingClick));
-        const totals = weekView.days.reduce((summary, day) => {
-          summary.confirmed += day.confirmedBookings;
-          summary.pending += day.pendingReservations;
-          summary.sourceCounts.bookingEngine += day.sourceCounts.bookingEngine;
-          summary.sourceCounts.cliento += day.sourceCounts.cliento;
-          return summary;
-        }, { confirmed: 0, pending: 0, sourceCounts: { bookingEngine: 0, cliento: 0 } });
-        renderLiveStatus({ label: 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')),
-          total: weekView.totalSlots, ...totals });
+        const totals = weekView.days.reduce(
+          (summary, day) => {
+            summary.confirmed += day.confirmedBookings;
+            summary.pending += day.pendingReservations;
+            summary.sourceCounts.bookingEngine += day.sourceCounts.bookingEngine;
+            summary.sourceCounts.cliento += day.sourceCounts.cliento;
+            return summary;
+          },
+          { confirmed: 0, pending: 0, sourceCounts: { bookingEngine: 0, cliento: 0 } }
+        );
+        renderLiveStatus({
+          label: 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')),
+          total: weekView.totalSlots,
+          ...totals,
+        });
         const title = document.getElementById('calTitle');
-        if (title) title.textContent = 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')) +
-          ' · ' + weekView.totalSlots + ' bokningar';
+        if (title)
+          title.textContent =
+            'Vecka ' +
+            weekNumber(new Date(startDate + 'T12:00:00.000Z')) +
+            ' · ' +
+            weekView.totalSlots +
+            ' bokningar';
         return;
       }
       const query = new URLSearchParams({ startDate });
@@ -1097,11 +1437,13 @@
       });
       if (!res.ok) {
         if (res.status === 401) {
-          mount.innerHTML = '<div class="cco-cal-empty">Inloggningen saknas eller har gått ut.</div>';
+          mount.innerHTML =
+            '<div class="cco-cal-empty">Inloggningen saknas eller har gått ut.</div>';
           return;
         }
         if (res.status === 403) {
-          mount.innerHTML = '<div class="cco-cal-empty">Du saknar läsbehörighet till kalendern.</div>';
+          mount.innerHTML =
+            '<div class="cco-cal-empty">Du saknar läsbehörighet till kalendern.</div>';
           return;
         }
         throw new Error('HTTP ' + res.status);
@@ -1134,16 +1476,19 @@
       const title = document.getElementById('calTitle');
       if (title) {
         const sd = new Date(startDate + 'T12:00:00.000Z');
-        const ed = new Date(sd); ed.setUTCDate(ed.getUTCDate() + 6);
-        const fmt = d => d.toLocaleDateString('sv-SE', {
-          day: 'numeric',
-          month: 'short',
-          timeZone: 'UTC',
-        });
+        const ed = new Date(sd);
+        ed.setUTCDate(ed.getUTCDate() + 6);
+        const fmt = (d) =>
+          d.toLocaleDateString('sv-SE', {
+            day: 'numeric',
+            month: 'short',
+            timeZone: 'UTC',
+          });
         title.textContent = 'Vecka ' + weekNumber(sd) + ' · ' + fmt(sd) + '–' + fmt(ed);
       }
     } catch (err) {
-      mount.innerHTML = '<div class="cco-cal-empty">Kunde inte ladda vecka: ' + err.message + '</div>';
+      mount.innerHTML =
+        '<div class="cco-cal-empty">Kunde inte ladda vecka: ' + err.message + '</div>';
     }
   }
 
@@ -1154,20 +1499,26 @@
   async function loadServices(tenantId, role) {
     if (_services) return _services;
     try {
-      const r = await fetch('/api/v1/calendar/services?tenantId=' + tenantId,
-        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+      const r = await fetch('/api/v1/calendar/services?tenantId=' + tenantId, {
+        headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId },
+      });
       _services = await r.json();
-    } catch { _services = { quickPicks: [], catalog: [] }; }
+    } catch {
+      _services = { quickPicks: [], catalog: [] };
+    }
     return _services;
   }
 
   async function loadResourcesFromDay(tenantId, role) {
     try {
-      const r = await fetch('/api/v1/calendar/day?date=' + isoToday() + '&tenantId=' + tenantId,
-        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+      const r = await fetch('/api/v1/calendar/day?date=' + isoToday() + '&tenantId=' + tenantId, {
+        headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId },
+      });
       const d = await r.json();
-      return (d.resources || []).filter(x => x.resourceId !== '_unassigned');
-    } catch { return []; }
+      return (d.resources || []).filter((x) => x.resourceId !== '_unassigned');
+    } catch {
+      return [];
+    }
   }
 
   async function openCreateBookingModal(opts = {}) {
@@ -1195,17 +1546,25 @@
       conflicts: [],
     };
 
-    document.querySelectorAll('.cco-cal-create-backdrop').forEach(n => n.remove());
-    const backdrop = el('div', { class: 'cco-cal-create-backdrop', role: 'dialog', 'aria-modal': 'true' });
+    document.querySelectorAll('.cco-cal-create-backdrop').forEach((n) => n.remove());
+    const backdrop = el('div', {
+      class: 'cco-cal-create-backdrop',
+      role: 'dialog',
+      'aria-modal': 'true',
+    });
     const modal = el('div', { class: 'cco-cal-create-modal' });
     const close = () => backdrop.remove();
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) close();
+    });
 
     // Header
-    modal.appendChild(el('div', { class: 'cco-cal-create-head' }, [
-      el('h3', {}, 'Ny bokning'),
-      el('button', { class: 'cco-cal-create-close', onclick: close, 'aria-label': 'Stäng' }, '×'),
-    ]));
+    modal.appendChild(
+      el('div', { class: 'cco-cal-create-head' }, [
+        el('h3', {}, 'Ny bokning'),
+        el('button', { class: 'cco-cal-create-close', onclick: close, 'aria-label': 'Stäng' }, '×'),
+      ])
+    );
 
     const body = el('div', { class: 'cco-cal-create-body' });
 
@@ -1216,22 +1575,28 @@
       picks.innerHTML = '';
       for (const qp of quickPicks) {
         const active = qp.id === state.serviceId;
-        picks.appendChild(el('button', {
-          class: 'cco-cal-create-pick' + (active ? ' is-active' : ''),
-          type: 'button',
-          onclick: () => {
-            state.serviceId = qp.id;
-            state.serviceLabel = qp.label;
-            state.durationMinutes = qp.durationMinutes;
-            state.treatment = qp.treatment;
-            renderPicks();
-            checkConflicts();
-          },
-        }, [
-          el('span', { class: 'cco-cal-pick-icon' }, qp.icon || '📅'),
-          el('span', {}, qp.label),
-          el('span', { class: 'cco-cal-pick-dur' }, qp.durationMinutes + ' min'),
-        ]));
+        picks.appendChild(
+          el(
+            'button',
+            {
+              class: 'cco-cal-create-pick' + (active ? ' is-active' : ''),
+              type: 'button',
+              onclick: () => {
+                state.serviceId = qp.id;
+                state.serviceLabel = qp.label;
+                state.durationMinutes = qp.durationMinutes;
+                state.treatment = qp.treatment;
+                renderPicks();
+                checkConflicts();
+              },
+            },
+            [
+              el('span', { class: 'cco-cal-pick-icon' }, qp.icon || '📅'),
+              el('span', {}, qp.label),
+              el('span', { class: 'cco-cal-pick-dur' }, qp.durationMinutes + ' min'),
+            ]
+          )
+        );
       }
     }
     renderPicks();
@@ -1240,10 +1605,14 @@
     // Patient
     body.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Patient (ID)'));
     const patientInput = el('input', {
-      class: 'cco-cal-create-input', type: 'text',
+      class: 'cco-cal-create-input',
+      type: 'text',
       placeholder: 'cliento_xxx eller anon-patient-001',
     });
-    patientInput.addEventListener('input', (e) => { state.patientId = e.target.value.trim(); checkConflicts(); });
+    patientInput.addEventListener('input', (e) => {
+      state.patientId = e.target.value.trim();
+      checkConflicts();
+    });
     body.appendChild(patientInput);
 
     // Resurs
@@ -1253,27 +1622,54 @@
       resourceSelect.appendChild(el('option', { value: '' }, 'Inga behandlare hittades'));
     } else {
       for (const r of resources) {
-        resourceSelect.appendChild(el('option', { value: r.resourceId }, r.resourceLabel || r.resourceId));
+        resourceSelect.appendChild(
+          el('option', { value: r.resourceId }, r.resourceLabel || r.resourceId)
+        );
       }
     }
     resourceSelect.value = state.resourceId;
-    resourceSelect.addEventListener('change', (e) => { state.resourceId = e.target.value; checkConflicts(); });
+    resourceSelect.addEventListener('change', (e) => {
+      state.resourceId = e.target.value;
+      checkConflicts();
+    });
     body.appendChild(resourceSelect);
 
     // Datum + tid
-    const dateInput = el('input', { class: 'cco-cal-create-input', type: 'date', value: state.date });
-    dateInput.addEventListener('change', (e) => { state.date = e.target.value; checkConflicts(); });
-    const timeInput = el('input', { class: 'cco-cal-create-input', type: 'time', value: state.time });
-    timeInput.addEventListener('change', (e) => { state.time = e.target.value; checkConflicts(); });
-    body.appendChild(el('div', { class: 'cco-cal-create-row2' }, [
-      el('div', {}, [el('div', { class: 'cco-cal-create-label' }, 'Datum'), dateInput]),
-      el('div', {}, [el('div', { class: 'cco-cal-create-label' }, 'Tid'), timeInput]),
-    ]));
+    const dateInput = el('input', {
+      class: 'cco-cal-create-input',
+      type: 'date',
+      value: state.date,
+    });
+    dateInput.addEventListener('change', (e) => {
+      state.date = e.target.value;
+      checkConflicts();
+    });
+    const timeInput = el('input', {
+      class: 'cco-cal-create-input',
+      type: 'time',
+      value: state.time,
+    });
+    timeInput.addEventListener('change', (e) => {
+      state.time = e.target.value;
+      checkConflicts();
+    });
+    body.appendChild(
+      el('div', { class: 'cco-cal-create-row2' }, [
+        el('div', {}, [el('div', { class: 'cco-cal-create-label' }, 'Datum'), dateInput]),
+        el('div', {}, [el('div', { class: 'cco-cal-create-label' }, 'Tid'), timeInput]),
+      ])
+    );
 
     // Notes
     body.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Anteckning (valfri)'));
-    const notesInput = el('textarea', { class: 'cco-cal-create-input', rows: '2', placeholder: 'Ex. återbesök efter PRP' });
-    notesInput.addEventListener('input', (e) => { state.notes = e.target.value; });
+    const notesInput = el('textarea', {
+      class: 'cco-cal-create-input',
+      rows: '2',
+      placeholder: 'Ex. återbesök efter PRP',
+    });
+    notesInput.addEventListener('input', (e) => {
+      state.notes = e.target.value;
+    });
     body.appendChild(notesInput);
 
     // Conflict-area (live)
@@ -1283,12 +1679,18 @@
     modal.appendChild(body);
 
     // Footer
-    const submitBtn = el('button', { class: 'cco-cal-create-submit', type: 'button' }, 'Skapa bokning');
+    const submitBtn = el(
+      'button',
+      { class: 'cco-cal-create-submit', type: 'button' },
+      'Skapa bokning'
+    );
     submitBtn.addEventListener('click', () => submitCreate(submitBtn, state, close));
-    modal.appendChild(el('div', { class: 'cco-cal-create-foot' }, [
-      el('button', { class: 'cco-cal-create-cancel', type: 'button', onclick: close }, 'Avbryt'),
-      submitBtn,
-    ]));
+    modal.appendChild(
+      el('div', { class: 'cco-cal-create-foot' }, [
+        el('button', { class: 'cco-cal-create-cancel', type: 'button', onclick: close }, 'Avbryt'),
+        submitBtn,
+      ])
+    );
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
@@ -1304,11 +1706,20 @@
       try {
         const r = await fetch('/api/v1/calendar/booking/conflict-check', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-cco-role': role,
+            'x-cco-tenant': tenantId,
+          },
           body: JSON.stringify({
-            resourceId: state.resourceId, date: state.date, time: state.time,
-            durationMinutes: state.durationMinutes, serviceId: state.serviceId,
-            patientId: state.patientId || undefined, treatment: state.treatment || undefined, tenantId,
+            resourceId: state.resourceId,
+            date: state.date,
+            time: state.time,
+            durationMinutes: state.durationMinutes,
+            serviceId: state.serviceId,
+            patientId: state.patientId || undefined,
+            treatment: state.treatment || undefined,
+            tenantId,
           }),
         });
         const d = await r.json();
@@ -1326,19 +1737,31 @@
       return;
     }
     for (const c of conflicts) {
-      node.appendChild(el('div', {
-        class: 'cco-cal-create-conflict cco-cal-create-conflict--' + (c.severity || 'warn'),
-      }, [
-        el('strong', {}, c.severity === 'blocker' ? '⛔ Blocker · ' : '⚠ Varning · '),
-        el('span', {}, c.message || c.type),
-      ]));
+      node.appendChild(
+        el(
+          'div',
+          {
+            class: 'cco-cal-create-conflict cco-cal-create-conflict--' + (c.severity || 'warn'),
+          },
+          [
+            el('strong', {}, c.severity === 'blocker' ? '⛔ Blocker · ' : '⚠ Varning · '),
+            el('span', {}, c.message || c.type),
+          ]
+        )
+      );
     }
   }
 
   async function submitCreate(btn, state, close) {
-    if (!state.patientId) { alert('Ange patient-ID'); return; }
-    if (!state.resourceId) { alert('Välj behandlare'); return; }
-    const hasBlockers = (state.conflicts || []).some(c => c.severity === 'blocker');
+    if (!state.patientId) {
+      alert('Ange patient-ID');
+      return;
+    }
+    if (!state.resourceId) {
+      alert('Välj behandlare');
+      return;
+    }
+    const hasBlockers = (state.conflicts || []).some((c) => c.severity === 'blocker');
     if (hasBlockers && !confirm('Det finns blocker-konflikter. Skapa ändå (force)?')) return;
     btn.disabled = true;
     btn.textContent = 'Skapar…';
@@ -1347,13 +1770,22 @@
     try {
       const r = await fetch('/api/v1/calendar/booking', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-cco-role': role,
+          'x-cco-tenant': tenantId,
+        },
         body: JSON.stringify({
-          resourceId: state.resourceId, serviceId: state.serviceId,
-          date: state.date, time: state.time,
+          resourceId: state.resourceId,
+          serviceId: state.serviceId,
+          date: state.date,
+          time: state.time,
           durationMinutes: state.durationMinutes,
-          patientId: state.patientId, treatment: state.treatment,
-          notes: state.notes, tenantId, force: hasBlockers,
+          patientId: state.patientId,
+          treatment: state.treatment,
+          notes: state.notes,
+          tenantId,
+          force: hasBlockers,
         }),
       });
       const data = await r.json();
@@ -1373,7 +1805,7 @@
   function bindSetModeHook() {
     const tryBind = () => {
       const tabs = document.querySelectorAll('.segment-tab');
-      tabs.forEach(t => {
+      tabs.forEach((t) => {
         t.addEventListener('click', () => {
           const mode = t.dataset.mode;
           if (mode === 'dag') {

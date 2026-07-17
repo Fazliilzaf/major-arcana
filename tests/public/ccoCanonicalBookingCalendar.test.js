@@ -18,12 +18,12 @@ function loadCalendarShared() {
 
 function loadCustomerSurfaces() {
   const sandbox = { window: {}, console, Date, Intl, Map, Set, URLSearchParams };
-  [
-    'cco-v11-rail-adapters.js',
-    'cco-v11-rail.js',
-    'cco-v12-workspace.js',
-  ].forEach((file) => vm.runInNewContext(fs.readFileSync(
-    path.join(__dirname, '../../public/major-arcana-preview/app', file), 'utf8'), sandbox));
+  ['cco-v11-rail-adapters.js', 'cco-v11-rail.js', 'cco-v12-workspace.js'].forEach((file) =>
+    vm.runInNewContext(
+      fs.readFileSync(path.join(__dirname, '../../public/major-arcana-preview/app', file), 'utf8'),
+      sandbox
+    )
+  );
   return sandbox.window;
 }
 
@@ -70,7 +70,8 @@ test('calendar V8 sends a strict parent message for the canonical V11/V12 patien
 
 test('active admin calendar uses canonical bundle and the same strict patient handoff', () => {
   const source = fs.readFileSync(
-    path.join(__dirname, '../../public/cco-kalender-shell.js'), 'utf8'
+    path.join(__dirname, '../../public/cco-kalender-shell.js'),
+    'utf8'
   );
   assert.match(source, /\/api\/v1\/cco-bookings\/calendar-bundle/);
   assert.match(source, /type: 'arcana:cco-open-customer-dossier', patientId/);
@@ -79,6 +80,84 @@ test('active admin calendar uses canonical bundle and the same strict patient ha
   assert.match(source, /internalNotes/);
   assert.match(source, /treatmentNotes/);
   assert.doesNotMatch(source, /window\.location\.href\s*=\s*['"]\/staff/);
+});
+
+test('active day and week cards expose canonical treatment and note indicators', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '../../public/cco-kalender-shell.js'),
+    'utf8'
+  );
+  const dayRenderer = source.slice(
+    source.indexOf('const renderResourceCol'),
+    source.indexOf('// ─── Booking click')
+  );
+  const weekRenderer = source.slice(
+    source.indexOf('function renderWeekGrid'),
+    source.indexOf('async function loadWeek')
+  );
+
+  for (const renderer of [dayRenderer, weekRenderer]) {
+    assert.match(renderer, /slot\.serviceLabel \|\| slot\.serviceId/);
+    assert.match(renderer, /bookingNoteIndicator\(slot\)/);
+    assert.match(renderer, /statusLabel\(slot\.status\)/);
+    assert.match(renderer, /onBookingClick/);
+  }
+});
+
+test('complete V11 rail consumes canonical booking adapters instead of raw UTC labels', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '../../public/major-arcana-preview/app/cco-v11-rk.js'),
+    'utf8'
+  );
+  const calls = [];
+  const sandbox = {
+    window: {
+      CcoV11RailAdapters: {
+        buildBookingsFromExtras() {
+          calls.push('upcoming');
+          return {
+            items: [
+              {
+                whenLong: '17 jul',
+                whenShort: 'fre 12:00',
+                title: 'PRP',
+                sub: 'Wendela',
+                state: 'upcoming',
+                stateLabel: 'Bokad',
+                notes: [{ label: 'Intern anteckning', text: 'Ring före besöket' }],
+              },
+            ],
+          };
+        },
+        buildHistoryFromExtras() {
+          calls.push('history');
+          return {
+            items: [
+              {
+                whenLong: '16 jul',
+                whenShort: 'tors 12:00',
+                title: 'PRP',
+                state: 'no_show',
+                stateLabel: 'Utebliven',
+                notes: [{ label: 'Behandlingsanteckning', text: 'Ingen behandling' }],
+              },
+            ],
+          };
+        },
+      },
+    },
+    console,
+  };
+  vm.runInNewContext(`${source}\n;this.renderer = window.CcoV11RailKomplett;`, sandbox);
+  const html = sandbox.renderer.render({ card: { displayName: 'Canonical Patient' } });
+
+  assert.deepEqual(calls, ['upcoming', 'history']);
+  assert.match(html, /fre 12:00/);
+  assert.match(html, /Bokad/);
+  assert.match(html, /Intern anteckning:<\/strong> Ring före besöket/);
+  assert.match(html, /Utebliven/);
+  assert.match(html, /Behandlingsanteckning:<\/strong> Ingen behandling/);
+  assert.doesNotMatch(html, /fre 10:00/);
 });
 
 test('canonical status and notes parity matrix is identical in Kalender, V11 and V12', () => {
@@ -104,17 +183,35 @@ test('canonical status and notes parity matrix is identical in Kalender, V11 and
     internalNotes: `internal-note-${status}`,
     treatmentNotes: `treatment-note-${status}`,
   }));
-  const calendarResult = calendar.mergeCalendarEvents([], [], visits, [], '2026-05-20', '2026-05-20');
-  const dossierBundle = { visitSegments: visits.map((booking) => ({
-    date: '2026-05-20', encounterId: booking.encounterId, booking,
-  })) };
+  const calendarResult = calendar.mergeCalendarEvents(
+    [],
+    [],
+    visits,
+    [],
+    '2026-05-20',
+    '2026-05-20'
+  );
+  const dossierBundle = {
+    visitSegments: visits.map((booking) => ({
+      date: '2026-05-20',
+      encounterId: booking.encounterId,
+      booking,
+    })),
+  };
   const history = surfaces.CcoV11RailAdapters.buildHistoryFromExtras(
-    { id: 'patient-canonical' }, {}, dossierBundle, []
+    { id: 'patient-canonical' },
+    {},
+    dossierBundle,
+    []
   );
   const v11 = surfaces.CcoV11Rail.renderHistory(history);
   const v12 = surfaces.CcoV12Workspace.render({
-    card: { id: 'patient-canonical' }, bcard: {}, dossierBundle,
-    occasionTimeline: [], journalEntries: [], driveFiles: [],
+    card: { id: 'patient-canonical' },
+    bcard: {},
+    dossierBundle,
+    occasionTimeline: [],
+    journalEntries: [],
+    driveFiles: [],
   });
 
   matrix.forEach(([status, label]) => {
