@@ -186,7 +186,15 @@ try {
   });
 
   // Routes flyttade till src/routes/ccoAudit.js (se ORGANISATION.md §4).
-  app.use('/api/v1', createCcoAuditRouter({ ccoAuditLog, attachRole, requireAnyRole }));
+  app.use(
+    '/api/v1',
+    createCcoAuditRouter({
+      ccoAuditLog,
+      requireAuthenticated: requireCcoAuthenticated,
+      attachRole,
+      requireAnyRole,
+    })
+  );
 
   // Expose to other handlers via app.locals
   app.locals.ccoAuditLog = ccoAuditLog;

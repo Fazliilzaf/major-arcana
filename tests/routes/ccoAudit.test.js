@@ -30,7 +30,15 @@ function makeAuditLog() {
 
 async function withServer(ccoAuditLog, run) {
   const app = express();
-  app.use('/api/v1', createCcoAuditRouter({ ccoAuditLog, attachRole, requireAnyRole }));
+  app.use(
+    '/api/v1',
+    createCcoAuditRouter({
+      ccoAuditLog,
+      requireAuthenticated: (_req, _res, next) => next(),
+      attachRole,
+      requireAnyRole,
+    })
+  );
   const server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address();
@@ -89,6 +97,7 @@ async function withRealRbacServer(ccoAuditLog, run) {
     '/api/v1',
     createCcoAuditRouter({
       ccoAuditLog,
+      requireAuthenticated: (_req, _res, next) => next(),
       attachRole: realAttachRole,
       requireAnyRole: realRequireAnyRole,
     })
@@ -102,6 +111,50 @@ async function withRealRbacServer(ccoAuditLog, run) {
     await new Promise((resolve) => server.close(resolve));
   }
 }
+
+test('verified auth is attached before audit RBAC resolves the role', async () => {
+  const app = express();
+  app.use(
+    '/api/v1',
+    createCcoAuditRouter({
+      ccoAuditLog: makeAuditLog(),
+      requireAuthenticated: (req, _res, next) => {
+        req.auth = { userId: 'owner-user', role: 'OWNER' };
+        next();
+      },
+      attachRole: realAttachRole,
+      requireAnyRole: realRequireAnyRole,
+    })
+  );
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/api/v1/cco-audit`);
+    assert.equal(response.status, 200);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('audit router fails closed when authenticated middleware is not wired', async () => {
+  const app = express();
+  app.use(
+    '/api/v1',
+    createCcoAuditRouter({
+      ccoAuditLog: makeAuditLog(),
+      attachRole: realAttachRole,
+      requireAnyRole: realRequireAnyRole,
+    })
+  );
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/api/v1/cco-audit`);
+    assert.equal(response.status, 503);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
 
 test('F2: GET /cco-audit — endast owner/revisor läser (regression)', async () => {
   await withRealRbacServer(makeAuditLog(), async (baseUrl) => {

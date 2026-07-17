@@ -3,8 +3,17 @@ const express = require('express');
 // CCO audit-log endpoints. Mounted at /api/v1 by server.js.
 // Extracted from server.js (legacy monolit) — se ORGANISATION.md §4.
 // ccoAuditLog + RBAC-middleware (attachRole, requireAnyRole) injiceras.
-function createCcoAuditRouter({ ccoAuditLog, attachRole, requireAnyRole }) {
+function createCcoAuditRouter({ ccoAuditLog, requireAuthenticated, attachRole, requireAnyRole }) {
   const router = express.Router();
+
+  // The audit router is mounted before auth bootstrap completes in server.js.
+  // Use the lazy auth bridge for every request so verified token context exists
+  // before RBAC resolves req.auth.role. Missing auth wiring must fail closed.
+  router.use(
+    typeof requireAuthenticated === 'function'
+      ? requireAuthenticated
+      : (_req, res) => res.status(503).json({ error: 'auth_not_ready' })
+  );
 
   // GET /api/v1/cco-audit — bara owner+revisor
   router.get('/cco-audit', attachRole, requireAnyRole(['owner', 'revisor']), (req, res) => {
