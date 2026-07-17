@@ -166,8 +166,29 @@ function createCfoFortnoxVoucherSync({
     );
   }
 
+  // ORD-CM-16 · Ägar-styrd gate-override från persistenta disken (samma mönster
+  // som ORD-74b scheduler-override: Blueprint-sync pausad + env-editorn kräver
+  // mänsklig hand). Filen skrivs ENDAST via owner-API:t (audit-loggat) och läses
+  // vid varje körning — DELETE återgår till ren env-styrning. Fail-closed:
+  // saknad/ogiltig fil = gate av.
+  function readGateOverride() {
+    const fs = require('fs');
+    const path = require('path');
+    const root = env.ARCANA_STATE_ROOT || '/var/data';
+    const overridePath =
+      env.ARCANA_CFO_VOUCHER_SYNC_OVERRIDE_PATH || path.join(root, 'voucher-sync-override.json');
+    try {
+      const parsed = JSON.parse(fs.readFileSync(overridePath, 'utf8'));
+      return { enabled: parsed && parsed.voucherSyncEnabled === true, path: overridePath };
+    } catch {
+      return { enabled: false, path: overridePath };
+    }
+  }
+
   async function run({ dryRun = true } = {}) {
-    const enabled = String(env.ARCANA_CFO_FORTNOX_VOUCHER_SYNC_ENABLED || '') === 'true';
+    const enabled =
+      String(env.ARCANA_CFO_FORTNOX_VOUCHER_SYNC_ENABLED || '') === 'true' ||
+      readGateOverride().enabled === true;
     const pending = await listPendingExpenses();
     const payloads = pending.map((e) => buildVoucherPayload(e));
 
@@ -247,7 +268,7 @@ function createCfoFortnoxVoucherSync({
     return { ok: true, dryRun: false, results };
   }
 
-  return { run, listPendingExpenses, buildVoucherPayload };
+  return { run, listPendingExpenses, buildVoucherPayload, readGateOverride };
 }
 
 module.exports = {

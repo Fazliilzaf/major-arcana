@@ -246,3 +246,42 @@ test('representation_limited UTAN deductibleVatSek: default-kontering + manuell-
   assert.equal(p.meta.accountSource, 'default_suggestion');
   assert.ok(p.meta.notes.some((n) => n.includes('granska momsavdraget manuellt')));
 });
+
+// ── ORD-CM-16 · gate-override från persistenta disken ───────────────────────
+test('gate-override: fil med voucherSyncEnabled=true öppnar gaten utan env', async () => {
+  const os = require('node:os');
+  const path = require('node:path');
+  const fsp = require('node:fs/promises');
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'vso-'));
+  await fsp.writeFile(
+    path.join(dir, 'voucher-sync-override.json'),
+    JSON.stringify({ voucherSyncEnabled: true })
+  );
+  const { createCfoFortnoxVoucherSync } = require('../../src/cfo/cfoFortnoxVoucherSync');
+  const sync = createCfoFortnoxVoucherSync({
+    expenseStore: { listExpenses: () => [] },
+    fortnoxStore: { getConnection: async () => ({ connected: false }) },
+    fortnoxClient: null,
+    env: { ARCANA_STATE_ROOT: dir },
+  });
+  const r = await sync.run({ dryRun: true });
+  // Gaten öppen (reason inte 'disabled') — nästa gate (OAuth) tar vid.
+  assert.notEqual(r.reason, 'disabled');
+});
+
+test('gate-override: saknad/ogiltig fil = gate stängd (fail-closed)', async () => {
+  const os = require('node:os');
+  const path = require('node:path');
+  const fsp = require('node:fs/promises');
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'vso2-'));
+  const { createCfoFortnoxVoucherSync } = require('../../src/cfo/cfoFortnoxVoucherSync');
+  const sync = createCfoFortnoxVoucherSync({
+    expenseStore: { listExpenses: () => [] },
+    env: { ARCANA_STATE_ROOT: dir },
+  });
+  const r1 = await sync.run({ dryRun: true });
+  assert.equal(r1.reason, 'disabled');
+  await fsp.writeFile(path.join(dir, 'voucher-sync-override.json'), 'trasig json');
+  const r2 = await sync.run({ dryRun: true });
+  assert.equal(r2.reason, 'disabled');
+});
