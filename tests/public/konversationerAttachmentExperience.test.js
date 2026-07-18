@@ -44,6 +44,7 @@ test('mejl med många bilagor begränsar initial DOM men bevarar alla filer', ()
 test('inkommande och utgående bilagor stöds för samtliga aktiva CCO-mailboxar', () => {
   for (const mailbox of [
     'kons@hairtpclinic.com',
+    'info@hairtpclinic.com',
     'contact@hairtpclinic.com',
     'egzona@hairtpclinic.com',
     'fazli@hairtpclinic.com',

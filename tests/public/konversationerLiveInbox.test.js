@@ -45,6 +45,29 @@ function liveRollupHelpers() {
   return context;
 }
 
+function livePatientReviewHelpers() {
+  const script = liveScript(readHtml());
+  const sliceBetween = (startMarker, endMarker) => {
+    const start = script.indexOf(startMarker);
+    const end = script.indexOf(endMarker, start);
+    assert.ok(start >= 0 && end > start, `live helper ${startMarker} must exist`);
+    return script.slice(start, end);
+  };
+  const source = [
+    sliceBetween('function patientMatchNeedsManualReview(', 'function normalizeLiveThread('),
+    sliceBetween('function threadMatchesLane(', 'function updateInboxCounts('),
+  ].join('\n');
+  const context = {
+    normalizeText: (value) => String(value || '').trim(),
+  };
+  vm.createContext(context);
+  vm.runInContext(
+    `${source}\nthis.patientMatchNeedsManualReview = patientMatchNeedsManualReview;\nthis.threadMatchesLane = threadMatchesLane;`,
+    context
+  );
+  return context;
+}
+
 function patientThread({ mailboxAddress, patientId, patientMatch, latestAtMs = 0 }) {
   return {
     id: `${mailboxAddress}:${patientId || 'unknown'}`,
@@ -179,6 +202,34 @@ test('ambiguous patient matches remain separate across mailbox views', () => {
   ]);
 
   assert.equal(merged.length, 2, 'uncertain identity must never combine customer histories');
+});
+
+test('ambiguous e-postmatch visas i befintliga Granskning-lanen utan patientkoppling', () => {
+  const { patientMatchNeedsManualReview, threadMatchesLane } = livePatientReviewHelpers();
+  const ambiguous = {
+    lane: 'all',
+    patientId: null,
+    patientMatch: { status: 'ambiguous' },
+  };
+  const unmatched = {
+    lane: 'all',
+    patientId: null,
+    patientMatch: { status: 'unmatched' },
+  };
+
+  assert.equal(patientMatchNeedsManualReview(ambiguous), true);
+  assert.equal(threadMatchesLane(ambiguous, 'review'), true);
+  assert.equal(patientMatchNeedsManualReview(unmatched), false);
+  assert.equal(threadMatchesLane(unmatched, 'review'), false);
+});
+
+test('ambiguous e-postmatch visas tydligt och blockerar fortsatt kunddossiern', () => {
+  const html = readHtml();
+
+  assert.match(html, /Kundgranskning/);
+  assert.match(html, /Manuell kundgranskning/);
+  assert.match(html, /Kundkoppling: flera e-postträffar/);
+  assert.match(html, /hasCanonicalPatientMatch = Boolean\(patientId && patientMatchStatus === 'matched'\)/);
 });
 
 test('konversationer initializes live inbox state before the first status render', () => {
