@@ -3754,6 +3754,20 @@
         return tags.slice(0, 3);
       }
 
+      function resolveLiveWorklistEnrichment(row = {}, baseline = null) {
+        const legacy = baseline && typeof baseline === 'object' ? baseline : {};
+        const live = row?.enrichment && typeof row.enrichment === 'object' ? row.enrichment : {};
+        const intent = normalizeText(live.intent).toLowerCase();
+        const confidence = Number(live.intentConfidence);
+        // A current row may safely replace stale analysis only when the local
+        // deterministic classifier is confident. Otherwise preserve the
+        // existing baseline rather than inventing an inbox label.
+        if (!intent || intent === 'unclear' || !Number.isFinite(confidence) || confidence < 0.6) {
+          return legacy;
+        }
+        return { ...legacy, ...live };
+      }
+
       function normalizeLiveThread(row = {}, index = 0, enrichment = null) {
         const customer = row.customer || {};
         const mailbox = row.mailbox || {};
@@ -3902,6 +3916,7 @@
         const rowWaitingMs = rowWaitingSinceMs ? Date.now() - rowWaitingSinceMs : 0;
         const rowIsWaiting =
           rowNeedsReply && (!rowWaitingSinceMs || rowWaitingMs >= 24 * 60 * 60 * 1000);
+        const liveEnrichment = resolveLiveWorklistEnrichment(row, enrichment);
         const tags = [];
         if (rowIsWaiting) {
           // Färgtrappa: gul 24–48 h (warning), röd 48 h+ (danger).
@@ -3925,7 +3940,7 @@
         if (rollup.enabled && Number(rollup.mailboxCount || 0) > 1) {
           tags.push({ kind: 'ai', label: `${rollup.mailboxCount} mailboxar` });
         }
-        smartInboxTags(enrichment).forEach((tag) => {
+        smartInboxTags(liveEnrichment).forEach((tag) => {
           if (!tags.some((existing) => existing.label === tag.label)) tags.push(tag);
         });
         // Rad 2 ska vara ärendet, inte kundnamnet. Kontaktformulär har ofta subject

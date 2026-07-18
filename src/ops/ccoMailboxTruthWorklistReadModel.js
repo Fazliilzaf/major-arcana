@@ -12,6 +12,7 @@ const {
   scopeContactFormConversationKey,
 } = require('./ccoContactFormIdentity');
 const { classifyConversationMessage } = require('../intelligence/messageClassification');
+const { runDeterministicIntent } = require('../intelligence/intentClassifier');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -636,6 +637,20 @@ function buildQueueExplanatoryLine(row = {}) {
     return 'Senaste inkommande meddelande vantar pa operativ uppfoljning.';
   }
   return '';
+}
+
+function buildLiveWorklistEnrichment(row = {}) {
+  const text = [row?.subject, row?.latestPreview]
+    .map(normalizeText)
+    .filter(Boolean)
+    .join('\n');
+  const intent = runDeterministicIntent(text);
+  if (intent.intent === 'unclear' || Number(intent.confidence) < 0.6) return null;
+  return {
+    intent: intent.intent,
+    intentConfidence: intent.confidence,
+    source: 'mailbox_truth_preview',
+  };
 }
 
 function getWorklistMailboxScopeKey(row = {}) {
@@ -1576,6 +1591,10 @@ function createCcoMailboxTruthWorklistReadModel({
         const inlineContext = buildQueueInlineContext(row);
         const explanatoryLine = buildQueueExplanatoryLine(row);
         const booking = bookingContextFor(row.customerEmail);
+        // The inbox already has the subject and local preview. Project a small,
+        // deterministic intent here so current rows do not depend on a stale
+        // capability-analysis baseline for their smart-info chip.
+        const enrichment = buildLiveWorklistEnrichment(row);
         const consumerRow = {
           id: row.conversationKey,
           lane: row.lane || 'all',
@@ -1610,6 +1629,7 @@ function createCcoMailboxTruthWorklistReadModel({
           identityProvenance: row.identityProvenance,
           rollup: row.rollup,
           booking,
+          enrichment,
           queueInlineContext: inlineContext || null,
           queueExplanatoryLine: explanatoryLine || null,
           presentation: {

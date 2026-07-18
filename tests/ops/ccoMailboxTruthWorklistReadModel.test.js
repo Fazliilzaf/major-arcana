@@ -148,6 +148,41 @@ test('worklist read model keeps human replies actionable even after automated re
   assert.equal(consumer.rows[0].state.messageClassification, 'actionable');
 });
 
+test('consumer projects a confident local intent for live smart inbox chips', () => {
+  const mailboxId = 'contact@hairtpclinic.com';
+  const model = createCcoMailboxTruthWorklistReadModel({
+    store: {
+      listMessages() {
+        return [
+          {
+            mailboxId,
+            mailboxAddress: mailboxId,
+            userPrincipalName: mailboxId,
+            mailboxConversationId: `${mailboxId}:book-prp`,
+            conversationId: 'book-prp',
+            graphMessageId: 'book-prp-message',
+            folderType: 'inbox',
+            direction: 'inbound',
+            isRead: false,
+            subject: 'Boka PRP-behandling',
+            bodyPreview: 'Jag vill gärna boka en tid nästa vecka.',
+            from: { address: 'patient@example.com', name: 'Patient' },
+            receivedAt: '2026-07-18T09:00:00.000Z',
+          },
+        ];
+      },
+    },
+  });
+
+  const consumer = model.buildConsumerModel({ mailboxIds: [mailboxId] });
+
+  assert.deepEqual(consumer.rows[0].enrichment, {
+    intent: 'booking_request',
+    intentConfidence: 0.82,
+    source: 'mailbox_truth_preview',
+  });
+});
+
 test('consumer bygger en mailboxkorpus en gång via den smala worklist-läsningen', () => {
   const mailboxId = 'contact@hairtpclinic.com';
   let worklistReads = 0;
