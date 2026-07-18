@@ -273,8 +273,13 @@ test('konversationer refreshes the local KONS worklist without disrupting the se
   const html = readHtml();
 
   assert.match(html, /const LIVE_INBOX_REFRESH_MS = 10 \* 1000/);
-  assert.match(html, /new EventSource\('\/api\/v1\/cco\/runtime\/stream'\)/);
-  assert.match(html, /liveInboxStream\.addEventListener\('worklist_updated'/);
+  assert.match(html, /async function connectLiveInboxStream\(\)/);
+  assert.match(html, /fetch\('\/api\/v1\/cco\/runtime\/stream'/);
+  assert.match(html, /const headers = withAdminAuthHeaders\(\{ Accept: 'text\/event-stream' \}\)/);
+  assert.match(html, /credentials:\s*'include',[\s\S]*headers,/);
+  assert.match(html, /eventName === 'worklist_updated'/);
+  assert.match(html, /eventName === 'mailbox_sync_updated'/);
+  assert.doesNotMatch(html, /new EventSource\('\/api\/v1\/cco\/runtime\/stream'\)/);
   assert.match(html, /async function loadLiveInbox\(\{ background = false \} = \{\}\)/);
   assert.match(html, /const previousSelection = selectedLiveThread/);
   assert.match(html, /const selectedThread = currentThreads\.find\(/);

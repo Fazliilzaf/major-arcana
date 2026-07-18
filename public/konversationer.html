@@ -5990,32 +5990,111 @@
         if (event.key === 'ARCANA_ADMIN_TOKEN' && normalizeText(event.newValue)) {
           liveInboxAttempt = 0;
           loadLiveInbox();
+          connectLiveInboxStream();
         }
       });
 
       loadLiveInbox();
       // Runtime-streamen skickar en lätt "knackning" var tionde sekund och ett
       // worklist_updated-event direkt efter att KONS-pollern sparat nya mail.
-      // EventSource kan inte sätta Bearer-header; stream-endpointen innehåller
-      // ingen patientdata och används enbart som refresh-signal.
-      if (typeof EventSource !== 'undefined') {
-        try {
-          const liveInboxStream = new EventSource('/api/v1/cco/runtime/stream');
-          liveInboxStream.addEventListener('poll', () => {
-            if (document.visibilityState === 'visible') loadLiveInbox({ background: true });
-          });
-          liveInboxStream.addEventListener('worklist_updated', () => {
-            document.dispatchEvent(new Event('cco:mailbox-status-refresh'));
-            loadLiveInbox({ background: true });
-          });
-          liveInboxStream.addEventListener('mailbox_sync_updated', () => {
-            document.dispatchEvent(new Event('cco:mailbox-status-refresh'));
-          });
-          window.addEventListener('pagehide', () => liveInboxStream.close(), { once: true });
-        } catch (_error) {
-          // Den vanliga 10-sekunderspollningen nedan är alltid kvar som fallback.
+      // Fetch-baserad SSE används eftersom EventSource inte kan skicka vårt
+      // Bearer-token. Den vanliga tiotsekunderspollningen nedan är alltid
+      // fallback om streamen inte kan ansluta.
+      let liveInboxStreamAbortController = null;
+      let liveInboxStreamReconnectTimer = null;
+      let liveInboxStreamStopped = false;
+
+      function handleLiveInboxStreamFrame(frame = '') {
+        const eventName = String(frame)
+          .split(/\r?\n/)
+          .find((line) => line.startsWith('event:'))
+          ?.slice('event:'.length)
+          .trim();
+        if (eventName === 'poll') {
+          if (document.visibilityState === 'visible') loadLiveInbox({ background: true });
+          return;
+        }
+        if (eventName === 'worklist_updated') {
+          document.dispatchEvent(new Event('cco:mailbox-status-refresh'));
+          loadLiveInbox({ background: true });
+          return;
+        }
+        if (eventName === 'mailbox_sync_updated') {
+          document.dispatchEvent(new Event('cco:mailbox-status-refresh'));
         }
       }
+
+      function scheduleLiveInboxStreamReconnect() {
+        if (liveInboxStreamStopped || liveInboxStreamReconnectTimer) return;
+        liveInboxStreamReconnectTimer = setTimeout(() => {
+          liveInboxStreamReconnectTimer = null;
+          connectLiveInboxStream();
+        }, 2000);
+      }
+
+      async function connectLiveInboxStream() {
+        if (
+          liveInboxStreamStopped ||
+          liveInboxStreamAbortController ||
+          typeof TextDecoder === 'undefined'
+        ) {
+          return;
+        }
+        const headers = withAdminAuthHeaders({ Accept: 'text/event-stream' });
+        if (!headers.Authorization) return;
+
+        const controller = new AbortController();
+        liveInboxStreamAbortController = controller;
+        let responseStatus = 0;
+        try {
+          const response = await fetch('/api/v1/cco/runtime/stream', {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store',
+            headers,
+            signal: controller.signal,
+          });
+          responseStatus = response.status;
+          if (!response.ok || !response.body) {
+            throw new Error(`CCO runtime-stream HTTP ${response.status}`);
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          while (!liveInboxStreamStopped) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+            let frameEnd = buffer.indexOf('\n\n');
+            while (frameEnd !== -1) {
+              const frame = buffer.slice(0, frameEnd);
+              buffer = buffer.slice(frameEnd + 2);
+              if (frame) handleLiveInboxStreamFrame(frame);
+              frameEnd = buffer.indexOf('\n\n');
+            }
+          }
+        } catch (_error) {
+          // Fallback-pollningen fortsätter vid en gateway-/nätverksstöring.
+        } finally {
+          if (liveInboxStreamAbortController === controller) {
+            liveInboxStreamAbortController = null;
+          }
+          if (!liveInboxStreamStopped && responseStatus !== 401 && responseStatus !== 403) {
+            scheduleLiveInboxStreamReconnect();
+          }
+        }
+      }
+
+      function stopLiveInboxStream() {
+        liveInboxStreamStopped = true;
+        clearTimeout(liveInboxStreamReconnectTimer);
+        liveInboxStreamReconnectTimer = null;
+        liveInboxStreamAbortController?.abort();
+      }
+
+      connectLiveInboxStream();
+      window.addEventListener('pagehide', stopLiveInboxStream, { once: true });
       // Pollern synkar KONS på servern. Den här lätta, lokala läsningen gör
       // att nya mejl blir synliga utan sidladdning, men rör aldrig Graph.
       setInterval(() => {
