@@ -160,8 +160,12 @@ function createCfoFortnoxVoucherSync({
   }
 
   async function listPendingExpenses() {
+    // ORD-CM-20: default-limit (200 nyaste) tappade äldre exporterade poster när
+    // boken växte förbi 200 — hämta exported-statusen direkt med maxtak.
     const all =
-      typeof expenseStore.listExpenses === 'function' ? await expenseStore.listExpenses({}) : [];
+      typeof expenseStore.listExpenses === 'function'
+        ? await expenseStore.listExpenses({ status: 'exported', limit: 1000 })
+        : [];
     const rows = Array.isArray(all) ? all : all?.expenses || [];
     return rows.filter(
       (e) =>
