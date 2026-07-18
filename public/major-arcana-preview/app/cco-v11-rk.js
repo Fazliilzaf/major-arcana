@@ -23,6 +23,17 @@
   function arr(v) {
     return Array.isArray(v) ? v : [];
   }
+  function adminToken() {
+    try {
+      var token = txt(
+        (global.localStorage && global.localStorage.getItem('ARCANA_ADMIN_TOKEN')) ||
+          (global.sessionStorage && global.sessionStorage.getItem('ARCANA_ADMIN_TOKEN'))
+      );
+      return token && token !== '__preview_local__' ? token : '';
+    } catch (_e) {
+      return '';
+    }
+  }
   function initials(name) {
     var p = txt(name).split(/\s+/).filter(Boolean);
     if (!p.length) return '?';
@@ -1023,13 +1034,16 @@
     if (!bookingId || !patientId || !readout || typeof global.fetch !== 'function') return;
     details.__v11AuditLoading = true;
     readout.textContent = 'Läser append-only audit…';
+    var headers = { Accept: 'application/json' };
+    var token = adminToken();
+    if (token) headers.Authorization = 'Bearer ' + token;
     global
       .fetch(
         '/api/v1/cco-audit/booking/' +
           encodeURIComponent(bookingId) +
           '?patientId=' +
           encodeURIComponent(patientId),
-        { method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' } }
+        { method: 'GET', credentials: 'same-origin', headers: headers }
       )
       .then(function (response) {
         return response
