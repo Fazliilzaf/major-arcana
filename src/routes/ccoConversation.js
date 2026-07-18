@@ -36,7 +36,7 @@ const {
   buildAnsweredCategory,
   markAnsweredCategoryEnabled,
 } = require('../ops/ccoAnsweredCategory');
-const { requirePermission } = require('../security/ccoRbac');
+const { attachRole, requirePermission } = require('../security/ccoRbac');
 
 // Heuristisk fallback om OpenAI inte är konfigurerad — säker, generisk
 function buildHeuristicDraft({ customerName, latestInboundBody, ownerName }) {
@@ -1621,6 +1621,10 @@ function createCcoConversationRouter({
   sendTestRecipient = '',
   runtimeStreamRouter = null,
   mailboxIdsForSync = [],
+  // Manuell Graph-sync får aldrig ärva runtime-listan, eftersom den även kan
+  // innehålla externa IMAP-mailboxar. Servern skickar därför in en separat
+  // Graph-allowlist som är den enda default- och request-scopen för denna route.
+  graphMailboxIdsForSync = [],
   mailboxRuntimeStatusProvider = null,
   syncLookbackDays = 14,
   ccoConversationStateStore = null,
@@ -1628,6 +1632,7 @@ function createCcoConversationRouter({
   ccoMailTemplateStore = null,
   clientoBookingStore = null,
   postSendMailboxSync = null,
+  manualGraphBackfillRunner = null,
   defaultTenantId = 'cco',
   tenantScopeId = '',
   authStore = null,
@@ -1636,6 +1641,15 @@ function createCcoConversationRouter({
   const authMiddleware =
     typeof requireAuth === 'function' ? requireAuth : (_req, _res, next) => next();
   const configuredMailboxIds = normalizeConfiguredMailboxIds(mailboxIdsForSync);
+  const configuredGraphMailboxIds = normalizeConfiguredMailboxIds(graphMailboxIdsForSync);
+  const configuredGraphMailboxIdSet = new Set(configuredGraphMailboxIds);
+  const runManualGraphBackfill =
+    typeof manualGraphBackfillRunner === 'function'
+      ? manualGraphBackfillRunner
+      : async (input) => {
+          const { runGraphBackfill } = require('../ops/bootstrapRunner');
+          return runGraphBackfill(input);
+        };
   const ccoMailboxTruthStore = createMailboxScopedTruthStore(
     rawCcoMailboxTruthStore,
     configuredMailboxIds
@@ -2801,6 +2815,9 @@ function createCcoConversationRouter({
   router.post(
     '/cco/runtime/sync',
     authMiddleware,
+    requireTenantScope,
+    attachRole,
+    requirePermission('mailbox.admin'),
     express.json({ limit: '8kb' }),
     async (req, res) => {
       try {
@@ -2819,10 +2836,39 @@ function createCcoConversationRouter({
         if (!ccoMailboxTruthStore) {
           return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
         }
-        const reqMailboxIds = Array.isArray(asObject(req.body).mailboxIds)
-          ? req.body.mailboxIds.map((s) => normalizeText(s).toLowerCase()).filter(Boolean)
-          : [];
-        const mailboxIds = reqMailboxIds.length > 0 ? reqMailboxIds : mailboxIdsForSync || [];
+        if (configuredGraphMailboxIds.length === 0) {
+          return res.status(503).json({
+            ok: false,
+            error: 'graph_mailbox_scope_unavailable',
+            detail: 'Ingen Graph-mailbox ar konfigurerad for manuell sync.',
+          });
+        }
+        const requestBody = asObject(req.body);
+        const hasMailboxIds = Object.prototype.hasOwnProperty.call(requestBody, 'mailboxIds');
+        if (hasMailboxIds && !Array.isArray(requestBody.mailboxIds)) {
+          return res.status(400).json({
+            ok: false,
+            error: 'invalid_mailbox_ids',
+            detail: 'mailboxIds maste vara en lista med mailboxadresser.',
+          });
+        }
+        const rawRequestedMailboxIds = hasMailboxIds ? requestBody.mailboxIds : [];
+        const normalizedRequestedMailboxIds = rawRequestedMailboxIds.map((mailboxId) =>
+          normalizeEmail(mailboxId)
+        );
+        const invalidMailboxIds = normalizedRequestedMailboxIds.filter((mailboxId) => !mailboxId);
+        const requestedMailboxIds = Array.from(new Set(normalizedRequestedMailboxIds.filter(Boolean)));
+        const offScopeMailboxIds = requestedMailboxIds.filter(
+          (mailboxId) => !configuredGraphMailboxIdSet.has(mailboxId)
+        );
+        if (invalidMailboxIds.length > 0 || offScopeMailboxIds.length > 0) {
+          return res.status(403).json({
+            ok: false,
+            error: 'mailbox_scope_forbidden',
+            detail: 'Manuell Graph-sync far bara koras for tillatna Graph-mailboxar.',
+          });
+        }
+        const mailboxIds = requestedMailboxIds.length > 0 ? requestedMailboxIds : configuredGraphMailboxIds;
         if (mailboxIds.length === 0) {
           return res
             .status(400)
@@ -2839,8 +2885,7 @@ function createCcoConversationRouter({
         // och broadcastar ett event när det är klart.
         const runPromise = (async () => {
           try {
-            const { runGraphBackfill } = require('../ops/bootstrapRunner');
-            const result = await runGraphBackfill({
+            const result = await runManualGraphBackfill({
               graphReadConnector,
               ccoMailboxTruthStore,
               mailboxIds,

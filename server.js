@@ -13710,6 +13710,7 @@ process.once('SIGTERM', () => {
       sendTestRecipient: String(process.env.ARCANA_MAIL_SEND_TEST_RECIPIENT || '').trim(),
       runtimeStreamRouter: ccoRuntimeStreamRouter,
       mailboxIdsForSync: ccoRuntimeMailboxIds,
+      graphMailboxIdsForSync: defaultSyncMailboxIds,
       mailboxRuntimeStatusProvider: ({ mailboxId }) =>
         ccoImapMailboxSync.getMailboxStatus(mailboxId),
       syncLookbackDays: Number(process.env.ARCANA_CCO_SYNC_LOOKBACK_DAYS) || 14,
