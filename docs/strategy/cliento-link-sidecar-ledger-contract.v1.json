@@ -1,0 +1,99 @@
+{
+  "contractVersion": "1.0.0",
+  "status": "review_only",
+  "storage": {
+    "mode": "append_only_sidecar",
+    "sourceBookingMutationAllowed": false,
+    "patientMutationAllowed": false,
+    "encounterMutationAllowed": false,
+    "deleteAllowed": false
+  },
+  "states": ["proposed", "approved", "active", "revoked", "superseded"],
+  "transitions": {
+    "proposed": ["approved"],
+    "approved": ["active"],
+    "active": ["revoked", "superseded"],
+    "revoked": [],
+    "superseded": []
+  },
+  "projection": {
+    "proposed": false,
+    "approved": false,
+    "active": true,
+    "revoked": false,
+    "superseded": false
+  },
+  "record": {
+    "required": [
+      "ledgerEventId",
+      "linkId",
+      "state",
+      "sourceRefs",
+      "canonicalPatientId",
+      "canonicalEncounterId",
+      "evidence",
+      "idempotencyKey",
+      "reasonCode",
+      "actor",
+      "occurredAt",
+      "previousEventId"
+    ],
+    "sourceRefRequired": [
+      "tenantId",
+      "bookingId",
+      "sourceSnapshotChecksum",
+      "coreChecksum",
+      "notesChecksum"
+    ],
+    "evidenceRequired": ["type", "ref", "checksum"],
+    "actorRequired": ["staffId", "role", "tenantId"],
+    "nullableUntilApproved": ["canonicalPatientId", "canonicalEncounterId"],
+    "immutable": [
+      "ledgerEventId",
+      "linkId",
+      "sourceRefs",
+      "evidence",
+      "idempotencyKey",
+      "actor",
+      "occurredAt",
+      "previousEventId"
+    ]
+  },
+  "compareAndSwap": {
+    "requiredFor": ["approved", "active", "revoked", "superseded"],
+    "algorithm": "sha256(normalized-source-snapshot-v1)",
+    "onMismatch": "reject_and_return_to_manual_review",
+    "sourceRefsMustStillExist": true,
+    "allSourceChecksumsMustMatch": true
+  },
+  "authorization": {
+    "proposed": "read_only_generator",
+    "approved": "explicit_staff_review",
+    "active": "separate_owner_go_and_staff_link_write_permission",
+    "revoked": "explicit_staff_review",
+    "superseded": "explicit_staff_review"
+  },
+  "auditEvents": {
+    "proposed": "link_proposed",
+    "approved": "link_approved",
+    "active": "link_activated",
+    "revoked": "link_revoked",
+    "superseded": "link_superseded"
+  },
+  "failClosed": {
+    "ambiguousPatient": "reject",
+    "missingPatient": "reject",
+    "ambiguousEncounter": "reject",
+    "missingEvidence": "reject",
+    "checksumMismatch": "reject",
+    "conflictingActiveLink": "reject",
+    "unlinkedReviewPopulation": 11472,
+    "identityGuessingAllowed": false
+  },
+  "currentGate": {
+    "ledgerWriteAllowed": false,
+    "migrationAllowed": false,
+    "projectionAllowed": false,
+    "journeyRestartAllowed": false
+  }
+}

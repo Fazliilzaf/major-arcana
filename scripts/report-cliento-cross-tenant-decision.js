@@ -101,7 +101,7 @@ function buildClientoCrossTenantDecisionReport({
     leftBookings,
     rightBookings,
     expectedTotal,
-    expectedUnlinkedReviewCount: 11283,
+    expectedUnlinkedReviewCount: 11472,
     sampleLimit: 0,
   });
   const left = groupUniqueBookings(leftBookings);

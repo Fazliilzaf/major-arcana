@@ -163,7 +163,7 @@ function buildClientoCrossTenantCoverageReport({
   leftBookings = [],
   rightBookings = [],
   expectedTotal = null,
-  expectedUnlinkedReviewCount = 11283,
+  expectedUnlinkedReviewCount = 11472,
   sampleLimit = 20,
 } = {}) {
   const leftId = normalizeText(leftTenant);
@@ -305,6 +305,8 @@ function buildClientoCrossTenantCoverageReport({
       encounterIdWrites: 0,
       linkProposals: 0,
       expectedUnlinkedReviewCount: Number(expectedUnlinkedReviewCount) || 0,
+      unlinkedReviewCount: null,
+      unlinkedReviewCountVerified: false,
       unlinkedHandling: 'patientId:null; encounterId:null; linkAllowed:false',
     },
     gate: {

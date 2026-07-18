@@ -12,7 +12,7 @@ function parseArgs(argv) {
     leftTenant: 'hair_tp',
     rightTenant: 'hair-tp-clinic',
     expectedTotal: 55221,
-    expectedUnlinkedReviewCount: 11283,
+    expectedUnlinkedReviewCount: 11472,
     sampleLimit: 20,
   };
   for (let index = 2; index < argv.length; index += 1) {

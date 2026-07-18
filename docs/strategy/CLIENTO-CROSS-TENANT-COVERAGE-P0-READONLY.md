@@ -15,7 +15,7 @@ deduplicerar inte poster och föreslår inga patient- eller encounter-länkar.
 | Tenant-buckets | Hel | `${tenantId}::${customer identity}` | Jämförs utan alias/dedupe |
 | Fältjämförelse | Saknades | — | Normaliserad SHA-256 + avvikelse per fält |
 | Full populationsgrind | Saknades | — | Defaultkrav 55 221 före beslutsunderlag |
-| Okopplad review-population | Delvis | Befintlig review-kö | 11 283 hålls fail-closed och okopplade |
+| Okopplad review-population | Delvis | Befintlig review-kö | 11 472 unika booking-id:n hålls fail-closed och okopplade |
 
 ## Körning
 
@@ -25,7 +25,7 @@ Kör mot en explicit, read-only snapshot eller store-fil:
 node scripts/report-cliento-cross-tenant-coverage.js \
   --store /explicit/path/to/cliento-bookings.json \
   --expected-total 55221 \
-  --expected-unlinked 11283 > /tmp/cliento-cross-tenant-coverage.json
+  --expected-unlinked 11472 > /tmp/cliento-cross-tenant-coverage.json
 ```
 
 Scriptet använder `limit: 0`. Det returnerar exitkod `2` om den lästa
@@ -69,6 +69,6 @@ Rapporten har alltid:
 - samples med `patientId: null`, `encounterId: null` och `linkAllowed: false`;
 - `persistentLinkPlanAllowed: false` och `mergePlanAllowed: false`.
 
-De 11 283 tvetydiga/olänkade posterna får inte auto-kopplas. En framtida
+De 11 472 unika tvetydiga/olänkade booking-id:na får inte auto-kopplas. En framtida
 persistent länk- eller tenant-mergeplan kräver ett separat, explicit beslut
 efter godkänd populations- och konfliktgranskning.
