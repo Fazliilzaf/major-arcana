@@ -437,6 +437,25 @@ function createCmRouter({
 
   // ORD-CM-24 · Käll-uppslag för godtycklig record (owner, read-only) — handedOff
   // syns inte i list-vyerna men behövs vid källgranskning ("vi gissar inget").
+  // ORD-CM-26 · AMEX-matchning: kortutdrags-CSV → fyll belopp på records utan
+  // belopp (exakt-en-träff-regeln; fill-only-empty). Owner-only.
+  router.post(
+    '/cm/amex-match',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    express.json({ limit: '2mb' }),
+    async (req, res) => {
+      try {
+        const { matchAmexCsv } = require('../cm/cmAmexMatch');
+        const result = matchAmexCsv({ cmStore, csvText: String(req.body?.csv || '') });
+        await cmStore.persist();
+        return res.json({ ok: true, ...result });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   router.get('/cm/expense-records/:id', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
     const rec =
       typeof cmStore.getExpenseRecordById === 'function'
