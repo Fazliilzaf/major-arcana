@@ -407,6 +407,28 @@ function createCmRouter({
     return (raw?.receivedAt || r.createdAt || '').slice(0, 10);
   }
 
+  // ORD-CM-22 · Källgranskning (ägar-regel: "vi gissar inget"): läs rå-mailets
+  // metadata + textutdrag för en record/rawItem. Owner-only, read-only.
+  router.get('/cm/raw-items/:id', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
+    const raw =
+      typeof cmStore.getRawItemById === 'function' ? cmStore.getRawItemById(req.params.id) : null;
+    if (!raw) return res.status(404).json({ error: 'rawItem finns ej' });
+    return res.json({
+      ok: true,
+      id: raw.id,
+      mailbox: raw.mailbox || null,
+      folder: raw.folder || raw.folderType || null,
+      fromEmail: raw.fromEmail || null,
+      subject: raw.subject || null,
+      receivedAt: raw.receivedAt || null,
+      hasOriginal: !!raw.originalStorageKey,
+      attachmentNames: Array.isArray(raw.attachments)
+        ? raw.attachments.map((a) => a?.name || a?.filename).filter(Boolean)
+        : [],
+      bodyPreview: String(raw.rawBodyText || raw.bodyPreview || '').slice(0, 1500),
+    });
+  });
+
   router.get('/cm/groups-tree', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
     const rawById = rawIndex();
     const years = new Map();
