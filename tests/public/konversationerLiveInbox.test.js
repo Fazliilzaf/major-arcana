@@ -359,6 +359,17 @@ test('konversationer maps verified worklist enrichment to smart inbox chips', ()
   );
 });
 
+test('konversationer prefers a confident current worklist intent over stale baseline analysis', () => {
+  const html = readHtml();
+
+  assert.match(html, /function resolveLiveWorklistEnrichment\(row = \{\}, baseline = null\)/);
+  assert.match(html, /const live = row\?\.enrichment && typeof row\.enrichment === 'object'/);
+  assert.match(html, /intent === 'unclear'.*confidence < 0\.6/s);
+  assert.match(html, /return \{ \.\.\.legacy, \.\.\.live \};/);
+  assert.match(html, /const liveEnrichment = resolveLiveWorklistEnrichment\(row, enrichment\)/);
+  assert.match(html, /smartInboxTags\(liveEnrichment\)/);
+});
+
 test('konversationer keeps uncertain or unclear enrichment out of inbox chips', () => {
   const html = readHtml();
 
