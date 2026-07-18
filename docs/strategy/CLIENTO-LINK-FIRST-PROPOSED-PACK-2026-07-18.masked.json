@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-07-18T15:15:00.000Z",
+  "purpose": "first_masked_cliento_link_proposed_pack_preview",
+  "readOnly": true,
+  "zeroWrites": true,
+  "packSize": 3,
+  "source": {
+    "manifestCandidateCount": 1887,
+    "inputManifestChecksum": "62fa335a9e392988efad91cb88989f96846aa46c51bcf534ffc70fd5ddd623b0",
+    "inputManifestChecksumAlgorithm": "sha256(canonical-candidate-content-v1)",
+    "reviewSetChecksum": "cf7cd6415f7cfbfa77207cca58ae0c554d5a1065480b1e33c521f27fcecbadf3"
+  },
+  "proposals": [
+    {
+      "proposalRef": "sha256:7d0ed63cfafc6c4a",
+      "state": "proposed_preview",
+      "bookingRef": "sha256:001c7a66d0634ae0",
+      "sourceRefs": [
+        {
+          "tenantId": "hair_tp",
+          "bookingRef": "sha256:001c7a66d0634ae0",
+          "sourceSnapshotChecksum": "0458301a09c5fab2ac5d691e7ed57c73c04eb34103c6a033145420641c13577e",
+          "coreChecksum": "97fa1bc5ce461632d9cd1349746284a1e65babbc0ec8de6f741c4fa183c185ba",
+          "notesChecksum": "61d5a71ec1e76d3a50590b70dfa5b8382f2697a28f4348d15bc2fd743c980665"
+        },
+        {
+          "tenantId": "hair-tp-clinic",
+          "bookingRef": "sha256:001c7a66d0634ae0",
+          "sourceSnapshotChecksum": "d223f60b3875b71f654509c9d0e600a8e3b3598c75ccd853961e6a18cc252a3c",
+          "coreChecksum": "97fa1bc5ce461632d9cd1349746284a1e65babbc0ec8de6f741c4fa183c185ba",
+          "notesChecksum": "61d5a71ec1e76d3a50590b70dfa5b8382f2697a28f4348d15bc2fd743c980665"
+        }
+      ],
+      "canonicalPatientId": null,
+      "canonicalEncounterId": null,
+      "identityGuessingAllowed": false,
+      "compareAndSwap": {
+        "algorithm": "sha256(normalized-source-snapshot-v1)",
+        "expectedPairChecksum": "5991b89bd73386709d9250e71dc2e5d341b5c5419df55dc0a1e195609a412a02"
+      }
+    },
+    {
+      "proposalRef": "sha256:d8997436a09d0e57",
+      "state": "proposed_preview",
+      "bookingRef": "sha256:004d179f3d28e62c",
+      "sourceRefs": [
+        {
+          "tenantId": "hair_tp",
+          "bookingRef": "sha256:004d179f3d28e62c",
+          "sourceSnapshotChecksum": "2406a1f6a9c0b0aecfb5e0d4d9d58f32965b997e0981b22ab73bd59347b5acf2",
+          "coreChecksum": "7536d67ae15df3e0d8892318806f306ba50f6dd9da1b2016133fac725325496a",
+          "notesChecksum": "61d5a71ec1e76d3a50590b70dfa5b8382f2697a28f4348d15bc2fd743c980665"
+        },
+        {
+          "tenantId": "hair-tp-clinic",
+          "bookingRef": "sha256:004d179f3d28e62c",
+          "sourceSnapshotChecksum": "d1e46e5593d54c3dba036cee554b4a10d89de14db0ef38b149062f2f06720026",
+          "coreChecksum": "7536d67ae15df3e0d8892318806f306ba50f6dd9da1b2016133fac725325496a",
+          "notesChecksum": "61d5a71ec1e76d3a50590b70dfa5b8382f2697a28f4348d15bc2fd743c980665"
+        }
+      ],
+      "canonicalPatientId": null,
+      "canonicalEncounterId": null,
+      "identityGuessingAllowed": false,
+      "compareAndSwap": {
+        "algorithm": "sha256(normalized-source-snapshot-v1)",
+        "expectedPairChecksum": "6bf370d7b8d272dc381470be2f119b94479cba1ec8af3066efe9443159093705"
+      }
+    },
+    {
+      "proposalRef": "sha256:f1756071009cd9c6",
+      "state": "proposed_preview",
+      "bookingRef": "sha256:00a40ae0b87c94c7",
+      "sourceRefs": [
+        {
+          "tenantId": "hair_tp",
+          "bookingRef": "sha256:00a40ae0b87c94c7",
+          "sourceSnapshotChecksum": "4e279a9f0b69f0c14a3828999a2f311f13b0f1dbf7ba121a7fe8a8cd634df1e8",
+          "coreChecksum": "e204edd03be3215602350dec6fd0635c409e592b314db6270394e4d40b825783",
+          "notesChecksum": "61d5a71ec1e76d3a50590b70dfa5b8382f2697a28f4348d15bc2fd743c980665"
+        },
+        {
+          "tenantId": "hair-tp-clinic",
+          "bookingRef": "sha256:00a40ae0b87c94c7",
+          "sourceSnapshotChecksum": "a6af796cd5a783c7d8ba26b53ffe3a76ba372cbc5cfbc22f300a24da2ce2a006",
+          "coreChecksum": "e204edd03be3215602350dec6fd0635c409e592b314db6270394e4d40b825783",
+          "notesChecksum": "61d5a71ec1e76d3a50590b70dfa5b8382f2697a28f4348d15bc2fd743c980665"
+        }
+      ],
+      "canonicalPatientId": null,
+      "canonicalEncounterId": null,
+      "identityGuessingAllowed": false,
+      "compareAndSwap": {
+        "algorithm": "sha256(normalized-source-snapshot-v1)",
+        "expectedPairChecksum": "83a0b2931ad826f09bbc4a8ead4c1a35bf694c3fecb13df2de07866208837a6f"
+      }
+    }
+  ],
+  "verification": {
+    "selectedSetChecksum": "7d8cfc2f79590772aab379d415986f3438ce68cd1782bb4f809db431558d9b3e",
+    "allBookingRefsMasked": true,
+    "allCasChecksumsPresent": true,
+    "reviewOverlapCount": 0,
+    "ledgerEventsBefore": 0,
+    "ledgerEventsAfter": 0,
+    "bookingWrites": 0,
+    "patientIdWrites": 0,
+    "encounterIdWrites": 0,
+    "activationWrites": 0,
+    "sourceMutations": 0,
+    "snapshotChecksumsStable": true
+  },
+  "gates": {
+    "proposedWriteAllowed": false,
+    "approvalAllowed": false,
+    "activationAllowed": false,
+    "productionWriteAllowed": false,
+    "journeyRestartAllowed": false
+  },
+  "snapshot": {
+    "bookingVersion": 1,
+    "bookingUpdatedAt": "2026-07-17T14:32:42.658Z",
+    "patientVersion": 1,
+    "patientUpdatedAt": "2026-07-18T13:21:19.250Z",
+    "totalBookingOccurrences": 55221,
+    "candidateCount": 1887
+  }
+}
