@@ -23,6 +23,16 @@ function sourceRefs(bookingId = 'booking-1', suffix = '') {
   }));
 }
 
+function exactDuplicateSourceRefs(bookingId = 'booking-1') {
+  return ['hair_tp', 'hair-tp-clinic'].map((tenantId) => ({
+    tenantId,
+    bookingId,
+    sourceSnapshotChecksum: checksum(`${tenantId}:exact-source`),
+    coreChecksum: checksum('shared-exact-core'),
+    notesChecksum: checksum('shared-exact-notes'),
+  }));
+}
+
 function evidence(label = 'candidate') {
   return [{ type: 'candidate_manifest', ref: label, checksum: checksum(label) }];
 }
@@ -83,6 +93,23 @@ function transitionInput(previous, state, overrides = {}) {
     actor: state === 'active' ? owner : reviewer,
     ...overrides,
   };
+}
+
+function historicalApprovalInput(previous, overrides = {}) {
+  return transitionInput(previous, 'approved', {
+    currentSourceRefs: exactDuplicateSourceRefs(),
+    canonicalEncounterId: '',
+    linkType: 'exact_booking_duplicate',
+    reasonCode: 'historical_booking_without_encounter',
+    patientResolution: {
+      verified: true,
+      method: 'unique_identity_match',
+      candidateCount: 1,
+      canonicalPatientId: 'patient-1',
+      evidenceChecksum: checksum('masked-patient-resolution'),
+    },
+    ...overrides,
+  });
 }
 
 test('skrivgrinden är stängd som default och skapar ingen fil', async (t) => {
@@ -217,6 +244,181 @@ test('approval kräver canonical patient och encounter; active kräver separat o
     { code: 'activation_gate_closed' }
   );
   assert.equal(closed.ledger.stats().eventCount, 2);
+});
+
+test('exakt historiskt bokningspar kan godkännas med verifierad patient och encounter null', async (t) => {
+  const { ledger } = await fixture(t, { ledgerWriteAllowed: true });
+  const proposed = await propose(ledger, { sourceRefs: exactDuplicateSourceRefs() });
+  const approved = await ledger.transition(
+    proposed.linkId,
+    'approved',
+    historicalApprovalInput(proposed)
+  );
+
+  assert.equal(approved.canonicalPatientId, 'patient-1');
+  assert.equal(approved.canonicalEncounterId, null);
+  assert.equal(approved.linkType, 'exact_booking_duplicate');
+  assert.equal(approved.reasonCode, 'historical_booking_without_encounter');
+  assert.equal(approved.patientResolution.candidateCount, 1);
+  assert.equal(ledger.listActiveProjections().length, 0);
+  assert.equal(ledger.verifyIntegrity().ok, true);
+});
+
+test('historiskt undantag stoppar saknad eller tvetydig canonical patient utan append', async (t) => {
+  const { ledger, filePath } = await fixture(t, { ledgerWriteAllowed: true });
+  const proposed = await propose(ledger, { sourceRefs: exactDuplicateSourceRefs() });
+  const before = await fsPromises.readFile(filePath, 'utf8');
+
+  await assert.rejects(
+    () =>
+      ledger.transition(
+        proposed.linkId,
+        'approved',
+        historicalApprovalInput(proposed, {
+          canonicalPatientId: '',
+          patientResolution: {
+            verified: true,
+            method: 'unique_identity_match',
+            candidateCount: 1,
+            canonicalPatientId: '',
+            evidenceChecksum: checksum('missing-patient'),
+          },
+        })
+      ),
+    { code: 'canonical_patient_required' }
+  );
+  await assert.rejects(
+    () =>
+      ledger.transition(
+        proposed.linkId,
+        'approved',
+        historicalApprovalInput(proposed, {
+          idempotencyKey: 'approved-ambiguous',
+          patientResolution: {
+            verified: true,
+            method: 'unique_identity_match',
+            candidateCount: 2,
+            canonicalPatientId: 'patient-1',
+            evidenceChecksum: checksum('ambiguous-patient'),
+          },
+        })
+      ),
+    { code: 'canonical_patient_resolution_invalid' }
+  );
+  assert.equal(await fsPromises.readFile(filePath, 'utf8'), before);
+  assert.equal(ledger.stats().eventCount, 1);
+});
+
+test('historiskt undantag stoppar varje source/core/note-CAS-avvikelse utan append', async (t) => {
+  const { ledger, filePath } = await fixture(t, { ledgerWriteAllowed: true });
+  const proposed = await propose(ledger, { sourceRefs: exactDuplicateSourceRefs() });
+  const before = await fsPromises.readFile(filePath, 'utf8');
+
+  for (const [index, field] of [
+    'sourceSnapshotChecksum',
+    'coreChecksum',
+    'notesChecksum',
+  ].entries()) {
+    const drifted = exactDuplicateSourceRefs();
+    drifted[0] = { ...drifted[0], [field]: checksum(`drift-${field}`) };
+    await assert.rejects(
+      () =>
+        ledger.transition(
+          proposed.linkId,
+          'approved',
+          historicalApprovalInput(proposed, {
+            idempotencyKey: `approved-drift-${index}`,
+            currentSourceRefs: drifted,
+          })
+        ),
+      { code: 'source_snapshot_cas_mismatch' }
+    );
+  }
+  assert.equal(await fsPromises.readFile(filePath, 'utf8'), before);
+  assert.equal(ledger.stats().eventCount, 1);
+});
+
+test('historiskt encounter-undantag kräver exakt länktyp, reason och dubblettpayload', async (t) => {
+  const { ledger, filePath } = await fixture(t, { ledgerWriteAllowed: true });
+  const proposed = await propose(ledger, { sourceRefs: exactDuplicateSourceRefs() });
+  const before = await fsPromises.readFile(filePath, 'utf8');
+
+  await assert.rejects(
+    () =>
+      ledger.transition(
+        proposed.linkId,
+        'approved',
+        historicalApprovalInput(proposed, { linkType: 'customer_link' })
+      ),
+    { code: 'canonical_link_required' }
+  );
+  await assert.rejects(
+    () =>
+      ledger.transition(
+        proposed.linkId,
+        'approved',
+        historicalApprovalInput(proposed, {
+          idempotencyKey: 'approved-wrong-reason',
+          reasonCode: 'manual_override',
+        })
+      ),
+    { code: 'historical_booking_contract_invalid' }
+  );
+
+  const nonExact = exactDuplicateSourceRefs();
+  nonExact[1] = { ...nonExact[1], notesChecksum: checksum('different-notes') };
+  const second = await propose(ledger, {
+    linkId: 'link-2',
+    idempotencyKey: 'propose-2',
+    sourceRefs: nonExact,
+  });
+  const afterSecondProposal = await fsPromises.readFile(filePath, 'utf8');
+  await assert.rejects(
+    () =>
+      ledger.transition(
+        second.linkId,
+        'approved',
+        historicalApprovalInput(second, {
+          idempotencyKey: 'approved-non-exact',
+          currentSourceRefs: nonExact,
+        })
+      ),
+    { code: 'historical_booking_pair_invalid' }
+  );
+  assert.notEqual(afterSecondProposal, before);
+  assert.equal(await fsPromises.readFile(filePath, 'utf8'), afterSecondProposal);
+  assert.equal(ledger.stats().eventCount, 2);
+});
+
+test('historisk bokningsapproval kan aldrig aktiveras eller skapa projection', async (t) => {
+  const { ledger, filePath } = await fixture(t, {
+    ledgerWriteAllowed: true,
+    activationAllowed: true,
+  });
+  const proposed = await propose(ledger, { sourceRefs: exactDuplicateSourceRefs() });
+  const approved = await ledger.transition(
+    proposed.linkId,
+    'approved',
+    historicalApprovalInput(proposed)
+  );
+  const before = await fsPromises.readFile(filePath, 'utf8');
+
+  await assert.rejects(
+    () =>
+      ledger.transition(
+        approved.linkId,
+        'active',
+        transitionInput(approved, 'active', {
+          currentSourceRefs: exactDuplicateSourceRefs(),
+          canonicalEncounterId: 'encounter-added-later',
+          actor: owner,
+        })
+      ),
+    { code: 'historical_booking_activation_forbidden' }
+  );
+  assert.equal(await fsPromises.readFile(filePath, 'utf8'), before);
+  assert.equal(ledger.listActiveProjections().length, 0);
+  assert.equal(ledger.stats().byState.active, 0);
 });
 
 test('en sourceRef kan aldrig få två aktiva projections', async (t) => {
