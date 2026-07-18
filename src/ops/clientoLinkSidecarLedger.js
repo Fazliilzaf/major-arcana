@@ -20,6 +20,8 @@ const AUDIT_ACTIONS = Object.freeze({
   superseded: 'link_superseded',
 });
 const CHECKSUM_RE = /^[a-f0-9]{64}$/;
+const HISTORICAL_BOOKING_LINK_TYPE = 'exact_booking_duplicate';
+const HISTORICAL_BOOKING_REASON = 'historical_booking_without_encounter';
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -118,6 +120,66 @@ function normalizeEvidence(evidence) {
     }
     return normalized;
   });
+}
+
+function normalizePatientResolution(resolution, expectedPatientId) {
+  const normalized = {
+    verified: resolution?.verified === true,
+    method: normalizeText(resolution?.method),
+    candidateCount: Number(resolution?.candidateCount),
+    canonicalPatientId: normalizeText(resolution?.canonicalPatientId),
+    evidenceChecksum: normalizeText(resolution?.evidenceChecksum),
+  };
+  if (
+    !normalized.verified ||
+    normalized.method !== 'unique_identity_match' ||
+    normalized.candidateCount !== 1 ||
+    !normalized.canonicalPatientId ||
+    normalized.canonicalPatientId !== normalizeText(expectedPatientId) ||
+    !CHECKSUM_RE.test(normalized.evidenceChecksum)
+  ) {
+    throw ledgerError(
+      'canonical_patient_resolution_invalid',
+      'Historisk bokningslänk kräver verifierad och entydig canonical patientresolution.',
+      400
+    );
+  }
+  return normalized;
+}
+
+function isExactHistoricalBookingPair(sourceRefs) {
+  if (!Array.isArray(sourceRefs) || sourceRefs.length !== 2) return false;
+  return (
+    sourceRefs[0].tenantId !== sourceRefs[1].tenantId &&
+    sourceRefs[0].bookingId === sourceRefs[1].bookingId &&
+    sourceRefs[0].coreChecksum === sourceRefs[1].coreChecksum &&
+    sourceRefs[0].notesChecksum === sourceRefs[1].notesChecksum &&
+    sourceRefs.every(
+      (sourceRef) =>
+        CHECKSUM_RE.test(sourceRef.sourceSnapshotChecksum) &&
+        CHECKSUM_RE.test(sourceRef.coreChecksum) &&
+        CHECKSUM_RE.test(sourceRef.notesChecksum)
+    )
+  );
+}
+
+function isHistoricalBookingApproval(event) {
+  if (
+    event?.state !== 'approved' ||
+    event?.linkType !== HISTORICAL_BOOKING_LINK_TYPE ||
+    event?.reasonCode !== HISTORICAL_BOOKING_REASON ||
+    normalizeText(event?.canonicalEncounterId) ||
+    !normalizeText(event?.canonicalPatientId) ||
+    !isExactHistoricalBookingPair(event?.sourceRefs)
+  ) {
+    return false;
+  }
+  try {
+    normalizePatientResolution(event.patientResolution, event.canonicalPatientId);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function assertAuthorization(state, actor, gates) {
@@ -267,10 +329,19 @@ function verifyEventSequence(events) {
         issues.push({ index, code: 'transition_cas_proof_invalid' });
       }
       if (
-        ['approved', 'active'].includes(event.state) &&
-        (!normalizeText(event.canonicalPatientId) || !normalizeText(event.canonicalEncounterId))
+        event.state === 'approved' &&
+        (!normalizeText(event.canonicalPatientId) ||
+          (!normalizeText(event.canonicalEncounterId) && !isHistoricalBookingApproval(event)))
       ) {
         issues.push({ index, code: 'canonical_link_missing' });
+      }
+      if (
+        event.state === 'active' &&
+        (!normalizeText(event.canonicalPatientId) ||
+          !normalizeText(event.canonicalEncounterId) ||
+          event.linkType === HISTORICAL_BOOKING_LINK_TYPE)
+      ) {
+        issues.push({ index, code: 'active_canonical_link_invalid' });
       }
     }
     latest.set(event.linkId, event);
@@ -409,6 +480,7 @@ async function createClientoLinkSidecarLedger({
     const expectedPreviousEventId = normalizeText(input.expectedPreviousEventId);
     const canonicalPatientId = normalizeText(input.canonicalPatientId);
     const canonicalEncounterId = normalizeText(input.canonicalEncounterId);
+    const linkType = normalizeText(input.linkType || 'canonical_encounter_link');
     const currentSourceRefs = normalizeSourceRefs(input.currentSourceRefs);
     const evidence = normalizeEvidence(input.evidence);
     const actor = normalizeActor(input.actor);
@@ -431,6 +503,8 @@ async function createClientoLinkSidecarLedger({
       currentSourceRefs,
       canonicalPatientId: canonicalPatientId || null,
       canonicalEncounterId: canonicalEncounterId || null,
+      linkType,
+      patientResolution: input.patientResolution || null,
       evidence,
       idempotencyKey,
       reasonCode,
@@ -457,10 +531,58 @@ async function createClientoLinkSidecarLedger({
 
     const resolvedPatientId = canonicalPatientId || current.canonicalPatientId;
     const resolvedEncounterId = canonicalEncounterId || current.canonicalEncounterId;
+    const historicalApproval =
+      nextState === 'approved' &&
+      linkType === HISTORICAL_BOOKING_LINK_TYPE &&
+      reasonCode === HISTORICAL_BOOKING_REASON &&
+      !resolvedEncounterId;
+    let patientResolution = null;
+    if (historicalApproval) {
+      if (!resolvedPatientId) {
+        throw ledgerError(
+          'canonical_patient_required',
+          'Historisk bokningslänk kräver ett entydigt canonicalPatientId.',
+          400
+        );
+      }
+      if (!isExactHistoricalBookingPair(currentSourceRefs)) {
+        throw ledgerError(
+          'historical_booking_pair_invalid',
+          'Historiskt encounter-undantag kräver ett exakt bokningsdubblettpar.',
+          400
+        );
+      }
+      patientResolution = normalizePatientResolution(input.patientResolution, resolvedPatientId);
+    }
     if (
-      ['approved', 'active'].includes(nextState) &&
-      (!resolvedPatientId || !resolvedEncounterId)
+      nextState === 'approved' &&
+      linkType === HISTORICAL_BOOKING_LINK_TYPE &&
+      !historicalApproval
     ) {
+      throw ledgerError(
+        'historical_booking_contract_invalid',
+        'Historisk bokningslänk kräver exakt reason och canonicalEncounterId:null.',
+        400
+      );
+    }
+    if (
+      nextState === 'approved' &&
+      (!resolvedPatientId || (!resolvedEncounterId && !historicalApproval))
+    ) {
+      throw ledgerError(
+        'canonical_link_required',
+        'Entydigt canonicalPatientId och canonicalEncounterId krävs.',
+        400
+      );
+    }
+    if (nextState === 'active' && current.linkType === HISTORICAL_BOOKING_LINK_TYPE) {
+      throw ledgerError(
+        'historical_booking_activation_forbidden',
+        'Historisk bokningslänk utan encounter får aldrig aktiveras eller projiceras.',
+        403
+      );
+    }
+    if (nextState === 'active' && (!resolvedPatientId || !resolvedEncounterId)) {
       throw ledgerError(
         'canonical_link_required',
         'Entydigt canonicalPatientId och canonicalEncounterId krävs.',
@@ -496,6 +618,9 @@ async function createClientoLinkSidecarLedger({
       sourceRefs: clone(current.sourceRefs),
       canonicalPatientId: resolvedPatientId || null,
       canonicalEncounterId: resolvedEncounterId || null,
+      linkType: nextState === 'approved' ? linkType : current.linkType || linkType,
+      patientResolution:
+        nextState === 'approved' ? patientResolution : clone(current.patientResolution || null),
       evidence,
       idempotencyKey,
       reasonCode,
