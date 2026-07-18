@@ -60,6 +60,8 @@ let sharedPatientAssetStorePromise = null;
 // ORD-69: CM-storen monteras efter schedulern — deps sätts vid CM-mount och
 // hämtas lazy av cm_mail_sync-jobbet (samma mönster som ccoRequireAuthMiddleware).
 let cmMailSyncSchedulerDeps = null;
+// ORD-CM-21: lazy deps för nattlig auto-bokföring (sätts vid CF.9-mount)
+let cfoAutoBookSchedulerDeps = null;
 let sharedAssetImportRunStorePromise = null;
 let sharedAssetReviewQueueStorePromise = null;
 let sharedSecureStoragePromise = null;
@@ -13276,6 +13278,7 @@ process.once('SIGTERM', () => {
     authStore,
     // ORD-69: lazy — se cmMailSyncSchedulerDeps-holdern (sätts vid CM-mount)
     getCmMailSyncDeps: () => cmMailSyncSchedulerDeps,
+    getCfoAutoBookDeps: () => cfoAutoBookSchedulerDeps,
     templateStore,
     capabilityAnalysisStore,
     runtimeMetricsStore,
@@ -14483,6 +14486,15 @@ process.once('SIGTERM', () => {
     secureStorage: app.locals.ccoSecureStorage || null,
     // ORD-72: om-extraktion backfillar promotade utgifter vars belopp är tomt
     cfoExpenseStore: app.locals.cfoExpenseStore || null,
+  };
+
+  // ORD-CM-21: fyll scheduler-holdern — allt jobbet behöver finns här.
+  cfoAutoBookSchedulerDeps = {
+    cfoExpenseStore: app.locals.cfoExpenseStore || null,
+    secureStorage: app.locals.ccoSecureStorage || null,
+    fortnoxStore: app.locals.cfoFortnoxStore || null,
+    config,
+    auditLog: app.locals.ccoAuditLog || null,
   };
 
   // ORD-67 · CF.9: voucher-sync dryRun + gated skarp körning (ägar-GO 2026-07-13)
