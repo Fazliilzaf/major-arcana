@@ -409,6 +409,32 @@ function createCmRouter({
 
   // ORD-CM-22 · Källgranskning (ägar-regel: "vi gissar inget"): läs rå-mailets
   // metadata + textutdrag för en record/rawItem. Owner-only, read-only.
+  // ORD-CM-23 · Z-rapporternas intäktssummering (avstämning mot Fortnox/Cliento).
+  router.get('/cm/z-reports', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
+    const raws =
+      typeof cmStore.listRawItems === 'function'
+        ? cmStore.listRawItems().filter((r) => /z[- ]?rapport/i.test(String(r.subject || '')))
+        : [];
+    const byRaw = new Map();
+    const recs = typeof cmStore.listRecords === 'function' ? cmStore.listRecords() : [];
+    for (const rec of recs) if (rec.rawItemId) byRaw.set(rec.rawItemId, rec);
+    const months = new Map();
+    for (const r of raws) {
+      const rec = byRaw.get(r.id);
+      const d = (rec?.date || r.receivedAt || '').slice(0, 7) || 'okänt';
+      if (!months.has(d)) months.set(d, { month: d, count: 0, sum: 0 });
+      const m = months.get(d);
+      m.count += 1;
+      m.sum += Number(rec?.amountIncVat) || 0;
+    }
+    return res.json({
+      ok: true,
+      totalReports: raws.length,
+      months: [...months.values()].sort((a, b) => b.month.localeCompare(a.month)),
+      note: 'Z-rapporter = kassans dagsavslut. Extraherade summor — avstäm mot Fortnox-intäkter innan skarp användning.',
+    });
+  });
+
   router.get('/cm/raw-items/:id', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
     const raw =
       typeof cmStore.getRawItemById === 'function' ? cmStore.getRawItemById(req.params.id) : null;
