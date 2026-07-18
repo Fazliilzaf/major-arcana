@@ -3768,6 +3768,13 @@
         return { ...legacy, ...live };
       }
 
+      // En kunddossier far endast oppnas for en exakt, entydig e-postmatchning.
+      // Dubbla e-posttraffar syns i befintliga Granskning-lanen, men far aldrig
+      // rollas ihop eller skriva en patientkoppling harifran.
+      function patientMatchNeedsManualReview(thread = {}) {
+        return normalizeText(thread?.patientMatch?.status).toLowerCase() === 'ambiguous';
+      }
+
       function normalizeLiveThread(row = {}, index = 0, enrichment = null) {
         const customer = row.customer || {};
         const mailbox = row.mailbox || {};
@@ -3939,6 +3946,9 @@
         }
         if (rollup.enabled && Number(rollup.mailboxCount || 0) > 1) {
           tags.push({ kind: 'ai', label: `${rollup.mailboxCount} mailboxar` });
+        }
+        if (patientMatchNeedsManualReview(row)) {
+          tags.push({ kind: 'warning', label: 'Kundgranskning' });
         }
         smartInboxTags(liveEnrichment).forEach((tag) => {
           if (!tags.some((existing) => existing.label === tag.label)) tags.push(tag);
@@ -4317,6 +4327,12 @@
       function threadMatchesLane(thread, laneId) {
         if (!laneId || laneId === 'all') return true;
         if (laneId === 'waiting') return threadIsWaiting(thread);
+        if (laneId === 'review') {
+          return (
+            patientMatchNeedsManualReview(thread) ||
+            /review/i.test(normalizeText(thread.lane))
+          );
+        }
         if (laneId === 'act-now')
           return thread.unread === true || /act-now|review/i.test(thread.lane || '');
         return String(thread.lane || '').toLowerCase() === String(laneId).toLowerCase();
@@ -4346,6 +4362,12 @@
         if (actNowCount) actNowCount.textContent = String(needsReply);
         const waitingCount = document.querySelector('.lane-row[data-lane="waiting"] .ct');
         if (waitingCount) waitingCount.textContent = String(threads.filter(threadIsWaiting).length);
+        const reviewCount = document.querySelector('.lane-row[data-lane="review"] .ct');
+        if (reviewCount) {
+          reviewCount.textContent = String(
+            threads.filter((thread) => threadMatchesLane(thread, 'review')).length
+          );
+        }
       }
 
       function setThreadHeader(thread, messageCount = null) {
@@ -4378,10 +4400,14 @@
             statusSignal =
               '<span class="status-pill status-pill--info"><span class="dot"></span>Ingen oläst signal</span>';
           }
+          const patientReviewSignal = patientMatchNeedsManualReview(thread)
+            ? '<span class="status-pill status-pill--warning"><span class="dot"></span>Manuell kundgranskning</span>'
+            : '';
           statusBar.innerHTML = `
             <span class="status-pill status-pill--source"><span class="dot"></span>${escapeHtml(mailboxTrail[0])}</span>
             <span class="status-pill status-pill--info"><span class="dot"></span>Mailbox-spår: ${escapeHtml(mailboxTrail.join(' · '))}</span>
             ${statusSignal}
+            ${patientReviewSignal}
           `;
         }
       }
@@ -4405,9 +4431,9 @@
           return;
         }
         const name = normalizeText(thread.from) || 'Okänd kund';
+        const patientMatchStatus = normalizeText(thread.patientMatch?.status).toLowerCase();
         if (dossierButton) {
           const patientId = normalizeText(thread.patientId);
-          const patientMatchStatus = normalizeText(thread.patientMatch?.status);
           const hasCanonicalPatientMatch = Boolean(patientId && patientMatchStatus === 'matched');
           dossierButton.disabled = !hasCanonicalPatientMatch;
           dossierButton.dataset.patientId = patientId;
@@ -4437,6 +4463,9 @@
           }
           if (thread.unread) {
             items.push('<span class="ctx-chip ctx-chip--warn">Behöver svar</span>');
+          }
+          if (patientMatchStatus === 'ambiguous') {
+            items.push('<span class="ctx-chip ctx-chip--warn">Kundkoppling: flera e-postträffar</span>');
           }
           if (email) items.push(`<span class="ctx-chip">${escapeHtml(email)}</span>`);
           if (phone) items.push(`<span class="ctx-chip">${escapeHtml(phone)}</span>`);
