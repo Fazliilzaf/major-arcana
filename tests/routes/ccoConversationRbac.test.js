@@ -48,7 +48,13 @@ const MESSAGES = [
   },
 ];
 
-async function createFixture({ messages = MESSAGES, ingestionState = null } = {}) {
+async function createFixture({
+  messages = MESSAGES,
+  ingestionState = null,
+  mailboxIdsForSync = [],
+  tenantScopeId = '',
+  requireAuth,
+} = {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-rbac-'));
   const auditEvents = [];
   const conversationStateStore = await createCcoConversationStateStore({
@@ -59,14 +65,27 @@ async function createFixture({ messages = MESSAGES, ingestionState = null } = {}
   app.use(
     '/api/v1',
     createCcoConversationRouter({
-      ccoMailboxTruthStore: { listMessages: () => messages },
+      ccoMailboxTruthStore: {
+        listMessages({ mailboxIds = [] } = {}) {
+          const normalizedMailboxIds = new Set(
+            mailboxIds.map((mailboxId) => String(mailboxId || '').trim().toLowerCase())
+          );
+          if (normalizedMailboxIds.size === 0) return messages;
+          return messages.filter((message) =>
+            normalizedMailboxIds.has(String(message.mailboxId || '').trim().toLowerCase())
+          );
+        },
+      },
+      requireAuth,
       mailIngestionStore: ingestionState
         ? {
             getState: () => ingestionState,
           }
         : null,
       ccoConversationStateStore: conversationStateStore,
+      mailboxIdsForSync,
       defaultTenantId: 'cco',
+      tenantScopeId,
       authStore: {
         async addAuditEvent(event) {
           auditEvents.push(event);
@@ -194,6 +213,152 @@ test('messages: scoped worklist key resolves stored conversation messages', asyn
       assert.equal(body.conversationKey, scopedKey);
       assert.equal(body.messageCount, 1);
       assert.equal(body.messages[0].dir, 'inbound');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('messages: tenant- och mailboxscope stanger ute annan tenant och legacy-mailbox', async () => {
+  const allowedMailboxId = 'contact@hairtpclinic.com';
+  const legacyMailboxId = 'legacy@other-clinic.test';
+  const scopedMessages = [
+    {
+      mailboxConversationId: 'contact-thread',
+      senderEmail: CUSTOMER,
+      mailboxId: allowedMailboxId,
+      mailboxAddress: allowedMailboxId,
+      folderType: 'inbox',
+      sentAt: '2025-01-01T10:00:00.000Z',
+    },
+    {
+      mailboxConversationId: 'legacy-thread',
+      senderEmail: 'other@example.test',
+      mailboxId: legacyMailboxId,
+      mailboxAddress: legacyMailboxId,
+      folderType: 'inbox',
+      sentAt: '2025-01-01T10:01:00.000Z',
+    },
+  ];
+  const fixture = await createFixture({
+    messages: scopedMessages,
+    mailboxIdsForSync: [allowedMailboxId],
+    tenantScopeId: 'hair-tp-clinic',
+    requireAuth(req, _res, next) {
+      req.auth = {
+        tenantId: req.headers['x-test-tenant'] || 'hair-tp-clinic',
+        role: req.headers['x-cco-role'] || 'operator',
+      };
+      next();
+    },
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const allowed = await readReqByKey(
+        baseUrl,
+        `${allowedMailboxId}:contact-thread`,
+        'operator'
+      );
+      assert.equal(allowed.status, 200);
+      assert.equal((await allowed.json()).messageCount, 1);
+
+      const legacy = await readReqByKey(
+        baseUrl,
+        `${legacyMailboxId}:legacy-thread`,
+        'operator'
+      );
+      assert.equal(legacy.status, 200);
+      assert.equal((await legacy.json()).messageCount, 0, 'off-scope mailbox far inte lasa');
+
+      const wrongTenant = await fetch(
+        `${baseUrl}/cco/runtime/conversation/${encodeURIComponent(`${allowedMailboxId}:contact-thread`)}/messages`,
+        { headers: { 'x-cco-role': 'operator', 'x-test-tenant': 'another-tenant' } }
+      );
+      assert.equal(wrongTenant.status, 403);
+      assert.equal((await wrongTenant.json()).error, 'tenant_scope_forbidden');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('mailboxvaljaren kraver autentiserad mail.read och visar bara aktiv CCO-scope', async () => {
+  const allowedMailboxId = 'contact@hairtpclinic.com';
+  const fixture = await createFixture({
+    mailboxIdsForSync: [allowedMailboxId],
+    tenantScopeId: 'hair-tp-clinic',
+    requireAuth(req, res, next) {
+      if (req.get('authorization') !== 'Bearer test-token') {
+        return res.status(401).json({ error: 'unauthorized' });
+      }
+      req.auth = { tenantId: 'hair-tp-clinic', role: 'operator' };
+      return next();
+    },
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const anonymous = await fetch(`${baseUrl}/cco/runtime/mailboxes`);
+      assert.equal(anonymous.status, 401);
+
+      const anonymousHealth = await fetch(`${baseUrl}/cco/runtime/health/mailboxes`);
+      assert.equal(anonymousHealth.status, 401);
+
+      const authenticated = await fetch(`${baseUrl}/cco/runtime/mailboxes`, {
+        headers: { authorization: 'Bearer test-token' },
+      });
+      assert.equal(authenticated.status, 200);
+      const payload = await authenticated.json();
+      assert.deepEqual(
+        payload.mailboxes.map((mailbox) => mailbox.mailboxId),
+        [allowedMailboxId]
+      );
+
+      const authenticatedHealth = await fetch(`${baseUrl}/cco/runtime/health/mailboxes`, {
+        headers: { authorization: 'Bearer test-token' },
+      });
+      assert.equal(authenticatedHealth.status, 200);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('messages: ingestion-fallback laser inte legacy-mailbox utanfor aktiv CCO-scope', async () => {
+  const allowedMailboxId = 'contact@hairtpclinic.com';
+  const legacyMailboxId = 'legacy@other-clinic.test';
+  const fixture = await createFixture({
+    messages: [],
+    mailboxIdsForSync: [allowedMailboxId],
+    ingestionState: {
+      mailRawMessages: {
+        allowed: {
+          conversationId: 'contact-thread',
+          mailboxId: allowedMailboxId,
+          folderType: 'inbox',
+          fromEmail: CUSTOMER,
+          bodyText: 'Tillaten lokal historik.',
+          receivedAt: '2025-01-01T10:00:00.000Z',
+        },
+        legacy: {
+          conversationId: 'legacy-thread',
+          mailboxId: legacyMailboxId,
+          folderType: 'inbox',
+          fromEmail: 'other@example.test',
+          bodyText: 'Far aldrig visas.',
+          receivedAt: '2025-01-01T10:01:00.000Z',
+        },
+      },
+    },
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const allowed = await readReqByKey(baseUrl, `${allowedMailboxId}:contact-thread`, 'operator');
+      assert.equal(allowed.status, 200);
+      assert.equal((await allowed.json()).messageCount, 1);
+
+      const legacy = await readReqByKey(baseUrl, `${legacyMailboxId}:legacy-thread`, 'operator');
+      assert.equal(legacy.status, 200);
+      assert.equal((await legacy.json()).messageCount, 0);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

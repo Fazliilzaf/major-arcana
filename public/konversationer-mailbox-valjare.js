@@ -91,6 +91,13 @@
     collapsed: { mailboxes: false, scope: true }, // FILTER hopfällt som default (tar minimal plats)
   };
 
+  function withConversationAuth(headers = {}) {
+    if (typeof window.CCOConversationAuth?.headers === 'function') {
+      return window.CCOConversationAuth.headers(headers);
+    }
+    return headers;
+  }
+
   function el(tag, attrs, children) {
     const n = document.createElement(tag);
     if (attrs) {
@@ -347,8 +354,11 @@
 
     async function loadStatus() {
       try {
-        const r = await fetch('/api/v1/cco/runtime/mailboxes', { cache: 'no-store' });
-      if (!r.ok) return;
+        const r = await fetch('/api/v1/cco/runtime/mailboxes', {
+          cache: 'no-store',
+          headers: withConversationAuth({ Accept: 'application/json' }),
+        });
+        if (!r.ok) return;
         const j = await r.json().catch(() => ({}));
         const list = Array.isArray(j && j.mailboxes) ? j.mailboxes : [];
         const map = {};

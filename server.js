@@ -13719,6 +13719,7 @@ process.once('SIGTERM', () => {
       clientoBookingStore,
       postSendMailboxSync,
       defaultTenantId: 'cco',
+      tenantScopeId: config.defaultTenantId,
       authStore,
     })
   );

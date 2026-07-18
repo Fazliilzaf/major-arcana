@@ -1809,6 +1809,8 @@ test('runtime mail asset route streams attachment content for focus attachment a
         },
         requireAuth: auth.requireAuth,
         requireRole: auth.requireRole,
+        appConfig: { defaultTenantId: 'tenant-a' },
+        ccoRuntimeMailboxIds: ['contact@hairtpclinic.com'],
         graphReadConnector: {
           async fetchInboxSnapshot() {
             return { conversations: [] };
@@ -1871,6 +1873,77 @@ test('runtime mail asset route streams attachment content for focus attachment a
     } else {
       process.env.ARCANA_GRAPH_CLIENT_SECRET = previousGraphClientSecret;
     }
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('runtime mail asset route fences tenant and active mailbox before reading the local cache', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-runtime-mail-asset-scope-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  let cacheReads = 0;
+  const auth = createMockAuth('OWNER');
+  auth.requireAuth = (req, _res, next) => {
+    req.auth = {
+      tenantId: req.headers['x-test-tenant'] || 'tenant-a',
+      userId: 'owner-a',
+      role: 'OWNER',
+    };
+    next();
+  };
+
+  try {
+    const app = express();
+    app.use(express.json());
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore,
+        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+        appConfig: { defaultTenantId: 'tenant-a' },
+        ccoRuntimeMailboxIds: ['contact@hairtpclinic.com'],
+        ccoMailAssetCache: {
+          async get() {
+            cacheReads += 1;
+            return {
+              buffer: Buffer.from('PRIVATE-BYTES'),
+              metadata: { name: 'private.pdf', contentType: 'application/pdf' },
+            };
+          },
+        },
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const legacyMailbox = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/mail-asset/content?mailboxId=legacy@other-clinic.test&messageId=msg-1&attachmentId=att-1`
+      );
+      assert.equal(legacyMailbox.status, 404);
+      assert.equal(cacheReads, 0, 'off-scope mailbox far inte lasa cache');
+
+      const wrongTenant = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/mail-asset/content?mailboxId=contact@hairtpclinic.com&messageId=msg-1&attachmentId=att-1`,
+        { headers: { 'x-test-tenant': 'tenant-b' } }
+      );
+      assert.equal(wrongTenant.status, 403);
+      assert.equal(cacheReads, 0, 'fel tenant far inte lasa cache');
+
+      const allowed = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/mail-asset/content?mailboxId=contact@hairtpclinic.com&messageId=msg-1&attachmentId=att-1`
+      );
+      assert.equal(allowed.status, 200);
+      assert.equal(String(Buffer.from(await allowed.arrayBuffer())), 'PRIVATE-BYTES');
+      assert.equal(cacheReads, 1);
+    });
+  } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });

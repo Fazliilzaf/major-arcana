@@ -1103,9 +1103,13 @@ function fetchSortedIngestionConversationMessages(store, key, options = {}) {
   if (!storeCanReadIngestion(store)) return [];
   const scopes = buildConversationLookupScopes([key], options);
   if (!scopes.length) return [];
-  const rawMessages = readIngestionRawMessages(store);
+  const allowedMailboxIds = normalizeConfiguredMailboxIds(asObject(options).allowedMailboxIds);
+  const rawMessages = allowedMailboxIds.length
+    ? readScopedIngestionConversationMessages(store, new Set(allowedMailboxIds), {
+        excludeUnscoped: true,
+      })
+    : readIngestionRawMessages(store).map(toConversationMessageFromRaw);
   const matches = rawMessages
-    .map(toConversationMessageFromRaw)
     .filter((message) => conversationMessageMatchesScopes(message, scopes));
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
@@ -1121,9 +1125,13 @@ function fetchSortedIngestionConversationMessagesForKeys(store, keys = [], optio
   );
   const scopes = buildConversationLookupScopes(safeKeys, options);
   if (!scopes.length) return [];
-  const rawMessages = readIngestionRawMessages(store);
+  const allowedMailboxIds = normalizeConfiguredMailboxIds(asObject(options).allowedMailboxIds);
+  const rawMessages = allowedMailboxIds.length
+    ? readScopedIngestionConversationMessages(store, new Set(allowedMailboxIds), {
+        excludeUnscoped: true,
+      })
+    : readIngestionRawMessages(store).map(toConversationMessageFromRaw);
   const matches = rawMessages
-    .map(toConversationMessageFromRaw)
     .filter((message) => conversationMessageMatchesScopes(message, scopes));
   return dedupeConversationMessages(matches).sort((a, b) =>
     String(deriveTime(a)).localeCompare(String(deriveTime(b)))
@@ -1144,13 +1152,14 @@ function deriveMailboxIdsFromConversationMessages(messages = []) {
 // Läs + mappa ingestion-råmeddelanden EN gång, scopat till angivna mailbox(ar).
 // Råmeddelanden utan mailbox tas alltid med (säkerhet). Ersätter de tidigare
 // hela-korpus-passen som körde per trådöppning.
-function readScopedIngestionConversationMessages(store, mailboxIds = null) {
+function readScopedIngestionConversationMessages(store, mailboxIds = null, { excludeUnscoped = false } = {}) {
   if (!storeCanReadIngestion(store)) return [];
   const scope = mailboxIds instanceof Set && mailboxIds.size ? mailboxIds : null;
   const out = [];
   for (const raw of readIngestionRawMessages(store)) {
     if (scope) {
       const mailbox = deriveMailboxForMatch(raw);
+      if (!mailbox && excludeUnscoped) continue;
       if (mailbox && !scope.has(mailbox)) continue;
     }
     out.push(toConversationMessageFromRaw(raw));
@@ -1324,8 +1333,13 @@ function enrichConversationMessagesWithIngestion(messages, store, options = {}) 
   // pass + en O(M×N)-fallback) per trådöppning — synkront på event-loopen. Med
   // en stor korpus blev det sekunders block ("Laddar från CCO-pipelinen" hängde
   // ~30s). Peak-arbetet blir nu trådens shard, inte hela storen.
-  const mailboxIds = deriveMailboxIdsFromConversationMessages(messages);
-  const rawMessages = readScopedIngestionConversationMessages(store, mailboxIds);
+  const configuredMailboxIds = normalizeConfiguredMailboxIds(asObject(options).allowedMailboxIds);
+  const mailboxIds = configuredMailboxIds.length
+    ? configuredMailboxIds
+    : deriveMailboxIdsFromConversationMessages(messages);
+  const rawMessages = readScopedIngestionConversationMessages(store, new Set(mailboxIds), {
+    excludeUnscoped: configuredMailboxIds.length > 0,
+  });
   if (!rawMessages.length) return messages;
   const lookup = buildIngestionAliasLookup(rawMessages);
   const fallbackScope = deriveScopedIngestionFallbackScope(options);
@@ -1537,8 +1551,55 @@ async function safeAuditConversation(authStore, event) {
   await authStore.addAuditEvent(event);
 }
 
+function normalizeConfiguredMailboxIds(mailboxIds = []) {
+  return Array.from(
+    new Set(
+      asArray(mailboxIds)
+        .map((mailboxId) => normalizeEmail(mailboxId))
+        .filter(Boolean)
+    )
+  );
+}
+
+function createMailboxScopedTruthStore(store, mailboxIds = []) {
+  const allowedMailboxIds = normalizeConfiguredMailboxIds(mailboxIds);
+  if (!store || typeof store.listMessages !== 'function' || allowedMailboxIds.length === 0) {
+    return store;
+  }
+
+  const allowedMailboxIdSet = new Set(allowedMailboxIds);
+  const scopedStore = Object.create(store);
+  scopedStore.listMessages = (options = {}) => {
+    const safeOptions = asObject(options);
+    const hasMailboxScope = Object.prototype.hasOwnProperty.call(safeOptions, 'mailboxIds');
+    const requestedMailboxIds = normalizeConfiguredMailboxIds(safeOptions.mailboxIds);
+    const scopedMailboxIds = hasMailboxScope
+      ? requestedMailboxIds.filter((mailboxId) => allowedMailboxIdSet.has(mailboxId))
+      : allowedMailboxIds;
+    // An empty mailboxIds array means "all mailboxes" to the backing store.
+    // Return no rows instead when a caller explicitly requested only off-scope
+    // mailboxes, so an invalid hint can never widen a read.
+    if (hasMailboxScope && scopedMailboxIds.length === 0) return [];
+    return store.listMessages({ ...safeOptions, mailboxIds: scopedMailboxIds });
+  };
+  return scopedStore;
+}
+
+function createTenantScopeMiddleware(tenantScopeId = '') {
+  const expectedTenantId = normalizeText(tenantScopeId).toLowerCase();
+  return (req, res, next) => {
+    if (!expectedTenantId) return next();
+    const actualTenantId = normalizeText(req.auth?.tenantId).toLowerCase();
+    if (actualTenantId === expectedTenantId) return next();
+    return res.status(403).json({
+      error: 'tenant_scope_forbidden',
+      detail: 'CCO-konversationer kan bara lasas inom den aktiva klinikens tenant.',
+    });
+  };
+}
+
 function createCcoConversationRouter({
-  ccoMailboxTruthStore,
+  ccoMailboxTruthStore: rawCcoMailboxTruthStore,
   mailIngestionStore = null,
   requireAuth,
   openai = null,
@@ -1568,11 +1629,23 @@ function createCcoConversationRouter({
   clientoBookingStore = null,
   postSendMailboxSync = null,
   defaultTenantId = 'cco',
+  tenantScopeId = '',
   authStore = null,
 } = {}) {
   const router = express.Router();
   const authMiddleware =
     typeof requireAuth === 'function' ? requireAuth : (_req, _res, next) => next();
+  const configuredMailboxIds = normalizeConfiguredMailboxIds(mailboxIdsForSync);
+  const ccoMailboxTruthStore = createMailboxScopedTruthStore(
+    rawCcoMailboxTruthStore,
+    configuredMailboxIds
+  );
+  const requireTenantScope = createTenantScopeMiddleware(tenantScopeId);
+
+  // The conversation store is shared at process level. All direct conversation
+  // routes must therefore carry the verified tenant fence before any local data
+  // is read; individual routes retain their existing permission checks below.
+  router.use('/cco/runtime/conversation', authMiddleware, requireTenantScope);
 
   router.get(
     '/cco/runtime/conversation/:key/messages',
@@ -1596,7 +1669,11 @@ function createCcoConversationRouter({
         const mailboxHints = parseConversationMailboxHintQuery(req.query);
         // Mailbox-hinten scopar truth-läsningen till trådens shard även när nyckeln
         // saknar mailbox-prefix — undviker att läsa alla shards per trådöppning.
-        const scopeOptions = mailboxHints.length ? { ...contactScope, mailboxHints } : contactScope;
+        const scopeOptions = {
+          ...contactScope,
+          ...(mailboxHints.length ? { mailboxHints } : {}),
+          ...(configuredMailboxIds.length ? { allowedMailboxIds: configuredMailboxIds } : {}),
+        };
         // Lättviktig fas-timing (diagnostik) för att lokalisera trådöppnings-
         // latensen. hrtime → ms med 1 decimal. Klienten loggar server- vs nätverks-
         // tid från timings-fältet nedan.
@@ -1609,11 +1686,11 @@ function createCcoConversationRouter({
         );
         const tTruth = process.hrtime.bigint();
         const sorted = truthMessages.length
-          ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore, contactScope)
+          ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore, scopeOptions)
           : fetchSortedIngestionConversationMessagesForKeys(
               mailIngestionStore,
               lookupKeys,
-              contactScope
+              scopeOptions
             );
         const tEnrich = process.hrtime.bigint();
         const messages = sorted.map((m) => {
@@ -2810,11 +2887,11 @@ function createCcoConversationRouter({
     }
   );
 
-  // ----- Mailbox health (PUBLIC, ingen auth — bara aggregat-counts) -----
+  // ----- Mailbox health (RBAC-grindad aggregatstatus) -----
   // GET /cco/runtime/health/mailboxes
   // Visar antal mejl per mailbox + senaste mejlets timestamp.
   // Inga email-bodies eller customer-data exponeras — bara counts.
-  router.get('/cco/runtime/health/mailboxes', (_req, res) => {
+  router.get('/cco/runtime/health/mailboxes', authMiddleware, requireTenantScope, requirePermission('mail.read'), (_req, res) => {
     try {
       if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
         return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
@@ -2825,13 +2902,13 @@ function createCcoConversationRouter({
       // listan inte kan härledas. Counts/latest är oförändrade.
       const report =
         typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
-          ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds: [] })
+          ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds: configuredMailboxIds })
           : null;
       const mailboxIds = report
         ? asArray(report.accountReports)
             .map((account) => normalizeText(account.mailboxId))
             .filter(Boolean)
-        : [];
+        : configuredMailboxIds;
       const scopeList = mailboxIds.length ? mailboxIds.map((id) => ({ mailboxIds: [id] })) : [{}];
       const byMailbox = {};
       let totalMessages = 0;
@@ -2867,20 +2944,13 @@ function createCcoConversationRouter({
     }
   });
 
-  // ----- Mailbox-väljarens status-spegel (PUBLIC, endast aggregat) -----
+  // ----- Mailbox-väljarens status-spegel (RBAC-grindad aggregatstatus) -----
   // GET /cco/runtime/mailboxes
   // Frontendens vänsterräls behöver per mailbox visa vad som faktiskt kan
   // väljas. Läs endast completeness-rapporten: den materialiserar inte alla
   // mejl och exponerar inga adresser, ämnen eller bodies.
-  router.get('/cco/runtime/mailboxes', (_req, res) => {
+  router.get('/cco/runtime/mailboxes', authMiddleware, requireTenantScope, requirePermission('mail.read'), (_req, res) => {
     try {
-      const configuredMailboxIds = Array.from(
-        new Set(
-          asArray(mailboxIdsForSync)
-            .map((value) => normalizeText(value).toLowerCase())
-            .filter(Boolean)
-        )
-      );
       const report =
         ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
           ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds: configuredMailboxIds })
@@ -3151,7 +3221,7 @@ function createCcoConversationRouter({
 
   // ----- Settings-info: mailboxar + AI-konfiguration -----
   // GET /cco/runtime/settings/info
-  router.get('/cco/runtime/settings/info', authMiddleware, (_req, res) => {
+  router.get('/cco/runtime/settings/info', authMiddleware, requireTenantScope, requirePermission('settings.read'), (_req, res) => {
     try {
       // Sammanställ mailbox-info från allowlist + senaste sync
       const allowlistRaw = String(process.env.ARCANA_MAILBOX_ALLOWLIST || '')
@@ -3216,7 +3286,7 @@ function createCcoConversationRouter({
   // GET /cco/runtime/mail-templates                          → lista alla
   // POST /cco/runtime/mail-templates                         → upsert (templateId optional)
   // DELETE /cco/runtime/mail-templates/:templateId           → ta bort
-  router.get('/cco/runtime/mail-templates', authMiddleware, (_req, res) => {
+  router.get('/cco/runtime/mail-templates', authMiddleware, requireTenantScope, requirePermission('templates.read'), (_req, res) => {
     try {
       if (!ccoMailTemplateStore) {
         return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
@@ -3232,6 +3302,8 @@ function createCcoConversationRouter({
   router.post(
     '/cco/runtime/mail-templates',
     authMiddleware,
+    requireTenantScope,
+    requirePermission('templates.write'),
     express.json({ limit: '32kb' }),
     async (req, res) => {
       try {
@@ -3257,7 +3329,7 @@ function createCcoConversationRouter({
       }
     }
   );
-  router.delete('/cco/runtime/mail-templates/:templateId', authMiddleware, async (req, res) => {
+  router.delete('/cco/runtime/mail-templates/:templateId', authMiddleware, requireTenantScope, requirePermission('templates.write'), async (req, res) => {
     try {
       if (!ccoMailTemplateStore) {
         return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
