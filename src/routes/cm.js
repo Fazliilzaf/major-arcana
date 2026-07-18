@@ -435,6 +435,17 @@ function createCmRouter({
     });
   });
 
+  // ORD-CM-24 · Käll-uppslag för godtycklig record (owner, read-only) — handedOff
+  // syns inte i list-vyerna men behövs vid källgranskning ("vi gissar inget").
+  router.get('/cm/expense-records/:id', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
+    const rec =
+      typeof cmStore.getExpenseRecordById === 'function'
+        ? cmStore.getExpenseRecordById(req.params.id)
+        : null;
+    if (!rec) return res.status(404).json({ error: 'record finns ej' });
+    return res.json({ ok: true, record: rec });
+  });
+
   router.get('/cm/raw-items/:id', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
     const raw =
       typeof cmStore.getRawItemById === 'function' ? cmStore.getRawItemById(req.params.id) : null;
