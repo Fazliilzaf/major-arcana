@@ -146,6 +146,12 @@ test('V11 audit-readout är strikt GET/read-only och visar create-livscykeln', (
 test('Visa audit öppnar readout utan att trigga V11/V12-handoff eller rerender', async () => {
   const { window } = parseHTML('<html><body><div id="mount"></div></body></html>');
   const requests = [];
+  window.localStorage = {
+    getItem(key) {
+      return key === 'ARCANA_ADMIN_TOKEN' ? 'verified-owner-token' : '';
+    },
+  };
+  window.sessionStorage = { getItem: () => '' };
   window.fetch = async (url, options) => {
     requests.push({ url, options });
     return {
@@ -210,6 +216,8 @@ test('Visa audit öppnar readout utan att trigga V11/V12-handoff eller rerender'
   assert.equal(rerenderCount, 0);
   assert.equal(requests.length, 1);
   assert.equal(requests[0].options.method, 'GET');
+  assert.equal(requests[0].options.headers.Authorization, 'Bearer verified-owner-token');
+  assert.equal('x-tenant-id' in requests[0].options.headers, false);
   assert.match(requests[0].url, /\/api\/v1\/cco-audit\/booking\/booking-uat/);
   assert.match(details.textContent, /bookings\.create_requested/);
   assert.match(details.textContent, /bookings\.create_committed/);

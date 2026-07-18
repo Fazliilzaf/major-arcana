@@ -131,6 +131,77 @@ test('booking audit readout exposes only requested/committed to owner and staff'
   });
 });
 
+test('booking audit requires Bearer auth and scopes an OWNER read to the token tenant', async () => {
+  const events = [
+    {
+      ts: '2026-07-17T10:00:00.000Z',
+      action: 'bookings.create_requested',
+      target: { id: 'idem-1', tenantId: 'tenant-a' },
+      detail: { patientId: 'patient-1' },
+    },
+    {
+      ts: '2026-07-17T10:00:01.000Z',
+      action: 'bookings.create_committed',
+      target: { id: 'booking-1', tenantId: 'tenant-b' },
+      detail: { patientId: 'patient-1', idempotencyKey: 'idem-other' },
+    },
+    {
+      ts: '2026-07-17T10:00:02.000Z',
+      action: 'bookings.create_committed',
+      target: { id: 'booking-1', tenantId: 'tenant-a' },
+      detail: { patientId: 'patient-1', idempotencyKey: 'idem-1' },
+    },
+  ];
+  const app = express();
+  app.use(
+    '/api/v1',
+    createCcoAuditRouter({
+      ccoAuditLog: {
+        query({ action, targetId }) {
+          return events.filter(
+            (event) => event.action === action && (!targetId || event.target.id === targetId)
+          );
+        },
+        stats: () => ({ total: events.length }),
+        append: () => {
+          throw new Error('read-only route must never append');
+        },
+      },
+      requireAuthenticated: (req, res, next) => {
+        if (req.headers.authorization !== 'Bearer verified-owner') {
+          return res.status(401).json({ error: 'authentication_required' });
+        }
+        req.auth = { userId: 'owner-user', role: 'OWNER', tenantId: 'tenant-a' };
+        return next();
+      },
+      attachRole: realAttachRole,
+      requireAnyRole: realRequireAnyRole,
+    })
+  );
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${server.address().port}/api/v1/cco-audit/booking/booking-1?patientId=patient-1`;
+  try {
+    const anonymous = await fetch(url);
+    assert.equal(anonymous.status, 401);
+
+    const owner = await fetch(url, {
+      headers: { authorization: 'Bearer verified-owner' },
+    });
+    assert.equal(owner.status, 200);
+    const payload = await owner.json();
+    assert.equal(payload.readOnly, true);
+    assert.equal(payload.zeroWrites, true);
+    assert.deepEqual(
+      payload.items.map((item) => item.action),
+      ['bookings.create_requested', 'bookings.create_committed']
+    );
+    assert.equal(payload.count, 2);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('POST /cco-audit loggar med actor.role och returnerar traceId', async () => {
   const log = makeAuditLog();
   await withServer(log, async (baseUrl) => {
