@@ -330,6 +330,7 @@ function createScheduler({
   // ORD-69: lazy getter — CM-storen monteras EFTER schedulern i server.js,
   // därför hämtas deps vid körning i stället för vid konstruktion.
   getCmMailSyncDeps = null,
+  getCfoAutoBookDeps = null,
   bookingStore = null,
   marketingCampaignDraftsStore = null,
   marketingContentAssetsStore = null,
@@ -4144,6 +4145,72 @@ function createScheduler({
   // (CM_MAX_EXTRACT_PER_SYNC, default 10) — max ~480 extraktioner/dygn vid
   // 30-minutersintervall, i praktiken långt färre (bara nya/oprocessade).
   // Beslut förblir mänskliga: jobbet skapar KANDIDATER, aldrig godkännanden.
+  // ORD-CM-21 · Nattlig auto-bokföring (ägar-GO 2026-07-18 "kör"): ägar-regeln
+  // (auto-approve med beviskedja+prejudikat) → exportpaket → Fortnox-run.
+  // Fail-closed i varje led: regeln kräver full beviskedja, run kräver gate
+  // (env/override) + OAuth. Undantag stannar i Att hantera för ägaren.
+  async function runCfoAutoBook() {
+    const deps = typeof getCfoAutoBookDeps === 'function' ? getCfoAutoBookDeps() : null;
+    if (!deps?.cfoExpenseStore) return { status: 'skipped', reason: 'cfo_deps_missing' };
+    const summary = { approved: 0, skippedRule: null, exported: 0, booked: 0, bookErrors: 0 };
+    try {
+      const { autoApproveExpenses } = require('../cfo/cfoExpenseAutoApprove');
+      const approval = await autoApproveExpenses({
+        expenseStore: deps.cfoExpenseStore,
+        actor: 'scheduler-auto-regel',
+        auditLog: deps.auditLog || null,
+      });
+      summary.approved = approval.approved;
+      summary.skippedRule = approval.skipped;
+      if (approval.approved > 0 && deps.secureStorage) {
+        const { buildExpenseExportPackage } = require('../cfo/cfoExpenseExporter');
+        const pkg = await buildExpenseExportPackage({
+          expenseStore: deps.cfoExpenseStore,
+          secureStorage: deps.secureStorage,
+          actor: 'scheduler-auto-regel',
+          auditLog: deps.auditLog || null,
+          statusFilter: 'ready_for_export',
+        });
+        summary.exported = pkg?.count || 0;
+      }
+      // Fortnox-run körs alltid (tar även äldre pending) — gaterna avgör.
+      if (deps.fortnoxStore && deps.config?.fortnoxClientId && deps.config?.fortnoxClientSecret) {
+        const { createFortnoxClient } = require('../cfo/cfoFortnoxClient');
+        const { createCfoFortnoxVoucherSync } = require('../cfo/cfoFortnoxVoucherSync');
+        const { resolveConnectedFortnoxTenantId } = require('../cfo/cfoFortnoxTenantResolve');
+        const fortnoxTenantId = await resolveConnectedFortnoxTenantId(
+          deps.fortnoxStore,
+          deps.config.defaultTenantId || ''
+        );
+        const client = createFortnoxClient({
+          clientId: deps.config.fortnoxClientId,
+          clientSecret: deps.config.fortnoxClientSecret,
+          tenantId: fortnoxTenantId,
+          getConnection: (input) => deps.fortnoxStore.getConnection(input),
+          saveConnection: (input) => deps.fortnoxStore.saveConnection(input),
+        });
+        const sync = createCfoFortnoxVoucherSync({
+          expenseStore: deps.cfoExpenseStore,
+          fortnoxStore: {
+            getConnection: () => deps.fortnoxStore.getConnection({ tenantId: fortnoxTenantId }),
+          },
+          fortnoxClient: client,
+          auditLog: deps.auditLog || null,
+        });
+        const run = await sync.run({ dryRun: false });
+        if (run.ok && Array.isArray(run.results)) {
+          summary.booked = run.results.filter((r) => r.ok).length;
+          summary.bookErrors = run.results.filter((r) => !r.ok).length;
+        } else {
+          summary.runReason = run.reason || null;
+        }
+      }
+      return { status: 'ok', ...summary };
+    } catch (err) {
+      return { status: 'error', error: err.message, ...summary };
+    }
+  }
+
   async function runCmMailSync() {
     const deps = typeof getCmMailSyncDeps === 'function' ? getCmMailSyncDeps() : null;
     if (!deps?.cmStore || !deps?.graphReadConnector) {
@@ -4406,6 +4473,12 @@ function createScheduler({
           ? toHoursMs(config.schedulerCcoCustomerRemindersIntervalHours, 6)
           : 0,
       run: runCcoCustomerReminders,
+    },
+    {
+      id: 'cfo_auto_book',
+      name: 'CFO auto-bokföring: ägar-regeln → export → Fortnox (ORD-CM-21)',
+      intervalMs: toMinutesMs(config.schedulerCfoAutoBookIntervalMinutes, 1440),
+      run: runCfoAutoBook,
     },
     {
       id: 'cm_mail_sync',
