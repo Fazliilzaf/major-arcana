@@ -138,7 +138,7 @@ describe('ccoClientoLedJourneyAudit', () => {
     assert.deepEqual(row.gaps, ['healthDeclaration']);
   });
 
-  it('requires FF only once PRP treatment has been attended', () => {
+  it('does not require FF for attended PRP (Notion: FF only before HT)', () => {
     const upcoming = auditPatientJourney({
       patient: { id: 'p1' },
       bookings: [
@@ -151,6 +151,7 @@ describe('ccoClientoLedJourneyAudit', () => {
       ],
     });
     assert.deepEqual(upcoming.gaps, ['healthDeclaration', 'offer']);
+    assert.equal(upcoming.requirements.fitnessCertificate.status, 'not_expected');
 
     const attended = auditPatientJourney({
       patient: { id: 'p1' },
@@ -163,7 +164,12 @@ describe('ccoClientoLedJourneyAudit', () => {
         },
       ],
     });
-    assert.deepEqual(attended.gaps, ['healthDeclaration', 'fitnessCertificate', 'offer']);
+    assert.deepEqual(attended.gaps, ['healthDeclaration', 'offer']);
+    assert.equal(attended.requirements.fitnessCertificate.status, 'not_expected');
+    assert.equal(
+      attended.requirements.fitnessCertificate.reason,
+      'prp_or_non_ht_treatment_ff_not_required'
+    );
   });
 
   it('requires HD after an attended consultation but not treatment documents yet', () => {
@@ -184,7 +190,7 @@ describe('ccoClientoLedJourneyAudit', () => {
     assert.equal(row.requirements.agreement.status, 'not_expected');
   });
 
-  it('requires HD, FF and offer for attended PRP but not hair-transplant agreement', () => {
+  it('requires HD and offer for attended PRP but not FF or hair-transplant agreement', () => {
     const row = auditPatientJourney({
       patient: { id: 'p1' },
       bookings: [
@@ -211,10 +217,11 @@ describe('ccoClientoLedJourneyAudit', () => {
     });
     assert.equal(row.stage, 'prp');
     assert.deepEqual(row.gaps, []);
+    assert.equal(row.requirements.fitnessCertificate.status, 'not_expected');
     assert.equal(row.requirements.agreement.status, 'not_expected');
   });
 
-  it('does not create a new FF gap for a later PRP session once the patient has signed it', () => {
+  it('keeps FF not_expected across multiple PRP sessions even without an FF asset', () => {
     const row = auditPatientJourney({
       patient: { id: 'p1' },
       bookings: [
@@ -234,19 +241,33 @@ describe('ccoClientoLedJourneyAudit', () => {
       assets: [
         asset({ sourceSystem: 'm365_halso', category: 'form', originalFileName: 'HD.pdf' }),
         asset({
-          sourceSystem: 'm365_halso',
-          category: 'other',
-          originalFileName: 'Friskförsäkran.pdf',
-        }),
-        asset({
           sourceSystem: 'pipedrive_import',
           patientCardSection: 'offert',
           originalFileName: 'Offert PRP.pdf',
         }),
       ],
     });
-    assert.equal(row.requirements.fitnessCertificate.status, 'verified');
+    assert.equal(row.requirements.fitnessCertificate.status, 'not_expected');
     assert.deepEqual(row.gaps, []);
+  });
+
+  it('requires FF after attended hair transplant (Notion steg 8)', () => {
+    const row = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'b-fue',
+          startsAt: '2026-06-10T08:00:00.000Z',
+          serviceLabel: 'FUE hårtransplantation',
+          status: 'completed',
+        },
+      ],
+    });
+    assert.equal(row.requirements.fitnessCertificate.status, 'missing');
+    assert.equal(
+      row.requirements.fitnessCertificate.reason,
+      'attended_hair_transplant_operation_day'
+    );
   });
 
   it('flags missing agreement for attended hair transplant and does not accept a deal as a PDF', () => {

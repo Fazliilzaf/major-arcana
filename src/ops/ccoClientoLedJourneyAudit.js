@@ -181,12 +181,12 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
   );
   const evidence = summarizeEvidence(patient, assets);
 
-  // HD is sent after an authoritative booking. FF is a one-time patient
-  // requirement at the initial attended treatment, rather than a new
-  // requirement for every PRP session.
+  // HD is sent after an authoritative booking.
+  // FF (friskförsäkran) is HT operations-day only per Notion kundresa steg 8 —
+  // PRP must never create an FF gap.
   const hdExpected =
     hasAuthoritativeBooking && (hasConsultationBooking || hasTreatmentBooking) && !nonAttendedOnly;
-  const ffExpected = hasAttendedTreatment && !nonAttendedOnly;
+  const ffExpected = hasHairTransplant && !nonAttendedOnly;
   const offerExpected = hasTreatmentBooking && !nonAttendedOnly;
   const agreementExpected = hasHairTransplantBooking && !nonAttendedOnly;
   const requirements = {
@@ -202,7 +202,11 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
     fitnessCertificate: requirement(
       ffExpected,
       evidence.fitnessCertificate,
-      ffExpected ? 'attended_treatment_day' : 'no_attended_treatment_day'
+      ffExpected
+        ? 'attended_hair_transplant_operation_day'
+        : hasAttendedTreatment
+          ? 'prp_or_non_ht_treatment_ff_not_required'
+          : 'no_attended_hair_transplant'
     ),
     offer: requirement(
       offerExpected,
