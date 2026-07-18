@@ -182,7 +182,7 @@ try {
   const { requireAnyRole, attachRole } = require('./src/security/ccoRbac');
   const { createCcoAuditRouter } = require('./src/routes/ccoAudit');
   ccoAuditLog = createCcoAuditLog({
-    filePath: path.join(__dirname, 'data', 'cco-audit.jsonl'),
+    stateRoot: config.stateRoot,
   });
 
   // Routes flyttade till src/routes/ccoAudit.js (se ORGANISATION.md §4).

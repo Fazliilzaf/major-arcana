@@ -26,6 +26,14 @@ const crypto = require('crypto');
 const MAX_CACHE_SIZE = 5000;
 const MAX_ENTRY_SIZE = 8192; // 8 KB per entry
 
+function resolveCcoAuditFilePath({ filePath, stateRoot } = {}) {
+  const explicitPath = typeof filePath === 'string' ? filePath.trim() : '';
+  if (explicitPath) return path.resolve(explicitPath);
+  const persistentRoot = typeof stateRoot === 'string' ? stateRoot.trim() : '';
+  if (persistentRoot) return path.resolve(persistentRoot, 'cco-audit.jsonl');
+  throw new Error('filePath eller stateRoot krävs för ccoAuditLog');
+}
+
 /**
  * P0.8 — Canonical action-vocabulary for the journal/photo modules.
  * Use these constants instead of free strings so we can grep for coverage.
@@ -85,10 +93,8 @@ function isHighSeverity(action) {
   return HIGH_SEVERITY_ACTIONS.has(action);
 }
 
-function createCcoAuditLog({ filePath, maxCacheSize = MAX_CACHE_SIZE } = {}) {
-  if (!filePath) {
-    throw new Error('filePath krävs för ccoAuditLog');
-  }
+function createCcoAuditLog({ filePath, stateRoot, maxCacheSize = MAX_CACHE_SIZE } = {}) {
+  filePath = resolveCcoAuditFilePath({ filePath, stateRoot });
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, '');
@@ -231,6 +237,7 @@ function auditMiddleware(log, action) {
 
 module.exports = {
   createCcoAuditLog,
+  resolveCcoAuditFilePath,
   auditMiddleware,
   ACTIONS,
   HIGH_SEVERITY_ACTIONS,
