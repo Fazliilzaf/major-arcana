@@ -119,6 +119,30 @@ function actionReq(baseUrl, role) {
   });
 }
 
+const DASHBOARD_TENANT_ID = 'hair-tp-clinic';
+const DASHBOARD_BEARER_CONTEXTS = {
+  'dashboard-owner': { tenantId: DASHBOARD_TENANT_ID, role: 'owner' },
+  'dashboard-other-tenant': { tenantId: 'another-clinic', role: 'owner' },
+  'dashboard-personal': { tenantId: DASHBOARD_TENANT_ID, role: 'personal' },
+  'dashboard-operator': { tenantId: DASHBOARD_TENANT_ID, role: 'operator' },
+};
+
+function requireDashboardBearerAuth(req, res, next) {
+  const authorization = req.get('authorization') || '';
+  const token = authorization.replace(/^Bearer\s+/i, '');
+  const context = DASHBOARD_BEARER_CONTEXTS[token];
+  if (!context || !/^Bearer\s+/i.test(authorization)) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  req.auth = { ...context };
+  return next();
+}
+
+function dashboardReq(baseUrl, token = '') {
+  const headers = token ? { authorization: `Bearer ${token}` } : {};
+  return fetch(`${baseUrl}/cco/runtime/dashboard?days=90`, { headers });
+}
+
 // ── Saknad permission → 403 ──────────────────────────────────────────────────
 
 test('RBAC: anonym (ingen roll) får 403 på både läsning och write', async () => {
@@ -317,6 +341,97 @@ test('mailboxvaljaren kraver autentiserad mail.read och visar bara aktiv CCO-sco
         headers: { authorization: 'Bearer test-token' },
       });
       assert.equal(authenticatedHealth.status, 200);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('dashboard: utan Bearer-auth nekas fail-closed', async () => {
+  const fixture = await createFixture({
+    tenantScopeId: DASHBOARD_TENANT_ID,
+    requireAuth: requireDashboardBearerAuth,
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await dashboardReq(baseUrl);
+      assert.equal(response.status, 401);
+      assert.equal((await response.json()).error, 'unauthorized');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('dashboard: Bearer-token for fel tenant nekas fail-closed', async () => {
+  const fixture = await createFixture({
+    tenantScopeId: DASHBOARD_TENANT_ID,
+    requireAuth: requireDashboardBearerAuth,
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await dashboardReq(baseUrl, 'dashboard-other-tenant');
+      assert.equal(response.status, 403);
+      assert.equal((await response.json()).error, 'tenant_scope_forbidden');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('dashboard: Bearer-token utan mail.read nekas fail-closed', async () => {
+  const fixture = await createFixture({
+    tenantScopeId: DASHBOARD_TENANT_ID,
+    requireAuth: requireDashboardBearerAuth,
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await dashboardReq(baseUrl, 'dashboard-personal');
+      assert.equal(response.status, 403);
+      const body = await response.json();
+      assert.equal(body.error, 'forbidden');
+      assert.equal(body.requiredPermission, 'mail.read');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('dashboard: behorig Bearer-token far bara se aktiv mailbox-scope', async () => {
+  const allowedMailboxId = 'contact@hairtpclinic.com';
+  const legacyMailboxId = 'legacy@other-clinic.test';
+  const now = new Date().toISOString();
+  const fixture = await createFixture({
+    messages: [
+      {
+        mailboxConversationId: 'contact-dashboard-thread',
+        senderEmail: CUSTOMER,
+        mailboxId: allowedMailboxId,
+        mailboxAddress: allowedMailboxId,
+        folderType: 'inbox',
+        sentAt: now,
+      },
+      {
+        mailboxConversationId: 'legacy-dashboard-thread',
+        senderEmail: 'other@example.test',
+        mailboxId: legacyMailboxId,
+        mailboxAddress: legacyMailboxId,
+        folderType: 'inbox',
+        sentAt: now,
+      },
+    ],
+    mailboxIdsForSync: [allowedMailboxId],
+    tenantScopeId: DASHBOARD_TENANT_ID,
+    requireAuth: requireDashboardBearerAuth,
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await dashboardReq(baseUrl, 'dashboard-operator');
+      assert.equal(response.status, 200);
+      const body = await response.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.totals.total, 1);
+      assert.deepEqual(Object.keys(body.perMailbox), [allowedMailboxId]);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

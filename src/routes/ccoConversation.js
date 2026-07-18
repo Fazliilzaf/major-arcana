@@ -3063,7 +3063,7 @@ function createCcoConversationRouter({
 
   // ----- Dashboard: KPI-aggregat -----
   // GET /cco/runtime/dashboard?days=7
-  router.get('/cco/runtime/dashboard', authMiddleware, (req, res) => {
+  router.get('/cco/runtime/dashboard', authMiddleware, requireTenantScope, requirePermission('mail.read'), (req, res) => {
     try {
       if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
         return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
