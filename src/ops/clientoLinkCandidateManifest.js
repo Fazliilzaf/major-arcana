@@ -89,6 +89,9 @@ function validateUnlinkedReview(report, expectedCount) {
       reasons.push('unlinked_review_not_fail_closed');
     }
   }
+  if (bookingIds.size !== rows.length) {
+    reasons.push('unlinked_review_duplicate_booking_id');
+  }
 
   return {
     valid: reasons.length === 0,
@@ -96,6 +99,10 @@ function validateUnlinkedReview(report, expectedCount) {
     declaredCount: Number.isInteger(declaredTotal) ? declaredTotal : null,
     rowCount: rows.length,
     uniqueBookingIds: bookingIds.size,
+    maskedBookingRefSetChecksum: crypto
+      .createHash('sha256')
+      .update([...bookingIds].map(maskedBookingRef).sort().join('\n'))
+      .digest('hex'),
     bookingIds,
   };
 }
@@ -142,7 +149,7 @@ function buildClientoLinkCandidateManifest({
   rightBookings = [],
   unlinkedReview = null,
   expectedTotal = 55221,
-  expectedUnlinkedReviewCount = 11283,
+  expectedUnlinkedReviewCount = 11472,
 } = {}) {
   const leftId = normalizeText(leftTenant);
   const rightId = normalizeText(rightTenant);
@@ -247,6 +254,8 @@ function buildClientoLinkCandidateManifest({
       declaredCount: unlinked.declaredCount,
       rowCount: unlinked.rowCount,
       uniqueBookingIds: unlinked.uniqueBookingIds,
+      maskedBookingRefSetChecksum: unlinked.maskedBookingRefSetChecksum,
+      setChecksumAlgorithm: 'sha256(sorted-masked-booking-refs-v1)',
       valid: unlinked.valid,
       candidateOverlapCount: [...candidateBookingIds].filter((bookingId) => {
         return unlinked.bookingIds.has(bookingId);

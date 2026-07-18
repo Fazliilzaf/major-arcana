@@ -135,7 +135,7 @@ test('populations- eller reviewdrift blockerar fail-closed och emitterar noll ka
     rightBookings: [booking('same')],
     unlinkedReview: invalidReview,
     expectedTotal: 55221,
-    expectedUnlinkedReviewCount: 11283,
+    expectedUnlinkedReviewCount: 11472,
   });
 
   assert.equal(report.gate.status, 'blocked_data_invariant');
@@ -144,6 +144,47 @@ test('populations- eller reviewdrift blockerar fail-closed och emitterar noll ka
   assert.ok(report.gate.invariantFailures.includes('unlinked_review_expected_count_mismatch'));
   assert.ok(report.gate.invariantFailures.includes('unlinked_review_not_fail_closed'));
   assert.equal(report.gate.persistentLinkWriteAllowed, false);
+});
+
+test('dubbla booking-id:n i reviewpopulationen blockerar kandidatmanifestet', () => {
+  const duplicateReview = unlinkedReview(['unclear', 'unclear']);
+  const report = buildClientoLinkCandidateManifest({
+    leftBookings: [booking('same')],
+    rightBookings: [booking('same')],
+    unlinkedReview: duplicateReview,
+    expectedTotal: 2,
+    expectedUnlinkedReviewCount: 2,
+  });
+
+  assert.equal(report.gate.status, 'blocked_data_invariant');
+  assert.equal(report.unlinkedReview.rowCount, 2);
+  assert.equal(report.unlinkedReview.uniqueBookingIds, 1);
+  assert.ok(report.gate.invariantFailures.includes('unlinked_review_duplicate_booking_id'));
+  assert.equal(report.cohort.candidateCount, 0);
+});
+
+test('reviewpopulationen får en deterministisk maskerad mängdchecksumma', () => {
+  const first = buildClientoLinkCandidateManifest({
+    leftBookings: [],
+    rightBookings: [],
+    unlinkedReview: unlinkedReview(['review-b', 'review-a']),
+    expectedTotal: 0,
+    expectedUnlinkedReviewCount: 2,
+  });
+  const second = buildClientoLinkCandidateManifest({
+    leftBookings: [],
+    rightBookings: [],
+    unlinkedReview: unlinkedReview(['review-a', 'review-b']),
+    expectedTotal: 0,
+    expectedUnlinkedReviewCount: 2,
+  });
+
+  assert.match(first.unlinkedReview.maskedBookingRefSetChecksum, /^[a-f0-9]{64}$/);
+  assert.equal(
+    first.unlinkedReview.maskedBookingRefSetChecksum,
+    second.unlinkedReview.maskedBookingRefSetChecksum
+  );
+  assert.equal(first.unlinkedReview.setChecksumAlgorithm, 'sha256(sorted-masked-booking-refs-v1)');
 });
 
 test('source-snapshot-CAS ändras av identitets- eller notdrift', () => {
@@ -232,7 +273,7 @@ test('sidecar-ledgerkontraktet låser append-only tillståndskedja och alla nuva
   assert.equal(contract.storage.deleteAllowed, false);
   assert.equal(contract.projection.active, true);
   assert.equal(contract.projection.approved, false);
-  assert.equal(contract.failClosed.unlinkedReviewPopulation, 11283);
+  assert.equal(contract.failClosed.unlinkedReviewPopulation, 11472);
   assert.equal(contract.failClosed.identityGuessingAllowed, false);
   assert.deepEqual(contract.currentGate, {
     ledgerWriteAllowed: false,

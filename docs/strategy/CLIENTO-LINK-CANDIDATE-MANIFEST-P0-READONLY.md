@@ -9,7 +9,7 @@ ledgerposter, länkar, migreringar eller projektioner.
 | --- | --- | --- | --- |
 | Full population utan 50 000-cap | Hel | `src/ops/clientoCrossTenantCoverage.js` | Återanvänds med `limit: 0` |
 | Konflikt- och notklassificering | Hel | `scripts/report-cliento-cross-tenant-decision.js` | Reglerna skärps till ett kandidatfilter |
-| Fail-closed lista över oklara bokningar | Hel | `buildUnlinkedClientoBookingReview` | Krävs som komplett input, exakt 11 283 rader |
+| Fail-closed lista över oklara bokningar | Hel | `buildUnlinkedClientoBookingReview` | Krävs som deduplicerad input, exakt 11 472 unika booking-id:n |
 | Maskerat kandidatmanifest | Saknades | — | Ny read-only generator |
 | Sidecar-ledgerns tillståndskontrakt | Delvis | `CLIENTO-CROSS-TENANT-LINK-DECISION-PLAN-P0.md` | Preciseras maskinläsbart |
 
@@ -27,7 +27,7 @@ En bokning tas med endast när samtliga grindar är sanna:
    Även ett kompletterande notsegment exkluderar posten; ingen information
    väljs bort.
 4. `bookingId` får inte finnas i den kompletta, fail-closed reviewpopulationen
-   om 11 283 oklara/olänkade poster.
+   om 11 472 unika oklara/olänkade booking-id:n.
 5. Saknat id, ensidig post, intra-tenant-dubblett, kärnkonflikt eller
    notavvikelse exkluderas.
 
@@ -43,17 +43,22 @@ node scripts/report-cliento-link-candidates.js \
   --store /explicit/read-only/path/cliento-bookings.json \
   --unlinked-review /explicit/read-only/path/cliento-unlinked-review.json \
   --expected-total 55221 \
-  --expected-unlinked 11283 \
+  --expected-unlinked 11472 \
   > /tmp/cliento-link-candidates.masked.json
 ```
 
 Båda inputfilerna måste anges explicit. Generatorn lämnar exitkod `2` och
 emitterar noll kandidater vid populationsdrift, saknade booking-id:n eller en
 reviewfil som inte bevisar `zeroWrites`, `readOnly`, `linkAllowed:false` och
-`patientId:null`/`encounterId:null` för exakt 11 283 rader.
+`patientId:null`/`encounterId:null` för exakt 11 472 unika booking-id:n.
 
 Källfilernas byteinnehåll ändras inte. Output innehåller ingen nottext, rått
 booking-id eller canonical patient-/encounteridentifierare.
+
+Snapshotkörningen 2026-07-18 gav 1 887 kandidater. Alla hade kompletta och unika
+parchecksummor, och ingen kandidat överlappade den deduplicerade reviewmängden.
+Det fullständiga reconcile-underlaget och snapshotversionerna finns i
+`CLIENTO-UNLINKED-RECONCILE-P0-2026-07-18.md`.
 
 ## Compare-and-swap
 

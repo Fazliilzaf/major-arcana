@@ -78,7 +78,7 @@ merge och skriver inget.
 | `serviceId`                             | Måste resolvea entydigt mot befintlig canonical service-katalog.                                                                                 | Två olika giltiga ids eller inget entydigt katalogresultat blockerar.                                                              | Behåll source service-id på båda refs.                                          |
 | `serviceLabel`                          | Är displaymetadata. Visa canonical `displayName` först efter entydig `serviceId`-resolution.                                                     | Label ensam får aldrig välja behandling; de 7 konflikterna kräver katalog-/reviewbeslut.                                           | Behåll båda source labels som aliases/provenance.                               |
 | Alla notfält                            | Varje icke-tomt source-segment bevaras separat med tenant, source field och checksumma.                                                          | Ingen radvinnare, ingen overwrite och ingen semantisk dedupe. Olika icke-tom text i samma fält visas som två segment.              | 15 190 kompletterande poster och alla 212 dubbla `notes` bevaras på båda sidor. |
-| `patientId`                             | Får i en framtida fas endast länkas via redan verifierad, stabil patientnyckel med exakt 1:1-resultat.                                           | E-post/telefon/namn/tid ensamt, flera kandidater eller no-match ⇒ `patientId:null`. De 11 283 review-posterna förblir okopplade.   | Länken lagras i separat ledger; bookingpayload ändras inte.                     |
+| `patientId`                             | Får i en framtida fas endast länkas via redan verifierad, stabil patientnyckel med exakt 1:1-resultat.                                           | E-post/telefon/namn/tid ensamt, flera kandidater eller no-match ⇒ `patientId:null`. De 11 472 unika review-booking-id:na förblir okopplade. | Länken lagras i separat ledger; bookingpayload ändras inte.                     |
 | `encounterId`                           | Kräv befintlig explicit canonical encounter-referens eller source-native encounter-id som redan mappar 1:1.                                      | Tidsnärhet, behandlingstext eller patientlikhet får inte skapa encounter-länk.                                                     | Separat revokerbar ledgerpost; booking och encounter ändras inte.               |
 
 ## 3. Reversibel persistent länkplan
@@ -143,7 +143,7 @@ Ingen gate nedan är godkänd för körning ännu.
 2. Full dry-run som reproducerar 55 221 / 308 / 15 190 och ger noll writes.
 3. Separat review av de 308 konflikterna; inga bulkregler för status eller tid.
 4. Separat GO för en liten canary med endast verifierade 1:1-länkar och inga av
-   de 11 283 tvetydiga posterna.
+   de 11 472 unika tvetydiga booking-id:na.
 5. Före/efter: oförändrade bookingchecksummor, 0 ghost/link-only/orphan,
    revoketest PASS och exakt auditkedja.
 6. Kundresor får inte återstartas förrän länkcoverage och visuell

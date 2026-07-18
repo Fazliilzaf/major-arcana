@@ -123,7 +123,7 @@ test('räknar ensidiga poster och gör intra-tenant bookingId-dubletter fail-clo
   assert.equal(report.bookingIdCoverage.intraTenantDuplicateConflicts, 1);
 });
 
-test('läser hela populationen utan limit=50000 och lämnar 11 283 okopplade utan länkar', () => {
+test('läser hela populationen utan limit=50000 och ekar inte facit som verifierat reviewantal', () => {
   const leftBookings = Array.from({ length: 50001 }, (_, index) =>
     booking(`left-full-${index}`, { patientId: null, encounterId: null })
   );
@@ -132,14 +132,16 @@ test('läser hela populationen utan limit=50000 och lämnar 11 283 okopplade uta
     leftBookings,
     rightBookings,
     expectedTotal: 50002,
-    expectedUnlinkedReviewCount: 11283,
+    expectedUnlinkedReviewCount: 11472,
     sampleLimit: 1,
   });
   assert.equal(report.population.limitApplied, null);
   assert.equal(report.population.totalOccurrences, 50002);
   assert.equal(report.population.left.occurrences, 50001);
   assert.equal(report.population.complete, true);
-  assert.equal(report.safety.expectedUnlinkedReviewCount, 11283);
+  assert.equal(report.safety.expectedUnlinkedReviewCount, 11472);
+  assert.equal(report.safety.unlinkedReviewCount, null);
+  assert.equal(report.safety.unlinkedReviewCountVerified, false);
   assert.equal(report.safety.patientIdWrites, 0);
   assert.equal(report.safety.encounterIdWrites, 0);
   assert.equal(report.safety.linkProposals, 0);
