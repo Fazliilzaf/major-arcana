@@ -188,6 +188,33 @@ function createCfoVoucherSyncRouter({
       return res.json({ ok: true, voucherSyncEnabled: true, path: p });
     }
   );
+  // ORD-CM-19 · Ägar-regeln: auto-godkänn poster med full beviskedja +
+  // leverantörsprejudikat (ägar-GO 2026-07-18 "du godkänner regeln, inte posterna").
+  router.post(
+    '/cco-cf/expenses/auto-approve',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!cfoExpenseStore)
+        return res.status(503).json({ ok: false, error: 'expense store ej monterad' });
+      try {
+        const { autoApproveExpenses } = require('../cfo/cfoExpenseAutoApprove');
+        const result = await autoApproveExpenses({
+          expenseStore: cfoExpenseStore,
+          actor: req.ccoUser?.email ? `auto-regel (${req.ccoUser.email})` : 'auto-regel',
+          auditLog,
+        });
+        auditGate('cf.fortnox.auto_approve_run', req, {
+          approved: result.approved,
+          skipped: result.skipped,
+        });
+        return res.json({ ok: true, ...result });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   // ORD-CM-17 · återställ error-poster till pending (transient fel åtgärdat,
   // t.ex. om-ansluten OAuth). Owner-only + audit; rör aldrig synced/syncing.
   router.post(
