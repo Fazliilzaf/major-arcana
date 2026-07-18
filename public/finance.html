@@ -1099,6 +1099,18 @@
       </div>
 
       <!-- CF.3: Expense Inbox -->
+      <!-- ORD-CM-25 · Undantag: allt som väntar på ägaren, samlat -->
+      <div class="section" id="cf-undantag">
+        <h2>
+          Undantag · väntar på dig
+          <span class="meta" id="und-count">0</span>
+          <div class="section-actions">
+            <button class="btn" data-action="und-refresh">↻ Uppdatera</button>
+          </div>
+        </h2>
+        <div class="receipts-list" id="und-list"><div class="empty">Hämtar…</div></div>
+      </div>
+
       <div class="section">
         <h2>
           Utgifts-inkorg
@@ -2906,6 +2918,76 @@
           await loadReceipts();
           await loadExpenses();
         };
+      })();
+
+      // ORD-CM-25 · Undantags-sektionen: fel, väntande och granskningsnoterade poster
+      (function cfUndantag() {
+        const list = document.getElementById('und-list');
+        const countEl = document.getElementById('und-count');
+        if (!list || !countEl) return;
+        const esc = (x) =>
+          String(x == null ? '' : x).replace(
+            /[&<>"']/g,
+            (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+          );
+        async function ladda() {
+          try {
+            const d = await (
+              await fetch('/api/v1/cco-cf/expenses?limit=1000', { credentials: 'same-origin' })
+            ).json();
+            const alla = d.expenses || [];
+            const rader = [];
+            for (const e of alla) {
+              if (e.status === 'rejected') continue;
+              let varfor = null;
+              let pill = 'needs_review';
+              if (e.fortnoxSyncStatus === 'error') {
+                varfor = 'Fortnox-fel: ' + (e.fortnoxSyncError || 'okänt');
+              } else if (e.fortnoxSyncStatus === 'syncing') {
+                varfor = 'Avbruten sync — verifiera i Fortnox och stäm av';
+              } else if (/VALUTA|VERIFIERA|GRANSKAD|revisorns kontering/i.test(e.notes || '')) {
+                varfor =
+                  ((e.notes || '').match(
+                    /(KÄLL[A-ZÄÖ]*GRANSKAD[^·]*|ÄGARBESLUT[^·]*|VALUTAFEL[^·]*)/
+                  ) || [null, null])[0] || 'Granskningsnoterad';
+              } else if (e.vatMode === 'representation_limited' && e.deductibleVatSek == null) {
+                varfor = 'Moms: representation utan beräknat avdrag';
+              } else if (['new', 'categorized'].includes(e.status) && !(Number(e.amountSek) > 0)) {
+                varfor = 'Belopp saknas';
+              }
+              if (varfor) rader.push({ e, varfor, pill });
+            }
+            countEl.textContent = rader.length;
+            if (!rader.length) {
+              list.innerHTML = '<div class="empty">Inga undantag — allt flyter.</div>';
+              return;
+            }
+            list.innerHTML = rader
+              .map(
+                (r) =>
+                  '<div class="receipt"><div class="receipt-thumb">⚠️</div>' +
+                  '<div class="receipt-main"><div class="receipt-name">' +
+                  esc(r.e.supplier || 'Okänd') +
+                  '</div>' +
+                  '<div class="receipt-meta"><span>' +
+                  esc(r.e.date || 'datum saknas') +
+                  '</span><span>' +
+                  esc(r.varfor).slice(0, 110) +
+                  '</span></div></div>' +
+                  '<div class="receipt-amount">' +
+                  (Number(r.e.amountSek) || 0).toLocaleString('sv-SE') +
+                  ' kr</div>' +
+                  '<span class="receipt-status receipt-status--' +
+                  r.pill +
+                  '">Väntar dig</span></div>'
+              )
+              .join('');
+          } catch (err) {
+            list.innerHTML = '<div class="empty">Fel: ' + esc(err.message) + '</div>';
+          }
+        }
+        document.querySelector('[data-action="und-refresh"]').addEventListener('click', ladda);
+        ladda();
       })();
 
       // ORD-65 · CM-intag: kandidatlista + promote → CFO (cfoExpenseStore äger livscykeln)
