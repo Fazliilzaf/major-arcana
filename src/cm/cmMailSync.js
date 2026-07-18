@@ -292,6 +292,15 @@ function createCmMailSync({
     return extractDocumentImpl({ text: combined, source: 'email' });
   }
 
+  // ORD-CM-23 · Z-rapport/eget-bolag-detektor (utgiftskandidat-exkludering).
+  function isOwnCompanyOrZReport(rawItem, extraction) {
+    const subject = String(rawItem?.subject || '');
+    if (/z[- ]?rapport/i.test(subject)) return true;
+    const supplier = String(extraction?.supplierName || '');
+    if (/hair\s*tp\s*clinic/i.test(supplier)) return true;
+    return false;
+  }
+
   function createRecordFromExtraction(extraction, { documentId, rawItemId }) {
     const confidence = Number(extraction.confidenceScore) || 0;
     return cmStore.createExpenseRecord({
@@ -394,6 +403,12 @@ function createCmMailSync({
           ex.extraction.documentType !== 'unknown' &&
           (Number(ex.extraction.confidenceScore) || 0) >= 50
         ) {
+          // ORD-CM-23: Z-rapporter/eget bolag = intäkts-/internunderlag,
+          // aldrig utgiftskandidat (källgranskning 2026-07-18). Original bevaras.
+          if (isOwnCompanyOrZReport(rawItem, ex.extraction)) {
+            results.zReports = (results.zReports || 0) + 1;
+            return results;
+          }
           record = createRecordFromExtraction(ex.extraction, {
             documentId: harvest.firstDocument?.id,
             rawItemId: rawItem.id,
@@ -511,6 +526,12 @@ function createCmMailSync({
           ex.extraction.documentType !== 'unknown' &&
           (Number(ex.extraction.confidenceScore) || 0) >= 50
         ) {
+          // ORD-CM-23: Z-rapporter/eget bolag = intäkts-/internunderlag,
+          // aldrig utgiftskandidat (källgranskning 2026-07-18). Original bevaras.
+          if (isOwnCompanyOrZReport(rawItem, ex.extraction)) {
+            results.zReports = (results.zReports || 0) + 1;
+            return results;
+          }
           record = createRecordFromExtraction(ex.extraction, {
             documentId: harvest.firstDocument?.id,
             rawItemId: rawItem.id,
