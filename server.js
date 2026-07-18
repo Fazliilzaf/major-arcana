@@ -13619,21 +13619,6 @@ process.once('SIGTERM', () => {
     })
   );
 
-  // P7: Real-time stream för CCO frontend (heartbeat + poll-trigger)
-  const ccoRuntimeStreamRouter = createCcoRuntimeStreamRouter({
-    pollIntervalMs: 10000,
-    heartbeatIntervalMs: 30000,
-  });
-  app.use('/api/v1', ccoRuntimeStreamRouter);
-  const { createPostSendMailboxSync } = require('./src/ops/ccoPostSendMailboxSync');
-  const postSendMailboxSync = createPostSendMailboxSync({
-    graphReadConnector,
-    ccoMailboxTruthStore,
-    runtimeStreamRouter: ccoRuntimeStreamRouter,
-    lookbackDays: Number(process.env.ARCANA_CCO_POST_SEND_SYNC_LOOKBACK_DAYS || 3),
-    logger: console,
-  });
-
   // Default mailboxar för manuell sync (A1) — CCO läser in curated kund-
   // konversations-allowlist som default; ARCANA_MAILBOX_ALLOWLIST (env) och
   // scheduler-history överstyr. Se src/ops/ccoMailboxAllowlist.js.
@@ -13667,6 +13652,26 @@ process.once('SIGTERM', () => {
   if (ccoImapMailboxIds.length > 0) {
     console.log('[server] CCO external IMAP mailbox enabled:', ccoImapMailboxIds);
   }
+
+  // P7: Real-time stream för CCO frontend (heartbeat + poll-trigger).
+  // Streamen delar exakt tenant- och mailbox-scope med worklisten och kan
+  // aldrig öppnas som en publik EventSource-kanal.
+  const ccoRuntimeStreamRouter = createCcoRuntimeStreamRouter({
+    pollIntervalMs: 10000,
+    heartbeatIntervalMs: 30000,
+    requireAuth: auth.requireAuth,
+    tenantScopeId: config.defaultTenantId,
+    mailboxIds: ccoRuntimeMailboxIds,
+  });
+  app.use('/api/v1', ccoRuntimeStreamRouter);
+  const { createPostSendMailboxSync } = require('./src/ops/ccoPostSendMailboxSync');
+  const postSendMailboxSync = createPostSendMailboxSync({
+    graphReadConnector,
+    ccoMailboxTruthStore,
+    runtimeStreamRouter: ccoRuntimeStreamRouter,
+    lookbackDays: Number(process.env.ARCANA_CCO_POST_SEND_SYNC_LOOKBACK_DAYS || 3),
+    logger: console,
+  });
   ccoGraphChangeNotifications.configureRuntime({
     mailboxAllowlist: defaultSyncMailboxIds,
     runtimeStreamRouter: ccoRuntimeStreamRouter,
