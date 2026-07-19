@@ -1257,6 +1257,33 @@ function chooseRuntimeMailHtml(canonical = '', fallback = '') {
   return safeCanonical;
 }
 
+// Truth-storen är den kanoniska lokala kopian. När den redan har en hel HTML-
+// kropp och ett verkligt meddelandeinnehåll finns inget att vinna på att även
+// synkront svepa rå-ingestionen. Det svepet är den dyra delen av trådöppning.
+// Äldre/tunna poster fortsätter däremot exakt som tidigare genom samma
+// ingestion-fidelity-väg, så vi tappar inte signaturer eller inline-assets.
+function messageNeedsIngestionEnrichment(message = {}) {
+  const safe = asObject(message);
+  const preview =
+    normalizeText(safe.bodyPreview) || normalizeText(safe.preview) || normalizeText(safe.snippet);
+  const bodyText = deriveBody(safe);
+  const bodyHtml = boundRuntimeBodyHtml(deriveBodyHtml(safe));
+  if (!bodyText || bodyTextLooksLikePreview(bodyText, preview)) return true;
+  if (!bodyHtml || isIncompleteMailHtml(bodyHtml)) return true;
+
+  // Ett cid i den kanoniska HTML-kroppen måste ha en lokal tillgång. Saknas den
+  // får den befintliga berikningen försöka komplettera från ingestion.
+  const attachmentContentIds = new Set(
+    collectConversationAttachments(safe)
+      .map((attachment) => normalizeContentId(attachment.contentId))
+      .filter(Boolean)
+  );
+  for (const match of bodyHtml.matchAll(/\bcid:([^\s"'>]+)/gi)) {
+    if (!attachmentContentIds.has(normalizeContentId(match[1]))) return true;
+  }
+  return false;
+}
+
 // Inline data-images are removed or rebound to local asset URLs before this
 // response is built. Keep the existing rich-mail budget so signature text
 // following a large GIF/logo is not cut off at the old 24k boundary.
@@ -1353,6 +1380,9 @@ function findScopedIngestionFallback(message = {}, rawMessages = [], options = {
 
 function enrichConversationMessagesWithIngestion(messages, store, options = {}) {
   if (!storeCanReadIngestion(store)) return messages;
+  if (!asArray(messages).some((message) => messageNeedsIngestionEnrichment(message))) {
+    return messages;
+  }
   // Scopa ingestion-läsningen till trådens mailbox(ar) och läs korpusen EN gång.
   // Tidigare byggdes lookup + fallback över HELA ingestion-korpusen (två fulla
   // pass + en O(M×N)-fallback) per trådöppning — synkront på event-loopen. Med

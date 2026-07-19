@@ -722,6 +722,28 @@ test('truth-preview berikas med full ingestion-body när raw store har hela mail
   assert.equal(enriched.attachments[0].name, 'remiss.pdf');
 });
 
+test('komplett canonical HTML hoppar over dyr ingestion-berikning', () => {
+  const truthMessage = {
+    graphMessageId: 'canonical-complete-1',
+    mailboxId: 'contact@hairtpclinic.com',
+    conversationId: 'canonical-complete',
+    folderType: 'inbox',
+    receivedAt: '2026-07-19T10:00:00.000Z',
+    bodyPreview: 'Kort preview',
+    bodyText: 'Hej, detta ar den kompletta lokalt lagrade meddelandetexten.',
+    bodyHtml: '<html><body><p>Hej, detta ar den kompletta lokalt lagrade meddelandetexten.</p></body></html>',
+  };
+  const store = {
+    listRawMessages() {
+      throw new Error('ingestion skall inte lasas for komplett canonical HTML');
+    },
+  };
+
+  const [result] = enrichConversationMessagesWithIngestion([truthMessage], store);
+
+  assert.equal(result, truthMessage);
+});
+
 test('nested Graph-raw body/html matchar truth-preview via rawJson.id', () => {
   const preview = 'Kort preview från Graph';
   const truthMessages = [

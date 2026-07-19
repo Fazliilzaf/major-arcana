@@ -4025,6 +4025,8 @@
 
       let selectedLiveThread = null;
       let selectedLiveMessages = [];
+      let liveThreadOpenSequence = 0;
+      let activeLiveThreadRequest = null;
 
       function latestLiveMessage(messages, preferredDir) {
         const list = Array.isArray(messages) ? messages : [];
@@ -5486,9 +5488,14 @@
       }
 
       async function openConversationThread(thread) {
+        const requestSequence = ++liveThreadOpenSequence;
+        if (activeLiveThreadRequest) activeLiveThreadRequest.abort();
+        const requestController = new AbortController();
+        activeLiveThreadRequest = requestController;
         if (!thread?.conversationKey || !thread.live || window.location.protocol === 'file:') {
           setSvarstudioLiveContext(thread || null, []);
           setThreadHeader(thread || { subj: 'Konversation', from: 'Demo' }, null);
+          if (activeLiveThreadRequest === requestController) activeLiveThreadRequest = null;
           return;
         }
         setSvarstudioLiveContext(thread, []);
@@ -5542,6 +5549,7 @@
             `/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.conversationKey)}/messages${queryString}`,
             {
               credentials: 'include',
+              signal: requestController.signal,
               headers: withAdminAuthHeaders({ Accept: 'application/json' }),
             }
           );
@@ -5551,6 +5559,10 @@
             );
           }
           const payload = await response.json();
+          // Ett äldre eller avbrutet svar får aldrig skriva över tråden som
+          // användaren precis har valt. Det var orsaken till att läsrutan kunde
+          // hoppa till en tom "CCO-tråd" efter att rätt meddelanden visats.
+          if (requestSequence !== liveThreadOpenSequence) return;
           // Diagnostik: total (fetch inkl. nätverk) vs server-tid (payload.timings).
           // Skillnaden ≈ nätverk + JSON. Visar var trådöppnings-latensen sitter.
           try {
@@ -5581,12 +5593,15 @@
           renderThreadMessages(thread, messages);
           renderThreadContextPanel(thread, messages.length);
         } catch (error) {
+          if (requestSequence !== liveThreadOpenSequence || error?.name === 'AbortError') return;
           console.warn('[cco-live-thread] meddelanden kunde inte laddas', error);
           setSvarstudioLiveContext(thread, []);
           const mount = document.getElementById('messages');
           if (mount) {
             mount.innerHTML = `<div class="msg-day">CCO-tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:${escapeHtml(thread.bg)}">${escapeHtml(thread.init)}</div><div><div class="msg-bubble">Kunde inte ladda meddelanden. Kontrollera inloggning och att tråden finns i CCO.</div><div class="msg-meta">${escapeHtml(thread.mailboxAddress || LIVE_MAILBOX_IDS[0])}</div></div></div>`;
           }
+        } finally {
+          if (activeLiveThreadRequest === requestController) activeLiveThreadRequest = null;
         }
       }
 
