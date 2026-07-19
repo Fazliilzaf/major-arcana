@@ -165,14 +165,52 @@ function createCcoPortalBankIdRouter({
     return `${base.replace(/\/+$/, '')}/api/v1/cco-portal/bankid/callback`;
   };
 
-  // ── GET login ────────────────────────────────────────────────────────────
-  router.get('/api/v1/cco-portal/bankid/login', (req, res) => {
-    const token = text(req.query.token);
+  // ORD-80: login accepterar BÅDA tokensorterna — magisk access-token (portal-
+  // chat) OCH esign-token (rika offer-portalen). Samma ägarregel nedströms:
+  // BankID-personnumrets patientId måste matcha tokenägarens, oavsett sort.
+  const resolvePortalToken = async (token) => {
     const store = resolveAccessStore();
-    if (!token || typeof store?.resolveToken !== 'function') {
+    if (typeof store?.resolveToken === 'function') {
+      const resolved = store.resolveToken(token);
+      if (resolved && text(resolved.customerId)) {
+        return {
+          kind: 'magic',
+          customerId: text(resolved.customerId),
+          tenantId: text(resolved.tenantId),
+        };
+      }
+    }
+    const commercial = resolveCommercialStore();
+    if (typeof commercial?.findCaseByEsignToken === 'function') {
+      const match = await commercial.findCaseByEsignToken(token).catch(() => null);
+      const customerId = text(match?.customerId || match?.patientId);
+      if (customerId) {
+        return { kind: 'esign', customerId, tenantId: text(match?.tenantId) };
+      }
+    }
+    return null;
+  };
+
+  // ORD-80: återhopp efter BankID styrs av tokensort — esign-token hör hemma i
+  // rika offer-portalen, magisk token i portal-chatten (offer-portalen kan inte
+  // serva magiska tokens). PORTAL_BANKID_RETURN=chat tvingar chat för alla.
+  const returnUrlFor = (stateData, l2) => {
+    const token = text(stateData.token);
+    if (!token) return '/';
+    const forceChat = text(env.PORTAL_BANKID_RETURN).toLowerCase() === 'chat';
+    if (!forceChat && text(stateData.tokenKind) === 'esign') {
+      return `/api/v1/cco-commercial/customer-offer-portal?token=${encodeURIComponent(token)}&l2=${encodeURIComponent(l2)}`;
+    }
+    return `/portal-chat/${encodeURIComponent(token)}?l2=${encodeURIComponent(l2)}`;
+  };
+
+  // ── GET login ────────────────────────────────────────────────────────────
+  router.get('/api/v1/cco-portal/bankid/login', async (req, res) => {
+    const token = text(req.query.token);
+    if (!token) {
       return res.status(400).json({ error: 'missing_token' });
     }
-    const resolved = store.resolveToken(token);
+    const resolved = await resolvePortalToken(token);
     if (!resolved || !text(resolved.customerId)) {
       return res.status(401).json({ error: 'invalid_token' });
     }
@@ -198,6 +236,7 @@ function createCcoPortalBankIdRouter({
         tokenCustomerId: resolved.customerId,
         tenantId: resolved.tenantId || 'hairtpclinic',
         token,
+        tokenKind: resolved.kind,
         exp: Date.now() + STATE_TTL_MS,
       },
       secret
@@ -242,10 +281,8 @@ function createCcoPortalBankIdRouter({
     res.clearCookie(STATE_COOKIE, { path: '/' });
 
     if (result.status !== 'verified') {
-      const back = text(stateData.token)
-        ? `/portal-chat/${encodeURIComponent(stateData.token)}?l2=${encodeURIComponent(result.reason || result.status)}`
-        : '/';
-      return res.redirect(302, back);
+      // ORD-80: neka-fallet hoppar tillbaka till rätt yta (tokensort-styrt).
+      return res.redirect(302, returnUrlFor(stateData, result.reason || result.status));
     }
 
     const sessionCookie = signCookie(
@@ -263,8 +300,8 @@ function createCcoPortalBankIdRouter({
       maxAge: result.session.expiresAtMs - Date.now(),
       path: '/',
     });
-    const back = `/portal-chat/${encodeURIComponent(stateData.token)}?l2=ok`;
-    return res.redirect(302, back);
+    // ORD-80: ok-fallet — esign-token tillbaka till rika offer-portalen.
+    return res.redirect(302, returnUrlFor(stateData, 'ok'));
   });
 
   // ── GET me (nivå-2-status + offert-payload) ──────────────────────────────

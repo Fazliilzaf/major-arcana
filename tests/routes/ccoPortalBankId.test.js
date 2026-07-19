@@ -226,3 +226,148 @@ test('me returnerar offert-payload från commercial-store efter inloggning', asy
     }
   );
 });
+
+/* ── ORD-80: esign-token (rika offer-portalen) + tokensort-styrt återhopp ── */
+
+const ESIGN_ENV = {
+  NODE_ENV: 'test',
+  CRIIPTO_DOMAIN: 'hairtp.criipto.id',
+  CRIIPTO_CLIENT_ID: 'urn:client',
+};
+
+function commercialStoreWithEsign(map) {
+  return { findCaseByEsignToken: async (t) => map[t] || null };
+}
+
+test('ORD-80: esign-token loggar in och återhoppar till rika offer-portalen (l2=ok)', async () => {
+  await withServer(
+    {
+      accessStore: accessStoreWith({}),
+      commercialStore: commercialStoreWithEsign({
+        esig: { tenantId: 'hairtpclinic', customerId: 'p-owner', esignToken: 'esig' },
+      }),
+      patientMasterStore: patientStoreWith([OWNER]),
+      exchangeCode: async () => ({ ssn: '199001011234' }),
+      env: ESIGN_ENV,
+    },
+    async (base) => {
+      const login = await fetch(`${base}/api/v1/cco-portal/bankid/login?token=esig`, {
+        redirect: 'manual',
+      });
+      assert.equal(login.status, 302);
+      const stateCookie = cookieFrom(login, 'cco_bankid_state');
+      const state = new URL(login.headers.get('location')).searchParams.get('state');
+      const cb = await fetch(`${base}/api/v1/cco-portal/bankid/callback?code=abc&state=${state}`, {
+        redirect: 'manual',
+        headers: { cookie: `cco_bankid_state=${stateCookie}` },
+      });
+      assert.equal(cb.status, 302);
+      assert.match(
+        cb.headers.get('location'),
+        /\/api\/v1\/cco-commercial\/customer-offer-portal\?token=esig&l2=ok/
+      );
+      const sessionCookie = cookieFrom(cb, 'cco_portal_l2');
+      assert.ok(sessionCookie, 'nivå 2-cookien ska sättas');
+    }
+  );
+});
+
+test('ORD-80: esign-token med FEL ägare nekas → offer-portal med l2=owner_mismatch, ingen session', async () => {
+  await withServer(
+    {
+      accessStore: accessStoreWith({}),
+      commercialStore: commercialStoreWithEsign({
+        esig: { tenantId: 'hairtpclinic', customerId: 'p-annan', esignToken: 'esig' },
+      }),
+      patientMasterStore: patientStoreWith([
+        OWNER,
+        { id: 'p-annan', displayName: 'Annan', personnummer: '198507071111' },
+      ]),
+      exchangeCode: async () => ({ ssn: '199001011234' }),
+      env: ESIGN_ENV,
+    },
+    async (base) => {
+      const login = await fetch(`${base}/api/v1/cco-portal/bankid/login?token=esig`, {
+        redirect: 'manual',
+      });
+      const stateCookie = cookieFrom(login, 'cco_bankid_state');
+      const state = new URL(login.headers.get('location')).searchParams.get('state');
+      const cb = await fetch(`${base}/api/v1/cco-portal/bankid/callback?code=abc&state=${state}`, {
+        redirect: 'manual',
+        headers: { cookie: `cco_bankid_state=${stateCookie}` },
+      });
+      assert.equal(cb.status, 302);
+      assert.match(
+        cb.headers.get('location'),
+        /\/api\/v1\/cco-commercial\/customer-offer-portal\?token=esig&l2=owner_mismatch/
+      );
+      assert.equal(cookieFrom(cb, 'cco_portal_l2'), null, 'ingen session vid ägarmiss');
+    }
+  );
+});
+
+test('ORD-80: PORTAL_BANKID_RETURN=chat tvingar portal-chat även för esign-token', async () => {
+  await withServer(
+    {
+      accessStore: accessStoreWith({}),
+      commercialStore: commercialStoreWithEsign({
+        esig: { tenantId: 'hairtpclinic', customerId: 'p-owner', esignToken: 'esig' },
+      }),
+      patientMasterStore: patientStoreWith([OWNER]),
+      exchangeCode: async () => ({ ssn: '199001011234' }),
+      env: { ...ESIGN_ENV, PORTAL_BANKID_RETURN: 'chat' },
+    },
+    async (base) => {
+      const login = await fetch(`${base}/api/v1/cco-portal/bankid/login?token=esig`, {
+        redirect: 'manual',
+      });
+      const stateCookie = cookieFrom(login, 'cco_bankid_state');
+      const state = new URL(login.headers.get('location')).searchParams.get('state');
+      const cb = await fetch(`${base}/api/v1/cco-portal/bankid/callback?code=abc&state=${state}`, {
+        redirect: 'manual',
+        headers: { cookie: `cco_bankid_state=${stateCookie}` },
+      });
+      assert.match(cb.headers.get('location'), /\/portal-chat\/esig\?l2=ok/);
+    }
+  );
+});
+
+test('ORD-80: token som varken är magisk eller esign → 401', async () => {
+  await withServer(
+    {
+      accessStore: accessStoreWith({}),
+      commercialStore: commercialStoreWithEsign({}),
+      env: ESIGN_ENV,
+    },
+    async (base) => {
+      const res = await fetch(`${base}/api/v1/cco-portal/bankid/login?token=nope`, {
+        redirect: 'manual',
+      });
+      assert.equal(res.status, 401);
+    }
+  );
+});
+
+test('ORD-80: magisk token återhoppar fortfarande till portal-chat (oförändrat beteende)', async () => {
+  await withServer(
+    {
+      accessStore: accessStoreWith({ tok: { tenantId: 'hairtpclinic', customerId: 'p-owner' } }),
+      commercialStore: commercialStoreWithEsign({}),
+      patientMasterStore: patientStoreWith([OWNER]),
+      exchangeCode: async () => ({ ssn: '199001011234' }),
+      env: ESIGN_ENV,
+    },
+    async (base) => {
+      const login = await fetch(`${base}/api/v1/cco-portal/bankid/login?token=tok`, {
+        redirect: 'manual',
+      });
+      const stateCookie = cookieFrom(login, 'cco_bankid_state');
+      const state = new URL(login.headers.get('location')).searchParams.get('state');
+      const cb = await fetch(`${base}/api/v1/cco-portal/bankid/callback?code=abc&state=${state}`, {
+        redirect: 'manual',
+        headers: { cookie: `cco_bankid_state=${stateCookie}` },
+      });
+      assert.match(cb.headers.get('location'), /\/portal-chat\/tok\?l2=ok/);
+    }
+  );
+});
