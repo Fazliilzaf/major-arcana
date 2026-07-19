@@ -11,6 +11,7 @@
  */
 
 const { getCoolingOffMeta, canAcceptOffer } = require('./ccoOfferEsign');
+const { getDocumentTypeById } = require('./ccoDocumentTypeRegistry');
 
 function text(v) {
   return typeof v === 'string' ? v.trim() : '';
@@ -104,6 +105,85 @@ function buildBookingsView(cases, nowMs) {
   return { upcoming, upcomingCount: upcoming.length, pastCount };
 }
 
+function documentStatus(status) {
+  const value = text(status).toLowerCase();
+  if (value === 'signed' || value === 'delivered') return 'signerat';
+  if (value === 'filled') return 'inskickat';
+  return 'väntar';
+}
+
+function documentDate(row) {
+  return (
+    text(row && row.signedAt) ||
+    text(row && row.deliveredAt) ||
+    text(row && row.filledAt) ||
+    text(row && row.sentAt) ||
+    text(row && row.updatedAt) ||
+    text(row && row.createdAt) ||
+    null
+  );
+}
+
+/**
+ * Kundportalens dokumentlista är avsiktligt metadata-only. Dokumentinstansens
+ * payload kan innehålla känsliga svar och skickas därför aldrig till klienten.
+ */
+function buildLevelTwoDocuments({ documentInstances, commercialCase, meridiqOriginals } = {}) {
+  const rows = [];
+
+  for (const instance of asArray(documentInstances)) {
+    const row = asObject(instance);
+    if (!row) continue;
+    const type = getDocumentTypeById(text(row.documentTypeId));
+    const instanceId = text(row.instanceId);
+    rows.push({
+      typ: text(type && type.category) || 'dokument',
+      titel: text(type && type.name) || 'Dokument',
+      status: documentStatus(row.status),
+      datum: documentDate(row),
+      källa: 'CCO',
+      openUrl: instanceId
+        ? `/api/v1/cco-portal/documents/instance/${encodeURIComponent(instanceId)}`
+        : null,
+    });
+  }
+
+  const commercial = asObject(commercialCase);
+  const quoteStatus = text(commercial && commercial.quoteStatus).toLowerCase();
+  const offerDocumentId = text(commercial && commercial.offerDocumentId);
+  if (offerDocumentId && (quoteStatus === 'accepted' || text(commercial.esignStatus) === 'accepted')) {
+    rows.push({
+      typ: 'avtal',
+      titel: 'Signerat avtal',
+      status: 'signerat',
+      datum:
+        text(commercial.signedAt) ||
+        text(commercial.quoteAcceptedAt) ||
+        text(commercial.updatedAt) ||
+        null,
+      källa: 'CCO',
+      openUrl: '/api/v1/cco-portal/documents/offer',
+    });
+  }
+
+  // Meridiq-original är bara känd metadata i den här nivån. Ingen extern URL
+  // eller API-hämtning får exponeras från kundportalen.
+  for (const original of asArray(meridiqOriginals)) {
+    const row = asObject(original);
+    if (!row) continue;
+    rows.push({
+      typ: text(row.typ) || 'journaloriginal',
+      titel: text(row.titel) || 'Journaloriginal',
+      status: documentStatus(row.status || 'filled'),
+      datum: documentDate(row),
+      källa: 'Meridiq',
+      openUrl: null,
+    });
+  }
+
+  return rows.sort((a, b) => Date.parse(b.datum || '') - Date.parse(a.datum || ''));
+}
+
 /**
  * @param {object} ref
  * @param {string} ref.patientId
@@ -111,6 +191,8 @@ function buildBookingsView(cases, nowMs) {
  * @param {object} [ref.commercialCase]
  * @param {Array}  [ref.journalEntries]  journalStore.listEntries(...)
  * @param {Array}  [ref.bookingCases]    bookingStore.listCasesForCustomer(...)
+ * @param {Array}  [ref.documentInstances] documentInstanceStore.listForPatient(...)
+ * @param {Array}  [ref.meridiqOriginals] metadata only; never fetched from Meridiq
  * @param {number} [ref.nowMs]
  */
 function buildLevelTwoPayload(ref = {}) {
@@ -119,6 +201,11 @@ function buildLevelTwoPayload(ref = {}) {
   const commercialCase = asObject(ref.commercialCase);
   const journal = buildJournalReference(ref.journalEntries);
   const bookings = buildBookingsView(ref.bookingCases, nowMs);
+  const documents = buildLevelTwoDocuments({
+    documentInstances: ref.documentInstances,
+    commercialCase,
+    meridiqOriginals: ref.meridiqOriginals,
+  });
 
   if (!commercialCase) {
     return {
@@ -131,6 +218,7 @@ function buildLevelTwoPayload(ref = {}) {
       updatedAt: null,
       journal,
       bookings,
+      documents,
     };
   }
 
@@ -145,6 +233,7 @@ function buildLevelTwoPayload(ref = {}) {
     updatedAt: text(commercialCase.updatedAt) || null,
     journal,
     bookings,
+    documents,
   };
 }
 
@@ -153,4 +242,5 @@ module.exports = {
   deriveSigningStatus,
   buildJournalReference,
   buildBookingsView,
+  buildLevelTwoDocuments,
 };

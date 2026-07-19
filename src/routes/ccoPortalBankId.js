@@ -32,7 +32,7 @@ const {
   resolveBankIdAcrValues,
 } = require('../ops/ccoPortalBankIdSession');
 const { verifyCriiptoIdToken } = require('../ops/ccoCriiptoIdToken');
-const { buildLevelTwoPayload } = require('../ops/ccoPortalCustomerPayload');
+const { buildLevelTwoPayload, buildLevelTwoDocuments } = require('../ops/ccoPortalCustomerPayload');
 
 const STATE_COOKIE = 'cco_bankid_state';
 const SESSION_COOKIE = 'cco_portal_l2';
@@ -141,6 +141,10 @@ function createCcoPortalBankIdRouter({
   getJournalStore,
   bookingStore,
   getBookingStore,
+  documentInstanceStore,
+  getDocumentInstanceStore,
+  offerDocumentStore,
+  getOfferDocumentStore,
   env = process.env,
   baseUrl = process.env.PUBLIC_BASE_URL || '',
   sessionSecret,
@@ -151,6 +155,10 @@ function createCcoPortalBankIdRouter({
     commercialStore || (getCommercialStore && getCommercialStore()) || null;
   const resolveJournalStore = () => journalStore || (getJournalStore && getJournalStore()) || null;
   const resolveBookingStore = () => bookingStore || (getBookingStore && getBookingStore()) || null;
+  const resolveDocumentInstanceStore = () =>
+    documentInstanceStore || (getDocumentInstanceStore && getDocumentInstanceStore()) || null;
+  const resolveOfferDocumentStore = () =>
+    offerDocumentStore || (getOfferDocumentStore && getOfferDocumentStore()) || null;
   const secret =
     text(sessionSecret) ||
     text(env.PORTAL_SESSION_SECRET) ||
@@ -159,6 +167,33 @@ function createCcoPortalBankIdRouter({
   const resolveAccessStore = () => accessStore || (getAccessStore && getAccessStore()) || null;
   const resolvePatientStore = () =>
     patientMasterStore || (getPatientMasterStore && getPatientMasterStore()) || null;
+
+  function readLevelTwoSession(req, res) {
+    const cookies = parseCookies(req);
+    const session = readCookie(cookies[SESSION_COOKIE], secret);
+    if (!session || Number(session.exp) < Date.now() || !text(session.patientId)) {
+      res.status(401).json({ authenticated: false });
+      return null;
+    }
+    return {
+      patientId: text(session.patientId),
+      tenantId: text(session.tenantId) || 'hairtpclinic',
+      expiresAt: Number(session.exp),
+    };
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function documentMetadataPage(document) {
+    return `<!doctype html><html lang="sv"><meta charset="utf-8"><title>${escapeHtml(document.titel)}</title><body><main><h1>${escapeHtml(document.titel)}</h1><p>Status: ${escapeHtml(document.status)}</p><p>Datum: ${escapeHtml(document.datum || 'Ej angivet')}</p><p>Källa: ${escapeHtml(document.källa)}</p></main></body></html>`;
+  }
 
   const redirectUriFor = (req) => {
     const base = text(baseUrl) || `${req.protocol}://${req.get('host')}`;
@@ -306,13 +341,9 @@ function createCcoPortalBankIdRouter({
 
   // ── GET me (nivå-2-status + offert-payload) ──────────────────────────────
   router.get('/api/v1/cco-portal/me', async (req, res) => {
-    const cookies = parseCookies(req);
-    const session = readCookie(cookies[SESSION_COOKIE], secret);
-    if (!session || Number(session.exp) < Date.now() || !text(session.patientId)) {
-      return res.status(401).json({ authenticated: false });
-    }
-    const patientId = text(session.patientId);
-    const tenantId = text(session.tenantId) || 'hairtpclinic';
+    const session = readLevelTwoSession(req, res);
+    if (!session) return undefined;
+    const { patientId, tenantId } = session;
 
     // Nivå-2-payload (read-only): offert (samma offerPlan-källa som PDF/
     // signeringssida) + journal-REFERENS + bokningar. En läsning som fallerar
@@ -322,7 +353,8 @@ function createCcoPortalBankIdRouter({
       const commercial = resolveCommercialStore();
       const journal = resolveJournalStore();
       const booking = resolveBookingStore();
-      const [commercialCase, journalEntries, bookingCases] = await Promise.all([
+      const documents = resolveDocumentInstanceStore();
+      const [commercialCase, journalEntries, bookingCases, documentInstances] = await Promise.all([
         typeof commercial?.getPatientRegisterCase === 'function'
           ? commercial.getPatientRegisterCase({ tenantId, patientId }).catch(() => null)
           : null,
@@ -332,8 +364,17 @@ function createCcoPortalBankIdRouter({
         typeof booking?.listCasesForCustomer === 'function'
           ? booking.listCasesForCustomer({ tenantId, patientId }).catch(() => [])
           : [],
+        typeof documents?.listForPatient === 'function'
+          ? documents.listForPatient({ tenantId, patientId }).catch(() => [])
+          : [],
       ]);
-      offer = buildLevelTwoPayload({ patientId, commercialCase, journalEntries, bookingCases });
+      offer = buildLevelTwoPayload({
+        patientId,
+        commercialCase,
+        journalEntries,
+        bookingCases,
+        documentInstances,
+      });
     } catch {
       offer = null;
     }
@@ -343,10 +384,63 @@ function createCcoPortalBankIdRouter({
       level: 2,
       patientId,
       tenantId,
-      expiresAt: new Date(Number(session.exp)).toISOString(),
+      expiresAt: new Date(session.expiresAt).toISOString(),
       live: isBankIdLive(env),
       offer,
     });
+  });
+
+  // Metadata för en dokumentinstans. Inga råa formulärsvar exponeras här:
+  // bara samma säkra radrendering som i /me, alltid bound till L2-sessionen.
+  router.get('/api/v1/cco-portal/documents/instance/:instanceId', async (req, res) => {
+    const session = readLevelTwoSession(req, res);
+    if (!session) return undefined;
+    const store = resolveDocumentInstanceStore();
+    if (typeof store?.listForPatient !== 'function') {
+      return res.status(404).json({ error: 'document_not_found' });
+    }
+    const instances = await store
+      .listForPatient({ tenantId: session.tenantId, patientId: session.patientId })
+      .catch(() => []);
+    const instanceId = text(req.params.instanceId);
+    const instance = (Array.isArray(instances) ? instances : []).find(
+      (row) => text(row && row.instanceId) === instanceId
+    );
+    if (!instance) return res.status(404).json({ error: 'document_not_found' });
+    const document = buildLevelTwoDocuments({ documentInstances: [instance] })[0];
+    if (!document) return res.status(404).json({ error: 'document_not_found' });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.send(documentMetadataPage(document));
+  });
+
+  // Signerat avtal kan öppnas, men endast om samma L2-session äger patienten
+  // och patientens commercialCase fortfarande pekar på just det lokala dokumentet.
+  router.get('/api/v1/cco-portal/documents/offer', async (req, res) => {
+    const session = readLevelTwoSession(req, res);
+    if (!session) return undefined;
+    const commercial = resolveCommercialStore();
+    const documents = resolveOfferDocumentStore();
+    if (
+      typeof commercial?.getPatientRegisterCase !== 'function' ||
+      typeof documents?.readHtml !== 'function'
+    ) {
+      return res.status(404).json({ error: 'document_not_found' });
+    }
+    const commercialCase = await commercial
+      .getPatientRegisterCase({ tenantId: session.tenantId, patientId: session.patientId })
+      .catch(() => null);
+    const documentId = text(commercialCase && commercialCase.offerDocumentId);
+    if (text(commercialCase && commercialCase.quoteStatus).toLowerCase() !== 'accepted' || !documentId) {
+      return res.status(404).json({ error: 'document_not_found' });
+    }
+    const payload = await documents
+      .readHtml({ tenantId: session.tenantId, documentId })
+      .catch(() => null);
+    if (!text(payload && payload.html)) return res.status(404).json({ error: 'document_not_found' });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.send(payload.html);
   });
 
   return router;
