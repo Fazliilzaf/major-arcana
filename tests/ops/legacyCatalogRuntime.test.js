@@ -2,6 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const os = require('node:os');
+const path = require('node:path');
 
 const {
   mergeLegacyCatalogIntoEngineState,
@@ -13,7 +15,10 @@ const {
   buildMeridiqDraftService,
 } = require('../../src/ops/legacyCatalogRuntime');
 const { loadLegacyCatalogBundle } = require('../../src/ops/legacyCatalogLoader');
-const { PLAN_A_PUBLIC_SERVICE_IDS } = require('../../src/ops/ccoBookingEngineStore');
+const {
+  createCcoBookingEngineStore,
+  PLAN_A_PUBLIC_SERVICE_IDS,
+} = require('../../src/ops/ccoBookingEngineStore');
 const { normalizeBookingPolicySettings } = require('../../src/ops/bookingPolicySettings');
 
 test('legacy catalog runtime merges triple-map entries into engine state', () => {
@@ -59,6 +64,7 @@ test('legacy catalog runtime promotes all Cliento and Meridiq catalog rows', () 
   const bundle = loadLegacyCatalogBundle();
   const entries = readTripleMapEntries(bundle);
   const mapped = collectMappedLegacyIds(entries);
+  const bindingRows = bundle.catalogs?.meridiqBindings?.services || [];
 
   const state = { services: [], resources: [] };
   const result = mergeLegacyCatalogIntoEngineState(state, {
@@ -73,6 +79,7 @@ test('legacy catalog runtime promotes all Cliento and Meridiq catalog rows', () 
   const meridiqServices = bundle.catalogs?.meridiqServices?.services || [];
   assert.equal(bundle.counts.clientoServices, clientoServices.length);
   assert.equal(bundle.counts.meridiqServices, meridiqServices.length);
+  assert.equal(bundle.counts.meridiqBindings, bindingRows.length);
   assert.ok(clientoServices.length >= 50);
   assert.ok(meridiqServices.length >= 80);
 
@@ -107,6 +114,77 @@ test('legacy catalog runtime promotes all Cliento and Meridiq catalog rows', () 
     assert.ok(planAService, `Plan A service ${planAId} should exist`);
     assert.equal(planAService.publicBookable, true, `${planAId} stays publicBookable`);
     assert.equal(planAService.active, true, `${planAId} stays active`);
+  }
+});
+
+test('canonical service register materializes DHI into state.services with exact Meridiq consent bindings', () => {
+  const state = { services: [], resources: [] };
+  const result = mergeLegacyCatalogIntoEngineState(state, {
+    planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
+  });
+
+  assert.equal(result.changed, true);
+  const dhi = state.services.find((service) => service.id === 'dhi');
+  assert.ok(dhi, 'expected DHI service from triple-map');
+  assert.equal(dhi.label, 'DHI hårtransplantation');
+  assert.equal(dhi.encounterType, 'transplant_dhi');
+  assert.equal(dhi.bookingMethodLabel, 'DHI hårtransplantation');
+  assert.equal(dhi.offerTemplateKey, 'dhi-standard');
+  assert.equal(dhi.documentRequirementKey, 'dhi');
+  assert.equal(dhi.coolingOffDays, 2);
+  assert.equal(dhi.coolingOffType, 'distance_purchase');
+  assert.equal(dhi.serviceRegister.source, 'migration/service-triple-map.json');
+  assert.equal(
+    dhi.serviceRegister.documentRequirement.source,
+    'config/cco-treatment-document-requirements.json'
+  );
+  assert.equal(
+    dhi.serviceRegister.documentRequirement.requiredDocuments.fitnessCertificate.blocking,
+    true
+  );
+  assert.deepEqual(dhi.serviceRegister.consentBindings.missingApiIds, []);
+  assert.ok(dhi.serviceRegister.consentBindings.matchedApiIds.includes('7097'));
+  assert.ok(
+    dhi.serviceRegister.consentBindings.consents.some(
+      (consent) => consent.consentApiId === 170917 && consent.title === 'Behandlingsavtal | TP'
+    )
+  );
+});
+
+test('booking engine exposes DHI service register fields after state normalization', async () => {
+  const store = await createCcoBookingEngineStore({
+    filePath: path.join(os.tmpdir(), `arcana-service-register-${process.pid}.json`),
+  });
+  const services = await store.listServices();
+  const dhi = services.find((service) => service.id === 'dhi');
+
+  assert.ok(dhi);
+  assert.equal(dhi.label, 'DHI hårtransplantation');
+  assert.equal(dhi.encounterType, 'transplant_dhi');
+  assert.equal(dhi.bookingMethodLabel, 'DHI hårtransplantation');
+  assert.equal(dhi.offerTemplateKey, 'dhi-standard');
+  assert.equal(dhi.serviceRegister.documentRequirementKey, 'dhi');
+  assert.ok(dhi.serviceRegister.consentBindings.consents.length >= 1);
+});
+
+test('core consultation/followup variants resolve booking labels from the service register spine', () => {
+  const { serviceToPlanMethod } = require('../../src/ops/ccoJournalBookingBridge');
+
+  assert.equal(serviceToPlanMethod('consultation-online'), 'Online');
+  assert.equal(serviceToPlanMethod('consultation'), 'Fysisk konsultation');
+  assert.equal(serviceToPlanMethod('followup'), 'Uppföljning HT');
+  assert.equal(serviceToPlanMethod('dhi'), 'DHI hårtransplantation');
+});
+
+test('pricing defaults no longer duplicate Cliento identity outside the service triple-map', () => {
+  const defaults = require('../../migration/booking-pricing-defaults.json');
+
+  for (const [serviceId, pricing] of Object.entries(defaults.servicePricing || {})) {
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(pricing, 'clientoSrvId'),
+      false,
+      `${serviceId} should use migration/service-triple-map.json for Cliento identity`
+    );
   }
 });
 
@@ -202,15 +280,15 @@ test('mergeLegacyResourcesIntoEngineState promotes Cliento resource catalog rows
 });
 
 test('mergeClientoSchedulesIntoEngineState merges evening and weekend rules', () => {
-  const {
-    mergeClientoSchedulesIntoEngineState,
-  } = require('../../src/ops/legacyCatalogRuntime');
+  const { mergeClientoSchedulesIntoEngineState } = require('../../src/ops/legacyCatalogRuntime');
   const state = { availabilityRules: [] };
   const result = mergeClientoSchedulesIntoEngineState(state);
   assert.equal(result.changed, true);
   assert.equal(result.clientoResourceCount, 16);
   assert.ok(
-    state.availabilityRules.some((rule) => rule.ruleId === 'rule-evening-cons-fazli' && rule.active === true)
+    state.availabilityRules.some(
+      (rule) => rule.ruleId === 'rule-evening-cons-fazli' && rule.active === true
+    )
   );
 });
 
@@ -247,8 +325,16 @@ test('buildStaffRuntimeCatalogReadout exposes booking policy and pricing rules',
         cancellationPolicyHours: 24,
       },
     ],
-    resources: [{ id: 'fazli', label: 'Fazli', active: true, legacyMapping: { cliento: { resId: '11458' } } }],
-    availabilityRules: [{ ruleId: 'rule-evening-cons-fazli', resourceId: 'fazli', serviceId: 'consultation-physical' }],
+    resources: [
+      { id: 'fazli', label: 'Fazli', active: true, legacyMapping: { cliento: { resId: '11458' } } },
+    ],
+    availabilityRules: [
+      {
+        ruleId: 'rule-evening-cons-fazli',
+        resourceId: 'fazli',
+        serviceId: 'consultation-physical',
+      },
+    ],
   };
   const readout = buildStaffRuntimeCatalogReadout(state, {
     planAPublicServiceIds: ['consultation-online'],

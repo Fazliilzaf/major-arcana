@@ -780,6 +780,23 @@ function normalizeService(input = {}) {
     legacyMapping: asObject(safe.legacyMapping).arcanaServiceId
       ? asObject(safe.legacyMapping)
       : undefined,
+    encounterType: normalizeText(safe.encounterType) || undefined,
+    bookingMethodLabel: normalizeText(safe.bookingMethodLabel) || undefined,
+    offerTemplateKey: normalizeText(safe.offerTemplateKey) || undefined,
+    documentRequirementKey: normalizeText(safe.documentRequirementKey) || undefined,
+    coolingOffRef: Object.keys(asObject(safe.coolingOffRef)).length
+      ? asObject(safe.coolingOffRef)
+      : undefined,
+    coolingOffDays: Number.isFinite(Number(safe.coolingOffDays))
+      ? Number(safe.coolingOffDays)
+      : undefined,
+    coolingOffType: normalizeText(safe.coolingOffType) || undefined,
+    consentBindings: Object.keys(asObject(safe.consentBindings)).length
+      ? asObject(safe.consentBindings)
+      : undefined,
+    serviceRegister: Object.keys(asObject(safe.serviceRegister)).length
+      ? asObject(safe.serviceRegister)
+      : undefined,
     catalogSource: normalizeText(safe.catalogSource) || undefined,
     vipTokenRequired: safe.vipTokenRequired === true,
     isAddon: safe.isAddon === true,
