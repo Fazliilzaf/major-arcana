@@ -299,11 +299,13 @@
   }
 
   function openCanonicalPatient(patientId) {
-    if (!patientId || window.parent === window) return;
+    const id = String(patientId || '').trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(id) || window.parent === window) return false;
     window.parent.postMessage(
-      { type: 'arcana:cco-open-customer-dossier', patientId },
+      { type: 'arcana:cco-open-customer-dossier', patientId: id },
       window.location.origin
     );
+    return true;
   }
 
   // ─── View-switch: kunder vs kalender ─────────────────────────────────────
@@ -2423,15 +2425,32 @@
     const kicker = document.getElementById('searchPanelKicker');
     if (!list) return;
     const term = String(query || '').trim().toLocaleLowerCase('sv-SE');
+    if (term.length < 2) {
+      list.innerHTML = '';
+      list.appendChild(el('div', { class: 'search-empty' }, 'Skriv minst 2 tecken för att söka i canonical bokningshistorik.'));
+      v6SetText(kicker, 'Canonical historiksökning · read-only');
+      return;
+    }
     const matches = v6State.visits.filter((slot) => !term || [slot.patientName, slot.serviceLabel,
       slot.bookingId, slot.patientId].some((value) => String(value || '').toLocaleLowerCase('sv-SE').includes(term)));
     list.innerHTML = '';
     matches.slice(0, 30).forEach((slot) => {
+      const canonicalPatientId = String(slot.patientId || '').trim();
+      const bookingId = slot.bookingId || slot.id || '';
       list.appendChild(el('button', {
-        class: 'search-result', type: 'button', onclick: () => {
+        class: 'search-result' + (canonicalPatientId ? '' : ' is-read-only'),
+        type: 'button',
+        dataset: {
+          patientId: canonicalPatientId,
+          bookingId,
+          readOnly: canonicalPatientId ? '0' : '1',
+        },
+        onclick: (event) => {
+          event.stopPropagation();
           document.getElementById('searchOverlay')?.classList.remove('is-open');
           v6RenderIntel(slot);
-          document.querySelector('.booking[data-booking-id="' + CSS.escape(slot.bookingId || slot.id) + '"]')?.focus();
+          document.querySelector('.booking[data-booking-id="' + CSS.escape(bookingId) + '"]')?.focus();
+          if (canonicalPatientId) openCanonicalPatient(canonicalPatientId);
         },
       }, [
         el('span', { class: 'search-result-avatar' }, v6Initials(slot.patientName)),

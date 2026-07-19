@@ -182,6 +182,12 @@ test('active admin calendar uses canonical bundle and the same strict patient ha
   assert.match(source, /\/api\/v1\/cco-bookings\/calendar-bundle/);
   assert.match(source, /type: 'arcana:cco-open-customer-dossier', patientId/);
   assert.match(source, /window\.location\.origin/);
+  assert.match(source, /dataSet|dataset/);
+  assert.match(source, /patientId: canonicalPatientId/);
+  assert.match(source, /bookingId,/);
+  assert.match(source, /readOnly: canonicalPatientId \? '0' : '1'/);
+  assert.match(source, /if \(canonicalPatientId\) openCanonicalPatient\(canonicalPatientId\)/);
+  assert.match(source, /Skriv minst 2 tecken för att söka i canonical bokningshistorik/);
   assert.match(source, /bookingNotes/);
   assert.match(source, /internalNotes/);
   assert.match(source, /treatmentNotes/);
