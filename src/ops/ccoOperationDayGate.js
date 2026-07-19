@@ -2,7 +2,7 @@
 
 const { isTodayVisit } = require('./ccoKunderBookingEnrichment');
 
-const OPS_BLOCKED_JOURNAL_TYPES = new Set(['tp_treatment', 'prp_treatment']);
+const OPS_BLOCKED_JOURNAL_TYPES = new Set(['tp_treatment']);
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
