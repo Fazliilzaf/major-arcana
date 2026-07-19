@@ -5,6 +5,8 @@ const assert = require('node:assert/strict');
 
 const {
   assertOperationDayJournalAllowed,
+  assertOperationDayJournalAllowedForPatient,
+  OPS_BLOCKED_JOURNAL_TYPES,
   patientFitnessSigned,
   resolveFitnessSignedFromJournal,
 } = require('../../src/ops/ccoOperationDayGate');
@@ -28,6 +30,51 @@ describe('ccoOperationDayGate', () => {
     });
     assert.equal(gate.allowed, false);
     assert.equal(gate.reason, 'operation_day_fitness_required');
+  });
+
+  it('blockerar fortsatt HT/TP men aldrig PRP för saknad FF på operationsdag', () => {
+    assert.deepEqual(Array.from(OPS_BLOCKED_JOURNAL_TYPES), ['tp_treatment']);
+
+    const hairTransplant = assertOperationDayJournalAllowed({
+      journalType: 'tp_treatment',
+      todayVisit: true,
+      fitnessSigned: false,
+    });
+    assert.equal(hairTransplant.allowed, false);
+    assert.equal(hairTransplant.reason, 'operation_day_fitness_required');
+
+    const prp = assertOperationDayJournalAllowed({
+      journalType: 'prp_treatment',
+      todayVisit: true,
+      fitnessSigned: false,
+    });
+    assert.equal(prp.allowed, true);
+  });
+
+  it('släpper igenom PRP-journal utan FF via patient-context och frågar inte efter FF', async () => {
+    let journalQueried = false;
+    let bookingQueried = false;
+    const gate = await assertOperationDayJournalAllowedForPatient({
+      journalType: 'prp_treatment',
+      tenantId: 'hair-tp-clinic',
+      patientId: 'patient-prp',
+      patient: { todayVisit: true },
+      journalStore: {
+        async listEntries() {
+          journalQueried = true;
+          return [];
+        },
+      },
+      bookingStore: {
+        async listCases() {
+          bookingQueried = true;
+          return [];
+        },
+      },
+    });
+    assert.equal(gate.allowed, true);
+    assert.equal(journalQueried, false);
+    assert.equal(bookingQueried, false);
   });
 
   it('släpper igenom fitness_certificate på operationsdag', () => {
