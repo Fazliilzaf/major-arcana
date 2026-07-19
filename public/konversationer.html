@@ -5380,6 +5380,9 @@
       function renderThreadMessages(thread, messages) {
         const mount = document.getElementById('messages');
         if (!mount) return;
+        // En ny tråd ska alltid börja vid sitt senaste mail. Behåll inte en
+        // tidigare tråds interna scrollposition, som annars kan ge en tom vy.
+        mount.scrollTop = 0;
         setThreadHeader(thread, messages.length);
         if (!messages.length) {
           mount.innerHTML =
@@ -5477,6 +5480,7 @@
       function renderThreadLoading(thread) {
         const mount = document.getElementById('messages');
         if (!mount) return;
+        mount.scrollTop = 0;
         setThreadHeader(thread, null);
         mount.innerHTML = `<div class="msg-day">CCO-tråd</div><div class="msg is-incoming"><div class="msg-av" style="background:${escapeHtml(thread.bg)}">${escapeHtml(thread.init)}</div><div><div class="msg-bubble">Laddar meddelanden från CCO-pipelinen...</div><div class="msg-meta">${escapeHtml(thread.mailboxAddress || LIVE_MAILBOX_IDS[0])}</div></div></div>`;
       }
@@ -5933,23 +5937,15 @@
             activeTab: currentInboxTab,
             activeLane: currentLane,
           });
-          const selectedThreadChanged =
-            selectedThread &&
-            (selectedThread.when !== previousSelection?.when ||
-              selectedThread.preview !== previousSelection?.preview ||
-              selectedThread.unread !== previousSelection?.unread);
-          if (nextThread && (!background || !selectedThread || selectedThreadChanged)) {
+          // En bakgrundsuppdatering får uppdatera inkorgslistan och räknarna,
+          // men aldrig rendera om den öppna tråden. Annars hoppar läsytan när
+          // förhandsvisning/tid ändras i den valda raden.
+          if (nextThread && !background) {
             openConversationThread(nextThread);
           } else if (selectedThread) {
             // Behåll Svarstudions kontext och den redan renderade läsrutan när
-            // bakgrundsuppdateringen inte förändrade den valda tråden.
+            // bakgrundsuppdateringen har läst in ny data.
             setSvarstudioLiveContext(selectedThread, selectedLiveMessages);
-          }
-          if (!background && currentThreads.length && window.CCOPolish?.showToast) {
-            window.CCOPolish.showToast(
-              `CCO-inkorg: ${currentThreads.length} trådar från ${selectedMailboxLabel(selectedScopeMailboxIds)}`,
-              'success'
-            );
           }
           const partialFailureKey = failedMailboxChunks
             .flatMap(({ mailboxIds }) => mailboxIds)

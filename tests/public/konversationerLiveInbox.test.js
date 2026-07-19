@@ -542,6 +542,25 @@ test('konversationstråden visar senaste mailet överst utan att mutera API-ordn
   assert.match(html, /mount\.innerHTML = newestFirst/);
 });
 
+test('byte av tråd återställer den interna läsrutan och visar ingen grön laddnings-toast', () => {
+  const html = readHtml();
+  assert.match(
+    html,
+    /function renderThreadMessages\(thread, messages\) \{[\s\S]*?mount\.scrollTop = 0;/
+  );
+  assert.match(
+    html,
+    /function renderThreadLoading\(thread\) \{[\s\S]*?mount\.scrollTop = 0;/
+  );
+  assert.doesNotMatch(html, /CCO-inkorg: \$\{currentThreads\.length\} trådar från/);
+});
+
+test('bakgrundsladdning uppdaterar inte den öppna konversationens läsyta', () => {
+  const html = readHtml();
+  assert.match(html, /if \(nextThread && !background\) \{\s*openConversationThread\(nextThread\);/);
+  assert.doesNotMatch(html, /selectedThreadChanged/);
+});
+
 test('konversationstråden visar datum och färgkodad mailbox, inte full mailboxadress, i meddelandets meta', () => {
   const html = readHtml();
 
