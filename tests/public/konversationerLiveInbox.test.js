@@ -480,6 +480,11 @@ test('konversationer live row opens real conversation messages endpoint', () => 
   const html = readHtml();
 
   assert.match(html, /function openConversationThread\(thread\)/);
+  assert.match(html, /let liveThreadOpenSequence = 0;/);
+  assert.match(html, /let activeLiveThreadRequest = null;/);
+  assert.match(html, /activeLiveThreadRequest\.abort\(\)/);
+  assert.match(html, /signal: requestController\.signal/);
+  assert.match(html, /requestSequence !== liveThreadOpenSequence/);
   assert.match(html, /function parseScopedContactFormKey\(value\)/);
   assert.match(html, /function scopedMemberKeysForThread\(primaryKey, keys = \[\]\)/);
   assert.match(html, /function scopedLookupKeysForOpenThread\(thread, keys = \[\]\)/);
