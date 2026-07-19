@@ -14,9 +14,9 @@ const {
   typeAppliesToPatient,
 } = require('../../src/ops/ccoPatientDocumentAggregator');
 
-test('document registry exposes 36 Hair TP types', () => {
+test('document registry exposes 39 Hair TP types', () => {
   const types = getAllDocumentTypes();
-  assert.equal(types.length, 36);
+  assert.equal(types.length, 39);
   assert.ok(getDocumentTypeById('offert_profilo'));
   assert.equal(getDocumentTypeById('offert_profilo').clinic, 'curatiio');
 });

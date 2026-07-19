@@ -16,7 +16,7 @@ const OFFERT_SLUG = Object.freeze({
   offert_profilo: 'profilo',
 });
 
-/** E9 — staff-fyllda dokument (BOOKOFF B16–B24). */
+/** E9 — staff-fyllda dokument (BOOKOFF B16–B24 + ordination_recept 2026-07-19). */
 const STAFF_LIVE_REGISTRY_IDS = Object.freeze([
   'journal_tp',
   'journal_tp_post_prp',
@@ -27,6 +27,7 @@ const STAFF_LIVE_REGISTRY_IDS = Object.freeze([
   'behandlingsplan_staff',
   'konsultationsmall',
   'ordination_tp',
+  'ordination_recept',
 ]);
 
 /** @type {Record<string, string>} */
@@ -61,6 +62,9 @@ const STATIC_HTML_BY_REGISTRY = Object.freeze({
   auto_integritet: 'auto-integritet-final-demo.html',
   fore_efter_bildmall: 'steg8-fore-efter-bildmall-final-demo.html',
   auto_internt_sms: 'staff-auto-internt-sms-final-demo.html',
+  hyalase_info: 'steg4-hyalase-info-sve-final-demo.html',
+  botulinum_info: 'steg4-botulinum-info-final-demo.html',
+  ordination_recept: 'steg8-ordination-recept-final-demo.html',
 });
 
 function normalizePhase(value) {
