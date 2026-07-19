@@ -76,9 +76,102 @@ test('calendar V8 global search reads paginated canonical history instead of dem
   assert.match(source, /\/api\/v1\/cco-bookings\/history-search/);
   assert.match(source, /Skriv minst 2 tecken för att söka i hela bokningshistoriken/);
   assert.match(source, /includeSeparate: 'true'/);
+  assert.match(source, /ArcanaReviewAuth/);
+  assert.match(source, /getItem\('ARCANA_ADMIN_TOKEN'\)/);
+  assert.match(source, /headers\.Authorization = 'Bearer ' \+ token/);
   assert.match(source, /openCanonicalPatientInAdmin\(result\.dataset\.patientId\)/);
   assert.match(source, /Senaste canonical historik · read-only/);
   assert.doesNotMatch(source, /1 247 kunder totalt/);
+  assert.doesNotMatch(source, /Bearer\s+[A-Za-z0-9._-]{16,}/);
+});
+
+test('calendar V8 history search reuses runtime auth without exposing a hardcoded secret', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '../../public/major-arcana-preview/app/cco-calendar-v8-shell.js'),
+    'utf8'
+  );
+  const instrumented = source.replace(
+    'window.ArcanaCalendarV8 = { render: render };',
+    'window.ArcanaCalendarV8 = { render: render, __testHistorySearchHeaders: historySearchHeaders };'
+  );
+  const sandbox = {
+    window: {
+      ArcanaReviewAuth: {
+        getToken() {
+          return 'verified-helper-token';
+        },
+      },
+      localStorage: {
+        getItem(key) {
+          return key === 'ARCANA_ADMIN_TOKEN' ? 'stale-storage-token' : '';
+        },
+      },
+      sessionStorage: { getItem: () => '' },
+      addEventListener() {},
+      innerWidth: 1200,
+    },
+    document: {
+      readyState: 'loading',
+      documentElement: { getAttribute: () => null },
+      addEventListener() {},
+      querySelector: () => null,
+    },
+    console,
+  };
+  vm.runInNewContext(instrumented, sandbox);
+  const headers = sandbox.window.ArcanaCalendarV8.__testHistorySearchHeaders();
+  assert.equal(headers.Accept, 'application/json');
+  assert.equal(headers.Authorization, 'Bearer verified-helper-token');
+  assert.equal(Object.keys(headers).length, 2);
+  assert.doesNotMatch(source, /Bearer\s+[A-Za-z0-9._-]{16,}/);
+});
+
+test('calendar V8 canonical handoff accepts only canonical patients and unlinked rows remain inert', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '../../public/major-arcana-preview/app/cco-calendar-v8-shell.js'),
+    'utf8'
+  );
+  const instrumented = source.replace(
+    'window.ArcanaCalendarV8 = { render: render };',
+    'window.ArcanaCalendarV8 = { render: render, __testOpenCanonicalPatientInAdmin: openCanonicalPatientInAdmin };'
+  );
+  const messages = [];
+  const sandbox = {
+    window: {
+      parent: {
+        postMessage(payload, targetOrigin) {
+          messages.push({ payload, targetOrigin });
+        },
+      },
+      location: { origin: 'https://arcana.example' },
+      addEventListener() {},
+      innerWidth: 1200,
+    },
+    document: {
+      readyState: 'loading',
+      documentElement: { getAttribute: () => null },
+      addEventListener() {},
+      querySelector: () => null,
+    },
+    console,
+  };
+  vm.runInNewContext(instrumented, sandbox);
+  const openCanonicalPatient = sandbox.window.ArcanaCalendarV8.__testOpenCanonicalPatientInAdmin;
+  assert.equal(openCanonicalPatient('patient-canonical'), true);
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].targetOrigin, 'https://arcana.example');
+  assert.equal(messages[0].payload.type, 'arcana:cco-open-customer-dossier');
+  assert.equal(messages[0].payload.patientId, 'patient-canonical');
+
+  assert.equal(openCanonicalPatient(''), false);
+  assert.equal(openCanonicalPatient(null), false);
+  assert.equal(openCanonicalPatient('../not-canonical'), false);
+  assert.equal(messages.length, 1);
+
+  assert.match(source, /const locked = row\.linkAllowed === false \|\| !row\.patientId/);
+  assert.match(source, /data-read-only/);
+  assert.match(source, /if \(result\.dataset\.patientId\)/);
+  assert.match(source, /if \(result\.dataset\.readOnly === '1'\) return/);
 });
 
 test('active admin calendar uses canonical bundle and the same strict patient handoff', () => {
