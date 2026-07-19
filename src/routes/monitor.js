@@ -2602,9 +2602,14 @@ function createMonitorRouter({
           action: 'scheduler.job.alert_probe.run',
           outcome: 'success',
         });
-        // Helskann via getLatestAuditEvent (se Promise.all ovan); legacy topp-500-
-        // sökningen behålls endast som fallback för äldre authStore-implementationer.
+        // Persisterad evidens först (överlever audit-rotationen som churnar bort
+        // eventet på timmar vid hög trafik); därefter helskann + legacy-fallback.
+        const tenantAccessEvidenceTs =
+          typeof authStore.getTenantAccessEvidence === 'function'
+            ? authStore.getTenantAccessEvidence({ tenantId })
+            : null;
         const latestTenantAccessCheck =
+          (tenantAccessEvidenceTs ? { ts: tenantAccessEvidenceTs } : null) ||
           latestTenantAccessAudit ||
           findLatestAuditEvent(auditEvents, {
             action: 'tenants.access_check',

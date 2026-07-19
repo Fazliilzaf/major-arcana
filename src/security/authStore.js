@@ -361,6 +361,10 @@ function emptyState() {
     pendingLogins: {},
     pendingMfaChallenges: {},
     auditEvents: [],
+    // tenants.access_check-evidens per tenant (ts) — persisterad UTANFÖR
+    // eventströmmen: audit-cappen (auditMaxEntries) churnar bort eventet på
+    // timmar medan readiness behöver 30-dagarsfönster.
+    tenantAccessEvidence: {},
   };
 }
 
@@ -456,6 +460,7 @@ async function createAuthStore({
     pendingLogins: safeObject(rawState.pendingLogins),
     pendingMfaChallenges: safeObject(rawState.pendingMfaChallenges),
     auditEvents: Array.isArray(rawState.auditEvents) ? rawState.auditEvents : [],
+    tenantAccessEvidence: safeObject(rawState.tenantAccessEvidence),
   };
 
   function inspectAuditChain({ repairMissing = false, maxIssues = 25 } = {}) {
@@ -869,10 +874,25 @@ async function createAuthStore({
       event,
     });
     state.auditEvents.push(event);
+    // Persisterad 30-dagars-evidens (se emptyState-kommentaren): överlever
+    // audit-rotationen som annars churnar bort eventet på timmar.
+    if (event.action === 'tenants.access_check' && event.outcome === 'success' && event.tenantId) {
+      if (!state.tenantAccessEvidence || typeof state.tenantAccessEvidence !== 'object') {
+        state.tenantAccessEvidence = {};
+      }
+      state.tenantAccessEvidence[normalizeTenantId(event.tenantId)] = event.ts;
+    }
     await save();
     const safeEvent = toSafeAuditEvent(event);
     publishRuntimeEvent('audit.event', safeEvent);
     return safeEvent;
+  }
+
+  /** Senaste persisterade tenants.access_check-evidensen (ts) för en tenant. */
+  function getTenantAccessEvidence({ tenantId } = {}) {
+    const key = normalizeTenantId(tenantId);
+    const ts = state.tenantAccessEvidence?.[key];
+    return typeof ts === 'string' && ts ? ts : null;
   }
 
   async function createUser({ email, password, mfaRequired = false, mustChangePassword = false }) {
@@ -1748,6 +1768,7 @@ async function createAuthStore({
     addAuditEvent,
     listAuditEvents,
     getLatestAuditEvent,
+    getTenantAccessEvidence,
     verifyAuditIntegrity,
     bootstrapOwner,
   };
