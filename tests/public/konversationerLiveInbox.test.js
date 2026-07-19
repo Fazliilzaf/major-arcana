@@ -297,6 +297,21 @@ test('konversationer removes Gmail safety notices without hiding the customer pr
   assert.match(html, /return stripMailboxSafetyNotice\(\[/);
 });
 
+test('konversationer removes Outlook sender-identification rows from rendered HTML only', () => {
+  const html = readHtml();
+
+  assert.match(html, /function removeOutlookSenderIdentificationNotice\(doc\)/);
+  assert.match(html, /aka\\\.ms\\\/LearnAboutSenderIdentification/);
+  assert.match(html, /const row = link\.closest\('tr'\);/);
+  assert.match(html, /row\.remove\(\);/);
+  assert.match(html, /removeOutlookSenderIdentificationNotice\(doc\);/);
+  assert.match(
+    html,
+    /const html = sanitizeMailHtmlForDisplay\(messageBodyHtml\(message\)\);/,
+    'the filter must apply only to the rendered rich-mail copy'
+  );
+});
+
 test('konversationer web/admin shows explicit live STOP states instead of demo fallback', () => {
   const html = readHtml();
 

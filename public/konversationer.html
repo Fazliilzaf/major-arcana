@@ -4783,6 +4783,7 @@
         const source = normalizeText(html);
         if (!source || typeof DOMParser === 'undefined') return '';
         const doc = new DOMParser().parseFromString(source, 'text/html');
+        removeOutlookSenderIdentificationNotice(doc);
         doc
           .querySelectorAll('script,style,iframe,object,embed,form,meta,link,base,input,button')
           .forEach((node) => node.remove());
@@ -4819,6 +4820,31 @@
         });
         replaceUnresolvableInlineMailAssetsForDisplay(doc);
         return doc.body.innerHTML;
+      }
+
+      // Outlook lägger ibland in en egen säkerhetsrad före mailet. Den är inte
+      // kundens innehåll och ska inte renderas som en del av konversationen.
+      function removeOutlookSenderIdentificationNotice(doc) {
+        if (!doc?.body) return;
+        const senderNoticeLink = /^https?:\/\/aka\.ms\/LearnAboutSenderIdentification\/?(?:[?#].*)?$/i;
+        doc.body.querySelectorAll('a[href]').forEach((link) => {
+          const href = normalizeText(link.getAttribute('href'));
+          if (!senderNoticeLink.test(href)) return;
+
+          // Outlook levererar normalt raden som en egen tabellrad. Ta bara bort
+          // den raden, aldrig den omgivande maillayouten eller signaturen.
+          const row = link.closest('tr');
+          if (row) {
+            row.remove();
+            return;
+          }
+
+          const notice = link.closest('p, div, td');
+          const text = normalizeText(notice?.textContent);
+          if (/^(?:Du\s+f[åa]r\s+inte\s+e-post\s+ofta\s+från|You\s+don't\s+often\s+get\s+email\s+from)\b/i.test(text)) {
+            notice.remove();
+          }
+        });
       }
 
       function replaceUnresolvableInlineMailAssetsForDisplay(doc) {
