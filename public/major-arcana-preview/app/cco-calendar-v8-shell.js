@@ -35,7 +35,7 @@
       </svg>
       <input type="search" id="searchOverlayInput" placeholder="Sök kund eller bokning… (försök 'Anna' eller 'PRP')" autocomplete="off" />
     </div>
-    <div class="search-panel-kicker" id="searchPanelKicker">Senaste · 1 247 kunder totalt</div>
+    <div class="search-panel-kicker" id="searchPanelKicker">Senaste canonical historik · read-only</div>
     <div class="search-panel-list" id="searchPanelList"></div>
     <div class="search-footer">
       <span><kbd>↑</kbd><kbd>↓</kbd> navigera</span>
@@ -1480,37 +1480,137 @@
       const searchPanelList = document.getElementById('searchPanelList');
       const searchPanelKicker = document.getElementById('searchPanelKicker');
       let searchSelectedIdx = 0;
+      let searchSeq = 0;
+      let searchTimer = null;
 
-      function renderSearch(q = '') {
-        const ql = q.toLowerCase().trim();
-        const filtered = ql
-          ? CUSTOMERS.filter(
-              (c) => c.name.toLowerCase().includes(ql) || c.sub.toLowerCase().includes(ql)
-            )
-          : CUSTOMERS;
-        searchPanelKicker.textContent = ql
-          ? `${filtered.length} träffar för "${q}"`
-          : 'Senaste · 1 247 kunder totalt';
-        if (filtered.length === 0) {
-          searchPanelList.innerHTML = `<div class="search-empty">Ingen kund matchar "${q}"</div>`;
+      function searchInitials(name) {
+        return String(name || 'Bokning')
+          .split(/\s+/)
+          .map((part) => part[0] || '')
+          .join('')
+          .slice(0, 2)
+          .toUpperCase();
+      }
+
+      function searchSub(row) {
+        return [
+          [row.stockholmDate, row.stockholmTime].filter(Boolean).join(' '),
+          row.serviceDisplayName || row.title,
+          row.staffName,
+          row.status,
+          row.kind === 'separate_unlinked_historical' ? 'separat/okopplad' : '',
+        ]
+          .filter(Boolean)
+          .join(' · ');
+      }
+
+      function searchBadges(row) {
+        const badges = [];
+        if (row.shadowReadmodel) badges.push({ kind: 'ready', label: 'Approved shadow' });
+        if (row.kind === 'separate_unlinked_historical') {
+          badges.push({ kind: 'risk', label: row.reasonCode || 'Okopplad' });
+        } else if (row.patientId) {
+          badges.push({ kind: 'upcoming', label: 'Canonical patient' });
+        }
+        if (row.encounterId) badges.push({ kind: 'ready', label: 'Encounter' });
+        return badges;
+      }
+
+      async function renderSearch(q = '') {
+        const seq = ++searchSeq;
+        const ql = String(q || '').trim();
+        if (ql.length < 2) {
+          searchPanelKicker.textContent = 'Canonical historiksökning · read-only';
+          searchPanelList.innerHTML =
+            '<div class="search-empty">Skriv minst 2 tecken för att söka i hela bokningshistoriken.</div>';
           return;
         }
-        searchPanelList.innerHTML = filtered
-          .map(
-            (c, i) => `
-    <div class="search-result ${i === 0 ? 'is-selected' : ''}" data-idx="${i}" data-name="${c.name}">
-      <span class="search-avatar" style="background:${c.bg}">${c.init}</span>
-      <div class="search-result-meta">
-        <div class="search-result-name">${c.name}</div>
-        <div class="search-result-sub">${c.sub}</div>
-        ${c.badges.length ? `<div class="search-result-badges">${c.badges.map((b) => `<span class="search-badge search-badge--${b.kind}">${b.label}</span>`).join('')}</div>` : ''}
-      </div>
-      <span class="search-result-arrow">›</span>
-    </div>
-  `
-          )
-          .join('');
-        searchSelectedIdx = 0;
+        searchPanelKicker.textContent = ql
+          ? 'Söker canonical historik…'
+          : 'Senaste canonical historik · read-only';
+        searchPanelList.innerHTML = '<div class="search-empty">Laddar bokningshistorik…</div>';
+        try {
+          const params = new URLSearchParams({
+            q: ql,
+            limit: '30',
+            includeSeparate: 'true',
+          });
+          const response = await fetch('/api/v1/cco-bookings/history-search?' + params.toString(), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          });
+          if (!response.ok) throw new Error('history_search_unavailable');
+          const payload = await response.json();
+          if (seq !== searchSeq) return;
+          const rows = Array.isArray(payload && payload.rows) ? payload.rows : [];
+          const total = Number(payload && payload.pagination && payload.pagination.total) || 0;
+          searchPanelKicker.textContent = ql
+            ? total + ' historikträffar för "' + ql + '" · visar ' + rows.length
+            : 'Senaste canonical historik · ' + total + ' träffar · visar ' + rows.length;
+          if (!rows.length) {
+            searchPanelList.innerHTML =
+              '<div class="search-empty">Ingen canonical bokningshistorik matchar "' +
+              v8Esc(ql) +
+              '".</div>';
+            return;
+          }
+          searchPanelList.innerHTML = rows
+            .map((row, i) => {
+              const name = row.patientName || row.title || 'Historisk bokning';
+              const badges = searchBadges(row);
+              const locked = row.linkAllowed === false || !row.patientId;
+              return (
+                '<div class="search-result ' +
+                (i === 0 ? 'is-selected ' : '') +
+                (locked ? 'is-read-only' : '') +
+                '" data-idx="' +
+                i +
+                '" data-patient-id="' +
+                v8Esc(row.patientId || '') +
+                '" data-booking-id="' +
+                v8Esc(row.bookingId || '') +
+                '" data-read-only="' +
+                (locked ? '1' : '0') +
+                '">' +
+                '<span class="search-avatar">' +
+                v8Esc(searchInitials(name)) +
+                '</span>' +
+                '<div class="search-result-meta">' +
+                '<div class="search-result-name">' +
+                v8Esc(name) +
+                '</div>' +
+                '<div class="search-result-sub">' +
+                v8Esc(searchSub(row)) +
+                '</div>' +
+                (badges.length
+                  ? '<div class="search-result-badges">' +
+                    badges
+                      .map(
+                        (b) =>
+                          '<span class="search-badge search-badge--' +
+                          v8Esc(b.kind) +
+                          '">' +
+                          v8Esc(b.label) +
+                          '</span>'
+                      )
+                      .join('') +
+                    '</div>'
+                  : '') +
+                '</div>' +
+                '<span class="search-result-arrow">' +
+                (locked ? 'read-only' : '›') +
+                '</span>' +
+                '</div>'
+              );
+            })
+            .join('');
+          searchSelectedIdx = 0;
+        } catch (e) {
+          if (seq !== searchSeq) return;
+          searchPanelKicker.textContent = 'Historiksökning kunde inte laddas';
+          searchPanelList.innerHTML =
+            '<div class="search-empty">Canonical historiksökning är inte tillgänglig just nu.</div>';
+        }
       }
 
       function openSearch() {
@@ -1531,12 +1631,21 @@
       });
       globalSearchInput.addEventListener('blur', () => globalSearch.classList.remove('is-focused'));
 
-      searchOverlayInput.addEventListener('input', () => renderSearch(searchOverlayInput.value));
+      searchOverlayInput.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => renderSearch(searchOverlayInput.value), 180);
+      });
 
       searchOverlay.addEventListener('click', (ev) => {
         if (ev.target === searchOverlay) closeSearch();
         const result = ev.target.closest('.search-result');
         if (!result) return;
+        if (result.dataset.patientId) {
+          const opened = openCanonicalPatientInAdmin(result.dataset.patientId);
+          closeSearch();
+          if (opened) return;
+        }
+        if (result.dataset.readOnly === '1') return;
         closeSearch();
         openCustomerDossier(result.dataset.name);
       });
@@ -2659,7 +2768,11 @@
     var reviewOk = review && review.zeroWrites === true && totalReview === 55;
     var summaryCards = [
       ['Canonical besök', Number(integrity && integrity.totalVisits) || 0, 'neutral'],
-      ['Integritetsfel', Number(integrity && integrity.totalIssues) || 0, integrityOk ? 'ok' : 'stop'],
+      [
+        'Integritetsfel',
+        Number(integrity && integrity.totalIssues) || 0,
+        integrityOk ? 'ok' : 'stop',
+      ],
       ['Okopplade review', totalReview, reviewOk ? 'review' : 'stop'],
       ['Writes', 0, integrityOk && reviewOk ? 'ok' : 'stop'],
     ];
@@ -2734,7 +2847,9 @@
             .map(function (row) {
               var identity = (Array.isArray(row.identityBasis) ? row.identityBasis : [])
                 .map(function (item) {
-                  return String((item && item.type) || '') + ': ' + String((item && item.masked) || '');
+                  return (
+                    String((item && item.type) || '') + ': ' + String((item && item.masked) || '')
+                  );
                 })
                 .filter(Boolean)
                 .join(' · ');
