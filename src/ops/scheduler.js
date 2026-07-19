@@ -4197,6 +4197,38 @@ function createScheduler({
           fortnoxClient: client,
           auditLog: deps.auditLog || null,
         });
+        // ORD-CM-31 · Självläkning före run:
+        // 1) syncing-limbo (deploy mitt i tvåfas-write) källavstäms mot Fortnox —
+        //    verifikat finns → synced, saknas → pending. Aldrig gissning (ORD-CM-30).
+        // 2) error-poster (t.ex. Fortnox-timkvot 429) får ETT nytt försök per
+        //    jobbkörning: error → pending → run bokar. Permanenta fel återgår
+        //    till error och syns i Undantag — ingen evighetsloop inom körningen.
+        try {
+          const resolved = await sync.resolveSyncing({ dryRun: false });
+          if (resolved.ok) {
+            summary.syncingResolved = resolved.count;
+          }
+        } catch (err) {
+          summary.syncingResolveError = err.message;
+        }
+        try {
+          if (typeof deps.cfoExpenseStore.markFortnoxRetry === 'function') {
+            const felade = deps.cfoExpenseStore.listExpenses({
+              fortnoxSyncStatus: 'error',
+              limit: 1000,
+            });
+            const rows = Array.isArray(felade) ? felade : felade?.expenses || [];
+            for (const e of rows) {
+              await deps.cfoExpenseStore.markFortnoxRetry({
+                id: e.id,
+                actor: 'scheduler-auto-regel',
+              });
+            }
+            summary.errorsRetried = rows.length;
+          }
+        } catch (err) {
+          summary.errorRetryError = err.message;
+        }
         const run = await sync.run({ dryRun: false });
         if (run.ok && Array.isArray(run.results)) {
           summary.booked = run.results.filter((r) => r.ok).length;

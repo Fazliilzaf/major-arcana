@@ -1067,3 +1067,68 @@ test('scheduler tenant_access_check respects interval env: 0 disables job', asyn
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
 });
+
+// ── ORD-CM-31 · cfo_auto_book: självläkning (error→pending) i nattkedjan ────
+test('scheduler cfo_auto_book retryar error-poster till pending innan run', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cfo-autobook-job-'));
+  let scheduler = null;
+  try {
+    const config = buildBaseConfig(tmpDir);
+    const retried = [];
+    const expenses = [
+      {
+        id: 'exp_err1',
+        status: 'exported',
+        fortnoxSyncStatus: 'error',
+        fortnoxExportPending: true,
+        amountSek: 100,
+        supplier: 'Testlev',
+      },
+    ];
+    const cfoExpenseStore = {
+      listExpenses: ({ fortnoxSyncStatus, status } = {}) => {
+        if (fortnoxSyncStatus) {
+          return expenses.filter((e) => e.fortnoxSyncStatus === fortnoxSyncStatus);
+        }
+        if (status) return expenses.filter((e) => e.status === status);
+        return expenses;
+      },
+      markFortnoxRetry: async ({ id }) => {
+        retried.push(id);
+        const e = expenses.find((x) => x.id === id);
+        e.fortnoxSyncStatus = 'pending';
+        return e;
+      },
+    };
+    scheduler = createScheduler({
+      config,
+      authStore: createBaseAuthStore(),
+      templateStore: createBaseTemplateStore(),
+      logger: { log() {}, error() {} },
+      getCfoAutoBookDeps: () => ({
+        cfoExpenseStore,
+        secureStorage: null,
+        fortnoxStore: {
+          getConnection: async () => ({ connected: false }),
+          saveConnection: async () => ({}),
+        },
+        config: { fortnoxClientId: 'x', fortnoxClientSecret: 'y', defaultTenantId: 'tenant-a' },
+        auditLog: null,
+      }),
+    });
+    const run = await scheduler.runJob('cfo_auto_book', {
+      trigger: 'manual',
+      tenantId: 'tenant-a',
+      actorUserId: 'owner-1',
+    });
+    assert.equal(run.ok, true);
+    assert.equal(run.result.errorsRetried, 1);
+    assert.deepEqual(retried, ['exp_err1']);
+    assert.equal(expenses[0].fortnoxSyncStatus, 'pending');
+  } finally {
+    if (scheduler && typeof scheduler.stop === 'function') {
+      await scheduler.stop();
+    }
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
