@@ -300,12 +300,28 @@
 
   function openCanonicalPatient(patientId) {
     const id = String(patientId || '').trim();
-    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(id) || window.parent === window) return false;
-    window.parent.postMessage(
-      { type: 'arcana:cco-open-customer-dossier', patientId: id },
-      window.location.origin
-    );
-    return true;
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(id)) return false;
+    let sent = false;
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          { type: 'arcana:cco-open-customer-dossier', patientId: id },
+          window.location.origin
+        );
+        sent = true;
+      }
+    } catch {
+      sent = false;
+    }
+    try {
+      const opener = window.parent && window.parent !== window
+        ? window.parent.ArcanaCcoOpenCustomerDossier
+        : null;
+      if (typeof opener === 'function') return opener({ patientId: id }) === true || sent;
+    } catch {
+      /* cross-origin parent: strict postMessage above is the only allowed path */
+    }
+    return sent;
   }
 
   // ─── View-switch: kunder vs kalender ─────────────────────────────────────
