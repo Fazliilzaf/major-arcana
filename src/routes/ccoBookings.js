@@ -37,6 +37,9 @@ const {
   buildUnlinkedClientoBookingReview,
   loadClientoLinkSidecarLedgerEvents,
 } = require('../ops/ccoKunderBookingEnrichment');
+const {
+  buildClientoHistoricalShadowReadmodel,
+} = require('../ops/clientoHistoricalShadowReadmodel');
 
 const WORKSPACE_ID = 'major-arcana-preview';
 const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
@@ -434,6 +437,208 @@ function formatOfferSlotTime(slot = {}) {
     return `${dateLabel} kl. ${startLabel}-${endLabel}`;
   }
   return `${dateLabel} kl. ${startLabel}`;
+}
+
+function parsePositiveInt(value, fallback = 0) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function clampHistoryLimit(value) {
+  const parsed = parsePositiveInt(value, 50);
+  return Math.min(Math.max(parsed || 50, 1), 100);
+}
+
+const STOCKHOLM_TIME_FORMATTER = new Intl.DateTimeFormat('sv-SE', {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'Europe/Stockholm',
+});
+
+function formatStockholmTime(value) {
+  const ms = Date.parse(normalizeText(value));
+  if (!Number.isFinite(ms)) return '';
+  return STOCKHOLM_TIME_FORMATTER.format(new Date(ms));
+}
+
+function stockholmIsoDate(value) {
+  const ms = Date.parse(normalizeText(value));
+  if (!Number.isFinite(ms)) return '';
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Europe/Stockholm',
+  }).formatToParts(new Date(ms));
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return byType.year && byType.month && byType.day
+    ? `${byType.year}-${byType.month}-${byType.day}`
+    : '';
+}
+
+function buildPatientMetaById(patients = []) {
+  const out = new Map();
+  for (const patient of asArray(patients)) {
+    const id = normalizeText(patient?.id);
+    if (!id) continue;
+    out.set(id, {
+      name:
+        normalizeText(patient?.displayName) ||
+        normalizeText(patient?.name) ||
+        normalizeText(patient?.fullName) ||
+        normalizeText(patient?.identity?.name) ||
+        '',
+      email:
+        normalizeText(patient?.primaryEmail) ||
+        normalizeText(patient?.email) ||
+        normalizeText(asArray(patient?.emails)[0]) ||
+        '',
+    });
+  }
+  return out;
+}
+
+function buildHistorySearchHaystack(row = {}) {
+  return [
+    row.bookingId,
+    row.patientId,
+    row.patientName,
+    row.patientEmail,
+    row.title,
+    row.serviceDisplayName,
+    row.serviceName,
+    row.staffName,
+    row.resourceLabel,
+    row.status,
+    row.source,
+    row.notes,
+    row.bookingNotes,
+    row.customerMessage,
+    row.internalNotes,
+    row.treatmentNotes,
+    asArray(row.sourceRecords)
+      .map((record) => [record?.tenantId, record?.serviceLabel, record?.resourceLabel].join(' '))
+      .join(' '),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function toHistorySearchRow(visit = {}, patientMetaById = new Map()) {
+  const patientId = normalizeText(visit.patientId);
+  const meta = patientMetaById.get(patientId) || {};
+  const startsAt = normalizeText(visit.startsAt || visit.startAt);
+  const endsAt = normalizeText(visit.endsAt || visit.endAt);
+  const source = normalizeText(visit.source);
+  const row = {
+    kind: source === 'cliento_historical_shadow' ? 'approved_historical_shadow' : 'canonical_visit',
+    readOnly: true,
+    zeroWrites: true,
+    linkAllowed: Boolean(patientId),
+    patientId: patientId || null,
+    encounterId: normalizeText(visit.encounterId) || null,
+    canonicalEncounterId: normalizeText(visit.canonicalEncounterId || visit.encounterId) || null,
+    bookingId: normalizeText(visit.bookingId || visit.id) || null,
+    linkId: normalizeText(visit.linkId) || null,
+    ledgerEventId: normalizeText(visit.ledgerEventId) || null,
+    source,
+    status: normalizeText(visit.status) || null,
+    startsAt,
+    endsAt: endsAt || null,
+    stockholmDate: stockholmIsoDate(startsAt),
+    stockholmTime: formatStockholmTime(startsAt),
+    stockholmEndTime: formatStockholmTime(endsAt),
+    timeZone: 'Europe/Stockholm',
+    title: normalizeText(visit.title || visit.serviceDisplayName || visit.serviceName) || 'Bokning',
+    serviceDisplayName:
+      normalizeText(visit.serviceDisplayName || visit.serviceName || visit.title) || null,
+    staffName:
+      normalizeText(visit.staffName || visit.practitioner || visit.resourceLabel || visit.staff) ||
+      null,
+    patientName: normalizeText(visit.patientName) || meta.name || null,
+    patientEmail: meta.email || null,
+    notes: normalizeText(visit.notes) || null,
+    bookingNotes: normalizeText(visit.bookingNotes) || null,
+    customerMessage: normalizeText(visit.customerMessage) || null,
+    internalNotes: normalizeText(visit.internalNotes) || null,
+    treatmentNotes: normalizeText(visit.treatmentNotes) || null,
+    shadowReadmodel: visit.shadowReadmodel === true,
+    shadowReadOnly: visit.shadowReadOnly === true,
+    historicalReason: normalizeText(visit.historicalReason) || null,
+    provenance: visit.provenance || null,
+    sourceRecords: asArray(visit.sourceRecords),
+    shadowNoteSegments: asArray(visit.shadowNoteSegments),
+  };
+  row.searchText = buildHistorySearchHaystack(row);
+  return row;
+}
+
+function sourceKeyFromRecord(record = {}) {
+  const tenantId = normalizeText(record?.tenantId);
+  const bookingId = normalizeText(record?.bookingId);
+  return tenantId && bookingId ? `${tenantId}::${bookingId}` : '';
+}
+
+function buildSkippedLinkStateBySource(ledgerEvents = []) {
+  const bySource = new Map();
+  const byLink = new Map();
+  for (const event of asArray(ledgerEvents)) {
+    const linkId = normalizeText(event?.linkId);
+    if (linkId) byLink.set(linkId, event);
+  }
+  for (const event of byLink.values()) {
+    const state = normalizeText(event?.state);
+    if (state === 'approved') continue;
+    for (const ref of asArray(event?.sourceRefs)) {
+      const key = `${normalizeText(ref?.tenantId)}::${normalizeText(ref?.bookingId)}`;
+      if (key !== '::') bySource.set(key, state || 'unlinked');
+    }
+  }
+  return bySource;
+}
+
+function toSeparateHistoricalRow(event = {}, skippedLinkStateBySource = new Map()) {
+  const display = asObject(event.display);
+  const sourceRecords = asArray(event.sourceRecords);
+  const startsAt = normalizeText(display.startsAt);
+  const states = Array.from(
+    new Set(
+      sourceRecords
+        .map((record) => skippedLinkStateBySource.get(sourceKeyFromRecord(record)))
+        .filter(Boolean)
+    )
+  );
+  const reasonCode = states.length
+    ? `ledger_${states.sort().join('_')}_separate`
+    : normalizeText(event.reasonCode) || 'unlinked_or_unapproved';
+  const row = {
+    kind: 'separate_unlinked_historical',
+    readOnly: true,
+    zeroWrites: true,
+    linkAllowed: false,
+    patientId: null,
+    encounterId: null,
+    canonicalEncounterId: null,
+    bookingId: normalizeText(event.bookingRef) || null,
+    source: 'cliento_historical_shadow',
+    status: normalizeText(display.status) || null,
+    startsAt,
+    endsAt: normalizeText(display.endsAt) || null,
+    stockholmDate: stockholmIsoDate(startsAt),
+    stockholmTime: formatStockholmTime(startsAt),
+    stockholmEndTime: formatStockholmTime(display.endsAt),
+    timeZone: 'Europe/Stockholm',
+    title: normalizeText(display.serviceLabel) || 'Historisk Cliento-bokning',
+    serviceDisplayName: normalizeText(display.serviceLabel) || null,
+    staffName: normalizeText(sourceRecords[0]?.resourceLabel) || null,
+    reasonCode,
+    historicalReason: normalizeText(event.historicalReason) || reasonCode,
+    sourceRecords,
+    provenance: event.provenance || null,
+  };
+  row.searchText = buildHistorySearchHaystack(row);
+  return row;
 }
 
 function buildOfferDraft({ bookingCase }) {
@@ -998,6 +1203,204 @@ function createCcoBookingsRouter({
       }
       const payload = await build();
       return res.json({ ...payload, cacheHit: false });
+    })
+  );
+
+  router.get('/cco-bookings/history-search', async (req, res) =>
+    handle(req, res, async (context) => {
+      res.set('Cache-Control', 'no-store');
+      if (!patientMasterStore || !clientoBookingStore) {
+        return res.json({
+          ok: false,
+          provider: 'cco_booking_history_search',
+          readOnly: true,
+          zeroWrites: true,
+          unavailable: true,
+          reason: 'canonical_booking_sources_unavailable',
+          rows: [],
+          pagination: { limit: clampHistoryLimit(req.query.limit), offset: 0, total: 0 },
+        });
+      }
+
+      const fromDate = normalizeText(req.query.fromDate || req.query.from);
+      const toDate = normalizeText(req.query.toDate || req.query.to);
+      if (
+        (fromDate && !/^\d{4}-\d{2}-\d{2}$/.test(fromDate)) ||
+        (toDate && !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) ||
+        (fromDate && toDate && fromDate > toDate)
+      ) {
+        return res.status(400).json({ error: 'history_range_invalid' });
+      }
+
+      const limit = clampHistoryLimit(req.query.limit);
+      const offset = parsePositiveInt(req.query.offset, 0);
+      const q = normalizeText(req.query.q || req.query.query).toLowerCase();
+      const patientFilter = normalizeText(req.query.patientId);
+      const statusFilter = normalizeKey(req.query.status);
+      const includeSeparate = normalizeKey(req.query.includeSeparate) !== 'false';
+      const sort = normalizeKey(req.query.sort) === 'asc' ? 'asc' : 'desc';
+
+      const patients = [];
+      for (let patientOffset = 0; patientOffset < 200000; patientOffset += 20000) {
+        const page = await patientMasterStore.listPatients({
+          tenantId: context.tenantId,
+          limit: 20000,
+          offset: patientOffset,
+        });
+        const pagePatients = asArray(page?.patients);
+        patients.push(...pagePatients);
+        if (pagePatients.length < 20000) break;
+      }
+      const patientMetaById = buildPatientMetaById(patients);
+
+      const inRange = (value) => {
+        const date = stockholmIsoDate(value);
+        if (!date) return false;
+        if (fromDate && date < fromDate) return false;
+        if (toDate && date > toDate) return false;
+        return true;
+      };
+
+      const filterRange = (rows) =>
+        fromDate || toDate ? asArray(rows).filter((row) => inRange(row?.startsAt)) : asArray(rows);
+
+      const [bookingCases, historicalShadowLedgerEvents] = await Promise.all([
+        typeof bookingStore?.listCasesInRange === 'function' && fromDate && toDate
+          ? bookingStore.listCasesInRange({
+              tenantId: context.tenantId,
+              fromDate,
+              toDate,
+              limit: 20000,
+            })
+          : typeof bookingStore?.listCases === 'function'
+            ? bookingStore.listCases({
+                tenantId: context.tenantId,
+                sort: 'recent',
+                limit: 20000,
+              })
+            : [],
+        loadClientoLinkSidecarLedgerEvents(config || {}),
+      ]);
+
+      const engineBookings = bookingEngineStore?.listBookingsForEnrichment
+        ? filterRange(bookingEngineStore.listBookingsForEnrichment(context.tenantId))
+        : [];
+      const clientoBookings =
+        fromDate && toDate && clientoBookingStore.listBookingsInRange
+          ? asArray(
+              clientoBookingStore.listBookingsInRange({
+                tenantId: context.tenantId,
+                fromDate,
+                toDate,
+              })
+            )
+          : clientoBookingStore.listAllBookings
+            ? filterRange(clientoBookingStore.listAllBookings({ tenantId: context.tenantId }))
+            : [];
+      const historicalShadowClientoBookings =
+        historicalShadowLedgerEvents.length && clientoBookingStore.listAllBookings
+          ? filterRange(clientoBookingStore.listAllBookings({ tenantId: '', limit: 0 }))
+          : clientoBookings;
+      const encounters = treatmentEncounterStore?.listEncountersForEnrichment
+        ? filterRange(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId))
+        : [];
+
+      const byPatient = collectBookingReadouts({
+        patients,
+        engineBookings,
+        bookingCases: filterRange(bookingCases),
+        clientoBookings,
+        historicalShadowClientoBookings,
+        historicalShadowLedgerEvents,
+        encounters,
+      });
+
+      const linkedRows = [...byPatient.values()]
+        .flatMap((bucket) => [
+          ...asArray(bucket.upcomingBookings),
+          ...asArray(bucket.historyBookings),
+        ])
+        .map((visit) => toHistorySearchRow(visit, patientMetaById));
+
+      let separateRows = [];
+      if (includeSeparate && historicalShadowLedgerEvents.length) {
+        const skippedStateBySource = buildSkippedLinkStateBySource(historicalShadowLedgerEvents);
+        const shadowModel = buildClientoHistoricalShadowReadmodel({
+          bookings: historicalShadowClientoBookings,
+          ledgerEvents: historicalShadowLedgerEvents,
+          includeUnmerged: true,
+        });
+        separateRows = asArray(shadowModel.events)
+          .filter((event) => event?.eventType === 'cliento_historical_booking_unmerged')
+          .map((event) => toSeparateHistoricalRow(event, skippedStateBySource));
+      }
+
+      const allRows = [...linkedRows, ...separateRows]
+        .filter((row) => {
+          if (patientFilter && row.patientId !== patientFilter) return false;
+          if (statusFilter && normalizeKey(row.status) !== statusFilter) return false;
+          if (fromDate || toDate) {
+            if (!row.stockholmDate) return false;
+            if (fromDate && row.stockholmDate < fromDate) return false;
+            if (toDate && row.stockholmDate > toDate) return false;
+          }
+          if (q && !row.searchText.includes(q)) return false;
+          return true;
+        })
+        .sort((left, right) => {
+          const l = Date.parse(left.startsAt) || 0;
+          const r = Date.parse(right.startsAt) || 0;
+          const delta = sort === 'asc' ? l - r : r - l;
+          if (delta) return delta;
+          return String(left.bookingId || '').localeCompare(String(right.bookingId || ''));
+        });
+
+      const rows = allRows.slice(offset, offset + limit).map((row) => {
+        const { searchText, ...safeRow } = row;
+        return safeRow;
+      });
+      const total = allRows.length;
+      const linkedMatched = allRows.filter(
+        (row) => row.kind !== 'separate_unlinked_historical'
+      ).length;
+      const separateMatched = total - linkedMatched;
+
+      return res.json({
+        ok: true,
+        provider: 'cco_booking_history_search',
+        tenantId: context.tenantId,
+        readOnly: true,
+        zeroWrites: true,
+        activeProjectionUsed: false,
+        bookingMergeWritten: false,
+        patientEncounterWrite: false,
+        timeZone: 'Europe/Stockholm',
+        filters: {
+          q,
+          fromDate: fromDate || null,
+          toDate: toDate || null,
+          patientId: patientFilter || null,
+          status: statusFilter || null,
+          includeSeparate,
+        },
+        counts: {
+          linkedAvailable: linkedRows.length,
+          separateAvailable: separateRows.length,
+          linkedMatched,
+          separateMatched,
+          approvedShadowMatched: allRows.filter((row) => row.kind === 'approved_historical_shadow')
+            .length,
+        },
+        pagination: {
+          limit,
+          offset,
+          total,
+          returned: rows.length,
+          hasMore: offset + rows.length < total,
+          nextOffset: offset + rows.length < total ? offset + rows.length : null,
+        },
+        rows,
+      });
     })
   );
 

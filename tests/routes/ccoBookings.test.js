@@ -11,6 +11,8 @@ const { createCcoBookingStore } = require('../../src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineStore');
 const { createCcoHistoryStore } = require('../../src/ops/ccoHistoryStore');
 const { createCcoPatientSystemStore } = require('../../src/ops/ccoPatientSystemStore');
+const { payloadChecksums } = require('../../src/ops/clientoCrossTenantCoverage');
+const { createClientoLinkSidecarLedger } = require('../../src/ops/clientoLinkSidecarLedger');
 const { bookingMondayWindow, nextBookableWeekday } = require('../helpers/bookingTestDates');
 
 async function withClientoIntegrationEnabled(run) {
@@ -34,6 +36,59 @@ async function withServer(app, run) {
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
+}
+
+function historicalSourceRef(booking) {
+  const checksums = payloadChecksums(booking);
+  return {
+    tenantId: booking.tenantId,
+    bookingId: booking.bookingId,
+    sourceSnapshotChecksum: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    coreChecksum: checksums.coreChecksum,
+    notesChecksum: checksums.notesChecksum,
+  };
+}
+
+async function writeApprovedHistoricalLink({ filePath, left, right, patientId, linkId }) {
+  const ledger = await createClientoLinkSidecarLedger({
+    filePath,
+    gates: { ledgerWriteAllowed: true, activationAllowed: false },
+  });
+  const sourceRefs = [historicalSourceRef(left), historicalSourceRef(right)];
+  const actor = { staffId: 'route-test', role: 'OWNER', tenantId: 'tenant-a' };
+  const evidence = [
+    {
+      type: 'route_test',
+      ref: linkId,
+      checksum: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+    },
+  ];
+  const proposed = await ledger.propose({
+    linkId,
+    sourceRefs,
+    evidence,
+    idempotencyKey: `${linkId}:propose`,
+    reasonCode: 'historical_booking_without_encounter',
+    actor,
+  });
+  return ledger.transition(linkId, 'approved', {
+    expectedPreviousEventId: proposed.ledgerEventId,
+    currentSourceRefs: sourceRefs,
+    canonicalPatientId: patientId,
+    canonicalEncounterId: null,
+    linkType: 'exact_booking_duplicate',
+    patientResolution: {
+      verified: true,
+      method: 'unique_identity_match',
+      candidateCount: 1,
+      canonicalPatientId: patientId,
+      evidenceChecksum: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    },
+    evidence,
+    idempotencyKey: `${linkId}:approve`,
+    reasonCode: 'historical_booking_without_encounter',
+    actor,
+  });
 }
 
 async function createFixture() {
@@ -1388,6 +1443,206 @@ test('calendar-bundle exposes the same canonical Cliento visit used by Kunder', 
       toDate: '2026-05-20',
     });
   });
+});
+
+test('history-search is server-paginated and searches the full canonical booking readout', async () => {
+  const app = express();
+  app.use(express.json());
+  const bookings = Array.from({ length: 125 }, (_, index) => ({
+    bookingId: `hist-${String(index + 1).padStart(3, '0')}`,
+    customerEmail: 'history@example.com',
+    customerName: 'History Patient',
+    startsAt: new Date(Date.UTC(2026, 0, index + 1, 9, 0, 0)).toISOString(),
+    endsAt: new Date(Date.UTC(2026, 0, index + 1, 9, 30, 0)).toISOString(),
+    status: 'completed',
+    serviceLabel: index === 124 ? 'Full population PRP' : 'Fysisk konsultation',
+  }));
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: {},
+      clientoBookingStore: {
+        listAllBookings(options) {
+          assert.equal(options.limit, undefined);
+          return bookings;
+        },
+      },
+      patientMasterStore: {
+        async listPatients({ limit, offset }) {
+          assert.equal(limit, 20000);
+          return offset === 0
+            ? { patients: [{ id: 'patient-history', primaryEmail: 'history@example.com' }] }
+            : { patients: [] };
+        },
+      },
+      authStore: {
+        async getSessionContextByToken() {
+          return null;
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: { defaultTenantId: 'tenant-a', brand: 'hair-tp-clinic', brandByHost: {} },
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const page = await fetch(`${baseUrl}/cco-bookings/history-search?limit=40&offset=40`);
+    assert.equal(page.status, 200);
+    const payload = await page.json();
+    assert.equal(payload.readOnly, true);
+    assert.equal(payload.zeroWrites, true);
+    assert.equal(payload.pagination.total, 125);
+    assert.equal(payload.pagination.returned, 40);
+    assert.equal(payload.pagination.hasMore, true);
+    assert.equal(payload.rows.length, 40);
+    assert.equal(
+      payload.rows.every((row) => row.patientId === 'patient-history'),
+      true
+    );
+    assert.equal(
+      payload.rows.every((row) => row.timeZone === 'Europe/Stockholm'),
+      true
+    );
+
+    const search = await fetch(`${baseUrl}/cco-bookings/history-search?q=population&limit=10`);
+    assert.equal(search.status, 200);
+    const searchPayload = await search.json();
+    assert.equal(searchPayload.pagination.total, 1);
+    assert.equal(searchPayload.rows[0].serviceDisplayName, 'Full population PRP');
+    assert.equal(searchPayload.rows[0].linkAllowed, true);
+  });
+});
+
+test('history-search exposes approved shadow provenance and keeps unapproved sources separate', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-history-search-shadow-'));
+  try {
+    const ledgerPath = path.join(tempDir, 'cliento-link-sidecar-ledger.jsonl');
+    const approvedLeft = {
+      tenantId: 'hair_tp',
+      bookingId: 'shadow-approved',
+      customerEmail: 'shadow@example.com',
+      customerName: 'Shadow Patient',
+      startsAt: '2026-02-10T09:00:00.000Z',
+      endsAt: '2026-02-10T09:30:00.000Z',
+      status: 'completed',
+      serviceLabel: 'Fysisk konsultation',
+      internalNotes: 'Intern not bevarad',
+      treatmentNotes: 'Behandlingsnot bevarad',
+    };
+    const approvedRight = {
+      ...approvedLeft,
+      tenantId: 'hair-tp-clinic',
+    };
+    const proposedLeft = {
+      tenantId: 'hair_tp',
+      bookingId: 'shadow-proposed',
+      customerEmail: 'proposed@example.com',
+      startsAt: '2026-02-11T09:00:00.000Z',
+      status: 'completed',
+      serviceLabel: 'PRP',
+    };
+    const proposedRight = { ...proposedLeft, tenantId: 'hair-tp-clinic' };
+    await writeApprovedHistoricalLink({
+      filePath: ledgerPath,
+      left: approvedLeft,
+      right: approvedRight,
+      patientId: 'patient-shadow',
+      linkId: 'link-approved',
+    });
+    const ledger = await createClientoLinkSidecarLedger({
+      filePath: ledgerPath,
+      gates: { ledgerWriteAllowed: true, activationAllowed: false },
+    });
+    await ledger.propose({
+      linkId: 'link-proposed',
+      sourceRefs: [historicalSourceRef(proposedLeft), historicalSourceRef(proposedRight)],
+      evidence: [
+        {
+          type: 'route_test',
+          ref: 'link-proposed',
+          checksum: 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+        },
+      ],
+      idempotencyKey: 'link-proposed:propose',
+      reasonCode: 'historical_booking_without_encounter',
+      actor: { staffId: 'route-test', role: 'OWNER', tenantId: 'tenant-a' },
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use(
+      '/api/v1',
+      createCcoBookingsRouter({
+        bookingStore: {},
+        clientoBookingStore: {
+          listAllBookings({ tenantId }) {
+            const rows = [approvedLeft, approvedRight, proposedLeft, proposedRight];
+            return tenantId ? rows.filter((row) => row.tenantId === tenantId) : rows;
+          },
+        },
+        patientMasterStore: {
+          async listPatients() {
+            return {
+              patients: [
+                { id: 'patient-shadow', primaryEmail: 'shadow@example.com' },
+                { id: 'patient-proposed', primaryEmail: 'proposed@example.com' },
+              ],
+            };
+          },
+        },
+        authStore: {
+          async getSessionContextByToken() {
+            return null;
+          },
+          async touchSession() {
+            return true;
+          },
+        },
+        config: {
+          defaultTenantId: 'tenant-a',
+          brand: 'hair-tp-clinic',
+          brandByHost: {},
+          clientoLinkSidecarLedgerPath: ledgerPath,
+        },
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(
+        `${baseUrl}/cco-bookings/history-search?q=shadow&limit=20&includeSeparate=true`
+      );
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      const approved = payload.rows.find((row) => row.kind === 'approved_historical_shadow');
+      assert.ok(approved);
+      assert.equal(approved.patientId, 'patient-shadow');
+      assert.equal(approved.canonicalEncounterId, null);
+      assert.equal(approved.shadowReadmodel, true);
+      assert.equal(approved.historicalReason, 'historical_booking_without_encounter');
+      assert.equal(approved.sourceRecords.length, 2);
+      assert.equal(approved.sourceRecords[0].noteSegments.internalNotes, 'Intern not bevarad');
+      assert.equal(approved.sourceRecords[1].noteSegments.treatmentNotes, 'Behandlingsnot bevarad');
+
+      const separate = payload.rows.filter((row) => row.kind === 'separate_unlinked_historical');
+      assert.equal(separate.length, 2);
+      assert.equal(
+        separate.every((row) => row.patientId === null),
+        true
+      );
+      assert.equal(
+        separate.every((row) => row.linkAllowed === false),
+        true
+      );
+      assert.equal(
+        separate.every((row) => row.reasonCode === 'ledger_proposed_separate'),
+        true
+      );
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 });
 
 test('cliento unlinked review is read-only, masked and never returns a patient suggestion', async () => {
