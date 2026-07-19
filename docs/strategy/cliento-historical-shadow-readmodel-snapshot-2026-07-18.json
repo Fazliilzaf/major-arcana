@@ -1,0 +1,76 @@
+{
+  "readOnly": true,
+  "source": "local-fixture",
+  "createdAt": "2026-07-18",
+  "scope": "cliento historical shadow readmodel contract snapshot",
+  "masked": true,
+  "containsBookingIds": false,
+  "containsPersonalData": false,
+  "runtimeActivated": false,
+  "activeProjectionUsed": false,
+  "bookingMergeWritten": false,
+  "patientEncounterWrite": false,
+  "scenarios": {
+    "approvedHistoricalLink": {
+      "input": {
+        "ledgerState": "approved",
+        "sourceRecords": 2,
+        "canonicalPatientId": "masked-present",
+        "canonicalEncounterId": null,
+        "linkType": "exact_booking_duplicate",
+        "reasonCode": "historical_booking_without_encounter"
+      },
+      "output": {
+        "eventType": "cliento_historical_booking_shadow_merge",
+        "mergedApprovedLinks": 1,
+        "unmergedBookings": 0,
+        "sourceRecords": 2,
+        "allNoteSegmentsPreserved": true,
+        "sourceProvenancePreserved": true,
+        "linkAllowed": false
+      }
+    },
+    "revokedOrSupersededLink": {
+      "input": {
+        "latestStates": ["revoked", "superseded"]
+      },
+      "output": {
+        "mergedApprovedLinks": 0,
+        "skippedLinks": 2,
+        "sourceBookingsRemainSeparate": true,
+        "canonicalPatientId": null,
+        "canonicalEncounterId": null
+      }
+    },
+    "unclearUnlinkedBooking": {
+      "input": {
+        "ledgerEvents": 0,
+        "sourceRecords": 1
+      },
+      "output": {
+        "eventType": "cliento_historical_booking_unmerged",
+        "mergedApprovedLinks": 0,
+        "unmergedBookings": 1,
+        "canonicalPatientId": null,
+        "canonicalEncounterId": null,
+        "linkAllowed": false,
+        "noteSegmentsPreserved": true
+      }
+    }
+  },
+  "validation": {
+    "command": "node --test tests/ops/clientoHistoricalShadowReadmodel.test.js",
+    "tests": 3,
+    "pass": 3,
+    "fail": 0
+  },
+  "forbiddenActionsVerifiedByDesign": [
+    "no runtime activation",
+    "no active projection consumption",
+    "no source data writes",
+    "no booking merge writes",
+    "no patient or encounter writes",
+    "no journey restart",
+    "no automatic linking for unclear, conflict or one-sided records"
+  ]
+}
