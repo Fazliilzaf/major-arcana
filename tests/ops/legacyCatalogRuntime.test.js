@@ -13,13 +13,13 @@ const {
   collectMappedLegacyIds,
   buildClientoDraftService,
   buildMeridiqDraftService,
+  buildServiceRegisterBookingPolicy,
 } = require('../../src/ops/legacyCatalogRuntime');
 const { loadLegacyCatalogBundle } = require('../../src/ops/legacyCatalogLoader');
-const {
-  createCcoBookingEngineStore,
-  PLAN_A_PUBLIC_SERVICE_IDS,
-} = require('../../src/ops/ccoBookingEngineStore');
+const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineStore');
 const { normalizeBookingPolicySettings } = require('../../src/ops/bookingPolicySettings');
+
+const SERVICE_REGISTER_PUBLIC_SERVICE_IDS = buildServiceRegisterBookingPolicy().publicServiceIds;
 
 test('legacy catalog runtime merges triple-map entries into engine state', () => {
   const entries = readTripleMapEntries(loadLegacyCatalogBundle());
@@ -28,8 +28,8 @@ test('legacy catalog runtime merges triple-map entries into engine state', () =>
   const state = {
     services: [
       {
-        id: PLAN_A_PUBLIC_SERVICE_IDS[0],
-        label: 'Plan A service',
+        id: SERVICE_REGISTER_PUBLIC_SERVICE_IDS[0],
+        label: 'Register-public service',
         durationMinutes: 30,
         active: true,
         publicBookable: true,
@@ -38,9 +38,7 @@ test('legacy catalog runtime merges triple-map entries into engine state', () =>
     resources: [],
   };
 
-  const result = mergeLegacyCatalogIntoEngineState(state, {
-    planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
-  });
+  const result = mergeLegacyCatalogIntoEngineState(state);
 
   assert.equal(result.changed, true);
   assert.ok(state.services.length > 1);
@@ -50,13 +48,15 @@ test('legacy catalog runtime merges triple-map entries into engine state', () =>
     )
   );
 
-  const planAService = state.services.find((item) => item.id === PLAN_A_PUBLIC_SERVICE_IDS[0]);
+  const planAService = state.services.find(
+    (item) => item.id === SERVICE_REGISTER_PUBLIC_SERVICE_IDS[0]
+  );
   assert.equal(planAService.publicBookable, true);
 
   const draft = state.services.find((item) => item.id === 'fue');
   if (draft) {
-    assert.equal(draft.publicBookable, PLAN_A_PUBLIC_SERVICE_IDS.includes('fue'));
-    assert.equal(draft.active, PLAN_A_PUBLIC_SERVICE_IDS.includes('fue'));
+    assert.equal(draft.publicBookable, SERVICE_REGISTER_PUBLIC_SERVICE_IDS.includes('fue'));
+    assert.equal(draft.active, SERVICE_REGISTER_PUBLIC_SERVICE_IDS.includes('fue'));
   }
 });
 
@@ -67,9 +67,7 @@ test('legacy catalog runtime promotes all Cliento and Meridiq catalog rows', () 
   const bindingRows = bundle.catalogs?.meridiqBindings?.services || [];
 
   const state = { services: [], resources: [] };
-  const result = mergeLegacyCatalogIntoEngineState(state, {
-    planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
-  });
+  const result = mergeLegacyCatalogIntoEngineState(state);
 
   assert.equal(result.changed, true);
   assert.ok(result.unmappedClientoPromoted >= 0);
@@ -104,11 +102,7 @@ test('legacy catalog runtime promotes all Cliento and Meridiq catalog rows', () 
   }
 
   const mappedArcanaIds = new Set(entries.map((entry) => entry.arcanaServiceId));
-  for (const planAId of PLAN_A_PUBLIC_SERVICE_IDS) {
-    // Some Plan A services (e.g. 'followup', 'consultation') are seeded as engine
-    // defaults in ccoBookingEngineStore, not produced by the legacy-catalog merge.
-    // This test starts from an empty state and only runs the catalog merge, so it
-    // can only assert the catalog-mapped Plan A services here.
+  for (const planAId of SERVICE_REGISTER_PUBLIC_SERVICE_IDS) {
     if (!mappedArcanaIds.has(planAId)) continue;
     const planAService = state.services.find((service) => service.id === planAId);
     assert.ok(planAService, `Plan A service ${planAId} should exist`);
@@ -119,9 +113,7 @@ test('legacy catalog runtime promotes all Cliento and Meridiq catalog rows', () 
 
 test('canonical service register materializes DHI into state.services with exact Meridiq consent bindings', () => {
   const state = { services: [], resources: [] };
-  const result = mergeLegacyCatalogIntoEngineState(state, {
-    planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
-  });
+  const result = mergeLegacyCatalogIntoEngineState(state);
 
   assert.equal(result.changed, true);
   const dhi = state.services.find((service) => service.id === 'dhi');
@@ -174,6 +166,16 @@ test('core consultation/followup variants resolve booking labels from the servic
   assert.equal(serviceToPlanMethod('consultation'), 'Fysisk konsultation');
   assert.equal(serviceToPlanMethod('followup'), 'Uppföljning HT');
   assert.equal(serviceToPlanMethod('dhi'), 'DHI hårtransplantation');
+});
+
+test('service register booking policy derives public services and aliases from triple-map', () => {
+  const policy = buildServiceRegisterBookingPolicy();
+  assert.ok(policy.publicServiceIds.includes('dhi'));
+  assert.ok(policy.publicServiceIds.includes('consultation-physical'));
+  assert.ok(policy.publicServiceIds.includes('followup-transplant'));
+  assert.equal(policy.aliasToServiceId.consultation, 'consultation-physical');
+  assert.equal(policy.aliasToServiceId.followup, 'followup-transplant');
+  assert.equal(policy.publicServiceIds.includes('legacy-cliento-60340'), false);
 });
 
 test('pricing defaults no longer duplicate Cliento identity outside the service triple-map', () => {
@@ -244,7 +246,6 @@ test('staff runtime catalog readout exposes plan A vs staff tiers without public
   };
 
   const readout = buildStaffRuntimeCatalogReadout(state, {
-    planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
     planAPublicResourceIds: ['res-online-consult'],
   });
 
@@ -337,7 +338,6 @@ test('buildStaffRuntimeCatalogReadout exposes booking policy and pricing rules',
     ],
   };
   const readout = buildStaffRuntimeCatalogReadout(state, {
-    planAPublicServiceIds: ['consultation-online'],
     planAPublicResourceIds: ['fazli'],
     bookingPolicySettings: normalizeBookingPolicySettings({}),
   });
