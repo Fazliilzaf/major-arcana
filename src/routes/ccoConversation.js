@@ -22,7 +22,10 @@
 const crypto = require('crypto');
 const express = require('express');
 const { runSummarizeThreadCapability } = require('../capabilities/summarizeThread');
-const { extractTextFromHtml } = require('../ops/ccoMailContentParser');
+const {
+  buildCanonicalMailContentSections,
+  extractTextFromHtml,
+} = require('../ops/ccoMailContentParser');
 const {
   messageMatchesContactFormScope,
   normalizeEmail,
@@ -350,6 +353,28 @@ function deriveBodyHtml(message) {
       : '',
   ];
   return candidates.reduce((best, candidate) => chooseRicherHtml(best, candidate), '');
+}
+
+// A reply often carries its earlier correspondence below the new message. The
+// thread already renders those earlier messages as their own bubbles, so the
+// read surface must use the existing canonical sectioner instead of returning
+// the complete raw reply HTML again. Keep the signature in the same bubble.
+function deriveDisplayMailBody(message) {
+  const sourceHtml = deriveBodyHtml(message);
+  const sourceText = deriveBody(message);
+  const sections = buildCanonicalMailContentSections({
+    primaryBodyHtml: sourceHtml,
+    sourceText,
+  });
+  const primaryText = normalizeText(sections?.primaryBody?.text);
+  const signatureText = normalizeText(sections?.signatureBlock?.text);
+  const primaryHtml = normalizeText(sections?.primaryBody?.html);
+  const signatureHtml = normalizeText(sections?.signatureBlock?.html);
+
+  return {
+    text: [primaryText, signatureText].filter(Boolean).join('\n\n') || sourceText,
+    html: [primaryHtml, signatureHtml].filter(Boolean).join('') || sourceHtml,
+  };
 }
 
 function firstNormalizedText(...values) {
@@ -1714,9 +1739,10 @@ function createCcoConversationRouter({
           const mailboxId = normalizeText(safe.mailboxId) || null;
           const mailboxAddress = normalizeText(safe.mailboxAddress) || mailboxId;
           const attachments = collectConversationAttachments(safe);
-          const boundedBodyHtml = boundRuntimeBodyHtml(deriveBodyHtml(safe));
+          const displayBody = deriveDisplayMailBody(safe);
+          const boundedBodyHtml = boundRuntimeBodyHtml(displayBody.html);
           const bodyHtml = rewriteMailCidImageSources(boundedBodyHtml, attachments);
-          const derivedBodyText = deriveBody(safe);
+          const derivedBodyText = displayBody.text;
           const bodyText =
             (derivedBodyText.length > 50000 || /<img\b[^>]*(?:data:image|about:blank)/i.test(derivedBodyText)) &&
             bodyHtml
@@ -3396,6 +3422,8 @@ module.exports = {
   createCcoConversationRouter,
   // Exponerad för tester: HTML-kropp för sandboxad trådrendering.
   deriveBodyHtml,
+  // Exponerad för tester: en bubbla ska bära ett mejl, inte citerad historik.
+  deriveDisplayMailBody,
   // Exponerad för tester: rollup-medveten trådhämtning ur lokala truth-storen.
   fetchSortedConversationMessages,
   fetchSortedConversationMessagesForKeys,

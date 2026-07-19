@@ -12,7 +12,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { deriveBodyHtml } = require('../../src/routes/ccoConversation');
+const { deriveBodyHtml, deriveDisplayMailBody } = require('../../src/routes/ccoConversation');
 
 test('deriveBodyHtml hittar HTML i varje lokal källa (rikaste kandidaten vinner)', () => {
   // Efter #640 väljer chooseRicherHtml den RIKASTE kandidaten, inte första i
@@ -86,4 +86,41 @@ test('deriveBodyHtml läser även uniqueBody (Graph) och rawJson.uniqueBody', ()
     '<p>RU</p>'
   );
   assert.equal(deriveBodyHtml({ uniqueBody: { contentType: 'text', content: 'txt' } }), '');
+});
+
+test('deriveDisplayMailBody håller en reply-bubbla till eget mejl och synlig signatur', () => {
+  const display = deriveDisplayMailBody({
+    bodyHtml: [
+      '<div>Hej Joel,</div>',
+      '<div>Tack, vi hjalper dig vidare.</div>',
+      '<div>Basta halsningar<br>Hair TP Clinic</div>',
+      '<blockquote><div>11 juli 2026 skrev Joel Frodin:</div><div>Det tidigare mailet.</div></blockquote>',
+    ].join(''),
+    bodyText:
+      'Hej Joel,\nTack, vi hjalper dig vidare.\n\nBasta halsningar\nHair TP Clinic\n\n11 juli 2026 skrev Joel Frodin:\nDet tidigare mailet.',
+  });
+
+  assert.match(display.html, /Tack, vi hjalper dig vidare/);
+  assert.match(display.html, /Basta halsningar/);
+  assert.doesNotMatch(display.html, /Det tidigare mailet/);
+  assert.match(display.text, /Hair TP Clinic/);
+  assert.doesNotMatch(display.text, /Det tidigare mailet/);
+});
+
+test('deriveDisplayMailBody behaller inline-signaturbild men tar bort citerad historik', () => {
+  const display = deriveDisplayMailBody({
+    bodyHtml: [
+      '<div>Hej!</div>',
+      '<div>Vanliga halsningar</div>',
+      '<table role="presentation"><tr><td><img src="cid:clinic-logo" alt="Hair TP Clinic"></td><td>Hair TP Clinic</td></tr></table>',
+      '<div>Från: Kund &lt;kund@example.com&gt;</div>',
+      '<div>Ämne: Re: Fråga</div>',
+      '<div>Gammal historik ska inte visas.</div>',
+    ].join(''),
+    bodyText: 'Hej!\nVanliga hälsningar\nHair TP Clinic\nFrån: Kund <kund@example.com>\nGammal historik ska inte visas.',
+  });
+
+  assert.match(display.html, /cid:clinic-logo/);
+  assert.match(display.html, /Hair TP Clinic/);
+  assert.doesNotMatch(display.html, /Gammal historik ska inte visas/);
 });
