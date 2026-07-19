@@ -90,6 +90,76 @@ function loadActiveSearchHarness(visits) {
   return { window, messages, fallbacks };
 }
 
+async function loadV8SearchHarness(rows) {
+  const source = fs.readFileSync(
+    path.join(__dirname, '../../public/major-arcana-preview/app/cco-calendar-v8-shell.js'),
+    'utf8'
+  );
+  const { window } = parseHTML(`
+    <main>
+      <div class="preview-canvas" data-app-shell-view="calendar">
+        <div class="preview-workspace"></div>
+      </div>
+    </main>
+  `);
+  const messages = [];
+  const fallbacks = [];
+  const parent = {
+    postMessage(payload, targetOrigin) {
+      messages.push({ payload, targetOrigin });
+    },
+    ArcanaCcoOpenCustomerDossier(payload) {
+      fallbacks.push(payload);
+      return true;
+    },
+  };
+  window.parent = parent;
+  window.location = { origin: 'https://arcana.example' };
+  window.innerWidth = 1200;
+  window.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+  window.addEventListener = window.addEventListener || (() => {});
+  const sandbox = {
+    window,
+    document: window.document,
+    console,
+    Date,
+    Intl,
+    Map,
+    Set,
+    URLSearchParams,
+    MutationObserver: function MutationObserver() {
+      return { observe() {}, disconnect() {} };
+    },
+    requestAnimationFrame: window.requestAnimationFrame,
+    setTimeout,
+    clearTimeout,
+    fetch: async (url, options = {}) => {
+      assert.match(String(url), /\/api\/v1\/cco-bookings\/history-search/);
+      assert.equal(options.credentials, 'same-origin');
+      assert.equal(options.headers.Accept, 'application/json');
+      return {
+        ok: true,
+        async json() {
+          return {
+            ok: true,
+            readOnly: true,
+            zeroWrites: true,
+            rows,
+            pagination: { total: rows.length, limit: 30, offset: 0, returned: rows.length },
+          };
+        },
+      };
+    },
+  };
+  vm.runInNewContext(source, sandbox);
+  const root = window.ArcanaCalendarV8.render({});
+  const input = root.querySelector('#searchOverlayInput');
+  input.value = 'canonical';
+  input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await new Promise((resolve) => setTimeout(resolve, 230));
+  return { window, root, messages, fallbacks };
+}
+
 test('Kalender consumes canonical visit rows with patient, status, encounter and notes', () => {
   const calendar = loadCalendarShared();
   const visit = {
@@ -235,6 +305,67 @@ test('calendar V8 canonical handoff accepts only canonical patients and unlinked
   assert.match(source, /data-read-only/);
   assert.match(source, /if \(result\.dataset\.patientId\)/);
   assert.match(source, /if \(result\.dataset\.readOnly === '1'\) return/);
+});
+
+test('calendar V8 global canonical search result opens the same patient through admin handoff', async () => {
+  const { root, messages, fallbacks } = await loadV8SearchHarness([
+    {
+      kind: 'canonical_visit',
+      bookingId: 'booking-canonical',
+      patientId: 'patient-canonical-42',
+      patientName: 'Canonical Patient',
+      serviceDisplayName: 'Fysisk konsultation',
+      stockholmDate: '2026-08-03',
+      stockholmTime: '11:00',
+      status: 'Bokad',
+      linkAllowed: true,
+    },
+  ]);
+
+  const result = root.querySelector('.search-result');
+  assert.ok(result);
+  assert.equal(result.dataset.patientId, 'patient-canonical-42');
+  assert.equal(result.dataset.bookingId, 'booking-canonical');
+  assert.equal(result.dataset.readOnly, '0');
+
+  result.click();
+
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].targetOrigin, 'https://arcana.example');
+  assert.equal(messages[0].payload.type, 'arcana:cco-open-customer-dossier');
+  assert.equal(messages[0].payload.patientId, 'patient-canonical-42');
+  assert.equal(fallbacks.length, 1);
+  assert.equal(fallbacks[0].patientId, 'patient-canonical-42');
+  assert.equal(root.querySelector('#searchOverlay').classList.contains('is-visible'), false);
+});
+
+test('calendar V8 global unlinked search result remains read-only with no handoff', async () => {
+  const { root, messages, fallbacks } = await loadV8SearchHarness([
+    {
+      kind: 'separate_unlinked_historical',
+      bookingId: 'booking-unlinked',
+      patientId: null,
+      patientName: '',
+      serviceDisplayName: 'PRP',
+      stockholmDate: '2026-08-04',
+      stockholmTime: '12:00',
+      status: 'Genomförd',
+      linkAllowed: false,
+      reasonCode: 'identity_collision',
+    },
+  ]);
+
+  const result = root.querySelector('.search-result');
+  assert.ok(result);
+  assert.equal(result.dataset.patientId, '');
+  assert.equal(result.dataset.bookingId, 'booking-unlinked');
+  assert.equal(result.dataset.readOnly, '1');
+  assert.match(result.className, /is-read-only/);
+
+  result.click();
+
+  assert.equal(messages.length, 0);
+  assert.equal(fallbacks.length, 0);
 });
 
 test('active admin calendar uses canonical bundle and the same strict patient handoff', () => {

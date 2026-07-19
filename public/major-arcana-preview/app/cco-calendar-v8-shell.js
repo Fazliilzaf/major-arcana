@@ -1671,12 +1671,12 @@
         if (ev.target === searchOverlay) closeSearch();
         const result = ev.target.closest('.search-result');
         if (!result) return;
+        if (result.dataset.readOnly === '1') return;
         if (result.dataset.patientId) {
           const opened = openCanonicalPatientInAdmin(result.dataset.patientId);
           closeSearch();
           if (opened) return;
         }
-        if (result.dataset.readOnly === '1') return;
         closeSearch();
         openCustomerDossier(result.dataset.name);
       });
@@ -2628,11 +2628,23 @@
     var id = String(patientId || '').trim();
     if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(id)) return false;
     if (!window.parent || window.parent === window) return false;
-    window.parent.postMessage(
-      { type: 'arcana:cco-open-customer-dossier', patientId: id },
-      window.location.origin
-    );
-    return true;
+    var sent = false;
+    try {
+      window.parent.postMessage(
+        { type: 'arcana:cco-open-customer-dossier', patientId: id },
+        window.location.origin
+      );
+      sent = true;
+    } catch (e) {
+      sent = false;
+    }
+    try {
+      var opener = window.parent.ArcanaCcoOpenCustomerDossier;
+      if (typeof opener === 'function') return opener({ patientId: id }) === true || sent;
+    } catch (e) {
+      /* cross-origin parent: strict postMessage above is the only allowed path */
+    }
+    return sent;
   }
 
   function populateCanonicalVisitDetail(intel, data, booked) {
