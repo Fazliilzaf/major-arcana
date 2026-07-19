@@ -12,9 +12,13 @@ const {
   OFFERT_SLUG,
 } = require('../../src/ops/patientDocumentLiveRegistry');
 
-test('live registry covers all 36 catalog types', () => {
+test('live registry covers all 39 catalog types', () => {
   const ids = listLiveRegistryIds();
-  assert.equal(ids.length, 36);
+  assert.equal(ids.length, 39);
+  // hud-dokumenten inkopplade 2026-07-19 (ägarbeslut: allt ska vara kopplat)
+  assert.ok(ids.includes('hyalase_info'));
+  assert.ok(ids.includes('botulinum_info'));
+  assert.ok(ids.includes('ordination_recept'));
 });
 
 test('every registry resolves to an on-disk final-demo html', () => {
@@ -39,18 +43,19 @@ test('offert_tp steg7 uses v6 kundkort demo', () => {
 
 test('buildLiveManifest marks all documents existing', () => {
   const manifest = buildLiveManifest();
-  assert.equal(manifest.length, 36);
+  assert.equal(manifest.length, 39);
   const missing = manifest.filter((row) => !row.exists);
   assert.deepEqual(missing, []);
 });
 
-test('staff live registry covers B16–B24 (9 types)', () => {
+test('staff live registry covers B16–B24 + ordination_recept (10 types)', () => {
   const ids = listStaffLiveRegistryIds();
-  assert.equal(ids.length, 9);
+  assert.equal(ids.length, 10);
   assert.ok(isStaffLiveRegistry('journal_tp'));
   assert.ok(isStaffLiveRegistry('ordination_tp'));
+  assert.ok(isStaffLiveRegistry('ordination_recept'));
   assert.equal(isStaffLiveRegistry('haelso_tp_sve'), false);
   const manifest = buildLiveManifest();
   const staffRows = manifest.filter((row) => row.audience === 'staff');
-  assert.equal(staffRows.length, 9);
+  assert.equal(staffRows.length, 10);
 });

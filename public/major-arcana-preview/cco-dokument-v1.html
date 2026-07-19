@@ -1556,6 +1556,51 @@
           notes:
             'Innehållskälla bekräftad: bundle-sources är docs/strategy/CLIENTO-INVENTORY.md + src/templates/bookingReservationEmail.js (CCO-repo). Internt operatörs-e-post vid bokning. INTE patient-SMS. Arkiveras i systemet.',
         },
+        {
+          id: 'hyalase_info',
+          name: 'Patientinformation & samtycke · Hyalase',
+          step: '4',
+          cat: 'info',
+          act: 'signeras',
+          src: 'repo',
+          contentSrc: 'Meridiq',
+          lang: 'sv',
+          flows: ['hud'],
+          flags: ['GRANSKNINGSKRAV'],
+          file: 'steg4-hyalase-info-sve-final-demo.html',
+          notes:
+            'Innehållskälla bekräftad: hairtp-document-content-bundle.json (Meridiq apiId 152991 · "Hyalase - SWE" · FULL). Text ordagrant från bundlen. Licensierat läkemedel — injiceras endast av leg. personal under delegering av ansvarig läkare; pricktest krävs. Inkopplad 2026-07-19 (ägarbeslut: allt ska vara kopplat).',
+        },
+        {
+          id: 'botulinum_info',
+          name: 'Patientinformation & samtycke · Botulinumtoxin (SV+EN)',
+          step: '4',
+          cat: 'info',
+          act: 'signeras',
+          src: 'repo',
+          contentSrc: 'Meridiq',
+          lang: 'sv+en',
+          flows: ['hud'],
+          flags: ['GRANSKNINGSKRAV'],
+          file: 'steg4-botulinum-info-final-demo.html',
+          notes:
+            'Innehållskälla bekräftad: hairtp-document-content-bundle.json#botulinum_info (FULL, letterTextSwe + letterTextEng). Text ordagrant från bundlen, båda språken. Läkemedelsinformation — måste granskas av medicinskt ansvarig. Inkopplad 2026-07-19 (ägarbeslut: allt ska vara kopplat).',
+        },
+        {
+          id: 'ordination_recept',
+          name: 'Ordination (recept)',
+          step: '8',
+          cat: 'personalformular',
+          act: 'fylls_i',
+          src: 'repo',
+          contentSrc: 'repo',
+          lang: 'sv',
+          flows: ['tp'],
+          flags: ['GRANSKNINGSKRAV'],
+          file: 'steg8-ordination-recept-final-demo.html',
+          notes:
+            'Innehållskälla bekräftad: hairtp-document-content-bundle.json#ordination_recept (FULL som medveten journal-stub). Blocker kvarstår: e-recept/SharePoint-mall kopplas separat — stubben är samma som ordinationsmallen tills dess. Inkopplad 2026-07-19 (ägarbeslut: allt ska vara kopplat).',
+        },
       ];
 
       const CAT_LABELS = {
@@ -1731,9 +1776,7 @@
           });
           if (!res.ok) throw new Error(`Manifest ${res.status}`);
           const payload = await res.json();
-          liveManifestById = new Map(
-            (payload.documents || []).map((row) => [row.registryId, row])
-          );
+          liveManifestById = new Map((payload.documents || []).map((row) => [row.registryId, row]));
           liveManifestLoaded = true;
           liveManifestFailed = false;
         } catch (err) {
