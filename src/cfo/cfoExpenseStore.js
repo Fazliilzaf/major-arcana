@@ -262,7 +262,14 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     if (!e) throw new Error('expense finns ej');
 
     if (['exported'].includes(e.status)) {
-      throw new Error('exporterad expense kan inte ändras');
+      // ORD-CM-28 (ägar-regel "vi avvisar inget"): källverifierad DATUM-rättelse
+      // tillåts tills posten är Fortnox-syncad — feltolkade datum ska rättas,
+      // inte avvisas. Endast date; övriga fält förblir låsta efter export.
+      const nycklar = Object.keys(patch);
+      const bara = nycklar.every((k) => ['date', 'notes'].includes(k));
+      if (!bara || e.fortnoxSyncStatus === 'synced') {
+        throw new Error('exporterad expense kan inte ändras');
+      }
     }
 
     if (
