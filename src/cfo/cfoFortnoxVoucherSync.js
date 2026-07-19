@@ -291,7 +291,92 @@ function createCfoFortnoxVoucherSync({
     return { ok: true, dryRun: false, results };
   }
 
-  return { run, listPendingExpenses, buildVoucherPayload, readGateOverride };
+  // ORD-CM-30 · Syncing-limbo: poster som fastnat i 'syncing' (process död/
+  // deploy mitt i tvåfas-write). Källavstämning mot Fortnox: verifikatets
+  // Description börjar alltid "CF <id-utan-exp_>" (ORD-CM-18) — vi söker det i
+  // räkenskapsåret för postens datum. Träff → markera synced med verifikat-nr.
+  // Ingen träff → tillbaka till pending (nästa run bokar). Aldrig gissning.
+  async function listSyncingExpenses() {
+    const all =
+      typeof expenseStore.listExpenses === 'function'
+        ? await expenseStore.listExpenses({ status: 'exported', limit: 1000 })
+        : [];
+    const rows = Array.isArray(all) ? all : all?.expenses || [];
+    return rows.filter((e) => e.status === 'exported' && e.fortnoxSyncStatus === 'syncing');
+  }
+
+  async function resolveSyncing({ dryRun = true } = {}) {
+    if (typeof fortnoxClient?.listVouchers !== 'function') {
+      return { ok: false, reason: 'fortnox_client_missing_listVouchers' };
+    }
+    const connection = fortnoxStore?.getConnection ? await fortnoxStore.getConnection() : null;
+    if (!connection?.connected && !connection?.accessToken) {
+      return { ok: false, reason: 'fortnox_not_connected' };
+    }
+    const syncing = await listSyncingExpenses();
+    const results = [];
+    for (const e of syncing) {
+      const cfTag = `CF ${String(e.id).replace(/^exp_/, '')}`;
+      const yearDate = e.date || nowIso().slice(0, 10);
+      let found = null;
+      let fel = null;
+      try {
+        let page = 1;
+        let totalPages = 1;
+        do {
+          const svar = await fortnoxClient.listVouchers({
+            financialYearDate: yearDate,
+            page,
+          });
+          const rows = svar?.Vouchers || [];
+          totalPages = Number(svar?.MetaInformation?.['@TotalPages'] || 1);
+          found =
+            rows.find((v) => String(v.Description || '').startsWith(cfTag)) || null;
+          page += 1;
+        } while (!found && page <= totalPages);
+      } catch (err) {
+        fel = err?.message || String(err);
+      }
+      const rad = {
+        expenseId: e.id,
+        supplier: e.supplier,
+        amountSek: e.amountSek,
+        date: e.date,
+        searchedYearDate: yearDate,
+        foundVoucher: found ? `${found.VoucherSeries}${found.VoucherNumber}` : null,
+        error: fel,
+        action: 'none',
+      };
+      if (!dryRun && !fel) {
+        if (found) {
+          await expenseStore.markFortnoxSynced({
+            id: e.id,
+            fortnoxVoucherId: `${found.VoucherSeries}${found.VoucherNumber}`,
+            actor: 'voucher-sync-resolve',
+          });
+          rad.action = 'marked_synced';
+        } else if (typeof expenseStore.markFortnoxSyncingToPending === 'function') {
+          await expenseStore.markFortnoxSyncingToPending({
+            id: e.id,
+            actor: 'voucher-sync-resolve',
+          });
+          rad.action = 'reset_to_pending';
+        }
+      }
+      results.push(rad);
+      audit('cf.fortnox.syncing_resolve', { ...rad, dryRun });
+    }
+    return { ok: true, dryRun, count: results.length, results };
+  }
+
+  return {
+    run,
+    listPendingExpenses,
+    buildVoucherPayload,
+    readGateOverride,
+    listSyncingExpenses,
+    resolveSyncing,
+  };
 }
 
 module.exports = {
