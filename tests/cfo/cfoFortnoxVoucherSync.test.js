@@ -285,3 +285,87 @@ test('gate-override: saknad/ogiltig fil = gate stängd (fail-closed)', async () 
   const r2 = await sync.run({ dryRun: true });
   assert.equal(r2.reason, 'disabled');
 });
+
+// ── ORD-CM-30 · resolveSyncing: syncing-limbo källavstäms mot Fortnox ───────
+test('resolveSyncing: verifikat hittat i Fortnox → marked_synced med verifikat-nr', async () => {
+  const { createCfoFortnoxVoucherSync } = require('../../src/cfo/cfoFortnoxVoucherSync');
+  const synced = [];
+  const sync = createCfoFortnoxVoucherSync({
+    expenseStore: {
+      listExpenses: () => [
+        {
+          id: 'exp_abc123',
+          status: 'exported',
+          fortnoxSyncStatus: 'syncing',
+          supplier: 'Meta',
+          amountSek: 135.45,
+          date: '2026-07-13',
+        },
+      ],
+      markFortnoxSynced: async (x) => {
+        synced.push(x);
+        return x;
+      },
+    },
+    fortnoxStore: { getConnection: async () => ({ connected: true, accessToken: 't' }) },
+    fortnoxClient: {
+      createVoucher: async () => ({}),
+      listVouchers: async () => ({
+        MetaInformation: { '@TotalPages': 1 },
+        Vouchers: [
+          { VoucherSeries: 'A', VoucherNumber: 345, Description: 'CF abc123 Meta' },
+          { VoucherSeries: 'A', VoucherNumber: 1, Description: 'Annat verifikat' },
+        ],
+      }),
+    },
+    env: {},
+  });
+  const r = await sync.resolveSyncing({ dryRun: false });
+  assert.equal(r.ok, true);
+  assert.equal(r.results[0].foundVoucher, 'A345');
+  assert.equal(r.results[0].action, 'marked_synced');
+  assert.equal(synced[0].fortnoxVoucherId, 'A345');
+});
+
+test('resolveSyncing: inget verifikat → reset_to_pending; dryRun rör ingenting', async () => {
+  const { createCfoFortnoxVoucherSync } = require('../../src/cfo/cfoFortnoxVoucherSync');
+  const calls = { pending: 0, synced: 0 };
+  const mkStore = () => ({
+    listExpenses: () => [
+      {
+        id: 'exp_def456',
+        status: 'exported',
+        fortnoxSyncStatus: 'syncing',
+        supplier: 'Verisure',
+        amountSek: 10462,
+        date: '2022-01-19',
+      },
+    ],
+    markFortnoxSynced: async () => {
+      calls.synced += 1;
+    },
+    markFortnoxSyncingToPending: async () => {
+      calls.pending += 1;
+    },
+  });
+  const mkSync = () =>
+    createCfoFortnoxVoucherSync({
+      expenseStore: mkStore(),
+      fortnoxStore: { getConnection: async () => ({ connected: true, accessToken: 't' }) },
+      fortnoxClient: {
+        createVoucher: async () => ({}),
+        listVouchers: async () => ({
+          MetaInformation: { '@TotalPages': 1 },
+          Vouchers: [{ VoucherSeries: 'A', VoucherNumber: 9, Description: 'Ej vår post' }],
+        }),
+      },
+      env: {},
+    });
+  const dry = await mkSync().resolveSyncing({ dryRun: true });
+  assert.equal(dry.results[0].action, 'none');
+  assert.equal(calls.pending + calls.synced, 0);
+  const skarp = await mkSync().resolveSyncing({ dryRun: false });
+  assert.equal(skarp.results[0].action, 'reset_to_pending');
+  assert.equal(calls.pending, 1);
+  assert.equal(calls.synced, 0);
+});

@@ -950,6 +950,26 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     return e;
   }
 
+  /**
+   * ORD-CM-30: lös syncing-limbo. En post fastnar i 'syncing' när processen
+   * dör/deployas mitt i tvåfas-writen. Efter källavstämning mot Fortnox
+   * (verifikat EJ hittat) återställs den till 'pending' så nästa run bokar den.
+   * Guard: ENDAST syncing-poster — allt annat är fel användning.
+   */
+  async function markFortnoxSyncingToPending({ id, actor } = {}) {
+    const e = data.expenses.find((x) => x.id === id);
+    if (!e) throw new Error('expense finns ej');
+    if (e.fortnoxSyncStatus !== 'syncing')
+      throw new Error('endast syncing-poster kan återställas till pending');
+    e.fortnoxSyncStatus = 'pending';
+    e.fortnoxSyncError = null;
+    e.updatedAt = nowIso();
+    e.history.push({ status: e.status, at: nowIso(), by: actor, reason: 'fortnox-syncing-resolved' });
+    await persist();
+    audit('cf.expense.fortnox_syncing_resolved', { expenseId: id, to: 'pending', actor });
+    return e;
+  }
+
   async function markFortnoxError({ id, error = '', actor } = {}) {
     const e = data.expenses.find((x) => x.id === id);
     if (!e) throw new Error('expense finns ej');
@@ -976,6 +996,7 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     markFortnoxSynced,
     markFortnoxError,
     markFortnoxRetry,
+    markFortnoxSyncingToPending,
     attachFile,
     listExpenses,
     aggregateByMonth,

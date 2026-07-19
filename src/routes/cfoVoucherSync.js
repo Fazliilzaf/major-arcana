@@ -242,6 +242,32 @@ function createCfoVoucherSyncRouter({
     }
   );
 
+  // ORD-CM-30 · Syncing-limbo-avstämning: söker verifikatet i Fortnox
+  // (Description "CF <id>") för poster som fastnat i 'syncing'.
+  // dryRun (default) = enbart rapport. dryRun=false: träff → synced med
+  // verifikat-nr; ingen träff → pending (nästa run bokar). Källfakta, aldrig gissning.
+  router.post(
+    '/cco-cf/voucher-sync/resolve-syncing',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!cfoExpenseStore)
+        return res.status(503).json({ ok: false, error: 'expense store ej monterad' });
+      try {
+        const dryRun = req.body?.dryRun !== false;
+        const sync = await buildSync();
+        const result = await sync.resolveSyncing({ dryRun });
+        auditGate('cf.fortnox.voucher_resolve_syncing', req, {
+          dryRun,
+          count: result.count,
+        });
+        return res.json(result);
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   router.delete(
     '/cco-cf/voucher-sync/override',
     requireAuth,

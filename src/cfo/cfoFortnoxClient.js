@@ -282,6 +282,16 @@ function createFortnoxClient({
     createVoucher(voucherPayload) {
       return request('/vouchers', { method: 'POST', body: { Voucher: voucherPayload } });
     },
+    // ORD-CM-30 · Läs-endpoint för syncing-avstämning: lista verifikat för det
+    // räkenskapsår som innehåller datumet. Används ENDAST för att hitta redan
+    // skapade verifikat (Description "CF <id> ...") — skriver ingenting.
+    listVouchers({ financialYearDate, page = 1, limit = 500 } = {}) {
+      const params = new URLSearchParams();
+      if (financialYearDate) params.set('financialyeardate', financialYearDate);
+      params.set('limit', String(limit));
+      params.set('page', String(page));
+      return request(`/vouchers?${params.toString()}`);
+    },
   };
 }
 
