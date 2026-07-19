@@ -240,7 +240,18 @@ function createCfoFortnoxVoucherSync({
         if (typeof expenseStore.markFortnoxSyncing === 'function') {
           await expenseStore.markFortnoxSyncing({ id: expense.id });
         }
-        const response = await fortnoxClient.createVoucher(payloads[i].Voucher);
+        // ORD-CM-27: Fortnox rate-limit (429, prod-verifierad 2026-07-19 vid
+        // 250-batch). Throttle mellan writes + en backoff-retry vid 429.
+        if (i > 0) await new Promise((z) => setTimeout(z, 600));
+        let response;
+        try {
+          response = await fortnoxClient.createVoucher(payloads[i].Voucher);
+        } catch (err) {
+          if (err && err.statusCode === 429) {
+            await new Promise((z) => setTimeout(z, 20000));
+            response = await fortnoxClient.createVoucher(payloads[i].Voucher);
+          } else throw err;
+        }
         const voucherId = response?.Voucher?.VoucherNumber || null;
         if (!voucherId) {
           // Bugbot (PR #835): utan verifikatreferens = INTE synced — felmarkera
