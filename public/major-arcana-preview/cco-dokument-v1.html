@@ -484,6 +484,10 @@
         background: var(--slate-bg);
         color: var(--slate);
       }
+      .flag.E8_SIGNERBAR {
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+      }
 
       .doc-link {
         font-size: 10px;
@@ -979,6 +983,7 @@
           <option value="PATIENTDATA">Patientdata (PDL)</option>
           <option value="GDPR">GDPR</option>
           <option value="GRANSKNINGSKRAV">Granskningskrav</option>
+          <option value="E8_SIGNERBAR">E8-signerbar</option>
           <option value="SAKNAS_KALLA">Saknas källa</option>
           <option value="SAKNAS_FIL">Saknas fil</option>
         </select>
@@ -1566,10 +1571,10 @@
           contentSrc: 'Meridiq',
           lang: 'sv',
           flows: ['hud'],
-          flags: ['GRANSKNINGSKRAV'],
+          flags: ['E8_SIGNERBAR'],
           file: 'steg4-hyalase-info-sve-final-demo.html',
           notes:
-            'Innehållskälla bekräftad: hairtp-document-content-bundle.json (Meridiq apiId 152991 · "Hyalase - SWE" · FULL). Text ordagrant från bundlen. Licensierat läkemedel — injiceras endast av leg. personal under delegering av ansvarig läkare; pricktest krävs. Inkopplad 2026-07-19 (ägarbeslut: allt ska vara kopplat).',
+            'Innehållskälla bekräftad: hairtp-document-content-bundle.json (Meridiq apiId 152991 · "Hyalase - SWE" · FULL). Text ordagrant från bundlen. Licensierat läkemedel — injiceras endast av leg. personal under delegering av ansvarig läkare; pricktest krävs. Inkopplad 2026-07-19. Medicinsk granskning GODKÄND av ägare 2026-07-19. E8-signering på (consent_journal, consentApiId 152991).',
         },
         {
           id: 'botulinum_info',
@@ -1581,10 +1586,10 @@
           contentSrc: 'Meridiq',
           lang: 'sv+en',
           flows: ['hud'],
-          flags: ['GRANSKNINGSKRAV'],
+          flags: ['E8_SIGNERBAR'],
           file: 'steg4-botulinum-info-final-demo.html',
           notes:
-            'Innehållskälla bekräftad: hairtp-document-content-bundle.json#botulinum_info (FULL, letterTextSwe + letterTextEng). Text ordagrant från bundlen, båda språken. Läkemedelsinformation — måste granskas av medicinskt ansvarig. Inkopplad 2026-07-19 (ägarbeslut: allt ska vara kopplat).',
+            'Innehållskälla bekräftad: hairtp-document-content-bundle.json#botulinum_info (FULL, letterTextSwe apiId 152988 + letterTextEng apiId 152981). Text ordagrant från bundlen, båda språken. Inkopplad 2026-07-19. Medicinsk granskning GODKÄND av ägare 2026-07-19. E8-signering på (consent_journal, consentApiId 152988).',
         },
         {
           id: 'ordination_recept',
