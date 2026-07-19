@@ -13,6 +13,7 @@ const {
 } = require('../ops/ccoKunderEnrichment');
 const { getBookingSignals } = require('../ops/ccoKunderBookingEnrichment');
 const { resolveScheduledTodayBooking, resolveTodayEncounter } = require('../ops/ccoActiveVisit');
+const { assertVisitCriticalWarningsAcknowledged } = require('../ops/ccoOperationDayGate');
 const { resolveStaffOwnership } = require('../ops/ccoKunderStaffOwner');
 const { isAutomationRunnerEnabled } = require('../ops/ccoAutomationRegistry');
 const {
@@ -512,14 +513,41 @@ function createCcoStaffRouter({
             });
             if (encounter || scheduledBooking) {
               const base = encounter || {};
+              const bookingId =
+                normalizeText(req.body?.bookingId) ||
+                normalizeText(base.bookingId) ||
+                normalizeText(scheduledBooking?.id || scheduledBooking?.bookingId);
+              const encounterId = normalizeText(base.encounterId);
+              const warningGate = assertVisitCriticalWarningsAcknowledged({
+                patient,
+                encounter: base,
+                body: req.body,
+                actor,
+                tenantId: actor.tenantId,
+                patientId,
+                encounterId,
+                bookingId,
+                at: completedAt,
+              });
+              if (!warningGate.allowed) {
+                const error = new Error(warningGate.message);
+                error.statusCode = 409;
+                error.metadata = {
+                  code: warningGate.reason,
+                  warnings: warningGate.warnings.map((warning) => ({
+                    warningId: warning.id,
+                    ruleId: warning.ruleId,
+                    what: warning.what,
+                    risk: warning.risk,
+                  })),
+                };
+                throw error;
+              }
               persistedEncounter = await treatmentEncounterStore.upsertEncounter({
                 ...base,
                 tenantId: actor.tenantId,
                 patientId,
-                bookingId:
-                  normalizeText(req.body?.bookingId) ||
-                  normalizeText(base.bookingId) ||
-                  normalizeText(scheduledBooking?.id || scheduledBooking?.bookingId),
+                bookingId,
                 serviceLabel:
                   normalizeText(base.serviceLabel) ||
                   normalizeText(scheduledBooking?.serviceName || scheduledBooking?.title),
@@ -532,15 +560,43 @@ function createCcoStaffRouter({
                 status: 'completed',
                 metadata: {
                   ...(base.metadata || {}),
+                  ...(warningGate.acknowledgements.length
+                    ? { criticalWarningAcknowledgements: warningGate.acknowledgements }
+                    : {}),
                   completedAt,
                   completedSource: 'v9_active_visit',
                 },
               });
+              if (warningGate.acknowledgements.length && authStore?.addAuditEvent) {
+                await authStore.addAuditEvent({
+                  tenantId: actor.tenantId,
+                  actorUserId: actor.userId,
+                  action: 'cco.visit.critical_warning_ack',
+                  outcome: 'success',
+                  targetType: 'treatment_encounter',
+                  targetId: normalizeText(persistedEncounter?.encounterId) || encounterId,
+                  metadata: {
+                    actorUserId: actor.userId,
+                    actorRole: actor.role,
+                    patientId,
+                    bookingId,
+                    encounterId: normalizeText(persistedEncounter?.encounterId) || encounterId,
+                    warnings: warningGate.acknowledgements.map((ack) => ({
+                      warningId: ack.warningId,
+                      ruleId: ack.ruleId,
+                      what: ack.what,
+                      acknowledgedAt: ack.acknowledgedAt,
+                      acknowledgedBy: ack.acknowledgedBy,
+                    })),
+                  },
+                });
+              }
               persisted = true;
             } else {
               reason = 'no_today_booking';
             }
           } catch (error) {
+            if (Number(error?.statusCode || 500) < 500) throw error;
             console.warn('[cco/staff/watch-complete-visit] persist failed', error);
             reason = 'persist_failed';
           }
