@@ -5725,6 +5725,8 @@
       let liveInboxFetchInFlight = false;
       let liveInboxReloadQueued = false;
       let liveInboxPartialFailureKey = '';
+      let liveInboxInitialMailboxSelectionReceived = false;
+      let liveInboxInitialLoadTimer = null;
 
       function mergeWorklistThreads(threads) {
         const merged = new Map();
@@ -5797,6 +5799,13 @@
           const scopedPayloads = [];
           const failedMailboxChunks = [];
           for (const mailboxChunk of requestMailboxChunks) {
+            // Ett nytt val ska aldrig behöva vänta på resterande mailbox-chunks
+            // från det gamla valet. Den pågående fetch:en får avslutas, därefter
+            // laddas bara den nyvalda mailboxen.
+            if (selectionMailboxKey !== canonicalMailboxIds(selectedMailboxIds).join(',')) {
+              liveInboxReloadQueued = true;
+              return;
+            }
             let response;
             try {
               // Kör sekventiellt för att inte skapa en ny belastningstopp när
@@ -5810,6 +5819,10 @@
                 networkError?.name || 'NetworkError'
               }: ${networkError?.message || 'okänt'}).`;
               failedMailboxChunks.push({ mailboxIds: mailboxChunk, status: 0, reason });
+              if (selectionMailboxKey !== canonicalMailboxIds(selectedMailboxIds).join(',')) {
+                liveInboxReloadQueued = true;
+                return;
+              }
               continue;
             }
             if (!response.ok) {
@@ -5818,6 +5831,10 @@
                 status: response.status,
                 reason: describeWorklistFailure(response.status),
               });
+              if (selectionMailboxKey !== canonicalMailboxIds(selectedMailboxIds).join(',')) {
+                liveInboxReloadQueued = true;
+                return;
+              }
               continue;
             }
             try {
@@ -5834,6 +5851,10 @@
                 status: response.status,
                 reason,
               });
+            }
+            if (selectionMailboxKey !== canonicalMailboxIds(selectedMailboxIds).join(',')) {
+              liveInboxReloadQueued = true;
+              return;
             }
           }
           const selectedMailboxLoaded = scopedPayloads.some(({ mailboxIds }) =>
@@ -6012,8 +6033,12 @@
         const requested = Array.isArray(event?.detail?.mailboxIds)
           ? event.detail.mailboxIds.map((value) => normalizeText(value).toLowerCase()).filter(Boolean)
           : [];
-        if (requested.join(',') === selectedMailboxIds.join(',')) return;
+        const selectionChanged = requested.join(',') !== selectedMailboxIds.join(',');
         selectedMailboxIds = requested;
+        const firstMailboxSelection = !liveInboxInitialMailboxSelectionReceived;
+        liveInboxInitialMailboxSelectionReceived = true;
+        clearTimeout(liveInboxInitialLoadTimer);
+        if (!selectionChanged && !firstMailboxSelection) return;
         liveInboxAttempt = 0;
         clearTimeout(liveInboxRetryTimer);
         renderLiveInboxStatus(
@@ -6034,7 +6059,15 @@
         }
       });
 
-      loadLiveInbox();
+      // Mailbox-väljaren laddas som ett defer-script och återställer det
+      // sparade valet efter den här inline-koden. Vänta en event-loop så första
+      // worklist-anropet använder det verkliga valet i stället för alla åtta.
+      // Utan väljaren kvarstår en defensiv fallback till nuvarande standardval.
+      if (!STATIC_DEMO_PREVIEW && window.location.protocol !== 'file:') {
+        liveInboxInitialLoadTimer = setTimeout(() => {
+          if (!liveInboxInitialMailboxSelectionReceived) loadLiveInbox();
+        }, 0);
+      }
       // Runtime-streamen skickar en lätt "knackning" var tionde sekund och ett
       // worklist_updated-event direkt efter att KONS-pollern sparat nya mail.
       // Fetch-baserad SSE används eftersom EventSource inte kan skicka vårt

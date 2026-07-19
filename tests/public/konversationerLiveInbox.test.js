@@ -168,6 +168,35 @@ test('a single selected mailbox makes exactly one scoped worklist request', () =
   assert.ok(chunks.every((chunk) => chunk.length <= 2), 'server two-mailbox limit remains intact');
 });
 
+test('den sparade mailboxinställningen styr det första live-anropet', () => {
+  const html = readHtml();
+
+  assert.match(html, /let liveInboxInitialMailboxSelectionReceived = false;/);
+  assert.match(html, /const firstMailboxSelection = !liveInboxInitialMailboxSelectionReceived;/);
+  assert.match(html, /liveInboxInitialMailboxSelectionReceived = true;/);
+  assert.match(html, /clearTimeout\(liveInboxInitialLoadTimer\);/);
+  assert.match(
+    html,
+    /if \(!STATIC_DEMO_PREVIEW && window\.location\.protocol !== 'file:'\) \{[\s\S]*?if \(!liveInboxInitialMailboxSelectionReceived\) loadLiveInbox\(\);/,
+    'the fallback starts only when the mailbox selector did not provide a saved selection'
+  );
+});
+
+test('ett nytt mailboxval stoppar resterande chunks från det gamla valet', () => {
+  const html = readHtml();
+
+  assert.match(
+    html,
+    /for \(const mailboxChunk of requestMailboxChunks\) \{[\s\S]*?if \(selectionMailboxKey !== canonicalMailboxIds\(selectedMailboxIds\)\.join\(','\)\) \{[\s\S]*?liveInboxReloadQueued = true;[\s\S]*?return;/,
+    'the next stale chunk is not requested after a mailbox selection changes'
+  );
+  assert.match(
+    html,
+    /if \(selectionMailboxKey !== canonicalMailboxIds\(selectedMailboxIds\)\.join\(','\)\) \{[\s\S]*?liveInboxReloadQueued = true;[\s\S]*?return;[\s\S]*?\n\s*}\n\s*}\n\s*const selectedMailboxLoaded/,
+    'the completed stale fetch exits before it can render the previous mailbox result'
+  );
+});
+
 test('a mailbox view only renders the worklist row returned for that mailbox', () => {
   const { threadForMailboxScope } = liveRollupHelpers();
   const fazliRow = patientThread({
