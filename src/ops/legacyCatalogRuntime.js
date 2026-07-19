@@ -6,12 +6,12 @@ const path = require('node:path');
 const { loadLegacyCatalogBundle } = require('./legacyCatalogLoader');
 const {
   applyBookingPricingMigrationToService,
-  loadBookingPricingMigrationDefaults,
   normalizePricingRules,
 } = require('./bookingPricingRules');
 const { normalizeBookingPolicySettings } = require('./bookingPolicySettings');
 
 const BOOKING_SCHEDULE_DEFAULTS_PATH = 'migration/booking-schedule-defaults.json';
+const TREATMENT_DOCUMENT_REQUIREMENTS_PATH = 'config/cco-treatment-document-requirements.json';
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -23,6 +23,16 @@ function asArray(value) {
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function uniqueNormalizedList(value) {
+  return Array.from(
+    new Set(
+      asArray(value)
+        .map((item) => normalizeText(String(item)))
+        .filter(Boolean)
+    )
+  );
 }
 
 function readTripleMapEntries(bundle) {
@@ -39,9 +49,183 @@ function buildLegacyMapping(entry = {}) {
     brand: normalizeText(safe.brand),
     confidence: normalizeText(safe.confidence),
     journalTypes: asArray(safe.journalTypes),
+    encounterType: normalizeText(safe.encounterType) || null,
+    bookingMethodLabel: normalizeText(safe.bookingMethodLabel) || null,
+    offerTemplateKey: normalizeText(safe.offerTemplateKey) || null,
+    documentRequirementKey: normalizeText(safe.documentRequirementKey) || null,
+    coolingOffRef: safe.coolingOffRef === null ? null : asObject(safe.coolingOffRef),
+    legacyAliases: uniqueNormalizedList(safe.legacyAliases),
     cliento: asObject(safe.cliento),
     meridiq: asObject(safe.meridiq),
     notes: normalizeText(safe.notes) || null,
+  };
+}
+
+function loadTreatmentDocumentRequirements({ repoRoot = process.cwd() } = {}) {
+  const fullPath = path.join(repoRoot, TREATMENT_DOCUMENT_REQUIREMENTS_PATH);
+  try {
+    const raw = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    return asObject(raw.treatments || raw);
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return {};
+    throw error;
+  }
+}
+
+function collectMappingMeridiqApiIds(mapping = {}) {
+  const ids = [];
+  const add = (value) => {
+    if (value == null) return;
+    const normalized = normalizeText(String(value));
+    if (normalized && !ids.includes(normalized)) ids.push(normalized);
+  };
+  for (const apiId of asArray(mapping.meridiq?.apiIds)) add(apiId);
+  add(mapping.meridiq?.primaryApiId);
+  return ids;
+}
+
+function buildMeridiqBindingIndex(bundle = {}) {
+  const index = new Map();
+  const rows = Array.isArray(bundle?.catalogs?.meridiqBindings?.services)
+    ? bundle.catalogs.meridiqBindings.services
+    : asArray(bundle?.catalogs?.meridiqBindings?.bindings);
+  for (const row of rows) {
+    const apiId = normalizeText(String(row?.apiId ?? ''));
+    if (apiId) index.set(apiId, row);
+  }
+  return index;
+}
+
+function addUniqueByKey(rows, row, keyFn) {
+  const key = keyFn(row);
+  if (!key || rows.some((item) => keyFn(item) === key)) return;
+  rows.push(row);
+}
+
+function collectMeridiqConsentBindings(mapping = {}, bindingIndex = new Map()) {
+  const apiIds = collectMappingMeridiqApiIds(mapping);
+  const matchedApiIds = [];
+  const missingApiIds = [];
+  const services = [];
+  const consents = [];
+  const questionnaires = [];
+
+  for (const apiId of apiIds) {
+    const binding = bindingIndex.get(apiId);
+    if (!binding) {
+      missingApiIds.push(apiId);
+      continue;
+    }
+    matchedApiIds.push(apiId);
+    services.push({
+      apiId: Number(binding.apiId),
+      name: normalizeText(binding.name),
+      category: normalizeText(binding.category) || null,
+    });
+    for (const consent of asArray(binding.consents)) {
+      addUniqueByKey(
+        consents,
+        {
+          consentApiId: consent?.consentApiId == null ? null : Number(consent.consentApiId),
+          title: normalizeText(consent?.title),
+        },
+        (item) => `${item.consentApiId || ''}:${item.title}`
+      );
+    }
+    for (const questionnaire of asArray(binding.questionnaires)) {
+      addUniqueByKey(
+        questionnaires,
+        {
+          bindingId: questionnaire?.bindingId == null ? null : Number(questionnaire.bindingId),
+          questionaryApiId:
+            questionnaire?.questionaryApiId == null ? null : Number(questionnaire.questionaryApiId),
+          type: normalizeText(questionnaire?.type) || null,
+          title: normalizeText(questionnaire?.title),
+        },
+        (item) => `${item.bindingId || ''}:${item.questionaryApiId || ''}:${item.title}`
+      );
+    }
+  }
+
+  return {
+    source: 'migration/meridiq/service-bindings-catalog.json',
+    apiIds,
+    matchedApiIds,
+    missingApiIds,
+    services,
+    consents,
+    questionnaires,
+  };
+}
+
+function buildDocumentRequirementSummary(mapping = {}, requirements = {}) {
+  const key = normalizeText(mapping.documentRequirementKey);
+  if (!key) return null;
+  const requirement = asObject(requirements[key]);
+  if (!Object.keys(requirement).length) {
+    return {
+      source: TREATMENT_DOCUMENT_REQUIREMENTS_PATH,
+      key,
+      missing: true,
+    };
+  }
+  return {
+    source: TREATMENT_DOCUMENT_REQUIREMENTS_PATH,
+    key,
+    label: normalizeText(requirement.label) || null,
+    category: normalizeText(requirement.category) || null,
+    coolingOffDays: Number.isFinite(Number(requirement.coolingOffDays))
+      ? Number(requirement.coolingOffDays)
+      : null,
+    coolingOffType: normalizeText(requirement.coolingOffType) || null,
+    journalTemplate: normalizeText(requirement.journalTemplate) || null,
+    aftercareTemplate: normalizeText(requirement.aftercareTemplate) || null,
+    canonicalAgreementVariant: normalizeText(requirement.canonicalAgreementVariant) || null,
+    requiredDocuments: asObject(requirement.requiredDocuments),
+  };
+}
+
+function buildCanonicalServiceRegister(
+  mapping = {},
+  { bindingIndex = new Map(), requirements = {} } = {}
+) {
+  const documentRequirement = buildDocumentRequirementSummary(mapping, requirements);
+  const consentBindings = collectMeridiqConsentBindings(mapping, bindingIndex);
+  return {
+    source: 'migration/service-triple-map.json',
+    arcanaServiceId: mapping.arcanaServiceId || null,
+    label: mapping.label || null,
+    encounterType: mapping.encounterType || null,
+    bookingMethodLabel: mapping.bookingMethodLabel || null,
+    offerTemplateKey: mapping.offerTemplateKey || null,
+    documentRequirementKey: mapping.documentRequirementKey || null,
+    coolingOffRef: mapping.coolingOffRef || null,
+    coolingOffDays: documentRequirement?.coolingOffDays ?? null,
+    coolingOffType: documentRequirement?.coolingOffType || null,
+    journalTemplate: documentRequirement?.journalTemplate || null,
+    aftercareTemplate: documentRequirement?.aftercareTemplate || null,
+    canonicalAgreementVariant: documentRequirement?.canonicalAgreementVariant || null,
+    requiredDocuments: documentRequirement?.requiredDocuments || {},
+    documentRequirement,
+    consentBindings,
+    legacyAliases: asArray(mapping.legacyAliases),
+  };
+}
+
+function applyCanonicalServiceRegisterToService(service = {}, register = {}) {
+  return {
+    ...service,
+    label: register.label || service.label,
+    encounterType: register.encounterType || service.encounterType || null,
+    bookingMethodLabel: register.bookingMethodLabel || service.bookingMethodLabel || null,
+    offerTemplateKey: register.offerTemplateKey || service.offerTemplateKey || null,
+    documentRequirementKey:
+      register.documentRequirementKey || service.documentRequirementKey || null,
+    coolingOffRef: register.coolingOffRef || service.coolingOffRef || null,
+    coolingOffDays: register.coolingOffDays ?? service.coolingOffDays ?? null,
+    coolingOffType: register.coolingOffType || service.coolingOffType || null,
+    consentBindings: register.consentBindings || service.consentBindings || null,
+    serviceRegister: register,
   };
 }
 
@@ -238,7 +422,11 @@ function mergeLegacyCatalogIntoEngineState(state, { planAPublicServiceIds = [] }
   const bundle = loadLegacyCatalogBundle();
   const entries = readTripleMapEntries(bundle);
   const planA = new Set(asArray(planAPublicServiceIds).map(normalizeText).filter(Boolean));
-  const servicesById = new Map(asArray(state.services).map((item) => [normalizeText(item.id), item]));
+  const servicesById = new Map(
+    asArray(state.services).map((item) => [normalizeText(item.id), item])
+  );
+  const bindingIndex = buildMeridiqBindingIndex(bundle);
+  const requirements = loadTreatmentDocumentRequirements();
   let changed = false;
 
   for (const entry of entries) {
@@ -249,31 +437,42 @@ function mergeLegacyCatalogIntoEngineState(state, { planAPublicServiceIds = [] }
     const existing = servicesById.get(id);
     const isPlanA = planA.has(id);
     const nextLegacy = mapping;
+    const serviceRegister = buildCanonicalServiceRegister(mapping, { bindingIndex, requirements });
 
     if (!existing) {
-      servicesById.set(id, {
+      servicesById.set(
         id,
-        label: mapping.label || id,
-        durationMinutes: defaultDurationForService(id),
-        active: isPlanA,
-        publicBookable: isPlanA,
-        brand: mapping.brand || undefined,
-        legacyMapping: nextLegacy,
-        catalogSource: 'legacy_triple_map',
-      });
+        applyCanonicalServiceRegisterToService(
+          {
+            id,
+            label: mapping.label || id,
+            durationMinutes: defaultDurationForService(id),
+            active: isPlanA,
+            publicBookable: isPlanA,
+            brand: mapping.brand || undefined,
+            legacyMapping: nextLegacy,
+            catalogSource: 'legacy_triple_map',
+          },
+          serviceRegister
+        )
+      );
       changed = true;
       continue;
     }
 
-    const merged = {
-      ...existing,
-      brand: existing.brand || mapping.brand || undefined,
-      legacyMapping: {
-        ...(asObject(existing.legacyMapping) || {}),
-        ...nextLegacy,
+    const merged = applyCanonicalServiceRegisterToService(
+      {
+        ...existing,
+        label: mapping.label || existing.label,
+        brand: existing.brand || mapping.brand || undefined,
+        legacyMapping: {
+          ...(asObject(existing.legacyMapping) || {}),
+          ...nextLegacy,
+        },
+        catalogSource: existing.catalogSource || 'legacy_triple_map',
       },
-      catalogSource: existing.catalogSource || 'legacy_triple_map',
-    };
+      serviceRegister
+    );
 
     if (!isPlanA && existing.publicBookable === true && !planA.has(id)) {
       merged.publicBookable = false;
@@ -318,15 +517,15 @@ const CLIENTO_RESOURCE_NAME_TO_ARCANA_ID = Object.freeze({
 });
 
 const CLIENTO_RES_ID_TO_ARCANA_ID = Object.freeze({
-  '11458': 'fazli',
-  '10326': 'egzona',
-  '7339': 'arya',
-  '9893': 'louise',
-  '11727': 'veronica',
-  '7534': 'clara',
-  '11501': 'wendela',
-  '11329': 'andrea',
-  '11702': 'bittan',
+  11458: 'fazli',
+  10326: 'egzona',
+  7339: 'arya',
+  9893: 'louise',
+  11727: 'veronica',
+  7534: 'clara',
+  11501: 'wendela',
+  11329: 'andrea',
+  11702: 'bittan',
 });
 
 function loadBookingScheduleMigrationDefaults({ repoRoot = process.cwd() } = {}) {
@@ -416,7 +615,9 @@ function mergeLegacyResourcesIntoEngineState(state, { planAPublicResourceIds = [
   const bundle = loadLegacyCatalogBundle();
   const srvMap = buildSrvIdToArcanaServiceIdMap(bundle);
   const planA = new Set(asArray(planAPublicResourceIds).map(normalizeText).filter(Boolean));
-  const resourcesById = new Map(asArray(state.resources).map((item) => [normalizeText(item.id), item]));
+  const resourcesById = new Map(
+    asArray(state.resources).map((item) => [normalizeText(item.id), item])
+  );
   let changed = false;
   let promoted = 0;
 
@@ -470,7 +671,9 @@ function mergeLegacyResourcesIntoEngineState(state, { planAPublicResourceIds = [
 
 function readAddonCatalogSummary(bundle = loadLegacyCatalogBundle()) {
   const addonCatalog = bundle?.catalogs?.clientoAddons || {};
-  const groups = asArray(addonCatalog.serviceGroups || bundle?.catalogs?.clientoResources?.serviceGroups);
+  const groups = asArray(
+    addonCatalog.serviceGroups || bundle?.catalogs?.clientoResources?.serviceGroups
+  );
   const addonGroups = groups.filter((group) => group?.addon === true);
   const addonServiceIds = addonGroups.flatMap((group) => asArray(group.serviceIds));
   const addonServices = asArray(addonCatalog.services);
@@ -510,7 +713,11 @@ function wireAddonServicesIntoEngineState(state) {
       legacySrvIds.some((id) => addonSrvIds.has(id)) ||
       (primarySrvId && addonSrvIds.has(primarySrvId));
     if (!isAddon && service.isAddon !== true) return service;
-    const next = { ...service, isAddon: true, catalogSource: service.catalogSource || 'cliento_addon_catalog' };
+    const next = {
+      ...service,
+      isAddon: true,
+      catalogSource: service.catalogSource || 'cliento_addon_catalog',
+    };
     if (JSON.stringify(service) !== JSON.stringify(next)) changed = true;
     return next;
   });
@@ -529,7 +736,9 @@ function mergeClientoPricingIntoServices(state, pricingRules = normalizePricingR
 
 function mergeClientoSchedulesIntoEngineState(state) {
   const scheduleDefaults = loadBookingScheduleMigrationDefaults();
-  const rulesById = new Map(asArray(state.availabilityRules).map((item) => [normalizeText(item.ruleId), item]));
+  const rulesById = new Map(
+    asArray(state.availabilityRules).map((item) => [normalizeText(item.ruleId), item])
+  );
   let changed = false;
   let mergedRules = 0;
 
@@ -571,7 +780,9 @@ function mergeClientoSchedulesIntoEngineState(state) {
 function buildResourceCatalogReadout(state, bundle = loadLegacyCatalogBundle()) {
   const scheduleDefaults = loadBookingScheduleMigrationDefaults();
   const clientoResources = asArray(bundle?.catalogs?.clientoResources?.resources);
-  const engineById = new Map(asArray(state.resources).map((item) => [normalizeText(item.id), item]));
+  const engineById = new Map(
+    asArray(state.resources).map((item) => [normalizeText(item.id), item])
+  );
   const engineByResId = new Map();
   for (const resource of asArray(state.resources)) {
     const resId = normalizeText(String(resource.legacyMapping?.cliento?.resId || ''));
@@ -628,7 +839,11 @@ function buildStaffRuntimeCatalogReadout(
       active: service.active !== false,
       publicBookable: service.publicBookable === true,
       planA: isPlanA,
-      staffCatalogTier: isPlanA ? 'plan_a_public' : service.active !== false ? 'staff_active' : 'inactive_draft',
+      staffCatalogTier: isPlanA
+        ? 'plan_a_public'
+        : service.active !== false
+          ? 'staff_active'
+          : 'inactive_draft',
       brand: normalizeText(service.brand || service.legacyMapping?.brand),
       durationMinutes: Number(service.durationMinutes) || null,
       minNoticeMinutes: Number(service.minNoticeMinutes) || null,
@@ -636,6 +851,25 @@ function buildStaffRuntimeCatalogReadout(
       cancellationPolicyHours: Number(service.cancellationPolicyHours) || null,
       isAddon: service.isAddon === true,
       pricing: priced.pricing || null,
+      encounterType:
+        normalizeText(service.encounterType) || service.serviceRegister?.encounterType || null,
+      bookingMethodLabel:
+        normalizeText(service.bookingMethodLabel) ||
+        service.serviceRegister?.bookingMethodLabel ||
+        null,
+      offerTemplateKey:
+        normalizeText(service.offerTemplateKey) ||
+        service.serviceRegister?.offerTemplateKey ||
+        null,
+      documentRequirementKey:
+        normalizeText(service.documentRequirementKey) ||
+        service.serviceRegister?.documentRequirementKey ||
+        null,
+      coolingOffDays: Number.isFinite(Number(service.coolingOffDays))
+        ? Number(service.coolingOffDays)
+        : (service.serviceRegister?.coolingOffDays ?? null),
+      consentBindings: service.consentBindings || service.serviceRegister?.consentBindings || null,
+      serviceRegister: service.serviceRegister || null,
       legacyMapping: service.legacyMapping || null,
       catalogSource: normalizeText(service.catalogSource) || null,
     };
@@ -669,7 +903,8 @@ function buildStaffRuntimeCatalogReadout(
     planA,
     planAPublicServices: planA,
     staffActiveServices: services.filter((item) => item.staffCatalogTier === 'staff_active').length,
-    inactiveDraftServices: services.filter((item) => item.staffCatalogTier === 'inactive_draft').length,
+    inactiveDraftServices: services.filter((item) => item.staffCatalogTier === 'inactive_draft')
+      .length,
     legacyMappedServices: services.filter((item) => item.legacyMapping).length,
     tripleMapEntries: tripleEntries.length,
     addonCatalog,
@@ -707,6 +942,8 @@ module.exports = {
   buildLegacyMapping,
   buildClientoDraftService,
   buildMeridiqDraftService,
+  buildCanonicalServiceRegister,
+  collectMeridiqConsentBindings,
   collectMappedLegacyIds,
   mergeLegacyCatalogIntoEngineState,
   mergeLegacyResourcesIntoEngineState,

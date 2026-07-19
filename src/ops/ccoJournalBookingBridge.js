@@ -6,9 +6,41 @@ const {
   normalizeText,
   splitName,
 } = require('../../scripts/migration/lib/migrationUtils');
+const { loadLegacyCatalogBundle } = require('./legacyCatalogLoader');
+const { buildLegacyMapping, readTripleMapEntries } = require('./legacyCatalogRuntime');
+
+let serviceRegisterMethodCache = null;
+
+function buildServiceRegisterMethodCache() {
+  const cache = new Map();
+  try {
+    const entries = readTripleMapEntries(loadLegacyCatalogBundle());
+    for (const entry of entries) {
+      const mapping = buildLegacyMapping(entry);
+      const method = normalizeText(mapping.bookingMethodLabel);
+      if (!method) continue;
+      if (mapping.arcanaServiceId) cache.set(mapping.arcanaServiceId, method);
+      for (const alias of mapping.legacyAliases || []) {
+        if (alias) cache.set(alias, method);
+      }
+    }
+  } catch (_) {
+    // Keep journal sync fail-closed to legacy fallback labels if the migration catalog is unavailable.
+  }
+  return cache;
+}
+
+function serviceRegisterBookingMethodLabel(serviceId = '') {
+  const id = normalizeText(serviceId);
+  if (!id) return '';
+  if (!serviceRegisterMethodCache) serviceRegisterMethodCache = buildServiceRegisterMethodCache();
+  return serviceRegisterMethodCache.get(id) || '';
+}
 
 function serviceToPlanMethod(serviceId = '') {
   const id = normalizeText(serviceId).toLowerCase();
+  const registered = serviceRegisterBookingMethodLabel(id);
+  if (registered) return registered;
   if (id === 'consultation-online') return 'Online';
   if (id === 'consultation-physical') return 'Fysisk konsultation';
   if (id === 'followup-transplant') return 'Uppföljning HT';

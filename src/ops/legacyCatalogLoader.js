@@ -62,9 +62,11 @@ function loadLegacyCatalogBundle({ repoRoot = process.cwd() } = {}) {
       meridiqConsents: Array.isArray(bundle.meridiqConsents?.consents)
         ? bundle.meridiqConsents.consents.length
         : 0,
-      meridiqBindings: Array.isArray(bundle.meridiqBindings?.bindings)
-        ? bundle.meridiqBindings.bindings.length
-        : 0,
+      meridiqBindings: Array.isArray(bundle.meridiqBindings?.services)
+        ? bundle.meridiqBindings.services.length
+        : Array.isArray(bundle.meridiqBindings?.bindings)
+          ? bundle.meridiqBindings.bindings.length
+          : 0,
     },
     catalogs: bundle,
   };
