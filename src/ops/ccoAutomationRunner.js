@@ -189,7 +189,7 @@ function evaluateRule(rule, ctx) {
 }
 
 function evaluatePatientSignals(readout, ctx = {}) {
-  if (!isAutomationRunnerEnabled()) {
+  if (!isAutomationRunnerEnabled() && ctx.forceEvaluate !== true) {
     return { enabled: false, signals: [], reason: 'ENABLE_AUTOMATION_RUNNER är inte true' };
   }
   const { RULES } = require('./ccoAutomationRegistry');

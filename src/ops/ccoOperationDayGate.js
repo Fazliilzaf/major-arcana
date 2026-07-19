@@ -44,17 +44,24 @@ function normalizeCriticalWarning(raw, index = 0) {
   };
 }
 
-function collectVisitCriticalWarnings({ encounter = null, patient = null, body = null } = {}) {
+function collectVisitCriticalWarnings({
+  encounter = null,
+  patient = null,
+  body = null,
+  authoritativeWarnings = null,
+} = {}) {
   const metadata =
     encounter?.metadata && typeof encounter.metadata === 'object' ? encounter.metadata : {};
-  const sources = [
-    ...asArray(metadata.criticalWarnings),
-    ...asArray(metadata.automationSignals),
-    ...asArray(body?.criticalWarnings),
-    ...asArray(body?.automationSignals),
-    ...asArray(patient?.criticalWarnings),
-    ...asArray(patient?.automationSignals),
-  ];
+  const sources = Array.isArray(authoritativeWarnings)
+    ? authoritativeWarnings
+    : [
+        ...asArray(metadata.criticalWarnings),
+        ...asArray(metadata.automationSignals),
+        ...asArray(body?.criticalWarnings),
+        ...asArray(body?.automationSignals),
+        ...asArray(patient?.criticalWarnings),
+        ...asArray(patient?.automationSignals),
+      ];
   const seen = new Set();
   const out = [];
   sources.forEach((item, index) => {
@@ -121,8 +128,14 @@ function evaluateCriticalWarningAcknowledgements({
   encounterId = '',
   bookingId = '',
   at = '',
+  authoritativeWarnings = null,
 } = {}) {
-  const warnings = collectVisitCriticalWarnings({ encounter, patient, body });
+  const warnings = collectVisitCriticalWarnings({
+    encounter,
+    patient,
+    body,
+    authoritativeWarnings,
+  });
   if (!warnings.length) {
     return { allowed: true, warnings: [], acknowledgements: [] };
   }

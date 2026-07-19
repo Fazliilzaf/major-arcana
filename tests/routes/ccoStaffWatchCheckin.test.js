@@ -42,6 +42,35 @@ function requireRole() {
   return (_req, _res, next) => next();
 }
 
+function criticalSignalPatient(input = {}) {
+  return {
+    ...input,
+    fileSummary: { totalFiles: 1, journalPdfs: 1, images: 0 },
+    healthDeclaration: { signedAt: '2026-07-19T08:00:00.000Z', source: 'test' },
+  };
+}
+
+function criticalSignalAcks({ patientId, encounterId, bookingId, tenantId = TENANT } = {}) {
+  return [
+    {
+      warningId: 'missing_agreement_consent_bundle',
+      acknowledged: true,
+      tenantId,
+      patientId,
+      encounterId,
+      bookingId,
+    },
+    {
+      warningId: 'missing_treatment_plan',
+      acknowledged: true,
+      tenantId,
+      patientId,
+      encounterId,
+      bookingId,
+    },
+  ];
+}
+
 async function withServer(app, run) {
   const server = app.listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
@@ -131,11 +160,13 @@ test('watch-complete-visit persists completed on today encounter', async () => {
       filePath: path.join(tmp, 'encounters.json'),
     });
     const authStore = fakeAuthStore();
-    const patient = await patientMasterStore.upsertPatient({
-      tenantId: TENANT,
-      displayName: 'Today Complete',
-      primaryEmail: 'complete@example.com',
-    });
+    const patient = await patientMasterStore.upsertPatient(
+      criticalSignalPatient({
+        tenantId: TENANT,
+        displayName: 'Today Complete',
+        primaryEmail: 'complete@example.com',
+      })
+    );
     const encounter = await treatmentEncounterStore.upsertEncounter({
       tenantId: TENANT,
       patientId: patient.id,
@@ -168,7 +199,15 @@ test('watch-complete-visit persists completed on today encounter', async () => {
       const res = await fetch(`${base}/cco/staff/watch-complete-visit`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ patientId: patient.id, bookingId: 'booking-today-complete' }),
+        body: JSON.stringify({
+          patientId: patient.id,
+          bookingId: 'booking-today-complete',
+          criticalWarningAcknowledgements: criticalSignalAcks({
+            patientId: patient.id,
+            encounterId: encounter.encounterId,
+            bookingId: 'booking-today-complete',
+          }),
+        }),
       });
       assert.equal(res.status, 200);
       const body = await res.json();
@@ -200,11 +239,13 @@ test('watch-complete-visit fails closed when critical warning is not acknowledge
       filePath: path.join(tmp, 'encounters.json'),
     });
     const authStore = fakeAuthStore();
-    const patient = await patientMasterStore.upsertPatient({
-      tenantId: TENANT,
-      displayName: 'Critical Warning',
-      primaryEmail: 'critical@example.com',
-    });
+    const patient = await patientMasterStore.upsertPatient(
+      criticalSignalPatient({
+        tenantId: TENANT,
+        displayName: 'Critical Warning',
+        primaryEmail: 'critical@example.com',
+      })
+    );
     const encounter = await treatmentEncounterStore.upsertEncounter({
       tenantId: TENANT,
       patientId: patient.id,
@@ -212,17 +253,7 @@ test('watch-complete-visit fails closed when critical warning is not acknowledge
       serviceLabel: 'HT',
       startsAt: new Date().toISOString(),
       status: 'in_progress',
-      metadata: {
-        checkedInAt: new Date().toISOString(),
-        automationSignals: [
-          {
-            ruleId: 'customer.missing_agreement_consent_bundle',
-            what: 'Avtal + samtycke saknas',
-            risk: 'legal_blocker',
-            status: 'active',
-          },
-        ],
-      },
+      metadata: { checkedInAt: new Date().toISOString() },
     });
 
     const app = express();
@@ -252,7 +283,95 @@ test('watch-complete-visit fails closed when critical warning is not acknowledge
       assert.equal(res.status, 409);
       const body = await res.json();
       assert.equal(body.metadata.code, 'critical_warning_ack_required');
-      assert.equal(body.metadata.warnings[0].ruleId, 'customer.missing_agreement_consent_bundle');
+      assert.ok(
+        body.metadata.warnings.some(
+          (warning) => warning.ruleId === 'customer.missing_agreement_consent_bundle'
+        )
+      );
+    });
+
+    const persisted = await treatmentEncounterStore.getEncounter({
+      tenantId: TENANT,
+      patientId: patient.id,
+      encounterId: encounter.encounterId,
+    });
+    assert.equal(persisted.status, 'in_progress');
+    assert.equal(persisted.metadata.completedAt, undefined);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('watch-complete-visit ignores client-supplied warning mutations for gate decisions', async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'cco-staff-complete-critical-body-'));
+  try {
+    const patientMasterStore = await createCcoPatientMasterStore({
+      filePath: path.join(tmp, 'patient-master.json'),
+    });
+    const treatmentEncounterStore = await createCcoTreatmentEncounterStore({
+      filePath: path.join(tmp, 'encounters.json'),
+    });
+    const authStore = fakeAuthStore();
+    const patient = await patientMasterStore.upsertPatient(
+      criticalSignalPatient({
+        tenantId: TENANT,
+        displayName: 'Critical Body',
+        primaryEmail: 'critical-body@example.com',
+      })
+    );
+    const encounter = await treatmentEncounterStore.upsertEncounter({
+      tenantId: TENANT,
+      patientId: patient.id,
+      bookingId: 'booking-critical-body',
+      serviceLabel: 'HT',
+      startsAt: new Date().toISOString(),
+      status: 'in_progress',
+      metadata: { checkedInAt: new Date().toISOString() },
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use(
+      createCcoStaffRouter({
+        patientMasterStore,
+        treatmentEncounterStore,
+        authStore,
+        config: {
+          defaultTenant: TENANT,
+          ccoBookingEngineStorePath: path.join(tmp, 'booking-engine.json'),
+          ccoBookingStorePath: path.join(tmp, 'booking-store.json'),
+          ccoTreatmentEncounterStorePath: path.join(tmp, 'encounters.json'),
+        },
+        requireAuth: authStore.requireAuth.bind(authStore),
+        requireRole,
+      })
+    );
+
+    await withServer(app, async (base) => {
+      const res = await fetch(`${base}/cco/staff/watch-complete-visit`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          patientId: patient.id,
+          bookingId: 'booking-critical-body',
+          criticalWarnings: [],
+          automationSignals: [
+            {
+              ruleId: 'customer.missing_agreement_consent_bundle',
+              status: 'inactive',
+              risk: 'info',
+            },
+          ],
+        }),
+      });
+      assert.equal(res.status, 409);
+      const body = await res.json();
+      assert.equal(body.metadata.code, 'critical_warning_ack_required');
+      assert.ok(
+        body.metadata.warnings.some(
+          (warning) => warning.ruleId === 'customer.missing_agreement_consent_bundle'
+        )
+      );
     });
 
     const persisted = await treatmentEncounterStore.getEncounter({
@@ -278,11 +397,13 @@ test('watch-complete-visit stores scoped critical warning acknowledgement metada
     });
     const auditEvents = [];
     const authStore = fakeAuthStore(auditEvents);
-    const patient = await patientMasterStore.upsertPatient({
-      tenantId: TENANT,
-      displayName: 'Critical Ack',
-      primaryEmail: 'critical-ack@example.com',
-    });
+    const patient = await patientMasterStore.upsertPatient(
+      criticalSignalPatient({
+        tenantId: TENANT,
+        displayName: 'Critical Ack',
+        primaryEmail: 'critical-ack@example.com',
+      })
+    );
     const encounter = await treatmentEncounterStore.upsertEncounter({
       tenantId: TENANT,
       patientId: patient.id,
@@ -290,17 +411,7 @@ test('watch-complete-visit stores scoped critical warning acknowledgement metada
       serviceLabel: 'HT',
       startsAt: new Date().toISOString(),
       status: 'in_progress',
-      metadata: {
-        checkedInAt: new Date().toISOString(),
-        criticalWarnings: [
-          {
-            warningId: 'allergy',
-            what: 'Penicillin-allergi',
-            critical: true,
-            status: 'active',
-          },
-        ],
-      },
+      metadata: { checkedInAt: new Date().toISOString() },
     });
 
     const app = express();
@@ -328,16 +439,11 @@ test('watch-complete-visit stores scoped critical warning acknowledgement metada
         body: JSON.stringify({
           patientId: patient.id,
           bookingId: 'booking-critical-ack',
-          criticalWarningAcknowledgements: [
-            {
-              warningId: 'allergy',
-              acknowledged: true,
-              tenantId: TENANT,
-              patientId: patient.id,
-              encounterId: encounter.encounterId,
-              bookingId: 'booking-critical-ack',
-            },
-          ],
+          criticalWarningAcknowledgements: criticalSignalAcks({
+            patientId: patient.id,
+            encounterId: encounter.encounterId,
+            bookingId: 'booking-critical-ack',
+          }),
         }),
       });
       assert.equal(res.status, 200);
@@ -352,9 +458,11 @@ test('watch-complete-visit stores scoped critical warning acknowledgement metada
       encounterId: encounter.encounterId,
     });
     assert.equal(persisted.status, 'completed');
-    assert.equal(persisted.metadata.criticalWarningAcknowledgements.length, 1);
-    const ack = persisted.metadata.criticalWarningAcknowledgements[0];
-    assert.equal(ack.warningId, 'allergy');
+    assert.equal(persisted.metadata.criticalWarningAcknowledgements.length, 2);
+    const ack = persisted.metadata.criticalWarningAcknowledgements.find(
+      (item) => item.warningId === 'missing_agreement_consent_bundle'
+    );
+    assert.ok(ack);
     assert.equal(ack.acknowledgedBy, ACTOR.userId);
     assert.equal(ack.actorRole, ACTOR.role);
     assert.equal(ack.patientId, patient.id);
@@ -364,8 +472,11 @@ test('watch-complete-visit stores scoped critical warning acknowledgement metada
     assert.equal(auditEvents[0].action, 'cco.visit.critical_warning_ack');
     assert.equal(auditEvents[0].metadata.actorUserId, ACTOR.userId);
     assert.equal(auditEvents[0].metadata.actorRole, ACTOR.role);
-    assert.equal(auditEvents[0].metadata.warnings[0].warningId, 'allergy');
-    assert.ok(auditEvents[0].metadata.warnings[0].acknowledgedAt);
+    const auditWarning = auditEvents[0].metadata.warnings.find(
+      (item) => item.warningId === 'missing_agreement_consent_bundle'
+    );
+    assert.ok(auditWarning);
+    assert.ok(auditWarning.acknowledgedAt);
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }
@@ -381,11 +492,13 @@ test('watch-complete-visit rejects cross-patient or cross-tenant warning acknowl
       filePath: path.join(tmp, 'encounters.json'),
     });
     const authStore = fakeAuthStore();
-    const patient = await patientMasterStore.upsertPatient({
-      tenantId: TENANT,
-      displayName: 'Critical Cross',
-      primaryEmail: 'critical-cross@example.com',
-    });
+    const patient = await patientMasterStore.upsertPatient(
+      criticalSignalPatient({
+        tenantId: TENANT,
+        displayName: 'Critical Cross',
+        primaryEmail: 'critical-cross@example.com',
+      })
+    );
     const encounter = await treatmentEncounterStore.upsertEncounter({
       tenantId: TENANT,
       patientId: patient.id,
@@ -393,17 +506,7 @@ test('watch-complete-visit rejects cross-patient or cross-tenant warning acknowl
       serviceLabel: 'HT',
       startsAt: new Date().toISOString(),
       status: 'in_progress',
-      metadata: {
-        checkedInAt: new Date().toISOString(),
-        criticalWarnings: [
-          {
-            warningId: 'critical-red-flag',
-            what: 'Röd riskflagga',
-            critical: true,
-            status: 'active',
-          },
-        ],
-      },
+      metadata: { checkedInAt: new Date().toISOString() },
     });
 
     const app = express();
@@ -431,16 +534,12 @@ test('watch-complete-visit rejects cross-patient or cross-tenant warning acknowl
         body: JSON.stringify({
           patientId: patient.id,
           bookingId: 'booking-critical-cross',
-          criticalWarningAcknowledgements: [
-            {
-              warningId: 'critical-red-flag',
-              acknowledged: true,
-              tenantId: 'other-tenant',
-              patientId: 'other-patient',
-              encounterId: encounter.encounterId,
-              bookingId: 'booking-critical-cross',
-            },
-          ],
+          criticalWarningAcknowledgements: criticalSignalAcks({
+            patientId: 'other-patient',
+            encounterId: encounter.encounterId,
+            bookingId: 'booking-critical-cross',
+            tenantId: 'other-tenant',
+          }),
         }),
       });
       assert.equal(res.status, 409);

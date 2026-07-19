@@ -39,6 +39,12 @@ function parseIntParam(value, fallback) {
   return parsed;
 }
 
+function isCriticalVisitSignal(signal) {
+  if (!signal || signal.status !== 'active') return false;
+  if (!normalizeText(signal.ruleId).startsWith('customer.')) return false;
+  return /blocker|legal/i.test(normalizeText(signal.risk || signal.level || signal.severity));
+}
+
 function createCcoStaffRouter({
   patientMasterStore,
   treatmentEncounterStore = null,
@@ -66,6 +72,47 @@ function createCcoStaffRouter({
       }
       console.error(error);
       return res.status(500).json({ error: 'Kunde inte hantera staff-endpoint.' });
+    }
+  }
+
+  async function resolveServerCriticalWarningsForVisit({ actor, patient }) {
+    try {
+      const readout = buildKunderReadout(patient);
+      const fasAMap = await loadFasAContextForPatients({
+        config,
+        tenantId: actor.tenantId,
+        patients: [patient],
+        patientMasterStore,
+      });
+      const agreementStore = await getTreatmentAgreementStore(config);
+      const templateApprovalStore = await getTemplateVersionApprovalStore(config);
+      const agreement = await loadAgreementContext(
+        agreementStore,
+        templateApprovalStore,
+        actor.tenantId,
+        readout.patientId
+      );
+      applyFasAReadoutFields(readout, fasAMap.get(readout.patientId), agreement);
+      const evaluation = evaluatePatientSignals(readout, {
+        agreement,
+        bookingCoverage: 'watch-complete-visit',
+        documentReadiness: null,
+        forceEvaluate: true,
+      });
+      return (evaluation.signals || []).filter(isCriticalVisitSignal).map((signal) => ({
+        ruleId: signal.ruleId,
+        what: signal.what,
+        why: signal.why,
+        risk: signal.risk,
+        status: signal.status,
+        source: 'server_enrichment',
+      }));
+    } catch (cause) {
+      const error = new Error('Kritiska varningar kunde inte kontrolleras före avslut.');
+      error.statusCode = 409;
+      error.metadata = { code: 'critical_warning_resolution_unavailable' };
+      error.cause = cause;
+      throw error;
     }
   }
 
@@ -518,6 +565,10 @@ function createCcoStaffRouter({
                 normalizeText(base.bookingId) ||
                 normalizeText(scheduledBooking?.id || scheduledBooking?.bookingId);
               const encounterId = normalizeText(base.encounterId);
+              const serverCriticalWarnings = await resolveServerCriticalWarningsForVisit({
+                actor,
+                patient,
+              });
               const warningGate = assertVisitCriticalWarningsAcknowledged({
                 patient,
                 encounter: base,
@@ -528,6 +579,7 @@ function createCcoStaffRouter({
                 encounterId,
                 bookingId,
                 at: completedAt,
+                authoritativeWarnings: serverCriticalWarnings,
               });
               if (!warningGate.allowed) {
                 const error = new Error(warningGate.message);
