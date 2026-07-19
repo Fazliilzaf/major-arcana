@@ -1163,12 +1163,8 @@
         esc(title) +
         '</b><small>' +
         esc(startsAt ? startsAt.slice(0, 16).replace('T', ' · ') : 'Tid saknas') +
-        (txt(booking && booking.locationLabel)
-          ? ' · ' + esc(txt(booking.locationLabel))
-          : '') +
-        (txt(booking && booking.notes)
-          ? '<br>Anteckning · ' + esc(txt(booking.notes))
-          : '') +
+        (txt(booking && booking.locationLabel) ? ' · ' + esc(txt(booking.locationLabel)) : '') +
+        (txt(booking && booking.notes) ? '<br>Anteckning · ' + esc(txt(booking.notes)) : '') +
         '</small></span>' +
         chip(status === 'completed' ? 'ok' : 'warn', status) +
         '</div>'
@@ -1369,11 +1365,37 @@
         .map(function (b, i) {
           var done = i >= up.length;
           var md = monDay(b.dateLabel || b.monthLabel || b.month, b.dayLabel || b.day);
+          var sourceRecords = arr(b.sourceRecords);
+          var shadowMeta =
+            b.shadowReadmodel === true && sourceRecords.length
+              ? 'Approved historical shadow · ' +
+                sourceRecords
+                  .map(function (record) {
+                    return txt(record && record.tenantId);
+                  })
+                  .filter(Boolean)
+                  .join(' + ')
+              : '';
+          var shadowNotes = sourceRecords
+            .map(function (record) {
+              var tenant = txt(record && record.tenantId);
+              var segments = (record && record.noteSegments) || {};
+              return ['bookingNotes', 'customerMessage', 'internalNotes', 'treatmentNotes', 'notes']
+                .map(function (field) {
+                  var value = txt(segments[field]);
+                  return value ? (tenant ? tenant + ' · ' : '') + value : '';
+                })
+                .filter(Boolean)
+                .join(' · ');
+            })
+            .filter(Boolean)
+            .join(' · ');
           var bookingMeta = [
             txt(b.timeLabel || b.time),
             txt(b.durationLabel || b.duration),
             txt(b.practitioner || b.staffName || b.providerName || b.resourceName),
             txt(b.locationLabel),
+            shadowMeta,
           ].filter(Boolean);
           return (
             '<div class="booking-row"><div class="b-date">' +
@@ -1387,6 +1409,7 @@
             '<div class="b-meta">' +
             esc(bookingMeta.join(' · ')) +
             (txt(b.notes) ? '<br>Anteckning · ' + esc(txt(b.notes)) : '') +
+            (shadowNotes ? '<br>Källnoter · ' + esc(shadowNotes) : '') +
             '</div></div>' +
             chip(done ? 'ok' : 'info', done ? 'Genomförd' : 'Bokad') +
             '<button class="j-btn" data-kk-ord48-open-calendar data-patient-id="' +

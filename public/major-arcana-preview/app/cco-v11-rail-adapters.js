@@ -911,8 +911,43 @@
         notes.push({ label: text(note.label) || 'Journalnotering', text: text(note.text) });
       }
     });
+    var sourceRecords = toArray(item.sourceRecords);
+    if (!sourceRecords.length) {
+      toArray(item.shadowNoteSegments).forEach(function (note) {
+        if (text(note && note.text)) {
+          notes.push({ label: text(note.label) || 'Historisk källa', text: text(note.text) });
+        }
+      });
+    }
+    sourceRecords.forEach(function (record) {
+      var tenant = text(record && record.tenantId);
+      var segments = (record && record.noteSegments) || {};
+      [
+        ['bookingNotes', 'Bokningsanteckning'],
+        ['customerMessage', 'Kundmeddelande'],
+        ['internalNotes', 'Intern anteckning'],
+        ['treatmentNotes', 'Behandlingsanteckning'],
+        ['notes', 'Anteckning'],
+      ].forEach(function (row) {
+        var value = text(segments[row[0]]);
+        if (value) notes.push({ label: (tenant ? tenant + ' · ' : '') + row[1], text: value });
+      });
+    });
     if (!notes.length && text(item.notes))
       notes.push({ label: 'Anteckning', text: text(item.notes) });
+    if (item.shadowReadmodel === true && text(item.historicalReason)) {
+      notes.unshift({
+        label: 'Provenance',
+        text:
+          'Approved historical shadow · ' +
+          sourceRecords
+            .map(function (record) {
+              return text(record && record.tenantId);
+            })
+            .filter(Boolean)
+            .join(' + '),
+      });
+    }
     return {
       iso: iso,
       whenLong: whenLong,
@@ -927,6 +962,10 @@
       bookingId: text(item.bookingId || item.id),
       encounterId: text(item.encounterId),
       source: text(item.source),
+      sourceRecords: toArray(item.sourceRecords),
+      shadowReadmodel: item.shadowReadmodel === true,
+      historicalReason: text(item.historicalReason),
+      linkAllowed: item.linkAllowed === true,
       auditAvailable:
         item.auditAvailable === true ||
         (text(item.source) === 'cco_booking_engine' && !!text(item.bookingId || item.id)),

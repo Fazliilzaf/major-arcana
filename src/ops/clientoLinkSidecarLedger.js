@@ -665,11 +665,16 @@ async function createClientoLinkSidecarLedger({
     };
   }
 
+  function listEvents() {
+    return clone(events);
+  }
+
   return {
     propose: (input) => withMutationLock(() => proposeUnlocked(input)),
     transition: (linkId, nextState, input) =>
       withMutationLock(() => transitionUnlocked(linkId, nextState, input)),
     getLinkHistory,
+    listEvents,
     listActiveProjections,
     verifyIntegrity,
     stats,

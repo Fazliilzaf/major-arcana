@@ -2,8 +2,11 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
+const { payloadChecksums } = require('../../src/ops/clientoCrossTenantCoverage');
 const {
   buildBookingSignalsIndex,
+  collectBookingReadouts,
   getBookingSignals,
   isTodayVisit,
   isThisWeekVisit,
@@ -12,6 +15,36 @@ const {
   buildCanonicalBookingIntegrityReport,
   resolvePatientIdFromClientoBooking,
 } = require('../../src/ops/ccoKunderBookingEnrichment');
+
+function checksum(label) {
+  return crypto.createHash('sha256').update(`shadow:${label}`).digest('hex');
+}
+
+function sourceRef(booking) {
+  const sums = payloadChecksums(booking);
+  return {
+    tenantId: booking.tenantId,
+    bookingId: booking.bookingId,
+    sourceSnapshotChecksum: checksum(`${booking.tenantId}:source`),
+    coreChecksum: sums.coreChecksum,
+    notesChecksum: sums.notesChecksum,
+  };
+}
+
+function approvedHistoricalLink(left, right, overrides = {}) {
+  return {
+    ledgerEventId: 'ledger-approved-1',
+    linkId: 'shadow-link-1',
+    state: 'approved',
+    sourceRefs: [sourceRef(left), sourceRef(right)],
+    canonicalPatientId: 'p-shadow',
+    canonicalEncounterId: null,
+    linkType: 'exact_booking_duplicate',
+    reasonCode: 'historical_booking_without_encounter',
+    compareAndSwap: { sourceRefsChecksum: checksum('source-refs') },
+    ...overrides,
+  };
+}
 
 describe('ccoKunderBookingEnrichment', () => {
   it('does not guess a canonical patient when Cliento identity is ambiguous', () => {
@@ -401,6 +434,82 @@ describe('ccoKunderBookingEnrichment', () => {
     assert.equal(visit.bookingNotes, 'Avbokad per telefon');
     assert.equal(visit.internalNotes, 'Behöver ny tid');
     assert.equal(visit.treatmentNotes, 'Ingen behandling utförd');
+  });
+
+  it('folds an approved historical sidecar link into one read-only history booking with both source records', () => {
+    const left = {
+      tenantId: 'hair_tp',
+      bookingId: 'dup-1',
+      customerEmail: 'shadow@example.com',
+      startsAt: '2026-01-10T09:00:00.000Z',
+      endsAt: '2026-01-10T09:30:00.000Z',
+      status: 'completed',
+      serviceLabel: 'Fysisk konsultation',
+      staffName: 'Fazli',
+      internalNotes: 'Intern not från hair_tp',
+    };
+    const right = {
+      ...left,
+      tenantId: 'hair-tp-clinic',
+      treatmentNotes: 'Behandlingsnot från hair-tp-clinic',
+    };
+    const byPatient = collectBookingReadouts({
+      patients: [{ id: 'p-shadow', primaryEmail: 'shadow@example.com' }],
+      clientoBookings: [left, right],
+      historicalShadowClientoBookings: [left, right],
+      historicalShadowLedgerEvents: [approvedHistoricalLink(left, right)],
+    });
+
+    const history = byPatient.get('p-shadow').historyBookings;
+    assert.equal(history.length, 1);
+    assert.equal(history[0].source, 'cliento_historical_shadow');
+    assert.equal(history[0].shadowReadmodel, true);
+    assert.equal(history[0].readOnly, true);
+    assert.equal(history[0].linkAllowed, false);
+    assert.equal(history[0].encounterId, null);
+    assert.equal(history[0].historicalReason, 'historical_booking_without_encounter');
+    assert.equal(history[0].title, 'Fysisk konsultation');
+    assert.equal(history[0].resourceLabel, 'Fazli');
+    assert.equal(history[0].sourceRecords.length, 2);
+    assert.equal(history[0].sourceRecords[0].noteSegments.internalNotes, 'Intern not från hair_tp');
+    assert.equal(
+      history[0].sourceRecords[1].noteSegments.treatmentNotes,
+      'Behandlingsnot från hair-tp-clinic'
+    );
+
+    const { index } = buildBookingSignalsIndex({
+      patients: [{ id: 'p-shadow', primaryEmail: 'shadow@example.com' }],
+      clientoBookings: [left, right],
+      historicalShadowClientoBookings: [left, right],
+      historicalShadowLedgerEvents: [approvedHistoricalLink(left, right)],
+    });
+    const signals = getBookingSignals(index, 'p-shadow');
+    assert.equal(signals.completedVisitCount, 1);
+    assert.equal(signals.lastVisitAt, '2026-01-10T09:00:00.000Z');
+  });
+
+  it('does not shadow-merge revoked historical links', () => {
+    const left = {
+      tenantId: 'hair_tp',
+      bookingId: 'revoked-1',
+      customerEmail: 'revoked@example.com',
+      startsAt: '2026-01-10T09:00:00.000Z',
+      status: 'completed',
+      serviceLabel: 'Konsultation',
+    };
+    const right = { ...left, tenantId: 'hair-tp-clinic' };
+    const byPatient = collectBookingReadouts({
+      patients: [{ id: 'p-shadow', primaryEmail: 'revoked@example.com' }],
+      clientoBookings: [left, right],
+      historicalShadowClientoBookings: [left, right],
+      historicalShadowLedgerEvents: [
+        approvedHistoricalLink(left, right, { state: 'revoked', reasonCode: 'manual_revoke' }),
+      ],
+    });
+    const history = byPatient.get('p-shadow').historyBookings;
+    assert.equal(history.length, 1);
+    assert.equal(history[0].source, 'cliento');
+    assert.equal(history[0].shadowReadmodel, undefined);
   });
 
   it('derives activity from pipedrive treatment dates on patient', () => {

@@ -61,6 +61,55 @@ test('V11/V12 history uses canonical visit segments without truncating statuses 
   );
 });
 
+test('V11/V12 history preserves approved historical shadow provenance and source note segments', () => {
+  const history = A.buildHistoryFromExtras(
+    {
+      id: 'patient-shadow',
+      bookingHistory: [
+        {
+          id: 'shadow-link-1',
+          bookingId: 'shadow-link-1',
+          patientId: 'patient-shadow',
+          startsAt: '2026-01-10T09:00:00.000Z',
+          title: 'Fysisk konsultation',
+          status: 'completed',
+          source: 'cliento_historical_shadow',
+          shadowReadmodel: true,
+          historicalReason: 'historical_booking_without_encounter',
+          linkAllowed: false,
+          sourceRecords: [
+            {
+              tenantId: 'hair_tp',
+              noteSegments: { internalNotes: 'Intern not från hair_tp' },
+            },
+            {
+              tenantId: 'hair-tp-clinic',
+              noteSegments: { treatmentNotes: 'Behandlingsnot från hair-tp-clinic' },
+            },
+          ],
+        },
+      ],
+    },
+    {},
+    {},
+    []
+  );
+
+  assert.equal(history.count, 1);
+  assert.equal(history.items[0].shadowReadmodel, true);
+  assert.equal(history.items[0].linkAllowed, false);
+  assert.equal(history.items[0].historicalReason, 'historical_booking_without_encounter');
+  assert.equal(history.items[0].sourceRecords.length, 2);
+  assert.deepEqual(
+    Array.from(history.items[0].notes, (note) => `${note.label}:${note.text}`),
+    [
+      'Provenance:Approved historical shadow · hair_tp + hair-tp-clinic',
+      'hair_tp · Intern anteckning:Intern not från hair_tp',
+      'hair-tp-clinic · Behandlingsanteckning:Behandlingsnot från hair-tp-clinic',
+    ]
+  );
+});
+
 test('buildStepAssets mappar dokument → rätt steg via filnamn', () => {
   const journey = {
     steps: [

@@ -85,6 +85,15 @@ function toBookingBucketKey(tenantId, booking) {
   return source.startsWith('cliento') && bookingId ? `${t}::unlinked:${bookingId}` : null;
 }
 
+function tenantIdFromBucketKey(key) {
+  return normalizeText(key).split('::')[0] || '';
+}
+
+function withTenantFromBucket(booking, bucketKey) {
+  const tenantId = tenantIdFromBucketKey(bucketKey);
+  return tenantId ? { ...booking, tenantId } : { ...booking };
+}
+
 function normalizePriceSek(value) {
   if (value === null || value === undefined || value === '') return null;
   if (typeof value === 'number' && Number.isFinite(value)) return Math.max(0, value);
@@ -295,7 +304,7 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     const out = [];
     for (const [key, list] of Object.entries(state.bookings)) {
       if (t && !key.startsWith(t + '::')) continue;
-      for (const b of asArray(list)) out.push(b);
+      for (const b of asArray(list)) out.push(withTenantFromBucket(b, key));
       if (limit > 0 && out.length >= limit) break;
     }
     return out;
@@ -314,7 +323,7 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
       for (const booking of asArray(list)) {
         const date = normalizeText(booking?.startsAt).slice(0, 10);
         if (!date || date < from || date > to) continue;
-        out.push(booking);
+        out.push(withTenantFromBucket(booking, key));
         if (limit > 0 && out.length >= limit) return out;
       }
     }
