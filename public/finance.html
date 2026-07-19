@@ -1111,6 +1111,19 @@
         <div class="receipts-list" id="und-list"><div class="empty">Hämtar…</div></div>
       </div>
 
+      <!-- ORD-CM-29 · Privata köp: ägarbeslutade privat-poster, samlad överblick -->
+      <div class="section" id="cf-privat">
+        <h2>
+          Privata köp · utanför bokföringen
+          <span class="meta" id="priv-count">0</span>
+          <span class="meta" id="priv-sum"></span>
+          <div class="section-actions">
+            <button class="btn" data-action="priv-refresh">↻ Uppdatera</button>
+          </div>
+        </h2>
+        <div class="receipts-list" id="priv-list"><div class="empty">Hämtar…</div></div>
+      </div>
+
       <div class="section">
         <h2>
           Utgifts-inkorg
@@ -2987,6 +3000,62 @@
           }
         }
         document.querySelector('[data-action="und-refresh"]').addEventListener('click', ladda);
+        ladda();
+      })();
+
+      // ORD-CM-29 · Privata köp: rejected-poster märkta "PRIVAT KÖP" (ägarbeslut) — överblick + summa
+      (function cfPrivataKop() {
+        const list = document.getElementById('priv-list');
+        const countEl = document.getElementById('priv-count');
+        const sumEl = document.getElementById('priv-sum');
+        if (!list || !countEl) return;
+        const esc = (x) =>
+          String(x == null ? '' : x).replace(
+            /[&<>"']/g,
+            (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+          );
+        async function ladda() {
+          try {
+            const d = await (
+              await fetch('/api/v1/cco-cf/expenses?limit=1000', { credentials: 'same-origin' })
+            ).json();
+            const alla = d.expenses || [];
+            const rader = alla.filter(
+              (e) => e.status === 'rejected' && /PRIVAT KÖP/i.test(e.notes || '')
+            );
+            countEl.textContent = rader.length;
+            const summa = rader.reduce((s, e) => s + (Number(e.amountSek) || 0), 0);
+            if (sumEl) sumEl.textContent = summa ? summa.toLocaleString('sv-SE') + ' kr totalt' : '';
+            if (!rader.length) {
+              list.innerHTML = '<div class="empty">Inga privata köp markerade.</div>';
+              return;
+            }
+            list.innerHTML = rader
+              .map((e) => {
+                const skal =
+                  ((e.notes || '').match(/PRIVAT KÖP[^·]*/i) || ['Privat köp'])[0];
+                return (
+                  '<div class="receipt"><div class="receipt-thumb">👤</div>' +
+                  '<div class="receipt-main"><div class="receipt-name">' +
+                  esc(e.supplier || 'Okänd') +
+                  '</div>' +
+                  '<div class="receipt-meta"><span>' +
+                  esc(e.date || 'datum saknas') +
+                  '</span><span>' +
+                  esc(skal).slice(0, 110) +
+                  '</span></div></div>' +
+                  '<div class="receipt-amount">' +
+                  (Number(e.amountSek) || 0).toLocaleString('sv-SE') +
+                  ' kr</div>' +
+                  '<span class="receipt-status receipt-status--rejected">Privat</span></div>'
+                );
+              })
+              .join('');
+          } catch (err) {
+            list.innerHTML = '<div class="empty">Fel: ' + esc(err.message) + '</div>';
+          }
+        }
+        document.querySelector('[data-action="priv-refresh"]').addEventListener('click', ladda);
         ladda();
       })();
 
