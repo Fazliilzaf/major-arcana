@@ -43,6 +43,9 @@ const {
 
 const WORKSPACE_ID = 'major-arcana-preview';
 const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
+const HISTORY_SEARCH_MAX_SCAN_ROWS = 100000;
+const HISTORY_SEARCH_PATIENT_PAGE_SIZE = 20000;
+const HISTORY_SEARCH_MAX_PATIENT_ROWS = 200000;
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -449,6 +452,12 @@ function clampHistoryLimit(value) {
   return Math.min(Math.max(parsed || 50, 1), 100);
 }
 
+function historySearchError(code, statusCode = 400) {
+  const error = new Error(code);
+  error.statusCode = statusCode;
+  return error;
+}
+
 const STOCKHOLM_TIME_FORMATTER = new Intl.DateTimeFormat('sv-SE', {
   hour: '2-digit',
   minute: '2-digit',
@@ -496,6 +505,78 @@ function buildPatientMetaById(patients = []) {
     });
   }
   return out;
+}
+
+function buildHistoricalShadowTenantAllowlist(context = {}, config = {}) {
+  const out = new Set(
+    [context.tenantId, config.defaultTenantId].map(normalizeText).filter(Boolean).map(normalizeKey)
+  );
+  const brand = normalizeKey(config.brand);
+  if (brand === 'hair-tp-clinic' || out.has('hair-tp-clinic') || out.has('hair_tp')) {
+    out.add('hair-tp-clinic');
+    out.add('hair_tp');
+  }
+  return out;
+}
+
+function historicalLedgerEventAllowedForTenant(event = {}, allowedTenants = new Set()) {
+  const refs = asArray(event?.sourceRefs);
+  if (!refs.length) return false;
+  return refs.every((ref) => allowedTenants.has(normalizeKey(ref?.tenantId)));
+}
+
+function assertHistorySearchScanBound(label, rows = []) {
+  if (asArray(rows).length <= HISTORY_SEARCH_MAX_SCAN_ROWS) return;
+  throw historySearchError(`${label}_scan_limit_exceeded`, 413);
+}
+
+function listClientoBookingsForHistory({
+  clientoBookingStore,
+  tenantId,
+  fromDate,
+  toDate,
+  maxRows = HISTORY_SEARCH_MAX_SCAN_ROWS,
+} = {}) {
+  const hasRange = Boolean(fromDate && toDate);
+  const rows =
+    hasRange && typeof clientoBookingStore?.listBookingsInRange === 'function'
+      ? asArray(
+          clientoBookingStore.listBookingsInRange({
+            tenantId,
+            fromDate,
+            toDate,
+            limit: maxRows + 1,
+          })
+        )
+      : typeof clientoBookingStore?.listAllBookings === 'function'
+        ? asArray(clientoBookingStore.listAllBookings({ tenantId, limit: maxRows + 1 }))
+        : [];
+  assertHistorySearchScanBound('cliento_history', rows);
+  return rows;
+}
+
+function listHistoricalShadowBookingsForHistory({
+  clientoBookingStore,
+  allowedTenants = new Set(),
+  fromDate,
+  toDate,
+} = {}) {
+  const rows = [];
+  for (const tenantId of Array.from(allowedTenants).sort()) {
+    if (!tenantId) continue;
+    const remaining = HISTORY_SEARCH_MAX_SCAN_ROWS - rows.length;
+    if (remaining <= 0) break;
+    const batch = listClientoBookingsForHistory({
+      clientoBookingStore,
+      tenantId,
+      fromDate,
+      toDate,
+      maxRows: remaining,
+    });
+    rows.push(...batch);
+    assertHistorySearchScanBound('cliento_shadow_history', rows);
+  }
+  return rows;
 }
 
 function buildHistorySearchHaystack(row = {}) {
@@ -557,7 +638,6 @@ function toHistorySearchRow(visit = {}, patientMetaById = new Map()) {
       normalizeText(visit.staffName || visit.practitioner || visit.resourceLabel || visit.staff) ||
       null,
     patientName: normalizeText(visit.patientName) || meta.name || null,
-    patientEmail: meta.email || null,
     notes: normalizeText(visit.notes) || null,
     bookingNotes: normalizeText(visit.bookingNotes) || null,
     customerMessage: normalizeText(visit.customerMessage) || null,
@@ -570,7 +650,7 @@ function toHistorySearchRow(visit = {}, patientMetaById = new Map()) {
     sourceRecords: asArray(visit.sourceRecords),
     shadowNoteSegments: asArray(visit.shadowNoteSegments),
   };
-  row.searchText = buildHistorySearchHaystack(row);
+  row.searchText = buildHistorySearchHaystack({ ...row, patientEmail: meta.email || null });
   return row;
 }
 
@@ -1208,6 +1288,7 @@ function createCcoBookingsRouter({
 
   router.get('/cco-bookings/history-search', async (req, res) =>
     handle(req, res, async (context) => {
+      requireStaffRole(context);
       res.set('Cache-Control', 'no-store');
       if (!patientMasterStore || !clientoBookingStore) {
         return res.json({
@@ -1239,17 +1320,29 @@ function createCcoBookingsRouter({
       const statusFilter = normalizeKey(req.query.status);
       const includeSeparate = normalizeKey(req.query.includeSeparate) !== 'false';
       const sort = normalizeKey(req.query.sort) === 'asc' ? 'asc' : 'desc';
+      const hasRange = Boolean(fromDate && toDate);
+      const hasSearchConstraint = q.length >= 2 || patientFilter || statusFilter || hasRange;
+      if (q && q.length < 2) {
+        return res.status(400).json({ error: 'history_query_too_short' });
+      }
+      if (!hasSearchConstraint) {
+        return res.status(400).json({ error: 'history_search_filter_required' });
+      }
 
       const patients = [];
-      for (let patientOffset = 0; patientOffset < 200000; patientOffset += 20000) {
+      for (
+        let patientOffset = 0;
+        patientOffset < HISTORY_SEARCH_MAX_PATIENT_ROWS;
+        patientOffset += HISTORY_SEARCH_PATIENT_PAGE_SIZE
+      ) {
         const page = await patientMasterStore.listPatients({
           tenantId: context.tenantId,
-          limit: 20000,
+          limit: HISTORY_SEARCH_PATIENT_PAGE_SIZE,
           offset: patientOffset,
         });
         const pagePatients = asArray(page?.patients);
         patients.push(...pagePatients);
-        if (pagePatients.length < 20000) break;
+        if (pagePatients.length < HISTORY_SEARCH_PATIENT_PAGE_SIZE) break;
       }
       const patientMetaById = buildPatientMetaById(patients);
 
@@ -1281,25 +1374,32 @@ function createCcoBookingsRouter({
             : [],
         loadClientoLinkSidecarLedgerEvents(config || {}),
       ]);
+      const allowedShadowTenants = buildHistoricalShadowTenantAllowlist(context, config || {});
+      const tenantScopedHistoricalShadowLedgerEvents = asArray(historicalShadowLedgerEvents).filter(
+        (event) => historicalLedgerEventAllowedForTenant(event, allowedShadowTenants)
+      );
 
       const engineBookings = bookingEngineStore?.listBookingsForEnrichment
         ? filterRange(bookingEngineStore.listBookingsForEnrichment(context.tenantId))
         : [];
-      const clientoBookings =
-        fromDate && toDate && clientoBookingStore.listBookingsInRange
-          ? asArray(
-              clientoBookingStore.listBookingsInRange({
-                tenantId: context.tenantId,
+      const clientoBookings = filterRange(
+        listClientoBookingsForHistory({
+          clientoBookingStore,
+          tenantId: context.tenantId,
+          fromDate,
+          toDate,
+        })
+      );
+      const historicalShadowClientoBookings =
+        tenantScopedHistoricalShadowLedgerEvents.length && clientoBookingStore.listAllBookings
+          ? filterRange(
+              listHistoricalShadowBookingsForHistory({
+                clientoBookingStore,
+                allowedTenants: allowedShadowTenants,
                 fromDate,
                 toDate,
               })
             )
-          : clientoBookingStore.listAllBookings
-            ? filterRange(clientoBookingStore.listAllBookings({ tenantId: context.tenantId }))
-            : [];
-      const historicalShadowClientoBookings =
-        historicalShadowLedgerEvents.length && clientoBookingStore.listAllBookings
-          ? filterRange(clientoBookingStore.listAllBookings({ tenantId: '', limit: 0 }))
           : clientoBookings;
       const encounters = treatmentEncounterStore?.listEncountersForEnrichment
         ? filterRange(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId))
@@ -1311,7 +1411,7 @@ function createCcoBookingsRouter({
         bookingCases: filterRange(bookingCases),
         clientoBookings,
         historicalShadowClientoBookings,
-        historicalShadowLedgerEvents,
+        historicalShadowLedgerEvents: tenantScopedHistoricalShadowLedgerEvents,
         encounters,
       });
 
@@ -1320,18 +1420,26 @@ function createCcoBookingsRouter({
           ...asArray(bucket.upcomingBookings),
           ...asArray(bucket.historyBookings),
         ])
-        .map((visit) => toHistorySearchRow(visit, patientMetaById));
+        .map((visit) => toHistorySearchRow(visit, patientMetaById))
+        .filter((row) => row.patientId && patientMetaById.has(row.patientId));
 
       let separateRows = [];
-      if (includeSeparate && historicalShadowLedgerEvents.length) {
-        const skippedStateBySource = buildSkippedLinkStateBySource(historicalShadowLedgerEvents);
+      if (includeSeparate && tenantScopedHistoricalShadowLedgerEvents.length) {
+        const skippedStateBySource = buildSkippedLinkStateBySource(
+          tenantScopedHistoricalShadowLedgerEvents
+        );
         const shadowModel = buildClientoHistoricalShadowReadmodel({
           bookings: historicalShadowClientoBookings,
-          ledgerEvents: historicalShadowLedgerEvents,
+          ledgerEvents: tenantScopedHistoricalShadowLedgerEvents,
           includeUnmerged: true,
         });
         separateRows = asArray(shadowModel.events)
           .filter((event) => event?.eventType === 'cliento_historical_booking_unmerged')
+          .filter((event) =>
+            asArray(event?.sourceRecords).every((record) =>
+              allowedShadowTenants.has(normalizeKey(record?.tenantId))
+            )
+          )
           .map((event) => toSeparateHistoricalRow(event, skippedStateBySource));
       }
 
@@ -1352,7 +1460,14 @@ function createCcoBookingsRouter({
           const r = Date.parse(right.startsAt) || 0;
           const delta = sort === 'asc' ? l - r : r - l;
           if (delta) return delta;
-          return String(left.bookingId || '').localeCompare(String(right.bookingId || ''));
+          return (
+            [
+              String(left.kind || '').localeCompare(String(right.kind || '')),
+              String(left.patientId || '').localeCompare(String(right.patientId || '')),
+              String(left.source || '').localeCompare(String(right.source || '')),
+              String(left.bookingId || '').localeCompare(String(right.bookingId || '')),
+            ].find((tie) => tie !== 0) || 0
+          );
         });
 
       const rows = allRows.slice(offset, offset + limit).map((row) => {

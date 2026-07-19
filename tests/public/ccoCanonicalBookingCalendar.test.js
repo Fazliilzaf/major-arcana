@@ -74,6 +74,7 @@ test('calendar V8 global search reads paginated canonical history instead of dem
     'utf8'
   );
   assert.match(source, /\/api\/v1\/cco-bookings\/history-search/);
+  assert.match(source, /Skriv minst 2 tecken för att söka i hela bokningshistoriken/);
   assert.match(source, /includeSeparate: 'true'/);
   assert.match(source, /openCanonicalPatientInAdmin\(result\.dataset\.patientId\)/);
   assert.match(source, /Senaste canonical historik · read-only/);

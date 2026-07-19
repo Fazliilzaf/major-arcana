@@ -1519,6 +1519,12 @@
       async function renderSearch(q = '') {
         const seq = ++searchSeq;
         const ql = String(q || '').trim();
+        if (ql.length < 2) {
+          searchPanelKicker.textContent = 'Canonical historiksökning · read-only';
+          searchPanelList.innerHTML =
+            '<div class="search-empty">Skriv minst 2 tecken för att söka i hela bokningshistoriken.</div>';
+          return;
+        }
         searchPanelKicker.textContent = ql
           ? 'Söker canonical historik…'
           : 'Senaste canonical historik · read-only';

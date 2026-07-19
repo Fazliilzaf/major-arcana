@@ -1463,7 +1463,7 @@ test('history-search is server-paginated and searches the full canonical booking
       bookingStore: {},
       clientoBookingStore: {
         listAllBookings(options) {
-          assert.equal(options.limit, undefined);
+          assert.equal(options.limit, 100001);
           return bookings;
         },
       },
@@ -1488,7 +1488,7 @@ test('history-search is server-paginated and searches the full canonical booking
   );
 
   await withServer(app, async (baseUrl) => {
-    const page = await fetch(`${baseUrl}/cco-bookings/history-search?limit=40&offset=40`);
+    const page = await fetch(`${baseUrl}/cco-bookings/history-search?q=history&limit=40&offset=40`);
     assert.equal(page.status, 200);
     const payload = await page.json();
     assert.equal(payload.readOnly, true);
@@ -1505,6 +1505,10 @@ test('history-search is server-paginated and searches the full canonical booking
       payload.rows.every((row) => row.timeZone === 'Europe/Stockholm'),
       true
     );
+    assert.equal(
+      payload.rows.every((row) => !Object.hasOwn(row, 'patientEmail')),
+      true
+    );
 
     const search = await fetch(`${baseUrl}/cco-bookings/history-search?q=population&limit=10`);
     assert.equal(search.status, 200);
@@ -1512,6 +1516,109 @@ test('history-search is server-paginated and searches the full canonical booking
     assert.equal(searchPayload.pagination.total, 1);
     assert.equal(searchPayload.rows[0].serviceDisplayName, 'Full population PRP');
     assert.equal(searchPayload.rows[0].linkAllowed, true);
+  });
+});
+
+test('history-search is staff-only and refuses broad scans before touching Cliento storage', async () => {
+  const app = express();
+  app.use(express.json());
+  let listAllCalled = false;
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: {},
+      clientoBookingStore: {
+        listAllBookings() {
+          listAllCalled = true;
+          return [];
+        },
+      },
+      patientMasterStore: {
+        async listPatients() {
+          return { patients: [] };
+        },
+      },
+      authStore: {
+        async getSessionContextByToken(token) {
+          const role =
+            token === 'owner-token' ? 'OWNER' : token === 'patient-token' ? 'PATIENT' : '';
+          if (!role) return null;
+          return {
+            session: { id: `session-${role}` },
+            user: { id: `user-${role}` },
+            membership: { tenantId: 'tenant-a', role },
+          };
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: { defaultTenantId: 'tenant-a', brand: 'hair-tp-clinic', brandByHost: {} },
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const patient = await fetch(`${baseUrl}/cco-bookings/history-search?q=history`, {
+      headers: { authorization: 'Bearer patient-token' },
+    });
+    assert.equal(patient.status, 403);
+
+    const broad = await fetch(`${baseUrl}/cco-bookings/history-search`, {
+      headers: { authorization: 'Bearer owner-token' },
+    });
+    assert.equal(broad.status, 400);
+    assert.equal((await broad.json()).error, 'history_search_filter_required');
+    assert.equal(listAllCalled, false);
+
+    const tooShort = await fetch(`${baseUrl}/cco-bookings/history-search?q=a`, {
+      headers: { authorization: 'Bearer owner-token' },
+    });
+    assert.equal(tooShort.status, 400);
+    assert.equal((await tooShort.json()).error, 'history_query_too_short');
+    assert.equal(listAllCalled, false);
+  });
+});
+
+test('history-search clamps page size and fails closed when bounded scan is exceeded', async () => {
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: {},
+      clientoBookingStore: {
+        listAllBookings(options) {
+          assert.equal(options.limit, 100001);
+          return Array.from({ length: 100001 }, (_, index) => ({
+            bookingId: `bulk-${index}`,
+            customerEmail: 'bulk@example.com',
+            startsAt: new Date(Date.UTC(2026, 0, 1, 9, index % 60, 0)).toISOString(),
+            status: 'completed',
+            serviceLabel: 'Bulk',
+          }));
+        },
+      },
+      patientMasterStore: {
+        async listPatients() {
+          return { patients: [{ id: 'patient-bulk', primaryEmail: 'bulk@example.com' }] };
+        },
+      },
+      authStore: {
+        async getSessionContextByToken() {
+          return null;
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: { defaultTenantId: 'tenant-a', brand: 'hair-tp-clinic', brandByHost: {} },
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/cco-bookings/history-search?q=bulk&limit=999`);
+    assert.equal(response.status, 413);
+    assert.equal((await response.json()).error, 'cliento_history_scan_limit_exceeded');
   });
 });
 
@@ -1544,12 +1651,30 @@ test('history-search exposes approved shadow provenance and keeps unapproved sou
       serviceLabel: 'PRP',
     };
     const proposedRight = { ...proposedLeft, tenantId: 'hair-tp-clinic' };
+    const otherLeft = {
+      tenantId: 'other-a',
+      bookingId: 'shadow-other',
+      customerEmail: 'shadow@example.com',
+      customerName: 'Shadow Patient',
+      startsAt: '2026-02-12T09:00:00.000Z',
+      endsAt: '2026-02-12T09:30:00.000Z',
+      status: 'completed',
+      serviceLabel: 'Fysisk konsultation',
+    };
+    const otherRight = { ...otherLeft, tenantId: 'other-b' };
     await writeApprovedHistoricalLink({
       filePath: ledgerPath,
       left: approvedLeft,
       right: approvedRight,
       patientId: 'patient-shadow',
       linkId: 'link-approved',
+    });
+    await writeApprovedHistoricalLink({
+      filePath: ledgerPath,
+      left: otherLeft,
+      right: otherRight,
+      patientId: 'patient-shadow',
+      linkId: 'link-other-tenant',
     });
     const ledger = await createClientoLinkSidecarLedger({
       filePath: ledgerPath,
@@ -1572,13 +1697,22 @@ test('history-search exposes approved shadow provenance and keeps unapproved sou
 
     const app = express();
     app.use(express.json());
+    const requestedTenants = [];
     app.use(
       '/api/v1',
       createCcoBookingsRouter({
         bookingStore: {},
         clientoBookingStore: {
           listAllBookings({ tenantId }) {
-            const rows = [approvedLeft, approvedRight, proposedLeft, proposedRight];
+            requestedTenants.push(tenantId);
+            const rows = [
+              approvedLeft,
+              approvedRight,
+              proposedLeft,
+              proposedRight,
+              otherLeft,
+              otherRight,
+            ];
             return tenantId ? rows.filter((row) => row.tenantId === tenantId) : rows;
           },
         },
@@ -1615,6 +1749,9 @@ test('history-search exposes approved shadow provenance and keeps unapproved sou
       );
       assert.equal(response.status, 200);
       const payload = await response.json();
+      assert.equal(requestedTenants.includes('other-a'), false);
+      assert.equal(requestedTenants.includes('other-b'), false);
+      assert.doesNotMatch(JSON.stringify(payload), /other-a|other-b|shadow-other/);
       const approved = payload.rows.find((row) => row.kind === 'approved_historical_shadow');
       assert.ok(approved);
       assert.equal(approved.patientId, 'patient-shadow');
