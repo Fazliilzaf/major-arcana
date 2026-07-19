@@ -198,6 +198,15 @@ test('runDeterministicIntent maps complaint after diacritic strip on klagomål',
   assert.equal(r.source, 'deterministic');
 });
 
+test('runDeterministicIntent maps a Swedish reklamation to complaint', () => {
+  const r = runDeterministicIntent(
+    'Tack för återkoppling. Detta är en reklamation och jag tar det juridiskt vidare.'
+  );
+  assert.equal(r.intent, 'complaint');
+  assert.equal(r.source, 'deterministic');
+  assert.equal(r.confidence >= 0.6, true);
+});
+
 test('runDeterministicIntent maps English not happy to complaint', () => {
   const r = runDeterministicIntent('I am not happy with my visit yesterday.');
   assert.equal(r.intent, 'complaint');
