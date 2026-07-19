@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { parseHTML } = require('linkedom');
 
 function loadCalendarShared() {
   const source = fs.readFileSync(
@@ -25,6 +26,68 @@ function loadCustomerSurfaces() {
     )
   );
   return sandbox.window;
+}
+
+function extractFunction(source, name, nextName) {
+  const start = source.indexOf(`function ${name}`);
+  assert.notEqual(start, -1, `${name} should exist`);
+  const end = nextName
+    ? source.indexOf(`function ${nextName}`, start)
+    : source.indexOf('\n  function ', start + 1);
+  assert.notEqual(end, -1, `${name} extraction should have a terminator`);
+  return source.slice(start, end);
+}
+
+function loadActiveSearchHarness(visits) {
+  const source = fs.readFileSync(
+    path.join(__dirname, '../../public/cco-kalender-shell.js'),
+    'utf8'
+  );
+  const { window } = parseHTML(`
+    <main>
+      <div id="searchOverlay" class="is-open"></div>
+      <div id="searchPanelKicker"></div>
+      <div id="searchPanelList"></div>
+      <button class="booking" data-booking-id="booking-canonical"></button>
+      <button class="booking" data-booking-id="booking-unlinked"></button>
+    </main>
+  `);
+  const messages = [];
+  const fallbacks = [];
+  const parent = {
+    postMessage(payload, targetOrigin) {
+      messages.push({ payload, targetOrigin });
+    },
+    ArcanaCcoOpenCustomerDossier(payload) {
+      fallbacks.push(payload);
+      return true;
+    },
+  };
+  window.parent = parent;
+  window.location = { origin: 'https://arcana.example' };
+  const sandbox = {
+    window,
+    document: window.document,
+    console,
+    CSS: {
+      escape(value) {
+        return String(value).replace(/"/g, '\\"');
+      },
+    },
+  };
+  const script = `
+    const v6State = { visits: ${JSON.stringify(visits)} };
+    function v6SetText(node, text) { if (node) node.textContent = text; }
+    function v6Initials(name) { return String(name || '?').slice(0, 2).toUpperCase(); }
+    function statusLabel(status) { return status || ''; }
+    function v6RenderIntel(slot) { window.__lastIntelBookingId = slot && slot.bookingId; }
+    ${extractFunction(source, 'el', 'timeToMinutes')}
+    ${extractFunction(source, 'openCanonicalPatient', 'detectViewFromUrl')}
+    ${extractFunction(source, 'v6RenderSearch', 'v6BindControls')}
+    window.__test = { v6RenderSearch };
+  `;
+  vm.runInNewContext(script, sandbox);
+  return { window, messages, fallbacks };
 }
 
 test('Kalender consumes canonical visit rows with patient, status, encounter and notes', () => {
@@ -192,6 +255,63 @@ test('active admin calendar uses canonical bundle and the same strict patient ha
   assert.match(source, /internalNotes/);
   assert.match(source, /treatmentNotes/);
   assert.doesNotMatch(source, /window\.location\.href\s*=\s*['"]\/staff/);
+});
+
+test('active admin calendar search click dispatches canonical handoff from V6 results', () => {
+  const { window, messages, fallbacks } = loadActiveSearchHarness([
+    {
+      bookingId: 'booking-canonical',
+      patientId: 'patient-canonical-42',
+      patientName: 'Canonical Patient',
+      serviceLabel: 'Fysisk konsultation',
+      date: '2026-08-03',
+      time: '11:00',
+      status: 'booked',
+    },
+  ]);
+
+  window.__test.v6RenderSearch('canonical');
+  const result = window.document.querySelector('.search-result');
+  assert.ok(result);
+  assert.equal(result.dataset.patientId, 'patient-canonical-42');
+  assert.equal(result.dataset.readOnly, '0');
+
+  result.click();
+
+  assert.equal(window.__lastIntelBookingId, 'booking-canonical');
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].targetOrigin, 'https://arcana.example');
+  assert.equal(messages[0].payload.type, 'arcana:cco-open-customer-dossier');
+  assert.equal(messages[0].payload.patientId, 'patient-canonical-42');
+  assert.equal(fallbacks.length, 1);
+  assert.equal(fallbacks[0].patientId, 'patient-canonical-42');
+});
+
+test('active admin calendar search leaves unlinked results inert with no handoff', () => {
+  const { window, messages, fallbacks } = loadActiveSearchHarness([
+    {
+      bookingId: 'booking-unlinked',
+      patientId: '',
+      patientName: '',
+      serviceLabel: 'PRP',
+      date: '2026-08-04',
+      time: '12:00',
+      status: 'completed',
+    },
+  ]);
+
+  window.__test.v6RenderSearch('prp');
+  const result = window.document.querySelector('.search-result');
+  assert.ok(result);
+  assert.equal(result.dataset.patientId, '');
+  assert.equal(result.dataset.readOnly, '1');
+  assert.match(result.className, /is-read-only/);
+
+  result.click();
+
+  assert.equal(window.__lastIntelBookingId, 'booking-unlinked');
+  assert.equal(messages.length, 0);
+  assert.equal(fallbacks.length, 0);
 });
 
 test('active day and week cards expose canonical treatment and note indicators', () => {

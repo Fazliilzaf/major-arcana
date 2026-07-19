@@ -238,10 +238,21 @@
 
     function openCustomerDossier(patientId) {
       var url = customerDossierUrl(patientId);
-      if (!url) return;
+      if (!url) return false;
       syncRouteState('kunder', url);
       navigateFrame('kunder', url);
+      return true;
     }
+
+    // Same-origin fallback för aktiva inbäddade CCO-ytor. Kalendern skickar
+    // fortsatt strict postMessage som förstahandskontrakt, men vissa aktiva
+    // V6-embed paths kan falla igenom innan parent-listenern hinner navigera.
+    // Exponera därför exakt samma validerade handoff utan ny route/modell.
+    window.ArcanaCcoOpenCustomerDossier = function arcanaCcoOpenCustomerDossier(payload) {
+      var patientId =
+        payload && typeof payload === 'object' ? payload.patientId : payload;
+      return openCustomerDossier(patientId);
+    };
 
     function closeMore() {
       if (moreMenu) moreMenu.hidden = true;

@@ -418,6 +418,31 @@ test('Kalenderklick stannar i admin#cco och öppnar samma canonical patient i V1
   assert.equal(harness.frame.getAttribute('data-src'), harness.frame.getAttribute('src'));
 });
 
+test('same-origin Kalender fallback öppnar canonical patient utan att ge okopplade rader handoff', () => {
+  const harness = runSubnavHarness({
+    saved: 'kalender',
+    src: '/kalender.html?embed=1',
+    liveUrl: 'https://arcana.hairtpclinic.com/kalender.html?embed=1',
+  });
+  const adminUrl = harness.window.location.href;
+
+  assert.equal(
+    harness.window.ArcanaCcoOpenCustomerDossier({ patientId: 'patient-canonical-42' }),
+    true
+  );
+  assert.equal(harness.window.location.href, adminUrl);
+  assert.equal(activeSection(harness), 'kunder');
+  assert.match(
+    harness.frame.getAttribute('src'),
+    /\/staff\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on&patientId=patient-canonical-42/
+  );
+
+  const before = harness.frame.getAttribute('src');
+  assert.equal(harness.window.ArcanaCcoOpenCustomerDossier({ patientId: '' }), false);
+  assert.equal(harness.window.ArcanaCcoOpenCustomerDossier({ patientId: '../not-canonical' }), false);
+  assert.equal(harness.frame.getAttribute('src'), before);
+});
+
 test('konversationer embed gömmer bara dublettnav och bevarar sök samt riskkontroller', () => {
   const html = read(CONVERSATIONS_HTML);
 
