@@ -563,6 +563,37 @@
   Lugnt läge aktivt — fokusera på en sak i taget
 </div>`;
 
+  function readCalendarAdminToken() {
+    try {
+      if (window.ArcanaReviewAuth && typeof window.ArcanaReviewAuth.getToken === 'function') {
+        return String(window.ArcanaReviewAuth.getToken() || '').trim();
+      }
+    } catch (e) {
+      // Fall back to the admin shell runtime token below.
+    }
+    var readStorage = function (storage) {
+      try {
+        return String(
+          (storage && storage.getItem && storage.getItem('ARCANA_ADMIN_TOKEN')) || ''
+        ).trim();
+      } catch (e) {
+        return '';
+      }
+    };
+    return readStorage(window.localStorage) || readStorage(window.sessionStorage);
+  }
+
+  function historySearchHeaders() {
+    var headers = { Accept: 'application/json' };
+    var token = readCalendarAdminToken();
+    if (token && token !== '__preview_local__') {
+      headers.Authorization = 'Bearer ' + token;
+    } else if (token === '__preview_local__') {
+      headers['x-arcana-preview-local'] = '1';
+    }
+    return headers;
+  }
+
   // Facitens interaktions-JS, oförändrad, körd efter att markup injicerats.
   // All bindning sker via addEventListener (inga inline-handlers) så det wirar
   // korrekt mot de injicerade elementen.
@@ -1537,7 +1568,7 @@
           });
           const response = await fetch('/api/v1/cco-bookings/history-search?' + params.toString(), {
             credentials: 'same-origin',
-            headers: { Accept: 'application/json' },
+            headers: historySearchHeaders(),
           });
           if (!response.ok) throw new Error('history_search_unavailable');
           const payload = await response.json();
