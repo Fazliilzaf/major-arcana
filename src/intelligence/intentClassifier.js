@@ -52,7 +52,7 @@ const DETERMINISTIC_INTENT_RULES = Object.freeze([
     id: 'complaint',
     baseWeight: 22,
     patterns: Object.freeze([
-      /\b(missnojd|klagomal|klagomol|complaint|complain|besviken|not happy|dalig upplevelse)\b/i,
+      /\b(missnojd|klagomal|klagomol|reklamation|reklamationsarende|complaint|complain|besviken|not happy|dalig upplevelse)\b/i,
     ]),
   }),
   Object.freeze({
