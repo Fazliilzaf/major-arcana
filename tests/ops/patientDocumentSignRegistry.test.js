@@ -11,11 +11,25 @@ const {
 } = require('../../src/ops/patientDocumentSignRegistry');
 const { OFFERT_SLUG } = require('../../src/ops/patientDocumentLiveRegistry');
 
-test('E8 covers 12 signera registryIds (A1–A11, A15)', () => {
-  assert.equal(E8_SIGN_REGISTRY_IDS.length, 12);
+test('E8 covers 14 signera registryIds (A1–A11, A15 + hud-samtycken)', () => {
+  assert.equal(E8_SIGN_REGISTRY_IDS.length, 14);
   assert.ok(isE8SignRegistry('haelso_tp_sve'));
   assert.ok(isE8SignRegistry('foto_samtycke'));
+  // hud-samtycken inkopplade 2026-07-19 (ägarbeslut + medicinsk granskning godkänd)
+  assert.ok(isE8SignRegistry('hyalase_info'));
+  assert.ok(isE8SignRegistry('botulinum_info'));
   assert.equal(isE8SignRegistry('journal_tp'), false);
+  assert.equal(isE8SignRegistry('ordination_recept'), false);
+});
+
+test('hud-samtycken signerar via consent_journal med Meridiq apiId', () => {
+  const hy = resolveSignConfig('hyalase_info');
+  assert.equal(hy.handler, 'consent_journal');
+  assert.equal(hy.consentApiId, 152991);
+  assert.deepEqual(hy.requiredAckSelectors, ['#consent-ack']);
+  const bo = resolveSignConfig('botulinum_info');
+  assert.equal(bo.handler, 'consent_journal');
+  assert.equal(bo.consentApiId, 152988);
 });
 
 test('offert phase 5 disables signering', () => {
@@ -45,7 +59,7 @@ test('all E8 ids resolve sign config', () => {
 
 test('buildSignManifest lists all E8 rows', () => {
   const rows = buildSignManifest();
-  assert.equal(rows.length, 12);
+  assert.equal(rows.length, 14);
   const offertRows = rows.filter((r) => OFFERT_SLUG[r.registryId]);
   assert.equal(offertRows.length, Object.keys(OFFERT_SLUG).length);
   for (const row of offertRows) {

@@ -16,6 +16,8 @@ const E8_SIGN_REGISTRY_IDS = Object.freeze([
   'samtycke_bokning_2d',
   'samtycke_angerratt',
   'foto_samtycke',
+  'hyalase_info',
+  'botulinum_info',
 ]);
 
 const DEFAULT_TENANT = 'hair_tp';
@@ -102,6 +104,28 @@ const SIGN_CONFIG_BY_REGISTRY = Object.freeze({
     photoId: 'scope-hairline-crown',
     scope: 'hairline_crown',
     requiredAckSelectors: ['#photo-ack'],
+    promptName: 'Kundens namn för signering:',
+  },
+  hyalase_info: {
+    handler: 'consent_journal',
+    tenantId: DEFAULT_TENANT,
+    requiresPatientId: true,
+    journalType: 'consent_bundle',
+    title: 'Samtycke — Hyalasebehandling',
+    consentKind: 'hyalase_treatment',
+    consentApiId: 152991,
+    requiredAckSelectors: ['#consent-ack'],
+    promptName: 'Kundens namn för signering:',
+  },
+  botulinum_info: {
+    handler: 'consent_journal',
+    tenantId: DEFAULT_TENANT,
+    requiresPatientId: true,
+    journalType: 'consent_bundle',
+    title: 'Samtycke — Botulinumtoxin',
+    consentKind: 'botulinum_treatment',
+    consentApiId: 152988,
+    requiredAckSelectors: ['#consent-ack'],
     promptName: 'Kundens namn för signering:',
   },
 });
