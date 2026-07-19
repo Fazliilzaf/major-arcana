@@ -35,6 +35,7 @@ const {
   collectBookingReadouts,
   buildCanonicalBookingIntegrityReport,
   buildUnlinkedClientoBookingReview,
+  loadClientoLinkSidecarLedgerEvents,
 } = require('../ops/ccoKunderBookingEnrichment');
 
 const WORKSPACE_ID = 'major-arcana-preview';
@@ -868,26 +869,49 @@ function createCcoBookingsRouter({
                   })
                 )
               : clientoBookingStore.listAllBookings
-                ? asArray(clientoBookingStore.listAllBookings({ tenantId: context.tenantId })).filter(
-                    (booking) => {
-                      const date = normalizeText(booking?.startsAt).slice(0, 10);
-                      return date && date >= fromDate && date <= toDate;
-                    }
-                  )
-                : [];
-            const encounters = treatmentEncounterStore?.listEncountersForEnrichment
-              ? asArray(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId)).filter(
-                  (encounter) => {
-                    const date = normalizeText(encounter?.startsAt).slice(0, 10);
+                ? asArray(
+                    clientoBookingStore.listAllBookings({ tenantId: context.tenantId })
+                  ).filter((booking) => {
+                    const date = normalizeText(booking?.startsAt).slice(0, 10);
                     return date && date >= fromDate && date <= toDate;
-                  }
-                )
+                  })
+                : [];
+            const historicalShadowLedgerEvents = await loadClientoLinkSidecarLedgerEvents(
+              config || {}
+            );
+            const historicalShadowClientoBookings = historicalShadowLedgerEvents.length
+              ? clientoBookingStore.listBookingsInRange
+                ? asArray(
+                    clientoBookingStore.listBookingsInRange({
+                      tenantId: '',
+                      fromDate,
+                      toDate,
+                    })
+                  )
+                : clientoBookingStore.listAllBookings
+                  ? asArray(clientoBookingStore.listAllBookings({ tenantId: '', limit: 0 })).filter(
+                      (booking) => {
+                        const date = normalizeText(booking?.startsAt).slice(0, 10);
+                        return date && date >= fromDate && date <= toDate;
+                      }
+                    )
+                  : clientoBookings
+              : clientoBookings;
+            const encounters = treatmentEncounterStore?.listEncountersForEnrichment
+              ? asArray(
+                  treatmentEncounterStore.listEncountersForEnrichment(context.tenantId)
+                ).filter((encounter) => {
+                  const date = normalizeText(encounter?.startsAt).slice(0, 10);
+                  return date && date >= fromDate && date <= toDate;
+                })
               : [];
             const byPatient = collectBookingReadouts({
               patients,
               engineBookings,
               bookingCases: cases,
               clientoBookings,
+              historicalShadowClientoBookings,
+              historicalShadowLedgerEvents,
               encounters,
             });
             visits = [...byPatient.values()]
@@ -1047,6 +1071,11 @@ function createCcoBookingsRouter({
       const clientoBookings = clientoBookingStore.listAllBookings
         ? asArray(clientoBookingStore.listAllBookings({ tenantId: context.tenantId }))
         : [];
+      const historicalShadowLedgerEvents = await loadClientoLinkSidecarLedgerEvents(config || {});
+      const historicalShadowClientoBookings =
+        historicalShadowLedgerEvents.length && clientoBookingStore.listAllBookings
+          ? asArray(clientoBookingStore.listAllBookings({ tenantId: '', limit: 0 }))
+          : clientoBookings;
       const encounters = treatmentEncounterStore?.listEncountersForEnrichment
         ? asArray(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId))
         : [];
@@ -1055,6 +1084,8 @@ function createCcoBookingsRouter({
         engineBookings,
         bookingCases,
         clientoBookings,
+        historicalShadowClientoBookings,
+        historicalShadowLedgerEvents,
         encounters,
       });
       const report = buildCanonicalBookingIntegrityReport({ patients, byPatient, encounters });

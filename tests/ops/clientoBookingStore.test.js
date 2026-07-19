@@ -45,7 +45,32 @@ test('store retains identityless Cliento rows in the existing booking model for 
   const rows = store.listAllBookings({ tenantId: 'tenant-review' });
   assert.equal(rows.length, 1);
   assert.equal(rows[0].bookingId, 'review-1');
+  assert.equal(rows[0].tenantId, 'tenant-review');
   assert.equal(rows[0].patientId, '');
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('read-only list methods expose tenantId from the existing bucket key', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-tenant-read-'));
+  const store = await createClientoBookingStore({ filePath: path.join(dir, 'bookings.json') });
+  await store.importBatch({
+    tenantId: 'hair_tp',
+    bookings: [
+      {
+        bookingId: 'tenant-read-1',
+        customerEmail: 'tenant@example.com',
+        startsAt: '2026-01-10T09:00:00.000Z',
+      },
+    ],
+  });
+  const all = store.listAllBookings({ tenantId: '' });
+  const inRange = store.listBookingsInRange({
+    tenantId: '',
+    fromDate: '2026-01-10',
+    toDate: '2026-01-10',
+  });
+  assert.equal(all[0].tenantId, 'hair_tp');
+  assert.equal(inRange[0].tenantId, 'hair_tp');
   await fs.rm(dir, { recursive: true, force: true });
 });
 

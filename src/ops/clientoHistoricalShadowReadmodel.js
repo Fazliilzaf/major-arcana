@@ -96,7 +96,14 @@ function buildSourceRecord(ref, booking) {
     status: normalizeText(booking?.status) || null,
     startsAt: normalizeText(booking?.startsAt) || null,
     endsAt: normalizeText(booking?.endsAt) || null,
+    durationMinutes: Number.isFinite(Number(booking?.durationMinutes))
+      ? Number(booking.durationMinutes)
+      : null,
     serviceLabel: normalizeText(booking?.serviceLabel || booking?.service) || null,
+    resourceLabel:
+      normalizeText(booking?.staffName || booking?.staff || booking?.resourceLabel) || null,
+    locationLabel:
+      normalizeText(booking?.locationName || booking?.location || booking?.locationLabel) || null,
     noteSegments: collectNoteSegments(booking || {}),
     provenance: {
       sourceSnapshotChecksum: normalizeText(ref?.sourceSnapshotChecksum) || null,
@@ -168,7 +175,15 @@ function buildUnmergedBookingEvent(booking, reasonCode = 'unlinked_or_unapproved
         status: normalizeText(booking?.status) || null,
         startsAt: normalizeText(booking?.startsAt) || null,
         endsAt: normalizeText(booking?.endsAt) || null,
+        durationMinutes: Number.isFinite(Number(booking?.durationMinutes))
+          ? Number(booking.durationMinutes)
+          : null,
         serviceLabel: normalizeText(booking?.serviceLabel || booking?.service) || null,
+        resourceLabel:
+          normalizeText(booking?.staffName || booking?.staff || booking?.resourceLabel) || null,
+        locationLabel:
+          normalizeText(booking?.locationName || booking?.location || booking?.locationLabel) ||
+          null,
         noteSegments: collectNoteSegments(booking || {}),
         provenance: {
           sourceSnapshotChecksum: null,

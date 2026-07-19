@@ -6,6 +6,10 @@
 
 const path = require('node:path');
 const { maxIsoDate } = require('./pipedriveDealHelpers');
+const {
+  buildClientoHistoricalShadowReadmodel,
+  HISTORICAL_BOOKING_REASON,
+} = require('./clientoHistoricalShadowReadmodel');
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 
@@ -362,6 +366,105 @@ function buildBookingDedupeKey(patientId, startsAt, serviceName) {
   return [normalizeText(patientId), day, time, type].join('::');
 }
 
+function clientoSourceKey(booking) {
+  const tenantId = normalizeText(booking?.tenantId || booking?.tenant);
+  const bookingId = normalizeText(booking?.bookingId || booking?.id);
+  return tenantId && bookingId ? `${tenantId}::${bookingId}` : '';
+}
+
+function firstText(values = []) {
+  for (const value of values) {
+    const text = normalizeText(value);
+    if (text) return text;
+  }
+  return '';
+}
+
+function collectShadowNoteRows(sourceRecords = []) {
+  const rows = [];
+  for (const record of asArray(sourceRecords)) {
+    const tenantId = normalizeText(record?.tenantId);
+    const prefix = tenantId ? `${tenantId} · ` : '';
+    const segments = asObject(record?.noteSegments);
+    for (const [field, label] of [
+      ['bookingNotes', 'Bokningsanteckning'],
+      ['customerMessage', 'Kundmeddelande'],
+      ['internalNotes', 'Intern anteckning'],
+      ['treatmentNotes', 'Behandlingsanteckning'],
+      ['notes', 'Anteckning'],
+    ]) {
+      const text = normalizeText(segments[field]);
+      if (text) rows.push({ label: `${prefix}${label}`, text, field, tenantId });
+    }
+  }
+  return rows;
+}
+
+function buildHistoricalShadowReadouts({ clientoBookings = [], ledgerEvents = [] } = {}) {
+  if (!asArray(clientoBookings).length || !asArray(ledgerEvents).length) {
+    return { rows: [], consumedSourceKeys: new Set(), model: null };
+  }
+  const model = buildClientoHistoricalShadowReadmodel({
+    bookings: clientoBookings,
+    ledgerEvents,
+    includeUnmerged: false,
+  });
+  const consumedSourceKeys = new Set();
+  const rows = [];
+  for (const event of asArray(model.events)) {
+    if (event?.eventType !== 'cliento_historical_booking_shadow_merge') continue;
+    const sourceRecords = asArray(event.sourceRecords);
+    for (const record of sourceRecords) {
+      const key = clientoSourceKey(record);
+      if (key) consumedSourceKeys.add(key);
+    }
+    const display = asObject(event.display);
+    const sourceLabels = sourceRecords
+      .map((record) => normalizeText(record.tenantId))
+      .filter(Boolean);
+    const notes = collectShadowNoteRows(sourceRecords);
+    const readout = normalizeBookingReadout({
+      patientId: event.canonicalPatientId,
+      id: `shadow:${normalizeText(event.linkId || event.ledgerEventId || event.bookingRef)}`,
+      startsAt: display.startsAt,
+      endsAt: display.endsAt,
+      serviceLabel: display.serviceLabel,
+      serviceDisplayName: display.serviceLabel,
+      resourceLabel: firstText(sourceRecords.map((record) => record.resourceLabel)),
+      notes: notes.length
+        ? notes.map((note) => `${note.label}: ${note.text}`).join('\n\n')
+        : `Approved historical shadow · ${sourceLabels.join(' + ')}`,
+      bookingNotes: firstText(sourceRecords.map((record) => record.noteSegments?.bookingNotes)),
+      customerMessage: firstText(
+        sourceRecords.map((record) => record.noteSegments?.customerMessage)
+      ),
+      internalNotes: firstText(sourceRecords.map((record) => record.noteSegments?.internalNotes)),
+      treatmentNotes: firstText(sourceRecords.map((record) => record.noteSegments?.treatmentNotes)),
+      status: display.status || 'completed',
+      source: 'cliento_historical_shadow',
+      encounterId: '',
+    });
+    if (!readout) continue;
+    rows.push({
+      ...readout,
+      bookingId: normalizeText(event.linkId) || readout.bookingId,
+      canonicalEncounterId: null,
+      encounterId: null,
+      readOnly: true,
+      linkAllowed: false,
+      shadowReadmodel: true,
+      shadowReadOnly: true,
+      historicalReason: HISTORICAL_BOOKING_REASON,
+      linkId: normalizeText(event.linkId) || null,
+      ledgerEventId: normalizeText(event.ledgerEventId) || null,
+      sourceRecords,
+      shadowNoteSegments: notes,
+      provenance: event.provenance || null,
+    });
+  }
+  return { rows, consumedSourceKeys, model };
+}
+
 function bookingDateLabel(startsAt) {
   const day = slotDateKey(startsAt);
   if (!day) return '';
@@ -449,6 +552,8 @@ function collectBookingReadouts({
   engineBookings = [],
   bookingCases = [],
   clientoBookings = [],
+  historicalShadowClientoBookings = clientoBookings,
+  historicalShadowLedgerEvents = [],
   encounters = [],
   services = [],
   lookup = buildPatientLookupMaps(patients),
@@ -493,6 +598,11 @@ function collectBookingReadouts({
   const push = (row) => {
     if (row) rows.push(row);
   };
+  const historicalShadow = buildHistoricalShadowReadouts({
+    clientoBookings: historicalShadowClientoBookings,
+    ledgerEvents: historicalShadowLedgerEvents,
+  });
+  for (const row of historicalShadow.rows) push(row);
 
   for (const booking of asArray(engineBookings)) {
     const patientId =
@@ -554,6 +664,8 @@ function collectBookingReadouts({
   }
 
   for (const clientoBooking of asArray(clientoBookings)) {
+    const sourceKey = clientoSourceKey(clientoBooking);
+    if (sourceKey && historicalShadow.consumedSourceKeys.has(sourceKey)) continue;
     const patientId = resolvePatientIdFromClientoBooking(clientoBooking, lookup);
     if (!patientId) continue;
     push(
@@ -613,6 +725,8 @@ function collectBookingReadouts({
     value.upcomingBookings.sort((a, b) => (parseMs(a.startsAt) || 0) - (parseMs(b.startsAt) || 0));
     value.historyBookings.sort((a, b) => (parseMs(b.startsAt) || 0) - (parseMs(a.startsAt) || 0));
   }
+  out._historicalShadowConsumedSourceKeys = historicalShadow.consumedSourceKeys;
+  out._historicalShadowCounts = historicalShadow.model?.counts || null;
   return out;
 }
 
@@ -624,7 +738,12 @@ const CANONICAL_BOOKING_STATUSES = new Set([
   'canceled',
   'no_show',
 ]);
-const CANONICAL_BOOKING_SOURCES = new Set(['cco_booking_engine', 'cco_booking_store', 'cliento']);
+const CANONICAL_BOOKING_SOURCES = new Set([
+  'cco_booking_engine',
+  'cco_booking_store',
+  'cliento',
+  'cliento_historical_shadow',
+]);
 
 function canonicalIntegritySource(value) {
   const source = normalizeText(value);
@@ -854,6 +973,8 @@ function buildBookingSignalsIndex({
   bookingCases = [],
   encounters = [],
   clientoBookings = [],
+  historicalShadowClientoBookings = clientoBookings,
+  historicalShadowLedgerEvents = [],
   services = [],
 } = {}) {
   const index = new Map();
@@ -865,6 +986,8 @@ function buildBookingSignalsIndex({
     engineBookings,
     bookingCases,
     clientoBookings,
+    historicalShadowClientoBookings,
+    historicalShadowLedgerEvents,
     encounters,
     services,
     lookup,
@@ -967,6 +1090,10 @@ function buildBookingSignalsIndex({
   }
 
   for (const clientoBooking of asArray(clientoBookings)) {
+    const sourceKey = clientoSourceKey(clientoBooking);
+    if (sourceKey && bookingReadoutsByPatient._historicalShadowConsumedSourceKeys?.has(sourceKey)) {
+      continue;
+    }
     const patientId = resolvePatientIdFromClientoBooking(clientoBooking, lookup);
     if (!patientId) continue;
     const sig = getOrCreate(index, patientId);
@@ -1009,11 +1136,63 @@ function buildBookingSignalsIndex({
   for (const [patientId, readouts] of bookingReadoutsByPatient) {
     const sig = getOrCreate(index, patientId);
     if (!sig) continue;
+    for (const booking of [
+      ...asArray(readouts.upcomingBookings),
+      ...asArray(readouts.historyBookings),
+    ].filter((row) => normalizeText(row?.source) === 'cliento_historical_shadow')) {
+      const status = normalizeKey(booking.status);
+      const startsAt = normalizeText(booking.startsAt);
+      if (!startsAt) continue;
+      if (status === 'no_show') {
+        sig.noShowCount += 1;
+        if (isPastVisit(startsAt)) bumpActivityAt(sig, startsAt);
+      } else if (status === 'cancelled' || status === 'canceled') {
+        if (isPastVisit(startsAt)) bumpActivityAt(sig, startsAt);
+      } else {
+        applyVisitSlot(
+          sig,
+          {
+            startsAt,
+            serviceLabel: normalizeText(booking.serviceName || booking.title),
+            resourceLabel: normalizeText(booking.resourceLabel || booking.staffName),
+          },
+          isFutureVisit(startsAt) ? 'confirmed' : status || 'completed',
+          { bookingId: booking.bookingId }
+        );
+      }
+    }
     sig.upcomingBookings = readouts.upcomingBookings;
     sig.historyBookings = readouts.historyBookings;
   }
 
-  return { index, emailToPatient, conversationToPatient, lookup };
+  return {
+    index,
+    emailToPatient,
+    conversationToPatient,
+    lookup,
+    historicalShadowCounts: bookingReadoutsByPatient._historicalShadowCounts || null,
+  };
+}
+
+function resolveClientoLinkSidecarLedgerPath(config = {}) {
+  const explicit = normalizeText(config.clientoLinkSidecarLedgerPath);
+  if (explicit) return explicit;
+  const stateRoot = normalizeText(config.stateRoot || process.env.ARCANA_STATE_ROOT);
+  if (stateRoot) return path.join(stateRoot, 'cco', 'cliento-link-sidecar-ledger.jsonl');
+  return path.join(process.cwd(), 'data', 'cco', 'cliento-link-sidecar-ledger.jsonl');
+}
+
+async function loadClientoLinkSidecarLedgerEvents(config = {}) {
+  try {
+    const { createClientoLinkSidecarLedger } = require('./clientoLinkSidecarLedger');
+    const ledger = await createClientoLinkSidecarLedger({
+      filePath: resolveClientoLinkSidecarLedgerPath(config),
+      gates: { ledgerWriteAllowed: false, activationAllowed: false },
+    });
+    return typeof ledger.listEvents === 'function' ? ledger.listEvents() : [];
+  } catch {
+    return [];
+  }
 }
 
 function getBookingSignals(index, patientId) {
@@ -1087,7 +1266,7 @@ async function loadKunderBookingIndex(
   config,
   tenantId,
   patients = [],
-  { includeClientoBookings = true } = {}
+  { includeClientoBookings = true, includeHistoricalShadowLinks = true } = {}
 ) {
   const empty = {
     index: new Map(),
@@ -1097,6 +1276,7 @@ async function loadKunderBookingIndex(
     bookingCases: [],
     encounters: [],
     clientoBookings: [],
+    historicalShadowLedgerEvents: [],
   };
   try {
     if (!bookingStoresPromise) {
@@ -1141,6 +1321,7 @@ async function loadKunderBookingIndex(
         : [];
 
     let clientoBookings = [];
+    let historicalShadowClientoBookings = [];
     if (includeClientoBookings) {
       try {
         const { createClientoBookingStore } = require('./clientoBookingStore');
@@ -1152,12 +1333,20 @@ async function loadKunderBookingIndex(
         for (const clientoPath of candidatePaths) {
           try {
             const clientoStore = await createClientoBookingStore({ filePath: clientoPath });
-            const batch = clientoStore.listAllBookings({ tenantId: tid, limit: 50000 });
+            const batch = clientoStore.listAllBookings({ tenantId: tid, limit: 0 });
+            const allForShadow =
+              includeHistoricalShadowLinks && typeof clientoStore.listAllBookings === 'function'
+                ? clientoStore.listAllBookings({ tenantId: '', limit: 0 })
+                : [];
             if (batch.length > 0) {
               clientoBookings = batch;
+              historicalShadowClientoBookings = allForShadow.length ? allForShadow : batch;
               break;
             }
             if (!clientoBookings.length) clientoBookings = batch;
+            if (!historicalShadowClientoBookings.length) {
+              historicalShadowClientoBookings = allForShadow.length ? allForShadow : batch;
+            }
           } catch {
             /* try next path */
           }
@@ -1166,6 +1355,10 @@ async function loadKunderBookingIndex(
         clientoBookings = [];
       }
     }
+    const historicalShadowLedgerEvents =
+      includeHistoricalShadowLinks && includeClientoBookings
+        ? await loadClientoLinkSidecarLedgerEvents(config || {})
+        : [];
 
     const built = buildBookingSignalsIndex({
       patients,
@@ -1173,6 +1366,8 @@ async function loadKunderBookingIndex(
       bookingCases,
       encounters,
       clientoBookings,
+      historicalShadowClientoBookings,
+      historicalShadowLedgerEvents,
       services,
     });
 
@@ -1191,11 +1386,14 @@ async function loadKunderBookingIndex(
         bookingCases: bookingCases.length,
         encounters: encounters.length,
         clientoBookings: clientoBookings.length,
+        historicalShadowLedgerEvents: historicalShadowLedgerEvents.length,
+        historicalShadowBookings: built.historicalShadowCounts?.mergedApprovedLinks || 0,
       },
       engineBookings,
       bookingCases,
       encounters,
       clientoBookings,
+      historicalShadowLedgerEvents,
     };
   } catch {
     return empty;
@@ -1266,11 +1464,14 @@ module.exports = {
   collectBookingReadouts,
   buildCanonicalBookingIntegrityReport,
   buildUnlinkedClientoBookingReview,
+  buildHistoricalShadowReadouts,
   buildPatientLookupMaps,
   resolvePatientIdFromClientoBooking,
   getBookingSignals,
   applyBookingToReadout,
   loadKunderBookingIndex,
+  loadClientoLinkSidecarLedgerEvents,
+  resolveClientoLinkSidecarLedgerPath,
   patientMatchesTreatmentSegment,
   emptyBookingSignals,
   isTodayVisit,
