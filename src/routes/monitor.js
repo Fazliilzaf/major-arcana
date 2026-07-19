@@ -2395,6 +2395,7 @@ function createMonitorRouter({
           secretRotationStatus,
           patientConversionSummary,
           activeVersionSource,
+          latestTenantAccessAudit,
         ] = await Promise.all([
           authStore.listTenantMembers(tenantId),
           authStore.listAuditEvents({ tenantId, limit: 500 }),
@@ -2462,6 +2463,17 @@ function createMonitorRouter({
           supportsActiveVersionSnapshots
             ? templateStore.listActiveVersionSnapshots({ tenantId })
             : templateStore.listTemplates({ tenantId, includeVersions: true }),
+          // tenants.access_check skrivs var 12:e timme av schedulern — topp-500-
+          // fönstret i listAuditEvents churnar bort eventet långt före nästa
+          // körning (mail-ingestion skriver varje minut). Helskanna som övriga
+          // dygns-evidens gör.
+          typeof authStore.getLatestAuditEvent === 'function'
+            ? authStore.getLatestAuditEvent({
+                tenantId,
+                action: 'tenants.access_check',
+                outcome: 'success',
+              })
+            : Promise.resolve(null),
         ]);
 
         const restoreDrillGate = buildRestoreDrillGate({
@@ -2590,10 +2602,14 @@ function createMonitorRouter({
           action: 'scheduler.job.alert_probe.run',
           outcome: 'success',
         });
-        const latestTenantAccessCheck = findLatestAuditEvent(auditEvents, {
-          action: 'tenants.access_check',
-          outcome: 'success',
-        });
+        // Helskann via getLatestAuditEvent (se Promise.all ovan); legacy topp-500-
+        // sökningen behålls endast som fallback för äldre authStore-implementationer.
+        const latestTenantAccessCheck =
+          latestTenantAccessAudit ||
+          findLatestAuditEvent(auditEvents, {
+            action: 'tenants.access_check',
+            outcome: 'success',
+          });
         const tenantIsolationVerified = isRecentWithinDays(latestTenantAccessCheck?.ts, 30, nowMs);
 
         const riskVersion = parsePositiveInt(tenantConfig?.riskThresholdVersion) || 0;
