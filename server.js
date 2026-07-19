@@ -11933,6 +11933,7 @@ function createDisabledCcoMailIngestionStore(reason = 'prod_safe_mode') {
     listUnmatchedMessages: () => [],
     listAmbiguousMatches: () => [],
     listMailboxStats: () => [],
+    listRawMessages: () => [],
     getState: () => ({ ...disabledState }),
   };
 }
@@ -12664,8 +12665,24 @@ process.once('SIGTERM', () => {
     createConfiguredCcoMailboxTruthStore(config)
   );
   const ccoMailIngestionStore = await startupStep('ccoMailIngestionStore', () =>
-    prodSafeMode && !ccoMailIngestionProdSafeEnabled
-      ? createDisabledCcoMailIngestionStore('prod_safe_mode')
+    prodSafeMode
+      ? (() => {
+          if (!ccoMailIngestionProdSafeEnabled) {
+            return createDisabledCcoMailIngestionStore('prod_safe_mode');
+          }
+          const {
+            createDeferredCcoMailIngestionStore,
+          } = require('./src/ops/deferredMailIngestionStore');
+          return createDeferredCcoMailIngestionStore({
+            placeholderStore: createDisabledCcoMailIngestionStore('prod_safe_deferred_boot'),
+            createStore: () =>
+              createCcoMailIngestionStore({
+                filePath: config.ccoMailIngestionStorePath,
+              }),
+            logger: console,
+            label: 'ccoMailIngestionStore',
+          });
+        })()
       : createCcoMailIngestionStore({
           filePath: config.ccoMailIngestionStorePath,
         })
@@ -14660,30 +14677,36 @@ process.once('SIGTERM', () => {
   }
 
   if (config.ccoMailIngestionEnabled === true) {
-    ccoMailIngestionWorker
-      .reconcileStuckImportRuns()
-      .then(async () => {
-        const mailboxEmail = config.ccoMailIngestionDefaultMailbox;
-        if (!mailboxEmail) return;
-        await ccoMailIngestionWorker.ensureQueueIntegrity({ mailboxEmail });
-        const summary = ccoMailIngestionStore.buildDashboardSummary({ mailboxEmail });
-        const queueLength = Number(summary.queueLength || 0);
-        if (queueLength > 0) {
-          const resumeDelayMs = Number(config.ccoMailIngestionStartupResumeDelayMs || 120000);
-          console.log(
-            `[mail-ingestion] schemalägger kö-processing för ${mailboxEmail} (${queueLength} i kö) om ${resumeDelayMs}ms`
-          );
-          setTimeout(() => {
-            ccoMailIngestionWorker.enqueueProcessDrain({
-              mailboxEmail,
-              mode: config.ccoMailIngestionMode || 'read_only',
-            });
-          }, resumeDelayMs);
-        }
-      })
-      .catch((error) => {
-        console.error('[mail-ingestion] startup heal failed', error?.message || error);
-      });
+    if (typeof ccoMailIngestionStore._load === 'function') {
+      console.log(
+        '[mail-ingestion] startup heal uppskjuten: prod-safe deferred store laddas inte vid boot'
+      );
+    } else {
+      ccoMailIngestionWorker
+        .reconcileStuckImportRuns()
+        .then(async () => {
+          const mailboxEmail = config.ccoMailIngestionDefaultMailbox;
+          if (!mailboxEmail) return;
+          await ccoMailIngestionWorker.ensureQueueIntegrity({ mailboxEmail });
+          const summary = ccoMailIngestionStore.buildDashboardSummary({ mailboxEmail });
+          const queueLength = Number(summary.queueLength || 0);
+          if (queueLength > 0) {
+            const resumeDelayMs = Number(config.ccoMailIngestionStartupResumeDelayMs || 120000);
+            console.log(
+              `[mail-ingestion] schemalägger kö-processing för ${mailboxEmail} (${queueLength} i kö) om ${resumeDelayMs}ms`
+            );
+            setTimeout(() => {
+              ccoMailIngestionWorker.enqueueProcessDrain({
+                mailboxEmail,
+                mode: config.ccoMailIngestionMode || 'read_only',
+              });
+            }, resumeDelayMs);
+          }
+        })
+        .catch((error) => {
+          console.error('[mail-ingestion] startup heal failed', error?.message || error);
+        });
+    }
 
     // Den globala schedulern kan vara avstängd under stabilisering. Den här
     // separata grinden håller CCO-mailboxarna synkade, read-only och utan send-väg.
