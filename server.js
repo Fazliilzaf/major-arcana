@@ -10844,6 +10844,22 @@ try {
     })
   );
   console.log('[ops-cliento-import] monterad: POST /api/v1/ops/cliento/bookings-import');
+
+  // ORD-71-svansen: insyn + fail-closed städning av auth-storens arkiv (owner-gated).
+  const { createOpsAuthStoreArchiveRouter } = require('./src/routes/opsAuthStoreArchive');
+  app.use(
+    '/api/v1/ops',
+    createOpsAuthStoreArchiveRouter({
+      config,
+      requireCcoAuthenticated,
+      attachRole,
+      requireAnyRole: rbacRequireAnyRole,
+      auditLog: ccoAuditLog,
+    })
+  );
+  console.log(
+    '[ops-auth-archive] monterad: GET /api/v1/ops/auth-store/archive-status · DELETE /api/v1/ops/auth-store/oversize-bak'
+  );
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);
 }
