@@ -52,6 +52,7 @@ function buildLegacyMapping(entry = {}) {
     encounterType: normalizeText(safe.encounterType) || null,
     bookingMethodLabel: normalizeText(safe.bookingMethodLabel) || null,
     offerTemplateKey: normalizeText(safe.offerTemplateKey) || null,
+    publicBookable: safe.publicBookable === true,
     documentRequirementKey: normalizeText(safe.documentRequirementKey) || null,
     coolingOffRef: safe.coolingOffRef === null ? null : asObject(safe.coolingOffRef),
     legacyAliases: uniqueNormalizedList(safe.legacyAliases),
@@ -198,6 +199,7 @@ function buildCanonicalServiceRegister(
     encounterType: mapping.encounterType || null,
     bookingMethodLabel: mapping.bookingMethodLabel || null,
     offerTemplateKey: mapping.offerTemplateKey || null,
+    publicBookable: mapping.publicBookable === true,
     documentRequirementKey: mapping.documentRequirementKey || null,
     coolingOffRef: mapping.coolingOffRef || null,
     coolingOffDays: documentRequirement?.coolingOffDays ?? null,
@@ -219,6 +221,7 @@ function applyCanonicalServiceRegisterToService(service = {}, register = {}) {
     encounterType: register.encounterType || service.encounterType || null,
     bookingMethodLabel: register.bookingMethodLabel || service.bookingMethodLabel || null,
     offerTemplateKey: register.offerTemplateKey || service.offerTemplateKey || null,
+    publicBookable: register.publicBookable === true,
     documentRequirementKey:
       register.documentRequirementKey || service.documentRequirementKey || null,
     coolingOffRef: register.coolingOffRef || service.coolingOffRef || null,
@@ -261,6 +264,29 @@ function collectMappedLegacyIds(entries = []) {
   }
 
   return { clientoSrvIds, meridiqApiIds };
+}
+
+function buildServiceRegisterBookingPolicy(
+  entries = readTripleMapEntries(loadLegacyCatalogBundle())
+) {
+  const publicServiceIds = new Set();
+  const aliasToServiceId = new Map();
+
+  for (const entry of asArray(entries)) {
+    const mapping = buildLegacyMapping(entry);
+    const id = normalizeText(mapping.arcanaServiceId);
+    if (!id) continue;
+    if (mapping.publicBookable === true) publicServiceIds.add(id);
+    for (const alias of asArray(mapping.legacyAliases)) {
+      const normalizedAlias = normalizeText(alias);
+      if (normalizedAlias && normalizedAlias !== id) aliasToServiceId.set(normalizedAlias, id);
+    }
+  }
+
+  return {
+    publicServiceIds: Array.from(publicServiceIds).sort(),
+    aliasToServiceId: Object.fromEntries(Array.from(aliasToServiceId.entries()).sort()),
+  };
 }
 
 function buildClientoDraftService(clientoService = {}) {
@@ -418,10 +444,10 @@ function promoteUnmappedLegacyServices(servicesById, bundle, entries, planA) {
   return { changed, unmappedClientoPromoted, unmappedMeridiqPromoted };
 }
 
-function mergeLegacyCatalogIntoEngineState(state, { planAPublicServiceIds = [] } = {}) {
+function mergeLegacyCatalogIntoEngineState(state) {
   const bundle = loadLegacyCatalogBundle();
   const entries = readTripleMapEntries(bundle);
-  const planA = new Set(asArray(planAPublicServiceIds).map(normalizeText).filter(Boolean));
+  const planA = new Set();
   const servicesById = new Map(
     asArray(state.services).map((item) => [normalizeText(item.id), item])
   );
@@ -435,7 +461,7 @@ function mergeLegacyCatalogIntoEngineState(state, { planAPublicServiceIds = [] }
     if (!id) continue;
 
     const existing = servicesById.get(id);
-    const isPlanA = planA.has(id);
+    const isPublicBookable = mapping.publicBookable === true;
     const nextLegacy = mapping;
     const serviceRegister = buildCanonicalServiceRegister(mapping, { bindingIndex, requirements });
 
@@ -447,8 +473,8 @@ function mergeLegacyCatalogIntoEngineState(state, { planAPublicServiceIds = [] }
             id,
             label: mapping.label || id,
             durationMinutes: defaultDurationForService(id),
-            active: isPlanA,
-            publicBookable: isPlanA,
+            active: isPublicBookable,
+            publicBookable: isPublicBookable,
             brand: mapping.brand || undefined,
             legacyMapping: nextLegacy,
             catalogSource: 'legacy_triple_map',
@@ -474,7 +500,8 @@ function mergeLegacyCatalogIntoEngineState(state, { planAPublicServiceIds = [] }
       serviceRegister
     );
 
-    if (!isPlanA && existing.publicBookable === true && !planA.has(id)) {
+    merged.active = isPublicBookable ? true : false;
+    if (!isPublicBookable) {
       merged.publicBookable = false;
     }
 
@@ -818,9 +845,8 @@ function buildResourceCatalogReadout(state, bundle = loadLegacyCatalogBundle()) 
 
 function buildStaffRuntimeCatalogReadout(
   state,
-  { planAPublicServiceIds = [], planAPublicResourceIds = [], bookingPolicySettings = null } = {}
+  { planAPublicResourceIds = [], bookingPolicySettings = null } = {}
 ) {
-  const planAServices = new Set(asArray(planAPublicServiceIds).map(normalizeText));
   const planAResources = new Set(asArray(planAPublicResourceIds).map(normalizeText));
   const bundle = loadLegacyCatalogBundle();
   const tripleEntries = readTripleMapEntries(bundle);
@@ -831,7 +857,7 @@ function buildStaffRuntimeCatalogReadout(
 
   const services = asArray(state.services).map((service) => {
     const id = normalizeText(service.id);
-    const isPlanA = planAServices.has(id);
+    const isPlanA = service.publicBookable === true;
     const priced = applyBookingPricingMigrationToService(service, pricingRules);
     return {
       id,
@@ -928,7 +954,9 @@ function buildStaffRuntimeCatalogReadout(
       },
     },
     planA: {
-      serviceIds: Array.from(planAServices),
+      serviceIds: services
+        .filter((item) => item.planA && item.publicBookable)
+        .map((item) => item.id),
       resourceIds: Array.from(planAResources),
     },
     summary,
@@ -943,6 +971,7 @@ module.exports = {
   buildClientoDraftService,
   buildMeridiqDraftService,
   buildCanonicalServiceRegister,
+  buildServiceRegisterBookingPolicy,
   collectMeridiqConsentBindings,
   collectMappedLegacyIds,
   mergeLegacyCatalogIntoEngineState,

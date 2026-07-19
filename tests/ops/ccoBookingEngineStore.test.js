@@ -4,13 +4,20 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const { createCcoBookingEngineStore, PLAN_A_PUBLIC_SERVICE_IDS } = require('../../src/ops/ccoBookingEngineStore');
+const {
+  createCcoBookingEngineStore,
+  isServiceRegisterPublicBookable,
+  resolveServiceRegisterAlias,
+} = require('../../src/ops/ccoBookingEngineStore');
+const { buildServiceRegisterBookingPolicy } = require('../../src/ops/legacyCatalogRuntime');
 const {
   bookingMondayWindow,
   buildSlotId,
   nextBookableWeekday,
   slotStartsAt,
 } = require('../helpers/bookingTestDates');
+
+const SERVICE_REGISTER_PUBLIC_SERVICE_IDS = buildServiceRegisterBookingPolicy().publicServiceIds;
 
 test('ccoBookingEngineStore listar egna lediga tider, reserverar, bekräftar och avbokar', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-'));
@@ -418,7 +425,10 @@ test('ccoBookingEngineStore migrerar legacy store till Plan A schema', async () 
     );
     const store = await createCcoBookingEngineStore({ filePath });
     const publicServices = await store.listPublicServices({ brand: 'hair-tp-clinic' });
-    assert.deepEqual(publicServices.map((item) => item.id).sort(), [...PLAN_A_PUBLIC_SERVICE_IDS].sort());
+    assert.deepEqual(
+      publicServices.map((item) => item.id).sort(),
+      [...SERVICE_REGISTER_PUBLIC_SERVICE_IDS].sort()
+    );
     const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
     assert.ok(
       persisted.availabilityRules.some(
@@ -439,11 +449,72 @@ test('ccoBookingEngineStore listPublicServices returnerar endast Plan A-tjänste
     });
     const allServices = await store.listServices({ brand: 'hair-tp-clinic' });
     const publicServices = await store.listPublicServices({ brand: 'hair-tp-clinic' });
-    assert.equal(allServices.length, PLAN_A_PUBLIC_SERVICE_IDS.length);
-    assert.equal(publicServices.length, PLAN_A_PUBLIC_SERVICE_IDS.length);
+    assert.equal(allServices.length, SERVICE_REGISTER_PUBLIC_SERVICE_IDS.length);
+    assert.equal(publicServices.length, SERVICE_REGISTER_PUBLIC_SERVICE_IDS.length);
     const ids = publicServices.map((item) => item.id).sort();
-    assert.deepEqual(ids, [...PLAN_A_PUBLIC_SERVICE_IDS].sort());
+    assert.deepEqual(ids, [...SERVICE_REGISTER_PUBLIC_SERVICE_IDS].sort());
     assert.ok(publicServices.every((item) => item.publicBookable === true));
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ccoBookingEngineStore resolverar consultation/followup aliases genom tjänsteregistret', () => {
+  assert.equal(resolveServiceRegisterAlias('consultation'), 'consultation-physical');
+  assert.equal(resolveServiceRegisterAlias('followup'), 'followup-transplant');
+  assert.equal(resolveServiceRegisterAlias('dhi'), 'dhi');
+  assert.equal(isServiceRegisterPublicBookable('consultation'), true);
+  assert.equal(isServiceRegisterPublicBookable('followup'), true);
+  assert.equal(isServiceRegisterPublicBookable('legacy-cliento-60340'), false);
+});
+
+test('ccoBookingEngineStore nekar omappad tjänst i publik availability även med regel', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-unmapped-public-'));
+  try {
+    const filePath = path.join(tempDir, 'booking-engine.json');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify(
+        {
+          resources: [{ id: 'fazli', label: 'Fazli', active: true, publicBookable: true }],
+          services: [
+            {
+              id: 'legacy-cliento-60340',
+              label: 'Konsultation · Telefon',
+              active: true,
+              publicBookable: false,
+              durationMinutes: 30,
+              catalogSource: 'cliento_catalog',
+            },
+          ],
+          availabilityRules: [
+            {
+              ruleId: 'unmapped-public-deny',
+              resourceId: 'fazli',
+              serviceId: 'legacy-cliento-60340',
+              weekdays: [1, 2, 3, 4, 5],
+              startTimes: ['09:00'],
+              locationLabel: 'Hair TP Clinic',
+            },
+          ],
+          reservations: [],
+          bookings: [],
+        },
+        null,
+        2
+      ),
+      'utf8'
+    );
+    const store = await createCcoBookingEngineStore({ filePath });
+    const { fromDate, toDate } = bookingMondayWindow();
+    const availability = await store.listPublicAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'fazli',
+      srvIds: 'legacy-cliento-60340',
+    });
+    assert.deepEqual(availability, []);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
@@ -459,10 +530,7 @@ test('ccoBookingEngineStore listPublicResources returnerar Plan A-läkare utan s
     const publicResources = await store.listPublicResources();
     assert.ok(allResources.length >= 7);
     assert.equal(publicResources.length, 3);
-    assert.deepEqual(
-      publicResources.map((item) => item.id).sort(),
-      ['arya', 'egzona', 'fazli']
-    );
+    assert.deepEqual(publicResources.map((item) => item.id).sort(), ['arya', 'egzona', 'fazli']);
     assert.ok(publicResources.every((item) => item.publicBookable === true));
 
     const tuesday = nextBookableWeekday(2);

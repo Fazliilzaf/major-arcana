@@ -17,6 +17,7 @@ const {
   mergeClientoSchedulesIntoEngineState,
   wireAddonServicesIntoEngineState,
   buildStaffRuntimeCatalogReadout,
+  buildServiceRegisterBookingPolicy,
 } = require('./legacyCatalogRuntime');
 const {
   applyBookingPolicyMigrationToServices,
@@ -35,21 +36,16 @@ const {
   resourceMatchesBrand,
 } = require('./curatiioCatalogRuntime');
 
-/** Full publik katalog — alla tjänster exponeras via /api/public/booking-engine/catalog */
-const PLAN_A_PUBLIC_SERVICE_IDS = [
-  'consultation-online',
-  'consultation-physical',
-  'followup-transplant',
-  'fue',
-  'dhi',
-  'beard',
-  'eyebrow',
-  'prp-hair',
-  'prp-skin',
-  'microneedling',
-  'followup',
-  'consultation',
-];
+const SERVICE_REGISTER_BOOKING_POLICY = buildServiceRegisterBookingPolicy();
+const SERVICE_REGISTER_PUBLIC_SERVICE_IDS = new Set(
+  asArray(SERVICE_REGISTER_BOOKING_POLICY.publicServiceIds).map(normalizeText)
+);
+const SERVICE_REGISTER_ALIAS_TO_SERVICE_ID = new Map(
+  Object.entries(asObject(SERVICE_REGISTER_BOOKING_POLICY.aliasToServiceId)).map(([alias, id]) => [
+    normalizeText(alias),
+    normalizeText(id),
+  ])
+);
 
 /** Plan A web — läkare/konsulter som får synas i publik katalog (ej sjuksköterskor). */
 const PLAN_A_PUBLIC_RESOURCE_IDS = ['fazli', 'egzona', 'arya'];
@@ -64,6 +60,17 @@ function normalizeText(value) {
 
 function normalizeKey(value) {
   return normalizeText(value).toLowerCase();
+}
+
+function resolveServiceRegisterAlias(serviceId = '') {
+  const id = normalizeText(serviceId);
+  if (!id) return '';
+  return SERVICE_REGISTER_ALIAS_TO_SERVICE_ID.get(id) || id;
+}
+
+function isServiceRegisterPublicBookable(serviceId = '') {
+  const id = resolveServiceRegisterAlias(serviceId);
+  return Boolean(id && SERVICE_REGISTER_PUBLIC_SERVICE_IDS.has(id));
 }
 
 function asArray(value) {
@@ -692,7 +699,16 @@ function migratePlanASchema(state) {
   for (const svc of defaults.services) {
     const id = normalizeText(svc.id);
     const existing = servicesById.get(id);
-    if (PLAN_A_PUBLIC_SERVICE_IDS.includes(id)) {
+    const canonicalId = resolveServiceRegisterAlias(id);
+    if (canonicalId !== id) {
+      const next = { ...svc, ...(existing || {}), ...svc, active: false, publicBookable: false };
+      if (!existing || JSON.stringify(existing) !== JSON.stringify(next)) {
+        servicesById.set(id, next);
+        changed = true;
+      }
+      continue;
+    }
+    if (isServiceRegisterPublicBookable(id)) {
       const next = { ...svc, ...(existing || {}), ...svc, active: true, publicBookable: true };
       if (JSON.stringify(existing) !== JSON.stringify(next)) {
         servicesById.set(id, next);
@@ -711,23 +727,21 @@ function migratePlanASchema(state) {
 
   state.services = Array.from(servicesById.values()).map(normalizeService).filter(Boolean);
 
-  const ruleServiceMap = {
-    consultation: 'consultation-physical',
-    followup: 'followup-transplant',
-  };
   const rulesById = new Map(state.availabilityRules.map((item) => [item.ruleId, item]));
 
   for (const rule of state.availabilityRules) {
-    const mapped = ruleServiceMap[normalizeText(rule.serviceId)];
+    const mapped = resolveServiceRegisterAlias(rule.serviceId);
     if (!mapped || rule.serviceId === mapped) continue;
     rulesById.set(rule.ruleId, { ...rule, serviceId: mapped });
     changed = true;
   }
 
   for (const rule of defaults.availabilityRules) {
-    const existing = rulesById.get(rule.ruleId);
-    if (PLAN_A_PUBLIC_SERVICE_IDS.includes(normalizeText(rule.serviceId))) {
-      const next = { ...(existing || {}), ...rule, active: true };
+    const serviceId = resolveServiceRegisterAlias(rule.serviceId);
+    const canonicalRule = { ...rule, serviceId };
+    const existing = rulesById.get(canonicalRule.ruleId);
+    if (isServiceRegisterPublicBookable(serviceId)) {
+      const next = { ...(existing || {}), ...canonicalRule, active: true };
       if (!existing || JSON.stringify(existing) !== JSON.stringify(next)) {
         rulesById.set(rule.ruleId, next);
         changed = true;
@@ -1101,9 +1115,7 @@ async function createCcoBookingEngineStore({ filePath }) {
   const migrated = migratePlanASchema(state);
   // Curatiio Fas 1 — slå ihop Curatiio seed-tjänster (additivt; egen brand).
   const curatiioMerged = mergeCuratiioCatalogIntoEngineState(state);
-  const legacyMerged = mergeLegacyCatalogIntoEngineState(state, {
-    planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
-  });
+  const legacyMerged = mergeLegacyCatalogIntoEngineState(state);
   const resourceMerged = mergeLegacyResourcesIntoEngineState(state, {
     planAPublicResourceIds: PLAN_A_PUBLIC_RESOURCE_IDS,
   });
@@ -1180,10 +1192,16 @@ async function createCcoBookingEngineStore({ filePath }) {
   }
 
   function getServiceById(serviceId) {
-    const raw = state.services.find((item) => item.id === normalizeText(serviceId)) || null;
+    const raw =
+      state.services.find((item) => item.id === resolveServiceRegisterAlias(serviceId)) || null;
     if (!raw) return null;
     const withPolicy = applyBookingPolicySettingsToService(raw, bookingPolicySettings);
     return applyBookingPricingMigrationToService(withPolicy, pricingRules);
+  }
+
+  function isRuntimePublicService(serviceId) {
+    const service = getServiceById(serviceId);
+    return Boolean(service && service.active !== false && service.publicBookable === true);
   }
 
   function slotsOverlap(left = {}, right = {}) {
@@ -1279,9 +1297,12 @@ async function createCcoBookingEngineStore({ filePath }) {
     const serviceIds = normalizeText(srvIds)
       ? normalizeText(srvIds)
           .split(',')
-          .map((item) => item.trim())
+          .map((item) => resolveServiceRegisterAlias(item.trim()))
           .filter(Boolean)
       : [];
+    if (publicOnly === true && serviceIds.some((serviceId) => !isRuntimePublicService(serviceId))) {
+      return [];
+    }
     const globalMaxDays = Number(bookingPolicySettings?.globalDefaults?.maxBookingDaysAhead) || 180;
     const days = buildDateRange(fromDate, capAvailabilityToDate(toDate, globalMaxDays));
     const nowMs = Date.now();
@@ -1291,6 +1312,7 @@ async function createCcoBookingEngineStore({ filePath }) {
       state.availabilityRules
         .filter((rule) => rule.active !== false)
         .filter((rule) => !resourceIds.length || resourceIds.includes(rule.resourceId))
+        .filter((rule) => publicOnly !== true || isRuntimePublicService(rule.serviceId))
         .filter((rule) => !serviceIds.length || serviceIds.includes(rule.serviceId))
         .filter((rule) => asArray(rule.weekdays).includes(weekday))
         .filter((rule) => {
@@ -1857,8 +1879,7 @@ async function createCcoBookingEngineStore({ filePath }) {
         state.services.filter(
           (item) =>
             item.active !== false &&
-            (item.publicBookable === true ||
-              PLAN_A_PUBLIC_SERVICE_IDS.includes(normalizeText(item.id))) &&
+            item.publicBookable === true &&
             serviceMatchesBrand(item, brand)
         )
       ),
@@ -1877,9 +1898,9 @@ async function createCcoBookingEngineStore({ filePath }) {
         ...input,
         publicOnly: true,
       }),
+    resolveServiceId: (serviceId = '') => resolveServiceRegisterAlias(serviceId),
     getRuntimeCatalog: async () =>
       buildStaffRuntimeCatalogReadout(state, {
-        planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
         planAPublicResourceIds: PLAN_A_PUBLIC_RESOURCE_IDS,
         bookingPolicySettings,
       }),
@@ -1890,8 +1911,9 @@ async function createCcoBookingEngineStore({ filePath }) {
 
 module.exports = {
   createCcoBookingEngineStore,
-  PLAN_A_PUBLIC_SERVICE_IDS,
   PLAN_A_PUBLIC_RESOURCE_IDS,
+  resolveServiceRegisterAlias,
+  isServiceRegisterPublicBookable,
   resolveServiceBookingPolicy,
   expandCalendarBlocksForRange,
   isSlotBlockedByCalendar,

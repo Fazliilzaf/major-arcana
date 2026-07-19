@@ -611,7 +611,10 @@ function createCcoBookingEngineRouter({
     requireBookingWrite(context);
     const body = asObject(req.body);
     const patientId = normalizeText(body.patientId);
-    const serviceId = normalizeText(body.serviceId);
+    const requestedServiceId = normalizeText(body.serviceId);
+    const serviceId =
+      normalizeText(bookingEngineStore.resolveServiceId?.(requestedServiceId)) ||
+      requestedServiceId;
     const resourceId = normalizeText(body.resourceId);
     const practitionerId = normalizeText(body.practitionerId);
     const startsAt = normalizeText(body.startsAt);
@@ -1009,7 +1012,7 @@ function createCcoBookingEngineRouter({
       const reservations = await bookingEngineStore.reserveSlots({
         ...toCaseInput(context, req.body),
       });
-      const bookingCase = await bookingStore.setCandidateSlots({
+      await bookingStore.setCandidateSlots({
         ...toCaseInput(context, req.body),
         selectedSlots: reservations.map((item) => item.slot),
       });

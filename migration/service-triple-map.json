@@ -12,6 +12,7 @@
       "encounterType": "consultation",
       "bookingMethodLabel": "Online",
       "offerTemplateKey": "consultation-only",
+      "publicBookable": true,
       "documentRequirementKey": null,
       "coolingOffRef": null,
       "legacyAliases": [],
@@ -38,6 +39,7 @@
       "encounterType": "consultation",
       "bookingMethodLabel": "Fysisk konsultation",
       "offerTemplateKey": "consultation-only",
+      "publicBookable": true,
       "documentRequirementKey": null,
       "coolingOffRef": null,
       "legacyAliases": ["consultation"],
@@ -64,6 +66,7 @@
       "encounterType": "follow_up",
       "bookingMethodLabel": "Uppföljning HT",
       "offerTemplateKey": "maintenance",
+      "publicBookable": true,
       "documentRequirementKey": null,
       "coolingOffRef": null,
       "legacyAliases": ["followup"],
@@ -90,6 +93,7 @@
       "encounterType": "transplant_fue",
       "bookingMethodLabel": "FUE hårtransplantation",
       "offerTemplateKey": "fue-standard",
+      "publicBookable": true,
       "documentRequirementKey": "fue",
       "coolingOffRef": {
         "source": "config/cco-treatment-document-requirements.json",
@@ -119,6 +123,7 @@
       "encounterType": "transplant_dhi",
       "bookingMethodLabel": "DHI hårtransplantation",
       "offerTemplateKey": "dhi-standard",
+      "publicBookable": true,
       "documentRequirementKey": "dhi",
       "coolingOffRef": {
         "source": "config/cco-treatment-document-requirements.json",
@@ -145,6 +150,7 @@
       "brand": "Hair TP Clinic",
       "confidence": "category",
       "journalTypes": ["tp_treatment"],
+      "publicBookable": true,
       "notes": null,
       "cliento": {
         "primarySrvId": "51522",
@@ -165,6 +171,7 @@
       "brand": "Hair TP Clinic",
       "confidence": "fuzzy",
       "journalTypes": ["tp_treatment"],
+      "publicBookable": true,
       "notes": "Cliento 50561 = PRP TP ögonbryn; Meridiq 7104 = DHI ögonbrynstransplantation.",
       "cliento": {
         "primarySrvId": "50561",
@@ -188,6 +195,7 @@
       "encounterType": "prp_hair",
       "bookingMethodLabel": "PRP hår",
       "offerTemplateKey": "prp-single",
+      "publicBookable": true,
       "documentRequirementKey": "prp_hair",
       "coolingOffRef": {
         "source": "config/cco-treatment-document-requirements.json",
@@ -214,6 +222,7 @@
       "brand": "Hair TP Clinic",
       "confidence": "category",
       "journalTypes": ["prp_treatment"],
+      "publicBookable": true,
       "notes": null,
       "cliento": {
         "primarySrvId": "50556",
@@ -234,6 +243,7 @@
       "brand": "Hair TP Clinic",
       "confidence": "category",
       "journalTypes": ["prp_treatment"],
+      "publicBookable": true,
       "notes": null,
       "cliento": {
         "primarySrvId": "50558",
