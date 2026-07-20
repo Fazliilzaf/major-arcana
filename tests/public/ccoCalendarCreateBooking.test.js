@@ -8,6 +8,7 @@ const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '../..');
 const source = fs.readFileSync(path.join(root, 'public/cco-kalender-shell.js'), 'utf8');
+const calendarHtml = fs.readFileSync(path.join(root, 'public/kalender.html'), 'utf8');
 
 function loadShell(createEnabled = false) {
   const sandbox = {
@@ -72,6 +73,56 @@ test('controlled UI is default-off and orders preflight before explicit confirm'
   assert.doesNotMatch(block, /\/cancel|\/rebook|drag|voice|bulk/i);
   assert.doesNotMatch(block, /patientId[^\n]+type:\s*'text'/);
   assert.equal(typeof loadShell(false).openCreateBookingDrawer, 'function');
+});
+
+test('active calendar catalog/preflight headers reuse shared admin auth helper first', () => {
+  const instrumented = source.replace(
+    'createBookingPayload, openCreateBookingDrawer }',
+    'createBookingPayload, openCreateBookingDrawer, __testCalendarHeaders: calendarHeaders }'
+  );
+  const calls = [];
+  const sandbox = {
+    window: {
+      CCO_CALENDAR_READ_ONLY: true,
+      CCO_CALENDAR_CREATE_BOOKING_ENABLED: true,
+      ArcanaReviewAuth: {
+        authHeaders(headers) {
+          calls.push({ ...headers });
+          return { ...headers, Authorization: 'Bearer verified-helper-token' };
+        },
+      },
+      localStorage: {
+        getItem(key) {
+          return key === 'ARCANA_ADMIN_TOKEN' ? 'stale-storage-token' : '';
+        },
+      },
+      sessionStorage: { getItem: () => '' },
+    },
+    document: { readyState: 'loading', addEventListener() {} },
+    console,
+    Date,
+    Intl,
+    Map,
+    Math,
+    Set,
+    URLSearchParams,
+  };
+  vm.runInNewContext(`${instrumented}\n;this.exports = window.CcoKalenderShell;`, sandbox);
+
+  const headers = sandbox.exports.__testCalendarHeaders({ json: true });
+
+  assert.equal(headers.Authorization, 'Bearer verified-helper-token');
+  assert.equal(headers['Content-Type'], 'application/json');
+  assert.deepEqual(calls, [{ 'Content-Type': 'application/json' }]);
+  assert.doesNotMatch(source, /Bearer\s+[A-Za-z0-9._-]{16,}/);
+});
+
+test('kalender.html loads the shared auth helper before the active calendar shell', () => {
+  assert.match(calendarHtml, /<script src="\/cco-review-auth\.js\?v=20260720a" defer><\/script>/);
+  assert.ok(
+    calendarHtml.indexOf('/cco-review-auth.js') < calendarHtml.indexOf('/cco-kalender-shell.js'),
+    'auth-helper måste laddas före shellen så calendarHeaders kan återanvända den'
+  );
 });
 
 test('create drawer fails closed for missing or ambiguous canonical patient', async () => {

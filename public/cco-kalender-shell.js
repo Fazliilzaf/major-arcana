@@ -44,13 +44,17 @@
 
   function calendarHeaders({ tenantId = '', role = '', json = false } = {}) {
     const headers = {};
-    const token = adminAuthToken();
-    if (token && token !== '__preview_local__') headers.Authorization = 'Bearer ' + token;
     if (json) headers['Content-Type'] = 'application/json';
     if (!isReadOnlyMode()) {
       if (role) headers['x-cco-role'] = role;
       if (tenantId) headers['x-cco-tenant'] = tenantId;
     }
+    const auth = global.ArcanaReviewAuth;
+    if (auth && typeof auth.authHeaders === 'function') {
+      return auth.authHeaders(headers);
+    }
+    const token = adminAuthToken();
+    if (token && token !== '__preview_local__') headers.Authorization = 'Bearer ' + token;
     return headers;
   }
 
