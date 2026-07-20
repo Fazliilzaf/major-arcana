@@ -47,6 +47,116 @@ function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+function normalizePriceReadout(price = {}) {
+  const safe = asObject(price);
+  return {
+    currency: normalizeText(safe.currency) || 'SEK',
+    amountSek:
+      safe.amountSek == null || Number.isNaN(Number(safe.amountSek))
+        ? null
+        : Number(safe.amountSek),
+    display: normalizeText(safe.display) || null,
+    priceType: normalizeText(safe.priceType) || null,
+  };
+}
+
+function buildInternalServiceVariantCatalog(services = []) {
+  return asArray(services)
+    .flatMap((service) => {
+      const parentServiceId = normalizeText(service?.id);
+      const parentRegister = asObject(service?.serviceRegister);
+      return asArray(service?.serviceRegister?.serviceVariants || service?.serviceVariants).map(
+        (variant) => {
+          const variantId = normalizeText(variant?.variantId);
+          const clinicalParentServiceId =
+            normalizeText(variant?.clinicalParentArcanaServiceId) || parentServiceId;
+          return {
+            id: variantId,
+            variantId,
+            label: normalizeText(variant?.label),
+            secondaryLabel: normalizeText(variant?.secondaryLabel) || null,
+            parentServiceId,
+            clinicalParentServiceId,
+            meridiqApiId: variant?.meridiqApiId == null ? null : Number(variant.meridiqApiId),
+            facitCategory: normalizeText(variant?.facitCategory) || null,
+            price: normalizePriceReadout(variant?.price),
+            internalBookable: variant?.internalBookable === true,
+            publicBookable: variant?.publicBookable === true,
+            publicBookableDecision: normalizeText(variant?.publicBookableDecision) || null,
+            encounterType:
+              normalizeText(service?.encounterType) ||
+              normalizeText(parentRegister.encounterType) ||
+              null,
+            bookingMethodLabel:
+              normalizeText(service?.bookingMethodLabel) ||
+              normalizeText(parentRegister.bookingMethodLabel) ||
+              null,
+            offerTemplateKey:
+              normalizeText(service?.offerTemplateKey) ||
+              normalizeText(parentRegister.offerTemplateKey) ||
+              null,
+            documentRequirementKey:
+              normalizeText(service?.documentRequirementKey) ||
+              normalizeText(parentRegister.documentRequirementKey) ||
+              null,
+          };
+        }
+      );
+    })
+    .filter(
+      (variant) =>
+        variant.id &&
+        variant.label &&
+        variant.parentServiceId &&
+        variant.internalBookable === true &&
+        variant.meridiqApiId != null
+    );
+}
+
+function resolveInternalServiceSelection(services = [], requestedServiceId = '') {
+  const requested = normalizeText(requestedServiceId);
+  const directService =
+    asArray(services).find((item) => normalizeText(item.id) === requested) || null;
+  if (directService) {
+    return {
+      requestedServiceId: requested,
+      serviceId: normalizeText(directService.id),
+      service: directService,
+      variant: null,
+    };
+  }
+  const variants = buildInternalServiceVariantCatalog(services);
+  const variant = variants.find((item) => item.variantId === requested) || null;
+  if (!variant) {
+    return null;
+  }
+  const parentService =
+    asArray(services).find((item) => normalizeText(item.id) === variant.parentServiceId) || null;
+  return {
+    requestedServiceId: requested,
+    serviceId: variant.parentServiceId,
+    service: parentService,
+    variant,
+  };
+}
+
+function resolveInternalVariantSelection(runtimeServices = [], requestedServiceId = '') {
+  const requested = normalizeText(requestedServiceId);
+  const variants = buildInternalServiceVariantCatalog(runtimeServices);
+  const variant = variants.find((item) => item.variantId === requested) || null;
+  if (!variant) return null;
+  const parentService =
+    asArray(runtimeServices).find((item) => normalizeText(item.id) === variant.parentServiceId) ||
+    null;
+  if (!parentService || variant.internalBookable !== true) return null;
+  return {
+    requestedServiceId: requested,
+    serviceId: variant.parentServiceId,
+    service: parentService,
+    variant,
+  };
+}
+
 function hasBookingEvent(bookingCase = {}, eventTypes = []) {
   const wanted = new Set(
     asArray(eventTypes)
@@ -268,6 +378,7 @@ async function resolveActor(req, { authStore, config }) {
       tenantId: context.membership.tenantId,
       userId: context.user.id,
       role: context.membership.role,
+      authSource: 'session',
     };
   }
 
@@ -276,6 +387,7 @@ async function resolveActor(req, { authStore, config }) {
       tenantId: config.defaultTenantId,
       userId: 'preview-local',
       role: 'OWNER',
+      authSource: 'local_preview',
     };
   }
 
@@ -298,6 +410,7 @@ function buildContext(req, actor) {
       normalizeText(req.body?.customerId),
     customerName: normalizeText(req.query.customerName) || normalizeText(req.body?.customerName),
     actor,
+    authSource: actor.authSource,
   };
 }
 
@@ -321,6 +434,26 @@ function requireBookingWrite(context) {
   const error = new Error('Behörigheten bookings.write krävs.');
   error.statusCode = 403;
   error.metadata = { requiredPermission: 'bookings.write' };
+  throw error;
+}
+
+function requireBookingCatalogRead(context) {
+  if (context?.authSource !== 'session') {
+    const error = new Error('Inloggning krävs.');
+    error.statusCode = 401;
+    throw error;
+  }
+  const role = normalizeText(context?.actor?.role).toUpperCase();
+  if (!STAFF_ROLES.has(role)) {
+    const error = new Error('Behörigheten bookings.read krävs.');
+    error.statusCode = 403;
+    error.metadata = { requiredPermission: 'bookings.read', requiredRole: 'staff' };
+    throw error;
+  }
+  if (roleHasPermission(context?.actor?.role, 'bookings.read')) return;
+  const error = new Error('Behörigheten bookings.read krävs.');
+  error.statusCode = 403;
+  error.metadata = { requiredPermission: 'bookings.read' };
   throw error;
 }
 
@@ -612,9 +745,6 @@ function createCcoBookingEngineRouter({
     const body = asObject(req.body);
     const patientId = normalizeText(body.patientId);
     const requestedServiceId = normalizeText(body.serviceId);
-    const serviceId =
-      normalizeText(bookingEngineStore.resolveServiceId?.(requestedServiceId)) ||
-      requestedServiceId;
     const resourceId = normalizeText(body.resourceId);
     const practitionerId = normalizeText(body.practitionerId);
     const startsAt = normalizeText(body.startsAt);
@@ -629,7 +759,26 @@ function createCcoBookingEngineRouter({
       bookingEngineStore.listServices(),
       bookingEngineStore.listResources(),
     ]);
-    const service = services.find((item) => normalizeText(item.id) === serviceId) || null;
+    const runtimeCatalog =
+      typeof bookingEngineStore.getRuntimeCatalog === 'function'
+        ? await bookingEngineStore.getRuntimeCatalog()
+        : null;
+    const runtimeServices = asArray(runtimeCatalog?.services);
+    const aliasResolvedServiceId =
+      normalizeText(bookingEngineStore.resolveServiceId?.(requestedServiceId)) ||
+      requestedServiceId;
+    const serviceSelection = resolveInternalServiceSelection(services, aliasResolvedServiceId) ||
+      resolveInternalVariantSelection(runtimeServices, requestedServiceId) ||
+      resolveInternalVariantSelection(runtimeServices, aliasResolvedServiceId) ||
+      resolveInternalServiceSelection(runtimeServices, aliasResolvedServiceId) || {
+        requestedServiceId,
+        serviceId: aliasResolvedServiceId,
+        service: null,
+        variant: null,
+      };
+    const serviceId = serviceSelection.serviceId;
+    const service = serviceSelection.service;
+    const serviceVariant = serviceSelection.variant;
     const resource = resources.find((item) => normalizeText(item.id) === resourceId) || null;
     const practitioner =
       resources.find((item) => normalizeText(item.id) === practitionerId) || null;
@@ -650,6 +799,15 @@ function createCcoBookingEngineRouter({
             normalizeText(slot.serviceId) === serviceId &&
             normalizeText(slot.resourceId) === resourceId
         ) || null;
+      if (selectedSlot && serviceVariant) {
+        selectedSlot = {
+          ...selectedSlot,
+          serviceVariantId: serviceVariant.variantId,
+          serviceLabel: serviceVariant.label,
+          servicePrice: serviceVariant.price,
+          clinicalParentServiceId: serviceVariant.clinicalParentServiceId,
+        };
+      }
     }
     const email = patientEmail(patient);
     const gates = [
@@ -737,7 +895,20 @@ function createCcoBookingEngineRouter({
       actionAllowed: blockers.length === 0,
       confirmTextRequired: CREATE_CONFIRM_TEXT,
       patient: patient ? { patientId, name: patientName(patient), email } : null,
-      service: service ? { serviceId, label: service.label } : null,
+      service: service
+        ? {
+            serviceId,
+            requestedServiceId,
+            label: serviceVariant?.label || service.label,
+            parentServiceId: serviceId,
+            variantId: serviceVariant?.variantId || null,
+            meridiqApiId: serviceVariant?.meridiqApiId ?? null,
+            price: serviceVariant?.price || null,
+            priceLabel: serviceVariant?.price?.display || null,
+            priceType: serviceVariant?.price?.priceType || null,
+            clinicalParentServiceId: serviceVariant?.clinicalParentServiceId || serviceId,
+          }
+        : null,
       resource: resource ? { resourceId, label: resource.label } : null,
       practitioner: practitioner ? { practitionerId, label: practitioner.label } : null,
       time: localTime
@@ -949,15 +1120,21 @@ function createCcoBookingEngineRouter({
   );
 
   router.get('/cco-booking-engine/catalog', async (req, res) =>
-    handle(req, res, async () => {
+    handle(req, res, async (context) => {
+      requireBookingCatalogRead(context);
       const [resources, services] = await Promise.all([
         bookingEngineStore.listResources(),
         bookingEngineStore.listServices(),
       ]);
+      const runtimeCatalog =
+        typeof bookingEngineStore.getRuntimeCatalog === 'function'
+          ? await bookingEngineStore.getRuntimeCatalog()
+          : null;
       return res.json({
         provider: 'cco_engine',
         resources,
         services,
+        serviceVariants: buildInternalServiceVariantCatalog(runtimeCatalog?.services || services),
       });
     })
   );

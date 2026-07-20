@@ -65,6 +65,28 @@ async function fixture(options = {}) {
   return { app, tempDir, bookingEngineStore, auditLog };
 }
 
+function authStoreForCatalogRbac() {
+  return {
+    async getSessionContextByToken(token) {
+      const rolesByToken = {
+        'staff-read-token': 'STAFF',
+        'patient-token': 'PATIENT',
+        'revisor-token': 'REVISOR',
+      };
+      const role = rolesByToken[token];
+      if (!role) return null;
+      return {
+        session: { id: `session-${token}` },
+        membership: { tenantId: 'tenant-a', role },
+        user: { id: `user-${token}` },
+      };
+    },
+    async touchSession() {
+      return true;
+    },
+  };
+}
+
 async function firstSlot(baseUrl) {
   const { fromDate, toDate } = bookingMondayWindow();
   const response = await fetch(
@@ -125,6 +147,116 @@ test('calendar create runs read-only preflight then reserve→confirm with stric
       const actions = fx.auditLog.query({ limit: 20 }).map((item) => item.action);
       assert.ok(actions.includes('bookings.create_requested'));
       assert.ok(actions.includes('bookings.create_committed'));
+    });
+  } finally {
+    await fs.rm(fx.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calendar admin catalog requires auth, staff and bookings.read for internal service variants', async () => {
+  const fx = await fixture({ authStore: authStoreForCatalogRbac() });
+  try {
+    await withServer(fx.app, async (baseUrl) => {
+      const unauthenticated = await fetch(`${baseUrl}/cco-booking-engine/catalog`);
+      assert.equal(unauthenticated.status, 401);
+
+      const patient = await fetch(`${baseUrl}/cco-booking-engine/catalog`, {
+        headers: { authorization: 'Bearer patient-token' },
+      });
+      assert.equal(patient.status, 403);
+
+      const revisor = await fetch(`${baseUrl}/cco-booking-engine/catalog`, {
+        headers: { authorization: 'Bearer revisor-token' },
+      });
+      assert.equal(revisor.status, 403);
+      assert.equal((await revisor.json()).metadata.requiredPermission, 'bookings.read');
+
+      const response = await fetch(`${baseUrl}/cco-booking-engine/catalog`, {
+        headers: { authorization: 'Bearer staff-read-token' },
+      });
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      assert.equal(payload.provider, 'cco_engine');
+      assert.equal(payload.serviceVariants.length, 82);
+
+      const variant = payload.serviceVariants.find(
+        (item) => item.variantId === 'dhi-7097-dhi-hartransplantation-1000-grafts'
+      );
+      assert.ok(variant);
+      assert.equal(variant.label, 'DHI Hårtransplantation: 1000 grafts');
+      assert.equal(variant.parentServiceId, 'dhi');
+      assert.equal(variant.clinicalParentServiceId, 'dhi');
+      assert.equal(variant.meridiqApiId, 7097);
+      assert.equal(variant.price.amountSek, 52000);
+      assert.equal(variant.price.priceType, 'fast');
+      assert.equal(variant.internalBookable, true);
+      assert.equal(variant.publicBookable, false);
+      assert.match(variant.publicBookableDecision, /^fail_closed_/);
+
+      assert.ok(payload.services.every((service) => !service.variantId));
+    });
+  } finally {
+    await fs.rm(fx.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calendar create preflight resolves exact service variant to clinical parent and price', async () => {
+  const fx = await fixture();
+  try {
+    await withServer(fx.app, async (baseUrl) => {
+      const slot = await firstSlot(baseUrl);
+      const variantId = 'consultation-physical-7078-mote-pa-kliniken';
+      const response = await fetch(`${baseUrl}/cco-booking-engine/create/preflight`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-idempotency-key': 'calendar-create-dhi-variant-1',
+        },
+        body: JSON.stringify(body(slot, { serviceId: variantId })),
+      });
+      assert.equal(response.status, 200);
+      const preflight = (await response.json()).preflight;
+      assert.equal(preflight.readOnly, true);
+      assert.equal(preflight.actionAllowed, true);
+      assert.equal(preflight.service.requestedServiceId, variantId);
+      assert.equal(preflight.service.serviceId, 'consultation-physical');
+      assert.equal(preflight.service.parentServiceId, 'consultation-physical');
+      assert.equal(preflight.service.variantId, variantId);
+      assert.equal(preflight.service.label, 'Möte på kliniken');
+      assert.equal(preflight.service.meridiqApiId, 7078);
+      assert.equal(preflight.service.price.amountSek, 0);
+      assert.equal(preflight.service.priceLabel, '0 kr (paket)');
+      assert.equal(preflight.service.priceType, 'konsultation');
+      assert.equal(preflight.service.clinicalParentServiceId, 'consultation-physical');
+      assert.equal(preflight.selectedSlot.serviceId, 'consultation-physical');
+      assert.equal(preflight.selectedSlot.serviceVariantId, variantId);
+      assert.equal(preflight.selectedSlot.clinicalParentServiceId, 'consultation-physical');
+      assert.equal(fx.bookingEngineStore._state.bookings.length, 0);
+      assert.equal(fx.bookingEngineStore._state.reservations.length, 0);
+    });
+  } finally {
+    await fs.rm(fx.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calendar create preflight rejects unmapped variant text without fuzzy matching', async () => {
+  const fx = await fixture();
+  try {
+    await withServer(fx.app, async (baseUrl) => {
+      const slot = await firstSlot(baseUrl);
+      const response = await fetch(`${baseUrl}/cco-booking-engine/create/preflight`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-idempotency-key': 'calendar-create-dhi-variant-bad-1',
+        },
+        body: JSON.stringify(body(slot, { serviceId: 'DHI Hårtransplantation 1000 grafts' })),
+      });
+      assert.equal(response.status, 409);
+      const preflight = (await response.json()).preflight;
+      assert.ok(preflight.blockers.some((gate) => gate.key === 'treatment'));
+      assert.equal(fx.bookingEngineStore._state.bookings.length, 0);
+      assert.equal(fx.bookingEngineStore._state.reservations.length, 0);
     });
   } finally {
     await fs.rm(fx.tempDir, { recursive: true, force: true });
