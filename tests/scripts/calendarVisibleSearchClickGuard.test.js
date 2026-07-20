@@ -14,16 +14,23 @@ const {
 const repoRoot = path.join(__dirname, '../..');
 
 function extractFunction(source, name, nextName) {
-  const start = source.indexOf(`function ${name}`);
+  const asyncStart = source.indexOf(`async function ${name}`);
+  const start = asyncStart === -1 ? source.indexOf(`function ${name}`) : asyncStart;
   assert.notEqual(start, -1, `${name} should exist`);
+  const nextAsyncStart = nextName ? source.indexOf(`async function ${nextName}`, start) : -1;
+  const nextPlainStart = nextName ? source.indexOf(`function ${nextName}`, start) : -1;
+  const nextStart =
+    nextAsyncStart !== -1 && (nextPlainStart === -1 || nextAsyncStart < nextPlainStart)
+      ? nextAsyncStart
+      : nextPlainStart;
   const end = nextName
-    ? source.indexOf(`function ${nextName}`, start)
+    ? nextStart
     : source.indexOf('\n  function ', start + 1);
   assert.notEqual(end, -1, `${name} extraction should have a terminator`);
   return source.slice(start, end);
 }
 
-function buildActiveCalendarSearchHarness({
+async function buildActiveCalendarSearchHarness({
   overlayClass = 'search-overlay is-visible',
   overlayPointerEvents = 'auto',
   hitTarget = 'result-child',
@@ -52,29 +59,50 @@ function buildActiveCalendarSearchHarness({
     window,
     document: window.document,
     console,
+    URLSearchParams,
     CSS: { escape: (value) => String(value) },
+    fetch: async (url, options = {}) => {
+      assert.match(String(url), /\/api\/v1\/cco-bookings\/history-search/);
+      assert.equal(options.credentials, 'same-origin');
+      return {
+        ok: true,
+        async json() {
+          return {
+            ok: true,
+            readOnly: true,
+            zeroWrites: true,
+            rows: [{
+              bookingId: 'booking-canonical',
+              patientId: 'patient-canonical-42',
+              patientName: 'Canonical Patient',
+              serviceDisplayName: 'Fysisk konsultation',
+              startsAt: '2026-08-03T09:00:00.000Z',
+              status: 'booked',
+            }],
+            pagination: { total: 1, limit: 30, offset: 0, returned: 1 },
+          };
+        },
+      };
+    },
   };
   const script = `
-    const v6State = { visits: [{
-      bookingId: 'booking-canonical',
-      patientId: 'patient-canonical-42',
-      patientName: 'Canonical Patient',
-      serviceLabel: 'Fysisk konsultation',
-      date: '2026-08-03',
-      time: '11:00',
-      status: 'booked'
-    }] };
+    const global = window;
+    const v6State = { visits: [] };
+    function calendarHeaders() { return { Authorization: 'Bearer runtime-token' }; }
     function v6SetText(node, text) { if (node) node.textContent = text; }
     function v6Initials(name) { return String(name || '?').slice(0, 2).toUpperCase(); }
     function statusLabel(status) { return status || ''; }
     function v6RenderIntel() {}
     ${extractFunction(shell, 'el', 'timeToMinutes')}
+    ${extractFunction(shell, 'stockholmParts', 'canonicalVisitToSlot')}
     ${extractFunction(shell, 'openCanonicalPatient', 'detectViewFromUrl')}
+    ${extractFunction(shell, 'historySearchRowToV6Slot', 'fetchV6HistorySearchRows')}
+    ${extractFunction(shell, 'fetchV6HistorySearchRows', 'v6RenderSearch')}
     ${extractFunction(shell, 'v6RenderSearch', 'v6BindControls')}
     window.__test = { v6RenderSearch };
   `;
   vm.runInNewContext(script, sandbox);
-  window.__test.v6RenderSearch('canonical');
+  await window.__test.v6RenderSearch('canonical');
 
   const result = window.document.querySelector('.search-result');
   assert.ok(result);
@@ -94,8 +122,8 @@ function buildActiveCalendarSearchHarness({
   return { window, result };
 }
 
-test('visible Kalender search smoke guard accepts only visible active /kalender.html results', () => {
-  const { window, result } = buildActiveCalendarSearchHarness();
+test('visible Kalender search smoke guard accepts only visible active /kalender.html results', async () => {
+  const { window, result } = await buildActiveCalendarSearchHarness();
 
   const guard = assertVisibleSearchResultClickTarget({
     document: window.document,
@@ -109,8 +137,8 @@ test('visible Kalender search smoke guard accepts only visible active /kalender.
   assert.equal(guard.readOnly, '0');
 });
 
-test('visible Kalender search smoke guard fails closed when overlay is hidden', () => {
-  const { window, result } = buildActiveCalendarSearchHarness({
+test('visible Kalender search smoke guard fails closed when overlay is hidden', async () => {
+  const { window, result } = await buildActiveCalendarSearchHarness({
     overlayClass: 'search-overlay',
     overlayPointerEvents: 'none',
   });
@@ -121,8 +149,8 @@ test('visible Kalender search smoke guard fails closed when overlay is hidden', 
   );
 });
 
-test('visible Kalender search smoke guard fails closed when pointer-events are blocked', () => {
-  const { window, result } = buildActiveCalendarSearchHarness({
+test('visible Kalender search smoke guard fails closed when pointer-events are blocked', async () => {
+  const { window, result } = await buildActiveCalendarSearchHarness({
     overlayClass: 'search-overlay is-visible',
     overlayPointerEvents: 'none',
   });
@@ -133,8 +161,8 @@ test('visible Kalender search smoke guard fails closed when pointer-events are b
   );
 });
 
-test('visible Kalender search smoke guard fails closed when click point hits underlying Morgon', () => {
-  const { window, result } = buildActiveCalendarSearchHarness({
+test('visible Kalender search smoke guard fails closed when click point hits underlying Morgon', async () => {
+  const { window, result } = await buildActiveCalendarSearchHarness({
     hitTarget: 'underlying-greet',
   });
 

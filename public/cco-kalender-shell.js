@@ -2436,7 +2436,69 @@
     if (content) content.dataset.mode = v6State.mode === 'morgon' ? 'morgon' : 'vecka';
   }
 
-  function v6RenderSearch(query) {
+  function historySearchRowToV6Slot(row) {
+    const start = stockholmParts(row.startsAt || '');
+    const end = stockholmParts(row.endsAt || '');
+    return {
+      id: row.bookingId || row.id || '',
+      bookingId: row.bookingId || row.id || '',
+      patientId: row.patientId || '',
+      encounterId: row.encounterId || row.canonicalEncounterId || '',
+      patientName: row.patientName || '',
+      date: row.stockholmDate || start.date,
+      time: row.stockholmTime || start.time,
+      endTime: row.stockholmEndTime || end.time || '',
+      status: row.status || 'unknown',
+      serviceId: row.serviceId || '',
+      serviceLabel: row.serviceDisplayName || row.title || 'Historisk bokning',
+      resourceId: row.resourceId || row.staffName || '_unassigned',
+      resourceLabel: row.resourceLabel || row.staffName || 'Ej tilldelad',
+      staffName: row.staffName || '',
+      practitioner: row.practitioner || row.staffName || '',
+      source: row.source || row.kind || 'history_search',
+      linkAllowed: row.linkAllowed !== false && Boolean(row.patientId),
+      identityAmbiguous: row.kind === 'separate_unlinked_historical' || row.linkAllowed === false,
+      notes: row.notes || '',
+      bookingNotes: row.bookingNotes || '',
+      customerMessage: row.customerMessage || '',
+      internalNotes: row.internalNotes || '',
+      treatmentNotes: row.treatmentNotes || '',
+      startsAt: row.startsAt || '',
+      endsAt: row.endsAt || '',
+      durationMinutes: row.durationMinutes || null,
+      shadowReadmodel: row.shadowReadmodel === true,
+      historicalReason: row.historicalReason || row.reasonCode || '',
+      sourceRecords: Array.isArray(row.sourceRecords) ? row.sourceRecords : [],
+      provenance: row.provenance || null,
+    };
+  }
+
+  async function fetchV6HistorySearchRows(query) {
+    const params = new URLSearchParams({
+      q: String(query || '').trim(),
+      limit: '30',
+      includeSeparate: 'true',
+    });
+    const response = await fetch('/api/v1/cco-bookings/history-search?' + params.toString(), {
+      credentials: 'same-origin',
+      headers: calendarHeaders({
+        tenantId: global.__ccoCalTenantId || 'hair_tp',
+        role: global.__ccoCalRole || 'owner',
+      }),
+    });
+    if (!response.ok) {
+      const error = new Error('HTTP ' + response.status);
+      error.status = response.status;
+      throw error;
+    }
+    const payload = await response.json();
+    return {
+      rows: Array.isArray(payload && payload.rows) ? payload.rows : [],
+      total: Number(payload && payload.pagination && payload.pagination.total) || 0,
+    };
+  }
+
+  async function v6RenderSearch(query) {
     const list = document.getElementById('searchPanelList');
     const kicker = document.getElementById('searchPanelKicker');
     if (!list) return;
@@ -2447,10 +2509,26 @@
       v6SetText(kicker, 'Canonical historiksökning · read-only');
       return;
     }
-    const matches = v6State.visits.filter((slot) => !term || [slot.patientName, slot.serviceLabel,
-      slot.bookingId, slot.patientId].some((value) => String(value || '').toLocaleLowerCase('sv-SE').includes(term)));
+    v6SetText(kicker, 'Söker hela canonical bokningshistoriken…');
     list.innerHTML = '';
-    matches.slice(0, 30).forEach((slot) => {
+    list.appendChild(el('div', { class: 'search-empty' }, 'Laddar paginerad historik · read-only'));
+    let matches = [];
+    let total = 0;
+    try {
+      const result = await fetchV6HistorySearchRows(term);
+      total = result.total;
+      matches = result.rows.map(historySearchRowToV6Slot);
+    } catch (error) {
+      list.innerHTML = '';
+      list.appendChild(el('div', { class: 'search-empty' },
+        error && error.status === 401
+          ? 'Behörighet krävs för canonical historiksökning.'
+          : 'Canonical historiksökning kunde inte laddas just nu.'));
+      v6SetText(kicker, 'Historiksökning misslyckades · read-only');
+      return;
+    }
+    list.innerHTML = '';
+    matches.forEach((slot) => {
       const canonicalPatientId = String(slot.patientId || '').trim();
       const bookingId = slot.bookingId || slot.id || '';
       list.appendChild(el('button', {
@@ -2477,7 +2555,7 @@
       ]));
     });
     if (!matches.length) list.appendChild(el('div', { class: 'search-empty' }, 'Inga canonical träffar.'));
-    v6SetText(kicker, matches.length + ' canonical besök');
+    v6SetText(kicker, total + ' historikträffar · visar ' + matches.length + ' · read-only');
   }
 
   function v6BindControls() {

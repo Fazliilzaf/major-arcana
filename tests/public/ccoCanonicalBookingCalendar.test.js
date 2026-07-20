@@ -29,16 +29,23 @@ function loadCustomerSurfaces() {
 }
 
 function extractFunction(source, name, nextName) {
-  const start = source.indexOf(`function ${name}`);
+  const asyncStart = source.indexOf(`async function ${name}`);
+  const start = asyncStart === -1 ? source.indexOf(`function ${name}`) : asyncStart;
   assert.notEqual(start, -1, `${name} should exist`);
+  const nextAsyncStart = nextName ? source.indexOf(`async function ${nextName}`, start) : -1;
+  const nextPlainStart = nextName ? source.indexOf(`function ${nextName}`, start) : -1;
+  const nextStart =
+    nextAsyncStart !== -1 && (nextPlainStart === -1 || nextAsyncStart < nextPlainStart)
+      ? nextAsyncStart
+      : nextPlainStart;
   const end = nextName
-    ? source.indexOf(`function ${nextName}`, start)
+    ? nextStart
     : source.indexOf('\n  function ', start + 1);
   assert.notEqual(end, -1, `${name} extraction should have a terminator`);
   return source.slice(start, end);
 }
 
-function loadActiveSearchHarness(visits) {
+function loadActiveSearchHarness(rows) {
   const source = fs.readFileSync(
     path.join(__dirname, '../../public/cco-kalender-shell.js'),
     'utf8'
@@ -69,20 +76,42 @@ function loadActiveSearchHarness(visits) {
     window,
     document: window.document,
     console,
+    URLSearchParams,
     CSS: {
       escape(value) {
         return String(value).replace(/"/g, '\\"');
       },
     },
+    fetch: async (url, options = {}) => {
+      assert.match(String(url), /\/api\/v1\/cco-bookings\/history-search/);
+      assert.equal(options.credentials, 'same-origin');
+      return {
+        ok: true,
+        async json() {
+          return {
+            ok: true,
+            readOnly: true,
+            zeroWrites: true,
+            rows,
+            pagination: { total: rows.length, limit: 30, offset: 0, returned: rows.length },
+          };
+        },
+      };
+    },
   };
   const script = `
-    const v6State = { visits: ${JSON.stringify(visits)} };
+    const global = window;
+    const v6State = { visits: [] };
+    function calendarHeaders() { return { Authorization: 'Bearer runtime-token' }; }
     function v6SetText(node, text) { if (node) node.textContent = text; }
     function v6Initials(name) { return String(name || '?').slice(0, 2).toUpperCase(); }
     function statusLabel(status) { return status || ''; }
     function v6RenderIntel(slot) { window.__lastIntelBookingId = slot && slot.bookingId; }
     ${extractFunction(source, 'el', 'timeToMinutes')}
+    ${extractFunction(source, 'stockholmParts', 'canonicalVisitToSlot')}
     ${extractFunction(source, 'openCanonicalPatient', 'detectViewFromUrl')}
+    ${extractFunction(source, 'historySearchRowToV6Slot', 'fetchV6HistorySearchRows')}
+    ${extractFunction(source, 'fetchV6HistorySearchRows', 'v6RenderSearch')}
     ${extractFunction(source, 'v6RenderSearch', 'v6BindControls')}
     window.__test = { v6RenderSearch };
   `;
@@ -374,6 +403,9 @@ test('active admin calendar uses canonical bundle and the same strict patient ha
     'utf8'
   );
   assert.match(source, /\/api\/v1\/cco-bookings\/calendar-bundle/);
+  assert.match(source, /\/api\/v1\/cco-bookings\/history-search/);
+  assert.match(source, /includeSeparate: 'true'/);
+  assert.match(source, /Skriv minst 2 tecken för att söka i canonical bokningshistorik/);
   assert.match(source, /type: 'arcana:cco-open-customer-dossier', patientId/);
   assert.match(source, /window\.location\.origin/);
   assert.match(source, /dataSet|dataset/);
@@ -388,24 +420,24 @@ test('active admin calendar uses canonical bundle and the same strict patient ha
   assert.doesNotMatch(source, /window\.location\.href\s*=\s*['"]\/staff/);
 });
 
-test('active admin calendar search click dispatches canonical handoff from V6 results', () => {
+test('active admin calendar search reads full history endpoint and dispatches canonical handoff from V6 results', async () => {
   const { window, messages, fallbacks } = loadActiveSearchHarness([
     {
       bookingId: 'booking-canonical',
       patientId: 'patient-canonical-42',
       patientName: 'Canonical Patient',
-      serviceLabel: 'Fysisk konsultation',
-      date: '2026-08-03',
-      time: '11:00',
+      serviceDisplayName: 'Fysisk konsultation',
+      startsAt: '2026-08-03T09:00:00.000Z',
       status: 'booked',
     },
   ]);
 
-  window.__test.v6RenderSearch('canonical');
+  await window.__test.v6RenderSearch('canonical');
   const result = window.document.querySelector('.search-result');
   assert.ok(result);
   assert.equal(result.dataset.patientId, 'patient-canonical-42');
   assert.equal(result.dataset.readOnly, '0');
+  assert.match(window.document.getElementById('searchPanelKicker').textContent, /historikträffar/);
 
   result.click();
 
@@ -418,20 +450,22 @@ test('active admin calendar search click dispatches canonical handoff from V6 re
   assert.equal(fallbacks[0].patientId, 'patient-canonical-42');
 });
 
-test('active admin calendar search leaves unlinked results inert with no handoff', () => {
+test('active admin calendar history search leaves unlinked/separate results inert with no handoff', async () => {
   const { window, messages, fallbacks } = loadActiveSearchHarness([
     {
       bookingId: 'booking-unlinked',
       patientId: '',
       patientName: '',
-      serviceLabel: 'PRP',
-      date: '2026-08-04',
-      time: '12:00',
+      kind: 'separate_unlinked_historical',
+      serviceDisplayName: 'PRP',
+      startsAt: '2026-08-04T10:00:00.000Z',
       status: 'completed',
+      linkAllowed: false,
+      reasonCode: 'identity_collision',
     },
   ]);
 
-  window.__test.v6RenderSearch('prp');
+  await window.__test.v6RenderSearch('prp');
   const result = window.document.querySelector('.search-result');
   assert.ok(result);
   assert.equal(result.dataset.patientId, '');
