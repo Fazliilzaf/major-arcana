@@ -435,3 +435,57 @@ test('v2-skalet: quick-reply-utkast överlever om-rendering', () => {
     'utkastet ska bevaras över om-rendering'
   );
 });
+
+test('v2-skalet: persistenta trådåtgärder visas och skickar den valda riktiga tråden till appen', async () => {
+  const { window, document, api } = loadShell();
+  const actions = [];
+  const ctx = makeCtx({
+    actionFeedback: { message: 'Markerad som klar.', tone: 'success' },
+    handlers: {
+      ...makeCtx().handlers,
+      action(name, thread) {
+        actions.push({ name, threadId: thread.id });
+        return Promise.resolve({ ok: true });
+      },
+    },
+  });
+  api.render(ctx);
+
+  const root = document.getElementById('cco-conv-v2-root');
+  assert.match(root.querySelector('[data-v2-thread]').textContent, /Markera klar/);
+  assert.match(root.querySelector('[data-v2-thread]').textContent, /Senare/);
+  assert.match(root.querySelector('[data-v2-thread]').textContent, /Återöppna/);
+  assert.match(root.querySelector('[data-v2-action-feedback]').textContent, /Markerad som klar/);
+
+  root
+    .querySelector('[data-v2-thread] [data-v2-action="handled"]')
+    .dispatchEvent(new window.Event('click', { bubbles: true }));
+  await Promise.resolve();
+  assert.deepEqual(actions, [{ name: 'handled', threadId: 't-1' }]);
+});
+
+test('v2-skalet: misslyckad massåtgärd behåller operatörens urval', async () => {
+  const { window, document, api } = loadShell();
+  const ctx = makeCtx({
+    handlers: {
+      ...makeCtx().handlers,
+      bulkAction() {
+        return Promise.reject(new Error('server refused'));
+      },
+    },
+  });
+  api.render(ctx);
+  const root = document.getElementById('cco-conv-v2-root');
+  const checkbox = root.querySelector('[data-thread-select="t-1"]');
+  checkbox.dispatchEvent(new window.Event('click', { bubbles: true }));
+  root
+    .querySelector('[data-v3-bulk="handled"]')
+    .dispatchEvent(new window.Event('click', { bubbles: true }));
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.ok(
+    root.querySelector('[data-thread-select="t-1"]').getAttribute('aria-checked') === 'true',
+    'ett avvisat serversvar får inte tyst rensa det valda urvalet'
+  );
+});
