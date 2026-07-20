@@ -19,6 +19,8 @@
  *   laneThreads:[rawThread],   // trådar i aktiv lane (det inboxen visar)
  *   allThreads: [rawThread],   // hela scoped-kön (för flik-räknare)
  *   selected:   rawThread|null,
+ *   loading:    boolean,
+ *   authRequired: boolean,
  *   handlers:   { selectThread(id), setLane(id), action(name, thread) },
  * }
  */
@@ -135,6 +137,37 @@
 
   function text(value) {
     return String(value == null ? '' : value).trim();
+  }
+
+  function threadConversationKey(thread) {
+    var safe = thread || {};
+    return (
+      text(safe.id) ||
+      text(safe.conversationKey) ||
+      text(safe.conversationId) ||
+      text(safe.mailboxConversationId)
+    );
+  }
+
+  function uniqueConversationKeys(threads) {
+    var seen = {};
+    var keys = [];
+    (threads || []).forEach(function (thread) {
+      var key = threadConversationKey(thread);
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      keys.push(key);
+    });
+    return keys;
+  }
+
+  function paritySnapshot(ctx) {
+    var safe = ctx || {};
+    return {
+      scopedConversationKeys: uniqueConversationKeys(safe.allThreads),
+      laneConversationKeys: uniqueConversationKeys(safe.laneThreads),
+      selectedConversationKey: threadConversationKey(safe.selected),
+    };
   }
 
   function threadName(thread) {
@@ -642,13 +675,19 @@
         el.innerHTML = new Array(6).fill('<div class="v3-skel v3-skel-row"></div>').join('');
         return;
       }
+      if (ctx.authRequired) {
+        el.innerHTML = '<div class="inbox-empty">Logga in igen i admin för att läsa CCO-inkorgen.</div>';
+        return;
+      }
       el.innerHTML = '<div class="inbox-empty">Inga konversationer i denna vy.</div>';
       return;
     }
-    var selectedId = ctx.selected ? text(ctx.selected.id) : '';
+    var selectedId = ctx.selected ? threadConversationKey(ctx.selected) : '';
     el.innerHTML = list
       .map(function (thread) {
-        var id = text(thread.id);
+        // V2 använder exakt samma canonical conversation key som legacy-state
+        // (id när den finns, annars den redan normaliserade fallback-nyckeln).
+        var id = threadConversationKey(thread);
         var active = id && id === selectedId ? ' active' : '';
         var unread = isUnread(thread) ? ' thread-unread' : '';
         var isSel = selected[id] ? ' is-selected' : '';
@@ -755,7 +794,7 @@
       '</div>' +
       '<div class="v3-quickreply">' +
       '<textarea data-v3-qr-body placeholder="Snabbsvar — sparas som utkast (skicka kräver owner)…">' +
-      esc(qrDraft[text(thread.id)] || '') +
+      esc(qrDraft[threadConversationKey(thread)] || '') +
       '</textarea>' +
       '<div class="v3-quickreply-row">' +
       '<button class="v3-qr-btn v3-qr-btn--primary" type="button" data-v3-qr-save>Spara utkast</button>' +
@@ -891,7 +930,7 @@
   function findThreadById(ctx, id) {
     var all = (ctx.allThreads || []).concat(ctx.laneThreads || []);
     for (var i = 0; i < all.length; i += 1) {
-      if (text(all[i].id) === text(id)) return all[i];
+      if (threadConversationKey(all[i]) === text(id)) return all[i];
     }
     return null;
   }
@@ -1198,7 +1237,7 @@
       // Snabbsvar: spegla utkastet till state så det överlever om-rendering
       // (bakgrundspoll, tema-toggle, lane-byte) — annars tappas det skrivna.
       if (boundCtx && boundCtx.selected && event.target.matches('[data-v3-qr-body]')) {
-        qrDraft[text(boundCtx.selected.id)] = event.target.value;
+        qrDraft[threadConversationKey(boundCtx.selected)] = event.target.value;
       }
     });
     // ⌘K / Ctrl+K — kommandopalett + tangentbordsnavigering i den. Lyssnaren
@@ -1262,7 +1301,7 @@
       if (event.target.closest('[data-v3-qr-save]') && boundCtx && boundCtx.selected) {
         var qrTa = root.querySelector('[data-v3-qr-body]');
         var qrText = qrTa ? qrTa.value : '';
-        var qrId = text(boundCtx.selected.id);
+        var qrId = threadConversationKey(boundCtx.selected);
         if (qrText.trim() && typeof boundCtx.handlers.studioSave === 'function') {
           boundCtx.handlers
             .studioSave({
@@ -1761,6 +1800,7 @@
   global.ArcanaConversationsV2 = {
     render: render,
     _findThreadById: findThreadById,
+    _paritySnapshot: paritySnapshot,
   };
 
   function flagEnabled() {

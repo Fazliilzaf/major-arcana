@@ -39971,7 +39971,15 @@
   }
 
   function renderConversationsV2Shell() {
-    const scoped = getQueueScopedRuntimeThreads();
+    // V2 delar runtime-state med legacy, men får aldrig falla tillbaka till
+    // preview-/demo-trådar. Utan en autentiserad live-worklist visar vyn ett
+    // ärligt tomt/auth-läge tills samma befintliga laddare har levererat data.
+    const hasLiveRuntime = state.runtime?.live === true && state.runtime?.authRequired !== true;
+    const scoped = hasLiveRuntime
+      ? getQueueScopedRuntimeThreads().filter(
+          (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
+        )
+      : [];
     const activeLane = normalizePrimaryQueueLaneId(
       asText(workspaceSourceOfTruth.getActiveLaneId() || state.selection?.laneId || "all") || "all"
     );
@@ -39979,13 +39987,20 @@
       ...lane,
       count: getQueueLaneThreads(lane.id, scoped).length,
     }));
-    const selected = getSelectedRuntimeFocusThread() || getSelectedRuntimeThread() || null;
+    const selectedCandidate = getSelectedRuntimeFocusThread() || getSelectedRuntimeThread() || null;
+    const runtimeThreadKey = (thread) =>
+      thread?.id || thread?.conversationKey || thread?.conversationId || thread?.mailboxConversationId || "";
+    const selected = scoped.find((thread) =>
+      runtimeConversationIdsMatch(runtimeThreadKey(thread), runtimeThreadKey(selectedCandidate))
+    ) || null;
     window.ArcanaConversationsV2.render({
       lanes,
       activeLane,
       laneThreads: getQueueLaneThreads(activeLane, scoped),
       allThreads: scoped,
       selected,
+      loading: state.runtime?.loading === true,
+      authRequired: state.runtime?.authRequired === true,
       // v3: vald ägare (operatörens kö) — driver "Mina"-segmentet så att bara
       // den signerade operatörens trådar matchar, inte oägda/kollegors (Bugbot).
       operatorKey: normalizeKey(

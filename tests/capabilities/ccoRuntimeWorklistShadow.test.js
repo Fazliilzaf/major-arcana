@@ -56,6 +56,28 @@ function createMockAuth(role = 'OWNER') {
   return { requireAuth, requireRole };
 }
 
+function createBearerAuth(contexts = {}) {
+  function requireAuth(req, res, next) {
+    const authorization = req.get('authorization') || '';
+    const token = authorization.replace(/^Bearer\s+/i, '');
+    if (!/^Bearer\s+/i.test(authorization) || !contexts[token]) {
+      return res.status(401).json({ error: 'unauthorized' });
+    }
+    req.auth = contexts[token];
+    return next();
+  }
+  function requireRole(...roles) {
+    const allowed = new Set(roles.map((item) => String(item || '').toUpperCase()));
+    return (req, res, next) => {
+      if (!allowed.has(String(req.auth?.role || '').toUpperCase())) {
+        return res.status(403).json({ error: 'forbidden' });
+      }
+      return next();
+    };
+  }
+  return { requireAuth, requireRole };
+}
+
 test('runtime worklist consumer rejects broad mailbox sweeps before reading truth data', async () => {
   const app = express();
   app.use(express.json());
@@ -86,6 +108,127 @@ test('runtime worklist consumer rejects broad mailbox sweeps before reading trut
     assert.equal(payload.error, 'worklist_scope_too_broad');
     assert.equal(payload.maxMailboxIds, 2);
   });
+});
+
+test('runtime worklist consumer contract: Bearer, tenant cache and mailbox scope are fail-closed for v2 parity', async () => {
+  clearWorklistConsumerResponseCache();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-worklist-v2-parity-'));
+  const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
+    filePath: path.join(tempDir, 'cco-mailbox-truth.json'),
+  });
+  const scopedMailboxId = 'contact@hairtpclinic.com';
+  const offScopeMailboxId = 'legacy@other-clinic.test';
+  try {
+    await seedFolder(ccoMailboxTruthStore, {
+      mailboxId: scopedMailboxId,
+      folderType: 'inbox',
+      messages: [
+        inboxMessage({
+          mailboxId: scopedMailboxId,
+          conversationId: 'v2-contact-visible',
+          graphMessageId: 'v2-contact-message',
+          subject: 'Synlig scoped tråd',
+          preview: 'Ska nå både legacy och v2 via samma state.',
+          receivedAt: '2026-07-20T08:00:00.000Z',
+        }),
+      ],
+    });
+    await seedFolder(ccoMailboxTruthStore, {
+      mailboxId: offScopeMailboxId,
+      folderType: 'inbox',
+      messages: [
+        inboxMessage({
+          mailboxId: offScopeMailboxId,
+          conversationId: 'v2-offscope-hidden',
+          graphMessageId: 'v2-offscope-message',
+          subject: 'Off-scope tråd',
+          preview: 'Får aldrig läcka in via vald mailbox.',
+          receivedAt: '2026-07-20T08:01:00.000Z',
+        }),
+      ],
+    });
+
+    const app = express();
+    app.use(express.json());
+    const auth = createBearerAuth({
+      'tenant-a-owner': { tenantId: 'tenant-a', userId: 'owner-a', role: 'OWNER' },
+      'tenant-b-owner': { tenantId: 'tenant-b', userId: 'owner-b', role: 'OWNER' },
+      'tenant-a-viewer': { tenantId: 'tenant-a', userId: 'viewer-a', role: 'PERSONAL' },
+    });
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore: { async addAuditEvent() {} },
+        capabilityAnalysisStore: null,
+        ccoMailboxTruthStore,
+        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+        runtimeWorklistMailboxIds: [scopedMailboxId],
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const consumerPath = `/api/v1/cco/runtime/worklist/consumer?mailboxIds=${encodeURIComponent(
+        scopedMailboxId
+      )}&limit=20`;
+
+      const anonymous = await fetch(`${baseUrl}${consumerPath}`);
+      assert.equal(anonymous.status, 401, 'worklist consumer ska kräva Bearer-auth');
+
+      const wrongRole = await fetch(`${baseUrl}${consumerPath}`, {
+        headers: { authorization: 'Bearer tenant-a-viewer' },
+      });
+      assert.equal(wrongRole.status, 403, 'worklist consumer ska kräva owner/staff-scope');
+
+      const tenantA = await fetch(`${baseUrl}${consumerPath}`, {
+        headers: { authorization: 'Bearer tenant-a-owner' },
+      });
+      assert.equal(tenantA.status, 200);
+      assert.equal(tenantA.headers.get('x-cco-worklist-cache'), 'miss');
+      const tenantAPayload = await tenantA.json();
+      assert.deepEqual(
+        tenantAPayload.rows.map((row) => row.conversation.conversationId),
+        ['v2-contact-visible'],
+        'serverkontraktet ska exponera exakt scoped conversation key, inte bara antal'
+      );
+      assert.equal(tenantAPayload.rows[0].mailbox.mailboxId, scopedMailboxId);
+
+      const tenantB = await fetch(`${baseUrl}${consumerPath}`, {
+        headers: { authorization: 'Bearer tenant-b-owner' },
+      });
+      assert.equal(tenantB.status, 200);
+      assert.equal(
+        tenantB.headers.get('x-cco-worklist-cache'),
+        'miss',
+        'cache måste vara tenant-scopad så en annan tenant inte kan återanvända payload'
+      );
+
+      const tenantBRepeat = await fetch(`${baseUrl}${consumerPath}`, {
+        headers: { authorization: 'Bearer tenant-b-owner' },
+      });
+      assert.equal(tenantBRepeat.status, 200);
+      assert.equal(tenantBRepeat.headers.get('x-cco-worklist-cache'), 'hit');
+
+      const offScope = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/worklist/consumer?mailboxIds=${encodeURIComponent(
+          offScopeMailboxId
+        )}&limit=20`,
+        { headers: { authorization: 'Bearer tenant-a-owner' } }
+      );
+      assert.equal(offScope.status, 422, 'off-scope mailbox ska nekas fail-closed');
+      const offScopePayload = await offScope.json();
+      assert.equal(offScopePayload.error, 'worklist_scope_too_broad');
+      assert.equal(
+        JSON.stringify(offScopePayload).includes('v2-offscope-hidden'),
+        false,
+        'off-scope mailbox får aldrig läsa eller läcka en conversation key'
+      );
+    });
+  } finally {
+    clearWorklistConsumerResponseCache();
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 });
 
 test('runtime worklist consumer honours an explicit Hälso mailbox scope', async () => {
