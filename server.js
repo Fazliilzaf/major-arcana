@@ -11456,7 +11456,12 @@ app.use((req, res, next) => {
 // på faktisk fil. Strippa <script>/<link>-taggar som pekar på filer som
 // inte finns på disk (förhindrar 502-buggar typ inline-draft-edit).
 const PREVIEW_ROOT = path.join(__dirname, 'public', 'major-arcana-preview');
+const PREVIEW_BUILD_MANIFEST = path.join(PREVIEW_ROOT, 'app.bundle.latest.json');
 const __assetHashCache = new Map();
+const {
+  readPreviewBuildManifest,
+  verifyPreviewBuildIdentity,
+} = require('./src/ops/previewBuildIdentity');
 
 function getAssetHash(relPath) {
   const cleanRel = String(relPath).replace(/^\.\//, '').split('?')[0];
@@ -11554,9 +11559,25 @@ function servePreviewHtml(req, res, next) {
   try {
     const htmlPath = path.join(PREVIEW_ROOT, 'index.html');
     const rawHtml = fs.readFileSync(htmlPath, 'utf8');
+    const previewBuild = verifyPreviewBuildIdentity({
+      runtimeCommit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT,
+      manifest: readPreviewBuildManifest(PREVIEW_BUILD_MANIFEST),
+      html: rawHtml,
+    });
+    if (!previewBuild.ok) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('X-Arcana-Preview-Integrity', 'mismatch');
+      return res.status(503).type('html').send(
+        '<!doctype html><title>Uppdatering pågår</title><p>CCO uppdateras. Ladda om om ett ögonblick.</p>'
+      );
+    }
     const transformed = transformPreviewHtml(rawHtml);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    if (previewBuild.buildCommit) {
+      res.setHeader('X-Arcana-Preview-Build', previewBuild.buildCommit);
+      res.setHeader('X-Arcana-Preview-Integrity', 'verified');
+    }
     res.send(transformed);
   } catch (error) {
     console.error('[asset-pipeline] Transform misslyckades, fallback till static:', error.message);
