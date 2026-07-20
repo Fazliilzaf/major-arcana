@@ -30,6 +30,8 @@
   var doc = global.document;
   var ROOT_ID = 'cco-conv-v2-root';
   var activeTab = 'alla'; // alla | olasta | bokning | vip
+  var activeFolder = 'inbox'; // inbox | sent — samma live-trådar, ingen ny källa
+  var inboxQuery = '';
   var mobilePane = 'inbox'; // mobil master-detail: 'inbox' | 'thread'
   var activeSegment = 'alla'; // v3: alla | obesvarade | sla | mina
   var root = null;
@@ -281,11 +283,59 @@
     );
   }
 
+  function isSentThread(thread) {
+    var raw = thread && typeof thread.raw === 'object' ? thread.raw : {};
+    var lastAction = text(raw.lastActionTakenLabel).toLowerCase();
+    var lastOutboundAt = parseDate(raw.lastOutboundAt || thread.lastOutboundAt);
+    var lastInboundAt = parseDate(raw.lastInboundAt || thread.lastInboundAt);
+    var historyContainsSent = (thread.historyEvents || []).slice(0, 4).some(function (event) {
+      var haystack = (text(event.title) + ' ' + text(event.description)).toLowerCase();
+      return haystack.indexOf('e-post skickat') >= 0 || haystack.indexOf('email sent') >= 0;
+    });
+    return (
+      lastAction.indexOf('svar skickat') >= 0 ||
+      lastAction.indexOf('reply sent') >= 0 ||
+      historyContainsSent ||
+      (lastOutboundAt && (!lastInboundAt || lastOutboundAt.getTime() >= lastInboundAt.getTime()))
+    );
+  }
+
+  function mailboxTone(mailbox) {
+    var haystack = (text(mailbox.id) + ' ' + text(mailbox.email) + ' ' + text(mailbox.label)).toLowerCase();
+    if (haystack.indexOf('fazli') >= 0) return 'fazli';
+    if (haystack.indexOf('egzona') >= 0) return 'egzona';
+    if (haystack.indexOf('contact') >= 0) return 'contact';
+    return 'info';
+  }
+
+  function smartLabel(thread) {
+    var raw = thread && typeof thread.raw === 'object' ? thread.raw : {};
+    var value = text(thread.intentLabel || thread.intent || raw.intent).toLowerCase();
+    var labels = {
+      booking: 'Bokning',
+      booking_request: 'Bokning',
+      pricing: 'Prisfråga',
+      price: 'Prisfråga',
+      cancellation: 'Avbokning',
+      cancel: 'Avbokning',
+      complaint: 'Klagomål',
+      follow_up: 'Uppföljning',
+      followup: 'Uppföljning',
+    };
+    if (labels[value]) return labels[value];
+    if (thread.followUpLabel || thread.waitingLabel) return 'Uppföljning';
+    return '';
+  }
+
   function tagsFor(thread) {
     var tags = [];
     if (isUnread(thread)) tags.push({ kind: 'urgent', label: 'OLÄST' });
     if (isVip(thread)) tags.push({ kind: 'vip', label: 'VIP' });
     if (isBooking(thread)) tags.push({ kind: 'booking', label: 'Bokning' });
+    var label = smartLabel(thread);
+    if (label && !tags.some(function (tag) { return tag.label === label; })) {
+      tags.push({ kind: 'smart', label: label });
+    }
     return tags;
   }
 
@@ -538,6 +588,9 @@
       '<aside class="lane-sidebar" data-v2-lanes role="navigation" aria-label="Köfält"></aside>' +
       '<aside class="inbox-shell"><div class="inbox-kicker">Inkorg</div>' +
       '<h2 class="inbox-h2" data-v2-inbox-h2></h2>' +
+      '<div class="v2-mailbox-controls" data-v2-mailboxes></div>' +
+      '<div class="v2-folder-controls" data-v2-folders></div>' +
+      '<label class="v2-search"><span aria-hidden="true">⌕</span><input data-v2-search type="search" placeholder="Sök i konversationer…" /></label>' +
       '<div class="lane-chips" data-v2-lane-chips></div>' +
       '<div class="inbox-tabs" data-v2-tabs></div>' +
       '<div class="v3-bulkbar" data-v3-bulkbar></div>' +
@@ -616,8 +669,39 @@
       .join('');
   }
 
+  // Samma mailbox-, mapp-, sok- och segmenturval for bade listan och
+  // flikbadgarna. Flikfiltret laggs medvetet separat i visibleThreads.
+  function scopedThreads(ctx) {
+    var query = text(inboxQuery).toLowerCase();
+    var list = (ctx.laneThreads || [])
+      .slice()
+      .filter(function (thread) {
+        return activeFolder === 'sent' ? isSentThread(thread) : !isSentThread(thread);
+      })
+      .filter(function (thread) {
+        if (!query) return true;
+        var raw = thread && typeof thread.raw === 'object' ? thread.raw : {};
+        var haystack = [
+          threadName(thread),
+          thread.subject,
+          thread.preview,
+          thread.mailboxBadge,
+          thread.mailboxId,
+          thread.intentLabel,
+          thread.intent,
+          raw.intent,
+        ]
+          .map(text)
+          .join(' ')
+          .toLowerCase();
+        return haystack.indexOf(query) >= 0;
+      })
+      .filter(segmentMatch);
+    return list;
+  }
+
   function visibleThreads(ctx) {
-    var list = (ctx.laneThreads || []).slice().filter(segmentMatch);
+    var list = scopedThreads(ctx);
     if (activeTab === 'olasta') return list.filter(isUnread);
     if (activeTab === 'bokning') return list.filter(isBooking);
     if (activeTab === 'vip') return list.filter(isVip);
@@ -628,12 +712,9 @@
     var el = root.querySelector('[data-v2-tabs]');
     var h2 = root.querySelector('[data-v2-inbox-h2]');
     if (!el) return;
-    // Flik-räknarna måste räknas på samma mängd som listan filtrerar
-    // (visibleThreads = laneThreads.filter(segmentMatch) → sedan flik-filter),
-    // inkl. det aktiva v3-segmentet (Mina/SLA/Obesvarade) — annars matchar inte
-    // badgarna och rubriken den filtrerade listan (Bugbot: tab badges ignore
-    // segment filter).
-    var lane = (ctx.laneThreads || []).filter(segmentMatch);
+    // Flik-räknarna ska visa hela det scoped urvalet, inte en delmängd skapad
+    // av den flik som just är aktiv.
+    var lane = scopedThreads(ctx);
     var counts = {
       alla: lane.length,
       olasta: lane.filter(isUnread).length,
@@ -664,6 +745,44 @@
         );
       })
       .join('');
+  }
+
+  function renderMailboxControls(ctx) {
+    var el = root.querySelector('[data-v2-mailboxes]');
+    if (!el) return;
+    var selectedMailboxIds = (ctx.selectedMailboxIds || []).map(text).filter(Boolean);
+    var selectedSet = {};
+    selectedMailboxIds.forEach(function (id) { selectedSet[id] = true; });
+    var maxReached = selectedMailboxIds.length >= 2;
+    var mailboxes = ctx.mailboxes || [];
+    el.innerHTML =
+      '<div class="v2-control-kicker">Brevlådor</div>' +
+      '<div class="v2-mailbox-list">' +
+      mailboxes
+        .map(function (mailbox) {
+          var isSelected = Boolean(selectedSet[mailbox.id]);
+          var disabled = !isSelected && maxReached ? ' disabled aria-disabled="true"' : '';
+          return (
+            '<button class="v2-mailbox-chip v2-mailbox-chip--' + mailboxTone(mailbox) +
+            (isSelected ? ' active' : '') +
+            '" data-v2-mailbox="' + esc(mailbox.id) + '" type="button"' + disabled + '>' +
+            '<span class="v2-mailbox-dot" aria-hidden="true"></span>' +
+            esc(mailbox.label || mailbox.email || mailbox.id) +
+            '</button>'
+          );
+        })
+        .join('') +
+      '</div>';
+  }
+
+  function renderFolderControls() {
+    var el = root.querySelector('[data-v2-folders]');
+    if (!el) return;
+    el.innerHTML =
+      '<button class="v2-folder' + (activeFolder === 'inbox' ? ' active' : '') +
+      '" data-v2-folder="inbox" type="button">Inkorg</button>' +
+      '<button class="v2-folder' + (activeFolder === 'sent' ? ' active' : '') +
+      '" data-v2-folder="sent" type="button">Skickat</button>';
   }
 
   function renderInbox(ctx) {
@@ -1228,6 +1347,15 @@
     if (root.__v2Bound) return;
     root.__v2Bound = true;
     root.addEventListener('input', function (event) {
+      if (event.target.matches('[data-v2-search]') && boundCtx) {
+        inboxQuery = event.target.value || '';
+        activeTab = 'alla';
+        selected = {};
+        renderTabs(boundCtx);
+        renderInbox(boundCtx);
+        renderBulkBar();
+        return;
+      }
       if (studio && event.target.matches('[data-studio-body]')) {
         studio.body = event.target.value;
         var count = root.querySelector('[data-studio-count]');
@@ -1420,6 +1548,41 @@
       if (tabEl && boundCtx) {
         activeTab = tabEl.getAttribute('data-tab');
         selected = {}; // rensa urvalet vid flik-byte (vy-skopat)
+        renderTabs(boundCtx);
+        renderInbox(boundCtx);
+        renderBulkBar();
+        return;
+      }
+      var mailboxEl = event.target.closest('[data-v2-mailbox]');
+      if (mailboxEl && boundCtx && typeof boundCtx.handlers.setMailboxScope === 'function') {
+        if (mailboxEl.disabled) return;
+        var mailboxId = mailboxEl.getAttribute('data-v2-mailbox');
+        var current = (boundCtx.selectedMailboxIds || []).map(text).filter(Boolean);
+        // Ett äldre sparat scope kan vara bredare än runtime-kontraktets två
+        // mailboxar. Ett klick väljer då uttryckligen den aktuella mailboxen.
+        if (current.length > 2) {
+          selected = {};
+          boundCtx.handlers.setMailboxScope([mailboxId]);
+          return;
+        }
+        var next = current.filter(function (id) { return id !== mailboxId; });
+        if (next.length === current.length) {
+          if (current.length >= 2) return;
+          next.push(mailboxId);
+        }
+        // Ett tomt scope skulle återställa den gamla preferensen till alla
+        // mailboxar. Behåll minst en aktiv mailbox i v2.
+        if (!next.length) return;
+        selected = {};
+        boundCtx.handlers.setMailboxScope(next);
+        return;
+      }
+      var folderEl = event.target.closest('[data-v2-folder]');
+      if (folderEl && boundCtx) {
+        activeFolder = folderEl.getAttribute('data-v2-folder') === 'sent' ? 'sent' : 'inbox';
+        activeTab = 'alla';
+        selected = {};
+        renderFolderControls();
         renderTabs(boundCtx);
         renderInbox(boundCtx);
         renderBulkBar();
@@ -1793,6 +1956,8 @@
     renderToolbar(ctx);
     renderLanes(ctx);
     renderLaneChips(ctx);
+    renderMailboxControls(ctx);
+    renderFolderControls();
     renderTabs(ctx);
     renderInbox(ctx);
     renderBulkBar();

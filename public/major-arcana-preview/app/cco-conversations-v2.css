@@ -242,6 +242,93 @@ html[data-conversations-v2="on"]
   font-weight: 700;
   margin: 0 0 10px;
 }
+#cco-conv-v2-root .v2-control-kicker {
+  color: var(--cco-text-tertiary);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0 0 5px;
+}
+#cco-conv-v2-root .v2-mailbox-controls {
+  margin-bottom: 8px;
+}
+#cco-conv-v2-root .v2-mailbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+#cco-conv-v2-root .v2-mailbox-chip,
+#cco-conv-v2-root .v2-folder {
+  appearance: none;
+  border: 1px solid rgba(132, 117, 107, 0.18);
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--cco-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+}
+#cco-conv-v2-root .v2-mailbox-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+}
+#cco-conv-v2-root .v2-mailbox-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+#cco-conv-v2-root .v2-mailbox-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--rail-info);
+}
+#cco-conv-v2-root .v2-mailbox-chip--contact .v2-mailbox-dot { background: var(--rail-contact); }
+#cco-conv-v2-root .v2-mailbox-chip--fazli .v2-mailbox-dot { background: var(--rail-fazli); }
+#cco-conv-v2-root .v2-mailbox-chip--egzona .v2-mailbox-dot { background: var(--rail-egzona); }
+#cco-conv-v2-root .v2-mailbox-chip.active,
+#cco-conv-v2-root .v2-folder.active {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  border-color: rgba(187, 71, 121, 0.32);
+  color: var(--accent-studio);
+}
+#cco-conv-v2-root .v2-folder-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 7px;
+}
+#cco-conv-v2-root .v2-folder {
+  min-height: 28px;
+  border-radius: 8px;
+}
+#cco-conv-v2-root .v2-search {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid rgba(132, 117, 107, 0.16);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--cco-text-tertiary);
+  margin-bottom: 8px;
+}
+#cco-conv-v2-root .v2-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--cco-color-brand);
+  font: inherit;
+  font-size: 10.5px;
+}
+#cco-conv-v2-root .v2-search input::placeholder { color: var(--cco-text-tertiary); }
 #cco-conv-v2-root .inbox-tabs {
   display: flex;
   gap: 3px;
@@ -411,6 +498,10 @@ html[data-conversations-v2="on"]
 #cco-conv-v2-root .thread-tag--booking {
   background: var(--cco-status-info-bg);
   color: var(--cco-status-info);
+}
+#cco-conv-v2-root .thread-tag--smart {
+  background: var(--cco-status-success-bg);
+  color: var(--cco-status-success);
 }
 #cco-conv-v2-root .thread-unread::after {
   content: "";

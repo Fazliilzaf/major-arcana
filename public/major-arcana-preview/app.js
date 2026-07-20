@@ -14448,6 +14448,7 @@
   });
 
   const {
+    applyRuntimeMailboxSelection,
     bindWorkspaceInteractions,
     ensureSelectedRuntimeThreadHistoryBody,
     handleWorkspaceDocumentClick,
@@ -40002,6 +40003,13 @@
       loading: state.runtime?.loading === true,
       authRequired: state.runtime?.authRequired === true,
       error: asText(state.runtime?.error),
+      mailboxes: getAvailableRuntimeMailboxes().map((mailbox) => ({
+        id: canonicalizeRuntimeMailboxId(mailbox?.canonicalId || mailbox?.email || mailbox?.id),
+        label: asText(mailbox?.label, titleCaseMailbox(mailbox?.email || mailbox?.id)),
+        email: asText(mailbox?.email || mailbox?.id),
+        toneClass: asText(mailbox?.toneClass),
+      })).filter((mailbox) => mailbox.id),
+      selectedMailboxIds: getRequestedRuntimeMailboxIds({ includePreferredFallback: false }),
       // v3: vald ägare (operatörens kö) — driver "Mina"-segmentet så att bara
       // den signerade operatörens trådar matchar, inte oägda/kollegors (Bugbot).
       operatorKey: normalizeKey(
@@ -40015,6 +40023,15 @@
           const normalized = normalizePrimaryQueueLaneId(asText(laneId) || "all");
           workspaceSourceOfTruth.setActiveLaneId(normalized);
           renderRuntimeConversationShell();
+        },
+        setMailboxScope(mailboxIds) {
+          // Samma auktoritativa scope-väg som legacy-menyn. V2 får inte
+          // mutera runtime-state eller göra egna worklist-anrop.
+          const nextMailboxIds = asArray(mailboxIds)
+            .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId))
+            .filter(Boolean);
+          if (!nextMailboxIds.length || nextMailboxIds.length > 2) return;
+          applyRuntimeMailboxSelection(nextMailboxIds);
         },
         openDossier(thread) {
           // Säker läsning/navigering: öppnar V12-kunddossiéren för tråden via

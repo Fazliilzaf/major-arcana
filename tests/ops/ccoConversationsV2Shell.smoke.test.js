@@ -235,6 +235,185 @@ test('v2-skalet: om-rendering är idempotent (ingen dubbel-mount)', () => {
   assert.equal(roots.length, 1, 'får bara finnas ett #cco-conv-v2-root efter om-rendering');
 });
 
+test('v2-skalet: mailboxväljaren använder scoped handler och stannar vid två val', () => {
+  const { window, document, api } = loadShell();
+  const scopes = [];
+  api.render(
+    makeCtx({
+      mailboxes: [
+        { id: 'kons@hairtpclinic.com', label: 'Kons', email: 'kons@hairtpclinic.com' },
+        { id: 'contact@hairtpclinic.com', label: 'Contact', email: 'contact@hairtpclinic.com' },
+        { id: 'fazli@hairtpclinic.com', label: 'Fazli', email: 'fazli@hairtpclinic.com' },
+      ],
+      selectedMailboxIds: ['kons@hairtpclinic.com'],
+      handlers: {
+        ...makeCtx().handlers,
+        setMailboxScope(ids) {
+          scopes.push(ids);
+        },
+      },
+    })
+  );
+
+  const contact = document.querySelector('[data-v2-mailbox="contact@hairtpclinic.com"]');
+  contact.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.deepEqual(scopes, [['kons@hairtpclinic.com', 'contact@hairtpclinic.com']]);
+
+  // Runtime laddar om och matar tillbaka auktoritativ scope vid nästa render.
+  api.render(
+    makeCtx({
+      mailboxes: [
+        { id: 'kons@hairtpclinic.com', label: 'Kons', email: 'kons@hairtpclinic.com' },
+        { id: 'contact@hairtpclinic.com', label: 'Contact', email: 'contact@hairtpclinic.com' },
+        { id: 'fazli@hairtpclinic.com', label: 'Fazli', email: 'fazli@hairtpclinic.com' },
+      ],
+      selectedMailboxIds: ['kons@hairtpclinic.com', 'contact@hairtpclinic.com'],
+    })
+  );
+
+  const fazli = document.querySelector('[data-v2-mailbox="fazli@hairtpclinic.com"]');
+  assert.equal(fazli.disabled, true, 'tredje mailbox ska inte kunna ge ett för brett scope');
+});
+
+test('v2-skalet: ett gammalt överbrett mailbox-scope återställs genom ett tydligt val', () => {
+  const { window, document, api } = loadShell();
+  const scopes = [];
+  api.render(
+    makeCtx({
+      mailboxes: [
+        { id: 'kons@hairtpclinic.com', label: 'Kons' },
+        { id: 'contact@hairtpclinic.com', label: 'Contact' },
+        { id: 'fazli@hairtpclinic.com', label: 'Fazli' },
+      ],
+      selectedMailboxIds: [
+        'kons@hairtpclinic.com',
+        'contact@hairtpclinic.com',
+        'fazli@hairtpclinic.com',
+      ],
+      handlers: {
+        ...makeCtx().handlers,
+        setMailboxScope(ids) {
+          scopes.push(ids);
+        },
+      },
+    })
+  );
+
+  document
+    .querySelector('[data-v2-mailbox="contact@hairtpclinic.com"]')
+    .dispatchEvent(new window.Event('click', { bubbles: true }));
+
+  assert.deepEqual(scopes, [['contact@hairtpclinic.com']]);
+});
+
+test('v2-skalet: Inkorg och Skickat filtrerar samma scoped trådar utan ny datakälla', () => {
+  const { window, document, api } = loadShell();
+  const inboxThread = makeThread({ id: 'inbox-1', customerName: 'Inkommande' });
+  const sentThread = makeThread({
+    id: 'sent-1',
+    customerName: 'Skickat',
+    raw: { lastOutboundAt: '2026-06-20T11:00:00Z', lastInboundAt: '2026-06-20T10:00:00Z' },
+  });
+  api.render(makeCtx({ laneThreads: [inboxThread, sentThread], allThreads: [inboxThread, sentThread] }));
+
+  const inbox = document.querySelector('[data-v2-inbox]');
+  assert.match(inbox.textContent, /Inkommande/);
+  assert.doesNotMatch(inbox.textContent, /Skickat/);
+
+  document
+    .querySelector('[data-v2-folder="sent"]')
+    .dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.match(inbox.textContent, /Skickat/);
+  assert.doesNotMatch(inbox.textContent, /Inkommande/);
+});
+
+test('v2-skalet: flikbadgar räknar hela scoped urvalet även när Bokning är aktiv', () => {
+  const { window, document, api } = loadShell();
+  const bookingUnreadVip = makeThread({
+    id: 'booking-unread-vip',
+    customerName: 'Bokning',
+    vip: true,
+    intentLabel: 'booking',
+  });
+  const unread = makeThread({
+    id: 'unread',
+    customerName: 'Oläst',
+    subject: 'Allmän fråga',
+    preview: 'Jag undrar en sak.',
+    unread: true,
+  });
+  const vip = makeThread({
+    id: 'vip',
+    customerName: 'VIP',
+    subject: 'Återbesök',
+    preview: 'Tack för hjälpen.',
+    unread: false,
+    vip: true,
+  });
+  const neutral = makeThread({
+    id: 'neutral',
+    customerName: 'Neutral',
+    subject: 'Neutral fråga',
+    preview: 'En vanlig fråga.',
+    unread: false,
+  });
+  api.render(
+    makeCtx({
+      laneThreads: [bookingUnreadVip, unread, vip, neutral],
+      allThreads: [bookingUnreadVip, unread, vip, neutral],
+    })
+  );
+
+  document
+    .querySelector('[data-tab="bokning"]')
+    .dispatchEvent(new window.Event('click', { bubbles: true }));
+
+  const tabCounts = Object.fromEntries(
+    Array.from(document.querySelectorAll('[data-v2-tabs] [data-tab]')).map((tab) => [
+      tab.getAttribute('data-tab'),
+      tab.querySelector('.count').textContent,
+    ])
+  );
+  assert.deepEqual(tabCounts, {
+    alla: '4',
+    olasta: '2',
+    bokning: '1',
+    vip: '2',
+  });
+  assert.match(document.querySelector('[data-v2-inbox]').textContent, /Boka PRP-behandling/);
+  assert.doesNotMatch(document.querySelector('[data-v2-inbox]').textContent, /Neutral/);
+});
+
+test('v2-skalet: fritext och smart etikett använder befintliga trådfält', () => {
+  const { window, document, api } = loadShell();
+  const priceThread = makeThread({
+    id: 'price-1',
+    customerName: 'Prisfråga',
+    intentLabel: 'pricing',
+  });
+  const neutralThread = makeThread({ id: 'neutral-1', customerName: 'Neutral kund' });
+  api.render(makeCtx({ laneThreads: [priceThread, neutralThread], allThreads: [priceThread, neutralThread] }));
+
+  const inbox = document.querySelector('[data-v2-inbox]');
+  assert.match(inbox.textContent, /Prisfråga/);
+  const search = document.querySelector('[data-v2-search]');
+  search.value = 'neutral';
+  search.dispatchEvent(new window.Event('input', { bubbles: true }));
+  assert.match(inbox.textContent, /Neutral kund/);
+  assert.doesNotMatch(inbox.textContent, /Prisfråga/);
+});
+
+test('v2-skalet: appen matar mailboxar och vald scope till samma runtime-renderare', () => {
+  const appSource = fs.readFileSync(APP_PATH, 'utf8');
+  assert.match(appSource, /mailboxes: getAvailableRuntimeMailboxes\(\)\.map/);
+  assert.match(
+    appSource,
+    /selectedMailboxIds: getRequestedRuntimeMailboxIds\(\{ includePreferredFallback: false \}\)/
+  );
+  assert.match(appSource, /if \(!nextMailboxIds\.length \|\| nextMailboxIds\.length > 2\) return;/);
+  assert.match(appSource, /applyRuntimeMailboxSelection\(nextMailboxIds\)/);
+});
+
 // Regression (bug-hunt): snabbsvar-utkastet ska överleva en om-rendering
 // (bakgrundspoll/tema-toggle skrev tidigare över det skrivna).
 test('v2-skalet: quick-reply-utkast överlever om-rendering', () => {

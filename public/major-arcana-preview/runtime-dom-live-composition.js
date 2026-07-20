@@ -3693,6 +3693,81 @@
       }, RUNTIME_MAILBOX_SCOPE_DEBOUNCE_MS);
     }
 
+    // Den här vägen är den enda auktoritativa mailboxväxlingen i CCO. Den
+    // används både av legacy-menyn och v2-skalet så urval, trådval och live-
+    // laddning alltid följer samma Bearer- och mailbox-scope-kontrakt.
+    function applyRuntimeMailboxSelection(requestedMailboxIds) {
+      const nextSelectedMailboxIds = workspaceSourceOfTruth.setSelectedMailboxIds(
+        requestedMailboxIds
+      );
+      const availableMailboxIds = asArray(
+        typeof getAvailableRuntimeMailboxes === "function" ? getAvailableRuntimeMailboxes() : []
+      )
+        .map((mailbox) =>
+          canonicalizeRuntimeMailboxId(mailbox?.canonicalId || mailbox?.email || mailbox?.id)
+        )
+        .filter(Boolean);
+      state.runtime.mailboxScopePinned =
+        nextSelectedMailboxIds.length > 0 &&
+        availableMailboxIds.length > 0 &&
+        nextSelectedMailboxIds.length < availableMailboxIds.length;
+      markRuntimeNonBlockingSync();
+      workspaceSourceOfTruth.setSelectedThreadId("");
+      state.runtime.historyContextThreadId = "";
+      state.runtime.queueInlinePanel = {
+        ...state.runtime.queueInlinePanel,
+        open: false,
+        laneId: "",
+        feedKey: "",
+      };
+      state.runtime.queueHistory = {
+        ...state.runtime.queueHistory,
+        open: false,
+        loading: false,
+        loaded: false,
+        error: "",
+        items: [],
+        selectedConversationId: "",
+        hasMore: false,
+        scopeKey: "",
+      };
+      paintRuntimeShell("queue");
+      renderQueueHistorySection();
+      if (typeof ensureRuntimeSelection === "function") {
+        ensureRuntimeSelection();
+      }
+      captureRuntimeReentrySnapshot("mailboxscope_changed");
+      debugReentrySnapshot("AFTER MAILBOX CHANGE");
+      debugRuntimePipeline("AFTER MAILBOX CHANGE");
+      refreshQueueInlineHistoryIfOpen();
+      void applyRuntimeScopeThreadCacheIfAvailable(nextSelectedMailboxIds);
+      if (!nextSelectedMailboxIds.length) {
+        state.runtime.mailboxScopePinned = false;
+        clearRuntimeBackgroundSync();
+        state.runtime.queueHistory = {
+          ...state.runtime.queueHistory,
+          loading: false,
+          loaded: true,
+          error: "",
+          items: [],
+          selectedConversationId: "",
+          hasMore: false,
+          scopeKey: "",
+        };
+        workspaceSourceOfTruth.setSelectedThreadId("");
+        renderQueueHistorySection();
+        loadBootstrap({
+          preserveActiveDestination: true,
+          applyWorkspacePrefs: false,
+          quiet: true,
+        }).catch((error) => {
+          console.warn("CCO workspace bootstrap misslyckades efter tomt mailboxscope.", error);
+        });
+        return;
+      }
+      scheduleMailboxScopeLiveReload(nextSelectedMailboxIds);
+    }
+
     async function loadLiveRuntime(options = {}) {
       if (isStaffJournalOpenAccessClient()) {
         state.runtime.loading = false;
@@ -4705,78 +4780,6 @@
       }
 
       if (mailboxMenuGrid) {
-        const applyRuntimeMailboxSelection = (requestedMailboxIds) => {
-          const nextSelectedMailboxIds = workspaceSourceOfTruth.setSelectedMailboxIds(
-            requestedMailboxIds
-          );
-          const availableMailboxIds = asArray(
-            typeof getAvailableRuntimeMailboxes === "function" ? getAvailableRuntimeMailboxes() : []
-          )
-            .map((mailbox) =>
-              canonicalizeRuntimeMailboxId(mailbox?.canonicalId || mailbox?.email || mailbox?.id)
-            )
-            .filter(Boolean);
-          state.runtime.mailboxScopePinned =
-            nextSelectedMailboxIds.length > 0 &&
-            availableMailboxIds.length > 0 &&
-            nextSelectedMailboxIds.length < availableMailboxIds.length;
-          markRuntimeNonBlockingSync();
-          workspaceSourceOfTruth.setSelectedThreadId("");
-          state.runtime.historyContextThreadId = "";
-          state.runtime.queueInlinePanel = {
-            ...state.runtime.queueInlinePanel,
-            open: false,
-            laneId: "",
-            feedKey: "",
-          };
-          state.runtime.queueHistory = {
-            ...state.runtime.queueHistory,
-            open: false,
-            loading: false,
-            loaded: false,
-            error: "",
-            items: [],
-            selectedConversationId: "",
-            hasMore: false,
-            scopeKey: "",
-          };
-          paintRuntimeShell("queue");
-          renderQueueHistorySection();
-          if (typeof ensureRuntimeSelection === "function") {
-            ensureRuntimeSelection();
-          }
-          captureRuntimeReentrySnapshot("mailboxscope_changed");
-          debugReentrySnapshot("AFTER MAILBOX CHANGE");
-          debugRuntimePipeline("AFTER MAILBOX CHANGE");
-          refreshQueueInlineHistoryIfOpen();
-          void applyRuntimeScopeThreadCacheIfAvailable(nextSelectedMailboxIds);
-          if (!nextSelectedMailboxIds.length) {
-            state.runtime.mailboxScopePinned = false;
-            clearRuntimeBackgroundSync();
-            state.runtime.queueHistory = {
-              ...state.runtime.queueHistory,
-              loading: false,
-              loaded: true,
-              error: "",
-              items: [],
-              selectedConversationId: "",
-              hasMore: false,
-              scopeKey: "",
-            };
-            workspaceSourceOfTruth.setSelectedThreadId("");
-            renderQueueHistorySection();
-            loadBootstrap({
-              preserveActiveDestination: true,
-              applyWorkspacePrefs: false,
-              quiet: true,
-            }).catch((error) => {
-              console.warn("CCO workspace bootstrap misslyckades efter tomt mailboxscope.", error);
-            });
-            return;
-          }
-          scheduleMailboxScopeLiveReload(nextSelectedMailboxIds);
-        };
-
         mailboxMenuGrid.addEventListener("click", (event) => {
           const copy = event.target.closest(".mailbox-option-copy");
           const input = copy?.closest(".mailbox-option")?.querySelector?.(
@@ -5619,6 +5622,7 @@
 
     return Object.freeze({
       bindWorkspaceInteractions,
+      applyRuntimeMailboxSelection,
       ensureMobileInboxReady,
       ensureSelectedRuntimeThreadHistoryBody,
       handleWorkspaceDocumentClick,

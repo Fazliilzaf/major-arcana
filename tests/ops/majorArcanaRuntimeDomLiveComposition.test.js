@@ -263,6 +263,10 @@ test('mailboxnamnet väljer endast det kontot och laddar om runtime med exakt ma
     source,
     'bindWorkspaceInteractions'
   );
+  const applyRuntimeMailboxSelectionSource = extractFunctionSource(
+    source,
+    'applyRuntimeMailboxSelection'
+  );
 
   assert.match(
     bindWorkspaceInteractionsSource,
@@ -275,9 +279,9 @@ test('mailboxnamnet väljer endast det kontot och laddar om runtime med exakt ma
     'Exklusivt mailboxval ska ersätta scope med exakt det valda kontot.'
   );
   assert.match(
-    bindWorkspaceInteractionsSource,
+    applyRuntimeMailboxSelectionSource,
     /scheduleMailboxScopeLiveReload\(nextSelectedMailboxIds\)/,
-    'Mailboxvalet ska hämta om live-runtime med det nya scopet.'
+    'Det delade mailboxvalet ska hämta om live-runtime med det nya scopet.'
   );
 });
 
