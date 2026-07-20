@@ -6,6 +6,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { parseHTML } = require('linkedom');
+const {
+  assertVisibleSearchResultClickTarget,
+} = require('../../scripts/calendar-visible-search-click-guard');
 
 function loadCalendarShared() {
   const source = fs.readFileSync(
@@ -52,9 +55,14 @@ function loadActiveSearchHarness(rows) {
   );
   const { window } = parseHTML(`
     <main>
-      <div id="searchOverlay" class="is-open"></div>
-      <div id="searchPanelKicker"></div>
-      <div id="searchPanelList"></div>
+      <label id="globalSearch" class="global-search">
+        <input id="globalSearchInput" type="search" />
+      </label>
+      <div id="searchOverlay" class="search-overlay">
+        <input id="searchOverlayInput" type="search" />
+        <div id="searchPanelKicker"></div>
+        <div id="searchPanelList"></div>
+      </div>
       <button class="booking" data-booking-id="booking-canonical"></button>
       <button class="booking" data-booking-id="booking-unlinked"></button>
     </main>
@@ -72,11 +80,28 @@ function loadActiveSearchHarness(rows) {
   };
   window.parent = parent;
   window.location = { origin: 'https://arcana.example' };
+  window.getComputedStyle = (node) => ({
+    pointerEvents:
+      node?.id === 'searchOverlay' && node.classList.contains('is-visible') ? 'auto' : 'none',
+  });
+  window.document.getElementById('globalSearchInput').addEventListener('focus', () => {
+    window.__legacyDemoSearchFired = true;
+    window.document.getElementById('searchPanelKicker').textContent = 'Legacy demo CUSTOMERS';
+  });
+  window.document.getElementById('searchOverlayInput').addEventListener('input', () => {
+    window.__legacyDemoSearchFired = true;
+    window.document.getElementById('searchPanelKicker').textContent = 'Legacy demo CUSTOMERS';
+  });
+  window.document.getElementById('searchOverlay').addEventListener('click', () => {
+    window.__legacyDemoSearchFired = true;
+    window.document.getElementById('searchOverlay').classList.remove('is-visible');
+  });
   const sandbox = {
     window,
     document: window.document,
     console,
     URLSearchParams,
+    setTimeout,
     CSS: {
       escape(value) {
         return String(value).replace(/"/g, '\\"');
@@ -113,7 +138,8 @@ function loadActiveSearchHarness(rows) {
     ${extractFunction(source, 'historySearchRowToV6Slot', 'fetchV6HistorySearchRows')}
     ${extractFunction(source, 'fetchV6HistorySearchRows', 'v6RenderSearch')}
     ${extractFunction(source, 'v6RenderSearch', 'v6BindControls')}
-    window.__test = { v6RenderSearch };
+    ${extractFunction(source, 'v6BindControls', 'v6Load')}
+    window.__test = { v6RenderSearch, v6BindControls };
   `;
   vm.runInNewContext(script, sandbox);
   return { window, messages, fallbacks };
@@ -402,9 +428,27 @@ test('active admin calendar uses canonical bundle and the same strict patient ha
     path.join(__dirname, '../../public/cco-kalender-shell.js'),
     'utf8'
   );
+  const html = fs.readFileSync(path.join(__dirname, '../../public/kalender.html'), 'utf8');
+  assert.match(html, /<script src="\/cco-kalender-shell\.js\?v=20260717j" defer><\/script>/);
+  assert.doesNotMatch(
+    html,
+    /\[data-embed\] \.top-nav,\[data-embed\] \.caption/,
+    'Kalender embed får inte dölja hela top-nav eftersom den bär historiksökningen'
+  );
+  assert.match(html, /\[data-embed\] \.top-nav > \.brand,\[data-embed\] \.top-nav > a/);
+  assert.match(html, /\[data-embed\] \.global-search/);
   assert.match(source, /\/api\/v1\/cco-bookings\/calendar-bundle/);
   assert.match(source, /\/api\/v1\/cco-bookings\/history-search/);
   assert.match(source, /includeSeparate: 'true'/);
+  assert.match(source, /function openV6SearchOverlay/);
+  assert.match(source, /classList\.add\('is-visible'\)/);
+  assert.match(source, /function closeV6SearchOverlay/);
+  assert.match(source, /classList\.remove\('is-visible'\)/);
+  assert.match(source, /function replaceV6SearchOverlay/);
+  assert.match(source, /replaceV6SearchOverlay\(\)/);
+  assert.match(source, /function replaceV6SearchInput/);
+  assert.match(source, /replaceV6SearchInput\('globalSearchInput'\)/);
+  assert.match(source, /replaceV6SearchInput\('searchOverlayInput'\)/);
   assert.match(source, /Skriv minst 2 tecken för att söka i canonical bokningshistorik/);
   assert.match(source, /type: 'arcana:cco-open-customer-dossier', patientId/);
   assert.match(source, /window\.location\.origin/);
@@ -432,12 +476,31 @@ test('active admin calendar search reads full history endpoint and dispatches ca
     },
   ]);
 
-  await window.__test.v6RenderSearch('canonical');
+  window.__test.v6BindControls();
+  const globalInput = window.document.getElementById('globalSearchInput');
+  globalInput.value = 'canonical';
+  globalInput.dispatchEvent(new window.Event('focus'));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  const overlay = window.document.getElementById('searchOverlay');
+  assert.equal(overlay.classList.contains('is-visible'), true);
+  assert.equal(window.getComputedStyle(overlay).pointerEvents, 'auto');
+  assert.equal(window.__legacyDemoSearchFired, undefined);
   const result = window.document.querySelector('.search-result');
   assert.ok(result);
   assert.equal(result.dataset.patientId, 'patient-canonical-42');
   assert.equal(result.dataset.readOnly, '0');
   assert.match(window.document.getElementById('searchPanelKicker').textContent, /historikträffar/);
+  Object.defineProperty(result, 'getBoundingClientRect', {
+    configurable: true,
+    value: () => ({ left: 100, top: 50, width: 240, height: 40 }),
+  });
+  window.document.elementFromPoint = () => result.querySelector('small');
+  const guard = assertVisibleSearchResultClickTarget({
+    document: window.document,
+    result,
+  });
+  assert.equal(guard.patientId, 'patient-canonical-42');
 
   result.click();
 
@@ -448,6 +511,7 @@ test('active admin calendar search reads full history endpoint and dispatches ca
   assert.equal(messages[0].payload.patientId, 'patient-canonical-42');
   assert.equal(fallbacks.length, 1);
   assert.equal(fallbacks[0].patientId, 'patient-canonical-42');
+  assert.equal(overlay.classList.contains('is-visible'), false);
 });
 
 test('active admin calendar history search leaves unlinked/separate results inert with no handoff', async () => {
@@ -465,18 +529,76 @@ test('active admin calendar history search leaves unlinked/separate results iner
     },
   ]);
 
-  await window.__test.v6RenderSearch('prp');
+  window.__test.v6BindControls();
+  const globalInput = window.document.getElementById('globalSearchInput');
+  globalInput.value = 'prp';
+  globalInput.dispatchEvent(new window.Event('focus'));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  const overlay = window.document.getElementById('searchOverlay');
+  assert.equal(overlay.classList.contains('is-visible'), true);
+  assert.equal(window.getComputedStyle(overlay).pointerEvents, 'auto');
+  assert.equal(window.__legacyDemoSearchFired, undefined);
   const result = window.document.querySelector('.search-result');
   assert.ok(result);
   assert.equal(result.dataset.patientId, '');
   assert.equal(result.dataset.readOnly, '1');
   assert.match(result.className, /is-read-only/);
+  Object.defineProperty(result, 'getBoundingClientRect', {
+    configurable: true,
+    value: () => ({ left: 100, top: 50, width: 240, height: 40 }),
+  });
+  window.document.elementFromPoint = () => result.querySelector('small');
+  const guard = assertVisibleSearchResultClickTarget({
+    document: window.document,
+    result,
+  });
+  assert.equal(guard.readOnly, '1');
 
   result.click();
 
   assert.equal(window.__lastIntelBookingId, 'booking-unlinked');
   assert.equal(messages.length, 0);
   assert.equal(fallbacks.length, 0);
+  assert.equal(overlay.classList.contains('is-visible'), false);
+});
+
+test('active admin calendar history search keeps Escape and backdrop close behavior', async () => {
+  const { window } = loadActiveSearchHarness([
+    {
+      bookingId: 'booking-canonical',
+      patientId: 'patient-canonical-42',
+      patientName: 'Canonical Patient',
+      serviceDisplayName: 'PRP',
+      startsAt: '2026-08-04T10:00:00.000Z',
+      status: 'booked',
+    },
+  ]);
+
+  window.__test.v6BindControls();
+  const globalInput = window.document.getElementById('globalSearchInput');
+  const overlay = window.document.getElementById('searchOverlay');
+
+  globalInput.value = 'prp';
+  globalInput.dispatchEvent(new window.Event('focus'));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(overlay.classList.contains('is-visible'), true);
+
+  const escapeEvent = new window.Event('keydown');
+  Object.defineProperty(escapeEvent, 'key', { value: 'Escape' });
+  window.document.dispatchEvent(escapeEvent);
+  assert.equal(overlay.classList.contains('is-visible'), false);
+
+  globalInput.value = 'prp';
+  globalInput.dispatchEvent(new window.Event('focus'));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(overlay.classList.contains('is-visible'), true);
+
+  await new Promise((resolve) => setTimeout(resolve, 180));
+  overlay.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(overlay.classList.contains('is-visible'), false);
 });
 
 test('active day and week cards expose canonical treatment and note indicators', () => {
