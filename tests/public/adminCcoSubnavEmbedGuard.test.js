@@ -98,8 +98,18 @@ function runSubnavHarness({ saved = '', src = 'about:blank', liveUrl = 'about:bl
   frame.contentWindow = { location: { href: liveUrl } };
 
   const nav = createElement({ 'data-cco-subnav': '', 'data-default-section': 'konversationer' });
+  const moreToggle = createElement({ 'data-cco-more-toggle': '', 'aria-selected': 'false' });
+  const moreMenu = createElement({ 'data-cco-more-menu': '' });
+  moreMenu.hidden = true;
+  const v2PreviewItem = createElement({ 'data-cco-more': 'konversationer_v2_preview' });
+  v2PreviewItem.closest = (selector) =>
+    selector === '[data-cco-more]' ? v2PreviewItem : null;
   nav.querySelectorAll = (selector) => (selector === '[data-cco-section]' ? buttons : []);
-  nav.querySelector = () => null;
+  nav.querySelector = (selector) => {
+    if (selector === '[data-cco-more-toggle]') return moreToggle;
+    if (selector === '[data-cco-more-menu]') return moreMenu;
+    return null;
+  };
   nav.closest = (selector) => (selector === '#ccoWorkspaceSection' ? workspace : null);
   nav.contains = () => true;
 
@@ -146,6 +156,7 @@ function runSubnavHarness({ saved = '', src = 'about:blank', liveUrl = 'about:bl
     buttons,
     frame,
     nav,
+    v2PreviewItem,
     stored,
     window,
     workspace,
@@ -250,6 +261,11 @@ test('admin#cco använder ett neutralt skal utan att byta befintliga målunderla
   assert.match(subnav, /signaturer:\s*PREVIEW \+ 'cco-signaturer-v3\.html'/);
   assert.match(subnav, /revisor:\s*PREVIEW \+ 'cco-revisor-v3\.html'/);
   assert.match(subnav, /showcase:\s*PREVIEW \+ 'cco-showcase-v3\.html'/);
+  assert.match(
+    html,
+    /data-cco-more="konversationer_v2_preview">\s*Konversationer v2 · Förhandsvisning/s,
+    'v2 ska vara en uttrycklig förhandsvisning under Mer och inte ersätta legacy-fliken'
+  );
 
   assert.match(css, /body\.cco-preview-embed-route \.cco-subnav \{/);
   assert.match(css, /background:\s*transparent;/);
@@ -318,6 +334,44 @@ test('ny CCO-session startar på live-Konversationer och alla huvudkategorier ä
     assert.match(harness.frame.getAttribute('src'), expectedRoutes[key]);
     assert.equal(activeSection(harness), key);
   }
+});
+
+test('admin erbjuder en valbar v2-förhandsvisning utan att ändra legacy-standardrouten', () => {
+  const subnav = read(SUBNAV_JS);
+  const contract = read(ADMIN_EMBED_CONTRACT);
+  const app = read(path.join(ROOT, 'public', 'major-arcana-preview', 'app.js'));
+  const adminHtml = read(ADMIN_HTML);
+
+  assert.match(
+    subnav,
+    /konversationer_v2_preview:\s*CONVERSATIONS_V2_PREVIEW/,
+    'v2 ska vara en uttrycklig Mer-rutt, inte den vanliga Konversationer-fliken'
+  );
+  assert.match(
+    subnav,
+    /\?view=conversations&embed=admin&conversations=v2/,
+    'v2-målet ska använda samma origin-baserade admin-embed-kontrakt utan token i URL:en'
+  );
+  assert.match(subnav, /return 'mer:konversationer_v2_preview';/);
+  assert.match(
+    adminHtml,
+    /data-conversations-src="\/konversationer\.html/,
+    'legacy destination ska fortsatt ligga kvar i admin.html'
+  );
+  assert.match(contract, /requestedView === 'customers' \|\| requestedView === 'conversations'/);
+  assert.match(app, /const localToken = readTokenFromStorage\(window\.localStorage\)/);
+  assert.match(app, /Authorization: `Bearer \$\{authToken\}`/);
+  assert.match(app, /getQueueScopedRuntimeThreads\(\)\.filter/);
+  assert.doesNotMatch(subnav, /CONVERSATIONS_V2_PREVIEW[^\n]*token=/i);
+
+  const harness = runSubnavHarness();
+  harness.nav.emit('click', { target: harness.v2PreviewItem });
+  assert.equal(harness.nav.getAttribute('data-active-section'), 'mer:konversationer_v2_preview');
+  assert.match(
+    harness.frame.getAttribute('src'),
+    /\/major-arcana-preview\/\?view=conversations&embed=admin&conversations=v2$/
+  );
+  assert.equal(harness.stored.get('arcana.cco.subsection'), 'mer:konversationer_v2_preview');
 });
 
 test('blank iframe behåller lazy-load men får rätt sparad route innan admin.js laddar', () => {
@@ -524,6 +578,20 @@ test('customers content-lock döljer legacy Conversations och visar bara kundreg
   assert.equal(harness.window.__ARCANA_V9_ENABLED__, true);
   assert.equal(harness.window.__ARCANA_V11_RAIL_ENABLED__, true);
   assert.equal(harness.window.__ARCANA_V12_WORKSPACE_ENABLED__, true);
+});
+
+test('conversations v2 admin embed låser endast vyn och behåller v2:s egna legacy-overlayvägar', () => {
+  const harness = runAdminEmbedContract('?view=conversations&embed=admin&conversations=v2');
+
+  assert.equal(harness.documentElement.getAttribute('data-admin-embed-view'), 'conversations');
+  assert.equal(harness.documentElement.getAttribute('data-customer-product-contract'), '');
+  assert.equal(harness.canvas.getAttribute('data-app-shell-view'), 'conversations');
+  assert.equal(harness.canvas.getAttribute('data-app-view'), 'conversations');
+  assert.equal(harness.sections.conversations.hidden, false);
+  assert.equal(harness.sections.customers.hidden, true);
+  assert.equal(harness.sections.calendar.hidden, true);
+  assert.ok(harness.legacyNodes.every((node) => node.hidden !== true));
+  assert.equal(harness.window.CcoAdminEmbedContract.view, 'conversations');
 });
 
 test('content-lock påverkar inte fristående eller andra Major Arcana-vyer', () => {
