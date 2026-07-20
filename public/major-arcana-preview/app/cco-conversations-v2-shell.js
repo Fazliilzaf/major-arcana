@@ -1390,7 +1390,7 @@
     { id: 'solution', label: 'Lösningsfokus' },
     { id: 'decision', label: 'Beslutsstöd' },
   ];
-  var STUDIO_SIGNATURES = [
+  var STUDIO_FALLBACK_SIGNATURES = [
     {
       id: 'fazli',
       label: 'Fazli',
@@ -1404,11 +1404,69 @@
     { id: 'contact', label: 'Kontakt', text: 'Med vänliga hälsningar,\n\nHair TP Clinic' },
   ];
 
+  // Samma fyra deterministiska snabbsvar som legacy-Svarstudion använder.
+  // De skriver bara i editorn; ingen makrokörning eller servermutation sker
+  // förrän operatören uttryckligen väljer att spara utkastet.
+  var STUDIO_MACROS = [
+    { id: 'confirm_booking', label: 'Bekräfta bokning' },
+    { id: 'suggest_times', label: 'Föreslå tider' },
+    { id: 'send_pricing', label: 'Skicka prislista' },
+    { id: 'ask_more_info', label: 'Be om info' },
+  ];
+
+  function studioSignatures() {
+    var configured = (boundCtx && boundCtx.studioSignatures) || [];
+    return configured.length ? configured : STUDIO_FALLBACK_SIGNATURES;
+  }
+
   function signatureText(id) {
-    var s = STUDIO_SIGNATURES.filter(function (x) {
+    var s = studioSignatures().filter(function (x) {
       return x.id === id;
     })[0];
     return s ? s.text : '';
+  }
+
+  function studioDefaultSignatureId(thread) {
+    var configuredDefault = text(boundCtx && boundCtx.studioDefaultSignatureId);
+    if (configuredDefault && studioSignatures().some(function (item) { return item.id === configuredDefault; })) {
+      return configuredDefault;
+    }
+    var mailbox = text(thread && (thread.mailboxAddress || thread.mailboxId)).toLowerCase();
+    var matching = studioSignatures().filter(function (item) {
+      return text(item.senderMailboxId || item.email).toLowerCase() === mailbox;
+    })[0];
+    return (matching && matching.id) || (studioSignatures()[0] && studioSignatures()[0].id) || '';
+  }
+
+  function studioSenderOptions() {
+    var configured = (boundCtx && boundCtx.studioSenderMailboxOptions) || [];
+    return configured.filter(function (option) { return text(option && option.id); });
+  }
+
+  function studioDefaultSenderMailbox(thread) {
+    var configuredDefault = text(boundCtx && boundCtx.studioDefaultSenderMailboxId);
+    var mailbox = text(thread && (thread.mailboxAddress || thread.mailboxId));
+    var options = studioSenderOptions();
+    if (mailbox && options.some(function (option) { return text(option.id).toLowerCase() === mailbox.toLowerCase(); })) {
+      return mailbox;
+    }
+    if (configuredDefault && options.some(function (option) { return text(option.id).toLowerCase() === configuredDefault.toLowerCase(); })) {
+      return configuredDefault;
+    }
+    return (options[0] && text(options[0].id)) || mailbox;
+  }
+
+  function studioMacroText(templateId, thread) {
+    var name = threadName(thread).split(/\s+/).filter(Boolean)[0] || '';
+    var greeting = name ? 'Hej ' + name + '!' : 'Hej!';
+    var topic = text(thread && thread.subject).replace(/^re:\s*/i, '').trim() || 'ditt ärende';
+    var bodies = {
+      confirm_booking: greeting + '\n\nTack för ditt meddelande om ' + topic + '. Vi bekräftar din bokning och återkommer med detaljerna. Hör av dig om du har några frågor.',
+      suggest_times: greeting + '\n\nTack för ditt mejl gällande ' + topic + '. Vi har följande tider lediga, låt oss veta vilken som passar dig bäst:\n\n• \n• \n• ',
+      send_pricing: greeting + '\n\nTack för din förfrågan om ' + topic + '. Här kommer prisinformationen du efterfrågade. Säg till om du vill boka en kostnadsfri konsultation.',
+      ask_more_info: greeting + '\n\nTack för ditt meddelande om ' + topic + '. För att kunna hjälpa dig på bästa sätt behöver vi lite mer information:\n\n• \n• ',
+    };
+    return bodies[templateId] || greeting + '\n\nTack för ditt meddelande. Vi återkommer inom kort.';
   }
 
   function studioSnippet(thread) {
@@ -1425,7 +1483,9 @@
       thread: thread,
       draftId: null,
       tone: 'professional',
-      signature: 'egzona',
+      signature: studioDefaultSignatureId(thread),
+      recipient: text((boundCtx && boundCtx.studioDefaultRecipient) || thread.customerEmail || thread.contactEmail),
+      senderMailbox: studioDefaultSenderMailbox(thread),
       body: '',
       busy: false,
       status: 'draft',
@@ -1534,7 +1594,10 @@
       studioChips(STUDIO_TONES, studio.tone, 'tone') +
       '</div></div>' +
       '<div class="wb-chip-row-sect"><span class="wb-section-kicker">Signatur</span><div class="wb-chips">' +
-      studioChips(STUDIO_SIGNATURES, studio.signature, 'sig') +
+      studioChips(studioSignatures(), studio.signature, 'sig') +
+      '</div></div>' +
+      '<div class="wb-chip-row-sect"><span class="wb-section-kicker">Snabbsvar</span><div class="wb-chips">' +
+      studioChips(STUDIO_MACROS, '', 'macro') +
       '</div></div>' +
       '<div class="wb-smart-actions"><button class="wb-chip" data-studio-generate type="button"' +
       (studio.busy ? ' disabled' : '') +
@@ -1555,11 +1618,29 @@
         ? '<div class="wb-route-info" style="color:var(--cco-status-danger)">' +
           esc(studio.error) +
           '</div>'
-        : '') +
+          : '') +
+      '<div class="wb-field"><span class="wb-field-lbl">Till</span><input data-studio-recipient type="email" value="' +
+      esc(studio.recipient) +
+      '" placeholder="kundens e-postadress" autocomplete="email"></div>' +
+      '<div class="wb-field"><span class="wb-field-lbl">Från</span><select data-studio-sender>' +
+      studioSenderOptions().map(function (option) {
+        var id = text(option.id);
+        return '<option value="' + esc(id) + '"' +
+          (id === studio.senderMailbox ? ' selected' : '') + '>' +
+          esc(text(option.label) || id) +
+          '</option>';
+      }).join('') +
+      '</select></div>' +
       '</div></div>' +
       '<div class="wb-footer">' +
-      '<button class="wb-primary-cta" data-studio-send type="button" disabled title="Live-utskick kräver owner och är avstängt">📨 Skicka (låst)</button>' +
-      '<span class="wb-send-locked">🔒 Skicka är owner-blockerat</span>' +
+      '<button class="wb-primary-cta" data-studio-send type="button"' +
+      (!(boundCtx && boundCtx.studioOwnerSendAvailable) || studio.busy ? ' disabled' : '') +
+      ' title="Kräver godkänt utkast, owner och serverns send-grindar">📨 Godkänn &amp; skicka</button>' +
+      '<span class="wb-send-locked">' +
+      ((boundCtx && boundCtx.studioOwnerSendAvailable)
+        ? '🔒 Servern kontrollerar owner, mottagare och avsändare före skick.'
+        : '🔒 Skicka är spärrat tills owner-send är aktiverat.') +
+      '</span>' +
       '<button class="wb-secondary-cta" data-studio-save type="button"' +
       (studio.busy ? ' disabled' : '') +
       '>Spara utkast</button>' +
@@ -1578,6 +1659,11 @@
       customerName: threadName(t),
       threadSnippet: studioSnippet(t),
       signature: signatureText(studio.signature),
+      signatureId: studio.signature,
+      recipient: studio.recipient,
+      senderMailbox: studio.senderMailbox,
+      conversationKey: threadConversationKey(t),
+      mailboxId: text(t.mailboxAddress || t.mailboxId),
       subject: text(t.subject),
     };
   }
@@ -1616,6 +1702,7 @@
       tenantId: text(studio.thread.tenantId),
       subject: text(studio.thread.subject),
       body: studio.body,
+      signatureId: studio.signature,
     });
     var draft = (res && res.draft) || {};
     if (draft.draftId) studio.draftId = draft.draftId;
@@ -1662,6 +1749,46 @@
     }
   }
 
+  async function studioSend() {
+    if (!studio || !boundCtx.handlers.studioSend) return;
+    if (studio.busy || !(boundCtx && boundCtx.studioOwnerSendAvailable)) return;
+    studioCapture();
+    if (!text(studio.recipient) || !text(studio.senderMailbox)) {
+      studio.error = 'Välj både mottagare och avsändarbrevlåda innan du skickar.';
+      renderStudio();
+      return;
+    }
+    studio.busy = true;
+    studio.error = '';
+    try {
+      await studioEnsureSaved();
+      // studioTransitionTo skyddar användarklick när studion är upptagen.
+      // I den sammansatta owner-vägen gör vi övergångarna här, i samma
+      // befintliga route och utan ett andra parallellt save-anrop.
+      if (studio.status === 'draft') {
+        var review = await boundCtx.handlers.studioTransition(studio.draftId, 'needs_approval');
+        studio.status = text(review && review.draft && review.draft.status) || 'needs_approval';
+      }
+      if (studio.status !== 'approved') {
+        var approval = await boundCtx.handlers.studioTransition(studio.draftId, 'approved');
+        studio.status = text(approval && approval.draft && approval.draft.status) || 'approved';
+      }
+      var response = await boundCtx.handlers.studioSend({
+        draftId: studio.draftId,
+        to: studio.recipient,
+        senderMailbox: studio.senderMailbox,
+      });
+      if (!response || response.sent !== true) {
+        throw new Error((response && (response.error || response.reason)) || 'Utskicket kunde inte bekräftas.');
+      }
+      studio.status = 'sent';
+      studio.busy = false;
+      renderStudio();
+    } catch (error) {
+      studioFail(error);
+    }
+  }
+
   var boundCtx = null;
 
   function bindEvents() {
@@ -1681,6 +1808,14 @@
         studio.body = event.target.value;
         var count = root.querySelector('[data-studio-count]');
         if (count) count.textContent = studio.body.length + ' tecken';
+      }
+      if (studio && event.target.matches('[data-studio-recipient]')) {
+        studio.recipient = event.target.value;
+        return;
+      }
+      if (studio && event.target.matches('[data-studio-sender]')) {
+        studio.senderMailbox = event.target.value;
+        return;
       }
       if (cmdkOpen && event.target.matches('[data-v3-cmdk-input]')) {
         cmdkQuery = event.target.value;
@@ -1815,6 +1950,14 @@
           renderStudio();
           return;
         }
+        var macroEl = event.target.closest('[data-studio-macro]');
+        if (macroEl) {
+          studioCapture();
+          var macroText = studioMacroText(macroEl.getAttribute('data-studio-macro'), studio.thread);
+          studio.body = studio.body.trim() ? studio.body.replace(/\s+$/, '') + '\n\n' + macroText : macroText;
+          renderStudio();
+          return;
+        }
         if (event.target.closest('[data-studio-generate]')) {
           void studioGenerate();
           return;
@@ -1832,7 +1975,8 @@
           return;
         }
         if (event.target.closest('[data-studio-send]')) {
-          return; /* låst: owner-blockerat */
+          void studioSend();
+          return;
         }
       }
       // v3 operatörs-toolbar.
