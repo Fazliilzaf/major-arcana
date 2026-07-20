@@ -378,7 +378,6 @@ async function resolveActor(req, { authStore, config }) {
       tenantId: context.membership.tenantId,
       userId: context.user.id,
       role: context.membership.role,
-      authSource: 'session',
     };
   }
 
@@ -387,7 +386,6 @@ async function resolveActor(req, { authStore, config }) {
       tenantId: config.defaultTenantId,
       userId: 'preview-local',
       role: 'OWNER',
-      authSource: 'local_preview',
     };
   }
 
@@ -410,7 +408,6 @@ function buildContext(req, actor) {
       normalizeText(req.body?.customerId),
     customerName: normalizeText(req.query.customerName) || normalizeText(req.body?.customerName),
     actor,
-    authSource: actor.authSource,
   };
 }
 
@@ -438,18 +435,7 @@ function requireBookingWrite(context) {
 }
 
 function requireBookingCatalogRead(context) {
-  if (context?.authSource !== 'session') {
-    const error = new Error('Inloggning krävs.');
-    error.statusCode = 401;
-    throw error;
-  }
-  const role = normalizeText(context?.actor?.role).toUpperCase();
-  if (!STAFF_ROLES.has(role)) {
-    const error = new Error('Behörigheten bookings.read krävs.');
-    error.statusCode = 403;
-    error.metadata = { requiredPermission: 'bookings.read', requiredRole: 'staff' };
-    throw error;
-  }
+  requireStaffRole(context);
   if (roleHasPermission(context?.actor?.role, 'bookings.read')) return;
   const error = new Error('Behörigheten bookings.read krävs.');
   error.statusCode = 403;

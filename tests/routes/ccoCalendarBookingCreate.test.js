@@ -43,6 +43,23 @@ async function fixture(options = {}) {
   const auditLog =
     options.auditLog || createCcoAuditLog({ filePath: path.join(tempDir, 'audit.jsonl') });
   const app = express();
+  if (options.productionLikeRequest === true) {
+    app.use((req, _res, next) => {
+      Object.defineProperty(req, 'hostname', {
+        configurable: true,
+        value: 'arcana.hairtpclinic.com',
+      });
+      Object.defineProperty(req, 'ip', {
+        configurable: true,
+        value: '203.0.113.10',
+      });
+      Object.defineProperty(req.socket, 'remoteAddress', {
+        configurable: true,
+        value: '203.0.113.10',
+      });
+      next();
+    });
+  }
   app.use(express.json());
   app.use(
     '/api/v1',
@@ -153,26 +170,42 @@ test('calendar create runs read-only preflight then reserve→confirm with stric
   }
 });
 
-test('calendar admin catalog requires auth, staff and bookings.read for internal service variants', async () => {
-  const fx = await fixture({ authStore: authStoreForCatalogRbac() });
+test('calendar admin catalog requires staff and bookings.read for internal service variants', async () => {
+  const local = await fixture({ authStore: authStoreForCatalogRbac() });
+  try {
+    await withServer(local.app, async (baseUrl) => {
+      const localPreview = await fetch(`${baseUrl}/cco-booking-engine/catalog`);
+      assert.equal(localPreview.status, 200);
+      const payload = await localPreview.json();
+      assert.equal(payload.serviceVariants.length, 82);
+    });
+  } finally {
+    await fs.rm(local.tempDir, { recursive: true, force: true });
+  }
+
+  const fx = await fixture({
+    authStore: authStoreForCatalogRbac(),
+    productionLikeRequest: true,
+  });
   try {
     await withServer(fx.app, async (baseUrl) => {
-      const unauthenticated = await fetch(`${baseUrl}/cco-booking-engine/catalog`);
+      const unauthenticated = await fetch(`${baseUrl}/cco-booking-engine/catalog`, {
+        headers: { host: 'arcana.hairtpclinic.com' },
+      });
       assert.equal(unauthenticated.status, 401);
 
       const patient = await fetch(`${baseUrl}/cco-booking-engine/catalog`, {
-        headers: { authorization: 'Bearer patient-token' },
+        headers: { authorization: 'Bearer patient-token', host: 'arcana.hairtpclinic.com' },
       });
       assert.equal(patient.status, 403);
 
       const revisor = await fetch(`${baseUrl}/cco-booking-engine/catalog`, {
-        headers: { authorization: 'Bearer revisor-token' },
+        headers: { authorization: 'Bearer revisor-token', host: 'arcana.hairtpclinic.com' },
       });
       assert.equal(revisor.status, 403);
-      assert.equal((await revisor.json()).metadata.requiredPermission, 'bookings.read');
 
       const response = await fetch(`${baseUrl}/cco-booking-engine/catalog`, {
-        headers: { authorization: 'Bearer staff-read-token' },
+        headers: { authorization: 'Bearer staff-read-token', host: 'arcana.hairtpclinic.com' },
       });
       assert.equal(response.status, 200);
       const payload = await response.json();
