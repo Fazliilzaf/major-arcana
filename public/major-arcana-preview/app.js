@@ -40163,6 +40163,32 @@
           if (!nextMailboxIds.length || nextMailboxIds.length > 2) return;
           applyRuntimeMailboxSelection(nextMailboxIds);
         },
+        async resolveMailAssetUrl(sourceUrl) {
+          // Samma auth-brygga som resten av admin använder. V2 ger aldrig
+          // asset-URL:er ett nytt token- eller nätverkskontrakt.
+          const url = new URL(asText(sourceUrl), window.location.origin);
+          if (
+            url.origin !== window.location.origin ||
+            url.pathname !== "/api/v1/cco/runtime/mail-asset/content"
+          ) {
+            throw new Error("Bilagan kan inte öppnas från den här källan.");
+          }
+          const token = getAdminToken();
+          if (!token || token === "__preview_local__") {
+            throw new Error("Logga in igen i admin för att öppna bilagan.");
+          }
+          const response = await fetch(url.toString(), {
+            credentials: "same-origin",
+            headers: {
+              Accept: "*/*",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (!response.ok) {
+            throw new Error(`Bilagan kunde inte laddas (${response.status}).`);
+          }
+          return URL.createObjectURL(await response.blob());
+        },
         openDossier(thread) {
           // Säker läsning/navigering: öppnar V12-kunddossiéren för tråden via
           // befintligt API (ingen ny skriv-väg). Faller tillbaka på e-post.

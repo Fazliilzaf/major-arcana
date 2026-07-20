@@ -181,8 +181,12 @@ test('buildCanonicalMailThreadDocument bär canonical assetfamiljer vidare i mai
             {
               assetId: 'att-asset-1',
               attachmentId: 'att-asset-1',
+              name: 'underlag.pdf',
+              contentType: 'application/pdf',
+              size: 2048,
               disposition: 'attachment',
               family: 'attachment',
+              download: { available: true, state: 'graph_attachment' },
             },
           ],
           inlineAssets: [
@@ -236,6 +240,21 @@ test('buildCanonicalMailThreadDocument bär canonical assetfamiljer vidare i mai
   ]);
   assert.equal(threadDocument.messages[0].assets.mimeInlineAssetCount, 2);
   assert.equal(threadDocument.messages[0].assets.mimeAttachmentCount, 1);
+  assert.deepEqual(threadDocument.messages[0].attachments, [
+    {
+      attachmentId: 'att-asset-1',
+      name: 'underlag.pdf',
+      contentType: 'application/pdf',
+      contentId: null,
+      size: 2048,
+      isInline: false,
+      disposition: 'attachment',
+      render: null,
+      download: { available: true, state: 'graph_attachment' },
+    },
+  ]);
+  assert.equal(threadDocument.messages[0].inlineAssets.length, 2);
+  assert.equal(threadDocument.messages[0].inlineAssets[0].isInline, true);
 });
 
 test('buildCanonicalMailThreadDocument tom meddelandelista', () => {

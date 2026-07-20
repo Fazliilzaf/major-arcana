@@ -464,6 +464,106 @@ test('v2-skalet: persistenta trådåtgärder visas och skickar den valda riktiga
   assert.deepEqual(actions, [{ name: 'handled', threadId: 't-1' }]);
 });
 
+test('v2-skalet: HTML-mail renderas sandboxat, utan Outlook-notis eller rå CID', () => {
+  const { document, api } = loadShell();
+  const richThread = makeThread({
+    threadDocument: {
+      messages: [
+        {
+          messageId: 'rich-1',
+          direction: 'inbound',
+          author: 'Anna Karlsson',
+          sentAt: '2026-06-20T10:00:00Z',
+          primaryBody: {
+            html: '<p>Hej!</p><p>Du får inte e-post ofta från någon <a href="https://aka.ms/LearnAboutSenderIdentification">Läs mer</a></p><img src="cid:historisk-logga"><script>alert(1)</script>',
+            text: 'Hej!',
+          },
+        },
+      ],
+    },
+  });
+  api.render(makeCtx({ laneThreads: [richThread], allThreads: [richThread], selected: richThread }));
+  const html = document.querySelector('[data-v2-thread]').innerHTML;
+  assert.match(html, /v2-msg-html-frame/, 'HTML-mail ska isoleras i en sandboxad iframe');
+  assert.doesNotMatch(html, /alert\(1\)|cid:historisk-logga|LearnAboutSenderIdentification/);
+  assert.match(html, /En inlinebild saknas i det här äldre mailet/);
+});
+
+test('v2-skalet: vanlig bilaga visas separat medan inline-signatur inte dupliceras', () => {
+  const { document, api } = loadShell();
+  const thread = makeThread({
+    threadDocument: {
+      messages: [
+        {
+          messageId: 'attachment-1',
+          mailboxId: 'info@hairtpclinic.com',
+          direction: 'inbound',
+          author: 'Anna Karlsson',
+          sentAt: '2026-06-20T10:00:00Z',
+          primaryBody: { html: '<p>Se dokumentet.</p>', text: 'Se dokumentet.' },
+          attachments: [
+            { attachmentId: 'file-1', name: 'underlag.pdf', contentType: 'application/pdf' },
+            { attachmentId: 'logo-1', name: 'signatur.gif', contentType: 'image/gif', isInline: true },
+          ],
+        },
+      ],
+    },
+  });
+  api.render(makeCtx({ laneThreads: [thread], allThreads: [thread], selected: thread }));
+  const attachments = document.querySelectorAll('[data-v2-attachment-index]');
+  assert.equal(attachments.length, 1, 'inline-signatur ska inte visas igen som användarbilaga');
+  assert.match(attachments[0].textContent, /underlag\.pdf/);
+});
+
+test('v2-skalet: Info är strikt i listan men behåller befintlig samlad kundhistorik inne i tråden', () => {
+  const { document, api } = loadShell();
+  const infoThread = makeThread({
+    id: 'info@hairtpclinic.com:conv-1',
+    customerName: 'Linn Carlsson',
+    mailboxId: 'info@hairtpclinic.com',
+    threadDocument: {
+      messages: [
+        {
+          messageId: 'contact-history',
+          mailboxId: 'contact@hairtpclinic.com',
+          direction: 'inbound',
+          author: 'Linn Carlsson',
+          sentAt: '2026-06-18T10:00:00Z',
+          primaryBody: { text: 'Tidigare kontakt-historik.' },
+        },
+        {
+          messageId: 'info-history',
+          mailboxId: 'info@hairtpclinic.com',
+          direction: 'inbound',
+          author: 'Linn Carlsson',
+          sentAt: '2026-06-20T10:00:00Z',
+          primaryBody: { text: 'Info-historik.' },
+        },
+      ],
+    },
+  });
+  api.render(
+    makeCtx({
+      laneThreads: [infoThread],
+      allThreads: [infoThread],
+      selected: infoThread,
+      mailboxes: [{ id: 'info@hairtpclinic.com', label: 'Info', email: 'info@hairtpclinic.com' }],
+      selectedMailboxIds: ['info@hairtpclinic.com'],
+    })
+  );
+  assert.equal(document.querySelectorAll('[data-v2-inbox] [data-thread-id]').length, 1);
+  const stream = document.querySelector('[data-v2-thread]').textContent;
+  assert.match(stream, /Tidigare kontakt-historik/);
+  assert.match(stream, /Info-historik/);
+});
+
+test('v2-skalet: appens befintliga Bearer-brygga används för lokala mail-assets', () => {
+  const appSource = fs.readFileSync(APP_PATH, 'utf8');
+  assert.match(appSource, /async resolveMailAssetUrl\(sourceUrl\)/);
+  assert.match(appSource, /pathname !== "\/api\/v1\/cco\/runtime\/mail-asset\/content"/);
+  assert.match(appSource, /Authorization: `Bearer \$\{token\}`/);
+});
+
 test('v2-skalet: misslyckad massåtgärd behåller operatörens urval', async () => {
   const { window, document, api } = loadShell();
   const ctx = makeCtx({
