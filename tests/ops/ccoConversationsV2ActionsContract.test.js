@@ -53,3 +53,24 @@ test('v2 bulkytan erbjuder endast serverstödda persistenta actions', () => {
   assert.match(bulkSource, /id: 'reopen'/);
   assert.doesNotMatch(bulkSource, /assign|snooze|triage/);
 });
+
+test('v2 handoff använder bara worklistens exakta e-postmatchning och etablerade legacy-kontrakt', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+
+  assert.match(source, /function getV2ConfirmedPatientHandoff\(thread\)/);
+  assert.match(source, /exactEmailMatchSources\.has\(matchedBy\)/);
+  assert.match(source, /"primaryemail",\s*"emails",\s*"cliento\.emails",\s*"pipedrive\.emails"/);
+  assert.match(source, /function buildV2ThreadHandoffContext\(thread\)/);
+  assert.match(source, /type: "cco:kalender:context", context/);
+  assert.match(source, /openBookingOperatorSurface\(/);
+  assert.match(source, /type: "arcana:cco-open-customer-dossier", patientId: context\.patientId/);
+
+  const handoffStart = source.indexOf('function openV2CustomerDossier(thread)');
+  const handoffEnd = source.indexOf('function setV2ConversationActionFeedback', handoffStart);
+  const handoffSource = source.slice(handoffStart, handoffEnd);
+  assert.doesNotMatch(
+    handoffSource,
+    /openPatientByEmail|customerEmail:/,
+    'v2-kundhandoff får inte falla tillbaka till namn eller e-post'
+  );
+});

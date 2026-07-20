@@ -1218,6 +1218,11 @@
     var msgCount = messageList(thread).length;
     var pills = statusPills(thread);
     var messages = renderMessageStream(thread);
+    var handoffAvailable = thread.v2Handoff && thread.v2Handoff.available === true;
+    var handoffReason =
+      text(thread.v2Handoff && thread.v2Handoff.reason) ||
+      'Kundkopplingen är oklar eller saknas. Öppna först Granskning.';
+    var handoffDisabled = handoffAvailable ? '' : ' disabled aria-disabled="true" title="' + esc(handoffReason) + '"';
 
     el.innerHTML =
       '<header class="thread-header">' +
@@ -1259,9 +1264,9 @@
       '</div></div>' +
       '<div class="thread-bottom-actions" role="toolbar" aria-label="Konversations-actions">' +
       '<button class="action-btn action-btn--studio" type="button" data-v2-action="studio"><span class="action-ico">✱</span><span>Svarstudio</span></button>' +
-      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
+      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"' + handoffDisabled + '><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
       '<button class="action-btn action-btn--note" type="button" data-v2-action="note"><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
-      '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"><span class="action-ico">📆</span><span>Kalender</span></button>' +
+      '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"' + handoffDisabled + '><span class="action-ico">📆</span><span>Kalender</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="handled"><span class="action-ico">✓</span><span>Markera klar</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="reply_later"><span class="action-ico">⌛</span><span>Senare</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="reopen"><span class="action-ico">↩</span><span>Återöppna</span></button>' +
@@ -1316,6 +1321,11 @@
       })
       .join('');
     var aiAction = text(thread.missingLabel) || text(thread.followUpLabel);
+    var handoffAvailable = thread.v2Handoff && thread.v2Handoff.available === true;
+    var handoffReason =
+      text(thread.v2Handoff && thread.v2Handoff.reason) ||
+      'Kundkopplingen är oklar eller saknas. Öppna först Granskning.';
+    var handoffDisabled = handoffAvailable ? '' : ' disabled aria-disabled="true" title="' + esc(handoffReason) + '"';
     return (
       '<dl class="ctx-grid" style="padding-top:6px">' +
       gridRows +
@@ -1327,8 +1337,8 @@
           esc(aiAction) +
           '</button>'
         : '') +
-      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking">📅 Öppna bokning</button>' +
-      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier">👤 Kunddossiér</button>' +
+      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking"' + handoffDisabled + '>📅 Öppna bokning</button>' +
+      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier"' + handoffDisabled + '>👤 Kunddossiér</button>' +
       '<button class="quick-pill quick-pill--success" style="flex:1" type="button" data-v2-action="handled">✓ Markera klar</button>' +
       '</div>'
     );
