@@ -11,7 +11,8 @@
 const fs = require('fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { execSync } = require('node:child_process');
+const { execSync, execFileSync } = require('node:child_process');
+const { resolveBuildCommit } = require('../src/ops/previewBuildIdentity');
 
 const ROOT = path.join(__dirname, '..');
 const PREVIEW_DIR = path.join(ROOT, 'public/major-arcana-preview');
@@ -133,6 +134,9 @@ const staffDeferred = buildHashedBundle({
 });
 
 const latestInfo = {
+  // Koppla manifestet till deploymentens commit så att servern kan stoppa
+  // blandade backend-/frontend-revisioner i stallet for att visa en gammal bundle.
+  buildCommit: resolveBuildCommit({ execFileSync }),
   filename: full.filename,
   hash: full.hash,
   sourceCount: full.sourceCount,

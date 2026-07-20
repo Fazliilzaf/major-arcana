@@ -73,6 +73,13 @@ test('konversationer.html embed is served no-store so deploys are not cached sta
   );
 });
 
+test('preview HTML fails closed when its bundle manifest is not from the deployed commit', () => {
+  const server = read(SERVER_JS);
+  assert.match(server, /verifyPreviewBuildIdentity\(/);
+  assert.match(server, /X-Arcana-Preview-Integrity', 'mismatch'/);
+  assert.match(server, /X-Arcana-Preview-Build/);
+});
+
 test('admin dashboard stops the self-feeding *.read audit refresh loop', () => {
   const js = read(ADMIN_JS);
 
