@@ -198,6 +198,36 @@ function createRequestedMailboxIdsHarness({
   return getRequestedRuntimeMailboxIds;
 }
 
+function applyHydrationMailboxSelection({ availableMailboxIds, selectedMailboxIds }) {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+  const functionSource = extractFunctionSource(source, 'ensureRuntimeMailboxSelection');
+  let selected = selectedMailboxIds.slice();
+  const state = { runtime: { queueLaneBootstrapped: true, mailboxScopePinned: false } };
+  const ensureRuntimeMailboxSelection = new Function(
+    'getCanonicalAvailableRuntimeMailboxIds',
+    'canonicalizeRuntimeMailboxId',
+    'workspaceSourceOfTruth',
+    'state',
+    `${functionSource}; return ensureRuntimeMailboxSelection;`
+  )(
+    () => availableMailboxIds.slice(),
+    (mailboxId) => String(mailboxId || '').trim().toLowerCase(),
+    {
+      getSelectedMailboxIds() {
+        return selected.slice();
+      },
+      setSelectedMailboxIds(nextSelectedMailboxIds) {
+        selected = Array.isArray(nextSelectedMailboxIds) ? nextSelectedMailboxIds.slice() : [];
+        return selected.slice();
+      },
+    },
+    state
+  );
+
+  ensureRuntimeMailboxSelection();
+  return selected;
+}
+
 function createAvailableRuntimeMailboxesHarness({
   legacyMailboxes = [],
   runtimeMailboxes = [],
@@ -371,6 +401,44 @@ test('getRequestedRuntimeMailboxIds canonicaliserar legacy mailbox-id till full 
   assert.deepEqual(getRequestedRuntimeMailboxIds(), [
     'contact@hairtpclinic.com',
     'fazli@hairtpclinic.com',
+  ]);
+});
+
+test('hydrering behaller Contact sa att request och conversation keys forblir Contact-scopade', () => {
+  const availableMailboxes = [
+    { id: 'contact', email: 'contact@hairtpclinic.com', label: 'Contact' },
+    { id: 'fazli', email: 'fazli@hairtpclinic.com', label: 'Fazli' },
+    { id: 'kons', email: 'kons@hairtpclinic.com', label: 'Kons' },
+  ];
+  const selectedMailboxIds = applyHydrationMailboxSelection({
+    availableMailboxIds: availableMailboxes.map((mailbox) => mailbox.email),
+    selectedMailboxIds: ['contact@hairtpclinic.com'],
+  });
+  const getRequestedRuntimeMailboxIds = createRequestedMailboxIdsHarness({
+    selectedMailboxIds,
+    availableMailboxes,
+  });
+  const contactThread = {
+    id: 'conversation-contact-only',
+    mailboxAddress: 'contact@hairtpclinic.com',
+    mailboxLabel: 'Contact',
+  };
+  const getMailboxScopedRuntimeThreads = createMailboxScopeHarness({
+    selectedMailboxIds,
+    availableMailboxes,
+    threads: [
+      contactThread,
+      {
+        id: 'conversation-fazli-hidden',
+        mailboxAddress: 'fazli@hairtpclinic.com',
+        mailboxLabel: 'Fazli',
+      },
+    ],
+  });
+
+  assert.deepEqual(getRequestedRuntimeMailboxIds(), ['contact@hairtpclinic.com']);
+  assert.deepEqual(getMailboxScopedRuntimeThreads().map((thread) => thread.id), [
+    'conversation-contact-only',
   ]);
 });
 
