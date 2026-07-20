@@ -1,18 +1,18 @@
 'use strict';
 
 /**
- * Post-cutover DOM-smoke för CCO Konversationer v2 4-zons-skalet.
+ * DOM-smoke för CCO Konversationer v2 4-zons-skalet.
  *
- * Cutover (#232) slår flaggan default ON ⇒ v2-skalet renderas live för alla.
- * CI:s live-smoke kräver autentiserad kö-data (server-503 utan), så den fångar
- * INTE render-regressioner i själva skalet. Det här testet laddar den riktiga
- * shell-modulen (cco-conversations-v2-shell.js) i en lättviktig DOM (linkedom),
- * matar in en MOCKAD ctx (samma shape som renderConversationsV2Shell bygger i
- * app.js) och verifierar att:
+ * CI:s live-smoke kräver autentiserad kö-data, så den fångar inte
+ * render-regressioner i själva skalet. Det här testet laddar den riktiga
+ * shell-modulen i en lättviktig DOM. Test-fixturen representerar endast den
+ * redan autentiserade runtime-state som app.js lämnar till renderaren; den är
+ * inte en runtime-fallback eller en alternativ datakälla.
  *   1. render(ctx) monterar #cco-conv-v2-root utan att kasta,
  *   2. alla fyra zoner finns (lanes · inbox · tråd · kontext),
- *   3. mock-datan faktiskt flödar in (lane-räknare, trådnamn, vald tråd),
- *   4. om-rendering är idempotent (ingen dubbel-mount).
+ *   3. exakt samma scoped conversation keys som legacy-staten flödar in,
+ *   4. mock-datan faktiskt flödar in (lane-räknare, trådnamn, vald tråd),
+ *   5. om-rendering är idempotent (ingen dubbel-mount).
  */
 
 const test = require('node:test');
@@ -106,6 +106,7 @@ test('v2-skalet: render exponerar ArcanaConversationsV2.render', () => {
   const { api } = loadShell();
   assert.ok(api, 'window.ArcanaConversationsV2 ska finnas');
   assert.equal(typeof api.render, 'function');
+  assert.equal(typeof api._paritySnapshot, 'function');
 });
 
 test('v2-skalet: render(ctx) monterar #cco-conv-v2-root med alla fyra zoner', () => {
@@ -120,7 +121,7 @@ test('v2-skalet: render(ctx) monterar #cco-conv-v2-root med alla fyra zoner', ()
   }
 });
 
-test('v2-skalet: mock-kö-data flödar in i lanes och inbox', () => {
+test('v2-skalet: fixture-ködata flödar in i lanes och inbox', () => {
   const { document, api } = loadShell();
   api.render(makeCtx());
   const root = document.getElementById('cco-conv-v2-root');
@@ -133,10 +134,64 @@ test('v2-skalet: mock-kö-data flödar in i lanes och inbox', () => {
   // Inbox-raderna är klickbara trådar med data-thread-id.
   const rows = root.querySelectorAll('[data-thread-id]');
   assert.ok(rows.length >= 2, 'inbox ska ha minst två tråd-rader');
+  assert.deepEqual(
+    Array.from(rows)
+      .slice(0, 2)
+      .map((row) => row.getAttribute('data-thread-id')),
+    ['t-1', 't-2'],
+    'v2 får inte nöja sig med antal — samma scoped conversation keys ska renderas'
+  );
 
   // Vald tråd reflekteras i kontext/tråd-zonen.
   const threadHtml = root.querySelector('[data-v2-thread]').innerHTML;
   assert.match(threadHtml, /Anna Karlsson/, 'tråd-zonen ska visa den valda tråden');
+});
+
+test('v2-skalet: parity snapshot bevarar exakta scoped keys från befintlig runtime-state', () => {
+  const { api } = loadShell();
+  const ctx = makeCtx({
+    allThreads: [
+      makeThread({ id: 'contact@hairtpclinic.com:conv-a', customerName: 'Anna' }),
+      makeThread({ id: 'kons@hairtpclinic.com:conv-b', customerName: 'Björn' }),
+      makeThread({ id: 'contact@hairtpclinic.com:conv-a', customerName: 'Anna dubblett' }),
+    ],
+    laneThreads: [
+      makeThread({ id: 'kons@hairtpclinic.com:conv-b', customerName: 'Björn' }),
+    ],
+    selected: makeThread({ id: 'kons@hairtpclinic.com:conv-b', customerName: 'Björn' }),
+  });
+
+  assert.deepEqual(api._paritySnapshot(ctx), {
+    scopedConversationKeys: ['contact@hairtpclinic.com:conv-a', 'kons@hairtpclinic.com:conv-b'],
+    laneConversationKeys: ['kons@hairtpclinic.com:conv-b'],
+    selectedConversationKey: 'kons@hairtpclinic.com:conv-b',
+  });
+});
+
+test('v2-skalet: canonical fallback-nyckel används konsekvent när id saknas', () => {
+  const { document, api } = loadShell();
+  const fallbackThread = makeThread({ id: '', conversationKey: 'contact@hairtpclinic.com:conv-fallback' });
+  api.render(
+    makeCtx({
+      laneThreads: [fallbackThread],
+      allThreads: [fallbackThread],
+      selected: fallbackThread,
+    })
+  );
+
+  const row = document.querySelector('[data-thread-id]');
+  assert.equal(row.getAttribute('data-thread-id'), 'contact@hairtpclinic.com:conv-fallback');
+  assert.equal(
+    api._findThreadById({ allThreads: [fallbackThread], laneThreads: [] }, 'contact@hairtpclinic.com:conv-fallback'),
+    fallbackThread
+  );
+});
+
+test('v2-skalet: auth-krav visar aldrig trådar som fallback', () => {
+  const { document, api } = loadShell();
+  api.render(makeCtx({ laneThreads: [], allThreads: [], selected: null, authRequired: true }));
+  const root = document.getElementById('cco-conv-v2-root');
+  assert.match(root.querySelector('[data-v2-inbox]').textContent, /Logga in igen i admin/i);
 });
 
 test('v2-skalet: tom lane visar tomt-läge utan att kasta', () => {
