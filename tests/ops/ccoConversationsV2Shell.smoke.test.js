@@ -557,11 +557,128 @@ test('v2-skalet: Info är strikt i listan men behåller befintlig samlad kundhis
   assert.match(stream, /Info-historik/);
 });
 
+test('v2-skalet: Svarstudio använder runtime-signatur, mailbox-avsändare och snabbsvar utan skrivning', () => {
+  const { window, document, api } = loadShell();
+  const thread = makeThread({
+    id: 'contact@hairtpclinic.com:conv-reply',
+    mailboxId: 'contact@hairtpclinic.com',
+    customerEmail: 'anna@example.com',
+    customerName: 'Anna Karlsson',
+    subject: 'Boka konsultation',
+  });
+  api.render(
+    makeCtx({
+      laneThreads: [thread],
+      allThreads: [thread],
+      selected: thread,
+      studioSignatures: [
+        {
+          id: 'contact',
+          label: 'Contact-teamet',
+          senderMailboxId: 'contact@hairtpclinic.com',
+          email: 'contact@hairtpclinic.com',
+          text: 'Med vänliga hälsningar,\nContact-teamet',
+        },
+      ],
+      studioDefaultSignatureId: 'contact',
+      studioSenderMailboxOptions: [
+        { id: 'contact@hairtpclinic.com', label: 'Contact', email: 'contact@hairtpclinic.com' },
+      ],
+      studioDefaultSenderMailboxId: 'contact@hairtpclinic.com',
+      studioDefaultRecipient: 'anna@example.com',
+      handlers: {
+        ...makeCtx().handlers,
+        studioSave() {
+          throw new Error('snabbsvar får inte skriva utkast automatiskt');
+        },
+      },
+    })
+  );
+
+  document
+    .querySelector('[data-v2-action="studio"]')
+    .dispatchEvent(new window.Event('click', { bubbles: true }));
+
+  const studio = document.querySelector('[data-v2-studio]');
+  assert.ok(studio, 'Svarstudio ska öppnas från vald tråd');
+  assert.match(studio.textContent, /Contact-teamet/);
+  assert.equal(studio.querySelector('[data-studio-recipient]').value, 'anna@example.com');
+  assert.equal(studio.querySelector('[data-studio-sender]').value, 'contact@hairtpclinic.com');
+
+  studio
+    .querySelector('[data-studio-macro="confirm_booking"]')
+    .dispatchEvent(new window.Event('click', { bubbles: true }));
+  const body = studio.querySelector('[data-studio-body]').value;
+  assert.match(body, /Hej Anna!/);
+  assert.match(body, /Boka konsultation/);
+  assert.equal(studio.querySelector('[data-studio-send]').disabled, true, 'owner-send är spärrat utan runtime-gate');
+});
+
+test('v2-skalet: owner-sändning använder etablerad draft-transition-send-kedja först efter explicit klick', async () => {
+  const { window, document, api } = loadShell();
+  const calls = [];
+  const thread = makeThread({
+    id: 'fazli@hairtpclinic.com:conv-owner',
+    mailboxId: 'fazli@hairtpclinic.com',
+    customerEmail: 'test@example.com',
+  });
+  api.render(
+    makeCtx({
+      laneThreads: [thread],
+      allThreads: [thread],
+      selected: thread,
+      studioOwnerSendAvailable: true,
+      studioSenderMailboxOptions: [
+        { id: 'fazli@hairtpclinic.com', label: 'Fazli', email: 'fazli@hairtpclinic.com' },
+      ],
+      studioDefaultSenderMailboxId: 'fazli@hairtpclinic.com',
+      studioDefaultRecipient: 'test@example.com',
+      handlers: {
+        ...makeCtx().handlers,
+        studioSave(payload) {
+          calls.push(['save', payload.signatureId]);
+          return Promise.resolve({ draft: { draftId: 'draft-1', status: 'draft' } });
+        },
+        studioTransition(draftId, status) {
+          calls.push(['transition', draftId, status]);
+          return Promise.resolve({ draft: { draftId, status } });
+        },
+        studioSend(payload) {
+          calls.push(['send', payload.draftId, payload.to, payload.senderMailbox]);
+          return Promise.resolve({ sent: true, draft: { draftId: payload.draftId, status: 'sent' } });
+        },
+      },
+    })
+  );
+  document
+    .querySelector('[data-v2-action="studio"]')
+    .dispatchEvent(new window.Event('click', { bubbles: true }));
+  const button = document.querySelector('[data-v2-studio] [data-studio-send]');
+  assert.equal(button.disabled, false);
+  button.dispatchEvent(new window.Event('click', { bubbles: true }));
+  for (let i = 0; i < 8; i += 1) await Promise.resolve();
+
+  assert.deepEqual(calls, [
+    ['save', 'fazli'],
+    ['transition', 'draft-1', 'needs_approval'],
+    ['transition', 'draft-1', 'approved'],
+    ['send', 'draft-1', 'test@example.com', 'fazli@hairtpclinic.com'],
+  ]);
+});
+
 test('v2-skalet: appens befintliga Bearer-brygga används för lokala mail-assets', () => {
   const appSource = fs.readFileSync(APP_PATH, 'utf8');
   assert.match(appSource, /async resolveMailAssetUrl\(sourceUrl\)/);
   assert.match(appSource, /pathname !== "\/api\/v1\/cco\/runtime\/mail-asset\/content"/);
   assert.match(appSource, /Authorization: `Bearer \$\{token\}`/);
+});
+
+test('v2-skalet: appen återanvänder samma signatur- och owner-send-kontrakt som legacy', () => {
+  const appSource = fs.readFileSync(APP_PATH, 'utf8');
+  assert.match(appSource, /studioSignatures: getStudioSignatureProfiles\(\)/);
+  assert.match(appSource, /signatureId: payload\?\.signatureId/);
+  assert.match(appSource, /studioOwnerSendAvailable: state\.prefs\?\.sendEnabled === true/);
+  assert.match(appSource, /\/cco-comm\/drafts\/\$\{encodeURIComponent\(asText\(payload\?\.draftId\)\)\}\/send/);
 });
 
 test('v2-skalet: misslyckad massåtgärd behåller operatörens urval', async () => {

@@ -40140,6 +40140,27 @@
         toneClass: asText(mailbox?.toneClass),
       })).filter((mailbox) => mailbox.id),
       selectedMailboxIds: getRequestedRuntimeMailboxIds({ includePreferredFallback: false }),
+      // Svarstudio v2 får endast presentation och avsändarval från samma
+      // mailbox-/signaturkontrakt som legacy använder. Själva auth, draft och
+      // send-grindar ligger fortfarande i de befintliga CCO-routesen.
+      studioSignatures: getStudioSignatureProfiles().map((profile) => ({
+        id: asText(profile.id),
+        label: asText(profile.label, "Signatur"),
+        senderMailboxId: normalizeMailboxId(profile.senderMailboxId || profile.email),
+        email: normalizeMailboxId(profile.email || profile.senderMailboxId),
+        text: [
+          "Med vänliga hälsningar,",
+          "",
+          asText(profile.fullName || profile.label),
+          asText(profile.title),
+          normalizeMailboxId(profile.email || profile.senderMailboxId),
+        ].filter((line) => line !== "").join("\n"),
+      })).filter((profile) => profile.id),
+      studioDefaultSignatureId: asText(getStudioReplyDefaultSignatureProfile(selected)?.id),
+      studioSenderMailboxOptions: getStudioSenderMailboxOptions(),
+      studioDefaultSenderMailboxId: getStudioDefaultSenderMailboxId(selected),
+      studioDefaultRecipient: asText(getRuntimeCustomerEmail(selected) || selected?.customerEmail),
+      studioOwnerSendAvailable: state.prefs?.sendEnabled === true,
       // v3: vald ägare (operatörens kö) — driver "Mina"-segmentet så att bara
       // den signerade operatörens trådar matchar, inte oägda/kollegors (Bugbot).
       operatorKey: normalizeKey(
@@ -40216,7 +40237,11 @@
           if (draftId) {
             return apiRequest(`/api/v1/cco-comm/drafts/${encodeURIComponent(draftId)}`, {
               method: "PATCH",
-              body: { subject: payload?.subject, body: payload?.body },
+              body: {
+                subject: payload?.subject,
+                body: payload?.body,
+                signatureId: payload?.signatureId,
+              },
             });
           }
           return apiRequest("/api/v1/cco-comm/drafts", {
@@ -40226,6 +40251,7 @@
               customerId: payload?.customerId,
               subject: payload?.subject,
               body: payload?.body,
+              signatureId: payload?.signatureId,
               channel: "email",
             },
           });
@@ -40234,6 +40260,18 @@
           return apiRequest(
             `/api/v1/cco-comm/drafts/${encodeURIComponent(asText(draftId))}/transition`,
             { method: "POST", body: { status: asText(status) } }
+          );
+        },
+        async studioSend(payload) {
+          return apiRequest(
+            `/api/v1/cco-comm/drafts/${encodeURIComponent(asText(payload?.draftId))}/send`,
+            {
+              method: "POST",
+              body: {
+                to: asText(payload?.to),
+                senderMailbox: normalizeMailboxId(payload?.senderMailbox),
+              },
+            }
           );
         },
         action(name, thread) {
