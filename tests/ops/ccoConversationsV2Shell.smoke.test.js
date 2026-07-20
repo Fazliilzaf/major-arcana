@@ -464,6 +464,36 @@ test('v2-skalet: persistenta trådåtgärder visas och skickar den valda riktiga
   assert.deepEqual(actions, [{ name: 'handled', threadId: 't-1' }]);
 });
 
+test('v2-skalet: kundhandoff är fail-closed utan exakt patientmatchning', () => {
+  const { document, api } = loadShell();
+  const unknownThread = makeThread({
+    v2Handoff: {
+      available: false,
+      reason: 'Kundkopplingen är oklar eller saknas. Öppna först Granskning.',
+    },
+  });
+  api.render(makeCtx({ laneThreads: [unknownThread], allThreads: [unknownThread], selected: unknownThread }));
+
+  const root = document.getElementById('cco-conv-v2-root');
+  for (const action of ['booking', 'calendar', 'dossier']) {
+    const button = root.querySelector('[data-v2-action="' + action + '"]');
+    assert.equal(button.disabled, true, action + ' ska vara avstängd utan exakt patientmatchning');
+    assert.match(button.getAttribute('title'), /Granskning/);
+  }
+});
+
+test('v2-skalet: bekräftad patientmatchning öppnar trådscopade handoffar', () => {
+  const { document, api } = loadShell();
+  const matchedThread = makeThread({ v2Handoff: { available: true, reason: '' } });
+  api.render(makeCtx({ laneThreads: [matchedThread], allThreads: [matchedThread], selected: matchedThread }));
+
+  const root = document.getElementById('cco-conv-v2-root');
+  for (const action of ['booking', 'calendar', 'dossier']) {
+    const button = root.querySelector('[data-v2-action="' + action + '"]');
+    assert.equal(button.disabled, false, action + ' ska vara möjlig vid exakt patientmatchning');
+  }
+});
+
 test('v2-skalet: HTML-mail renderas sandboxat, utan Outlook-notis eller rå CID', () => {
   const { document, api } = loadShell();
   const richThread = makeThread({

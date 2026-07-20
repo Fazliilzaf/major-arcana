@@ -12333,6 +12333,13 @@
       customerName,
       customerEmail,
       customerKey,
+      // Worklist-konsumenten sätter endast patientId vid en exakt unik
+      // e-postmatchning. V2 använder dessa fält fail-closed för alla
+      // kundhandoffar; den får aldrig härleda en kund från namn/telefon.
+      patientId: asText(row?.patientId),
+      patientMatch: row?.patientMatch && typeof row.patientMatch === "object"
+        ? { ...row.patientMatch }
+        : null,
       customerIdentity:
         identityEnvelope.customerIdentity ||
         row?.customerSummary?.customerIdentity ||
@@ -39978,6 +39985,118 @@
     return { conversationKey, customerId };
   }
 
+  function getV2ConfirmedPatientHandoff(thread) {
+    const raw = asObject(thread?.raw);
+    const patientMatch = asObject(thread?.patientMatch || raw?.patientMatch);
+    const patientId = asText(thread?.patientId || raw?.patientId || patientMatch?.patientId);
+    const matchStatus = normalizeKey(patientMatch?.status);
+    const matchedBy = normalizeKey(patientMatch?.matchedBy);
+    const hasConflict = asArray(thread?.hardConflictSignals || raw?.hardConflictSignals).length > 0;
+    const exactEmailMatchSources = new Set([
+      "email",
+      "primaryemail",
+      "emails",
+      "cliento.emails",
+      "pipedrive.emails",
+    ]);
+
+    // Detta är medvetet snävare än äldre UI-fallbacks: endast den befintliga
+    // patient-master-resolverns exakta, unika e-postmatchning får lämna CCO.
+    if (!patientId || matchStatus !== "matched" || !exactEmailMatchSources.has(matchedBy) || hasConflict) {
+      return null;
+    }
+    return {
+      patientId,
+      displayName: asText(patientMatch?.displayName || thread?.patientDisplayName || thread?.customerName),
+      matchedBy,
+      status: "matched",
+    };
+  }
+
+  function buildV2ThreadHandoffContext(thread) {
+    const target = getV2ConversationActionTarget(thread);
+    const patient = getV2ConfirmedPatientHandoff(thread);
+    if (!target || !patient) return null;
+    const messages = asArray(thread?.threadDocument?.messages || thread?.messages)
+      .slice(-12)
+      .map((message) => ({
+        direction: normalizeKey(message?.direction || message?.role) === "outbound" ? "outbound" : "inbound",
+        from: asText(message?.author || message?.from || ""),
+        time: asText(message?.sentAt || message?.receivedAt || ""),
+        body: asText(message?.primaryBody?.text || message?.body || message?.preview || ""),
+      }));
+    return {
+      source: "cco-conversations-v2",
+      conversationKey: target.conversationKey,
+      customerName: asText(patient.displayName || thread?.customerName),
+      email: target.customerId,
+      mailboxId: canonicalizeRuntimeMailboxId(thread?.mailboxAddress || thread?.raw?.mailboxId),
+      subject: asText(thread?.subject),
+      patientId: patient.patientId,
+      patientMatchStatus: patient.status,
+      latestMessages: messages,
+    };
+  }
+
+  function assertV2ThreadHandoff(thread) {
+    const context = buildV2ThreadHandoffContext(thread);
+    if (context) return context;
+    const error = new Error(
+      "Kundkopplingen är oklar eller saknas. Bokning, kalender och kunddossier öppnades inte."
+    );
+    setV2ConversationActionFeedback(error.message, "error");
+    renderRuntimeConversationShell();
+    throw error;
+  }
+
+  function selectV2HandoffThread(thread) {
+    const threadId = asText(thread?.id || thread?.conversationKey);
+    if (threadId) selectRuntimeThread(threadId, { reloadBootstrap: false });
+  }
+
+  function openV2BookingForThread(thread) {
+    const context = assertV2ThreadHandoff(thread);
+    selectV2HandoffThread(thread);
+    openBookingOperatorSurface({
+      message: `Bokningsytan öppnades för ${context.customerName || "kunden"}.`,
+    });
+    return context;
+  }
+
+  function openV2CalendarForThread(thread) {
+    const context = assertV2ThreadHandoff(thread);
+    setAppView("calendar");
+    const deliverContext = () => {
+      const calendarFrame = document.querySelector("iframe.cco-kalender-frame");
+      if (!calendarFrame?.contentWindow) return false;
+      calendarFrame.contentWindow.postMessage({ type: "cco:kalender:context", context }, window.location.origin);
+      return true;
+    };
+    if (!deliverContext()) {
+      const calendarFrame = document.querySelector("iframe.cco-kalender-frame");
+      calendarFrame?.addEventListener("load", deliverContext, { once: true });
+    }
+    return context;
+  }
+
+  function openV2CustomerDossier(thread) {
+    const context = assertV2ThreadHandoff(thread);
+    // Admin-skalet äger kunddjuplänken i embed-läget. Samma etablerade
+    // postMessage-kontrakt som legacy, men utan e-postfallback.
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(
+        { type: "arcana:cco-open-customer-dossier", patientId: context.patientId },
+        window.location.origin
+      );
+      return context;
+    }
+    const opened = window.ArcanaBookingCalendarActions?.openCustomerCard?.({
+      patientId: context.patientId,
+    });
+    if (!opened) throw new Error("Kunddossiern kunde inte öppnas.");
+    return context;
+  }
+
   function setV2ConversationActionFeedback(message = "", tone = "success") {
     state.runtime = state.runtime || {};
     state.runtime.v2ActionFeedback = message
@@ -40123,12 +40242,23 @@
     const selected = scoped.find((thread) =>
       runtimeConversationIdsMatch(runtimeThreadKey(thread), runtimeThreadKey(selectedCandidate))
     ) || null;
+    const selectedForV2 = selected
+      ? {
+          ...selected,
+          v2Handoff: buildV2ThreadHandoffContext(selected)
+            ? { available: true, reason: "" }
+            : {
+                available: false,
+                reason: "Kundkopplingen är oklar eller saknas. Öppna först Granskning.",
+              },
+        }
+      : null;
     window.ArcanaConversationsV2.render({
       lanes,
       activeLane,
       laneThreads: getQueueLaneThreads(activeLane, scoped),
       allThreads: scoped,
-      selected,
+      selected: selectedForV2,
       actionFeedback: state.runtime?.v2ActionFeedback || null,
       loading: state.runtime?.loading === true,
       authRequired: state.runtime?.authRequired === true,
@@ -40211,16 +40341,15 @@
           return URL.createObjectURL(await response.blob());
         },
         openDossier(thread) {
-          // Säker läsning/navigering: öppnar V12-kunddossiéren för tråden via
-          // befintligt API (ingen ny skriv-väg). Faller tillbaka på e-post.
           try {
-            window.ArcanaBookingCalendarActions?.openCustomerCard?.({
-              patientId: asText(thread?.customerId || thread?.patientId),
-              customerEmail: asText(thread?.customerEmail || thread?.from?.address),
-              customerName: asText(thread?.customerName || thread?.from),
-            });
-          } catch (_error) {
-            /* tyst */
+            return openV2CustomerDossier(thread);
+          } catch (error) {
+            setV2ConversationActionFeedback(
+              formatV2ConversationActionError(error, "Kunddossiern kunde inte öppnas."),
+              "error"
+            );
+            renderRuntimeConversationShell();
+            return null;
           }
         },
         // ── Svarstudio (P2) — wired mot draft-state-machine + gateway. ──
@@ -40281,13 +40410,17 @@
           const key = asText(name);
           try {
             if (key === "note") {
+              // Smart anteckning är trådscopad och kan användas även när en
+              // kundmatchning behöver manuell granskning.
+              selectV2HandoffThread(thread || selected);
               runtimeActionEngine?.openRuntimeNote?.()?.catch?.(() => {});
               return;
             }
-            if (key === "booking" || key === "calendar") {
-              // Återanvänder v8-kalendern (egen shell-vy ⇒ v2-skalet döljs rent).
-              setAppView("calendar");
-              return;
+            if (key === "booking") {
+              return openV2BookingForThread(thread || selected);
+            }
+            if (key === "calendar") {
+              return openV2CalendarForThread(thread || selected);
             }
             if (V2_PERSISTENT_CONVERSATION_ACTIONS[key]) {
               return runV2PersistentConversationAction(key, thread || selected);
