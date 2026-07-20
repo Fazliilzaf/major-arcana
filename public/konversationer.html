@@ -5681,9 +5681,9 @@
         );
       }
 
-      const STATIC_DEMO_PREVIEW =
-        window.location.protocol === 'file:' ||
-        new URLSearchParams(window.location.search).get('demo') === '1';
+      // Demo är endast ett lokalt facitläge. En webb- eller admin-URL får aldrig
+      // byta ut den autentiserade CCO-worklisten mot fabricerade trådar.
+      const STATIC_DEMO_PREVIEW = window.location.protocol === 'file:';
       let currentThreads = STATIC_DEMO_PREVIEW ? DEMO_THREADS : [];
       let currentInboxTab = 'alla';
       let currentLane = 'all';

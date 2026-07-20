@@ -144,7 +144,11 @@ test('konversationer live inbox scopes worklist reads to the selected mailboxes'
   );
   assert.match(html, /const STATIC_DEMO_PREVIEW\s*=/);
   assert.match(html, /window\.location\.protocol === 'file:'/);
-  assert.match(html, /get\('demo'\) === '1'/);
+  assert.doesNotMatch(
+    html,
+    /get\('demo'\) === '1'/,
+    'a web/admin query parameter must never opt into fabricated demo threads'
+  );
   assert.match(
     html,
     /let currentThreads = STATIC_DEMO_PREVIEW \? DEMO_THREADS : \[\]/,
