@@ -719,6 +719,99 @@ html[data-conversations-v2="on"]
   background: linear-gradient(180deg, #fff5e6, #ffe3b8);
   color: #2a1d10;
 }
+#cco-conv-v2-root .msg-bubble--html {
+  padding: 0;
+  overflow: hidden;
+  min-width: min(100%, 320px);
+}
+#cco-conv-v2-root .v2-msg-html-frame {
+  display: block;
+  width: min(100%, 720px);
+  min-height: 120px;
+  border: 0;
+  background: #fffdfb;
+}
+#cco-conv-v2-root .v2-msg-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 8px;
+}
+#cco-conv-v2-root .v2-msg-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 220px;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid rgba(122, 105, 87, 0.2);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--cco-text-primary);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#cco-conv-v2-root .v2-msg-attachment:hover:not(:disabled) {
+  border-color: var(--cco-status-info);
+}
+#cco-conv-v2-root .v2-msg-attachment:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+#cco-conv-v2-root .v2-attachment-backdrop {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(40, 31, 23, 0.5);
+}
+#cco-conv-v2-root .v2-attachment-dialog {
+  display: grid;
+  grid-template-rows: auto minmax(180px, 70vh) auto;
+  width: min(920px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fffdfb;
+  box-shadow: 0 18px 60px rgba(29, 20, 13, 0.35);
+}
+#cco-conv-v2-root .v2-attachment-dialog header,
+#cco-conv-v2-root .v2-attachment-dialog footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(122, 105, 87, 0.16);
+}
+#cco-conv-v2-root .v2-attachment-dialog footer {
+  border-top: 1px solid rgba(122, 105, 87, 0.16);
+  border-bottom: 0;
+}
+#cco-conv-v2-root .v2-attachment-dialog header button {
+  border: 0;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+}
+#cco-conv-v2-root .v2-attachment-stage {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  padding: 20px;
+  overflow: auto;
+  color: var(--cco-text-secondary);
+}
+#cco-conv-v2-root .v2-attachment-stage img {
+  display: block;
+  max-width: 100%;
+  max-height: 64vh;
+  object-fit: contain;
+}
 #cco-conv-v2-root .msg-meta {
   font-size: 9.5px;
   color: var(--cco-text-tertiary);

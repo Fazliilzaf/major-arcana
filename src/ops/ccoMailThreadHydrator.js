@@ -11,6 +11,37 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function presentationAsset(asset = {}) {
+  const safe = asset && typeof asset === 'object' ? asset : {};
+  const attachmentId = normalizeText(safe.attachmentId || safe.id || safe.assetId);
+  const name = normalizeText(safe.name || safe.filename || safe.fileName);
+  if (!attachmentId && !name) return null;
+  return {
+    attachmentId: attachmentId || null,
+    name: name || 'Bilaga',
+    contentType: normalizeText(safe.contentType || safe.mimeType) || null,
+    contentId: normalizeText(safe.contentId) || null,
+    size: Number(safe.size || safe.decodedSizeBytes || 0) || 0,
+    isInline:
+      safe.isInline === true || normalizeText(safe.disposition).toLowerCase() === 'inline',
+    disposition: normalizeText(safe.disposition) || null,
+    render:
+      safe.render && typeof safe.render === 'object'
+        ? {
+            safe: safe.render.safe === true,
+            state: normalizeText(safe.render.state) || null,
+          }
+        : null,
+    download:
+      safe.download && typeof safe.download === 'object'
+        ? {
+            available: safe.download.available === true,
+            state: normalizeText(safe.download.state) || null,
+          }
+        : null,
+  };
+}
+
 function compareIsoDesc(left = '', right = '') {
   return String(right || '').localeCompare(String(left || ''));
 }
@@ -57,6 +88,11 @@ function hydrateThreadMessage(message = {}, { sourceStore = 'unknown' } = {}) {
   const inlineAssetIds = asArray(mailDocument?.inlineAssets)
     .map((asset) => normalizeText(asset?.assetId || asset?.attachmentId || asset?.id))
     .filter(Boolean);
+  // V2 renderar samma kanoniska tråddokument som legacy. Behåll den redan
+  // normaliserade metadata som behövs för en lokal, auth-skyddad
+  // bilageförhandsvisning; aldrig råa bytes eller externa Graph-länkar.
+  const attachments = asArray(mailDocument?.attachments).map(presentationAsset).filter(Boolean);
+  const inlineAssets = asArray(mailDocument?.inlineAssets).map(presentationAsset).filter(Boolean);
   const assetSummary =
     mailDocument?.assetSummary && typeof mailDocument.assetSummary === 'object'
       ? mailDocument.assetSummary
@@ -141,6 +177,8 @@ function hydrateThreadMessage(message = {}, { sourceStore = 'unknown' } = {}) {
         ? mime.parsed.assets.attachments.length
         : 0,
     },
+    attachments,
+    inlineAssets,
     presentation: {
       previewText:
         normalizeText(mailDocument?.previewText || message?.bodyPreview || presentationText) || '',
