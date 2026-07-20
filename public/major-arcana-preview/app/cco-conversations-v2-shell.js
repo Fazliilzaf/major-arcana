@@ -368,28 +368,39 @@
   }
 
   function messageBody(message) {
+    var safeMessage = message && typeof message === 'object' ? message : {};
     return (
-      text(message.primaryBody && message.primaryBody.text) ||
-      text(message.presentation && message.presentation.conversationText) ||
-      text(message.conversationBody) ||
-      text(message.body) ||
-      text(message.preview) ||
-      text(message.bodyPreview)
+      text(safeMessage.primaryBody && safeMessage.primaryBody.text) ||
+      text(safeMessage.presentation && safeMessage.presentation.conversationText) ||
+      text(safeMessage.conversationBody) ||
+      text(safeMessage.body) ||
+      text(safeMessage.preview) ||
+      text(safeMessage.bodyPreview)
     );
   }
 
   function messageBodyHtml(message) {
-    var mailDocument = message && typeof message.mailDocument === 'object' ? message.mailDocument : {};
-    var primaryBody = message && typeof message.primaryBody === 'object' ? message.primaryBody : {};
-    var presentation = message && typeof message.presentation === 'object' ? message.presentation : {};
+    var safeMessage = message && typeof message === 'object' ? message : {};
+    // Äldre CCO-poster kan ha explicita null-värden i stället för ett
+    // mailDocument/primaryBody-objekt. De ska rendera sin text-fallback,
+    // aldrig fälla hela v2-skalet.
+    var mailDocument = safeMessage.mailDocument && typeof safeMessage.mailDocument === 'object'
+      ? safeMessage.mailDocument
+      : {};
+    var primaryBody = safeMessage.primaryBody && typeof safeMessage.primaryBody === 'object'
+      ? safeMessage.primaryBody
+      : {};
+    var presentation = safeMessage.presentation && typeof safeMessage.presentation === 'object'
+      ? safeMessage.presentation
+      : {};
     return (
       text(primaryBody.html) ||
       text(presentation.conversationHtml) ||
       text(mailDocument.primaryBodyHtml) ||
       text(mailDocument.bodyHtml) ||
-      text(message.bodyHtml) ||
-      text(message.body_html) ||
-      text(message.html)
+      text(safeMessage.bodyHtml) ||
+      text(safeMessage.body_html) ||
+      text(safeMessage.html)
     );
   }
 
@@ -488,9 +499,12 @@
   }
 
   function attachmentCandidates(message) {
-    var mailDocument = message && typeof message.mailDocument === 'object' ? message.mailDocument : {};
+    var safeMessage = message && typeof message === 'object' ? message : {};
+    var mailDocument = safeMessage.mailDocument && typeof safeMessage.mailDocument === 'object'
+      ? safeMessage.mailDocument
+      : {};
     var candidates = []
-      .concat(Array.isArray(message && message.attachments) ? message.attachments : [])
+      .concat(Array.isArray(safeMessage.attachments) ? safeMessage.attachments : [])
       .concat(Array.isArray(mailDocument.attachments) ? mailDocument.attachments : [])
       .concat(Array.isArray(mailDocument.inlineAssets) ? mailDocument.inlineAssets : []);
     var seen = {};

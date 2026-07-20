@@ -489,6 +489,39 @@ test('v2-skalet: HTML-mail renderas sandboxat, utan Outlook-notis eller rå CID'
   assert.match(html, /En inlinebild saknas i det här äldre mailet/);
 });
 
+test('v2-skalet: äldre null-mailDocument faller tillbaka till text utan att krascha', () => {
+  const { document, api } = loadShell();
+  const legacyThread = makeThread({
+    threadDocument: {
+      messages: [
+        {
+          messageId: 'legacy-null-document',
+          direction: 'inbound',
+          author: 'Anna Karlsson',
+          sentAt: '2026-06-20T10:00:00Z',
+          mailDocument: null,
+          primaryBody: null,
+          presentation: null,
+          body: 'Äldre mailtext utan rich-mail-dokument.',
+        },
+      ],
+    },
+  });
+
+  assert.doesNotThrow(() => {
+    api.render(makeCtx({
+      laneThreads: [legacyThread],
+      allThreads: [legacyThread],
+      selected: legacyThread,
+    }));
+  });
+  assert.match(
+    document.querySelector('[data-v2-thread]').textContent,
+    /Äldre mailtext utan rich-mail-dokument\./,
+    'det äldre mailet ska använda text-fallback utan att fälla hela skalet'
+  );
+});
+
 test('v2-skalet: vanlig bilaga visas separat medan inline-signatur inte dupliceras', () => {
   const { document, api } = loadShell();
   const thread = makeThread({
