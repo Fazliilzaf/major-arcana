@@ -718,6 +718,9 @@
       ['Canonical patient', preflight.patient?.name || 'Saknas'],
       ['Canonical patientId', preflight.patient?.patientId || 'Saknas'],
       ['Behandling', preflight.service?.label || 'Saknas'],
+      ['Variant-id', preflight.service?.variantId || 'Parent-tjänst'],
+      ['Klinisk parent', preflight.service?.clinicalParentServiceId || preflight.service?.serviceId || 'Saknas'],
+      ['Pris', preflight.service?.priceLabel || preflight.service?.price?.display || 'Ej prissatt'],
       ['Resurs', preflight.resource?.label || 'Saknas'],
       ['Vårdgivare', preflight.practitioner?.label || 'Saknas'],
       ['Tid', preflight.time ? preflight.time.local + ' · ' + preflight.time.timeZone : 'Saknas'],
@@ -774,14 +777,42 @@
     const idempotencyKey = createBookingIdempotencyKey();
     let catalog = { services: [], resources: [] };
 
-    function option(value, label) {
-      return el('option', { value }, label);
+    function option(value, label, dataset = null) {
+      const attrs = { value };
+      if (dataset) attrs.dataset = dataset;
+      return el('option', attrs, label);
+    }
+    function selectedServiceParentId() {
+      const selected = serviceSelect.selectedOptions && serviceSelect.selectedOptions[0];
+      return selected?.dataset?.parentServiceId || serviceSelect.value;
+    }
+    function serviceVariantLabel(item) {
+      const price = item?.price?.display || '';
+      const priceType = item?.price?.priceType || '';
+      const suffix = [price, priceType].filter(Boolean).join(' · ');
+      return suffix ? (item.label || item.id) + ' · ' + suffix : (item.label || item.id);
     }
     function fillCatalog() {
       serviceSelect.innerHTML = '';
       resourceSelect.innerHTML = '';
       practitionerSelect.innerHTML = '';
-      (catalog.services || []).forEach((item) => serviceSelect.appendChild(option(item.id, item.label || item.id)));
+      const variants = (catalog.serviceVariants || []).filter((item) => item.internalBookable === true);
+      const choices = variants.length ? variants : (catalog.services || []);
+      choices.forEach((item) => {
+        const isVariant = Boolean(item.variantId);
+        serviceSelect.appendChild(option(
+          isVariant ? item.variantId : item.id,
+          isVariant ? serviceVariantLabel(item) : (item.label || item.id),
+          isVariant
+            ? {
+                parentServiceId: item.parentServiceId || item.clinicalParentServiceId || '',
+                variantId: item.variantId || '',
+                price: item.price?.display || '',
+                priceType: item.price?.priceType || '',
+              }
+            : null
+        ));
+      });
       (catalog.resources || []).forEach((item) => {
         resourceSelect.appendChild(option(item.id, item.label || item.id));
         practitionerSelect.appendChild(option(item.id, item.label || item.id));
@@ -795,7 +826,7 @@
         fromDate: dateInput.value,
         toDate: dateInput.value,
         resIds: resourceSelect.value,
-        srvIds: serviceSelect.value,
+        srvIds: selectedServiceParentId(),
       });
       try {
         const response = await fetch('/api/v1/cco-booking-engine/availability?' + params,

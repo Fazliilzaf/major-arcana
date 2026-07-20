@@ -2,8 +2,12 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
 const express = require('express');
 
+const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineStore');
 const { createPublicBookingEngineRouter } = require('../../src/routes/publicBookingEngine');
 
 async function withServer(app, run) {
@@ -74,6 +78,45 @@ test('public booking-engine endpoints return 503 when ARCANA_PUBLIC_WEB_BOOKING_
       assert.equal((await vipPostRes.json()).error, 'vip_token_invalid');
     });
   } finally {
+    if (prev === undefined) delete process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED;
+    else process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED = prev;
+  }
+});
+
+test('public booking-engine catalog does not expose internal service variants or Meridiq ids', async () => {
+  const prev = process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED;
+  process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED = 'true';
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-public-catalog-rbac-'));
+  try {
+    const bookingEngineStore = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+    const app = express();
+    app.use(express.json());
+    app.use(
+      '/api',
+      createPublicBookingEngineRouter({
+        bookingEngineStore,
+        bookingStore: null,
+        config: { brand: 'hair-tp-clinic', brandByHost: {} },
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/api/public/booking-engine/catalog?host=hairtpclinic.com`);
+      assert.equal(res.status, 200);
+      const payload = await res.json();
+      assert.equal(payload.provider, 'cco_engine');
+      assert.equal(payload.serviceVariants, undefined);
+      const serialized = JSON.stringify(payload);
+      assert.doesNotMatch(serialized, /serviceVariants/);
+      assert.doesNotMatch(serialized, /meridiqApiId/);
+      assert.doesNotMatch(serialized, /meridiq/i);
+      assert.ok(Array.isArray(payload.services));
+      assert.ok(payload.services.length > 0);
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
     if (prev === undefined) delete process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED;
     else process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED = prev;
   }

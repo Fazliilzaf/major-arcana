@@ -58,6 +58,11 @@ test('controlled UI is default-off and orders preflight before explicit confirm'
   assert.match(source, /CCO_CALENDAR_CREATE_BOOKING_ENABLED === true/);
   assert.match(block, /\/create\/preflight/);
   assert.match(block, /\/create\/confirm/);
+  assert.match(block, /catalog\.serviceVariants/);
+  assert.match(block, /serviceVariantLabel/);
+  assert.match(block, /parentServiceId/);
+  assert.match(block, /srvIds: selectedServiceParentId\(\)/);
+  assert.match(block, /serviceId: serviceSelect\.value/);
   assert.ok(block.indexOf('/create/preflight') < block.indexOf('/create/confirm'));
   assert.ok(
     block.indexOf('renderCreateServerPreflight') < block.indexOf('Bekräfta och skapa bokning')
