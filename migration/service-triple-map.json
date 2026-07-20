@@ -28,7 +28,26 @@
         "apiIds": [7079],
         "count": 1,
         "categories": ["Konsultationer · Hair TP Clinic"]
-      }
+      },
+      "serviceVariants": [
+        {
+          "variantId": "consultation-online-7079-digitalt-videosamtal",
+          "label": "Digitalt videosamtal",
+          "meridiqApiId": 7079,
+          "facitCategory": "Konsultationer",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "konsultation"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "consultation-online",
+          "secondaryLabel": "Onlinekonsultation"
+        }
+      ]
     },
     {
       "arcanaServiceId": "consultation-physical",
@@ -55,7 +74,26 @@
         "apiIds": [7078],
         "count": 1,
         "categories": ["Konsultationer · Hair TP Clinic"]
-      }
+      },
+      "serviceVariants": [
+        {
+          "variantId": "consultation-physical-7078-mote-pa-kliniken",
+          "label": "Möte på kliniken",
+          "meridiqApiId": 7078,
+          "facitCategory": "Konsultationer",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "konsultation"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "consultation-physical",
+          "secondaryLabel": "Fysisk konsultation"
+        }
+      ]
     },
     {
       "arcanaServiceId": "followup-transplant",
@@ -79,10 +117,172 @@
       },
       "meridiq": {
         "primaryApiId": 7130,
-        "apiIds": [7130, 7131, 7134, 7137, 7405],
-        "count": 5,
+        "apiIds": [7107, 7130, 7131, 7134, 7137, 7405, 7410, 8952, 8953, 8954],
+        "count": 10,
         "categories": ["Uppföljning · Hair TP Clinic"]
-      }
+      },
+      "serviceVariants": [
+        {
+          "variantId": "followup-transplant-8952-uppfoljning-botox",
+          "label": "Uppföljning: Botox",
+          "meridiqApiId": 8952,
+          "facitCategory": "Uppföljning",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "followup-transplant"
+        },
+        {
+          "variantId": "followup-transplant-8953-uppfoljning-filler",
+          "label": "Uppföljning: Filler",
+          "meridiqApiId": 8953,
+          "facitCategory": "Uppföljning",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "followup-transplant"
+        },
+        {
+          "variantId": "followup-transplant-7130-uppfoljning-hartransplantation-dhi",
+          "label": "Uppföljning: Hårtransplantation DHI",
+          "meridiqApiId": 7130,
+          "facitCategory": "Uppföljning",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "followup-transplant"
+        },
+        {
+          "variantId": "followup-transplant-7131-uppfoljning-hartransplantation-fue",
+          "label": "Uppföljning: Hårtransplantation FUE",
+          "meridiqApiId": 7131,
+          "facitCategory": "Uppföljning",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "followup-transplant"
+        },
+        {
+          "variantId": "followup-transplant-8954-uppfoljning-profilho",
+          "label": "Uppföljning: Profilho",
+          "meridiqApiId": 8954,
+          "facitCategory": "Uppföljning",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "followup-transplant"
+        },
+        {
+          "variantId": "followup-transplant-7137-uppfoljning-skaggtransplantation-dhi",
+          "label": "Uppföljning: Skäggtransplantation DHI",
+          "meridiqApiId": 7137,
+          "facitCategory": "Uppföljning",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "followup-transplant"
+        },
+        {
+          "variantId": "followup-transplant-7405-uppfoljning-skaggtransplantation-fue",
+          "label": "Uppföljning: Skäggtransplantation FUE",
+          "meridiqApiId": 7405,
+          "facitCategory": "Uppföljning",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "followup-transplant"
+        },
+        {
+          "variantId": "followup-transplant-7134-uppfoljning-ogonbrynstransplantation-dhi",
+          "label": "Uppföljning: Ögonbrynstransplantation DHI",
+          "meridiqApiId": 7134,
+          "facitCategory": "Uppföljning",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "followup-transplant"
+        },
+        {
+          "variantId": "followup-transplant-7410-uppfoljning-ogonlocksplastik",
+          "label": "Uppföljning: Ögonlocksplastik",
+          "meridiqApiId": 7410,
+          "facitCategory": "Uppföljning",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "followup-transplant"
+        },
+        {
+          "variantId": "followup-transplant-7107-ogonlocksplastik-suturborttagning",
+          "label": "Ögonlocksplastik: Suturborttagning",
+          "meridiqApiId": 7107,
+          "facitCategory": "Uppföljning",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "followup-transplant"
+        }
+      ]
     },
     {
       "arcanaServiceId": "fue",
@@ -112,7 +312,169 @@
         "apiIds": [7086, 7087, 7088, 7089, 7090, 7091, 7092, 7106, 7128, 7397],
         "count": 10,
         "categories": ["FUE Hårtransplantation"]
-      }
+      },
+      "serviceVariants": [
+        {
+          "variantId": "fue-7092-fue-hartransplantation-1000-grafts",
+          "label": "FUE Hårtransplantation: 1000 grafts",
+          "meridiqApiId": 7092,
+          "facitCategory": "FUE Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 42000,
+            "display": "42 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "fue-7091-fue-hartransplantation-1500-grafts",
+          "label": "FUE Hårtransplantation: 1500 grafts",
+          "meridiqApiId": 7091,
+          "facitCategory": "FUE Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 46000,
+            "display": "46 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "fue-7090-fue-hartransplantation-2000-grafts",
+          "label": "FUE Hårtransplantation: 2000 grafts",
+          "meridiqApiId": 7090,
+          "facitCategory": "FUE Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 50000,
+            "display": "50 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "fue-7089-fue-hartransplantation-2500-grafts",
+          "label": "FUE Hårtransplantation: 2500 grafts",
+          "meridiqApiId": 7089,
+          "facitCategory": "FUE Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 54000,
+            "display": "54 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "fue-7088-fue-hartransplantation-3000-grafts",
+          "label": "FUE Hårtransplantation: 3000 grafts",
+          "meridiqApiId": 7088,
+          "facitCategory": "FUE Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 58000,
+            "display": "58 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "fue-7087-fue-hartransplantation-3500-grafts",
+          "label": "FUE Hårtransplantation: 3500 grafts",
+          "meridiqApiId": 7087,
+          "facitCategory": "FUE Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 62000,
+            "display": "62 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "fue-7086-fue-hartransplantation-4000-grafts",
+          "label": "FUE Hårtransplantation: 4000 grafts",
+          "meridiqApiId": 7086,
+          "facitCategory": "FUE Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 66000,
+            "display": "66 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "fue-7106-fue-hartransplantation-4500-grafts",
+          "label": "FUE Hårtransplantation: 4500 grafts",
+          "meridiqApiId": 7106,
+          "facitCategory": "FUE Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 69000,
+            "display": "69 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "fue-7128-fue-hartransplantation-prp-efterbehandling",
+          "label": "FUE Hårtransplantation: PRP-efterbehandling",
+          "meridiqApiId": 7128,
+          "facitCategory": "FUE Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "fue-7397-fue-skaggtransplantation-1000-grafts",
+          "label": "FUE Skäggtransplantation: 1000 grafts",
+          "meridiqApiId": 7397,
+          "facitCategory": "FUE Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 42000,
+            "display": "42 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        }
+      ]
     },
     {
       "arcanaServiceId": "dhi",
@@ -142,7 +504,137 @@
         "apiIds": [7093, 7094, 7095, 7096, 7097, 7103, 7414, 8727],
         "count": 8,
         "categories": ["DHI Hårtransplantation"]
-      }
+      },
+      "serviceVariants": [
+        {
+          "variantId": "dhi-7097-dhi-hartransplantation-1000-grafts",
+          "label": "DHI Hårtransplantation: 1000 grafts",
+          "meridiqApiId": 7097,
+          "facitCategory": "DHI Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 52000,
+            "display": "52 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "dhi-7096-dhi-hartransplantation-1500-grafts",
+          "label": "DHI Hårtransplantation: 1500 grafts",
+          "meridiqApiId": 7096,
+          "facitCategory": "DHI Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 56000,
+            "display": "56 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "dhi-7095-dhi-hartransplantation-2000-grafts",
+          "label": "DHI Hårtransplantation: 2000 grafts",
+          "meridiqApiId": 7095,
+          "facitCategory": "DHI Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 60000,
+            "display": "60 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "dhi-7094-dhi-hartransplantation-2500-grafts",
+          "label": "DHI Hårtransplantation: 2500 grafts",
+          "meridiqApiId": 7094,
+          "facitCategory": "DHI Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 64000,
+            "display": "64 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "dhi-7093-dhi-hartransplantation-3000-grafts",
+          "label": "DHI Hårtransplantation: 3000 grafts",
+          "meridiqApiId": 7093,
+          "facitCategory": "DHI Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 68000,
+            "display": "68 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "dhi-7103-dhi-hartransplantation-prp-efterbehandling",
+          "label": "DHI Hårtransplantation: PRP-efterbehandling",
+          "meridiqApiId": 7103,
+          "facitCategory": "DHI Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "dhi-7414-dhi-arr",
+          "label": "DHI Ärr",
+          "meridiqApiId": 7414,
+          "facitCategory": "DHI Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 15000,
+            "display": "15 000 kr",
+            "priceType": "från/variabel"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "dhi-8727-dhi-arr-prp-efterbehandling",
+          "label": "DHI Ärr: PRP-efterbehandling",
+          "meridiqApiId": 8727,
+          "facitCategory": "DHI Hårtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        }
+      ]
     },
     {
       "arcanaServiceId": "beard",
@@ -163,7 +655,190 @@
         "apiIds": [7127, 7135, 7144, 7387, 7388, 7389, 7398, 7399, 7400, 7401, 7404],
         "count": 11,
         "categories": ["DHI Skäggtransplantation", "FUE Skäggtransplantation"]
-      }
+      },
+      "encounterType": "beard",
+      "bookingMethodLabel": "Skäggtransplantation",
+      "offerTemplateKey": "transplant-beard",
+      "documentRequirementKey": null,
+      "coolingOffRef": null,
+      "serviceVariants": [
+        {
+          "variantId": "beard-7398-fue-skaggtransplantation-1500-grafts",
+          "label": "FUE Skäggtransplantation: 1500 grafts",
+          "meridiqApiId": 7398,
+          "facitCategory": "FUE Skäggtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 46000,
+            "display": "46 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "beard-7399-fue-skaggtransplantation-2000-grafts",
+          "label": "FUE Skäggtransplantation: 2000 grafts",
+          "meridiqApiId": 7399,
+          "facitCategory": "FUE Skäggtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 50000,
+            "display": "50 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "beard-7400-fue-skaggtransplantation-2500-grafts",
+          "label": "FUE Skäggtransplantation: 2500 grafts",
+          "meridiqApiId": 7400,
+          "facitCategory": "FUE Skäggtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 54000,
+            "display": "54 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "beard-7401-fue-skaggtransplantation-3000-grafts",
+          "label": "FUE Skäggtransplantation: 3000 grafts",
+          "meridiqApiId": 7401,
+          "facitCategory": "FUE Skäggtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 58000,
+            "display": "58 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "beard-7404-fue-skaggtransplantation-prp-efterbehandling",
+          "label": "FUE Skäggtransplantation: PRP-efterbehandling",
+          "meridiqApiId": 7404,
+          "facitCategory": "FUE Skäggtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "fue"
+        },
+        {
+          "variantId": "beard-7389-dhi-skaggtransplantation-3000-grafts",
+          "label": "DHI Skäggtransplantation 3000 grafts",
+          "meridiqApiId": 7389,
+          "facitCategory": "DHI Skäggtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 68000,
+            "display": "68 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "beard-7127-dhi-skaggtransplantation-1000-grafts",
+          "label": "DHI Skäggtransplantation: 1000 grafts",
+          "meridiqApiId": 7127,
+          "facitCategory": "DHI Skäggtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 52000,
+            "display": "52 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "beard-7144-dhi-skaggtransplantation-1500-grafts",
+          "label": "DHI Skäggtransplantation: 1500 grafts",
+          "meridiqApiId": 7144,
+          "facitCategory": "DHI Skäggtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 56000,
+            "display": "56 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "beard-7387-dhi-skaggtransplantation-2000-grafts",
+          "label": "DHI Skäggtransplantation: 2000 grafts",
+          "meridiqApiId": 7387,
+          "facitCategory": "DHI Skäggtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 60000,
+            "display": "60 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "beard-7388-dhi-skaggtransplantation-2500-grafts",
+          "label": "DHI Skäggtransplantation: 2500 grafts",
+          "meridiqApiId": 7388,
+          "facitCategory": "DHI Skäggtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 64000,
+            "display": "64 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "beard-7135-dhi-skaggtransplantation-prp-efterbehandling",
+          "label": "DHI Skäggtransplantation: PRP-efterbehandling",
+          "meridiqApiId": 7135,
+          "facitCategory": "DHI Skäggtransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        }
+      ]
     },
     {
       "arcanaServiceId": "eyebrow",
@@ -184,7 +859,46 @@
         "apiIds": [7104, 7132],
         "count": 2,
         "categories": ["DHI Ögonbrynstransplantation"]
-      }
+      },
+      "encounterType": "eyebrow",
+      "bookingMethodLabel": "Ögonbrynstransplantation",
+      "offerTemplateKey": "transplant-eyebrow",
+      "documentRequirementKey": null,
+      "coolingOffRef": null,
+      "serviceVariants": [
+        {
+          "variantId": "eyebrow-7104-dhi-ogonbrynstransplantation",
+          "label": "DHI Ögonbrynstransplantation",
+          "meridiqApiId": 7104,
+          "facitCategory": "DHI Ögonbrynstransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 25000,
+            "display": "25 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        },
+        {
+          "variantId": "eyebrow-7132-dhi-ogonbrynstransplantation-prp-efterbehandling",
+          "label": "DHI Ögonbrynstransplantation: PRP-efterbehandling",
+          "meridiqApiId": 7132,
+          "facitCategory": "DHI Ögonbrynstransplantation",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "paket"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "dhi"
+        }
+      ]
     },
     {
       "arcanaServiceId": "prp-hair",
@@ -214,7 +928,105 @@
         "apiIds": [7112, 7113, 7114, 7116, 7133, 7395],
         "count": 6,
         "categories": ["PRP · Hår"]
-      }
+      },
+      "serviceVariants": [
+        {
+          "variantId": "prp-hair-7114-prp-har-mini",
+          "label": "PRP: Hår Mini",
+          "meridiqApiId": 7114,
+          "facitCategory": "PRP",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 2500,
+            "display": "2 500 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "prp-hair"
+        },
+        {
+          "variantId": "prp-hair-7112-prp-har-standard",
+          "label": "PRP: Hår Standard",
+          "meridiqApiId": 7112,
+          "facitCategory": "PRP",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 4300,
+            "display": "4 300 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "prp-hair"
+        },
+        {
+          "variantId": "prp-hair-7113-prp-har-xl",
+          "label": "PRP: Hår XL",
+          "meridiqApiId": 7113,
+          "facitCategory": "PRP",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 4800,
+            "display": "4 800 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "prp-hair"
+        },
+        {
+          "variantId": "prp-hair-7116-prp-skagg",
+          "label": "PRP: Skägg",
+          "meridiqApiId": 7116,
+          "facitCategory": "PRP",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 4300,
+            "display": "4 300 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "prp-hair"
+        },
+        {
+          "variantId": "prp-hair-7133-prp-underhallsbehandling-tp",
+          "label": "PRP: Underhållsbehandling TP",
+          "meridiqApiId": 7133,
+          "facitCategory": "PRP",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 2500,
+            "display": "2 500 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "prp-hair"
+        },
+        {
+          "variantId": "prp-hair-7395-tillaggsomarde-prp-har",
+          "label": "Tilläggsomårde: PRP Hår",
+          "meridiqApiId": 7395,
+          "facitCategory": "PRP",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 1500,
+            "display": "1 500 kr",
+            "priceType": "tillägg"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "prp-hair"
+        }
+      ]
     },
     {
       "arcanaServiceId": "prp-skin",
@@ -235,7 +1047,97 @@
         "apiIds": [7117, 7118, 7119, 7120, 7122],
         "count": 5,
         "categories": ["PRP · Hud"]
-      }
+      },
+      "encounterType": "prp_skin",
+      "bookingMethodLabel": "PRP hud",
+      "offerTemplateKey": "prp-skin-single",
+      "documentRequirementKey": "prp_skin",
+      "coolingOffRef": {
+        "source": "config/cco-treatment-document-requirements.json",
+        "treatmentKey": "prp_skin"
+      },
+      "serviceVariants": [
+        {
+          "variantId": "prp-skin-7117-prp-ansikte",
+          "label": "PRP: Ansikte",
+          "meridiqApiId": 7117,
+          "facitCategory": "PRP",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 4300,
+            "display": "4 300 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "prp-skin"
+        },
+        {
+          "variantId": "prp-skin-7119-prp-dekolletage",
+          "label": "PRP: Dekolletage",
+          "meridiqApiId": 7119,
+          "facitCategory": "PRP",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 4300,
+            "display": "4 300 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "prp-skin"
+        },
+        {
+          "variantId": "prp-skin-7118-prp-hals",
+          "label": "PRP: Hals",
+          "meridiqApiId": 7118,
+          "facitCategory": "PRP",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 4300,
+            "display": "4 300 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "prp-skin"
+        },
+        {
+          "variantId": "prp-skin-7120-prp-hander",
+          "label": "PRP: Händer",
+          "meridiqApiId": 7120,
+          "facitCategory": "PRP",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 4300,
+            "display": "4 300 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "prp-skin"
+        },
+        {
+          "variantId": "prp-skin-7122-tillaggsomrade-prp-hud",
+          "label": "Tilläggsområde: PRP Hud",
+          "meridiqApiId": 7122,
+          "facitCategory": "PRP",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 1500,
+            "display": "1 500 kr",
+            "priceType": "tillägg"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "prp-skin"
+        }
+      ]
     },
     {
       "arcanaServiceId": "microneedling",
@@ -256,7 +1158,97 @@
         "apiIds": [7121, 7392, 7393, 7394, 7396],
         "count": 5,
         "categories": ["Microneedling med Dermapen"]
-      }
+      },
+      "encounterType": "microneedling",
+      "bookingMethodLabel": "Microneedling + PRP",
+      "offerTemplateKey": "microneedling-single",
+      "documentRequirementKey": "microneedling_hair",
+      "coolingOffRef": {
+        "source": "config/cco-treatment-document-requirements.json",
+        "treatmentKey": "microneedling_hair"
+      },
+      "serviceVariants": [
+        {
+          "variantId": "microneedling-7121-microneedling-med-prp-ansikte",
+          "label": "Microneedling med PRP: Ansikte",
+          "meridiqApiId": 7121,
+          "facitCategory": "Microneedling med Dermapen",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 4300,
+            "display": "4 300 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "microneedling"
+        },
+        {
+          "variantId": "microneedling-7392-microneedling-med-prp-dekolletage",
+          "label": "Microneedling med PRP: Dekolletage",
+          "meridiqApiId": 7392,
+          "facitCategory": "Microneedling med Dermapen",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 4300,
+            "display": "4 300 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "microneedling"
+        },
+        {
+          "variantId": "microneedling-7393-microneedling-med-prp-hals",
+          "label": "Microneedling med PRP: Hals",
+          "meridiqApiId": 7393,
+          "facitCategory": "Microneedling med Dermapen",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 4300,
+            "display": "4 300 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "microneedling"
+        },
+        {
+          "variantId": "microneedling-7394-microneedling-med-prp-hander",
+          "label": "Microneedling med PRP: Händer",
+          "meridiqApiId": 7394,
+          "facitCategory": "Microneedling med Dermapen",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 4300,
+            "display": "4 300 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "microneedling"
+        },
+        {
+          "variantId": "microneedling-7396-tillaggsomrade-prp-och-microneedling",
+          "label": "Tilläggsområde: PRP och Microneedling",
+          "meridiqApiId": 7396,
+          "facitCategory": "Microneedling med Dermapen",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 1500,
+            "display": "1 500 kr",
+            "priceType": "tillägg"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "microneedling"
+        }
+      ]
     },
     {
       "arcanaServiceId": "consultation-curatiio-aesthetic",
@@ -276,7 +1268,33 @@
         "apiIds": [8694],
         "count": 1,
         "categories": ["Konsultationer · Curatiio"]
-      }
+      },
+      "encounterType": "consultation",
+      "bookingMethodLabel": "Konsultation estetiska injektioner",
+      "offerTemplateKey": "consultation-only",
+      "publicBookable": false,
+      "documentRequirementKey": null,
+      "coolingOffRef": null,
+      "legacyAliases": [],
+      "serviceVariants": [
+        {
+          "variantId": "consultation-curatiio-aesthetic-8694-estetiska-injektioner",
+          "label": "Estetiska injektioner",
+          "meridiqApiId": 8694,
+          "facitCategory": "Konsultationer",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "konsultation"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "consultation-curatiio-aesthetic",
+          "secondaryLabel": "Konsultation"
+        }
+      ]
     },
     {
       "arcanaServiceId": "consultation-bleph",
@@ -296,7 +1314,33 @@
         "apiIds": [7080],
         "count": 1,
         "categories": ["Konsultationer · Curatiio"]
-      }
+      },
+      "encounterType": "consultation",
+      "bookingMethodLabel": "Konsultation ögonlocksplastik",
+      "offerTemplateKey": "consultation-only",
+      "publicBookable": false,
+      "documentRequirementKey": null,
+      "coolingOffRef": null,
+      "legacyAliases": [],
+      "serviceVariants": [
+        {
+          "variantId": "consultation-bleph-7080-ogonlocksplastik",
+          "label": "Ögonlocksplastik",
+          "meridiqApiId": 7080,
+          "facitCategory": "Konsultationer",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "konsultation"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "consultation-bleph",
+          "secondaryLabel": "Konsultation"
+        }
+      ]
     },
     {
       "arcanaServiceId": "consultation-ortho",
@@ -316,7 +1360,33 @@
         "apiIds": [7081],
         "count": 1,
         "categories": ["Konsultationer · Curatiio"]
-      }
+      },
+      "encounterType": "consultation",
+      "bookingMethodLabel": "Konsultation ortopedi",
+      "offerTemplateKey": "consultation-only",
+      "publicBookable": false,
+      "documentRequirementKey": null,
+      "coolingOffRef": null,
+      "legacyAliases": [],
+      "serviceVariants": [
+        {
+          "variantId": "consultation-ortho-7081-ortopediska-injektionsbehandlingar",
+          "label": "Ortopediska injektionsbehandlingar",
+          "meridiqApiId": 7081,
+          "facitCategory": "Konsultationer",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 0,
+            "display": "0 kr (paket)",
+            "priceType": "konsultation"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_zero_package_followup_or_consultation_not_public_without_explicit_policy",
+          "clinicalParentArcanaServiceId": "consultation-ortho",
+          "secondaryLabel": "Konsultation"
+        }
+      ]
     },
     {
       "arcanaServiceId": "bleph-upper",
@@ -333,10 +1403,36 @@
       },
       "meridiq": {
         "primaryApiId": 7085,
-        "apiIds": [7085, 7105],
-        "count": 2,
+        "apiIds": [7085],
+        "count": 1,
         "categories": ["Ögonlocksplastik · Curatiio"]
-      }
+      },
+      "encounterType": "bleph",
+      "bookingMethodLabel": "Övre ögonlocksplastik",
+      "offerTemplateKey": "bleph-upper",
+      "documentRequirementKey": "bleph",
+      "coolingOffRef": {
+        "source": "config/cco-treatment-document-requirements.json",
+        "treatmentKey": "bleph"
+      },
+      "serviceVariants": [
+        {
+          "variantId": "bleph-upper-7085-ovre-ogonlocksplastik",
+          "label": "Övre ögonlocksplastik",
+          "meridiqApiId": 7085,
+          "facitCategory": "Ögonlocksplastik",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 24000,
+            "display": "24 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "bleph-upper"
+        }
+      ]
     },
     {
       "arcanaServiceId": "bleph-lower",
@@ -353,10 +1449,36 @@
       },
       "meridiq": {
         "primaryApiId": 7082,
-        "apiIds": [7082, 7105],
-        "count": 2,
+        "apiIds": [7082],
+        "count": 1,
         "categories": ["Ögonlocksplastik · Curatiio"]
-      }
+      },
+      "encounterType": "bleph",
+      "bookingMethodLabel": "Nedre ögonlocksplastik",
+      "offerTemplateKey": "bleph-lower",
+      "documentRequirementKey": "bleph",
+      "coolingOffRef": {
+        "source": "config/cco-treatment-document-requirements.json",
+        "treatmentKey": "bleph"
+      },
+      "serviceVariants": [
+        {
+          "variantId": "bleph-lower-7082-nedre-ogonlocksplastik",
+          "label": "Nedre ögonlocksplastik",
+          "meridiqApiId": 7082,
+          "facitCategory": "Ögonlocksplastik",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 28000,
+            "display": "28 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "bleph-lower"
+        }
+      ]
     },
     {
       "arcanaServiceId": "bleph-combined",
@@ -376,7 +1498,33 @@
         "apiIds": [7105],
         "count": 1,
         "categories": ["Ögonlocksplastik · Curatiio"]
-      }
+      },
+      "encounterType": "bleph",
+      "bookingMethodLabel": "Övre och nedre ögonlocksplastik",
+      "offerTemplateKey": "bleph-combined",
+      "documentRequirementKey": "bleph",
+      "coolingOffRef": {
+        "source": "config/cco-treatment-document-requirements.json",
+        "treatmentKey": "bleph"
+      },
+      "serviceVariants": [
+        {
+          "variantId": "bleph-combined-7105-ovre-och-nedre-ogonlocksplastik",
+          "label": "Övre och nedre ögonlocksplastik",
+          "meridiqApiId": 7105,
+          "facitCategory": "Ögonlocksplastik",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 48000,
+            "display": "48 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "bleph-combined"
+        }
+      ]
     },
     {
       "arcanaServiceId": "botox",
@@ -396,7 +1544,81 @@
         "apiIds": [7382, 7383, 7384, 7385],
         "count": 4,
         "categories": ["Estetiska injektioner · Curatiio"]
-      }
+      },
+      "encounterType": "curatiio_estetik",
+      "bookingMethodLabel": "Botox",
+      "offerTemplateKey": "botox-standard",
+      "documentRequirementKey": "botox",
+      "coolingOffRef": {
+        "source": "config/cco-treatment-document-requirements.json",
+        "treatmentKey": "botox"
+      },
+      "serviceVariants": [
+        {
+          "variantId": "botox-7385-botox-lapplyft-lip-flip",
+          "label": "Botox Läpplyft (Lip Flip)",
+          "meridiqApiId": 7385,
+          "facitCategory": "Estetiska injektioner",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 1400,
+            "display": "1 400 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "botox"
+        },
+        {
+          "variantId": "botox-7382-botox-1-omrade",
+          "label": "Botox: 1 område",
+          "meridiqApiId": 7382,
+          "facitCategory": "Estetiska injektioner",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 2300,
+            "display": "2 300 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "botox"
+        },
+        {
+          "variantId": "botox-7383-botox-2-omraden",
+          "label": "Botox: 2 områden",
+          "meridiqApiId": 7383,
+          "facitCategory": "Estetiska injektioner",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 2800,
+            "display": "2 800 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "botox"
+        },
+        {
+          "variantId": "botox-7384-botox-3-omraden",
+          "label": "Botox: 3 områden",
+          "meridiqApiId": 7384,
+          "facitCategory": "Estetiska injektioner",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 3400,
+            "display": "3 400 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "botox"
+        }
+      ]
     },
     {
       "arcanaServiceId": "fillers",
@@ -416,7 +1638,65 @@
         "apiIds": [7376, 7377, 7378],
         "count": 3,
         "categories": ["Estetiska injektioner · Curatiio"]
-      }
+      },
+      "encounterType": "curatiio_estetik",
+      "bookingMethodLabel": "Fillers",
+      "offerTemplateKey": "filler-standard",
+      "documentRequirementKey": "filler",
+      "coolingOffRef": {
+        "source": "config/cco-treatment-document-requirements.json",
+        "treatmentKey": "filler"
+      },
+      "serviceVariants": [
+        {
+          "variantId": "fillers-7377-fillers-lappar-0-5-ml",
+          "label": "Fillers: Läppar 0.5 ml",
+          "meridiqApiId": 7377,
+          "facitCategory": "Estetiska injektioner",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 2500,
+            "display": "2 500 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fillers"
+        },
+        {
+          "variantId": "fillers-7378-fillers-lappar-1-ml",
+          "label": "Fillers: Läppar 1 ml",
+          "meridiqApiId": 7378,
+          "facitCategory": "Estetiska injektioner",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 3500,
+            "display": "3 500 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fillers"
+        },
+        {
+          "variantId": "fillers-7376-fillers-nasolabialveck-1-ml",
+          "label": "Fillers: Nasolabialveck 1 ml",
+          "meridiqApiId": 7376,
+          "facitCategory": "Estetiska injektioner",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 3000,
+            "display": "3 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "fillers"
+        }
+      ]
     },
     {
       "arcanaServiceId": "profhilo",
@@ -436,7 +1716,65 @@
         "apiIds": [7379, 7380, 7381],
         "count": 3,
         "categories": ["Estetiska injektioner · Curatiio"]
-      }
+      },
+      "encounterType": "curatiio_estetik",
+      "bookingMethodLabel": "Profhilo",
+      "offerTemplateKey": "profhilo-standard",
+      "documentRequirementKey": "profhilo",
+      "coolingOffRef": {
+        "source": "config/cco-treatment-document-requirements.json",
+        "treatmentKey": "profhilo"
+      },
+      "serviceVariants": [
+        {
+          "variantId": "profhilo-7379-profhilo-1-behandling",
+          "label": "Profhilo: 1 behandling",
+          "meridiqApiId": 7379,
+          "facitCategory": "Estetiska injektioner",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 3000,
+            "display": "3 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "profhilo"
+        },
+        {
+          "variantId": "profhilo-7380-profhilo-2-behandlingar",
+          "label": "Profhilo: 2 behandlingar",
+          "meridiqApiId": 7380,
+          "facitCategory": "Estetiska injektioner",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 5500,
+            "display": "5 500 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "profhilo"
+        },
+        {
+          "variantId": "profhilo-7381-profhilo-3-behandlingar",
+          "label": "Profhilo: 3 behandlingar",
+          "meridiqApiId": 7381,
+          "facitCategory": "Estetiska injektioner",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 8000,
+            "display": "8 000 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "profhilo"
+        }
+      ]
     },
     {
       "arcanaServiceId": "ortho-treatment",
@@ -444,7 +1782,7 @@
       "brand": "Curatiio",
       "confidence": "category",
       "journalTypes": ["health_declaration"],
-      "notes": null,
+      "notes": "Ortopedi saknar egen CCO encounter enum i fas 1; binds till existing documentRequirementKey orthopedics_prp och encounterType other fail-closed.",
       "cliento": {
         "primarySrvId": "50766",
         "srvIds": ["50766"],
@@ -456,7 +1794,129 @@
         "apiIds": [7109, 7123, 7124, 7406, 7411, 7412, 7413],
         "count": 7,
         "categories": ["Ortopedi · Curatiio"]
-      }
+      },
+      "encounterType": "other",
+      "bookingMethodLabel": "Ortopedisk PRP/PRF",
+      "offerTemplateKey": "orthopedics-prp-standard",
+      "documentRequirementKey": "orthopedics_prp",
+      "coolingOffRef": {
+        "source": "config/cco-treatment-document-requirements.json",
+        "treatmentKey": "orthopedics_prp"
+      },
+      "serviceVariants": [
+        {
+          "variantId": "ortho-treatment-7123-ortopedisk-hyaluronsyra",
+          "label": "Ortopedisk hyaluronsyra",
+          "meridiqApiId": 7123,
+          "facitCategory": "Ortopedi",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 2500,
+            "display": "2 500 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "ortho-treatment"
+        },
+        {
+          "variantId": "ortho-treatment-7406-ortopedisk-prf",
+          "label": "Ortopedisk PRF",
+          "meridiqApiId": 7406,
+          "facitCategory": "Ortopedi",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 3900,
+            "display": "3 900 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "ortho-treatment"
+        },
+        {
+          "variantId": "ortho-treatment-7411-ortopedisk-prf-med-hyaluronsyra",
+          "label": "Ortopedisk PRF med hyaluronsyra",
+          "meridiqApiId": 7411,
+          "facitCategory": "Ortopedi",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 5400,
+            "display": "5 400 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "ortho-treatment"
+        },
+        {
+          "variantId": "ortho-treatment-7413-ortopedisk-prf-3e-behandlingen",
+          "label": "Ortopedisk PRF: 3e behandlingen",
+          "meridiqApiId": 7413,
+          "facitCategory": "Ortopedi",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 3500,
+            "display": "3 500 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "ortho-treatment"
+        },
+        {
+          "variantId": "ortho-treatment-7109-ortopedisk-prp",
+          "label": "Ortopedisk PRP",
+          "meridiqApiId": 7109,
+          "facitCategory": "Ortopedi",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 3900,
+            "display": "3 900 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "ortho-treatment"
+        },
+        {
+          "variantId": "ortho-treatment-7124-ortopedisk-prp-med-hyaluronsyra",
+          "label": "Ortopedisk PRP med hyaluronsyra",
+          "meridiqApiId": 7124,
+          "facitCategory": "Ortopedi",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 5400,
+            "display": "5 400 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "ortho-treatment"
+        },
+        {
+          "variantId": "ortho-treatment-7412-ortopedisk-prp-3e-behandlingen",
+          "label": "Ortopedisk PRP: 3e behandlingen",
+          "meridiqApiId": 7412,
+          "facitCategory": "Ortopedi",
+          "price": {
+            "currency": "SEK",
+            "amountSek": 3900,
+            "display": "3 900 kr",
+            "priceType": "fast"
+          },
+          "internalBookable": true,
+          "publicBookable": false,
+          "publicBookableDecision": "fail_closed_no_variant_public_policy",
+          "clinicalParentArcanaServiceId": "ortho-treatment"
+        }
+      ]
     }
   ],
   "unmappedCliento": {

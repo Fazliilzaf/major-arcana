@@ -35,6 +35,46 @@ function uniqueNormalizedList(value) {
   );
 }
 
+function normalizeServiceVariant(variant = {}, parentArcanaServiceId = '') {
+  const safe = asObject(variant);
+  const apiId =
+    safe.meridiqApiId == null || Number.isNaN(Number(safe.meridiqApiId))
+      ? null
+      : Number(safe.meridiqApiId);
+  const price = asObject(safe.price);
+  const amountSek =
+    price.amountSek == null || Number.isNaN(Number(price.amountSek))
+      ? null
+      : Number(price.amountSek);
+  return {
+    variantId: normalizeText(safe.variantId),
+    parentArcanaServiceId: normalizeText(parentArcanaServiceId) || null,
+    clinicalParentArcanaServiceId:
+      normalizeText(safe.clinicalParentArcanaServiceId) ||
+      normalizeText(parentArcanaServiceId) ||
+      null,
+    label: normalizeText(safe.label),
+    secondaryLabel: normalizeText(safe.secondaryLabel) || null,
+    meridiqApiId: apiId,
+    facitCategory: normalizeText(safe.facitCategory) || null,
+    price: {
+      currency: normalizeText(price.currency) || 'SEK',
+      amountSek,
+      display: normalizeText(price.display) || null,
+      priceType: normalizeText(price.priceType) || null,
+    },
+    internalBookable: safe.internalBookable === true,
+    publicBookable: safe.publicBookable === true,
+    publicBookableDecision: normalizeText(safe.publicBookableDecision) || null,
+  };
+}
+
+function normalizeServiceVariants(value, parentArcanaServiceId = '') {
+  return asArray(value)
+    .map((variant) => normalizeServiceVariant(variant, parentArcanaServiceId))
+    .filter((variant) => variant.variantId && variant.label && variant.meridiqApiId != null);
+}
+
 function readTripleMapEntries(bundle) {
   const raw = bundle?.catalogs?.serviceTripleMap;
   if (!raw) return [];
@@ -56,6 +96,7 @@ function buildLegacyMapping(entry = {}) {
     documentRequirementKey: normalizeText(safe.documentRequirementKey) || null,
     coolingOffRef: safe.coolingOffRef === null ? null : asObject(safe.coolingOffRef),
     legacyAliases: uniqueNormalizedList(safe.legacyAliases),
+    serviceVariants: normalizeServiceVariants(safe.serviceVariants, safe.arcanaServiceId),
     cliento: asObject(safe.cliento),
     meridiq: asObject(safe.meridiq),
     notes: normalizeText(safe.notes) || null,
@@ -211,6 +252,7 @@ function buildCanonicalServiceRegister(
     documentRequirement,
     consentBindings,
     legacyAliases: asArray(mapping.legacyAliases),
+    serviceVariants: asArray(mapping.serviceVariants),
   };
 }
 
@@ -228,6 +270,7 @@ function applyCanonicalServiceRegisterToService(service = {}, register = {}) {
     coolingOffDays: register.coolingOffDays ?? service.coolingOffDays ?? null,
     coolingOffType: register.coolingOffType || service.coolingOffType || null,
     consentBindings: register.consentBindings || service.consentBindings || null,
+    serviceVariants: register.serviceVariants || service.serviceVariants || [],
     serviceRegister: register,
   };
 }
@@ -895,6 +938,7 @@ function buildStaffRuntimeCatalogReadout(
         ? Number(service.coolingOffDays)
         : (service.serviceRegister?.coolingOffDays ?? null),
       consentBindings: service.consentBindings || service.serviceRegister?.consentBindings || null,
+      serviceVariants: asArray(service.serviceVariants || service.serviceRegister?.serviceVariants),
       serviceRegister: service.serviceRegister || null,
       legacyMapping: service.legacyMapping || null,
       catalogSource: normalizeText(service.catalogSource) || null,
