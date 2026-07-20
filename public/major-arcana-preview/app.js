@@ -39963,6 +39963,143 @@
     }
   }
 
+  const V2_PERSISTENT_CONVERSATION_ACTIONS = Object.freeze({
+    handled: "Markerad som klar.",
+    reply_later: "Tråden är lagd senare.",
+    reopen: "Tråden är återöppnad.",
+  });
+
+  function getV2ConversationActionTarget(thread) {
+    const conversationKey = asText(
+      thread?.conversationKey || thread?.raw?.conversationKey || thread?.id
+    );
+    const customerId = getRuntimeCustomerEmail(thread);
+    if (!conversationKey || !customerId) return null;
+    return { conversationKey, customerId };
+  }
+
+  function setV2ConversationActionFeedback(message = "", tone = "success") {
+    state.runtime = state.runtime || {};
+    state.runtime.v2ActionFeedback = message
+      ? { message: asText(message), tone: tone === "error" ? "error" : "success" }
+      : null;
+  }
+
+  function formatV2ConversationActionError(error, fallback) {
+    const detail = asText(error?.message || error?.metadata?.detail || fallback);
+    return detail || fallback;
+  }
+
+  async function runV2PersistentConversationAction(action, thread) {
+    const label = V2_PERSISTENT_CONVERSATION_ACTIONS[action];
+    const target = getV2ConversationActionTarget(thread);
+    if (!label || !target) {
+      const error = new Error("Kundadress eller konversationsnyckel saknas. Åtgärden kördes inte.");
+      setV2ConversationActionFeedback(error.message, "error");
+      renderRuntimeConversationShell();
+      throw error;
+    }
+    try {
+      const payload = await apiRequest(
+        `/api/v1/cco/runtime/conversation/${encodeURIComponent(target.conversationKey)}/action`,
+        {
+          method: "POST",
+          body: {
+            action,
+            customerId: target.customerId,
+          },
+        }
+      );
+      if (payload?.ok !== true) {
+        throw new Error(asText(payload?.detail || payload?.error, "Åtgärden kunde inte sparas."));
+      }
+      setV2ConversationActionFeedback(label, "success");
+      await refreshConversationActionRuntimeProjection(thread, `v2 ${action}`);
+      return payload;
+    } catch (error) {
+      setV2ConversationActionFeedback(
+        `Åtgärden misslyckades: ${formatV2ConversationActionError(error, "okänt serverfel")}`,
+        "error"
+      );
+      renderRuntimeConversationShell();
+      throw error;
+    }
+  }
+
+  function getV2BulkConversationItems(threadIds = []) {
+    return asArray(threadIds)
+      .map((threadId) => getRuntimeThreadById(threadId))
+      .map((thread) => {
+        const target = getV2ConversationActionTarget(thread);
+        return target ? { ...target, thread } : null;
+      })
+      .filter(Boolean);
+  }
+
+  async function runV2BulkConversationAction(action, threadIds = []) {
+    if (!V2_PERSISTENT_CONVERSATION_ACTIONS[action]) {
+      const error = new Error("Den valda massåtgärden stöds inte i Konversationer v2.");
+      setV2ConversationActionFeedback(error.message, "error");
+      renderRuntimeConversationShell();
+      throw error;
+    }
+    const targets = getV2BulkConversationItems(threadIds);
+    if (!targets.length) {
+      const error = new Error("Inga säkert identifierade trådar är valda.");
+      setV2ConversationActionFeedback(error.message, "error");
+      renderRuntimeConversationShell();
+      throw error;
+    }
+    const items = targets.map(({ conversationKey, customerId }) => ({ conversationKey, customerId }));
+    try {
+      const preview = await apiRequest("/api/v1/cco/runtime/conversation/bulk/preview", {
+        method: "POST",
+        body: { action, items },
+      });
+      const eligible = asArray(preview?.items).filter((item) => item?.eligible === true);
+      if (!preview?.ok || !preview?.batchId || !eligible.length) {
+        throw new Error("Ingen av de valda trådarna kan åtgärdas säkert.");
+      }
+      const approved = window.confirm(
+        `${V2_PERSISTENT_CONVERSATION_ACTIONS[action]} ${eligible.length} av ${items.length} valda trådar?`
+      );
+      if (!approved) {
+        setV2ConversationActionFeedback("Massåtgärden avbröts.", "success");
+        renderRuntimeConversationShell();
+        return { ok: false, cancelled: true };
+      }
+      const result = await apiRequest("/api/v1/cco/runtime/conversation/bulk/confirm", {
+        method: "POST",
+        body: {
+          action,
+          batchId: preview.batchId,
+          confirm: true,
+          items,
+        },
+      });
+      if (!result?.ok || asNumber(result?.summary?.failed, 0) > 0) {
+        throw new Error("Massåtgärden blev inte helt sparad. Kontrollera urvalet och försök igen.");
+      }
+      const applied = asNumber(result?.summary?.applied, 0);
+      if (applied < 1) {
+        throw new Error("Massåtgärden sparade inga trådar. Kontrollera urvalet och försök igen.");
+      }
+      setV2ConversationActionFeedback(
+        `${V2_PERSISTENT_CONVERSATION_ACTIONS[action]} ${applied} trådar.`,
+        "success"
+      );
+      await refreshConversationActionRuntimeProjection(targets[0].thread, `v2 bulk ${action}`);
+      return result;
+    } catch (error) {
+      setV2ConversationActionFeedback(
+        `Massåtgärden misslyckades: ${formatV2ConversationActionError(error, "okänt serverfel")}`,
+        "error"
+      );
+      renderRuntimeConversationShell();
+      throw error;
+    }
+  }
+
   function renderConversationsV2Shell() {
     // V2 delar runtime-state med legacy, men får aldrig falla tillbaka till
     // preview-/demo-trådar. Utan en autentiserad live-worklist visar vyn ett
@@ -39992,6 +40129,7 @@
       laneThreads: getQueueLaneThreads(activeLane, scoped),
       allThreads: scoped,
       selected,
+      actionFeedback: state.runtime?.v2ActionFeedback || null,
       loading: state.runtime?.loading === true,
       authRequired: state.runtime?.authRequired === true,
       error: asText(state.runtime?.error),
@@ -40072,10 +40210,10 @@
             { method: "POST", body: { status: asText(status) } }
           );
         },
-        action(name) {
-          // P3: Smart anteckning + Bokningsyta + Kalender wirade mot befintliga
-          // ytor (note-overlay resp. v8-kalendern). Skrivande tråd-actions
-          // (t.ex. "Klar"/handled) förblir inerta tills de wiras separat.
+        action(name, thread) {
+          // Smart anteckning, Bokningsyta och Kalender använder befintliga
+          // ytor. Klar/Senare/Återöppna använder samma persistenta CCO-route
+          // som legacy, men v2 har en egen synlig fel/statusyta.
           const key = asText(name);
           try {
             if (key === "note") {
@@ -40087,10 +40225,22 @@
               setAppView("calendar");
               return;
             }
-            window.CCOPolish?.showToast?.("Aktiveras snart (" + key + ")", "info");
+            if (V2_PERSISTENT_CONVERSATION_ACTIONS[key]) {
+              return runV2PersistentConversationAction(key, thread || selected);
+            }
+            const error = new Error(`Åtgärden stöds inte i Konversationer v2: ${key || "okänd"}.`);
+            setV2ConversationActionFeedback(error.message, "error");
+            renderRuntimeConversationShell();
+            return Promise.reject(error);
           } catch (_error) {
-            /* tyst */
+            const error = _error instanceof Error ? _error : new Error("Åtgärden kunde inte startas.");
+            setV2ConversationActionFeedback(error.message, "error");
+            renderRuntimeConversationShell();
+            return Promise.reject(error);
           }
+        },
+        bulkAction(name, threadIds) {
+          return runV2BulkConversationAction(name, threadIds);
         },
       },
     });

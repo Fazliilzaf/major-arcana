@@ -591,6 +591,7 @@
       '<div class="v2-mailbox-controls" data-v2-mailboxes></div>' +
       '<div class="v2-folder-controls" data-v2-folders></div>' +
       '<label class="v2-search"><span aria-hidden="true">⌕</span><input data-v2-search type="search" placeholder="Sök i konversationer…" /></label>' +
+      '<div class="v2-action-feedback" data-v2-action-feedback aria-live="polite"></div>' +
       '<div class="lane-chips" data-v2-lane-chips></div>' +
       '<div class="inbox-tabs" data-v2-tabs></div>' +
       '<div class="v3-bulkbar" data-v3-bulkbar></div>' +
@@ -785,6 +786,21 @@
       '" data-v2-folder="sent" type="button">Skickat</button>';
   }
 
+  function renderActionFeedback(ctx) {
+    var el = root.querySelector('[data-v2-action-feedback]');
+    if (!el) return;
+    var feedback = ctx && ctx.actionFeedback;
+    var message = text(feedback && feedback.message);
+    if (!message) {
+      el.innerHTML = '';
+      el.hidden = true;
+      return;
+    }
+    var tone = text(feedback && feedback.tone).toLowerCase() === 'error' ? 'error' : 'success';
+    el.hidden = false;
+    el.innerHTML = '<span class="v2-action-feedback--' + tone + '">' + esc(message) + '</span>';
+  }
+
   function renderInbox(ctx) {
     var el = root.querySelector('[data-v2-inbox]');
     if (!el) return;
@@ -926,10 +942,13 @@
       '<span class="v3-qr-hint">⌘K för kommandon</span>' +
       '</div></div>' +
       '<div class="thread-bottom-actions" role="toolbar" aria-label="Konversations-actions">' +
-      '<button class="action-btn action-btn--studio" type="button" data-v2-action="studio" data-v2-soon><span class="action-ico">✱</span><span>Svarstudio</span></button>' +
+      '<button class="action-btn action-btn--studio" type="button" data-v2-action="studio"><span class="action-ico">✱</span><span>Svarstudio</span></button>' +
       '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
       '<button class="action-btn action-btn--note" type="button" data-v2-action="note"><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
       '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"><span class="action-ico">📆</span><span>Kalender</span></button>' +
+      '<button class="action-btn" type="button" data-v2-action="handled"><span class="action-ico">✓</span><span>Markera klar</span></button>' +
+      '<button class="action-btn" type="button" data-v2-action="reply_later"><span class="action-ico">⌛</span><span>Senare</span></button>' +
+      '<button class="action-btn" type="button" data-v2-action="reopen"><span class="action-ico">↩</span><span>Återöppna</span></button>' +
       '</div>';
   }
 
@@ -994,7 +1013,7 @@
         : '') +
       '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking">📅 Öppna bokning</button>' +
       '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier">👤 Kunddossiér</button>' +
-      '<button class="quick-pill quick-pill--success" style="flex:1" type="button" data-v2-action="handled" data-v2-soon>✓ Markera klar</button>' +
+      '<button class="quick-pill quick-pill--success" style="flex:1" type="button" data-v2-action="handled">✓ Markera klar</button>' +
       '</div>'
     );
   }
@@ -1607,24 +1626,48 @@
         if (bname === 'clear') {
           selected = {};
         } else if (typeof boundCtx.handlers.bulkAction === 'function') {
-          boundCtx.handlers.bulkAction(bname, ids);
-          // Rensa efter utförd bulk-action — annars räknar bulk-baren kvar
-          // trådar som just åtgärdats/försvann.
-          selected = {};
-        } else {
-          try {
-            global.CCOPolish &&
-              global.CCOPolish.showToast &&
-              global.CCOPolish.showToast(
-                bname + ' · ' + ids.length + ' valda (aktiveras snart)',
-                'info'
-              );
-          } catch (_error) {
-            /* tyst */
+          var bulkPromise = boundCtx.handlers.bulkAction(bname, ids);
+          // Behåll urvalet när servern nekar eller när en mutation misslyckas.
+          // Operatören ska kunna läsa felet och korrigera urvalet, inte tyst
+          // förlora sina valda trådar.
+          if (bulkPromise && typeof bulkPromise.then === 'function') {
+            bulkEl.setAttribute('disabled', 'disabled');
+            bulkPromise
+              .then(function (result) {
+                if (!(result && result.cancelled)) {
+                  selected = {};
+                }
+              })
+              .catch(function () {
+                /* app-handlaren visar serverfelet i v2-ytan */
+              })
+              .finally(function () {
+                bulkEl.removeAttribute('disabled');
+                if (boundCtx) {
+                  renderInbox(boundCtx);
+                  renderBulkBar();
+                }
+              });
+          } else {
+            renderActionFeedback({
+              actionFeedback: {
+                message: 'Massåtgärden kunde inte startas. Försök igen eller ladda om vyn.',
+                tone: 'error',
+              },
+            });
           }
+        } else {
+          renderActionFeedback({
+            actionFeedback: {
+              message: 'Massåtgärden är inte tillgänglig i den här vyn.',
+              tone: 'error',
+            },
+          });
         }
-        renderInbox(boundCtx);
-        renderBulkBar();
+        if (bname === 'clear' || typeof boundCtx.handlers.bulkAction !== 'function') {
+          renderInbox(boundCtx);
+          renderBulkBar();
+        }
         return;
       }
       var threadEl = event.target.closest('[data-thread-id]');
@@ -1643,14 +1686,31 @@
       var actionEl = event.target.closest('[data-v2-action]');
       if (actionEl && boundCtx) {
         var name = actionEl.getAttribute('data-v2-action');
-        // Kunddossiér är en säker läs-/navigeringsaction (P1) — öppnar V12.
-        // Övriga (Svarstudio/skicka/bokning) förblir inerta tills owner-GO.
+        // Kunddossiér är en säker läs-/navigeringsaction och öppnar V12.
+        // De persistenta trådactions hanteras av appens befintliga CCO-kontrakt.
         if (name === 'studio') {
           openStudio(boundCtx.selected);
         } else if (name === 'dossier' && typeof boundCtx.handlers.openDossier === 'function') {
           boundCtx.handlers.openDossier(boundCtx.selected);
+        } else if (typeof boundCtx.handlers.action === 'function') {
+          var actionPromise = boundCtx.handlers.action(name, boundCtx.selected);
+          if (actionPromise && typeof actionPromise.then === 'function') {
+            actionEl.setAttribute('disabled', 'disabled');
+            actionPromise
+              .catch(function () {
+                /* app-handlaren visar serverfelet i v2-ytan */
+              })
+              .finally(function () {
+                actionEl.removeAttribute('disabled');
+              });
+          }
         } else {
-          boundCtx.handlers.action(name, boundCtx.selected);
+          renderActionFeedback({
+            actionFeedback: {
+              message: 'Åtgärden är inte tillgänglig i den här vyn.',
+              tone: 'error',
+            },
+          });
         }
       }
     });
@@ -1762,10 +1822,9 @@
   }
 
   var V3_BULK_ACTIONS = [
-    { id: 'assign', label: 'Tilldela' },
-    { id: 'snooze', label: 'Snooza' },
     { id: 'handled', label: 'Markera klar' },
-    { id: 'triage', label: '★ AI-triage' },
+    { id: 'reply_later', label: 'Senare' },
+    { id: 'reopen', label: 'Återöppna' },
   ];
   function renderBulkBar() {
     var el = root.querySelector('[data-v3-bulkbar]');
@@ -1958,6 +2017,7 @@
     renderLaneChips(ctx);
     renderMailboxControls(ctx);
     renderFolderControls();
+    renderActionFeedback(ctx);
     renderTabs(ctx);
     renderInbox(ctx);
     renderBulkBar();
