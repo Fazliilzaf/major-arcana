@@ -40001,6 +40001,7 @@
       selected,
       loading: state.runtime?.loading === true,
       authRequired: state.runtime?.authRequired === true,
+      error: asText(state.runtime?.error),
       // v3: vald ägare (operatörens kö) — driver "Mina"-segmentet så att bara
       // den signerade operatörens trådar matchar, inte oägda/kollegors (Bugbot).
       operatorKey: normalizeKey(

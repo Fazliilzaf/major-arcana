@@ -679,6 +679,10 @@
         el.innerHTML = '<div class="inbox-empty">Logga in igen i admin för att läsa CCO-inkorgen.</div>';
         return;
       }
+      if (text(ctx.error)) {
+        el.innerHTML = '<div class="inbox-empty">' + esc(ctx.error) + '</div>';
+        return;
+      }
       el.innerHTML = '<div class="inbox-empty">Inga konversationer i denna vy.</div>';
       return;
     }

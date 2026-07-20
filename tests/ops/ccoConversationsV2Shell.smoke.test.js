@@ -30,6 +30,7 @@ const SHELL_PATH = path.join(
   'app',
   'cco-conversations-v2-shell.js'
 );
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 function makeThread(overrides = {}) {
   return {
@@ -192,6 +193,30 @@ test('v2-skalet: auth-krav visar aldrig trådar som fallback', () => {
   api.render(makeCtx({ laneThreads: [], allThreads: [], selected: null, authRequired: true }));
   const root = document.getElementById('cco-conv-v2-root');
   assert.match(root.querySelector('[data-v2-inbox]').textContent, /Logga in igen i admin/i);
+});
+
+test('v2-skalet: för brett mailbox-urval visar ett ärligt scope-fel utan trådar', () => {
+  const { document, api } = loadShell();
+  api.render(
+    makeCtx({
+      laneThreads: [],
+      allThreads: [],
+      selected: null,
+      error: 'CCO v2 kan visa en eller två brevlådor åt gången. Välj 1–2 brevlådor och försök igen.',
+    })
+  );
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  assert.match(inbox.textContent, /en eller två brevlådor/i);
+  assert.equal(inbox.querySelectorAll('[data-thread-id]').length, 0);
+});
+
+test('v2-skalet: runtime-fel skickas vidare från samma runtime-state som legacy använder', () => {
+  const appSource = fs.readFileSync(APP_PATH, 'utf8');
+  assert.match(
+    appSource,
+    /authRequired: state\.runtime\?\.authRequired === true,\s*error: asText\(state\.runtime\?\.error\)/,
+    'v2 måste få det fail-closed runtime-felet från den befintliga worklist-laddaren'
+  );
 });
 
 test('v2-skalet: tom lane visar tomt-läge utan att kasta', () => {

@@ -254,6 +254,9 @@
     const RUNTIME_ANALYZE_INBOX_MIN_INTERVAL_MS = 20000;
     let runtimeMailboxScopeLoadTimer = 0;
     const RUNTIME_MAILBOX_SCOPE_DEBOUNCE_MS = 450;
+    const RUNTIME_WORKLIST_MAX_MAILBOX_IDS = 2;
+    const RUNTIME_WORKLIST_SCOPE_TOO_BROAD_USER_MESSAGE =
+      "CCO v2 kan visa en eller två brevlådor åt gången. Välj 1–2 brevlådor och försök igen.";
     let mobileInboxLoadPromise = null;
     let mobileInboxDeferredBootstrap = false;
 
@@ -3708,6 +3711,30 @@
         ? requestedMailboxIds
         : getRequestedRuntimeMailboxIds();
       const preferredThreadId = asText(options.preferredThreadId);
+      // Consumer-kontraktet är medvetet begränsat till två mailboxar. V2 får
+      // aldrig försöka med ett bredare sparat urval eller visa äldre trådar.
+      if (runtimeMailboxIds.length > RUNTIME_WORKLIST_MAX_MAILBOX_IDS) {
+        clearRuntimeLiveRefreshTimer();
+        clearRuntimeBackgroundSync();
+        state.runtime.loading = false;
+        state.runtime.loaded = false;
+        state.runtime.threads = [];
+        state.runtime.truthPrimaryLegacyThreads = [];
+        state.runtime.liveHydratedThreadIds = [];
+        state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
+          phase: "scope_too_broad",
+          requestedMailboxIds: runtimeMailboxIds,
+          error: RUNTIME_WORKLIST_SCOPE_TOO_BROAD_USER_MESSAGE,
+        });
+        setRuntimeModeState("runtime_error", {
+          error: RUNTIME_WORKLIST_SCOPE_TOO_BROAD_USER_MESSAGE,
+          live: false,
+          offline: false,
+          authRequired: false,
+        });
+        renderRuntimeConversationShell();
+        return;
+      }
       const selectedThreadId = asText(workspaceSourceOfTruth.getSelectedThreadId());
       let stableFocusThread =
         selectedThreadId &&

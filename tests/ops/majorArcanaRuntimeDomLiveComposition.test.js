@@ -241,6 +241,22 @@ test('bindWorkspaceInteractions kan bindas utan ReferenceError när queueHistory
   });
 });
 
+test('loadLiveRuntime stoppar för brett mailbox-urval innan consumer-anropet', () => {
+  const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
+  const loadLiveRuntimeSource = extractFunctionSource(source, 'loadLiveRuntime');
+
+  assert.match(source, /const RUNTIME_WORKLIST_MAX_MAILBOX_IDS = 2/);
+  assert.match(loadLiveRuntimeSource, /runtimeMailboxIds\.length > RUNTIME_WORKLIST_MAX_MAILBOX_IDS/);
+  assert.match(loadLiveRuntimeSource, /phase: "scope_too_broad"/);
+  assert.match(loadLiveRuntimeSource, /state\.runtime\.threads = \[\]/);
+  assert.match(loadLiveRuntimeSource, /renderRuntimeConversationShell\(\);\s*return;/);
+  assert.ok(
+    loadLiveRuntimeSource.indexOf('runtimeMailboxIds.length > RUNTIME_WORKLIST_MAX_MAILBOX_IDS') <
+      loadLiveRuntimeSource.indexOf('const runtimeRequestSequence'),
+    'scope-vakten måste köras innan ny runtime-request kan skapa consumer-anrop'
+  );
+});
+
 test('mailboxnamnet väljer endast det kontot och laddar om runtime med exakt mailboxscope', () => {
   const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
   const bindWorkspaceInteractionsSource = extractFunctionSource(
