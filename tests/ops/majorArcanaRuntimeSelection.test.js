@@ -380,15 +380,22 @@ function createEnsureRuntimeMailboxSelectionHarness({
   const functionSource = extractFunctionSource(source, 'ensureRuntimeMailboxSelection');
   const mailboxWrites = [];
   let currentSelectedMailboxIds = selectedMailboxIds.slice();
+  const state = {
+    runtime: {
+      queueLaneBootstrapped: true,
+      mailboxScopePinned: false,
+    },
+  };
 
   const ensureRuntimeMailboxSelection = new Function(
     'getCanonicalAvailableRuntimeMailboxIds',
-    'getPreferredOperationalMailboxId',
+    'canonicalizeRuntimeMailboxId',
     'workspaceSourceOfTruth',
+    'state',
     `${functionSource}; return ensureRuntimeMailboxSelection;`
   )(
     () => availableMailboxIds.slice(),
-    () => preferredMailboxId,
+    (mailboxId) => String(mailboxId || '').trim().toLowerCase(),
     {
       getSelectedMailboxIds() {
         return currentSelectedMailboxIds.slice();
@@ -398,7 +405,8 @@ function createEnsureRuntimeMailboxSelectionHarness({
         mailboxWrites.push(currentSelectedMailboxIds.slice());
         return currentSelectedMailboxIds.slice();
       },
-    }
+    },
+    state
   );
 
   return {
@@ -407,6 +415,9 @@ function createEnsureRuntimeMailboxSelectionHarness({
     },
     getSelectedMailboxWrites() {
       return mailboxWrites.map((entry) => entry.slice());
+    },
+    getMailboxScopePinned() {
+      return state.runtime.mailboxScopePinned;
     },
     run() {
       return ensureRuntimeMailboxSelection();
@@ -1089,6 +1100,59 @@ test('ensureRuntimeMailboxSelection bevarar valt mailboxscope nar live-listan ar
 
   assert.deepEqual(harness.getSelectedMailboxIds(), ['contact@hairtpclinic.com']);
   assert.deepEqual(harness.getSelectedMailboxWrites(), []);
+});
+
+test('ensureRuntimeMailboxSelection behaller ett valt Contact-scope efter hydrering', () => {
+  const harness = createEnsureRuntimeMailboxSelectionHarness({
+    availableMailboxIds: [
+      'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kons@hairtpclinic.com',
+    ],
+    selectedMailboxIds: ['contact@hairtpclinic.com'],
+  });
+
+  harness.run();
+
+  assert.deepEqual(harness.getSelectedMailboxIds(), ['contact@hairtpclinic.com']);
+  assert.deepEqual(harness.getSelectedMailboxWrites(), [['contact@hairtpclinic.com']]);
+  assert.equal(harness.getMailboxScopePinned(), true);
+});
+
+test('ensureRuntimeMailboxSelection behaller ett giltigt scope med tva mailboxar efter hydrering', () => {
+  const harness = createEnsureRuntimeMailboxSelectionHarness({
+    availableMailboxIds: [
+      'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kons@hairtpclinic.com',
+    ],
+    selectedMailboxIds: ['contact@hairtpclinic.com', 'fazli@hairtpclinic.com'],
+  });
+
+  harness.run();
+
+  assert.deepEqual(harness.getSelectedMailboxIds(), [
+    'contact@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+  ]);
+  assert.equal(harness.getMailboxScopePinned(), true);
+});
+
+test('ensureRuntimeMailboxSelection behaller ett aldre for brett val sa att scope-vakten kraver ett aktivt nytt val', () => {
+  const allMailboxIds = [
+    'contact@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+    'kons@hairtpclinic.com',
+  ];
+  const harness = createEnsureRuntimeMailboxSelectionHarness({
+    availableMailboxIds: allMailboxIds,
+    selectedMailboxIds: allMailboxIds,
+  });
+
+  harness.run();
+
+  assert.deepEqual(harness.getSelectedMailboxIds(), allMailboxIds);
+  assert.equal(harness.getMailboxScopePinned(), false);
 });
 
 test('normalizeVisibleRuntimeScope hoppar till forsta icke-tomma lane nar live har tradar men aktiv lane ar tom', () => {

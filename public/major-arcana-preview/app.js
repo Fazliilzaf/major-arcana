@@ -14970,24 +14970,16 @@
     }
     const selectedMailboxIds = workspaceSourceOfTruth.getSelectedMailboxIds();
     const defaultScope = availableIds;
-    if (
-      selectedMailboxIds.length > 0 &&
-      selectedMailboxIds.length < availableIds.length
-    ) {
-      workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
-      state.runtime.mailboxScopePinned = false;
-    } else if (!selectedMailboxIds.length) {
+    const validIds = new Set(availableIds);
+    const validSelectedMailboxIds = selectedMailboxIds
+      .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId))
+      .filter((mailboxId) => validIds.has(mailboxId));
+    if (!validSelectedMailboxIds.length) {
       workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
       state.runtime.mailboxScopePinned = false;
     } else {
-      const validIds = new Set(availableIds);
-      workspaceSourceOfTruth.setSelectedMailboxIds(
-        selectedMailboxIds.filter((id) => validIds.has(canonicalizeRuntimeMailboxId(id)))
-      );
-      if (!workspaceSourceOfTruth.getSelectedMailboxIds().length) {
-        workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
-        state.runtime.mailboxScopePinned = false;
-      }
+      workspaceSourceOfTruth.setSelectedMailboxIds(validSelectedMailboxIds);
+      state.runtime.mailboxScopePinned = validSelectedMailboxIds.length < availableIds.length;
     }
     if (state.runtime?.queueLaneBootstrapped !== true) {
       state.runtime.queueLaneBootstrapped = true;
