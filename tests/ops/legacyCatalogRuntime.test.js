@@ -143,6 +143,83 @@ test('canonical service register materializes DHI into state.services with exact
   );
 });
 
+test('facit priced service menu materializes exactly 82 distinct Meridiq variants', () => {
+  const entries = readTripleMapEntries(loadLegacyCatalogBundle());
+  const rawVariants = entries.flatMap((entry) =>
+    (entry.serviceVariants || []).map((variant) => ({
+      ...variant,
+      parentArcanaServiceId: entry.arcanaServiceId,
+    }))
+  );
+
+  assert.equal(rawVariants.length, 82);
+  assert.equal(new Set(rawVariants.map((variant) => variant.variantId)).size, 82);
+  assert.equal(new Set(rawVariants.map((variant) => String(variant.meridiqApiId))).size, 82);
+
+  const priceTypeCounts = rawVariants.reduce((counts, variant) => {
+    const type = variant.price?.priceType || 'missing';
+    counts[type] = (counts[type] || 0) + 1;
+    return counts;
+  }, {});
+  assert.deepEqual(priceTypeCounts, {
+    fast: 57,
+    paket: 16,
+    'från/variabel': 1,
+    tillägg: 3,
+    konsultation: 5,
+  });
+  assert.equal(rawVariants.filter((variant) => variant.price?.amountSek === 0).length, 21);
+
+  const byApiId = new Map(rawVariants.map((variant) => [String(variant.meridiqApiId), variant]));
+  assert.equal(byApiId.get('7097').label, 'DHI Hårtransplantation: 1000 grafts');
+  assert.equal(byApiId.get('7097').price.amountSek, 52000);
+  assert.equal(byApiId.get('7414').price.priceType, 'från/variabel');
+  assert.equal(byApiId.get('7414').parentArcanaServiceId, 'dhi');
+  assert.equal(byApiId.get('7105').parentArcanaServiceId, 'bleph-combined');
+  assert.equal(byApiId.get('7079').secondaryLabel, 'Onlinekonsultation');
+
+  for (const variant of rawVariants) {
+    assert.equal(variant.internalBookable, true, `${variant.variantId} is internally bookable`);
+    assert.equal(variant.publicBookable, false, `${variant.variantId} is fail-closed public`);
+    assert.match(variant.publicBookableDecision, /^fail_closed_/);
+    assert.ok(
+      entries.some((entry) => entry.arcanaServiceId === variant.clinicalParentArcanaServiceId),
+      `${variant.variantId} points at an existing clinical parent`
+    );
+  }
+
+  const state = { services: [], resources: [] };
+  mergeLegacyCatalogIntoEngineState(state);
+  const serviceVariants = state.services.flatMap(
+    (service) => service.serviceRegister?.serviceVariants || []
+  );
+  assert.equal(serviceVariants.length, 82);
+  const dhi = state.services.find((service) => service.id === 'dhi');
+  assert.ok(
+    dhi.serviceRegister.serviceVariants.some(
+      (variant) =>
+        variant.meridiqApiId === 7097 &&
+        variant.price.amountSek === 52000 &&
+        variant.clinicalParentArcanaServiceId === 'dhi'
+    )
+  );
+
+  const unmapped = state.services.filter(
+    (service) =>
+      service.catalogSource === 'cliento_catalog' || service.catalogSource === 'meridiq_catalog'
+  );
+  assert.ok(unmapped.length > 0, 'expected remaining unmapped legacy material');
+  assert.equal(unmapped.filter((service) => service.active === true).length, 0);
+  assert.equal(unmapped.filter((service) => service.publicBookable === true).length, 0);
+  for (const nowMappedApiId of ['8952', '8953', '8954', '7410', '7107']) {
+    assert.equal(
+      unmapped.some((service) => service.id === `legacy-meridiq-${nowMappedApiId}`),
+      false,
+      `${nowMappedApiId} is now mapped by the facit service menu`
+    );
+  }
+});
+
 test('booking engine exposes DHI service register fields after state normalization', async () => {
   const store = await createCcoBookingEngineStore({
     filePath: path.join(os.tmpdir(), `arcana-service-register-${process.pid}.json`),
@@ -157,6 +234,13 @@ test('booking engine exposes DHI service register fields after state normalizati
   assert.equal(dhi.offerTemplateKey, 'dhi-standard');
   assert.equal(dhi.serviceRegister.documentRequirementKey, 'dhi');
   assert.ok(dhi.serviceRegister.consentBindings.consents.length >= 1);
+  assert.ok(
+    dhi.serviceRegister.serviceVariants.some(
+      (variant) =>
+        variant.variantId === 'dhi-7097-dhi-hartransplantation-1000-grafts' &&
+        variant.price.amountSek === 52000
+    )
+  );
 });
 
 test('core consultation/followup variants resolve booking labels from the service register spine', () => {
