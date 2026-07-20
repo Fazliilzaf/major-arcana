@@ -2541,7 +2541,7 @@
         },
         onclick: (event) => {
           event.stopPropagation();
-          document.getElementById('searchOverlay')?.classList.remove('is-open');
+          closeV6SearchOverlay();
           v6RenderIntel(slot);
           document.querySelector('.booking[data-booking-id="' + CSS.escape(bookingId) + '"]')?.focus();
           if (canonicalPatientId) openCanonicalPatient(canonicalPatientId);
@@ -2556,6 +2556,47 @@
     });
     if (!matches.length) list.appendChild(el('div', { class: 'search-empty' }, 'Inga canonical träffar.'));
     v6SetText(kicker, total + ' historikträffar · visar ' + matches.length + ' · read-only');
+  }
+
+  function openV6SearchOverlay(query) {
+    const overlay = document.getElementById('searchOverlay');
+    const overlayInput = document.getElementById('searchOverlayInput');
+    const globalSearch = document.getElementById('globalSearch');
+    if (!overlay || !overlayInput) return;
+    overlay.dataset.openedAt = String(Date.now());
+    overlay.classList.add('is-visible');
+    globalSearch?.classList.add('is-focused');
+    if (typeof query === 'string') overlayInput.value = query;
+    setTimeout(() => overlayInput.focus(), 0);
+    v6RenderSearch(overlayInput.value);
+  }
+
+  function closeV6SearchOverlay() {
+    const overlay = document.getElementById('searchOverlay');
+    const overlayInput = document.getElementById('searchOverlayInput');
+    const globalInput = document.getElementById('globalSearchInput');
+    const globalSearch = document.getElementById('globalSearch');
+    overlay?.classList.remove('is-visible');
+    if (overlayInput) overlayInput.value = '';
+    if (globalInput) globalInput.value = '';
+    globalSearch?.classList.remove('is-focused');
+    v6RenderSearch('');
+  }
+
+  function replaceV6SearchOverlay() {
+    const overlay = document.getElementById('searchOverlay');
+    if (!overlay || !overlay.parentNode) return overlay;
+    const clone = overlay.cloneNode(true);
+    overlay.parentNode.replaceChild(clone, overlay);
+    return clone;
+  }
+
+  function replaceV6SearchInput(id) {
+    const input = document.getElementById(id);
+    if (!input || !input.parentNode) return input;
+    const clone = input.cloneNode(true);
+    input.parentNode.replaceChild(clone, input);
+    return clone;
   }
 
   function v6BindControls() {
@@ -2580,14 +2621,25 @@
     nav[0]?.addEventListener('click', () => reload(-7));
     nav[1]?.addEventListener('click', () => reload(0));
     nav[2]?.addEventListener('click', () => reload(7));
-    const overlayInput = document.getElementById('searchOverlayInput');
-    const globalInput = document.getElementById('globalSearchInput');
+    const overlay = replaceV6SearchOverlay();
+    const overlayInput = replaceV6SearchInput('searchOverlayInput');
+    const globalInput = replaceV6SearchInput('globalSearchInput');
     overlayInput?.addEventListener('input', () => v6RenderSearch(overlayInput.value));
-    globalInput?.addEventListener('input', () => setTimeout(() => v6RenderSearch(globalInput.value), 0));
-    globalInput?.addEventListener('focus', () => setTimeout(() => v6RenderSearch(globalInput.value), 0));
+    globalInput?.addEventListener('input', () => setTimeout(() => openV6SearchOverlay(globalInput.value), 0));
+    globalInput?.addEventListener('focus', () => setTimeout(() => openV6SearchOverlay(globalInput.value), 0));
+    overlay?.addEventListener('click', (event) => {
+      const openedAt = Number(event.currentTarget?.dataset?.openedAt || 0);
+      if (openedAt && Date.now() - openedAt < 150) return;
+      if (event.target === event.currentTarget) closeV6SearchOverlay();
+    });
     document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && document.getElementById('searchOverlay')?.classList.contains('is-visible')) {
+        closeV6SearchOverlay();
+        return;
+      }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        setTimeout(() => v6RenderSearch(document.getElementById('searchOverlayInput')?.value || ''), 0);
+        event.preventDefault();
+        setTimeout(() => openV6SearchOverlay(document.getElementById('searchOverlayInput')?.value || ''), 0);
       }
     });
   }

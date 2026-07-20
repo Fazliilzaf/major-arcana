@@ -37,7 +37,7 @@ async function buildActiveCalendarSearchHarness({
 } = {}) {
   const html = fs.readFileSync(path.join(repoRoot, 'public/kalender.html'), 'utf8');
   const shell = fs.readFileSync(path.join(repoRoot, 'public/cco-kalender-shell.js'), 'utf8');
-  assert.match(html, /<script src="\/cco-kalender-shell\.js\?v=20260717i" defer><\/script>/);
+  assert.match(html, /<script src="\/cco-kalender-shell\.js\?v=20260717j" defer><\/script>/);
   assert.doesNotMatch(html, /major-arcana-preview\/app\/cco-calendar-v8-shell\.js/);
 
   const { window } = parseHTML(`

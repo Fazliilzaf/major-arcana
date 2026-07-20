@@ -6043,7 +6043,7 @@
       })();
     </script>
     <script src="/cco-kalender-bridge.js?v=20260710a" defer></script>
-    <script src="/cco-kalender-shell.js?v=20260717i" defer></script>
+    <script src="/cco-kalender-shell.js?v=20260717j" defer></script>
     <script>
       /* PR 10 — ta emot vald live-tråds kontext från admin#cco → Konversationer
          ("Öppna kalender"). Scopar kalendern till trådens kund via befintlig
@@ -6097,7 +6097,7 @@
             document.documentElement.setAttribute('data-embed', '1');
             var style = document.createElement('style');
             style.textContent =
-              '[data-embed] .top-nav,[data-embed] .caption,[data-embed] .mockup-label{display:none!important}[data-embed] body{padding-top:0}';
+              '[data-embed] .top-nav > .brand,[data-embed] .top-nav > a,[data-embed] .caption,[data-embed] .mockup-label{display:none!important}[data-embed] .top-nav{padding:0 0 10px;margin:0}[data-embed] .global-search{margin:0;max-width:560px}[data-embed] body{padding-top:0}';
             document.head.appendChild(style);
           }
         } catch (e) {
