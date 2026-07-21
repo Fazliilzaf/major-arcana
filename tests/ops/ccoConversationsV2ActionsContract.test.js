@@ -64,6 +64,8 @@ test('v2 handoff använder bara worklistens exakta e-postmatchning och etablerad
   assert.match(source, /type: "cco:kalender:context", context/);
   assert.match(source, /openBookingOperatorSurface\(/);
   assert.match(source, /type: "arcana:cco-open-customer-dossier", patientId: context\.patientId/);
+  assert.match(source, /noteConversationId: runtimeThreadKey\(selected\)/);
+  assert.match(source, /bookingPatientId: selectedHandoffContext\?\.patientId \|\| ""/);
 
   const handoffStart = source.indexOf('function openV2CustomerDossier(thread)');
   const handoffEnd = source.indexOf('function setV2ConversationActionFeedback', handoffStart);

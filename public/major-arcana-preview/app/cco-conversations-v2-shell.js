@@ -1223,6 +1223,19 @@
       text(thread.v2Handoff && thread.v2Handoff.reason) ||
       'Kundkopplingen är oklar eller saknas. Öppna först Granskning.';
     var handoffDisabled = handoffAvailable ? '' : ' disabled aria-disabled="true" title="' + esc(handoffReason) + '"';
+    // Testbarhetsmarkörer kommer endast från appens redan autentiserade,
+    // valda trådkontext. De ändrar inte interaktionen eller handoff-logiken.
+    var testability = thread.v2Testability && typeof thread.v2Testability === 'object'
+      ? thread.v2Testability
+      : {};
+    var noteConversationId = text(testability.noteConversationId);
+    var bookingPatientId = handoffAvailable ? text(testability.bookingPatientId) : '';
+    var noteContextAttr = noteConversationId
+      ? ' data-note-conversation-id="' + esc(noteConversationId) + '"'
+      : '';
+    var bookingContextAttr = bookingPatientId
+      ? ' data-booking-context-patient-id="' + esc(bookingPatientId) + '"'
+      : '';
 
     el.innerHTML =
       '<header class="thread-header">' +
@@ -1243,7 +1256,7 @@
       '</h2></div>' +
       '<div class="thread-header-actions">' +
       '<button class="nav-btn thread-ctx-toggle" type="button" data-v2-ctx-toggle aria-label="Visa kundkontext">ⓘ Kund</button>' +
-      '<button class="nav-btn" type="button" data-v2-action="note">✎ Anteckna</button>' +
+      '<button class="nav-btn" type="button" data-v2-action="note"' + noteContextAttr + '>✎ Anteckna</button>' +
       '<button class="nav-btn nav-btn--ai" type="button" data-v2-action="studio">★ Svarstudio</button>' +
       '</div></header>' +
       '<div class="thread-status-bar">' +
@@ -1264,8 +1277,8 @@
       '</div></div>' +
       '<div class="thread-bottom-actions" role="toolbar" aria-label="Konversations-actions">' +
       '<button class="action-btn action-btn--studio" type="button" data-v2-action="studio"><span class="action-ico">✱</span><span>Svarstudio</span></button>' +
-      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"' + handoffDisabled + '><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
-      '<button class="action-btn action-btn--note" type="button" data-v2-action="note"><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
+      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"' + bookingContextAttr + handoffDisabled + '><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
+      '<button class="action-btn action-btn--note" type="button" data-v2-action="note"' + noteContextAttr + '><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
       '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"' + handoffDisabled + '><span class="action-ico">📆</span><span>Kalender</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="handled"><span class="action-ico">✓</span><span>Markera klar</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="reply_later"><span class="action-ico">⌛</span><span>Senare</span></button>' +
