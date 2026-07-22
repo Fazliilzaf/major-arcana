@@ -10,6 +10,10 @@ const V2_SHELL_PATH = path.join(
   __dirname,
   '../../public/major-arcana-preview/app/cco-conversations-v2-shell.js'
 );
+const RUNTIME_QUEUE_RENDERERS_PATH = path.join(
+  __dirname,
+  '../../public/major-arcana-preview/runtime-queue-renderers.js'
+);
 const {
   assertApprovedRun,
   assertDossierIframeDestination,
@@ -109,7 +113,7 @@ test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canon
       if (selector === '[data-v2-inbox] .thread[data-thread-id]') {
         return { count: async () => (hydrated ? 1 : 0) };
       }
-      if (selector === '[data-v2-mailbox].active') {
+      if (selector === '[data-runtime-mailbox]:checked') {
         return { count: async () => 1 };
       }
       throw new Error(`Oväntad selector: ${selector}`);
@@ -122,6 +126,7 @@ test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canon
 
 test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselektorer', () => {
   const shell = fs.readFileSync(V2_SHELL_PATH, 'utf8');
+  const runtimeQueueRenderers = fs.readFileSync(RUNTIME_QUEUE_RENDERERS_PATH, 'utf8');
   const harness = fs.readFileSync(HARNESS_PATH, 'utf8');
   assert.match(shell, /data-lane="'\s*\+\s*esc\(lane\.id\)/);
   assert.match(shell, /data-tab="'\s*\+\s*tab\.id/);
@@ -129,6 +134,8 @@ test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselekto
   assert.match(harness, /const V2_ALL_LANE = '\[data-lane="all"\]'/);
   assert.match(harness, /const V2_ALL_TAB = '\[data-tab="alla"\]'/);
   assert.match(harness, /const V2_REVIEW_LANE = '\[data-lane="review"\]'/);
+  assert.match(runtimeQueueRenderers, /data-runtime-mailbox="\$\{escapeHtml\(mailboxScopeId\)\}"\$\{checked/);
+  assert.match(harness, /const RUNTIME_SELECTED_MAILBOX = '\[data-runtime-mailbox\]:checked'/);
   assert.doesNotMatch(harness, /data-v2-lane/);
   assert.doesNotMatch(harness, /data-v2-folder/);
 });
@@ -164,8 +171,13 @@ test('Block 5-harnessen läser verkliga worklist-statusar utan att spara URL ell
   };
   const probe = installWorklistResponseProbe(page, 'https://arcana.hairtpclinic.com');
   handlers.response({
-    url: () => 'https://arcana.hairtpclinic.com/api/v1/cco/runtime/worklist',
+    url: () => 'https://arcana.hairtpclinic.com/api/v1/cco/runtime/worklist/consumer?scope=one',
     status: () => 422,
+  });
+  assert.equal(probe.getStatus(), 422);
+  handlers.response({
+    url: () => 'https://arcana.hairtpclinic.com/api/v1/cco/runtime/worklist',
+    status: () => 200,
   });
   assert.equal(probe.getStatus(), 422);
   probe.cleanup();

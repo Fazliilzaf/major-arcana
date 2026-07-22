@@ -25,6 +25,7 @@ const INBOX_EMPTY = '[data-v2-inbox] .inbox-empty';
 const V2_ALL_LANE = '[data-lane="all"]';
 const V2_ALL_TAB = '[data-tab="alla"]';
 const V2_REVIEW_LANE = '[data-lane="review"]';
+const RUNTIME_SELECTED_MAILBOX = '[data-runtime-mailbox]:checked';
 const V2_INBOX_TERMINAL_TIMEOUT_MS = 30000;
 const BOOKING_ACTION = '[data-v2-thread] [data-v2-action="booking"]';
 const DOSSIER_ACTION = '[data-v2-ctx] [data-v2-action="dossier"]';
@@ -175,7 +176,10 @@ function installWorklistResponseProbe(page, origin) {
   const onResponse = (response) => {
     try {
       const url = new URL(response.url());
-      if (url.origin === origin && url.pathname === '/api/v1/cco/runtime/worklist') {
+      if (
+        url.origin === origin &&
+        url.pathname.startsWith('/api/v1/cco/runtime/worklist/consumer')
+      ) {
         latestStatus = Number(response.status()) || 0;
       }
     } catch {
@@ -204,7 +208,7 @@ async function prepareV2Inbox(frame, worklistProbe) {
     .waitFor({ state: 'visible', timeout: V2_INBOX_TERMINAL_TIMEOUT_MS });
 
   const rowCount = await frame.locator(INBOX_THREAD).count();
-  const selectedMailboxCount = await frame.locator('[data-v2-mailbox].active').count();
+  const selectedMailboxCount = await frame.locator(RUNTIME_SELECTED_MAILBOX).count();
   return classifyTerminalInbox({
     rowCount,
     selectedMailboxCount,
