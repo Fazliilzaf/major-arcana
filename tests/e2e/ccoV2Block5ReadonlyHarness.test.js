@@ -82,6 +82,16 @@ test('Block 5-harnessen översätter endast äkta timeout till maskerad stegkod'
   );
 });
 
+test('Block 5-harnessen stoppar en stage som aldrig löser med maskerad timeoutkod', async () => {
+  await assert.rejects(
+    runStage('calendar_handoff', () => new Promise(() => {}), 1),
+    (error) => {
+      assert.equal(error.message, 'block5.calendar_handoff_timeout');
+      return true;
+    }
+  );
+});
+
 test('Block 5-harnessen låter vanliga fel vara röda och oförändrade', async () => {
   const ordinaryError = new Error('ordinary expected failure');
   await assert.rejects(
@@ -543,6 +553,8 @@ test('Block 5-harnessen returnerar bara maskerade identifierare och kräver dest
   assert.match(source, /function isTimeoutError\(error\)/);
   assert.match(source, /error\?\.name === 'TimeoutError'/);
   assert.match(source, /block5\.\$\{stage\}_timeout/);
+  assert.match(source, /Promise\.race\(\[Promise\.resolve\(\)\.then\(operation\), deadline\]\)/);
+  assert.match(source, /clearTimeout\(timer\)/);
   assert.match(source, /AbortController/);
   assert.match(source, /signal: controller\.signal/);
   assert.match(source, /no_canonical_thread_in_scope/);
