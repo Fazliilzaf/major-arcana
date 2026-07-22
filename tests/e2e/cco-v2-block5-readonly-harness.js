@@ -265,17 +265,53 @@ async function installReadOnlyGuard(page, origin) {
   };
 }
 
+function isV2PreviewDocumentResponse(response, origin) {
+  try {
+    const url = new URL(response.url());
+    return (
+      url.origin === origin &&
+      url.pathname === '/major-arcana-preview/' &&
+      url.searchParams.get('view') === 'conversations' &&
+      url.searchParams.get('embed') === 'admin' &&
+      url.searchParams.get('conversations') === 'v2' &&
+      response.request().resourceType() === 'document'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function getPreviewIntegrityEvidence(response) {
+  const headers = response.headers();
+  const status = Number(response.status()) || 0;
+  return {
+    statusOk: status >= 200 && status < 300,
+    verified: headers['x-arcana-preview-integrity'] === 'verified',
+    buildPresent: Boolean(headers['x-arcana-preview-build']),
+  };
+}
+
 async function openAdminV2Preview(page, baseUrl) {
+  const origin = new URL(baseUrl).origin;
   await page.goto(new URL('/admin#cco', baseUrl).toString(), {
     waitUntil: 'domcontentloaded',
     timeout: BLOCK5_STAGE_TIMEOUT_MS,
   });
   await page.locator('[data-cco-more-toggle]').click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
-  await page.locator(V2_MENU).click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
-  await page.locator(V2_FRAME).waitFor({ state: 'visible', timeout: BLOCK5_STAGE_TIMEOUT_MS });
-  const frame = page.frameLocator(V2_FRAME);
-  await frame.locator(V2_ROOT).waitFor({ state: 'visible', timeout: BLOCK5_STAGE_TIMEOUT_MS });
-  return frame;
+  const previewNavigation = page.waitForResponse(
+    (response) => isV2PreviewDocumentResponse(response, origin),
+    { timeout: BLOCK5_STAGE_TIMEOUT_MS }
+  );
+  try {
+    await page.locator(V2_MENU).click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
+    await page.locator(V2_FRAME).waitFor({ state: 'visible', timeout: BLOCK5_STAGE_TIMEOUT_MS });
+    const frame = page.frameLocator(V2_FRAME);
+    await frame.locator(V2_ROOT).waitFor({ state: 'visible', timeout: BLOCK5_STAGE_TIMEOUT_MS });
+    return { frame, integrity: getPreviewIntegrityEvidence(await previewNavigation) };
+  } catch (error) {
+    void previewNavigation.catch(() => {});
+    throw error;
+  }
 }
 
 function classifyTerminalInbox({
@@ -364,44 +400,8 @@ async function prepareV2Inbox(frame, worklistProbe) {
   });
 }
 
-async function assertPreviewIntegrity(frame) {
-  const integrity = await frame.locator('html').evaluate(
-    async (timeoutMs) => {
-      const controller = new AbortController();
-      const timer = window.setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const response = await fetch(window.location.href, {
-          credentials: 'same-origin',
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-        return {
-          status: response.status,
-          verified: response.headers.get('x-arcana-preview-integrity') === 'verified',
-          buildPresent: Boolean(response.headers.get('x-arcana-preview-build')),
-          timedOut: false,
-        };
-      } catch (error) {
-        if (controller.signal.aborted) return { timedOut: true };
-        throw error;
-      } finally {
-        window.clearTimeout(timer);
-      }
-    },
-    BLOCK5_STAGE_TIMEOUT_MS,
-    { timeout: BLOCK5_STAGE_TIMEOUT_MS }
-  );
-  if (integrity.timedOut) {
-    const timeout = new Error('preview integrity fetch timed out');
-    timeout.name = 'TimeoutError';
-    throw timeout;
-  }
-  if (
-    integrity.status < 200 ||
-    integrity.status >= 300 ||
-    !integrity.verified ||
-    !integrity.buildPresent
-  ) {
+function assertPreviewIntegrity(integrity) {
+  if (!integrity?.statusOk || !integrity.verified || !integrity.buildPresent) {
     fail('block5.preview_integrity_failed');
   }
 }
@@ -594,8 +594,9 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
   let diagnostics;
   try {
     await runStage('calendar_probe', () => installCalendarMessageProbe(page));
-    let frame = await runStage('open_preview', () => openAdminV2Preview(page, baseUrl));
-    await runStage('preview_integrity', () => assertPreviewIntegrity(frame));
+    let preview = await runStage('open_preview', () => openAdminV2Preview(page, baseUrl));
+    let frame = preview.frame;
+    await runStage('preview_integrity', () => assertPreviewIntegrity(preview.integrity));
     const inbox = await runStage('inbox_hydration', () => prepareV2Inbox(frame, worklistProbe));
     if (inbox.status === 'inconclusive') {
       result = inbox;
@@ -606,8 +607,9 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
         assertDossierHandoff(page, frame, canonical.patientId)
       );
 
-      frame = await runStage('open_calendar_preview', () => openAdminV2Preview(page, baseUrl));
-      await runStage('calendar_preview_integrity', () => assertPreviewIntegrity(frame));
+      preview = await runStage('open_calendar_preview', () => openAdminV2Preview(page, baseUrl));
+      frame = preview.frame;
+      await runStage('calendar_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
       const calendarInbox = await runStage('calendar_inbox_hydration', () =>
         prepareV2Inbox(frame, worklistProbe)
       );
@@ -618,8 +620,9 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
         assertCalendarHandoff(frame, canonical.patientId)
       );
 
-      frame = await runStage('open_booking_preview', () => openAdminV2Preview(page, baseUrl));
-      await runStage('booking_preview_integrity', () => assertPreviewIntegrity(frame));
+      preview = await runStage('open_booking_preview', () => openAdminV2Preview(page, baseUrl));
+      frame = preview.frame;
+      await runStage('booking_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
       const bookingInbox = await runStage('booking_inbox_hydration', () =>
         prepareV2Inbox(frame, worklistProbe)
       );
@@ -635,8 +638,9 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
       if (canonicalAgain.patientId !== canonical.patientId)
         fail('block5.canonical_thread_changed_between_handoffs');
 
-      frame = await runStage('open_review_preview', () => openAdminV2Preview(page, baseUrl));
-      await runStage('review_preview_integrity', () => assertPreviewIntegrity(frame));
+      preview = await runStage('open_review_preview', () => openAdminV2Preview(page, baseUrl));
+      frame = preview.frame;
+      await runStage('review_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
       const reviewInbox = await runStage('review_inbox_hydration', () =>
         prepareV2Inbox(frame, worklistProbe)
       );
@@ -663,10 +667,12 @@ module.exports = {
   classifyTerminalInbox,
   installReadOnlyGuard,
   installWorklistResponseProbe,
+  isV2PreviewDocumentResponse,
   isNonBlockingAdminShellResponse,
   isExplicitSafeSameOriginWrite,
   isSameOriginWrite,
   isSupersededV2ReadFailure,
+  getPreviewIntegrityEvidence,
   mask,
   prepareV2Inbox,
   runStage,
