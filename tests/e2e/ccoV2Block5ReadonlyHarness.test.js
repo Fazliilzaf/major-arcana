@@ -9,8 +9,10 @@ const HARNESS_PATH = path.join(__dirname, 'cco-v2-block5-readonly-harness.js');
 const {
   assertApprovedRun,
   installReadOnlyGuard,
+  isExplicitSafeSameOriginWrite,
   isSameOriginWrite,
   mask,
+  SAFE_SAME_ORIGIN_WRITES,
 } = require('./cco-v2-block5-readonly-harness');
 
 test('Block 5-harnessen känner igen enbart same-origin-skrivningar', () => {
@@ -43,6 +45,18 @@ test('Block 5-harnessen kräver uttryckligt produktionsgodkännande', () => {
   );
   assert.doesNotThrow(() => assertApprovedRun('https://arcana.hairtpclinic.com', true));
   assert.doesNotThrow(() => assertApprovedRun('http://127.0.0.1:3100', false));
+});
+
+test('Block 5-harnessen har en tom, exakt allowlist tills säker skrivning är bevisad', () => {
+  assert.deepEqual(SAFE_SAME_ORIGIN_WRITES, []);
+  assert.equal(
+    isExplicitSafeSameOriginWrite(
+      'https://arcana.hairtpclinic.com/api/v1/telemetry',
+      'POST',
+      'https://arcana.hairtpclinic.com'
+    ),
+    false
+  );
 });
 
 test('Block 5-harnessen avbryter slutresultatet när en skrivning blockerats', async () => {
@@ -83,6 +97,14 @@ test('Block 5-harnessen returnerar bara maskerade identifierare och kräver dest
   assert.match(source, /assertDossierHandoff/);
   assert.match(source, /assertCalendarHandoff/);
   assert.match(source, /assertReviewHasNoHandoff/);
+  assert.match(source, /x-arcana-preview-integrity/);
+  assert.match(source, /x-arcana-preview-build/);
+  assert.match(source, /frame\.frameLocator\('iframe\.cco-kalender-frame'\)/);
+  assert.doesNotMatch(source, /page\.frameLocator\('iframe\.cco-kalender-frame'\)/);
+  assert.match(source, /\[data-cco-more-toggle\]/);
+  assert.match(source, /\[data-cco-more="konversationer_v2_preview"\]/);
+  assert.match(source, /\[data-booking-surface\]\[data-booking-context-patient-id\]/);
+  assert.match(source, /\[data-v2-thread\] \[data-v2-action="note"\]\[data-note-conversation-id\]/);
   assert.doesNotMatch(source, /page\.screenshot\(|storageState\s*[:(]/);
   assert.notEqual(mask('patient-secret-123'), 'patient-secret-123');
 });

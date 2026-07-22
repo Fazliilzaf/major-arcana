@@ -12,6 +12,10 @@
 const crypto = require('node:crypto');
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+// Keep this list deliberately empty until a concrete request has been proved
+// safe and documented. Never add wildcards: an unknown same-origin write must
+// abort the harness and fail its verdict.
+const SAFE_SAME_ORIGIN_WRITES = Object.freeze([]);
 const V2_MENU = '[data-cco-more="konversationer_v2_preview"]';
 const V2_FRAME = 'iframe[src*="conversations=v2"]';
 const V2_ROOT = '#cco-conv-v2-root';
@@ -40,6 +44,20 @@ function isSameOriginWrite(url, method, origin) {
   }
 }
 
+function isExplicitSafeSameOriginWrite(url, method, origin) {
+  try {
+    const requestUrl = new URL(url);
+    if (requestUrl.origin !== origin) return false;
+    const normalizedMethod = String(method || '').toUpperCase();
+    const requestPath = `${requestUrl.pathname}${requestUrl.search}`;
+    return SAFE_SAME_ORIGIN_WRITES.some(
+      (allowed) => allowed.method === normalizedMethod && allowed.path === requestPath
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
 function assertApprovedRun(baseUrl, ownerApprovedProduction) {
   const url = new URL(baseUrl);
   if (url.hostname === 'arcana.hairtpclinic.com' && ownerApprovedProduction !== true) {
@@ -63,6 +81,10 @@ async function installReadOnlyGuard(page, origin) {
   const routeHandler = async (route) => {
     const request = route.request();
     if (isSameOriginWrite(request.url(), request.method(), origin)) {
+      if (isExplicitSafeSameOriginWrite(request.url(), request.method(), origin)) {
+        await route.continue();
+        return;
+      }
       blockedWrites += 1;
       await route.abort('blockedbyclient');
       return;
@@ -106,7 +128,7 @@ async function assertPreviewIntegrity(frame) {
     return {
       status: response.status,
       verified: response.headers.get('x-arcana-preview-integrity') === 'verified',
-      buildPresent: Boolean(response.headers.get('x-arcana-ui-build')),
+      buildPresent: Boolean(response.headers.get('x-arcana-preview-build')),
     };
   });
   if (
@@ -180,9 +202,9 @@ async function installCalendarMessageProbe(page) {
   });
 }
 
-async function assertCalendarHandoff(page, frame, expectedPatientId) {
+async function assertCalendarHandoff(frame, expectedPatientId) {
   await frame.locator('[data-v2-action="calendar"]').first().click();
-  const calendar = page.frameLocator('iframe.cco-kalender-frame');
+  const calendar = frame.frameLocator('iframe.cco-kalender-frame');
   const html = calendar.locator('html');
   await html.waitFor({ state: 'attached' });
   const actualPatientId = await html.getAttribute('data-block5-calendar-patient-id');
@@ -243,7 +265,7 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
 
     frame = await openAdminV2Preview(page, baseUrl);
     await assertPreviewIntegrity(frame);
-    const calendar = await assertCalendarHandoff(page, frame, canonical.patientId);
+    const calendar = await assertCalendarHandoff(frame, canonical.patientId);
 
     frame = await openAdminV2Preview(page, baseUrl);
     await assertPreviewIntegrity(frame);
@@ -262,11 +284,13 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
 }
 
 module.exports = {
+  SAFE_SAME_ORIGIN_WRITES,
   assertApprovedRun,
   assertBookingHandoff,
   assertNoteUsesSelectedThread,
   assertPreviewIntegrity,
   installReadOnlyGuard,
+  isExplicitSafeSameOriginWrite,
   isSameOriginWrite,
   mask,
   runBlock5ReadonlyHandoffHarness,
