@@ -29,12 +29,7 @@ test('buildStoredFileName keeps safe base name', () => {
 });
 
 test('normalizeJournalPhotoUpload converts jpeg buffer', async () => {
-  let sharp;
-  try {
-    sharp = require('sharp');
-  } catch {
-    return;
-  }
+  const sharp = require('sharp');
   const input = await sharp({
     create: { width: 24, height: 24, channels: 3, background: { r: 200, g: 120, b: 80 } },
   })
@@ -52,12 +47,7 @@ test('normalizeJournalPhotoUpload converts jpeg buffer', async () => {
 });
 
 test('normalizeJournalPhotoUpload preserves the patient-photo transform contract with sharp', async () => {
-  let sharp;
-  try {
-    sharp = require('sharp');
-  } catch {
-    return;
-  }
+  const sharp = require('sharp');
 
   const rotatedInput = await sharp({
     create: { width: 64, height: 32, channels: 3, background: { r: 40, g: 110, b: 190 } },
