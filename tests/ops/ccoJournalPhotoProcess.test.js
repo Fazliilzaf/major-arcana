@@ -51,6 +51,56 @@ test('normalizeJournalPhotoUpload converts jpeg buffer', async () => {
   assert.match(normalized.fileName, /\.jpg$/);
 });
 
+test('normalizeJournalPhotoUpload preserves the patient-photo transform contract with sharp', async () => {
+  let sharp;
+  try {
+    sharp = require('sharp');
+  } catch {
+    return;
+  }
+
+  const rotatedInput = await sharp({
+    create: { width: 64, height: 32, channels: 3, background: { r: 40, g: 110, b: 190 } },
+  })
+    .withMetadata({ orientation: 6 })
+    .jpeg()
+    .toBuffer();
+  const normalizedJpeg = await normalizeJournalPhotoUpload({
+    buffer: rotatedInput,
+    mimeType: 'image/jpeg',
+    originalName: 'rotation.jpg',
+  });
+  const jpegMeta = await sharp(normalizedJpeg.buffer).metadata();
+  assert.equal(normalizedJpeg.mimeType, 'image/jpeg');
+  assert.equal(jpegMeta.format, 'jpeg');
+  assert.deepEqual([jpegMeta.width, jpegMeta.height], [32, 64]);
+
+  const pngInput = await sharp({
+    create: { width: 80, height: 40, channels: 4, background: { r: 30, g: 160, b: 100, alpha: 1 } },
+  })
+    .png()
+    .toBuffer();
+  const normalizedPng = await normalizeJournalPhotoUpload({
+    buffer: pngInput,
+    mimeType: 'image/png',
+    originalName: 'patient.png',
+  });
+  const pngMeta = await sharp(normalizedPng.buffer).metadata();
+  assert.equal(normalizedPng.mimeType, 'image/png');
+  assert.equal(pngMeta.format, 'png');
+
+  // The same rotate/resize/JPEG sequence used by the patient-file preview must
+  // remain valid after the sharp upgrade.
+  const preview = await sharp(normalizedPng.buffer)
+    .rotate()
+    .resize({ width: 24, height: 24, fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 72 })
+    .toBuffer();
+  const previewMeta = await sharp(preview).metadata();
+  assert.equal(previewMeta.format, 'jpeg');
+  assert.deepEqual([previewMeta.width, previewMeta.height], [24, 12]);
+});
+
 test('normalizeJournalPhotoUpload rejects unsupported mime', async () => {
   await assert.rejects(
     () =>
