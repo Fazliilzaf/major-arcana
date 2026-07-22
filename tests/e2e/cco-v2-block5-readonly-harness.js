@@ -16,6 +16,18 @@ const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 // safe and documented. Never add wildcards: an unknown same-origin write must
 // abort the harness and fail its verdict.
 const SAFE_SAME_ORIGIN_WRITES = Object.freeze([]);
+// These are the only known top-admin-shell requests that can fail outside the
+// V2 preview without changing its result. Keep the list exact: any other
+// console or resource error must remain a red harness verdict.
+const NON_BLOCKING_ADMIN_SHELL_ERROR_PATHS = new Set([
+  '/api/v1/marketing/campaigns',
+  '/api/v1/cco-users/fazli',
+  '/api/v1/ops/maintenance-window',
+]);
+const SUPERSEDED_V2_READ_PATHS = new Set([
+  '/api/v1/cco/runtime/stream',
+  '/api/v1/cco/runtime/worklist/consumer',
+]);
 const V2_MENU = '[data-cco-more="konversationer_v2_preview"]';
 const V2_FRAME = 'iframe[src*="conversations=v2"]';
 const V2_ROOT = '#cco-conv-v2-root';
@@ -78,6 +90,32 @@ function assertPage(page) {
   }
 }
 
+function sameOriginPath(url, origin) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.origin !== origin) return null;
+    return parsed.pathname;
+  } catch (_) {
+    return null;
+  }
+}
+
+function isNonBlockingAdminShellResponse(url, status, origin) {
+  const pathname = sameOriginPath(url, origin);
+  return (
+    (Number(status) === 401 || Number(status) === 403) &&
+    NON_BLOCKING_ADMIN_SHELL_ERROR_PATHS.has(pathname)
+  );
+}
+
+function isSupersededV2ReadFailure(failure, origin) {
+  return (
+    String(failure.method || '').toUpperCase() === 'GET' &&
+    String(failure.errorText || '') === 'net::ERR_ABORTED' &&
+    SUPERSEDED_V2_READ_PATHS.has(sameOriginPath(failure.url, origin))
+  );
+}
+
 /**
  * Block all same-origin mutations. A blocked write is not merely logged: it
  * fails the final verdict, including writes attempted by recovery handlers.
@@ -87,6 +125,7 @@ async function installReadOnlyGuard(page, origin) {
   const clientErrors = [];
   const requestFailures = [];
   const consoleErrors = [];
+  const nonBlockingAdminShellResponses = new Set();
   const routeHandler = async (route) => {
     const request = route.request();
     if (isSameOriginWrite(request.url(), request.method(), origin)) {
@@ -102,10 +141,19 @@ async function installReadOnlyGuard(page, origin) {
   };
   const onPageError = () => clientErrors.push('pageerror');
   const onRequestFailed = (request) => {
+    const failure = typeof request.failure === 'function' ? request.failure() : null;
     requestFailures.push({
       url: request.url(),
+      method: typeof request.method === 'function' ? request.method() : '',
       resourceType: String(request.resourceType() || '').toLowerCase(),
+      errorText: String(failure?.errorText || ''),
     });
+  };
+  const onResponse = (response) => {
+    if (isNonBlockingAdminShellResponse(response.url(), response.status(), origin)) {
+      // Store only origin+path, never query strings or response content.
+      nonBlockingAdminShellResponses.add(sameOriginPath(response.url(), origin));
+    }
   };
   const onConsole = (message) => {
     if (message.type() !== 'error') return;
@@ -119,12 +167,14 @@ async function installReadOnlyGuard(page, origin) {
   await page.route('**/*', routeHandler);
   page.on('pageerror', onPageError);
   page.on('requestfailed', onRequestFailed);
+  page.on('response', onResponse);
   page.on('console', onConsole);
 
   return async function cleanupAndAssertReadOnly() {
     await page.unroute('**/*', routeHandler);
     page.off('pageerror', onPageError);
     page.off('requestfailed', onRequestFailed);
+    page.off('response', onResponse);
     page.off('console', onConsole);
     if (blockedWrites) fail('block5.same_origin_write_attempted');
     const externalImageFailures = requestFailures.filter((failure) => {
@@ -134,14 +184,32 @@ async function installReadOnlyGuard(page, origin) {
         return false;
       }
     });
-    const redRequestFailures = requestFailures.filter((failure) => !externalImageFailures.includes(failure));
+    const supersededReadFailures = requestFailures.filter((failure) =>
+      isSupersededV2ReadFailure(failure, origin)
+    );
+    const redRequestFailures = requestFailures.filter(
+      (failure) =>
+        !externalImageFailures.includes(failure) && !supersededReadFailures.includes(failure)
+    );
     if (redRequestFailures.length) clientErrors.push('resource-failure');
     const externalImageUrls = externalImageFailures.map((failure) => failure.url);
     const hasExternalImageCorrelation = (entry) =>
       externalImageUrls.some(
         (url) => entry.locationUrl === url || (entry.text && entry.text.includes(url))
       );
-    if (consoleErrors.some((entry) => !hasExternalImageCorrelation(entry))) {
+    const isNonBlockingAdminShellConsoleError = (entry) => {
+      const pathname = sameOriginPath(entry.locationUrl, origin);
+      return pathname && nonBlockingAdminShellResponses.has(pathname);
+    };
+    const nonBlockingAdminShellConsoleErrors = consoleErrors.filter(
+      (entry) => isNonBlockingAdminShellConsoleError(entry) && !hasExternalImageCorrelation(entry)
+    );
+    if (
+      consoleErrors.some(
+        (entry) =>
+          !hasExternalImageCorrelation(entry) && !isNonBlockingAdminShellConsoleError(entry)
+      )
+    ) {
       clientErrors.push('console-error');
     }
     if (clientErrors.length) {
@@ -150,7 +218,17 @@ async function installReadOnlyGuard(page, origin) {
       // att harnessen blir en PII-artefakt.
       fail(`block5.client_error_detected:${Array.from(new Set(clientErrors)).sort().join(',')}`);
     }
-    return { externalImageResourceFailures: externalImageFailures.length };
+    const diagnostics = {};
+    if (externalImageFailures.length) {
+      diagnostics.externalImageResourceFailures = externalImageFailures.length;
+    }
+    if (nonBlockingAdminShellConsoleErrors.length) {
+      diagnostics.unrelatedAdminShellResourceErrors = nonBlockingAdminShellConsoleErrors.length;
+    }
+    if (supersededReadFailures.length) {
+      diagnostics.supersededReadFailures = supersededReadFailures.length;
+    }
+    return diagnostics;
   };
 }
 
@@ -164,7 +242,11 @@ async function openAdminV2Preview(page, baseUrl, worklistProbe) {
   return { frame, inbox: await prepareV2Inbox(frame, worklistProbe) };
 }
 
-function classifyTerminalInbox({ rowCount = 0, selectedMailboxCount = 0, worklistStatus = 0 } = {}) {
+function classifyTerminalInbox({
+  rowCount = 0,
+  selectedMailboxCount = 0,
+  worklistStatus = 0,
+} = {}) {
   if (worklistStatus === 401 || worklistStatus === 403) fail('block5.auth_required');
   if (worklistStatus === 422 || Number(selectedMailboxCount) > 2) fail('block5.scope_error');
   if (Number(rowCount) > 0) return { status: 'rows' };
@@ -451,8 +533,10 @@ module.exports = {
   classifyTerminalInbox,
   installReadOnlyGuard,
   installWorklistResponseProbe,
+  isNonBlockingAdminShellResponse,
   isExplicitSafeSameOriginWrite,
   isSameOriginWrite,
+  isSupersededV2ReadFailure,
   mask,
   prepareV2Inbox,
   runBlock5ReadonlyHandoffHarness,

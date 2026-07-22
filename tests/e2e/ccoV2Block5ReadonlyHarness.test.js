@@ -20,8 +20,10 @@ const {
   classifyTerminalInbox,
   installReadOnlyGuard,
   installWorklistResponseProbe,
+  isNonBlockingAdminShellResponse,
   isExplicitSafeSameOriginWrite,
   isSameOriginWrite,
+  isSupersededV2ReadFailure,
   mask,
   SAFE_SAME_ORIGIN_WRITES,
   prepareV2Inbox,
@@ -134,7 +136,10 @@ test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselekto
   assert.match(harness, /const V2_ALL_LANE = '\[data-lane="all"\]'/);
   assert.match(harness, /const V2_ALL_TAB = '\[data-tab="alla"\]'/);
   assert.match(harness, /const V2_REVIEW_LANE = '\[data-lane="review"\]'/);
-  assert.match(runtimeQueueRenderers, /data-runtime-mailbox="\$\{escapeHtml\(mailboxScopeId\)\}"\$\{checked/);
+  assert.match(
+    runtimeQueueRenderers,
+    /data-runtime-mailbox="\$\{escapeHtml\(mailboxScopeId\)\}"\$\{checked/
+  );
   assert.match(harness, /const RUNTIME_SELECTED_MAILBOX = '\[data-runtime-mailbox\]:checked'/);
   assert.doesNotMatch(harness, /data-v2-lane/);
   assert.doesNotMatch(harness, /data-v2-folder/);
@@ -264,6 +269,103 @@ test('Block 5-harnessen rapporterar misslyckad extern bild maskerat utan rött f
     location: () => ({ url: imageUrl }),
   });
   assert.deepEqual(await cleanup(), { externalImageResourceFailures: 1 });
+});
+
+test('Block 5-harnessen gör bara de tre verifierade admin-shell 401/403-felen icke-blockerande', async () => {
+  const { page, handlers } = makeReadOnlyGuardPage();
+  const cleanup = await installReadOnlyGuard(page, 'https://arcana.hairtpclinic.com');
+  const paths = [
+    '/api/v1/marketing/campaigns',
+    '/api/v1/cco-users/fazli',
+    '/api/v1/ops/maintenance-window',
+  ];
+  for (const [index, pathname] of paths.entries()) {
+    const url = `https://arcana.hairtpclinic.com${pathname}`;
+    handlers.response({ url: () => url, status: () => (index === 1 ? 403 : 401) });
+    handlers.console({
+      type: () => 'error',
+      text: () => 'Failed to load resource',
+      location: () => ({ url }),
+    });
+  }
+  assert.deepEqual(await cleanup(), { unrelatedAdminShellResourceErrors: 3 });
+});
+
+test('Block 5-harnessen håller andra admin-shell-fel röda', async () => {
+  const { page, handlers } = makeReadOnlyGuardPage();
+  const cleanup = await installReadOnlyGuard(page, 'https://arcana.hairtpclinic.com');
+  const url = 'https://arcana.hairtpclinic.com/api/v1/marketing/campaigns';
+  handlers.response({ url: () => url, status: () => 500 });
+  handlers.console({
+    type: () => 'error',
+    text: () => 'Failed to load resource',
+    location: () => ({ url }),
+  });
+  await assert.rejects(cleanup, /block5\.client_error_detected:console-error/);
+});
+
+test('Block 5-harnessen gör endast exakta aborterade V2-läsningar icke-blockerande', async () => {
+  const { page, handlers } = makeReadOnlyGuardPage();
+  const cleanup = await installReadOnlyGuard(page, 'https://arcana.hairtpclinic.com');
+  for (const pathname of ['/api/v1/cco/runtime/stream', '/api/v1/cco/runtime/worklist/consumer']) {
+    handlers.requestfailed({
+      url: () => `https://arcana.hairtpclinic.com${pathname}?scope=contact`,
+      method: () => 'GET',
+      resourceType: () => 'fetch',
+      failure: () => ({ errorText: 'net::ERR_ABORTED' }),
+    });
+  }
+  assert.deepEqual(await cleanup(), { supersededReadFailures: 2 });
+});
+
+test('Block 5-harnessen håller andra eller icke-GET aborterade läsningar röda', async () => {
+  const { page, handlers } = makeReadOnlyGuardPage();
+  const cleanup = await installReadOnlyGuard(page, 'https://arcana.hairtpclinic.com');
+  handlers.requestfailed({
+    url: () => 'https://arcana.hairtpclinic.com/api/v1/cco/runtime/stream',
+    method: () => 'POST',
+    resourceType: () => 'fetch',
+    failure: () => ({ errorText: 'net::ERR_ABORTED' }),
+  });
+  await assert.rejects(cleanup, /block5\.client_error_detected:resource-failure/);
+});
+
+test('Block 5-harnessen har snäva path- och metodregler för sina icke-blockerande diagnoser', () => {
+  const origin = 'https://arcana.hairtpclinic.com';
+  assert.equal(
+    isNonBlockingAdminShellResponse(`${origin}/api/v1/marketing/campaigns?tenant=cco`, 401, origin),
+    true
+  );
+  assert.equal(
+    isNonBlockingAdminShellResponse(`${origin}/api/v1/marketing/campaigns`, 500, origin),
+    false
+  );
+  assert.equal(
+    isNonBlockingAdminShellResponse(`${origin}/api/v1/cco-users/other`, 403, origin),
+    false
+  );
+  assert.equal(
+    isSupersededV2ReadFailure(
+      {
+        url: `${origin}/api/v1/cco/runtime/worklist/consumer?scope=contact`,
+        method: 'GET',
+        errorText: 'net::ERR_ABORTED',
+      },
+      origin
+    ),
+    true
+  );
+  assert.equal(
+    isSupersededV2ReadFailure(
+      {
+        url: `${origin}/api/v1/cco/runtime/worklist/consumer`,
+        method: 'GET',
+        errorText: 'net::ERR_FAILED',
+      },
+      origin
+    ),
+    false
+  );
 });
 
 test('Block 5-harnessen gör misslyckad same-origin-resurs röd', async () => {
