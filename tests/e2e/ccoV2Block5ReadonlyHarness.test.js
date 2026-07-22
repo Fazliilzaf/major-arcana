@@ -14,6 +14,10 @@ const RUNTIME_QUEUE_RENDERERS_PATH = path.join(
   __dirname,
   '../../public/major-arcana-preview/runtime-queue-renderers.js'
 );
+const V2_CSS_PATH = path.join(
+  __dirname,
+  '../../public/major-arcana-preview/app/cco-conversations-v2.css'
+);
 const {
   assertApprovedRun,
   assertDossierIframeDestination,
@@ -99,7 +103,8 @@ test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canon
   const frame = {
     locator(selector) {
       if (
-        selector === '#cco-conv-v2-root .lane-row[data-lane="all"]' ||
+        selector ===
+          '#cco-conv-v2-root .lane-row[data-lane="all"]:visible, #cco-conv-v2-root .lane-chip[data-lane="all"]:visible' ||
         selector === '[data-tab="alla"]'
       ) {
         return {
@@ -126,12 +131,16 @@ test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canon
   };
 
   assert.deepEqual(await prepareV2Inbox(frame), { status: 'rows' });
-  assert.deepEqual(clicks, ['#cco-conv-v2-root .lane-row[data-lane="all"]', '[data-tab="alla"]']);
+  assert.deepEqual(clicks, [
+    '#cco-conv-v2-root .lane-row[data-lane="all"]:visible, #cco-conv-v2-root .lane-chip[data-lane="all"]:visible',
+    '[data-tab="alla"]',
+  ]);
 });
 
 test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselektorer', () => {
   const shell = fs.readFileSync(V2_SHELL_PATH, 'utf8');
   const runtimeQueueRenderers = fs.readFileSync(RUNTIME_QUEUE_RENDERERS_PATH, 'utf8');
+  const css = fs.readFileSync(V2_CSS_PATH, 'utf8');
   const harness = fs.readFileSync(HARNESS_PATH, 'utf8');
   assert.match(shell, /class="lane-row'\s*\+\s*active\s*\+\s*'" data-lane="'/);
   assert.match(shell, /class="lane-chip'\s*\+\s*active\s*\+\s*'" data-lane="'/);
@@ -139,12 +148,12 @@ test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselekto
   assert.match(shell, /\{ id: 'alla', label: 'Alla'/);
   assert.match(
     harness,
-    /const V2_ALL_LANE = '#cco-conv-v2-root \.lane-row\[data-lane="all"\]'/
+    /#cco-conv-v2-root \.lane-row\[data-lane="all"\]:visible, #cco-conv-v2-root \.lane-chip\[data-lane="all"\]:visible/
   );
   assert.match(harness, /const V2_ALL_TAB = '\[data-tab="alla"\]'/);
   assert.match(
     harness,
-    /const V2_REVIEW_LANE = '#cco-conv-v2-root \.lane-row\[data-lane="review"\]'/
+    /#cco-conv-v2-root \.lane-row\[data-lane="review"\]:visible, #cco-conv-v2-root \.lane-chip\[data-lane="review"\]:visible/
   );
   assert.match(
     runtimeQueueRenderers,
@@ -153,6 +162,8 @@ test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselekto
   assert.match(harness, /const RUNTIME_SELECTED_MAILBOX = '\[data-runtime-mailbox\]:checked'/);
   assert.doesNotMatch(harness, /data-v2-lane/);
   assert.doesNotMatch(harness, /data-v2-folder/);
+  assert.match(css, /@media \(min-width: 769px\) and \(max-width: 1024px\)[\s\S]*?\.lane-sidebar\s*\{\s*display: none;/);
+  assert.match(css, /@media \(min-width: 769px\) and \(max-width: 1024px\)[\s\S]*?\.lane-chips\s*\{\s*display: flex;/);
   assert.doesNotMatch(harness, /const V2_ALL_LANE = '\[data-lane="all"\]'/);
   assert.doesNotMatch(harness, /const V2_REVIEW_LANE = '\[data-lane="review"\]'/);
 });
@@ -162,8 +173,10 @@ test('Block 5-harnessen kan inte välja runtime-radens dubbla data-lane-attribut
   const runtimeQueueRenderers = fs.readFileSync(RUNTIME_QUEUE_RENDERERS_PATH, 'utf8');
   assert.match(runtimeQueueRenderers, /const v5DataLane = ` data-lane="\$\{escapeHtml\(v5Lane\)\}"`/);
   assert.doesNotMatch(harness, /\.locator\('\[data-lane="(?:all|review)"\]'\)/);
-  assert.match(harness, /\.lane-row\[data-lane="all"\]/);
-  assert.match(harness, /\.lane-row\[data-lane="review"\]/);
+  assert.match(harness, /\.lane-row\[data-lane="all"\]:visible/);
+  assert.match(harness, /\.lane-chip\[data-lane="all"\]:visible/);
+  assert.match(harness, /\.lane-row\[data-lane="review"\]:visible/);
+  assert.match(harness, /\.lane-chip\[data-lane="review"\]:visible/);
 });
 
 test('Block 5-harnessen gör ett terminalt tomt scope maskerat inconclusive', () => {
