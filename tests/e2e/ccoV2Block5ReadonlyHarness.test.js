@@ -21,19 +21,39 @@ const V2_CSS_PATH = path.join(
 const {
   assertApprovedRun,
   assertDossierIframeDestination,
+  assertPreviewIntegrity,
   classifyTerminalInbox,
+  getPreviewIntegrityEvidence,
   installReadOnlyGuard,
   installWorklistResponseProbe,
   isNonBlockingAdminShellResponse,
   isExplicitSafeSameOriginWrite,
   isSameOriginWrite,
   isSupersededV2ReadFailure,
+  isV2PreviewDocumentResponse,
   mask,
   SAFE_SAME_ORIGIN_WRITES,
   prepareV2Inbox,
   runStage,
   selectExactlyOneV2Lane,
 } = require('./cco-v2-block5-readonly-harness');
+
+function previewDocumentResponse({
+  url = 'https://arcana.hairtpclinic.com/major-arcana-preview/?view=conversations&embed=admin&conversations=v2',
+  status = 200,
+  resourceType = 'document',
+  headers = {
+    'x-arcana-preview-integrity': 'verified',
+    'x-arcana-preview-build': 'build-present',
+  },
+} = {}) {
+  return {
+    url: () => url,
+    status: () => status,
+    headers: () => headers,
+    request: () => ({ resourceType: () => resourceType }),
+  };
+}
 
 test('Block 5-harnessen känner igen enbart same-origin-skrivningar', () => {
   assert.equal(
@@ -65,6 +85,53 @@ test('Block 5-harnessen kräver uttryckligt produktionsgodkännande', () => {
   );
   assert.doesNotThrow(() => assertApprovedRun('https://arcana.hairtpclinic.com', true));
   assert.doesNotThrow(() => assertApprovedRun('http://127.0.0.1:3100', false));
+});
+
+test('Block 5-harnessen använder endast den exakta V2 iframe-dokumentnavigeringen som integritetsbevis', () => {
+  const origin = 'https://arcana.hairtpclinic.com';
+  assert.equal(isV2PreviewDocumentResponse(previewDocumentResponse(), origin), true);
+  assert.equal(
+    isV2PreviewDocumentResponse(
+      previewDocumentResponse({
+        url: 'https://arcana.hairtpclinic.com/major-arcana-preview/?view=customers&embed=admin&conversations=v2',
+      }),
+      origin
+    ),
+    false
+  );
+  assert.equal(
+    isV2PreviewDocumentResponse(
+      previewDocumentResponse({
+        url: 'https://arcana.hairtpclinic.com/major-arcana-preview/?view=conversations&embed=admin',
+      }),
+      origin
+    ),
+    false
+  );
+  assert.equal(
+    isV2PreviewDocumentResponse(previewDocumentResponse({ resourceType: 'fetch' }), origin),
+    false
+  );
+});
+
+test('Block 5-harnessen fail-closar preview-integritet vid icke-2xx eller saknad header', () => {
+  assert.doesNotThrow(() =>
+    assertPreviewIntegrity(getPreviewIntegrityEvidence(previewDocumentResponse()))
+  );
+  assert.throws(
+    () =>
+      assertPreviewIntegrity(getPreviewIntegrityEvidence(previewDocumentResponse({ status: 503 }))),
+    /block5\.preview_integrity_failed/
+  );
+  assert.throws(
+    () =>
+      assertPreviewIntegrity(
+        getPreviewIntegrityEvidence(
+          previewDocumentResponse({ headers: { 'x-arcana-preview-build': 'build-present' } })
+        )
+      ),
+    /block5\.preview_integrity_failed/
+  );
 });
 
 test('Block 5-harnessen översätter endast äkta timeout till maskerad stegkod', async () => {
@@ -571,8 +638,10 @@ test('Block 5-harnessen returnerar bara maskerade identifierare och kräver dest
   assert.match(source, /block5\.\$\{stage\}_timeout/);
   assert.match(source, /Promise\.race\(\[Promise\.resolve\(\)\.then\(operation\), deadline\]\)/);
   assert.match(source, /clearTimeout\(timer\)/);
-  assert.match(source, /AbortController/);
-  assert.match(source, /signal: controller\.signal/);
+  assert.match(source, /page\.waitForResponse\(/);
+  assert.match(source, /isV2PreviewDocumentResponse/);
+  assert.match(source, /getPreviewIntegrityEvidence/);
+  assert.doesNotMatch(source, /fetch\(window\.location\.href/);
   assert.match(source, /no_canonical_thread_in_scope/);
   assert.match(source, /x-arcana-preview-integrity/);
   assert.match(source, /x-arcana-preview-build/);
