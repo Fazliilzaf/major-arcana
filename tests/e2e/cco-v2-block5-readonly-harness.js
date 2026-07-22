@@ -43,6 +43,7 @@ const V2_REVIEW_LANE =
   '#cco-conv-v2-root .lane-row[data-lane="review"]:visible, #cco-conv-v2-root .lane-chip[data-lane="review"]:visible';
 const RUNTIME_SELECTED_MAILBOX = '[data-runtime-mailbox]:checked';
 const BLOCK5_STAGE_TIMEOUT_MS = 20000;
+const BLOCK5_WARMUP_TIMEOUT_MS = 60000;
 const V2_INBOX_TERMINAL_TIMEOUT_MS = BLOCK5_STAGE_TIMEOUT_MS;
 const V2_LANE_SELECTION_MAX_ATTEMPTS = 4;
 const V2_LANE_RETRY_DELAY_MS = 75;
@@ -330,9 +331,11 @@ function installWorklistResponseProbe(page, origin) {
   const onResponse = (response) => {
     try {
       const url = new URL(response.url());
+      const method = response.request().method();
       if (
         url.origin === origin &&
-        url.pathname.startsWith('/api/v1/cco/runtime/worklist/consumer')
+        url.pathname.startsWith('/api/v1/cco/runtime/worklist/consumer') &&
+        method === 'GET'
       ) {
         latestStatus = Number(response.status()) || 0;
       }
@@ -343,6 +346,9 @@ function installWorklistResponseProbe(page, origin) {
   page.on('response', onResponse);
   return {
     getStatus: () => latestStatus,
+    reset: () => {
+      latestStatus = 0;
+    },
     cleanup: () => page.off('response', onResponse),
   };
 }
@@ -373,7 +379,11 @@ async function selectExactlyOneV2Lane(frame, selector) {
   return false;
 }
 
-async function prepareV2Inbox(frame, worklistProbe) {
+async function prepareV2Inbox(
+  frame,
+  worklistProbe,
+  { terminalTimeoutMs = V2_INBOX_TERMINAL_TIMEOUT_MS } = {}
+) {
   // The Block 5 signoff must inspect the complete active inbox, not a
   // persisted lane or filtered tab from a prior operator session. Some
   // embedded layouts render no lane navigation at all. Without an observable
@@ -389,7 +399,7 @@ async function prepareV2Inbox(frame, worklistProbe) {
   await frame
     .locator(`${INBOX_THREAD}, ${INBOX_EMPTY}`)
     .first()
-    .waitFor({ state: 'visible', timeout: V2_INBOX_TERMINAL_TIMEOUT_MS });
+    .waitFor({ state: 'visible', timeout: terminalTimeoutMs });
 
   const rowCount = await frame.locator(INBOX_THREAD).count();
   const selectedMailboxCount = await frame.locator(RUNTIME_SELECTED_MAILBOX).count();
@@ -398,6 +408,51 @@ async function prepareV2Inbox(frame, worklistProbe) {
     selectedMailboxCount,
     worklistStatus: worklistProbe?.getStatus?.() || 0,
   });
+}
+
+function warmupMetadata({ status = 'failed', timingClass = 'not_ready' } = {}) {
+  return {
+    warmCache: status === 'ready',
+    warmupStatus: status,
+    warmupTimingClass: timingClass,
+  };
+}
+
+async function warmBlock5Worklist({
+  page,
+  baseUrl,
+  worklistProbe,
+  openPreview = openAdminV2Preview,
+  prepareInbox = prepareV2Inbox,
+}) {
+  worklistProbe?.reset?.();
+  const preview = await runStage(
+    'warmup_open_preview',
+    () => openPreview(page, baseUrl),
+    BLOCK5_WARMUP_TIMEOUT_MS
+  );
+  assertPreviewIntegrity(preview.integrity);
+  const inbox = await runStage(
+    'warmup_inbox_hydration',
+    () =>
+      prepareInbox(preview.frame, worklistProbe, {
+        terminalTimeoutMs: BLOCK5_WARMUP_TIMEOUT_MS,
+      }),
+    BLOCK5_WARMUP_TIMEOUT_MS
+  );
+  const worklistStatus = worklistProbe?.getStatus?.() || 0;
+  if (worklistStatus !== 200) fail('block5.warmup_worklist_non_200');
+  if (inbox.status !== 'rows') {
+    return {
+      ...warmupMetadata({ status: 'inconclusive', timingClass: 'terminal_empty_scope' }),
+      status: 'inconclusive',
+      reason: inbox.reason,
+    };
+  }
+  return {
+    ...warmupMetadata({ status: 'ready', timingClass: 'within_60_seconds' }),
+    status: 'ready',
+  };
 }
 
 function assertPreviewIntegrity(integrity) {
@@ -584,6 +639,63 @@ async function assertReviewHasNoHandoff(frame) {
  * Return value is deliberately masked aggregate evidence: no raw thread IDs,
  * patient IDs, URLs, screenshots or storage state leave the process.
  */
+async function runBlock5HandoffFlow({ page, baseUrl, worklistProbe }) {
+  await runStage('calendar_probe', () => installCalendarMessageProbe(page));
+  let preview = await runStage('open_preview', () => openAdminV2Preview(page, baseUrl));
+  let frame = preview.frame;
+  await runStage('preview_integrity', () => assertPreviewIntegrity(preview.integrity));
+  const inbox = await runStage('inbox_hydration', () => prepareV2Inbox(frame, worklistProbe));
+  if (inbox.status === 'inconclusive') return inbox;
+  const canonical = await runStage('canonical_select', () => selectCanonicalThread(frame));
+  const note = await runStage('note_context', () => assertNoteUsesSelectedThread(frame));
+  const dossier = await runStage('dossier_handoff', () =>
+    assertDossierHandoff(page, frame, canonical.patientId)
+  );
+
+  preview = await runStage('open_calendar_preview', () => openAdminV2Preview(page, baseUrl));
+  frame = preview.frame;
+  await runStage('calendar_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
+  const calendarInbox = await runStage('calendar_inbox_hydration', () =>
+    prepareV2Inbox(frame, worklistProbe)
+  );
+  if (calendarInbox.status === 'inconclusive') {
+    fail('block5.scope_became_empty_during_signoff');
+  }
+  const calendar = await runStage('calendar_handoff', () =>
+    assertCalendarHandoff(frame, canonical.patientId)
+  );
+
+  preview = await runStage('open_booking_preview', () => openAdminV2Preview(page, baseUrl));
+  frame = preview.frame;
+  await runStage('booking_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
+  const bookingInbox = await runStage('booking_inbox_hydration', () =>
+    prepareV2Inbox(frame, worklistProbe)
+  );
+  if (bookingInbox.status === 'inconclusive') {
+    fail('block5.scope_became_empty_during_signoff');
+  }
+  const canonicalAgain = await runStage('booking_canonical_select', () =>
+    selectCanonicalThread(frame)
+  );
+  const booking = await runStage('booking_handoff', () =>
+    assertBookingHandoff(frame, canonicalAgain.patientId)
+  );
+  if (canonicalAgain.patientId !== canonical.patientId)
+    fail('block5.canonical_thread_changed_between_handoffs');
+
+  preview = await runStage('open_review_preview', () => openAdminV2Preview(page, baseUrl));
+  frame = preview.frame;
+  await runStage('review_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
+  const reviewInbox = await runStage('review_inbox_hydration', () =>
+    prepareV2Inbox(frame, worklistProbe)
+  );
+  if (reviewInbox.status === 'inconclusive') {
+    fail('block5.scope_became_empty_during_signoff');
+  }
+  const review = await runStage('review_guard', () => assertReviewHasNoHandoff(frame));
+  return { status: 'pass', dossier, calendar, booking, note, review };
+}
+
 async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedProduction = false }) {
   assertPage(page);
   assertApprovedRun(baseUrl, ownerApprovedProduction);
@@ -593,62 +705,38 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
   let result;
   let diagnostics;
   try {
-    await runStage('calendar_probe', () => installCalendarMessageProbe(page));
-    let preview = await runStage('open_preview', () => openAdminV2Preview(page, baseUrl));
-    let frame = preview.frame;
-    await runStage('preview_integrity', () => assertPreviewIntegrity(preview.integrity));
-    const inbox = await runStage('inbox_hydration', () => prepareV2Inbox(frame, worklistProbe));
-    if (inbox.status === 'inconclusive') {
-      result = inbox;
+    result = await runBlock5HandoffFlow({ page, baseUrl, worklistProbe });
+  } finally {
+    worklistProbe.cleanup();
+    diagnostics = await cleanup();
+  }
+  return { ...result, ...diagnostics };
+}
+
+/**
+ * Warm-cache signoff variant. It intentionally records that its handoff proof
+ * was run after a bounded, GET-only cache warm-up; it is never cold-path SLO
+ * evidence. The same write guard protects both phases.
+ */
+async function runBlock5WarmCacheReadonlyHandoffHarness({
+  page,
+  baseUrl,
+  ownerApprovedProduction = false,
+}) {
+  assertPage(page);
+  assertApprovedRun(baseUrl, ownerApprovedProduction);
+  const origin = new URL(baseUrl).origin;
+  const cleanup = await installReadOnlyGuard(page, origin);
+  const worklistProbe = installWorklistResponseProbe(page, origin);
+  let result;
+  let diagnostics;
+  try {
+    const warmup = await warmBlock5Worklist({ page, baseUrl, worklistProbe });
+    if (warmup.status !== 'ready') {
+      result = warmup;
     } else {
-      const canonical = await runStage('canonical_select', () => selectCanonicalThread(frame));
-      const note = await runStage('note_context', () => assertNoteUsesSelectedThread(frame));
-      const dossier = await runStage('dossier_handoff', () =>
-        assertDossierHandoff(page, frame, canonical.patientId)
-      );
-
-      preview = await runStage('open_calendar_preview', () => openAdminV2Preview(page, baseUrl));
-      frame = preview.frame;
-      await runStage('calendar_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
-      const calendarInbox = await runStage('calendar_inbox_hydration', () =>
-        prepareV2Inbox(frame, worklistProbe)
-      );
-      if (calendarInbox.status === 'inconclusive') {
-        fail('block5.scope_became_empty_during_signoff');
-      }
-      const calendar = await runStage('calendar_handoff', () =>
-        assertCalendarHandoff(frame, canonical.patientId)
-      );
-
-      preview = await runStage('open_booking_preview', () => openAdminV2Preview(page, baseUrl));
-      frame = preview.frame;
-      await runStage('booking_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
-      const bookingInbox = await runStage('booking_inbox_hydration', () =>
-        prepareV2Inbox(frame, worklistProbe)
-      );
-      if (bookingInbox.status === 'inconclusive') {
-        fail('block5.scope_became_empty_during_signoff');
-      }
-      const canonicalAgain = await runStage('booking_canonical_select', () =>
-        selectCanonicalThread(frame)
-      );
-      const booking = await runStage('booking_handoff', () =>
-        assertBookingHandoff(frame, canonicalAgain.patientId)
-      );
-      if (canonicalAgain.patientId !== canonical.patientId)
-        fail('block5.canonical_thread_changed_between_handoffs');
-
-      preview = await runStage('open_review_preview', () => openAdminV2Preview(page, baseUrl));
-      frame = preview.frame;
-      await runStage('review_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
-      const reviewInbox = await runStage('review_inbox_hydration', () =>
-        prepareV2Inbox(frame, worklistProbe)
-      );
-      if (reviewInbox.status === 'inconclusive') {
-        fail('block5.scope_became_empty_during_signoff');
-      }
-      const review = await runStage('review_guard', () => assertReviewHasNoHandoff(frame));
-      result = { status: 'pass', dossier, calendar, booking, note, review };
+      const handoff = await runBlock5HandoffFlow({ page, baseUrl, worklistProbe });
+      result = { ...handoff, ...warmup };
     }
   } finally {
     worklistProbe.cleanup();
@@ -676,6 +764,8 @@ module.exports = {
   mask,
   prepareV2Inbox,
   runStage,
+  warmBlock5Worklist,
   runBlock5ReadonlyHandoffHarness,
+  runBlock5WarmCacheReadonlyHandoffHarness,
   selectExactlyOneV2Lane,
 };

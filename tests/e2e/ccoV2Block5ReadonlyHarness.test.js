@@ -36,6 +36,7 @@ const {
   prepareV2Inbox,
   runStage,
   selectExactlyOneV2Lane,
+  warmBlock5Worklist,
 } = require('./cco-v2-block5-readonly-harness');
 
 function previewDocumentResponse({
@@ -382,6 +383,90 @@ test('Block 5-harnessen gör ett terminalt tomt scope maskerat inconclusive', ()
   );
 });
 
+test('Block 5 warm-up kräver en observerad consumer-GET 200 och märker godkänd körning som varm cache', async () => {
+  let reset = 0;
+  let terminalTimeoutMs = 0;
+  const result = await warmBlock5Worklist({
+    page: {},
+    baseUrl: 'https://arcana.hairtpclinic.com',
+    worklistProbe: {
+      reset: () => {
+        reset += 1;
+      },
+      getStatus: () => 200,
+    },
+    openPreview: async () => ({
+      frame: {},
+      integrity: { statusOk: true, verified: true, buildPresent: true },
+    }),
+    prepareInbox: async (_frame, _probe, options) => {
+      terminalTimeoutMs = options.terminalTimeoutMs;
+      return { status: 'rows' };
+    },
+  });
+
+  assert.equal(reset, 1);
+  assert.equal(terminalTimeoutMs, 60000);
+  assert.deepEqual(result, {
+    warmCache: true,
+    warmupStatus: 'ready',
+    warmupTimingClass: 'within_60_seconds',
+    status: 'ready',
+  });
+});
+
+test('Block 5 warm-up får aldrig fortsätta vid saknad eller icke-grön consumer-GET', async () => {
+  await assert.rejects(
+    warmBlock5Worklist({
+      page: {},
+      baseUrl: 'https://arcana.hairtpclinic.com',
+      worklistProbe: { reset: () => {}, getStatus: () => 503 },
+      openPreview: async () => ({
+        frame: {},
+        integrity: { statusOk: true, verified: true, buildPresent: true },
+      }),
+      prepareInbox: async () => ({ status: 'rows' }),
+    }),
+    /block5\.warmup_worklist_non_200/
+  );
+});
+
+test('Block 5 warm-up gör terminalt tomt scope inconclusive, aldrig pass', async () => {
+  const result = await warmBlock5Worklist({
+    page: {},
+    baseUrl: 'https://arcana.hairtpclinic.com',
+    worklistProbe: { reset: () => {}, getStatus: () => 200 },
+    openPreview: async () => ({
+      frame: {},
+      integrity: { statusOk: true, verified: true, buildPresent: true },
+    }),
+    prepareInbox: async () => ({
+      status: 'inconclusive',
+      reason: 'no_canonical_thread_in_scope',
+    }),
+  });
+
+  assert.deepEqual(result, {
+    warmCache: false,
+    warmupStatus: 'inconclusive',
+    warmupTimingClass: 'terminal_empty_scope',
+    status: 'inconclusive',
+    reason: 'no_canonical_thread_in_scope',
+  });
+});
+
+test('Block 5 warm-cache-variant återanvänder read-only-vakten före warm-up och sparar inga artefakter', () => {
+  const source = fs.readFileSync(HARNESS_PATH, 'utf8');
+  const warmHarness = source.slice(
+    source.indexOf('async function runBlock5WarmCacheReadonlyHandoffHarness'),
+    source.indexOf('module.exports')
+  );
+  assert.match(warmHarness, /const cleanup = await installReadOnlyGuard\(page, origin\)/);
+  assert.match(warmHarness, /const warmup = await warmBlock5Worklist/);
+  assert.match(warmHarness, /result = \{ \.\.\.handoff, \.\.\.warmup \}/);
+  assert.doesNotMatch(warmHarness, /screenshot|storageState|cookies\(/i);
+});
+
 test('Block 5-harnessen läser verkliga worklist-statusar utan att spara URL eller payload', () => {
   const handlers = {};
   const page = {
@@ -397,11 +482,19 @@ test('Block 5-harnessen läser verkliga worklist-statusar utan att spara URL ell
   handlers.response({
     url: () => 'https://arcana.hairtpclinic.com/api/v1/cco/runtime/worklist/consumer?scope=one',
     status: () => 422,
+    request: () => ({ method: () => 'POST' }),
+  });
+  assert.equal(probe.getStatus(), 0);
+  handlers.response({
+    url: () => 'https://arcana.hairtpclinic.com/api/v1/cco/runtime/worklist/consumer?scope=one',
+    status: () => 422,
+    request: () => ({ method: () => 'GET' }),
   });
   assert.equal(probe.getStatus(), 422);
   handlers.response({
     url: () => 'https://arcana.hairtpclinic.com/api/v1/cco/runtime/worklist',
     status: () => 200,
+    request: () => ({ method: () => 'GET' }),
   });
   assert.equal(probe.getStatus(), 422);
   probe.cleanup();
