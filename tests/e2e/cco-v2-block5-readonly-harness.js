@@ -43,6 +43,9 @@ const V2_REVIEW_LANE =
   '#cco-conv-v2-root .lane-row[data-lane="review"]:visible, #cco-conv-v2-root .lane-chip[data-lane="review"]:visible';
 const RUNTIME_SELECTED_MAILBOX = '[data-runtime-mailbox]:checked';
 const V2_INBOX_TERMINAL_TIMEOUT_MS = 30000;
+const V2_LANE_SELECTION_MAX_ATTEMPTS = 4;
+const V2_LANE_RETRY_DELAY_MS = 75;
+const V2_LANE_CLICK_TIMEOUT_MS = 600;
 const BOOKING_ACTION = '[data-v2-thread] [data-v2-action="booking"]';
 const DOSSIER_ACTION = '[data-v2-ctx] [data-v2-action="dossier"]';
 const NOTE_ACTION = '[data-v2-thread] [data-v2-action="note"][data-note-conversation-id]';
@@ -279,13 +282,30 @@ function installWorklistResponseProbe(page, origin) {
   };
 }
 
+function isTransientLaneControlError(error) {
+  return /detached|not attached|timeout/i.test(String(error?.message || error));
+}
+
+function waitForLaneRetry() {
+  return new Promise((resolve) => setTimeout(resolve, V2_LANE_RETRY_DELAY_MS));
+}
+
 async function selectExactlyOneV2Lane(frame, selector) {
-  const controls = frame.locator(selector);
-  const count = await controls.count();
-  if (count === 0) return false;
-  if (count !== 1) fail('block5.ambiguous_visible_lane_control');
-  await controls.click();
-  return true;
+  for (let attempt = 0; attempt < V2_LANE_SELECTION_MAX_ATTEMPTS; attempt += 1) {
+    const controls = frame.locator(selector);
+    const count = await controls.count();
+    if (count > 1) fail('block5.ambiguous_visible_lane_control');
+    if (count === 1) {
+      try {
+        await controls.click({ timeout: V2_LANE_CLICK_TIMEOUT_MS });
+        return true;
+      } catch (error) {
+        if (!isTransientLaneControlError(error)) throw error;
+      }
+    }
+    if (attempt + 1 < V2_LANE_SELECTION_MAX_ATTEMPTS) await waitForLaneRetry();
+  }
+  return false;
 }
 
 async function prepareV2Inbox(frame, worklistProbe) {
