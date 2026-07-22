@@ -59,12 +59,24 @@ function isTimeoutError(error) {
   return error?.name === 'TimeoutError';
 }
 
-async function runStage(stage, operation) {
+function createStageTimeoutError() {
+  const error = new Error('block5 stage deadline exceeded');
+  error.name = 'TimeoutError';
+  return error;
+}
+
+async function runStage(stage, operation, timeoutMs = BLOCK5_STAGE_TIMEOUT_MS) {
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(createStageTimeoutError()), timeoutMs);
+  });
   try {
-    return await operation();
+    return await Promise.race([Promise.resolve().then(operation), deadline]);
   } catch (error) {
     if (isTimeoutError(error)) fail(`block5.${stage}_timeout`);
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
