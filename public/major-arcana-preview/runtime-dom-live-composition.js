@@ -171,6 +171,7 @@
       handleStudioToolAction,
       inferStudioTrackKey,
       isAuthFailure,
+      isConversationsV2Enabled = () => false,
       isTruthPrimaryFocusFeatureEnabled,
       isTruthPrimaryStudioFeatureEnabled,
       loadBootstrap,
@@ -293,6 +294,14 @@
       return asArray(threads).some(
         (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
       );
+    }
+
+    function isPassiveConversationsV2Runtime() {
+      try {
+        return isConversationsV2Enabled() === true;
+      } catch (_error) {
+        return false;
+      }
     }
 
     function getTruthConsumerSignature(payload) {
@@ -2809,6 +2818,9 @@
       runtimeMailboxIds = [],
       { isCurrentRequest = () => true } = {}
     ) {
+      // V2's passive read path must never start a history write. Backfill stays
+      // an explicit operator action; the worklist and thread hydration use GET.
+      if (isPassiveConversationsV2Runtime()) return;
       if (!runtimeMailboxIds.length) return;
 
       windowObject.setTimeout(async () => {
@@ -3358,6 +3370,11 @@
     }
 
     async function requestAnalyzeInboxPayload(runtimeMailboxIds = [], { force = false } = {}) {
+      // AnalyzeInbox can create server-side enrichment/drafts. A passive V2
+      // load must remain read-only and keep using the truth-primary worklist.
+      if (isPassiveConversationsV2Runtime()) {
+        return { skipped: true, reason: "v2_passive_read_only" };
+      }
       const now = Date.now();
       if (
         !force &&
@@ -3697,9 +3714,8 @@
     // används både av legacy-menyn och v2-skalet så urval, trådval och live-
     // laddning alltid följer samma Bearer- och mailbox-scope-kontrakt.
     function applyRuntimeMailboxSelection(requestedMailboxIds) {
-      const nextSelectedMailboxIds = workspaceSourceOfTruth.setSelectedMailboxIds(
-        requestedMailboxIds
-      );
+      const nextSelectedMailboxIds =
+        workspaceSourceOfTruth.setSelectedMailboxIds(requestedMailboxIds);
       const availableMailboxIds = asArray(
         typeof getAvailableRuntimeMailboxes === "function" ? getAvailableRuntimeMailboxes() : []
       )
@@ -4782,9 +4798,7 @@
       if (mailboxMenuGrid) {
         mailboxMenuGrid.addEventListener("click", (event) => {
           const copy = event.target.closest(".mailbox-option-copy");
-          const input = copy?.closest(".mailbox-option")?.querySelector?.(
-            "[data-runtime-mailbox]"
-          );
+          const input = copy?.closest(".mailbox-option")?.querySelector?.("[data-runtime-mailbox]");
           if (!input) return;
           event.preventDefault();
           const mailboxId = normalizeMailboxId(input.dataset.runtimeMailbox);

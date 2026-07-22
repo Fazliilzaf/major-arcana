@@ -246,7 +246,10 @@ test('loadLiveRuntime stoppar för brett mailbox-urval innan consumer-anropet', 
   const loadLiveRuntimeSource = extractFunctionSource(source, 'loadLiveRuntime');
 
   assert.match(source, /const RUNTIME_WORKLIST_MAX_MAILBOX_IDS = 2/);
-  assert.match(loadLiveRuntimeSource, /runtimeMailboxIds\.length > RUNTIME_WORKLIST_MAX_MAILBOX_IDS/);
+  assert.match(
+    loadLiveRuntimeSource,
+    /runtimeMailboxIds\.length > RUNTIME_WORKLIST_MAX_MAILBOX_IDS/
+  );
   assert.match(loadLiveRuntimeSource, /phase: "scope_too_broad"/);
   assert.match(loadLiveRuntimeSource, /state\.runtime\.threads = \[\]/);
   assert.match(loadLiveRuntimeSource, /renderRuntimeConversationShell\(\);\s*return;/);
@@ -470,6 +473,8 @@ test('loadLiveRuntime sparar mailboxdiagnostik för loading, auth, offline, live
 test('loadLiveRuntime öppnar live-listan först, lazy-hydrerar trådar och cachar conversation-history', () => {
   const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
   const loadLiveRuntimeSource = extractFunctionSource(source, 'loadLiveRuntime');
+  const analyzeInboxSource = extractFunctionSource(source, 'requestAnalyzeInboxPayload');
+  const historyWarmupSource = extractFunctionSource(source, 'scheduleRuntimeHistoryCoverageWarmup');
 
   assert.match(
     source,
@@ -484,7 +489,7 @@ test('loadLiveRuntime öppnar live-listan först, lazy-hydrerar trådar och cach
   assert.match(
     source,
     /function scheduleRuntimeHistoryCoverageWarmup\(/,
-    'Förväntade en separat helper som värmer historikstatus\\/backfill i bakgrunden efter initial live-load.'
+    'Förväntade en separat helper för historikstatus efter initial live-load.'
   );
   assert.match(
     source,
@@ -503,8 +508,28 @@ test('loadLiveRuntime öppnar live-listan först, lazy-hydrerar trådar och cach
   );
   assert.match(
     source,
-    /\/api\/v1\/cco\/runtime\/history\/backfill/,
-    'Förväntade att bakgrundsvärmningen fortfarande kan trigga mailbox history backfill vid behov.'
+    /function isPassiveConversationsV2Runtime\(/,
+    'Förväntade en tydlig v2-vakt för den passiva läsvägen.'
+  );
+  assert.match(
+    historyWarmupSource,
+    /if \(isPassiveConversationsV2Runtime\(\)\) return;/,
+    'Förväntade att v2 avbryter före eventuell automatisk historik-backfill.'
+  );
+  assert.match(
+    analyzeInboxSource,
+    /if \(isPassiveConversationsV2Runtime\(\)\) \{[\s\S]*reason: "v2_passive_read_only"/,
+    'Förväntade att passiv v2-load avstår från AnalyzeInbox innan POST-anropet.'
+  );
+  assert.ok(
+    analyzeInboxSource.indexOf('isPassiveConversationsV2Runtime()') <
+      analyzeInboxSource.indexOf('apiRequest("/api/v1/capabilities/AnalyzeInbox/run"'),
+    'V2-vakten måste ligga före AnalyzeInbox POST-anropet.'
+  );
+  assert.ok(
+    historyWarmupSource.indexOf('isPassiveConversationsV2Runtime()') <
+      historyWarmupSource.indexOf('apiRequest('),
+    'V2-vakten måste ligga före history-status/backfill-arbetet.'
   );
   assert.match(
     source,
