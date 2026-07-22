@@ -6,14 +6,25 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const HARNESS_PATH = path.join(__dirname, 'cco-v2-block5-readonly-harness.js');
+const V2_SHELL_PATH = path.join(
+  __dirname,
+  '../../public/major-arcana-preview/app/cco-conversations-v2-shell.js'
+);
+const RUNTIME_QUEUE_RENDERERS_PATH = path.join(
+  __dirname,
+  '../../public/major-arcana-preview/runtime-queue-renderers.js'
+);
 const {
   assertApprovedRun,
   assertDossierIframeDestination,
+  classifyTerminalInbox,
   installReadOnlyGuard,
+  installWorklistResponseProbe,
   isExplicitSafeSameOriginWrite,
   isSameOriginWrite,
   mask,
   SAFE_SAME_ORIGIN_WRITES,
+  prepareV2Inbox,
 } = require('./cco-v2-block5-readonly-harness');
 
 test('Block 5-harnessen känner igen enbart same-origin-skrivningar', () => {
@@ -78,6 +89,99 @@ test('Block 5-harnessen kräver samma patient i workspace-iframen och lämnar ad
       }),
     /block5\.dossier_changed_top_level_admin_route/
   );
+});
+
+test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canonical tråd', async () => {
+  let hydrated = false;
+  const clicks = [];
+  const frame = {
+    locator(selector) {
+      if (selector === '[data-lane="all"]' || selector === '[data-tab="alla"]') {
+        return {
+          first: () => ({ click: async () => clicks.push(selector) }),
+        };
+      }
+      if (selector === '[data-v2-inbox] .thread[data-thread-id], [data-v2-inbox] .inbox-empty') {
+        return {
+          first: () => ({
+            waitFor: async () => {
+              hydrated = true;
+            },
+          }),
+        };
+      }
+      if (selector === '[data-v2-inbox] .thread[data-thread-id]') {
+        return { count: async () => (hydrated ? 1 : 0) };
+      }
+      if (selector === '[data-runtime-mailbox]:checked') {
+        return { count: async () => 1 };
+      }
+      throw new Error(`Oväntad selector: ${selector}`);
+    },
+  };
+
+  assert.deepEqual(await prepareV2Inbox(frame), { status: 'rows' });
+  assert.deepEqual(clicks, ['[data-lane="all"]', '[data-tab="alla"]']);
+});
+
+test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselektorer', () => {
+  const shell = fs.readFileSync(V2_SHELL_PATH, 'utf8');
+  const runtimeQueueRenderers = fs.readFileSync(RUNTIME_QUEUE_RENDERERS_PATH, 'utf8');
+  const harness = fs.readFileSync(HARNESS_PATH, 'utf8');
+  assert.match(shell, /data-lane="'\s*\+\s*esc\(lane\.id\)/);
+  assert.match(shell, /data-tab="'\s*\+\s*tab\.id/);
+  assert.match(shell, /\{ id: 'alla', label: 'Alla'/);
+  assert.match(harness, /const V2_ALL_LANE = '\[data-lane="all"\]'/);
+  assert.match(harness, /const V2_ALL_TAB = '\[data-tab="alla"\]'/);
+  assert.match(harness, /const V2_REVIEW_LANE = '\[data-lane="review"\]'/);
+  assert.match(runtimeQueueRenderers, /data-runtime-mailbox="\$\{escapeHtml\(mailboxScopeId\)\}"\$\{checked/);
+  assert.match(harness, /const RUNTIME_SELECTED_MAILBOX = '\[data-runtime-mailbox\]:checked'/);
+  assert.doesNotMatch(harness, /data-v2-lane/);
+  assert.doesNotMatch(harness, /data-v2-folder/);
+});
+
+test('Block 5-harnessen gör ett terminalt tomt scope maskerat inconclusive', () => {
+  assert.deepEqual(
+    classifyTerminalInbox({
+      rowCount: 0,
+      selectedMailboxCount: 1,
+    }),
+    { status: 'inconclusive', reason: 'no_canonical_thread_in_scope' }
+  );
+  assert.throws(
+    () => classifyTerminalInbox({ rowCount: 0, worklistStatus: 401 }),
+    /block5\.auth_required/
+  );
+  assert.throws(
+    () => classifyTerminalInbox({ rowCount: 0, selectedMailboxCount: 3 }),
+    /block5\.scope_error/
+  );
+});
+
+test('Block 5-harnessen läser verkliga worklist-statusar utan att spara URL eller payload', () => {
+  const handlers = {};
+  const page = {
+    on: (event, handler) => {
+      handlers[event] = handler;
+    },
+    off: (event, handler) => {
+      assert.equal(handlers[event], handler);
+      delete handlers[event];
+    },
+  };
+  const probe = installWorklistResponseProbe(page, 'https://arcana.hairtpclinic.com');
+  handlers.response({
+    url: () => 'https://arcana.hairtpclinic.com/api/v1/cco/runtime/worklist/consumer?scope=one',
+    status: () => 422,
+  });
+  assert.equal(probe.getStatus(), 422);
+  handlers.response({
+    url: () => 'https://arcana.hairtpclinic.com/api/v1/cco/runtime/worklist',
+    status: () => 200,
+  });
+  assert.equal(probe.getStatus(), 422);
+  probe.cleanup();
+  assert.equal(handlers.response, undefined);
 });
 
 test('Block 5-harnessen har en tom, exakt allowlist tills säker skrivning är bevisad', () => {
@@ -206,6 +310,8 @@ test('Block 5-harnessen returnerar bara maskerade identifierare och kräver dest
   assert.doesNotMatch(source, /page\.url\(\)/);
   assert.match(source, /assertCalendarHandoff/);
   assert.match(source, /assertReviewHasNoHandoff/);
+  assert.match(source, /V2_INBOX_TERMINAL_TIMEOUT_MS/);
+  assert.match(source, /no_canonical_thread_in_scope/);
   assert.match(source, /x-arcana-preview-integrity/);
   assert.match(source, /x-arcana-preview-build/);
   assert.match(source, /frame\.frameLocator\('iframe\.cco-kalender-frame'\)/);
