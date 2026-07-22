@@ -63,6 +63,11 @@ test('v2 handoff använder bara worklistens exakta e-postmatchning och etablerad
   assert.match(source, /function buildV2ThreadHandoffContext\(thread\)/);
   assert.match(source, /type: "cco:kalender:context", context/);
   assert.match(source, /openBookingOperatorSurface\(/);
+  assert.match(source, /canonicalHandoffContext: context/);
+  assert.match(source, /function setBookingDestinationPatientContext\(surface, context\)/);
+  assert.match(source, /surface\.setAttribute\("data-booking-context-patient-id", patientId\)/);
+  assert.match(source, /surface\.removeAttribute\("data-booking-context-patient-id"\)/);
+  assert.match(source, /context\?\.source === "cco-conversations-v2" && Boolean\(patientId\)/);
   assert.match(source, /type: "arcana:cco-open-customer-dossier", patientId: context\.patientId/);
   assert.match(source, /noteConversationId: runtimeThreadKey\(selected\)/);
   assert.match(source, /bookingPatientId: selectedHandoffContext\?\.patientId \|\| ""/);
@@ -75,4 +80,22 @@ test('v2 handoff använder bara worklistens exakta e-postmatchning och etablerad
     /openPatientByEmail|customerEmail:/,
     'v2-kundhandoff får inte falla tillbaka till namn eller e-post'
   );
+});
+
+test('bokningsdestinationen får bara den kanoniska v2-patienten och rensar annan kontext', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+  const helperStart = source.indexOf('function setBookingDestinationPatientContext(surface, context)');
+  const helperEnd = source.indexOf('function openWorkspaceDomainSurface', helperStart);
+  const helperSource = source.slice(helperStart, helperEnd);
+
+  assert.match(helperSource, /context\?\.source === "cco-conversations-v2" && Boolean\(patientId\)/);
+  assert.match(helperSource, /surface\.setAttribute\("data-booking-context-patient-id", patientId\)/);
+  assert.match(helperSource, /surface\.removeAttribute\("data-booking-context-patient-id"\)/);
+  assert.doesNotMatch(helperSource, /customerEmail|openPatientByEmail/);
+
+  const bookingOpenStart = source.indexOf('function openBookingOperatorSurface({');
+  const bookingOpenEnd = source.indexOf('function setBookingDestinationPatientContext', bookingOpenStart);
+  const bookingOpenSource = source.slice(bookingOpenStart, bookingOpenEnd);
+  assert.match(bookingOpenSource, /canonicalHandoffContext = null/);
+  assert.match(bookingOpenSource, /setBookingDestinationPatientContext\(bookingDom\?\.surface, canonicalHandoffContext\)/);
 });

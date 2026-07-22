@@ -29210,6 +29210,7 @@
 	  function openBookingOperatorSurface({
 	    scroll = true,
 	    message = "Bokningsytan öppnades i arbetsytan.",
+	    canonicalHandoffContext = null,
   } = {}) {
     if (state.runtime?.authRequired === true || state.runtime?.loading === true) {
       return;
@@ -29241,6 +29242,7 @@
     setBookingOpen(true);
     renderBookingSurface();
     const bookingDom = getBookingDom();
+	    setBookingDestinationPatientContext(bookingDom?.surface, canonicalHandoffContext);
 	    if (message && bookingDom?.feedback) {
 	      setFeedback(bookingDom.feedback, "success", message);
 	    }
@@ -29258,6 +29260,20 @@
 	      setMobileWorkspaceView("focus", { persist: false, resetScroll: false });
 	      return;
 	    }
+  }
+
+  function setBookingDestinationPatientContext(surface, context) {
+    if (!surface) return;
+    const patientId = asText(context?.patientId);
+    const isCanonicalV2Context =
+      context?.source === "cco-conversations-v2" && Boolean(patientId);
+
+    if (isCanonicalV2Context) {
+      surface.setAttribute("data-booking-context-patient-id", patientId);
+      return;
+    }
+
+    surface.removeAttribute("data-booking-context-patient-id");
   }
 
   function openWorkspaceDomainSurface(domainId = "", { threadId = "", message = "" } = {}) {
@@ -40059,6 +40075,7 @@
     selectV2HandoffThread(thread);
     openBookingOperatorSurface({
       message: `Bokningsytan öppnades för ${context.customerName || "kunden"}.`,
+      canonicalHandoffContext: context,
     });
     return context;
   }
