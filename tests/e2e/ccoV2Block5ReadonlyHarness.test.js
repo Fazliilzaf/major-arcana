@@ -6,11 +6,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const HARNESS_PATH = path.join(__dirname, 'cco-v2-block5-readonly-harness.js');
+const V2_SHELL_PATH = path.join(
+  __dirname,
+  '../../public/major-arcana-preview/app/cco-conversations-v2-shell.js'
+);
 const {
   assertApprovedRun,
   assertDossierIframeDestination,
   classifyTerminalInbox,
   installReadOnlyGuard,
+  installWorklistResponseProbe,
   isExplicitSafeSameOriginWrite,
   isSameOriginWrite,
   mask,
@@ -87,12 +92,12 @@ test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canon
   const clicks = [];
   const frame = {
     locator(selector) {
-      if (selector === '[data-v2-lane="all"]' || selector === '[data-v2-folder="inbox"]') {
+      if (selector === '[data-lane="all"]' || selector === '[data-tab="alla"]') {
         return {
           first: () => ({ click: async () => clicks.push(selector) }),
         };
       }
-      if (selector === '[data-v2-inbox] [data-thread-id], [data-v2-inbox] .inbox-empty') {
+      if (selector === '[data-v2-inbox] .thread[data-thread-id], [data-v2-inbox] .inbox-empty') {
         return {
           first: () => ({
             waitFor: async () => {
@@ -101,32 +106,70 @@ test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canon
           }),
         };
       }
-      if (selector === '[data-v2-inbox] [data-thread-id]') {
+      if (selector === '[data-v2-inbox] .thread[data-thread-id]') {
         return { count: async () => (hydrated ? 1 : 0) };
       }
-      if (selector === '[data-v2-inbox] .inbox-empty') {
-        return { first: () => ({ textContent: async () => '' }) };
+      if (selector === '[data-v2-mailbox].active') {
+        return { count: async () => 1 };
       }
       throw new Error(`Oväntad selector: ${selector}`);
     },
   };
 
   assert.deepEqual(await prepareV2Inbox(frame), { status: 'rows' });
-  assert.deepEqual(clicks, ['[data-v2-lane="all"]', '[data-v2-folder="inbox"]']);
+  assert.deepEqual(clicks, ['[data-lane="all"]', '[data-tab="alla"]']);
+});
+
+test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselektorer', () => {
+  const shell = fs.readFileSync(V2_SHELL_PATH, 'utf8');
+  const harness = fs.readFileSync(HARNESS_PATH, 'utf8');
+  assert.match(shell, /data-lane="'\s*\+\s*esc\(lane\.id\)/);
+  assert.match(shell, /data-tab="'\s*\+\s*tab\.id/);
+  assert.match(shell, /\{ id: 'alla', label: 'Alla'/);
+  assert.match(harness, /const V2_ALL_LANE = '\[data-lane="all"\]'/);
+  assert.match(harness, /const V2_ALL_TAB = '\[data-tab="alla"\]'/);
+  assert.match(harness, /const V2_REVIEW_LANE = '\[data-lane="review"\]'/);
+  assert.doesNotMatch(harness, /data-v2-lane/);
+  assert.doesNotMatch(harness, /data-v2-folder/);
 });
 
 test('Block 5-harnessen gör ett terminalt tomt scope maskerat inconclusive', () => {
   assert.deepEqual(
     classifyTerminalInbox({
       rowCount: 0,
-      emptyText: 'Inga konversationer i denna vy.',
+      selectedMailboxCount: 1,
     }),
     { status: 'inconclusive', reason: 'no_canonical_thread_in_scope' }
   );
   assert.throws(
-    () => classifyTerminalInbox({ rowCount: 0, emptyText: 'Logga in igen i admin för att läsa CCO-inkorgen.' }),
+    () => classifyTerminalInbox({ rowCount: 0, worklistStatus: 401 }),
     /block5\.auth_required/
   );
+  assert.throws(
+    () => classifyTerminalInbox({ rowCount: 0, selectedMailboxCount: 3 }),
+    /block5\.scope_error/
+  );
+});
+
+test('Block 5-harnessen läser verkliga worklist-statusar utan att spara URL eller payload', () => {
+  const handlers = {};
+  const page = {
+    on: (event, handler) => {
+      handlers[event] = handler;
+    },
+    off: (event, handler) => {
+      assert.equal(handlers[event], handler);
+      delete handlers[event];
+    },
+  };
+  const probe = installWorklistResponseProbe(page, 'https://arcana.hairtpclinic.com');
+  handlers.response({
+    url: () => 'https://arcana.hairtpclinic.com/api/v1/cco/runtime/worklist',
+    status: () => 422,
+  });
+  assert.equal(probe.getStatus(), 422);
+  probe.cleanup();
+  assert.equal(handlers.response, undefined);
 });
 
 test('Block 5-harnessen har en tom, exakt allowlist tills säker skrivning är bevisad', () => {
