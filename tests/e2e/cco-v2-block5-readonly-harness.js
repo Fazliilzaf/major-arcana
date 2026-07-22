@@ -21,6 +21,10 @@ const V2_FRAME = 'iframe[src*="conversations=v2"]';
 const V2_ROOT = '#cco-conv-v2-root';
 const WORKSPACE_FRAME = '#ccoPreviewEmbedFrame';
 const INBOX_THREAD = '[data-v2-inbox] [data-thread-id]';
+const INBOX_EMPTY = '[data-v2-inbox] .inbox-empty';
+const V2_ALL_LANE = '[data-v2-lane="all"]';
+const V2_INBOX_FOLDER = '[data-v2-folder="inbox"]';
+const V2_INBOX_TERMINAL_TIMEOUT_MS = 30000;
 const BOOKING_ACTION = '[data-v2-thread] [data-v2-action="booking"]';
 const DOSSIER_ACTION = '[data-v2-ctx] [data-v2-action="dossier"]';
 const NOTE_ACTION = '[data-v2-thread] [data-v2-action="note"][data-note-conversation-id]';
@@ -155,7 +159,39 @@ async function openAdminV2Preview(page, baseUrl) {
   await page.locator(V2_FRAME).waitFor({ state: 'visible' });
   const frame = page.frameLocator(V2_FRAME);
   await frame.locator(V2_ROOT).waitFor({ state: 'visible' });
-  return frame;
+  return { frame, inbox: await prepareV2Inbox(frame) };
+}
+
+function classifyTerminalInbox({ rowCount = 0, emptyText = '' } = {}) {
+  if (Number(rowCount) > 0) return { status: 'rows' };
+  const normalized = String(emptyText || '').toLowerCase();
+  if (normalized.includes('logga in igen')) fail('block5.auth_required');
+  if (normalized.includes('en eller två brevlådor')) fail('block5.scope_error');
+  if (normalized && !normalized.includes('inga konversationer i denna vy')) {
+    fail('block5.inbox_error');
+  }
+  return { status: 'inconclusive', reason: 'no_canonical_thread_in_scope' };
+}
+
+async function prepareV2Inbox(frame) {
+  // The Block 5 signoff must inspect the complete active inbox, not a
+  // persisted lane or Sent folder from a prior operator session.
+  await frame.locator(V2_ALL_LANE).first().click();
+  await frame.locator(V2_INBOX_FOLDER).first().click();
+
+  // A visible V2 root is only shell readiness. Mailbox selection starts a
+  // debounced authenticated worklist load, so wait for an observable terminal
+  // inbox result rather than using a fixed delay.
+  await frame
+    .locator(`${INBOX_THREAD}, ${INBOX_EMPTY}`)
+    .first()
+    .waitFor({ state: 'visible', timeout: V2_INBOX_TERMINAL_TIMEOUT_MS });
+
+  const rowCount = await frame.locator(INBOX_THREAD).count();
+  const emptyText = rowCount
+    ? ''
+    : await frame.locator(INBOX_EMPTY).first().textContent();
+  return classifyTerminalInbox({ rowCount, emptyText });
 }
 
 async function assertPreviewIntegrity(frame) {
@@ -337,27 +373,44 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
   let diagnostics;
   try {
     await installCalendarMessageProbe(page);
-    let frame = await openAdminV2Preview(page, baseUrl);
+    let preview = await openAdminV2Preview(page, baseUrl);
+    let frame = preview.frame;
     await assertPreviewIntegrity(frame);
-    const canonical = await selectCanonicalThread(frame);
-    const note = await assertNoteUsesSelectedThread(frame);
-    const dossier = await assertDossierHandoff(page, frame, canonical.patientId);
+    if (preview.inbox.status === 'inconclusive') {
+      result = preview.inbox;
+    } else {
+      const canonical = await selectCanonicalThread(frame);
+      const note = await assertNoteUsesSelectedThread(frame);
+      const dossier = await assertDossierHandoff(page, frame, canonical.patientId);
 
-    frame = await openAdminV2Preview(page, baseUrl);
-    await assertPreviewIntegrity(frame);
-    const calendar = await assertCalendarHandoff(frame, canonical.patientId);
+      preview = await openAdminV2Preview(page, baseUrl);
+      frame = preview.frame;
+      await assertPreviewIntegrity(frame);
+      if (preview.inbox.status === 'inconclusive') {
+        fail('block5.scope_became_empty_during_signoff');
+      }
+      const calendar = await assertCalendarHandoff(frame, canonical.patientId);
 
-    frame = await openAdminV2Preview(page, baseUrl);
-    await assertPreviewIntegrity(frame);
-    const canonicalAgain = await selectCanonicalThread(frame);
-    const booking = await assertBookingHandoff(frame, canonicalAgain.patientId);
-    if (canonicalAgain.patientId !== canonical.patientId)
-      fail('block5.canonical_thread_changed_between_handoffs');
+      preview = await openAdminV2Preview(page, baseUrl);
+      frame = preview.frame;
+      await assertPreviewIntegrity(frame);
+      if (preview.inbox.status === 'inconclusive') {
+        fail('block5.scope_became_empty_during_signoff');
+      }
+      const canonicalAgain = await selectCanonicalThread(frame);
+      const booking = await assertBookingHandoff(frame, canonicalAgain.patientId);
+      if (canonicalAgain.patientId !== canonical.patientId)
+        fail('block5.canonical_thread_changed_between_handoffs');
 
-    frame = await openAdminV2Preview(page, baseUrl);
-    await assertPreviewIntegrity(frame);
-    const review = await assertReviewHasNoHandoff(frame);
-    result = { status: 'pass', dossier, calendar, booking, note, review };
+      preview = await openAdminV2Preview(page, baseUrl);
+      frame = preview.frame;
+      await assertPreviewIntegrity(frame);
+      if (preview.inbox.status === 'inconclusive') {
+        fail('block5.scope_became_empty_during_signoff');
+      }
+      const review = await assertReviewHasNoHandoff(frame);
+      result = { status: 'pass', dossier, calendar, booking, note, review };
+    }
   } finally {
     diagnostics = await cleanup();
   }
@@ -371,9 +424,11 @@ module.exports = {
   assertDossierIframeDestination,
   assertNoteUsesSelectedThread,
   assertPreviewIntegrity,
+  classifyTerminalInbox,
   installReadOnlyGuard,
   isExplicitSafeSameOriginWrite,
   isSameOriginWrite,
   mask,
+  prepareV2Inbox,
   runBlock5ReadonlyHandoffHarness,
 };

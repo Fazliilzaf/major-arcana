@@ -9,11 +9,13 @@ const HARNESS_PATH = path.join(__dirname, 'cco-v2-block5-readonly-harness.js');
 const {
   assertApprovedRun,
   assertDossierIframeDestination,
+  classifyTerminalInbox,
   installReadOnlyGuard,
   isExplicitSafeSameOriginWrite,
   isSameOriginWrite,
   mask,
   SAFE_SAME_ORIGIN_WRITES,
+  prepareV2Inbox,
 } = require('./cco-v2-block5-readonly-harness');
 
 test('Block 5-harnessen känner igen enbart same-origin-skrivningar', () => {
@@ -77,6 +79,53 @@ test('Block 5-harnessen kräver samma patient i workspace-iframen och lämnar ad
         expectedPatientId: 'patient-1',
       }),
     /block5\.dossier_changed_top_level_admin_route/
+  );
+});
+
+test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canonical tråd', async () => {
+  let hydrated = false;
+  const clicks = [];
+  const frame = {
+    locator(selector) {
+      if (selector === '[data-v2-lane="all"]' || selector === '[data-v2-folder="inbox"]') {
+        return {
+          first: () => ({ click: async () => clicks.push(selector) }),
+        };
+      }
+      if (selector === '[data-v2-inbox] [data-thread-id], [data-v2-inbox] .inbox-empty') {
+        return {
+          first: () => ({
+            waitFor: async () => {
+              hydrated = true;
+            },
+          }),
+        };
+      }
+      if (selector === '[data-v2-inbox] [data-thread-id]') {
+        return { count: async () => (hydrated ? 1 : 0) };
+      }
+      if (selector === '[data-v2-inbox] .inbox-empty') {
+        return { first: () => ({ textContent: async () => '' }) };
+      }
+      throw new Error(`Oväntad selector: ${selector}`);
+    },
+  };
+
+  assert.deepEqual(await prepareV2Inbox(frame), { status: 'rows' });
+  assert.deepEqual(clicks, ['[data-v2-lane="all"]', '[data-v2-folder="inbox"]']);
+});
+
+test('Block 5-harnessen gör ett terminalt tomt scope maskerat inconclusive', () => {
+  assert.deepEqual(
+    classifyTerminalInbox({
+      rowCount: 0,
+      emptyText: 'Inga konversationer i denna vy.',
+    }),
+    { status: 'inconclusive', reason: 'no_canonical_thread_in_scope' }
+  );
+  assert.throws(
+    () => classifyTerminalInbox({ rowCount: 0, emptyText: 'Logga in igen i admin för att läsa CCO-inkorgen.' }),
+    /block5\.auth_required/
   );
 });
 
@@ -206,6 +255,8 @@ test('Block 5-harnessen returnerar bara maskerade identifierare och kräver dest
   assert.doesNotMatch(source, /page\.url\(\)/);
   assert.match(source, /assertCalendarHandoff/);
   assert.match(source, /assertReviewHasNoHandoff/);
+  assert.match(source, /V2_INBOX_TERMINAL_TIMEOUT_MS/);
+  assert.match(source, /no_canonical_thread_in_scope/);
   assert.match(source, /x-arcana-preview-integrity/);
   assert.match(source, /x-arcana-preview-build/);
   assert.match(source, /frame\.frameLocator\('iframe\.cco-kalender-frame'\)/);
