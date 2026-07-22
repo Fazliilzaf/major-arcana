@@ -31,6 +31,7 @@ const {
   mask,
   SAFE_SAME_ORIGIN_WRITES,
   prepareV2Inbox,
+  selectExactlyOneV2Lane,
 } = require('./cco-v2-block5-readonly-harness');
 
 test('Block 5-harnessen känner igen enbart same-origin-skrivningar', () => {
@@ -108,6 +109,8 @@ test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canon
         selector === '[data-tab="alla"]'
       ) {
         return {
+          count: async () => 1,
+          click: async () => clicks.push(selector),
           first: () => ({ click: async () => clicks.push(selector) }),
         };
       }
@@ -135,6 +138,34 @@ test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canon
     '#cco-conv-v2-root .lane-row[data-lane="all"]:visible, #cco-conv-v2-root .lane-chip[data-lane="all"]:visible',
     '[data-tab="alla"]',
   ]);
+});
+
+test('Block 5-harnessen gör avsaknad av lane-kontroll maskerat inconclusive', async () => {
+  const frame = {
+    locator(selector) {
+      if (
+        selector ===
+        '#cco-conv-v2-root .lane-row[data-lane="all"]:visible, #cco-conv-v2-root .lane-chip[data-lane="all"]:visible'
+      ) {
+        return { count: async () => 0 };
+      }
+      throw new Error(`Oväntad selector: ${selector}`);
+    },
+  };
+  assert.deepEqual(await prepareV2Inbox(frame), {
+    status: 'inconclusive',
+    reason: 'no_lane_control_available',
+  });
+});
+
+test('Block 5-harnessen vägrar tvetydiga synliga lane-kontroller', async () => {
+  const frame = {
+    locator: () => ({ count: async () => 2, click: async () => {} }),
+  };
+  await assert.rejects(
+    selectExactlyOneV2Lane(frame, '#cco-conv-v2-root .lane-row[data-lane="all"]:visible'),
+    /block5\.ambiguous_visible_lane_control/
+  );
 });
 
 test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselektorer', () => {
