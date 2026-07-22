@@ -23,6 +23,7 @@ const {
   assertDossierIframeDestination,
   assertPreviewIntegrity,
   classifyTerminalInbox,
+  createRunnerTimeoutCancellation,
   getPreviewIntegrityEvidence,
   installReadOnlyGuard,
   installWorklistResponseProbe,
@@ -37,6 +38,7 @@ const {
   runStage,
   selectExactlyOneV2Lane,
   warmBlock5Worklist,
+  withDedicatedSignoffRunnerPage,
 } = require('./cco-v2-block5-readonly-harness');
 
 function previewDocumentResponse({
@@ -138,9 +140,14 @@ test('Block 5-harnessen fail-closar preview-integritet vid icke-2xx eller saknad
 test('Block 5-harnessen översätter endast äkta timeout till maskerad stegkod', async () => {
   const timeout = new Error('sensitive driver timing detail');
   timeout.name = 'TimeoutError';
+  let cancelled = 0;
   await assert.rejects(
     runStage('dossier_handoff', async () => {
       throw timeout;
+    }, 20_000, {
+      onTimeout: async () => {
+        cancelled += 1;
+      },
     }),
     (error) => {
       assert.equal(error.message, 'block5.dossier_handoff_timeout');
@@ -148,16 +155,23 @@ test('Block 5-harnessen översätter endast äkta timeout till maskerad stegkod'
       return true;
     }
   );
+  assert.equal(cancelled, 1);
 });
 
 test('Block 5-harnessen stoppar en hydreringsstage som aldrig löser med maskerad timeoutkod', async () => {
+  let cancelled = 0;
   await assert.rejects(
-    runStage('inbox_hydration', () => new Promise(() => {}), 1),
+    runStage('inbox_hydration', () => new Promise(() => {}), 1, {
+      onTimeout: async () => {
+        cancelled += 1;
+      },
+    }),
     (error) => {
       assert.equal(error.message, 'block5.inbox_hydration_timeout');
       return true;
     }
   );
+  assert.equal(cancelled, 1);
 });
 
 test('Block 5-harnessen låter vanliga fel vara röda och oförändrade', async () => {
@@ -173,6 +187,89 @@ test('Block 5-harnessen låter vanliga fel vara röda och oförändrade', async 
   );
 });
 
+test('Block 5-harnessen kör i en ny sida och bevarar användarens sida', async () => {
+  let userPageClosed = false;
+  let runnerPageClosed = false;
+  const runnerPage = {
+    goto: async () => {},
+    route: async () => {},
+    isClosed: () => runnerPageClosed,
+    close: async () => {
+      runnerPageClosed = true;
+    },
+  };
+  const userPage = {
+    goto: async () => {},
+    route: async () => {},
+    context: () => ({ newPage: async () => runnerPage }),
+    close: async () => {
+      userPageClosed = true;
+    },
+  };
+
+  const result = await withDedicatedSignoffRunnerPage(userPage, async (page) => {
+    assert.equal(page, runnerPage);
+    return 'complete';
+  });
+
+  assert.equal(result, 'complete');
+  assert.equal(runnerPageClosed, true);
+  assert.equal(userPageClosed, false);
+});
+
+test('Block 5-harnessen stänger dedikerad runner-sida vid deadline före terminal cleanup', async () => {
+  let runnerPageClosed = false;
+  const cancellation = createRunnerTimeoutCancellation({
+    isClosed: () => runnerPageClosed,
+    close: async () => {
+      runnerPageClosed = true;
+    },
+  });
+
+  await assert.rejects(
+    runStage('calendar_handoff', () => new Promise(() => {}), 1, {
+      onTimeout: cancellation.onTimeout,
+    }),
+    /block5\.calendar_handoff_timeout/
+  );
+
+  assert.equal(runnerPageClosed, true);
+  assert.equal(cancellation.isTimeoutCancelled(), true);
+});
+
+test('Block 5-harnessen tolererar target-closed cleanup endast efter timeout-cancellation', async () => {
+  const handlers = {};
+  const page = {
+    async route(_pattern, handler) {
+      handlers.route = handler;
+    },
+    async unroute() {
+      throw new Error('Target page, context or browser has been closed');
+    },
+    on(name, handler) {
+      handlers[name] = handler;
+    },
+    off() {
+      throw new Error('Target page, context or browser has been closed');
+    },
+  };
+  const cleanup = await installReadOnlyGuard(page, 'https://arcana.hairtpclinic.com');
+  await assert.rejects(cleanup(), /Target page, context or browser has been closed/);
+  await assert.doesNotReject(cleanup({ tolerateTargetClosed: true }));
+});
+
+test('Block 5-harnessen tolererar stängd worklist-probe endast efter timeout-cancellation', async () => {
+  const page = {
+    on() {},
+    off() {
+      throw new Error('Target page, context or browser has been closed');
+    },
+  };
+  const probe = installWorklistResponseProbe(page, 'https://arcana.hairtpclinic.com');
+  await assert.rejects(probe.cleanup(), /Target page, context or browser has been closed/);
+  await assert.doesNotReject(probe.cleanup({ tolerateTargetClosed: true }));
+});
+
 test('Block 5-harnessen har separata deadline-steg för V2-mount och varje inkorgshydrering', () => {
   const source = fs.readFileSync(HARNESS_PATH, 'utf8');
   const openPreview = source.slice(
@@ -182,11 +279,11 @@ test('Block 5-harnessen har separata deadline-steg för V2-mount och varje inkor
   assert.doesNotMatch(openPreview, /prepareV2Inbox/);
   assert.match(
     source,
-    /runStage\('inbox_hydration', \(\) => prepareV2Inbox\(frame, worklistProbe\)\)/
+    /runHandoffStage\('inbox_hydration', \(\) => prepareV2Inbox\(frame, worklistProbe\)\)/
   );
-  assert.match(source, /runStage\('calendar_inbox_hydration'/);
-  assert.match(source, /runStage\('booking_inbox_hydration'/);
-  assert.match(source, /runStage\('review_inbox_hydration'/);
+  assert.match(source, /runHandoffStage\('calendar_inbox_hydration'/);
+  assert.match(source, /runHandoffStage\('booking_inbox_hydration'/);
+  assert.match(source, /runHandoffStage\('review_inbox_hydration'/);
 });
 
 test('Block 5-harnessen kräver samma patient i workspace-iframen och lämnar adminrouten orörd', () => {
@@ -457,13 +554,20 @@ test('Block 5 warm-up gör terminalt tomt scope inconclusive, aldrig pass', asyn
 
 test('Block 5 warm-cache-variant återanvänder read-only-vakten före warm-up och sparar inga artefakter', () => {
   const source = fs.readFileSync(HARNESS_PATH, 'utf8');
+  const warmOnPage = source.slice(
+    source.indexOf('async function runBlock5WarmCacheReadonlyHandoffOnPage'),
+    source.indexOf('async function runBlock5WarmCacheReadonlyHandoffHarness')
+  );
   const warmHarness = source.slice(
     source.indexOf('async function runBlock5WarmCacheReadonlyHandoffHarness'),
     source.indexOf('module.exports')
   );
-  assert.match(warmHarness, /const cleanup = await installReadOnlyGuard\(page, origin\)/);
-  assert.match(warmHarness, /const warmup = await warmBlock5Worklist/);
-  assert.match(warmHarness, /result = \{ \.\.\.handoff, \.\.\.warmup \}/);
+  assert.match(warmOnPage, /const cleanup = await installReadOnlyGuard\(page, origin\)/);
+  assert.match(warmOnPage, /const warmup = await warmBlock5Worklist/);
+  assert.match(warmOnPage, /result = \{ \.\.\.handoff, \.\.\.warmup \}/);
+  assert.match(warmHarness, /withDedicatedSignoffRunnerPage\(userPage/);
+  assert.match(source, /await closeDedicatedRunnerPage\(runnerPage\)/);
+  assert.doesNotMatch(source, /userPage\.close\(/);
   assert.doesNotMatch(warmHarness, /screenshot|storageState|cookies\(/i);
 });
 
@@ -729,7 +833,9 @@ test('Block 5-harnessen returnerar bara maskerade identifierare och kräver dest
   assert.match(source, /function isTimeoutError\(error\)/);
   assert.match(source, /error\?\.name === 'TimeoutError'/);
   assert.match(source, /block5\.\$\{stage\}_timeout/);
-  assert.match(source, /Promise\.race\(\[Promise\.resolve\(\)\.then\(operation\), deadline\]\)/);
+  assert.match(source, /const operationPromise = Promise\.resolve\(\)\.then\(operation\)/);
+  assert.match(source, /Promise\.race\(\[operationPromise, deadline\]\)/);
+  assert.match(source, /await onTimeout\?\.\(\)/);
   assert.match(source, /clearTimeout\(timer\)/);
   assert.match(source, /page\.waitForResponse\(/);
   assert.match(source, /isV2PreviewDocumentResponse/);

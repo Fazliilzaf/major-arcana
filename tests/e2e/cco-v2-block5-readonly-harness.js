@@ -66,15 +66,32 @@ function createStageTimeoutError() {
   return error;
 }
 
-async function runStage(stage, operation, timeoutMs = BLOCK5_STAGE_TIMEOUT_MS) {
+async function runStage(
+  stage,
+  operation,
+  timeoutMs = BLOCK5_STAGE_TIMEOUT_MS,
+  { onTimeout } = {}
+) {
   let timer;
+  const operationPromise = Promise.resolve().then(operation);
+  // The losing Playwright operation can reject after a deadline wins the
+  // race. Keep that rejection observed while the dedicated runner page closes.
+  operationPromise.catch(() => {});
+  const timeoutError = createStageTimeoutError();
   const deadline = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(createStageTimeoutError()), timeoutMs);
+    timer = setTimeout(() => reject(timeoutError), timeoutMs);
   });
   try {
-    return await Promise.race([Promise.resolve().then(operation), deadline]);
+    return await Promise.race([operationPromise, deadline]);
   } catch (error) {
-    if (isTimeoutError(error)) fail(`block5.${stage}_timeout`);
+    if (error === timeoutError) {
+      await onTimeout?.();
+      fail(`block5.${stage}_timeout`);
+    }
+    if (isTimeoutError(error)) {
+      await onTimeout?.();
+      fail(`block5.${stage}_timeout`);
+    }
     throw error;
   } finally {
     clearTimeout(timer);
@@ -150,6 +167,21 @@ function isSupersededV2ReadFailure(failure, origin) {
   );
 }
 
+function isTargetClosedError(error) {
+  return /target page, context or browser has been closed|target closed|page has been closed/i.test(
+    String(error?.message || error)
+  );
+}
+
+async function ignoreTargetClosed(operation, tolerateTargetClosed) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (tolerateTargetClosed && isTargetClosedError(error)) return undefined;
+    throw error;
+  }
+}
+
 /**
  * Block all same-origin mutations. A blocked write is not merely logged: it
  * fails the final verdict, including writes attempted by recovery handlers.
@@ -204,12 +236,12 @@ async function installReadOnlyGuard(page, origin) {
   page.on('response', onResponse);
   page.on('console', onConsole);
 
-  return async function cleanupAndAssertReadOnly() {
-    await page.unroute('**/*', routeHandler);
-    page.off('pageerror', onPageError);
-    page.off('requestfailed', onRequestFailed);
-    page.off('response', onResponse);
-    page.off('console', onConsole);
+  return async function cleanupAndAssertReadOnly({ tolerateTargetClosed = false } = {}) {
+    await ignoreTargetClosed(() => page.unroute('**/*', routeHandler), tolerateTargetClosed);
+    await ignoreTargetClosed(() => page.off('pageerror', onPageError), tolerateTargetClosed);
+    await ignoreTargetClosed(() => page.off('requestfailed', onRequestFailed), tolerateTargetClosed);
+    await ignoreTargetClosed(() => page.off('response', onResponse), tolerateTargetClosed);
+    await ignoreTargetClosed(() => page.off('console', onConsole), tolerateTargetClosed);
     if (blockedWrites) fail('block5.same_origin_write_attempted');
     const externalImageFailures = requestFailures.filter((failure) => {
       try {
@@ -349,7 +381,8 @@ function installWorklistResponseProbe(page, origin) {
     reset: () => {
       latestStatus = 0;
     },
-    cleanup: () => page.off('response', onResponse),
+    cleanup: ({ tolerateTargetClosed = false } = {}) =>
+      ignoreTargetClosed(() => page.off('response', onResponse), tolerateTargetClosed),
   };
 }
 
@@ -424,21 +457,19 @@ async function warmBlock5Worklist({
   worklistProbe,
   openPreview = openAdminV2Preview,
   prepareInbox = prepareV2Inbox,
+  onStageTimeout,
 }) {
   worklistProbe?.reset?.();
-  const preview = await runStage(
-    'warmup_open_preview',
-    () => openPreview(page, baseUrl),
-    BLOCK5_WARMUP_TIMEOUT_MS
-  );
+  const runWarmupStage = (stage, operation) =>
+    runStage(stage, operation, BLOCK5_WARMUP_TIMEOUT_MS, { onTimeout: onStageTimeout });
+  const preview = await runWarmupStage('warmup_open_preview', () => openPreview(page, baseUrl));
   assertPreviewIntegrity(preview.integrity);
-  const inbox = await runStage(
+  const inbox = await runWarmupStage(
     'warmup_inbox_hydration',
     () =>
       prepareInbox(preview.frame, worklistProbe, {
         terminalTimeoutMs: BLOCK5_WARMUP_TIMEOUT_MS,
-      }),
-    BLOCK5_WARMUP_TIMEOUT_MS
+      })
   );
   const worklistStatus = worklistProbe?.getStatus?.() || 0;
   if (worklistStatus !== 200) fail('block5.warmup_worklist_non_200');
@@ -639,60 +670,62 @@ async function assertReviewHasNoHandoff(frame) {
  * Return value is deliberately masked aggregate evidence: no raw thread IDs,
  * patient IDs, URLs, screenshots or storage state leave the process.
  */
-async function runBlock5HandoffFlow({ page, baseUrl, worklistProbe }) {
-  await runStage('calendar_probe', () => installCalendarMessageProbe(page));
-  let preview = await runStage('open_preview', () => openAdminV2Preview(page, baseUrl));
+async function runBlock5HandoffFlow({ page, baseUrl, worklistProbe, onStageTimeout }) {
+  const runHandoffStage = (stage, operation) =>
+    runStage(stage, operation, BLOCK5_STAGE_TIMEOUT_MS, { onTimeout: onStageTimeout });
+  await runHandoffStage('calendar_probe', () => installCalendarMessageProbe(page));
+  let preview = await runHandoffStage('open_preview', () => openAdminV2Preview(page, baseUrl));
   let frame = preview.frame;
-  await runStage('preview_integrity', () => assertPreviewIntegrity(preview.integrity));
-  const inbox = await runStage('inbox_hydration', () => prepareV2Inbox(frame, worklistProbe));
+  await runHandoffStage('preview_integrity', () => assertPreviewIntegrity(preview.integrity));
+  const inbox = await runHandoffStage('inbox_hydration', () => prepareV2Inbox(frame, worklistProbe));
   if (inbox.status === 'inconclusive') return inbox;
-  const canonical = await runStage('canonical_select', () => selectCanonicalThread(frame));
-  const note = await runStage('note_context', () => assertNoteUsesSelectedThread(frame));
-  const dossier = await runStage('dossier_handoff', () =>
+  const canonical = await runHandoffStage('canonical_select', () => selectCanonicalThread(frame));
+  const note = await runHandoffStage('note_context', () => assertNoteUsesSelectedThread(frame));
+  const dossier = await runHandoffStage('dossier_handoff', () =>
     assertDossierHandoff(page, frame, canonical.patientId)
   );
 
-  preview = await runStage('open_calendar_preview', () => openAdminV2Preview(page, baseUrl));
+  preview = await runHandoffStage('open_calendar_preview', () => openAdminV2Preview(page, baseUrl));
   frame = preview.frame;
-  await runStage('calendar_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
-  const calendarInbox = await runStage('calendar_inbox_hydration', () =>
+  await runHandoffStage('calendar_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
+  const calendarInbox = await runHandoffStage('calendar_inbox_hydration', () =>
     prepareV2Inbox(frame, worklistProbe)
   );
   if (calendarInbox.status === 'inconclusive') {
     fail('block5.scope_became_empty_during_signoff');
   }
-  const calendar = await runStage('calendar_handoff', () =>
+  const calendar = await runHandoffStage('calendar_handoff', () =>
     assertCalendarHandoff(frame, canonical.patientId)
   );
 
-  preview = await runStage('open_booking_preview', () => openAdminV2Preview(page, baseUrl));
+  preview = await runHandoffStage('open_booking_preview', () => openAdminV2Preview(page, baseUrl));
   frame = preview.frame;
-  await runStage('booking_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
-  const bookingInbox = await runStage('booking_inbox_hydration', () =>
+  await runHandoffStage('booking_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
+  const bookingInbox = await runHandoffStage('booking_inbox_hydration', () =>
     prepareV2Inbox(frame, worklistProbe)
   );
   if (bookingInbox.status === 'inconclusive') {
     fail('block5.scope_became_empty_during_signoff');
   }
-  const canonicalAgain = await runStage('booking_canonical_select', () =>
+  const canonicalAgain = await runHandoffStage('booking_canonical_select', () =>
     selectCanonicalThread(frame)
   );
-  const booking = await runStage('booking_handoff', () =>
+  const booking = await runHandoffStage('booking_handoff', () =>
     assertBookingHandoff(frame, canonicalAgain.patientId)
   );
   if (canonicalAgain.patientId !== canonical.patientId)
     fail('block5.canonical_thread_changed_between_handoffs');
 
-  preview = await runStage('open_review_preview', () => openAdminV2Preview(page, baseUrl));
+  preview = await runHandoffStage('open_review_preview', () => openAdminV2Preview(page, baseUrl));
   frame = preview.frame;
-  await runStage('review_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
-  const reviewInbox = await runStage('review_inbox_hydration', () =>
+  await runHandoffStage('review_preview_integrity', () => assertPreviewIntegrity(preview.integrity));
+  const reviewInbox = await runHandoffStage('review_inbox_hydration', () =>
     prepareV2Inbox(frame, worklistProbe)
   );
   if (reviewInbox.status === 'inconclusive') {
     fail('block5.scope_became_empty_during_signoff');
   }
-  const review = await runStage('review_guard', () => assertReviewHasNoHandoff(frame));
+  const review = await runHandoffStage('review_guard', () => assertReviewHasNoHandoff(frame));
   return { status: 'pass', dossier, calendar, booking, note, review };
 }
 
@@ -707,8 +740,75 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
   try {
     result = await runBlock5HandoffFlow({ page, baseUrl, worklistProbe });
   } finally {
-    worklistProbe.cleanup();
+    await worklistProbe.cleanup();
     diagnostics = await cleanup();
+  }
+  return { ...result, ...diagnostics };
+}
+
+async function closeDedicatedRunnerPage(page) {
+  if (typeof page.isClosed === 'function' && page.isClosed()) return;
+  await ignoreTargetClosed(() => page.close({ runBeforeUnload: false }), true);
+}
+
+async function withDedicatedSignoffRunnerPage(userPage, operation) {
+  const context = typeof userPage.context === 'function' ? userPage.context() : null;
+  if (!context || typeof context.newPage !== 'function') {
+    fail('block5.dedicated_runner_page_unavailable');
+  }
+  const runnerPage = await context.newPage();
+  assertPage(runnerPage);
+  try {
+    return await operation(runnerPage);
+  } finally {
+    await closeDedicatedRunnerPage(runnerPage);
+  }
+}
+
+function createRunnerTimeoutCancellation(runnerPage) {
+  let timeoutCancelled = false;
+  return {
+    onTimeout: async () => {
+      timeoutCancelled = true;
+      await closeDedicatedRunnerPage(runnerPage);
+    },
+    isTimeoutCancelled: () => timeoutCancelled,
+  };
+}
+
+async function runBlock5WarmCacheReadonlyHandoffOnPage({
+  page,
+  baseUrl,
+  onStageTimeout,
+  isTimeoutCancelled,
+}) {
+  const origin = new URL(baseUrl).origin;
+  const cleanup = await installReadOnlyGuard(page, origin);
+  const worklistProbe = installWorklistResponseProbe(page, origin);
+  let result;
+  let diagnostics;
+  try {
+    const warmup = await warmBlock5Worklist({
+      page,
+      baseUrl,
+      worklistProbe,
+      onStageTimeout,
+    });
+    if (warmup.status !== 'ready') {
+      result = warmup;
+    } else {
+      const handoff = await runBlock5HandoffFlow({
+        page,
+        baseUrl,
+        worklistProbe,
+        onStageTimeout,
+      });
+      result = { ...handoff, ...warmup };
+    }
+  } finally {
+    const tolerateTargetClosed = Boolean(isTimeoutCancelled?.());
+    await worklistProbe.cleanup({ tolerateTargetClosed });
+    diagnostics = await cleanup({ tolerateTargetClosed });
   }
   return { ...result, ...diagnostics };
 }
@@ -716,33 +816,25 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
 /**
  * Warm-cache signoff variant. It intentionally records that its handoff proof
  * was run after a bounded, GET-only cache warm-up; it is never cold-path SLO
- * evidence. The same write guard protects both phases.
+ * evidence. It uses a new page in the caller's existing authenticated context
+ * so a deadline can cancel the operation without closing an owner page.
  */
 async function runBlock5WarmCacheReadonlyHandoffHarness({
-  page,
+  page: userPage,
   baseUrl,
   ownerApprovedProduction = false,
 }) {
-  assertPage(page);
+  assertPage(userPage);
   assertApprovedRun(baseUrl, ownerApprovedProduction);
-  const origin = new URL(baseUrl).origin;
-  const cleanup = await installReadOnlyGuard(page, origin);
-  const worklistProbe = installWorklistResponseProbe(page, origin);
-  let result;
-  let diagnostics;
-  try {
-    const warmup = await warmBlock5Worklist({ page, baseUrl, worklistProbe });
-    if (warmup.status !== 'ready') {
-      result = warmup;
-    } else {
-      const handoff = await runBlock5HandoffFlow({ page, baseUrl, worklistProbe });
-      result = { ...handoff, ...warmup };
-    }
-  } finally {
-    worklistProbe.cleanup();
-    diagnostics = await cleanup();
-  }
-  return { ...result, ...diagnostics };
+  return withDedicatedSignoffRunnerPage(userPage, async (runnerPage) => {
+    const cancellation = createRunnerTimeoutCancellation(runnerPage);
+    return runBlock5WarmCacheReadonlyHandoffOnPage({
+      page: runnerPage,
+      baseUrl,
+      onStageTimeout: cancellation.onTimeout,
+      isTimeoutCancelled: cancellation.isTimeoutCancelled,
+    });
+  });
 }
 
 module.exports = {
@@ -753,6 +845,7 @@ module.exports = {
   assertNoteUsesSelectedThread,
   assertPreviewIntegrity,
   classifyTerminalInbox,
+  createRunnerTimeoutCancellation,
   installReadOnlyGuard,
   installWorklistResponseProbe,
   isV2PreviewDocumentResponse,
@@ -765,6 +858,7 @@ module.exports = {
   prepareV2Inbox,
   runStage,
   warmBlock5Worklist,
+  withDedicatedSignoffRunnerPage,
   runBlock5ReadonlyHandoffHarness,
   runBlock5WarmCacheReadonlyHandoffHarness,
   selectExactlyOneV2Lane,
