@@ -82,11 +82,11 @@ test('Block 5-harnessen översätter endast äkta timeout till maskerad stegkod'
   );
 });
 
-test('Block 5-harnessen stoppar en stage som aldrig löser med maskerad timeoutkod', async () => {
+test('Block 5-harnessen stoppar en hydreringsstage som aldrig löser med maskerad timeoutkod', async () => {
   await assert.rejects(
-    runStage('calendar_handoff', () => new Promise(() => {}), 1),
+    runStage('inbox_hydration', () => new Promise(() => {}), 1),
     (error) => {
-      assert.equal(error.message, 'block5.calendar_handoff_timeout');
+      assert.equal(error.message, 'block5.inbox_hydration_timeout');
       return true;
     }
   );
@@ -103,6 +103,22 @@ test('Block 5-harnessen låter vanliga fel vara röda och oförändrade', async 
       return true;
     }
   );
+});
+
+test('Block 5-harnessen har separata deadline-steg för V2-mount och varje inkorgshydrering', () => {
+  const source = fs.readFileSync(HARNESS_PATH, 'utf8');
+  const openPreview = source.slice(
+    source.indexOf('async function openAdminV2Preview'),
+    source.indexOf('function classifyTerminalInbox')
+  );
+  assert.doesNotMatch(openPreview, /prepareV2Inbox/);
+  assert.match(
+    source,
+    /runStage\('inbox_hydration', \(\) => prepareV2Inbox\(frame, worklistProbe\)\)/
+  );
+  assert.match(source, /runStage\('calendar_inbox_hydration'/);
+  assert.match(source, /runStage\('booking_inbox_hydration'/);
+  assert.match(source, /runStage\('review_inbox_hydration'/);
 });
 
 test('Block 5-harnessen kräver samma patient i workspace-iframen och lämnar adminrouten orörd', () => {

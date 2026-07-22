@@ -265,7 +265,7 @@ async function installReadOnlyGuard(page, origin) {
   };
 }
 
-async function openAdminV2Preview(page, baseUrl, worklistProbe) {
+async function openAdminV2Preview(page, baseUrl) {
   await page.goto(new URL('/admin#cco', baseUrl).toString(), {
     waitUntil: 'domcontentloaded',
     timeout: BLOCK5_STAGE_TIMEOUT_MS,
@@ -275,7 +275,7 @@ async function openAdminV2Preview(page, baseUrl, worklistProbe) {
   await page.locator(V2_FRAME).waitFor({ state: 'visible', timeout: BLOCK5_STAGE_TIMEOUT_MS });
   const frame = page.frameLocator(V2_FRAME);
   await frame.locator(V2_ROOT).waitFor({ state: 'visible', timeout: BLOCK5_STAGE_TIMEOUT_MS });
-  return { frame, inbox: await prepareV2Inbox(frame, worklistProbe) };
+  return frame;
 }
 
 function classifyTerminalInbox({
@@ -594,13 +594,11 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
   let diagnostics;
   try {
     await runStage('calendar_probe', () => installCalendarMessageProbe(page));
-    let preview = await runStage('open_preview', () =>
-      openAdminV2Preview(page, baseUrl, worklistProbe)
-    );
-    let frame = preview.frame;
+    let frame = await runStage('open_preview', () => openAdminV2Preview(page, baseUrl));
     await runStage('preview_integrity', () => assertPreviewIntegrity(frame));
-    if (preview.inbox.status === 'inconclusive') {
-      result = preview.inbox;
+    const inbox = await runStage('inbox_hydration', () => prepareV2Inbox(frame, worklistProbe));
+    if (inbox.status === 'inconclusive') {
+      result = inbox;
     } else {
       const canonical = await runStage('canonical_select', () => selectCanonicalThread(frame));
       const note = await runStage('note_context', () => assertNoteUsesSelectedThread(frame));
@@ -608,24 +606,24 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
         assertDossierHandoff(page, frame, canonical.patientId)
       );
 
-      preview = await runStage('open_calendar_preview', () =>
-        openAdminV2Preview(page, baseUrl, worklistProbe)
-      );
-      frame = preview.frame;
+      frame = await runStage('open_calendar_preview', () => openAdminV2Preview(page, baseUrl));
       await runStage('calendar_preview_integrity', () => assertPreviewIntegrity(frame));
-      if (preview.inbox.status === 'inconclusive') {
+      const calendarInbox = await runStage('calendar_inbox_hydration', () =>
+        prepareV2Inbox(frame, worklistProbe)
+      );
+      if (calendarInbox.status === 'inconclusive') {
         fail('block5.scope_became_empty_during_signoff');
       }
       const calendar = await runStage('calendar_handoff', () =>
         assertCalendarHandoff(frame, canonical.patientId)
       );
 
-      preview = await runStage('open_booking_preview', () =>
-        openAdminV2Preview(page, baseUrl, worklistProbe)
-      );
-      frame = preview.frame;
+      frame = await runStage('open_booking_preview', () => openAdminV2Preview(page, baseUrl));
       await runStage('booking_preview_integrity', () => assertPreviewIntegrity(frame));
-      if (preview.inbox.status === 'inconclusive') {
+      const bookingInbox = await runStage('booking_inbox_hydration', () =>
+        prepareV2Inbox(frame, worklistProbe)
+      );
+      if (bookingInbox.status === 'inconclusive') {
         fail('block5.scope_became_empty_during_signoff');
       }
       const canonicalAgain = await runStage('booking_canonical_select', () =>
@@ -637,12 +635,12 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
       if (canonicalAgain.patientId !== canonical.patientId)
         fail('block5.canonical_thread_changed_between_handoffs');
 
-      preview = await runStage('open_review_preview', () =>
-        openAdminV2Preview(page, baseUrl, worklistProbe)
-      );
-      frame = preview.frame;
+      frame = await runStage('open_review_preview', () => openAdminV2Preview(page, baseUrl));
       await runStage('review_preview_integrity', () => assertPreviewIntegrity(frame));
-      if (preview.inbox.status === 'inconclusive') {
+      const reviewInbox = await runStage('review_inbox_hydration', () =>
+        prepareV2Inbox(frame, worklistProbe)
+      );
+      if (reviewInbox.status === 'inconclusive') {
         fail('block5.scope_became_empty_during_signoff');
       }
       const review = await runStage('review_guard', () => assertReviewHasNoHandoff(frame));
