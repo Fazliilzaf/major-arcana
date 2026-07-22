@@ -31,6 +31,7 @@ const {
   mask,
   SAFE_SAME_ORIGIN_WRITES,
   prepareV2Inbox,
+  runStage,
   selectExactlyOneV2Lane,
 } = require('./cco-v2-block5-readonly-harness');
 
@@ -64,6 +65,34 @@ test('Block 5-harnessen kräver uttryckligt produktionsgodkännande', () => {
   );
   assert.doesNotThrow(() => assertApprovedRun('https://arcana.hairtpclinic.com', true));
   assert.doesNotThrow(() => assertApprovedRun('http://127.0.0.1:3100', false));
+});
+
+test('Block 5-harnessen översätter endast äkta timeout till maskerad stegkod', async () => {
+  const timeout = new Error('sensitive driver timing detail');
+  timeout.name = 'TimeoutError';
+  await assert.rejects(
+    runStage('dossier_handoff', async () => {
+      throw timeout;
+    }),
+    (error) => {
+      assert.equal(error.message, 'block5.dossier_handoff_timeout');
+      assert.doesNotMatch(error.message, /sensitive|driver|timing/i);
+      return true;
+    }
+  );
+});
+
+test('Block 5-harnessen låter vanliga fel vara röda och oförändrade', async () => {
+  const ordinaryError = new Error('ordinary expected failure');
+  await assert.rejects(
+    runStage('booking_handoff', async () => {
+      throw ordinaryError;
+    }),
+    (error) => {
+      assert.equal(error, ordinaryError);
+      return true;
+    }
+  );
 });
 
 test('Block 5-harnessen kräver samma patient i workspace-iframen och lämnar adminrouten orörd', () => {
@@ -216,8 +245,14 @@ test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselekto
   assert.match(harness, /const RUNTIME_SELECTED_MAILBOX = '\[data-runtime-mailbox\]:checked'/);
   assert.doesNotMatch(harness, /data-v2-lane/);
   assert.doesNotMatch(harness, /data-v2-folder/);
-  assert.match(css, /@media \(min-width: 769px\) and \(max-width: 1024px\)[\s\S]*?\.lane-sidebar\s*\{\s*display: none;/);
-  assert.match(css, /@media \(min-width: 769px\) and \(max-width: 1024px\)[\s\S]*?\.lane-chips\s*\{\s*display: flex;/);
+  assert.match(
+    css,
+    /@media \(min-width: 769px\) and \(max-width: 1024px\)[\s\S]*?\.lane-sidebar\s*\{\s*display: none;/
+  );
+  assert.match(
+    css,
+    /@media \(min-width: 769px\) and \(max-width: 1024px\)[\s\S]*?\.lane-chips\s*\{\s*display: flex;/
+  );
   assert.doesNotMatch(harness, /const V2_ALL_LANE = '\[data-lane="all"\]'/);
   assert.doesNotMatch(harness, /const V2_REVIEW_LANE = '\[data-lane="review"\]'/);
 });
@@ -225,7 +260,10 @@ test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselekto
 test('Block 5-harnessen kan inte välja runtime-radens dubbla data-lane-attribut', () => {
   const harness = fs.readFileSync(HARNESS_PATH, 'utf8');
   const runtimeQueueRenderers = fs.readFileSync(RUNTIME_QUEUE_RENDERERS_PATH, 'utf8');
-  assert.match(runtimeQueueRenderers, /const v5DataLane = ` data-lane="\$\{escapeHtml\(v5Lane\)\}"`/);
+  assert.match(
+    runtimeQueueRenderers,
+    /const v5DataLane = ` data-lane="\$\{escapeHtml\(v5Lane\)\}"`/
+  );
   assert.doesNotMatch(harness, /\.locator\('\[data-lane="(?:all|review)"\]'\)/);
   assert.match(harness, /\.lane-row\[data-lane="all"\]:visible/);
   assert.match(harness, /\.lane-chip\[data-lane="all"\]:visible/);
@@ -492,7 +530,7 @@ test('Block 5-harnessen returnerar bara maskerade identifierare och kräver dest
   const source = fs.readFileSync(HARNESS_PATH, 'utf8');
   assert.match(source, /crypto\s*\.\s*createHash\('sha256'\)/);
   assert.match(source, /booking_destination_context_not_observable/);
-  assert.match(source, /await booking\.click\(\)/);
+  assert.match(source, /await booking\.click\(\{ timeout: BLOCK5_STAGE_TIMEOUT_MS \}\)/);
   assert.match(source, /assertDossierHandoff/);
   assert.match(source, /#ccoPreviewEmbedFrame/);
   assert.match(source, /dossier_changed_top_level_admin_route/);
@@ -501,6 +539,12 @@ test('Block 5-harnessen returnerar bara maskerade identifierare och kräver dest
   assert.match(source, /assertCalendarHandoff/);
   assert.match(source, /assertReviewHasNoHandoff/);
   assert.match(source, /V2_INBOX_TERMINAL_TIMEOUT_MS/);
+  assert.match(source, /const BLOCK5_STAGE_TIMEOUT_MS = 20000/);
+  assert.match(source, /function isTimeoutError\(error\)/);
+  assert.match(source, /error\?\.name === 'TimeoutError'/);
+  assert.match(source, /block5\.\$\{stage\}_timeout/);
+  assert.match(source, /AbortController/);
+  assert.match(source, /signal: controller\.signal/);
   assert.match(source, /no_canonical_thread_in_scope/);
   assert.match(source, /x-arcana-preview-integrity/);
   assert.match(source, /x-arcana-preview-build/);

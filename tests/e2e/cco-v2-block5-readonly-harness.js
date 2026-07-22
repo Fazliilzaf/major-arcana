@@ -42,7 +42,8 @@ const V2_ALL_TAB = '[data-tab="alla"]';
 const V2_REVIEW_LANE =
   '#cco-conv-v2-root .lane-row[data-lane="review"]:visible, #cco-conv-v2-root .lane-chip[data-lane="review"]:visible';
 const RUNTIME_SELECTED_MAILBOX = '[data-runtime-mailbox]:checked';
-const V2_INBOX_TERMINAL_TIMEOUT_MS = 30000;
+const BLOCK5_STAGE_TIMEOUT_MS = 20000;
+const V2_INBOX_TERMINAL_TIMEOUT_MS = BLOCK5_STAGE_TIMEOUT_MS;
 const V2_LANE_SELECTION_MAX_ATTEMPTS = 4;
 const V2_LANE_RETRY_DELAY_MS = 75;
 const V2_LANE_CLICK_TIMEOUT_MS = 600;
@@ -52,6 +53,19 @@ const NOTE_ACTION = '[data-v2-thread] [data-v2-action="note"][data-note-conversa
 
 function fail(code) {
   throw new Error(code);
+}
+
+function isTimeoutError(error) {
+  return error?.name === 'TimeoutError';
+}
+
+async function runStage(stage, operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (isTimeoutError(error)) fail(`block5.${stage}_timeout`);
+    throw error;
+  }
 }
 
 function mask(value) {
@@ -240,12 +254,15 @@ async function installReadOnlyGuard(page, origin) {
 }
 
 async function openAdminV2Preview(page, baseUrl, worklistProbe) {
-  await page.goto(new URL('/admin#cco', baseUrl).toString(), { waitUntil: 'domcontentloaded' });
-  await page.locator('[data-cco-more-toggle]').click();
-  await page.locator(V2_MENU).click();
-  await page.locator(V2_FRAME).waitFor({ state: 'visible' });
+  await page.goto(new URL('/admin#cco', baseUrl).toString(), {
+    waitUntil: 'domcontentloaded',
+    timeout: BLOCK5_STAGE_TIMEOUT_MS,
+  });
+  await page.locator('[data-cco-more-toggle]').click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
+  await page.locator(V2_MENU).click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
+  await page.locator(V2_FRAME).waitFor({ state: 'visible', timeout: BLOCK5_STAGE_TIMEOUT_MS });
   const frame = page.frameLocator(V2_FRAME);
-  await frame.locator(V2_ROOT).waitFor({ state: 'visible' });
+  await frame.locator(V2_ROOT).waitFor({ state: 'visible', timeout: BLOCK5_STAGE_TIMEOUT_MS });
   return { frame, inbox: await prepareV2Inbox(frame, worklistProbe) };
 }
 
@@ -316,7 +333,7 @@ async function prepareV2Inbox(frame, worklistProbe) {
   if (!(await selectExactlyOneV2Lane(frame, V2_ALL_LANE))) {
     return { status: 'inconclusive', reason: 'no_lane_control_available' };
   }
-  await frame.locator(V2_ALL_TAB).first().click();
+  await frame.locator(V2_ALL_TAB).first().click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
 
   // A visible V2 root is only shell readiness. Mailbox selection starts a
   // debounced authenticated worklist load, so wait for an observable terminal
@@ -336,17 +353,37 @@ async function prepareV2Inbox(frame, worklistProbe) {
 }
 
 async function assertPreviewIntegrity(frame) {
-  const integrity = await frame.locator('html').evaluate(async () => {
-    const response = await fetch(window.location.href, {
-      credentials: 'same-origin',
-      cache: 'no-store',
-    });
-    return {
-      status: response.status,
-      verified: response.headers.get('x-arcana-preview-integrity') === 'verified',
-      buildPresent: Boolean(response.headers.get('x-arcana-preview-build')),
-    };
-  });
+  const integrity = await frame.locator('html').evaluate(
+    async (timeoutMs) => {
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(window.location.href, {
+          credentials: 'same-origin',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        return {
+          status: response.status,
+          verified: response.headers.get('x-arcana-preview-integrity') === 'verified',
+          buildPresent: Boolean(response.headers.get('x-arcana-preview-build')),
+          timedOut: false,
+        };
+      } catch (error) {
+        if (controller.signal.aborted) return { timedOut: true };
+        throw error;
+      } finally {
+        window.clearTimeout(timer);
+      }
+    },
+    BLOCK5_STAGE_TIMEOUT_MS,
+    { timeout: BLOCK5_STAGE_TIMEOUT_MS }
+  );
+  if (integrity.timedOut) {
+    const timeout = new Error('preview integrity fetch timed out');
+    timeout.name = 'TimeoutError';
+    throw timeout;
+  }
   if (
     integrity.status < 200 ||
     integrity.status >= 300 ||
@@ -361,10 +398,12 @@ async function selectCanonicalThread(frame) {
   const rows = frame.locator(INBOX_THREAD);
   const count = await rows.count();
   for (let index = 0; index < count; index += 1) {
-    await rows.nth(index).click();
+    await rows.nth(index).click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
     const booking = frame.locator(BOOKING_ACTION).first();
-    const patientId = await booking.getAttribute('data-booking-context-patient-id');
-    const disabled = await booking.isDisabled();
+    const patientId = await booking.getAttribute('data-booking-context-patient-id', {
+      timeout: BLOCK5_STAGE_TIMEOUT_MS,
+    });
+    const disabled = await booking.isDisabled({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
     if (patientId && !disabled) return { patientId, booking };
   }
   fail('block5.no_canonical_thread_available');
@@ -373,11 +412,11 @@ async function selectCanonicalThread(frame) {
 async function assertNoteUsesSelectedThread(frame) {
   const selectedConversationId = await frame
     .locator('[data-v2-inbox] .thread.active[data-thread-id]')
-    .getAttribute('data-thread-id');
+    .getAttribute('data-thread-id', { timeout: BLOCK5_STAGE_TIMEOUT_MS });
   const noteConversationId = await frame
     .locator(NOTE_ACTION)
     .first()
-    .getAttribute('data-note-conversation-id');
+    .getAttribute('data-note-conversation-id', { timeout: BLOCK5_STAGE_TIMEOUT_MS });
   if (
     !selectedConversationId ||
     !noteConversationId ||
@@ -409,11 +448,15 @@ function assertDossierIframeDestination({ topBefore, topAfter, workspaceSrc, exp
 }
 
 async function assertDossierHandoff(page, frame, expectedPatientId) {
-  const topBefore = await page.locator('html').evaluate(() => window.location.href);
-  await frame.locator('[data-v2-ctx-toggle]').click();
+  const topBefore = await page
+    .locator('html')
+    .evaluate(() => window.location.href, undefined, { timeout: BLOCK5_STAGE_TIMEOUT_MS });
+  await frame.locator('[data-v2-ctx-toggle]').click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
   const dossier = frame.locator(DOSSIER_ACTION).first();
-  if (await dossier.isDisabled()) fail('block5.dossier_unavailable_for_canonical_thread');
-  await dossier.click();
+  if (await dossier.isDisabled({ timeout: BLOCK5_STAGE_TIMEOUT_MS })) {
+    fail('block5.dossier_unavailable_for_canonical_thread');
+  }
+  await dossier.click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
   await page.waitForFunction(
     ({ patientId }) => {
       const workspace = document.querySelector('#ccoPreviewEmbedFrame');
@@ -425,10 +468,15 @@ async function assertDossierHandoff(page, frame, expectedPatientId) {
         return false;
       }
     },
-    { patientId: expectedPatientId }
+    { patientId: expectedPatientId },
+    { timeout: BLOCK5_STAGE_TIMEOUT_MS }
   );
-  const workspaceSrc = await page.locator(WORKSPACE_FRAME).getAttribute('src');
-  const topAfter = await page.locator('html').evaluate(() => window.location.href);
+  const workspaceSrc = await page
+    .locator(WORKSPACE_FRAME)
+    .getAttribute('src', { timeout: BLOCK5_STAGE_TIMEOUT_MS });
+  const topAfter = await page
+    .locator('html')
+    .evaluate(() => window.location.href, undefined, { timeout: BLOCK5_STAGE_TIMEOUT_MS });
   const actualPatientId = assertDossierIframeDestination({
     topBefore,
     topAfter,
@@ -458,11 +506,16 @@ async function installCalendarMessageProbe(page) {
 }
 
 async function assertCalendarHandoff(frame, expectedPatientId) {
-  await frame.locator('[data-v2-action="calendar"]').first().click();
+  await frame
+    .locator('[data-v2-action="calendar"]')
+    .first()
+    .click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
   const calendar = frame.frameLocator('iframe.cco-kalender-frame');
   const html = calendar.locator('html');
-  await html.waitFor({ state: 'attached' });
-  const actualPatientId = await html.getAttribute('data-block5-calendar-patient-id');
+  await html.waitFor({ state: 'attached', timeout: BLOCK5_STAGE_TIMEOUT_MS });
+  const actualPatientId = await html.getAttribute('data-block5-calendar-patient-id', {
+    timeout: BLOCK5_STAGE_TIMEOUT_MS,
+  });
   if (!actualPatientId) fail('block5.calendar_destination_context_not_observable');
   if (actualPatientId !== expectedPatientId) fail('block5.calendar_destination_context_mismatch');
   return { patient: mask(actualPatientId) };
@@ -470,14 +523,20 @@ async function assertCalendarHandoff(frame, expectedPatientId) {
 
 async function assertBookingHandoff(frame, expectedPatientId) {
   const booking = frame.locator(BOOKING_ACTION).first();
-  if ((await booking.getAttribute('data-booking-context-patient-id')) !== expectedPatientId) {
+  if (
+    (await booking.getAttribute('data-booking-context-patient-id', {
+      timeout: BLOCK5_STAGE_TIMEOUT_MS,
+    })) !== expectedPatientId
+  ) {
     fail('block5.booking_expected_context_mismatch');
   }
-  await booking.click();
+  await booking.click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
   const destination = frame
     .locator('[data-booking-surface][data-booking-context-patient-id]')
     .first();
-  const actualPatientId = await destination.getAttribute('data-booking-context-patient-id');
+  const actualPatientId = await destination.getAttribute('data-booking-context-patient-id', {
+    timeout: BLOCK5_STAGE_TIMEOUT_MS,
+  });
   // The source button's marker is expected context only. A booking pass
   // requires destination evidence after the actual click.
   if (!actualPatientId) fail('block5.booking_destination_context_not_observable');
@@ -491,12 +550,18 @@ async function assertReviewHasNoHandoff(frame) {
   }
   const rows = frame.locator(INBOX_THREAD);
   if (!(await rows.count())) fail('block5.no_review_thread_available');
-  await rows.first().click();
+  await rows.first().click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
   const booking = frame.locator(BOOKING_ACTION).first();
-  await frame.locator('[data-v2-ctx-toggle]').click();
+  await frame.locator('[data-v2-ctx-toggle]').click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
   const dossier = frame.locator(DOSSIER_ACTION).first();
-  const noBookingPatient = !(await booking.getAttribute('data-booking-context-patient-id'));
-  if (!noBookingPatient || !(await booking.isDisabled()) || !(await dossier.isDisabled())) {
+  const noBookingPatient = !(await booking.getAttribute('data-booking-context-patient-id', {
+    timeout: BLOCK5_STAGE_TIMEOUT_MS,
+  }));
+  if (
+    !noBookingPatient ||
+    !(await booking.isDisabled({ timeout: BLOCK5_STAGE_TIMEOUT_MS })) ||
+    !(await dossier.isDisabled({ timeout: BLOCK5_STAGE_TIMEOUT_MS }))
+  ) {
     fail('block5.review_thread_exposes_customer_handoff');
   }
   return { status: 'review-no-handoff' };
@@ -516,43 +581,59 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
   let result;
   let diagnostics;
   try {
-    await installCalendarMessageProbe(page);
-    let preview = await openAdminV2Preview(page, baseUrl, worklistProbe);
+    await runStage('calendar_probe', () => installCalendarMessageProbe(page));
+    let preview = await runStage('open_preview', () =>
+      openAdminV2Preview(page, baseUrl, worklistProbe)
+    );
     let frame = preview.frame;
-    await assertPreviewIntegrity(frame);
+    await runStage('preview_integrity', () => assertPreviewIntegrity(frame));
     if (preview.inbox.status === 'inconclusive') {
       result = preview.inbox;
     } else {
-      const canonical = await selectCanonicalThread(frame);
-      const note = await assertNoteUsesSelectedThread(frame);
-      const dossier = await assertDossierHandoff(page, frame, canonical.patientId);
+      const canonical = await runStage('canonical_select', () => selectCanonicalThread(frame));
+      const note = await runStage('note_context', () => assertNoteUsesSelectedThread(frame));
+      const dossier = await runStage('dossier_handoff', () =>
+        assertDossierHandoff(page, frame, canonical.patientId)
+      );
 
-      preview = await openAdminV2Preview(page, baseUrl, worklistProbe);
+      preview = await runStage('open_calendar_preview', () =>
+        openAdminV2Preview(page, baseUrl, worklistProbe)
+      );
       frame = preview.frame;
-      await assertPreviewIntegrity(frame);
+      await runStage('calendar_preview_integrity', () => assertPreviewIntegrity(frame));
       if (preview.inbox.status === 'inconclusive') {
         fail('block5.scope_became_empty_during_signoff');
       }
-      const calendar = await assertCalendarHandoff(frame, canonical.patientId);
+      const calendar = await runStage('calendar_handoff', () =>
+        assertCalendarHandoff(frame, canonical.patientId)
+      );
 
-      preview = await openAdminV2Preview(page, baseUrl, worklistProbe);
+      preview = await runStage('open_booking_preview', () =>
+        openAdminV2Preview(page, baseUrl, worklistProbe)
+      );
       frame = preview.frame;
-      await assertPreviewIntegrity(frame);
+      await runStage('booking_preview_integrity', () => assertPreviewIntegrity(frame));
       if (preview.inbox.status === 'inconclusive') {
         fail('block5.scope_became_empty_during_signoff');
       }
-      const canonicalAgain = await selectCanonicalThread(frame);
-      const booking = await assertBookingHandoff(frame, canonicalAgain.patientId);
+      const canonicalAgain = await runStage('booking_canonical_select', () =>
+        selectCanonicalThread(frame)
+      );
+      const booking = await runStage('booking_handoff', () =>
+        assertBookingHandoff(frame, canonicalAgain.patientId)
+      );
       if (canonicalAgain.patientId !== canonical.patientId)
         fail('block5.canonical_thread_changed_between_handoffs');
 
-      preview = await openAdminV2Preview(page, baseUrl, worklistProbe);
+      preview = await runStage('open_review_preview', () =>
+        openAdminV2Preview(page, baseUrl, worklistProbe)
+      );
       frame = preview.frame;
-      await assertPreviewIntegrity(frame);
+      await runStage('review_preview_integrity', () => assertPreviewIntegrity(frame));
       if (preview.inbox.status === 'inconclusive') {
         fail('block5.scope_became_empty_during_signoff');
       }
-      const review = await assertReviewHasNoHandoff(frame);
+      const review = await runStage('review_guard', () => assertReviewHasNoHandoff(frame));
       result = { status: 'pass', dossier, calendar, booking, note, review };
     }
   } finally {
@@ -578,6 +659,7 @@ module.exports = {
   isSupersededV2ReadFailure,
   mask,
   prepareV2Inbox,
+  runStage,
   runBlock5ReadonlyHandoffHarness,
   selectExactlyOneV2Lane,
 };
