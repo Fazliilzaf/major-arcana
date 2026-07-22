@@ -34,11 +34,13 @@ const V2_ROOT = '#cco-conv-v2-root';
 const WORKSPACE_FRAME = '#ccoPreviewEmbedFrame';
 const INBOX_THREAD = '[data-v2-inbox] .thread[data-thread-id]';
 const INBOX_EMPTY = '[data-v2-inbox] .inbox-empty';
-// Runtime rows also carry data-lane. Scope lane interactions to the V2
-// sidebar control so a conversation article can never satisfy this selector.
-const V2_ALL_LANE = '#cco-conv-v2-root .lane-row[data-lane="all"]';
+// Runtime rows also carry data-lane. The desktop sidebar and the responsive
+// chip rail are the only controls allowed to satisfy these selectors.
+const V2_ALL_LANE =
+  '#cco-conv-v2-root .lane-row[data-lane="all"]:visible, #cco-conv-v2-root .lane-chip[data-lane="all"]:visible';
 const V2_ALL_TAB = '[data-tab="alla"]';
-const V2_REVIEW_LANE = '#cco-conv-v2-root .lane-row[data-lane="review"]';
+const V2_REVIEW_LANE =
+  '#cco-conv-v2-root .lane-row[data-lane="review"]:visible, #cco-conv-v2-root .lane-chip[data-lane="review"]:visible';
 const RUNTIME_SELECTED_MAILBOX = '[data-runtime-mailbox]:checked';
 const V2_INBOX_TERMINAL_TIMEOUT_MS = 30000;
 const BOOKING_ACTION = '[data-v2-thread] [data-v2-action="booking"]';
