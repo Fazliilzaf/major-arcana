@@ -279,10 +279,23 @@ function installWorklistResponseProbe(page, origin) {
   };
 }
 
+async function selectExactlyOneV2Lane(frame, selector) {
+  const controls = frame.locator(selector);
+  const count = await controls.count();
+  if (count === 0) return false;
+  if (count !== 1) fail('block5.ambiguous_visible_lane_control');
+  await controls.click();
+  return true;
+}
+
 async function prepareV2Inbox(frame, worklistProbe) {
   // The Block 5 signoff must inspect the complete active inbox, not a
-  // persisted lane or filtered tab from a prior operator session.
-  await frame.locator(V2_ALL_LANE).first().click();
+  // persisted lane or filtered tab from a prior operator session. Some
+  // embedded layouts render no lane navigation at all. Without an observable
+  // active-lane marker, that is inconclusive rather than an assumed All lane.
+  if (!(await selectExactlyOneV2Lane(frame, V2_ALL_LANE))) {
+    return { status: 'inconclusive', reason: 'no_lane_control_available' };
+  }
   await frame.locator(V2_ALL_TAB).first().click();
 
   // A visible V2 root is only shell readiness. Mailbox selection starts a
@@ -453,7 +466,9 @@ async function assertBookingHandoff(frame, expectedPatientId) {
 }
 
 async function assertReviewHasNoHandoff(frame) {
-  await frame.locator(V2_REVIEW_LANE).click();
+  if (!(await selectExactlyOneV2Lane(frame, V2_REVIEW_LANE))) {
+    fail('block5.review_lane_control_unavailable');
+  }
   const rows = frame.locator(INBOX_THREAD);
   if (!(await rows.count())) fail('block5.no_review_thread_available');
   await rows.first().click();
@@ -544,4 +559,5 @@ module.exports = {
   mask,
   prepareV2Inbox,
   runBlock5ReadonlyHandoffHarness,
+  selectExactlyOneV2Lane,
 };
