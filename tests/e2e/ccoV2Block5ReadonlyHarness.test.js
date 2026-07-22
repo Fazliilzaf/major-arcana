@@ -98,7 +98,10 @@ test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canon
   const clicks = [];
   const frame = {
     locator(selector) {
-      if (selector === '[data-lane="all"]' || selector === '[data-tab="alla"]') {
+      if (
+        selector === '#cco-conv-v2-root .lane-row[data-lane="all"]' ||
+        selector === '[data-tab="alla"]'
+      ) {
         return {
           first: () => ({ click: async () => clicks.push(selector) }),
         };
@@ -123,19 +126,26 @@ test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canon
   };
 
   assert.deepEqual(await prepareV2Inbox(frame), { status: 'rows' });
-  assert.deepEqual(clicks, ['[data-lane="all"]', '[data-tab="alla"]']);
+  assert.deepEqual(clicks, ['#cco-conv-v2-root .lane-row[data-lane="all"]', '[data-tab="alla"]']);
 });
 
 test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselektorer', () => {
   const shell = fs.readFileSync(V2_SHELL_PATH, 'utf8');
   const runtimeQueueRenderers = fs.readFileSync(RUNTIME_QUEUE_RENDERERS_PATH, 'utf8');
   const harness = fs.readFileSync(HARNESS_PATH, 'utf8');
-  assert.match(shell, /data-lane="'\s*\+\s*esc\(lane\.id\)/);
+  assert.match(shell, /class="lane-row'\s*\+\s*active\s*\+\s*'" data-lane="'/);
+  assert.match(shell, /class="lane-chip'\s*\+\s*active\s*\+\s*'" data-lane="'/);
   assert.match(shell, /data-tab="'\s*\+\s*tab\.id/);
   assert.match(shell, /\{ id: 'alla', label: 'Alla'/);
-  assert.match(harness, /const V2_ALL_LANE = '\[data-lane="all"\]'/);
+  assert.match(
+    harness,
+    /const V2_ALL_LANE = '#cco-conv-v2-root \.lane-row\[data-lane="all"\]'/
+  );
   assert.match(harness, /const V2_ALL_TAB = '\[data-tab="alla"\]'/);
-  assert.match(harness, /const V2_REVIEW_LANE = '\[data-lane="review"\]'/);
+  assert.match(
+    harness,
+    /const V2_REVIEW_LANE = '#cco-conv-v2-root \.lane-row\[data-lane="review"\]'/
+  );
   assert.match(
     runtimeQueueRenderers,
     /data-runtime-mailbox="\$\{escapeHtml\(mailboxScopeId\)\}"\$\{checked/
@@ -143,6 +153,17 @@ test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselekto
   assert.match(harness, /const RUNTIME_SELECTED_MAILBOX = '\[data-runtime-mailbox\]:checked'/);
   assert.doesNotMatch(harness, /data-v2-lane/);
   assert.doesNotMatch(harness, /data-v2-folder/);
+  assert.doesNotMatch(harness, /const V2_ALL_LANE = '\[data-lane="all"\]'/);
+  assert.doesNotMatch(harness, /const V2_REVIEW_LANE = '\[data-lane="review"\]'/);
+});
+
+test('Block 5-harnessen kan inte välja runtime-radens dubbla data-lane-attribut', () => {
+  const harness = fs.readFileSync(HARNESS_PATH, 'utf8');
+  const runtimeQueueRenderers = fs.readFileSync(RUNTIME_QUEUE_RENDERERS_PATH, 'utf8');
+  assert.match(runtimeQueueRenderers, /const v5DataLane = ` data-lane="\$\{escapeHtml\(v5Lane\)\}"`/);
+  assert.doesNotMatch(harness, /\.locator\('\[data-lane="(?:all|review)"\]'\)/);
+  assert.match(harness, /\.lane-row\[data-lane="all"\]/);
+  assert.match(harness, /\.lane-row\[data-lane="review"\]/);
 });
 
 test('Block 5-harnessen gör ett terminalt tomt scope maskerat inconclusive', () => {
