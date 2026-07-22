@@ -168,6 +168,29 @@ test('Block 5-harnessen vägrar tvetydiga synliga lane-kontroller', async () => 
   );
 });
 
+test('Block 5-harnessen räknar om och klickar säkert efter en render-race', async () => {
+  let locatorCalls = 0;
+  let clicks = 0;
+  const frame = {
+    locator: () => {
+      locatorCalls += 1;
+      return {
+        count: async () => 1,
+        click: async () => {
+          clicks += 1;
+          if (clicks === 1) throw new Error('Element is not attached to the DOM');
+        },
+      };
+    },
+  };
+  assert.equal(
+    await selectExactlyOneV2Lane(frame, '#cco-conv-v2-root .lane-row[data-lane="all"]:visible'),
+    true
+  );
+  assert.equal(locatorCalls, 2);
+  assert.equal(clicks, 2);
+});
+
 test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselektorer', () => {
   const shell = fs.readFileSync(V2_SHELL_PATH, 'utf8');
   const runtimeQueueRenderers = fs.readFileSync(RUNTIME_QUEUE_RENDERERS_PATH, 'utf8');
