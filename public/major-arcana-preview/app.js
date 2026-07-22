@@ -14619,6 +14619,7 @@
       handleStudioToolAction,
       inferStudioTrackKey,
       isAuthFailure,
+      isConversationsV2Enabled: conversationsV2Enabled,
       isTruthPrimaryFocusFeatureEnabled,
       isTruthPrimaryStudioFeatureEnabled,
       loadBootstrap,

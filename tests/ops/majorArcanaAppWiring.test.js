@@ -90,6 +90,10 @@ test('app.js kopplar lane- och feed-helpers till dom-live men inte tillbaka in i
     domCompositionCall.includes('\n      getQueueLaneThreads,'),
     'DOM live composition måste få getQueueLaneThreads för lane-klick i vänsterkolumnen.'
   );
+  assert.ok(
+    domCompositionCall.includes('\n      isConversationsV2Enabled: conversationsV2Enabled,'),
+    'DOM live composition måste få samma v2-flagga som renderern så passiv v2-load kan hållas read-only.'
+  );
 });
 
 test('app.js kopplar buildStudioSelectionSummary till overlay-renderern för den permanenta studio-orienteringen', () => {
