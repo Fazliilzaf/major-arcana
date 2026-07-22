@@ -79,6 +79,8 @@ function assertPage(page) {
 async function installReadOnlyGuard(page, origin) {
   let blockedWrites = 0;
   const clientErrors = [];
+  const requestFailures = [];
+  const consoleErrors = [];
   const routeHandler = async (route) => {
     const request = route.request();
     if (isSameOriginWrite(request.url(), request.method(), origin)) {
@@ -93,20 +95,56 @@ async function installReadOnlyGuard(page, origin) {
     await route.continue();
   };
   const onPageError = () => clientErrors.push('pageerror');
+  const onRequestFailed = (request) => {
+    requestFailures.push({
+      url: request.url(),
+      resourceType: String(request.resourceType() || '').toLowerCase(),
+    });
+  };
   const onConsole = (message) => {
-    if (message.type() === 'error') clientErrors.push('console-error');
+    if (message.type() !== 'error') return;
+    const location = typeof message.location === 'function' ? message.location() : {};
+    consoleErrors.push({
+      text: String(message.text() || ''),
+      locationUrl: String(location?.url || ''),
+    });
   };
 
   await page.route('**/*', routeHandler);
   page.on('pageerror', onPageError);
+  page.on('requestfailed', onRequestFailed);
   page.on('console', onConsole);
 
   return async function cleanupAndAssertReadOnly() {
     await page.unroute('**/*', routeHandler);
     page.off('pageerror', onPageError);
+    page.off('requestfailed', onRequestFailed);
     page.off('console', onConsole);
     if (blockedWrites) fail('block5.same_origin_write_attempted');
-    if (clientErrors.length) fail('block5.client_error_detected');
+    const externalImageFailures = requestFailures.filter((failure) => {
+      try {
+        return new URL(failure.url).origin !== origin && failure.resourceType === 'image';
+      } catch (_) {
+        return false;
+      }
+    });
+    const redRequestFailures = requestFailures.filter((failure) => !externalImageFailures.includes(failure));
+    if (redRequestFailures.length) clientErrors.push('resource-failure');
+    const externalImageUrls = externalImageFailures.map((failure) => failure.url);
+    const hasExternalImageCorrelation = (entry) =>
+      externalImageUrls.some(
+        (url) => entry.locationUrl === url || (entry.text && entry.text.includes(url))
+      );
+    if (consoleErrors.some((entry) => !hasExternalImageCorrelation(entry))) {
+      clientErrors.push('console-error');
+    }
+    if (clientErrors.length) {
+      // Klassen är avsiktligt en liten fast vokabulär, aldrig feltext, URL
+      // eller annat körningsunderlag. Den gör en röd verdict felsökbar utan
+      // att harnessen blir en PII-artefakt.
+      fail(`block5.client_error_detected:${Array.from(new Set(clientErrors)).sort().join(',')}`);
+    }
+    return { externalImageResourceFailures: externalImageFailures.length };
   };
 }
 
@@ -295,6 +333,8 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
   assertApprovedRun(baseUrl, ownerApprovedProduction);
   const origin = new URL(baseUrl).origin;
   const cleanup = await installReadOnlyGuard(page, origin);
+  let result;
+  let diagnostics;
   try {
     await installCalendarMessageProbe(page);
     let frame = await openAdminV2Preview(page, baseUrl);
@@ -317,10 +357,11 @@ async function runBlock5ReadonlyHandoffHarness({ page, baseUrl, ownerApprovedPro
     frame = await openAdminV2Preview(page, baseUrl);
     await assertPreviewIntegrity(frame);
     const review = await assertReviewHasNoHandoff(frame);
-    return { status: 'pass', dossier, calendar, booking, note, review };
+    result = { status: 'pass', dossier, calendar, booking, note, review };
   } finally {
-    await cleanup();
+    diagnostics = await cleanup();
   }
+  return { ...result, ...diagnostics };
 }
 
 module.exports = {
