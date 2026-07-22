@@ -484,7 +484,13 @@ test('v2-skalet: kundhandoff är fail-closed utan exakt patientmatchning', () =>
 
 test('v2-skalet: bekräftad patientmatchning öppnar trådscopade handoffar', () => {
   const { document, api } = loadShell();
-  const matchedThread = makeThread({ v2Handoff: { available: true, reason: '' } });
+  const matchedThread = makeThread({
+    v2Handoff: { available: true, reason: '' },
+    v2Testability: {
+      noteConversationId: 't-1',
+      bookingPatientId: 'patient-canonical-1',
+    },
+  });
   api.render(makeCtx({ laneThreads: [matchedThread], allThreads: [matchedThread], selected: matchedThread }));
 
   const root = document.getElementById('cco-conv-v2-root');
@@ -492,6 +498,51 @@ test('v2-skalet: bekräftad patientmatchning öppnar trådscopade handoffar', ()
     const button = root.querySelector('[data-v2-action="' + action + '"]');
     assert.equal(button.disabled, false, action + ' ska vara möjlig vid exakt patientmatchning');
   }
+  for (const button of root.querySelectorAll('[data-v2-action="note"]')) {
+    assert.equal(button.getAttribute('data-note-conversation-id'), 't-1');
+  }
+  assert.equal(
+    root.querySelector('[data-v2-thread] .action-btn--booking').getAttribute('data-booking-context-patient-id'),
+    'patient-canonical-1',
+    'den faktiska bokningsåtgärden ska bära samma kanoniska patientkontext som handoffen'
+  );
+});
+
+test('v2-skalet: testbarhetsmarkörer läcker inte patient-id för oklar eller publik kontext', () => {
+  const { document, api } = loadShell();
+  const unknownThread = makeThread({
+    v2Handoff: { available: false, reason: 'Granskning krävs.' },
+    v2Testability: {
+      noteConversationId: 't-1',
+      bookingPatientId: 'patient-far-inte-lacka',
+    },
+  });
+  api.render(makeCtx({ laneThreads: [unknownThread], allThreads: [unknownThread], selected: unknownThread }));
+
+  const root = document.getElementById('cco-conv-v2-root');
+  assert.equal(
+    root.querySelector('[data-v2-action="note"]').getAttribute('data-note-conversation-id'),
+    't-1',
+    'smart anteckning ska kunna bindas till vald tråd även när patienten granskas'
+  );
+  assert.equal(
+    root.querySelector('[data-v2-action="booking"]').hasAttribute('data-booking-context-patient-id'),
+    false,
+    'oklar matchning får aldrig exponera ett boknings-/patient-id'
+  );
+
+  const publicThread = makeThread({ v2Handoff: { available: true, reason: '' } });
+  api.render(makeCtx({ laneThreads: [publicThread], allThreads: [publicThread], selected: publicThread }));
+  assert.equal(
+    root.querySelector('[data-v2-action="note"]').hasAttribute('data-note-conversation-id'),
+    false,
+    'utan autentiserad testbarhetskontext exponeras ingen trådmarkör'
+  );
+  assert.equal(
+    root.querySelector('[data-v2-action="booking"]').hasAttribute('data-booking-context-patient-id'),
+    false,
+    'utan autentiserad testbarhetskontext exponeras ingen patientmarkör'
+  );
 });
 
 test('v2-skalet: HTML-mail renderas sandboxat, utan Outlook-notis eller rå CID', () => {

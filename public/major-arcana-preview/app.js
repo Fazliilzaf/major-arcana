@@ -40242,15 +40242,25 @@
     const selected = scoped.find((thread) =>
       runtimeConversationIdsMatch(runtimeThreadKey(thread), runtimeThreadKey(selectedCandidate))
     ) || null;
+    const selectedHandoffContext = selected ? buildV2ThreadHandoffContext(selected) : null;
     const selectedForV2 = selected
       ? {
           ...selected,
-          v2Handoff: buildV2ThreadHandoffContext(selected)
+          v2Handoff: selectedHandoffContext
             ? { available: true, reason: "" }
             : {
                 available: false,
                 reason: "Kundkopplingen är oklar eller saknas. Öppna först Granskning.",
               },
+          // Endast redan autentiserad live-kontext får exponera de interna
+          // DOM-markörer som den skrivskyddade Block 5-harnessen jämför.
+          // Patient-id lämnas medvetet tomt utan kanonisk exakt e-postmatch.
+          v2Testability: hasLiveRuntime
+            ? {
+                noteConversationId: runtimeThreadKey(selected),
+                bookingPatientId: selectedHandoffContext?.patientId || "",
+              }
+            : {},
         }
       : null;
     window.ArcanaConversationsV2.render({
