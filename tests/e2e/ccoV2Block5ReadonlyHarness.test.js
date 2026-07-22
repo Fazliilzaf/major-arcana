@@ -8,6 +8,7 @@ const path = require('node:path');
 const HARNESS_PATH = path.join(__dirname, 'cco-v2-block5-readonly-harness.js');
 const {
   assertApprovedRun,
+  assertDossierIframeDestination,
   installReadOnlyGuard,
   isExplicitSafeSameOriginWrite,
   isSameOriginWrite,
@@ -45,6 +46,38 @@ test('Block 5-harnessen kräver uttryckligt produktionsgodkännande', () => {
   );
   assert.doesNotThrow(() => assertApprovedRun('https://arcana.hairtpclinic.com', true));
   assert.doesNotThrow(() => assertApprovedRun('http://127.0.0.1:3100', false));
+});
+
+test('Block 5-harnessen kräver samma patient i workspace-iframen och lämnar adminrouten orörd', () => {
+  assert.equal(
+    assertDossierIframeDestination({
+      topBefore: 'https://arcana.hairtpclinic.com/admin#cco',
+      topAfter: 'https://arcana.hairtpclinic.com/admin#cco',
+      workspaceSrc: '/staff?view=customers&patientId=patient-1',
+      expectedPatientId: 'patient-1',
+    }),
+    'patient-1'
+  );
+  assert.throws(
+    () =>
+      assertDossierIframeDestination({
+        topBefore: 'https://arcana.hairtpclinic.com/admin#cco',
+        topAfter: 'https://arcana.hairtpclinic.com/admin#cco',
+        workspaceSrc: '/staff?view=customers&patientId=other-patient',
+        expectedPatientId: 'patient-1',
+      }),
+    /block5\.dossier_destination_context_mismatch/
+  );
+  assert.throws(
+    () =>
+      assertDossierIframeDestination({
+        topBefore: 'https://arcana.hairtpclinic.com/admin#cco',
+        topAfter: 'https://arcana.hairtpclinic.com/staff?patientId=patient-1',
+        workspaceSrc: '/staff?view=customers&patientId=patient-1',
+        expectedPatientId: 'patient-1',
+      }),
+    /block5\.dossier_changed_top_level_admin_route/
+  );
 });
 
 test('Block 5-harnessen har en tom, exakt allowlist tills säker skrivning är bevisad', () => {
@@ -95,6 +128,10 @@ test('Block 5-harnessen returnerar bara maskerade identifierare och kräver dest
   assert.match(source, /booking_destination_context_not_observable/);
   assert.match(source, /await booking\.click\(\)/);
   assert.match(source, /assertDossierHandoff/);
+  assert.match(source, /#ccoPreviewEmbedFrame/);
+  assert.match(source, /dossier_changed_top_level_admin_route/);
+  assert.doesNotMatch(source, /page\.waitForURL\(/);
+  assert.doesNotMatch(source, /page\.url\(\)/);
   assert.match(source, /assertCalendarHandoff/);
   assert.match(source, /assertReviewHasNoHandoff/);
   assert.match(source, /x-arcana-preview-integrity/);

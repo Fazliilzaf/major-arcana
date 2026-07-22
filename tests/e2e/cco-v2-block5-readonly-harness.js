@@ -19,6 +19,7 @@ const SAFE_SAME_ORIGIN_WRITES = Object.freeze([]);
 const V2_MENU = '[data-cco-more="konversationer_v2_preview"]';
 const V2_FRAME = 'iframe[src*="conversations=v2"]';
 const V2_ROOT = '#cco-conv-v2-root';
+const WORKSPACE_FRAME = '#ccoPreviewEmbedFrame';
 const INBOX_THREAD = '[data-v2-inbox] [data-thread-id]';
 const BOOKING_ACTION = '[data-v2-thread] [data-v2-action="booking"]';
 const DOSSIER_ACTION = '[data-v2-ctx] [data-v2-action="dossier"]';
@@ -172,14 +173,53 @@ async function assertNoteUsesSelectedThread(frame) {
   return { selectedThread: mask(selectedConversationId) };
 }
 
+function assertDossierIframeDestination({ topBefore, topAfter, workspaceSrc, expectedPatientId }) {
+  const before = new URL(topBefore);
+  const after = new URL(topAfter);
+  if (
+    before.pathname !== '/admin' ||
+    before.hash !== '#cco' ||
+    after.pathname !== '/admin' ||
+    after.hash !== '#cco'
+  ) {
+    fail('block5.dossier_changed_top_level_admin_route');
+  }
+
+  const destination = new URL(workspaceSrc, after.origin);
+  const actualPatientId = destination.searchParams.get('patientId');
+  if (!actualPatientId || actualPatientId !== expectedPatientId) {
+    fail('block5.dossier_destination_context_mismatch');
+  }
+  return actualPatientId;
+}
+
 async function assertDossierHandoff(page, frame, expectedPatientId) {
+  const topBefore = await page.locator('html').evaluate(() => window.location.href);
   await frame.locator('[data-v2-ctx-toggle]').click();
   const dossier = frame.locator(DOSSIER_ACTION).first();
   if (await dossier.isDisabled()) fail('block5.dossier_unavailable_for_canonical_thread');
   await dossier.click();
-  await page.waitForURL((url) => url.searchParams.get('patientId') === expectedPatientId);
-  const actualPatientId = new URL(page.url()).searchParams.get('patientId');
-  if (actualPatientId !== expectedPatientId) fail('block5.dossier_destination_context_mismatch');
+  await page.waitForFunction(
+    ({ patientId }) => {
+      const workspace = document.querySelector('#ccoPreviewEmbedFrame');
+      const src = workspace?.getAttribute('src');
+      if (!src) return false;
+      try {
+        return new URL(src, window.location.href).searchParams.get('patientId') === patientId;
+      } catch (_) {
+        return false;
+      }
+    },
+    { patientId: expectedPatientId }
+  );
+  const workspaceSrc = await page.locator(WORKSPACE_FRAME).getAttribute('src');
+  const topAfter = await page.locator('html').evaluate(() => window.location.href);
+  const actualPatientId = assertDossierIframeDestination({
+    topBefore,
+    topAfter,
+    workspaceSrc,
+    expectedPatientId,
+  });
   return { patient: mask(actualPatientId) };
 }
 
@@ -287,6 +327,7 @@ module.exports = {
   SAFE_SAME_ORIGIN_WRITES,
   assertApprovedRun,
   assertBookingHandoff,
+  assertDossierIframeDestination,
   assertNoteUsesSelectedThread,
   assertPreviewIntegrity,
   installReadOnlyGuard,
