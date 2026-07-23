@@ -42,7 +42,10 @@ test('PR5: Klar/Senare/Återöppna-knappar finns i bottom action bar', () => {
 
 test('PR5: knapparna wire:as till rätt backend-action', () => {
   assert.match(source, /action === 'klar'\) runConversationAction\('handled'\)/);
-  assert.match(source, /action === 'senare'\) openSenarePanel\(\)/);
+  // runCcoAction forwardar presetContext enhetligt till alla panel-öppnare så
+  // V2 kan mata in sin trådkontext (openSenarePanel ignorerar arg:et; övriga
+  // paneler använder det). Legacy admin#cco-beteendet är oförändrat.
+  assert.match(source, /action === 'senare'\) openSenarePanel\(presetContext\)/);
   assert.match(source, /action === 'reopen'\) runConversationAction\('reopen'\)/);
 });
 

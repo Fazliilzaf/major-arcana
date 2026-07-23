@@ -23,11 +23,13 @@ function compact(src) {
 }
 
 test('PR16: mus och keyboard använder samma centrala CCO-action-router', () => {
-  assert.match(source, /function runCcoAction\(action\)/);
-  assert.match(source, /action === 'bokningsyta'\) openBokningsyta\(\)/);
-  assert.match(source, /action === 'smart-anteckning'\) openSmartAnteckning\(\)/);
-  assert.match(source, /action === 'kalender'\) openKalender\(\)/);
-  assert.match(source, /action === 'senare'\) openSenarePanel\(\)/);
+  // runCcoAction tar och forwardar presetContext till panel-öppnarna (så V2 kan
+  // mata in trådkontext); legacy mus/keyboard-dispatchen anropar utan preset.
+  assert.match(source, /function runCcoAction\(action, presetContext\)/);
+  assert.match(source, /action === 'bokningsyta'\) openBokningsyta\(presetContext\)/);
+  assert.match(source, /action === 'smart-anteckning'\) openSmartAnteckning\(presetContext\)/);
+  assert.match(source, /action === 'kalender'\) openKalender\(presetContext\)/);
+  assert.match(source, /action === 'senare'\) openSenarePanel\(presetContext\)/);
 
   assert.match(source, /runCcoAction\('bokningsyta'\)/);
   assert.match(source, /runCcoAction\('smart-anteckning'\)/);

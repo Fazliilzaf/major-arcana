@@ -30,8 +30,10 @@ test('Svarstudio opens with selected live conversation context when available', 
     compactSource(source),
     /openSvarstudio\( presetContext \|\| getLiveConversationContext\(\) \|\| getVisibleConversationContext\(\) \)/
   );
-  assert.match(source, /if \(action === 'svarstudio'\) openSvarstudioForSelectedThread\(\);/);
-  assert.match(source, /openSvarstudioForSelectedThread\(\);/);
+  // runCcoAction forwardar presetContext (V2:s trådkontext); panelTabs-fliken
+  // anropar fortfarande utan preset (getLiveConversationContext tar vid).
+  assert.match(source, /if \(action === 'svarstudio'\) openSvarstudioForSelectedThread\(presetContext\);/);
+  assert.match(source, /openSvarstudioForSelectedThread\(\)/);
 });
 
 test('Svarstudio falls back to visible CCO thread instead of old GetAccept demo', () => {
