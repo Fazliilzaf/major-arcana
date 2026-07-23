@@ -42,7 +42,12 @@ jobs:
         run: npm run lint:no-bypass
 
       - name: Unit tests
-        run: npm test
+        # Hela sviten går på ~45s lokalt; per-test-timeouten (--test-timeout i
+        # test:unit) failar ett hängande test på 60s. Den här helsvit-guarden är
+        # bälte-och-hängslen: fångar hängningar UTANFÖR ett test() (hooks, öppna
+        # handtag) och failar steget tydligt (non-zero exit) i stället för att tyst
+        # äta jobbets 15-min-budget och maska riktiga fel.
+        run: timeout --preserve-status 600 npm test
 
       - name: Smoke (local)
         run: npm run smoke:local
