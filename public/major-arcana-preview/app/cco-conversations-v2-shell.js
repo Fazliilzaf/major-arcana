@@ -1526,6 +1526,9 @@
     try {
       var api = global.CCOBottomActions;
       if (api && typeof api.run === 'function') {
+        // Stäng en ev. öppen fallback-workbench först så inte två overlays visas
+        // samtidigt (om användaren hann öppna fallbacken innan launchern laddats).
+        closeStudio();
         var studioEmail = text(
           thread.customerEmail || thread.contactEmail || (thread.from && thread.from.address)
         );
