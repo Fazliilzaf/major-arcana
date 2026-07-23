@@ -1851,6 +1851,41 @@
           // korskontaminering mellan kunder).
           const editor = document.getElementById('noteEditor');
           if (editor && name) editor.textContent = '';
+          // Kundkontext-kortet (höger operatörsstöd) band tidigare bara ctx-baren
+          // → visade hårdkodad demo-kund ("Anna Karlsson") på riktig tråd. Bind
+          // identiteten till vald kund. De hårdkodade demo-ATTRIBUTEN (chips,
+          // stat-rad, AI-råd) kan inte härledas ur trådkontexten — dölj dem hellre
+          // än att tillskriva en annan kund Annas påhittade fakta (patientsäkerhet).
+          // Fabricerade demo-widgets (attribut-chips, stat-rad, AI-råd/-sammanfattning)
+          // och demo-notlistan kan inte härledas ur trådkontexten. Dölj/neutralisera
+          // dem så fort panelen får en (inbäddad) kontext — ÄVEN utan löst namn — så
+          // Annas påhittade fakta aldrig visas på en riktig tråd (patientsäkerhet).
+          ['.kk-card .kk-chips', '.kk-card .kk-metaline', '.kk-card .kk-ai', '.ai-summary'].forEach(
+            function (sel) {
+              const node = document.querySelector(sel);
+              if (node) node.style.display = 'none';
+            }
+          );
+          // Demo-listan av "tidigare anteckningar" är hårdkodade kunder (Anna m.fl.).
+          // För en riktig tråd finns inga laddade tidigare noter → ärlig tomstatus.
+          const notesList = document.getElementById('notesList');
+          if (notesList) {
+            notesList.innerHTML =
+              '<div class="nl-empty" style="padding:10px 2px;color:var(--muted,#8a8a8a);font-size:13px">Inga tidigare anteckningar laddade för den här kunden.</div>';
+          }
+          // Identiteten binds till vald kund när namnet är löst (annars neutral).
+          const resolved = Boolean(name) && name !== 'Vald kund';
+          const headerTitle = document.querySelector('header h2');
+          if (headerTitle && resolved) {
+            const subj = String(context.subject || '').trim();
+            headerTitle.textContent = subj ? name + ' · ' + subj : name;
+          }
+          const kkNameEl = document.getElementById('kkName');
+          if (kkNameEl) kkNameEl.textContent = resolved ? name : 'Vald kund';
+          const kkAvatarEl = document.querySelector('.kk-card .kk-avatar');
+          if (kkAvatarEl) kkAvatarEl.textContent = resolved ? initialsOf(name) : '–';
+          const resaTitle = document.querySelector('.links-title');
+          if (resaTitle && resolved) resaTitle.textContent = name.split(/\s+/)[0] + 's resa';
         }
         // 1) URL-query (små fält) — direkt render innan postMessage hinner fram.
         try {

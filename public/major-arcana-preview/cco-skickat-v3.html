@@ -1834,7 +1834,32 @@
           if (!context || typeof context !== 'object') return;
           window.CCO_SKICKAT_CONTEXT = context;
           var name = String(context.customerName || '').trim();
-          if (!name || name === 'Vald kund') return;
+          // Kundkontext-kortet (höger operatörsstöd) band inte kunden → visade
+          // hårdkodad demo ("Anna Karlsson") på riktig tråd. Så fort panelen får
+          // en (inbäddad) kontext döljs de fabricerade demo-attributen — ÄVEN när
+          // namnet är platshållaren "Vald kund" — så Annas påhittade fakta aldrig
+          // visas på en riktig tråd. Namnet binds till vald kund när det är löst.
+          ['.kk-card .kk-chips', '.kk-card .kk-metaline', '.kk-card .kk-ai'].forEach(function (sel) {
+            var node = document.querySelector(sel);
+            if (node) node.style.display = 'none';
+          });
+          var resolved = Boolean(name) && name !== 'Vald kund';
+          var kkNameEl = document.querySelector('.kk-card .kk-name');
+          if (kkNameEl) kkNameEl.textContent = resolved ? name : 'Vald kund';
+          var kkAvatarEl = document.querySelector('.kk-card .kk-avatar');
+          if (kkAvatarEl) {
+            kkAvatarEl.textContent = resolved
+              ? (name
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .map(function (w) {
+                    return w[0] || '';
+                  })
+                  .join('')
+                  .slice(0, 2) || '–').toUpperCase()
+              : '–';
+          }
+          if (!resolved) return;
           var search = document.querySelector('input[placeholder="Sök skickat…"]');
           if (search) {
             search.value = name;
