@@ -144,7 +144,9 @@ test('PR4: Smart anteckning-knappen öppnar v3 via same-origin (ingen file://)',
   assert.match(source, /function buildSmartAnteckningContext\(\)/);
   assert.match(compact(source), /const src = SMART_ANTECKNING_V3_SRC \+/);
   assert.match(source, /el\(\s*'iframe'/);
-  assert.match(source, /action === 'smart-anteckning'\) openSmartAnteckning\(\)/);
+  // runCcoAction forwardar presetContext (definitionen ignorerar arg:et) så V2
+  // kan mata in trådkontext; legacy-dispatchen anropar fortfarande utan preset.
+  assert.match(source, /action === 'smart-anteckning'\) openSmartAnteckning\(presetContext\)/);
 });
 
 test('PR4: legacy "Välj läge"-flödet är borttaget (inte standardflöde)', () => {

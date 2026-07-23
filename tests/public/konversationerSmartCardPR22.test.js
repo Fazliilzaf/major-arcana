@@ -76,8 +76,9 @@ test('PR22: knapparna postMess:ar till föräldern (origin-validerat)', () => {
 // ── Föräldern kör Kunddossiér (patienthub) ───────────────────────────────────
 
 test('PR22: runCcoAction hanterar patienthub (Kunddossiér) och signaturer', () => {
-  assert.match(source, /action === 'patienthub'\) openPatientHub\(\)/);
-  assert.match(source, /action === 'signaturer'\) openSignaturer\(\)/);
+  // presetContext forwardas till panel-öppnarna för V2:s trådkontext.
+  assert.match(source, /action === 'patienthub'\) openPatientHub\(presetContext\)/);
+  assert.match(source, /action === 'signaturer'\) openSignaturer\(presetContext\)/);
 });
 
 // ── Avsiktlig visuell ändring (tripwire skippar) ─────────────────────────────

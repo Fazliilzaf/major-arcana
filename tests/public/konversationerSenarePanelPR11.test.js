@@ -33,7 +33,9 @@ function compact(src) {
 test('PR11: Lägg senare öppnar Senare v3-panelen (inte direkt reply_later)', () => {
   assert.match(source, /const SENARE_V3_SRC = '\/major-arcana-preview\/cco-senare-v3\.html'/);
   assert.match(source, /function openSenarePanel\(\)/);
-  assert.match(source, /action === 'senare'\) openSenarePanel\(\)/);
+  // runCcoAction forwardar presetContext (openSenarePanel ignorerar arg:et);
+  // knappen öppnar fortfarande Senare-panelen, inte en direkt reply_later.
+  assert.match(source, /action === 'senare'\) openSenarePanel\(presetContext\)/);
   // ett-klicks-snoozen är borta från bottenknappen
   assert.doesNotMatch(source, /action === 'senare'\) runConversationAction/);
   assert.match(compact(source), /const src = SENARE_V3_SRC \+/);

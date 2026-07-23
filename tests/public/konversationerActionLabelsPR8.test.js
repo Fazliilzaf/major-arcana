@@ -51,11 +51,14 @@ test('PR8: data-action-värden (funktionen) är oförändrade', () => {
 
 test('PR8: action-handlers i bottom-actions.js oförändrade', () => {
   // PR 11 — "Lägg senare" öppnar Senare-panelen (reply_later körs vid Bekräfta).
-  assert.match(actions, /action === 'senare'\) openSenarePanel\(\)/);
+  // runCcoAction forwardar presetContext enhetligt till panel-öppnarna så V2 kan
+  // mata in sin trådkontext; legacy admin#cco-beteendet (klick → panel) är
+  // oförändrat eftersom legacy-dispatchen anropar utan preset.
+  assert.match(actions, /action === 'senare'\) openSenarePanel\(presetContext\)/);
   assert.match(actions, /action === 'klar'\) runConversationAction\('handled'\)/);
   assert.match(actions, /action === 'reopen'\) runConversationAction\('reopen'\)/);
-  assert.match(actions, /action === 'bokningsyta'\) openBokningsyta\(\)/);
-  assert.match(actions, /action === 'kalender'\) openKalender\(\)/);
+  assert.match(actions, /action === 'bokningsyta'\) openBokningsyta\(presetContext\)/);
+  assert.match(actions, /action === 'kalender'\) openKalender\(presetContext\)/);
 });
 
 // ── Vänsterpanelens filter oförändrade ───────────────────────────────────────

@@ -43,7 +43,8 @@ test('PR12: Öppna bokning pekar på cco-ny-bokning.html via same-origin', () =>
   assert.doesNotMatch(source, /file:\/\//, 'ingen file:// som mål');
   assert.match(source, /function openBokningsyta\(\)/);
   assert.match(compact(source), /const src = BOOKING_SRC \+/);
-  assert.match(source, /action === 'bokningsyta'\) openBokningsyta\(\)/);
+  // runCcoAction forwardar presetContext (definitionen ignorerar arg:et) för V2:s trådkontext.
+  assert.match(source, /action === 'bokningsyta'\) openBokningsyta\(presetContext\)/);
 });
 
 test('PR12: bokning öppnas i iframe-panel (openModal wide) med kontext', () => {

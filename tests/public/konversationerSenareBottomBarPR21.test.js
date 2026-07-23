@@ -65,12 +65,14 @@ test('PR21: admin#cco lyssnar på cco:panel:action och kör runCcoAction', () =>
 });
 
 test('PR21: runCcoAction dispatchar alla 7 actions', () => {
-  assert.match(source, /action === 'svarstudio'\) openSvarstudioForSelectedThread\(\)/);
-  assert.match(source, /action === 'bokningsyta'\) openBokningsyta\(\)/);
-  assert.match(source, /action === 'smart-anteckning'\) openSmartAnteckning\(\)/);
-  assert.match(source, /action === 'kalender'\) openKalender\(\)/);
+  // Panel-öppnarna får presetContext forwardad (för V2:s trådkontext); klar/reopen
+  // är oförändrade. Fler paneler tillkom senare (makron/skickat/portal/no-show).
+  assert.match(source, /action === 'svarstudio'\) openSvarstudioForSelectedThread\(presetContext\)/);
+  assert.match(source, /action === 'bokningsyta'\) openBokningsyta\(presetContext\)/);
+  assert.match(source, /action === 'smart-anteckning'\) openSmartAnteckning\(presetContext\)/);
+  assert.match(source, /action === 'kalender'\) openKalender\(presetContext\)/);
   assert.match(source, /action === 'klar'\) runConversationAction\('handled'\)/);
-  assert.match(source, /action === 'senare'\) openSenarePanel\(\)/);
+  assert.match(source, /action === 'senare'\) openSenarePanel\(presetContext\)/);
   assert.match(source, /action === 'reopen'\) runConversationAction\('reopen'\)/);
 });
 
