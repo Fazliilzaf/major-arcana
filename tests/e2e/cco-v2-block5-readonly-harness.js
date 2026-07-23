@@ -394,7 +394,18 @@ function waitForLaneRetry() {
   return new Promise((resolve) => setTimeout(resolve, V2_LANE_RETRY_DELAY_MS));
 }
 
-async function selectExactlyOneV2Lane(frame, selector) {
+async function selectExactlyOneV2Lane(
+  frame,
+  selector,
+  { waitTimeoutMs = BLOCK5_STAGE_TIMEOUT_MS } = {}
+) {
+  const initialControls = frame.locator(selector);
+  try {
+    await initialControls.waitFor({ state: 'visible', timeout: waitTimeoutMs });
+  } catch (error) {
+    if (isTimeoutError(error)) return false;
+    throw error;
+  }
   for (let attempt = 0; attempt < V2_LANE_SELECTION_MAX_ATTEMPTS; attempt += 1) {
     const controls = frame.locator(selector);
     const count = await controls.count();
@@ -421,7 +432,7 @@ async function prepareV2Inbox(
   // persisted lane or filtered tab from a prior operator session. Some
   // embedded layouts render no lane navigation at all. Without an observable
   // active-lane marker, that is inconclusive rather than an assumed All lane.
-  if (!(await selectExactlyOneV2Lane(frame, V2_ALL_LANE))) {
+  if (!(await selectExactlyOneV2Lane(frame, V2_ALL_LANE, { waitTimeoutMs: terminalTimeoutMs }))) {
     return { status: 'inconclusive', reason: 'no_lane_control_available' };
   }
   await frame.locator(V2_ALL_TAB).first().click({ timeout: BLOCK5_STAGE_TIMEOUT_MS });
