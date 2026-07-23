@@ -1533,6 +1533,18 @@
           thread.customerEmail || thread.contactEmail || (thread.from && thread.from.address)
         );
         var studioMailbox = text(thread.mailboxId || thread.mailboxAddress || thread.mailboxLabel);
+        // Trådens riktiga meddelanden i launcherns form ({dir,time,body}) — utan
+        // dessa visar mountSvarstudioV2 design-artefaktens exempel-tråd i stället
+        // för den valda konversationen.
+        var studioMessages = messageList(thread)
+          .slice(-6)
+          .map(function (message) {
+            return {
+              dir: isIncoming(message) ? 'incoming' : 'outgoing',
+              time: text(message.sentAt || message.receivedAt || message.time || message.timestamp),
+              body: messageBody(message),
+            };
+          });
         api.run('svarstudio', {
           source: 'cco-conversations-v2',
           conversationKey: threadConversationKey(thread),
@@ -1545,6 +1557,8 @@
           mailboxId: studioMailbox,
           mailboxSource: studioMailbox,
           subject: text(thread.subject),
+          latestMessages: studioMessages,
+          threadSnippet: text(thread.preview),
         });
         return;
       }

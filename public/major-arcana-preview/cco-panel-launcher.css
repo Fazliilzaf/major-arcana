@@ -1,0 +1,214 @@
+/*
+ * Panel-launcher modal-chrome för Konversationer V2.
+ *
+ * Den godkända launchern (konversationer-bottom-actions.js) appendar sin
+ * modal (.action-modal-backdrop) till document.body. I admin#cco stylas den
+ * av konversationer.html:s inline-CSS. När launchern lånas in i V2 (library-
+ * läge) saknas den CSS:en — V2:s egna modal-regler är scopade under
+ * #cco-conv-v2-root och matchar inte den body-appendade modalen. Den här filen
+ * är en TROGEN kopia av modal-chrome-reglerna ur konversationer.html (samma
+ * yttre wrapper: backdrop/frame/head/tabs/close/body/foot/workbench), med de
+ * CSS-variabler de beror på definierade lokalt så filen är självständig.
+ * Panel-INNEHÅLLET (svarstudio-v2.html m.fl.) är shadow-DOM/self-styled och
+ * påverkas inte. Rör inte konversationer.html.
+ *
+ * OBS: visuellt verifierad live (agent-miljön är utestängd från admin-hosten).
+ */
+
+.action-modal-backdrop {
+  /* Variabler som modal-chromet beror på (värden ur konversationer.html). */
+  --panel-shell-top: rgba(250, 246, 242, 0.94);
+  --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+  --panel-shell-shadow-strong:
+    0 32px 70px rgba(93, 74, 60, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --cco-color-brand: #1d1e24;
+  --cco-text-tertiary: #6a717d;
+
+  position: fixed;
+  inset: 0;
+  background: rgba(56, 40, 28, 0.32);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.action-modal {
+  background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 22px;
+  box-shadow: var(--panel-shell-shadow-strong);
+  width: 100%;
+  max-width: 720px;
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.action-modal--wide {
+  max-width: none;
+  width: 98vw;
+  height: 96vh;
+}
+.action-modal--wide .action-modal-body {
+  padding: 6px;
+}
+.action-modal-tabs {
+  display: flex;
+  gap: 14px;
+  flex-wrap: nowrap;
+  flex: 1;
+  justify-content: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 8px;
+}
+.action-modal-tabs::-webkit-scrollbar {
+  display: none;
+}
+.action-modal-tab {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 1px;
+  border-radius: 0;
+  white-space: nowrap;
+  color: var(--tab-color, #6b5d50);
+  opacity: 1;
+  border-bottom: 2px solid transparent;
+  transition:
+    opacity 0.14s ease,
+    border-color 0.14s ease;
+}
+.action-modal-tab:hover {
+  opacity: 1;
+}
+.action-modal-tab.is-active {
+  opacity: 1;
+  font-weight: 800;
+  border-bottom-color: currentColor;
+}
+.action-modal-tab:nth-child(1) { --tab-color: #b0356e; }
+.action-modal-tab:nth-child(2) { --tab-color: #6b31c9; }
+.action-modal-tab:nth-child(3) { --tab-color: #2f6595; }
+.action-modal-tab:nth-child(4) { --tab-color: #bb4779; }
+.action-modal-tab:nth-child(5) { --tab-color: #9c6210; }
+.action-modal-tab:nth-child(6) { --tab-color: #3d6e58; }
+.action-modal-tab:nth-child(7) { --tab-color: #b94a4a; }
+.action-modal-tab:nth-child(8) { --tab-color: #556074; }
+.action-modal-tab:nth-child(9) { --tab-color: #286b6b; }
+.action-modal-tab:nth-child(10) { --tab-color: #9c2c62; }
+.action-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(187, 159, 122, 0.18);
+}
+.action-modal-head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+.action-modal-close {
+  background: transparent;
+  border: 0;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--cco-text-tertiary);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+.action-modal-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+.action-modal-body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+.action-modal-foot {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(187, 159, 122, 0.18);
+  flex-wrap: wrap;
+}
+@media (max-width: 720px) {
+  .action-modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .action-modal {
+    max-width: 100%;
+    border-radius: 22px 22px 0 0;
+  }
+  .action-modal-foot {
+    flex-direction: column-reverse;
+  }
+  .action-modal-foot button {
+    width: 100%;
+  }
+}
+
+/* Workbench-modal (Svarstudio) */
+.action-modal--workbench {
+  max-width: none;
+  width: 98vw;
+  height: 96vh;
+  max-height: 96vh;
+  background: linear-gradient(180deg, rgba(252, 248, 242, 0.98), rgba(248, 242, 234, 0.94));
+  border-radius: 24px;
+  box-shadow:
+    0 40px 90px rgba(93, 74, 60, 0.22),
+    0 18px 40px rgba(93, 74, 60, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+}
+.action-modal--workbench .action-modal-head {
+  padding: 18px 24px;
+  background: linear-gradient(180deg, rgba(255, 252, 246, 0.92), rgba(250, 244, 235, 0.78));
+  border-bottom: 1px solid rgba(187, 159, 122, 0.16);
+  border-radius: 24px 24px 0 0;
+  gap: 10px;
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+.action-modal--workbench .action-modal-head h3 {
+  font-family: 'Cormorant Garamond', 'Iowan Old Style', Inter, serif;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--cco-color-brand);
+}
+.action-modal--workbench .action-modal-tabs {
+  order: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+  padding: 0 8px;
+}
+.action-modal--workbench .wb-head-chips {
+  order: 9;
+  flex-basis: 100%;
+  justify-content: flex-start;
+}
+.wb-head-chips {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+@media (max-width: 880px) {
+  .action-modal--workbench {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 22px 22px 0 0;
+  }
+}
