@@ -33,7 +33,8 @@ test('PR10: Öppna kalender pekar på /kalender.html (inte v8-preview)', () => {
   assert.doesNotMatch(source, /cco-kalender-v8/);
   assert.match(source, /function openKalender\(\)/);
   assert.match(compact(source), /const src = KALENDER_SRC \+/);
-  assert.match(source, /action === 'kalender'\) openKalender\(\)/);
+  // runCcoAction forwardar presetContext (definitionen ignorerar arg:et) för V2:s trådkontext.
+  assert.match(source, /action === 'kalender'\) openKalender\(presetContext\)/);
 });
 
 test('PR10: kalendern öppnas i iframe-panel (openModal wide)', () => {

@@ -44,7 +44,8 @@ test('PR13: Notiser-klocka finns i risk-badge-raden (inte bottom action)', () =>
 test('PR13: klockan wire:as till openNotiser (panel)', () => {
   assert.match(source, /const NOTISER_V3_SRC = '\/major-arcana-preview\/cco-notiser-v3\.html'/);
   assert.match(source, /function openNotiser\(\)/);
-  assert.match(source, /action === 'notiser'\) openNotiser\(\)/);
+  // runCcoAction forwardar presetContext (definitionen ignorerar arg:et) för V2:s trådkontext.
+  assert.match(source, /action === 'notiser'\) openNotiser\(presetContext\)/);
   assert.match(compact(source), /const src = NOTISER_V3_SRC \+/);
   assert.match(
     compact(source),
