@@ -40397,12 +40397,21 @@
         },
         openDossier(thread) {
           try {
-            // Kunddossiér via admin#cco:s launcher (cco-patient-hub-v3), samma
-            // panel som admin-bubblan. Alltid öppningsbar (som admin#cco);
-            // panelen sköter kundvalet. Trådkontext via CCOLiveConversationContext.
+            selectV2HandoffThread(thread);
+            // Prioritera den LIVE v12-kundarbetsytan (patient-master) via trådens
+            // kanoniska patient.id — det som flödar genom hela CCO. Bara vid en
+            // bekräftad, exakt patientmatch finns ett patient.id; då deep-länkar
+            // vi in i den redan live kundvyn (arcana:cco-open-customer-dossier),
+            // i stället för demo-prototypen cco-patient-hub-v3.
+            const handoff = buildV2ThreadHandoffContext(thread);
+            if (handoff && handoff.patientId) {
+              return openV2CustomerDossier(thread);
+            }
+            // Utan bekräftad patient finns ingen kanonisk patient.id → v12 kan
+            // inte scopas säkert. Fall tillbaka till admin#cco:s panel, som
+            // sköter kundvalet/granskningen (aldrig en auto-skriven koppling).
             const dossierLauncher = window.CCOBottomActions;
             if (dossierLauncher && typeof dossierLauncher.run === "function") {
-              selectV2HandoffThread(thread);
               dossierLauncher.run("patienthub");
               return null;
             }
