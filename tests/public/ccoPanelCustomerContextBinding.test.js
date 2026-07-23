@@ -37,7 +37,27 @@ for (const file of [
       /(getElementById\('kkName'\)|querySelector\('\.kk-card \.kk-name'\))/,
       `${file}: applyContext ska binda kundkortets namn`
     );
-    assert.match(body, /\.textContent = name/, `${file}: kundkortets namn ska sättas till vald kund`);
+    // Kundkortets namn binds till löst kund-namn (annars neutral platshållare).
+    assert.match(
+      body,
+      /textContent = resolved \? name/,
+      `${file}: kundkortets namn ska sättas till vald kund (löst namn)`
+    );
+    // Fabricerade demo-widgets döljs ÄVEN utan löst namn (Bugbot #81c5c888) —
+    // dölj-loopen får aldrig sitta bakom en tidig retur på platshållar-namnet.
+    assert.doesNotMatch(
+      body,
+      /=== 'Vald kund'\) return;[\s\S]*\.kk-card \.kk-ai/,
+      `${file}: demo-attribut får inte döljas efter en tidig retur på "Vald kund"`
+    );
+    const earlyReturnIdx = body.indexOf('if (!resolved) return');
+    const hideIdx = body.indexOf('.kk-card .kk-ai');
+    if (earlyReturnIdx > -1) {
+      assert.ok(
+        hideIdx > -1 && hideIdx < earlyReturnIdx,
+        `${file}: demo-attribut ska döljas före den namn-gated returen`
+      );
+    }
 
     // Döljer de fabricerade demo-widgetsen (kan inte härledas ur trådkontexten).
     assert.match(
