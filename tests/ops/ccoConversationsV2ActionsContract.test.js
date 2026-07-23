@@ -54,6 +54,37 @@ test('v2 bulkytan erbjuder endast serverstödda persistenta actions', () => {
   assert.doesNotMatch(bulkSource, /assign|snooze|triage/);
 });
 
+test('v2 Dossier deep-länkar till LIVE v12-kundvyn via patient.id vid match, demo-panel bara som fallback', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+  const start = source.indexOf('openDossier(thread) {');
+  const body = source.slice(start, source.indexOf('studioGenerate', start));
+  assert.ok(start > -1, 'openDossier-handlern ska finnas');
+
+  // Vid bekräftad patientmatch (patient.id finns) prioriteras den LIVE
+  // kunddjuplänken (arcana:cco-open-customer-dossier), inte demo-prototypen.
+  const handoffIdx = body.indexOf('buildV2ThreadHandoffContext(thread)');
+  const liveIdx = body.indexOf('openV2CustomerDossier(thread)');
+  const demoIdx = body.indexOf('run("patienthub")');
+  assert.ok(handoffIdx > -1, 'openDossier ska resolva patient.id via buildV2ThreadHandoffContext');
+  assert.match(body, /if \(handoff && handoff\.patientId\)/, 'deep-länken ska gruntas på ett bekräftat patient.id');
+  assert.ok(
+    liveIdx > -1 && demoIdx > -1 && liveIdx < demoIdx,
+    'den LIVE v12-djuplänken ska komma FÖRE demo-panelen (patienthub) i openDossier'
+  );
+
+  // Deep-länken bär det kanoniska patient.id till admin-skalet (som scopar
+  // Kunder-ytan = v11 rail + v12 workspace på patient-master).
+  const dossierFn = source.slice(
+    source.indexOf('function openV2CustomerDossier(thread)'),
+    source.indexOf('function setV2ConversationActionFeedback')
+  );
+  assert.match(
+    dossierFn,
+    /type: "arcana:cco-open-customer-dossier", patientId: context\.patientId/,
+    'openV2CustomerDossier ska posta patient.id via det etablerade deep-link-kontraktet'
+  );
+});
+
 test('v2 surfar oklar kundmatchning (ambiguous) i Granskning-lanen — paritet med legacy, read-only', () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
   // Ambiguous-detektion finns och routas in i review-lanen.
