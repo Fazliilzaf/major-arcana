@@ -2776,10 +2776,26 @@ function createCcoConversationRouter({
             continue;
           }
           try {
-            const sorted = fetchSortedConversationMessages(
+            // Samma resolution som eligibility-checken och single-action-routen:
+            // truth först, sedan ingestion-fallback. Utan detta skrevs state för
+            // en web-form-/ingesterad tråd (som blev eligible via ingestion) med
+            // en TOM sorted → utan underliggande conversation-/mailbox-IDn.
+            const bulkScopeOptions = configuredMailboxIds.length
+              ? { allowedMailboxIds: configuredMailboxIds }
+              : {};
+            let sorted = fetchSortedConversationMessages(
               ccoMailboxTruthStore,
-              evaluation.conversationKey
+              evaluation.conversationKey,
+              [],
+              bulkScopeOptions
             );
+            if (sorted.length === 0) {
+              sorted = fetchSortedIngestionConversationMessagesForKeys(
+                mailIngestionStore,
+                [evaluation.conversationKey],
+                bulkScopeOptions
+              );
+            }
             await applyConversationActionState({
               ccoConversationStateStore,
               tenantId: defaultTenantId,
