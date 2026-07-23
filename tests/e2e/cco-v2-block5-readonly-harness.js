@@ -45,9 +45,6 @@ const RUNTIME_SELECTED_MAILBOX = '[data-runtime-mailbox]:checked';
 const BLOCK5_STAGE_TIMEOUT_MS = 20000;
 const BLOCK5_WARMUP_TIMEOUT_MS = 60000;
 const V2_INBOX_TERMINAL_TIMEOUT_MS = BLOCK5_STAGE_TIMEOUT_MS;
-const V2_LANE_SELECTION_MAX_ATTEMPTS = 4;
-const V2_LANE_RETRY_DELAY_MS = 75;
-const V2_LANE_CLICK_TIMEOUT_MS = 600;
 const BOOKING_ACTION = '[data-v2-thread] [data-v2-action="booking"]';
 const DOSSIER_ACTION = '[data-v2-ctx] [data-v2-action="dossier"]';
 const NOTE_ACTION = '[data-v2-thread] [data-v2-action="note"][data-note-conversation-id]';
@@ -392,12 +389,8 @@ function installWorklistResponseProbe(page, origin) {
   };
 }
 
-function isTransientLaneControlError(error) {
-  return /detached|not attached|timeout/i.test(String(error?.message || error));
-}
-
-function waitForLaneRetry() {
-  return new Promise((resolve) => setTimeout(resolve, V2_LANE_RETRY_DELAY_MS));
+function isAmbiguousLaneControlError(error) {
+  return /strict mode violation|resolved to \d+ elements/i.test(String(error?.message || error));
 }
 
 async function selectExactlyOneV2Lane(
@@ -405,28 +398,16 @@ async function selectExactlyOneV2Lane(
   selector,
   { waitTimeoutMs = BLOCK5_STAGE_TIMEOUT_MS } = {}
 ) {
-  const initialControls = frame.locator(selector);
   try {
-    await initialControls.waitFor({ state: 'visible', timeout: waitTimeoutMs });
+    // Playwright re-resolves this locator during actionability checks, so a
+    // shell re-render cannot split observation, counting, and clicking apart.
+    await frame.locator(selector).click({ timeout: waitTimeoutMs });
+    return true;
   } catch (error) {
     if (isTimeoutError(error)) return false;
+    if (isAmbiguousLaneControlError(error)) fail('block5.ambiguous_visible_lane_control');
     throw error;
   }
-  for (let attempt = 0; attempt < V2_LANE_SELECTION_MAX_ATTEMPTS; attempt += 1) {
-    const controls = frame.locator(selector);
-    const count = await controls.count();
-    if (count > 1) fail('block5.ambiguous_visible_lane_control');
-    if (count === 1) {
-      try {
-        await controls.click({ timeout: V2_LANE_CLICK_TIMEOUT_MS });
-        return true;
-      } catch (error) {
-        if (!isTransientLaneControlError(error)) throw error;
-      }
-    }
-    if (attempt + 1 < V2_LANE_SELECTION_MAX_ATTEMPTS) await waitForLaneRetry();
-  }
-  return false;
 }
 
 async function prepareV2Inbox(

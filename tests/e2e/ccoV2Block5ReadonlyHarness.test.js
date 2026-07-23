@@ -370,8 +370,6 @@ test('Block 5-harnessen väntar på fördröjd hydrering innan den väljer canon
         selector === '[data-tab="alla"]'
       ) {
         return {
-          waitFor: async () => {},
-          count: async () => 1,
           click: async () => clicks.push(selector),
           first: () => ({ click: async () => clicks.push(selector) }),
         };
@@ -410,12 +408,11 @@ test('Block 5-harnessen gör avsaknad av lane-kontroll maskerat inconclusive', a
         '#cco-conv-v2-root .lane-row[data-lane="all"]:visible, #cco-conv-v2-root .lane-chip[data-lane="all"]:visible'
       ) {
         return {
-          waitFor: async () => {
+          click: async () => {
             const error = new Error('lane did not render');
             error.name = 'TimeoutError';
             throw error;
           },
-          count: async () => 0,
         };
       }
       throw new Error(`Oväntad selector: ${selector}`);
@@ -429,7 +426,11 @@ test('Block 5-harnessen gör avsaknad av lane-kontroll maskerat inconclusive', a
 
 test('Block 5-harnessen vägrar tvetydiga synliga lane-kontroller', async () => {
   const frame = {
-    locator: () => ({ waitFor: async () => {}, count: async () => 2, click: async () => {} }),
+    locator: () => ({
+      click: async () => {
+        throw new Error('strict mode violation: locator resolved to 2 elements');
+      },
+    }),
   };
   await assert.rejects(
     selectExactlyOneV2Lane(frame, '#cco-conv-v2-root .lane-row[data-lane="all"]:visible'),
@@ -437,18 +438,15 @@ test('Block 5-harnessen vägrar tvetydiga synliga lane-kontroller', async () => 
   );
 });
 
-test('Block 5-harnessen räknar om och klickar säkert efter en render-race', async () => {
+test('Block 5-harnessen använder ett atomärt klick genom en render-race', async () => {
   let locatorCalls = 0;
   let clicks = 0;
   const frame = {
     locator: () => {
       locatorCalls += 1;
       return {
-        waitFor: async () => {},
-        count: async () => 1,
         click: async () => {
           clicks += 1;
-          if (clicks === 1) throw new Error('Element is not attached to the DOM');
         },
       };
     },
@@ -457,23 +455,16 @@ test('Block 5-harnessen räknar om och klickar säkert efter en render-race', as
     await selectExactlyOneV2Lane(frame, '#cco-conv-v2-root .lane-row[data-lane="all"]:visible'),
     true
   );
-  assert.equal(locatorCalls, 3, 'första anropet väntar på lane-renderingen före klick-retry');
-  assert.equal(clicks, 2);
+  assert.equal(locatorCalls, 1);
+  assert.equal(clicks, 1);
 });
 
-test('Block 5-harnessen väntar på första synliga lane-renderingen före den räknar', async () => {
-  let waited = false;
-  let clicks = 0;
+test('Block 5-harnessen ger det atomära lane-klicket hela stegbudgeten', async () => {
+  let clickTimeout;
   const frame = {
     locator: () => ({
-      waitFor: async ({ state, timeout }) => {
-        assert.equal(state, 'visible');
-        assert.equal(timeout, 60000);
-        waited = true;
-      },
-      count: async () => (waited ? 1 : 0),
-      click: async () => {
-        clicks += 1;
+      click: async ({ timeout }) => {
+        clickTimeout = timeout;
       },
     }),
   };
@@ -483,7 +474,21 @@ test('Block 5-harnessen väntar på första synliga lane-renderingen före den r
     }),
     true
   );
-  assert.equal(clicks, 1);
+  assert.equal(clickTimeout, 60000);
+});
+
+test('Block 5-harnessen låter vanliga lane-klickfel vara röda', async () => {
+  const frame = {
+    locator: () => ({
+      click: async () => {
+        throw new Error('lane click failed');
+      },
+    }),
+  };
+  await assert.rejects(
+    selectExactlyOneV2Lane(frame, '#cco-conv-v2-root .lane-row[data-lane="all"]:visible'),
+    /lane click failed/
+  );
 });
 
 test('Block 5-harnessen använder v2-skalets faktiska lane- och Alla-flikselektorer', () => {
