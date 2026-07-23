@@ -993,7 +993,11 @@
     var list = (ctx.laneThreads || [])
       .slice()
       .filter(function (thread) {
-        return activeFolder === 'sent' ? isSentThread(thread) : !isSentThread(thread);
+        // Default-vyn "Inkorg" visar hela den aktiva scoped kön (paritet med
+        // legacy) — den får INTE gömma en tråd bara för att kliniken svarade
+        // sist eller för att inbound-tiden saknas. "Skickat" är ett icke-
+        // uteslutande filter för delmängden isSentThread.
+        return activeFolder === 'sent' ? isSentThread(thread) : true;
       })
       .filter(function (thread) {
         if (!query) return true;

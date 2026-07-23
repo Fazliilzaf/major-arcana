@@ -306,25 +306,63 @@ test('v2-skalet: ett gammalt överbrett mailbox-scope återställs genom ett tyd
   assert.deepEqual(scopes, [['contact@hairtpclinic.com']]);
 });
 
-test('v2-skalet: Inkorg och Skickat filtrerar samma scoped trådar utan ny datakälla', () => {
+test('v2-skalet: default-Inkorg visar hela aktiva kön; Skickat filtrerar till den skickade delmängden', () => {
+  // Default-Inkorg visar hela den aktiva scoped kön (paritet med legacy),
+  // inklusive trådar där kliniken svarade sist. "Skickat" är ett icke-
+  // uteslutande filter för delmängden isSentThread. Tidigare uteslöt Inkorg
+  // allt isSentThread, vilket tömde inkorgen i en aktiv kö.
   const { window, document, api } = loadShell();
   const inboxThread = makeThread({ id: 'inbox-1', customerName: 'Inkommande' });
   const sentThread = makeThread({
     id: 'sent-1',
-    customerName: 'Skickat',
+    customerName: 'KlinikSvaradeSist',
     raw: { lastOutboundAt: '2026-06-20T11:00:00Z', lastInboundAt: '2026-06-20T10:00:00Z' },
   });
   api.render(makeCtx({ laneThreads: [inboxThread, sentThread], allThreads: [inboxThread, sentThread] }));
 
   const inbox = document.querySelector('[data-v2-inbox]');
   assert.match(inbox.textContent, /Inkommande/);
-  assert.doesNotMatch(inbox.textContent, /Skickat/);
+  assert.match(inbox.textContent, /KlinikSvaradeSist/);
 
   document
     .querySelector('[data-v2-folder="sent"]')
     .dispatchEvent(new window.Event('click', { bubbles: true }));
-  assert.match(inbox.textContent, /Skickat/);
+  assert.match(inbox.textContent, /KlinikSvaradeSist/);
   assert.doesNotMatch(inbox.textContent, /Inkommande/);
+});
+
+test('v2-skalet: default-Inkorg gömmer inte trådar när kliniken svarade sist eller inbound-tid saknas', () => {
+  // Regression: mapp-filtret klassade varje tråd där kliniken svarade sist
+  // (lastOutboundAt >= lastInboundAt) ELLER som saknade inbound-tid som
+  // "Skickat" och gömde den från default-Inkorg → hela inkorgen blev tom trots
+  // inläst data, osynligt för getRuntimeMailboxParitySnapshot().counts.
+  const now = Date.now();
+  const day = 86400000;
+  const clinicRepliedLast = makeThread({
+    id: 't-clinic-last',
+    customerName: 'Klinik Svarade Sist',
+    lastInboundAt: new Date(now - day).toISOString(),
+    lastOutboundAt: new Date(now).toISOString(),
+  });
+  const missingInbound = makeThread({
+    id: 't-missing-inbound',
+    customerName: 'Saknar Inbound',
+    lastOutboundAt: new Date(now).toISOString(),
+  });
+  const { document, api } = loadShell();
+  api.render(
+    makeCtx({
+      laneThreads: [clinicRepliedLast, missingInbound],
+      allThreads: [clinicRepliedLast, missingInbound],
+      selected: null,
+    })
+  );
+  const inbox = document.querySelector('[data-v2-inbox]');
+  assert.equal(inbox.querySelector('.inbox-empty'), null, 'default-Inkorg får inte vara tom när aktiva trådar finns');
+  const rows = inbox.querySelectorAll('.thread[data-thread-id]');
+  assert.equal(rows.length, 2, 'båda aktiva trådarna ska synas i default-Inkorg');
+  assert.match(inbox.textContent, /Klinik Svarade Sist/);
+  assert.match(inbox.textContent, /Saknar Inbound/);
 });
 
 test('v2-skalet: flikbadgar räknar hela scoped urvalet även när Bokning är aktiv', () => {
