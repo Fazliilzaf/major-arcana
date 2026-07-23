@@ -1840,6 +1840,28 @@
             search.value = name;
             search.dispatchEvent(new Event('input', { bubbles: true }));
           }
+          // Kundkontext-kortet (höger operatörsstöd) band inte kunden → visade
+          // hårdkodad demo ("Anna Karlsson") på riktig tråd. Bind identiteten till
+          // vald kund; dölj fabricerade demo-attribut (kan inte härledas ur
+          // trådkontexten) hellre än att tillskriva vald kund Annas fakta.
+          var kkName = document.querySelector('.kk-card .kk-name');
+          if (kkName) kkName.textContent = name;
+          var kkAvatar = document.querySelector('.kk-card .kk-avatar');
+          if (kkAvatar) {
+            kkAvatar.textContent =
+              (name
+                .split(/\s+/)
+                .filter(Boolean)
+                .map(function (w) {
+                  return w[0] || '';
+                })
+                .join('')
+                .slice(0, 2) || '–').toUpperCase();
+          }
+          ['.kk-card .kk-chips', '.kk-card .kk-metaline', '.kk-card .kk-ai'].forEach(function (sel) {
+            var node = document.querySelector(sel);
+            if (node) node.style.display = 'none';
+          });
         }
         try {
           var q = new URLSearchParams(window.location.search);
