@@ -40450,13 +40450,31 @@
           const key = asText(name);
           try {
             if (key === "note") {
-              // Smart anteckning är trådscopad och kan användas även när en
-              // kundmatchning behöver manuell granskning.
+              // Smart anteckning via admin#cco:s launcher (cco-smart-anteckning-v3),
+              // samma panel som admin-bubblan. Trådscopad — ingen handoff-grind
+              // (kan användas även när en kundmatchning behöver manuell granskning).
+              // Trådkontext via CCOLiveConversationContext-providern.
+              const noteLauncher = window.CCOBottomActions;
+              if (noteLauncher && typeof noteLauncher.run === "function") {
+                selectV2HandoffThread(thread || selected);
+                noteLauncher.run("smart-anteckning");
+                return;
+              }
               selectV2HandoffThread(thread || selected);
               runtimeActionEngine?.openRuntimeNote?.()?.catch?.(() => {});
               return;
             }
             if (key === "booking") {
+              // Bokning via admin#cco:s launcher (cco-ny-bokning), samma panel som
+              // admin-bubblan. Block 5-grinden behålls: öppnas bara på bekräftad
+              // patient-handoff. Trådkontext via CCOLiveConversationContext.
+              const bookingLauncher = window.CCOBottomActions;
+              if (bookingLauncher && typeof bookingLauncher.run === "function") {
+                assertV2ThreadHandoff(thread || selected);
+                selectV2HandoffThread(thread || selected);
+                bookingLauncher.run("bokningsyta");
+                return;
+              }
               return openV2BookingForThread(thread || selected);
             }
             if (key === "calendar") {
