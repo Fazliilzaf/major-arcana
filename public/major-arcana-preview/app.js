@@ -40460,6 +40460,18 @@
               return openV2BookingForThread(thread || selected);
             }
             if (key === "calendar") {
+              // Öppna admin#cco:s GODKÄNDA kalender (kalender.html) via den delade
+              // launchern — samma panel som admin-bubblan — i stället för V2:s
+              // egna full-vy-väg (setAppView), som gav en sökruta som fastnade.
+              // Block 5-grinden behålls: kalendern öppnas bara på en bekräftad
+              // patient-handoff. Trådkontexten levereras via CCOLiveConversationContext.
+              const calendarLauncher = window.CCOBottomActions;
+              if (calendarLauncher && typeof calendarLauncher.run === "function") {
+                assertV2ThreadHandoff(thread || selected);
+                selectV2HandoffThread(thread || selected);
+                calendarLauncher.run("kalender");
+                return;
+              }
               return openV2CalendarForThread(thread || selected);
             }
             if (V2_PERSISTENT_CONVERSATION_ACTIONS[key]) {
