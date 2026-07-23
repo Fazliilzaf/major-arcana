@@ -236,13 +236,15 @@ async function installReadOnlyGuard(page, origin) {
   page.on('response', onResponse);
   page.on('console', onConsole);
 
-  return async function cleanupAndAssertReadOnly({ tolerateTargetClosed = false } = {}) {
+  return async function cleanupAndAssertReadOnly({
+    tolerateTargetClosed = false,
+    preservePrimaryError = false,
+  } = {}) {
     await ignoreTargetClosed(() => page.unroute('**/*', routeHandler), tolerateTargetClosed);
     await ignoreTargetClosed(() => page.off('pageerror', onPageError), tolerateTargetClosed);
     await ignoreTargetClosed(() => page.off('requestfailed', onRequestFailed), tolerateTargetClosed);
     await ignoreTargetClosed(() => page.off('response', onResponse), tolerateTargetClosed);
     await ignoreTargetClosed(() => page.off('console', onConsole), tolerateTargetClosed);
-    if (blockedWrites) fail('block5.same_origin_write_attempted');
     const externalImageFailures = requestFailures.filter((failure) => {
       try {
         return new URL(failure.url).origin !== origin && failure.resourceType === 'image';
@@ -278,12 +280,6 @@ async function installReadOnlyGuard(page, origin) {
     ) {
       clientErrors.push('console-error');
     }
-    if (clientErrors.length) {
-      // Klassen är avsiktligt en liten fast vokabulär, aldrig feltext, URL
-      // eller annat körningsunderlag. Den gör en röd verdict felsökbar utan
-      // att harnessen blir en PII-artefakt.
-      fail(`block5.client_error_detected:${Array.from(new Set(clientErrors)).sort().join(',')}`);
-    }
     const diagnostics = {};
     if (externalImageFailures.length) {
       diagnostics.externalImageResourceFailures = externalImageFailures.length;
@@ -293,6 +289,16 @@ async function installReadOnlyGuard(page, origin) {
     }
     if (supersededReadFailures.length) {
       diagnostics.supersededReadFailures = supersededReadFailures.length;
+    }
+    // A timeout or other primary operation error must remain the reported
+    // failure. The runner closing as part of that error can abort reads.
+    if (preservePrimaryError) return diagnostics;
+    if (blockedWrites) fail('block5.same_origin_write_attempted');
+    if (clientErrors.length) {
+      // Klassen är avsiktligt en liten fast vokabulär, aldrig feltext, URL
+      // eller annat körningsunderlag. Den gör en röd verdict felsökbar utan
+      // att harnessen blir en PII-artefakt.
+      fail(`block5.client_error_detected:${Array.from(new Set(clientErrors)).sort().join(',')}`);
     }
     return diagnostics;
   };
@@ -831,7 +837,7 @@ async function runBlock5WarmCacheReadonlyHandoffOnPage({
       operationFailed,
     });
     await worklistProbe.cleanup({ tolerateTargetClosed });
-    diagnostics = await cleanup({ tolerateTargetClosed });
+    diagnostics = await cleanup({ tolerateTargetClosed, preservePrimaryError: operationFailed });
   }
   return { ...result, ...diagnostics };
 }

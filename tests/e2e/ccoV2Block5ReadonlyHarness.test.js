@@ -271,6 +271,40 @@ test('Block 5-harnessen tolererar stängd worklist-probe endast efter timeout-ca
   await assert.doesNotReject(probe.cleanup({ tolerateTargetClosed: true }));
 });
 
+test('Block 5-harnessen låter inte cleanup-resurser maskera ett primärfel', async () => {
+  const makePage = () => {
+    const handlers = {};
+    return {
+      handlers,
+      async route() {},
+      async unroute() {},
+      on(name, handler) {
+        handlers[name] = handler;
+      },
+      off() {},
+    };
+  };
+  const failedRequest = {
+    url: () => 'https://arcana.hairtpclinic.com/api/v1/cco/runtime/worklist/consumer',
+    method: () => 'GET',
+    resourceType: () => 'fetch',
+    failure: () => ({ errorText: 'net::ERR_FAILED' }),
+  };
+
+  const failedPage = makePage();
+  const failedCleanup = await installReadOnlyGuard(failedPage, 'https://arcana.hairtpclinic.com');
+  failedPage.handlers.requestfailed(failedRequest);
+  await assert.rejects(failedCleanup(), /block5\.client_error_detected:resource-failure/);
+
+  const primaryFailurePage = makePage();
+  const primaryFailureCleanup = await installReadOnlyGuard(
+    primaryFailurePage,
+    'https://arcana.hairtpclinic.com'
+  );
+  primaryFailurePage.handlers.requestfailed(failedRequest);
+  await assert.doesNotReject(primaryFailureCleanup({ preservePrimaryError: true }));
+});
+
 test('Block 5-harnessen låter cleanup bevara ett redan fångat primärfel', () => {
   assert.equal(shouldTolerateClosedCleanup(), false);
   assert.equal(shouldTolerateClosedCleanup({ timeoutCancelled: true }), true);
