@@ -502,7 +502,7 @@ test('v2-skalet: persistenta trådåtgärder visas och skickar den valda riktiga
   assert.deepEqual(actions, [{ name: 'handled', threadId: 't-1' }]);
 });
 
-test('v2-skalet: kundhandoff är fail-closed utan exakt patientmatchning', () => {
+test('v2-skalet: Bokning/Kalender/Dossier är alltid klickbara men låser aldrig obekräftad patient', () => {
   const { document, api } = loadShell();
   const unknownThread = makeThread({
     v2Handoff: {
@@ -513,11 +513,19 @@ test('v2-skalet: kundhandoff är fail-closed utan exakt patientmatchning', () =>
   api.render(makeCtx({ laneThreads: [unknownThread], allThreads: [unknownThread], selected: unknownThread }));
 
   const root = document.getElementById('cco-conv-v2-root');
+  // Knapparna beter sig som admin#cco:s bubblor: alltid klickbara. Panelen
+  // (launchern) sköter kundvalet — vi grindar inte längre på handoff.
   for (const action of ['booking', 'calendar', 'dossier']) {
     const button = root.querySelector('[data-v2-action="' + action + '"]');
-    assert.equal(button.disabled, true, action + ' ska vara avstängd utan exakt patientmatchning');
-    assert.match(button.getAttribute('title'), /Granskning/);
+    assert.equal(button.disabled, false, action + ' ska vara klickbar (som admin#cco)');
   }
+  // Fail-closed-nyansen finns kvar där det spelar roll: ingen obekräftad patient
+  // exponeras som låst boknings-/patient-id på den faktiska bokningsåtgärden.
+  assert.equal(
+    root.querySelector('[data-v2-action="booking"]').hasAttribute('data-booking-context-patient-id'),
+    false,
+    'obekräftad matchning får aldrig låsa ett boknings-/patient-id'
+  );
 });
 
 test('v2-skalet: bekräftad patientmatchning öppnar trådscopade handoffar', () => {

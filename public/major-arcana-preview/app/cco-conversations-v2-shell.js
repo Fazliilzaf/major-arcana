@@ -1222,11 +1222,11 @@
     var msgCount = messageList(thread).length;
     var pills = statusPills(thread);
     var messages = renderMessageStream(thread);
+    // handoffAvailable behålls som testbarhetssignal (bookingPatientId nedan);
+    // knapparna disablas INTE längre — Bokning/Kalender/Dossier är alltid
+    // klickbara som admin#cco:s bubblor. Panelen sköter kundvalet; obekräftad
+    // patient auto-låses aldrig (se buildLauncherThreadContext).
     var handoffAvailable = thread.v2Handoff && thread.v2Handoff.available === true;
-    var handoffReason =
-      text(thread.v2Handoff && thread.v2Handoff.reason) ||
-      'Kundkopplingen är oklar eller saknas. Öppna först Granskning.';
-    var handoffDisabled = handoffAvailable ? '' : ' disabled aria-disabled="true" title="' + esc(handoffReason) + '"';
     // Testbarhetsmarkörer kommer endast från appens redan autentiserade,
     // valda trådkontext. De ändrar inte interaktionen eller handoff-logiken.
     var testability = thread.v2Testability && typeof thread.v2Testability === 'object'
@@ -1281,9 +1281,9 @@
       '</div></div>' +
       '<div class="thread-bottom-actions" role="toolbar" aria-label="Konversations-actions">' +
       '<button class="action-btn action-btn--studio" type="button" data-v2-action="studio"><span class="action-ico">✱</span><span>Svarstudio</span></button>' +
-      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"' + bookingContextAttr + handoffDisabled + '><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
+      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"' + bookingContextAttr + '><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
       '<button class="action-btn action-btn--note" type="button" data-v2-action="note"' + noteContextAttr + '><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
-      '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"' + handoffDisabled + '><span class="action-ico">📆</span><span>Kalender</span></button>' +
+      '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"><span class="action-ico">📆</span><span>Kalender</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="handled"><span class="action-ico">✓</span><span>Markera klar</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="reply_later"><span class="action-ico">⌛</span><span>Senare</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="reopen"><span class="action-ico">↩</span><span>Återöppna</span></button>' +
@@ -1338,11 +1338,8 @@
       })
       .join('');
     var aiAction = text(thread.missingLabel) || text(thread.followUpLabel);
-    var handoffAvailable = thread.v2Handoff && thread.v2Handoff.available === true;
-    var handoffReason =
-      text(thread.v2Handoff && thread.v2Handoff.reason) ||
-      'Kundkopplingen är oklar eller saknas. Öppna först Granskning.';
-    var handoffDisabled = handoffAvailable ? '' : ' disabled aria-disabled="true" title="' + esc(handoffReason) + '"';
+    // Bokning/Dossier-pillren är alltid klickbara (som admin#cco); ingen
+    // handoff-grind. Obekräftad patient auto-låses aldrig (buildLauncherThreadContext).
     return (
       '<dl class="ctx-grid" style="padding-top:6px">' +
       gridRows +
@@ -1354,8 +1351,8 @@
           esc(aiAction) +
           '</button>'
         : '') +
-      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking"' + handoffDisabled + '>📅 Öppna bokning</button>' +
-      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier"' + handoffDisabled + '>👤 Kunddossiér</button>' +
+      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking">📅 Öppna bokning</button>' +
+      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier">👤 Kunddossiér</button>' +
       '<button class="quick-pill quick-pill--success" style="flex:1" type="button" data-v2-action="handled">✓ Markera klar</button>' +
       '</div>'
     );
@@ -1528,12 +1525,20 @@
     if (!thread) return null;
     var email = text(thread.customerEmail || thread.contactEmail || (thread.from && thread.from.address));
     var mailbox = text(thread.mailboxId || thread.mailboxAddress || thread.mailboxLabel);
+    // Nyans (fail-closed-anda utan att blockera): lås bara en BEKRÄFTAD patient
+    // som customerId. Utan bekräftad handoff skickas e-post som sökhjälp —
+    // panelen låter operatören välja/bekräfta kund, så vi agerar aldrig
+    // automatiskt på en obekräftad patient (t.ex. bokar aldrig fel patient).
+    var handoffConfirmed = thread.v2Handoff && thread.v2Handoff.available === true;
+    var confirmedPatientId = handoffConfirmed
+      ? text((thread.v2Testability && thread.v2Testability.bookingPatientId) || thread.customerId)
+      : '';
     return {
       source: 'cco-conversations-v2',
       conversationKey: threadConversationKey(thread),
       customerName: text(thread.customerName) || threadName(thread),
       email: email,
-      customerId: text(thread.customerId) || email,
+      customerId: confirmedPatientId || email,
       mailboxId: mailbox,
       mailboxSource: mailbox,
       subject: text(thread.subject),
