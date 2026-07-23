@@ -3463,6 +3463,14 @@
     return Array.isArray(value) ? value : [];
   }
 
+  // Saknades tidigare i app.js (fanns bara i portalen/servern). V2-render-vägen
+  // anropar asObject(thread?.raw)/asObject(thread?.patientMatch) i handoff-
+  // markörerna → utan definition kastades ReferenceError vid varje v2-render,
+  // vilket (via fallback + CSS-gömd legacy) blankade hela sidan.
+  function asObject(value) {
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  }
+
   function asText(value, fallback = "") {
     const normalized = String(value ?? "").trim();
     // Fas 32: [object Object]-skydd. String(plainObj) ger "[object Object]"
@@ -40498,6 +40506,18 @@
         try {
           document.getElementById("cco-conv-v2-root")?.remove();
         } catch (_removeError) {
+          /* ignore */
+        }
+        // KRITISKT: flagg-attributet html[data-conversations-v2="on"] gömmer
+        // legacy-skalet via CSS (cco-conversations-v2.css: .preview-workspace
+        // display:none !important). Utan att stänga av det ritas legacy-fallbacken
+        // in i en gömd container → HELT BLANK sida i stället för fallback. Stäng
+        // av attributet så legacy blir synlig. localStorage rörs INTE, så en
+        // omladdning återförsöker v2 (ifall felet var transient). console.warn
+        // ovan bevarar rotorsaken för diagnos.
+        try {
+          document.documentElement.setAttribute("data-conversations-v2", "off");
+        } catch (_flagError) {
           /* ignore */
         }
       }

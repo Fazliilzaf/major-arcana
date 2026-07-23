@@ -476,3 +476,28 @@ test('legacy queue-demo är neutraliserad och appen använder en explicit legacy
     'Den levande queue-markupen ska bara innehålla en tom legacy-container, inte statiska demo-kort.'
   );
 });
+
+test('v2-render-fallback stänger av flagg-attributet så legacy blir synlig (ingen blank sida)', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+  // Fånga catch-grenen i den flagg-grindade v2-render-switchen.
+  const catchIdx = source.indexOf('[conversations-v2] render misslyckades');
+  assert.notEqual(catchIdx, -1, 'Kunde inte hitta v2-render-fallbackens catch-gren.');
+  const window = source.slice(catchIdx, catchIdx + 1600);
+  assert.ok(
+    window.includes('document.documentElement.setAttribute("data-conversations-v2", "off")'),
+    'Fallbacken måste stänga av data-conversations-v2 så CSS:en inte gömmer legacy → annars blank sida.'
+  );
+});
+
+test('app.js definierar asObject (används i v2-handoff-vägen — annars ReferenceError → blank sida)', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+  assert.ok(
+    /function asObject\s*\(/.test(source),
+    'app.js måste definiera asObject; v2-render anropar asObject(thread?.raw) m.fl. i handoff-markörerna.'
+  );
+  // Varje asObject-referens i app.js ska ha en definition (ingen odefinierad helper i render-vägen).
+  assert.ok(
+    source.includes('asObject(thread?.raw)') || source.includes('asObject(thread'),
+    'förväntade att v2-handoff-vägen använder asObject på thread-objekt.'
+  );
+});
