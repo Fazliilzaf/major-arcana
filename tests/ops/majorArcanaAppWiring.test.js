@@ -501,3 +501,43 @@ test('app.js definierar asObject (används i v2-handoff-vägen — annars Refere
     'förväntade att v2-handoff-vägen använder asObject på thread-objekt.'
   );
 });
+
+test('V2 Svarstudio öppnar admin#cco:s godkända launcher, inte en egen parallell workbench', () => {
+  const shell = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app', 'cco-conversations-v2-shell.js'),
+    'utf8'
+  );
+  const launcher = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'public', 'konversationer-bottom-actions.js'),
+    'utf8'
+  );
+  const indexHtml = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'index.html'),
+    'utf8'
+  );
+
+  // Launchern exponerar panel-API + har library-guard som stänger av legacy-chrome.
+  assert.ok(launcher.includes('window.CCOBottomActions'), 'launchern måste exponera window.CCOBottomActions.');
+  assert.ok(
+    launcher.includes('__CCO_BOTTOM_ACTIONS_LIBRARY__'),
+    'launchern måste ha library-läge som stänger av legacy-chrome när den lånas in i V2.'
+  );
+  assert.ok(
+    /function runCcoAction\(action, presetContext\)/.test(launcher),
+    'runCcoAction måste ta emot och forwarda presetContext så V2 kan mata in sin trådkontext.'
+  );
+
+  // V2:s Svarstudio-knapp routar till den godkända launchern.
+  const openStudio = shell.slice(shell.indexOf('function openStudio(thread)'), shell.indexOf('function closeStudio'));
+  assert.ok(
+    openStudio.includes("api.run('svarstudio'") && openStudio.includes('CCOBottomActions'),
+    'openStudio måste öppna admin#cco:s Svarstudio via CCOBottomActions.run, inte bara sin egen workbench.'
+  );
+
+  // V2:s sida laddar den godkända launchern i library-läge.
+  assert.ok(
+    indexHtml.includes('__CCO_BOTTOM_ACTIONS_LIBRARY__ = true') &&
+      indexHtml.includes('konversationer-bottom-actions.js'),
+    'index.html måste ladda den godkända launchern i library-läge.'
+  );
+});
