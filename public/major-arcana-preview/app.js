@@ -40005,6 +40005,21 @@
     reopen: "Tråden är återöppnad.",
   });
 
+  // "Mer"-menyns paneler i V2 → den godkända launcherns (konversationer-bottom-
+  // actions.js) run()-nycklar. Varje panel öppnar EXAKT admin#cco:s panel; V2
+  // har ingen egen parallell. Nyckeln vänster är V2-actionnamnet (data-v2-action),
+  // värdet höger är launcherns action-sträng.
+  const V2_MORE_PANEL_LAUNCHER_ACTIONS = Object.freeze({
+    makron: "makron",
+    notiser: "notiser",
+    skickat: "skickat",
+    senarekopanel: "senare",
+    noshow: "noshow",
+    signering: "signaturer",
+    portal: "portalmetrics",
+    nyttmail: "nyttmail",
+  });
+
   function getV2ConversationActionTarget(thread) {
     const conversationKey = asText(
       thread?.conversationKey || thread?.raw?.conversationKey || thread?.id
@@ -40499,6 +40514,24 @@
                 return;
               }
               return openV2CalendarForThread(thread || selected);
+            }
+            // "Mer"-panelerna: samma godkända admin#cco-paneler öppnade via den
+            // delade launchern. Ingen egen V2-parallell — bara inkoppling, som
+            // Svarstudio/Bokning/Kalender/Anteckning. Trådkontext via providern.
+            const panelLauncherAction = V2_MORE_PANEL_LAUNCHER_ACTIONS[key];
+            if (panelLauncherAction) {
+              const panelLauncher = window.CCOBottomActions;
+              if (panelLauncher && typeof panelLauncher.run === "function") {
+                selectV2HandoffThread(thread || selected);
+                panelLauncher.run(panelLauncherAction);
+                return;
+              }
+              const launcherError = new Error(
+                "Panelen kräver den godkända launchern (konversationer-bottom-actions.js), som inte är laddad."
+              );
+              setV2ConversationActionFeedback(launcherError.message, "error");
+              renderRuntimeConversationShell();
+              return Promise.reject(launcherError);
             }
             if (V2_PERSISTENT_CONVERSATION_ACTIONS[key]) {
               return runV2PersistentConversationAction(key, thread || selected);

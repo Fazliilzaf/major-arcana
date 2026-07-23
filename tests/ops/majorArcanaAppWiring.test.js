@@ -541,3 +541,47 @@ test('V2 Svarstudio öppnar admin#cco:s godkända launcher, inte en egen paralle
     'index.html måste ladda den godkända launchern i library-läge.'
   );
 });
+
+test('V2 "Mer"-menyn kopplar alla åtta återstående paneler till launcherns run(), ingen egen V2-parallell', () => {
+  const appSource = fs.readFileSync(APP_PATH, 'utf8');
+  const launcher = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'public', 'konversationer-bottom-actions.js'),
+    'utf8'
+  );
+
+  // app.js mappar V2-actionnamnen till launcherns run()-nycklar.
+  const map = appSource.slice(
+    appSource.indexOf('V2_MORE_PANEL_LAUNCHER_ACTIONS = Object.freeze('),
+    appSource.indexOf('V2_MORE_PANEL_LAUNCHER_ACTIONS = Object.freeze(') + 400
+  );
+  assert.ok(map.length > 0, 'app.js måste definiera V2_MORE_PANEL_LAUNCHER_ACTIONS.');
+  for (const pair of [
+    ['makron', 'makron'],
+    ['notiser', 'notiser'],
+    ['skickat', 'skickat'],
+    ['senarekopanel', 'senare'],
+    ['noshow', 'noshow'],
+    ['signering', 'signaturer'],
+    ['portal', 'portalmetrics'],
+    ['nyttmail', 'nyttmail'],
+  ]) {
+    assert.ok(
+      new RegExp(pair[0] + ':\\s*"' + pair[1] + '"').test(map),
+      'V2_MORE_PANEL_LAUNCHER_ACTIONS saknar mappning ' + pair[0] + ' → ' + pair[1]
+    );
+  }
+  // app.js routar mappade paneler genom den godkända launchern.
+  assert.ok(
+    appSource.includes('panelLauncher.run(panelLauncherAction)'),
+    'app.js måste öppna "Mer"-panelerna via CCOBottomActions.run, inte en egen V2-yta.'
+  );
+
+  // Launchern dispatchar de fyra nycklar som tidigare saknades i runCcoAction.
+  assert.ok(/function runCcoAction/.test(launcher), 'launchern måste ha runCcoAction.');
+  for (const key of ['makron', 'skickat', 'portalmetrics', 'noshow']) {
+    assert.ok(
+      launcher.includes("action === '" + key + "'"),
+      'runCcoAction måste dispatcha ' + key + ' till motsvarande open-funktion.'
+    );
+  }
+});
