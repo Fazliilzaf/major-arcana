@@ -894,7 +894,7 @@
               <input type="checkbox" checked />
               <div class="option-text">
                 <strong>Skicka bekräftelse</strong
-                ><small>contact@hairtpclinic — Anna är van vid den</small>
+                ><small id="bkSendHint">contact@hairtpclinic — Anna är van vid den</small>
               </div>
             </label>
             <label class="option">
@@ -944,11 +944,24 @@
           if (!context || typeof context !== 'object') return;
           window.CCO_BOOKING_CONTEXT = context;
           var name = String(context.customerName || '').trim();
-          if (!name) return;
+          // Fabricerad demo-copy (bokningshistorik i .ai-hint, friskförsäkran-status
+          // i .wiz-warning, mejl-preferens) kan inte härledas ur trådkontexten. Dölj/
+          // neutralisera så fort panelen får en (inbäddad) kontext — ÄVEN utan löst
+          // namn — så Annas påhittade fakta aldrig tillskrivs vald kund (patientsäkerhet).
+          ['.ai-hint', '.wiz-warning'].forEach(function (sel) {
+            var node = document.querySelector(sel);
+            if (node) node.style.display = 'none';
+          });
+          var sendHint = document.getElementById('bkSendHint');
+          if (sendHint) {
+            var mb = String(context.mailboxId || '').trim();
+            sendHint.textContent = mb || 'Skickas till kundens mejl';
+          }
+          var resolved = Boolean(name) && name !== 'Vald kund';
           var custName = document.getElementById('bkCustName');
+          if (custName) custName.textContent = resolved ? name : 'Vald kund';
           var aiName = document.getElementById('bkAiName');
-          if (custName) custName.textContent = name;
-          if (aiName) aiName.textContent = name;
+          if (aiName) aiName.textContent = resolved ? name : 'Vald kund';
         }
         try {
           var q = new URLSearchParams(window.location.search);

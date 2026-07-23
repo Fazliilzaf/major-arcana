@@ -69,6 +69,27 @@ for (const file of [
   });
 }
 
+test('cco-ny-bokning.html: binder kundnamn och döljer fabricerad demo-copy (bokningshistorik/friskförsäkran)', () => {
+  const source = fs.readFileSync(path.join(PREVIEW, 'cco-ny-bokning.html'), 'utf8');
+  const body = applyContextBody(source);
+
+  // Binder kundnamnet i bokningssammanfattningen till vald kund.
+  assert.match(body, /getElementById\('bkCustName'\)/, 'bokning ska binda kundnamnet');
+  assert.match(body, /textContent = resolved \? name/, 'kundnamnet ska sättas till vald kund (löst namn)');
+
+  // Döljer fabricerad demo-copy (bokningshistorik + friskförsäkran-status).
+  assert.match(body, /'\.ai-hint'/, 'fabricerad bokningshistorik (.ai-hint) ska döljas');
+  assert.match(body, /'\.wiz-warning'/, 'fabricerad friskförsäkran-status (.wiz-warning) ska döljas');
+  assert.match(body, /style\.display = 'none'/, 'fabricerade demo-widgets ska döljas');
+
+  // Fabricerad copy döljs ÄVEN utan löst namn (ingen tidig retur på tomt namn före dölj).
+  assert.doesNotMatch(
+    body,
+    /if \(!name\) return;[\s\S]*\.ai-hint/,
+    'fabricerad copy får inte döljas efter en tidig retur på tomt namn'
+  );
+});
+
 test('cco-smart-anteckning-v3.html: neutraliserar demo-listan av tidigare anteckningar', () => {
   const source = fs.readFileSync(path.join(PREVIEW, 'cco-smart-anteckning-v3.html'), 'utf8');
   const body = applyContextBody(source);
