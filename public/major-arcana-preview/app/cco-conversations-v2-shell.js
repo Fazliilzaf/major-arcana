@@ -1518,6 +1518,39 @@
     return text(thread.preview);
   }
 
+  // Bygger launcherns kontext-form ur en V2-tråd. Delas av openStudio OCH den
+  // persistenta providern CCOLiveConversationContext (nedan) så launcherns egna
+  // re-entry-vägar — modal-flikar, tangentbord, cco:panel:action utan preset —
+  // också får RÄTT tråd i stället för att skrapa legacy-DOM som saknas i V2.
+  // customerId är en kund-/patient-identifierare i launchern (inte e-post) —
+  // använd trådens riktiga customerId; e-post bara som sista fallback.
+  function buildLauncherThreadContext(thread) {
+    if (!thread) return null;
+    var email = text(thread.customerEmail || thread.contactEmail || (thread.from && thread.from.address));
+    var mailbox = text(thread.mailboxId || thread.mailboxAddress || thread.mailboxLabel);
+    return {
+      source: 'cco-conversations-v2',
+      conversationKey: threadConversationKey(thread),
+      customerName: text(thread.customerName) || threadName(thread),
+      email: email,
+      customerId: text(thread.customerId) || email,
+      mailboxId: mailbox,
+      mailboxSource: mailbox,
+      subject: text(thread.subject),
+      // Trådens riktiga meddelanden i launcherns form ({dir,time,body}).
+      latestMessages: messageList(thread)
+        .slice(-6)
+        .map(function (message) {
+          return {
+            dir: isIncoming(message) ? 'incoming' : 'outgoing',
+            time: text(message.sentAt || message.receivedAt || message.time || message.timestamp),
+            body: messageBody(message),
+          };
+        }),
+      threadSnippet: text(thread.preview),
+    };
+  }
+
   function openStudio(thread) {
     if (!thread) return;
     // V2 öppnar admin#cco:s GODKÄNDA Svarstudio (svarstudio-v2.html) via den
@@ -1529,37 +1562,7 @@
         // Stäng en ev. öppen fallback-workbench först så inte två overlays visas
         // samtidigt (om användaren hann öppna fallbacken innan launchern laddats).
         closeStudio();
-        var studioEmail = text(
-          thread.customerEmail || thread.contactEmail || (thread.from && thread.from.address)
-        );
-        var studioMailbox = text(thread.mailboxId || thread.mailboxAddress || thread.mailboxLabel);
-        // Trådens riktiga meddelanden i launcherns form ({dir,time,body}) — utan
-        // dessa visar mountSvarstudioV2 design-artefaktens exempel-tråd i stället
-        // för den valda konversationen.
-        var studioMessages = messageList(thread)
-          .slice(-6)
-          .map(function (message) {
-            return {
-              dir: isIncoming(message) ? 'incoming' : 'outgoing',
-              time: text(message.sentAt || message.receivedAt || message.time || message.timestamp),
-              body: messageBody(message),
-            };
-          });
-        api.run('svarstudio', {
-          source: 'cco-conversations-v2',
-          conversationKey: threadConversationKey(thread),
-          customerName: text(thread.customerName) || threadName(thread),
-          email: studioEmail,
-          // customerId är en kund-/patient-identifierare i launchern (inte
-          // e-post) — använd trådens riktiga customerId; e-post bara som sista
-          // fallback (bättre än launcherns CUST-DEMO-default).
-          customerId: text(thread.customerId) || studioEmail,
-          mailboxId: studioMailbox,
-          mailboxSource: studioMailbox,
-          subject: text(thread.subject),
-          latestMessages: studioMessages,
-          threadSnippet: text(thread.preview),
-        });
+        api.run('svarstudio', buildLauncherThreadContext(thread));
         return;
       }
     } catch (_launcherError) {
@@ -2581,6 +2584,23 @@
     _findThreadById: findThreadById,
     _paritySnapshot: paritySnapshot,
   };
+
+  // Persistent kontext-provider för admin#cco:s panel-launcher. Launchern har
+  // en inbyggd hook: getLiveConversationContext() läser
+  // window.CCOLiveConversationContext.getContext(). När launcherns egna
+  // re-entry-vägar (modal-flikar, tangentbord, cco:panel:action utan preset)
+  // anropar openX utan kontext läser den denna i stället för att skrapa
+  // legacy-DOM (som saknas i V2). getContext läser boundCtx.selected dynamiskt
+  // så den alltid speglar V2:s aktuella tråd.
+  try {
+    global.CCOLiveConversationContext = {
+      getContext: function () {
+        return buildLauncherThreadContext(boundCtx && boundCtx.selected);
+      },
+    };
+  } catch (_providerError) {
+    /* ignore */
+  }
 
   function flagEnabled() {
     try {
