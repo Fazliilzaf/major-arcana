@@ -31,6 +31,19 @@ test('AI drafting — bundled preview calls capability endpoints', () => {
   assert.match(asyncJs, /recordDraftFeedbackFireAndForget/, 'send-path feedback hook saknas');
 });
 
+test('AI drafting — att välja en tråd genererar aldrig utkast automatiskt', () => {
+  const appJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app.js'), 'utf8');
+  const start = appJs.indexOf('function ensureStudioState(thread)');
+  const end = appJs.indexOf('\n  function setStudioFeedback', start);
+  assert.ok(start >= 0 && end > start, 'ensureStudioState ska ha ett avgränsat block');
+  const ensureStudioBlock = appJs.slice(start, end);
+  assert.doesNotMatch(
+    ensureStudioBlock,
+    /hydrateStudioDraftModesFromApi\(/,
+    'trådval måste vara läsande; AI-utkast får bara genereras från uttrycklig studioåtgärd'
+  );
+});
+
 test('index.html — care + AI scripts linked', () => {
   const html = fs.readFileSync(INDEX, 'utf8');
   assert.match(html, /cco-care-panel\.js/, 'cco-care-panel script saknas');

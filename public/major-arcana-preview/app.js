@@ -13818,9 +13818,8 @@
     );
     state.forms.studioMode = "reply";
     state.studio.replyContextThreadId = asText(thread?.id);
-    if (studioDraftModesAreEmpty(thread) && !preparedDraftModesInflight.has(asText(thread.id))) {
-      void hydrateStudioDraftModesFromApi(thread);
-    }
+    // Att välja en tråd måste vara läsande. AI-utkast genereras endast från
+    // Svarstudions uttryckliga "AI-generera utkast"-åtgärd.
     return applyTruthPrimaryStudioState(state.studio, thread);
   }
 
