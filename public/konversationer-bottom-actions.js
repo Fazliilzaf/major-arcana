@@ -3700,6 +3700,10 @@
     else if (action === 'patienthub') openPatientHub(presetContext);
     else if (action === 'signaturer') openSignaturer(presetContext);
     else if (action === 'nyttmail') openComposeNewMail(presetContext);
+    else if (action === 'makron') openMakron(presetContext);
+    else if (action === 'skickat') openSkickat(presetContext);
+    else if (action === 'portalmetrics') openPortalMetrics(presetContext);
+    else if (action === 'noshow') openNoShow(presetContext);
     else return false;
     return true;
   }

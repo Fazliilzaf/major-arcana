@@ -1222,11 +1222,11 @@
     var msgCount = messageList(thread).length;
     var pills = statusPills(thread);
     var messages = renderMessageStream(thread);
+    // handoffAvailable behålls som testbarhetssignal (bookingPatientId nedan);
+    // knapparna disablas INTE längre — Bokning/Kalender/Dossier är alltid
+    // klickbara som admin#cco:s bubblor. Panelen sköter kundvalet; obekräftad
+    // patient auto-låses aldrig (se buildLauncherThreadContext).
     var handoffAvailable = thread.v2Handoff && thread.v2Handoff.available === true;
-    var handoffReason =
-      text(thread.v2Handoff && thread.v2Handoff.reason) ||
-      'Kundkopplingen är oklar eller saknas. Öppna först Granskning.';
-    var handoffDisabled = handoffAvailable ? '' : ' disabled aria-disabled="true" title="' + esc(handoffReason) + '"';
     // Testbarhetsmarkörer kommer endast från appens redan autentiserade,
     // valda trådkontext. De ändrar inte interaktionen eller handoff-logiken.
     var testability = thread.v2Testability && typeof thread.v2Testability === 'object'
@@ -1281,13 +1281,64 @@
       '</div></div>' +
       '<div class="thread-bottom-actions" role="toolbar" aria-label="Konversations-actions">' +
       '<button class="action-btn action-btn--studio" type="button" data-v2-action="studio"><span class="action-ico">✱</span><span>Svarstudio</span></button>' +
-      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"' + bookingContextAttr + handoffDisabled + '><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
+      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"' + bookingContextAttr + '><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
       '<button class="action-btn action-btn--note" type="button" data-v2-action="note"' + noteContextAttr + '><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
-      '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"' + handoffDisabled + '><span class="action-ico">📆</span><span>Kalender</span></button>' +
+      '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"><span class="action-ico">📆</span><span>Kalender</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="handled"><span class="action-ico">✓</span><span>Markera klar</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="reply_later"><span class="action-ico">⌛</span><span>Senare</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="reopen"><span class="action-ico">↩</span><span>Återöppna</span></button>' +
+      moreMenu() +
       '</div>';
+  }
+
+  // "Mer"-menyn: de återstående admin#cco-panelerna som inte får plats i
+  // huvud-actionbaren. Varje post öppnar EXAKT admin#cco:s panel via den delade
+  // launchern (routas i app.js handlers.action → CCOBottomActions.run). Ingen
+  // egen V2-parallell. Menyn är en enkel popover som togglas i klick-delegeringen.
+  function closeMoreMenus() {
+    if (!root) return;
+    var open = root.querySelectorAll('[data-v2-more-menu]:not([hidden])');
+    for (var i = 0; i < open.length; i++) {
+      open[i].setAttribute('hidden', 'hidden');
+      var wrap = open[i].parentNode;
+      var toggle = wrap && wrap.querySelector('[data-v2-more-toggle]');
+      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function moreMenu() {
+    var items = [
+      { action: 'makron', ico: '🧩', label: 'Makron' },
+      { action: 'notiser', ico: '🔔', label: 'Notiser' },
+      { action: 'skickat', ico: '📤', label: 'Skickat / kö' },
+      { action: 'senarekopanel', ico: '🗓', label: 'Senare-kö' },
+      { action: 'noshow', ico: '🚫', label: 'No-show' },
+      { action: 'signering', ico: '✍️', label: 'Signering' },
+      { action: 'portal', ico: '★', label: 'Portal' },
+      { action: 'nyttmail', ico: '✉', label: 'Nytt mail' },
+    ];
+    var menuItems = items
+      .map(function (it) {
+        return (
+          '<button class="v2-more-item" type="button" role="menuitem" data-v2-action="' +
+          it.action +
+          '" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:13px;font-weight:600;color:#3a3a44;cursor:pointer;text-align:left">' +
+          '<span aria-hidden="true" style="width:18px;text-align:center">' +
+          it.ico +
+          '</span><span>' +
+          esc(it.label) +
+          '</span></button>'
+        );
+      })
+      .join('');
+    return (
+      '<span class="v2-more-wrap" style="position:relative;display:inline-flex">' +
+      '<button class="action-btn" type="button" data-v2-more-toggle aria-haspopup="true" aria-expanded="false"><span class="action-ico">⋯</span><span>Mer</span></button>' +
+      '<div class="v2-more-menu" data-v2-more-menu hidden role="menu" style="position:absolute;bottom:calc(100% + 8px);right:0;z-index:60;display:flex;flex-direction:column;gap:2px;min-width:200px;padding:6px;background:#fff;border:1px solid rgba(0,0,0,0.12);border-radius:14px;box-shadow:0 14px 34px rgba(60,50,40,0.22)">' +
+      menuItems +
+      '</div>' +
+      '</span>'
+    );
   }
 
   function ctxTabBody(thread) {
@@ -1338,11 +1389,8 @@
       })
       .join('');
     var aiAction = text(thread.missingLabel) || text(thread.followUpLabel);
-    var handoffAvailable = thread.v2Handoff && thread.v2Handoff.available === true;
-    var handoffReason =
-      text(thread.v2Handoff && thread.v2Handoff.reason) ||
-      'Kundkopplingen är oklar eller saknas. Öppna först Granskning.';
-    var handoffDisabled = handoffAvailable ? '' : ' disabled aria-disabled="true" title="' + esc(handoffReason) + '"';
+    // Bokning/Dossier-pillren är alltid klickbara (som admin#cco); ingen
+    // handoff-grind. Obekräftad patient auto-låses aldrig (buildLauncherThreadContext).
     return (
       '<dl class="ctx-grid" style="padding-top:6px">' +
       gridRows +
@@ -1354,8 +1402,8 @@
           esc(aiAction) +
           '</button>'
         : '') +
-      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking"' + handoffDisabled + '>📅 Öppna bokning</button>' +
-      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier"' + handoffDisabled + '>👤 Kunddossiér</button>' +
+      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="booking">📅 Öppna bokning</button>' +
+      '<button class="quick-pill" style="flex:1" type="button" data-v2-action="dossier">👤 Kunddossiér</button>' +
       '<button class="quick-pill quick-pill--success" style="flex:1" type="button" data-v2-action="handled">✓ Markera klar</button>' +
       '</div>'
     );
@@ -1528,12 +1576,20 @@
     if (!thread) return null;
     var email = text(thread.customerEmail || thread.contactEmail || (thread.from && thread.from.address));
     var mailbox = text(thread.mailboxId || thread.mailboxAddress || thread.mailboxLabel);
+    // Nyans (fail-closed-anda utan att blockera): lås bara en BEKRÄFTAD patient
+    // som customerId. Utan bekräftad handoff skickas e-post som sökhjälp —
+    // panelen låter operatören välja/bekräfta kund, så vi agerar aldrig
+    // automatiskt på en obekräftad patient (t.ex. bokar aldrig fel patient).
+    var handoffConfirmed = thread.v2Handoff && thread.v2Handoff.available === true;
+    var confirmedPatientId = handoffConfirmed
+      ? text((thread.v2Testability && thread.v2Testability.bookingPatientId) || thread.customerId)
+      : '';
     return {
       source: 'cco-conversations-v2',
       conversationKey: threadConversationKey(thread),
       customerName: text(thread.customerName) || threadName(thread),
       email: email,
-      customerId: text(thread.customerId) || email,
+      customerId: confirmedPatientId || email,
       mailboxId: mailbox,
       mailboxSource: mailbox,
       subject: text(thread.subject),
@@ -2234,7 +2290,33 @@
         }
         return;
       }
+      // ── "Mer"-meny (popover) ──
+      // Stäng en öppen meny om klicket är utanför både toggeln och menyn.
+      if (
+        !event.target.closest('[data-v2-more-menu]') &&
+        !event.target.closest('[data-v2-more-toggle]')
+      ) {
+        closeMoreMenus();
+      }
+      var moreToggle = event.target.closest('[data-v2-more-toggle]');
+      if (moreToggle) {
+        var moreWrap = moreToggle.parentNode;
+        var moreEl = moreWrap && moreWrap.querySelector('[data-v2-more-menu]');
+        if (moreEl) {
+          if (moreEl.hasAttribute('hidden')) {
+            closeMoreMenus();
+            moreEl.removeAttribute('hidden');
+            moreToggle.setAttribute('aria-expanded', 'true');
+          } else {
+            moreEl.setAttribute('hidden', 'hidden');
+            moreToggle.setAttribute('aria-expanded', 'false');
+          }
+        }
+        return;
+      }
       var actionEl = event.target.closest('[data-v2-action]');
+      // Ett menyval öppnar sin panel via handlers.action nedan; stäng menyn.
+      if (actionEl && actionEl.closest('[data-v2-more-menu]')) closeMoreMenus();
       if (actionEl && boundCtx) {
         var name = actionEl.getAttribute('data-v2-action');
         // Kunddossiér är en säker läs-/navigeringsaction och öppnar V12.

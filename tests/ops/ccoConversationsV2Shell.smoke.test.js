@@ -502,7 +502,61 @@ test('v2-skalet: persistenta trådåtgärder visas och skickar den valda riktiga
   assert.deepEqual(actions, [{ name: 'handled', threadId: 't-1' }]);
 });
 
-test('v2-skalet: kundhandoff är fail-closed utan exakt patientmatchning', () => {
+test('v2-skalet: "Mer"-menyn exponerar alla åtta admin#cco-paneler och togglas + routar via handlers.action', async () => {
+  const { window, document, api } = loadShell();
+  const actions = [];
+  const ctx = makeCtx({
+    handlers: {
+      ...makeCtx().handlers,
+      action(name, thread) {
+        actions.push({ name, threadId: thread && thread.id });
+        return Promise.resolve({ ok: true });
+      },
+    },
+  });
+  api.render(ctx);
+
+  const root = document.getElementById('cco-conv-v2-root');
+  const toggle = root.querySelector('[data-v2-thread] [data-v2-more-toggle]');
+  const menu = root.querySelector('[data-v2-thread] [data-v2-more-menu]');
+  assert.ok(toggle, '"Mer"-toggeln ska finnas i action-baren');
+  assert.ok(menu, '"Mer"-menyn ska finnas i action-baren');
+  assert.equal(menu.hasAttribute('hidden'), true, 'menyn ska vara stängd som default');
+
+  // Alla åtta återstående paneler ska finnas som menyval.
+  const expected = [
+    'makron',
+    'notiser',
+    'skickat',
+    'senarekopanel',
+    'noshow',
+    'signering',
+    'portal',
+    'nyttmail',
+  ];
+  for (const action of expected) {
+    assert.ok(
+      menu.querySelector('[data-v2-action="' + action + '"]'),
+      '"Mer"-menyn saknar panel: ' + action
+    );
+  }
+
+  // Toggeln öppnar menyn.
+  toggle.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(menu.hasAttribute('hidden'), false, 'klick på toggeln ska öppna menyn');
+  assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+
+  // Ett menyval routar via handlers.action (som i sin tur öppnar launcher-panelen)
+  // och stänger menyn.
+  menu
+    .querySelector('[data-v2-action="makron"]')
+    .dispatchEvent(new window.Event('click', { bubbles: true }));
+  await Promise.resolve();
+  assert.deepEqual(actions, [{ name: 'makron', threadId: 't-1' }]);
+  assert.equal(menu.hasAttribute('hidden'), true, 'menyn ska stängas efter ett val');
+});
+
+test('v2-skalet: Bokning/Kalender/Dossier är alltid klickbara men låser aldrig obekräftad patient', () => {
   const { document, api } = loadShell();
   const unknownThread = makeThread({
     v2Handoff: {
@@ -513,11 +567,19 @@ test('v2-skalet: kundhandoff är fail-closed utan exakt patientmatchning', () =>
   api.render(makeCtx({ laneThreads: [unknownThread], allThreads: [unknownThread], selected: unknownThread }));
 
   const root = document.getElementById('cco-conv-v2-root');
+  // Knapparna beter sig som admin#cco:s bubblor: alltid klickbara. Panelen
+  // (launchern) sköter kundvalet — vi grindar inte längre på handoff.
   for (const action of ['booking', 'calendar', 'dossier']) {
     const button = root.querySelector('[data-v2-action="' + action + '"]');
-    assert.equal(button.disabled, true, action + ' ska vara avstängd utan exakt patientmatchning');
-    assert.match(button.getAttribute('title'), /Granskning/);
+    assert.equal(button.disabled, false, action + ' ska vara klickbar (som admin#cco)');
   }
+  // Fail-closed-nyansen finns kvar där det spelar roll: ingen obekräftad patient
+  // exponeras som låst boknings-/patient-id på den faktiska bokningsåtgärden.
+  assert.equal(
+    root.querySelector('[data-v2-action="booking"]').hasAttribute('data-booking-context-patient-id'),
+    false,
+    'obekräftad matchning får aldrig låsa ett boknings-/patient-id'
+  );
 });
 
 test('v2-skalet: bekräftad patientmatchning öppnar trådscopade handoffar', () => {

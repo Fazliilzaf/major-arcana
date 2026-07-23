@@ -40005,6 +40005,21 @@
     reopen: "Tråden är återöppnad.",
   });
 
+  // "Mer"-menyns paneler i V2 → den godkända launcherns (konversationer-bottom-
+  // actions.js) run()-nycklar. Varje panel öppnar EXAKT admin#cco:s panel; V2
+  // har ingen egen parallell. Nyckeln vänster är V2-actionnamnet (data-v2-action),
+  // värdet höger är launcherns action-sträng.
+  const V2_MORE_PANEL_LAUNCHER_ACTIONS = Object.freeze({
+    makron: "makron",
+    notiser: "notiser",
+    skickat: "skickat",
+    senarekopanel: "senare",
+    noshow: "noshow",
+    signering: "signaturer",
+    portal: "portalmetrics",
+    nyttmail: "nyttmail",
+  });
+
   function getV2ConversationActionTarget(thread) {
     const conversationKey = asText(
       thread?.conversationKey || thread?.raw?.conversationKey || thread?.id
@@ -40382,6 +40397,15 @@
         },
         openDossier(thread) {
           try {
+            // Kunddossiér via admin#cco:s launcher (cco-patient-hub-v3), samma
+            // panel som admin-bubblan. Alltid öppningsbar (som admin#cco);
+            // panelen sköter kundvalet. Trådkontext via CCOLiveConversationContext.
+            const dossierLauncher = window.CCOBottomActions;
+            if (dossierLauncher && typeof dossierLauncher.run === "function") {
+              selectV2HandoffThread(thread);
+              dossierLauncher.run("patienthub");
+              return null;
+            }
             return openV2CustomerDossier(thread);
           } catch (error) {
             setV2ConversationActionFeedback(
@@ -40466,11 +40490,11 @@
             }
             if (key === "booking") {
               // Bokning via admin#cco:s launcher (cco-ny-bokning), samma panel som
-              // admin-bubblan. Block 5-grinden behålls: öppnas bara på bekräftad
-              // patient-handoff. Trådkontext via CCOLiveConversationContext.
+              // admin-bubblan. Alltid klickbar/öppningsbar (som admin#cco) —
+              // panelen sköter kundvalet, så ingen handoff-grind blockerar.
+              // Obekräftad patient auto-låses aldrig (buildLauncherThreadContext).
               const bookingLauncher = window.CCOBottomActions;
               if (bookingLauncher && typeof bookingLauncher.run === "function") {
-                assertV2ThreadHandoff(thread || selected);
                 selectV2HandoffThread(thread || selected);
                 bookingLauncher.run("bokningsyta");
                 return;
@@ -40481,16 +40505,33 @@
               // Öppna admin#cco:s GODKÄNDA kalender (kalender.html) via den delade
               // launchern — samma panel som admin-bubblan — i stället för V2:s
               // egna full-vy-väg (setAppView), som gav en sökruta som fastnade.
-              // Block 5-grinden behålls: kalendern öppnas bara på en bekräftad
-              // patient-handoff. Trådkontexten levereras via CCOLiveConversationContext.
+              // Alltid klickbar/öppningsbar (som admin#cco). Trådkontexten
+              // levereras via CCOLiveConversationContext.
               const calendarLauncher = window.CCOBottomActions;
               if (calendarLauncher && typeof calendarLauncher.run === "function") {
-                assertV2ThreadHandoff(thread || selected);
                 selectV2HandoffThread(thread || selected);
                 calendarLauncher.run("kalender");
                 return;
               }
               return openV2CalendarForThread(thread || selected);
+            }
+            // "Mer"-panelerna: samma godkända admin#cco-paneler öppnade via den
+            // delade launchern. Ingen egen V2-parallell — bara inkoppling, som
+            // Svarstudio/Bokning/Kalender/Anteckning. Trådkontext via providern.
+            const panelLauncherAction = V2_MORE_PANEL_LAUNCHER_ACTIONS[key];
+            if (panelLauncherAction) {
+              const panelLauncher = window.CCOBottomActions;
+              if (panelLauncher && typeof panelLauncher.run === "function") {
+                selectV2HandoffThread(thread || selected);
+                panelLauncher.run(panelLauncherAction);
+                return;
+              }
+              const launcherError = new Error(
+                "Panelen kräver den godkända launchern (konversationer-bottom-actions.js), som inte är laddad."
+              );
+              setV2ConversationActionFeedback(launcherError.message, "error");
+              renderRuntimeConversationShell();
+              return Promise.reject(launcherError);
             }
             if (V2_PERSISTENT_CONVERSATION_ACTIONS[key]) {
               return runV2PersistentConversationAction(key, thread || selected);
