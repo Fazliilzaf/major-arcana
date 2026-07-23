@@ -66,7 +66,7 @@ async function withServer(app, run) {
   }
 }
 
-async function createFixture({ wrapState } = {}) {
+async function createFixture({ wrapState, ingestionRawMessages = null } = {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-bulk-'));
   const auditEvents = [];
   let conversationStateStore = await createCcoConversationStateStore({
@@ -82,6 +82,9 @@ async function createFixture({ wrapState } = {}) {
     createCcoConversationRouter({
       ccoMailboxTruthStore: { listMessages: () => MESSAGES },
       ccoConversationStateStore: conversationStateStore,
+      mailIngestionStore: ingestionRawMessages
+        ? { listRawMessages: () => ingestionRawMessages }
+        : null,
       defaultTenantId: 'cco',
       authStore: {
         async addAuditEvent(event) {
@@ -283,6 +286,41 @@ test('D1: partial failure — en tråds fel stoppar inte övriga och batchen aud
     assert.equal(audit.metadata.appliedCount, 1);
     assert.equal(audit.metadata.failedCount, 1);
     assert.deepEqual(audit.metadata.affectedThreadIds, ['conv-bulk-1']);
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('D1: bulk confirm på en ingesterad (web-form) tråd skriver state MED underliggande IDn — inte tom sorted', async () => {
+  // Bugbot #0894a8db: eligibility resolvade via ingestion men confirm laddade
+  // messages truth-only → state kunde skrivas med tom sorted (utan underliggande
+  // conversation-/mailbox-IDn). Confirm speglar nu samma fallback som preview.
+  const fixture = await createFixture({
+    ingestionRawMessages: [CONFIRMED('conv-ingest-bulk', 'kons@hairtpclinic.com')],
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const res = await post(baseUrl, '/cco/runtime/conversation/bulk/confirm', {
+        action: 'handled',
+        batchId: 'batch-ingest',
+        confirm: true,
+        items: [{ conversationKey: 'conv-ingest-bulk', customerId: 'kund@test.se' }],
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.deepEqual(body.applied, ['conv-ingest-bulk'], 'ingesterad tråd appliceras via ingestion-fallback');
+      assert.equal(body.summary.applied, 1);
+    });
+
+    const state = await fixture.conversationStateStore.getActiveState({
+      tenantId: 'cco',
+      canonicalConversationKey: 'conv-ingest-bulk',
+    });
+    assert.equal(state?.actionState, 'handled');
+    assert.ok(
+      Array.isArray(state.underlyingConversationIds) && state.underlyingConversationIds.length > 0,
+      'confirm ska ha resolvat meddelanden via ingestion-fallback → underliggande IDn, inte tom sorted'
+    );
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }

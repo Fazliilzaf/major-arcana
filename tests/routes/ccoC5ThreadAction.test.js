@@ -56,7 +56,7 @@ const KNOWN_MESSAGES = [
   },
 ];
 
-async function createFixture() {
+async function createFixture({ ingestionRawMessages = null } = {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-c5-action-'));
   const auditEvents = [];
 
@@ -67,6 +67,11 @@ async function createFixture() {
   const mailboxTruthStore = {
     listMessages: () => KNOWN_MESSAGES,
   };
+
+  // Web-form-/ingesterade trådar ligger i ingestion-storen, inte i mailbox-truth.
+  const mailIngestionStore = ingestionRawMessages
+    ? { listRawMessages: () => ingestionRawMessages }
+    : null;
 
   const authStore = {
     async getSessionContextByToken() {
@@ -88,6 +93,7 @@ async function createFixture() {
     createCcoConversationRouter({
       ccoMailboxTruthStore: mailboxTruthStore,
       ccoConversationStateStore: conversationStateStore,
+      mailIngestionStore,
       defaultTenantId: 'cco',
       authStore,
     })
@@ -307,6 +313,65 @@ test('C5: Senare utan explicit followUpDueAt defaultar till nu+24h', async () =>
       dueMs >= expectedMin && dueMs <= expectedMax,
       `followUpDueAt (${savedState.followUpDueAt}) ska vara ca 24h framåt`
     );
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('C5: web-form-tråd (bara i ingestion-storen) resolvas via fallback och sparar status', async () => {
+  // Regression: web-leads/ingesterade trådar ligger i ingestion-storen, inte i
+  // mailbox-truth. Före fallbacken 404:ade Klar/Senare på varje sådan tråd
+  // ("conversation_not_found") trots att /messages visar den.
+  const fixture = await createFixture({
+    ingestionRawMessages: [
+      {
+        mailboxConversationId: 'conv-web-lead',
+        fromEmail: 'weblead@test.se',
+        folderType: 'inbox',
+        sentAt: '2025-02-01T09:00:00.000Z',
+      },
+    ],
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/cco/runtime/conversation/conv-web-lead/action`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
+        body: JSON.stringify({ action: 'reply_later', customerId: 'weblead@test.se' }),
+      });
+      assert.equal(res.status, 200, 'web-lead ska resolvas via ingestion-fallback, inte 404');
+      const body = await res.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.action, 'reply_later');
+    });
+
+    const savedState = await fixture.conversationStateStore.getActiveState({
+      tenantId: 'cco',
+      canonicalConversationKey: 'conv-web-lead',
+    });
+    assert.equal(savedState?.actionState, 'reply_later', 'statusen ska persisteras för web-lead-tråden');
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('C5: 404 kvarstår när tråden saknas i BÅDE truth- och ingestion-storen', async () => {
+  const fixture = await createFixture({
+    ingestionRawMessages: [
+      { mailboxConversationId: 'conv-annan', fromEmail: 'x@test.se', folderType: 'inbox' },
+    ],
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/cco/runtime/conversation/finns-ingenstans/action`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-cco-role': 'operator' },
+        body: JSON.stringify({ action: 'handled', customerId: 'weblead@test.se' }),
+      });
+      assert.equal(res.status, 404);
+      const body = await res.json();
+      assert.equal(body.error, 'conversation_not_found');
+    });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }

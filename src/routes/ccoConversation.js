@@ -1477,7 +1477,7 @@ function threadHasConfirmedIdentity(sorted) {
 // Ren utvärdering (INGEN mutation): returnerar exakt vad som skulle påverkas +
 // varningar per tråd. Används av både preview och confirm (confirm re-validerar
 // alltid — klienten litas aldrig på).
-function evaluateConversationBulkItem(store, item, action) {
+function evaluateConversationBulkItem(store, item, action, options = {}) {
   const conversationKey = normalizeText(asObject(item).conversationKey);
   const customerId = normalizeText(asObject(item).customerId).toLowerCase();
   const row = {
@@ -1497,7 +1497,17 @@ function evaluateConversationBulkItem(store, item, action) {
     row.warnings.push('missing_customer_id');
     return row;
   }
-  const sorted = fetchSortedConversationMessages(store, conversationKey);
+  // Samma resolution som single-action-routen: mailbox-truth först, sedan
+  // mail-ingestion-storen (web-form-/ingesterade trådar ligger inte i truth-storen).
+  const { ingestionStore = null, scopeOptions = {} } = asObject(options);
+  let sorted = fetchSortedConversationMessages(store, conversationKey, [], scopeOptions);
+  if (sorted.length === 0 && ingestionStore) {
+    sorted = fetchSortedIngestionConversationMessagesForKeys(
+      ingestionStore,
+      [conversationKey],
+      scopeOptions
+    );
+  }
   if (sorted.length === 0) {
     row.warnings.push('conversation_not_found');
     return row;
@@ -2485,13 +2495,38 @@ function createCcoConversationRouter({
         );
         const actorEmail = normalizeText(req?.user?.email || req?.session?.email).toLowerCase();
 
-        // Verifiera att konversationen finns och att customerId matchar — gäller alla actions
-        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        // Verifiera att konversationen finns och att customerId matchar — gäller alla actions.
+        // Spegla /messages-routens resolution: mailbox-truth-storen FÖRST, sedan
+        // mail-ingestion-storen. Web-form-/ingesterade trådar (t.ex. web-leads)
+        // ligger INTE i mailbox-truth-storen utan i ingestion-storen — utan den
+        // här fallbacken 404:ade Klar/Senare/Återöppna på varje sådan tråd trots
+        // att /messages visar den. memberKeys/mailbox-hint tas från bodyn om
+        // klienten skickar dem (rollup-trådar); annars räcker den kanoniska nyckeln.
+        const memberKeys = parseConversationMemberKeysQuery(body);
+        const mailboxHints = parseConversationMailboxHintQuery(body);
+        const actionScopeOptions = {
+          ...parseConversationContactScopeQuery(body),
+          ...(mailboxHints.length ? { mailboxHints } : {}),
+          ...(configuredMailboxIds.length ? { allowedMailboxIds: configuredMailboxIds } : {}),
+        };
+        let sorted = fetchSortedConversationMessages(
+          ccoMailboxTruthStore,
+          key,
+          memberKeys,
+          actionScopeOptions
+        );
+        if (sorted.length === 0) {
+          sorted = fetchSortedIngestionConversationMessagesForKeys(
+            mailIngestionStore,
+            [key, ...memberKeys],
+            actionScopeOptions
+          );
+        }
         if (sorted.length === 0) {
           return res.status(404).json({
             ok: false,
             error: 'conversation_not_found',
-            detail: 'Ingen konversation hittades för angivet konversationsnyckel',
+            detail: 'Ingen underliggande konversation hittades att åtgärda för den här tråden.',
           });
         }
         const firstInboundMsg =
@@ -2646,7 +2681,12 @@ function createCcoConversationRouter({
           return res.status(400).json({ ok: false, error: 'too_many_items', max: MAX_BULK_ITEMS });
         }
         const rows = items.map((item) =>
-          evaluateConversationBulkItem(ccoMailboxTruthStore, item, action)
+          evaluateConversationBulkItem(ccoMailboxTruthStore, item, action, {
+            ingestionStore: mailIngestionStore,
+            scopeOptions: configuredMailboxIds.length
+              ? { allowedMailboxIds: configuredMailboxIds }
+              : {},
+          })
         );
         const eligible = rows.filter((r) => r.eligible);
         const batchId = crypto.randomUUID();
@@ -2722,7 +2762,12 @@ function createCcoConversationRouter({
         const failed = [];
         for (const item of items) {
           // Re-validera varje tråd — confirm litar aldrig på klientens preview.
-          const evaluation = evaluateConversationBulkItem(ccoMailboxTruthStore, item, action);
+          const evaluation = evaluateConversationBulkItem(ccoMailboxTruthStore, item, action, {
+            ingestionStore: mailIngestionStore,
+            scopeOptions: configuredMailboxIds.length
+              ? { allowedMailboxIds: configuredMailboxIds }
+              : {},
+          });
           if (!evaluation.eligible) {
             skipped.push({
               conversationKey: evaluation.conversationKey,
@@ -2731,10 +2776,26 @@ function createCcoConversationRouter({
             continue;
           }
           try {
-            const sorted = fetchSortedConversationMessages(
+            // Samma resolution som eligibility-checken och single-action-routen:
+            // truth först, sedan ingestion-fallback. Utan detta skrevs state för
+            // en web-form-/ingesterad tråd (som blev eligible via ingestion) med
+            // en TOM sorted → utan underliggande conversation-/mailbox-IDn.
+            const bulkScopeOptions = configuredMailboxIds.length
+              ? { allowedMailboxIds: configuredMailboxIds }
+              : {};
+            let sorted = fetchSortedConversationMessages(
               ccoMailboxTruthStore,
-              evaluation.conversationKey
+              evaluation.conversationKey,
+              [],
+              bulkScopeOptions
             );
+            if (sorted.length === 0) {
+              sorted = fetchSortedIngestionConversationMessagesForKeys(
+                mailIngestionStore,
+                [evaluation.conversationKey],
+                bulkScopeOptions
+              );
+            }
             await applyConversationActionState({
               ccoConversationStateStore,
               tenantId: defaultTenantId,
