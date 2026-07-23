@@ -40807,7 +40807,20 @@
     ].some((pattern) => pattern.test(haystack));
   }
 
+  function threadHasAmbiguousPatientMatch(thread) {
+    // Paritet med legacy admin#cco (patientMatchNeedsManualReview): en oklar/
+    // dubbel kundmatchning ("ambiguous") ska synas i Granskning-lanen. Rent
+    // surfacing — vi rullar aldrig ihop matchningen eller skriver en koppling
+    // härifrån (samma read-only-regel som Block 5-handoffen).
+    const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+    const status = normalizeKey(
+      thread?.patientMatch?.status || raw?.patientMatch?.status
+    );
+    return status === "ambiguous";
+  }
+
   function isManualReviewRuntimeThread(thread) {
+    if (threadHasAmbiguousPatientMatch(thread)) return true;
     const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
     const decisionCandidates = [
       raw?.risk?.decision,

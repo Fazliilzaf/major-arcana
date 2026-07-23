@@ -54,6 +54,24 @@ test('v2 bulkytan erbjuder endast serverstödda persistenta actions', () => {
   assert.doesNotMatch(bulkSource, /assign|snooze|triage/);
 });
 
+test('v2 surfar oklar kundmatchning (ambiguous) i Granskning-lanen — paritet med legacy, read-only', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+  // Ambiguous-detektion finns och routas in i review-lanen.
+  assert.match(source, /function threadHasAmbiguousPatientMatch\(thread\)/);
+  assert.match(source, /status === "ambiguous"/);
+  const reviewStart = source.indexOf('function isManualReviewRuntimeThread(thread)');
+  const reviewBody = source.slice(reviewStart, reviewStart + 200);
+  assert.match(
+    reviewBody,
+    /if \(threadHasAmbiguousPatientMatch\(thread\)\) return true;/,
+    'en oklar kundmatchning ska routa tråden till Granskning-lanen'
+  );
+  // Surfacing endast — ingen dossier-öppning eller koppling skrivs från ambiguous-vägen.
+  const ambStart = source.indexOf('function threadHasAmbiguousPatientMatch(thread)');
+  const ambBody = source.slice(ambStart, source.indexOf('function isManualReviewRuntimeThread'));
+  assert.doesNotMatch(ambBody, /openCustomerCard|openPatientByEmail|writeConversationState|patientId:/);
+});
+
 test('v2 handoff använder bara worklistens exakta e-postmatchning och etablerade legacy-kontrakt', () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
 
