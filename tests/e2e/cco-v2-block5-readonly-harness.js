@@ -787,6 +787,11 @@ function createRunnerTimeoutCancellation(runnerPage) {
   };
 }
 
+function shouldTolerateClosedCleanup({ timeoutCancelled = false, operationFailed = false } = {}) {
+  // Cleanup must not replace the primary failure after a runner page closes.
+  return Boolean(timeoutCancelled || operationFailed);
+}
+
 async function runBlock5WarmCacheReadonlyHandoffOnPage({
   page,
   baseUrl,
@@ -798,6 +803,7 @@ async function runBlock5WarmCacheReadonlyHandoffOnPage({
   const worklistProbe = installWorklistResponseProbe(page, origin);
   let result;
   let diagnostics;
+  let operationFailed = false;
   try {
     const warmup = await warmBlock5Worklist({
       page,
@@ -816,8 +822,14 @@ async function runBlock5WarmCacheReadonlyHandoffOnPage({
       });
       result = { ...handoff, ...warmup };
     }
+  } catch (error) {
+    operationFailed = true;
+    throw error;
   } finally {
-    const tolerateTargetClosed = Boolean(isTimeoutCancelled?.());
+    const tolerateTargetClosed = shouldTolerateClosedCleanup({
+      timeoutCancelled: isTimeoutCancelled?.(),
+      operationFailed,
+    });
     await worklistProbe.cleanup({ tolerateTargetClosed });
     diagnostics = await cleanup({ tolerateTargetClosed });
   }
@@ -868,6 +880,7 @@ module.exports = {
   mask,
   prepareV2Inbox,
   runStage,
+  shouldTolerateClosedCleanup,
   warmBlock5Worklist,
   withDedicatedSignoffRunnerPage,
   runBlock5ReadonlyHandoffHarness,

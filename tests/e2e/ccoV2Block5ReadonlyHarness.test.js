@@ -37,6 +37,7 @@ const {
   prepareV2Inbox,
   runStage,
   selectExactlyOneV2Lane,
+  shouldTolerateClosedCleanup,
   warmBlock5Worklist,
   withDedicatedSignoffRunnerPage,
 } = require('./cco-v2-block5-readonly-harness');
@@ -268,6 +269,12 @@ test('Block 5-harnessen tolererar stängd worklist-probe endast efter timeout-ca
   const probe = installWorklistResponseProbe(page, 'https://arcana.hairtpclinic.com');
   await assert.rejects(probe.cleanup(), /Target page, context or browser has been closed/);
   await assert.doesNotReject(probe.cleanup({ tolerateTargetClosed: true }));
+});
+
+test('Block 5-harnessen låter cleanup bevara ett redan fångat primärfel', () => {
+  assert.equal(shouldTolerateClosedCleanup(), false);
+  assert.equal(shouldTolerateClosedCleanup({ timeoutCancelled: true }), true);
+  assert.equal(shouldTolerateClosedCleanup({ operationFailed: true }), true);
 });
 
 test('Block 5-harnessen har separata deadline-steg för V2-mount och varje inkorgshydrering', () => {
