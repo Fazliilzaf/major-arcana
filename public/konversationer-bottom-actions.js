@@ -3684,18 +3684,22 @@
     openModal({ title: 'No-show', wide: true, tabs: panelTabs('noshow'), body: frame });
   }
 
-  function runCcoAction(action) {
-    if (action === 'svarstudio') openSvarstudioForSelectedThread();
-    else if (action === 'smart-anteckning') openSmartAnteckning();
-    else if (action === 'bokningsyta') openBokningsyta();
-    else if (action === 'kalender') openKalender();
+  // presetContext (valfri): när launchern körs utanför legacy-DOM:en (t.ex.
+  // inbäddad i Konversationer V2) matas trådkontexten in direkt i stället för
+  // att skrapas ur legacy-DOM:en. openX-funktioner som inte tar preset ignorerar
+  // extra-argumentet — därför är forward:en säker för alla.
+  function runCcoAction(action, presetContext) {
+    if (action === 'svarstudio') openSvarstudioForSelectedThread(presetContext);
+    else if (action === 'smart-anteckning') openSmartAnteckning(presetContext);
+    else if (action === 'bokningsyta') openBokningsyta(presetContext);
+    else if (action === 'kalender') openKalender(presetContext);
     else if (action === 'klar') runConversationAction('handled');
-    else if (action === 'senare') openSenarePanel();
+    else if (action === 'senare') openSenarePanel(presetContext);
     else if (action === 'reopen') runConversationAction('reopen');
-    else if (action === 'notiser') openNotiser();
-    else if (action === 'patienthub') openPatientHub();
-    else if (action === 'signaturer') openSignaturer();
-    else if (action === 'nyttmail') openComposeNewMail();
+    else if (action === 'notiser') openNotiser(presetContext);
+    else if (action === 'patienthub') openPatientHub(presetContext);
+    else if (action === 'signaturer') openSignaturer(presetContext);
+    else if (action === 'nyttmail') openComposeNewMail(presetContext);
     else return false;
     return true;
   }
@@ -3759,7 +3763,29 @@
   }
 
   // ─── Wire bottom-bar + keyboard ──────────────────────────────────────
+  // Library-läge: när launchern laddas in i en annan yta (Konversationer V2)
+  // ska den INTE injicera legacy-chrome (Nytt mail-FAB, klick-/tangentbindningar
+  // mot legacy-barens knappar). Bara panel-öppnandet + postMessage-kontraktet
+  // exponeras. Legacy (konversationer.html) sätter aldrig flaggan → oförändrat.
+  function isLibraryMode() {
+    try {
+      return window.__CCO_BOTTOM_ACTIONS_LIBRARY__ === true;
+    } catch (_e) {
+      return false;
+    }
+  }
+
   function wireActions() {
+    if (isLibraryMode()) {
+      // Behåll bara det inbäddade panel→launcher-kontraktet.
+      window.addEventListener('message', (event) => {
+        if (event.origin !== window.location.origin) return;
+        const data = event.data;
+        if (!data || data.type !== 'cco:panel:action') return;
+        runCcoAction(data.action, data.presetContext);
+      });
+      return;
+    }
     mountComposeFab();
     document.addEventListener(
       'click',
@@ -3801,6 +3827,19 @@
       runCcoAction(data.action);
     });
   }
+  // Exponera panel-launchern så andra ytor (Konversationer V2) kan öppna EXAKT
+  // samma godkända paneler med sin egen trådkontext, i stället för egna
+  // parallella implementationer. run(action, presetContext) är samma dispatch
+  // som legacy-baren/tangentbindningarna använder.
+  try {
+    window.CCOBottomActions = {
+      run: runCcoAction,
+      openSvarstudio: openSvarstudioForSelectedThread,
+    };
+  } catch (_e) {
+    /* ignore */
+  }
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireActions);
   else wireActions();
 })();

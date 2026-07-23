@@ -1520,6 +1520,33 @@
 
   function openStudio(thread) {
     if (!thread) return;
+    // V2 öppnar admin#cco:s GODKÄNDA Svarstudio (svarstudio-v2.html) via den
+    // delade launchern — inte en egen parallell workbench. Trådkontexten matas
+    // in som preset så panelen slipper skrapa legacy-DOM.
+    try {
+      var api = global.CCOBottomActions;
+      if (api && typeof api.run === 'function') {
+        var studioEmail = text(
+          thread.customerEmail || thread.contactEmail || (thread.from && thread.from.address)
+        );
+        var studioMailbox = text(thread.mailboxId || thread.mailboxAddress || thread.mailboxLabel);
+        api.run('svarstudio', {
+          source: 'cco-conversations-v2',
+          conversationKey: threadConversationKey(thread),
+          customerName: text(thread.customerName) || threadName(thread),
+          email: studioEmail,
+          customerId: studioEmail,
+          mailboxId: studioMailbox,
+          mailboxSource: studioMailbox,
+          subject: text(thread.subject),
+        });
+        return;
+      }
+    } catch (_launcherError) {
+      /* faller igenom till fallback nedan om launchern inte är laddad */
+    }
+    // Fallback (endast om den godkända launchern ännu inte laddats): V2:s egen
+    // workbench. Tas bort när launcher-inkopplingen är verifierad live.
     studio = {
       thread: thread,
       draftId: null,

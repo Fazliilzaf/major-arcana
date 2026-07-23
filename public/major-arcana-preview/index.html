@@ -12,6 +12,12 @@
     <script src="./app/cco-booking-v1-flag.js?v=booking-v1-cutover-default-on"></script>
     <!-- Konversationer v2 — feature flag (CUTOVER: default ON, opt-out via ?conversations=off; sätter data-conversations-v2) -->
     <script src="./app/cco-conversations-v2-flag.js?v=conversations-v2-cutover-default-on"></script>
+    <!-- Konversationer V2 återanvänder admin#cco:s GODKÄNDA panel-launcher
+         (konversationer-bottom-actions.js) i library-läge: ingen legacy-chrome
+         injiceras, bara panel-öppnandet exponeras via window.CCOBottomActions.
+         Flaggan måste sättas före launchern laddas. -->
+    <script>window.__CCO_BOTTOM_ACTIONS_LIBRARY__ = true;</script>
+    <script src="/konversationer-bottom-actions.js?v=v2-library-mode-1" defer></script>
     <!-- /admin#cco owns the global shell. Lock explicit admin embeds to their
          requested content before the asynchronous application bundle boots. -->
     <script src="./app/cco-admin-embed-contract.js?v=customer-full-product-contract-v1"></script>
