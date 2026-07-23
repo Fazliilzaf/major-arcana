@@ -1535,7 +1535,10 @@
           conversationKey: threadConversationKey(thread),
           customerName: text(thread.customerName) || threadName(thread),
           email: studioEmail,
-          customerId: studioEmail,
+          // customerId är en kund-/patient-identifierare i launchern (inte
+          // e-post) — använd trådens riktiga customerId; e-post bara som sista
+          // fallback (bättre än launcherns CUST-DEMO-default).
+          customerId: text(thread.customerId) || studioEmail,
           mailboxId: studioMailbox,
           mailboxSource: studioMailbox,
           subject: text(thread.subject),
