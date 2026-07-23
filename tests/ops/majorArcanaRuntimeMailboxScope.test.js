@@ -211,7 +211,10 @@ function applyHydrationMailboxSelection({ availableMailboxIds, selectedMailboxId
     `${functionSource}; return ensureRuntimeMailboxSelection;`
   )(
     () => availableMailboxIds.slice(),
-    (mailboxId) => String(mailboxId || '').trim().toLowerCase(),
+    (mailboxId) =>
+      String(mailboxId || '')
+        .trim()
+        .toLowerCase(),
     {
       getSelectedMailboxIds() {
         return selected.slice();
@@ -381,6 +384,38 @@ test('getMailboxScopedRuntimeThreads returnerar tomt nar valt mailboxscope inte 
   assert.deepEqual(getMailboxScopedRuntimeThreads(), []);
 });
 
+test('getMailboxScopedRuntimeThreads matchar tråd vars mailbox bärs av mailboxId när mailboxAddress är null', () => {
+  // Servern serialiserar mailbox över tre fält (mailboxAddress || mailboxId ||
+  // userPrincipalName) och mailboxAddress KAN vara null för live-rader medan
+  // mailboxId/UPN bär värdet (capabilities.js:4909–4913). buildLiveThreads och
+  // serverns egna filter matchar därför på alla tre. Display-filtret måste göra
+  // samma sak — annars filtreras trådar som tillhör en vald mailbox bort och V2
+  // visar noll rader trots två valda mailboxar med inläst data.
+  const runtimeThread = {
+    id: 'thread-kons-live',
+    mailboxAddress: null,
+    mailboxId: 'kons@hairtpclinic.com',
+    mailboxLabel: '',
+  };
+  const upnThread = {
+    id: 'thread-info-upn',
+    mailboxAddress: null,
+    mailboxId: null,
+    userPrincipalName: 'info@hairtpclinic.com',
+    mailboxLabel: '',
+  };
+  const getMailboxScopedRuntimeThreads = createMailboxScopeHarness({
+    selectedMailboxIds: ['kons@hairtpclinic.com', 'info@hairtpclinic.com'],
+    threads: [runtimeThread, upnThread],
+    availableMailboxes: [
+      { id: 'kons', email: 'kons@hairtpclinic.com', label: 'Kons' },
+      { id: 'info', email: 'info@hairtpclinic.com', label: 'Info' },
+    ],
+  });
+
+  assert.deepEqual(getMailboxScopedRuntimeThreads(), [runtimeThread, upnThread]);
+});
+
 test('getRequestedRuntimeMailboxIds canonicaliserar legacy mailbox-id till full mailboxadress innan live-request', () => {
   const getRequestedRuntimeMailboxIds = createRequestedMailboxIdsHarness({
     selectedMailboxIds: ['contact', 'fazli'],
@@ -437,9 +472,10 @@ test('hydrering behaller Contact sa att request och conversation keys forblir Co
   });
 
   assert.deepEqual(getRequestedRuntimeMailboxIds(), ['contact@hairtpclinic.com']);
-  assert.deepEqual(getMailboxScopedRuntimeThreads().map((thread) => thread.id), [
-    'conversation-contact-only',
-  ]);
+  assert.deepEqual(
+    getMailboxScopedRuntimeThreads().map((thread) => thread.id),
+    ['conversation-contact-only']
+  );
 });
 
 test('getAvailableRuntimeMailboxes skiljer live-mailbox med lokal signaturprofil från ren custom-mailbox', () => {

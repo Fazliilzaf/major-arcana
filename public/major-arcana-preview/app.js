@@ -15066,11 +15066,16 @@
     });
 
     return threads.filter((thread) => {
-      const threadMailboxTokens = getMailboxIdentityTokens({
-        id: thread?.mailboxAddress,
-        email: thread?.mailboxAddress,
-        label: thread?.mailboxLabel,
-      });
+      // Servern serialiserar trådens mailbox över tre fält och mailboxAddress
+      // KAN vara null för live-rader medan mailboxId/userPrincipalName bär
+      // värdet (capabilities.js). buildLiveThreads och serverns egna filter
+      // matchar därför på `mailboxAddress || mailboxId || userPrincipalName`.
+      // Display-filtret måste göra detsamma — annars filtreras trådar som hör
+      // till en vald mailbox bort (V2 visar noll rader trots inläst data i två
+      // valda mailboxar). Detta vidgar MATCHNINGEN, inte scopet (≤ valt urval).
+      const threadMailboxTokens = [thread?.mailboxAddress, thread?.mailboxId, thread?.userPrincipalName]
+        .flatMap((address) => getMailboxIdentityTokens({ id: address, email: address }))
+        .concat(getMailboxIdentityTokens({ label: thread?.mailboxLabel }));
       return threadMailboxTokens.some((token) => allowedMailboxTokens.has(normalizeMailboxId(token)));
     });
   }
