@@ -330,6 +330,8 @@
   function tagsFor(thread) {
     var tags = [];
     if (isUnread(thread)) tags.push({ kind: 'urgent', label: 'OLÄST' });
+    // Oklar/dubbel kundmatchning syns direkt i listan (paritet med legacy).
+    if (needsCustomerReview(thread)) tags.push({ kind: 'warning', label: 'Kundgranskning' });
     if (isVip(thread)) tags.push({ kind: 'vip', label: 'VIP' });
     if (isBooking(thread)) tags.push({ kind: 'booking', label: 'Bokning' });
     var label = smartLabel(thread);
@@ -661,11 +663,23 @@
     return '<div class="ctx-ai-box"><div class="ctx-ai-kicker">★ AI</div>' + esc(body) + '</div>';
   }
 
+  // Paritet med legacy admin#cco (patientMatchNeedsManualReview): en oklar/dubbel
+  // kundmatchning ("ambiguous") flaggas som manuell kundgranskning. Rent
+  // surfacing — vi öppnar aldrig en kunddossier eller skriver en koppling härifrån.
+  function needsCustomerReview(thread) {
+    if (!thread || !thread.patientMatch) return false;
+    return text(thread.patientMatch.status).toLowerCase() === 'ambiguous';
+  }
+
   function statusPills(thread) {
     var pills =
       '<span class="status-pill status-pill--source"><span class="dot"></span>' +
       esc(sourceLabel(thread)) +
       '</span>';
+    if (needsCustomerReview(thread)) {
+      pills +=
+        '<span class="status-pill status-pill--warning"><span class="dot"></span>Manuell kundgranskning</span>';
+    }
     if (text(thread.riskLabel)) {
       pills +=
         '<span class="status-pill status-pill--warning"><span class="dot"></span>' +

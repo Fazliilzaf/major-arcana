@@ -523,6 +523,10 @@ html[data-conversations-v2="on"]
   background: var(--cco-status-success-bg);
   color: var(--cco-status-success);
 }
+#cco-conv-v2-root .thread-tag--warning {
+  background: var(--cco-status-warning-bg);
+  color: var(--cco-status-warning);
+}
 #cco-conv-v2-root .thread-unread::after {
   content: "";
   position: absolute;

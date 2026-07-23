@@ -582,6 +582,37 @@ test('v2-skalet: Bokning/Kalender/Dossier är alltid klickbara men låser aldrig
   );
 });
 
+test('v2-skalet: oklar kundmatchning (ambiguous) surfas som Manuell kundgranskning — inte annars', () => {
+  const { document, api } = loadShell();
+  const ambiguous = makeThread({
+    id: 't-amb',
+    customerName: 'Oklar Kund',
+    patientMatch: { status: 'ambiguous' },
+  });
+  const clear = makeThread({ id: 't-clear', customerName: 'Tydlig Kund' });
+  api.render(
+    makeCtx({ laneThreads: [ambiguous, clear], allThreads: [ambiguous, clear], selected: ambiguous })
+  );
+
+  const root = document.getElementById('cco-conv-v2-root');
+  // Header-pill på vald tråd.
+  assert.match(
+    root.querySelector('[data-v2-thread]').textContent,
+    /Manuell kundgranskning/,
+    'oklar matchning ska visa Manuell kundgranskning-pill i trådhuvudet'
+  );
+  // Listrad-tagg på den oklara tråden.
+  const ambRow = root.querySelector('[data-thread-id="t-amb"]');
+  assert.match(ambRow.textContent, /Kundgranskning/, 'oklar tråd ska ha Kundgranskning-tagg i listan');
+  // Den tydliga tråden får ingen granskningsmarkör.
+  const clearRow = root.querySelector('[data-thread-id="t-clear"]');
+  assert.doesNotMatch(
+    clearRow.textContent,
+    /Kundgranskning/,
+    'en entydig kundmatchning får aldrig flaggas för granskning'
+  );
+});
+
 test('v2-skalet: bekräftad patientmatchning öppnar trådscopade handoffar', () => {
   const { document, api } = loadShell();
   const matchedThread = makeThread({
