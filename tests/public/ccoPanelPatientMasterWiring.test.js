@@ -14,6 +14,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const LAUNCHER = path.join(__dirname, '..', '..', 'public', 'konversationer-bottom-actions.js');
+const SHELL = path.join(
+  __dirname,
+  '..',
+  '..',
+  'public',
+  'major-arcana-preview',
+  'app',
+  'cco-conversations-v2-shell.js'
+);
 
 test('launchern hämtar riktig kundpost via patient-master-API på patient.id (fail-closed på e-post)', () => {
   const source = fs.readFileSync(LAUNCHER, 'utf8');
@@ -39,8 +48,31 @@ test('Svarstudio neutraliserar fabricerade demo-widgets och binder riktiga fält
     assert.ok(body.includes(sel), 'ska neutralisera fabricerad demo-widget: ' + sel);
   }
   // Riktiga fält binds från den hämtade kundposten.
-  assert.match(body, /fetchPatientMasterCard\(customerId\)/, 'Svarstudio ska hämta kundposten via patient-ID');
+  // HÄMTA på det kanoniska patient-ID:t (ctx.patientId), ALDRIG på customerId
+  // (kan vara e-post) eller activeCustomerId-demofallbacken (CUST-DEMO-002).
+  assert.match(
+    body,
+    /fetchPatientMasterCard\(ctx\.patientId\)/,
+    'Svarstudio ska hämta på det kanoniska patient-ID:t, inte customerId/demofallback'
+  );
+  assert.doesNotMatch(
+    body,
+    /fetchPatientMasterCard\(customerId\)/,
+    'får inte hämta på customerId (kan vara e-post eller CUST-DEMO-002-demofallback)'
+  );
   assert.match(body, /card\.displayName/, 'ska binda riktigt namn');
   assert.match(body, /card\.lifetimeValue/, 'ska binda riktig LTV');
   assert.match(body, /card\.flags/, 'VIP ska bara visas vid en riktig flagga');
+});
+
+test('launcher-kontexten (buildLauncherThreadContext) exponerar ett kanoniskt patientId (endast vid match)', () => {
+  const shell = fs.readFileSync(SHELL, 'utf8');
+  // confirmedPatientId sätts bara vid bekräftad handoff; kontexten exponerar det
+  // som ett kanoniskt patientId skilt från customerId (som kan bli e-post).
+  assert.match(shell, /var confirmedPatientId = handoffConfirmed/);
+  assert.match(
+    shell,
+    /patientId: confirmedPatientId,/,
+    'buildLauncherThreadContext ska exponera patientId: confirmedPatientId'
+  );
 });

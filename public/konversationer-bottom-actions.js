@@ -739,7 +739,10 @@
       const recSub = $('.wb-section .wb-sub');
       if (recSub) recSub.textContent = '';
     }
-    fetchPatientMasterCard(customerId).then((record) => {
+    // Hämta ALLTID på det kanoniska patient-ID:t (resolverns exakta match), aldrig
+    // på customerId (kan vara e-post) eller activeCustomerId-demofallbacken
+    // ('CUST-DEMO-002') — annars kunde demo-patienten laddas för en riktig tråd.
+    fetchPatientMasterCard(ctx.patientId).then((record) => {
       const card = record && record.card ? record.card : null;
       if (!card) return;
       if (cleanText(card.displayName)) setText('.kk-name', cleanText(card.displayName));
