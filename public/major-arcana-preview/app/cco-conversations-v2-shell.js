@@ -924,6 +924,7 @@
       '<div data-v2-lanes></div></aside>' +
       '<aside class="inbox-shell"><div class="inbox-kicker">Inkorg</div>' +
       '<h2 class="inbox-h2" data-v2-inbox-h2></h2>' +
+      '<div class="v2-mailbox-summary" data-v2-mailbox-summary></div>' +
       '<div class="v2-mailbox-controls v2-mailbox-controls--compact" data-v2-mailboxes-compact></div>' +
       '<div class="v2-folder-controls" data-v2-folders></div>' +
       '<label class="v2-search"><span aria-hidden="true">⌕</span><input data-v2-search type="search" placeholder="Sök i konversationer…" /></label>' +
@@ -1065,6 +1066,7 @@
     if (h2) {
       h2.textContent = counts.olasta + ' olästa · ' + lane.length + ' totalt';
     }
+    renderMailboxSummary(ctx, lane);
     var tabs = [
       { id: 'alla', label: 'Alla', count: counts.alla },
       { id: 'olasta', label: 'Olästa', count: counts.olasta },
@@ -1088,28 +1090,99 @@
       .join('');
   }
 
+  function mailboxKey(value) {
+    return text(value).trim().toLowerCase();
+  }
+
+  function mailboxThreadMatches(mailbox, thread) {
+    var raw = thread && typeof thread.raw === 'object' ? thread.raw : {};
+    var mailboxId = mailboxKey(mailbox && (mailbox.id || mailbox.email || mailbox.label));
+    if (!mailboxId) return false;
+    return [
+      thread && thread.mailboxId,
+      thread && thread.mailboxAddress,
+      thread && thread.mailboxBadge,
+      raw.mailboxId,
+      raw.mailboxAddress,
+      raw.assignedMailboxId,
+      raw.primaryMailboxId,
+      raw.userPrincipalName,
+    ].some(function (candidate) {
+      var candidateKey = mailboxKey(candidate);
+      return candidateKey === mailboxId || candidateKey.indexOf(mailboxId + ':') === 0;
+    });
+  }
+
+  function mailboxThreadCounts(ctx, threads) {
+    var counts = {};
+    (ctx.mailboxes || []).forEach(function (mailbox) {
+      var id = mailboxKey(mailbox.id);
+      if (id) counts[id] = 0;
+    });
+    (threads || []).forEach(function (thread) {
+      (ctx.mailboxes || []).some(function (mailbox) {
+        var id = mailboxKey(mailbox.id);
+        if (!id || !mailboxThreadMatches(mailbox, thread)) return false;
+        counts[id] = (counts[id] || 0) + 1;
+        return true;
+      });
+    });
+    return counts;
+  }
+
+  function renderMailboxSummary(ctx, threads) {
+    var el = root.querySelector('[data-v2-mailbox-summary]');
+    if (!el) return;
+    var selected = {};
+    (ctx.selectedMailboxIds || []).forEach(function (id) { selected[mailboxKey(id)] = true; });
+    var counts = mailboxThreadCounts(ctx, threads);
+    var rows = (ctx.mailboxes || []).filter(function (mailbox) {
+      return selected[mailboxKey(mailbox.id)];
+    });
+    if (!rows.length) {
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = rows.map(function (mailbox) {
+      var id = mailboxKey(mailbox.id);
+      return '<span class="v2-mailbox-summary-item v2-mailbox-summary-item--' + esc(mailboxTone(mailbox)) + '">' +
+        '<span class="v2-mailbox-summary-dot" aria-hidden="true"></span>' +
+        '<span>' + esc(mailbox.label || mailbox.email || mailbox.id) + '</span>' +
+        '<strong>' + String(counts[id] || 0) + '</strong></span>';
+    }).join('');
+  }
+
   function renderMailboxControls(ctx) {
     var selectedMailboxIds = (ctx.selectedMailboxIds || []).map(text).filter(Boolean);
     var selectedSet = {};
-    selectedMailboxIds.forEach(function (id) { selectedSet[id] = true; });
+    selectedMailboxIds.forEach(function (id) { selectedSet[mailboxKey(id)] = true; });
     var mailboxes = ctx.mailboxes || [];
+    var counts = mailboxThreadCounts(ctx, ctx.allThreads || []);
+    var selectedCount = mailboxes.filter(function (mailbox) {
+      return selectedSet[mailboxKey(mailbox.id)];
+    }).length;
     var html =
       '<div class="v2-control-kicker">Brevlådor</div>' +
+      '<div class="v2-mailbox-menu" role="group" aria-label="Välj brevlådor">' +
+      '<div class="v2-mailbox-menu-heading"><span>Valda konton</span><strong>' + selectedCount + '/' + mailboxes.length + '</strong></div>' +
       '<div class="v2-mailbox-list">' +
       mailboxes
         .map(function (mailbox) {
-          var isSelected = Boolean(selectedSet[mailbox.id]);
+          var id = mailboxKey(mailbox.id);
+          var isSelected = Boolean(selectedSet[id]);
           return (
-            '<button class="v2-mailbox-chip v2-mailbox-chip--' + mailboxTone(mailbox) +
-            (isSelected ? ' active' : '') +
-            '" data-v2-mailbox="' + esc(mailbox.id) + '" type="button">' +
-            '<span class="v2-mailbox-dot" aria-hidden="true"></span>' +
-            esc(mailbox.label || mailbox.email || mailbox.id) +
-            '</button>'
+            '<label class="v2-mailbox-option v2-mailbox-option--' + mailboxTone(mailbox) +
+            (isSelected ? ' active' : '') + '">' +
+            '<input type="checkbox" data-v2-mailbox="' + esc(mailbox.id) + '"' + (isSelected ? ' checked' : '') + ' />' +
+            '<span class="v2-mailbox-check" aria-hidden="true">✓</span>' +
+            '<span class="v2-mailbox-copy"><span>' + esc(mailbox.label || mailbox.email || mailbox.id) + '</span>' +
+            '<small>' + esc(mailbox.email || mailbox.id) + '</small></span>' +
+            '<strong class="v2-mailbox-count">' + String(counts[id] || 0) + '</strong>' +
+            '</label>'
           );
         })
         .join('') +
-      '</div>';
+      '</div></div>';
     var controls = root.querySelectorAll('[data-v2-mailboxes], [data-v2-mailboxes-compact]');
     for (var index = 0; index < controls.length; index++) {
       controls[index].innerHTML = html;
@@ -2228,7 +2301,10 @@
         }
         // Ett tomt scope skulle återställa den gamla preferensen till alla
         // mailboxar. Behåll minst en aktiv mailbox i v2.
-        if (!next.length) return;
+        if (!next.length) {
+          if (mailboxEl.tagName === 'INPUT') mailboxEl.checked = true;
+          return;
+        }
         selected = {};
         boundCtx.handlers.setMailboxScope(next);
         return;
