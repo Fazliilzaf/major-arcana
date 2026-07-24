@@ -253,10 +253,23 @@ html[data-conversations-v2="on"]
 #cco-conv-v2-root .v2-mailbox-controls {
   margin-bottom: 8px;
 }
+#cco-conv-v2-root .v2-mailbox-controls--compact {
+  display: none;
+}
+#cco-conv-v2-root .lane-sidebar .v2-mailbox-controls--sidebar {
+  padding: 0 0 12px;
+  margin: 0 0 10px;
+  border-bottom: 1px solid rgba(132, 117, 107, 0.18);
+}
 #cco-conv-v2-root .v2-mailbox-list {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+#cco-conv-v2-root .lane-sidebar .v2-mailbox-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3px;
 }
 #cco-conv-v2-root .v2-mailbox-chip,
 #cco-conv-v2-root .v2-folder {
@@ -276,6 +289,21 @@ html[data-conversations-v2="on"]
   min-height: 24px;
   padding: 0 7px;
   border-radius: 999px;
+}
+#cco-conv-v2-root .lane-sidebar .v2-mailbox-chip {
+  width: 100%;
+  min-height: 28px;
+  justify-content: flex-start;
+  padding: 0 9px;
+  border-radius: 10px;
+}
+@media (max-width: 1024px) {
+  #cco-conv-v2-root .v2-mailbox-controls--sidebar {
+    display: none;
+  }
+  #cco-conv-v2-root .v2-mailbox-controls--compact {
+    display: block;
+  }
 }
 #cco-conv-v2-root .v2-mailbox-chip:disabled {
   cursor: not-allowed;

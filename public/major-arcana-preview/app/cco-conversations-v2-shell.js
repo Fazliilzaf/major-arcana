@@ -919,10 +919,12 @@
     root.innerHTML =
       '<div class="v3-toolbar" data-v3-toolbar></div>' +
       '<div class="app-grid">' +
-      '<aside class="lane-sidebar" data-v2-lanes role="navigation" aria-label="Köfält"></aside>' +
+      '<aside class="lane-sidebar" role="navigation" aria-label="Köfält">' +
+      '<div class="v2-mailbox-controls v2-mailbox-controls--sidebar" data-v2-mailboxes></div>' +
+      '<div data-v2-lanes></div></aside>' +
       '<aside class="inbox-shell"><div class="inbox-kicker">Inkorg</div>' +
       '<h2 class="inbox-h2" data-v2-inbox-h2></h2>' +
-      '<div class="v2-mailbox-controls" data-v2-mailboxes></div>' +
+      '<div class="v2-mailbox-controls v2-mailbox-controls--compact" data-v2-mailboxes-compact></div>' +
       '<div class="v2-folder-controls" data-v2-folders></div>' +
       '<label class="v2-search"><span aria-hidden="true">⌕</span><input data-v2-search type="search" placeholder="Sök i konversationer…" /></label>' +
       '<div class="v2-action-feedback" data-v2-action-feedback aria-live="polite"></div>' +
@@ -1087,13 +1089,11 @@
   }
 
   function renderMailboxControls(ctx) {
-    var el = root.querySelector('[data-v2-mailboxes]');
-    if (!el) return;
     var selectedMailboxIds = (ctx.selectedMailboxIds || []).map(text).filter(Boolean);
     var selectedSet = {};
     selectedMailboxIds.forEach(function (id) { selectedSet[id] = true; });
     var mailboxes = ctx.mailboxes || [];
-    el.innerHTML =
+    var html =
       '<div class="v2-control-kicker">Brevlådor</div>' +
       '<div class="v2-mailbox-list">' +
       mailboxes
@@ -1110,6 +1110,10 @@
         })
         .join('') +
       '</div>';
+    var controls = root.querySelectorAll('[data-v2-mailboxes], [data-v2-mailboxes-compact]');
+    for (var index = 0; index < controls.length; index++) {
+      controls[index].innerHTML = html;
+    }
   }
 
   function renderFolderControls() {
@@ -2035,6 +2039,14 @@
       });
     }
     root.addEventListener('click', function (event) {
+      // Menyn ska stänga för varje klick utanför den, även när ett tidigare
+      // klickflöde (t.ex. trådval) returnerar innan action-delen nedan.
+      if (
+        !event.target.closest('[data-v2-more-menu]') &&
+        !event.target.closest('[data-v2-more-toggle]')
+      ) {
+        closeMoreMenus();
+      }
       // ── Kommandopalett ──
       if (cmdkOpen) {
         if (event.target.matches('[data-v3-cmdk-backdrop]')) {
@@ -2315,13 +2327,6 @@
         return;
       }
       // ── "Mer"-meny (popover) ──
-      // Stäng en öppen meny om klicket är utanför både toggeln och menyn.
-      if (
-        !event.target.closest('[data-v2-more-menu]') &&
-        !event.target.closest('[data-v2-more-toggle]')
-      ) {
-        closeMoreMenus();
-      }
       var moreToggle = event.target.closest('[data-v2-more-toggle]');
       if (moreToggle) {
         var moreWrap = moreToggle.parentNode;

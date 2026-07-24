@@ -287,6 +287,24 @@ test('v2-skalet: mailboxväljaren använder scoped handler för hela admin-scope
   ]);
 });
 
+test('v2-skalet: mailboxväljaren ligger i vänstra köfältet med kompakt fallback', () => {
+  const { document, api } = loadShell();
+  api.render(
+    makeCtx({
+      mailboxes: [{ id: 'kons@hairtpclinic.com', label: 'Kons' }],
+      selectedMailboxIds: ['kons@hairtpclinic.com'],
+    })
+  );
+
+  const root = document.getElementById('cco-conv-v2-root');
+  const sidebarControls = root.querySelector('.lane-sidebar [data-v2-mailboxes]');
+  const compactControls = root.querySelector('.inbox-shell [data-v2-mailboxes-compact]');
+  assert.ok(sidebarControls, 'desktop-scope ska ligga i vänstra köfältet');
+  assert.ok(compactControls, 'smal layout ska behålla en mailbox-kontroll i inboxen');
+  assert.equal(sidebarControls.querySelectorAll('[data-v2-mailbox]').length, 1);
+  assert.equal(compactControls.querySelectorAll('[data-v2-mailbox]').length, 1);
+});
+
 test('v2-skalet: ett brett mailbox-scope kan förfinas ett konto i taget', () => {
   const { window, document, api } = loadShell();
   const scopes = [];
@@ -330,6 +348,23 @@ test('v2-skalet: en stor mailbox-kö målas stegvis utan att tappa trådar', () 
   assert.ok(loadMore, 'stor inbox ska erbjuda stegvis rendering');
   loadMore.dispatchEvent(new window.Event('click', { bubbles: true }));
   assert.equal(document.querySelectorAll('[data-v2-inbox] .thread').length, 121);
+});
+
+test('v2-skalet: Mer-menyn stängs när operatören klickar i arbetsytan', () => {
+  const { window, document, api } = loadShell();
+  api.render(makeCtx());
+
+  const toggle = document.querySelector('[data-v2-more-toggle]');
+  const menu = document.querySelector('[data-v2-more-menu]');
+  assert.ok(toggle, 'Mer-knappen ska finnas');
+  assert.ok(menu, 'Mer-menyn ska finnas');
+  toggle.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(menu.hasAttribute('hidden'), false, 'Mer-menyn ska öppnas vid klick');
+
+  document
+    .querySelector('[data-thread-id]')
+    .dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(menu.hasAttribute('hidden'), true, 'Mer-menyn ska stängas vid klick utanför');
 });
 
 test('v2-skalet: default-Inkorg visar hela aktiva kön; Skickat filtrerar till den skickade delmängden', () => {
