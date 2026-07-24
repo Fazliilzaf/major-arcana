@@ -10732,6 +10732,10 @@
     color: #c20c3f;
   }
 
+  .mailbox-option-halso {
+    color: #0f7a4f;
+  }
+
   .mailbox-option-add {
     grid-template-columns: 14px minmax(0, 1fr);
     justify-content: flex-start;
@@ -13397,6 +13401,10 @@
 
   .mailbox-admin-entry-name.mailbox-option-market {
     color: #c20c3f;
+  }
+
+  .mailbox-admin-entry-name.mailbox-option-halso {
+    color: #0f7a4f;
   }
 
   .mailbox-admin-entry-email {

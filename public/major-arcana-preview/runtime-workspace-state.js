@@ -52,7 +52,7 @@
     // för att applicera persisted state → orsakade auto-popup-buggar.
     // Nu skriver setSelectedMailboxIds() direkt till localStorage och
     // loadPersistedMailboxIds() läses vid init (ensureWorkspaceState).
-    const LS_MAILBOX_KEY = "cco.selectedMailboxIds.v1";
+    const LS_MAILBOX_KEY = "cco.selectedMailboxIds.v2";
 
     function loadPersistedMailboxIds() {
       try {
@@ -93,7 +93,7 @@
           // Fas 27C: fallback-kedja för att hämta persisted state:
           // 1. current.selectedMailboxIds (om något redan satt i workspace)
           // 2. state.runtime.selectedMailboxIds (från app.js init)
-          // 3. localStorage cco.selectedMailboxIds.v1 (vår nya persistens)
+          // 3. localStorage cco.selectedMailboxIds.v2 (vår nya persistens)
           // 4. tom array
           const fromCurrent = normalizeMailboxIds(current.selectedMailboxIds);
           if (fromCurrent.length) return fromCurrent;

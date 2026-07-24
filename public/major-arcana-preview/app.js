@@ -599,6 +599,7 @@
     marknad: "marknad@hairtpclinic.com",
     receipt: "kvitto@hairtpclinic.com",
     kvitto: "kvitto@hairtpclinic.com",
+    halso: "halso@hairtpclinic.com",
   });
   const MAILBOX_TONE_CLASS_BY_TOKEN = Object.freeze({
     egzona: "mailbox-option-egzona",
@@ -612,6 +613,7 @@
     kons: "mailbox-option-consult",
     market: "mailbox-option-market",
     marknad: "mailbox-option-market",
+    halso: "mailbox-option-halso",
   });
   const MAILBOX_TONE_CLASS_FALLBACKS = Object.freeze([
     "mailbox-option-egzona",
@@ -621,6 +623,7 @@
     "mailbox-option-info",
     "mailbox-option-consult",
     "mailbox-option-market",
+    "mailbox-option-halso",
   ]);
   const LEGACY_RUNTIME_MAILBOXES = Object.freeze(
     mailboxMenuGrid
