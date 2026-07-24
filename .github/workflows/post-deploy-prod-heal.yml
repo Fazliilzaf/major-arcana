@@ -145,7 +145,22 @@ jobs:
           npm run verify:u2-4-field-prep-prod
 
       - name: Verify prod version
-        run: curl -fsS "${ARCANA_PROD_URL}/api/v1/_diag/version"
+        # Enstaka curl utan retry gjorde att ett transient 502-fönster (instans-
+        # cykling mid-deploy) rödmarkerade en frisk deploy. Poll:a i stället några
+        # gånger — commit-match (steg ovan) har redan bevisat rätt version, det här
+        # är en sista smoke att prod svarar. Tolerera en kort blip.
+        run: |
+          for i in $(seq 1 6); do
+            if curl -fsS "${ARCANA_PROD_URL}/api/v1/_diag/version"; then
+              echo ""
+              echo "prod version OK (försök $i)"
+              exit 0
+            fi
+            echo "väntar på prod version... ($i/6)"
+            sleep 10
+          done
+          echo "::error::Prod version-endpoint svarade inte inom timeout"
+          exit 1
 
       - name: Verify pilot journeys (public API)
         continue-on-error: true
