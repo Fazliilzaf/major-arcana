@@ -723,6 +723,9 @@
     // ALLTID på en riktig tråd, och bind sedan de VERKLIGA fälten (namn, LTV,
     // VIP-flagga) från patient-master när ett exakt matchat patient-ID resolvar.
     // Fail-closed: utan matchat ID hämtas inget → aldrig fel patient.
+    // Sätts när patient-master (kanonisk källa) bundit namnet, så den parallella
+    // dossier-mini-hämtningen inte skriver över det.
+    let patientMasterNameBound = false;
     const hideSel = (sel) => {
       const n = $(sel);
       if (n) n.style.display = 'none';
@@ -742,10 +745,16 @@
     // Hämta ALLTID på det kanoniska patient-ID:t (resolverns exakta match), aldrig
     // på customerId (kan vara e-post) eller activeCustomerId-demofallbacken
     // ('CUST-DEMO-002') — annars kunde demo-patienten laddas för en riktig tråd.
+    // patient-master (på patient.id) är den KANONISKA namnkällan: när den satt
+    // namnet får den parallella dossier-mini-hämtningen (på e-post/customerId)
+    // inte skriva över det, oavsett vilken som svarar sist (race-guard).
     fetchPatientMasterCard(ctx.patientId).then((record) => {
       const card = record && record.card ? record.card : null;
       if (!card) return;
-      if (cleanText(card.displayName)) setText('.kk-name', cleanText(card.displayName));
+      if (cleanText(card.displayName)) {
+        setText('.kk-name', cleanText(card.displayName));
+        patientMasterNameBound = true;
+      }
       const ltv = Number(card.lifetimeValue);
       if (ltv > 0) {
         const ltvChip = $('.wb-chip--neutral');
@@ -1253,7 +1262,9 @@
       const name = cleanText(dossier.identity?.name);
       const emails = Array.isArray(dossier.contact?.emails) ? dossier.contact.emails : [];
       const phones = Array.isArray(dossier.contact?.phones) ? dossier.contact.phones : [];
-      if (name) setText('.kk-name', name);
+      // Skriv inte över det kanoniska patient-master-namnet (på patient.id) med
+      // dossier-mini-namnet (på e-post/customerId) — race-guard.
+      if (name && !patientMasterNameBound) setText('.kk-name', name);
       if (emails[0] && kkLines[0]) kkLines[0].lastChild.textContent = ' ' + emails[0];
       if (phones[0] && kkLines[1]) kkLines[1].lastChild.textContent = ' ' + phones[0];
 

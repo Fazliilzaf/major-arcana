@@ -63,6 +63,16 @@ test('Svarstudio neutraliserar fabricerade demo-widgets och binder riktiga fält
   assert.match(body, /card\.displayName/, 'ska binda riktigt namn');
   assert.match(body, /card\.lifetimeValue/, 'ska binda riktig LTV');
   assert.match(body, /card\.flags/, 'VIP ska bara visas vid en riktig flagga');
+
+  // Race-guard: den parallella dossier-mini-hämtningen (på e-post/customerId) får
+  // inte skriva över det kanoniska patient-master-namnet, oavsett svarsordning.
+  // (Dossier-renderaren ligger utanför body-slicen — kolla hela källan.)
+  assert.match(source, /patientMasterNameBound = true/, 'patient-master ska markera att namnet är kanoniskt bundet');
+  assert.match(
+    source,
+    /if \(name && !patientMasterNameBound\) setText\('\.kk-name', name\)/,
+    'dossier-mini får inte skriva över det kanoniska namnet'
+  );
 });
 
 test('launcher-kontexten (buildLauncherThreadContext) exponerar ett kanoniskt patientId (endast vid match)', () => {
