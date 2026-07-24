@@ -113,6 +113,25 @@ function injectHeadBundleMeta(html, latestInfo) {
   return out;
 }
 
+// Launchern (public/konversationer-bottom-actions.js) är EN rå fil i public-roten
+// — den bundlas inte (ligger utanför major-arcana-preview/) och saknar därför den
+// content-hash-cache-bust som app.bundle.<hash>.min.js får. Den serveras med
+// `max-age=600, stale-while-revalidate=3600`, så med en STATISK ?v=-token
+// (t.ex. v2-library-mode-1) fortsätter browser/edge att servera den GAMLA filen
+// upp till ~70 min efter deploy → panel-fixar (fetchPatientMasterCard,
+// demo-neutralisering m.m.) "syns inte live". Stämpla token med deploy-committen
+// så URL:en byts vid VARJE deploy → garanterad cache-miss i alla lager, utan att
+// någon behöver minnas att bumpa den manuellt. index.html serveras `no-store`,
+// så den nya token når browsern direkt. Fallback: bundle-hash, annars orörd.
+function injectLauncherCacheBust(html, latestInfo) {
+  const token = String(latestInfo.buildCommit || latestInfo.hash || '').trim();
+  if (!token) return html;
+  return html.replace(
+    /(src="\/konversationer-bottom-actions\.js\?v=)[^"]+(")/g,
+    `$1${token}$2`
+  );
+}
+
 function injectEarlyPatientUiScript(html) {
   const tag = `\n                  <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->\n                  <script async src="${PATIENT_UI_PRELOAD}"></script>\n`;
   if (EARLY_PATIENT_UI_RE.test(html)) {
@@ -175,7 +194,8 @@ if (existingMatches.length > 0) {
 }
 
 const withHeadMeta = injectHeadBundleMeta(newHtml, latest);
-const withEarlyPatientUi = injectEarlyPatientUiScript(withHeadMeta);
+const withLauncherBust = injectLauncherCacheBust(withHeadMeta, latest);
+const withEarlyPatientUi = injectEarlyPatientUiScript(withLauncherBust);
 
 if (withEarlyPatientUi === html) {
   console.log('Ingen ändring behövs — index.html pekar redan på senaste bundle.');
