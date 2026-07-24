@@ -34,6 +34,32 @@
     return next;
   }
 
+  // Hämtar den RIKTIGA kundposten från patient-master via det redan lösta
+  // kanoniska patient-ID:t (patient.id). Resolver + worklist-overlay + API:t är
+  // redan byggda och live (Cursors arbete); det enda som saknats är att
+  // panelerna KONSUMERAR det. patientId sätts bara vid exakt unik e-postmatch
+  // (fail-closed), så ett '@' betyder att vi har en e-post, inte ett patient-ID
+  // → då hämtar vi inget (aldrig fel patient). Returnerar {patient, card, ...}
+  // eller null.
+  async function fetchPatientMasterCard(patientId) {
+    const id = cleanText(patientId);
+    if (!id || id.indexOf('@') !== -1) return null;
+    try {
+      const res = await fetch(
+        '/api/v1/cco-patient-master/patient?patientId=' + encodeURIComponent(id),
+        {
+          credentials: 'include',
+          headers: adminAuthHeaders({ Accept: 'application/json' }),
+        }
+      );
+      if (!res.ok) return null;
+      const payload = await res.json().catch(() => null);
+      return payload && payload.card ? payload : null;
+    } catch {
+      return null;
+    }
+  }
+
   // PR 4 — Smart anteckning-knappen öppnar Smart anteckning v3 (rätt/ny CCO-vy),
   // inte det gamla "Välj läge"-modalflödet (legacy). admin#cco förblir enda
   // produktionsytan; v3 laddas via samma origin (inte som lokal fil).
@@ -689,6 +715,51 @@
       const v = cellMap[key];
       const vEl = cell.querySelector('.v');
       if (vEl && v != null && v !== '' && v !== '—') vEl.textContent = v;
+    });
+
+    // ── Riktig kundpost via redan-löst patient-ID (inkoppling, inte demo) ──
+    // De här widgetsen (VIP-högt-värde/engagemang/SLA/"lutar åt fredag") är
+    // artifactens fabricerade demo och saknar riktig källa. Neutralisera dem
+    // ALLTID på en riktig tråd, och bind sedan de VERKLIGA fälten (namn, LTV,
+    // VIP-flagga) från patient-master när ett exakt matchat patient-ID resolvar.
+    // Fail-closed: utan matchat ID hämtas inget → aldrig fel patient.
+    const hideSel = (sel) => {
+      const n = $(sel);
+      if (n) n.style.display = 'none';
+    };
+    ['.wb-chip--engage', '.wb-chip--sla', '.wb-chip--gold', '.wb-chip--neutral', '.sp-vip'].forEach(
+      hideSel
+    );
+    const miniVip = $('.mini-vip');
+    if (miniVip) miniVip.style.display = 'none';
+    // AI-"nästa steg" är mockup utan riktig källa om tråden inte gav ett nextStep.
+    if (!cleanText(ctx.nextStep)) {
+      const recTitle = $('.wb-section .wb-title');
+      if (recTitle) recTitle.textContent = 'Ingen AI-rekommendation för den här kunden ännu.';
+      const recSub = $('.wb-section .wb-sub');
+      if (recSub) recSub.textContent = '';
+    }
+    fetchPatientMasterCard(customerId).then((record) => {
+      const card = record && record.card ? record.card : null;
+      if (!card) return;
+      if (cleanText(card.displayName)) setText('.kk-name', cleanText(card.displayName));
+      const ltv = Number(card.lifetimeValue);
+      if (ltv > 0) {
+        const ltvChip = $('.wb-chip--neutral');
+        if (ltvChip) {
+          ltvChip.textContent = 'LTV ' + Math.round(ltv / 1000) + ' tkr';
+          ltvChip.style.display = '';
+        }
+      }
+      const flags = Array.isArray(card.flags) ? card.flags.map(String) : [];
+      const isVip = flags.some((f) => /vip|högt\s*värde|high[_ ]?value/i.test(f));
+      if (isVip) {
+        ['.wb-chip--gold', '.sp-vip'].forEach((sel) => {
+          const n = $(sel);
+          if (n) n.style.display = '';
+        });
+        if (miniVip) miniVip.style.display = '';
+      }
     });
 
     // meddelanden i tråden (om live-context har dem, annars artifactens exempel)
