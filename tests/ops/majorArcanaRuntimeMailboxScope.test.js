@@ -206,6 +206,7 @@ function applyHydrationMailboxSelection({ availableMailboxIds, selectedMailboxId
   const ensureRuntimeMailboxSelection = new Function(
     'getCanonicalAvailableRuntimeMailboxIds',
     'canonicalizeRuntimeMailboxId',
+    'getPreferredOperationalMailboxId',
     'workspaceSourceOfTruth',
     'state',
     `${functionSource}; return ensureRuntimeMailboxSelection;`
@@ -215,6 +216,7 @@ function applyHydrationMailboxSelection({ availableMailboxIds, selectedMailboxId
       String(mailboxId || '')
         .trim()
         .toLowerCase(),
+    () => 'kons@hairtpclinic.com',
     {
       getSelectedMailboxIds() {
         return selected.slice();

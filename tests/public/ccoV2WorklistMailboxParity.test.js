@@ -53,19 +53,36 @@ test('WORKLIST_TRUTH_PRIMARY.limit är 500 (matchar gamla vyns limit)', () => {
   assert.doesNotMatch(block, /limit: 120/, 'den gamla limiten 120 får inte ligga kvar');
 });
 
-test('getTruthPrimaryWorklistMailboxIds returnerar ALLTID hela det konfigurerade scopet', () => {
+test('getTruthPrimaryWorklistMailboxIds hämtar det VALDA scopet (inte alltid alla 8 → hänger UI:t)', () => {
   const start = APP.indexOf('function getTruthPrimaryWorklistMailboxIds');
   assert.ok(start > -1, 'getTruthPrimaryWorklistMailboxIds ska finnas');
   const body = APP.slice(start, start + 900);
-  // Får inte längre kortsluta på ett scopat/sticky urval.
-  assert.doesNotMatch(
+  // Arbetslistan ska hämta det valda scopet (default EN brevlåda). Att alltid
+  // hämta alla 8 — även chunkat — drog in hundratals trådar och hängde UI:t.
+  assert.match(
     body,
     /if \(scopedMailboxIds\.length\)/,
-    'huvudlistan får inte strypas till ett smalt sticky-urval'
+    'ska returnera det valda scopet när ett urval finns'
   );
   assert.match(
     body,
     /return getTruthPrimaryConfiguredMailboxIds\(\);/,
-    'ska returnera hela det konfigurerade live-scopet (alla 8)'
+    'tomt urval → konfigurerat scope som fallback'
+  );
+});
+
+test('default-scopet är EN brevlåda, inte alla (annars laddas hundratals trådar och UI:t hänger)', () => {
+  const start = APP.indexOf('function ensureRuntimeMailboxSelection');
+  assert.ok(start > -1, 'ensureRuntimeMailboxSelection ska finnas');
+  const body = APP.slice(start, start + 900);
+  assert.doesNotMatch(
+    body,
+    /const defaultScope = availableIds;/,
+    'default får inte vara ALLA tillgängliga brevlådor'
+  );
+  assert.match(
+    body,
+    /getPreferredOperationalMailboxId\(\)/,
+    'default ska utgå från den operativa brevlådan (en)'
   );
 });

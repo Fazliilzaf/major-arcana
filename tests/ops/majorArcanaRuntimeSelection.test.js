@@ -390,12 +390,14 @@ function createEnsureRuntimeMailboxSelectionHarness({
   const ensureRuntimeMailboxSelection = new Function(
     'getCanonicalAvailableRuntimeMailboxIds',
     'canonicalizeRuntimeMailboxId',
+    'getPreferredOperationalMailboxId',
     'workspaceSourceOfTruth',
     'state',
     `${functionSource}; return ensureRuntimeMailboxSelection;`
   )(
     () => availableMailboxIds.slice(),
     (mailboxId) => String(mailboxId || '').trim().toLowerCase(),
+    () => preferredMailboxId,
     {
       getSelectedMailboxIds() {
         return currentSelectedMailboxIds.slice();
