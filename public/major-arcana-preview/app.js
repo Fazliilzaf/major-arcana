@@ -12918,14 +12918,19 @@
     return scopedMailboxIds.filter((mailboxId) => configuredMailboxIds.has(mailboxId));
   }
 
-  function getTruthPrimaryWorklistMailboxIds() {
+  function getTruthPrimaryWorklistMailboxIds({ mailboxIds = [] } = {}) {
     if (!isTruthPrimaryWorklistFeatureEnabled()) return [];
-    // Paritet med gamla vyn: arbetslistan ska ALLTID täcka hela det konfigurerade
-    // live-scopet (alla 8 brevlådor), inte ett smalt/sticky urval. Tidigare
-    // returnerades det scopade urvalet när det var satt, och det fastnade på
-    // fazli+kons → V2 visade ~99 trådar i stället för ~160. Huvudlistan defaultar
-    // nu till hela scopet; ev. brevlåde-filtrering sker separat, inte genom att
-    // strypa själva hämtningen.
+    // Arbetslistan hämtar det VALDA scopet (mailbox-väljaren äger den), inte
+    // hela klinikens 8 brevlådor. Att alltid hämta alla — även chunkat — drog in
+    // hundratals trådar på en gång och hängde UI:t. Default är EN brevlåda
+    // (ensureRuntimeMailboxSelection); operatören vidgar i väljaren och de
+    // tillagda hämtas då 2 i taget. Tomt urval → konfigurerat scope som fallback.
+    const scopedMailboxIds = asArray(mailboxIds)
+      .map((value) => canonicalizeRuntimeMailboxId(value))
+      .filter(Boolean);
+    if (scopedMailboxIds.length) {
+      return scopedMailboxIds;
+    }
     return getTruthPrimaryConfiguredMailboxIds();
   }
 
@@ -14987,8 +14992,16 @@
       return;
     }
     const selectedMailboxIds = workspaceSourceOfTruth.getSelectedMailboxIds();
-    const defaultScope = availableIds;
     const validIds = new Set(availableIds);
+    // Default-scopet är EN brevlåda (den operativa), ALDRIG alla. Att ladda alla
+    // 8 samtidigt (även chunkat) hämtar hundratals trådar på en gång och renderar
+    // dem i ett svep → UI:t hänger sig. Operatören vidgar urvalet i väljaren när
+    // hen vill (då hämtas de tillagda brevlådorna säkert, 2 i taget).
+    const preferredMailboxId = canonicalizeRuntimeMailboxId(getPreferredOperationalMailboxId());
+    const defaultScope =
+      preferredMailboxId && validIds.has(preferredMailboxId)
+        ? [preferredMailboxId]
+        : availableIds.slice(0, 1);
     const validSelectedMailboxIds = selectedMailboxIds
       .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId))
       .filter((mailboxId) => validIds.has(mailboxId));
