@@ -5203,7 +5203,10 @@
 
     if (shellView === "conversations") {
       return {
-        view: "",
+        // Previewn använder Kundregister som default när `view` saknas. Behåll
+        // därför den explicita conversations-routen vid URL-synk, annars
+        // växlar en reload från V2 tillbaka till Kundregister.
+        view: "conversations",
         automationSection: "",
         portalCustomerKey: selectedPortalCustomerKey,
       };
