@@ -13446,6 +13446,31 @@
     ];
     const historyMessages = asArray(historyPayload?.messages);
     const truthRows = asArray(truthPrimaryPayload?.rows);
+    const truthMailboxReports = asArray(truthPrimaryPayload?.truthCoverage?.accountReports)
+      .map((report) => {
+        const mailboxId = canonicalizeRuntimeMailboxId(
+          report?.mailboxId || report?.mailboxAddress || report?.mailbox?.mailboxId
+        );
+        if (!mailboxId) return null;
+        const folderCounts = asArray(report?.folderCounts);
+        const folderTotal = (folderType) =>
+          folderCounts
+            .filter((folder) => normalizeKey(folder?.folderType) === folderType)
+            .reduce((total, folder) => total + asNumber(folder?.totalItemCount, 0), 0);
+        const materializedMessageCount = folderCounts.reduce(
+          (total, folder) => total + asNumber(folder?.materializedMessageCount, 0),
+          0
+        );
+        const inboxCount = folderTotal("inbox");
+        const sentCount = folderTotal("sentitems") || folderTotal("sent");
+        return {
+          mailboxId,
+          inboxCount,
+          sentCount,
+          messageCount: materializedMessageCount || inboxCount + sentCount,
+        };
+      })
+      .filter(Boolean);
 
     return {
       lastLoadAt: new Date().toISOString(),
@@ -13512,6 +13537,7 @@
           .map((value) => canonicalizeRuntimeMailboxId(value))
           .filter(Boolean),
         rowCount: truthRows.length,
+        mailboxReports: truthMailboxReports,
       },
       error: asText(error),
       offlineWorkingSetSource: asText(offlineWorkingSetSource),
@@ -40336,6 +40362,7 @@
         toneClass: asText(mailbox?.toneClass),
       })).filter((mailbox) => mailbox.id),
       selectedMailboxIds: getRequestedRuntimeMailboxIds({ includePreferredFallback: false }),
+      mailboxMetrics: asArray(state.runtime?.mailboxDiagnostics?.truthPrimary?.mailboxReports),
       // Svarstudio v2 får endast presentation och avsändarval från samma
       // mailbox-/signaturkontrakt som legacy använder. Själva auth, draft och
       // send-grindar ligger fortfarande i de befintliga CCO-routesen.
