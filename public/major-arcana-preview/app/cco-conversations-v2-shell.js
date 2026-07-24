@@ -32,6 +32,10 @@
   var activeTab = 'alla'; // alla | olasta | bokning | vip
   var activeFolder = 'inbox'; // inbox | sent — samma live-trådar, ingen ny källa
   var inboxQuery = '';
+  // V2 kan ha hela klinikens mailbox-scope valt. Begränsa bara hur många
+  // rader som målas per pass, aldrig vilka mailboxar eller trådar som finns.
+  var inboxRenderLimit = 120;
+  var INBOX_RENDER_STEP = 120;
   var mobilePane = 'inbox'; // mobil master-detail: 'inbox' | 'thread'
   var activeSegment = 'alla'; // v3: alla | obesvarade | sla | mina
   var root = null;
@@ -1088,7 +1092,6 @@
     var selectedMailboxIds = (ctx.selectedMailboxIds || []).map(text).filter(Boolean);
     var selectedSet = {};
     selectedMailboxIds.forEach(function (id) { selectedSet[id] = true; });
-    var maxReached = selectedMailboxIds.length >= 2;
     var mailboxes = ctx.mailboxes || [];
     el.innerHTML =
       '<div class="v2-control-kicker">Brevlådor</div>' +
@@ -1096,11 +1099,10 @@
       mailboxes
         .map(function (mailbox) {
           var isSelected = Boolean(selectedSet[mailbox.id]);
-          var disabled = !isSelected && maxReached ? ' disabled aria-disabled="true"' : '';
           return (
             '<button class="v2-mailbox-chip v2-mailbox-chip--' + mailboxTone(mailbox) +
             (isSelected ? ' active' : '') +
-            '" data-v2-mailbox="' + esc(mailbox.id) + '" type="button"' + disabled + '>' +
+            '" data-v2-mailbox="' + esc(mailbox.id) + '" type="button">' +
             '<span class="v2-mailbox-dot" aria-hidden="true"></span>' +
             esc(mailbox.label || mailbox.email || mailbox.id) +
             '</button>'
@@ -1156,7 +1158,8 @@
       return;
     }
     var selectedId = ctx.selected ? threadConversationKey(ctx.selected) : '';
-    el.innerHTML = list
+    var renderedList = list.slice(0, inboxRenderLimit);
+    el.innerHTML = renderedList
       .map(function (thread) {
         // V2 använder exakt samma canonical conversation key som legacy-state
         // (id när den finns, annars den redan normaliserade fallback-nyckeln).
@@ -1221,7 +1224,12 @@
           '</div></div>'
         );
       })
-      .join('');
+      .join('') +
+      (list.length > renderedList.length
+        ? '<button class="v2-load-more" type="button" data-v2-load-more>Visa fler (' +
+          esc(list.length - renderedList.length) +
+          ' kvar)</button>'
+        : '');
   }
 
   function renderThread(ctx) {
@@ -2191,6 +2199,7 @@
       var tabEl = event.target.closest('[data-tab]');
       if (tabEl && boundCtx) {
         activeTab = tabEl.getAttribute('data-tab');
+        inboxRenderLimit = INBOX_RENDER_STEP;
         selected = {}; // rensa urvalet vid flik-byte (vy-skopat)
         renderTabs(boundCtx);
         renderInbox(boundCtx);
@@ -2199,19 +2208,10 @@
       }
       var mailboxEl = event.target.closest('[data-v2-mailbox]');
       if (mailboxEl && boundCtx && typeof boundCtx.handlers.setMailboxScope === 'function') {
-        if (mailboxEl.disabled) return;
         var mailboxId = mailboxEl.getAttribute('data-v2-mailbox');
         var current = (boundCtx.selectedMailboxIds || []).map(text).filter(Boolean);
-        // Ett äldre sparat scope kan vara bredare än runtime-kontraktets två
-        // mailboxar. Ett klick väljer då uttryckligen den aktuella mailboxen.
-        if (current.length > 2) {
-          selected = {};
-          boundCtx.handlers.setMailboxScope([mailboxId]);
-          return;
-        }
         var next = current.filter(function (id) { return id !== mailboxId; });
         if (next.length === current.length) {
-          if (current.length >= 2) return;
           next.push(mailboxId);
         }
         // Ett tomt scope skulle återställa den gamla preferensen till alla
@@ -2219,6 +2219,12 @@
         if (!next.length) return;
         selected = {};
         boundCtx.handlers.setMailboxScope(next);
+        return;
+      }
+      var loadMoreEl = event.target.closest('[data-v2-load-more]');
+      if (loadMoreEl && boundCtx) {
+        inboxRenderLimit += INBOX_RENDER_STEP;
+        renderInbox(boundCtx);
         return;
       }
       var folderEl = event.target.closest('[data-v2-folder]');

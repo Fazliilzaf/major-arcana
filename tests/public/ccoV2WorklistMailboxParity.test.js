@@ -1,14 +1,9 @@
 'use strict';
 
-/* Paritet V2 ↔ gamla vyn: V2:s arbetslista frågade tidigare bara ett smalt,
- * sticky brevlåde-urval (fazli+kons) med limit 120 → visade ~99 trådar mot gamla
- * vyns ~160 (som frågar alla brevlådor med limit 500). Två rotorsaker:
- *   1) getTruthPrimaryWorklistMailboxIds returnerade det scopade urvalet när det
- *      var satt → fastnade på 2 brevlådor. Nu returnerar den ALLTID hela det
- *      konfigurerade live-scopet.
- *   2) WORKLIST_TRUTH_PRIMARY listade bara 7 brevlådor (halso@ saknades) med
- *      limit 120. Nu: alla 8 live-brevlådor + limit 500 (matchar gamla vyn).
- * Dessa tester låser båda. */
+/* Paritet V2 ↔ gamla vyn: V2 ska använda samma åtta live-brevlådor som
+ * admin. Transporten använder fortfarande det valda scopet och chunkar det
+ * säkert; V2:s default är hela den tillåtna admin-scope medan UI:t målar den
+ * stora listan stegvis. */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -71,18 +66,9 @@ test('getTruthPrimaryWorklistMailboxIds hämtar det VALDA scopet (inte alltid al
   );
 });
 
-test('default-scopet är EN brevlåda, inte alla (annars laddas hundratals trådar och UI:t hänger)', () => {
+test('default-scopet är alla tillåtna admin-brevlådor; skalet hanterar stor lista stegvis', () => {
   const start = APP.indexOf('function ensureRuntimeMailboxSelection');
   assert.ok(start > -1, 'ensureRuntimeMailboxSelection ska finnas');
   const body = APP.slice(start, start + 900);
-  assert.doesNotMatch(
-    body,
-    /const defaultScope = availableIds;/,
-    'default får inte vara ALLA tillgängliga brevlådor'
-  );
-  assert.match(
-    body,
-    /getPreferredOperationalMailboxId\(\)/,
-    'default ska utgå från den operativa brevlådan (en)'
-  );
+  assert.match(body, /const defaultScope = availableIds;/);
 });

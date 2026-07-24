@@ -14993,15 +14993,10 @@
     }
     const selectedMailboxIds = workspaceSourceOfTruth.getSelectedMailboxIds();
     const validIds = new Set(availableIds);
-    // Default-scopet är EN brevlåda (den operativa), ALDRIG alla. Att ladda alla
-    // 8 samtidigt (även chunkat) hämtar hundratals trådar på en gång och renderar
-    // dem i ett svep → UI:t hänger sig. Operatören vidgar urvalet i väljaren när
-    // hen vill (då hämtas de tillagda brevlådorna säkert, 2 i taget).
-    const preferredMailboxId = canonicalizeRuntimeMailboxId(getPreferredOperationalMailboxId());
-    const defaultScope =
-      preferredMailboxId && validIds.has(preferredMailboxId)
-        ? [preferredMailboxId]
-        : availableIds.slice(0, 1);
+    // Konversationer v2 är den gemensamma admininkorgen: den startar med hela
+    // tillåtna mailbox-scope. Transporten chunkar fortfarande högst två mailboxar
+    // per request; V2-skalet begränsar i stället DOM-renderingen stegvis.
+    const defaultScope = availableIds;
     const validSelectedMailboxIds = selectedMailboxIds
       .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId))
       .filter((mailboxId) => validIds.has(mailboxId));
@@ -40382,7 +40377,7 @@
           const nextMailboxIds = asArray(mailboxIds)
             .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId))
             .filter(Boolean);
-          if (!nextMailboxIds.length || nextMailboxIds.length > 2) return;
+          if (!nextMailboxIds.length) return;
           applyRuntimeMailboxSelection(nextMailboxIds);
         },
         async resolveMailAssetUrl(sourceUrl) {

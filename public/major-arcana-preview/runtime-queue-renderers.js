@@ -8,7 +8,7 @@
   // renderQueueInlineLaneList anropar scanAndFixUnknownSenders på sin egen
   // container) plus en lågfrekvent re-fetch var 60s av API-data.
 
-  const __CUSTOMER_LS_KEY = "cco.selectedMailboxIds.v2";
+  const __CUSTOMER_LS_KEY = "cco.selectedMailboxIds.v3";
   // The live inbox is mailbox-scoped. Do not make a broad truth-store sweep
   // just to decorate cards with names; that can stall the shared Node process.
   const __CUSTOMER_DEFAULT_MAILBOXES = ["kons"];
@@ -968,7 +968,7 @@
   // state-events. Pillen uppdateras varje gång listan renderas och
   // varje gång state ändras — exakt när DOM-trådantal kan ha ändrats.
 
-  const __PILL_LS_KEY = "cco.selectedMailboxIds.v2";
+  const __PILL_LS_KEY = "cco.selectedMailboxIds.v3";
   let __lastPillSig = "";
 
   function __detectLiveState() {

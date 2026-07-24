@@ -235,7 +235,7 @@ test('v2-skalet: om-rendering är idempotent (ingen dubbel-mount)', () => {
   assert.equal(roots.length, 1, 'får bara finnas ett #cco-conv-v2-root efter om-rendering');
 });
 
-test('v2-skalet: mailboxväljaren använder scoped handler och stannar vid två val', () => {
+test('v2-skalet: mailboxväljaren använder scoped handler för hela admin-scope', () => {
   const { window, document, api } = loadShell();
   const scopes = [];
   api.render(
@@ -268,14 +268,26 @@ test('v2-skalet: mailboxväljaren använder scoped handler och stannar vid två 
         { id: 'fazli@hairtpclinic.com', label: 'Fazli', email: 'fazli@hairtpclinic.com' },
       ],
       selectedMailboxIds: ['kons@hairtpclinic.com', 'contact@hairtpclinic.com'],
+      handlers: {
+        ...makeCtx().handlers,
+        setMailboxScope(ids) {
+          scopes.push(ids);
+        },
+      },
     })
   );
 
   const fazli = document.querySelector('[data-v2-mailbox="fazli@hairtpclinic.com"]');
-  assert.equal(fazli.disabled, true, 'tredje mailbox ska inte kunna ge ett för brett scope');
+  assert.equal(fazli.disabled, false, 'tredje mailbox ska kunna läggas till i V2-scope');
+  fazli.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.deepEqual(scopes.at(-1), [
+    'kons@hairtpclinic.com',
+    'contact@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+  ]);
 });
 
-test('v2-skalet: ett gammalt överbrett mailbox-scope återställs genom ett tydligt val', () => {
+test('v2-skalet: ett brett mailbox-scope kan förfinas ett konto i taget', () => {
   const { window, document, api } = loadShell();
   const scopes = [];
   api.render(
@@ -303,7 +315,21 @@ test('v2-skalet: ett gammalt överbrett mailbox-scope återställs genom ett tyd
     .querySelector('[data-v2-mailbox="contact@hairtpclinic.com"]')
     .dispatchEvent(new window.Event('click', { bubbles: true }));
 
-  assert.deepEqual(scopes, [['contact@hairtpclinic.com']]);
+  assert.deepEqual(scopes, [['kons@hairtpclinic.com', 'fazli@hairtpclinic.com']]);
+});
+
+test('v2-skalet: en stor mailbox-kö målas stegvis utan att tappa trådar', () => {
+  const { window, document, api } = loadShell();
+  const threads = Array.from({ length: 121 }, (_, index) =>
+    makeThread({ id: `thread-${index}`, customerName: `Kund ${index}` })
+  );
+  api.render(makeCtx({ laneThreads: threads, allThreads: threads }));
+
+  assert.equal(document.querySelectorAll('[data-v2-inbox] .thread').length, 120);
+  const loadMore = document.querySelector('[data-v2-load-more]');
+  assert.ok(loadMore, 'stor inbox ska erbjuda stegvis rendering');
+  loadMore.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(document.querySelectorAll('[data-v2-inbox] .thread').length, 121);
 });
 
 test('v2-skalet: default-Inkorg visar hela aktiva kön; Skickat filtrerar till den skickade delmängden', () => {
@@ -448,7 +474,8 @@ test('v2-skalet: appen matar mailboxar och vald scope till samma runtime-rendera
     appSource,
     /selectedMailboxIds: getRequestedRuntimeMailboxIds\(\{ includePreferredFallback: false \}\)/
   );
-  assert.match(appSource, /if \(!nextMailboxIds\.length \|\| nextMailboxIds\.length > 2\) return;/);
+  assert.doesNotMatch(appSource, /nextMailboxIds\.length > 2/);
+  assert.match(appSource, /const defaultScope = availableIds;/);
   assert.match(appSource, /applyRuntimeMailboxSelection\(nextMailboxIds\)/);
 });
 
