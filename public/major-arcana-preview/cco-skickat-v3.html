@@ -1748,15 +1748,20 @@
               : '',
             tags: [],
           }));
-          renderList(mapped.length ? mapped : SENT);
+          // Inkoppling: i produktion (DEMO av) får vi ALDRIG falla tillbaka på
+          // den hårdkodade demo-listan (Anna Karlsson/Johan Andersson m.fl.) när
+          // riktiga utkast saknas — då läcker demo-kunder in i en riktig inkorg.
+          // Tom riktig data → ärlig tomstatus, inte demo.
+          renderList(mapped.length ? mapped : DEMO ? SENT : []);
         } catch {
-          /* server ej nåbar (t.ex. file://-kontext) — visa exempeldata */
-          renderList(SENT);
+          /* server ej nåbar: exempeldata visas BARA i uttryckligt demo-läge
+             (t.ex. file://-preview). I produktion en ärlig tomstatus, aldrig demo. */
+          renderList(DEMO ? SENT : []);
         }
       }
 
       function renderList(items) {
-        if (!items) items = SENT;
+        if (!items) items = DEMO ? SENT : [];
         const filtered = items.filter(passFilter);
         list.innerHTML = filtered.length
           ? filtered.map(card).join('')

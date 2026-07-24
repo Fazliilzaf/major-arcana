@@ -1668,8 +1668,9 @@
           const data = await r.json();
           NOTI = Array.isArray(data.items) ? data.items : [];
         } catch (e) {
-          /* server ej nåbar (t.ex. file://-kontext) — visa exempeldata */
-          NOTI = DEMO_ITEMS.slice();
+          /* server ej nåbar: exempeldata BARA i uttryckligt demo-läge (file://-
+             preview). I produktion en ärlig tomstatus, aldrig demo-notiser. */
+          NOTI = DEMO ? DEMO_ITEMS.slice() : [];
         }
         render();
       }
