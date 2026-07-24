@@ -305,7 +305,7 @@ test('v2-skalet: mailboxväljaren ligger i vänstra köfältet med kompakt fallb
   assert.equal(compactControls.querySelectorAll('[data-v2-mailbox]').length, 1);
 });
 
-test('v2-skalet: mailboxmenyn visar checkbox och trådantal per valt konto i Inkorg', () => {
+test('v2-skalet: mailboxmenyn visar checkbox och trådantal utan att upprepa konton i Inkorg', () => {
   const { document, api } = loadShell();
   const konsThread = makeThread({
     id: 'kons-1',
@@ -335,8 +335,8 @@ test('v2-skalet: mailboxmenyn visar checkbox och trådantal per valt konto i Ink
   assert.equal(info.hasAttribute('checked'), true, 'valt konto ska vara markerat');
   assert.match(root.querySelector('[data-v2-mailboxes]').textContent, /Kons[\s\S]*1/);
   assert.match(root.querySelector('[data-v2-mailboxes]').textContent, /Info[\s\S]*2/);
-  assert.match(root.querySelector('[data-v2-mailbox-summary]').textContent, /Kons[\s\S]*1/);
-  assert.match(root.querySelector('[data-v2-mailbox-summary]').textContent, /Info[\s\S]*2/);
+  assert.match(root.querySelector('[data-v2-mailbox-summary]').textContent, /2 mailkonton[\s\S]*3 trådar/);
+  assert.doesNotMatch(root.querySelector('[data-v2-mailbox-summary]').textContent, /Kons|Info/);
 });
 
 test('v2-skalet: ett brett mailbox-scope kan förfinas ett konto i taget', () => {

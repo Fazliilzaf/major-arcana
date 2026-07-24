@@ -1135,21 +1135,19 @@
     if (!el) return;
     var selected = {};
     (ctx.selectedMailboxIds || []).forEach(function (id) { selected[mailboxKey(id)] = true; });
-    var counts = mailboxThreadCounts(ctx, threads);
-    var rows = (ctx.mailboxes || []).filter(function (mailbox) {
+    var selectedCount = (ctx.mailboxes || []).filter(function (mailbox) {
       return selected[mailboxKey(mailbox.id)];
-    });
-    if (!rows.length) {
+    }).length;
+    if (!selectedCount) {
       el.innerHTML = '';
       return;
     }
-    el.innerHTML = rows.map(function (mailbox) {
-      var id = mailboxKey(mailbox.id);
-      return '<span class="v2-mailbox-summary-item v2-mailbox-summary-item--' + esc(mailboxTone(mailbox)) + '">' +
-        '<span class="v2-mailbox-summary-dot" aria-hidden="true"></span>' +
-        '<span>' + esc(mailbox.label || mailbox.email || mailbox.id) + '</span>' +
-        '<strong>' + String(counts[id] || 0) + '</strong></span>';
-    }).join('');
+    el.innerHTML = '<span class="v2-mailbox-summary-total">' +
+      '<strong>' + String(selectedCount) + '</strong> ' +
+      (selectedCount === 1 ? 'mailkonto' : 'mailkonton') +
+      '<span aria-hidden="true">·</span>' +
+      '<strong>' + String((threads || []).length) + '</strong> trådar' +
+      '</span>';
   }
 
   function renderMailboxControls(ctx) {
