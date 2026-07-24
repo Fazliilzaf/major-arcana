@@ -1604,6 +1604,10 @@
       customerName: text(thread.customerName) || threadName(thread),
       email: email,
       customerId: confirmedPatientId || email,
+      // Kanoniskt patient-master-ID (resolverns exakta e-postmatch). Endast satt
+      // vid bekräftad match — panelerna hämtar riktig kundpost på DETTA, aldrig
+      // på customerId (som kan vara e-post) eller activeCustomerId-demofallbacken.
+      patientId: confirmedPatientId,
       mailboxId: mailbox,
       mailboxSource: mailbox,
       subject: text(thread.subject),

@@ -34,6 +34,32 @@
     return next;
   }
 
+  // Hämtar den RIKTIGA kundposten från patient-master via det redan lösta
+  // kanoniska patient-ID:t (patient.id). Resolver + worklist-overlay + API:t är
+  // redan byggda och live (Cursors arbete); det enda som saknats är att
+  // panelerna KONSUMERAR det. patientId sätts bara vid exakt unik e-postmatch
+  // (fail-closed), så ett '@' betyder att vi har en e-post, inte ett patient-ID
+  // → då hämtar vi inget (aldrig fel patient). Returnerar {patient, card, ...}
+  // eller null.
+  async function fetchPatientMasterCard(patientId) {
+    const id = cleanText(patientId);
+    if (!id || id.indexOf('@') !== -1) return null;
+    try {
+      const res = await fetch(
+        '/api/v1/cco-patient-master/patient?patientId=' + encodeURIComponent(id),
+        {
+          credentials: 'include',
+          headers: adminAuthHeaders({ Accept: 'application/json' }),
+        }
+      );
+      if (!res.ok) return null;
+      const payload = await res.json().catch(() => null);
+      return payload && payload.card ? payload : null;
+    } catch {
+      return null;
+    }
+  }
+
   // PR 4 — Smart anteckning-knappen öppnar Smart anteckning v3 (rätt/ny CCO-vy),
   // inte det gamla "Välj läge"-modalflödet (legacy). admin#cco förblir enda
   // produktionsytan; v3 laddas via samma origin (inte som lokal fil).
@@ -684,11 +710,81 @@
       prioritet: ctx.priority,
       churn: ctx.churnRisk,
     };
+    // Neutralisera demo-cellerna som tråden inte fyller (Agent/SLA/Prioritet/
+    // Churn/Värde) — annars står artifactens exempel ("Egzona K.", "SLA 38 min",
+    // "42 tkr") kvar på en riktig tråd och kan motsäga den riktiga LTV-chippen.
+    // Värde fylls från patient-master (LTV) i fetch-callbacken nedan.
     $$('.cell').forEach((cell) => {
       const key = (cell.querySelector('.k')?.textContent || '').trim().toLowerCase();
       const v = cellMap[key];
       const vEl = cell.querySelector('.v');
-      if (vEl && v != null && v !== '' && v !== '—') vEl.textContent = v;
+      if (!vEl) return;
+      vEl.textContent = v != null && v !== '' && v !== '—' ? v : '—';
+    });
+
+    // ── Riktig kundpost via redan-löst patient-ID (inkoppling, inte demo) ──
+    // De här widgetsen (VIP-högt-värde/engagemang/SLA/"lutar åt fredag") är
+    // artifactens fabricerade demo och saknar riktig källa. Neutralisera dem
+    // ALLTID på en riktig tråd, och bind sedan de VERKLIGA fälten (namn, LTV,
+    // VIP-flagga) från patient-master när ett exakt matchat patient-ID resolvar.
+    // Fail-closed: utan matchat ID hämtas inget → aldrig fel patient.
+    // Sätts när patient-master (kanonisk källa) bundit namnet, så den parallella
+    // dossier-mini-hämtningen inte skriver över det.
+    let patientMasterNameBound = false;
+    const hideSel = (sel) => {
+      const n = $(sel);
+      if (n) n.style.display = 'none';
+    };
+    ['.wb-chip--engage', '.wb-chip--sla', '.wb-chip--gold', '.wb-chip--neutral', '.sp-vip'].forEach(
+      hideSel
+    );
+    const miniVip = $('.mini-vip');
+    if (miniVip) miniVip.style.display = 'none';
+    // AI-"nästa steg" är mockup utan riktig källa om tråden inte gav ett nextStep.
+    if (!cleanText(ctx.nextStep)) {
+      const recTitle = $('.wb-section .wb-title');
+      if (recTitle) recTitle.textContent = 'Ingen AI-rekommendation för den här kunden ännu.';
+      const recSub = $('.wb-section .wb-sub');
+      if (recSub) recSub.textContent = '';
+    }
+    // Hämta ALLTID på det kanoniska patient-ID:t (resolverns exakta match), aldrig
+    // på customerId (kan vara e-post) eller activeCustomerId-demofallbacken
+    // ('CUST-DEMO-002') — annars kunde demo-patienten laddas för en riktig tråd.
+    // patient-master (på patient.id) är den KANONISKA namnkällan: när den satt
+    // namnet får den parallella dossier-mini-hämtningen (på e-post/customerId)
+    // inte skriva över det, oavsett vilken som svarar sist (race-guard).
+    fetchPatientMasterCard(ctx.patientId).then((record) => {
+      const card = record && record.card ? record.card : null;
+      if (!card) return;
+      if (cleanText(card.displayName)) {
+        setText('.kk-name', cleanText(card.displayName));
+        patientMasterNameBound = true;
+      }
+      const ltv = Number(card.lifetimeValue);
+      if (ltv > 0) {
+        const ltvLabel = Math.round(ltv / 1000) + ' tkr';
+        const ltvChip = $('.wb-chip--neutral');
+        if (ltvChip) {
+          ltvChip.textContent = 'LTV ' + ltvLabel;
+          ltvChip.style.display = '';
+        }
+        // Samma riktiga LTV i sgrid-cellen "Värde" (neutraliserad till "—" ovan).
+        $$('.cell').forEach((cell) => {
+          const key = (cell.querySelector('.k')?.textContent || '').trim().toLowerCase();
+          if (key !== 'värde') return;
+          const vEl = cell.querySelector('.v');
+          if (vEl) vEl.textContent = ltvLabel;
+        });
+      }
+      const flags = Array.isArray(card.flags) ? card.flags.map(String) : [];
+      const isVip = flags.some((f) => /vip|högt\s*värde|high[_ ]?value/i.test(f));
+      if (isVip) {
+        ['.wb-chip--gold', '.sp-vip'].forEach((sel) => {
+          const n = $(sel);
+          if (n) n.style.display = '';
+        });
+        if (miniVip) miniVip.style.display = '';
+      }
     });
 
     // meddelanden i tråden (om live-context har dem, annars artifactens exempel)
@@ -1179,7 +1275,9 @@
       const name = cleanText(dossier.identity?.name);
       const emails = Array.isArray(dossier.contact?.emails) ? dossier.contact.emails : [];
       const phones = Array.isArray(dossier.contact?.phones) ? dossier.contact.phones : [];
-      if (name) setText('.kk-name', name);
+      // Skriv inte över det kanoniska patient-master-namnet (på patient.id) med
+      // dossier-mini-namnet (på e-post/customerId) — race-guard.
+      if (name && !patientMasterNameBound) setText('.kk-name', name);
       if (emails[0] && kkLines[0]) kkLines[0].lastChild.textContent = ' ' + emails[0];
       if (phones[0] && kkLines[1]) kkLines[1].lastChild.textContent = ' ' + phones[0];
 
