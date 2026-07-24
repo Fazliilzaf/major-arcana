@@ -1506,6 +1506,17 @@
         function applyContext(context) {
           if (!context || typeof context !== 'object') return;
           window.CCO_PATIENTHUB_CONTEXT = context;
+          // Inkoppling: när launchern berikat kontexten med den RIKTIGA patient-
+          // master-kundposten (kanoniskt patient.id) binder vi kundkortets namn
+          // till kanoniskt displayName i stället för den hårdkodade demon
+          // ("Anna Karlsson"). Före namn-grinden nedan så det gäller även utan
+          // tråd-namn.
+          var pmCard = context.patientMaster && context.patientMaster.card;
+          if (pmCard && pmCard.displayName) {
+            var kkNameEl =
+              document.querySelector('.kk-card .kk-name') || document.querySelector('.kk-name');
+            if (kkNameEl) kkNameEl.textContent = pmCard.displayName;
+          }
           var name = String(context.customerName || '').trim();
           if (!name || name === 'Vald kund') return;
           var search = document.querySelector('input[placeholder="Sök i patienthubben…"]');

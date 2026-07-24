@@ -51,9 +51,10 @@ test('PR20: signaturer scopas på trådens kund (customerId) och postMessage', (
     compact(source),
     /openModal\(\{ title: 'Signaturer', wide: true, tabs: panelTabs\('signaturer'\), body: frame \}\)/
   );
+  // Postas via den delade berikningshjälparen (bas + patient-master), origin-validerat.
   assert.match(
-    compact(source),
-    /postMessage\( \{ type: 'cco:signaturer:context', context \}, window\.location\.origin \)/
+    source,
+    /postPanelContextWithPatientMaster\(frame, 'cco:signaturer:context', context\)/
   );
 });
 

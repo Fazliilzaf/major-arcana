@@ -18,8 +18,9 @@ const PREVIEW = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview
 function applyContextBody(source) {
   const start = source.indexOf('function applyContext(context)');
   assert.ok(start > -1, 'applyContext ska finnas');
-  // Ta ett generöst fönster som täcker hela applyContext-kroppen.
-  return source.slice(start, start + 3800);
+  // Ta ett generöst fönster som täcker hela applyContext-kroppen (rymmer även
+  // inkopplingens patient-master-namnbindning högst upp i funktionen).
+  return source.slice(start, start + 4400);
 }
 
 for (const file of [

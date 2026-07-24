@@ -140,12 +140,13 @@ test('PR4: Smart anteckning-knappen öppnar v3 via same-origin (ingen file://)',
     /const SMART_ANTECKNING_V3_SRC = '\/major-arcana-preview\/cco-smart-anteckning-v3\.html'/
   );
   assert.doesNotMatch(source, /file:\/\//, 'ingen file:// som mål');
-  assert.match(source, /function openSmartAnteckning\(\)/);
   assert.match(source, /function buildSmartAnteckningContext\(\)/);
   assert.match(compact(source), /const src = SMART_ANTECKNING_V3_SRC \+/);
   assert.match(source, /el\(\s*'iframe'/);
-  // runCcoAction forwardar presetContext (definitionen ignorerar arg:et) så V2
-  // kan mata in trådkontext; legacy-dispatchen anropar fortfarande utan preset.
+  // Inkoppling: öppnaren tar nu presetContext (launcher-presetens kanoniska
+  // patientId) i stället för att ignorera arg:et; legacy-dispatchen kan anropa
+  // utan preset (faller till buildSmartAnteckningContext, som nu bär patientId).
+  assert.match(source, /function openSmartAnteckning\(presetContext\)/);
   assert.match(source, /action === 'smart-anteckning'\) openSmartAnteckning\(presetContext\)/);
 });
 
@@ -155,10 +156,16 @@ test('PR4: legacy "Välj läge"-flödet är borttaget (inte standardflöde)', ()
 });
 
 test('PR4: kontexten skickas till v3 via postMessage från same origin', () => {
+  // Postas nu via den delade berikningshjälparen (bas-kontext + patient-master-
+  // uppföljning), fortfarande origin-validerat.
+  assert.match(
+    source,
+    /postPanelContextWithPatientMaster\(frame, 'cco:smart-anteckning:context', context\)/
+  );
   assert.match(source, /frame\.addEventListener\('load'/);
   assert.match(
     compact(source),
-    /postMessage\( \{ type: 'cco:smart-anteckning:context', context \}, window\.location\.origin \)/
+    /postMessage\(\{ type, context: ctx \}, window\.location\.origin\)/
   );
 });
 

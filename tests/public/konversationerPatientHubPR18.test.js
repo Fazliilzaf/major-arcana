@@ -54,9 +54,10 @@ test('PR18: dossier scopas på trådens kund (customerId) och postMessage', () =
     compact(source),
     /openModal\(\{ title: 'Dossier', wide: true, tabs: panelTabs\('patienthub'\), body: frame \}\)/
   );
+  // Postas via den delade berikningshjälparen (bas + patient-master), origin-validerat.
   assert.match(
-    compact(source),
-    /postMessage\( \{ type: 'cco:patienthub:context', context \}, window\.location\.origin \)/
+    source,
+    /postPanelContextWithPatientMaster\(frame, 'cco:patienthub:context', context\)/
   );
 });
 

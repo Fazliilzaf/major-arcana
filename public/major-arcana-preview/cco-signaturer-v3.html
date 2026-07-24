@@ -1773,6 +1773,12 @@
         function applyContext(context) {
           if (!context || typeof context !== 'object') return;
           window.CCO_SIGNATURER_CONTEXT = context;
+          // Inkoppling: kanoniskt patient-master-namn (displayName) före tråd/demo-namn.
+          var pmCard = context && context.patientMaster && context.patientMaster.card;
+          if (pmCard && pmCard.displayName) {
+            var kkNameEl = document.getElementById('kkName') || document.querySelector('.kk-card .kk-name');
+            if (kkNameEl) kkNameEl.textContent = pmCard.displayName;
+          }
           var name = String(context.customerName || '').trim();
           // Kundkontext-kortet (höger operatörsstöd) band inte kunden → visade
           // hårdkodad demo ("Anna Karlsson") på riktig tråd. Så fort panelen får

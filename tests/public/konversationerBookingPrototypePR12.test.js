@@ -41,19 +41,20 @@ test('PR12: Öppna bokning pekar på cco-ny-bokning.html via same-origin', () =>
   assert.doesNotMatch(source, /BOOKING_SRC = '[^']*cco-booking-wizard-v3/);
   assert.doesNotMatch(source, /BOOKING_V3_SRC/);
   assert.doesNotMatch(source, /file:\/\//, 'ingen file:// som mål');
-  assert.match(source, /function openBokningsyta\(\)/);
+  // Inkoppling: öppnaren tar nu presetContext (launcher-presetens patientId).
+  assert.match(source, /function openBokningsyta\(presetContext\)/);
   assert.match(compact(source), /const src = BOOKING_SRC \+/);
-  // runCcoAction forwardar presetContext (definitionen ignorerar arg:et) för V2:s trådkontext.
   assert.match(source, /action === 'bokningsyta'\) openBokningsyta\(presetContext\)/);
 });
 
 test('PR12: bokning öppnas i iframe-panel (openModal wide) med kontext', () => {
   assert.match(source, /title: 'Ny bokning'/);
   assert.match(compact(source), /openModal\(\{ title: 'Öppna bokning', wide: true,/);
-  assert.match(source, /const context = buildSmartAnteckningContext\(\);/);
+  assert.match(source, /const context = presetContext \|\| buildSmartAnteckningContext\(\);/);
+  // Postas via den delade berikningshjälparen (bas + patient-master), origin-validerat.
   assert.match(
-    compact(source),
-    /postMessage\( \{ type: 'cco:booking:context', context \}, window\.location\.origin \)/
+    source,
+    /postPanelContextWithPatientMaster\(frame, 'cco:booking:context', context\)/
   );
 });
 

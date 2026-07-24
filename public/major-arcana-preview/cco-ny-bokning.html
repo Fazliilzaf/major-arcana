@@ -943,6 +943,12 @@
         function applyContext(context) {
           if (!context || typeof context !== 'object') return;
           window.CCO_BOOKING_CONTEXT = context;
+          // Inkoppling: kanoniskt patient-master-namn (displayName) före tråd/demo-namn.
+          var pmCard = context && context.patientMaster && context.patientMaster.card;
+          if (pmCard && pmCard.displayName) {
+            var kkNameEl = document.getElementById('bkCustName');
+            if (kkNameEl) kkNameEl.textContent = pmCard.displayName;
+          }
           var name = String(context.customerName || '').trim();
           // Fabricerad demo-copy (bokningshistorik i .ai-hint, friskförsäkran-status
           // i .wiz-warning, mejl-preferens) kan inte härledas ur trådkontexten. Dölj/
