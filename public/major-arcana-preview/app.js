@@ -12915,14 +12915,14 @@
     return scopedMailboxIds.filter((mailboxId) => configuredMailboxIds.has(mailboxId));
   }
 
-  function getTruthPrimaryWorklistMailboxIds({ mailboxIds = [] } = {}) {
+  function getTruthPrimaryWorklistMailboxIds() {
     if (!isTruthPrimaryWorklistFeatureEnabled()) return [];
-    const scopedMailboxIds = asArray(mailboxIds)
-      .map((value) => canonicalizeRuntimeMailboxId(value))
-      .filter(Boolean);
-    if (scopedMailboxIds.length) {
-      return scopedMailboxIds;
-    }
+    // Paritet med gamla vyn: arbetslistan ska ALLTID täcka hela det konfigurerade
+    // live-scopet (alla 8 brevlådor), inte ett smalt/sticky urval. Tidigare
+    // returnerades det scopade urvalet när det var satt, och det fastnade på
+    // fazli+kons → V2 visade ~99 trådar i stället för ~160. Huvudlistan defaultar
+    // nu till hela scopet; ev. brevlåde-filtrering sker separat, inte genom att
+    // strypa själva hämtningen.
     return getTruthPrimaryConfiguredMailboxIds();
   }
 
