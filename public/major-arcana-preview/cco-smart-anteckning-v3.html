@@ -1827,6 +1827,12 @@
         function applyContext(context) {
           if (!context || typeof context !== 'object') return;
           window.CCO_SMART_ANTECKNING_CONTEXT = context;
+          // Inkoppling: kanoniskt patient-master-namn (displayName) före tråd/demo-namn.
+          var pmCard = context && context.patientMaster && context.patientMaster.card;
+          if (pmCard && pmCard.displayName) {
+            var kkNameEl = document.getElementById('kkName') || document.querySelector('.kk-card .kk-name');
+            if (kkNameEl) kkNameEl.textContent = pmCard.displayName;
+          }
           const name = String(context.customerName || '').trim();
           const bar = document.querySelector('.ctx-bar');
           const nameEl = document.querySelector('.ctx-bar .ctx-name');

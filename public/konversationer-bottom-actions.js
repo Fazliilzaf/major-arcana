@@ -60,6 +60,29 @@
     }
   }
 
+  // Postar panel-kontexten till en iframe-panel och BERIKAR den sedan med den
+  // riktiga patient-master-kundposten (inkoppling). Bas-kontexten postas direkt
+  // på load så panelen aldrig blockeras; när kortet hämtats på det kanoniska
+  // patientId:t postas en uppföljning med { patientMaster } så panelen kan
+  // uppgradera till kanonisk identitet (displayName) i stället för demo/tråd-
+  // namn. Fail-closed: utan patientId (t.ex. bara e-post) hämtas inget → bas-
+  // kontexten står kvar, aldrig fel patient.
+  function postPanelContextWithPatientMaster(frame, type, context) {
+    function post(ctx) {
+      try {
+        frame.contentWindow?.postMessage({ type, context: ctx }, window.location.origin);
+      } catch {
+        /* ignore cross-frame errors */
+      }
+    }
+    frame.addEventListener('load', () => {
+      post(context);
+      fetchPatientMasterCard(context && context.patientId).then((record) => {
+        if (record && record.card) post({ ...context, patientMaster: record });
+      });
+    });
+  }
+
   // PR 4 — Smart anteckning-knappen öppnar Smart anteckning v3 (rätt/ny CCO-vy),
   // inte det gamla "Välj läge"-modalflödet (legacy). admin#cco förblir enda
   // produktionsytan; v3 laddas via samma origin (inte som lokal fil).
@@ -2663,6 +2686,11 @@
     const context = {
       source: cleanText(ctx.source) || 'konversationer',
       conversationKey: cleanText(ctx.conversationKey),
+      // Kanoniskt patient-ID (patient.id) — sätts bara vid bekräftad match i
+      // shellens buildLauncherThreadContext (fail-closed). Bärs vidare så att
+      // panelerna kan KONSUMERA det och hämta riktig patient-master-kundpost
+      // (inkoppling, samma mönster som Svarstudio). Aldrig e-post här.
+      patientId: cleanText(ctx.patientId),
       customerName,
       customerSub: cleanText(ctx.customerSub) || cleanText(ctx.engagement),
       avatar: cleanText(ctx.avatar) || customerName.slice(0, 1).toUpperCase(),
@@ -2682,8 +2710,8 @@
     return context;
   }
 
-  function openSmartAnteckning() {
-    const context = buildSmartAnteckningContext();
+  function openSmartAnteckning(presetContext) {
+    const context = presetContext || buildSmartAnteckningContext();
     // Små fält i query för direkt render; full payload (inkl. senaste
     // meddelanden) skickas via postMessage när v3-ramen laddats.
     const params = new URLSearchParams();
@@ -2698,16 +2726,7 @@
       title: 'Smart anteckning v3',
       style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
-    frame.addEventListener('load', () => {
-      try {
-        frame.contentWindow?.postMessage(
-          { type: 'cco:smart-anteckning:context', context },
-          window.location.origin
-        );
-      } catch {
-        /* ignore cross-frame errors */
-      }
-    });
+    postPanelContextWithPatientMaster(frame, 'cco:smart-anteckning:context', context);
     openModal({
       title: 'Smart anteckning',
       wide: true,
@@ -2718,10 +2737,10 @@
   }
 
   // ─── BOKNING → full Bokningsguide v3 ─────────────────────────────────
-  function openBokningsyta() {
+  function openBokningsyta(presetContext) {
     // Återanvänder samma live-tråds-kontext som Smart anteckning (kund,
     // conversationKey, ämne, senaste meddelanden, mailbox, e-post).
-    const context = buildSmartAnteckningContext();
+    const context = presetContext || buildSmartAnteckningContext();
     const params = new URLSearchParams();
     if (context.customerName) params.set('kund', context.customerName);
     if (context.email) params.set('email', context.email);
@@ -2735,16 +2754,7 @@
       title: 'Ny bokning',
       style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
-    frame.addEventListener('load', () => {
-      try {
-        frame.contentWindow?.postMessage(
-          { type: 'cco:booking:context', context },
-          window.location.origin
-        );
-      } catch {
-        /* ignore cross-frame errors */
-      }
-    });
+    postPanelContextWithPatientMaster(frame, 'cco:booking:context', context);
     openModal({
       title: 'Öppna bokning',
       wide: true,
@@ -3699,16 +3709,7 @@
       title: 'Patient-dossier v3',
       style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
-    frame.addEventListener('load', () => {
-      try {
-        frame.contentWindow?.postMessage(
-          { type: 'cco:patienthub:context', context },
-          window.location.origin
-        );
-      } catch {
-        /* ignore cross-frame errors */
-      }
-    });
+    postPanelContextWithPatientMaster(frame, 'cco:patienthub:context', context);
     openModal({ title: 'Dossier', wide: true, tabs: panelTabs('patienthub'), body: frame });
   }
 
@@ -3734,16 +3735,7 @@
       title: 'Signaturer & samtycken v3',
       style: 'width:100%;height:100%;border:0;border-radius:14px;background:#fff;display:block',
     });
-    frame.addEventListener('load', () => {
-      try {
-        frame.contentWindow?.postMessage(
-          { type: 'cco:signaturer:context', context },
-          window.location.origin
-        );
-      } catch {
-        /* ignore cross-frame errors */
-      }
-    });
+    postPanelContextWithPatientMaster(frame, 'cco:signaturer:context', context);
     openModal({ title: 'Signaturer', wide: true, tabs: panelTabs('signaturer'), body: frame });
   }
 
