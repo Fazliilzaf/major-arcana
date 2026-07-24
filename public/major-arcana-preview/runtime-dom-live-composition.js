@@ -338,6 +338,121 @@
       return apiRequest(path);
     }
 
+    // Consumer-kontraktet HÅRD-avvisar >2 brevlådor med HTTP 422 (medveten
+    // skydds-spärr: att läsa alla shards var 10:e sekund slog ut worklisten med
+    // 502). Gamla vyn löser detta genom att dela urvalet i par (≤2 brevlådor)
+    // och hämta varje chunk för sig. Speglar den chunkningen här: max-två per
+    // request behålls som chunk-storlek, aldrig som en blankning av urvalet.
+    function worklistMailboxChunks(mailboxIds = []) {
+      const unique = asArray(mailboxIds)
+        .map((value) =>
+          typeof canonicalizeRuntimeMailboxId === "function"
+            ? canonicalizeRuntimeMailboxId(value)
+            : normalizeMailboxId(value)
+        )
+        .filter(Boolean)
+        .filter((value, index, all) => all.indexOf(value) === index);
+      const chunks = [];
+      for (let index = 0; index < unique.length; index += RUNTIME_WORKLIST_MAX_MAILBOX_IDS) {
+        chunks.push(unique.slice(index, index + RUNTIME_WORKLIST_MAX_MAILBOX_IDS));
+      }
+      return chunks;
+    }
+
+    // Slår ihop payloads från flera chunk-anrop till EN syntetisk payload så att
+    // den befintliga målaren (paintTruthPrimaryWorklistFromPayload) kan köras en
+    // gång. Raderna dedupas på konversations-id (samma nyckel som
+    // buildTruthPrimaryRuntimeRow läser: conversation.conversationId || id).
+    function mergeTruthPrimaryChunkPayloads(scopedPayloads = []) {
+      const payloads = asArray(scopedPayloads).filter(
+        (payload) => payload && typeof payload === "object"
+      );
+      if (!payloads.length) return null;
+      if (payloads.length === 1) return payloads[0];
+      const base = payloads[0];
+      const mergedRows = [];
+      const seenRowIds = new Set();
+      payloads.forEach((payload) => {
+        asArray(payload?.rows).forEach((row) => {
+          if (!row || typeof row !== "object") return;
+          const rowId = asText(row?.conversation?.conversationId || row?.id);
+          if (rowId) {
+            if (seenRowIds.has(rowId)) return;
+            seenRowIds.add(rowId);
+          }
+          mergedRows.push(row);
+        });
+      });
+      const hasEnrichment = payloads.some(
+        (payload) => payload?.enrichment && typeof payload.enrichment === "object"
+      );
+      const mergedEnrichment = hasEnrichment
+        ? {
+            ...(base?.enrichment && typeof base.enrichment === "object" ? base.enrichment : {}),
+            conversationEnrichment: payloads.flatMap((payload) =>
+              asArray(payload?.enrichment?.conversationEnrichment)
+            ),
+            conversationWorklist: payloads.flatMap((payload) =>
+              asArray(payload?.enrichment?.conversationWorklist)
+            ),
+            needsReplyToday: payloads.flatMap((payload) =>
+              asArray(payload?.enrichment?.needsReplyToday)
+            ),
+          }
+        : base?.enrichment;
+      const merged = { ...base, rows: mergedRows };
+      if (mergedEnrichment) {
+        merged.enrichment = mergedEnrichment;
+      }
+      if (base?.truthCoverage && typeof base.truthCoverage === "object") {
+        merged.truthCoverage = {
+          ...base.truthCoverage,
+          accountReports: payloads.flatMap((payload) =>
+            asArray(payload?.truthCoverage?.accountReports)
+          ),
+        };
+      }
+      return merged;
+    }
+
+    // Hämtar arbetslistan för hela urvalet via ≤2-brevlåde-chunks. Kör
+    // SEKVENTIELLT (som gamla vyn: "Kör sekventiellt för att inte skapa en ny
+    // belastningstopp") och avbryter om urvalet byts under laddningen. En chunk
+    // som 422:ar eller failar hoppas över — bara total-fel kastar vidare.
+    async function fetchTruthPrimaryWorklistConsumerChunked(
+      mailboxIds = [],
+      { isCurrentRequest = null } = {}
+    ) {
+      const requestMailboxChunks = worklistMailboxChunks(mailboxIds);
+      if (!requestMailboxChunks.length) {
+        return fetchTruthPrimaryWorklistConsumer(
+          buildTruthPrimaryWorklistConsumerHref(mailboxIds)
+        );
+      }
+      const scopedPayloads = [];
+      let lastError = null;
+      for (const mailboxChunk of requestMailboxChunks) {
+        if (typeof isCurrentRequest === "function" && !isCurrentRequest()) {
+          break;
+        }
+        try {
+          const payload = await fetchTruthPrimaryWorklistConsumer(
+            buildTruthPrimaryWorklistConsumerHref(mailboxChunk)
+          );
+          if (payload && typeof payload === "object") {
+            scopedPayloads.push(payload);
+          }
+        } catch (chunkError) {
+          lastError = chunkError;
+        }
+      }
+      if (!scopedPayloads.length) {
+        if (lastError) throw lastError;
+        return null;
+      }
+      return mergeTruthPrimaryChunkPayloads(scopedPayloads);
+    }
+
     function resolveRuntimeSyncMailboxIds() {
       const requestedMailboxIds = asArray(getRequestedRuntimeMailboxIds?.())
         .map((value) =>
@@ -622,8 +737,8 @@
         return { refreshed: false, hasNewMail: false };
       }
 
-      const truthPrimaryPayload = await fetchTruthPrimaryWorklistConsumer(
-        buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
+      const truthPrimaryPayload = await fetchTruthPrimaryWorklistConsumerChunked(
+        configuredTruthPrimaryMailboxIds
       );
       const consumerSig = getTruthConsumerSignature(truthPrimaryPayload);
       const previousSig = asText(state.runtime?.lastTruthConsumerSig);
@@ -3802,30 +3917,10 @@
         ? requestedMailboxIds
         : getRequestedRuntimeMailboxIds();
       const preferredThreadId = asText(options.preferredThreadId);
-      // Consumer-kontraktet är medvetet begränsat till två mailboxar. V2 får
-      // aldrig försöka med ett bredare sparat urval eller visa äldre trådar.
-      if (runtimeMailboxIds.length > RUNTIME_WORKLIST_MAX_MAILBOX_IDS) {
-        clearRuntimeLiveRefreshTimer();
-        clearRuntimeBackgroundSync();
-        state.runtime.loading = false;
-        state.runtime.loaded = false;
-        state.runtime.threads = [];
-        state.runtime.truthPrimaryLegacyThreads = [];
-        state.runtime.liveHydratedThreadIds = [];
-        state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
-          phase: "scope_too_broad",
-          requestedMailboxIds: runtimeMailboxIds,
-          error: RUNTIME_WORKLIST_SCOPE_TOO_BROAD_USER_MESSAGE,
-        });
-        setRuntimeModeState("runtime_error", {
-          error: RUNTIME_WORKLIST_SCOPE_TOO_BROAD_USER_MESSAGE,
-          live: false,
-          offline: false,
-          authRequired: false,
-        });
-        renderRuntimeConversationShell();
-        return;
-      }
+      // Consumer-kontraktet HÅRD-avvisar >2 brevlådor per request. Urvalet får
+      // dock vara upp till alla 8 live-brevlådor (paritet med gamla vyn) —
+      // max-två-gränsen upprätthålls per REQUEST via chunkning
+      // (fetchTruthPrimaryWorklistConsumerChunked), inte genom att blanka urvalet.
       const selectedThreadId = asText(workspaceSourceOfTruth.getSelectedThreadId());
       let stableFocusThread =
         selectedThreadId &&
@@ -4003,8 +4098,9 @@
         ) {
           if (canUseTruthPrimaryFastPath) {
             try {
-              truthPrimaryPayload = await fetchTruthPrimaryWorklistConsumer(
-                buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
+              truthPrimaryPayload = await fetchTruthPrimaryWorklistConsumerChunked(
+                configuredTruthPrimaryMailboxIds,
+                { isCurrentRequest }
               );
               if (!isCurrentRequest()) return;
               activeTruthPrimaryMailboxIds = [...configuredTruthPrimaryMailboxIds];
@@ -4057,8 +4153,8 @@
               );
             }
           } else {
-            truthPrimaryPromise = fetchTruthPrimaryWorklistConsumer(
-              buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
+            truthPrimaryPromise = fetchTruthPrimaryWorklistConsumerChunked(
+              configuredTruthPrimaryMailboxIds
             ).then(
               (payload) => ({ ok: true, payload }),
               (error) => ({ ok: false, error })
@@ -4093,8 +4189,9 @@
                 configuredTruthPrimaryMailboxIds.length &&
                 typeof buildTruthPrimaryWorklistConsumerHref === "function"
               ) {
-                truthPrimaryPayload = await fetchTruthPrimaryWorklistConsumer(
-                  buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
+                truthPrimaryPayload = await fetchTruthPrimaryWorklistConsumerChunked(
+                  configuredTruthPrimaryMailboxIds,
+                  { isCurrentRequest: () => deferredSequence === liveRuntimeRequestSequence }
                 );
                 if (deferredSequence !== liveRuntimeRequestSequence) return;
               }

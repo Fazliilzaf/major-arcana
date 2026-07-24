@@ -241,22 +241,57 @@ test('bindWorkspaceInteractions kan bindas utan ReferenceError när queueHistory
   });
 });
 
-test('loadLiveRuntime stoppar för brett mailbox-urval innan consumer-anropet', () => {
+test('loadLiveRuntime chunkar brett mailbox-urval i par i stället för att blanka det', () => {
   const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
   const loadLiveRuntimeSource = extractFunctionSource(source, 'loadLiveRuntime');
-
-  assert.match(source, /const RUNTIME_WORKLIST_MAX_MAILBOX_IDS = 2/);
-  assert.match(
-    loadLiveRuntimeSource,
-    /runtimeMailboxIds\.length > RUNTIME_WORKLIST_MAX_MAILBOX_IDS/
+  const worklistMailboxChunksSource = extractFunctionSource(source, 'worklistMailboxChunks');
+  const chunkedFetchSource = extractFunctionSource(
+    source,
+    'fetchTruthPrimaryWorklistConsumerChunked'
   );
-  assert.match(loadLiveRuntimeSource, /phase: "scope_too_broad"/);
-  assert.match(loadLiveRuntimeSource, /state\.runtime\.threads = \[\]/);
-  assert.match(loadLiveRuntimeSource, /renderRuntimeConversationShell\(\);\s*return;/);
+
+  // Chunk-storleken (max två per REQUEST) behålls som serverns hårda kontrakt.
+  assert.match(source, /const RUNTIME_WORKLIST_MAX_MAILBOX_IDS = 2/);
+
+  // Blankningsgrenen för >2 brevlådor ska vara borta: urvalet får nu vara upp
+  // till alla 8 live-brevlådor, och per-request-gränsen upprätthålls via chunkning.
+  assert.doesNotMatch(
+    loadLiveRuntimeSource,
+    /runtimeMailboxIds\.length > RUNTIME_WORKLIST_MAX_MAILBOX_IDS/,
+    'loadLiveRuntime får inte längre blanka urvalet när fler än två brevlådor är valda.'
+  );
+  assert.doesNotMatch(
+    loadLiveRuntimeSource,
+    /phase: "scope_too_broad"/,
+    'scope_too_broad-blankningen ska vara ersatt av chunkning.'
+  );
+
+  // worklistMailboxChunks delar urvalet i ≤2-brevlåde-chunks.
+  assert.match(
+    worklistMailboxChunksSource,
+    /index \+= RUNTIME_WORKLIST_MAX_MAILBOX_IDS/,
+    'worklistMailboxChunks ska dela urvalet i par om RUNTIME_WORKLIST_MAX_MAILBOX_IDS.'
+  );
+
+  // Den chunkade hämtaren kör sekventiellt och hoppar över trasiga chunks.
+  assert.match(
+    chunkedFetchSource,
+    /worklistMailboxChunks\(mailboxIds\)/,
+    'fetchTruthPrimaryWorklistConsumerChunked ska chunka urvalet före hämtning.'
+  );
+  assert.match(
+    chunkedFetchSource,
+    /for \(const mailboxChunk of requestMailboxChunks\)/,
+    'Chunk-hämtningen ska köras sekventiellt, en chunk i taget.'
+  );
+
+  // Alla tre anropsvägar (snabb, uppskjuten, delta) går via den chunkade hämtaren.
+  const chunkedCallCount = (
+    source.match(/fetchTruthPrimaryWorklistConsumerChunked\(/g) || []
+  ).length;
   assert.ok(
-    loadLiveRuntimeSource.indexOf('runtimeMailboxIds.length > RUNTIME_WORKLIST_MAX_MAILBOX_IDS') <
-      loadLiveRuntimeSource.indexOf('const runtimeRequestSequence'),
-    'scope-vakten måste köras innan ny runtime-request kan skapa consumer-anrop'
+    chunkedCallCount >= 4,
+    'Snabb-, uppskjuten- och delta-vägen ska alla hämta via den chunkade hämtaren.'
   );
 });
 
