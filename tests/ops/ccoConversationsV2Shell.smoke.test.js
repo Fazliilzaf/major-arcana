@@ -305,6 +305,40 @@ test('v2-skalet: mailboxväljaren ligger i vänstra köfältet med kompakt fallb
   assert.equal(compactControls.querySelectorAll('[data-v2-mailbox]').length, 1);
 });
 
+test('v2-skalet: mailboxmenyn visar checkbox och trådantal per valt konto i Inkorg', () => {
+  const { document, api } = loadShell();
+  const konsThread = makeThread({
+    id: 'kons-1',
+    mailboxId: 'kons@hairtpclinic.com',
+    mailboxBadge: 'Kons',
+  });
+  const infoThreads = [
+    makeThread({ id: 'info-1', mailboxId: 'info@hairtpclinic.com', mailboxBadge: 'Info' }),
+    makeThread({ id: 'info-2', mailboxId: 'info@hairtpclinic.com', mailboxBadge: 'Info' }),
+  ];
+  api.render(
+    makeCtx({
+      laneThreads: [konsThread, ...infoThreads],
+      allThreads: [konsThread, ...infoThreads],
+      mailboxes: [
+        { id: 'kons@hairtpclinic.com', label: 'Kons', email: 'kons@hairtpclinic.com' },
+        { id: 'info@hairtpclinic.com', label: 'Info', email: 'info@hairtpclinic.com' },
+      ],
+      selectedMailboxIds: ['kons@hairtpclinic.com', 'info@hairtpclinic.com'],
+    })
+  );
+
+  const root = document.getElementById('cco-conv-v2-root');
+  const kons = root.querySelector('[data-v2-mailbox="kons@hairtpclinic.com"]');
+  const info = root.querySelector('[data-v2-mailbox="info@hairtpclinic.com"]');
+  assert.equal(kons.getAttribute('type'), 'checkbox', 'varje konto ska kunna checkas av');
+  assert.equal(info.hasAttribute('checked'), true, 'valt konto ska vara markerat');
+  assert.match(root.querySelector('[data-v2-mailboxes]').textContent, /Kons[\s\S]*1/);
+  assert.match(root.querySelector('[data-v2-mailboxes]').textContent, /Info[\s\S]*2/);
+  assert.match(root.querySelector('[data-v2-mailbox-summary]').textContent, /Kons[\s\S]*1/);
+  assert.match(root.querySelector('[data-v2-mailbox-summary]').textContent, /Info[\s\S]*2/);
+});
+
 test('v2-skalet: ett brett mailbox-scope kan förfinas ett konto i taget', () => {
   const { window, document, api } = loadShell();
   const scopes = [];

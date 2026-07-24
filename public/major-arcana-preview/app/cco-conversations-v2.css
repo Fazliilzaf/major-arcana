@@ -253,6 +253,38 @@ html[data-conversations-v2="on"]
 #cco-conv-v2-root .v2-mailbox-controls {
   margin-bottom: 8px;
 }
+#cco-conv-v2-root .v2-mailbox-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: -4px 0 8px;
+}
+#cco-conv-v2-root .v2-mailbox-summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+  padding: 0 6px;
+  border: 1px solid rgba(132, 117, 107, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--cco-text-secondary);
+  font-size: 9px;
+  font-weight: 700;
+}
+#cco-conv-v2-root .v2-mailbox-summary-item strong {
+  color: currentColor;
+  font-variant-numeric: tabular-nums;
+}
+#cco-conv-v2-root .v2-mailbox-summary-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--rail-info);
+}
+#cco-conv-v2-root .v2-mailbox-summary-item--contact .v2-mailbox-summary-dot { background: var(--rail-contact); }
+#cco-conv-v2-root .v2-mailbox-summary-item--fazli .v2-mailbox-summary-dot { background: var(--rail-fazli); }
+#cco-conv-v2-root .v2-mailbox-summary-item--egzona .v2-mailbox-summary-dot { background: var(--rail-egzona); }
 #cco-conv-v2-root .v2-mailbox-controls--compact {
   display: none;
 }
@@ -262,14 +294,100 @@ html[data-conversations-v2="on"]
   border-bottom: 1px solid rgba(132, 117, 107, 0.18);
 }
 #cco-conv-v2-root .v2-mailbox-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-#cco-conv-v2-root .lane-sidebar .v2-mailbox-list {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 3px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+#cco-conv-v2-root .v2-mailbox-menu {
+  overflow: hidden;
+  border: 1px solid rgba(132, 117, 107, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.48);
+}
+#cco-conv-v2-root .v2-mailbox-menu-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+  padding: 0 9px;
+  color: var(--cco-text-tertiary);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+#cco-conv-v2-root .v2-mailbox-menu-heading strong {
+  color: var(--cco-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+#cco-conv-v2-root .v2-mailbox-option {
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 4px 8px;
+  border-top: 1px solid rgba(132, 117, 107, 0.12);
+  color: var(--cco-text-secondary);
+  cursor: pointer;
+}
+#cco-conv-v2-root .v2-mailbox-option:hover { background: rgba(255, 255, 255, 0.5); }
+#cco-conv-v2-root .v2-mailbox-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+#cco-conv-v2-root .v2-mailbox-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  color: transparent;
+  font-size: 10px;
+  line-height: 1;
+}
+#cco-conv-v2-root .v2-mailbox-option input:checked + .v2-mailbox-check { color: currentColor; }
+#cco-conv-v2-root .v2-mailbox-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+#cco-conv-v2-root .v2-mailbox-copy span {
+  overflow: hidden;
+  color: currentColor;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#cco-conv-v2-root .v2-mailbox-copy small {
+  overflow: hidden;
+  color: var(--cco-text-tertiary);
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#cco-conv-v2-root .v2-mailbox-count {
+  color: currentColor;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+#cco-conv-v2-root .v2-mailbox-option--contact { color: var(--rail-contact); }
+#cco-conv-v2-root .v2-mailbox-option--fazli { color: var(--rail-fazli); }
+#cco-conv-v2-root .v2-mailbox-option--egzona { color: var(--rail-egzona); }
+#cco-conv-v2-root .v2-mailbox-option--info { color: var(--rail-info); }
+#cco-conv-v2-root .v2-mailbox-option:not(.active) { color: var(--cco-text-tertiary); }
+#cco-conv-v2-root .v2-mailbox-option:not(.active) .v2-mailbox-count { color: var(--cco-text-tertiary); }
+#cco-conv-v2-root .lane-sidebar .v2-mailbox-menu { margin-inline: -2px; }
+#cco-conv-v2-root .v2-mailbox-controls--compact .v2-mailbox-menu {
+  max-height: 180px;
+  overflow-y: auto;
 }
 #cco-conv-v2-root .v2-mailbox-chip,
 #cco-conv-v2-root .v2-folder {
