@@ -31,6 +31,15 @@ const SHELL_PATH = path.join(
   'cco-conversations-v2-shell.js'
 );
 const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
+const CSS_PATH = path.join(
+  __dirname,
+  '..',
+  '..',
+  'public',
+  'major-arcana-preview',
+  'app',
+  'cco-conversations-v2.css'
+);
 
 function makeThread(overrides = {}) {
   return {
@@ -365,6 +374,20 @@ test('v2-skalet: Mer-menyn stängs när operatören klickar i arbetsytan', () =>
     .querySelector('[data-thread-id]')
     .dispatchEvent(new window.Event('click', { bubbles: true }));
   assert.equal(menu.hasAttribute('hidden'), true, 'Mer-menyn ska stängas vid klick utanför');
+});
+
+test('v2-skalet: korta trådar tvingas inte till en tom viewport-hög läsyta', () => {
+  const css = fs.readFileSync(CSS_PATH, 'utf8');
+  assert.match(
+    css,
+    /#cco-conv-v2-root \.thread-shell\s*\{[\s\S]{0,500}?min-height:\s*0;/,
+    'desktopens trådyta ska följa innehållet'
+  );
+  assert.doesNotMatch(
+    css,
+    /#cco-conv-v2-root \.thread-shell\s*\{[\s\S]{0,500}?min-height:\s*calc\(100vh - 80px\)/,
+    'desktopens trådyta får inte fylla en tom viewport'
+  );
 });
 
 test('v2-skalet: default-Inkorg visar hela aktiva kön; Skickat filtrerar till den skickade delmängden', () => {
