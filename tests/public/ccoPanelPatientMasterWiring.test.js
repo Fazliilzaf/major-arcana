@@ -47,6 +47,14 @@ test('Svarstudio neutraliserar fabricerade demo-widgets och binder riktiga fält
   for (const sel of ['.wb-chip--engage', '.wb-chip--sla', '.sp-vip']) {
     assert.ok(body.includes(sel), 'ska neutralisera fabricerad demo-widget: ' + sel);
   }
+  // sgrid-cellerna neutraliseras till "—" när tråden inte fyller dem (annars
+  // står "Egzona K."/"SLA 38 min"/"42 tkr" kvar och motsäger riktig LTV).
+  assert.match(
+    body,
+    /vEl\.textContent = v != null && v !== '' && v !== '—' \? v : '—'/,
+    'obesvarade sgrid-celler ska neutraliseras till "—"'
+  );
+  assert.match(body, /key !== 'värde'/, 'Värde-cellen ska fyllas med riktig LTV från patient-master');
   // Riktiga fält binds från den hämtade kundposten.
   // HÄMTA på det kanoniska patient-ID:t (ctx.patientId), ALDRIG på customerId
   // (kan vara e-post) eller activeCustomerId-demofallbacken (CUST-DEMO-002).

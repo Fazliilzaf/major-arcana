@@ -710,11 +710,16 @@
       prioritet: ctx.priority,
       churn: ctx.churnRisk,
     };
+    // Neutralisera demo-cellerna som tråden inte fyller (Agent/SLA/Prioritet/
+    // Churn/Värde) — annars står artifactens exempel ("Egzona K.", "SLA 38 min",
+    // "42 tkr") kvar på en riktig tråd och kan motsäga den riktiga LTV-chippen.
+    // Värde fylls från patient-master (LTV) i fetch-callbacken nedan.
     $$('.cell').forEach((cell) => {
       const key = (cell.querySelector('.k')?.textContent || '').trim().toLowerCase();
       const v = cellMap[key];
       const vEl = cell.querySelector('.v');
-      if (vEl && v != null && v !== '' && v !== '—') vEl.textContent = v;
+      if (!vEl) return;
+      vEl.textContent = v != null && v !== '' && v !== '—' ? v : '—';
     });
 
     // ── Riktig kundpost via redan-löst patient-ID (inkoppling, inte demo) ──
@@ -757,11 +762,19 @@
       }
       const ltv = Number(card.lifetimeValue);
       if (ltv > 0) {
+        const ltvLabel = Math.round(ltv / 1000) + ' tkr';
         const ltvChip = $('.wb-chip--neutral');
         if (ltvChip) {
-          ltvChip.textContent = 'LTV ' + Math.round(ltv / 1000) + ' tkr';
+          ltvChip.textContent = 'LTV ' + ltvLabel;
           ltvChip.style.display = '';
         }
+        // Samma riktiga LTV i sgrid-cellen "Värde" (neutraliserad till "—" ovan).
+        $$('.cell').forEach((cell) => {
+          const key = (cell.querySelector('.k')?.textContent || '').trim().toLowerCase();
+          if (key !== 'värde') return;
+          const vEl = cell.querySelector('.v');
+          if (vEl) vEl.textContent = ltvLabel;
+        });
       }
       const flags = Array.isArray(card.flags) ? card.flags.map(String) : [];
       const isVip = flags.some((f) => /vip|högt\s*värde|high[_ ]?value/i.test(f));
