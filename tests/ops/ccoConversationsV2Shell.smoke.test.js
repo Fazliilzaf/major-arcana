@@ -31,6 +31,15 @@ const SHELL_PATH = path.join(
   'cco-conversations-v2-shell.js'
 );
 const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
+const V2_CSS_PATH = path.join(
+  __dirname,
+  '..',
+  '..',
+  'public',
+  'major-arcana-preview',
+  'app',
+  'cco-conversations-v2.css'
+);
 
 function makeThread(overrides = {}) {
   return {
@@ -405,6 +414,15 @@ test('v2-skalet: Mer-menyn stängs när operatören klickar i arbetsytan', () =>
     .querySelector('[data-thread-id]')
     .dispatchEvent(new window.Event('click', { bubbles: true }));
   assert.equal(menu.hasAttribute('hidden'), true, 'Mer-menyn ska stängas vid klick utanför');
+});
+
+test('v2-skalet: dold Mer-meny kan inte bli en kvarliggande vit popover', () => {
+  const css = fs.readFileSync(V2_CSS_PATH, 'utf8');
+  assert.match(
+    css,
+    /#cco-conv-v2-root\s+\.v2-more-menu\[hidden\]\s*\{\s*display:\s*none\s*!important;\s*\}/,
+    'hidden måste vinna över menyens inline display:flex'
+  );
 });
 
 test('v2-skalet: default-Inkorg visar hela aktiva kön; Skickat filtrerar till den skickade delmängden', () => {
