@@ -737,11 +737,19 @@
         '</div></div></div>'
       );
     }
-    // thread.messages är DESC (nyast först) → vänd till ASC för chatt-flöde.
-    var asc = msgs.slice().reverse();
+    // Läsytan följer admin#cco: senaste mailet ligger överst. Sortera på den
+    // kanoniska tidsstämpeln i stället för att anta att varje hydrator levererar
+    // samma inbördes ordning.
+    var newestFirst = msgs.slice().sort(function (left, right) {
+      var leftDate = messageDate(left);
+      var rightDate = messageDate(right);
+      var leftMs = leftDate ? leftDate.getTime() : 0;
+      var rightMs = rightDate ? rightDate.getTime() : 0;
+      return rightMs - leftMs;
+    });
     var lastDay = null;
     var html = '';
-    asc.forEach(function (message) {
+    newestFirst.forEach(function (message) {
       var date = messageDate(message);
       var key = dayKey(date);
       if (key && key !== lastDay) {
