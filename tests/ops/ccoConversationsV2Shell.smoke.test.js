@@ -385,18 +385,33 @@ test('v2-skalet: ett brett mailbox-scope kan förfinas ett konto i taget', () =>
   assert.deepEqual(scopes, [['kons@hairtpclinic.com', 'fazli@hairtpclinic.com']]);
 });
 
-test('v2-skalet: en stor mailbox-kö målas stegvis utan att tappa trådar', () => {
-  const { window, document, api } = loadShell();
+test('v2-skalet: en stor mailbox-kö virtualiseras utan att tappa trådar', () => {
+  // Tidigare: 120 rader + "Visa fler"-knapp. Nu portas admin#cco:s
+  // scroll-virtualisering: bara det synliga fönstret ligger i DOM, resten bärs
+  // av höjd-satta spacers. Det är det som låter alla konton samsas utan att
+  // frysa browsern (top-risken bekräftad live vid tre konton).
+  const { document, api } = loadShell();
   const threads = Array.from({ length: 121 }, (_, index) =>
     makeThread({ id: `thread-${index}`, customerName: `Kund ${index}` })
   );
   api.render(makeCtx({ laneThreads: threads, allThreads: threads }));
 
-  assert.equal(document.querySelectorAll('[data-v2-inbox] .thread').length, 120);
-  const loadMore = document.querySelector('[data-v2-load-more]');
-  assert.ok(loadMore, 'stor inbox ska erbjuda stegvis rendering');
-  loadMore.dispatchEvent(new window.Event('click', { bubbles: true }));
-  assert.equal(document.querySelectorAll('[data-v2-inbox] .thread').length, 121);
+  const domRows = document.querySelectorAll('[data-v2-inbox] .thread').length;
+  assert.ok(domRows > 0, 'något fönster ska renderas');
+  assert.ok(domRows < 121, 'hela listan får INTE ligga i DOM samtidigt (virtualiserad)');
+
+  // "Visa fler"-modellen är ersatt av virtualisering.
+  assert.equal(document.querySelector('[data-v2-load-more]'), null, 'ingen load-more-knapp längre');
+  assert.ok(document.querySelector('[data-v2-inbox-mount]'), 'virtuell mount ska finnas');
+  assert.notEqual(
+    document.querySelector('[data-v2-inbox-spacer-bottom]').style.height,
+    '0px',
+    'bottom-spacer ska bära de off-screen raderna'
+  );
+
+  // Inga trådar tappas: range-matten når sista tråden vid full scroll.
+  const endRange = api._computeInboxVisibleRange(121, 999999, 880, 68);
+  assert.equal(endRange.end, 121, 'sista tråden nås vid nedskrollning');
 });
 
 test('v2-skalet: Mer-menyn stängs när operatören klickar i arbetsytan', () => {
@@ -1258,4 +1273,62 @@ test('v2-skalet: keyed diff tar bort borttagna trådar, lägger till nya och hå
     n.getAttribute('data-thread-id')
   );
   assert.deepEqual(ids, ['t-2', 't-3', 't-4'], 'ordningen ska matcha listan');
+});
+
+test('v2-skalet: virtualisering begränsar DOM-fönstret för stora listor (admin-mönstret)', () => {
+  const { document, api } = loadShell();
+  const big = [];
+  for (let i = 0; i < 200; i += 1) {
+    big.push(makeThread({ id: 't-' + i, customerName: 'Kund ' + i, unread: false }));
+  }
+  api.render(makeCtx({ laneThreads: big, allThreads: big, selected: big[0] }));
+
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const mount = inbox.querySelector('[data-v2-inbox-mount]');
+  assert.ok(mount, 'virtuell mount-scaffold ska finnas');
+
+  // Kärnan: 200 trådar men bara ett litet fönster ligger i DOM (som admin#cco:s
+  // lit-switchover). Utan detta renderades hela listan och frös browsern vid
+  // tre konton.
+  const rowCount = mount.querySelectorAll('[data-thread-id]').length;
+  assert.ok(rowCount > 0, 'något fönster ska renderas');
+  assert.ok(
+    rowCount <= 40,
+    `DOM-fönstret ska vara begränsat (fick ${rowCount} rader av 200)`
+  );
+  assert.ok(rowCount < 200, 'hela listan får INTE ligga i DOM samtidigt');
+
+  // Spacers bär de off-screen radernas höjd så scrollen speglar hela listan.
+  const topH = inbox.querySelector('[data-v2-inbox-spacer-top]').style.height;
+  const botH = inbox.querySelector('[data-v2-inbox-spacer-bottom]').style.height;
+  assert.equal(topH, '0px', 'top-spacer 0 vid scrollTop 0');
+  assert.notEqual(botH, '0px', 'bottom-spacer ska bära de off-screen raderna');
+});
+
+test('v2-skalet: liten lista virtualiseras inte (allt renderas under tröskeln)', () => {
+  const { document, api } = loadShell();
+  const threshold = api._inboxVirtualizeThreshold();
+  const small = [];
+  for (let i = 0; i < 5; i += 1) {
+    small.push(makeThread({ id: 't-' + i, customerName: 'Kund ' + i }));
+  }
+  assert.ok(small.length < threshold, 'fixturen ska ligga under tröskeln');
+  api.render(makeCtx({ laneThreads: small, allThreads: small, selected: small[0] }));
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const rowCount = inbox.querySelectorAll('[data-thread-id]').length;
+  assert.equal(rowCount, 5, 'under tröskeln ska hela listan renderas');
+});
+
+test('v2-skalet: virtualiseringens synliga fönster följer scrollTop', () => {
+  const { api } = loadShell();
+  const atTop = api._computeInboxVisibleRange(200, 0, 880, 68);
+  assert.equal(atTop.start, 0, 'vid toppen börjar fönstret på 0');
+  assert.ok(atTop.end >= 30 && atTop.end <= 200, 'fönstret har rimlig storlek');
+
+  const scrolled = api._computeInboxVisibleRange(200, 3400, 880, 68);
+  assert.ok(scrolled.start > atTop.start, 'fönstret flyttas nedåt vid scroll');
+  assert.ok(scrolled.end > scrolled.start, 'fönstret behåller bredd efter scroll');
+
+  const past = api._computeInboxVisibleRange(200, 999999, 880, 68);
+  assert.equal(past.end, 200, 'slutet klampas till totalen');
 });

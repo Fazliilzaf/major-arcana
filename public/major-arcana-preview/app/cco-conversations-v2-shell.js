@@ -1592,14 +1592,155 @@
     return card;
   }
 
+  // Virtualiserings-parametrar — portade från admin#cco:s lit-switchover.js.
+  // Över tröskeln renderas bara det synliga fönstret (+ overscan) i DOM, med
+  // höjd-satta spacers ovanför/nedanför så scrollen ser hela listan. Det är
+  // det som låter admin bära alla 8 konton utan att frysa; V2 saknade det.
+  var INBOX_VIRTUALIZE_THRESHOLD = 60;
+  var INBOX_ROW_H_FALLBACK = 68; // .thread ~ compact rad + 3px margin
+  var INBOX_OVERSCAN = 6;
+  var INBOX_MIN_WINDOW = 30; // golv innan layout gett clientHeight
+
+  function computeInboxVisibleRange(total, scrollTop, clientHeight, rowH) {
+    if (total <= 0) return { start: 0, end: 0 };
+    var h = rowH > 0 ? rowH : INBOX_ROW_H_FALLBACK;
+    var start = Math.max(0, Math.floor((scrollTop || 0) / h) - INBOX_OVERSCAN);
+    var vis = Math.ceil((clientHeight || 0) / h) + INBOX_OVERSCAN * 2;
+    var windowCount = Math.max(vis, INBOX_MIN_WINDOW);
+    var end = Math.min(total, start + windowCount);
+    return { start: start, end: end };
+  }
+
+  function ensureInboxScaffold(el) {
+    var mount = el.querySelector('[data-v2-inbox-mount]');
+    if (el.__v2InboxScaffold && mount) return mount;
+    var top = doc.createElement('div');
+    top.setAttribute('data-v2-inbox-spacer-top', '');
+    top.style.cssText = 'width:100%;height:0;flex-shrink:0;pointer-events:none;';
+    mount = doc.createElement('div');
+    mount.setAttribute('data-v2-inbox-mount', '');
+    mount.style.cssText = 'width:100%;';
+    var bot = doc.createElement('div');
+    bot.setAttribute('data-v2-inbox-spacer-bottom', '');
+    bot.style.cssText = 'width:100%;height:0;flex-shrink:0;pointer-events:none;';
+    el.replaceChildren(top, mount, bot);
+    el.__v2InboxScaffold = true;
+    return mount;
+  }
+
+  // Keyed inkrementell reconcile (admin#cco:s renderQueueHistoryList-mönster):
+  // återanvänd befintliga rad-noder per data-thread-id, patcha bara nya/ändrade,
+  // ta bort de som lämnat fönstret och håll ordningen.
+  function reconcileInboxRows(mount, rows, selectedId) {
+    var existingRows = Array.prototype.slice.call(mount.querySelectorAll('[data-thread-id]'));
+    var existingMap = {};
+    existingRows.forEach(function (node) {
+      existingMap[node.getAttribute('data-thread-id')] = node;
+    });
+    var wanted = {};
+    rows.forEach(function (thread) {
+      wanted[threadConversationKey(thread)] = true;
+    });
+    existingRows.forEach(function (node) {
+      if (!wanted[node.getAttribute('data-thread-id')]) node.remove();
+    });
+    var prev = null;
+    rows.forEach(function (thread) {
+      var id = threadConversationKey(thread);
+      var sig = inboxRowContentSig(thread);
+      var existing = existingMap[id];
+      var node;
+      if (existing && existing.__v2RowSig === sig) {
+        node = existing;
+      } else {
+        if (existing) existing.remove();
+        node = buildInboxRowNode(thread, selectedId, sig);
+      }
+      if (!node) return;
+      if (prev) {
+        if (prev.nextElementSibling !== node) prev.after(node);
+      } else if (mount.firstElementChild !== node) {
+        mount.prepend(node);
+      }
+      prev = node;
+    });
+  }
+
+  function paintInboxWindow(el, list, selectedId, fromScroll) {
+    var mount = ensureInboxScaffold(el);
+    var total = list.length;
+    var rowH = el.__v2RowH || INBOX_ROW_H_FALLBACK;
+    var virtual = total > INBOX_VIRTUALIZE_THRESHOLD;
+    el.__v2InboxVirtual = virtual;
+
+    var range = virtual
+      ? computeInboxVisibleRange(total, el.scrollTop, el.clientHeight, rowH)
+      : { start: 0, end: total };
+
+    if (
+      fromScroll &&
+      el.__v2Range &&
+      el.__v2Range.start === range.start &&
+      el.__v2Range.end === range.end
+    ) {
+      return;
+    }
+    el.__v2Range = range;
+
+    var slice = list.slice(range.start, range.end);
+    reconcileInboxRows(mount, slice, selectedId);
+
+    var top = el.querySelector('[data-v2-inbox-spacer-top]');
+    var bot = el.querySelector('[data-v2-inbox-spacer-bottom]');
+    if (top) top.style.height = range.start * rowH + 'px';
+    if (bot) bot.style.height = Math.max(0, total - range.end) * rowH + 'px';
+
+    // Mät faktisk radhöjd en gång (endast i webbläsare; offsetHeight=0 i test).
+    if (!el.__v2RowHMeasured) {
+      var firstRow = mount.querySelector('[data-thread-id]');
+      if (firstRow && firstRow.offsetHeight > 0) {
+        el.__v2RowH = firstRow.offsetHeight + 3;
+        el.__v2RowHMeasured = true;
+      }
+    }
+
+    reconcileInboxSelection(mount, slice, selectedId);
+  }
+
+  function attachInboxScrollListener(el) {
+    if (el.__v2InboxScrollBound) return;
+    el.__v2InboxScrollBound = true;
+    var ticking = false;
+    el.addEventListener(
+      'scroll',
+      function () {
+        if (!el.__v2InboxVirtual || !el.__v2InboxState) return;
+        if (ticking) return;
+        ticking = true;
+        var run = function () {
+          ticking = false;
+          if (!el.__v2InboxState) return;
+          paintInboxWindow(el, el.__v2InboxState.list, el.__v2InboxState.selectedId, true);
+        };
+        if (typeof global.requestAnimationFrame === 'function') {
+          global.requestAnimationFrame(run);
+        } else {
+          global.setTimeout(run, 0);
+        }
+      },
+      { passive: true }
+    );
+  }
+
   function renderInbox(ctx) {
     var el = root.querySelector('[data-v2-inbox]');
     if (!el) return;
     var list = visibleThreads(ctx);
     if (!list.length) {
-      // Empty/skeleton/error: icke-keyad state. Nasta lista med innehall
-      // rensar resterna och bygger om fran grunden.
-      el.__v2InboxKeyed = false;
+      // Empty/skeleton/error: riv scaffold-läget så nästa lista bygger om.
+      el.__v2InboxScaffold = false;
+      el.__v2InboxState = null;
+      el.__v2Range = null;
       if (ctx.loading) {
         el.innerHTML = new Array(6).fill('<div class="v3-skel v3-skel-row"></div>').join('');
         return;
@@ -1616,73 +1757,11 @@
       return;
     }
     var selectedId = ctx.selected ? threadConversationKey(ctx.selected) : '';
-    var renderedList = list.slice(0, inboxRenderLimit);
-    var remaining = list.length - renderedList.length;
-
-    // Keyed incremental reconcile: samma monster som admin#cco:s
-    // renderQueueHistoryList. Ateranvand befintliga rad-noder per
-    // data-thread-id och patcha bara nya/andrade/borttagna rader. Ett rent
-    // tradbyte lamnar alla rader oforandrade => noll DOM-ombyggnad (det som
-    // gor Outlook/Apple Mail direkt-snabba). Bakgrunds-refresh ror bara de
-    // rader vars innehall faktiskt andrats => ingen hellist-flimmer.
-    if (!el.__v2InboxKeyed) {
-      el.innerHTML = '';
-    }
-
-    var existingRows = Array.prototype.slice.call(el.querySelectorAll('[data-thread-id]'));
-    var existingMap = {};
-    existingRows.forEach(function (node) {
-      existingMap[node.getAttribute('data-thread-id')] = node;
-    });
-    var newIds = {};
-    renderedList.forEach(function (thread) {
-      newIds[threadConversationKey(thread)] = true;
-    });
-
-    existingRows.forEach(function (node) {
-      if (!newIds[node.getAttribute('data-thread-id')]) node.remove();
-    });
-
-    var prev = null;
-    renderedList.forEach(function (thread) {
-      var id = threadConversationKey(thread);
-      var sig = inboxRowContentSig(thread);
-      var existing = existingMap[id];
-      var node;
-      if (existing && existing.__v2RowSig === sig) {
-        node = existing;
-      } else {
-        if (existing) existing.remove();
-        node = buildInboxRowNode(thread, selectedId, sig);
-      }
-      if (!node) return;
-      if (prev) {
-        if (prev.nextElementSibling !== node) prev.after(node);
-      } else if (el.firstElementChild !== node) {
-        el.prepend(node);
-      }
-      prev = node;
-    });
-
-    var moreBtn = el.querySelector('[data-v2-load-more]');
-    if (remaining > 0) {
-      if (!moreBtn) {
-        var tmp = doc.createElement('div');
-        tmp.innerHTML =
-          '<button class="v2-load-more" type="button" data-v2-load-more>Visa fler (' +
-          esc(remaining) +
-          ' kvar)</button>';
-        moreBtn = tmp.firstElementChild;
-      } else {
-        moreBtn.textContent = 'Visa fler (' + remaining + ' kvar)';
-      }
-      if (moreBtn) el.appendChild(moreBtn);
-    } else if (moreBtn) {
-      moreBtn.remove();
-    }
-
-    el.__v2InboxKeyed = true;
-    reconcileInboxSelection(el, renderedList, selectedId);
+    // Spara aktuell lista/urval så scroll-handlern kan om-fönstra utan att räkna
+    // om visibleThreads.
+    el.__v2InboxState = { list: list, selectedId: selectedId };
+    attachInboxScrollListener(el);
+    paintInboxWindow(el, list, selectedId, false);
   }
 
   function renderThread(ctx) {
@@ -3146,6 +3225,10 @@
     render: render,
     _findThreadById: findThreadById,
     _paritySnapshot: paritySnapshot,
+    _computeInboxVisibleRange: computeInboxVisibleRange,
+    _inboxVirtualizeThreshold: function () {
+      return INBOX_VIRTUALIZE_THRESHOLD;
+    },
   };
 
   // Persistent kontext-provider för admin#cco:s panel-launcher. Launchern har
