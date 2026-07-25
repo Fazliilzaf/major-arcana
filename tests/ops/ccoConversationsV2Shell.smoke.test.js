@@ -1118,6 +1118,28 @@ test('v2-skalet: appens befintliga Bearer-brygga används för lokala mail-asset
   assert.match(appSource, /Authorization: `Bearer \$\{token\}`/);
 });
 
+test('v2-skalet: bilageförhandsvisningen täcker samma säkra format som legacy', () => {
+  const shellSource = fs.readFileSync(SHELL_PATH, 'utf8');
+  assert.match(shellSource, /function attachmentPreviewKind\(attachment\)/);
+  assert.match(shellSource, /application\\\/pdf/);
+  assert.match(shellSource, /mammoth\.browser\.min\.js/);
+  assert.match(shellSource, /xlsx\.full\.min\.js/);
+  assert.match(shellSource, /jszip\.min\.js/);
+  assert.match(shellSource, /renderAttachmentPdfPreview/);
+  assert.match(shellSource, /renderAttachmentOfficePreview/);
+  assert.match(shellSource, /ATTACHMENT_PREVIEW_MAX_BYTES/);
+  assert.match(shellSource, /loadingTask\.destroy\(\)/);
+  assert.match(shellSource, /<iframe src="' \+ esc\(blobUrl\) \+ '" sandbox=""/);
+});
+
+test('v2-skalet: PowerPoint-förhandsvisning behåller presentationsbilder lokalt', () => {
+  const shellSource = fs.readFileSync(SHELL_PATH, 'utf8');
+  assert.match(shellSource, /ppt\/slides\/_rels\/slide/);
+  assert.match(shellSource, /getElementsByTagName\('a:blip'\)/);
+  assert.match(shellSource, /media\.async\('base64'\)/);
+  assert.match(shellSource, /Bild från presentationssida/);
+});
+
 test('v2-skalet: appen återanvänder samma signatur- och owner-send-kontrakt som legacy', () => {
   const appSource = fs.readFileSync(APP_PATH, 'utf8');
   assert.match(appSource, /studioSignatures: getStudioSignatureProfiles\(\)/);
