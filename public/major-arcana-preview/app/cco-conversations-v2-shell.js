@@ -1473,11 +1473,133 @@
     el.innerHTML = '<span class="v2-action-feedback--' + tone + '">' + esc(message) + '</span>';
   }
 
+  // Signatur över allt en inbox-rad ritar UTOM markering/oläst/bulkval — de
+  // reconcile:as live. Ändras inget av detta (vilket det aldrig gör vid ett
+  // trådklick) tas snabbvägen och listans DOM byggs inte om.
+  function inboxRowContentSig(thread) {
+    var tags = tagsFor(thread);
+    var sla = slaOf(thread);
+    return [
+      threadConversationKey(thread),
+      sourceKey(thread),
+      avatarBg(thread),
+      initials(thread),
+      threadName(thread),
+      whenLabel(thread),
+      text(thread.subject),
+      text(thread.preview),
+      tags
+        .map(function (tag) {
+          return tag.kind + ':' + tag.label;
+        })
+        .join(','),
+      sla ? sla.tone + ':' + sla.label : '',
+    ].join('');
+  }
+
+  function inboxRowHtml(thread, selectedId) {
+    // V2 använder exakt samma canonical conversation key som legacy-state
+    // (id när den finns, annars den redan normaliserade fallback-nyckeln).
+    var id = threadConversationKey(thread);
+    var active = id && id === selectedId ? ' active' : '';
+    var unread = isUnread(thread) ? ' thread-unread' : '';
+    var isSel = selected[id] ? ' is-selected' : '';
+    var tags = tagsFor(thread);
+    var sla = slaOf(thread);
+    return (
+      '<div class="thread' +
+      active +
+      unread +
+      isSel +
+      '" data-source="' +
+      esc(sourceKey(thread)) +
+      '" data-thread-id="' +
+      esc(id) +
+      '" role="button" tabindex="0">' +
+      '<span class="thread-select" data-thread-select="' +
+      esc(id) +
+      '" role="checkbox" aria-checked="' +
+      (selected[id] ? 'true' : 'false') +
+      '" title="Markera">' +
+      (selected[id] ? '✓' : '') +
+      '</span>' +
+      (sla
+        ? '<span class="thread-sla thread-sla--' + sla.tone + '">' + esc(sla.label) + '</span>'
+        : '') +
+      '<div class="thread-av" style="background:' +
+      esc(avatarBg(thread)) +
+      '">' +
+      esc(initials(thread)) +
+      '</div>' +
+      '<div class="thread-body">' +
+      '<div class="thread-from">' +
+      esc(threadName(thread)) +
+      ' <span class="when">' +
+      esc(whenLabel(thread)) +
+      '</span></div>' +
+      '<div class="thread-subj">' +
+      esc(text(thread.subject) || '(utan ämne)') +
+      '</div>' +
+      '<div class="thread-preview">' +
+      esc(text(thread.preview)) +
+      '</div>' +
+      (tags.length
+        ? '<div class="thread-tags">' +
+          tags
+            .map(function (tag) {
+              return (
+                '<span class="thread-tag thread-tag--' + tag.kind + '">' + esc(tag.label) + '</span>'
+              );
+            })
+            .join('') +
+          '</div>'
+        : '') +
+      '</div></div>'
+    );
+  }
+
+  // Native-mail-snabbväg: vid ett trådklick ändras bara markeringen, inte
+  // radernas innehåll. Flytta då bara active/oläst/bulkval-klasserna på de
+  // befintliga rad-noderna i stället för att riva och bygga om hela listans
+  // DOM (upp till 120 rader, dubbelt per klick efter hydrering).
+  function reconcileInboxSelection(el, renderedList, selectedId) {
+    var byId = {};
+    renderedList.forEach(function (thread) {
+      byId[threadConversationKey(thread)] = thread;
+    });
+    var rows = el.querySelectorAll('[data-thread-id]');
+    Array.prototype.forEach.call(rows, function (row) {
+      var id = row.getAttribute('data-thread-id');
+      var thread = byId[id];
+      if (!thread) return;
+      row.classList.toggle('active', Boolean(id) && id === selectedId);
+      row.classList.toggle('thread-unread', isUnread(thread));
+      var isSel = Boolean(selected[id]);
+      row.classList.toggle('is-selected', isSel);
+      var box = row.querySelector('[data-thread-select]');
+      if (box) {
+        box.setAttribute('aria-checked', isSel ? 'true' : 'false');
+        box.textContent = isSel ? '✓' : '';
+      }
+    });
+  }
+
+  function buildInboxRowNode(thread, selectedId, sig) {
+    var temp = doc.createElement('div');
+    temp.innerHTML = inboxRowHtml(thread, selectedId);
+    var card = temp.firstElementChild;
+    if (card) card.__v2RowSig = typeof sig === 'string' ? sig : inboxRowContentSig(thread);
+    return card;
+  }
+
   function renderInbox(ctx) {
     var el = root.querySelector('[data-v2-inbox]');
     if (!el) return;
     var list = visibleThreads(ctx);
     if (!list.length) {
+      // Empty/skeleton/error: icke-keyad state. Nasta lista med innehall
+      // rensar resterna och bygger om fran grunden.
+      el.__v2InboxKeyed = false;
       if (ctx.loading) {
         el.innerHTML = new Array(6).fill('<div class="v3-skel v3-skel-row"></div>').join('');
         return;
@@ -1495,77 +1617,72 @@
     }
     var selectedId = ctx.selected ? threadConversationKey(ctx.selected) : '';
     var renderedList = list.slice(0, inboxRenderLimit);
-    el.innerHTML = renderedList
-      .map(function (thread) {
-        // V2 använder exakt samma canonical conversation key som legacy-state
-        // (id när den finns, annars den redan normaliserade fallback-nyckeln).
-        var id = threadConversationKey(thread);
-        var active = id && id === selectedId ? ' active' : '';
-        var unread = isUnread(thread) ? ' thread-unread' : '';
-        var isSel = selected[id] ? ' is-selected' : '';
-        var tags = tagsFor(thread);
-        var sla = slaOf(thread);
-        return (
-          '<div class="thread' +
-          active +
-          unread +
-          isSel +
-          '" data-source="' +
-          esc(sourceKey(thread)) +
-          '" data-thread-id="' +
-          esc(id) +
-          '" role="button" tabindex="0">' +
-          '<span class="thread-select" data-thread-select="' +
-          esc(id) +
-          '" role="checkbox" aria-checked="' +
-          (selected[id] ? 'true' : 'false') +
-          '" title="Markera">' +
-          (selected[id] ? '✓' : '') +
-          '</span>' +
-          (sla
-            ? '<span class="thread-sla thread-sla--' + sla.tone + '">' + esc(sla.label) + '</span>'
-            : '') +
-          '<div class="thread-av" style="background:' +
-          esc(avatarBg(thread)) +
-          '">' +
-          esc(initials(thread)) +
-          '</div>' +
-          '<div class="thread-body">' +
-          '<div class="thread-from">' +
-          esc(threadName(thread)) +
-          ' <span class="when">' +
-          esc(whenLabel(thread)) +
-          '</span></div>' +
-          '<div class="thread-subj">' +
-          esc(text(thread.subject) || '(utan ämne)') +
-          '</div>' +
-          '<div class="thread-preview">' +
-          esc(text(thread.preview)) +
-          '</div>' +
-          (tags.length
-            ? '<div class="thread-tags">' +
-              tags
-                .map(function (tag) {
-                  return (
-                    '<span class="thread-tag thread-tag--' +
-                    tag.kind +
-                    '">' +
-                    esc(tag.label) +
-                    '</span>'
-                  );
-                })
-                .join('') +
-              '</div>'
-            : '') +
-          '</div></div>'
-        );
-      })
-      .join('') +
-      (list.length > renderedList.length
-        ? '<button class="v2-load-more" type="button" data-v2-load-more>Visa fler (' +
-          esc(list.length - renderedList.length) +
-          ' kvar)</button>'
-        : '');
+    var remaining = list.length - renderedList.length;
+
+    // Keyed incremental reconcile: samma monster som admin#cco:s
+    // renderQueueHistoryList. Ateranvand befintliga rad-noder per
+    // data-thread-id och patcha bara nya/andrade/borttagna rader. Ett rent
+    // tradbyte lamnar alla rader oforandrade => noll DOM-ombyggnad (det som
+    // gor Outlook/Apple Mail direkt-snabba). Bakgrunds-refresh ror bara de
+    // rader vars innehall faktiskt andrats => ingen hellist-flimmer.
+    if (!el.__v2InboxKeyed) {
+      el.innerHTML = '';
+    }
+
+    var existingRows = Array.prototype.slice.call(el.querySelectorAll('[data-thread-id]'));
+    var existingMap = {};
+    existingRows.forEach(function (node) {
+      existingMap[node.getAttribute('data-thread-id')] = node;
+    });
+    var newIds = {};
+    renderedList.forEach(function (thread) {
+      newIds[threadConversationKey(thread)] = true;
+    });
+
+    existingRows.forEach(function (node) {
+      if (!newIds[node.getAttribute('data-thread-id')]) node.remove();
+    });
+
+    var prev = null;
+    renderedList.forEach(function (thread) {
+      var id = threadConversationKey(thread);
+      var sig = inboxRowContentSig(thread);
+      var existing = existingMap[id];
+      var node;
+      if (existing && existing.__v2RowSig === sig) {
+        node = existing;
+      } else {
+        if (existing) existing.remove();
+        node = buildInboxRowNode(thread, selectedId, sig);
+      }
+      if (!node) return;
+      if (prev) {
+        if (prev.nextElementSibling !== node) prev.after(node);
+      } else if (el.firstElementChild !== node) {
+        el.prepend(node);
+      }
+      prev = node;
+    });
+
+    var moreBtn = el.querySelector('[data-v2-load-more]');
+    if (remaining > 0) {
+      if (!moreBtn) {
+        var tmp = doc.createElement('div');
+        tmp.innerHTML =
+          '<button class="v2-load-more" type="button" data-v2-load-more>Visa fler (' +
+          esc(remaining) +
+          ' kvar)</button>';
+        moreBtn = tmp.firstElementChild;
+      } else {
+        moreBtn.textContent = 'Visa fler (' + remaining + ' kvar)';
+      }
+      if (moreBtn) el.appendChild(moreBtn);
+    } else if (moreBtn) {
+      moreBtn.remove();
+    }
+
+    el.__v2InboxKeyed = true;
+    reconcileInboxSelection(el, renderedList, selectedId);
   }
 
   function renderThread(ctx) {
