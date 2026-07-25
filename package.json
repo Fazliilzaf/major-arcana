@@ -499,33 +499,8 @@
     "js-yaml": "4.3.0",
     "tmp": "0.2.6",
     "qs": "6.15.2",
-    "minimatch": {
-      "brace-expansion": "2.1.2"
-    },
-    "@eslint/config-array": {
-      "minimatch": {
-        "brace-expansion": "1.1.16"
-      }
-    },
-    "@eslint/eslintrc": {
-      "minimatch": {
-        "brace-expansion": "1.1.16"
-      }
-    },
-    "eslint": {
-      "minimatch": {
-        "brace-expansion": "1.1.16"
-      }
-    },
-    "@stryker-mutator/core": {
-      "minimatch": {
-        "brace-expansion": "5.0.8"
-      }
-    },
-    "test-exclude": {
-      "minimatch": {
-        "brace-expansion": "5.0.8"
-      }
+    "minimatch@10.2.5": {
+      "brace-expansion": "5.0.8"
     }
   }
 }
