@@ -870,9 +870,248 @@
     })[index] || null;
   }
 
+  var attachmentPreviewScriptPromises = {};
+  var attachmentPdfJsPromise = null;
+  var ATTACHMENT_PREVIEW_MAX_BYTES = 25 * 1024 * 1024;
+
+  function attachmentPreviewKind(attachment) {
+    var name = attachmentName(attachment);
+    var type = attachmentType(attachment);
+    var value = (name + ' ' + type).toLowerCase();
+    if (attachmentIsImage(attachment)) return 'image';
+    if (/\.pdf\b|application\/pdf/.test(value)) return 'pdf';
+    if (/\.(docx?|odt)\b|wordprocessingml|msword/.test(value)) return 'word';
+    if (/\.(xlsx?|xlsm|csv)\b|spreadsheetml|ms-excel|text\/csv/.test(value)) return 'excel';
+    if (/\.(pptx?|odp)\b|presentationml|ms-powerpoint/.test(value)) return 'powerpoint';
+    if (/^video\//.test(type) || /\.(mp4|webm|mov|m4v)\b/.test(value)) return 'video';
+    if (/^audio\//.test(type) || /\.(mp3|wav|m4a|aac|ogg)\b/.test(value)) return 'audio';
+    if (/text\//.test(type) || /\.(txt|log)\b/.test(value)) return 'text';
+    return 'unknown';
+  }
+
+  function loadAttachmentPreviewScript(src, ready) {
+    if (ready()) return Promise.resolve();
+    if (attachmentPreviewScriptPromises[src]) return attachmentPreviewScriptPromises[src];
+    attachmentPreviewScriptPromises[src] = new Promise(function (resolve, reject) {
+      var script = doc.createElement('script');
+      script.src = src;
+      script.onload = function () {
+        if (ready()) resolve();
+        else reject(new Error('Biblioteket kunde inte startas.'));
+      };
+      script.onerror = function () {
+        reject(new Error('Biblioteket kunde inte laddas.'));
+      };
+      doc.head.appendChild(script);
+    }).catch(function (error) {
+      delete attachmentPreviewScriptPromises[src];
+      throw error;
+    });
+    return attachmentPreviewScriptPromises[src];
+  }
+
+  function loadAttachmentPreviewLibrary(kind) {
+    if (kind === 'word') {
+      return loadAttachmentPreviewScript('/vendor/office/mammoth.browser.min.js', function () {
+        return Boolean(global.mammoth);
+      }).then(function () {
+        return global.mammoth;
+      });
+    }
+    if (kind === 'excel') {
+      return loadAttachmentPreviewScript('/vendor/office/xlsx.full.min.js', function () {
+        return Boolean(global.XLSX);
+      }).then(function () {
+        return global.XLSX;
+      });
+    }
+    if (kind === 'powerpoint') {
+      return loadAttachmentPreviewScript('/vendor/office/jszip.min.js', function () {
+        return Boolean(global.JSZip);
+      }).then(function () {
+        return global.JSZip;
+      });
+    }
+    return Promise.reject(new Error('Filtypen stöds inte.'));
+  }
+
+  function loadAttachmentPreviewBlob(blobUrl) {
+    return global.fetch(blobUrl).then(function (response) {
+      if (!response.ok) throw new Error('Bilagan kunde inte läsas.');
+      return response.blob();
+    }).then(function (blob) {
+      if (blob.size > ATTACHMENT_PREVIEW_MAX_BYTES) {
+        throw new Error('Filen är större än 25 MB och kan inte förhandsvisas.');
+      }
+      return blob;
+    });
+  }
+
+  function renderAttachmentPdfPreview(stage, blobUrl) {
+    if (!attachmentPdfJsPromise) {
+      attachmentPdfJsPromise = import('/vendor/pdfjs/pdf.min.mjs').catch(function (error) {
+        attachmentPdfJsPromise = null;
+        throw error;
+      });
+    }
+    return Promise.all([attachmentPdfJsPromise, loadAttachmentPreviewBlob(blobUrl)]).then(function (values) {
+      var pdfjs = values[0];
+      var blob = values[1];
+      pdfjs.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+      return blob.arrayBuffer().then(function (data) {
+        var loadingTask = pdfjs.getDocument({ data: data });
+        return loadingTask.promise.then(function (pdf) {
+          var pageNumber = 1;
+          var scale = 1.2;
+          var renderTask = null;
+          stage.innerHTML = '<div class="v2-attachment-pdf"><div class="v2-attachment-pdf-toolbar">' +
+            '<button type="button" data-v2-pdf-action="previous" aria-label="Föregående sida">‹</button>' +
+            '<span data-v2-pdf-page>Laddar PDF…</span>' +
+            '<button type="button" data-v2-pdf-action="next" aria-label="Nästa sida">›</button>' +
+            '<button type="button" data-v2-pdf-action="zoom-out" aria-label="Zooma ut">−</button>' +
+            '<button type="button" data-v2-pdf-action="zoom-in" aria-label="Zooma in">+</button>' +
+            '</div><div class="v2-attachment-pdf-canvas"><canvas></canvas></div></div>';
+          var canvas = stage.querySelector('canvas');
+          var pageLabel = stage.querySelector('[data-v2-pdf-page]');
+          var renderPage = function () {
+            if (renderTask) renderTask.cancel();
+            return pdf.getPage(pageNumber).then(function (page) {
+              var viewport = page.getViewport({ scale: scale });
+              var ratio = global.devicePixelRatio || 1;
+              canvas.width = Math.floor(viewport.width * ratio);
+              canvas.height = Math.floor(viewport.height * ratio);
+              canvas.style.width = Math.floor(viewport.width) + 'px';
+              canvas.style.height = Math.floor(viewport.height) + 'px';
+              var context = canvas.getContext('2d');
+              context.setTransform(ratio, 0, 0, ratio, 0, 0);
+              renderTask = page.render({ canvasContext: context, viewport: viewport });
+              return renderTask.promise.catch(function (error) {
+                if (error && error.name !== 'RenderingCancelledException') throw error;
+              }).then(function () {
+                renderTask = null;
+                pageLabel.textContent = 'Sida ' + pageNumber + ' av ' + pdf.numPages;
+              });
+            });
+          };
+          stage.querySelector('.v2-attachment-pdf-toolbar').addEventListener('click', function (event) {
+            var action = event.target.closest('[data-v2-pdf-action]');
+            if (!action) return;
+            var name = action.getAttribute('data-v2-pdf-action');
+            if (name === 'previous' && pageNumber > 1) pageNumber -= 1;
+            if (name === 'next' && pageNumber < pdf.numPages) pageNumber += 1;
+            if (name === 'zoom-in') scale = Math.min(3, scale + 0.2);
+            if (name === 'zoom-out') scale = Math.max(0.5, scale - 0.2);
+            void renderPage();
+          });
+          var dialog = stage.closest('[data-v2-attachment-preview]');
+          if (dialog) {
+            dialog._attachmentPreviewCleanup = function () {
+              if (renderTask) renderTask.cancel();
+              loadingTask.destroy();
+            };
+          }
+          return renderPage();
+        });
+      });
+    });
+  }
+
+  function renderAttachmentOfficePreview(stage, blobUrl, kind) {
+    return Promise.all([loadAttachmentPreviewLibrary(kind), loadAttachmentPreviewBlob(blobUrl)]).then(function (values) {
+      var library = values[0];
+      var blob = values[1];
+      return blob.arrayBuffer().then(function (buffer) {
+        if (kind === 'word') {
+          return library.convertToHtml({ arrayBuffer: buffer }).then(function (result) {
+            stage.innerHTML = '<article class="v2-attachment-office">' +
+              (sanitizeMailHtmlForDisplay(result.value || '') || '<p>Dokumentet saknar synligt innehåll.</p>') +
+              '</article>';
+          });
+        }
+        if (kind === 'excel') {
+          var workbook = library.read(buffer, { type: 'array', cellDates: true });
+          var names = workbook.SheetNames.slice(0, 30);
+          if (!names.length) throw new Error('Arbetsboken innehåller inga blad.');
+          stage.innerHTML = '<div class="v2-attachment-sheet-tabs">' + names.map(function (name, index) {
+            return '<button type="button" data-v2-sheet-index="' + index + '"' + (index === 0 ? ' class="active"' : '') + '>' + esc(name) + '</button>';
+          }).join('') + '</div><div class="v2-attachment-office" data-v2-sheet-content></div>';
+          var renderSheet = function (index) {
+            var content = stage.querySelector('[data-v2-sheet-content]');
+            if (content) content.innerHTML = sanitizeMailHtmlForDisplay(library.utils.sheet_to_html(workbook.Sheets[names[index]]));
+            Array.prototype.forEach.call(stage.querySelectorAll('[data-v2-sheet-index]'), function (button) {
+              button.classList.toggle('active', Number(button.getAttribute('data-v2-sheet-index')) === index);
+            });
+          };
+          stage.querySelector('.v2-attachment-sheet-tabs').addEventListener('click', function (event) {
+            var button = event.target.closest('[data-v2-sheet-index]');
+            if (button) renderSheet(Number(button.getAttribute('data-v2-sheet-index')));
+          });
+          renderSheet(0);
+          return null;
+        }
+        return library.loadAsync(buffer).then(function (archive) {
+          var slides = Object.keys(archive.files)
+            .filter(function (path) { return /^ppt\/slides\/slide\d+\.xml$/i.test(path); })
+            .sort(function (left, right) {
+              return Number(left.match(/slide(\d+)/i)[1]) - Number(right.match(/slide(\d+)/i)[1]);
+            })
+            .slice(0, 100);
+          if (!slides.length) throw new Error('Presentationens bilder kunde inte läsas.');
+          return Promise.all(slides.map(function (path, index) {
+            return archive.file(path).async('text').then(function (xml) {
+              var parsed = new global.DOMParser().parseFromString(xml, 'application/xml');
+              var texts = Array.prototype.map.call(parsed.getElementsByTagName('a:t'), function (node) {
+                return text(node.textContent);
+              }).filter(Boolean);
+              var title = texts.shift() || 'Bild ' + (index + 1);
+              var slideNumber = path.match(/slide(\d+)\.xml$/i);
+              var relationshipPath = slideNumber ? 'ppt/slides/_rels/slide' + slideNumber[1] + '.xml.rels' : '';
+              var relationshipFile = relationshipPath && archive.file(relationshipPath);
+              var imageRelations = relationshipFile
+                ? relationshipFile.async('text').then(function (relationshipXml) {
+                  var relationshipDocument = new global.DOMParser().parseFromString(relationshipXml, 'application/xml');
+                  var relationships = {};
+                  Array.prototype.forEach.call(relationshipDocument.getElementsByTagName('Relationship'), function (node) {
+                    relationships[node.getAttribute('Id')] = text(node.getAttribute('Target'));
+                  });
+                  return Promise.all(Array.prototype.slice.call(parsed.getElementsByTagName('a:blip'), 0, 20).map(function (node) {
+                    var target = relationships[node.getAttribute('r:embed')];
+                    if (!target) return '';
+                    var mediaPath = target.indexOf('../') === 0 ? 'ppt/' + target.slice(3) : 'ppt/slides/' + target;
+                    var media = archive.file(mediaPath);
+                    if (!media) return '';
+                    var extension = mediaPath.split('.').pop().toLowerCase();
+                    var mime = {
+                      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml'
+                    }[extension];
+                    if (!mime) return '';
+                    return media.async('base64').then(function (data) {
+                      return '<img src="data:' + mime + ';base64,' + data + '" alt="Bild från presentationssida ' + (index + 1) + '">';
+                    });
+                  }));
+                })
+                : Promise.resolve([]);
+              return imageRelations.then(function (images) {
+                var textMarkup = texts.map(function (value) { return '<p>' + esc(value) + '</p>'; }).join('');
+                return '<section class="v2-attachment-slide"><h3>' + esc(title) + '</h3>' + images.join('') +
+                  (textMarkup || (!images.length ? '<p>Ingen text på bilden.</p>' : '')) + '</section>';
+              });
+            });
+          })).then(function (slidesHtml) {
+            stage.innerHTML = '<div class="v2-attachment-slides">' + slidesHtml.join('') + '</div>';
+          });
+        });
+      });
+    });
+  }
+
   function closeAttachmentPreview() {
     var backdrop = root && root.querySelector('[data-v2-attachment-preview]');
-    if (backdrop) backdrop.remove();
+    if (!backdrop) return;
+    if (typeof backdrop._attachmentPreviewCleanup === 'function') {
+      backdrop._attachmentPreviewCleanup();
+    }
+    backdrop.remove();
   }
 
   function openAttachmentPreview(message, attachment) {
@@ -881,7 +1120,7 @@
     if (!url) return;
     closeAttachmentPreview();
     var name = attachmentName(attachment);
-    var image = attachmentIsImage(attachment);
+    var kind = attachmentPreviewKind(attachment);
     var backdrop = doc.createElement('div');
     backdrop.setAttribute('data-v2-attachment-preview', '');
     backdrop.className = 'v2-attachment-backdrop';
@@ -895,10 +1134,21 @@
       var download = backdrop.querySelector('[data-v2-attachment-download]');
       if (download) download.setAttribute('href', blobUrl);
       if (!stage) return;
-      if (image) {
+      if (kind === 'image') {
         stage.innerHTML = '<img src="' + esc(blobUrl) + '" alt="' + esc(name) + '">';
+      } else if (kind === 'pdf') {
+        return renderAttachmentPdfPreview(stage, blobUrl);
+      } else if (kind === 'word' || kind === 'excel' || kind === 'powerpoint') {
+        stage.innerHTML = '<p>Öppnar dokumentet…</p>';
+        return renderAttachmentOfficePreview(stage, blobUrl, kind);
+      } else if (kind === 'video') {
+        stage.innerHTML = '<video src="' + esc(blobUrl) + '" controls playsinline preload="none"></video>';
+      } else if (kind === 'audio') {
+        stage.innerHTML = '<audio src="' + esc(blobUrl) + '" controls preload="none"></audio>';
+      } else if (kind === 'text') {
+        stage.innerHTML = '<iframe src="' + esc(blobUrl) + '" sandbox="" title="' + esc(name) + '"></iframe>';
       } else {
-        stage.innerHTML = '<p>Förhandsvisning finns för bilder i denna vy.</p><p>Öppna eller ladda ner originalfilen.</p>';
+        stage.innerHTML = '<p>Ingen inbyggd förhandsvisning för filtypen.</p><p>Ladda ner originalfilen.</p>';
       }
     }).catch(function (error) {
       var stage = backdrop.querySelector('[data-v2-attachment-stage]');

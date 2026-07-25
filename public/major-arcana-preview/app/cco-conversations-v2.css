@@ -942,6 +942,89 @@ html[data-conversations-v2="on"]
   max-height: 64vh;
   object-fit: contain;
 }
+#cco-conv-v2-root .v2-attachment-stage video,
+#cco-conv-v2-root .v2-attachment-stage audio,
+#cco-conv-v2-root .v2-attachment-stage iframe {
+  width: min(100%, 860px);
+  max-height: 64vh;
+  border: 0;
+}
+#cco-conv-v2-root .v2-attachment-stage video,
+#cco-conv-v2-root .v2-attachment-stage iframe {
+  min-height: 360px;
+}
+#cco-conv-v2-root .v2-attachment-pdf {
+  width: 100%;
+  min-height: 100%;
+}
+#cco-conv-v2-root .v2-attachment-pdf-toolbar,
+#cco-conv-v2-root .v2-attachment-sheet-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px;
+  border-bottom: 1px solid rgba(122, 105, 87, 0.16);
+}
+#cco-conv-v2-root .v2-attachment-pdf-toolbar button,
+#cco-conv-v2-root .v2-attachment-sheet-tabs button {
+  min-width: 30px;
+  min-height: 28px;
+  border: 1px solid rgba(122, 105, 87, 0.22);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--cco-text-primary);
+  cursor: pointer;
+}
+#cco-conv-v2-root .v2-attachment-sheet-tabs button {
+  padding: 4px 9px;
+}
+#cco-conv-v2-root .v2-attachment-sheet-tabs button.active {
+  border-color: var(--cco-status-info);
+  color: var(--cco-status-info);
+  font-weight: 700;
+}
+#cco-conv-v2-root .v2-attachment-pdf-canvas {
+  display: grid;
+  place-items: start center;
+  padding: 16px;
+  overflow: auto;
+}
+#cco-conv-v2-root .v2-attachment-pdf-canvas canvas {
+  max-width: 100%;
+  box-shadow: 0 4px 16px rgba(45, 32, 20, 0.14);
+}
+#cco-conv-v2-root .v2-attachment-office,
+#cco-conv-v2-root .v2-attachment-slides {
+  width: 100%;
+  color: var(--cco-text-primary);
+}
+#cco-conv-v2-root .v2-attachment-office {
+  padding: 16px;
+  overflow: auto;
+}
+#cco-conv-v2-root .v2-attachment-office table {
+  max-width: 100%;
+  border-collapse: collapse;
+}
+#cco-conv-v2-root .v2-attachment-office th,
+#cco-conv-v2-root .v2-attachment-office td {
+  padding: 6px 8px;
+  border: 1px solid rgba(122, 105, 87, 0.2);
+}
+#cco-conv-v2-root .v2-attachment-slides {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+#cco-conv-v2-root .v2-attachment-slide {
+  padding: 16px;
+  border: 1px solid rgba(122, 105, 87, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+}
+#cco-conv-v2-root .v2-attachment-slide h3 {
+  margin: 0 0 10px;
+}
 #cco-conv-v2-root .msg-meta {
   font-size: 9.5px;
   color: var(--cco-text-tertiary);
