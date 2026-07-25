@@ -105,7 +105,12 @@ test('Stockholm-datum används när UTC-tiden passerar lokal midnatt', () => {
 });
 
 test('patienthistoriken behåller canonical displayName och bookingId för audit', () => {
-  const startsAt = '2026-07-25T10:00:00.000Z';
+  // Måste ligga i framtiden: buildUpcomingBookings filtrerar bort bokningar vars
+  // startsAt redan passerat (Date.parse(startsAt) < Date.now()), och faller då
+  // tillbaka på card.nextBookingType. En hårdkodad datum-bomb (2026-07-25T10:00Z)
+  // fick testet att falla så fort den tidpunkten passerade. Håll den relativt
+  // framtida så den aldrig detonerar igen.
+  const startsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
   const card = {
     patientId: 'cco-active-visit-uat-20260713',
     hasUpcomingBooking: true,
