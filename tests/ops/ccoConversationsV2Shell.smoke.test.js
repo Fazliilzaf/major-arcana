@@ -1173,3 +1173,89 @@ test('v2-skalet: misslyckad massåtgärd behåller operatörens urval', async ()
     'ett avvisat serversvar får inte tyst rensa det valda urvalet'
   );
 });
+
+test('v2-skalet: trådbyte reconcile:ar markeringen utan att bygga om listans DOM', () => {
+  const { document, api } = loadShell();
+  // Två REDAN LÄSTA trådar: att bläddra mellan dem ändrar bara markeringen,
+  // inte radernas innehåll (avsändare/ämne/preview/tid/taggar/SLA). Det är den
+  // vanligaste operatörsinteraktionen — och den som måste kännas Outlook-snabb.
+  const threads = [
+    makeThread({ id: 't-1', customerName: 'Anna Karlsson', unread: false }),
+    makeThread({ id: 't-2', customerName: 'Björn Lund', unread: false }),
+  ];
+
+  // Första render: tråd t-1 vald.
+  api.render(makeCtx({ laneThreads: threads, allThreads: threads, selected: threads[0] }));
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const rowA1 = inbox.querySelector('[data-thread-id="t-1"]');
+  const rowB1 = inbox.querySelector('[data-thread-id="t-2"]');
+  assert.ok(rowA1 && rowB1, 'båda tråd-raderna ska finnas');
+  assert.match(rowA1.className, /\bactive\b/, 't-1 ska vara aktiv efter första render');
+  assert.ok(!rowB1.classList.contains('active'), 't-2 ska inte vara aktiv än');
+
+  // Klicka över till t-2 — bara markeringen ändras.
+  api.render(makeCtx({ laneThreads: threads, allThreads: threads, selected: threads[1] }));
+
+  const rowA2 = inbox.querySelector('[data-thread-id="t-1"]');
+  const rowB2 = inbox.querySelector('[data-thread-id="t-2"]');
+
+  // Kärnan: exakt samma rad-noder — listan byggdes INTE om, bara markeringen
+  // flyttades (det som gör Outlook/Apple Mail direkt-snabba).
+  assert.equal(rowA2, rowA1, 't-1-raden ska vara samma DOM-nod (ingen ombyggnad)');
+  assert.equal(rowB2, rowB1, 't-2-raden ska vara samma DOM-nod (ingen ombyggnad)');
+
+  // Markering flyttad korrekt.
+  assert.ok(!rowA2.classList.contains('active'), 't-1 ska inte längre vara aktiv');
+  assert.match(rowB2.className, /\bactive\b/, 't-2 ska vara aktiv efter bytet');
+});
+
+test('v2-skalet: keyed diff bygger bara om raden vars innehåll ändrats (admin-mönstret)', () => {
+  const { document, api } = loadShell();
+  const threads = [
+    makeThread({ id: 't-1', customerName: 'Anna Karlsson' }),
+    makeThread({ id: 't-2', customerName: 'Björn Lund' }),
+  ];
+  api.render(makeCtx({ laneThreads: threads, allThreads: threads, selected: threads[0] }));
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const rowA1 = inbox.querySelector('[data-thread-id="t-1"]');
+  const rowB1 = inbox.querySelector('[data-thread-id="t-2"]');
+
+  // Bakgrunds-refresh: bara t-2 får nytt ämne. Som i admin#cco:s
+  // renderQueueHistoryList ska t-1 behålla sin nod och bara t-2 byggas om —
+  // ingen hellist-ombyggnad, inget flimmer på öppen tråd.
+  const updated = [
+    makeThread({ id: 't-1', customerName: 'Anna Karlsson' }),
+    makeThread({ id: 't-2', customerName: 'Björn Lund', subject: 'HELT NYTT ÄMNE' }),
+  ];
+  api.render(makeCtx({ laneThreads: updated, allThreads: updated, selected: updated[0] }));
+  const rowA2 = inbox.querySelector('[data-thread-id="t-1"]');
+  const rowB2 = inbox.querySelector('[data-thread-id="t-2"]');
+
+  assert.equal(rowA2, rowA1, 'oförändrad rad t-1 ska behålla samma DOM-nod');
+  assert.notEqual(rowB2, rowB1, 'ändrad rad t-2 ska få en ny nod');
+  assert.match(inbox.innerHTML, /HELT NYTT ÄMNE/, 'det nya ämnet ska renderas');
+});
+
+test('v2-skalet: keyed diff tar bort borttagna trådar, lägger till nya och håller ordningen', () => {
+  const { document, api } = loadShell();
+  const threads = [
+    makeThread({ id: 't-1' }),
+    makeThread({ id: 't-2' }),
+    makeThread({ id: 't-3' }),
+  ];
+  api.render(makeCtx({ laneThreads: threads, allThreads: threads, selected: threads[0] }));
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const t2Before = inbox.querySelector('[data-thread-id="t-2"]');
+
+  // t-1 försvinner, t-4 tillkommer, t-2/t-3 kvar.
+  const next = [makeThread({ id: 't-2' }), makeThread({ id: 't-3' }), makeThread({ id: 't-4' })];
+  api.render(makeCtx({ laneThreads: next, allThreads: next, selected: next[0] }));
+
+  assert.equal(inbox.querySelector('[data-thread-id="t-1"]'), null, 't-1 ska tas bort');
+  assert.equal(inbox.querySelector('[data-thread-id="t-2"]'), t2Before, 't-2 ska behålla sin nod');
+  assert.ok(inbox.querySelector('[data-thread-id="t-4"]'), 't-4 ska läggas till');
+  const ids = Array.from(inbox.querySelectorAll('[data-thread-id]')).map((n) =>
+    n.getAttribute('data-thread-id')
+  );
+  assert.deepEqual(ids, ['t-2', 't-3', 't-4'], 'ordningen ska matcha listan');
+});
