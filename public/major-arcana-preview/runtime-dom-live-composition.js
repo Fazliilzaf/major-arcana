@@ -425,9 +425,7 @@
     ) {
       const requestMailboxChunks = worklistMailboxChunks(mailboxIds);
       if (!requestMailboxChunks.length) {
-        return fetchTruthPrimaryWorklistConsumer(
-          buildTruthPrimaryWorklistConsumerHref(mailboxIds)
-        );
+        return fetchTruthPrimaryWorklistConsumer(buildTruthPrimaryWorklistConsumerHref(mailboxIds));
       }
       const scopedPayloads = [];
       let lastError = null;
@@ -3336,7 +3334,10 @@
       requestRuntimeThreadHydration(threadId).catch((error) => {
         console.warn("CCO kunde inte hydrera vald aktiv tråd efter selection.", error);
       });
-      if (reloadBootstrap) {
+      // V2 har redan målat den valda lokala truth-tråden ovan. En hel
+      // bootstrap här gör varje klick onödigt tungt medan historiken ändå
+      // hydreras separat i bakgrunden.
+      if (reloadBootstrap && !isPassiveConversationsV2Runtime()) {
         windowObject.clearTimeout(bootstrapThreadSelectTimer);
         bootstrapThreadSelectTimer = windowObject.setTimeout(() => {
           loadBootstrap({
