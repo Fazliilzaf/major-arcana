@@ -1681,6 +1681,30 @@
     });
   }
 
+  // Vilken behållare scrollar faktiskt? På desktop är .inbox-list en bounded
+  // scroll-container (overflow:auto + max-height) → använd dess scrollTop. På
+  // mobil sätts .inbox-shell till max-height:none så listan växer med innehållet
+  // och SIDAN scrollar i stället — då räknas fönstret ur listans position i
+  // viewporten (annars fastnar scrollTop på 0 och senare trådar blir oåtkomliga).
+  function inboxScrollMetrics(el) {
+    var internal =
+      (el.scrollTop || 0) > 0 || (el.scrollHeight || 0) > (el.clientHeight || 0) + 2;
+    if (internal) {
+      return { scrollTop: el.scrollTop || 0, clientHeight: el.clientHeight || 0 };
+    }
+    var rect =
+      typeof el.getBoundingClientRect === 'function'
+        ? el.getBoundingClientRect()
+        : { top: 0, bottom: 0, height: 0 };
+    var vh =
+      (global.visualViewport && global.visualViewport.height) || global.innerHeight || 0;
+    var scrollTop = Math.max(0, -(rect.top || 0));
+    var visibleBottom = Math.min(vh, rect.bottom || 0);
+    var visibleTop = Math.max(0, rect.top || 0);
+    var clientHeight = Math.max(0, visibleBottom - visibleTop) || vh;
+    return { scrollTop: scrollTop, clientHeight: clientHeight };
+  }
+
   function paintInboxWindow(el, list, selectedId, fromScroll) {
     var mount = ensureInboxScaffold(el);
     var total = list.length;
@@ -1688,8 +1712,9 @@
     var virtual = total > INBOX_VIRTUALIZE_THRESHOLD;
     el.__v2InboxVirtual = virtual;
 
+    var metrics = inboxScrollMetrics(el);
     var range = virtual
-      ? computeInboxVisibleRange(total, el.scrollTop, el.clientHeight, rowH)
+      ? computeInboxVisibleRange(total, metrics.scrollTop, metrics.clientHeight, rowH)
       : { start: 0, end: total };
 
     // Radhöjden kan ha ändrats (densitetsbyte) även om fönstret är detsamma —
@@ -1745,9 +1770,13 @@
         run();
       }
     };
+    // Desktop: .inbox-list scrollar internt.
     el.addEventListener('scroll', onScroll, { passive: true });
-    // Viewport-ändring ändrar antalet synliga rader → om-fönstra.
+    // Mobil: sidan/fönstret scrollar (inbox-shell max-height:none) → lyssna på
+    // fönster-scroll också, annars fastnar fönstret på första sidan. Samma
+    // onScroll räknar om metrics ur listans viewport-position.
     if (typeof global.addEventListener === 'function') {
+      global.addEventListener('scroll', onScroll, { passive: true });
       global.addEventListener(
         'resize',
         function () {

@@ -1418,3 +1418,66 @@ test('v2-skalet: .thread har garanterad fast höjd (virtualiseringens kontrakt)'
     'taggar ska hållas på en rad (deterministisk höjd)'
   );
 });
+
+test('v2-skalet: mobil sid-scroll driver virtualiseringen (fönster följer viewport, når botten)', () => {
+  // Regression: på mobil är .inbox-shell max-height:none, så .inbox-list växer
+  // och SIDAN scrollar — inte listan. Då måste fönstret räknas ur listans
+  // position i viewporten och fönster-scroll lyssnas på, annars fastnar
+  // fönstret på första sidan och senare trådar blir oåtkomliga.
+  const { window, document, api } = loadShell();
+  window.requestAnimationFrame = undefined;
+
+  const N = 300;
+  const big = Array.from({ length: N }, (_, i) =>
+    makeThread({ id: 't-' + i, customerName: 'Kund ' + i, unread: false })
+  );
+  const rowH = api._currentInboxRowHeight();
+  const totalH = N * rowH;
+
+  api.render(makeCtx({ laneThreads: big, allThreads: big, selected: big[0] }));
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const mount = inbox.querySelector('[data-v2-inbox-mount]');
+  const topSpacer = inbox.querySelector('[data-v2-inbox-spacer-top]');
+  const botSpacer = inbox.querySelector('[data-v2-inbox-spacer-bottom]');
+  const px = (v) => parseInt(String(v || '0'), 10) || 0;
+
+  // Mobil: .inbox-list scrollar INTE internt (scrollTop 0, scrollHeight≈client).
+  // Modellera listans position i viewporten via en stubbad rect; sid-scroll
+  // driver listans top negativt.
+  let listTop = 0;
+  inbox.getBoundingClientRect = () => ({
+    top: listTop,
+    bottom: listTop + totalH,
+    height: totalH,
+    left: 0,
+    right: 0,
+    width: 0,
+  });
+
+  // Vid toppen: första raden t-0 (re-render med stubbad rect aktiv).
+  api.render(makeCtx({ laneThreads: big, allThreads: big, selected: big[0] }));
+  assert.equal(
+    mount.querySelector('[data-thread-id]').getAttribute('data-thread-id'),
+    't-0',
+    'vid sidtoppen är första raden t-0'
+  );
+
+  // Sid-scroll till mitten → listans top går negativ, FÖNSTER-scroll dispatchas.
+  listTop = -Math.floor(N / 2) * rowH;
+  window.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+  assert.notEqual(
+    mount.querySelector('[data-thread-id]').getAttribute('data-thread-id'),
+    't-0',
+    'fönstret följer sidans scroll (inte bara inbox-listans)'
+  );
+  assert.ok(px(topSpacer.style.height) > 0, 'top-spacer växer vid sid-scroll');
+
+  // Sid-scroll till botten → sista tråden nås.
+  listTop = -totalH;
+  window.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+  assert.ok(
+    mount.querySelector('[data-thread-id="t-' + (N - 1) + '"]'),
+    'sista tråden nås via sid-scroll (ingen oåtkomlig svans på mobil)'
+  );
+  assert.equal(px(botSpacer.style.height), 0, 'bottom-spacer 0 vid botten');
+});
