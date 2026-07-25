@@ -460,6 +460,7 @@ html[data-conversations-v2="on"]
   line-height: 1.35;
 }
 #cco-conv-v2-root .v2-action-feedback[hidden] { display: none; }
+#cco-conv-v2-root .v2-more-menu[hidden] { display: none !important; }
 #cco-conv-v2-root .v2-action-feedback--success,
 #cco-conv-v2-root .v2-action-feedback--error {
   display: block;
