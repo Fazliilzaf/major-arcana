@@ -533,6 +533,12 @@ html[data-conversations-v2="on"]
   margin-bottom: 3px;
   position: relative;
   transition: background 0.12s ease;
+  /* GARANTERAD fast höjd → korrekt scroll-virtualisering (se
+     cco-conversations-v2-shell.js INBOX_ROW_H_COMFORTABLE = 92 + 3px margin).
+     overflow:hidden klipper ev. spill så alla rader är exakt lika höga. */
+  height: 92px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 #cco-conv-v2-root .thread:hover {
   background: rgba(255, 255, 255, 0.55);
@@ -620,7 +626,10 @@ html[data-conversations-v2="on"]
   display: flex;
   gap: 3px;
   margin-top: 4px;
-  flex-wrap: wrap;
+  /* En rad (ingen wrap) så radhöjden förblir deterministisk för
+     virtualiseringen; ev. extra taggar klipps av .thread overflow:hidden. */
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 #cco-conv-v2-root .thread-tag {
   padding: 1px 5px;
@@ -2161,6 +2170,8 @@ html[data-conversations-v2="on"]
 #cco-conv-v2-root[data-density="compact"] .thread {
   padding: 5px 8px;
   margin-bottom: 1px;
+  /* Fast compact-höjd (se shell INBOX_ROW_H_COMPACT = 54 + 1px margin). */
+  height: 54px;
 }
 #cco-conv-v2-root[data-density="compact"] .thread-av {
   width: 22px;

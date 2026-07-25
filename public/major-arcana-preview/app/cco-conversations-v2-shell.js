@@ -1597,13 +1597,28 @@
   // höjd-satta spacers ovanför/nedanför så scrollen ser hela listan. Det är
   // det som låter admin bära alla 8 konton utan att frysa; V2 saknade det.
   var INBOX_VIRTUALIZE_THRESHOLD = 60;
-  var INBOX_ROW_H_FALLBACK = 68; // .thread ~ compact rad + 3px margin
   var INBOX_OVERSCAN = 6;
   var INBOX_MIN_WINDOW = 30; // golv innan layout gett clientHeight
+  // Raderna har GARANTERAD fast höjd via CSS (#cco-conv-v2-root .thread{height})
+  // så virtualiseringen slipper mäta varje rad — precis som admin#cco:s
+  // lit-switchover (fasta 88px-kort). Konstanterna = CSS-höjd + rad-margin och
+  // MÅSTE följa cco-conversations-v2.css. Compact-läget döljer preview och
+  // krymper raden, så höjden väljs efter densitet.
+  var INBOX_ROW_H_COMFORTABLE = 95; // .thread height 92 + margin-bottom 3
+  var INBOX_ROW_H_COMPACT = 55; // compact .thread height 54 + margin-bottom 1
+
+  function currentInboxRowHeight() {
+    try {
+      var density = root && root.dataset ? root.dataset.density : '';
+      return density === 'compact' ? INBOX_ROW_H_COMPACT : INBOX_ROW_H_COMFORTABLE;
+    } catch (_e) {
+      return INBOX_ROW_H_COMFORTABLE;
+    }
+  }
 
   function computeInboxVisibleRange(total, scrollTop, clientHeight, rowH) {
     if (total <= 0) return { start: 0, end: 0 };
-    var h = rowH > 0 ? rowH : INBOX_ROW_H_FALLBACK;
+    var h = rowH > 0 ? rowH : INBOX_ROW_H_COMFORTABLE;
     var start = Math.max(0, Math.floor((scrollTop || 0) / h) - INBOX_OVERSCAN);
     var vis = Math.ceil((clientHeight || 0) / h) + INBOX_OVERSCAN * 2;
     var windowCount = Math.max(vis, INBOX_MIN_WINDOW);
@@ -1669,7 +1684,7 @@
   function paintInboxWindow(el, list, selectedId, fromScroll) {
     var mount = ensureInboxScaffold(el);
     var total = list.length;
-    var rowH = el.__v2RowH || INBOX_ROW_H_FALLBACK;
+    var rowH = currentInboxRowHeight();
     var virtual = total > INBOX_VIRTUALIZE_THRESHOLD;
     el.__v2InboxVirtual = virtual;
 
@@ -1677,59 +1692,70 @@
       ? computeInboxVisibleRange(total, el.scrollTop, el.clientHeight, rowH)
       : { start: 0, end: total };
 
+    // Radhöjden kan ha ändrats (densitetsbyte) även om fönstret är detsamma —
+    // hoppa bara över om BÅDE range och radhöjd är oförändrade.
     if (
       fromScroll &&
       el.__v2Range &&
       el.__v2Range.start === range.start &&
-      el.__v2Range.end === range.end
+      el.__v2Range.end === range.end &&
+      el.__v2RowH === rowH
     ) {
       return;
     }
     el.__v2Range = range;
+    el.__v2RowH = rowH;
 
     var slice = list.slice(range.start, range.end);
     reconcileInboxRows(mount, slice, selectedId);
 
+    // Spacers bär de off-screen radernas höjd. Eftersom varje rad har fast höjd
+    // gäller invarianten topp + fönster*rowH + botten === total*rowH, så
+    // scrollpositionen driver aldrig och sista tråden nås utan hopp.
     var top = el.querySelector('[data-v2-inbox-spacer-top]');
     var bot = el.querySelector('[data-v2-inbox-spacer-bottom]');
     if (top) top.style.height = range.start * rowH + 'px';
     if (bot) bot.style.height = Math.max(0, total - range.end) * rowH + 'px';
 
-    // Mät faktisk radhöjd en gång (endast i webbläsare; offsetHeight=0 i test).
-    if (!el.__v2RowHMeasured) {
-      var firstRow = mount.querySelector('[data-thread-id]');
-      if (firstRow && firstRow.offsetHeight > 0) {
-        el.__v2RowH = firstRow.offsetHeight + 3;
-        el.__v2RowHMeasured = true;
-      }
-    }
-
     reconcileInboxSelection(mount, slice, selectedId);
+  }
+
+  function rewindowInbox(el) {
+    if (!el || !el.__v2InboxState) return;
+    paintInboxWindow(el, el.__v2InboxState.list, el.__v2InboxState.selectedId, true);
   }
 
   function attachInboxScrollListener(el) {
     if (el.__v2InboxScrollBound) return;
     el.__v2InboxScrollBound = true;
     var ticking = false;
-    el.addEventListener(
-      'scroll',
-      function () {
-        if (!el.__v2InboxVirtual || !el.__v2InboxState) return;
-        if (ticking) return;
-        ticking = true;
-        var run = function () {
-          ticking = false;
-          if (!el.__v2InboxState) return;
-          paintInboxWindow(el, el.__v2InboxState.list, el.__v2InboxState.selectedId, true);
-        };
-        if (typeof global.requestAnimationFrame === 'function') {
-          global.requestAnimationFrame(run);
-        } else {
-          global.setTimeout(run, 0);
-        }
-      },
-      { passive: true }
-    );
+    var onScroll = function () {
+      if (!el.__v2InboxVirtual || !el.__v2InboxState) return;
+      if (ticking) return;
+      ticking = true;
+      var run = function () {
+        ticking = false;
+        rewindowInbox(el);
+      };
+      if (typeof global.requestAnimationFrame === 'function') {
+        global.requestAnimationFrame(run);
+      } else {
+        // Ingen rAF (t.ex. test/headless) → kör synkront. Throttlas ändå av
+        // ticking-flaggan per event-loop-varv.
+        run();
+      }
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    // Viewport-ändring ändrar antalet synliga rader → om-fönstra.
+    if (typeof global.addEventListener === 'function') {
+      global.addEventListener(
+        'resize',
+        function () {
+          if (el.__v2InboxVirtual) rewindowInbox(el);
+        },
+        { passive: true }
+      );
+    }
   }
 
   function renderInbox(ctx) {
@@ -2705,6 +2731,9 @@
         lsSet(DENSITY_KEY, v3Density);
         root.dataset.density = v3Density;
         if (boundCtx) renderToolbar(boundCtx);
+        // Radhöjden ändras med densiteten → om-fönstra virtualiseringen så
+        // spacers matchar de nya raderna (annars driver scrollen).
+        rewindowInbox(root.querySelector('[data-v2-inbox]'));
         return;
       }
       var segEl = event.target.closest('[data-v3-segment]');
@@ -3091,6 +3120,7 @@
         lsSet(DENSITY_KEY, v3Density);
         root.dataset.density = v3Density;
         renderToolbar(ctx);
+        rewindowInbox(root.querySelector('[data-v2-inbox]'));
       },
     });
     if (ctx.selected) {
@@ -3229,6 +3259,7 @@
     _inboxVirtualizeThreshold: function () {
       return INBOX_VIRTUALIZE_THRESHOLD;
     },
+    _currentInboxRowHeight: currentInboxRowHeight,
   };
 
   // Persistent kontext-provider för admin#cco:s panel-launcher. Launchern har
