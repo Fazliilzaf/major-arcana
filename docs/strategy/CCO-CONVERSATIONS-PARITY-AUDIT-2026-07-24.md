@@ -47,7 +47,7 @@ som admin. Om launchern inte är laddad failar panel-vägen **högt** (felfeedba
 
 ## Del B — De 7 osynliga reglerna
 
-1. **Läser bara valda brevlådor, i små grupper (≤2/anrop)** — 🟢 för transporten: `worklistMailboxChunks` delar urvalet i ≤2-chunks, hämtas **sekventiellt** med avbryt-vid-urvalsbyte (`runtime-dom-live-composition.js` ~346, 422); backend hård-cap 2 → HTTP 422 (`capabilities.js:117, 9872`). **⚠️ MEN default-scopet ändrades:** current main sätter `defaultScope = availableIds` (**alla 8**), inte en brevlåda (app.js ~15027). Kommentaren säger att "skalet begränsar DOM-renderingen stegvis" — **men jag hittar inget robust list-batchning/virtualiserings-mekanism** i render-vägen. Alla 8 hängde UI:t tidigare (operatörsrapport). → **TOP-RISK, se Del C.**
+1. **Läser bara valda brevlådor, i små grupper (≤2/anrop)** — 🟢 för transporten: `worklistMailboxChunks` delar urvalet i ≤2-chunks, hämtas **sekventiellt** med avbryt-vid-urvalsbyte (`runtime-dom-live-composition.js` ~346, 422); backend hård-cap 2 → HTTP 422 (`capabilities.js:117, 9872`). **⚠️ MEN default-scopet ändrades:** current main sätter `defaultScope = availableIds` (**alla 8**), inte en brevlåda (app.js ~15027). Kommentaren säger att "skalet begränsar DOM-renderingen stegvis" — **men jag hittar inget robust list-batchning/virtualiserings-mekanism** i render-vägen. Alla-8 hängde UI:t tidigare (operatörsrapport). **Kod-default ≠ live-beteende:** en sparad selection kan överstyra defaulten (live-koll 2026-07-25 visade 1/9 valt konto, Fazli, 120 trådar — inte alla nio). Väljaren har 9 val: 8 namngivna konton + `*` (catch-all). → **TOP-RISK, se Del C — får inte bockas av via kod-läsning, kräver mätning i ren session med alla nio markerade.**
 2. **Listan mailbox-scopad, men öppning slår ihop hela kundhistoriken** — 🟢 hydrerings-scope = `thread.historyMailboxOptions` (unionar, snävar inte); korsbrevlåde-historik-sök + merge (runtime ~2077, 2564). *Caveat:* beror på att backend fyller `historyMailboxOptions`.
 3. **Senaste mail styr sortering/presentation utan att tappa äldre/skickat** — 🟢 rader keyade på `conversationId`, merge dedupar men behåller alla; full tråd (äldre+skickat) via `/runtime/history` med full lookback. 🟡 exakt sort-nyckel (senaste-timestamp) ej oberoende verifierad.
 4. **Bilagor/inline/signaturer via autentiserad asset-väg** — 🟢 `resolveMailAssetUrl` avvisar allt utom `/api/v1/cco/runtime/mail-asset/content`, kräver admin-Bearer (app.js ~40388); backend `requireAuth + requireRole(OWNER,STAFF)` + mailbox-scoping (capabilities.js ~10748).
@@ -67,10 +67,18 @@ ett V2-render-fel flippar `data-conversations-v2="off"` och återställer legacy
 Flaggan är default-OFF och view-scopad → cutover kan flippas och rullas tillbaka utan att röra legacy-kod.
 
 **Måste stängas innan legacy RADERAS:**
-1. **TOP-RISK — default alla-8 + overifierad incremental render (Regel 1).** Current main defaultar till alla 8
-   brevlådor. Alla-8 hängde UI:t i operatörstest; Codex incremental-render-approach är **inte live-verifierad**
-   och motsvarar inget tydligt list-batchning jag kan hitta i koden. **Kräver ett live-test: hänger current
-   build på laddning eller inte?** Om ja → behövs riktig virtualisering eller scopad default.
+1. **TOP-RISK — beteende med alla konton samtidigt är OTESTAT (Regel 1).** Current main sätter i koden
+   `defaultScope = availableIds` (alla konton), och Codex incremental-render-approach är inte live-verifierad
+   och motsvarar inget tydligt list-batchning/virtualiserings-mekanism jag hittar i koden. **Men kod-default är
+   inte samma som live-beteende:** en sparad mailbox-selection i localStorage överstyr kod-defaulten.
+   **Live-koll 2026-07-25:** V2 hade **1/9 valt konto** (Fazli) och fungerade med 120 trådar — det bevisar
+   **ingenting** om hur alla nio scope beter sig samtidigt (alla-8 hängde UI:t i tidigare operatörstest).
+   Väljaren har **9 val**: de 8 namngivna kontona + `*` (separat catch-all/wildcard-scope). *Caveat:*
+   `normalizeMailboxIds` filtrerar dessutom bort `*` ur urvalet (runtime-workspace-state.js:41-45), så om `*`
+   faktiskt vidgar hämtnings-scopet är i sig overifierat. **Får INTE bockas av genom att läsa `defaultScope` i
+   koden.** Kräver en mätning i en **ren session** (rensad selection) med **samtliga nio markerade** (Fazli +
+   de 7 övriga + `*`): hänger listan på laddning eller inte? Om ja → riktig virtualisering eller scopad default.
+   Ingen runtime-kod rörs innan det mätresultatet finns.
 2. **Svarstudio-sign-off** — enda parallella UI:t; verifiera draft-state-machine (generate→save→transition→send)
    + send-lås mot admin-panelen.
 3. **Senare-interaktion** — direkt `reply_later` vs snooze-bekräftelse-panel; bekräfta avsedd modell.
@@ -81,7 +89,7 @@ Inga 🔴-gap (inga stubbar, inga saknade paneler, inga divergerande skriv-endpo
 
 ## Öppna verifieringspunkter (för Codex + live)
 
-- [ ] **Live:** hänger current build (`53c9bf77`, default alla-8) på laddning? (Regel 1 top-risk)
+- [ ] **Live (TOP-RISK):** ren session, rensad selection, **markera samtliga nio scope** (Fazli + 7 övriga konton + `*`) → hänger listan på laddning eller inte? (1/9-körningen 2026-07-25 bevisar inte 9/9. Får ej bockas av via kod-läsning.)
 - [ ] Svarstudio draft-lifecycle + send-lås = admin-paritet?
 - [ ] Senare: en-klick vs snooze-panel — avsett?
 - [ ] Regel 3: sort-komparator på senaste-message-timestamp?
