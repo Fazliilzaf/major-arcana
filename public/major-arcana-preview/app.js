@@ -41909,6 +41909,7 @@
       const response = await fetch(url.toString(), {
         method: options.method || "GET",
         credentials: "same-origin",
+        signal: options.signal,
         headers: {
           "content-type": "application/json",
           ...(isLocalPreviewToken ? { "x-arcana-preview-local": "1" } : {}),

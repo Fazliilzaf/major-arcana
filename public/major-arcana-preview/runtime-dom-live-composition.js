@@ -250,6 +250,9 @@
     let interactionsBound = false;
     let liveRuntimeRequestSequence = 0;
     let liveThreadHydrationSequence = 0;
+    let activeV2DirectThreadOpenController = null;
+    const v2DirectThreadPayloadCache = new Map();
+    const V2_DIRECT_THREAD_PAYLOAD_CACHE_TTL_MS = 60000;
     let runtimeAnalyzeInboxFlight = null;
     let runtimeAnalyzeInboxCompletedAt = 0;
     const RUNTIME_ANALYZE_INBOX_MIN_INTERVAL_MS = 20000;
@@ -2303,6 +2306,112 @@
       return payload;
     }
 
+    function buildV2DirectThreadPayloadCacheKey(conversationId, mailboxIds = []) {
+      return [
+        asText(conversationId),
+        ...asArray(mailboxIds)
+          .map((value) => canonicalizeRuntimeMailboxId(value))
+          .filter(Boolean)
+          .sort(),
+      ].join("|");
+    }
+
+    function collectV2DirectThreadMemberKeys(thread, conversationId) {
+      const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+      const candidates = [
+        thread?.conversationAliases,
+        thread?.sourceConversationIds,
+        thread?.underlyingConversationKeys,
+        raw?.conversationAliases,
+        raw?.sourceConversationIds,
+        raw?.underlyingConversationKeys,
+        raw?.conversationId,
+      ];
+      const keys = new Set();
+      candidates.forEach((candidate) => {
+        asArray(candidate).flatMap((value) => asText(value).split(",")).forEach((value) => {
+          const normalized = asText(value);
+          if (normalized && normalized !== asText(conversationId)) keys.add(normalized);
+        });
+      });
+      return Array.from(keys).slice(0, 50);
+    }
+
+    function normalizeV2DirectThreadMessages(payload = {}) {
+      return asArray(payload?.messages).map((message) => {
+        const safe = message && typeof message === "object" ? message : {};
+        const direction = normalizeKey(safe.direction || safe.dir) === "outbound" ? "outbound" : "inbound";
+        return {
+          ...safe,
+          messageId: asText(safe.messageId || safe.graphMessageId || safe.id),
+          graphMessageId: asText(safe.graphMessageId || safe.messageId || safe.id),
+          direction,
+          role: direction === "outbound" ? "staff" : "customer",
+          author: asText(safe.author || safe.from || safe.senderEmail || safe.fromEmail),
+          sentAt: asText(safe.sentAt || safe.time || safe.receivedAt),
+          primaryBody: {
+            text: asText(safe.bodyText || safe.body_text || safe.body || safe.text),
+            html: asText(safe.bodyHtml || safe.body_html || safe.html),
+          },
+        };
+      });
+    }
+
+    async function fetchV2DirectThreadPayload(thread, conversationId, mailboxIds = []) {
+      const cacheKey = buildV2DirectThreadPayloadCacheKey(conversationId, mailboxIds);
+      if (activeV2DirectThreadOpenController) activeV2DirectThreadOpenController.abort();
+      const cached = v2DirectThreadPayloadCache.get(cacheKey);
+      if (cached && Date.now() - cached.fetchedAt < V2_DIRECT_THREAD_PAYLOAD_CACHE_TTL_MS) {
+        return cached.payload;
+      }
+
+      const controller = new AbortController();
+      activeV2DirectThreadOpenController = controller;
+      const params = new URLSearchParams();
+      const memberKeys = collectV2DirectThreadMemberKeys(thread, conversationId);
+      const customerEmail = asText(
+        thread?.customerEmail || thread?.email || thread?.raw?.customerEmail || thread?.raw?.email
+      );
+      const contactReference = asText(
+        thread?.contactReference || thread?.customerName || thread?.raw?.contactReference || thread?.raw?.customerName
+      );
+      if (memberKeys.length) params.set("memberKeys", memberKeys.join(","));
+      if (customerEmail) params.set("customerEmail", customerEmail);
+      if (contactReference) params.set("contactReference", contactReference);
+      if (mailboxIds.length) params.set("mailboxId", mailboxIds.join(","));
+
+      try {
+        const payload = await apiRequest(
+          `/api/v1/cco/runtime/conversation/${encodeURIComponent(conversationId)}/messages?${params.toString()}`,
+          { signal: controller.signal }
+        );
+        v2DirectThreadPayloadCache.set(cacheKey, { fetchedAt: Date.now(), payload });
+        while (v2DirectThreadPayloadCache.size > 24) {
+          v2DirectThreadPayloadCache.delete(v2DirectThreadPayloadCache.keys().next().value);
+        }
+        return payload;
+      } finally {
+        if (activeV2DirectThreadOpenController === controller) {
+          activeV2DirectThreadOpenController = null;
+        }
+      }
+    }
+
+    function applyV2DirectThreadPayload(conversationId, payload) {
+      const messages = normalizeV2DirectThreadMessages(payload);
+      if (!messages.length) return false;
+      let updated = false;
+      const patchCollection = (threads = []) =>
+        asArray(threads).map((thread) => {
+          if (!runtimeConversationIdsMatch(thread?.id, conversationId)) return thread;
+          updated = true;
+          return { ...thread, directMailMessages: messages };
+        });
+      state.runtime.threads = patchCollection(state.runtime.threads);
+      state.runtime.truthPrimaryLegacyThreads = patchCollection(state.runtime.truthPrimaryLegacyThreads);
+      return updated;
+    }
+
     let selectedRuntimeThreadHistoryBodyPromise = null;
 
     async function ensureSelectedRuntimeThreadHistoryBody() {
@@ -2522,30 +2631,48 @@
       });
 
       try {
-        let historyPayload = await fetchRuntimeThreadHistoryPayload({
-          mailboxIds: scopedMailboxIds,
-          conversationId: targetConversationId,
-        });
-        hydrationDiagnostics.directFetch = {
-          conversationId: targetConversationId,
-          payload: summarizeRuntimeHistoryPayloadForDiagnostics(historyPayload),
-        };
-        recordRuntimeOpenFlowEvent("hydrate_direct_fetch", {
-          sequence: hydrationSequence,
-          targetConversationId,
-          directFetch: hydrationDiagnostics.directFetch,
-        });
-        if (hydrationSequence !== liveThreadHydrationSequence) {
-          recordRuntimeOpenFlowEvent("hydrate_aborted", {
+        let historyPayload = null;
+        let updated = false;
+        if (isPassiveConversationsV2Runtime()) {
+          const directPayload = await fetchV2DirectThreadPayload(
+            selectedThread,
+            targetConversationId,
+            scopedMailboxIds
+          );
+          if (hydrationSequence !== liveThreadHydrationSequence) return;
+          updated = applyV2DirectThreadPayload(targetConversationId, directPayload);
+          hydrationDiagnostics.directFetch = {
+            conversationId: targetConversationId,
+            messageCount: asArray(directPayload?.messages).length,
+            source: "v2_direct_thread",
+          };
+          hydrationDiagnostics.directApplied = updated;
+          recordRuntimeOpenFlowEvent("hydrate_v2_direct_fetch", {
             sequence: hydrationSequence,
             targetConversationId,
-            reason: "sequence_mismatch_after_direct_fetch",
+            messageCount: asArray(directPayload?.messages).length,
+            applied: updated,
           });
-          return;
         }
-
-        let updated = applyHydratedRuntimeThreadHistory(targetConversationId, historyPayload);
-        hydrationDiagnostics.directApplied = updated;
+        if (!updated) {
+          historyPayload = await fetchRuntimeThreadHistoryPayload({
+            mailboxIds: scopedMailboxIds,
+            conversationId: targetConversationId,
+            includeBodyHtml: isPassiveConversationsV2Runtime(),
+          });
+          hydrationDiagnostics.directFetch = {
+            conversationId: targetConversationId,
+            payload: summarizeRuntimeHistoryPayloadForDiagnostics(historyPayload),
+          };
+          recordRuntimeOpenFlowEvent("hydrate_direct_fetch", {
+            sequence: hydrationSequence,
+            targetConversationId,
+            directFetch: hydrationDiagnostics.directFetch,
+          });
+          if (hydrationSequence !== liveThreadHydrationSequence) return;
+          updated = applyHydratedRuntimeThreadHistory(targetConversationId, historyPayload);
+          hydrationDiagnostics.directApplied = updated;
+        }
         hydrationDiagnostics.selectedThreadAfter = summarizeRuntimeOpenFlowThread(
           asArray(state.runtime?.threads).find((thread) =>
             runtimeConversationIdsMatch(thread?.id, targetConversationId)
@@ -2649,6 +2776,9 @@
           reason: "",
         };
       } catch (error) {
+        if (error?.name === "AbortError" || hydrationSequence !== liveThreadHydrationSequence) {
+          return { status: "aborted", reason: "selection_changed" };
+        }
         hydrationDiagnostics.error = error instanceof Error ? error.message : String(error);
         ensureRuntimeOpenFlowDiagnostics().lastHydration = hydrationDiagnostics;
         recordRuntimeOpenFlowEvent("hydrate_error", {
