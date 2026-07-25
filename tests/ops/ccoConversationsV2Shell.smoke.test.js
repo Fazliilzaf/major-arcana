@@ -305,16 +305,17 @@ test('v2-skalet: mailboxväljaren ligger i vänstra köfältet med kompakt fallb
   assert.equal(compactControls.querySelectorAll('[data-v2-mailbox]').length, 1);
 });
 
-test('v2-skalet: mailboxmenyn visar checkbox och trådantal per valt konto i Inkorg', () => {
+test('v2-skalet: mailboxmenyn visar historik per konto och Inkorg visar sammanfattat valt scope', () => {
   const { document, api } = loadShell();
   const konsThread = makeThread({
     id: 'kons-1',
     mailboxId: 'kons@hairtpclinic.com',
     mailboxBadge: 'Kons',
+    needsReply: true,
   });
   const infoThreads = [
-    makeThread({ id: 'info-1', mailboxId: 'info@hairtpclinic.com', mailboxBadge: 'Info' }),
-    makeThread({ id: 'info-2', mailboxId: 'info@hairtpclinic.com', mailboxBadge: 'Info' }),
+    makeThread({ id: 'info-1', mailboxId: 'info@hairtpclinic.com', mailboxBadge: 'Info', unread: false }),
+    makeThread({ id: 'info-2', mailboxId: 'info@hairtpclinic.com', mailboxBadge: 'Info', unread: false }),
   ];
   api.render(
     makeCtx({
@@ -325,6 +326,10 @@ test('v2-skalet: mailboxmenyn visar checkbox och trådantal per valt konto i Ink
         { id: 'info@hairtpclinic.com', label: 'Info', email: 'info@hairtpclinic.com' },
       ],
       selectedMailboxIds: ['kons@hairtpclinic.com', 'info@hairtpclinic.com'],
+      mailboxMetrics: [
+        { mailboxId: 'kons@hairtpclinic.com', inboxCount: 4976, sentCount: 4457, messageCount: 9433 },
+        { mailboxId: 'info@hairtpclinic.com', inboxCount: 42, sentCount: 11, messageCount: 53 },
+      ],
     })
   );
 
@@ -333,10 +338,11 @@ test('v2-skalet: mailboxmenyn visar checkbox och trådantal per valt konto i Ink
   const info = root.querySelector('[data-v2-mailbox="info@hairtpclinic.com"]');
   assert.equal(kons.getAttribute('type'), 'checkbox', 'varje konto ska kunna checkas av');
   assert.equal(info.hasAttribute('checked'), true, 'valt konto ska vara markerat');
-  assert.match(root.querySelector('[data-v2-mailboxes]').textContent, /Kons[\s\S]*1/);
-  assert.match(root.querySelector('[data-v2-mailboxes]').textContent, /Info[\s\S]*2/);
-  assert.match(root.querySelector('[data-v2-mailbox-summary]').textContent, /Kons[\s\S]*1/);
-  assert.match(root.querySelector('[data-v2-mailbox-summary]').textContent, /Info[\s\S]*2/);
+  assert.match(root.querySelector('[data-v2-mailboxes]').textContent, /Kons[\s\S]*4976 ink\. · 4457 skick\./);
+  assert.match(root.querySelector('[data-v2-mailboxes]').textContent, /Info[\s\S]*42 ink\. · 11 skick\./);
+  assert.match(root.querySelector('[data-v2-inbox-h2]').textContent, /1 oläst · 1 behöver svar · 3 trådar · 9486 mail/);
+  assert.match(root.querySelector('[data-v2-mailbox-summary]').textContent, /Inkorg \+ Skickat · hela historiken/);
+  assert.doesNotMatch(root.querySelector('[data-v2-mailbox-summary]').textContent, /Kons|Info/);
 });
 
 test('v2-skalet: ett brett mailbox-scope kan förfinas ett konto i taget', () => {
@@ -543,6 +549,8 @@ test('v2-skalet: appen matar mailboxar och vald scope till samma runtime-rendera
     appSource,
     /selectedMailboxIds: getRequestedRuntimeMailboxIds\(\{ includePreferredFallback: false \}\)/
   );
+  assert.match(appSource, /mailboxMetrics: asArray\(state\.runtime\?\.mailboxDiagnostics\?\.truthPrimary\?\.mailboxReports\)/);
+  assert.match(appSource, /mailboxReports: truthMailboxReports/);
   assert.doesNotMatch(appSource, /nextMailboxIds\.length > 2/);
   assert.match(appSource, /const defaultScope = availableIds;/);
   assert.match(appSource, /applyRuntimeMailboxSelection\(nextMailboxIds\)/);
