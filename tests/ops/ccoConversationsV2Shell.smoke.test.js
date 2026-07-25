@@ -838,6 +838,39 @@ test('v2-skalet: äldre null-mailDocument faller tillbaka till text utan att kra
   );
 });
 
+test('v2-skalet: senaste hela mailet visas först i den befintliga V2-designen', () => {
+  const { document, api } = loadShell();
+  const thread = makeThread({
+    threadDocument: {
+      messages: [
+        {
+          messageId: 'older-message',
+          direction: 'inbound',
+          author: 'Anna Karlsson',
+          sentAt: '2026-06-20T09:00:00Z',
+          primaryBody: { text: 'Äldre mail.' },
+        },
+        {
+          messageId: 'newest-message',
+          direction: 'inbound',
+          author: 'Anna Karlsson',
+          sentAt: '2026-06-20T11:00:00Z',
+          primaryBody: { text: 'Senaste mail.' },
+        },
+      ],
+    },
+  });
+
+  api.render(makeCtx({ laneThreads: [thread], allThreads: [thread], selected: thread }));
+  assert.deepEqual(
+    Array.from(document.querySelectorAll('[data-v2-thread] [data-v2-message-id]')).map((message) =>
+      message.getAttribute('data-v2-message-id')
+    ),
+    ['newest-message', 'older-message'],
+    'V2 ska visa senaste mailet först, som admin#cco'
+  );
+});
+
 test('v2-skalet: vanlig bilaga visas separat medan inline-signatur inte dupliceras', () => {
   const { document, api } = loadShell();
   const thread = makeThread({
