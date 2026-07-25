@@ -915,6 +915,51 @@ test('v2-skalet: vanlig bilaga visas separat medan inline-signatur inte duplicer
   assert.match(attachments[0].textContent, /underlag\.pdf/);
 });
 
+test('v2-skalet: direktläst rich mail prioriteras före äldre historikprojektion', () => {
+  const { document, api } = loadShell();
+  const thread = makeThread({
+    threadDocument: {
+      messages: [
+        {
+          messageId: 'stale-summary',
+          direction: 'inbound',
+          author: 'Anna Karlsson',
+          sentAt: '2026-06-20T09:00:00Z',
+          primaryBody: { text: 'Äldre, begränsad historik.' },
+        },
+      ],
+    },
+    directMailMessages: [
+      {
+        messageId: 'direct-rich-message',
+        mailboxId: 'info@hairtpclinic.com',
+        direction: 'inbound',
+        author: 'Anna Karlsson',
+        sentAt: '2026-06-20T11:00:00Z',
+        primaryBody: {
+          text: 'Hela mailet.',
+          html: '<p>Hela <strong>mailet</strong>.</p>',
+        },
+        attachments: [
+          { attachmentId: 'direct-file', name: 'underlag.pdf', contentType: 'application/pdf' },
+        ],
+      },
+    ],
+  });
+
+  api.render(makeCtx({ laneThreads: [thread], allThreads: [thread], selected: thread }));
+
+  assert.deepEqual(
+    Array.from(document.querySelectorAll('[data-v2-thread] .msg[data-v2-message-id]')).map((message) =>
+      message.getAttribute('data-v2-message-id')
+    ),
+    ['direct-rich-message'],
+    'den scoped direkta payloaden ska vinna över en äldre sammanfattad historikpayload'
+  );
+  assert.equal(document.querySelectorAll('.v2-msg-html-frame').length, 1);
+  assert.match(document.querySelector('[data-v2-attachment-index]').textContent, /underlag\.pdf/);
+});
+
 test('v2-skalet: Info är strikt i listan men behåller befintlig samlad kundhistorik inne i tråden', () => {
   const { document, api } = loadShell();
   const infoThread = makeThread({

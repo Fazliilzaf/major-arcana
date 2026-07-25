@@ -350,6 +350,12 @@
   var STAFF_BG = 'linear-gradient(180deg,#c5d8a8,#92b86e)';
 
   function messageList(thread) {
+    // V2:s direkta trådläsning bär den fulla, mailbox-scopeade HTML- och
+    // bilagepayloaden från samma endpoint som admin använder. Den ska vinna
+    // över den äldre, eventuellt magrare historikprojektionen.
+    if (Array.isArray(thread.directMailMessages) && thread.directMailMessages.length) {
+      return thread.directMailMessages;
+    }
     // Föredra FULL hydrerad historik framför preview-listan: thread.messages
     // fylls av buildPreviewMessages som hårt-cappar till 8, medan hela historiken
     // ligger på thread.threadDocument.messages efter hydrering. Returneras

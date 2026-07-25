@@ -491,3 +491,34 @@ test('bulk handled och later använder inte längre lokala patch-hjälpare direk
     'Single-thread later ska återanvända backend-först-hjälparen.'
   );
 });
+
+test('V2 öppnar vald tråd via mailbox-scopead direktläsning och kan avbryta föregående klick', () => {
+  const runtimeSource = fs.readFileSync(RUNTIME_DOM_PATH, 'utf8');
+  const appSource = fs.readFileSync(APP_PATH, 'utf8');
+
+  assert.match(
+    runtimeSource,
+    /\/api\/v1\/cco\/runtime\/conversation\/\$\{encodeURIComponent\(conversationId\)\}\/messages/,
+    'V2 ska använda samma direkta, scopeade trådroute som admin för rik mejlläsning.'
+  );
+  assert.match(
+    runtimeSource,
+    /activeV2DirectThreadOpenController\.abort\(\)/,
+    'Ett nytt trådval ska avbryta föregående direkta läsning.'
+  );
+  assert.match(
+    runtimeSource,
+    /params\.set\("mailboxId", mailboxIds\.join\(","\)\)/,
+    'Direktläsningen måste bära med mailbox-scope till servern.'
+  );
+  assert.match(
+    runtimeSource,
+    /directMailMessages: messages/,
+    'Den rika direkta payloaden ska patchas separat utan att skriva över övrig trådstate.'
+  );
+  assert.match(
+    appSource,
+    /credentials: "same-origin",\n\s*signal: options\.signal/,
+    'API-bryggan måste vidarebefordra AbortSignal till fetch.'
+  );
+});
