@@ -40645,24 +40645,6 @@
       // Svarstudio v2 får endast presentation och avsändarval från samma
       // mailbox-/signaturkontrakt som legacy använder. Själva auth, draft och
       // send-grindar ligger fortfarande i de befintliga CCO-routesen.
-      studioSignatures: getStudioSignatureProfiles().map((profile) => ({
-        id: asText(profile.id),
-        label: asText(profile.label, "Signatur"),
-        senderMailboxId: normalizeMailboxId(profile.senderMailboxId || profile.email),
-        email: normalizeMailboxId(profile.email || profile.senderMailboxId),
-        text: [
-          "Med vänliga hälsningar,",
-          "",
-          asText(profile.fullName || profile.label),
-          asText(profile.title),
-          normalizeMailboxId(profile.email || profile.senderMailboxId),
-        ].filter((line) => line !== "").join("\n"),
-      })).filter((profile) => profile.id),
-      studioDefaultSignatureId: asText(getStudioReplyDefaultSignatureProfile(selected)?.id),
-      studioSenderMailboxOptions: getStudioSenderMailboxOptions(),
-      studioDefaultSenderMailboxId: getStudioDefaultSenderMailboxId(selected),
-      studioDefaultRecipient: asText(getRuntimeCustomerEmail(selected) || selected?.customerEmail),
-      studioOwnerSendAvailable: state.prefs?.sendEnabled === true,
       // v3: vald ägare (operatörens kö) — driver "Mina"-segmentet så att bara
       // den signerade operatörens trådar matchar, inte oägda/kollegors (Bugbot).
       operatorKey: normalizeKey(
@@ -40742,15 +40724,10 @@
             return null;
           }
         },
-        // ── Svarstudio (P2) — wired mot draft-state-machine + gateway. ──
-        // Skicka (→ sent) anropas ALDRIG härifrån; det är owner-blockerat i
-        // backend och låst i UI:t.
-        async studioGenerate(payload) {
-          return apiRequest("/api/v1/cco-comm/drafts/generate-reply", {
-            method: "POST",
-            body: payload || {},
-          });
-        },
+        // ── Snabbsvarets utkast-sparning ──
+        // Svarstudio öppnas numera som admin#cco:s panel (se action("studio")),
+        // så generate/transition/send ligger där. Kvar här är bara det utkast
+        // V2:s inline-snabbsvar sparar mot samma gateway.
         async studioSave(payload) {
           const draftId = asText(payload?.draftId);
           if (draftId) {
@@ -40774,24 +40751,6 @@
               channel: "email",
             },
           });
-        },
-        async studioTransition(draftId, status) {
-          return apiRequest(
-            `/api/v1/cco-comm/drafts/${encodeURIComponent(asText(draftId))}/transition`,
-            { method: "POST", body: { status: asText(status) } }
-          );
-        },
-        async studioSend(payload) {
-          return apiRequest(
-            `/api/v1/cco-comm/drafts/${encodeURIComponent(asText(payload?.draftId))}/send`,
-            {
-              method: "POST",
-              body: {
-                to: asText(payload?.to),
-                senderMailbox: normalizeMailboxId(payload?.senderMailbox),
-              },
-            }
-          );
         },
         action(name, thread) {
           // Smart anteckning, Bokningsyta och Kalender använder befintliga
@@ -40826,6 +40785,25 @@
                 return;
               }
               return openV2BookingForThread(thread || selected);
+            }
+            if (key === "studio") {
+              // Svarstudio via admin#cco:s launcher (svarstudio-v2), samma panel
+              // som admin-bubblan. Tidigare hade V2 en egen inline-studio — den
+              // enda panelen som reimplementerades i stället för att återanvändas.
+              // Den vägen är borttagen: samma draft/send-gateway som förut, men
+              // nu också samma UI, samma send-grind och samma bilage-stöd som
+              // admin. Trådkontext via CCOLiveConversationContext-providern.
+              const studioLauncher = window.CCOBottomActions;
+              if (studioLauncher && typeof studioLauncher.run === "function") {
+                selectV2HandoffThread(thread || selected);
+                studioLauncher.run("svarstudio");
+                return;
+              }
+              // Ingen tyst stub: utan launcher failar panelvägen högt, som
+              // övriga paneler (se V2_MORE_PANEL_LAUNCHER_ACTIONS nedan).
+              throw new Error(
+                "Svarstudio kunde inte öppnas: admin-panelernas launcher är inte laddad."
+              );
             }
             if (key === "calendar") {
               // Öppna admin#cco:s GODKÄNDA kalender (kalender.html) via den delade

@@ -5,7 +5,11 @@
 **Metod:** Read-only kod-trace av båda UI:na och backend-grindarna. Ingen live-körning (miljöns egress-policy blockerar prod).
 **Bakgrund:** Paritetsauditen (`CCO-CONVERSATIONS-PARITY-AUDIT-2026-07-24.md`) markerade Svarstudio 🟡 — den **enda äkta divergensen**, eftersom V2 har en egen inline-studio medan admin kör panel i iframe. Den här sign-offen avgör om divergensen är säker.
 
-> **Verdikt: GO.** Draft-state-machine och send-gateway är identiska. Backend är enda auktoritativa grinden och den är gemensam. Ett UI-gap finns (se Del C) — det failar stängt åt båda hållen och blockerar inte cutover, men bör åtgärdas.
+> **Verdikt: GO — divergensen är BORTTAGEN, inte avsignerad.**
+>
+> Analysen nedan visade att backend redan var gemensam och korrekt grindad, men att V2 hade byggt ett **parallellt UI** för den enda panel som inte återanvändes. I stället för att signera av den skillnaden tog vi bort den: V2:s Svarstudio routas nu till admin#cco:s panel via `CCOBottomActions.run('svarstudio')` — samma modell som de tolv övriga panelerna.
+>
+> **Effekt:** ~570 rader parallellt UI borta, UI-gapet i Del C försvinner automatiskt (admins grind gäller), och V2 får bilage-stöd på köpet.
 
 ---
 
@@ -74,7 +78,11 @@ Admin skickar `x-cco-role`/`x-cco-tenant`; V2 gör det inte. Det spelar ingen ro
 
 ---
 
-## Del C — Fyndet: UI-grindarna skiljer sig (🟡, ej blockerande)
+## Del C — Fyndet som ledde till åtgärden: UI-grindarna skilde sig
+
+> **Åtgärdat.** Avsnittet beskriver läget *före* borttagningen. Eftersom V2 nu
+> öppnar admins panel gäller admins grind — de två raderna nedan är inte längre
+> två olika grindar utan en.
 
 Ingen av UI-grindarna speglar backendens faktiska krav (`owner` **och** `sendEnabled` **och** adapter …):
 
@@ -95,24 +103,43 @@ Inget läcker, men båda ytorna erbjuder en knapp som ibland är dömd att missl
 
 ---
 
-## Del D — Verdikt
+## Del D — Åtgärden
 
-**GO för cutover.** Svarstudio-divergensen är ett **UI-lager ovanpå en gemensam, korrekt grindad backend**:
+| Före | Efter |
+|---|---|
+| V2: egen inline-studio (~535 rader i skalet) | `CCOBottomActions.run('svarstudio')` — admins panel |
+| V2: egna `studioGenerate/Transition/Send` i app.js | Borttagna; ligger i admins panel |
+| V2: sex studio-ctx-fält | Borttagna (döda) |
+| Tre ingångar (knapp, snabbsvar, kommandopalett) | Alla tre delegerar via `openSvarstudioPanel` |
+| Ingen bilage-hantering i V2 | Admins panel hanterar bilagor |
 
-- ✅ Samma endpoints, samma draft-state-machine, samma send-kedja
+Kvar i V2: snabbsvarets **"Spara utkast"** (`studioSave`) — en tunn skrivning mot
+samma gateway, inte en parallell studio.
+
+Tester låser fast det: studio-knappen delegerar till `handlers.action('studio')`,
+ingen `[data-v2-studio]` renderas, och `openStudio`/`renderStudio`/
+`studioSend`/`studioTransition`/`studioGenerate` finns inte kvar.
+
+## Del E — Verdikt
+
+**GO för cutover.** Svarstudio är inte längre en divergens — den är samma panel som admin:
+
+- ✅ V2 öppnar admin#cco:s svarstudio-panel via den delade launchern, som de tolv övriga panelerna
+- ✅ Samma endpoints, samma draft-state-machine, samma send-kedja (nu i samma UI)
 - ✅ Send är owner-only i backend, flagg-grindat, adapter-grindat, approved-grindat, allowlist-grindat och audit-loggat
 - ✅ `/transition → sent` hårt blockerad — ingen väg runt `/send`
-- ✅ Segregation of duties bevarad i båda
+- ✅ Segregation of duties bevarad
 - ✅ Klient-satt roll ger ingen behörighet i prod
-- 🟡 UI-grindarna skiljer sig och matchar inte backendens krav — failar stängt, åtgärdas efter cutover
+- ✅ Det tidigare UI-gapet (olika send-grindar) är borta — admins grind gäller
+- ✅ Bilagor stöds nu i V2, via admins panel
 
-**Inga 🔴.** Svarstudio blockerar inte att `/admin#cco`:s huvudflik pekas på V2.
+**Inga 🔴, inga 🟡 kvar.** Svarstudio blockerar inte att `/admin#cco`:s huvudflik pekas på V2.
 
 ---
 
 ## Öppna punkter (för Codex + live)
 
-- [ ] **Live:** owner + `ARCANA_GRAPH_SEND_ENABLED=true` → skicka ett riktigt utkast från V2 och bekräfta `sent` + audit-post. (Kan inte köras härifrån — egress blockerad.)
-- [ ] **Live:** icke-owner i V2 med flaggan på → bekräfta att knappen visas men 403:ar (dokumenterat UI-gap, inte en läcka).
-- [ ] Efter cutover: harmonisera UI-grinden till `owner && sendEnabled` i båda ytorna + namnbyte i V2.
-- [ ] Bilage-vägen: V2:s studio exponerar inga bilagor — bekräfta att det är avsett (admin-panelen hanterar dem).
+- [ ] **Live:** öppna Svarstudio från V2 och bekräfta att admin#cco:s panel öppnas med rätt trådkontext (via `CCOLiveConversationContext`).
+- [ ] **Live:** owner + `ARCANA_GRAPH_SEND_ENABLED=true` → skicka ett riktigt utkast från panelen öppnad i V2, bekräfta `sent` + audit-post. (Kan inte köras härifrån — egress blockerad.)
+- [ ] Snabbsvarets "Spara utkast" (`studioSave`) är kvar i V2 — bekräfta att det är avsett att behållas som inline-funktion.
+- [ ] Kvarvarande harmonisering (utanför Svarstudio): admins send-knapp grindar på `ROLE === 'owner'` utan flaggkontroll, så en owner kan fortfarande klicka Skicka när flaggan är av och få 403. Failar stängt; egen liten fix.
