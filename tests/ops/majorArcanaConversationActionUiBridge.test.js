@@ -367,74 +367,92 @@ test('finalizeRuntimeLoad renderar om efter bootstrap så fokus och intel läser
   assert.equal(renderCalls.length, 1);
 });
 
-test('selectRuntimeThread renderar om igen efter bootstrap så högerpanelen inte ligger kvar på stale truth', async () => {
+test('selectRuntimeThread hoppar över kö-bootstrap i V2 men bevarar legacy-refresh', async () => {
   const source = fs.readFileSync(RUNTIME_DOM_PATH, 'utf8');
   const functionSource = extractFunctionSource(source, 'selectRuntimeThread');
 
-  const renderCalls = [];
-  const bootstrapCalls = [];
-
-  const selectRuntimeThread = new Function(
-    'asText',
-    'summarizeSelectedRuntimeThreadTruthForDiagnostics',
-    'summarizeRuntimeOpenFlowThread',
-    'getSelectedRuntimeThread',
-    'state',
-    'reconcileRuntimeScopeSelection',
-    'syncSelectedCustomerIdentityForThread',
-    'ensureRuntimeOpenFlowDiagnostics',
-    'recordRuntimeOpenFlowEvent',
-    'paintRuntimeShell',
-    'captureRuntimeReentrySnapshot',
-    'queueHistoryList',
-    'requestRuntimeThreadHydration',
-    'loadBootstrap',
-    'windowObject',
-    'BOOTSTRAP_THREAD_SELECT_DEBOUNCE_MS',
-    'syncThreadActionButtonsForThread',
-    `
+  function createSelectRuntimeThread({ isV2 }) {
+    const renderCalls = [];
+    const bootstrapCalls = [];
+    const hydrationCalls = [];
+    const selectRuntimeThread = new Function(
+      'asText',
+      'summarizeSelectedRuntimeThreadTruthForDiagnostics',
+      'summarizeRuntimeOpenFlowThread',
+      'getSelectedRuntimeThread',
+      'state',
+      'reconcileRuntimeScopeSelection',
+      'syncSelectedCustomerIdentityForThread',
+      'ensureRuntimeOpenFlowDiagnostics',
+      'recordRuntimeOpenFlowEvent',
+      'paintRuntimeShell',
+      'captureRuntimeReentrySnapshot',
+      'queueHistoryList',
+      'requestRuntimeThreadHydration',
+      'loadBootstrap',
+      'windowObject',
+      'BOOTSTRAP_THREAD_SELECT_DEBOUNCE_MS',
+      'syncThreadActionButtonsForThread',
+      'isPassiveConversationsV2Runtime',
+      `
       let bootstrapThreadSelectTimer = 0;
       ${functionSource}
       return selectRuntimeThread;
-    `
-  )(
-    (value) => (value == null ? '' : String(value)),
-    () => ({ selectedThreadId: 'thread-1' }),
-    () => ({ id: 'thread-1' }),
-    () => ({ id: 'thread-1' }),
-    { runtime: { queueHistory: {} } },
-    () => {},
-    () => {},
-    () => ({}),
-    () => {},
-    () => renderCalls.push('render'),
-    () => {},
-    {
-      querySelectorAll() {
-        return [];
+      `
+    )(
+      (value) => (value == null ? '' : String(value)),
+      () => ({ selectedThreadId: 'thread-1' }),
+      () => ({ id: 'thread-1' }),
+      () => ({ id: 'thread-1' }),
+      { runtime: { queueHistory: {} } },
+      () => {},
+      () => {},
+      () => ({}),
+      () => {},
+      () => renderCalls.push('render'),
+      () => {},
+      {
+        querySelectorAll() {
+          return [];
+        },
       },
-    },
-    () => ({ catch() {} }),
-    async (options) => {
-      bootstrapCalls.push(options);
-    },
-    {
-      clearTimeout() {},
-      setTimeout(fn) {
-        fn();
-        return 1;
+      (threadId) => {
+        hydrationCalls.push(threadId);
+        return { catch() {} };
       },
-      Element: class Element {},
-    },
-    200,
-    () => {}
-  );
+      async (options) => {
+        bootstrapCalls.push(options);
+      },
+      {
+        clearTimeout() {},
+        setTimeout(fn) {
+          fn();
+          return 1;
+        },
+        Element: class Element {},
+      },
+      200,
+      () => {},
+      () => isV2
+    );
+    return { selectRuntimeThread, renderCalls, bootstrapCalls, hydrationCalls };
+  }
 
-  selectRuntimeThread('thread-2', { reloadBootstrap: true });
+  const legacy = createSelectRuntimeThread({ isV2: false });
+  legacy.selectRuntimeThread('thread-2', { reloadBootstrap: true });
   await new Promise((resolve) => setImmediate(resolve));
 
-  assert.equal(bootstrapCalls.length, 1);
-  assert.equal(renderCalls.length, 2);
+  assert.equal(legacy.bootstrapCalls.length, 1);
+  assert.equal(legacy.renderCalls.length, 2);
+  assert.deepEqual(legacy.hydrationCalls, ['thread-2']);
+
+  const v2 = createSelectRuntimeThread({ isV2: true });
+  v2.selectRuntimeThread('thread-2', { reloadBootstrap: true });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(v2.bootstrapCalls.length, 0);
+  assert.equal(v2.renderCalls.length, 1);
+  assert.deepEqual(v2.hydrationCalls, ['thread-2']);
 });
 
 test('bulk handled och later använder inte längre lokala patch-hjälpare direkt', () => {
@@ -471,5 +489,36 @@ test('bulk handled och later använder inte längre lokala patch-hjälpare direk
     applyLaterOptionSource,
     /await applyReplyLaterToThread\(/,
     'Single-thread later ska återanvända backend-först-hjälparen.'
+  );
+});
+
+test('V2 öppnar vald tråd via mailbox-scopead direktläsning och kan avbryta föregående klick', () => {
+  const runtimeSource = fs.readFileSync(RUNTIME_DOM_PATH, 'utf8');
+  const appSource = fs.readFileSync(APP_PATH, 'utf8');
+
+  assert.match(
+    runtimeSource,
+    /\/api\/v1\/cco\/runtime\/conversation\/\$\{encodeURIComponent\(conversationId\)\}\/messages/,
+    'V2 ska använda samma direkta, scopeade trådroute som admin för rik mejlläsning.'
+  );
+  assert.match(
+    runtimeSource,
+    /activeV2DirectThreadOpenController\.abort\(\)/,
+    'Ett nytt trådval ska avbryta föregående direkta läsning.'
+  );
+  assert.match(
+    runtimeSource,
+    /params\.set\("mailboxId", mailboxIds\.join\(","\)\)/,
+    'Direktläsningen måste bära med mailbox-scope till servern.'
+  );
+  assert.match(
+    runtimeSource,
+    /directMailMessages: messages/,
+    'Den rika direkta payloaden ska patchas separat utan att skriva över övrig trådstate.'
+  );
+  assert.match(
+    appSource,
+    /credentials: "same-origin",\n\s*signal: options\.signal/,
+    'API-bryggan måste vidarebefordra AbortSignal till fetch.'
   );
 });

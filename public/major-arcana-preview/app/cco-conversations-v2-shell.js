@@ -350,6 +350,12 @@
   var STAFF_BG = 'linear-gradient(180deg,#c5d8a8,#92b86e)';
 
   function messageList(thread) {
+    // V2:s direkta trådläsning bär den fulla, mailbox-scopeade HTML- och
+    // bilagepayloaden från samma endpoint som admin använder. Den ska vinna
+    // över den äldre, eventuellt magrare historikprojektionen.
+    if (Array.isArray(thread.directMailMessages) && thread.directMailMessages.length) {
+      return thread.directMailMessages;
+    }
     // Föredra FULL hydrerad historik framför preview-listan: thread.messages
     // fylls av buildPreviewMessages som hårt-cappar till 8, medan hela historiken
     // ligger på thread.threadDocument.messages efter hydrering. Returneras
@@ -737,11 +743,19 @@
         '</div></div></div>'
       );
     }
-    // thread.messages är DESC (nyast först) → vänd till ASC för chatt-flöde.
-    var asc = msgs.slice().reverse();
+    // Läsytan följer admin#cco: senaste mailet ligger överst. Sortera på den
+    // kanoniska tidsstämpeln i stället för att anta att varje hydrator levererar
+    // samma inbördes ordning.
+    var newestFirst = msgs.slice().sort(function (left, right) {
+      var leftDate = messageDate(left);
+      var rightDate = messageDate(right);
+      var leftMs = leftDate ? leftDate.getTime() : 0;
+      var rightMs = rightDate ? rightDate.getTime() : 0;
+      return rightMs - leftMs;
+    });
     var lastDay = null;
     var html = '';
-    asc.forEach(function (message) {
+    newestFirst.forEach(function (message) {
       var date = messageDate(message);
       var key = dayKey(date);
       if (key && key !== lastDay) {
@@ -856,9 +870,248 @@
     })[index] || null;
   }
 
+  var attachmentPreviewScriptPromises = {};
+  var attachmentPdfJsPromise = null;
+  var ATTACHMENT_PREVIEW_MAX_BYTES = 25 * 1024 * 1024;
+
+  function attachmentPreviewKind(attachment) {
+    var name = attachmentName(attachment);
+    var type = attachmentType(attachment);
+    var value = (name + ' ' + type).toLowerCase();
+    if (attachmentIsImage(attachment)) return 'image';
+    if (/\.pdf\b|application\/pdf/.test(value)) return 'pdf';
+    if (/\.(docx?|odt)\b|wordprocessingml|msword/.test(value)) return 'word';
+    if (/\.(xlsx?|xlsm|csv)\b|spreadsheetml|ms-excel|text\/csv/.test(value)) return 'excel';
+    if (/\.(pptx?|odp)\b|presentationml|ms-powerpoint/.test(value)) return 'powerpoint';
+    if (/^video\//.test(type) || /\.(mp4|webm|mov|m4v)\b/.test(value)) return 'video';
+    if (/^audio\//.test(type) || /\.(mp3|wav|m4a|aac|ogg)\b/.test(value)) return 'audio';
+    if (/text\//.test(type) || /\.(txt|log)\b/.test(value)) return 'text';
+    return 'unknown';
+  }
+
+  function loadAttachmentPreviewScript(src, ready) {
+    if (ready()) return Promise.resolve();
+    if (attachmentPreviewScriptPromises[src]) return attachmentPreviewScriptPromises[src];
+    attachmentPreviewScriptPromises[src] = new Promise(function (resolve, reject) {
+      var script = doc.createElement('script');
+      script.src = src;
+      script.onload = function () {
+        if (ready()) resolve();
+        else reject(new Error('Biblioteket kunde inte startas.'));
+      };
+      script.onerror = function () {
+        reject(new Error('Biblioteket kunde inte laddas.'));
+      };
+      doc.head.appendChild(script);
+    }).catch(function (error) {
+      delete attachmentPreviewScriptPromises[src];
+      throw error;
+    });
+    return attachmentPreviewScriptPromises[src];
+  }
+
+  function loadAttachmentPreviewLibrary(kind) {
+    if (kind === 'word') {
+      return loadAttachmentPreviewScript('/vendor/office/mammoth.browser.min.js', function () {
+        return Boolean(global.mammoth);
+      }).then(function () {
+        return global.mammoth;
+      });
+    }
+    if (kind === 'excel') {
+      return loadAttachmentPreviewScript('/vendor/office/xlsx.full.min.js', function () {
+        return Boolean(global.XLSX);
+      }).then(function () {
+        return global.XLSX;
+      });
+    }
+    if (kind === 'powerpoint') {
+      return loadAttachmentPreviewScript('/vendor/office/jszip.min.js', function () {
+        return Boolean(global.JSZip);
+      }).then(function () {
+        return global.JSZip;
+      });
+    }
+    return Promise.reject(new Error('Filtypen stöds inte.'));
+  }
+
+  function loadAttachmentPreviewBlob(blobUrl) {
+    return global.fetch(blobUrl).then(function (response) {
+      if (!response.ok) throw new Error('Bilagan kunde inte läsas.');
+      return response.blob();
+    }).then(function (blob) {
+      if (blob.size > ATTACHMENT_PREVIEW_MAX_BYTES) {
+        throw new Error('Filen är större än 25 MB och kan inte förhandsvisas.');
+      }
+      return blob;
+    });
+  }
+
+  function renderAttachmentPdfPreview(stage, blobUrl) {
+    if (!attachmentPdfJsPromise) {
+      attachmentPdfJsPromise = import('/vendor/pdfjs/pdf.min.mjs').catch(function (error) {
+        attachmentPdfJsPromise = null;
+        throw error;
+      });
+    }
+    return Promise.all([attachmentPdfJsPromise, loadAttachmentPreviewBlob(blobUrl)]).then(function (values) {
+      var pdfjs = values[0];
+      var blob = values[1];
+      pdfjs.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+      return blob.arrayBuffer().then(function (data) {
+        var loadingTask = pdfjs.getDocument({ data: data });
+        return loadingTask.promise.then(function (pdf) {
+          var pageNumber = 1;
+          var scale = 1.2;
+          var renderTask = null;
+          stage.innerHTML = '<div class="v2-attachment-pdf"><div class="v2-attachment-pdf-toolbar">' +
+            '<button type="button" data-v2-pdf-action="previous" aria-label="Föregående sida">‹</button>' +
+            '<span data-v2-pdf-page>Laddar PDF…</span>' +
+            '<button type="button" data-v2-pdf-action="next" aria-label="Nästa sida">›</button>' +
+            '<button type="button" data-v2-pdf-action="zoom-out" aria-label="Zooma ut">−</button>' +
+            '<button type="button" data-v2-pdf-action="zoom-in" aria-label="Zooma in">+</button>' +
+            '</div><div class="v2-attachment-pdf-canvas"><canvas></canvas></div></div>';
+          var canvas = stage.querySelector('canvas');
+          var pageLabel = stage.querySelector('[data-v2-pdf-page]');
+          var renderPage = function () {
+            if (renderTask) renderTask.cancel();
+            return pdf.getPage(pageNumber).then(function (page) {
+              var viewport = page.getViewport({ scale: scale });
+              var ratio = global.devicePixelRatio || 1;
+              canvas.width = Math.floor(viewport.width * ratio);
+              canvas.height = Math.floor(viewport.height * ratio);
+              canvas.style.width = Math.floor(viewport.width) + 'px';
+              canvas.style.height = Math.floor(viewport.height) + 'px';
+              var context = canvas.getContext('2d');
+              context.setTransform(ratio, 0, 0, ratio, 0, 0);
+              renderTask = page.render({ canvasContext: context, viewport: viewport });
+              return renderTask.promise.catch(function (error) {
+                if (error && error.name !== 'RenderingCancelledException') throw error;
+              }).then(function () {
+                renderTask = null;
+                pageLabel.textContent = 'Sida ' + pageNumber + ' av ' + pdf.numPages;
+              });
+            });
+          };
+          stage.querySelector('.v2-attachment-pdf-toolbar').addEventListener('click', function (event) {
+            var action = event.target.closest('[data-v2-pdf-action]');
+            if (!action) return;
+            var name = action.getAttribute('data-v2-pdf-action');
+            if (name === 'previous' && pageNumber > 1) pageNumber -= 1;
+            if (name === 'next' && pageNumber < pdf.numPages) pageNumber += 1;
+            if (name === 'zoom-in') scale = Math.min(3, scale + 0.2);
+            if (name === 'zoom-out') scale = Math.max(0.5, scale - 0.2);
+            void renderPage();
+          });
+          var dialog = stage.closest('[data-v2-attachment-preview]');
+          if (dialog) {
+            dialog._attachmentPreviewCleanup = function () {
+              if (renderTask) renderTask.cancel();
+              loadingTask.destroy();
+            };
+          }
+          return renderPage();
+        });
+      });
+    });
+  }
+
+  function renderAttachmentOfficePreview(stage, blobUrl, kind) {
+    return Promise.all([loadAttachmentPreviewLibrary(kind), loadAttachmentPreviewBlob(blobUrl)]).then(function (values) {
+      var library = values[0];
+      var blob = values[1];
+      return blob.arrayBuffer().then(function (buffer) {
+        if (kind === 'word') {
+          return library.convertToHtml({ arrayBuffer: buffer }).then(function (result) {
+            stage.innerHTML = '<article class="v2-attachment-office">' +
+              (sanitizeMailHtmlForDisplay(result.value || '') || '<p>Dokumentet saknar synligt innehåll.</p>') +
+              '</article>';
+          });
+        }
+        if (kind === 'excel') {
+          var workbook = library.read(buffer, { type: 'array', cellDates: true });
+          var names = workbook.SheetNames.slice(0, 30);
+          if (!names.length) throw new Error('Arbetsboken innehåller inga blad.');
+          stage.innerHTML = '<div class="v2-attachment-sheet-tabs">' + names.map(function (name, index) {
+            return '<button type="button" data-v2-sheet-index="' + index + '"' + (index === 0 ? ' class="active"' : '') + '>' + esc(name) + '</button>';
+          }).join('') + '</div><div class="v2-attachment-office" data-v2-sheet-content></div>';
+          var renderSheet = function (index) {
+            var content = stage.querySelector('[data-v2-sheet-content]');
+            if (content) content.innerHTML = sanitizeMailHtmlForDisplay(library.utils.sheet_to_html(workbook.Sheets[names[index]]));
+            Array.prototype.forEach.call(stage.querySelectorAll('[data-v2-sheet-index]'), function (button) {
+              button.classList.toggle('active', Number(button.getAttribute('data-v2-sheet-index')) === index);
+            });
+          };
+          stage.querySelector('.v2-attachment-sheet-tabs').addEventListener('click', function (event) {
+            var button = event.target.closest('[data-v2-sheet-index]');
+            if (button) renderSheet(Number(button.getAttribute('data-v2-sheet-index')));
+          });
+          renderSheet(0);
+          return null;
+        }
+        return library.loadAsync(buffer).then(function (archive) {
+          var slides = Object.keys(archive.files)
+            .filter(function (path) { return /^ppt\/slides\/slide\d+\.xml$/i.test(path); })
+            .sort(function (left, right) {
+              return Number(left.match(/slide(\d+)/i)[1]) - Number(right.match(/slide(\d+)/i)[1]);
+            })
+            .slice(0, 100);
+          if (!slides.length) throw new Error('Presentationens bilder kunde inte läsas.');
+          return Promise.all(slides.map(function (path, index) {
+            return archive.file(path).async('text').then(function (xml) {
+              var parsed = new global.DOMParser().parseFromString(xml, 'application/xml');
+              var texts = Array.prototype.map.call(parsed.getElementsByTagName('a:t'), function (node) {
+                return text(node.textContent);
+              }).filter(Boolean);
+              var title = texts.shift() || 'Bild ' + (index + 1);
+              var slideNumber = path.match(/slide(\d+)\.xml$/i);
+              var relationshipPath = slideNumber ? 'ppt/slides/_rels/slide' + slideNumber[1] + '.xml.rels' : '';
+              var relationshipFile = relationshipPath && archive.file(relationshipPath);
+              var imageRelations = relationshipFile
+                ? relationshipFile.async('text').then(function (relationshipXml) {
+                  var relationshipDocument = new global.DOMParser().parseFromString(relationshipXml, 'application/xml');
+                  var relationships = {};
+                  Array.prototype.forEach.call(relationshipDocument.getElementsByTagName('Relationship'), function (node) {
+                    relationships[node.getAttribute('Id')] = text(node.getAttribute('Target'));
+                  });
+                  return Promise.all(Array.prototype.slice.call(parsed.getElementsByTagName('a:blip'), 0, 20).map(function (node) {
+                    var target = relationships[node.getAttribute('r:embed')];
+                    if (!target) return '';
+                    var mediaPath = target.indexOf('../') === 0 ? 'ppt/' + target.slice(3) : 'ppt/slides/' + target;
+                    var media = archive.file(mediaPath);
+                    if (!media) return '';
+                    var extension = mediaPath.split('.').pop().toLowerCase();
+                    var mime = {
+                      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml'
+                    }[extension];
+                    if (!mime) return '';
+                    return media.async('base64').then(function (data) {
+                      return '<img src="data:' + mime + ';base64,' + data + '" alt="Bild från presentationssida ' + (index + 1) + '">';
+                    });
+                  }));
+                })
+                : Promise.resolve([]);
+              return imageRelations.then(function (images) {
+                var textMarkup = texts.map(function (value) { return '<p>' + esc(value) + '</p>'; }).join('');
+                return '<section class="v2-attachment-slide"><h3>' + esc(title) + '</h3>' + images.join('') +
+                  (textMarkup || (!images.length ? '<p>Ingen text på bilden.</p>' : '')) + '</section>';
+              });
+            });
+          })).then(function (slidesHtml) {
+            stage.innerHTML = '<div class="v2-attachment-slides">' + slidesHtml.join('') + '</div>';
+          });
+        });
+      });
+    });
+  }
+
   function closeAttachmentPreview() {
     var backdrop = root && root.querySelector('[data-v2-attachment-preview]');
-    if (backdrop) backdrop.remove();
+    if (!backdrop) return;
+    if (typeof backdrop._attachmentPreviewCleanup === 'function') {
+      backdrop._attachmentPreviewCleanup();
+    }
+    backdrop.remove();
   }
 
   function openAttachmentPreview(message, attachment) {
@@ -867,7 +1120,7 @@
     if (!url) return;
     closeAttachmentPreview();
     var name = attachmentName(attachment);
-    var image = attachmentIsImage(attachment);
+    var kind = attachmentPreviewKind(attachment);
     var backdrop = doc.createElement('div');
     backdrop.setAttribute('data-v2-attachment-preview', '');
     backdrop.className = 'v2-attachment-backdrop';
@@ -881,10 +1134,21 @@
       var download = backdrop.querySelector('[data-v2-attachment-download]');
       if (download) download.setAttribute('href', blobUrl);
       if (!stage) return;
-      if (image) {
+      if (kind === 'image') {
         stage.innerHTML = '<img src="' + esc(blobUrl) + '" alt="' + esc(name) + '">';
+      } else if (kind === 'pdf') {
+        return renderAttachmentPdfPreview(stage, blobUrl);
+      } else if (kind === 'word' || kind === 'excel' || kind === 'powerpoint') {
+        stage.innerHTML = '<p>Öppnar dokumentet…</p>';
+        return renderAttachmentOfficePreview(stage, blobUrl, kind);
+      } else if (kind === 'video') {
+        stage.innerHTML = '<video src="' + esc(blobUrl) + '" controls playsinline preload="none"></video>';
+      } else if (kind === 'audio') {
+        stage.innerHTML = '<audio src="' + esc(blobUrl) + '" controls preload="none"></audio>';
+      } else if (kind === 'text') {
+        stage.innerHTML = '<iframe src="' + esc(blobUrl) + '" sandbox="" title="' + esc(name) + '"></iframe>';
       } else {
-        stage.innerHTML = '<p>Förhandsvisning finns för bilder i denna vy.</p><p>Öppna eller ladda ner originalfilen.</p>';
+        stage.innerHTML = '<p>Ingen inbyggd förhandsvisning för filtypen.</p><p>Ladda ner originalfilen.</p>';
       }
     }).catch(function (error) {
       var stage = backdrop.querySelector('[data-v2-attachment-stage]');
@@ -924,6 +1188,7 @@
       '<div data-v2-lanes></div></aside>' +
       '<aside class="inbox-shell"><div class="inbox-kicker">Inkorg</div>' +
       '<h2 class="inbox-h2" data-v2-inbox-h2></h2>' +
+      '<div class="v2-mailbox-summary" data-v2-mailbox-summary></div>' +
       '<div class="v2-mailbox-controls v2-mailbox-controls--compact" data-v2-mailboxes-compact></div>' +
       '<div class="v2-folder-controls" data-v2-folders></div>' +
       '<label class="v2-search"><span aria-hidden="true">⌕</span><input data-v2-search type="search" placeholder="Sök i konversationer…" /></label>' +
@@ -1063,8 +1328,16 @@
       vip: lane.filter(isVip).length,
     };
     if (h2) {
-      h2.textContent = counts.olasta + ' olästa · ' + lane.length + ' totalt';
+      var needsReply = lane.filter(function (thread) { return thread && thread.needsReply === true; }).length;
+      var history = selectedMailboxHistory(ctx, mailboxHistoryById(ctx));
+      h2.textContent = [
+        counts.olasta + ' oläst',
+        needsReply + ' behöver svar',
+        lane.length + ' trådar',
+        history.messageCount + ' mail',
+      ].join(' · ');
     }
+    renderMailboxSummary(ctx);
     var tabs = [
       { id: 'alla', label: 'Alla', count: counts.alla },
       { id: 'olasta', label: 'Olästa', count: counts.olasta },
@@ -1088,28 +1361,87 @@
       .join('');
   }
 
+  function mailboxKey(value) {
+    return text(value).trim().toLowerCase();
+  }
+
+  function mailboxHistoryById(ctx) {
+    var history = {};
+    (ctx.mailboxMetrics || []).forEach(function (metric) {
+      var id = mailboxKey(metric && metric.mailboxId);
+      if (!id) return;
+      history[id] = {
+        inboxCount: Number(metric.inboxCount) || 0,
+        sentCount: Number(metric.sentCount) || 0,
+        messageCount: Number(metric.messageCount) || 0,
+      };
+    });
+    return history;
+  }
+
+  function selectedMailboxHistory(ctx, historyById) {
+    var selected = {};
+    var history = historyById || mailboxHistoryById(ctx);
+    (ctx.selectedMailboxIds || []).forEach(function (id) { selected[mailboxKey(id)] = true; });
+    return Object.keys(selected).reduce(function (total, id) {
+      var metric = history[id];
+      if (!metric) return total;
+      total.inboxCount += metric.inboxCount;
+      total.sentCount += metric.sentCount;
+      total.messageCount += metric.messageCount;
+      return total;
+    }, { inboxCount: 0, sentCount: 0, messageCount: 0 });
+  }
+
+  function renderMailboxSummary(ctx) {
+    var el = root.querySelector('[data-v2-mailbox-summary]');
+    if (!el) return;
+    var selected = {};
+    (ctx.selectedMailboxIds || []).forEach(function (id) { selected[mailboxKey(id)] = true; });
+    var selectedCount = (ctx.mailboxes || []).filter(function (mailbox) {
+      return selected[mailboxKey(mailbox.id)];
+    }).length;
+    if (!selectedCount) {
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = '<span class="v2-mailbox-summary-total">Inkorg + Skickat · hela historiken</span>';
+  }
+
   function renderMailboxControls(ctx) {
     var selectedMailboxIds = (ctx.selectedMailboxIds || []).map(text).filter(Boolean);
     var selectedSet = {};
-    selectedMailboxIds.forEach(function (id) { selectedSet[id] = true; });
+    selectedMailboxIds.forEach(function (id) { selectedSet[mailboxKey(id)] = true; });
     var mailboxes = ctx.mailboxes || [];
+    var history = mailboxHistoryById(ctx);
+    var selectedCount = mailboxes.filter(function (mailbox) {
+      return selectedSet[mailboxKey(mailbox.id)];
+    }).length;
     var html =
       '<div class="v2-control-kicker">Brevlådor</div>' +
+      '<div class="v2-mailbox-menu" role="group" aria-label="Välj brevlådor">' +
+      '<div class="v2-mailbox-menu-heading"><span>Valda konton</span><strong>' + selectedCount + '/' + mailboxes.length + '</strong></div>' +
       '<div class="v2-mailbox-list">' +
       mailboxes
         .map(function (mailbox) {
-          var isSelected = Boolean(selectedSet[mailbox.id]);
+          var id = mailboxKey(mailbox.id);
+          var isSelected = Boolean(selectedSet[id]);
+          var metric = history[id];
+          var historyLabel = metric
+            ? metric.inboxCount + ' ink. · ' + metric.sentCount + ' skick.'
+            : 'Historik laddas…';
           return (
-            '<button class="v2-mailbox-chip v2-mailbox-chip--' + mailboxTone(mailbox) +
-            (isSelected ? ' active' : '') +
-            '" data-v2-mailbox="' + esc(mailbox.id) + '" type="button">' +
-            '<span class="v2-mailbox-dot" aria-hidden="true"></span>' +
-            esc(mailbox.label || mailbox.email || mailbox.id) +
-            '</button>'
+            '<label class="v2-mailbox-option v2-mailbox-option--' + mailboxTone(mailbox) +
+            (isSelected ? ' active' : '') + '">' +
+            '<input type="checkbox" data-v2-mailbox="' + esc(mailbox.id) + '"' + (isSelected ? ' checked' : '') + ' />' +
+            '<span class="v2-mailbox-check" aria-hidden="true">✓</span>' +
+            '<span class="v2-mailbox-copy"><span>' + esc(mailbox.label || mailbox.email || mailbox.id) + '</span>' +
+            '<small>' + esc(historyLabel) + '</small></span>' +
+            '</label>'
           );
         })
         .join('') +
-      '</div>';
+      '</div></div>';
     var controls = root.querySelectorAll('[data-v2-mailboxes], [data-v2-mailboxes-compact]');
     for (var index = 0; index < controls.length; index++) {
       controls[index].innerHTML = html;
@@ -1141,11 +1473,339 @@
     el.innerHTML = '<span class="v2-action-feedback--' + tone + '">' + esc(message) + '</span>';
   }
 
+  // Signatur över allt en inbox-rad ritar UTOM markering/oläst/bulkval — de
+  // reconcile:as live. Ändras inget av detta (vilket det aldrig gör vid ett
+  // trådklick) tas snabbvägen och listans DOM byggs inte om.
+  function inboxRowContentSig(thread) {
+    var tags = tagsFor(thread);
+    var sla = slaOf(thread);
+    return [
+      threadConversationKey(thread),
+      sourceKey(thread),
+      avatarBg(thread),
+      initials(thread),
+      threadName(thread),
+      whenLabel(thread),
+      text(thread.subject),
+      text(thread.preview),
+      tags
+        .map(function (tag) {
+          return tag.kind + ':' + tag.label;
+        })
+        .join(','),
+      sla ? sla.tone + ':' + sla.label : '',
+    ].join('');
+  }
+
+  function inboxRowHtml(thread, selectedId) {
+    // V2 använder exakt samma canonical conversation key som legacy-state
+    // (id när den finns, annars den redan normaliserade fallback-nyckeln).
+    var id = threadConversationKey(thread);
+    var active = id && id === selectedId ? ' active' : '';
+    var unread = isUnread(thread) ? ' thread-unread' : '';
+    var isSel = selected[id] ? ' is-selected' : '';
+    var tags = tagsFor(thread);
+    var sla = slaOf(thread);
+    return (
+      '<div class="thread' +
+      active +
+      unread +
+      isSel +
+      '" data-source="' +
+      esc(sourceKey(thread)) +
+      '" data-thread-id="' +
+      esc(id) +
+      '" role="button" tabindex="0">' +
+      '<span class="thread-select" data-thread-select="' +
+      esc(id) +
+      '" role="checkbox" aria-checked="' +
+      (selected[id] ? 'true' : 'false') +
+      '" title="Markera">' +
+      (selected[id] ? '✓' : '') +
+      '</span>' +
+      (sla
+        ? '<span class="thread-sla thread-sla--' + sla.tone + '">' + esc(sla.label) + '</span>'
+        : '') +
+      '<div class="thread-av" style="background:' +
+      esc(avatarBg(thread)) +
+      '">' +
+      esc(initials(thread)) +
+      '</div>' +
+      '<div class="thread-body">' +
+      '<div class="thread-from">' +
+      esc(threadName(thread)) +
+      ' <span class="when">' +
+      esc(whenLabel(thread)) +
+      '</span></div>' +
+      '<div class="thread-subj">' +
+      esc(text(thread.subject) || '(utan ämne)') +
+      '</div>' +
+      '<div class="thread-preview">' +
+      esc(text(thread.preview)) +
+      '</div>' +
+      (tags.length
+        ? '<div class="thread-tags">' +
+          tags
+            .map(function (tag) {
+              return (
+                '<span class="thread-tag thread-tag--' + tag.kind + '">' + esc(tag.label) + '</span>'
+              );
+            })
+            .join('') +
+          '</div>'
+        : '') +
+      '</div></div>'
+    );
+  }
+
+  // Native-mail-snabbväg: vid ett trådklick ändras bara markeringen, inte
+  // radernas innehåll. Flytta då bara active/oläst/bulkval-klasserna på de
+  // befintliga rad-noderna i stället för att riva och bygga om hela listans
+  // DOM (upp till 120 rader, dubbelt per klick efter hydrering).
+  function reconcileInboxSelection(el, renderedList, selectedId) {
+    var byId = {};
+    renderedList.forEach(function (thread) {
+      byId[threadConversationKey(thread)] = thread;
+    });
+    var rows = el.querySelectorAll('[data-thread-id]');
+    Array.prototype.forEach.call(rows, function (row) {
+      var id = row.getAttribute('data-thread-id');
+      var thread = byId[id];
+      if (!thread) return;
+      row.classList.toggle('active', Boolean(id) && id === selectedId);
+      row.classList.toggle('thread-unread', isUnread(thread));
+      var isSel = Boolean(selected[id]);
+      row.classList.toggle('is-selected', isSel);
+      var box = row.querySelector('[data-thread-select]');
+      if (box) {
+        box.setAttribute('aria-checked', isSel ? 'true' : 'false');
+        box.textContent = isSel ? '✓' : '';
+      }
+    });
+  }
+
+  function buildInboxRowNode(thread, selectedId, sig) {
+    var temp = doc.createElement('div');
+    temp.innerHTML = inboxRowHtml(thread, selectedId);
+    var card = temp.firstElementChild;
+    if (card) card.__v2RowSig = typeof sig === 'string' ? sig : inboxRowContentSig(thread);
+    return card;
+  }
+
+  // Virtualiserings-parametrar — portade från admin#cco:s lit-switchover.js.
+  // Över tröskeln renderas bara det synliga fönstret (+ overscan) i DOM, med
+  // höjd-satta spacers ovanför/nedanför så scrollen ser hela listan. Det är
+  // det som låter admin bära alla 8 konton utan att frysa; V2 saknade det.
+  var INBOX_VIRTUALIZE_THRESHOLD = 60;
+  var INBOX_OVERSCAN = 6;
+  var INBOX_MIN_WINDOW = 30; // golv innan layout gett clientHeight
+  // Raderna har GARANTERAD fast höjd via CSS (#cco-conv-v2-root .thread{height})
+  // så virtualiseringen slipper mäta varje rad — precis som admin#cco:s
+  // lit-switchover (fasta 88px-kort). Konstanterna = CSS-höjd + rad-margin och
+  // MÅSTE följa cco-conversations-v2.css. Compact-läget döljer preview och
+  // krymper raden, så höjden väljs efter densitet.
+  var INBOX_ROW_H_COMFORTABLE = 95; // .thread height 92 + margin-bottom 3
+  var INBOX_ROW_H_COMPACT = 55; // compact .thread height 54 + margin-bottom 1
+
+  function currentInboxRowHeight() {
+    try {
+      var density = root && root.dataset ? root.dataset.density : '';
+      return density === 'compact' ? INBOX_ROW_H_COMPACT : INBOX_ROW_H_COMFORTABLE;
+    } catch (_e) {
+      return INBOX_ROW_H_COMFORTABLE;
+    }
+  }
+
+  function computeInboxVisibleRange(total, scrollTop, clientHeight, rowH) {
+    if (total <= 0) return { start: 0, end: 0 };
+    var h = rowH > 0 ? rowH : INBOX_ROW_H_COMFORTABLE;
+    var start = Math.max(0, Math.floor((scrollTop || 0) / h) - INBOX_OVERSCAN);
+    var vis = Math.ceil((clientHeight || 0) / h) + INBOX_OVERSCAN * 2;
+    var windowCount = Math.max(vis, INBOX_MIN_WINDOW);
+    var end = Math.min(total, start + windowCount);
+    return { start: start, end: end };
+  }
+
+  function ensureInboxScaffold(el) {
+    var mount = el.querySelector('[data-v2-inbox-mount]');
+    if (el.__v2InboxScaffold && mount) return mount;
+    var top = doc.createElement('div');
+    top.setAttribute('data-v2-inbox-spacer-top', '');
+    top.style.cssText = 'width:100%;height:0;flex-shrink:0;pointer-events:none;';
+    mount = doc.createElement('div');
+    mount.setAttribute('data-v2-inbox-mount', '');
+    mount.style.cssText = 'width:100%;';
+    var bot = doc.createElement('div');
+    bot.setAttribute('data-v2-inbox-spacer-bottom', '');
+    bot.style.cssText = 'width:100%;height:0;flex-shrink:0;pointer-events:none;';
+    el.replaceChildren(top, mount, bot);
+    el.__v2InboxScaffold = true;
+    return mount;
+  }
+
+  // Keyed inkrementell reconcile (admin#cco:s renderQueueHistoryList-mönster):
+  // återanvänd befintliga rad-noder per data-thread-id, patcha bara nya/ändrade,
+  // ta bort de som lämnat fönstret och håll ordningen.
+  function reconcileInboxRows(mount, rows, selectedId) {
+    var existingRows = Array.prototype.slice.call(mount.querySelectorAll('[data-thread-id]'));
+    var existingMap = {};
+    existingRows.forEach(function (node) {
+      existingMap[node.getAttribute('data-thread-id')] = node;
+    });
+    var wanted = {};
+    rows.forEach(function (thread) {
+      wanted[threadConversationKey(thread)] = true;
+    });
+    existingRows.forEach(function (node) {
+      if (!wanted[node.getAttribute('data-thread-id')]) node.remove();
+    });
+    var prev = null;
+    rows.forEach(function (thread) {
+      var id = threadConversationKey(thread);
+      var sig = inboxRowContentSig(thread);
+      var existing = existingMap[id];
+      var node;
+      if (existing && existing.__v2RowSig === sig) {
+        node = existing;
+      } else {
+        if (existing) existing.remove();
+        node = buildInboxRowNode(thread, selectedId, sig);
+      }
+      if (!node) return;
+      if (prev) {
+        if (prev.nextElementSibling !== node) prev.after(node);
+      } else if (mount.firstElementChild !== node) {
+        mount.prepend(node);
+      }
+      prev = node;
+    });
+  }
+
+  // Vilken behållare scrollar faktiskt? Scrollmodellen följer LAYOUT-BREAKPOINTEN
+  // — samma signal som CSS:en byter på — inte element-mått. Vid ≤768px sätts
+  // .inbox-shell till max-height:none → listan växer och SIDAN scrollar; däröver
+  // (inkl. surfplatta 769–1024) är .inbox-shell höjd-bounded och .inbox-list
+  // scrollar internt.
+  //
+  // Avgör INTE via `scrollHeight > clientHeight`: virtualiseringens bottom-spacer
+  // gör alltid .inbox-list:s scrollHeight större än clientHeight, även på mobil
+  // där sidan scrollar — det valde felaktigt intern-grenen och läste scrollTop=0.
+  function inboxScrollMetrics(el) {
+    var pageScroll = false;
+    try {
+      pageScroll = Boolean(isMobileViewport());
+    } catch (_e) {
+      pageScroll = false;
+    }
+    if (!pageScroll) {
+      // Desktop/surfplatta: .inbox-list är den bounded interna scroll-containern.
+      return { scrollTop: el.scrollTop || 0, clientHeight: el.clientHeight || 0 };
+    }
+    // Mobil: sidan scrollar → räkna fönstret ur listans position i viewporten.
+    var rect =
+      typeof el.getBoundingClientRect === 'function'
+        ? el.getBoundingClientRect()
+        : { top: 0, bottom: 0, height: 0 };
+    var vh =
+      (global.visualViewport && global.visualViewport.height) || global.innerHeight || 0;
+    var scrollTop = Math.max(0, -(rect.top || 0));
+    var visibleBottom = Math.min(vh, rect.bottom || 0);
+    var visibleTop = Math.max(0, rect.top || 0);
+    var clientHeight = Math.max(0, visibleBottom - visibleTop) || vh;
+    return { scrollTop: scrollTop, clientHeight: clientHeight };
+  }
+
+  function paintInboxWindow(el, list, selectedId, fromScroll) {
+    var mount = ensureInboxScaffold(el);
+    var total = list.length;
+    var rowH = currentInboxRowHeight();
+    var virtual = total > INBOX_VIRTUALIZE_THRESHOLD;
+    el.__v2InboxVirtual = virtual;
+
+    var metrics = inboxScrollMetrics(el);
+    var range = virtual
+      ? computeInboxVisibleRange(total, metrics.scrollTop, metrics.clientHeight, rowH)
+      : { start: 0, end: total };
+
+    // Radhöjden kan ha ändrats (densitetsbyte) även om fönstret är detsamma —
+    // hoppa bara över om BÅDE range och radhöjd är oförändrade.
+    if (
+      fromScroll &&
+      el.__v2Range &&
+      el.__v2Range.start === range.start &&
+      el.__v2Range.end === range.end &&
+      el.__v2RowH === rowH
+    ) {
+      return;
+    }
+    el.__v2Range = range;
+    el.__v2RowH = rowH;
+
+    var slice = list.slice(range.start, range.end);
+    reconcileInboxRows(mount, slice, selectedId);
+
+    // Spacers bär de off-screen radernas höjd. Eftersom varje rad har fast höjd
+    // gäller invarianten topp + fönster*rowH + botten === total*rowH, så
+    // scrollpositionen driver aldrig och sista tråden nås utan hopp.
+    var top = el.querySelector('[data-v2-inbox-spacer-top]');
+    var bot = el.querySelector('[data-v2-inbox-spacer-bottom]');
+    if (top) top.style.height = range.start * rowH + 'px';
+    if (bot) bot.style.height = Math.max(0, total - range.end) * rowH + 'px';
+
+    reconcileInboxSelection(mount, slice, selectedId);
+  }
+
+  function rewindowInbox(el) {
+    if (!el || !el.__v2InboxState) return;
+    paintInboxWindow(el, el.__v2InboxState.list, el.__v2InboxState.selectedId, true);
+  }
+
+  function attachInboxScrollListener(el) {
+    if (el.__v2InboxScrollBound) return;
+    el.__v2InboxScrollBound = true;
+    var ticking = false;
+    var onScroll = function () {
+      if (!el.__v2InboxVirtual || !el.__v2InboxState) return;
+      if (ticking) return;
+      ticking = true;
+      var run = function () {
+        ticking = false;
+        rewindowInbox(el);
+      };
+      if (typeof global.requestAnimationFrame === 'function') {
+        global.requestAnimationFrame(run);
+      } else {
+        // Ingen rAF (t.ex. test/headless) → kör synkront. Throttlas ändå av
+        // ticking-flaggan per event-loop-varv.
+        run();
+      }
+    };
+    // Desktop: .inbox-list scrollar internt.
+    el.addEventListener('scroll', onScroll, { passive: true });
+    // Mobil: sidan/fönstret scrollar (inbox-shell max-height:none) → lyssna på
+    // fönster-scroll också, annars fastnar fönstret på första sidan. Samma
+    // onScroll räknar om metrics ur listans viewport-position.
+    if (typeof global.addEventListener === 'function') {
+      global.addEventListener('scroll', onScroll, { passive: true });
+      global.addEventListener(
+        'resize',
+        function () {
+          if (el.__v2InboxVirtual) rewindowInbox(el);
+        },
+        { passive: true }
+      );
+    }
+  }
+
   function renderInbox(ctx) {
     var el = root.querySelector('[data-v2-inbox]');
     if (!el) return;
     var list = visibleThreads(ctx);
     if (!list.length) {
+      // Empty/skeleton/error: riv scaffold-läget så nästa lista bygger om.
+      el.__v2InboxScaffold = false;
+      el.__v2InboxState = null;
+      el.__v2Range = null;
       if (ctx.loading) {
         el.innerHTML = new Array(6).fill('<div class="v3-skel v3-skel-row"></div>').join('');
         return;
@@ -1162,78 +1822,11 @@
       return;
     }
     var selectedId = ctx.selected ? threadConversationKey(ctx.selected) : '';
-    var renderedList = list.slice(0, inboxRenderLimit);
-    el.innerHTML = renderedList
-      .map(function (thread) {
-        // V2 använder exakt samma canonical conversation key som legacy-state
-        // (id när den finns, annars den redan normaliserade fallback-nyckeln).
-        var id = threadConversationKey(thread);
-        var active = id && id === selectedId ? ' active' : '';
-        var unread = isUnread(thread) ? ' thread-unread' : '';
-        var isSel = selected[id] ? ' is-selected' : '';
-        var tags = tagsFor(thread);
-        var sla = slaOf(thread);
-        return (
-          '<div class="thread' +
-          active +
-          unread +
-          isSel +
-          '" data-source="' +
-          esc(sourceKey(thread)) +
-          '" data-thread-id="' +
-          esc(id) +
-          '" role="button" tabindex="0">' +
-          '<span class="thread-select" data-thread-select="' +
-          esc(id) +
-          '" role="checkbox" aria-checked="' +
-          (selected[id] ? 'true' : 'false') +
-          '" title="Markera">' +
-          (selected[id] ? '✓' : '') +
-          '</span>' +
-          (sla
-            ? '<span class="thread-sla thread-sla--' + sla.tone + '">' + esc(sla.label) + '</span>'
-            : '') +
-          '<div class="thread-av" style="background:' +
-          esc(avatarBg(thread)) +
-          '">' +
-          esc(initials(thread)) +
-          '</div>' +
-          '<div class="thread-body">' +
-          '<div class="thread-from">' +
-          esc(threadName(thread)) +
-          ' <span class="when">' +
-          esc(whenLabel(thread)) +
-          '</span></div>' +
-          '<div class="thread-subj">' +
-          esc(text(thread.subject) || '(utan ämne)') +
-          '</div>' +
-          '<div class="thread-preview">' +
-          esc(text(thread.preview)) +
-          '</div>' +
-          (tags.length
-            ? '<div class="thread-tags">' +
-              tags
-                .map(function (tag) {
-                  return (
-                    '<span class="thread-tag thread-tag--' +
-                    tag.kind +
-                    '">' +
-                    esc(tag.label) +
-                    '</span>'
-                  );
-                })
-                .join('') +
-              '</div>'
-            : '') +
-          '</div></div>'
-        );
-      })
-      .join('') +
-      (list.length > renderedList.length
-        ? '<button class="v2-load-more" type="button" data-v2-load-more>Visa fler (' +
-          esc(list.length - renderedList.length) +
-          ' kvar)</button>'
-        : '');
+    // Spara aktuell lista/urval så scroll-handlern kan om-fönstra utan att räkna
+    // om visibleThreads.
+    el.__v2InboxState = { list: list, selectedId: selectedId };
+    attachInboxScrollListener(el);
+    paintInboxWindow(el, list, selectedId, false);
   }
 
   function renderThread(ctx) {
@@ -2177,6 +2770,9 @@
         lsSet(DENSITY_KEY, v3Density);
         root.dataset.density = v3Density;
         if (boundCtx) renderToolbar(boundCtx);
+        // Radhöjden ändras med densiteten → om-fönstra virtualiseringen så
+        // spacers matchar de nya raderna (annars driver scrollen).
+        rewindowInbox(root.querySelector('[data-v2-inbox]'));
         return;
       }
       var segEl = event.target.closest('[data-v3-segment]');
@@ -2228,7 +2824,10 @@
         }
         // Ett tomt scope skulle återställa den gamla preferensen till alla
         // mailboxar. Behåll minst en aktiv mailbox i v2.
-        if (!next.length) return;
+        if (!next.length) {
+          if (mailboxEl.tagName === 'INPUT') mailboxEl.checked = true;
+          return;
+        }
         selected = {};
         boundCtx.handlers.setMailboxScope(next);
         return;
@@ -2560,6 +3159,7 @@
         lsSet(DENSITY_KEY, v3Density);
         root.dataset.density = v3Density;
         renderToolbar(ctx);
+        rewindowInbox(root.querySelector('[data-v2-inbox]'));
       },
     });
     if (ctx.selected) {
@@ -2694,6 +3294,11 @@
     render: render,
     _findThreadById: findThreadById,
     _paritySnapshot: paritySnapshot,
+    _computeInboxVisibleRange: computeInboxVisibleRange,
+    _inboxVirtualizeThreshold: function () {
+      return INBOX_VIRTUALIZE_THRESHOLD;
+    },
+    _currentInboxRowHeight: currentInboxRowHeight,
   };
 
   // Persistent kontext-provider för admin#cco:s panel-launcher. Launchern har

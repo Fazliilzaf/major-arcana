@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - "public/major-arcana-preview/cco-*-v3*.html"
+      - "public/major-arcana-preview/app/cco-conversations-v2-shell.js"
+      - "public/major-arcana-preview/app/cco-conversations-v2.css"
+      - "tests/e2e/cco-v2-virtualization*"
+      - "scripts/serve-v2-virtualization-harness.js"
       - "scripts/visual-regression.mjs"
       - ".github/workflows/visual-regression.yml"
   push:
@@ -53,3 +57,28 @@ jobs:
         run: |
           echo "Visuell drift detekterad — se artifact 'visual-regression-diffs'"
           exit 1
+
+  v2-virtualization:
+    name: V2-inkorg virtualisering (mobil + iPad)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Install chromium
+        run: npx playwright install --with-deps chromium
+
+      # Riktig browser: bevisar att bara ett litet fönster ligger i DOM och att
+      # scrollen (sidans på mobil, listans på iPad/desktop) når sista tråden.
+      - name: Kör virtualiserings-browsertest
+        run: npm run test:e2e:v2-virtualization
