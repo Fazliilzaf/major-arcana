@@ -3864,12 +3864,30 @@
     });
   }
 
+  // ORD-81 — samma oförändrade signatur-HTML saneras om och om igen när
+  // arbetslistan byggs: 26 192 anrop och 1 807 248 DOM-nodbesök i ETT synkront
+  // pass, uppmätt i prod. Saneringen är ren för given indata, så resultatet
+  // memoiseras. Bunden cache — en obunden Map i en långlivad flik är en läcka.
+  //
+  // VIKTIGT: cachen får ENDAST fyllas på den sanerande grenen. Den tidiga
+  // returvägen nedan returnerar OSANERAD indata när signatur-editorn saknas.
+  // Cachas den posten skulle den fortsätta serveras som "sanerad" efter att
+  // editorn monterats — utdatat beror alltså på modultillstånd, inte bara på
+  // indata-strängen. Det är säkerhetsrelevant, inte en missad optimering.
+  const MAILBOX_SIGNATURE_SANITIZE_CACHE_LIMIT = 64;
+  const mailboxSignatureSanitizeCache = new Map();
+
   function sanitizeMailboxSignatureHtml(html = "") {
     if (!mailboxAdminSignatureEditor?.ownerDocument) {
+      // Osanerad returväg — cachas aldrig (se noten ovan).
       return String(html || "").trim();
     }
+    const signatureCacheKey = String(html || "");
+    if (mailboxSignatureSanitizeCache.has(signatureCacheKey)) {
+      return mailboxSignatureSanitizeCache.get(signatureCacheKey);
+    }
     const template = mailboxAdminSignatureEditor.ownerDocument.createElement("template");
-    template.innerHTML = String(html || "");
+    template.innerHTML = signatureCacheKey;
     const absoluteSignatureUrl = (value = "", { allowMailto = false } = {}) => {
       const normalizedValue = normalizeText(value);
       if (!normalizedValue) return "";
@@ -3982,7 +4000,13 @@
         }
       }
     });
-    return template.innerHTML.trim();
+    const sanitizedSignatureHtml = template.innerHTML.trim();
+    // FIFO-vräkning: Map bevarar insättningsordning, äldsta nyckeln först.
+    if (mailboxSignatureSanitizeCache.size >= MAILBOX_SIGNATURE_SANITIZE_CACHE_LIMIT) {
+      mailboxSignatureSanitizeCache.delete(mailboxSignatureSanitizeCache.keys().next().value);
+    }
+    mailboxSignatureSanitizeCache.set(signatureCacheKey, sanitizedSignatureHtml);
+    return sanitizedSignatureHtml;
   }
 
   function sanitizeConversationHtmlForDisplay(html = "") {

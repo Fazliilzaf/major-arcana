@@ -8,6 +8,38 @@
 
 ---
 
+## Bas och observation (obligatoriskt — fylls INNAN något påstående görs)
+
+**Bas-commit:** {hash} ({gren}) · verifiera med `git rev-parse --short HEAD`
+**Miljö:** {prod-URL | lokal port | worktree — ange om `npm ci` kördes och om `.env` fanns}
+
+### Regel: ett stickprov är inte ett tillstånd
+
+Felen som kostat oss mest tid har alla haft samma form — någon rapporterade ett
+stickprov som ett tillstånd. Två axlar:
+
+- **Stickprov i kod** — läst fel bas, eller antagit orsak utan att mäta.
+  Motmedel: bas-commit ovan.
+- **Stickprov i tid** — mätt mitt i boot, mitt i ett blockerande pass, eller
+  före att data hunnit fram. Motmedel: observationsfönstret nedan.
+
+> En observation av ett tidsvarierande system är inte ett tillståndspåstående
+> förrän man vet att systemet var stabilt när man tittade.
+
+Det räcker alltså inte att ange *när* man mätte. Skriv ut *fönstret* och om
+systemet var stabilt i det.
+
+### Runtime-observationer (en rad per påstående)
+
+| Påstående | Fönster (från–till efter load) | Stabilt? | Belägg |
+|---|---|---|---|
+| _ex:_ `#cco-conv-v2-root` saknas | 8–40 s | **NEJ** — boot + longtask pågick | indraget, felaktigt |
+| _ex:_ V2 monterad, äger ytan | 163,5 s, efter sista longtask | ja | mount-recorder + DOM-kedja |
+
+**Stabilt = NEJ** om något av detta pågick i fönstret: boot, en longtask, eller
+en inflight-fetch som påverkar ytan. Vid NEJ får observationen inte formuleras
+som ett tillstånd — den får formuleras som "vid tidpunkt X gällde Y".
+
 ## Uppdrag
 
 {En mening}
