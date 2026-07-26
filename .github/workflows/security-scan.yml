@@ -1,13 +1,11 @@
 name: Security Scan
 
+# Manuell körning endast (2026-07-15): auto-trigger (push/PR) + veckoschema
+# avstängt medan Actions är budgetkapat. OBS: ingen automatisk säkerhetsscan
+# körs förrän detta återställs — kör vid behov via "Run workflow", och sätt
+# tillbaka pull_request + schedule så snart Actions-budgeten är på plats igen.
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  schedule:
-    # Veckovis automatisk scan, måndagar 03:00 UTC
-    - cron: '0 3 * * 1'
+  workflow_dispatch:
 
 jobs:
   npm-audit:
