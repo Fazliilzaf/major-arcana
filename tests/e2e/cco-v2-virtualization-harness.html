@@ -1,0 +1,81 @@
+<!doctype html>
+<!-- data-conversations-v2="on" är samma flagg-attribut som prod sätter när V2 är
+     aktiv; utan det håller CSS:en #cco-conv-v2-root display:none. -->
+<html lang="sv" data-conversations-v2="on">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>V2 virtualisering — browser-harness</title>
+    <!-- Den RIKTIGA produktions-CSS:en: fasta radhöjder och mobil-breakpointen
+         (max-width:768px → .inbox-shell max-height:none) måste gälla på riktigt,
+         annars mäter testet inget. -->
+    <link rel="stylesheet" href="/public/major-arcana-preview/app/cco-conversations-v2.css" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      /* Ingen egen höjdbegränsning här — vi vill att MOBILEN scrollar sidan,
+         precis som i produktionslayouten. */
+    </style>
+  </head>
+  <body>
+    <!-- data-app-shell-view="conversations" krävs av CSS-grinden
+         (html[data-conversations-v2="on"] .preview-canvas[...] #cco-conv-v2-root),
+         precis som i produktionsskalet. -->
+    <div class="preview-canvas" data-app-shell-view="conversations"></div>
+
+    <!-- Den RIKTIGA shell-modulen (samma fil som prod laddar). -->
+    <script src="/public/major-arcana-preview/app/cco-conversations-v2-shell.js"></script>
+    <script>
+      (function () {
+        var params = new URLSearchParams(location.search);
+        var COUNT = Number(params.get('threads') || 220);
+        var WITH_SELECTION = params.get('selected') === '1';
+
+        function makeThread(index) {
+          return {
+            id: 't-' + index,
+            customerName: 'Kund ' + index,
+            subject: 'Ärende nummer ' + index,
+            preview:
+              'Hej, det här är en förhandsvisning för tråd ' +
+              index +
+              ' som är tillräckligt lång för att kunna radbrytas i listan.',
+            lastMessageAt: '2026-06-20T10:00:00Z',
+            unread: index % 3 === 0,
+          };
+        }
+
+        var threads = [];
+        for (var i = 0; i < COUNT; i += 1) threads.push(makeThread(i));
+
+        var ctx = {
+          lanes: [{ id: 'all', label: 'Alla', icon: '', count: threads.length, group: '' }],
+          activeLane: 'all',
+          laneThreads: threads,
+          allThreads: threads,
+          // Utan vald tråd stannar mobilen i inbox-panelen (master-detail).
+          selected: WITH_SELECTION ? threads[0] : null,
+          handlers: {
+            selectThread: function () {},
+            setLane: function () {},
+            action: function () {},
+            openDossier: function () {},
+          },
+        };
+
+        window.__v2Harness = {
+          threadCount: COUNT,
+          render: function () {
+            window.ArcanaConversationsV2.render(ctx);
+          },
+        };
+
+        window.ArcanaConversationsV2.render(ctx);
+        window.__v2HarnessReady = true;
+      })();
+    </script>
+  </body>
+</html>
