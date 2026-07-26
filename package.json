@@ -424,6 +424,7 @@
     "test:coverage": "find ./tests -type f -name \"*.test.js\" -print0 | xargs -0 c8 --include=\"src/**/*.js\" --reporter=text-summary --reporter=html --reporter=text node --test",
     "ops:soak": "node ./scripts/run-load-soak.js",
     "test:e2e": "npx playwright test --config=tests/e2e/playwright.config.js",
+    "test:e2e:v2-virtualization": "npx playwright test --config=tests/e2e/playwright.virtualization.config.js",
     "test:a11y": "npx playwright test tests/a11y/",
     "test:load": "k6 run tests/load/k6-runtime-status.js",
     "test:cmo:mutation": "node tests/_cmoMutationRunner.js",
