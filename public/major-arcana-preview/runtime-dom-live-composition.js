@@ -264,6 +264,17 @@
     let mobileInboxLoadPromise = null;
     let mobileInboxDeferredBootstrap = false;
 
+    // Tillfällig laddningsdiagnostik — pekar på app.js:s opt-in-recorder.
+    // PII-fri: endast fasnamn, ms och antal. No-op när den är avstängd.
+    function perfTime(phase, fn, counts) {
+      const perf = windowObject && windowObject.__ccoPerf;
+      return perf && perf.enabled ? perf.time(phase, fn, counts) : fn();
+    }
+    async function perfTimeAsync(phase, fn, counts) {
+      const perf = windowObject && windowObject.__ccoPerf;
+      return perf && perf.enabled ? perf.timeAsync(phase, fn, counts) : fn();
+    }
+
     function paintRuntimeShell(scope = "all") {
       try {
         // Konversationer v2 (mobil) renderar i eget #cco-conv-v2-root och bryr
@@ -281,16 +292,22 @@
       } catch {
         /* ignore */
       }
-      if (typeof scheduleRuntimeConversationShell === "function") {
-        scheduleRuntimeConversationShell(scope);
-        return;
-      }
-      if (typeof renderRuntimeConversationShell !== "function") return;
-      if (normalizeKey(scope) === "all") {
-        renderRuntimeConversationShell();
-        return;
-      }
-      renderRuntimeConversationShell({ scope: normalizeKey(scope) || "all" });
+      return perfTime(
+        "shell:paint_" + (normalizeKey(scope) || "all"),
+        () => {
+          if (typeof scheduleRuntimeConversationShell === "function") {
+            scheduleRuntimeConversationShell(scope);
+            return;
+          }
+          if (typeof renderRuntimeConversationShell !== "function") return;
+          if (normalizeKey(scope) === "all") {
+            renderRuntimeConversationShell();
+            return;
+          }
+          renderRuntimeConversationShell({ scope: normalizeKey(scope) || "all" });
+        },
+        { threads: asArray(state.runtime?.threads).length }
+      );
     }
 
     function runtimeHasLiveThreads(threads = state.runtime?.threads) {
@@ -437,8 +454,13 @@
           break;
         }
         try {
-          const payload = await fetchTruthPrimaryWorklistConsumer(
-            buildTruthPrimaryWorklistConsumerHref(mailboxChunk)
+          const payload = await perfTimeAsync(
+            "fetch:worklist_chunk",
+            () =>
+              fetchTruthPrimaryWorklistConsumer(
+                buildTruthPrimaryWorklistConsumerHref(mailboxChunk)
+              ),
+            { mailboxes: asArray(mailboxChunk).length }
           );
           if (payload && typeof payload === "object") {
             scopedPayloads.push(payload);
@@ -451,7 +473,14 @@
         if (lastError) throw lastError;
         return null;
       }
-      return mergeTruthPrimaryChunkPayloads(scopedPayloads);
+      return perfTime(
+        "merge:worklist_chunks",
+        () => mergeTruthPrimaryChunkPayloads(scopedPayloads),
+        {
+          chunks: scopedPayloads.length,
+          rows: scopedPayloads.reduce((sum, payload) => sum + asArray(payload?.rows).length, 0),
+        }
+      );
     }
 
     function resolveRuntimeSyncMailboxIds() {
@@ -621,7 +650,20 @@
       return true;
     }
 
-    function paintTruthPrimaryWorklistFromPayload(
+    // Mätpunkt: merge/apply av truth-payload till runtime-state. Wrappar
+    // definitionen så samtliga anropsplatser täcks.
+    function paintTruthPrimaryWorklistFromPayload(truthPrimaryPayload, options) {
+      return perfTime(
+        "apply:truth_payload",
+        () => paintTruthPrimaryWorklistFromPayloadInner(truthPrimaryPayload, options),
+        {
+          rows: asArray(truthPrimaryPayload?.rows).length,
+          threadsBefore: asArray(state.runtime?.threads).length,
+        }
+      );
+    }
+
+    function paintTruthPrimaryWorklistFromPayloadInner(
       truthPrimaryPayload,
       {
         runtimeMailboxIds = [],
@@ -3960,6 +4002,19 @@
     // används både av legacy-menyn och v2-skalet så urval, trådval och live-
     // laddning alltid följer samma Bearer- och mailbox-scope-kontrakt.
     function applyRuntimeMailboxSelection(requestedMailboxIds) {
+      // Mätpunkt: hela den synkrona delen av mailbox-valet — den interaktion
+      // som låste sig live vid 3→4 konton.
+      return perfTime(
+        "select:mailbox_scope_sync",
+        () => applyRuntimeMailboxSelectionInner(requestedMailboxIds),
+        {
+          mailboxes: asArray(requestedMailboxIds).length,
+          threads: asArray(state.runtime?.threads).length,
+        }
+      );
+    }
+
+    function applyRuntimeMailboxSelectionInner(requestedMailboxIds) {
       const nextSelectedMailboxIds =
         workspaceSourceOfTruth.setSelectedMailboxIds(requestedMailboxIds);
       const availableMailboxIds = asArray(

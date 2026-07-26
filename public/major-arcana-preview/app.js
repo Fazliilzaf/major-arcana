@@ -3354,6 +3354,135 @@
   ]);
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+  /* ─────────────────────────────────────────────────────────────────────────
+   * TILLFÄLLIG LADDNINGSDIAGNOSTIK (opt-in, PII-fri)
+   *
+   * Syfte: avgöra VAR tiden går när operatören vidgar mailbox-scopet (3→4,
+   * 3→9) — nätverk, payload-merge, legacy-shell eller V2-state. Utan detta är
+   * varje optimering ett antagande.
+   *
+   * Aktiveras endast med ?ccoPerf=1 eller localStorage['cco.perf']='1'.
+   * Avstängd kostar den ett booleskt test per mätpunkt.
+   *
+   * PII: registrerar ENDAST fasnamn, millisekunder och antal (trådar/
+   * mailboxar/rader). Aldrig adresser, ämnen, namn eller innehåll.
+   * ───────────────────────────────────────────────────────────────────────── */
+  const __ccoPerf = (() => {
+    let enabled = false;
+    try {
+      enabled =
+        new URLSearchParams(window.location.search).get("ccoPerf") === "1" ||
+        window.localStorage.getItem("cco.perf") === "1";
+    } catch (_flagError) {
+      enabled = false;
+    }
+
+    const entries = [];
+    const MAX_ENTRIES = 800;
+
+    /** Endast numeriska räknare släpps igenom — aldrig fritext. */
+    function safeCounts(counts) {
+      const safe = {};
+      if (counts && typeof counts === "object") {
+        Object.keys(counts).forEach((key) => {
+          const value = Number(counts[key]);
+          if (Number.isFinite(value)) safe[key] = value;
+        });
+      }
+      return safe;
+    }
+
+    function record(phase, ms, counts) {
+      if (!enabled) return;
+      entries.push({
+        phase: String(phase || "okänd").slice(0, 60),
+        ms: Math.round(Number(ms) || 0),
+        at: Math.round(performance.now()),
+        ...safeCounts(counts),
+      });
+      if (entries.length > MAX_ENTRIES) entries.splice(0, entries.length - MAX_ENTRIES);
+    }
+
+    /** Mäter en synkron funktion utan att ändra dess retur/kast-beteende. */
+    function time(phase, fn, counts) {
+      if (!enabled) return fn();
+      const started = performance.now();
+      try {
+        return fn();
+      } finally {
+        record(phase, performance.now() - started, typeof counts === "function" ? counts() : counts);
+      }
+    }
+
+    /** Samma för async — mäter till promisen settlar. */
+    async function timeAsync(phase, fn, counts) {
+      if (!enabled) return fn();
+      const started = performance.now();
+      try {
+        return await fn();
+      } finally {
+        record(phase, performance.now() - started, typeof counts === "function" ? counts() : counts);
+      }
+    }
+
+    if (enabled) {
+      // Long tasks (>50ms) = main-tråden blockerad. Det är det enda som kan
+      // bevisa en fliklåsning; allt annat är indicier.
+      try {
+        new PerformanceObserver((list) => {
+          list.getEntries().forEach((entry) => {
+            record("longtask", entry.duration);
+          });
+        }).observe({ entryTypes: ["longtask"] });
+      } catch (_observerError) {
+        /* longtask stöds inte i alla browsers — övriga mätpunkter räcker. */
+      }
+    }
+
+    function summary() {
+      const byPhase = {};
+      entries.forEach((entry) => {
+        const bucket = (byPhase[entry.phase] = byPhase[entry.phase] || {
+          calls: 0,
+          totalMs: 0,
+          maxMs: 0,
+        });
+        bucket.calls += 1;
+        bucket.totalMs += entry.ms;
+        bucket.maxMs = Math.max(bucket.maxMs, entry.ms);
+      });
+      Object.keys(byPhase).forEach((phase) => {
+        byPhase[phase].totalMs = Math.round(byPhase[phase].totalMs);
+      });
+      return byPhase;
+    }
+
+    return {
+      get enabled() {
+        return enabled;
+      },
+      entries,
+      record,
+      time,
+      timeAsync,
+      summary,
+      dump() {
+        // eslint-disable-next-line no-console
+        console.table(summary());
+        return summary();
+      },
+      clear() {
+        entries.length = 0;
+      },
+    };
+  })();
+
+  try {
+    window.__ccoPerf = __ccoPerf;
+  } catch (_exposeError) {
+    /* tyst */
+  }
+
   function normalizeText(value) {
     return typeof value === "string" ? value.trim() : "";
   }
@@ -40317,10 +40446,17 @@
     const activeLane = normalizePrimaryQueueLaneId(
       asText(workspaceSourceOfTruth.getActiveLaneId() || state.selection?.laneId || "all") || "all"
     );
-    const lanes = CONVERSATIONS_V2_LANES.map((lane) => ({
-      ...lane,
-      count: getQueueLaneThreads(lane.id, scoped).length,
-    }));
+    // Mätpunkt: lane-counts gör ett fullt pass per lane över hela trådlistan.
+    // Vi mäter i stället för att anta att det är dyrt.
+    const lanes = __ccoPerf.time(
+      "v2:lane_counts",
+      () =>
+        CONVERSATIONS_V2_LANES.map((lane) => ({
+          ...lane,
+          count: getQueueLaneThreads(lane.id, scoped).length,
+        })),
+      { threads: scoped.length, lanes: CONVERSATIONS_V2_LANES.length }
+    );
     const selectedCandidate = getSelectedRuntimeFocusThread() || getSelectedRuntimeThread() || null;
     const runtimeThreadKey = (thread) =>
       thread?.id || thread?.conversationKey || thread?.conversationId || thread?.mailboxConversationId || "";
@@ -40348,7 +40484,8 @@
             : {},
         }
       : null;
-    window.ArcanaConversationsV2.render({
+    // Mätpunkt: hela V2-skalets render (inkl. inbox-virtualisering).
+    __ccoPerf.time("v2:shell_render", () => window.ArcanaConversationsV2.render({
       lanes,
       activeLane,
       laneThreads: getQueueLaneThreads(activeLane, scoped),
@@ -40601,7 +40738,7 @@
           return runV2BulkConversationAction(name, threadIds);
         },
       },
-    });
+    }), { threads: scoped.length });
   }
 
   function renderRuntimeConversationShell(options = {}) {
