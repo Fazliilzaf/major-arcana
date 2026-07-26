@@ -2091,6 +2091,45 @@
   // Svarstudio workbench (P2) — wired live mot draft-state-machine + gateway.
   // Skicka (→ sent) är owner-blockerat i backend OCH låst i UI:t.
   // ─────────────────────────────────────────────────────────────────────
+  function buildLauncherThreadContext(thread) {
+    if (!thread) return null;
+    var email = text(thread.customerEmail || thread.contactEmail || (thread.from && thread.from.address));
+    var mailbox = text(thread.mailboxId || thread.mailboxAddress || thread.mailboxLabel);
+    // Nyans (fail-closed-anda utan att blockera): lås bara en BEKRÄFTAD patient
+    // som customerId. Utan bekräftad handoff skickas e-post som sökhjälp —
+    // panelen låter operatören välja/bekräfta kund, så vi agerar aldrig
+    // automatiskt på en obekräftad patient (t.ex. bokar aldrig fel patient).
+    var handoffConfirmed = thread.v2Handoff && thread.v2Handoff.available === true;
+    var confirmedPatientId = handoffConfirmed
+      ? text((thread.v2Testability && thread.v2Testability.bookingPatientId) || thread.customerId)
+      : '';
+    return {
+      source: 'cco-conversations-v2',
+      conversationKey: threadConversationKey(thread),
+      customerName: text(thread.customerName) || threadName(thread),
+      email: email,
+      customerId: confirmedPatientId || email,
+      // Kanoniskt patient-master-ID (resolverns exakta e-postmatch). Endast satt
+      // vid bekräftad match — panelerna hämtar riktig kundpost på DETTA, aldrig
+      // på customerId (som kan vara e-post) eller activeCustomerId-demofallbacken.
+      patientId: confirmedPatientId,
+      mailboxId: mailbox,
+      mailboxSource: mailbox,
+      subject: text(thread.subject),
+      // Trådens riktiga meddelanden i launcherns form ({dir,time,body}).
+      latestMessages: messageList(thread)
+        .slice(-6)
+        .map(function (message) {
+          return {
+            dir: isIncoming(message) ? 'incoming' : 'outgoing',
+            time: text(message.sentAt || message.receivedAt || message.time || message.timestamp),
+            body: messageBody(message),
+          };
+        }),
+      threadSnippet: text(thread.preview),
+    };
+  }
+
   // Svarstudio öppnar admin#cco:s GODKÄNDA panel (svarstudio-v2.html) via den
   // delade launchern, med trådkontexten som preset så panelen slipper skrapa
   // legacy-DOM. Den tidigare inline-fallbacken (en egen workbench när launchern
@@ -2098,14 +2137,18 @@
   function openSvarstudioPanel(thread) {
     var target = thread || (boundCtx && boundCtx.selected);
     if (!target) return;
+    // Bara ÅTKOMSTEN till launchern guardas. Kontextbygget ligger utanför
+    // try/catch med flit: ett fel där är en bugg och ska synas, inte sväljas.
+    // (En för bred catch dolde en gång att buildLauncherThreadContext saknades.)
+    var api = null;
     try {
-      var api = global.CCOBottomActions;
-      if (api && typeof api.run === 'function') {
-        api.run('svarstudio', buildLauncherThreadContext(target));
-        return;
-      }
-    } catch (_launcherError) {
-      /* faller igenom till app-handlern, som failar högt */
+      api = global.CCOBottomActions;
+    } catch (_launcherAccessError) {
+      api = null;
+    }
+    if (api && typeof api.run === 'function') {
+      api.run('svarstudio', buildLauncherThreadContext(target));
+      return;
     }
     // Ingen tyst stub: utan launcher failar panelvägen högt via app-handlern.
     if (boundCtx && typeof boundCtx.handlers.action === 'function') {
