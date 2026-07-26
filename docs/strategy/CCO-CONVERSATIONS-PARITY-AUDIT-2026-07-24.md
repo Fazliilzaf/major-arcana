@@ -64,7 +64,19 @@ som admin. Om launchern inte är laddad failar panel-vägen **högt** (felfeedba
 **GO, villkorat.** V2 kan bli konversationsytan: 13/15 actions och 6/7 skyddsregler är bevisade i kod,
 eftersom V2 återanvänder admin#cco:s faktiska paneler och backend-routes. Render-vägen failar säkert:
 ett V2-render-fel flippar `data-conversations-v2="off"` och återställer legacy (app.js ~40615).
-Flaggan är default-OFF och view-scopad → cutover kan flippas och rullas tillbaka utan att röra legacy-kod.
+Flaggan är view-scopad → cutover kan flippas och rullas tillbaka utan att röra legacy-kod.
+
+> **RÄTTELSE 2026-07-26 (fynd från Cowork, verifierat mot koden):** den ursprungliga texten
+> påstod att flaggan är **default-OFF**. Det är fel. `app/cco-conversations-v2-flag.js` är
+> uttryckligen en **cutover-flagga: default PÅ, opt-out** —
+> `inget → enabled = (localStorage !== '0')`. Kill-switchen är `?conversations=off`.
+>
+> Det ändrar rollback-resonemanget ovan i en viktig riktning: V2 är **inte** en avstängd
+> förhandsvisning som slås på av den som vill testa, utan **det aktiva läget för alla**
+> som inte aktivt valt bort det. En regression i V2 träffar därmed operatörerna direkt,
+> och "rollback" betyder att aktivt sätta kill-switchen — inte att låta bli att slå på något.
+>
+> Auditens GO-verdikt står kvar, men risknivån i den här meningen var underskattad.
 
 **Måste stängas innan legacy RADERAS:**
 1. **TOP-RISK — beteende med alla konton samtidigt är OTESTAT (Regel 1).** Current main sätter i koden
