@@ -686,7 +686,10 @@ html[data-conversations-v2="on"]
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 80px);
+  /* Låt en kort tråd ta sin faktiska innehållshöjd i stället för att lämna
+     en hel viewport av tom läsyta under meddelandet. Mobilens minhöjd sätts
+     separat i mobilregeln nedan. */
+  min-height: 0;
 }
 #cco-conv-v2-root .thread-shell::before {
   content: "";

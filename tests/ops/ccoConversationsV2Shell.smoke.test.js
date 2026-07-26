@@ -431,6 +431,20 @@ test('v2-skalet: Mer-menyn stängs när operatören klickar i arbetsytan', () =>
   assert.equal(menu.hasAttribute('hidden'), true, 'Mer-menyn ska stängas vid klick utanför');
 });
 
+test('v2-skalet: korta trådar tvingas inte till en tom viewport-hög läsyta', () => {
+  const css = fs.readFileSync(V2_CSS_PATH, 'utf8');
+  assert.match(
+    css,
+    /#cco-conv-v2-root \.thread-shell\s*\{[\s\S]{0,500}?min-height:\s*0;/,
+    'desktopens trådyta ska följa innehållet'
+  );
+  assert.doesNotMatch(
+    css,
+    /#cco-conv-v2-root \.thread-shell\s*\{[\s\S]{0,500}?min-height:\s*calc\(100vh - 80px\)/,
+    'desktopens trådyta får inte fylla en tom viewport'
+  );
+});
+
 test('v2-skalet: dold Mer-meny kan inte bli en kvarliggande vit popover', () => {
   const css = fs.readFileSync(V2_CSS_PATH, 'utf8');
   assert.match(
