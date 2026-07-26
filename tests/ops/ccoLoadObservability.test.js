@@ -45,8 +45,10 @@ function loadRecorder({ search = '', lsValue = null } = {}) {
   const observed = [];
   // Styrbar klocka så att fas-intervall (start/end) kan sättas exakt i test.
   const clock = { value: 0 };
-  // Fångar longtask-observerns callback så testet kan mata in riktiga
-  // PerformanceEntry-lika poster och verifiera attribueringen.
+  // Fångar longtask-observerns callback så testet kan köra observerns
+  // CALLBACK-KONTRAKT med PerformanceEntry-lika poster. Detta testar
+  // överlappnings-/attribueringsalgoritmen — inte browserns riktiga
+  // PerformanceObserver-API (det kräver ett browser-test).
   const observerHolder = { cb: null };
   const sandbox = {
     window: {
@@ -219,8 +221,8 @@ test('long tasks attribueras till den fas de överlappar (svarar på huvudfråga
   assert.equal(phases[1].start, 100);
   assert.equal(phases[1].end, 900);
 
-  // En riktig long task 200–800ms ligger helt inuti fas B → observern ska
-  // attribuera den dit, inte till fas A.
+  // En long task 200–800ms ligger helt inuti fas B → observern ska attribuera
+  // den dit, inte till fas A.
   clock.value = 900;
   perf.__emitLongTask(200, 600);
 
@@ -229,7 +231,7 @@ test('long tasks attribueras till den fas de överlappar (svarar på huvudfråga
   assert.equal(
     longTasks[0].attributedTo,
     'apply:truth_payload',
-    'long task ska kopplas till den fas den överlappar mest'
+    'long task ska kopplas till den synkrona fas den överlappar mest'
   );
   assert.equal(longTasks[0].overlapMs, 600);
 
@@ -240,6 +242,14 @@ test('long tasks attribueras till den fas de överlappar (svarar på huvudfråga
       .map((entry) => entry.phase)
       .join(','),
     'merge:worklist_chunks,apply:truth_payload,longtask'
+  );
+  assert.equal(
+    perf
+      .timeline()
+      .map((entry) => entry.kind)
+      .join(','),
+    'sync,sync,longtask',
+    'varje post ska bära sin kind'
   );
   assert.equal(JSON.stringify(perf.timeline()).includes('@'), false);
 });
@@ -255,4 +265,59 @@ test('longTasks() summerar blockerad main-tråd per fas', () => {
   assert.equal(byPhase['apply:truth_payload'].blockingTasks, 2);
   assert.equal(byPhase['apply:truth_payload'].totalBlockedMs, 820);
   assert.equal(byPhase['apply:truth_payload'].longestMs, 700);
+});
+
+test('async-faser attribueras ALDRIG som huvudtrådsblockering', async () => {
+  const perf = loadRecorder({ search: '?ccoPerf=1' });
+  const clock = perf.__clock;
+
+  // En lång nätverksvänta 0–5000ms (async — blockerar inte main-tråden).
+  clock.value = 0;
+  await perf.timeAsync(
+    'fetch:worklist_chunk',
+    () =>
+      new Promise((resolve) => {
+        clock.value = 5000;
+        resolve('payload');
+      }),
+    { mailboxes: 2 }
+  );
+  // Ett kort synkront arbete 4000–4300ms, mitt under nätverksväntan.
+  clock.value = 4000;
+  perf.time('apply:truth_payload', () => {
+    clock.value = 4300;
+  });
+
+  const fetchEntry = perf.entries.find((entry) => entry.phase === 'fetch:worklist_chunk');
+  assert.equal(fetchEntry.kind, 'async', 'timeAsync ska märkas async');
+  assert.equal(fetchEntry.ms, 5000, 'nätverkslatensen ska finnas kvar i tidslinjen');
+
+  // Long task 4050–4250ms ligger inuti BÅDA intervallen, men bara den
+  // synkrona fasen får tillskrivas den.
+  clock.value = 4300;
+  perf.__emitLongTask(4050, 200);
+
+  const longTask = perf.entries.find((entry) => entry.phase === 'longtask');
+  assert.equal(
+    longTask.attributedTo,
+    'apply:truth_payload',
+    'en long task får aldrig tillskrivas en async fetch-fas'
+  );
+
+  const blocked = perf.longTasks();
+  assert.equal('fetch:worklist_chunk' in blocked, false, 'nätverk ska aldrig visas som blockering');
+  assert.equal(blocked['apply:truth_payload'].totalBlockedMs, 200);
+});
+
+test('helt utan synkron fas attribueras long task till "other" (aldrig till nätverk)', () => {
+  const perf = loadRecorder({ search: '?ccoPerf=1' });
+  const clock = perf.__clock;
+  clock.value = 0;
+  perf.record('fetch:worklist_chunk', 3000, { mailboxes: 2 }, 0, 'async');
+
+  clock.value = 3000;
+  perf.__emitLongTask(1000, 500);
+
+  const longTask = perf.entries.find((entry) => entry.phase === 'longtask');
+  assert.equal(longTask.attributedTo, 'other', 'utan synkron kandidat ska det bli "other"');
 });

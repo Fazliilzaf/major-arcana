@@ -3442,7 +3442,7 @@
      * ATT en long task inträffade men inte VAR tiden låg — vilket är hela
      * frågan mätningen ska besvara.
      */
-    function record(phase, ms, counts, startedAt) {
+    function record(phase, ms, counts, startedAt, kind) {
       if (!enabled) return null;
       const duration = Math.round(Number(ms) || 0);
       const end = Number.isFinite(startedAt)
@@ -3450,6 +3450,9 @@
         : Math.round(performance.now());
       const entry = {
         phase: safePhase(phase),
+        // "sync" = kod som faktiskt kan blockera main-tråden.
+        // "async" = spänner över nätverksväntan och blockerar INTE.
+        kind: kind === "async" || kind === "longtask" ? kind : "sync",
         ms: duration,
         start: end - duration,
         end,
@@ -3467,7 +3470,13 @@
       try {
         return fn();
       } finally {
-        record(phase, performance.now() - started, typeof counts === "function" ? counts() : counts, started);
+        record(
+          phase,
+          performance.now() - started,
+          typeof counts === "function" ? counts() : counts,
+          started,
+          "sync"
+        );
       }
     }
 
@@ -3478,7 +3487,13 @@
       try {
         return await fn();
       } finally {
-        record(phase, performance.now() - started, typeof counts === "function" ? counts() : counts, started);
+        record(
+          phase,
+          performance.now() - started,
+          typeof counts === "function" ? counts() : counts,
+          started,
+          "async"
+        );
       }
     }
 
@@ -3486,12 +3501,17 @@
      * Kopplar en long task till den fas vars intervall den överlappar mest.
      * Long tasks rapporteras efter att uppgiften avslutats, så attribueringen
      * sker retroaktivt mot redan registrerade fasintervall.
+     *
+     * ENDAST synkrona faser är kandidater. En async-fas (t.ex.
+     * fetch:worklist_chunk) spänner över nätverksväntan och blockerar aldrig
+     * main-tråden — att attribuera en long task dit skulle peka ut nätverket
+     * för något som i själva verket var synkront arbete.
      */
     function attributeLongTask(taskStart, taskEnd) {
       let best = "";
       let bestOverlap = 0;
       entries.forEach((entry) => {
-        if (entry.phase === "longtask") return;
+        if (entry.kind !== "sync") return;
         const overlap = Math.min(entry.end, taskEnd) - Math.max(entry.start, taskStart);
         if (overlap > bestOverlap) {
           bestOverlap = overlap;
@@ -3510,7 +3530,13 @@
             const taskStart = Math.round(observed.startTime);
             const taskEnd = Math.round(observed.startTime + observed.duration);
             const attribution = attributeLongTask(taskStart, taskEnd);
-            const entry = record("longtask", observed.duration, null, observed.startTime);
+            const entry = record(
+              "longtask",
+              observed.duration,
+              null,
+              observed.startTime,
+              "longtask"
+            );
             if (entry) {
               entry.attributedTo = safePhase(attribution.phase);
               entry.overlapMs = attribution.overlapMs;
