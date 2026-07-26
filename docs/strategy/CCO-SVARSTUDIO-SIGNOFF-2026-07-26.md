@@ -124,8 +124,19 @@ Inget läcker, men båda ytorna erbjuder en knapp som ibland är dömd att missl
 | Launcher-väg **+** inline-fallback (~535 rader) | Endast launcher-vägen; utan launcher failar den högt |
 | V2: egna `studioGenerate/Transition/Send` i app.js | Borttagna; ligger i admins panel |
 | V2: sex studio-ctx-fält | Borttagna (döda) |
-| Tre ingångar (knapp, snabbsvar, kommandopalett) | Alla tre delegerar via `openSvarstudioPanel` |
+| Tre ingångar (knapp, snabbsvar, kommandopalett) | Alla tre öppnar admins panel — men via två olika vägar, se nedan |
 | Ingen bilage-hantering i V2 | Admins panel hanterar bilagor |
+
+**De två vägarna (precisering efter Codex-granskning):**
+
+| Ingång | Väg | Trådkontext |
+|---|---|---|
+| Huvudknappen (`data-v2-action="studio"`) | `handlers.action('studio')` → app.js → `CCOBottomActions.run('svarstudio')` | Via `CCOLiveConversationContext`-providern. Skalet väljer tråden och målar V2 synkront **innan** launchern läser providern. |
+| Snabbsvaret (`data-v3-qr-studio`) | `openSvarstudioPanel` → launchern direkt | **Explicit preset** (`buildLauncherThreadContext`) |
+| Kommandopaletten | `openSvarstudioPanel` → launchern direkt | **Explicit preset** |
+
+Båda vägarna landar i samma panel med rätt tråd. Skillnaden är bara *hur* kontexten
+levereras — dynamiskt via providern respektive som preset.
 
 Kvar i V2: snabbsvarets **"Spara utkast"** (`studioSave`) — en tunn skrivning mot
 samma gateway, inte en parallell studio.
