@@ -1486,12 +1486,18 @@ test('v2-skalet: mobil sid-scroll driver virtualiseringen (fönster följer view
   assert.equal(px(botSpacer.style.height), 0, 'bottom-spacer 0 vid botten');
 });
 
-test('v2-skalet: bottom-spacern lurar inte scrollmodellen på mobil (regression)', () => {
-  // Codex-fyndet: virtualiseringens bottom-spacer gör alltid
-  // .inbox-list.scrollHeight > clientHeight — även på mobil där SIDAN scrollar.
-  // En heuristik byggd på det valde intern-scroll-grenen, läste scrollTop=0 och
-  // fastnade på de första trådarna. Här sätts spacer-lika mått explicit och
-  // testet kräver att fönstret ändå följer sid-scrollen.
+test('v2-skalet: scrollmodellen är oberoende av element-mått (framtidsskydd)', () => {
+  // FRAMTIDSSKYDD för breakpoint-logiken — INTE ett reproduktionsfall från
+  // dagens mobil-CSS. I nuvarande layout har .inbox-shell max-height:none på
+  // mobil, så .inbox-list växer till hela innehållet och scrollHeight ===
+  // clientHeight; en mått-baserad heuristik skulle råka välja rätt gren där.
+  // Det här testet låser fast att modellen väljs på LAYOUT-BREAKPOINTEN och
+  // aldrig på element-mått, så att en framtida CSS-ändring som gör listan
+  // höjdbegränsad på mobil inte tyst återinför buggen.
+  //
+  // Det faktiska produktbeteendet (mobil sid-scroll respektive iPad intern
+  // scroll, med riktiga spacers) bevisas av browser-testet:
+  // tests/e2e/cco-v2-virtualization.spec.js.
   const { window, document, api } = loadShell();
   window.requestAnimationFrame = undefined;
   window.matchMedia = (query) => ({ matches: String(query).indexOf('768') !== -1 });
