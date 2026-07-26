@@ -92,10 +92,16 @@ Mät i båda fallen, kall laddning, samma inloggade session:
 
 | Nyckeltal | Före (uppmätt) | Efter (krav) |
 |---|---|---|
-| Största longtask vid boot | 19 668 ms | < 1 000 ms |
+| **Tid till `#cco-conv-v2-root` monterad** | 40–163 s | **< 5 s** |
+| Största longtask vid boot | 19 668–62 597 ms | < 1 000 ms |
 | Anrop till saneraren | 26 192 | < 50 |
 | DOM-nodbesök i saneraren | 1 807 248 | < 5 000 |
 | Blockerad huvudtråd, 30 s fönster | 26 % | < 3 % |
+
+Tid-till-montering är det mått som beskriver vad operatören faktiskt upplever
+och ska vara det som avgör om fixen lyckats. Spridningen i före-värdena är stor
+mellan laddningar — mät minst tre kalla laddningar och redovisa alla tre, inte
+ett medelvärde.
 
 ## Acceptanskriterier
 
@@ -109,11 +115,21 @@ Mät i båda fallen, kall laddning, samma inloggade session:
 
 ## Utanför scope — egna spår
 
-- **`#cco-conv-v2-root` monteras aldrig.** Uppmätt i prod: roten saknas i DOM
-  trots `?conversations=v2`, och `.preview-shell` är inte dold. Det som körs är
-  legacy + `lit-switchover`. Om det stämmer har virtualiserings- och
-  Svarstudio-arbetet inte varit aktivt på den URL:en. Kräver egen utredning —
-  bakas inte in här.
+- ~~`#cco-conv-v2-root` monteras aldrig~~ — **FELAKTIGT, indraget.** Roten
+  monteras och äger den synliga ytan (`#cco-conv-v2-root > .app-grid >
+  .inbox-shell`); `.preview-workspace` är `display:none`. **V2 är den yta
+  operatörerna kör**, och ORD-81 träffar alltså rätt yta. Alla mätningar som
+  visade `v2Root: false` togs under boot eller mitt i frysen, innan monteringen
+  hunnit ske — ett övergångstillstånd rapporterat som sluttillstånd.
+
+  Det gör frysen allvarligare, inte mindre allvarlig: så länge huvudtråden står
+  i saneraren är legacy dolt av flagg-CSS:en och V2 ännu inte monterat, så
+  operatören ser en **helt blank sida**. Uppmätt tid till montering i en och
+  samma session: 40 s respektive 163 s (ett block på 62 597 ms).
+
+- **`lit-switchover` renderar in i en dold container.** `.queue-history-list`
+  är 0×0 inuti det dolda legacy-skalet, men 8 `arcana-thread-card` byggs och
+  patchas där ändå. Rent spill när V2 är på. Egen städning, ej perf-kritisk.
 - `classifyRuntimeRowFamily`-memoisering (se Scope-vakt).
 
 ## Rättelser till tidigare påståenden i denna tråd
@@ -128,6 +144,17 @@ Följande påståenden från Cowork var **fel** och ska inte föras vidare:
 - *"Lokalt main ligger 142 commits efter"* — gällde Coworks egen stale checkout,
   inte Fazlis. Radnummer-avvikelsen (3588 vs 3867, 6788 vs 7070, konsekvent
   ~280 rader) är diagnostik-blocket från #1213.
+- *"`origin/main` har 68 röda tester"* — indraget. Reproduceras inte i en
+  riktig checkout; Codex fick 1 rött. Cowork körde först med symlänkade
+  `node_modules` från ett träd med annan `package.json`, och även efter `npm ci`
+  + inlänkad `.env` kvarstod 73 röda route/auth-tester som Codex inte ser.
+  Miljöskillnaden är **oförklarad**. Det enda som är fastställt är att ORD-81 är
+  differentiellt neutralt: `tests/routes/ccoConversationRbac.test.js` faller
+  9/18 på pristine `origin/main` i samma miljö, med och utan ändringen.
+- *"`#cco-conv-v2-root` monteras aldrig"* — indraget, se Utanför scope ovan.
+
+**Gemensam nämnare för alla fyra felen: slutsats dragen från en omätt eller
+otidsatt premiss.** Ange bas-commit, miljö och mättidpunkt i varje rapport.
 
 Följande påstående från paritetsauditen var fel och rättas separat:
 
