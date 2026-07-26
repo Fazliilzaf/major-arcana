@@ -385,18 +385,33 @@ test('v2-skalet: ett brett mailbox-scope kan förfinas ett konto i taget', () =>
   assert.deepEqual(scopes, [['kons@hairtpclinic.com', 'fazli@hairtpclinic.com']]);
 });
 
-test('v2-skalet: en stor mailbox-kö målas stegvis utan att tappa trådar', () => {
-  const { window, document, api } = loadShell();
+test('v2-skalet: en stor mailbox-kö virtualiseras utan att tappa trådar', () => {
+  // Tidigare: 120 rader + "Visa fler"-knapp. Nu portas admin#cco:s
+  // scroll-virtualisering: bara det synliga fönstret ligger i DOM, resten bärs
+  // av höjd-satta spacers. Det är det som låter alla konton samsas utan att
+  // frysa browsern (top-risken bekräftad live vid tre konton).
+  const { document, api } = loadShell();
   const threads = Array.from({ length: 121 }, (_, index) =>
     makeThread({ id: `thread-${index}`, customerName: `Kund ${index}` })
   );
   api.render(makeCtx({ laneThreads: threads, allThreads: threads }));
 
-  assert.equal(document.querySelectorAll('[data-v2-inbox] .thread').length, 120);
-  const loadMore = document.querySelector('[data-v2-load-more]');
-  assert.ok(loadMore, 'stor inbox ska erbjuda stegvis rendering');
-  loadMore.dispatchEvent(new window.Event('click', { bubbles: true }));
-  assert.equal(document.querySelectorAll('[data-v2-inbox] .thread').length, 121);
+  const domRows = document.querySelectorAll('[data-v2-inbox] .thread').length;
+  assert.ok(domRows > 0, 'något fönster ska renderas');
+  assert.ok(domRows < 121, 'hela listan får INTE ligga i DOM samtidigt (virtualiserad)');
+
+  // "Visa fler"-modellen är ersatt av virtualisering.
+  assert.equal(document.querySelector('[data-v2-load-more]'), null, 'ingen load-more-knapp längre');
+  assert.ok(document.querySelector('[data-v2-inbox-mount]'), 'virtuell mount ska finnas');
+  assert.notEqual(
+    document.querySelector('[data-v2-inbox-spacer-bottom]').style.height,
+    '0px',
+    'bottom-spacer ska bära de off-screen raderna'
+  );
+
+  // Inga trådar tappas: range-matten når sista tråden vid full scroll.
+  const endRange = api._computeInboxVisibleRange(121, 999999, 880, 68);
+  assert.equal(endRange.end, 121, 'sista tråden nås vid nedskrollning');
 });
 
 test('v2-skalet: Mer-menyn stängs när operatören klickar i arbetsytan', () => {
@@ -1258,4 +1273,298 @@ test('v2-skalet: keyed diff tar bort borttagna trådar, lägger till nya och hå
     n.getAttribute('data-thread-id')
   );
   assert.deepEqual(ids, ['t-2', 't-3', 't-4'], 'ordningen ska matcha listan');
+});
+
+test('v2-skalet: virtualisering begränsar DOM-fönstret för stora listor (admin-mönstret)', () => {
+  const { document, api } = loadShell();
+  const big = [];
+  for (let i = 0; i < 200; i += 1) {
+    big.push(makeThread({ id: 't-' + i, customerName: 'Kund ' + i, unread: false }));
+  }
+  api.render(makeCtx({ laneThreads: big, allThreads: big, selected: big[0] }));
+
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const mount = inbox.querySelector('[data-v2-inbox-mount]');
+  assert.ok(mount, 'virtuell mount-scaffold ska finnas');
+
+  // Kärnan: 200 trådar men bara ett litet fönster ligger i DOM (som admin#cco:s
+  // lit-switchover). Utan detta renderades hela listan och frös browsern vid
+  // tre konton.
+  const rowCount = mount.querySelectorAll('[data-thread-id]').length;
+  assert.ok(rowCount > 0, 'något fönster ska renderas');
+  assert.ok(
+    rowCount <= 40,
+    `DOM-fönstret ska vara begränsat (fick ${rowCount} rader av 200)`
+  );
+  assert.ok(rowCount < 200, 'hela listan får INTE ligga i DOM samtidigt');
+
+  // Spacers bär de off-screen radernas höjd så scrollen speglar hela listan.
+  const topH = inbox.querySelector('[data-v2-inbox-spacer-top]').style.height;
+  const botH = inbox.querySelector('[data-v2-inbox-spacer-bottom]').style.height;
+  assert.equal(topH, '0px', 'top-spacer 0 vid scrollTop 0');
+  assert.notEqual(botH, '0px', 'bottom-spacer ska bära de off-screen raderna');
+});
+
+test('v2-skalet: liten lista virtualiseras inte (allt renderas under tröskeln)', () => {
+  const { document, api } = loadShell();
+  const threshold = api._inboxVirtualizeThreshold();
+  const small = [];
+  for (let i = 0; i < 5; i += 1) {
+    small.push(makeThread({ id: 't-' + i, customerName: 'Kund ' + i }));
+  }
+  assert.ok(small.length < threshold, 'fixturen ska ligga under tröskeln');
+  api.render(makeCtx({ laneThreads: small, allThreads: small, selected: small[0] }));
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const rowCount = inbox.querySelectorAll('[data-thread-id]').length;
+  assert.equal(rowCount, 5, 'under tröskeln ska hela listan renderas');
+});
+
+test('v2-skalet: virtualiseringens synliga fönster följer scrollTop', () => {
+  const { api } = loadShell();
+  const atTop = api._computeInboxVisibleRange(200, 0, 880, 68);
+  assert.equal(atTop.start, 0, 'vid toppen börjar fönstret på 0');
+  assert.ok(atTop.end >= 30 && atTop.end <= 200, 'fönstret har rimlig storlek');
+
+  const scrolled = api._computeInboxVisibleRange(200, 3400, 880, 68);
+  assert.ok(scrolled.start > atTop.start, 'fönstret flyttas nedåt vid scroll');
+  assert.ok(scrolled.end > scrolled.start, 'fönstret behåller bredd efter scroll');
+
+  const past = api._computeInboxVisibleRange(200, 999999, 880, 68);
+  assert.equal(past.end, 200, 'slutet klampas till totalen');
+});
+
+test('v2-skalet: verklig scroll flyttar fönstret, håller höjd-invarianten och når sista tråden', () => {
+  const { window, document, api } = loadShell();
+  // Tvinga synkron re-window-väg (ingen frame-loop i linkedom) så scroll-eventet
+  // faktiskt provas end-to-end, inte bara beräkningshjälparen.
+  window.requestAnimationFrame = undefined;
+
+  const N = 300;
+  const big = Array.from({ length: N }, (_, i) =>
+    makeThread({ id: 't-' + i, customerName: 'Kund ' + i, unread: false })
+  );
+  api.render(makeCtx({ laneThreads: big, allThreads: big, selected: big[0] }));
+
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const mount = inbox.querySelector('[data-v2-inbox-mount]');
+  const rowH = api._currentInboxRowHeight();
+  const topSpacer = inbox.querySelector('[data-v2-inbox-spacer-top]');
+  const botSpacer = inbox.querySelector('[data-v2-inbox-spacer-bottom]');
+  const px = (v) => parseInt(String(v || '0'), 10) || 0;
+  const domRows = () => mount.querySelectorAll('[data-thread-id]').length;
+  // Höjd-invariant: topp + fönster*rowH + botten === total*rowH ⇒ ingen drift.
+  const invariant = () => px(topSpacer.style.height) + domRows() * rowH + px(botSpacer.style.height);
+
+  // Vid toppen.
+  assert.equal(invariant(), N * rowH, 'höjd-invariant vid toppen');
+  assert.equal(
+    mount.querySelector('[data-thread-id]').getAttribute('data-thread-id'),
+    't-0',
+    'första raden vid toppen är t-0'
+  );
+
+  // Scrolla till mitten via RIKTIG scrollTop + scroll-event.
+  inbox.scrollTop = Math.floor(N / 2) * rowH;
+  inbox.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+  assert.notEqual(
+    mount.querySelector('[data-thread-id]').getAttribute('data-thread-id'),
+    't-0',
+    'fönstret flyttades bort från toppen'
+  );
+  assert.ok(px(topSpacer.style.height) > 0, 'top-spacer växer när man skrollat ned');
+  assert.equal(invariant(), N * rowH, 'höjd-invariant i mitten (ingen drift/hopp)');
+
+  // Scrolla till botten → sista tråden i DOM, bottom-spacer 0.
+  inbox.scrollTop = N * rowH;
+  inbox.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+  assert.ok(
+    mount.querySelector('[data-thread-id="t-' + (N - 1) + '"]'),
+    'sista tråden nås vid botten (ingen oåtkomlig svans)'
+  );
+  assert.equal(px(botSpacer.style.height), 0, 'bottom-spacer 0 vid botten');
+  assert.equal(invariant(), N * rowH, 'höjd-invariant vid botten');
+});
+
+test('v2-skalet: radhöjden följer densiteten (fast höjd per läge)', () => {
+  const { document, api } = loadShell();
+  api.render(makeCtx());
+  const root = document.getElementById('cco-conv-v2-root');
+  root.dataset.density = 'comfortable';
+  assert.equal(api._currentInboxRowHeight(), 95, 'comfortable = 92 + 3px margin');
+  root.dataset.density = 'compact';
+  assert.equal(api._currentInboxRowHeight(), 55, 'compact = 54 + 1px margin');
+});
+
+test('v2-skalet: .thread har garanterad fast höjd (virtualiseringens kontrakt)', () => {
+  const css = fs.readFileSync(V2_CSS_PATH, 'utf8');
+  assert.match(
+    css,
+    /#cco-conv-v2-root\s+\.thread\s*\{[^}]*height:\s*92px/,
+    'comfortable-rad ska ha fast höjd 92px (matchar shell-konstanten)'
+  );
+  assert.match(
+    css,
+    /#cco-conv-v2-root\s+\.thread\s*\{[^}]*overflow:\s*hidden/,
+    '.thread ska klippa spill så höjden är exakt'
+  );
+  assert.match(
+    css,
+    /\[data-density="compact"\]\s+\.thread\s*\{[^}]*height:\s*54px/,
+    'compact-rad ska ha fast höjd 54px'
+  );
+  assert.match(
+    css,
+    /#cco-conv-v2-root\s+\.thread-tags\s*\{[^}]*flex-wrap:\s*nowrap/,
+    'taggar ska hållas på en rad (deterministisk höjd)'
+  );
+});
+
+test('v2-skalet: mobil sid-scroll driver virtualiseringen (fönster följer viewport, når botten)', () => {
+  // Regression: på mobil är .inbox-shell max-height:none, så .inbox-list växer
+  // och SIDAN scrollar — inte listan. Då måste fönstret räknas ur listans
+  // position i viewporten och fönster-scroll lyssnas på, annars fastnar
+  // fönstret på första sidan och senare trådar blir oåtkomliga.
+  const { window, document, api } = loadShell();
+  window.requestAnimationFrame = undefined;
+  // Scrollmodellen väljs via layout-breakpointen: ställ matchMedia till mobil
+  // (≤768px) så koden går page-scroll-vägen — INTE via scrollHeight (som den
+  // virtuella spacern alltid blåser upp).
+  window.matchMedia = (query) => ({ matches: String(query).indexOf('768') !== -1 });
+
+  const N = 300;
+  const big = Array.from({ length: N }, (_, i) =>
+    makeThread({ id: 't-' + i, customerName: 'Kund ' + i, unread: false })
+  );
+  const rowH = api._currentInboxRowHeight();
+  const totalH = N * rowH;
+
+  api.render(makeCtx({ laneThreads: big, allThreads: big, selected: big[0] }));
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const mount = inbox.querySelector('[data-v2-inbox-mount]');
+  const topSpacer = inbox.querySelector('[data-v2-inbox-spacer-top]');
+  const botSpacer = inbox.querySelector('[data-v2-inbox-spacer-bottom]');
+  const px = (v) => parseInt(String(v || '0'), 10) || 0;
+
+  // Mobil: .inbox-list scrollar INTE internt (scrollTop 0, scrollHeight≈client).
+  // Modellera listans position i viewporten via en stubbad rect; sid-scroll
+  // driver listans top negativt.
+  let listTop = 0;
+  inbox.getBoundingClientRect = () => ({
+    top: listTop,
+    bottom: listTop + totalH,
+    height: totalH,
+    left: 0,
+    right: 0,
+    width: 0,
+  });
+
+  // Vid toppen: första raden t-0 (re-render med stubbad rect aktiv).
+  api.render(makeCtx({ laneThreads: big, allThreads: big, selected: big[0] }));
+  assert.equal(
+    mount.querySelector('[data-thread-id]').getAttribute('data-thread-id'),
+    't-0',
+    'vid sidtoppen är första raden t-0'
+  );
+
+  // Sid-scroll till mitten → listans top går negativ, FÖNSTER-scroll dispatchas.
+  listTop = -Math.floor(N / 2) * rowH;
+  window.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+  assert.notEqual(
+    mount.querySelector('[data-thread-id]').getAttribute('data-thread-id'),
+    't-0',
+    'fönstret följer sidans scroll (inte bara inbox-listans)'
+  );
+  assert.ok(px(topSpacer.style.height) > 0, 'top-spacer växer vid sid-scroll');
+
+  // Sid-scroll till botten → sista tråden nås.
+  listTop = -totalH;
+  window.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+  assert.ok(
+    mount.querySelector('[data-thread-id="t-' + (N - 1) + '"]'),
+    'sista tråden nås via sid-scroll (ingen oåtkomlig svans på mobil)'
+  );
+  assert.equal(px(botSpacer.style.height), 0, 'bottom-spacer 0 vid botten');
+});
+
+test('v2-skalet: scrollmodellen är oberoende av element-mått (framtidsskydd)', () => {
+  // FRAMTIDSSKYDD för breakpoint-logiken — INTE ett reproduktionsfall från
+  // dagens mobil-CSS. I nuvarande layout har .inbox-shell max-height:none på
+  // mobil, så .inbox-list växer till hela innehållet och scrollHeight ===
+  // clientHeight; en mått-baserad heuristik skulle råka välja rätt gren där.
+  // Det här testet låser fast att modellen väljs på LAYOUT-BREAKPOINTEN och
+  // aldrig på element-mått, så att en framtida CSS-ändring som gör listan
+  // höjdbegränsad på mobil inte tyst återinför buggen.
+  //
+  // Det faktiska produktbeteendet (mobil sid-scroll respektive iPad intern
+  // scroll, med riktiga spacers) bevisas av browser-testet:
+  // tests/e2e/cco-v2-virtualization.spec.js.
+  const { window, document, api } = loadShell();
+  window.requestAnimationFrame = undefined;
+  window.matchMedia = (query) => ({ matches: String(query).indexOf('768') !== -1 });
+
+  const N = 300;
+  const big = Array.from({ length: N }, (_, i) =>
+    makeThread({ id: 't-' + i, customerName: 'Kund ' + i, unread: false })
+  );
+  const rowH = api._currentInboxRowHeight();
+  const totalH = N * rowH;
+
+  api.render(makeCtx({ laneThreads: big, allThreads: big, selected: big[0] }));
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const mount = inbox.querySelector('[data-v2-inbox-mount]');
+
+  // Härma riktig browser: spacern ger stor scrollHeight, men listan scrollar
+  // INTE internt (scrollTop stannar 0) eftersom sidan är scroll-containern.
+  Object.defineProperty(inbox, 'scrollHeight', { value: totalH, configurable: true });
+  Object.defineProperty(inbox, 'clientHeight', { value: 640, configurable: true });
+  Object.defineProperty(inbox, 'scrollTop', { value: 0, writable: false, configurable: true });
+
+  let listTop = 0;
+  inbox.getBoundingClientRect = () => ({
+    top: listTop,
+    bottom: listTop + totalH,
+    height: totalH,
+    left: 0,
+    right: 0,
+    width: 0,
+  });
+
+  // Sid-scroll till botten trots scrollTop === 0 hela tiden.
+  listTop = -totalH;
+  window.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+
+  assert.equal(inbox.scrollTop, 0, 'listan scrollar aldrig internt på mobil');
+  assert.ok(
+    mount.querySelector('[data-thread-id="t-' + (N - 1) + '"]'),
+    'sista tråden nås trots att spacern blåser upp scrollHeight'
+  );
+  assert.equal(
+    inbox.querySelector('[data-v2-inbox-spacer-bottom]').style.height,
+    '0px',
+    'bottom-spacer 0 vid botten'
+  );
+});
+
+test('v2-skalet: desktop/surfplatta använder .inbox-list:s interna scroll', () => {
+  // >768px (inkl. 769–1024) håller .inbox-shell höjd-bounded → intern scroll.
+  const { window, document, api } = loadShell();
+  window.requestAnimationFrame = undefined;
+  window.matchMedia = () => ({ matches: false }); // ej mobil
+
+  const N = 300;
+  const big = Array.from({ length: N }, (_, i) =>
+    makeThread({ id: 't-' + i, customerName: 'Kund ' + i, unread: false })
+  );
+  api.render(makeCtx({ laneThreads: big, allThreads: big, selected: big[0] }));
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const mount = inbox.querySelector('[data-v2-inbox-mount]');
+  const rowH = api._currentInboxRowHeight();
+
+  // Om koden felaktigt läste viewport-rect här skulle fönstret inte flytta sig.
+  inbox.scrollTop = N * rowH;
+  inbox.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+  assert.ok(
+    mount.querySelector('[data-thread-id="t-' + (N - 1) + '"]'),
+    'intern scroll driver fönstret på desktop/surfplatta'
+  );
 });
