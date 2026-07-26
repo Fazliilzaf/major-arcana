@@ -1,10 +1,10 @@
 name: arcana-ci
 
+# Manuell körning endast. Auto-triggern (push/pull_request) är avstängd
+# 2026-07-15: Actions är budgetkapat och lokala Mac-bygg verifierar snabbare
+# och gratis. Kör vid behov via "Run workflow" (workflow_dispatch).
 on:
-  push:
-    branches:
-      - "**"
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   smoke:
