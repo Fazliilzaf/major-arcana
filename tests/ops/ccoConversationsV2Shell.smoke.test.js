@@ -1093,6 +1093,104 @@ test('v2-skalet: Svarstudio öppnar admin#cco:s panel — ingen egen V2-studio',
   }
 });
 
+test('v2-skalet: snabbsvarets studio-knapp går via launchern med preset-kontext', () => {
+  // Codex-fynd: det tidigare testet mockade bara handlers.action, så snabbsvaret
+  // föll tillbaka på app-handlern eftersom CCOBottomActions saknades i harnessen.
+  // I produktion anropar skalet launchern DIREKT med preset-kontext. Här spionerar
+  // vi på den riktiga vägen.
+  const { window, document, api } = loadShell();
+  const launcherCalls = [];
+  window.CCOBottomActions = {
+    run(action, context) {
+      launcherCalls.push({ action, context });
+    },
+  };
+
+  const thread = makeThread({
+    id: 'contact@hairtpclinic.com:conv-qr',
+    customerName: 'Anna Karlsson',
+    subject: 'Boka konsultation',
+    customerEmail: 'anna@example.com',
+  });
+  const fallbackActions = [];
+  api.render(
+    makeCtx({
+      laneThreads: [thread],
+      allThreads: [thread],
+      selected: thread,
+      handlers: {
+        ...makeCtx().handlers,
+        action(name, passedThread) {
+          fallbackActions.push([name, passedThread && passedThread.id]);
+        },
+      },
+    })
+  );
+
+  const qrStudio = document.querySelector('[data-v3-qr-studio]');
+  assert.ok(qrStudio, 'snabbsvarets studio-knapp ska finnas');
+  qrStudio.dispatchEvent(new window.Event('click', { bubbles: true }));
+
+  assert.equal(launcherCalls.length, 1, 'launchern ska ha anropats exakt en gång');
+  assert.equal(launcherCalls[0].action, 'svarstudio', "run() ska anropas med 'svarstudio'");
+  assert.equal(
+    fallbackActions.length,
+    0,
+    'med launcher laddad ska app-handler-fallbacken INTE användas'
+  );
+
+  // Preset-kontexten ska bära trådens identitet, inte tvinga panelen att
+  // skrapa legacy-DOM.
+  const context = launcherCalls[0].context;
+  assert.ok(context, 'run() ska få preset-kontext');
+  assert.equal(context.source, 'cco-conversations-v2');
+  assert.equal(context.conversationKey, 'contact@hairtpclinic.com:conv-qr');
+  assert.equal(context.subject, 'Boka konsultation');
+  assert.equal(context.email, 'anna@example.com');
+  // Patientlåset är fail-closed: utan bekräftad handoff sätts inget patientId.
+  assert.equal(context.patientId, '', 'obekräftad patient får aldrig låsas i kontexten');
+});
+
+test('v2-skalet: kommandopalettens Svarstudio går samma launcher-väg', () => {
+  const { window, document, api } = loadShell();
+  const launcherCalls = [];
+  window.CCOBottomActions = {
+    run(action, context) {
+      launcherCalls.push({ action, context });
+    },
+  };
+
+  const thread = makeThread({ id: 'kons@hairtpclinic.com:conv-cmdk' });
+  api.render(makeCtx({ laneThreads: [thread], allThreads: [thread], selected: thread }));
+
+  // Öppna kommandopaletten (⌘K) och kör posten "Öppna Svarstudio".
+  // linkedom saknar KeyboardEvent-konstruktorn, så vi bygger en Event och
+  // sätter fälten handlern faktiskt läser (key, metaKey).
+  // linkedom saknar dessutom input.setSelectionRange, som paletten anropar för
+  // att placera markören. Polyfilla den — det är en harness-lucka, inte
+  // produktbeteende.
+  try {
+    if (window.HTMLInputElement && window.HTMLInputElement.prototype) {
+      window.HTMLInputElement.prototype.setSelectionRange = function () {};
+    }
+  } catch (_polyfillError) {
+    /* ignoreras — fångas nedan om paletten ändå inte kan renderas */
+  }
+  const cmdkKey = new window.Event('keydown', { bubbles: true });
+  cmdkKey.key = 'k';
+  cmdkKey.metaKey = true;
+  document.dispatchEvent(cmdkKey);
+  const items = Array.from(document.querySelectorAll('[data-v3-cmdk-i]'));
+  assert.ok(items.length, 'kommandopaletten ska ha öppnats med poster');
+  const studioItem = items.find((item) => /Svarstudio/.test(item.textContent || ''));
+  assert.ok(studioItem, 'posten "Öppna Svarstudio" ska finnas i paletten');
+  studioItem.dispatchEvent(new window.Event('click', { bubbles: true }));
+
+  assert.equal(launcherCalls.length, 1, 'paletten ska öppna admins panel via launchern');
+  assert.equal(launcherCalls[0].action, 'svarstudio');
+  assert.equal(launcherCalls[0].context.conversationKey, 'kons@hairtpclinic.com:conv-cmdk');
+});
+
 test('v2-skalet: den inbyggda studions draft/send-väg är borta ur skalet', () => {
   const shellSource = fs.readFileSync(SHELL_PATH, 'utf8');
   // Ingen parallell studio-implementation kvar — bara delegeringen.
