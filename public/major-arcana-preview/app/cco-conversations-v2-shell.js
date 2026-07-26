@@ -1681,17 +1681,27 @@
     });
   }
 
-  // Vilken behållare scrollar faktiskt? På desktop är .inbox-list en bounded
-  // scroll-container (overflow:auto + max-height) → använd dess scrollTop. På
-  // mobil sätts .inbox-shell till max-height:none så listan växer med innehållet
-  // och SIDAN scrollar i stället — då räknas fönstret ur listans position i
-  // viewporten (annars fastnar scrollTop på 0 och senare trådar blir oåtkomliga).
+  // Vilken behållare scrollar faktiskt? Scrollmodellen följer LAYOUT-BREAKPOINTEN
+  // — samma signal som CSS:en byter på — inte element-mått. Vid ≤768px sätts
+  // .inbox-shell till max-height:none → listan växer och SIDAN scrollar; däröver
+  // (inkl. surfplatta 769–1024) är .inbox-shell höjd-bounded och .inbox-list
+  // scrollar internt.
+  //
+  // Avgör INTE via `scrollHeight > clientHeight`: virtualiseringens bottom-spacer
+  // gör alltid .inbox-list:s scrollHeight större än clientHeight, även på mobil
+  // där sidan scrollar — det valde felaktigt intern-grenen och läste scrollTop=0.
   function inboxScrollMetrics(el) {
-    var internal =
-      (el.scrollTop || 0) > 0 || (el.scrollHeight || 0) > (el.clientHeight || 0) + 2;
-    if (internal) {
+    var pageScroll = false;
+    try {
+      pageScroll = Boolean(isMobileViewport());
+    } catch (_e) {
+      pageScroll = false;
+    }
+    if (!pageScroll) {
+      // Desktop/surfplatta: .inbox-list är den bounded interna scroll-containern.
       return { scrollTop: el.scrollTop || 0, clientHeight: el.clientHeight || 0 };
     }
+    // Mobil: sidan scrollar → räkna fönstret ur listans position i viewporten.
     var rect =
       typeof el.getBoundingClientRect === 'function'
         ? el.getBoundingClientRect()

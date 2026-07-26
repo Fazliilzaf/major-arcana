@@ -1426,6 +1426,10 @@ test('v2-skalet: mobil sid-scroll driver virtualiseringen (fönster följer view
   // fönstret på första sidan och senare trådar blir oåtkomliga.
   const { window, document, api } = loadShell();
   window.requestAnimationFrame = undefined;
+  // Scrollmodellen väljs via layout-breakpointen: ställ matchMedia till mobil
+  // (≤768px) så koden går page-scroll-vägen — INTE via scrollHeight (som den
+  // virtuella spacern alltid blåser upp).
+  window.matchMedia = (query) => ({ matches: String(query).indexOf('768') !== -1 });
 
   const N = 300;
   const big = Array.from({ length: N }, (_, i) =>
@@ -1480,4 +1484,81 @@ test('v2-skalet: mobil sid-scroll driver virtualiseringen (fönster följer view
     'sista tråden nås via sid-scroll (ingen oåtkomlig svans på mobil)'
   );
   assert.equal(px(botSpacer.style.height), 0, 'bottom-spacer 0 vid botten');
+});
+
+test('v2-skalet: bottom-spacern lurar inte scrollmodellen på mobil (regression)', () => {
+  // Codex-fyndet: virtualiseringens bottom-spacer gör alltid
+  // .inbox-list.scrollHeight > clientHeight — även på mobil där SIDAN scrollar.
+  // En heuristik byggd på det valde intern-scroll-grenen, läste scrollTop=0 och
+  // fastnade på de första trådarna. Här sätts spacer-lika mått explicit och
+  // testet kräver att fönstret ändå följer sid-scrollen.
+  const { window, document, api } = loadShell();
+  window.requestAnimationFrame = undefined;
+  window.matchMedia = (query) => ({ matches: String(query).indexOf('768') !== -1 });
+
+  const N = 300;
+  const big = Array.from({ length: N }, (_, i) =>
+    makeThread({ id: 't-' + i, customerName: 'Kund ' + i, unread: false })
+  );
+  const rowH = api._currentInboxRowHeight();
+  const totalH = N * rowH;
+
+  api.render(makeCtx({ laneThreads: big, allThreads: big, selected: big[0] }));
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const mount = inbox.querySelector('[data-v2-inbox-mount]');
+
+  // Härma riktig browser: spacern ger stor scrollHeight, men listan scrollar
+  // INTE internt (scrollTop stannar 0) eftersom sidan är scroll-containern.
+  Object.defineProperty(inbox, 'scrollHeight', { value: totalH, configurable: true });
+  Object.defineProperty(inbox, 'clientHeight', { value: 640, configurable: true });
+  Object.defineProperty(inbox, 'scrollTop', { value: 0, writable: false, configurable: true });
+
+  let listTop = 0;
+  inbox.getBoundingClientRect = () => ({
+    top: listTop,
+    bottom: listTop + totalH,
+    height: totalH,
+    left: 0,
+    right: 0,
+    width: 0,
+  });
+
+  // Sid-scroll till botten trots scrollTop === 0 hela tiden.
+  listTop = -totalH;
+  window.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+
+  assert.equal(inbox.scrollTop, 0, 'listan scrollar aldrig internt på mobil');
+  assert.ok(
+    mount.querySelector('[data-thread-id="t-' + (N - 1) + '"]'),
+    'sista tråden nås trots att spacern blåser upp scrollHeight'
+  );
+  assert.equal(
+    inbox.querySelector('[data-v2-inbox-spacer-bottom]').style.height,
+    '0px',
+    'bottom-spacer 0 vid botten'
+  );
+});
+
+test('v2-skalet: desktop/surfplatta använder .inbox-list:s interna scroll', () => {
+  // >768px (inkl. 769–1024) håller .inbox-shell höjd-bounded → intern scroll.
+  const { window, document, api } = loadShell();
+  window.requestAnimationFrame = undefined;
+  window.matchMedia = () => ({ matches: false }); // ej mobil
+
+  const N = 300;
+  const big = Array.from({ length: N }, (_, i) =>
+    makeThread({ id: 't-' + i, customerName: 'Kund ' + i, unread: false })
+  );
+  api.render(makeCtx({ laneThreads: big, allThreads: big, selected: big[0] }));
+  const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
+  const mount = inbox.querySelector('[data-v2-inbox-mount]');
+  const rowH = api._currentInboxRowHeight();
+
+  // Om koden felaktigt läste viewport-rect här skulle fönstret inte flytta sig.
+  inbox.scrollTop = N * rowH;
+  inbox.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+  assert.ok(
+    mount.querySelector('[data-thread-id="t-' + (N - 1) + '"]'),
+    'intern scroll driver fönstret på desktop/surfplatta'
+  );
 });
