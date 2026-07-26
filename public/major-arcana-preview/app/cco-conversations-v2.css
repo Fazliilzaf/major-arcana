@@ -864,11 +864,14 @@ html[data-conversations-v2="on"]
 #cco-conv-v2-root .msg-bubble--html {
   padding: 0;
   overflow: hidden;
-  min-width: min(100%, 320px);
+  /* A percentage-only width collapses to the iframe's intrinsic width while
+     this bubble is measured in the message flex row. Match the established
+     mail reader width, while keeping it responsive in narrower workspaces. */
+  width: min(720px, 62vw);
 }
 #cco-conv-v2-root .v2-msg-html-frame {
   display: block;
-  width: min(100%, 720px);
+  width: 100%;
   min-height: 120px;
   border: 0;
   background: #fffdfb;

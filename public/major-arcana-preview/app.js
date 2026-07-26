@@ -3035,13 +3035,17 @@
     const pending = __runtimeShellPendingScopes;
     __runtimeShellPendingScopes = new Set();
     const effectiveScope = resolveRuntimeShellScope(pending);
-    if (typeof __renderHooks.runtimeShell === "function") {
-      __renderHooks.runtimeShell({ scope: effectiveScope });
-      return;
-    }
-    if (typeof renderRuntimeConversationShell === "function") {
-      renderRuntimeConversationShell({ scope: effectiveScope });
-    }
+    // Mätpunkt: HÄR sker den faktiska målningen (paintRuntimeShell mäter bara
+    // schemaläggningen när den här vägen används).
+    __ccoPerf.time("shell:flush_render", () => {
+      if (typeof __renderHooks.runtimeShell === "function") {
+        __renderHooks.runtimeShell({ scope: effectiveScope });
+        return;
+      }
+      if (typeof renderRuntimeConversationShell === "function") {
+        renderRuntimeConversationShell({ scope: effectiveScope });
+      }
+    });
   }
 
   let __renderScheduled = false;
@@ -3353,6 +3357,270 @@
     },
   ]);
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * TILLFÄLLIG LADDNINGSDIAGNOSTIK (opt-in, PII-fri)
+   *
+   * Syfte: avgöra VAR tiden går när operatören vidgar mailbox-scopet (3→4,
+   * 3→9) — nätverk, payload-merge, legacy-shell eller V2-state. Utan detta är
+   * varje optimering ett antagande.
+   *
+   * Aktiveras endast med ?ccoPerf=1 eller localStorage['cco.perf']='1'.
+   * Avstängd kostar den ett booleskt test per mätpunkt.
+   *
+   * PII: registrerar ENDAST fasnamn, millisekunder och antal (trådar/
+   * mailboxar/rader). Aldrig adresser, ämnen, namn eller innehåll.
+   * ───────────────────────────────────────────────────────────────────────── */
+  /**
+   * Tillåtna fasnamn. record() släpper INTE igenom fritext — okända faser
+   * kollapsar till "other" så att en framtida anropare aldrig kan smuggla in
+   * PII via fasnamnet.
+   */
+  const CCO_PERF_PHASES = [
+    "select:mailbox_scope_sync",
+    "fetch:worklist_chunk",
+    "merge:worklist_chunks",
+    "apply:truth_payload",
+    "shell:schedule_all",
+    "shell:schedule_queue",
+    "shell:schedule_focus",
+    "shell:schedule_chrome",
+    "shell:schedule_queue+focus",
+    "shell:schedule_other",
+    "shell:flush_render",
+    "v2:shell_render",
+    "v2:lane_counts",
+    "longtask",
+    "other",
+  ];
+
+  /** Tillåtna räknare. Endast dessa nycklar, och endast numeriska värden. */
+  const CCO_PERF_COUNT_KEYS = [
+    "threads",
+    "rows",
+    "mailboxes",
+    "lanes",
+    "chunks",
+    "threadsBefore",
+  ];
+
+  const __ccoPerf = (() => {
+    let enabled = false;
+    try {
+      enabled =
+        new URLSearchParams(window.location.search).get("ccoPerf") === "1" ||
+        window.localStorage.getItem("cco.perf") === "1";
+    } catch (_flagError) {
+      enabled = false;
+    }
+
+    const entries = [];
+    const MAX_ENTRIES = 800;
+    const allowedPhases = new Set(CCO_PERF_PHASES);
+
+    /** Okänt fasnamn kollapsar till "other" — aldrig fritext i loggen. */
+    function safePhase(phase) {
+      const candidate = typeof phase === "string" ? phase : "";
+      return allowedPhases.has(candidate) ? candidate : "other";
+    }
+
+    /** Endast allowlistade nycklar med numeriska värden släpps igenom. */
+    function safeCounts(counts) {
+      const safe = {};
+      if (counts && typeof counts === "object") {
+        CCO_PERF_COUNT_KEYS.forEach((key) => {
+          const value = Number(counts[key]);
+          if (Number.isFinite(value)) safe[key] = value;
+        });
+      }
+      return safe;
+    }
+
+    /**
+     * start/end sparas per synkron fas så att en observerad long task kan
+     * attribueras till det fasintervall den överlappar. Utan det kan man se
+     * ATT en long task inträffade men inte VAR tiden låg — vilket är hela
+     * frågan mätningen ska besvara.
+     */
+    function record(phase, ms, counts, startedAt, kind) {
+      if (!enabled) return null;
+      const duration = Math.round(Number(ms) || 0);
+      const end = Number.isFinite(startedAt)
+        ? Math.round(startedAt + duration)
+        : Math.round(performance.now());
+      const entry = {
+        phase: safePhase(phase),
+        // "sync" = kod som faktiskt kan blockera main-tråden.
+        // "async" = spänner över nätverksväntan och blockerar INTE.
+        kind: kind === "async" || kind === "longtask" ? kind : "sync",
+        ms: duration,
+        start: end - duration,
+        end,
+        ...safeCounts(counts),
+      };
+      entries.push(entry);
+      if (entries.length > MAX_ENTRIES) entries.splice(0, entries.length - MAX_ENTRIES);
+      return entry;
+    }
+
+    /** Mäter en synkron funktion utan att ändra dess retur/kast-beteende. */
+    function time(phase, fn, counts) {
+      if (!enabled) return fn();
+      const started = performance.now();
+      try {
+        return fn();
+      } finally {
+        record(
+          phase,
+          performance.now() - started,
+          typeof counts === "function" ? counts() : counts,
+          started,
+          "sync"
+        );
+      }
+    }
+
+    /** Samma för async — mäter till promisen settlar. */
+    async function timeAsync(phase, fn, counts) {
+      if (!enabled) return fn();
+      const started = performance.now();
+      try {
+        return await fn();
+      } finally {
+        record(
+          phase,
+          performance.now() - started,
+          typeof counts === "function" ? counts() : counts,
+          started,
+          "async"
+        );
+      }
+    }
+
+    /**
+     * Kopplar en long task till den fas vars intervall den överlappar mest.
+     * Long tasks rapporteras efter att uppgiften avslutats, så attribueringen
+     * sker retroaktivt mot redan registrerade fasintervall.
+     *
+     * ENDAST synkrona faser är kandidater. En async-fas (t.ex.
+     * fetch:worklist_chunk) spänner över nätverksväntan och blockerar aldrig
+     * main-tråden — att attribuera en long task dit skulle peka ut nätverket
+     * för något som i själva verket var synkront arbete.
+     */
+    function attributeLongTask(taskStart, taskEnd) {
+      let best = "";
+      let bestOverlap = 0;
+      entries.forEach((entry) => {
+        if (entry.kind !== "sync") return;
+        const overlap = Math.min(entry.end, taskEnd) - Math.max(entry.start, taskStart);
+        if (overlap > bestOverlap) {
+          bestOverlap = overlap;
+          best = entry.phase;
+        }
+      });
+      return { phase: best, overlapMs: Math.max(0, Math.round(bestOverlap)) };
+    }
+
+    if (enabled) {
+      // Long tasks (>50ms) = main-tråden blockerad. Det enda som kan BEVISA
+      // en fliklåsning; allt annat är indicier.
+      try {
+        new PerformanceObserver((list) => {
+          list.getEntries().forEach((observed) => {
+            const taskStart = Math.round(observed.startTime);
+            const taskEnd = Math.round(observed.startTime + observed.duration);
+            const attribution = attributeLongTask(taskStart, taskEnd);
+            const entry = record(
+              "longtask",
+              observed.duration,
+              null,
+              observed.startTime,
+              "longtask"
+            );
+            if (entry) {
+              entry.attributedTo = safePhase(attribution.phase);
+              entry.overlapMs = attribution.overlapMs;
+            }
+          });
+        }).observe({ entryTypes: ["longtask"] });
+      } catch (_observerError) {
+        /* longtask stöds inte överallt — övriga mätpunkter räcker. */
+      }
+    }
+
+    function summary() {
+      const byPhase = {};
+      entries.forEach((entry) => {
+        const bucket = (byPhase[entry.phase] = byPhase[entry.phase] || {
+          calls: 0,
+          totalMs: 0,
+          maxMs: 0,
+        });
+        bucket.calls += 1;
+        bucket.totalMs += entry.ms;
+        bucket.maxMs = Math.max(bucket.maxMs, entry.ms);
+      });
+      return byPhase;
+    }
+
+    /** Vilka faser blockerade main-tråden, och hur länge. */
+    function longTasks() {
+      const byPhase = {};
+      entries
+        .filter((entry) => entry.phase === "longtask")
+        .forEach((entry) => {
+          const key = entry.attributedTo || "other";
+          const bucket = (byPhase[key] = byPhase[key] || {
+            blockingTasks: 0,
+            totalBlockedMs: 0,
+            longestMs: 0,
+          });
+          bucket.blockingTasks += 1;
+          bucket.totalBlockedMs += entry.ms;
+          bucket.longestMs = Math.max(bucket.longestMs, entry.ms);
+        });
+      return byPhase;
+    }
+
+    /** Maskerad tidslinje i kronologisk ordning — endast fas, tid och antal. */
+    function timeline() {
+      return entries
+        .slice()
+        .sort((left, right) => left.start - right.start)
+        .map((entry) => ({ ...entry }));
+    }
+
+    return {
+      get enabled() {
+        return enabled;
+      },
+      entries,
+      record,
+      time,
+      timeAsync,
+      summary,
+      longTasks,
+      timeline,
+      dump() {
+        /* eslint-disable no-console */
+        console.log("Tid per fas:");
+        console.table(summary());
+        console.log("Blockerad main-tråd, per fas (long tasks):");
+        console.table(longTasks());
+        /* eslint-enable no-console */
+        return { summary: summary(), longTasks: longTasks() };
+      },
+      clear() {
+        entries.length = 0;
+      },
+    };
+  })();
+
+  try {
+    window.__ccoPerf = __ccoPerf;
+  } catch (_exposeError) {
+    /* tyst */
+  }
 
   function normalizeText(value) {
     return typeof value === "string" ? value.trim() : "";
@@ -40317,10 +40585,17 @@
     const activeLane = normalizePrimaryQueueLaneId(
       asText(workspaceSourceOfTruth.getActiveLaneId() || state.selection?.laneId || "all") || "all"
     );
-    const lanes = CONVERSATIONS_V2_LANES.map((lane) => ({
-      ...lane,
-      count: getQueueLaneThreads(lane.id, scoped).length,
-    }));
+    // Mätpunkt: lane-counts gör ett fullt pass per lane över hela trådlistan.
+    // Vi mäter i stället för att anta att det är dyrt.
+    const lanes = __ccoPerf.time(
+      "v2:lane_counts",
+      () =>
+        CONVERSATIONS_V2_LANES.map((lane) => ({
+          ...lane,
+          count: getQueueLaneThreads(lane.id, scoped).length,
+        })),
+      { threads: scoped.length, lanes: CONVERSATIONS_V2_LANES.length }
+    );
     const selectedCandidate = getSelectedRuntimeFocusThread() || getSelectedRuntimeThread() || null;
     const runtimeThreadKey = (thread) =>
       thread?.id || thread?.conversationKey || thread?.conversationId || thread?.mailboxConversationId || "";
@@ -40348,7 +40623,8 @@
             : {},
         }
       : null;
-    window.ArcanaConversationsV2.render({
+    // Mätpunkt: hela V2-skalets render (inkl. inbox-virtualisering).
+    __ccoPerf.time("v2:shell_render", () => window.ArcanaConversationsV2.render({
       lanes,
       activeLane,
       laneThreads: getQueueLaneThreads(activeLane, scoped),
@@ -40601,7 +40877,7 @@
           return runV2BulkConversationAction(name, threadIds);
         },
       },
-    });
+    }), { threads: scoped.length });
   }
 
   function renderRuntimeConversationShell(options = {}) {

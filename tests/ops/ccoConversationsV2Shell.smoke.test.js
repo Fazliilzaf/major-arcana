@@ -852,6 +852,21 @@ test('v2-skalet: HTML-mail renderas sandboxat, utan Outlook-notis eller rå CID'
   assert.match(html, /En inlinebild saknas i det här äldre mailet/);
 });
 
+test('v2-skalet: HTML-mail behåller en läsbar responsiv bredd i meddelanderaden', () => {
+  const css = fs.readFileSync(V2_CSS_PATH, 'utf8');
+
+  assert.match(
+    css,
+    /\.msg-bubble--html\s*\{[\s\S]*?width:\s*min\(720px,\s*62vw\)/,
+    'HTML-mail får inte krympa till iframens inbyggda bredd i flex-raden'
+  );
+  assert.match(
+    css,
+    /\.v2-msg-html-frame\s*\{[\s\S]*?width:\s*100%/,
+    'iframen ska fylla den responsiva HTML-mailbubblan'
+  );
+});
+
 test('v2-skalet: äldre null-mailDocument faller tillbaka till text utan att krascha', () => {
   const { document, api } = loadShell();
   const legacyThread = makeThread({
