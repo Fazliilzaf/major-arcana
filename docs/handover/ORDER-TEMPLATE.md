@@ -11,7 +11,15 @@
 ## Bas och observation (obligatoriskt — fylls INNAN något påstående görs)
 
 **Bas-commit:** {hash} ({gren}) · verifiera med `git rev-parse --short HEAD`
-**Miljö:** {prod-URL | lokal port | worktree — ange om `npm ci` kördes och om `.env` fanns}
+**Kodmiljö:** {prod-URL | lokal port | worktree — ange om `npm ci` kördes och om `.env` fanns}
+**Flikens `visibilityState`:** {`visible` | `hidden`} — obligatoriskt för alla runtime-mätningar.
+
+> En dold flik är inte ett långsamt system, det är ett **pausat**. `requestAnimationFrame`
+> körs inte medan `document.visibilityState === "hidden"`, så allt som schemaläggs via rAF
+> väntar — rendering, montering, mätpunkter. Mätningar i en bakgrundsflik (vanligt när
+> fliken skapas eller navigeras via CDP/automation utan fokus) visar uteblivna renderingar
+> som ser ut som buggar. Kontrollera med `document.visibilityState` **i samma körning** som
+> mätningen, inte efteråt.
 
 ### Regel: ett stickprov är inte ett tillstånd
 
@@ -33,12 +41,14 @@ systemet var stabilt i det.
 
 | Påstående | Fönster (från–till efter load) | Stabilt? | Belägg |
 |---|---|---|---|
-| _ex:_ `#cco-conv-v2-root` saknas | 8–40 s | **NEJ** — boot + longtask pågick | indraget, felaktigt |
-| _ex:_ V2 monterad, äger ytan | 163,5 s, efter sista longtask | ja | mount-recorder + DOM-kedja |
+| _ex:_ `#cco-conv-v2-root` saknas | 8–40 s, flik `visible` | **NEJ** — boot + longtask pågick | indraget, felaktigt |
+| _ex:_ V2 monterar aldrig, blank sida | 0–161 s, flik **`hidden`** | **NEJ** — rAF pausad | indraget, var mätuppställningen |
+| _ex:_ V2 monterad, äger ytan | 163,5 s, efter sista longtask, flik `visible` | ja | mount-recorder + DOM-kedja |
 
-**Stabilt = NEJ** om något av detta pågick i fönstret: boot, en longtask, eller
-en inflight-fetch som påverkar ytan. Vid NEJ får observationen inte formuleras
-som ett tillstånd — den får formuleras som "vid tidpunkt X gällde Y".
+**Stabilt = NEJ** om något av detta pågick i fönstret: boot, en longtask, en
+inflight-fetch som påverkar ytan, **eller att fliken var `hidden`**. Vid NEJ får
+observationen inte formuleras som ett tillstånd — den får formuleras som "vid
+tidpunkt X, under villkor Z, gällde Y".
 
 ## Uppdrag
 
