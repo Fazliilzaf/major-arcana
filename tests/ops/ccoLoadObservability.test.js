@@ -28,6 +28,13 @@ const RUNTIME = fs.readFileSync(path.join(PREVIEW, 'runtime-dom-live-composition
  * Kör recorder-IIFE:n isolerat med en stubbad window, så testet kan mäta dess
  * beteende utan att ladda hela app.js.
  */
+const CCO_PERF_CONSTS = (() => {
+  const start = APP.indexOf('const CCO_PERF_PHASES = [');
+  const end = APP.indexOf('];', APP.indexOf('const CCO_PERF_COUNT_KEYS = [')) + 2;
+  assert.ok(start > -1 && end > start, 'allowlistorna ska finnas i app.js');
+  return APP.slice(start, end);
+})();
+
 function loadRecorder({ search = '', lsValue = null } = {}) {
   const start = APP.indexOf('const __ccoPerf = (() => {');
   assert.ok(start > -1, '__ccoPerf-recordern ska finnas i app.js');
@@ -36,15 +43,20 @@ function loadRecorder({ search = '', lsValue = null } = {}) {
   const source = APP.slice(start, end + '\n  })();'.length);
 
   const observed = [];
+  // Styrbar klocka så att fas-intervall (start/end) kan sättas exakt i test.
+  const clock = { value: 0 };
+  // Fångar longtask-observerns callback så testet kan mata in riktiga
+  // PerformanceEntry-lika poster och verifiera attribueringen.
+  const observerHolder = { cb: null };
   const sandbox = {
     window: {
       location: { search },
       localStorage: { getItem: () => lsValue },
     },
-    performance: { now: () => observed.length * 7 },
+    performance: { now: () => clock.value },
     PerformanceObserver: class {
       constructor(cb) {
-        this.cb = cb;
+        observerHolder.cb = cb;
       }
       observe() {
         observed.push('observed');
@@ -57,7 +69,15 @@ function loadRecorder({ search = '', lsValue = null } = {}) {
     Math,
     String,
   };
-  vm.runInNewContext(`${source}\n;this.result = __ccoPerf;`, sandbox);
+  vm.runInNewContext(
+    `${CCO_PERF_CONSTS}\n${source}\n;this.result = __ccoPerf;`,
+    sandbox
+  );
+  sandbox.result.__clock = clock;
+  sandbox.result.__emitLongTask = (startTime, duration) => {
+    if (!observerHolder.cb) throw new Error('longtask-observern registrerades aldrig');
+    observerHolder.cb({ getEntries: () => [{ startTime, duration }] });
+  };
   return sandbox.result;
 }
 
@@ -75,24 +95,34 @@ test('diagnostiken slås på via ?ccoPerf=1 respektive localStorage', () => {
   assert.equal(loadRecorder({ lsValue: '0' }).enabled, false);
 });
 
-test('endast fasnamn, ms och numeriska antal registreras — aldrig PII', () => {
+test('PII filtreras bort ur både count-nycklar och fasnamn (allowlist)', () => {
   const perf = loadRecorder({ search: '?ccoPerf=1' });
-  // Försök smuggla in adresser/ämnen via counts-objektet.
+  // Försök smuggla in adresser/ämnen via BÅDE counts-nycklar och fasnamn.
   perf.record('apply:truth_payload', 42, {
     rows: 120,
     customerEmail: 'patient@hairtpclinic.com',
     subject: 'Boka PRP-behandling',
-    mailbox: 'fazli@hairtpclinic.com',
+    'fazli@hairtpclinic.com': 5,
   });
+  perf.record('kund: patient@hairtpclinic.com — Boka PRP', 10, { threads: 3 });
 
-  assert.equal(perf.entries.length, 1);
-  const entry = perf.entries[0];
-  assert.equal(entry.rows, 120, 'numeriska antal ska behållas');
-  assert.equal('customerEmail' in entry, false, 'fritext får inte lagras');
-  assert.equal('subject' in entry, false, 'ämnen får inte lagras');
-  assert.equal('mailbox' in entry, false, 'adresser får inte lagras');
+  const entries = perf.entries;
+  assert.equal(entries.length, 2);
 
-  const serialized = JSON.stringify(perf.entries);
+  // Allowlistade räknare behålls, allt annat faller bort.
+  assert.equal(entries[0].rows, 120);
+  assert.equal('customerEmail' in entries[0], false, 'okänd nyckel får inte lagras');
+  assert.equal('subject' in entries[0], false, 'ämnen får inte lagras');
+  assert.equal(
+    'fazli@hairtpclinic.com' in entries[0],
+    false,
+    'PII i NYCKELN får inte lagras — även med numeriskt värde'
+  );
+
+  // Okänt fasnamn kollapsar till "other" i stället för att lagras som fritext.
+  assert.equal(entries[1].phase, 'other', 'okänt fasnamn ska kollapsa till "other"');
+
+  const serialized = JSON.stringify(entries);
   assert.equal(serialized.includes('@'), false, 'ingen post får innehålla e-postadress');
   assert.equal(serialized.includes('PRP'), false, 'ingen post får innehålla ämnesinnehåll');
 });
@@ -145,7 +175,16 @@ test('mätpunkterna sitter kvar på de ställen vi ska mäta', () => {
   assert.match(RUNTIME, /"fetch:worklist_chunk"/);
   assert.match(RUNTIME, /"merge:worklist_chunks"/);
   assert.match(RUNTIME, /"apply:truth_payload"/);
-  assert.match(RUNTIME, /"shell:paint_"/);
+  // paintRuntimeShell mäter bara SCHEMALÄGGNINGEN; den faktiska målningen
+  // mäts i flush-callbacken i app.js. Båda måste finnas.
+  assert.match(RUNTIME, /"shell:schedule_"/);
+  assert.doesNotMatch(RUNTIME, /"shell:paint_"/, 'det missvisande paint-namnet ska vara borta');
+  assert.match(APP, /__ccoPerf\.time\(\s*"shell:flush_render"/);
+  assert.match(
+    APP,
+    /function flushScheduledRuntimeConversationShell\(\)[\s\S]{0,400}shell:flush_render/,
+    'flush-callbacken ska vara instrumenterad — det är där målningen sker'
+  );
 });
 
 test('runtime-modulen mäter utan att kräva att recordern finns (no-op-säker)', () => {
@@ -157,4 +196,63 @@ test('runtime-modulen mäter utan att kräva att recordern finns (no-op-säker)'
   const sandbox = { windowObject: {} };
   vm.runInNewContext(`${source}\nthis.result = perfTime('x', () => 'kördes ändå');`, sandbox);
   assert.equal(sandbox.result, 'kördes ändå');
+});
+
+test('long tasks attribueras till den fas de överlappar (svarar på huvudfrågan)', () => {
+  const perf = loadRecorder({ search: '?ccoPerf=1' });
+  const clock = perf.__clock;
+
+  // Fas A: 0–20ms (billig). Fas B: 100–900ms (dyr).
+  clock.value = 0;
+  perf.time('merge:worklist_chunks', () => {
+    clock.value = 20;
+  });
+  clock.value = 100;
+  perf.time('apply:truth_payload', () => {
+    clock.value = 900;
+  });
+
+  // Fasintervallen måste finnas — utan start/end går attribuering inte alls.
+  const phases = perf.entries.filter((entry) => entry.phase !== 'longtask');
+  assert.equal(phases[0].start, 0);
+  assert.equal(phases[0].end, 20);
+  assert.equal(phases[1].start, 100);
+  assert.equal(phases[1].end, 900);
+
+  // En riktig long task 200–800ms ligger helt inuti fas B → observern ska
+  // attribuera den dit, inte till fas A.
+  clock.value = 900;
+  perf.__emitLongTask(200, 600);
+
+  const longTasks = perf.entries.filter((entry) => entry.phase === 'longtask');
+  assert.equal(longTasks.length, 1);
+  assert.equal(
+    longTasks[0].attributedTo,
+    'apply:truth_payload',
+    'long task ska kopplas till den fas den överlappar mest'
+  );
+  assert.equal(longTasks[0].overlapMs, 600);
+
+  // Tidslinjen är kronologisk och maskerad (endast fas/tid/antal).
+  assert.equal(
+    perf
+      .timeline()
+      .map((entry) => entry.phase)
+      .join(','),
+    'merge:worklist_chunks,apply:truth_payload,longtask'
+  );
+  assert.equal(JSON.stringify(perf.timeline()).includes('@'), false);
+});
+
+test('longTasks() summerar blockerad main-tråd per fas', () => {
+  const perf = loadRecorder({ search: '?ccoPerf=1' });
+  const blocking = perf.record('longtask', 700, null, 0);
+  blocking.attributedTo = 'apply:truth_payload';
+  const smaller = perf.record('longtask', 120, null, 800);
+  smaller.attributedTo = 'apply:truth_payload';
+
+  const byPhase = perf.longTasks();
+  assert.equal(byPhase['apply:truth_payload'].blockingTasks, 2);
+  assert.equal(byPhase['apply:truth_payload'].totalBlockedMs, 820);
+  assert.equal(byPhase['apply:truth_payload'].longestMs, 700);
 });

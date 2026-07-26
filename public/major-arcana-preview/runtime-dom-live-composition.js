@@ -292,8 +292,12 @@
       } catch {
         /* ignore */
       }
+      // OBS: när scheduleRuntimeConversationShell finns mäter detta bara
+      // SCHEMALÄGGNINGEN — själva målningen sker i en senare callback och
+      // mäts av "shell:flush_render" i app.js. Fasnamnet säger därför
+      // "schedule", inte "paint".
       return perfTime(
-        "shell:paint_" + (normalizeKey(scope) || "all"),
+        "shell:schedule_" + (normalizeKey(scope) || "all"),
         () => {
           if (typeof scheduleRuntimeConversationShell === "function") {
             scheduleRuntimeConversationShell(scope);
@@ -4004,17 +4008,13 @@
     function applyRuntimeMailboxSelection(requestedMailboxIds) {
       // Mätpunkt: hela den synkrona delen av mailbox-valet — den interaktion
       // som låste sig live vid 3→4 konton.
+      //
+      // Kroppen ligger kvar INLINE (inte i en hjälpfunktion) eftersom
+      // källkodsvakten i majorArcanaRuntimeDomLiveComposition.test.js kräver
+      // att scheduleMailboxScopeLiveReload syns i just den här funktionen.
       return perfTime(
         "select:mailbox_scope_sync",
-        () => applyRuntimeMailboxSelectionInner(requestedMailboxIds),
-        {
-          mailboxes: asArray(requestedMailboxIds).length,
-          threads: asArray(state.runtime?.threads).length,
-        }
-      );
-    }
-
-    function applyRuntimeMailboxSelectionInner(requestedMailboxIds) {
+        () => {
       const nextSelectedMailboxIds =
         workspaceSourceOfTruth.setSelectedMailboxIds(requestedMailboxIds);
       const availableMailboxIds = asArray(
@@ -4083,6 +4083,12 @@
         return;
       }
       scheduleMailboxScopeLiveReload(nextSelectedMailboxIds);
+        },
+        {
+          mailboxes: asArray(requestedMailboxIds).length,
+          threads: asArray(state.runtime?.threads).length,
+        }
+      );
     }
 
     async function loadLiveRuntime(options = {}) {

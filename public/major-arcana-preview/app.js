@@ -3035,13 +3035,17 @@
     const pending = __runtimeShellPendingScopes;
     __runtimeShellPendingScopes = new Set();
     const effectiveScope = resolveRuntimeShellScope(pending);
-    if (typeof __renderHooks.runtimeShell === "function") {
-      __renderHooks.runtimeShell({ scope: effectiveScope });
-      return;
-    }
-    if (typeof renderRuntimeConversationShell === "function") {
-      renderRuntimeConversationShell({ scope: effectiveScope });
-    }
+    // Mätpunkt: HÄR sker den faktiska målningen (paintRuntimeShell mäter bara
+    // schemaläggningen när den här vägen används).
+    __ccoPerf.time("shell:flush_render", () => {
+      if (typeof __renderHooks.runtimeShell === "function") {
+        __renderHooks.runtimeShell({ scope: effectiveScope });
+        return;
+      }
+      if (typeof renderRuntimeConversationShell === "function") {
+        renderRuntimeConversationShell({ scope: effectiveScope });
+      }
+    });
   }
 
   let __renderScheduled = false;
@@ -3367,6 +3371,39 @@
    * PII: registrerar ENDAST fasnamn, millisekunder och antal (trådar/
    * mailboxar/rader). Aldrig adresser, ämnen, namn eller innehåll.
    * ───────────────────────────────────────────────────────────────────────── */
+  /**
+   * Tillåtna fasnamn. record() släpper INTE igenom fritext — okända faser
+   * kollapsar till "other" så att en framtida anropare aldrig kan smuggla in
+   * PII via fasnamnet.
+   */
+  const CCO_PERF_PHASES = [
+    "select:mailbox_scope_sync",
+    "fetch:worklist_chunk",
+    "merge:worklist_chunks",
+    "apply:truth_payload",
+    "shell:schedule_all",
+    "shell:schedule_queue",
+    "shell:schedule_focus",
+    "shell:schedule_chrome",
+    "shell:schedule_queue+focus",
+    "shell:schedule_other",
+    "shell:flush_render",
+    "v2:shell_render",
+    "v2:lane_counts",
+    "longtask",
+    "other",
+  ];
+
+  /** Tillåtna räknare. Endast dessa nycklar, och endast numeriska värden. */
+  const CCO_PERF_COUNT_KEYS = [
+    "threads",
+    "rows",
+    "mailboxes",
+    "lanes",
+    "chunks",
+    "threadsBefore",
+  ];
+
   const __ccoPerf = (() => {
     let enabled = false;
     try {
@@ -3379,12 +3416,19 @@
 
     const entries = [];
     const MAX_ENTRIES = 800;
+    const allowedPhases = new Set(CCO_PERF_PHASES);
 
-    /** Endast numeriska räknare släpps igenom — aldrig fritext. */
+    /** Okänt fasnamn kollapsar till "other" — aldrig fritext i loggen. */
+    function safePhase(phase) {
+      const candidate = typeof phase === "string" ? phase : "";
+      return allowedPhases.has(candidate) ? candidate : "other";
+    }
+
+    /** Endast allowlistade nycklar med numeriska värden släpps igenom. */
     function safeCounts(counts) {
       const safe = {};
       if (counts && typeof counts === "object") {
-        Object.keys(counts).forEach((key) => {
+        CCO_PERF_COUNT_KEYS.forEach((key) => {
           const value = Number(counts[key]);
           if (Number.isFinite(value)) safe[key] = value;
         });
@@ -3392,15 +3436,28 @@
       return safe;
     }
 
-    function record(phase, ms, counts) {
-      if (!enabled) return;
-      entries.push({
-        phase: String(phase || "okänd").slice(0, 60),
-        ms: Math.round(Number(ms) || 0),
-        at: Math.round(performance.now()),
+    /**
+     * start/end sparas per synkron fas så att en observerad long task kan
+     * attribueras till det fasintervall den överlappar. Utan det kan man se
+     * ATT en long task inträffade men inte VAR tiden låg — vilket är hela
+     * frågan mätningen ska besvara.
+     */
+    function record(phase, ms, counts, startedAt) {
+      if (!enabled) return null;
+      const duration = Math.round(Number(ms) || 0);
+      const end = Number.isFinite(startedAt)
+        ? Math.round(startedAt + duration)
+        : Math.round(performance.now());
+      const entry = {
+        phase: safePhase(phase),
+        ms: duration,
+        start: end - duration,
+        end,
         ...safeCounts(counts),
-      });
+      };
+      entries.push(entry);
       if (entries.length > MAX_ENTRIES) entries.splice(0, entries.length - MAX_ENTRIES);
+      return entry;
     }
 
     /** Mäter en synkron funktion utan att ändra dess retur/kast-beteende. */
@@ -3410,7 +3467,7 @@
       try {
         return fn();
       } finally {
-        record(phase, performance.now() - started, typeof counts === "function" ? counts() : counts);
+        record(phase, performance.now() - started, typeof counts === "function" ? counts() : counts, started);
       }
     }
 
@@ -3421,21 +3478,47 @@
       try {
         return await fn();
       } finally {
-        record(phase, performance.now() - started, typeof counts === "function" ? counts() : counts);
+        record(phase, performance.now() - started, typeof counts === "function" ? counts() : counts, started);
       }
     }
 
+    /**
+     * Kopplar en long task till den fas vars intervall den överlappar mest.
+     * Long tasks rapporteras efter att uppgiften avslutats, så attribueringen
+     * sker retroaktivt mot redan registrerade fasintervall.
+     */
+    function attributeLongTask(taskStart, taskEnd) {
+      let best = "";
+      let bestOverlap = 0;
+      entries.forEach((entry) => {
+        if (entry.phase === "longtask") return;
+        const overlap = Math.min(entry.end, taskEnd) - Math.max(entry.start, taskStart);
+        if (overlap > bestOverlap) {
+          bestOverlap = overlap;
+          best = entry.phase;
+        }
+      });
+      return { phase: best, overlapMs: Math.max(0, Math.round(bestOverlap)) };
+    }
+
     if (enabled) {
-      // Long tasks (>50ms) = main-tråden blockerad. Det är det enda som kan
-      // bevisa en fliklåsning; allt annat är indicier.
+      // Long tasks (>50ms) = main-tråden blockerad. Det enda som kan BEVISA
+      // en fliklåsning; allt annat är indicier.
       try {
         new PerformanceObserver((list) => {
-          list.getEntries().forEach((entry) => {
-            record("longtask", entry.duration);
+          list.getEntries().forEach((observed) => {
+            const taskStart = Math.round(observed.startTime);
+            const taskEnd = Math.round(observed.startTime + observed.duration);
+            const attribution = attributeLongTask(taskStart, taskEnd);
+            const entry = record("longtask", observed.duration, null, observed.startTime);
+            if (entry) {
+              entry.attributedTo = safePhase(attribution.phase);
+              entry.overlapMs = attribution.overlapMs;
+            }
           });
         }).observe({ entryTypes: ["longtask"] });
       } catch (_observerError) {
-        /* longtask stöds inte i alla browsers — övriga mätpunkter räcker. */
+        /* longtask stöds inte överallt — övriga mätpunkter räcker. */
       }
     }
 
@@ -3451,10 +3534,34 @@
         bucket.totalMs += entry.ms;
         bucket.maxMs = Math.max(bucket.maxMs, entry.ms);
       });
-      Object.keys(byPhase).forEach((phase) => {
-        byPhase[phase].totalMs = Math.round(byPhase[phase].totalMs);
-      });
       return byPhase;
+    }
+
+    /** Vilka faser blockerade main-tråden, och hur länge. */
+    function longTasks() {
+      const byPhase = {};
+      entries
+        .filter((entry) => entry.phase === "longtask")
+        .forEach((entry) => {
+          const key = entry.attributedTo || "other";
+          const bucket = (byPhase[key] = byPhase[key] || {
+            blockingTasks: 0,
+            totalBlockedMs: 0,
+            longestMs: 0,
+          });
+          bucket.blockingTasks += 1;
+          bucket.totalBlockedMs += entry.ms;
+          bucket.longestMs = Math.max(bucket.longestMs, entry.ms);
+        });
+      return byPhase;
+    }
+
+    /** Maskerad tidslinje i kronologisk ordning — endast fas, tid och antal. */
+    function timeline() {
+      return entries
+        .slice()
+        .sort((left, right) => left.start - right.start)
+        .map((entry) => ({ ...entry }));
     }
 
     return {
@@ -3466,10 +3573,16 @@
       time,
       timeAsync,
       summary,
+      longTasks,
+      timeline,
       dump() {
-        // eslint-disable-next-line no-console
+        /* eslint-disable no-console */
+        console.log("Tid per fas:");
         console.table(summary());
-        return summary();
+        console.log("Blockerad main-tråd, per fas (long tasks):");
+        console.table(longTasks());
+        /* eslint-enable no-console */
+        return { summary: summary(), longTasks: longTasks() };
       },
       clear() {
         entries.length = 0;
