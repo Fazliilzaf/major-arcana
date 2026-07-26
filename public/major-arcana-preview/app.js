@@ -42179,21 +42179,7 @@
       });
 
       const text = await response.text();
-      // Servern svarar inte alltid JSON: auth-redirect, proxy-/felsida eller en
-      // SPA-fallback ger HTML. Tidigare kördes JSON.parse FÖRE response.ok-
-      // kollen, så ett 401/404 med HTML-kropp kastade "Unexpected token '<'"
-      // och den riktiga statuskoden gick förlorad — vilket också gjorde att
-      // auth-retryn nedan aldrig kunde trigga. Nu parsas defensivt.
-      let payload = {};
-      let payloadParseError = null;
-      if (text) {
-        try {
-          payload = JSON.parse(text);
-        } catch (parseError) {
-          payloadParseError = parseError;
-          payload = {};
-        }
-      }
+      const payload = text ? JSON.parse(text) : {};
 
       if (
         !response.ok &&
@@ -42213,30 +42199,9 @@
       }
 
       if (!response.ok) {
-        const error = new Error(
-          payload?.error ||
-            (payloadParseError
-              ? `Servern svarade ${response.status} med ${
-                  response.headers.get("content-type") || "okänt innehåll"
-                } i stället för JSON.`
-              : "Request failed.")
-        );
+        const error = new Error(payload?.error || "Request failed.");
         error.statusCode = response.status;
         error.metadata = payload?.metadata || null;
-        error.nonJsonResponse = Boolean(payloadParseError);
-        throw error;
-      }
-
-      // 2xx men inte JSON: behandla som fel med bevarad status i stället för
-      // att returnera ett tomt objekt som ser ut som en giltig payload.
-      if (payloadParseError) {
-        const error = new Error(
-          `Servern svarade ${response.status} med ${
-            response.headers.get("content-type") || "okänt innehåll"
-          } i stället för JSON.`
-        );
-        error.statusCode = response.status;
-        error.nonJsonResponse = true;
         throw error;
       }
 
