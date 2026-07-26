@@ -2091,11 +2091,25 @@
   // Svarstudio workbench (P2) — wired live mot draft-state-machine + gateway.
   // Skicka (→ sent) är owner-blockerat i backend OCH låst i UI:t.
   // ─────────────────────────────────────────────────────────────────────
-  // Svarstudio öppnas ALLTID som admin#cco:s panel via handlers.action →
-  // CCOBottomActions.run('svarstudio'). V2 har ingen egen studio längre.
+  // Svarstudio öppnar admin#cco:s GODKÄNDA panel (svarstudio-v2.html) via den
+  // delade launchern, med trådkontexten som preset så panelen slipper skrapa
+  // legacy-DOM. Den tidigare inline-fallbacken (en egen workbench när launchern
+  // inte hunnit laddas) är borttagen — inkopplingen är den enda vägen.
   function openSvarstudioPanel(thread) {
+    var target = thread || (boundCtx && boundCtx.selected);
+    if (!target) return;
+    try {
+      var api = global.CCOBottomActions;
+      if (api && typeof api.run === 'function') {
+        api.run('svarstudio', buildLauncherThreadContext(target));
+        return;
+      }
+    } catch (_launcherError) {
+      /* faller igenom till app-handlern, som failar högt */
+    }
+    // Ingen tyst stub: utan launcher failar panelvägen högt via app-handlern.
     if (boundCtx && typeof boundCtx.handlers.action === 'function') {
-      boundCtx.handlers.action('studio', thread || boundCtx.selected);
+      boundCtx.handlers.action('studio', target);
     }
   }
 

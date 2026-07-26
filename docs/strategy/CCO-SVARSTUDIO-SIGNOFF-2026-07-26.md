@@ -3,13 +3,27 @@
 **Datum:** 2026-07-26
 **Baserad på:** `main` @ `0b44a498`
 **Metod:** Read-only kod-trace av båda UI:na och backend-grindarna. Ingen live-körning (miljöns egress-policy blockerar prod).
-**Bakgrund:** Paritetsauditen (`CCO-CONVERSATIONS-PARITY-AUDIT-2026-07-24.md`) markerade Svarstudio 🟡 — den **enda äkta divergensen**, eftersom V2 har en egen inline-studio medan admin kör panel i iframe. Den här sign-offen avgör om divergensen är säker.
+**Bakgrund:** Paritetsauditen (`CCO-CONVERSATIONS-PARITY-AUDIT-2026-07-24.md`) markerade Svarstudio 🟡 som den "enda äkta divergensen".
 
-> **Verdikt: GO — divergensen är BORTTAGEN, inte avsignerad.**
+> **Korrigering till auditen:** V2 hade **inte** en parallell studio som primär väg.
+> `openStudio` routade redan till admin#cco:s panel via `CCOBottomActions.run('svarstudio')`
+> med preset-kontext. Inline-studion var en **dokumenterad fallback** som bara användes
+> om launchern ännu inte hunnit laddas, uttryckligen märkt *"tas bort när
+> launcher-inkopplingen är verifierad live"*. Auditens 🟡 överdrev alltså divergensen.
+> Den här ändringen gör det som redan var planerat: tar bort fallbacken.
+
+> **Verdikt: GO — fallbacken är BORTTAGEN, divergensen därmed stängd.**
 >
-> Analysen nedan visade att backend redan var gemensam och korrekt grindad, men att V2 hade byggt ett **parallellt UI** för den enda panel som inte återanvändes. I stället för att signera av den skillnaden tog vi bort den: V2:s Svarstudio routas nu till admin#cco:s panel via `CCOBottomActions.run('svarstudio')` — samma modell som de tolv övriga panelerna.
+> Backend var redan gemensam och korrekt grindad, och V2 öppnade redan admins panel.
+> Kvar fanns en inline-fallback som kunde rendera en egen studio när launchern inte
+> laddats — med en **egen, svagare send-grind** (Del C). Den är nu borttagen:
+> launcher-vägen är den enda, och utan launcher failar den högt i stället för att
+> tyst falla tillbaka på en parallell yta.
 >
-> **Effekt:** ~570 rader parallellt UI borta, UI-gapet i Del C försvinner automatiskt (admins grind gäller), och V2 får bilage-stöd på köpet.
+> **Effekt:** ~535 rader fallback-UI borta ur skalet, plus V2:s egna
+> `studioGenerate/Transition/Send` och sex döda ctx-fält. UI-gapet i Del C
+> försvinner (admins grind gäller alltid), och bilagor stöds nu eftersom admins
+> panel alltid används.
 
 ---
 
@@ -107,7 +121,7 @@ Inget läcker, men båda ytorna erbjuder en knapp som ibland är dömd att missl
 
 | Före | Efter |
 |---|---|
-| V2: egen inline-studio (~535 rader i skalet) | `CCOBottomActions.run('svarstudio')` — admins panel |
+| Launcher-väg **+** inline-fallback (~535 rader) | Endast launcher-vägen; utan launcher failar den högt |
 | V2: egna `studioGenerate/Transition/Send` i app.js | Borttagna; ligger i admins panel |
 | V2: sex studio-ctx-fält | Borttagna (döda) |
 | Tre ingångar (knapp, snabbsvar, kommandopalett) | Alla tre delegerar via `openSvarstudioPanel` |

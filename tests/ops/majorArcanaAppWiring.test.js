@@ -527,11 +527,24 @@ test('V2 Svarstudio öppnar admin#cco:s godkända launcher, inte en egen paralle
     'runCcoAction måste ta emot och forwarda presetContext så V2 kan mata in sin trådkontext.'
   );
 
-  // V2:s Svarstudio-knapp routar till den godkända launchern.
-  const openStudio = shell.slice(shell.indexOf('function openStudio(thread)'), shell.indexOf('function closeStudio'));
+  // V2:s Svarstudio-knapp routar till den godkända launchern. Den tidigare
+  // inline-fallbacken (egen workbench när launchern inte hunnit laddas) är
+  // borttagen — delegeringen är nu den enda vägen, och den bär preset-kontext.
+  const openPanel = shell.slice(
+    shell.indexOf('function openSvarstudioPanel(thread)'),
+    shell.indexOf('function bindEvents')
+  );
   assert.ok(
-    openStudio.includes("api.run('svarstudio'") && openStudio.includes('CCOBottomActions'),
-    'openStudio måste öppna admin#cco:s Svarstudio via CCOBottomActions.run, inte bara sin egen workbench.'
+    openPanel.includes("api.run('svarstudio'") && openPanel.includes('CCOBottomActions'),
+    'openSvarstudioPanel måste öppna admin#cco:s Svarstudio via CCOBottomActions.run.'
+  );
+  assert.ok(
+    openPanel.includes('buildLauncherThreadContext'),
+    'panelen ska få trådkontexten som preset, inte skrapa legacy-DOM.'
+  );
+  assert.ok(
+    !/function openStudio\(/.test(shell) && !/function renderStudio\(/.test(shell),
+    'den parallella inline-workbenchen ska vara borttagen ur V2.'
   );
 
   // V2:s sida laddar den godkända launchern i library-läge.
