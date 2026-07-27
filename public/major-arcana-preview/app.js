@@ -16709,6 +16709,11 @@
   // filer och migreras inte här.
   let __mailboxScopePass = null;
 
+  // fn MÅSTE vara synkron. Skickas en async funktion in returnerar den ett
+  // löfte direkt, finally kör innan arbetet är gjort, och passet stängs medan
+  // anroparen fortfarande jobbar. Det ger ingen felaktig data — memot faller
+  // bara tillbaka på att härleda per anrop igen — men prestandavinsten
+  // försvinner tyst, utan att något test eller larm reagerar.
   function withMailboxScopePass(fn) {
     // Bara det yttersta anropet äger passet, så nästlade anrop inte stänger det.
     const ownsPass = __mailboxScopePass === null;
