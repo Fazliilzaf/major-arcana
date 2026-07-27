@@ -15638,6 +15638,48 @@
     return activeQueueThreads.filter((thread) => getThreadPrimaryLaneId(thread) === normalizedLane);
   }
 
+  // ORD-82 — lane-räkning i ETT pass i stället för tretton.
+  //
+  // Att kalla getQueueLaneThreads en gång per lane filtrerar hela trådlistan
+  // 13 gånger: ~6 900 anrop till isHandledRuntimeThread och ~5 300 till
+  // getThreadPrimaryLaneId på 532 trådar. Uppmätt 15 700 ms i prod.
+  //
+  // KORREKTHET — commercial och operation är INTE primaryLaneId-utfall.
+  // getQueueLaneThreads använder deras predikat DIREKT, medan
+  // getThreadPrimaryLaneId är en kedja där ett tidigare predikat kan vinna
+  // (t.ex. review). Samma tråd kan därför räknas i commercial OCH i review.
+  // Det är befintligt beteende och bevaras genom tre oberoende tallys:
+  //   all        → antal ohanterade
+  //   commercial → isCommercialRuntimeThread, oberoende av primärlane
+  //   operation  → isOperationRuntimeThread, oberoende av primärlane
+  //   övriga     → likhet mot getThreadPrimaryLaneId
+  // Att tallya allt ur primaryLaneId ger fel siffror.
+  //
+  // Ingen cache: räknaren lever bara inom anropet.
+  function createQueueLaneCounter(threads = getQueueScopedRuntimeThreads()) {
+    const primaryLaneTally = new Map();
+    let unhandledCount = 0;
+    let commercialCount = 0;
+    let operationCount = 0;
+
+    for (const thread of asArray(threads)) {
+      if (isHandledRuntimeThread(thread)) continue;
+      unhandledCount += 1;
+      if (isCommercialRuntimeThread(thread)) commercialCount += 1;
+      if (isOperationRuntimeThread(thread)) operationCount += 1;
+      const primaryLaneId = getThreadPrimaryLaneId(thread);
+      primaryLaneTally.set(primaryLaneId, (primaryLaneTally.get(primaryLaneId) || 0) + 1);
+    }
+
+    return function countQueueLaneThreads(laneId) {
+      const normalizedLane = normalizePrimaryQueueLaneId(laneId);
+      if (normalizedLane === "all") return unhandledCount;
+      if (normalizedLane === "commercial") return commercialCount;
+      if (normalizedLane === "operation") return operationCount;
+      return primaryLaneTally.get(normalizedLane) || 0;
+    };
+  }
+
   function getFilteredRuntimeThreads() {
     return getQueueLaneThreads(normalizePrimaryQueueLaneId(state.selection.laneId || "all"));
   }
@@ -40609,15 +40651,19 @@
     const activeLane = normalizePrimaryQueueLaneId(
       asText(workspaceSourceOfTruth.getActiveLaneId() || state.selection?.laneId || "all") || "all"
     );
-    // Mätpunkt: lane-counts gör ett fullt pass per lane över hela trådlistan.
-    // Vi mäter i stället för att anta att det är dyrt.
+    // Mätpunkt: lane-counts gjorde tidigare ett fullt pass per lane över hela
+    // trådlistan — uppmätt till 15 700 ms på 532 trådar. ORD-82 gör ett enda
+    // pass. Mätpunkten är kvar för att bevaka att det förblir så.
     const lanes = __ccoPerf.time(
       "v2:lane_counts",
-      () =>
-        CONVERSATIONS_V2_LANES.map((lane) => ({
+      () => {
+        // ORD-82: ETT pass över trådlistan, inte ett per lane.
+        const countQueueLaneThreads = createQueueLaneCounter(scoped);
+        return CONVERSATIONS_V2_LANES.map((lane) => ({
           ...lane,
-          count: getQueueLaneThreads(lane.id, scoped).length,
-        })),
+          count: countQueueLaneThreads(lane.id),
+        }));
+      },
       { threads: scoped.length, lanes: CONVERSATIONS_V2_LANES.length }
     );
     const selectedCandidate = getSelectedRuntimeFocusThread() || getSelectedRuntimeThread() || null;
