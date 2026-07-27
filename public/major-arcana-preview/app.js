@@ -16681,9 +16681,45 @@
     return normalizeKey(baseThread.customerName) === normalizeKey(candidateThread.customerName);
   }
 
+  // ORD-83 — mailbox-scopet är en INVARIANT inom ett synkront renderpass. Det
+  // beror bara på state (valda brevlådor + trådlistan), aldrig på vilken tråd
+  // som klassificeras. Ändå härleddes det om per tråd via
+  // getRelatedCustomerThreads, vilket gjorde lane-räkningen O(trådar² × brevlådor):
+  // uppmätt 78 661 929 toLowerCase i ETT v2:lane_counts-anrop med 545 trådar,
+  // 144 334 per tråd.
+  //
+  // Memot öppnas explicit runt ett pass och stängs i finally. Det får ALDRIG
+  // överleva passet — trådlistan och brevlådevalet ändras under laddningen, och
+  // ett scope som låg kvar skulle servera ett gammalt urval. Samma fråga som
+  // fällde ORD-81 nästan: finns det ett tillstånd där en post kan skrivas som är
+  // fel att läsa senare?
+  //
+  // getMailboxScopedRuntimeThreads lämnas orörd — den har 21 anropare i tre
+  // filer och migreras inte här.
+  let __mailboxScopePass = null;
+
+  function withMailboxScopePass(fn) {
+    // Bara det yttersta anropet äger passet, så nästlade anrop inte stänger det.
+    const ownsPass = __mailboxScopePass === null;
+    if (ownsPass) __mailboxScopePass = { threads: null };
+    try {
+      return fn();
+    } finally {
+      if (ownsPass) __mailboxScopePass = null;
+    }
+  }
+
+  function getMailboxScopedRuntimeThreadsForPass() {
+    if (!__mailboxScopePass) return getMailboxScopedRuntimeThreads();
+    if (__mailboxScopePass.threads === null) {
+      __mailboxScopePass.threads = getMailboxScopedRuntimeThreads();
+    }
+    return __mailboxScopePass.threads;
+  }
+
   function getRelatedCustomerThreads(thread) {
     if (!thread) return [];
-    const mailboxScopedThreads = getMailboxScopedRuntimeThreads();
+    const mailboxScopedThreads = getMailboxScopedRuntimeThreadsForPass();
     const relatedThreads = mailboxScopedThreads.filter((candidate) =>
       matchCustomerThread(thread, candidate)
     );
@@ -40656,14 +40692,17 @@
     // pass. Mätpunkten är kvar för att bevaka att det förblir så.
     const lanes = __ccoPerf.time(
       "v2:lane_counts",
-      () => {
-        // ORD-82: ETT pass över trådlistan, inte ett per lane.
-        const countQueueLaneThreads = createQueueLaneCounter(scoped);
-        return CONVERSATIONS_V2_LANES.map((lane) => ({
-          ...lane,
-          count: countQueueLaneThreads(lane.id),
-        }));
-      },
+      () =>
+        // ORD-83: ETT mailbox-scope för hela passet. Utan detta härleder
+        // journey-kedjan om scopet per tråd — O(trådar² × brevlådor).
+        withMailboxScopePass(() => {
+          // ORD-82: ETT pass över trådlistan, inte ett per lane.
+          const countQueueLaneThreads = createQueueLaneCounter(scoped);
+          return CONVERSATIONS_V2_LANES.map((lane) => ({
+            ...lane,
+            count: countQueueLaneThreads(lane.id),
+          }));
+        }),
       { threads: scoped.length, lanes: CONVERSATIONS_V2_LANES.length }
     );
     const selectedCandidate = getSelectedRuntimeFocusThread() || getSelectedRuntimeThread() || null;
