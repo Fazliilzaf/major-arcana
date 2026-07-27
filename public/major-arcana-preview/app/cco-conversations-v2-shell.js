@@ -304,12 +304,31 @@
     );
   }
 
+  // En egen färg per brevlåda. Tidigare kände den bara igen fazli/egzona/contact
+  // och lät allt annat falla på 'info' — med nio brevlådor delade fem samma
+  // gråbruna ton och gick inte att skilja åt i listan.
+  //
+  // Ordningen är specifik före generisk: 'kontakt' matchas före 'kons', annars
+  // fångar 'kons' aldrig något eftersom båda finns i registret.
+  var MAILBOX_TONES = [
+    ['fazli', 'fazli'],
+    ['egzona', 'egzona'],
+    ['contact', 'contact'],
+    ['kontakt', 'contact'],
+    ['kvitto', 'kvitto'],
+    ['halso', 'halso'],
+    ['hälso', 'halso'],
+    ['marknad', 'marknad'],
+    ['kons', 'kons'],
+    ['info', 'info'],
+  ];
+
   function mailboxTone(mailbox) {
     var haystack = (text(mailbox.id) + ' ' + text(mailbox.email) + ' ' + text(mailbox.label)).toLowerCase();
-    if (haystack.indexOf('fazli') >= 0) return 'fazli';
-    if (haystack.indexOf('egzona') >= 0) return 'egzona';
-    if (haystack.indexOf('contact') >= 0) return 'contact';
-    return 'info';
+    for (var i = 0; i < MAILBOX_TONES.length; i++) {
+      if (haystack.indexOf(MAILBOX_TONES[i][0]) >= 0) return MAILBOX_TONES[i][1];
+    }
+    return 'ovrig';
   }
 
   function smartLabel(thread) {

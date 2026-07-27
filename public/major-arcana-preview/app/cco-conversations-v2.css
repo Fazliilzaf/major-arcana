@@ -93,6 +93,13 @@ html[data-conversations-v2="on"]
   --rail-egzona: #a37433;
   --rail-contact: #2596a8;
   --rail-info: #84756b;
+  /* En egen ton per brevlåda. Samma mättnad och ljushet som de befintliga
+     fyra, så raden håller ihop — det är kulören som skiljer, inte styrkan. */
+  --rail-kvitto: #4f7a3a;
+  --rail-halso: #1f7a6b;
+  --rail-kons: #b1543f;
+  --rail-marknad: #9a3d78;
+  --rail-ovrig: #5c6b8a;
   --calendar-accent: #c8821e;
   --calendar-accent-soft: rgba(200, 130, 30, 0.14);
   --calendar-accent-glow: rgba(200, 130, 30, 0.22);
@@ -283,11 +290,14 @@ html[data-conversations-v2="on"]
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
 }
+/* Kortet runt brevlådelistan borttaget — ram, radie och platta gjorde att
+   kontona lästes som en inringad grupp i stället för som en lista. Utan den
+   bär färgkodningen orienteringen själv. */
 #cco-conv-v2-root .v2-mailbox-menu {
   overflow: hidden;
-  border: 1px solid rgba(132, 117, 107, 0.16);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.48);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 #cco-conv-v2-root .v2-mailbox-menu-heading {
   display: flex;
@@ -312,7 +322,10 @@ html[data-conversations-v2="on"]
   gap: 7px;
   min-height: 34px;
   padding: 4px 8px;
-  border-top: 1px solid rgba(132, 117, 107, 0.12);
+  /* Radavdelaren borttagen i samma svep — den ritade en linje mellan varje
+     konto och förstärkte inramningen. Radhöjden håller isär dem. */
+  border-top: 0;
+  border-radius: 6px;
   color: var(--cco-text-secondary);
   cursor: pointer;
 }
@@ -362,7 +375,14 @@ html[data-conversations-v2="on"]
 #cco-conv-v2-root .v2-mailbox-option--fazli { color: var(--rail-fazli); }
 #cco-conv-v2-root .v2-mailbox-option--egzona { color: var(--rail-egzona); }
 #cco-conv-v2-root .v2-mailbox-option--info { color: var(--rail-info); }
-#cco-conv-v2-root .v2-mailbox-option:not(.active) { color: var(--cco-text-tertiary); }
+#cco-conv-v2-root .v2-mailbox-option--kvitto { color: var(--rail-kvitto); }
+#cco-conv-v2-root .v2-mailbox-option--halso { color: var(--rail-halso); }
+#cco-conv-v2-root .v2-mailbox-option--kons { color: var(--rail-kons); }
+#cco-conv-v2-root .v2-mailbox-option--marknad { color: var(--rail-marknad); }
+#cco-conv-v2-root .v2-mailbox-option--ovrig { color: var(--rail-ovrig); }
+/* Avmarkerad brevlåda dämpas men behåller sin kulör, så färgkodningen går att
+   läsa även i listan över konton man inte valt. Tidigare grånade de bort helt. */
+#cco-conv-v2-root .v2-mailbox-option:not(.active) { opacity: 0.55; }
 #cco-conv-v2-root .lane-sidebar .v2-mailbox-menu { margin-inline: -2px; }
 #cco-conv-v2-root .v2-mailbox-controls--compact .v2-mailbox-menu {
   max-height: 180px;
