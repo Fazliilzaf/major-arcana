@@ -53,8 +53,27 @@
   });
   const ADMIN_PRIMARY_PATH = '/admin';
   const CCO_PRIMARY_PATH = '/admin';
-  const CCO_PREVIEW_PRIMARY_PATH = '/konversationer.html';
-  const CCO_PREVIEW_EMBED_SRC = '/konversationer.html';
+  // Cutover: #cco:s konversationsyta är V2 (major-arcana-preview), inte den
+  // gamla konversationer.html. Allt prestandaarbete (ORD-81/82/83) och
+  // virtualiseringen ligger i V2 — legacy-sidan fick aldrig något av det.
+  //
+  // Kill-switch utan deploy: ?cco=legacy i adressraden ger gamla sidan tillbaka.
+  const CCO_LEGACY_PREVIEW_PATH = '/konversationer.html';
+  const CCO_V2_PREVIEW_PATH =
+    '/major-arcana-preview/?embed=admin&conversations=v2&view=conversations';
+
+  function ccoLegacyRequested() {
+    try {
+      return new URLSearchParams(window.location.search).get('cco') === 'legacy';
+    } catch {
+      return false;
+    }
+  }
+
+  const CCO_PREVIEW_PRIMARY_PATH = ccoLegacyRequested()
+    ? CCO_LEGACY_PREVIEW_PATH
+    : CCO_V2_PREVIEW_PATH;
+  const CCO_PREVIEW_EMBED_SRC = CCO_PREVIEW_PRIMARY_PATH;
   const AUTH_RETURN_TO_QUERY_PARAM = 'next';
   const INITIAL_ADMIN_HASH = String(window.location.hash || '')
     .trim()
@@ -3000,6 +3019,10 @@
   }
 
   function resolveCcoPreviewEmbedSrc() {
+    // Kill-switchen måste vinna över iframens data-src, annars går den inte att
+    // slå av från adressraden — och då är rollback en deploy i stället för en
+    // omladdning.
+    if (ccoLegacyRequested()) return CCO_LEGACY_PREVIEW_PATH;
     const fromFrame = String(els.ccoPreviewEmbedFrame?.dataset?.src || '').trim();
     return fromFrame || CCO_PREVIEW_EMBED_SRC;
   }
