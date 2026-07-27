@@ -21,18 +21,23 @@ test('admin#cco starts on canonical live Konversationer target', () => {
   // annars serverar CDN/browser gammal konversationer.html efter deploy.
   // __ARCANA_UI_BUILD__ ersätts med aktuell build vid rendering av admin.html.
   assert.match(html, /data-default-section="konversationer"/);
+  // Cutover: kanoniskt mål är V2 (major-arcana-preview), inte konversationer.html.
+  // Build-id:t i query behålls — utan det serverar CDN/browser gammal yta efter deploy.
   assert.match(
     html,
-    /data-src="\/konversationer\.html\?v=__ARCANA_UI_BUILD__&amp;embed=admin"/
+    /data-src="\/major-arcana-preview\/\?v=__ARCANA_UI_BUILD__&amp;embed=admin&amp;conversations=v2&amp;view=conversations"/
   );
   assert.match(
     html,
-    /data-conversations-src="\/konversationer\.html\?v=__ARCANA_UI_BUILD__&amp;embed=admin"/
+    /data-conversations-src="\/major-arcana-preview\/\?v=__ARCANA_UI_BUILD__&amp;embed=admin&amp;conversations=v2&amp;view=conversations"/
   );
-  assert.doesNotMatch(html, /data-src="\/major-arcana-preview/);
+  assert.doesNotMatch(html, /data-src="\/konversationer\.html/);
 
-  assert.match(js, /const CCO_PREVIEW_PRIMARY_PATH = '\/konversationer\.html';/);
-  assert.match(js, /const CCO_PREVIEW_EMBED_SRC = '\/konversationer\.html';/);
+  assert.match(js, /const CCO_V2_PREVIEW_PATH =/);
+  assert.match(js, /conversations=v2&view=conversations/);
+  // Legacy finns kvar som kill-switchens mål, inte som standardrutt.
+  assert.match(js, /const CCO_LEGACY_PREVIEW_PATH = '\/konversationer\.html';/);
+  assert.match(js, /if \(ccoLegacyRequested\(\)\) return CCO_LEGACY_PREVIEW_PATH;/);
   assert.match(js, /ccoWorkspaceSection:\s*'#cco'/);
 });
 
