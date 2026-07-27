@@ -242,13 +242,15 @@ test('admin#cco använder ett neutralt skal utan att byta befintliga målunderla
   );
   assert.match(html, /\/admin\/cco-shell\.css\?v=__ARCANA_UI_BUILD__/);
   assert.match(html, /data-default-section="konversationer"/);
+  // Cutover: Konversationer-fliken pekar på V2, inte på konversationer.html.
+  // Legacy nås via kill-switchen ?cco=legacy, se testet längre ned.
   assert.match(
     html,
-    /data-src="\/konversationer\.html\?v=__ARCANA_UI_BUILD__&amp;embed=admin"/
+    /data-src="\/major-arcana-preview\/\?v=__ARCANA_UI_BUILD__&amp;embed=admin&amp;conversations=v2&amp;view=conversations"/
   );
   assert.match(
     html,
-    /data-conversations-src="\/konversationer\.html\?v=__ARCANA_UI_BUILD__&amp;embed=admin"/,
+    /data-conversations-src="\/major-arcana-preview\/\?v=__ARCANA_UI_BUILD__&amp;embed=admin&amp;conversations=v2&amp;view=conversations"/,
     'Konversationer ska finnas som build-stämplat, navlöst mål'
   );
   assert.match(subnav, /kalender:\s*'\/kalender\.html\?embed=1'/);
@@ -353,10 +355,24 @@ test('admin erbjuder en valbar v2-förhandsvisning utan att ändra legacy-standa
     'v2-målet ska använda samma origin-baserade admin-embed-kontrakt utan token i URL:en'
   );
   assert.match(subnav, /return 'mer:konversationer_v2_preview';/);
+  // Cutover: legacy är inte längre iframens mål — den är kill-switchens mål.
+  // Rollback måste vara en omladdning (?cco=legacy), inte en deploy, och
+  // switchen måste vinna över data-src annars går den inte att slå av.
+  const adminJs = read(path.join(ROOT, 'public', 'admin.js'));
   assert.match(
+    adminJs,
+    /const CCO_LEGACY_PREVIEW_PATH = '\/konversationer\.html';/,
+    'legacy destination ska ligga kvar som kill-switchens mål'
+  );
+  assert.match(
+    adminJs,
+    /if \(ccoLegacyRequested\(\)\) return CCO_LEGACY_PREVIEW_PATH;/,
+    'kill-switchen ska kollas före iframens data-src'
+  );
+  assert.doesNotMatch(
     adminHtml,
     /data-conversations-src="\/konversationer\.html/,
-    'legacy destination ska fortsatt ligga kvar i admin.html'
+    'Konversationer-fliken ska inte längre peka på legacy'
   );
   assert.match(contract, /requestedView === 'customers' \|\| requestedView === 'conversations'/);
   assert.match(app, /const localToken = readTokenFromStorage\(window\.localStorage\)/);
