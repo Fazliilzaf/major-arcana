@@ -10338,12 +10338,46 @@
     return !!queueEntry && isAftercareQueueBucketActive(queueEntry);
   }
 
+  // ORD-84 — journeyn byggs upp till tretton gånger per tråd i predikatkedjan.
+  //
+  // getThreadPrimaryLaneId kör isConsultation → isCommercial → isOperation, och
+  // isOperation anropar de två första igen innan den frågar efter modulen. Varje
+  // anrop byggde en komplett backbone + journey från grunden och kastade den.
+  // Uppmätt: 12,84 respektive 13,41 anrop per tråd i två lane_counts-pass.
+  //
+  // Journeyn är en invariant för en given tråd inom ett synkront pass. Memot
+  // hänger på ORD-83:s passobjekt och dör med det i finally — se
+  // withMailboxScopePass. Det får ALDRIG överleva passet: trådens innehåll
+  // ändras under laddningen (previews och journey-data anländer), och en
+  // kvarliggande journey skulle klassificera tråden på gammalt underlag.
+  //
+  // Nyckeln är trådobjektet självt, inte dess id. Ett id hade kunnat träffa en
+  // ny objektinstans med nytt innehåll; objektidentiteten kan inte. WeakMap så
+  // att trådar som slutar refereras kan städas bort.
+  //
+  // SYNKRON-BARA, ärvt från withMailboxScopePass: flyttas passet till en
+  // asynkron väg faller antagandet att innehållet står stilla.
+  // __mailboxScopePass deklareras med `let` längre ned i samma IIFE. Inget
+  // `typeof`-garde här: typeof på en let i TDZ kastar ändå, så det hade gett
+  // falsk trygghet. Funktionen anropas först under render, långt efter att
+  // IIFE-kroppen körts färdigt, och då är variabeln initierad.
+  function getThreadJourneyForPass(thread, focusReadState) {
+    const pass = __mailboxScopePass;
+    if (!pass) return getPreviewPatient360JourneyForThread(thread, focusReadState);
+    if (!pass.journeys) pass.journeys = new WeakMap();
+    const cached = pass.journeys.get(thread);
+    if (cached) return cached;
+    const built = getPreviewPatient360JourneyForThread(thread, focusReadState);
+    pass.journeys.set(thread, built);
+    return built;
+  }
+
   function getThreadJourneyActiveModuleId(thread) {
     if (!thread) return "";
     const focusReadState =
       typeof getRuntimeFocusReadState === "function" ? getRuntimeFocusReadState(thread) : {};
     return normalizeKey(
-      getPreviewPatient360JourneyForThread(thread, focusReadState)?.journey?.activeModule?.id || ""
+      getThreadJourneyForPass(thread, focusReadState)?.journey?.activeModule?.id || ""
     );
   }
 
