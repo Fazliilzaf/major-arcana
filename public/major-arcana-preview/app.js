@@ -15366,17 +15366,18 @@
     const selectedMailboxIds = asArray(state.selection?.mailboxIds || state.runtime?.selectedMailboxIds)
       .map((value) => canonicalizeRuntimeMailboxId(value, availableMailboxes))
       .filter(Boolean);
-    const demoThreads = asArray(state.runtime?.threads).filter(
-      (thread) =>
-        String(thread?.worklistSource || "")
-          .toLowerCase()
-          .normalize("NFKD")
-          .replace(/[\u0300-\u036f]/g, "") === "demo"
-    );
-    const shouldPreferDemoThreads =
+    // ORD-83 — demoThreads beraknades tidigare ovillkorligt har: ett fullt pass
+    // over hela tradlistan med toLowerCase + normalize("NFKD") + replace PER
+    // TRAD, vid varje anrop. Resultatet anvands bara nar shouldPreferDemoThreads
+    // ar sant, vilket kraver !availableMailboxes.length - alltid falskt i drift
+    // med nio brevlador. Passet kordes alltid och anvandes aldrig.
+    //
+    // Villkorets billiga delar avgors forst; listan byggs bara om de haller.
+    // Sakinnehallet ar oforandrat: samma predikat, samma tva villkor, och
+    // demoThreads.length > 1 utvarderas fortfarande sist.
+    const canPreferDemoThreads =
       !state.runtime?.authRequired &&
       !availableMailboxes.length &&
-      demoThreads.length > 1 &&
       (() => {
         try {
           return !localStorage.getItem("ARCANA_ADMIN_TOKEN");
@@ -15384,6 +15385,16 @@
           return true;
         }
       })();
+    const demoThreads = canPreferDemoThreads
+      ? asArray(state.runtime?.threads).filter(
+          (thread) =>
+            String(thread?.worklistSource || "")
+              .toLowerCase()
+              .normalize("NFKD")
+              .replace(/[\u0300-\u036f]/g, "") === "demo"
+        )
+      : [];
+    const shouldPreferDemoThreads = canPreferDemoThreads && demoThreads.length > 1;
     const threads = shouldPreferDemoThreads
       ? demoThreads
       : Array.isArray(state.data?.threads)
