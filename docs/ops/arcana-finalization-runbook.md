@@ -14,7 +14,7 @@ Samlad evidens för senaste fulla sweep: `docs/ops/final-readiness-sweep-2026-02
 Sätt alltid dessa envs i runtime/CI:
 
 ```env
-BASE_URL=https://arcana.hairtpclinic.se
+BASE_URL=https://arcana.hairtpclinic.com
 ARCANA_OWNER_EMAIL=<owner-email>
 ARCANA_OWNER_PASSWORD=<owner-password>
 ARCANA_DEFAULT_TENANT=hair-tp-clinic

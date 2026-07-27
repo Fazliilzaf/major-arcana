@@ -15,7 +15,7 @@ Innan `ARCANA_PUBLIC_WEB_BOOKING_ENABLED=true` flippas:
 
 1. **Render Dashboard** → `ARCANA_PUBLIC_WEB_BOOKING_ENABLED=true`
 2. Vänta ~2 min på deploy
-3. Verifiera: `curl https://arcana.hairtpclinic.se/api/public/booking-engine/catalog?host=hairtpclinic.com`
+3. Verifiera: `curl https://arcana.hairtpclinic.com/api/public/booking-engine/catalog?host=hairtpclinic.com`
    - Ska returnera 200 med alla tjänster (inte 503)
 4. Testa publik bokning: `https://hairtpclinic.com/boka`
 5. Bekräfta att operatör ser bokningen i CCO

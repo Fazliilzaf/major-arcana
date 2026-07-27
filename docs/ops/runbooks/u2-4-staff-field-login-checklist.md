@@ -35,7 +35,7 @@ Kör **endast** om prep ovan är PASS. Markera datum + initialer.
 
 ### A. PWA / start
 
-- [ ] Öppna `https://arcana.hairtpclinic.se/staff?view=customers` i Safari (iOS) eller Chrome (Android)
+- [ ] Öppna `https://arcana.hairtpclinic.com/staff?view=customers` i Safari (iOS) eller Chrome (Android)
 - [ ] **Add to Home Screen** — ikon öppnar samma URL
 - [ ] Ingen open access — login-formulär visas (`data-staff-login-form`)
 

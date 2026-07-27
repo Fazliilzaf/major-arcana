@@ -9,7 +9,7 @@ I GitHub-repot, öppna:
 - `Settings` -> `Secrets and variables` -> `Actions`
 
 Lägg in dessa secrets:
-- `ARCANA_PUBLIC_BASE_URL` = `https://arcana.hairtpclinic.se`
+- `ARCANA_PUBLIC_BASE_URL` = `https://arcana.hairtpclinic.com`
 - `ARCANA_OWNER_EMAIL` = din owner e-post
 - `ARCANA_OWNER_PASSWORD` = ditt owner lösenord
 - `ARCANA_OWNER_MFA_SECRET` eller `ARCANA_OWNER_MFA_RECOVERY_CODE`
@@ -56,5 +56,5 @@ Vad workflowen gör:
 
 ## 5) Direktlänkar
 
-- Publik app: `https://arcana.hairtpclinic.se`
-- Admin: `https://arcana.hairtpclinic.se/admin`
+- Publik app: `https://arcana.hairtpclinic.com`
+- Admin: `https://arcana.hairtpclinic.com/admin`

@@ -39,7 +39,7 @@ npm run verify:auth-go-live-prod
 npm run verify:journal-photos-backup-prod
 npm run verify:staff-mobile-login-prod
 npm run verify:cco-mobile-pilot-prod   # kräver STAFF/OWNER i .env
-curl -fsS https://arcana.hairtpclinic.se/readyz
+curl -fsS https://arcana.hairtpclinic.com/readyz
 ```
 
 **GO:** Open access av (`false`), STAFF login + foto-upload OK, OWNER MFA enligt plan.
@@ -113,7 +113,7 @@ npm run verify:auth-go-live-prod
 ## Verifieringskommandon (snabbreferens)
 
 ```bash
-curl -fsS https://arcana.hairtpclinic.se/api/v1/_diag/env | jq '.env.ARCANA_STAFF_JOURNAL_OPEN_ACCESS, .env.ARCANA_AUTH_OWNER_MFA_REQUIRED'
+curl -fsS https://arcana.hairtpclinic.com/api/v1/_diag/env | jq '.env.ARCANA_STAFF_JOURNAL_OPEN_ACCESS, .env.ARCANA_AUTH_OWNER_MFA_REQUIRED'
 npm run verify:auth-go-live-prod
 npm run verify:journal-photos-backup-prod
 npm run verify:staff-mobile-login-prod   # STAFF @390px + OWNER API MFA

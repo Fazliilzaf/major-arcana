@@ -6,7 +6,7 @@ Mac Mail-modellen för operatören: **100 % av synlig inbox-mail i worklist (tru
 
 | Miljö         | Värde                                                                                |
 | ------------- | ------------------------------------------------------------------------------------ |
-| Prod          | `https://arcana.hairtpclinic.se`                                                     |
+| Prod          | `https://arcana.hairtpclinic.com`                                                     |
 | Tenant        | `hair-tp-clinic`                                                                     |
 | Mailboxes (7) | `kons`, `info`, `contact`, `egzona`, `fazli`, `marknad`, `receipt` @hairtpclinic.com |
 
@@ -76,7 +76,7 @@ gh workflow run arcana-deploy-cloud-safe \
 Efter deploy, kör backfill via autentiserad API:
 
 ```bash
-export BASE_URL=https://arcana.hairtpclinic.se
+export BASE_URL=https://arcana.hairtpclinic.com
 export ARCANA_DEFAULT_TENANT=hair-tp-clinic
 # ARCANA_OWNER_EMAIL, ARCANA_OWNER_PASSWORD, ARCANA_OWNER_MFA_SECRET
 
