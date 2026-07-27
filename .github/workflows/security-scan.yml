@@ -1,11 +1,24 @@
 name: Security Scan
 
-# Auto-trigger på push/PR avstängd 2026-07-15: Actions är budgetkapat, så scannen
-# fick ändå ingen runner och rödmarkerade varje PR utan att ha hittat något.
-# Behåller VECKOSCHEMAT — npm audit är ett billigt Linux-jobb (1× minuter), det
-# slutar aldrig titta och återupptas av sig självt när budgeten är tillbaka, utan
-# att någon behöver minnas att slå på det. Plus manuell körning vid behov.
+# PR-triggern återinförd 2026-07-26.
+#
+# Den togs bort i #1219 med motiveringen att Actions var budgetkapat och att
+# scannen därför bara rödmarkerade varje PR utan att få en runner. #1219:s egen
+# beskrivning undantog dock security-scan.yml uttryckligen ("rör inte") — den
+# ändrades av misstag i samma svep som ci.yml.
+#
+# Budgetpremissen är dessutom inte längre sann: av de 40 senaste körningarna är
+# 34 gröna och de 4 röda är alla arcana-drift-gate (schedule), inga
+# budgetavbrott. Security Scan kördes grönt på pull_request så sent som
+# 2026-07-26 20:48.
+#
+# Uppdelningen är den som beskrevs i #1219 men inte blev av: ci.yml är dyr
+# (smoke ~5 min + cmo-mutation) och förblir manuell. npm audit är billigt
+# (4 jobb, 1–2 min) och ska titta på varje PR mot main — en sårbarhet som
+# introduceras på en tisdag ska inte ligga orörd till måndagens schemakörning.
 on:
+  pull_request:
+    branches: [ main ]
   schedule:
     # Veckovis automatisk scan, måndagar 03:00 UTC
     - cron: '0 3 * * 1'
