@@ -51,12 +51,23 @@ esac
 # kommandosubstitution — $(curl_smoke …) — som kör i en subshell, och en
 # variabeltilldelning där når aldrig föräldern. En global hade tyst blivit tom
 # i varje larm, vilket är exakt den sortens diagnostik som saknades.
-CURL_SMOKE_STATUS_FILE="$(mktemp -t arcana-smoke-status)"
+#
+# Mallen MÅSTE ha minst sex X. GNU coreutils (ubuntu-latest, där gaten kör)
+# avvisar "arcana-smoke-status" med "too few X's in template"; BSD/macOS
+# accepterar den. Med `set -euo pipefail` på rad 2 hade skriptet dött här —
+# före healthz, före allt — och gaten gått från "faller med förklarande logg"
+# till "faller utan att ha testat något". Explicit sökväg så vi inte heller
+# är beroende av att -t tolkas lika på båda plattformarna.
+CURL_SMOKE_STATUS_FILE="$(mktemp "${TMPDIR:-/tmp}/arcana-smoke-status.XXXXXX")"
 trap 'rm -f "$CURL_SMOKE_STATUS_FILE"' EXIT
 
 curl_smoke() {
   local raw
-  if ! raw="$(curl -sSL --max-redirs 5 -w $'\n%{http_code}' "$@")"; then
+  # --post30x: curl -L gör om POST till GET vid 301/302/303 om man inte säger
+  # emot. Auth-anropen (login, mfa/verify, select-tenant) skulle då skicka en
+  # kroppslös GET i stället för sin JSON och misslyckas med fel bevis — exakt
+  # i det legacy-värd-scenario den här ändringen finns för.
+  if ! raw="$(curl -sSL --max-redirs 5 --post301 --post302 --post303 -w $'\n%{http_code}' "$@")"; then
     printf '000' >"$CURL_SMOKE_STATUS_FILE"
     return 1
   fi
