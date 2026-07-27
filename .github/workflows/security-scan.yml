@@ -1,15 +1,13 @@
 name: Security Scan
 
-# Auto-trigger på push/PR avstängd 2026-07-15: Actions är budgetkapat, så scannen
-# fick ändå ingen runner och rödmarkerade varje PR utan att ha hittat något.
-# Behåller VECKOSCHEMAT — npm audit är ett billigt Linux-jobb (1× minuter), det
-# slutar aldrig titta och återupptas av sig självt när budgeten är tillbaka, utan
-# att någon behöver minnas att slå på det. Plus manuell körning vid behov.
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   schedule:
     # Veckovis automatisk scan, måndagar 03:00 UTC
     - cron: '0 3 * * 1'
-  workflow_dispatch:
 
 jobs:
   npm-audit:
