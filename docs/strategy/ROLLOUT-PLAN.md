@@ -80,7 +80,7 @@ Varje fas har **mål**, **uppgifter**, **GO-kriterier** och **verifiering**. Nä
 npm run verify:cco-mobile-pilot-prod
 npm run verify:mobile-staff-regression-prod   # slutregression E2E×2
 bash scripts/verify-all-pilot-journey-prod.sh
-curl -fsS https://arcana.hairtpclinic.se/readyz
+curl -fsS https://arcana.hairtpclinic.com/readyz
 ```
 
 ---
@@ -149,9 +149,9 @@ Uppdatera `render.yaml` + merge via blueprint/CI heal. **Ingen restart direkt ef
 
 ```bash
 # Open access ska vara false
-curl -fsS https://arcana.hairtpclinic.se/api/v1/_diag/env | jq .env.ARCANA_STAFF_JOURNAL_OPEN_ACCESS
+curl -fsS https://arcana.hairtpclinic.com/api/v1/_diag/env | jq .env.ARCANA_STAFF_JOURNAL_OPEN_ACCESS
 
-BASE_URL=https://arcana.hairtpclinic.se \
+BASE_URL=https://arcana.hairtpclinic.com \
   ARCANA_OWNER_EMAIL=... ARCANA_OWNER_PASSWORD=... \
   npm run smoke:public
 ```

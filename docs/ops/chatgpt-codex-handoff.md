@@ -9,7 +9,7 @@ Praktisk referens när arbetet flyttas mellan Codex (Mac Studio), GitHub och and
 | **Repo** | `~/Code/major-arcana` |
 | **Remote** | https://github.com/Fazliilzaf/major-arcana |
 | **Branch** | `main` |
-| **Prod** | https://arcana.hairtpclinic.se (Render auto-deploy efter push) |
+| **Prod** | https://arcana.hairtpclinic.com (Render auto-deploy efter push) |
 | **CI** | GitHub Actions — workflow `arcana-ci` |
 | **Post-deploy** | `arcana-post-deploy-heal` (kräver GitHub secret `RENDER_API_KEY`) |
 

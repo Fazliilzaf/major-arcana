@@ -3,7 +3,7 @@
 **Status:** Full prod-svep auto · Graph live · bootstrap fas 2 · Resend valfritt  
 **Senast verifierad:** 2026-05-24  
 **Branch:** `main`  
-**Prod:** https://arcana.hairtpclinic.se
+**Prod:** https://arcana.hairtpclinic.com
 
 Detta dokument är den **körbara checklistan** för ett svep över alla spår. Field pilot Fas 5.6 sker i annan tråd.
 
@@ -51,7 +51,7 @@ npm run verify:cco-mobile-pilot-prod
 ```bash
 npm run verify:booking-mail-prod
 npm run verify:resend-domain-prod
-BASE=https://arcana.hairtpclinic.se node scripts/plan-a-verify-curl.mjs
+BASE=https://arcana.hairtpclinic.com node scripts/plan-a-verify-curl.mjs
 ```
 
 ---
@@ -105,7 +105,7 @@ node --test tests/ops/cmoPhaseV3Sweep.test.js
 | E5  | Turnstile/honeypot                    | ✅     | honeypot live; Turnstile om `TURNSTILE_SECRET` |
 
 ```bash
-curl -fsS https://arcana.hairtpclinic.se/readyz
+curl -fsS https://arcana.hairtpclinic.com/readyz
 npm run verify:bridge-design-prod
 npm run run:rollout-sweep
 ```

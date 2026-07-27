@@ -16,7 +16,7 @@ Steg-för-steg-guide för att onboarda en ny kliniktenant i Arcana. Följ detta 
 
 ```bash
 # Via API (rekommenderat)
-curl -X POST https://arcana.hairtpclinic.se/api/v1/tenants/onboard \
+curl -X POST https://arcana.hairtpclinic.com/api/v1/tenants/onboard \
   -H "Authorization: Bearer <OWNER_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -36,7 +36,7 @@ Slugregler:
 
 ```bash
 # Sätt branding och grundinställningar
-curl -X PATCH https://arcana.hairtpclinic.se/api/v1/tenant-config \
+curl -X PATCH https://arcana.hairtpclinic.com/api/v1/tenant-config \
   -H "Authorization: Bearer <OWNER_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -49,7 +49,7 @@ curl -X PATCH https://arcana.hairtpclinic.se/api/v1/tenant-config \
 ## Steg 3: Konfigurera OWNER MFA
 
 ```bash
-BASE_URL=https://arcana.hairtpclinic.se \
+BASE_URL=https://arcana.hairtpclinic.com \
   ARCANA_OWNER_EMAIL=agare@nyklinik.se \
   ARCANA_OWNER_PASSWORD=<losenord> \
   npm run owner:mfa:setup -- --show-recovery-codes
@@ -77,7 +77,7 @@ npm run mail:seeds:apply-activate
 
 ```bash
 # Kör smoke mot tenant
-BASE_URL=https://arcana.hairtpclinic.se \
+BASE_URL=https://arcana.hairtpclinic.com \
   ARCANA_OWNER_EMAIL=agare@nyklinik.se \
   ARCANA_OWNER_PASSWORD=<losenord> \
   npm run smoke:public
@@ -101,7 +101,7 @@ I Render Dashboard, lägg till mailbox i:
 ## Offboarding (disable)
 
 ```bash
-curl -X POST https://arcana.hairtpclinic.se/api/v1/tenants/disable \
+curl -X POST https://arcana.hairtpclinic.com/api/v1/tenants/disable \
   -H "Authorization: Bearer <OWNER_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{

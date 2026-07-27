@@ -40,7 +40,7 @@ Godkänt resultat:
 ## 3) Publik preflight mot miljön du ska deploya till
 
 ```bash
-BASE_URL="https://arcana.hairtpclinic.se" npm run preflight:pilot:report -- --public-url "$BASE_URL" --skip-local
+BASE_URL="https://arcana.hairtpclinic.com" npm run preflight:pilot:report -- --public-url "$BASE_URL" --skip-local
 ```
 
 Godkänt resultat:

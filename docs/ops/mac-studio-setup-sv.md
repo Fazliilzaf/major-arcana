@@ -63,7 +63,7 @@ npm ci
 ## 6. Valfri kontroll
 
 ```bash
-BASE_URL=https://arcana.hairtpclinic.se npm run smoke:public
+BASE_URL=https://arcana.hairtpclinic.com npm run smoke:public
 ```
 
 ## 7. Jobba fran MacBook Air men kor pa Mac Studio

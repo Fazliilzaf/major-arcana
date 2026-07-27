@@ -36,8 +36,53 @@ case "$BASE_URL" in
   http://*) BASE_URL="https://${BASE_URL#http://}" ;;
 esac
 
+# All publik smoke går genom curl_smoke.
+#
+# -L är inte kosmetik. BASE_URL kan peka på en legacy-värd — arcana.hairtpclinic.se
+# 301:ar till .com by design (se tests/config/legacyHostRedirect.test.js). Utan -L
+# blir svaret 74 byte "Moved Permanently…", och en innehållsassertion rapporterar
+# det som "fel innehåll" i stället för "fel adress". Drift-gaten föll så sex gånger
+# på två dygn medan filen den testade var frisk hela tiden.
+#
+# Statuskoden sparas så anropare kan skilja tre fall åt som annars ser identiska
+# ut: fel innehåll, inget svar (502/000), och redirect.
+#
+# Den skrivs till FIL, inte till en variabel. curl_smoke anropas alltid i
+# kommandosubstitution — $(curl_smoke …) — som kör i en subshell, och en
+# variabeltilldelning där når aldrig föräldern. En global hade tyst blivit tom
+# i varje larm, vilket är exakt den sortens diagnostik som saknades.
+CURL_SMOKE_STATUS_FILE="$(mktemp -t arcana-smoke-status)"
+trap 'rm -f "$CURL_SMOKE_STATUS_FILE"' EXIT
+
 curl_smoke() {
-  curl -sSL --max-redirs 5 "$@"
+  local raw
+  if ! raw="$(curl -sSL --max-redirs 5 -w $'\n%{http_code}' "$@")"; then
+    printf '000' >"$CURL_SMOKE_STATUS_FILE"
+    return 1
+  fi
+  printf '%s' "${raw##*$'\n'}" >"$CURL_SMOKE_STATUS_FILE"
+  printf '%s' "${raw%$'\n'*}"
+}
+
+curl_smoke_status() {
+  local s
+  s="$(cat "$CURL_SMOKE_STATUS_FILE" 2>/dev/null || true)"
+  printf '%s' "${s:-okänd}"
+}
+
+# Skriver ut det som saknades i drift-gatens sex larm: statuskod och början av
+# kroppen. Utan detta är "verkar inte vara Arcana-script" omöjligt att följa upp.
+smoke_fail_detail() {
+  local path="$1" body="$2"
+  echo "   sökväg:    ${path}"
+  echo "   statuskod: $(curl_smoke_status)"
+  echo "   längd:     ${#body} byte"
+  echo "   kropp (första 3 raderna):"
+  if [[ -z "$body" ]]; then
+    echo "     (tom)"
+  else
+    printf '%s\n' "$body" | head -3 | cut -c1-200 | sed 's/^/     /'
+  fi
 }
 
 dotenv_get() {
@@ -184,7 +229,7 @@ verify_mfa_ticket() {
   local verify_code="$3"
 
   local mfa_verify_response=""
-  mfa_verify_response="$(curl -sS -X POST "$BASE_URL/api/v1/auth/mfa/verify" \
+  mfa_verify_response="$(curl_smoke -X POST "$BASE_URL/api/v1/auth/mfa/verify" \
     -H "Content-Type: application/json" \
     -d "{\"mfaTicket\":\"$mfa_ticket\",\"code\":\"$verify_code\",\"tenantId\":\"$requested_tenant_id\"}")"
 
@@ -206,7 +251,7 @@ verify_mfa_ticket() {
     fi
     if [[ -n "$login_ticket" && -n "$selected_tenant_id" ]]; then
       local tenant_select_response=""
-      tenant_select_response="$(curl -sS -X POST "$BASE_URL/api/v1/auth/select-tenant" \
+      tenant_select_response="$(curl_smoke -X POST "$BASE_URL/api/v1/auth/select-tenant" \
         -H "Content-Type: application/json" \
         -d "{\"loginTicket\":\"$login_ticket\",\"tenantId\":\"$selected_tenant_id\"}")"
       local tenant_token=""
@@ -317,15 +362,16 @@ if [[ "$READY_OK" != "true" ]]; then
 fi
 echo "✅ readyz OK"
 
-EMBED_RESPONSE="$(curl -sS "$BASE_URL/embed.js")"
+EMBED_RESPONSE="$(curl_smoke "$BASE_URL/embed.js")"
 if [[ "$EMBED_RESPONSE" == *"__ARCANA_EMBED__"* ]]; then
   echo "✅ embed.js OK"
 else
-  echo "❌ embed.js verkar inte vara Arcana-script"
+  echo "❌ embed.js saknar __ARCANA_EMBED__"
+  smoke_fail_detail "/embed.js" "$EMBED_RESPONSE"
   exit 1
 fi
 
-PREVIEW_HTML="$(curl -sS "$BASE_URL/major-arcana-preview/")"
+PREVIEW_HTML="$(curl_smoke "$BASE_URL/major-arcana-preview/")"
 PREVIEW_BUNDLE_FILE="$(printf '%s' "$PREVIEW_HTML" | node -e "
 const html = require('fs').readFileSync(0, 'utf8');
 const match = html.match(/app\\.bundle\\.[a-f0-9]+\\.min\\.js/);
@@ -333,11 +379,13 @@ process.stdout.write(match ? match[0] : '');
 ")"
 if [[ -z "$PREVIEW_BUNDLE_FILE" ]]; then
   echo "❌ major-arcana-preview saknar hashad app.bundle"
+  smoke_fail_detail "/major-arcana-preview/" "$PREVIEW_HTML"
   exit 1
 fi
-PREVIEW_BUNDLE_BODY="$(curl -sS "$BASE_URL/major-arcana-preview/$PREVIEW_BUNDLE_FILE")"
+PREVIEW_BUNDLE_BODY="$(curl_smoke "$BASE_URL/major-arcana-preview/$PREVIEW_BUNDLE_FILE")"
 if [[ "$PREVIEW_BUNDLE_BODY" != *"Reservera i CCO"* || "$PREVIEW_BUNDLE_BODY" != *"cco-booking-engine"* ]]; then
   echo "❌ major-arcana-preview bundle saknar CCO booking operator-yta"
+  smoke_fail_detail "/major-arcana-preview/$PREVIEW_BUNDLE_FILE" "$PREVIEW_BUNDLE_BODY"
   exit 1
 fi
 echo "✅ major-arcana-preview bundle + booking UI OK (${PREVIEW_BUNDLE_FILE})"
@@ -354,7 +402,7 @@ if [[ -z "$EMAIL" || -z "$PASSWORD" ]]; then
   exit 0
 fi
 
-LOGIN_RESPONSE_RAW="$(curl -sS -X POST "$BASE_URL/api/v1/auth/login" \
+LOGIN_RESPONSE_RAW="$(curl_smoke -X POST "$BASE_URL/api/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\",\"tenantId\":\"$TENANT_ID\"}")"
 LOGIN_RESPONSE="$(complete_login_with_optional_mfa "$LOGIN_RESPONSE_RAW" "$TENANT_ID" "$EMAIL")"
@@ -377,7 +425,7 @@ if [[ -z "$TOKEN" ]]; then
 fi
 echo "✅ auth/login OK"
 
-ME_RESPONSE="$(curl -sS "$BASE_URL/api/v1/auth/me" \
+ME_RESPONSE="$(curl_smoke "$BASE_URL/api/v1/auth/me" \
   -H "Authorization: Bearer $TOKEN")"
 ME_TENANT="$(printf '%s' "$ME_RESPONSE" | json_get membership.tenantId || true)"
 ME_ROLE="$(printf '%s' "$ME_RESPONSE" | json_get membership.role || true)"
@@ -388,7 +436,7 @@ if [[ -z "$ME_TENANT" || -z "$ME_ROLE" ]]; then
 fi
 echo "✅ auth/me OK (tenant: ${ME_TENANT}, role: ${ME_ROLE})"
 
-MONITOR_RESPONSE="$(curl -sS "$BASE_URL/api/v1/monitor/status" \
+MONITOR_RESPONSE="$(curl_smoke "$BASE_URL/api/v1/monitor/status" \
   -H "Authorization: Bearer $TOKEN")"
 MONITOR_TEMPLATES="$(printf '%s' "$MONITOR_RESPONSE" | json_get kpis.templatesTotal || true)"
 if [[ -z "$MONITOR_TEMPLATES" ]]; then
@@ -398,12 +446,12 @@ if [[ -z "$MONITOR_TEMPLATES" ]]; then
 fi
 echo "✅ monitor/status OK (templates: ${MONITOR_TEMPLATES})"
 
-MAIL_INSIGHTS_RESPONSE="$(curl -sS "$BASE_URL/api/v1/mail/insights" \
+MAIL_INSIGHTS_RESPONSE="$(curl_smoke "$BASE_URL/api/v1/mail/insights" \
   -H "Authorization: Bearer $TOKEN")"
 MAIL_READY="$(printf '%s' "$MAIL_INSIGHTS_RESPONSE" | json_get ready || true)"
 echo "✅ mail/insights reachable (ready: ${MAIL_READY:-false})"
 
-BOOKING_CATALOG_RESPONSE="$(curl -sS "$BASE_URL/api/v1/cco-booking-engine/catalog" \
+BOOKING_CATALOG_RESPONSE="$(curl_smoke "$BASE_URL/api/v1/cco-booking-engine/catalog" \
   -H "Authorization: Bearer $TOKEN")"
 BOOKING_PROVIDER="$(printf '%s' "$BOOKING_CATALOG_RESPONSE" | json_get provider 2>/dev/null || true)"
 if [[ "$BOOKING_PROVIDER" != "cco_engine" ]]; then
@@ -413,7 +461,7 @@ if [[ "$BOOKING_PROVIDER" != "cco_engine" ]]; then
 fi
 echo "✅ cco-booking-engine/catalog OK"
 
-BOOKING_REF_RESPONSE="$(curl -sS "$BASE_URL/api/v1/cco-bookings/ref-data?workspaceId=major-arcana-preview" \
+BOOKING_REF_RESPONSE="$(curl_smoke "$BASE_URL/api/v1/cco-bookings/ref-data?workspaceId=major-arcana-preview" \
   -H "Authorization: Bearer $TOKEN")"
 BOOKING_REF_PROVIDER="$(printf '%s' "$BOOKING_REF_RESPONSE" | json_get provider 2>/dev/null || true)"
 if [[ "$BOOKING_REF_PROVIDER" != "cco_engine" ]]; then
@@ -425,7 +473,7 @@ echo "✅ cco-bookings/ref-data OK (provider: cco_engine)"
 
 FROM_DATE="$(node -e "const d=new Date(); d.setDate(d.getDate()+1); process.stdout.write(d.toISOString().slice(0,10));")"
 TO_DATE="$(node -e "const d=new Date(); d.setDate(d.getDate()+8); process.stdout.write(d.toISOString().slice(0,10));")"
-BOOKING_SLOTS_RESPONSE="$(curl -sS "$BASE_URL/api/v1/cco-bookings/slots?workspaceId=major-arcana-preview&fromDate=${FROM_DATE}&toDate=${TO_DATE}" \
+BOOKING_SLOTS_RESPONSE="$(curl_smoke "$BASE_URL/api/v1/cco-bookings/slots?workspaceId=major-arcana-preview&fromDate=${FROM_DATE}&toDate=${TO_DATE}" \
   -H "Authorization: Bearer $TOKEN")"
 BOOKING_SLOTS_PROVIDER="$(printf '%s' "$BOOKING_SLOTS_RESPONSE" | json_get provider 2>/dev/null || true)"
 if [[ "$BOOKING_SLOTS_PROVIDER" != "cco_engine" ]]; then

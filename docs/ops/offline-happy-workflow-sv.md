@@ -45,7 +45,7 @@ npm run predeploy:quick
 ## D) Jobba från mobil (Happy)
 
 För att kunna fortsätta när du inte har dator:
-- använd Arcana på den publika länken: `https://arcana.hairtpclinic.se`
+- använd Arcana på den publika länken: `https://arcana.hairtpclinic.com`
 - kör deploy-flödet i GitHub Actions: `arcana-deploy-cloud-safe`
 
 Viktigt:

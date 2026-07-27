@@ -182,13 +182,28 @@ function buildActions(report) {
   }
 
   if (exitReason === 'public_smoke_failed') {
+    // public_smoke_failed täcker HELA skriptet, inte bara auth-delen. De första
+    // stegen — healthz, readyz, embed.js, preview-bundlen — körs FÖRE all
+    // inloggning. Att peka ut OWNER credentials som P0 för dem skickar den som
+    // tittar åt fel håll: drift-gaten larmade sex gånger på två dygn med den
+    // texten, medan orsaken var att BASE_URL pekade på en legacy-värd som
+    // 301:ade. Första åtgärden är därför att läsa vad smoken faktiskt sa.
+    pushAction(actions, {
+      id: 'public_smoke_read_failure',
+      priority: 'P0',
+      title: 'Läs smoke-loggens felrad: vilket steg föll, och med vilken statuskod',
+      command: `BASE_URL=${publicUrl} npm run smoke:public`,
+      details:
+        'Skriptet skriver sökväg, statuskod, svarslängd och de första raderna av kroppen vid fel. Statuskod 3xx betyder fel BASE_URL (legacy-värd som redirectar), 000/5xx betyder att ursprungsservern inte svarade, 200 med oväntat innehåll är ett äkta innehållsfel. Först när felet ligger i ett auth-steg är credentials rätt spår.',
+      source: 'preflight',
+    });
     pushAction(actions, {
       id: 'public_smoke_credentials',
-      priority: 'P0',
-      title: 'Verifiera OWNER credentials för publik smoke',
+      priority: 'P1',
+      title: 'Verifiera OWNER credentials — endast om felet ligger i ett auth-steg',
       command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run smoke:public`,
       details:
-        'Om MFA krävs: sätt ARCANA_OWNER_MFA_CODE, ARCANA_OWNER_MFA_SECRET eller ARCANA_OWNER_MFA_RECOVERY_CODE och kör igen.',
+        'Gäller stegen efter inloggning (login, me, monitor, mail, booking). Om MFA krävs: sätt ARCANA_OWNER_MFA_CODE, ARCANA_OWNER_MFA_SECRET eller ARCANA_OWNER_MFA_RECOVERY_CODE och kör igen.',
       source: 'preflight',
     });
     pushAction(actions, {
