@@ -1,10 +1,29 @@
 name: arcana-ci
 
+# push är begränsad till main med avsikt.
+#
+# `push: ["**"]` TILLSAMMANS MED `pull_request` kör samma commit två gånger så
+# snart grenen har en öppen PR — två identiska uppsättningar av smoke och
+# cmo-mutation på samma SHA. Mätt på 60 körningar: 36 push + 23 pull_request,
+# varav 24 SHA:n kördes mer än en gång. Snitt 6,6 jobbminuter ⇒ ~158 minuter
+# var samma commit testad två gånger, ungefär 40 % av förbrukningen.
+#
+# Öppna PR:er tappar ingen täckning: `pull_request` triggar på `synchronize`,
+# alltså vid varje ny push till grenen. Det som försvinner är bara dubbletten.
+# Grenar UTAN öppen PR får ingen körning — öppna PR:en (gärna som draft) så
+# testas den, vilket också är där granskaren ser resultatet.
+#
+# concurrency avbryter överspelade PR-körningar. Villkoret gör att körningar på
+# main ALDRIG avbryts, så huvudlinjens gröna historik förblir hel.
 on:
   push:
-    branches:
-      - "**"
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   smoke:
