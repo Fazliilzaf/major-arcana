@@ -1,8 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-${ARCANA_PUBLIC_BASE_URL:-https://arcana.hairtpclinic.se}}"
+BASE_URL="${BASE_URL:-${ARCANA_PUBLIC_BASE_URL:-https://arcana.hairtpclinic.com}}"
 BASE_URL="${BASE_URL%/}"
+
+# Värden måste vara den kanoniska FRÅN BÖRJAN — det räcker inte att curl följer
+# 301:an. Skriptet skriver ut en token som anroparen använder i en
+# Authorization-header, och curl SLÄPPER den headern vid omdirigering över
+# värdgräns. Med legacy-värd får anroparen alltså en giltig token som inte
+# fungerar, och felet syns som "Inloggning krävs." — omöjligt att skilja från
+# fel lösenord. Bevisat mot prod 2026-07-28; se scripts/lib/canonical-base-url.js.
+_ARCANA_CANONICAL_BASE_URL="$(node "$(dirname "${BASH_SOURCE[0]}")/lib/canonical-base-url.js" "$BASE_URL" 2>/dev/null || printf '%s' "$BASE_URL")"
+if [[ -n "$_ARCANA_CANONICAL_BASE_URL" && "$_ARCANA_CANONICAL_BASE_URL" != "$BASE_URL" ]]; then
+  echo "extract-owner-token: BASE_URL pekade på en legacy-värd, använder $_ARCANA_CANONICAL_BASE_URL" >&2
+  BASE_URL="$_ARCANA_CANONICAL_BASE_URL"
+fi
 EMAIL="${ARCANA_OWNER_EMAIL:-}"
 PASSWORD="${ARCANA_OWNER_PASSWORD:-}"
 TENANT_ID="${ARCANA_DEFAULT_TENANT:-hair-tp-clinic}"
@@ -83,7 +95,7 @@ verify_mfa_ticket() {
   local requested_tenant_id="$2"
   local verify_code="$3"
   local mfa_verify_response=""
-  mfa_verify_response="$(curl -sS -X POST "$BASE_URL/api/v1/auth/mfa/verify" \
+  mfa_verify_response="$(curl -sS -L --max-redirs 5 --post301 --post302 --post303 -X POST "$BASE_URL/api/v1/auth/mfa/verify" \
     -H "Content-Type: application/json" \
     -d "{\"mfaTicket\":\"$mfa_ticket\",\"code\":\"$verify_code\",\"tenantId\":\"$requested_tenant_id\"}")"
   local mfa_token=""
@@ -100,7 +112,7 @@ verify_mfa_ticket() {
     fi
     if [[ -n "$login_ticket" && -n "$selected_tenant_id" ]]; then
       local tenant_select_response=""
-      tenant_select_response="$(curl -sS -X POST "$BASE_URL/api/v1/auth/select-tenant" \
+      tenant_select_response="$(curl -sS -L --max-redirs 5 --post301 --post302 --post303 -X POST "$BASE_URL/api/v1/auth/select-tenant" \
         -H "Content-Type: application/json" \
         -d "{\"loginTicket\":\"$login_ticket\",\"tenantId\":\"$selected_tenant_id\"}")"
       local tenant_token=""
@@ -158,7 +170,7 @@ complete_login_with_optional_mfa() {
   return 0
 }
 
-LOGIN_RESPONSE_RAW="$(curl -sS -X POST "$BASE_URL/api/v1/auth/login" \
+LOGIN_RESPONSE_RAW="$(curl -sS -L --max-redirs 5 --post301 --post302 --post303 -X POST "$BASE_URL/api/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\",\"tenantId\":\"$TENANT_ID\"}")"
 LOGIN_RESPONSE="$(complete_login_with_optional_mfa "$LOGIN_RESPONSE_RAW" "$TENANT_ID" "$EMAIL")"

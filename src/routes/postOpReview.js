@@ -23,6 +23,7 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const multer = require('multer');
 const piexif = require('piexifjs');
+const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -207,7 +208,7 @@ function createPostOpReviewRouter({
       const body = typeof req.body === 'object' && req.body !== null ? req.body : {};
       const customerName = normalizeText(body.customerName);
       const locale = body.locale === 'en' ? 'en' : 'sv';
-      const baseUrl = normalizeText(body.baseUrl) || 'https://arcana.hairtpclinic.se';
+      const baseUrl = normalizeText(body.baseUrl) || CANONICAL_PUBLIC_ORIGIN;
       const { formatTreatmentLabel } = require('../lib/postOpTreatmentLabel');
       const treatmentLabel =
         normalizeText(body.treatmentLabel) ||

@@ -1,6 +1,7 @@
 'use strict';
 
 const { formatTreatmentLabel } = require('../lib/postOpTreatmentLabel');
+const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -109,7 +110,7 @@ async function runPostOpAutoTrigger({
 } = {}) {
   const tenant = normalizeText(tenantId) || normalizeText(config.defaultTenantId) || 'hair-tp-clinic';
   const graceHours = Number(config.postOpAutoTriggerGraceHours) || 24;
-  const baseUrl = normalizeText(config.publicBaseUrl) || 'https://arcana.hairtpclinic.se';
+  const baseUrl = normalizeText(config.publicBaseUrl) || CANONICAL_PUBLIC_ORIGIN;
 
   if (!capabilityExecutor || typeof capabilityExecutor.runCapability !== 'function') {
     return { tenantId: tenant, skipped: true, reason: 'capability_executor_missing' };

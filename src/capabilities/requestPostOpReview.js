@@ -25,6 +25,7 @@ const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
 const { renderEmailShell } = require('../templates/emailLayout');
 const { formatTreatmentLabel } = require('../lib/postOpTreatmentLabel');
+const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -205,7 +206,7 @@ class RequestPostOpReviewCapability extends BaseCapability {
       customerName: { type: 'string' },
       locale: { type: 'string', enum: ['sv', 'en'] },
       treatmentLabel: { type: 'string', description: 'Visningsnamn på behandling i e-post-CTA' },
-      baseUrl: { type: 'string', description: 'Origin för token-länken — default arcana.hairtpclinic.se' },
+      baseUrl: { type: 'string', description: 'Origin för token-länken — default arcana.hairtpclinic.com' },
     },
     required: ['bookingCaseId'],
   };
@@ -239,7 +240,7 @@ class RequestPostOpReviewCapability extends BaseCapability {
     const treatmentLabel =
       normalizeText(input.treatmentLabel) ||
       formatTreatmentLabel(normalizeText(input.treatmentKey), locale);
-    const baseUrl = normalizeText(input.baseUrl) || 'https://arcana.hairtpclinic.se';
+    const baseUrl = normalizeText(input.baseUrl) || CANONICAL_PUBLIC_ORIGIN;
     const tenantId = normalizeText(safeContext.tenantId) || 'hair-tp-clinic';
 
     if (!bookingCaseId) {

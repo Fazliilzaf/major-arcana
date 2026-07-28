@@ -1597,7 +1597,9 @@
 
     function getConversationSignatureAssetBaseUrl() {
       const origin = normalizeText(windowObject?.location?.origin);
-      return asText(origin, "https://arcana.hairtpclinic.se").replace(/\/+$/, "");
+      // ORD-86: kanonisk värd som fallback när window.location.origin saknas.
+      // Se src/brand/canonicalPublicOrigin.js — klientbundlen kan inte require:a den.
+      return asText(origin, "https://arcana.hairtpclinic.com").replace(/\/+$/, "");
     }
 
     function isConversationGenericHairTpSignatureName(value = "") {

@@ -60,11 +60,20 @@ ett meddelande som inte nämner domänen. Samma mönster som `smoke-public.sh` h
 `-L --post301 --post302 --post303` lades till — och just den fixen visade att `-L` ensamt
 inte räcker, eftersom `curl` konverterar POST till GET på 301/302/303.
 
-**2. Mailklienter.** `CCO_SIGNATURE_PUBLIC_BASE_URL` (`app.js:3254`) bygger
-`<img src="https://arcana.hairtpclinic.se/assets/…">` i utgående signaturer. Många
-klienter hämtar bilder via en proxy som inte följer redirects, och en del
-spam-heuristiker väger en redirectande bild-URL negativt. Ingen krasch — bara en
-signatur som ibland saknar logotyp.
+**2. Mailklienter.** `CCO_SIGNATURE_PUBLIC_BASE_URL` (`app.js:3254`) är bas för
+signatur-assets på **vår** domän. Många klienter hämtar bilder via en proxy som
+inte följer redirects, och en del spam-heuristiker väger en redirectande bild-URL
+negativt. Ingen krasch — bara en bild som inte visas hos mottagaren.
+
+> **Rättelse 2026-07-28, under bygget.** Ordern påstod först att detta gäller
+> signaturens logotyp. Det stämmer inte. Den **godkända** Fazli/Egzona-signaturen
+> hämtar sin logotyp från en extern CDN (`img2.gimm.io`) och berörs inte alls.
+> Konstanten träffar bara signaturer vars assets ligger under
+> `/assets/hair-tp-clinic/…` — `rewriteApprovedSignatureAssetUrls` skriver om
+> `localhost:3000/assets/hair-tp-clinic/` till den. Sådana finns (se
+> `tests/capabilities/analyzeInbox.test.js`), så problemet är verkligt, men
+> mindre än ordern först hävdade. Även `brandConfig.logoUrl` pekade redan på
+> `.com`.
 
 **3. Länkar i patientmail.** `offerAutoFlow.js` (VIP-bokning och `/boka`),
 `postOpAutoTrigger.js`, `requestPostOpReview.js`, `routes/postOpReview.js` och
