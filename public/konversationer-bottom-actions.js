@@ -8,6 +8,35 @@
   const ROLE = 'owner';
   const TENANT = 'hair_tp';
 
+  /**
+   * Får live-send erbjudas i UI:t just nu?
+   *
+   * ROLE ovan är en KONSTANT, inte en sessionsroll. Grinden `ROLE === 'owner'`
+   * var därför alltid sann, och en icke-owner fick en Skicka-knapp som gav 403
+   * från backend. Backend har alltid varit korrekt grindad (mail.live_send +
+   * ARCANA_GRAPH_SEND_ENABLED + adapter + approved + allowlist + audit) — det
+   * här är en ärlighetsfix i UI:t, inte en säkerhetsfix.
+   *
+   * OKÄNT ⇒ OFÖRÄNDRAT BETEENDE. Kapaciteten publiceras av app.js
+   * (window.CCOSendCapability). Saknas den — launchern körs fristående, eller
+   * rollen är inte hämtad än — behåller vi dagens beteende. Att fail-closed:a
+   * på saknad information vore att ta bort en fungerande knapp från ägaren för
+   * att en fetch inte hunnit klart, och backend stoppar 403:an ändå.
+   *
+   * Fallbacken när send INTE är tillåten är inte "ingen knapp" utan
+   * `saveDraftV2('needs_approval')` — utkastet går till godkännande i stället.
+   * Det är samma väg en icke-owner alltid var tänkt att ta.
+   */
+  function canOfferLiveSend() {
+    try {
+      const capability = window.CCOSendCapability?.get?.();
+      if (!capability || capability.known !== true) return true;
+      return capability.canSendLive === true;
+    } catch (_capabilityError) {
+      return true;
+    }
+  }
+
   // Svarstudio v2 — porten av design-artifacten "precis som den är". Renderas i
   // en isolerad shadow-DOM-host (svarstudio-v2.css/.html) så artifactens 141
   // egna klasser aldrig krockar med sidan. Sändkedjan är oförändrad: v2 postar
@@ -1226,7 +1255,7 @@
           say('Inget att köa — välj eller skriv ett svar');
           return;
         }
-        if (ROLE === 'owner') {
+        if (canOfferLiveSend()) {
           await sendDraftV2Now();
           return;
         }
@@ -3282,7 +3311,7 @@
           subjectEl.value = '';
           bodyEl.value = '';
           // Owner kan godkänna + skicka direkt (grindat av CCO_COMPOSE_SEND_LIVE).
-          if (ROLE === 'owner' && j.draftId) showSendNow(j.draftId);
+          if (canOfferLiveSend() && j.draftId) showSendNow(j.draftId);
         } else {
           status.textContent = 'Kunde inte skapa utkast: ' + (j.reason || j.error || 'okänt fel');
           status.style.color = '#b94a4a';

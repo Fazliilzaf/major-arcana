@@ -40478,19 +40478,81 @@
   // actions.js) run()-nycklar. Varje panel öppnar EXAKT admin#cco:s panel; V2
   // har ingen egen parallell. Nyckeln vänster är V2-actionnamnet (data-v2-action),
   // värdet höger är launcherns action-sträng.
+  //
+  // 'senare' är inte en Mer-panel utan huvudknappen i action-baren: den öppnar
+  // cco-senare-v3 precis som legacy. Ett-kliks-snooze från bottenknappen
+  // avvisades uttryckligen i PR 11 — se kommentaren vid knappen i
+  // cco-conversations-v2-shell.js. reply_later finns kvar för bulkfältet.
   const V2_MORE_PANEL_LAUNCHER_ACTIONS = Object.freeze({
     makron: "makron",
     notiser: "notiser",
     skickat: "skickat",
-    // Huvudknappen Senare öppnar panelen, som i legacy. Ett-kliks-snooze från
-    // bottenknappen avvisades uttryckligen i PR 11 — se kommentaren vid knappen
-    // i cco-conversations-v2-shell.js. reply_later finns kvar för bulkfältet.
     senare: "senare",
     noshow: "noshow",
     signering: "signaturer",
     portal: "portalmetrics",
     nyttmail: "nyttmail",
   });
+
+  // ── Send-kapacitet till launchern ────────────────────────────────────────
+  //
+  // Launchern (konversationer-bottom-actions.js) grindade live-send på
+  // `ROLE === 'owner'` — men ROLE är en KONSTANT på rad 8 i den filen. Grinden
+  // var alltså alltid sann, och en icke-owner fick en Skicka-knapp som gav 403
+  // från backend. Samma yta hade motsatt fel: V2 grindade på serverflaggan utan
+  // rollkontroll.
+  //
+  // Backend har alltid varit korrekt grindad (mail.live_send + flagga + adapter
+  // + approved + allowlist + audit). Det här är alltså en ÄRLIGHETSFIX i UI:t,
+  // inte en säkerhetsfix — och det avgör felriktningen nedan.
+  //
+  // OKÄNT ⇒ OFÖRÄNDRAT BETEENDE. Vi döljer bara Skicka när vi VET att den inte
+  // kan användas. Att fail-closed:a på saknad information vore att ta bort en
+  // fungerande knapp från ägaren för att en fetch inte hunnit klart — en
+  // regression för att slippa en 403 som backend ändå stoppar.
+  let v2ActorRoleFlight = null;
+
+  function ensureActorRoleLoaded() {
+    if (asText(state.runtime.actorRole)) return;
+    if (v2ActorRoleFlight) return;
+    v2ActorRoleFlight = apiRequest("/api/v1/auth/me")
+      .then((payload) => {
+        const role = normalizeKey(payload?.membership?.role);
+        if (role) state.runtime.actorRole = role;
+      })
+      .catch(() => {
+        /* okänd roll ⇒ oförändrat beteende, se ovan */
+      })
+      .finally(() => {
+        v2ActorRoleFlight = null;
+      });
+  }
+
+  function getCcoSendCapability() {
+    // Första läsningen startar hämtningen och svarar `known: false` — alltså
+    // oförändrat beteende. Nästa läsning har rollen. Ingen boot-ordning att
+    // hålla reda på, och ingen fetch förrän någon faktiskt frågar.
+    ensureActorRoleLoaded();
+    const role = normalizeKey(state.runtime.actorRole);
+    // `graphStatusApplied` sätts av applyRuntimeGraphStatus. Utan den vet vi
+    // inte om sendEnabled är `false` eller "inte läst än".
+    const known = Boolean(role) && state.runtime.graphStatusApplied === true;
+    return {
+      role,
+      sendEnabled: state.runtime.sendEnabled === true,
+      known,
+      canSendLive: known ? role === "owner" && state.runtime.sendEnabled === true : true,
+    };
+  }
+
+  try {
+    window.CCOSendCapability = {
+      get: () => getCcoSendCapability(),
+      refresh: () => ensureActorRoleLoaded(),
+    };
+  } catch (_capabilityError) {
+    /* tyst — launchern faller tillbaka på oförändrat beteende */
+  }
 
   function getV2ConversationActionTarget(thread) {
     const conversationKey = asText(
