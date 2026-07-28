@@ -21,6 +21,80 @@
 > som ser ut som buggar. Kontrollera med `document.visibilityState` **i samma körning** som
 > mätningen, inte efteråt.
 
+#### `visibilityState` räcker inte i en iframe
+
+Operatörsytan ligger i en **iframe** under `/admin#cco`. Iframens
+`document.visibilityState` kan rapportera `visible` medan toppdokumentets säger
+`hidden` — observerat 2026-07-28. Läser man bara iframens värde tror man att fönstret
+är giltigt när det är pausat.
+
+**Mät frekvensen i stället för att lita på flaggan.** Räkna `requestAnimationFrame` i
+det fönster där mätningen ska ske, i samma realm:
+
+```js
+// ~60/s = renderar, mätningen är giltig. <20/s = pausat, mät inte.
+const w = document.querySelector('iframe').contentWindow;
+let n = 0; const t0 = w.performance.now();
+await new Promise(r => { const tick = () => {
+  n++; w.performance.now() - t0 < 2000 ? w.requestAnimationFrame(tick) : r();
+}; w.requestAnimationFrame(tick); });
+const rafPerSekund = n / ((w.performance.now() - t0) / 1000);
+```
+
+Skriv in den uppmätta frekvensen i tabellen nedan, inte bara `visible`.
+
+#### Minifierad prod: closure-scope är onåbart, egenskapsnamn är det inte
+
+Prod serverar `app.bundle.*.min.js`. Lokala variabel- och funktionsnamn är manglade och
+modulfunktioner ligger i closures — de går varken att haka i eller känna igen i en
+stacktrace. **Egenskapsnamn manglas däremot inte.**
+
+Bär en memo eller cache i en `WeakMap`/`Map` går den att mäta utifrån: instrumentera
+`WeakMap.prototype.get/set` **i rätt realm** (iframens, inte toppdokumentets), tagga
+varje karta med ett icke-uppräkningsbart id, och räkna unika nycklar per karta.
+`set`-antal lika med antal unika nycklar = memon håller.
+
+##### Krav — bindande, inte rekommendationer
+
+**1. Uttryckligt ägar-GO innan prototypen muteras i prod.**
+Att städa upp efter sig räcker inte som grund för att göra ingreppet. En
+prototypmutation på en levande operatörsyta är ett eget beslut och ska begäras för sig,
+även när mätningen i övrigt är godkänd.
+
+**2. Patchen ligger i `try`, återställningen i `finally`. Utan undantag.**
+Ett kast mellan patch och återställning lämnar prod med en muterad `WeakMap.prototype`
+för **alla** operatörer, på obestämd tid. Första oväntade felet i probe-koden blir då ett
+produktionsfel som ingen kan härleda till en mätning.
+
+Det är samma disciplin som `withMailboxScopePass` (ORD-83) och `readCache.wrap` (ORD-85)
+bygger på — passet respektive in-flight-posten rivs i `finally`, aldrig på lyckospår. Ett
+mätverktyg får inte hålla lägre standard än koden det mäter.
+
+```js
+const WM = w.WeakMap.prototype;
+const origGet = WM.get, origSet = WM.set;
+const återställ = () => { WM.get = origGet; WM.set = origSet; };
+try {
+  WM.get = function (k) { /* … räkna … */ return origGet.call(this, k); };
+  WM.set = function (k, v) { /* … räkna … */ return origSet.call(this, k, v); };
+  // … framtvinga passet, läs av …
+} finally {
+  återställ();
+}
+// Bekräfta i utdatan att återställningen skedde — påstå den inte.
+```
+
+**3. Verifiera mot en oberoende siffra** att det är rätt karta du mätt. Vid ORD-84 visade
+UI:ts egen köräknare 625 — samma tal som antalet unika nycklar. Utan den kontrollen vet
+du att *en* WeakMap betedde sig som en memo, inte att det var memon du sökte.
+
+**4. Bekräfta återställningen i utdatan**, i samma körning. Skriv ut att
+`WeakMap.prototype.get` är identisk med originalet och att proben är borttagen.
+
+> **Historik:** ORD-84:s ommätning 2026-07-28 gjordes utan punkt 1 och utan `finally`.
+> Prototypen återställdes och verifierades, men på lyckospår — inget kastade. Kravet
+> skrevs in efter Codex invändning, inte före mätningen.
+
 ### Regel: ett stickprov är inte ett tillstånd
 
 Felen som kostat oss mest tid har alla haft samma form — någon rapporterade ett
