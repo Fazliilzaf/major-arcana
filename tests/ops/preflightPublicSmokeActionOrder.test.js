@@ -3,7 +3,7 @@
 /**
  * Drift-gatens felsökningsordning: BASE_URL före credentials.
  *
- * BAKGRUND — två gånger fel, på olika sätt.
+ * BAKGRUND — tre gånger fel, på olika sätt.
  *
  * Först pekade rapporten ut OWNER credentials som P0. Drift-gaten larmade sex
  * gånger på två dygn med den texten medan orsaken var att BASE_URL pekade på en
@@ -15,14 +15,26 @@
  *
  * 2026-07-28 bevisades motsatsen i prod. Drift-gaten föll på auth/me med
  * {"error":"Inloggning krävs."} — ett auth-steg. Credentials var oförändrade och
- * korrekta. Orsaken var ARCANA_PUBLIC_BASE_URL på .se: sessionskakan är
- * värdbunden, så login lyckas (curl följer 301 och kakan sätts på .com) medan
- * nästa anrop går till .se utan kaka. Bytet till .com löste det utan att röra
- * credentials.
+ * korrekta. Orsaken var ARCANA_PUBLIC_BASE_URL på legacy-värden.
  *
- * Ett auth-fel med rätt credentials och fel värd ser ALLTID ut som ett auth-fel
- * med fel credentials. Därför måste ordningen vara låst i test, inte i en
- * kommentar som nästa person kan omformulera i god tro.
+ * TREDJE FELET, i samma veva: första förklaringen till VARFÖR var också fel.
+ * Den sa "sessionskakan är värdbunden". Smoken använder inte kakor — den bär
+ * en Bearer-token i en Authorization-header. Den riktiga mekanismen är att
+ * **curl släpper Authorization-headern vid omdirigering över värdgräns**, en
+ * avsiktlig säkerhetsspärr. Login lyckas för att credentials ligger i
+ * POST-kroppen (bevaras med --post301), me faller för att headern tas bort.
+ *
+ * Bevisat med fyra anrop:
+ *   .com + header                  -> "Sessionen är ogiltig eller har gått ut."
+ *   .se + -L + samma header        -> "Inloggning krävs."   <-- headern borta
+ *   .com UTAN header               -> "Inloggning krävs."   <-- identiskt
+ *   .se + --location-trusted       -> "Sessionen är ogiltig eller har gått ut."
+ *
+ * Rad två och tre är identiska. Det är beviset.
+ *
+ * Lärdomen är dubbel: rätt slutsats med fel mekanism är fortfarande fel, och
+ * den håller sämre eftersom nästa person felsöker efter mekanismen. Därför
+ * låser testet nu mekanismen, inte bara slutsatsen.
  */
 
 const test = require('node:test');
@@ -94,10 +106,21 @@ test('P0-texten säger uttryckligen att ett auth-fel INTE utesluter BASE_URL', (
     /INTE|inte betyder|utesluter inte/i.test(text),
     'texten måste säga att ett auth-fel inte utesluter BASE_URL som orsak'
   );
+  // Mekanismen ska stå, inte bara slutsatsen — annars felsöker nästa person
+  // efter fel orsak och landar ändå fel.
   assert.match(
     text,
-    /kak|cookie/i,
-    'mekanismen (värdbunden sessionskaka) ska stå, inte bara slutsatsen'
+    /Authorization/,
+    'headern som släpps ska nämnas vid namn'
+  );
+  assert.ok(
+    /värdgräns|cross-host|annan värd/i.test(text),
+    'att det sker vid omdirigering över VÄRDGRÄNS är hela poängen'
+  );
+  assert.match(
+    text,
+    /POST-kroppen|kroppen/i,
+    'varför login lyckas men me faller ska framgå — credentials ligger i kroppen'
   );
 
   // Den gamla, falsifierade formuleringen får inte återuppstå.
@@ -105,6 +128,14 @@ test('P0-texten säger uttryckligen att ett auth-fel INTE utesluter BASE_URL', (
     text,
     /Först när felet ligger i ett auth-steg är credentials rätt spår/,
     'den formuleringen är motbevisad 2026-07-28 — auth/me föll på fel BASE_URL, inte fel credentials'
+  );
+
+  // Inte heller den felaktiga MEKANISKA förklaringen. Smoken använder Bearer,
+  // inte kakor; skrivs kak-versionen tillbaka felsöker nästa person åt fel håll.
+  assert.doesNotMatch(
+    text,
+    /kaka|kakan|cookie/i,
+    'sessionskaka är fel mekanism — smoken bär en Bearer-token i en header'
   );
 });
 
