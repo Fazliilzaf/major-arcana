@@ -42,8 +42,21 @@ const PATIENTER = [
   { id: 'p3', tenantId: TENANT, displayName: 'Anna Andersson', personnummer: '19900303-9012' },
   // Sammanslagen sekundär — ska INTE räknas som en aktiv identitet.
   { id: 'p4', tenantId: TENANT, displayName: 'Cecilia Ek', personnummer: '19850404-3456', matchStatus: 'merged' },
-  // Fallback-kedjorna: namn via cliento.name, personnummer via pnr.
+  // Fallback-kedjorna, SAKNAT fält (undefined). Här beter sig ?? och || lika.
   { id: 'p5', tenantId: TENANT, cliento: { name: 'David Dahl' }, pnr: '19700505-7890' },
+  // Fallback-kedjorna, TOM STRÄNG. Här skiljer de sig — och det är fallet som
+  // förekommer i verkligheten, eftersom displayName byggs från Cliento- och
+  // Drive-importer som lämnar tomma fält efter sig.
+  {
+    id: 'p6',
+    tenantId: TENANT,
+    displayName: '',
+    personnummer: '',
+    fullName: '',
+    personalNumber: '',
+    cliento: { name: 'Erik Ek' },
+    pnr: '19600606-1122',
+  },
 ];
 
 async function skapaStore(patients = PATIENTER) {
@@ -105,6 +118,42 @@ test('fallback-kedjorna bärs vidare — cliento.name och pnr', async () => {
     proj.filter((r) => patientIdentityPnr(r) === '197005057890').length,
     1,
     'personnummer via pnr-fältet ska överleva projektionen'
+  );
+  städa();
+});
+
+test('TOM STRÄNG faller vidare i kedjan — || och inte ??', async () => {
+  // Regressionen som fanns i första versionen av den här ändringen: ?? stannar
+  // på '' medan || faller vidare. p6 har displayName: '' och personnummer: ''
+  // men bär namn i cliento.name och personnummer i pnr.
+  //
+  // Med ?? blev båda '' — och tomt namn matchar alla andra tomma namn, så
+  // patienten går från unik till en av många. nameIsUnique blir false, aliasen
+  // försvinner, och bilderna slutar synas på kundkortet. Utan krasch, utan larm.
+  //
+  // p5 (saknade fält) hade INTE fångat det: där beter sig ?? och || lika.
+  const { store, städa } = await skapaStore();
+  const proj = (await store.listPatientIdentities({ tenantId: TENANT })).patients;
+  const full = (await store.listPatients({ tenantId: TENANT, limit: 20000, offset: 0 })).patients;
+
+  for (const [pop, vad] of [[proj, 'projektionen'], [full, 'fullständiga poster']]) {
+    assert.equal(
+      pop.filter((r) => patientIdentityName(r) === 'erik ek').length,
+      1,
+      `${vad}: tomt displayName ska falla vidare till cliento.name`
+    );
+    assert.equal(
+      pop.filter((r) => patientIdentityPnr(r) === '196006061122').length,
+      1,
+      `${vad}: tomt personnummer ska falla vidare till pnr`
+    );
+  }
+
+  // Och ingen identitet ska ha blivit tom — det är själva felläget.
+  assert.equal(
+    proj.filter((r) => !r.displayName && !r.personnummer).length,
+    0,
+    'ingen patient ska sakna både namn och personnummer efter projektion'
   );
   städa();
 });

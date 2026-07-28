@@ -41,12 +41,23 @@ function normalizeDigits(value) {
 // vakt hade sagt "gå och fixa projektionen också". Det här gör att det inte
 // finns något att fixa. Samma resonemang som lämnade getQueueLaneThreads orörd
 // i ORD-82: en sanning, ett ställe.
+// OBS: || och INTE ??. Skillnaden är inte kosmetisk här.
+//
+// ?? faller bara vidare på null/undefined. || faller vidare även på tom sträng,
+// och tomma strängar är vanliga i importerad data — displayName byggs från
+// Cliento- och Drive-importer.
+//
+// Med ?? hade en patient med displayName: '' och cliento.name: 'David Dahl'
+// gett '' i stället för 'david dahl'. Och tomt namn matchar alla andra tomma
+// namn, så patienten går från "unik via cliento-namnet" till "en av många
+// tomma" — nameIsUnique blir false, aliasen försvinner, och bilderna slutar
+// synas på kundkortet. Ingen krasch, inget larm.
 function patientIdentityPnr(row) {
-  return normalizeDigits(row?.personnummer ?? row?.personalNumber ?? row?.pnr);
+  return normalizeDigits(row?.personnummer || row?.personalNumber || row?.pnr);
 }
 
 function patientIdentityName(row) {
-  return normalizeName(row?.displayName ?? row?.fullName ?? row?.name ?? row?.cliento?.name);
+  return normalizeName(row?.displayName || row?.fullName || row?.name || row?.cliento?.name);
 }
 
 function asArray(value) {

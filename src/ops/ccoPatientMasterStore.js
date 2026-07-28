@@ -926,17 +926,23 @@ async function createCcoPatientMasterStore({ filePath }) {
     const bucket = tenantBucket(state, tenantId);
     const max = Math.max(1, Math.min(20000, Number(limit) || 20000));
     const patients = [];
+    let aktiva = 0;
     for (const item of bucket.patients) {
       // Samma uteslutning som listPatients: sammanslagna sekundärer är inte
       // aktiva identiteter och ska inte räknas i unikhetskontrollen.
       if (item.matchStatus === 'merged') continue;
-      patients.push({
-        personnummer: patientIdentityPnr(item),
-        displayName: patientIdentityName(item),
-      });
-      if (patients.length >= max) break;
+      aktiva += 1;
+      if (patients.length < max) {
+        patients.push({
+          personnummer: patientIdentityPnr(item),
+          displayName: patientIdentityName(item),
+        });
+      }
     }
-    return { total: patients.length, patients };
+    // total = antalet aktiva identiteter FÖRE avkortning, samma innebörd som
+    // listPatients (rows.length före slice). Konsumenten läser aldrig total,
+    // men om någon börjar göra det ska de två ge samma svar.
+    return { total: aktiva, patients };
   }
 
   async function importClientoRows({ tenantId, rows = [], duplicateEmails = new Set() } = {}) {
