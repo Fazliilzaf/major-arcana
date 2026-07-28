@@ -204,7 +204,19 @@ test('VAKT: inget nytt svep över bucket.patients', () => {
   );
   const start = src.indexOf('async function getTenantStats');
   const slut = src.indexOf('\n  async function ', start + 10);
-  const kropp = src.slice(start, slut > start ? slut : undefined);
+  const rå = src.slice(start, slut > start ? slut : undefined);
+
+  // KOMMENTARER MÅSTE BORT FÖRST.
+  //
+  // Första versionen räknade i råtexten. När budgetkommentaren skrevs in vid
+  // funktionen — raden "nio .filter() utan affärer" — föll vakten på sin egen
+  // dokumentation. En vakt som läser prosa som kod ger falsklarm, och ett
+  // falsklarm som ingen kan förklara blir en vakt någon stänger av.
+  const kropp = rå
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .map((rad) => rad.replace(/\/\/.*$/, ''))
+    .join('\n');
 
   const svep = (kropp.match(/\.(filter|map|forEach|reduce|some|every)\(/g) || []).length;
   assert.equal(svep, 0, `getTenantStats ska inte svepa listan alls — hittade ${svep} anrop`);
