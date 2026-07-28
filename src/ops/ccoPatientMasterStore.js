@@ -17,6 +17,7 @@ const {
   splitName,
   nameOverlapScore,
 } = require('../../scripts/migration/lib/migrationUtils');
+const { patientIdentityPnr, patientIdentityName } = require('./ccoPatientAssetIdentity');
 const { normalizePhotoPublishConsent } = require('./ccoPhotoPublishConsent');
 const { normalizeFortnoxPatientRef } = require('../cfo/cfoFortnoxPatientSync');
 const { normalizePatientDemographics, buildDemographicsReadout } = require('./patientDemographics');
@@ -904,6 +905,40 @@ async function createCcoPatientMasterStore({ filePath }) {
     };
   }
 
+  // ORD-85 steg 2 — identitetsprojektion.
+  //
+  // listPatients materialiserar hela registret: clonePatient djupkopierar varje
+  // post och rows.sort kör localeCompare(…, 'sv') över 7 451 namn. Uppmätt mot
+  // realistisk poststorlek: +517 MB heap för EN laddning. Stampede-skyddet i
+  // #1233 tog bort multiplikatorn, inte kostnaden.
+  //
+  // Konsumenten — collectAssetStoreAliases — använder populationen till exakt
+  // två unikhetsräkningar och inget annat. Inte ens id:t läses. Två strängar per
+  // patient räcker.
+  //
+  // Fälten heter personnummer och displayName för att de delade hjälparna
+  // patientIdentityPnr/patientIdentityName ska läsa dem utan gren. Båda
+  // normaliseringarna är idempotenta, så konsumentens andra varv ger samma
+  // värde. Ingen sortering, ingen kopiering, inga nästlade objekt.
+  //
+  // listPatients lämnas orörd — den har andra anropare.
+  async function listPatientIdentities({ tenantId, limit = 20000 } = {}) {
+    const bucket = tenantBucket(state, tenantId);
+    const max = Math.max(1, Math.min(20000, Number(limit) || 20000));
+    const patients = [];
+    for (const item of bucket.patients) {
+      // Samma uteslutning som listPatients: sammanslagna sekundärer är inte
+      // aktiva identiteter och ska inte räknas i unikhetskontrollen.
+      if (item.matchStatus === 'merged') continue;
+      patients.push({
+        personnummer: patientIdentityPnr(item),
+        displayName: patientIdentityName(item),
+      });
+      if (patients.length >= max) break;
+    }
+    return { total: patients.length, patients };
+  }
+
   async function importClientoRows({ tenantId, rows = [], duplicateEmails = new Set() } = {}) {
     const bucket = tenantBucket(state, tenantId);
     let created = 0;
@@ -1584,6 +1619,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     hardDeleteStubPatients,
     importClientoRows,
     listPatients,
+    listPatientIdentities,
     listMergeReviewGroups,
     mergeDriveProfiles,
     mergePatients,

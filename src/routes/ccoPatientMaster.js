@@ -1064,14 +1064,29 @@ function createCcoPatientMasterRouter({
         }
         let patientIds = directPatientIds;
         if (!hasRenderableDirectAsset) {
-          const loadIdentityPopulation = () =>
-            typeof patientMasterStore.listPatients === 'function'
+          // ORD-85 — projektionen i stället för hela registret.
+          //
+          // Populationen används bara till två unikhetsräkningar i
+          // collectAssetStoreAliases. listPatients djupkopierade varje post och
+          // sorterade med localeCompare: +517 MB heap per laddning, uppmätt.
+          //
+          // Faller tillbaka på listPatients om projektionen saknas, så en äldre
+          // store inte gör kundkortet blankt.
+          const loadIdentityPopulation = () => {
+            if (typeof patientMasterStore.listPatientIdentities === 'function') {
+              return patientMasterStore.listPatientIdentities({
+                tenantId: actor.tenantId,
+                limit: 20000,
+              });
+            }
+            return typeof patientMasterStore.listPatients === 'function'
               ? patientMasterStore.listPatients({
                   tenantId: actor.tenantId,
                   limit: 20000,
                   offset: 0,
                 })
               : { patients: [] };
+          };
           const identityPopulation = readCache
             ? (
                 await readCache.wrap(

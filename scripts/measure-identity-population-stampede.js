@@ -106,6 +106,22 @@ function byggRegister() {
   console.log(`A  ETT listPatients({limit:20000})`);
   console.log(`     ${enMs} ms   heap +${mb(h1 - h0)} MB   synkblock ${block} ms   ${antal} patienter\n`);
 
+  // ---- A2: ORD-85 steg 2 — projektionen -----------------------------
+  if (typeof store.listPatientIdentities === 'function') {
+    if (global.gc) global.gc();
+    const p0 = process.memoryUsage().heapUsed;
+    block = 0; sista = Date.now();
+    t = process.hrtime.bigint();
+    const proj = await store.listPatientIdentities({ tenantId: 'hair-tp-clinic', limit: 20000 });
+    const projMs = ms(t);
+    const p1 = process.memoryUsage().heapUsed;
+    console.log(`A2 listPatientIdentities (projektion)`);
+    console.log(`     ${projMs} ms   heap +${mb(p1 - p0)} MB   synkblock ${block} ms   ${proj.patients.length} identiteter`);
+    console.log(`     vinst mot listPatients: ${Math.round((1 - (p1 - p0) / (h1 - h0)) * 1000) / 10}% mindre heap, ${Math.round((1 - projMs / enMs) * 1000) / 10}% snabbare\n`);
+  } else {
+    console.log('A2 listPatientIdentities saknas — projektionen inte byggd\n');
+  }
+
   // ---- B: tre överlappande wrap-anrop på samma nyckel ---------------
   const cache = createCcoReadCache ? createCcoReadCache({}) : null;
   if (!cache?.wrap) { console.log('B  kunde inte skapa readCache — hoppar'); }
