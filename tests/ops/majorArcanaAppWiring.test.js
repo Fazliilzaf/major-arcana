@@ -572,7 +572,10 @@ test('V2 "Mer"-menyn kopplar alla åtta återstående paneler till launcherns ru
     ['makron', 'makron'],
     ['notiser', 'notiser'],
     ['skickat', 'skickat'],
-    ['senarekopanel', 'senare'],
+    // Senare är inte längre en Mer-panel: huvudknappen i action-baren öppnar
+    // samma launcher-action, som i legacy. Ett-kliks-snooze från bottenknappen
+    // avvisades uttryckligen i PR 11, och V2:s egen ett-kliksväg avvek från det.
+    ['senare', 'senare'],
     ['noshow', 'noshow'],
     ['signering', 'signaturer'],
     ['portal', 'portalmetrics'],

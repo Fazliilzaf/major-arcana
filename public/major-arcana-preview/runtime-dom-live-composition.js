@@ -1595,6 +1595,10 @@
         state.runtime.defaultSignatureProfile = CCO_DEFAULT_SIGNATURE_PROFILE;
       }
       state.runtime.sendEnabled = graph?.sendEnabled === true;
+      // Markerar att sendEnabled är LÄST, inte bara default-false. Utan den kan
+      // send-kapaciteten (window.CCOSendCapability) inte skilja "avstängd" från
+      // "inte hämtad än", och skulle dölja Skicka under boot.
+      state.runtime.graphStatusApplied = true;
       state.runtime.deleteEnabled = graph?.deleteEnabled === true;
       state.runtime.graphReadEnabled = graph?.readEnabled === true;
       state.runtime.graphReadConnectorAvailable = graph?.readConnectorAvailable === true;

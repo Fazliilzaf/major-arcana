@@ -75,7 +75,16 @@ test('dublettvarning: debouncat uppslag mot contact-lookup, varnar om kontakt fi
 });
 
 test('owner-genväg: godkänn & skicka nu mot compose-send-endpointen', () => {
-  assert.match(source, /ROLE === 'owner'[\s\S]{0,40}showSendNow/);
+  // Grinden var `ROLE === 'owner'` — men ROLE är en KONSTANT på rad 8, så
+  // villkoret var alltid sant och en icke-owner fick en Skicka-knapp som gav
+  // 403. Den läser nu den riktiga sessionsrollen plus serverflaggan via
+  // window.CCOSendCapability, med oförändrat beteende när kapaciteten är okänd.
+  assert.match(source, /canOfferLiveSend\(\)[\s\S]{0,40}showSendNow/);
+  assert.match(
+    source,
+    /function canOfferLiveSend\(\)/,
+    'grinden ska vara en funktion som läser sessionen, inte en konstantjämförelse'
+  );
   assert.match(
     source,
     /'\/api\/v1\/cco\/runtime\/compose-new-mail\/' \+ encodeURIComponent\(draftId\) \+ '\/send'/
