@@ -1064,14 +1064,46 @@ function createCcoPatientMasterRouter({
         }
         let patientIds = directPatientIds;
         if (!hasRenderableDirectAsset) {
-          const loadIdentityPopulation = () =>
-            typeof patientMasterStore.listPatients === 'function'
-              ? patientMasterStore.listPatients({
-                  tenantId: actor.tenantId,
-                  limit: 20000,
-                  offset: 0,
-                })
-              : { patients: [] };
+          // ORD-85 — projektionen i stället för hela registret.
+          //
+          // Populationen används bara till två unikhetsräkningar i
+          // collectAssetStoreAliases. listPatients djupkopierade varje post och
+          // sorterade med localeCompare: +517 MB heap per laddning, uppmätt.
+          //
+          // Faller tillbaka på listPatients om projektionen saknas, så en äldre
+          // store inte gör kundkortet blankt.
+          // INGEN limit på identitetsvägen — se listPatientIdentities.
+          // Populationen används till en unikhetsräkning, och en avkortad
+          // population gör den räkningen osann snarare än ofullständig.
+          const IDENTITY_FALLBACK_LIMIT = 20000;
+          const loadIdentityPopulation = async () => {
+            if (typeof patientMasterStore.listPatientIdentities === 'function') {
+              return patientMasterStore.listPatientIdentities({
+                tenantId: actor.tenantId,
+              });
+            }
+            if (typeof patientMasterStore.listPatients !== 'function') {
+              return { patients: [] };
+            }
+            const fallback = await patientMasterStore.listPatients({
+              tenantId: actor.tenantId,
+              limit: IDENTITY_FALLBACK_LIMIT,
+              offset: 0,
+            });
+            // Fallbacken har kvar sitt tak — den delas med andra anropare och
+            // ändras inte här. Men den ska inte tystna om det träffas: en
+            // avkortad population ser ut som "det fanns inte fler patienter",
+            // och unikhetskontrollen svarar då fel utan att någon märker det.
+            const hamtade = asArray(fallback?.patients).length;
+            if (hamtade >= IDENTITY_FALLBACK_LIMIT) {
+              console.warn(
+                `[patient-identity-population] fallback träffade taket: ` +
+                  `${hamtade}/${IDENTITY_FALLBACK_LIMIT} total=${fallback?.total ?? 'okänt'} ` +
+                  `tenant=${actor.tenantId} — unikhetskontrollen är inte längre tillförlitlig`
+              );
+            }
+            return fallback;
+          };
           const identityPopulation = readCache
             ? (
                 await readCache.wrap(

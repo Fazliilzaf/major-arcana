@@ -25,6 +25,41 @@ function normalizeDigits(value) {
   return normalizeText(value).replace(/\D+/g, '');
 }
 
+// ORD-85 — identitetsprojektionens ENDA sanning.
+//
+// Populationen som skickas till collectAssetStoreAliases används bara till två
+// unikhetsräkningar: "finns exakt en patient med det här personnumret" och
+// samma sak för namnet. Hela patientregistret materialiserades i 517 MB för att
+// svara på det.
+//
+// Projektionen kör de här två funktionerna över den fullständiga posten och
+// sparar bara resultatet — två normaliserade strängar per patient. Konsumenten
+// nedan kör SAMMA funktioner. Lägger någon till ett fält i fallback-kedjan
+// ändras båda sidor samtidigt, för det finns bara en kedja.
+//
+// Alternativet var en källnivå-vakt som larmar när kedjorna glider isär. En
+// vakt hade sagt "gå och fixa projektionen också". Det här gör att det inte
+// finns något att fixa. Samma resonemang som lämnade getQueueLaneThreads orörd
+// i ORD-82: en sanning, ett ställe.
+// OBS: || och INTE ??. Skillnaden är inte kosmetisk här.
+//
+// ?? faller bara vidare på null/undefined. || faller vidare även på tom sträng,
+// och tomma strängar är vanliga i importerad data — displayName byggs från
+// Cliento- och Drive-importer.
+//
+// Med ?? hade en patient med displayName: '' och cliento.name: 'David Dahl'
+// gett '' i stället för 'david dahl'. Och tomt namn matchar alla andra tomma
+// namn, så patienten går från "unik via cliento-namnet" till "en av många
+// tomma" — nameIsUnique blir false, aliasen försvinner, och bilderna slutar
+// synas på kundkortet. Ingen krasch, inget larm.
+function patientIdentityPnr(row) {
+  return normalizeDigits(row?.personnummer || row?.personalNumber || row?.pnr);
+}
+
+function patientIdentityName(row) {
+  return normalizeName(row?.displayName || row?.fullName || row?.name || row?.cliento?.name);
+}
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -164,17 +199,13 @@ function collectAssetStoreAliases({ patient, patientPopulation, tenantId, assetS
   const renderableRows = rows.filter((row) => row?.patientId && acceptedStatuses.has(row.status));
   const exactNamePatientIds = new Set();
   const population = asArray(patientPopulation);
+  // Läser via de delade hjälparna. Populationen kan vara antingen fullständiga
+  // patientposter eller ORD-85:s projektion — projektionen bär redan resultatet
+  // i samma fältnamn, så båda formerna fungerar utan gren här.
   const pnrIsUnique =
-    pnr.length >= 8 &&
-    population.filter(
-      (row) => normalizeDigits(row?.personnummer || row?.personalNumber || row?.pnr) === pnr
-    ).length === 1;
+    pnr.length >= 8 && population.filter((row) => patientIdentityPnr(row) === pnr).length === 1;
   const nameIsUnique =
-    Boolean(name) &&
-    population.filter(
-      (row) =>
-        normalizeName(row?.displayName || row?.fullName || row?.name || row?.cliento?.name) === name
-    ).length === 1;
+    Boolean(name) && population.filter((row) => patientIdentityName(row) === name).length === 1;
 
   for (const row of renderableRows) {
     const fields = [
@@ -532,6 +563,10 @@ function assetToPatientFile(asset) {
 
 module.exports = {
   assetToPatientFile,
+  // ORD-85: delade av identitetsprojektionen i ccoPatientMasterStore.
+  // En sanning, ett ställe — se kommentaren vid definitionen.
+  patientIdentityPnr,
+  patientIdentityName,
   collectAssetStoreAliases,
   resolveCanonicalPatientsForAssetAliases,
   resolveCanonicalPatientsForAssets,
