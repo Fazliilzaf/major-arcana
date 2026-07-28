@@ -196,6 +196,8 @@ async function createCcoMailboxTruthShardedStore({
   // the persistent disk and can be reopened on demand.
   const shardCache = new Map();
   const safeMaxLoadedShards = Math.max(1, Number(maxLoadedShards) || 2);
+  // Pågående laddningar, nyckel = mailboxId. Se loadShard().
+  const shardLoadFlights = new Map();
 
   function touchShard(mailboxId = '', store = null) {
     const safeMailboxId = normalizeMailboxId(mailboxId);
@@ -218,14 +220,31 @@ async function createCcoMailboxTruthShardedStore({
     if (shardCache.has(safeMailboxId)) {
       return touchShard(safeMailboxId, shardCache.get(safeMailboxId));
     }
+    // Utan den här delade promisen ser N samtidiga kalla anrop för samma
+    // mailbox alla `has() === false`, och alla parsar hela shard-filen till
+    // minne parallellt. Det är samma stampede som ORD-85 (#1233) löste i
+    // readCache.wrap — den här vägen går inte via readCache och fick därför
+    // aldrig det skyddet. Tre kalla worklist-laddningar 2026-07-27 19:09 UTC
+    // tog RSS från 2 291 MB till 3 465 MB på 62 sekunder och Render startade
+    // om instansen. Att slå ihop laddningarna gör N parsningar till en.
+    const inFlight = shardLoadFlights.get(safeMailboxId);
+    if (inFlight) return inFlight;
+
     const shardPath = path.join(mailboxesDir, `${encodeMailboxId(safeMailboxId)}.json`);
-    const store = await createCcoMailboxTruthStore({
-      filePath: shardPath,
-      maxSyncRuns,
-      deferConversationRebuild: true,
-      deferInitialSave: true,
+    const flight = (async () => {
+      const store = await createCcoMailboxTruthStore({
+        filePath: shardPath,
+        maxSyncRuns,
+        deferConversationRebuild: true,
+        deferInitialSave: true,
+      });
+      return touchShard(safeMailboxId, store);
+    })().finally(() => {
+      // finally, inte then: ett kast får inte låsa mailboxen för alltid.
+      shardLoadFlights.delete(safeMailboxId);
     });
-    return touchShard(safeMailboxId, store);
+    shardLoadFlights.set(safeMailboxId, flight);
+    return flight;
   }
 
   function registerShardMailboxes(entryName = '', store, target = []) {

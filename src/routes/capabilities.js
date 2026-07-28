@@ -111,6 +111,12 @@ const CCO_ANALYZE_HISTORY_SIGNAL_LOOKBACK_DAYS = 365;
 const CCO_ANALYZE_HISTORY_SIGNAL_RECENT_WINDOW_DAYS = 45;
 const ANALYZE_INBOX_GRAPH_SNAPSHOT_CACHE_TTL_MS = 45000;
 const WORKLIST_CONSUMER_RESPONSE_CACHE_TTL_MS = 300000;
+// Varje post är en HEL svarspayload — upp till 5 000 rader plus enrichment.
+// Cachen städades tidigare bara lat, vid läsning av samma nyckel: en nyckel som
+// aldrig lästes igen låg kvar för alltid, och antalet nycklar var obegränsat
+// (tenant × mailboxkombination × limit). Taket och svepet nedan gör att en
+// serie kalla laddningar med olika mailboxval inte kan ackumulera payloads.
+const WORKLIST_CONSUMER_RESPONSE_CACHE_MAX_ENTRIES = 8;
 // The operator surface is intentionally mailbox-scoped. A broad multi-mailbox
 // sweep materializes and groups every stored message in each shard on Node's
 // event loop, which can starve /readyz on a busy production instance.
@@ -256,13 +262,28 @@ function readWorklistConsumerResponseCache(cacheKey = '') {
   return payload;
 }
 
+function sweepWorklistConsumerResponseCache(now = Date.now()) {
+  for (const [key, entry] of worklistConsumerResponseCache) {
+    if (now - Number(entry?.at || 0) > WORKLIST_CONSUMER_RESPONSE_CACHE_TTL_MS) {
+      worklistConsumerResponseCache.delete(key);
+    }
+  }
+}
+
 function writeWorklistConsumerResponseCache(cacheKey = '', payload = null) {
   const safeKey = normalizeText(cacheKey);
   if (!safeKey || !isCacheableWorklistConsumerResponsePayload(payload)) return;
+  sweepWorklistConsumerResponseCache();
+  // Map-ordning är insättningsordning. Skriv om nyckeln så att den hamnar sist,
+  // annars vräker taket ut en post som just skrevs.
+  worklistConsumerResponseCache.delete(safeKey);
   worklistConsumerResponseCache.set(safeKey, {
     at: Date.now(),
     payload,
   });
+  while (worklistConsumerResponseCache.size > WORKLIST_CONSUMER_RESPONSE_CACHE_MAX_ENTRIES) {
+    worklistConsumerResponseCache.delete(worklistConsumerResponseCache.keys().next().value);
+  }
 }
 
 function isCacheableWorklistConsumerResponsePayload(payload = null) {
@@ -361,8 +382,7 @@ function buildWorklistEnrichmentPayload({
       normalizeText(latestEntry?.capabilityName) ||
       normalizeText(latestEntry?.capability?.name) ||
       null,
-    rowCount:
-      conversationWorklist.length + needsReplyToday.length + conversationEnrichment.length,
+    rowCount: conversationWorklist.length + needsReplyToday.length + conversationEnrichment.length,
     conversationWorklist,
     needsReplyToday,
     conversationEnrichment,
@@ -6082,8 +6102,12 @@ function toCcoRuntimeMailAssetContentHandler({
         });
       }
 
-      const contentType = normalizeText(cached?.metadata?.contentType) || 'application/octet-stream';
-      const fileName = sanitizeAttachmentFilename(cached?.metadata?.name || query.fileName, 'bilaga');
+      const contentType =
+        normalizeText(cached?.metadata?.contentType) || 'application/octet-stream';
+      const fileName = sanitizeAttachmentFilename(
+        cached?.metadata?.name || query.fileName,
+        'bilaga'
+      );
       res.setHeader('content-type', contentType);
       res.setHeader(
         'content-disposition',
@@ -6137,8 +6161,7 @@ function toCcoRuntimeHistoryBackfillHandler({
         });
         if (input.async === true) {
           const mailboxId = input.mailboxIds[0];
-          const selectedFolderTypes =
-            input.folderTypes || ['inbox', 'sent', 'drafts', 'deleted'];
+          const selectedFolderTypes = input.folderTypes || ['inbox', 'sent', 'drafts', 'deleted'];
           const selectedFoldersComplete = (coverage) => {
             const statusByFolderType = coverage?.coverage?.accountReports?.[0]?.statusByFolderType;
             return selectedFolderTypes.every(
@@ -7679,7 +7702,10 @@ function toCcoRuntimeHistoryFidelityManifestHandler({ ccoMailboxTruthStore = nul
       const mailboxTruthHistory = createCcoMailboxTruthReadAdapter({
         store: ccoMailboxTruthStore,
       });
-      if (!mailboxTruthHistory || typeof mailboxTruthHistory.getCidFidelityManifest !== 'function') {
+      if (
+        !mailboxTruthHistory ||
+        typeof mailboxTruthHistory.getCidFidelityManifest !== 'function'
+      ) {
         return res.status(503).json({
           ok: false,
           error: 'Mailbox truth-CID-manifest är inte tillgängligt just nu.',
@@ -7796,7 +7822,9 @@ function toCcoRuntimeHistoryFidelityProbeHandler({
           messageId: input.messageId,
           attachmentId: graphAttachment.id,
         });
-        const buffer = Buffer.isBuffer(cached?.buffer) ? cached.buffer : Buffer.from(cached?.buffer || []);
+        const buffer = Buffer.isBuffer(cached?.buffer)
+          ? cached.buffer
+          : Buffer.from(cached?.buffer || []);
         localBlob = {
           available: buffer.length > 0,
           state: buffer.length > 0 ? 'available' : 'missing',
@@ -8298,8 +8326,7 @@ function buildWorklistLegacyBaselineEntrySummary(entry = {}) {
     conversationWorklist,
     needsReplyToday,
     conversationEnrichment,
-    rowCount:
-      conversationWorklist.length + needsReplyToday.length + conversationEnrichment.length,
+    rowCount: conversationWorklist.length + needsReplyToday.length + conversationEnrichment.length,
     mailboxIds,
   };
 }
@@ -8723,15 +8750,12 @@ async function buildWorklistConsumerContext({
   stateRoot = '',
 } = {}) {
   const timing = createWorklistConsumerTiming({ mailboxIds });
-  const resolvedCustomerState = await measureWorklistConsumerAsyncPhase(
-    timing,
-    'dataReadMs',
-    () =>
-      resolveWorklistCustomerState({
-        tenantId,
-        customerState,
-        ccoCustomerStore,
-      })
+  const resolvedCustomerState = await measureWorklistConsumerAsyncPhase(timing, 'dataReadMs', () =>
+    resolveWorklistCustomerState({
+      tenantId,
+      customerState,
+      ccoCustomerStore,
+    })
   );
   // The live operator endpoint only needs the consumer model. The shadow
   // comparison walks the same truth corpus again and belongs to the explicit
@@ -8870,8 +8894,7 @@ async function buildWorklistConsumerContext({
       diagnostics?.latestObservedEntry || enrichmentBaseline?.latestObservedEntry || null,
     latestOutputData:
       diagnostics?.latestOutputData || enrichmentBaseline?.selectedOutputData || null,
-    baselineSelection:
-      diagnostics?.baselineSelection || enrichmentBaseline?.selection || null,
+    baselineSelection: diagnostics?.baselineSelection || enrichmentBaseline?.selection || null,
     truthCoverage,
     deltaCoverage,
     shadowDiffReport: diagnostics?.diffReport || null,
@@ -10921,6 +10944,11 @@ module.exports = {
   toGraphReadOptionsFromEnv,
   clearAnalyzeInboxGraphSnapshotCache,
   clearWorklistConsumerResponseCache,
+  // Exponerade för tester: taket och svepet är det som hindrar en serie kalla
+  // laddningar från att ackumulera hela svarspayloads i minnet.
+  readWorklistConsumerResponseCache,
+  writeWorklistConsumerResponseCache,
+  WORKLIST_CONSUMER_RESPONSE_CACHE_MAX_ENTRIES,
   mergeWorklistEnrichmentOutput,
   resolveLatestWorklistEnrichmentBaseline,
   resolvePublishedWorklistEnrichmentBaseline,
