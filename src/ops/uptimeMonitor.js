@@ -16,7 +16,9 @@ const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
  *   ALERT_WEBHOOK_URL (Slack/Discord webhook)
  *   ALERT_SMS_TO (telefonnummer vid kritisk nedtid)
  *   ALERT_EMAIL_TO (e-post vid nedtid)
- *   UPTIME_CHECK_URL (default: https://arcana.hairtpclinic.se/healthz)
+ *   UPTIME_CHECK_URL (default: https://arcana.hairtpclinic.com/healthz)
+ *                    Sätt ALDRIG legacy .se här — den 301:ar, och vakten mäter
+ *                    då Cloudflare i stället för tjänsten.
  *   UPTIME_CHECK_INTERVAL_MS (default: 60000)
  */
 

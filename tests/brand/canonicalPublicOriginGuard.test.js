@@ -83,31 +83,48 @@ test('logoUrl i mejl pekar redan rätt — och ska fortsätta göra det', () => 
   assert.match(hairTp.logoUrl, /^https:\/\/arcana\.hairtpclinic\.com\//);
 });
 
-test('VAKT: inga genererade .se-länkar kvar i de kundvända modulerna', () => {
-  // Källnivå-vakt. Modulerna nedan bygger länkar och bilder som når patienter.
-  // Ett nytt hårdkodat .se här är tyst i test men syns i mottagarens inkorg.
+test('VAKT: hela src/ — varje kvarvarande .se har ett uppräknat skäl', () => {
+  // Första versionen listade sex kundvända moduler. Den missade en
+  // JSDoc-rad i uptimeMonitor.js som fortfarande dokumenterade .se som
+  // default — alltså precis den mekanism som skapade ORD-86: någon läser
+  // dokumentationen, sätter .se, och uppevakten mäter en redirect.
+  //
+  // En vakt som täcker utvalda filer skyddar bara det man redan tänkt på.
+  // Den här täcker hela trädet, och tvingar fram ett skrivet skäl per undantag.
   const fs = require('node:fs');
   const path = require('node:path');
-  const moduler = [
-    'src/ops/offerAutoFlow.js',
-    'src/ops/postOpAutoTrigger.js',
-    'src/capabilities/requestPostOpReview.js',
-    'src/routes/postOpReview.js',
-    'src/ops/ccoMailboxSettingsDocument.js',
-    'src/capabilities/executionService.js',
-  ];
-  for (const rel of moduler) {
-    const src = fs.readFileSync(path.join(__dirname, '..', '..', rel), 'utf8');
-    const träffar = src
-      .split('\n')
-      .map((rad, i) => [i + 1, rad])
-      .filter(([, rad]) => /arcana\.hairtpclinic\.se/.test(rad));
-    assert.deepEqual(
-      träffar,
-      [],
-      `${rel} har kvar genererade .se-länkar: ${träffar.map(([n, r]) => `${n}: ${r.trim()}`).join(' | ')}`
-    );
-  }
+  const srcDir = path.join(__dirname, '..', '..', 'src');
+
+  // Fil -> varför .se får stå kvar. Saknas posten är det ett fel.
+  const MEDVETNA = {
+    'brand/resolveLegacyHostRedirectUrl.js': 'redirect-tabellens NYCKEL — domänigenkänning',
+    'brand/brandConfig.js': 'domains[] — domänigenkänning',
+    'brand/canonicalPublicOrigin.js': 'dokumentation av varför .se inte får användas',
+    'config.js': 'redirect-tabell, MFA-nekandelista och prod-värdlista — igenkänning',
+    'ops/icalExport.js': 'iCal-UID — stabil identifierare, inte en adress',
+  };
+
+  const hittade = [];
+  const gå = (dir) => {
+    for (const post of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, post.name);
+      if (post.isDirectory()) { gå(p); continue; }
+      if (!post.name.endsWith('.js')) continue;
+      if (!fs.readFileSync(p, 'utf8').includes('arcana.hairtpclinic.se')) continue;
+      hittade.push(path.relative(srcDir, p));
+    }
+  };
+  gå(srcDir);
+
+  const oväntade = hittade.filter((rel) => !(rel in MEDVETNA));
+  assert.deepEqual(
+    oväntade,
+    [],
+    `nya .se i src/ utan skäl: ${oväntade.join(', ')}. Gäller även kommentarer och JSDoc — dokumentationen är det folk läser.`
+  );
+
+  const föråldrade = Object.keys(MEDVETNA).filter((rel) => !hittade.includes(rel));
+  assert.deepEqual(föråldrade, [], `MEDVETNA har poster utan .se kvar: ${föråldrade.join(', ')}`);
 });
 
 test('VAKT: klientbundlens signatur- och asset-baser är kanoniska', () => {
