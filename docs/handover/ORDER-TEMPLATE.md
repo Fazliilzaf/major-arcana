@@ -21,6 +21,46 @@
 > som ser ut som buggar. Kontrollera med `document.visibilityState` **i samma körning** som
 > mätningen, inte efteråt.
 
+#### `visibilityState` räcker inte i en iframe
+
+Operatörsytan ligger i en **iframe** under `/admin#cco`. Iframens
+`document.visibilityState` kan rapportera `visible` medan toppdokumentets säger
+`hidden` — observerat 2026-07-28. Läser man bara iframens värde tror man att fönstret
+är giltigt när det är pausat.
+
+**Mät frekvensen i stället för att lita på flaggan.** Räkna `requestAnimationFrame` i
+det fönster där mätningen ska ske, i samma realm:
+
+```js
+// ~60/s = renderar, mätningen är giltig. <20/s = pausat, mät inte.
+const w = document.querySelector('iframe').contentWindow;
+let n = 0; const t0 = w.performance.now();
+await new Promise(r => { const tick = () => {
+  n++; w.performance.now() - t0 < 2000 ? w.requestAnimationFrame(tick) : r();
+}; w.requestAnimationFrame(tick); });
+const rafPerSekund = n / ((w.performance.now() - t0) / 1000);
+```
+
+Skriv in den uppmätta frekvensen i tabellen nedan, inte bara `visible`.
+
+#### Minifierad prod: closure-scope är onåbart, egenskapsnamn är det inte
+
+Prod serverar `app.bundle.*.min.js`. Lokala variabel- och funktionsnamn är manglade och
+modulfunktioner ligger i closures — de går varken att haka i eller känna igen i en
+stacktrace. **Egenskapsnamn manglas däremot inte.**
+
+Bär en memo eller cache i en `WeakMap`/`Map` går den att mäta utifrån: instrumentera
+`WeakMap.prototype.get/set` **i rätt realm** (iframens, inte toppdokumentets), tagga
+varje karta med ett icke-uppräkningsbart id, och räkna unika nycklar per karta.
+`set`-antal lika med antal unika nycklar = memon håller.
+
+Två krav:
+
+1. **Verifiera mot en oberoende siffra** att det är rätt karta du mätt. Vid ORD-84 visade
+   UI:ts egen köräknare 625 — samma tal som antalet unika nycklar.
+2. **Återställ prototypen och ta bort proben** i samma körning, och bekräfta
+   återställningen i utdatan. Det här är prod.
+
 ### Regel: ett stickprov är inte ett tillstånd
 
 Felen som kostat oss mest tid har alla haft samma form — någon rapporterade ett

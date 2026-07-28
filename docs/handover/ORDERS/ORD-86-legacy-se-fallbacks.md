@@ -6,7 +6,7 @@
 | **Ägare** | Cowork |
 | **GO** | väntar Fazli |
 | **Föregångare** | Drift-gatens sex falsklarm (BASE_URL på legacy `.se` + `-L` saknades i `smoke-public.sh`) |
-| **Ordernummer** | ORD-86. Högsta i `docs/handover/ORDERS/` = ORD-85. **ORD-80 och ORD-84 saknar orderfiler** — luckor i handover-protokollet, se sist. **Notion Order Inbox ej kontrollerad** (connector ej auktoriserad). |
+| **Ordernummer** | ORD-86, ledigt. Verifierat mot git-loggen: ORD-80 är **använt** (`10fd7be4`, BankID-login med esign-token, #1114) men fick aldrig sin orderfil commitad. ORD-84:s orderfil låg i draft-PR #1229 och mergades aldrig. Ingen Notion-avstämning krävs. |
 
 ## Bas och observation
 
@@ -111,9 +111,17 @@ produktionskoden.
 - `tests/`-filernas `.se`-strängar. Flera av dem testar just redirecten och ska inte röras.
 - Mailadresser på `@hairtpclinic.se`. De är en annan domän och en annan fråga.
 
-## Luckor i handover-protokollet, upptäckta under arbetet
+## Luckor i handover-protokollet — utredda, inte öppna
 
-`docs/handover/ORDERS/` saknar **ORD-80** och **ORD-84**. ORD-84 (journey-memoisering) är
-byggd, mergad och nu ommätt i prod — men har aldrig fått någon orderfil. Numren bör
-stämmas av mot Notion Order Inbox och git-loggen innan ORD-86 anses låst, enligt den
-kollisionslärdom som redan är dokumenterad.
+Två nummer saknade orderfiler i `docs/handover/ORDERS/`. Båda är utredda mot git-loggen:
+
+- **ORD-80** — numret är **använt**. `10fd7be4`, *"feat(portal): ORD-80 — BankID-login
+  accepterar esign-token + tokensort-styrt återhopp till rika offer-portalen"* (#1114).
+  Arbetet är mergat; endast orderfilen commitades aldrig.
+- **ORD-84** — orderfilen skrevs och öppnades som draft-PR #1229, men mergades aldrig.
+  Implementationen gick in via #1231. Den här grenen bär en ersättande version med
+  prod-ommätningen och falsifieringen av 13×-siffran; #1229 stängs som ersatt.
+
+**Ingen kollision.** ORD-86 och ORD-87 är lediga. Lärdomen är inte att numren driver —
+det gör de inte — utan att **en orderfil i draft är en order som inte finns**. Ett
+mergat bygge med en omergad order lämnar inget spår i `ORDERS/`.

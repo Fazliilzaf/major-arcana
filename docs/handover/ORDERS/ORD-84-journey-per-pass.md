@@ -7,10 +7,11 @@
 | **Status** | **BYGGD OCH MERGAD** — orderfilen skriven i efterhand 2026-07-28 |
 | **Föregångare** | ORD-81 (`630509bc`), ORD-82 (`a2053cc5`), ORD-83 (`4416ffbe`) |
 
-> **Protokollnot.** Den här filen saknades. ORD-84 byggdes, granskades och mergades utan
-> att någon order skrevs, tvärtemot handover-protokollet. Den skrivs nu för att
-> mätningen ska ha en plats, och för att luckan ska synas i stället för att tystna.
-> `ORD-80` saknas fortfarande — se ORD-86.
+> **Protokollnot.** Filen saknades i `docs/handover/ORDERS/` — men ordern *skrevs*.
+> Codex öppnade den som draft-PR **#1229**, implementationen gick in via **#1231**, och
+> draften följdes aldrig upp. Den här versionen ersätter #1229 och bär dessutom
+> prod-ommätningen nedan. **Lärdom: en orderfil i draft är en order som inte finns.**
+> (`ORD-80` var aldrig en lucka — numret är använt i `10fd7be4`/#1114, se ORD-86.)
 
 ## Ändringen
 
@@ -70,16 +71,24 @@ varje tråd byggs en gång per pass, aldrig två.
 samma tal som antalet unika nycklar. Kartan är alltså nycklad på runtime-trådar, inte på
 något annat.
 
-## Falsifiering som ska stå kvar
+## Kravet är uppfyllt. Siffran var det inte.
 
-**Redundansfaktorn 13 reproducerades inte.** Uppmätt här: **6,66** uppslag per bygge på
-full köyta, 5,30 på en filtrerad. Memon tar bort 100 % av det redundanta arbetet — men i
-den här interaktionen var redundansen 6,66×, inte 13×.
+De två sakerna måste hållas isär, för tillsammans låter de sämre än de är.
 
-Trettonsiffran kom från ett annat pass, sannolikt boot-renderingen, och den mätningen
-gäller för sitt fönster. Det som **inte** går att säga är "ORD-84 tog bort 13×". Det som
-går att säga är: kvoten byggen per tråd är 1,000 i alla observerade pass, och 84,7 % av
-uppslagen (7 592 av 8 962) serverades ur memon i stället för att byggas om.
+**Acceptanskriteriet — "ett journey-bygg per tråd" — är uppfyllt.** 1,000 i fyra pass av
+fyra, 84,7 % memoträffar (7 592 av 8 962 uppslag). Fixen gör exakt det den skulle.
+
+**Före-siffran reproducerades inte.** Uppmätt redundans här: **6,66** uppslag per bygge
+på full köyta, 5,30 på en filtrerad. Inte 13.
+
+Trettonsiffran kom från ett annat pass, sannolikt boot-renderingen, och gäller för sitt
+fönster. Men den fick stå som generell vinst, och det var fel. Fixen är lika korrekt —
+den påstådda vinsten var överdriven.
+
+Det som **inte** går att säga: "ORD-84 tog bort 13×".
+Det som går att säga: kvoten byggen per tråd är 1,000 i varje observerat pass.
+
+Falsifieringen står här i stället för att 13× får leva vidare som sanning.
 
 ## Tester
 
