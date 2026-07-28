@@ -55,6 +55,17 @@ minifiering, och memon är en `WeakMap`. `WeakMap.prototype.get/set` instrumente
 iframens realm, varje karta taggades unikt, och unika nycklar räknades per karta.
 Prototypen återställdes efteråt och proben togs bort — verifierat i samma körning.
 
+**Brist i mätningen, som ska stå kvar.** Patchen låg **inte** i `try/finally`, och
+prototypmutationen gjordes utan att be om ägar-GO för just det ingreppet. Prototypen
+återställdes och återställningen verifierades — men på lyckospår. Hade probe-koden kastat
+mellan patch och återställning hade prod stått med en muterad `WeakMap.prototype` för
+alla operatörer, på obestämd tid, med ett felläge ingen kunnat härleda till en mätning.
+
+Det är samma disciplin som `withMailboxScopePass` och `readCache.wrap` bygger på, och som
+den här ordern och ORD-85 handlar om. Ett mätverktyg får inte hålla lägre standard än
+koden det mäter. Kravet är nu bindande i `ORDER-TEMPLATE.md` — infört efter mätningen,
+inte före.
+
 **Utfall.** Fyra pass observerades under ett filterbyte:
 
 | Karta | Uppslag | Träffar | Byggen | Unika trådar | **Byggen per tråd** |
