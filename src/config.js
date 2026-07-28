@@ -861,6 +861,9 @@ const config = {
     const defaults = ['arcana-staging.onrender.com', 'localhost', '127.0.0.1'];
     const configured = asStringArray(process.env.ARCANA_AUTH_OWNER_MFA_BYPASS_HOSTS);
     const merged = Array.from(new Set([...configured, ...defaults]));
+    // ORD-86: .se SKA LIGGA KVAR. Det här är en NEKANDELISTA, inte en fallback.
+    // Tas legacy-värdarna bort blir MFA-bypass tillåten på dem — och de svarar
+    // fortfarande, via 301. En .se→.com-sweep som "städar" här försvagar auth.
     const deniedHosts = new Set([
       'arcana.hairtpclinic.se',
       'arcana.hairtpclinic.com',

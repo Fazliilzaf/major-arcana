@@ -1,4 +1,5 @@
 'use strict';
+const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
 
 /**
  * Uptime Monitor + Alerting.
@@ -15,7 +16,9 @@
  *   ALERT_WEBHOOK_URL (Slack/Discord webhook)
  *   ALERT_SMS_TO (telefonnummer vid kritisk nedtid)
  *   ALERT_EMAIL_TO (e-post vid nedtid)
- *   UPTIME_CHECK_URL (default: https://arcana.hairtpclinic.se/healthz)
+ *   UPTIME_CHECK_URL (default: https://arcana.hairtpclinic.com/healthz)
+ *                    Sätt ALDRIG legacy .se här — den 301:ar, och vakten mäter
+ *                    då Cloudflare i stället för tjänsten.
  *   UPTIME_CHECK_INTERVAL_MS (default: 60000)
  */
 
@@ -35,7 +38,10 @@ const ALERT_COOLDOWN_MS = 5 * 60 * 1000; // Max 1 alert per 5 min
 
 function resolveConfig() {
   return {
-    checkUrl: normalizeText(process.env.UPTIME_CHECK_URL) || 'https://arcana.hairtpclinic.se/healthz',
+    // ORD-86: kanonisk värd. Legacy 301:ar, och en uppevakt som mäter en
+    // redirect mäter inte tjänsten — den mäter Cloudflare.
+    checkUrl:
+      normalizeText(process.env.UPTIME_CHECK_URL) || `${CANONICAL_PUBLIC_ORIGIN}/healthz`,
     intervalMs: Number(process.env.UPTIME_CHECK_INTERVAL_MS) || 60000,
     webhookUrl: normalizeText(process.env.ALERT_WEBHOOK_URL),
     smsTo: normalizeText(process.env.ALERT_SMS_TO),

@@ -1,4 +1,5 @@
 'use strict';
+const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
 
 /**
  * Offer Auto-Flow — automatisk kedja vid offert-accept.
@@ -88,8 +89,8 @@ async function onOfferAccepted({
   const patientEmail = commercialCase.customerEmail || '';
   const patientPhone = commercialCase.customerPhone || '';
   const bookingUrl = vipToken
-    ? `https://arcana.hairtpclinic.se/api/public/booking-engine/vip/${vipToken.token}`
-    : 'https://arcana.hairtpclinic.se/boka';
+    ? `${CANONICAL_PUBLIC_ORIGIN}/api/public/booking-engine/vip/${vipToken.token}`
+    : `${CANONICAL_PUBLIC_ORIGIN}/boka`;
 
   if (patientPhone && vipToken) {
     try {

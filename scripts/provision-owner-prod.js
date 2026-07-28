@@ -31,7 +31,7 @@ function argVal(name) {
 
 const newEmail = argVal('--email').toLowerCase().trim();
 const dryRun = process.argv.includes('--dry-run');
-const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
 const tenantId = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
 
 if (!newEmail || !newEmail.includes('@')) {

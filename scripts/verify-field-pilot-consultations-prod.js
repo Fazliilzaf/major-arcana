@@ -13,7 +13,7 @@ const { execSync } = require('node:child_process');
 
 const root = path.join(__dirname, '..');
 const pilot = require(path.join(root, 'data/pilot-patients.json'));
-const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
 
 let hardFail = false;
 const rows = [];

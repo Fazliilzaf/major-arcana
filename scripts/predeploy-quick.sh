@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-PUBLIC_URL="${BASE_URL:-${ARCANA_PUBLIC_BASE_URL:-${PUBLIC_BASE_URL:-https://arcana.hairtpclinic.se}}}"
+PUBLIC_URL="${BASE_URL:-${ARCANA_PUBLIC_BASE_URL:-${PUBLIC_BASE_URL:-https://arcana.hairtpclinic.com}}}"
 
 if [[ $# -ge 1 ]]; then
   PUBLIC_URL="$1"
@@ -12,7 +12,7 @@ fi
 
 if [[ ! "${PUBLIC_URL}" =~ ^https?:// ]]; then
   echo "❌ Ogiltig URL: ${PUBLIC_URL}"
-  echo "Ange en full URL, t.ex. https://arcana.hairtpclinic.se"
+  echo "Ange en full URL, t.ex. https://arcana.hairtpclinic.com"
   exit 1
 fi
 

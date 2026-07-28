@@ -1,9 +1,16 @@
 const { normalizeHost } = require('./resolveBrand');
+const { CANONICAL_PUBLIC_ORIGIN } = require('./canonicalPublicOrigin');
 
-/** Frankfurt-cutover: legacy .se-alias → canonical .com (301). */
+/**
+ * Frankfurt-cutover: legacy .se-alias → canonical .com (301).
+ *
+ * NYCKLARNA SKA LIGGA KVAR. De är domänigenkänning, inte fallbacks — tas de
+ * bort slutar gamla länkar i patienternas inkorgar att fungera. Det är VÄRDENA
+ * som ska komma från en enda källa, och gör det nu.
+ */
 const DEFAULT_LEGACY_HOST_REDIRECTS = Object.freeze({
-  'arcana.hairtpclinic.se': 'https://arcana.hairtpclinic.com',
-  'ma.hairtpclinic.se': 'https://arcana.hairtpclinic.com',
+  'arcana.hairtpclinic.se': CANONICAL_PUBLIC_ORIGIN,
+  'ma.hairtpclinic.se': CANONICAL_PUBLIC_ORIGIN,
 });
 
 function normalizeSearch(search) {

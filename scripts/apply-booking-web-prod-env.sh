@@ -3,7 +3,7 @@
 set -euo pipefail
 
 WEB_DIR="${WEB_DIR:-$HOME/Code/hairtpclinic-web}"
-ARCANA_BASE_URL="${ARCANA_BASE_URL:-https://arcana.hairtpclinic.se}"
+ARCANA_BASE_URL="${ARCANA_BASE_URL:-https://arcana.hairtpclinic.com}"
 ARCANA_PROVIDER="${ARCANA_PROVIDER:-booking-engine}"
 ARCANA_BRAND_HOST="${ARCANA_BRAND_HOST:-hairtpclinic.com}"
 

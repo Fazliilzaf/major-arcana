@@ -24,7 +24,7 @@ Användning:
   bash ./scripts/public-pilot-run.sh [--base-url URL] [--email EMAIL] [--tenant TENANT] [--password PASS] [--with-mail-seeds] [--skip-preflight] [--preflight-heal|--preflight-heal-all] [--with-local-verify] [--preflight-force-on-guard-fail] [--preflight-report-file FILE]
 
 Exempel:
-  BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com bash ./scripts/public-pilot-run.sh
+  BASE_URL=https://arcana.hairtpclinic.com ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com bash ./scripts/public-pilot-run.sh
 USAGE
 }
 
@@ -88,12 +88,12 @@ done
 
 if [[ -z "$BASE_URL" ]]; then
   echo "❌ Saknar BASE_URL."
-  echo "   Exempel: BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com bash ./scripts/public-pilot-run.sh"
+  echo "   Exempel: BASE_URL=https://arcana.hairtpclinic.com ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com bash ./scripts/public-pilot-run.sh"
   exit 1
 fi
 if [[ -z "$EMAIL" ]]; then
   echo "❌ Saknar ARCANA_OWNER_EMAIL."
-  echo "   Exempel: BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com bash ./scripts/public-pilot-run.sh"
+  echo "   Exempel: BASE_URL=https://arcana.hairtpclinic.com ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com bash ./scripts/public-pilot-run.sh"
   exit 1
 fi
 if [[ "$RUN_PREFLIGHT" == "true" && -z "$PREFLIGHT_REPORT_FILE" ]]; then

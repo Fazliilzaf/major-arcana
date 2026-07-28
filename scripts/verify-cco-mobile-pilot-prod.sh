@@ -15,7 +15,7 @@ if [[ -f .env ]]; then
   done < <(grep -E '^ARCANA_(STAFF_EMAIL|STAFF_PASSWORD|OWNER_EMAIL|OWNER_PASSWORD|SMOKE_PATIENT_ID|DEFAULT_TENANT|PROD_URL)=' .env 2>/dev/null || true)
 fi
 
-BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
+BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.com}"
 FAIL=0
 
 section() { echo ""; echo "=== $1 ==="; }

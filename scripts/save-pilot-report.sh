@@ -299,7 +299,7 @@ fi
 if [[ -z "$EMAIL" || -z "$PASSWORD" ]]; then
   echo "❌ Saknar credentials. Sätt ARCANA_OWNER_EMAIL och ARCANA_OWNER_PASSWORD."
   echo "   Exempel:"
-  echo "   BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com ARCANA_OWNER_PASSWORD='***' npm run report:pilot"
+  echo "   BASE_URL=https://arcana.hairtpclinic.com ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com ARCANA_OWNER_PASSWORD='***' npm run report:pilot"
   exit 1
 fi
 

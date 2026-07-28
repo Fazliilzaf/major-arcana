@@ -70,7 +70,7 @@ async function main() {
   }
   console.log('✅ Deploy startad — väntar på readyz…');
 
-  const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(
+  const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(
     /\/+$/,
     ''
   );

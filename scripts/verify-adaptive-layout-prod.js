@@ -14,7 +14,7 @@ const path = require('node:path');
 const BASE = (
   process.env.ARCANA_PROD_URL ||
   process.env.PLAYWRIGHT_BASE_URL ||
-  'https://arcana.hairtpclinic.se'
+  'https://arcana.hairtpclinic.com'
 ).replace(/\/+$/, '');
 
 const VIEWPORTS = [

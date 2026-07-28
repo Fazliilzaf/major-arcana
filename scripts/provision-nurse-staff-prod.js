@@ -12,7 +12,7 @@ const crypto = require('node:crypto');
 const { buildMfaVerifyAttempts } = require('./lib/mfa-totp');
 
 const dryRun = process.argv.includes('--dry-run');
-const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
 const tenantId = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
 
 const NURSES = [

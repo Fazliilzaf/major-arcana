@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
+BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.com}"
 BASE="${BASE%/}"
 CLI_YAML="${HOME}/.render/cli.yaml"
 SERVICE_ID="${RENDER_SERVICE_ID:-srv-d8b3i3tckfvc73clgeng}"

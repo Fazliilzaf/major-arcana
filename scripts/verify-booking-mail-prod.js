@@ -9,7 +9,7 @@ const path = require('node:path');
 const { findVerifyBookingSlot } = require('./lib/bookingVerifySlots');
 const { resendApiSmoke } = require('./lib/resendApiSmoke');
 
-const BASE = (process.env.BASE || process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(
+const BASE = (process.env.BASE || process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(
   /\/+$/,
   ''
 );

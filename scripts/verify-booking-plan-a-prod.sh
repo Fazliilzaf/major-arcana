@@ -2,7 +2,7 @@
 # Fas 5: snabb verify att publik booking-engine svarar (Plan A endpoints).
 set -euo pipefail
 
-BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
+BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.com}"
 BASE="${BASE%/}"
 
 echo "== Booking Plan A prod verify =="

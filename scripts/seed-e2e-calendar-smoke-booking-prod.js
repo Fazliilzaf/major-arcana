@@ -8,7 +8,7 @@ const { execSync } = require('node:child_process');
 const path = require('node:path');
 const { resolveSmokePatientId } = require('./lib/resolve-smoke-patient-prod');
 
-const BASE = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const BASE = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
 const WORKSPACE_ID = 'major-arcana-preview';
 const SERVICE_ID = process.env.ARCANA_E2E_CALENDAR_SERVICE_ID || 'consultation-physical';
 const KEEP = process.env.ARCANA_E2E_KEEP_BOOKING === '1';

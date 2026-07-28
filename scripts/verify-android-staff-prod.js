@@ -13,7 +13,7 @@ const {
   resolveAndroidDeviceProfile,
 } = require('./lib/mobilePlaywrightDevices');
 
-const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
 const tenantId = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
 const staffEmail = process.env.ARCANA_STAFF_EMAIL || '';
 const staffPassword = process.env.ARCANA_STAFF_PASSWORD || '';

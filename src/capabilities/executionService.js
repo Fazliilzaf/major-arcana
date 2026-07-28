@@ -47,6 +47,7 @@ const {
   composeCcoInboxAnalysis,
 } = require('../agents/ccoInboxAgent');
 const { buildCanonicalMailComposeDocument } = require('../ops/ccoMailComposeDocument');
+const { CANONICAL_PUBLIC_ORIGIN } = require('../brand/canonicalPublicOrigin');
 const {
   createCcoMailboxTruthWorklistReadModel,
   toCanonicalMailboxConversationKey,
@@ -399,7 +400,7 @@ function sanitizeCcoSignatureOverrideHtml(html = '') {
     normalizeText(process.env.PUBLIC_BASE_URL || process.env.ARCANA_PUBLIC_BASE_URL).replace(
       /\/+$/,
       ''
-    ) || 'https://arcana.hairtpclinic.se';
+    ) || CANONICAL_PUBLIC_ORIGIN;
 
   return normalizedHtml
     .replace(/<script\b[\s\S]*?<\/script>/gi, '')

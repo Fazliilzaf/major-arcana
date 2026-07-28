@@ -20,7 +20,7 @@ function parseBoolean(value, fallback = false) {
 function parseArgs(argv) {
   const args = {
     baseUrl: normalizeText(process.env.BASE_URL || process.env.ARCANA_PUBLIC_BASE_URL) ||
-      'https://arcana.hairtpclinic.se',
+      'https://arcana.hairtpclinic.com',
     tenantId: normalizeText(process.env.ARCANA_DEFAULT_TENANT) || 'hair-tp-clinic',
     email: normalizeText(process.env.ARCANA_OWNER_EMAIL),
     password: String(process.env.ARCANA_OWNER_PASSWORD || ''),

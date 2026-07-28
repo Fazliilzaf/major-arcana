@@ -17,7 +17,7 @@ const {
 } = require('./lib/mobile-patient-deeplink-prod');
 const { resolveSmokePatientId } = require('./lib/resolve-smoke-patient-prod');
 
-const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
 const patientId = process.env.ARCANA_SMOKE_PATIENT_ID || '2e8d3535-cd89-418e-8b68-ca239f8836a4';
 const staffEmail = process.env.ARCANA_STAFF_EMAIL || '';
 const staffPassword = process.env.ARCANA_STAFF_PASSWORD || '';

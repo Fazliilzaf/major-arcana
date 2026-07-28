@@ -370,6 +370,11 @@ async function runSetup(args) {
     method: 'POST',
     headers: args.forceMfaChallenge
       ? {
+          // ORD-86: BEHÅLL .se. Värden väljs för att den ligger i
+          // nekandelistan för MFA-bypass (src/config.js authOwnerMfaBypassHosts)
+          // och därmed TVINGAR fram en MFA-utmaning. Det är poängen med
+          // --force-mfa-challenge. Byts den till .com fungerar det fortfarande
+          // idag — men bara av en slump, eftersom båda står i samma lista.
           'x-forwarded-host': 'arcana.hairtpclinic.se',
         }
       : {},

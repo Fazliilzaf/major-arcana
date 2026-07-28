@@ -1,5 +1,7 @@
 'use strict';
 
+const { CANONICAL_PUBLIC_ORIGIN } = require('./canonicalPublicOrigin');
+
 /**
  * Brand Configuration — Hair TP Clinic + Curatiio.
  *
@@ -34,7 +36,9 @@ const BRANDS = Object.freeze({
     emailFromName: 'Hair TP Clinic',
     website: 'https://hairtpclinic.com',
     bookingUrl: 'https://hairtpclinic.com/boka',
-    patientPortalUrl: 'https://arcana.hairtpclinic.se/patient/',
+    // ORD-86: kanonisk värd. `domains` ovan behåller .se med flit — det är
+    // domänIGENKÄNNING, inte en genererad länk.
+    patientPortalUrl: `${CANONICAL_PUBLIC_ORIGIN}/patient/`,
     services: [
       'fue',
       'dhi',
