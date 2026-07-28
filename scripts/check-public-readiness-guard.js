@@ -897,7 +897,16 @@ async function main() {
   process.stdout.write('✅ Readiness guard passed.\n');
 }
 
-main().catch(async (error) => {
+// KÖR BARA NÄR FILEN STARTAS DIREKT.
+// Utan det här gardet kör en `require()` av filen hela readiness-guarden mot
+// prod som sidoeffekt — inklusive inloggning och process.exit(1) vid fel. Gardet
+// är förutsättningen för module.exports längst ned; ta inte bort det ena utan
+// det andra.
+if (require.main === module) {
+  main().catch(hanteraFel);
+}
+
+async function hanteraFel(error) {
   const message = normalizeText(error?.message || error) || 'unknown_error';
   let reportFilePath = '';
   let reportWriteError = '';
@@ -941,4 +950,14 @@ main().catch(async (error) => {
     console.error(`  reportFileError=${reportWriteError}`);
   }
   process.exit(1);
-});
+}
+
+// Återanvändbara delar för andra ägar-autentiserade läsverktyg.
+// resolveToken bär hela MFA-kedjan (ticket, secret, recovery, auth-store) — den
+// ska inte återimplementeras på fler ställen. Exporten ändrar inget beteende:
+// main() ovan körs som förut när filen startas direkt.
+module.exports = {
+  fetchJson,
+  resolveToken,
+  normalizeBaseUrl,
+};

@@ -1,0 +1,57 @@
+name: arcana-scheduler-config-report
+
+# LÄSANDE diagnostik. Ingen schedule, ingen push-trigger — körs bara på begäran.
+#
+# Svarar på frågan readiness inte svarar på: VARFÖR är schedulern av?
+# Tre lager kan släcka den (dashboard-env, override-filen, prod safe-mode) och
+# de har olika åtgärder. Utan den här går det inte att skilja dem åt.
+#
+# Skriptet gör bara GET. Det skriver inget och ändrar ingen konfiguration.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Publik Arcana-URL (valfritt, annars secret ARCANA_PUBLIC_BASE_URL)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduler-config-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BASE_URL: ${{ inputs.base_url || secrets.ARCANA_PUBLIC_BASE_URL }}
+      ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
+      ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
+      ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Kontrollera att BASE_URL är satt
+        run: |
+          if [ -z "${BASE_URL}" ]; then
+            echo "::error::BASE_URL saknas. Sätt workflow-input base_url eller secret ARCANA_PUBLIC_BASE_URL."
+            exit 1
+          fi
+          # Värden maskeras inte i loggen om den kommer från input, och den är
+          # publik ändå — men vi skriver bara värdnamnet, inte hela strängen.
+          echo "värd: $(printf '%s' "${BASE_URL}" | sed -E 's#^https?://([^/]+).*#\1#')"
+
+      - name: Läs scheduler-konfigurationen
+        run: node scripts/report-scheduler-config-prod.js
