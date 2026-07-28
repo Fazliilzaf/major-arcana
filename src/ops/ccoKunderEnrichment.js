@@ -26,6 +26,7 @@ const { sanitizePatientDisplayName } = require('../lib/patientDisplayName');
 const {
   isPipedriveDealWon,
   parseDealValue,
+  sumPipedriveOpenDeals,
   maxIsoDate,
   normalizePipedriveDealStatus,
 } = require('./pipedriveDealHelpers');
@@ -751,14 +752,12 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
       });
       if (prods.length) readout.treatmentTypes = prods.slice(0, 2);
     }
-    let potential = 0;
-    deals.forEach((d) => {
-      const dd = asObject(d);
-      if (isPipedriveDealWon(dd)) return; // vunna räknas redan i lifetimeValue
-      if (normalizePipedriveDealStatus(dd.status) === 'lost') return;
-      const v = parseDealValue(dd.value);
-      if (Number.isFinite(v) && v > 0) potential += v;
-    });
+    // ORD-87: samma definition som tenant-aggregatet, läst ur den delade
+    // hjälparen i stället för räknad här. Två kopior av "öppen affär" hade
+    // drivit isär, och då hade kundkortet och Översikt visat olika tal för
+    // samma sak — utan att någon kunde se vilket som var rätt.
+    // (Vunna räknas redan i lifetimeValue och ingår inte här.)
+    const { total: potential } = sumPipedriveOpenDeals({ deals });
     readout.potentialValue = potential > 0 ? potential : null;
   })();
   const ownerName = getPatientOwnerName(patient);

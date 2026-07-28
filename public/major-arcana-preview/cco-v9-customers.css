@@ -4833,6 +4833,23 @@ html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar .v9-snitt-l
   color: var(--v9-color-brand, #2b251f);
   font-weight: 700;
 }
+/* ORD-87: trendraden — nämnaren + öppna offerter.
+   Ärver befintliga tokens från .v9-snitt-ltv ovan; enda skillnaden är att den
+   ska väga lättare än värdet, så den inte konkurrerar med talet.
+   Ingen ny färg, ingen ny typografi. */
+html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar .v9-snitt-ltv-trend {
+  color: var(--v9-text-secondary);
+  font-weight: 500;
+  opacity: 0.85;
+}
+html[data-v9-enabled="on"]
+  .customers-v9-header
+  .calendar-status-bar
+  .v9-snitt-ltv-trend:not(:empty)::before {
+  content: '·';
+  margin-right: 6px;
+  opacity: 0.6;
+}
 
 /* + Ny kund knapp (mockup .nav-btn--today → calendar-accent; skiljs från Rek. 12 brand-anchor i top-nav) */
 html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar-actions .v9-add-customer {
