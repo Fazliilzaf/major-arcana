@@ -1507,6 +1507,21 @@ async function createCcoPatientMasterStore({ filePath }) {
     // samma fel som ORD-82 och ORD-85 handlade om — en invariant som räknas om
     // i en loop — införd samma vecka som fem sådana togs bort. Allt räknas i
     // en genomgång.
+    //
+    // MÄTT före merge (scripts/measure-tenant-deal-aggregate.js, 7 451
+    // patienter, 3 413 kopplade, 8 595 affärer, median av 20 varv):
+    //
+    //   nio .filter() utan affärer      0,375 ms   <- så här såg det ut förut
+    //   ETT pass utan affärer           0,064 ms   <- omskrivningen ensam, 5,9x snabbare
+    //   ETT pass MED affärer            1,158 ms   <- det som gäller nu
+    //
+    // Aggregatet kostar alltså ~1,09 ms, och skalar linjärt med ANTAL AFFÄRER,
+    // inte antal patienter: 0,117 µs per affär, uppmätt över 8 595 → 163 540.
+    //
+    // BUDGET: tre av fyra anropsvägar är ocachade (ccoStaff x2, ccoMigration);
+    // bara ccoPatientMaster ligger bakom readCache. Vid dagens volym är det
+    // oproblematiskt. Femdubblas affärsvolymen är vi på 5 ms och då ska
+    // summeringen cachas eller flyttas — mät om innan, gissa inte.
     const s = {
       totalPatients: 0,
       withPersonnummer: 0,
