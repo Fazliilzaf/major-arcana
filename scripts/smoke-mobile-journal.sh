@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-BASE_URL="${BASE_URL:-https://arcana.hairtpclinic.se}"
+BASE_URL="${BASE_URL:-https://arcana.hairtpclinic.com}"
 BASE_URL="${BASE_URL%/}"
 EMAIL="${ARCANA_OWNER_EMAIL:-}"
 PASSWORD="${ARCANA_OWNER_PASSWORD:-}"

@@ -25,7 +25,7 @@ fi
 
 if [[ -z "$BASE_URL" ]]; then
   echo "❌ Sätt BASE_URL först, t.ex.:"
-  echo "   BASE_URL=https://arcana.hairtpclinic.se npm run smoke:public"
+  echo "   BASE_URL=https://arcana.hairtpclinic.com npm run smoke:public"
   exit 1
 fi
 

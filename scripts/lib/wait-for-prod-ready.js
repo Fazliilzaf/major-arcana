@@ -4,7 +4,7 @@
  */
 require('dotenv').config({ quiet: true });
 
-const base = (process.env.ARCANA_PROD_URL || process.env.BASE_URL || 'https://arcana.hairtpclinic.se').replace(
+const base = (process.env.ARCANA_PROD_URL || process.env.BASE_URL || 'https://arcana.hairtpclinic.com').replace(
   /\/+$/,
   ''
 );

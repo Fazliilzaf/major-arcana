@@ -20,7 +20,7 @@ const path = require('node:path');
 
 const serviceId = process.env.RENDER_SERVICE_ID || 'srv-d8b3i3tckfvc73clgeng';
 const mode = String(process.env.CMO_CONNECTOR_MODE || 'bridge').toLowerCase();
-const baseUrl = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(
+const baseUrl = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(
   /\/+$/,
   ''
 );

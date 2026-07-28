@@ -6,7 +6,7 @@ require('dotenv').config({ quiet: true });
 const { execSync } = require('node:child_process');
 const path = require('node:path');
 
-const base = (process.env.ARCANA_PROD_URL || process.env.BASE_URL || 'https://arcana.hairtpclinic.se').replace(
+const base = (process.env.ARCANA_PROD_URL || process.env.BASE_URL || 'https://arcana.hairtpclinic.com').replace(
   /\/+$/,
   ''
 );

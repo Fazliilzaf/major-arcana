@@ -12,7 +12,7 @@ export SKIP_RESEND=false
 node ./scripts/apply-graph-resend-go-live-prod.js
 
 echo "Väntar på prod readyz..."
-BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
+BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.com}"
 for attempt in $(seq 1 30); do
   code="$(curl -sS -o /dev/null -w '%{http_code}' "${BASE}/readyz" 2>/dev/null || echo 000)"
   [[ "$code" == "200" ]] && break

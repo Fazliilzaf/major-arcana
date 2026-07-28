@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
+BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.com}"
 BASE="${BASE%/}"
 
 fail() { echo "❌ $1" >&2; exit 1; }
@@ -18,7 +18,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
 const ownerEmail = process.env.ARCANA_OWNER_EMAIL || '';
 const ownerPassword = process.env.ARCANA_OWNER_PASSWORD || '';
 let staffEmail = process.env.ARCANA_STAFF_EMAIL || 'staff@hairtpclinic.se';
@@ -148,7 +148,7 @@ done
 bash ./scripts/verify-auth-go-live-prod.sh || true
 
 node -r dotenv/config <<'NODE'
-const base='https://arcana.hairtpclinic.se';
+const base='https://arcana.hairtpclinic.com';
 const email=process.env.ARCANA_STAFF_EMAIL;
 const password=process.env.ARCANA_STAFF_PASSWORD;
 if(!email||!password){ console.log('⚠ Hoppar STAFF smoke — saknar ARCANA_STAFF_*'); process.exit(0);} 

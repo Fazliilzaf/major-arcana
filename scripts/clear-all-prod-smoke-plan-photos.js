@@ -5,7 +5,7 @@
  */
 require('dotenv').config({ quiet: true });
 
-const baseUrl = (process.env.BASE_URL || 'https://arcana.hairtpclinic.se').replace(/\/$/, '');
+const baseUrl = (process.env.BASE_URL || 'https://arcana.hairtpclinic.com').replace(/\/$/, '');
 const token = process.env.ADMIN_TOKEN || process.env.CCO_ADMIN_TOKEN || '';
 const clearAll = process.argv.includes('--all');
 

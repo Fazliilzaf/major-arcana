@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
+BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.com}"
 BASE="${BASE%/}"
 PATIENT_ID="${1:-4db24289-7f9e-431e-b7f3-bd9014d8c9f3}"
 

@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
 PILOT_JSON="${PILOT_JSON:-./data/pilot-patients.json}"
-BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
+BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.com}"
 BASE="${BASE%/}"
 
 fail() { echo "✗ $1"; exit 1; }

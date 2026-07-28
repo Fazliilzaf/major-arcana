@@ -12,7 +12,7 @@
 require('dotenv').config({ quiet: true });
 
 const WEB_BASE = (process.env.WEB_BASE || 'https://hairtpclinic.com').replace(/\/+$/, '');
-const ARCANA_BASE = (process.env.BASE || process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(
+const ARCANA_BASE = (process.env.BASE || process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(
   /\/+$/,
   ''
 );

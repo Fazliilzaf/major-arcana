@@ -13,7 +13,7 @@
  */
 require('dotenv').config({ quiet: true });
 
-const BASE = (process.env.BASE || process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(
+const BASE = (process.env.BASE || process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(
   /\/+$/,
   ''
 );

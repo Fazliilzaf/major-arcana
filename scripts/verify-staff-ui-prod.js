@@ -15,7 +15,7 @@ const {
 } = require('./lib/mobile-patient-deeplink-prod');
 const { resolveSmokePatientId } = require('./lib/resolve-smoke-patient-prod');
 
-const base = (process.env.ARCANA_PROD_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://arcana.hairtpclinic.se').replace(
+const base = (process.env.ARCANA_PROD_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://arcana.hairtpclinic.com').replace(
   /\/+$/,
   ''
 );

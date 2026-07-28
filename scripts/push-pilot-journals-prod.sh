@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-BASE_URL="${BASE_URL:-https://arcana.hairtpclinic.se}"
+BASE_URL="${BASE_URL:-https://arcana.hairtpclinic.com}"
 BASE_URL="${BASE_URL%/}"
 PILOT_JSON="${PILOT_JSON:-./data/pilot-patients.json}"
 JOURNAL_JSON="${JOURNAL_JSON:-./data/cco-journal.json}"

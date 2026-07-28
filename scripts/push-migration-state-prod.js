@@ -24,7 +24,7 @@ const ROOT = path.join(__dirname, '..');
 const BASE = (
   process.env.BASE ||
   process.env.ARCANA_PROD_URL ||
-  'https://arcana.hairtpclinic.se'
+  'https://arcana.hairtpclinic.com'
 ).replace(/\/+$/, '');
 const TENANT_ID = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
 const CONCURRENCY = Math.max(1, Math.min(30, Number(process.env.ARCANA_PUSH_CONCURRENCY) || 12));

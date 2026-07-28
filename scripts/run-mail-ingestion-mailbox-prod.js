@@ -3,7 +3,7 @@
 
 require('dotenv').config({ quiet: true });
 
-const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(/\/+$/, '');
 const mailboxEmail = (process.env.ARCANA_MAILBOX || 'contact@hairtpclinic.com').toLowerCase();
 
 async function fetchJson(path, { method = 'GET', token = '', body = null } = {}) {

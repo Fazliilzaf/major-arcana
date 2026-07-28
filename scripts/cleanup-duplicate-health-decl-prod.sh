@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-BASE_URL="${ARCANA_PROD_URL:-${BASE_URL:-https://arcana.hairtpclinic.se}}"
+BASE_URL="${ARCANA_PROD_URL:-${BASE_URL:-https://arcana.hairtpclinic.com}}"
 BASE_URL="${BASE_URL%/}"
 PATIENT_ID="${1:-f8233fca-779c-488b-a980-0e41bc01c0c0}"
 DRY_RUN="${DRY_RUN:-false}"

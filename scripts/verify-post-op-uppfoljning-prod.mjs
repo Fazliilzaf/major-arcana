@@ -13,12 +13,18 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
-const BASE = (process.env.BASE || process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(
+const BASE = (process.env.BASE || process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.com').replace(
   /\/+$/,
   ''
 );
 const CASE_ID = process.env.POST_OP_UPPFOLJNING_CASE_ID || `post-op-uppfoljning-${Date.now()}`;
-const IS_PROD = BASE.includes('arcana.hairtpclinic.se');
+// ORD-86: känner igen BÅDA prod-värdarna.
+//
+// Raden var `BASE.includes('arcana.hairtpclinic.se')`. När sweepen bytte
+// BASE-defaulten till .com blev IS_PROD alltid false — och steget på rad 122
+// hade tyst hoppats över i prod. Ett igenkänningsvillkor som testar EN värd
+// går sönder så fort värden byter, utan att någon märker det.
+const IS_PROD = /arcana\.hairtpclinic\.(com|se)/.test(BASE);
 
 let hardFail = false;
 

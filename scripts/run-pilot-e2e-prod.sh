@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-BASE_URL="${ARCANA_PROD_URL:-${BASE_URL:-https://arcana.hairtpclinic.se}}"
+BASE_URL="${ARCANA_PROD_URL:-${BASE_URL:-https://arcana.hairtpclinic.com}}"
 BASE_URL="${BASE_URL%/}"
 PATIENT_ID="${1:-$(node -e "const p=require('./data/pilot-patients.json'); console.log((p.patientIds||[])[0]||'');")}"
 CLIENT_HEADER='x-arcana-client: major_arcana_admin'

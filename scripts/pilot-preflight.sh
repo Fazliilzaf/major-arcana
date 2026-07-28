@@ -423,7 +423,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Okänd flagga: $1"
-      echo "Använd: [--public-url https://arcana.hairtpclinic.se] [--skip-local] [--skip-public] [--report-file ./data/reports/preflight.json]"
+      echo "Använd: [--public-url https://arcana.hairtpclinic.com] [--skip-local] [--skip-public] [--report-file ./data/reports/preflight.json]"
       exit_with_reason 1 "invalid_arguments"
       ;;
   esac
@@ -485,7 +485,7 @@ if [[ "$RUN_PUBLIC" -eq 1 ]]; then
 
   if [[ -z "$PUBLIC_URL" ]]; then
     echo "❌ Public smoke kräver BASE_URL eller --public-url."
-    echo "Exempel: npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se"
+    echo "Exempel: npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.com"
     exit_with_reason 1 "missing_public_url"
   fi
   echo "3) Public smoke ($PUBLIC_URL)"

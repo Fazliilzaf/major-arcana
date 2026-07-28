@@ -104,6 +104,47 @@ test('extract-owner-token.sh kanoniserar och säger till om det', () => {
   assert.match(stderr, /saknar ARCANA_OWNER_EMAIL/, 'och sedan fela på credentials');
 });
 
+test('VAKT: inga .se-defaults kvar i scripts/ — undantagen är uppräknade med skäl', () => {
+  // 67 filer bytte i ORD-86 steg 3. Vakten finns för att nya inte ska smyga in,
+  // och för att undantagen ska ha ett skrivet skäl i stället för att se ut som
+  // förbisedda rader.
+  const fs = require('node:fs');
+  const scriptsDir = path.join(__dirname, '..', '..', 'scripts');
+
+  // Sökväg -> varför .se får stå kvar. En rad utan post här är ett fel.
+  const MEDVETNA = {
+    'smoke-public.sh': 'kommentar som förklarar varför -L behövs mot legacy-värden',
+    'setup-owner-mfa.js': 'x-forwarded-host väljs för att TVINGA MFA — värden ska ligga i nekandelistan',
+    'lib/canonical-base-url.js': 'dokumentation av själva kanoniseringen',
+    'verify-post-op-uppfoljning-prod.mjs': 'IS_PROD känner igen BÅDA prod-värdarna',
+  };
+
+  const hittade = [];
+  const gå = (dir) => {
+    for (const post of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, post.name);
+      if (post.isDirectory()) { gå(p); continue; }
+      if (!/\.(js|mjs|sh)$/.test(post.name)) continue;
+      const src = fs.readFileSync(p, 'utf8');
+      if (!src.includes('arcana.hairtpclinic.se')) continue;
+      hittade.push(path.relative(scriptsDir, p));
+    }
+  };
+  gå(scriptsDir);
+
+  const oväntade = hittade.filter((rel) => !(rel in MEDVETNA));
+  assert.deepEqual(
+    oväntade,
+    [],
+    `nya .se i scripts/ utan skäl: ${oväntade.join(', ')}. Är den avsiktlig — lägg till den i MEDVETNA med en förklaring.`
+  );
+
+  // Och åt andra hållet: en post som inte längre behövs ska städas bort, annars
+  // urholkas listan tills den inte betyder något.
+  const föråldrade = Object.keys(MEDVETNA).filter((rel) => !hittade.includes(rel));
+  assert.deepEqual(föråldrade, [], `MEDVETNA har poster utan .se kvar: ${föråldrade.join(', ')}`);
+});
+
 test('extract-owner-token.sh tiger när värden redan är rätt', () => {
   const skript = path.join(__dirname, '..', '..', 'scripts', 'extract-owner-token.sh');
   let stderr = '';

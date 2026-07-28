@@ -117,8 +117,13 @@ async function verifyStagingConfig() {
   });
   const prodBlocked = !loadWriteFlag({
     ENABLE_PHOTO_REVIEW_WRITE: 'true',
-    RENDER_EXTERNAL_HOSTNAME: 'arcana.hairtpclinic.se',
-    PUBLIC_BASE_URL: 'https://arcana.hairtpclinic.se',
+    // Fixtur som simulerar PROD för att verifiera att skrivning blockeras där.
+    // ORD-86-sweepen ändrade PUBLIC_BASE_URL till .com men lämnade
+    // RENDER_EXTERNAL_HOSTNAME på .se — en fixtur med två olika värdar är
+    // sämre än vilken som helst av dem. Båda är .com nu; båda räknas som prod
+    // (se prod-värdlistan i src/config.js).
+    RENDER_EXTERNAL_HOSTNAME: 'arcana.hairtpclinic.com',
+    PUBLIC_BASE_URL: 'https://arcana.hairtpclinic.com',
   });
 
   process.env.ENABLE_PHOTO_REVIEW_WRITE = 'true';

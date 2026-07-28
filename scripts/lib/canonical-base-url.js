@@ -26,7 +26,7 @@
  * src/brand/resolveLegacyHostRedirectUrl.js, som också driver serverns 301.
  * Två källor hade drivit isär, och den ena hade varit den som testerna skyddar.
  *
- *   node scripts/lib/canonical-base-url.js https://arcana.hairtpclinic.se
+ *   node scripts/lib/canonical-base-url.js https://arcana.hairtpclinic.com
  *   -> https://arcana.hairtpclinic.com
  *
  * Okänd värd skrivs ut oförändrad (lokal utveckling, staging, egna miljöer).

@@ -21,6 +21,16 @@ function escapeIcs(text) {
 
 function buildIcalFeed({ resourceLabel, bookings, clinicName = 'Hair TP Clinic', prodId = '-//Arcana//CCO Calendar//SV' }) {
   const events = bookings.map((booking) => {
+    // ORD-86: RÖR INTE .se HÄR. Det här är ingen länk — det är en iCal-UID.
+    //
+    // UID måste vara STABIL över tid. Kalenderklienter matchar uppdateringar mot
+    // UID:n; ändras den ser Outlook/Google en HELT NY händelse i stället för en
+    // uppdatering, och personalen får dubbletter i sina kalendrar för varje
+    // bokning som redan är utskickad. Domändelen är bara en namnrymd och behöver
+    // inte peka på något som svarar.
+    //
+    // En sweep som byter alla .se till .com måste hoppa över den här raden.
+    // tests/ops/icalUidStability.test.js håller emot.
     const uid = `booking-${booking.bookingId || booking.id}@arcana.hairtpclinic.se`;
     const start = normalizeText(booking.slot?.startsAt || booking.startsAt);
     const durationMin = Number(booking.slot?.durationMinutes || booking.durationMinutes) || 60;
