@@ -78,16 +78,16 @@ async function main() {
 
   process.stdout.write('\n=== SCHEDULER-STATUS ===\n');
   if (status.ok) {
-    const d = status.data || {};
+    const s = plockaStatus(status.data);
     process.stdout.write(
       `${JSON.stringify(
         {
-          enabled: d.enabled,
-          started: d.started,
-          runOnStartup: d.runOnStartup,
-          jobs: Array.isArray(d.jobs)
-            ? d.jobs.map((j) => ({ jobId: j?.jobId, enabled: j?.enabled }))
-            : d.jobs,
+          enabled: s?.enabled,
+          started: s?.started,
+          runOnStartup: s?.runOnStartup,
+          jobs: Array.isArray(s?.jobs)
+            ? s.jobs.map((j) => ({ jobId: j?.jobId, enabled: j?.enabled }))
+            : s?.jobs,
         },
         null,
         2
@@ -97,41 +97,95 @@ async function main() {
     process.stdout.write(`kunde inte läsas: ${status.fel}\n`);
   }
 
-  // Tolkningen skrivs ut, men bara när den FÖLJER av data. Att gissa här vore
-  // att göra samma fel som rapporten finns till för att undvika.
   process.stdout.write('\n=== TOLKNING ===\n');
-  const filFinns = override.ok && override.data && override.data.exists !== false;
-  const filSägerPå =
-    filFinns && override.data?.override?.schedulerEnabled === true;
-  const körInte = status.ok && status.data?.enabled === false;
-
-  if (körInte && filSägerPå) {
-    process.stdout.write(
-      'Override-filen säger schedulerEnabled=true men schedulern är av.\n' +
-        'Då är det prod safe-mode som vann (server.js kör den EFTER overriden).\n' +
-        'Åtgärd: ARCANA_SCHEDULER_PROD_SAFE_MODE=false i dashboarden — inte i render.yaml,\n' +
-        'eftersom Blueprint-syncen är pausad.\n'
-    );
-  } else if (körInte && filFinns && !filSägerPå) {
-    process.stdout.write(
-      'Override-filen finns men tänder inte schedulern.\n' +
-        'Åtgärd: POST /api/v1/ops/scheduler/override med {"schedulerEnabled": true}.\n'
-    );
-  } else if (körInte && !filFinns) {
-    process.stdout.write(
-      'Ingen override-fil. Då styr env ensam, och dashboarden har ENABLED=false\n' +
-        '(render.yaml säger true men syncen är pausad, så yaml:en når inte tjänsten).\n' +
-        'Det matchar hypotesen att overriden raderades INNAN syncen återupptogs.\n'
-    );
-  } else if (status.ok && status.data?.enabled === true) {
-    process.stdout.write('Schedulern är på. Ingen åtgärd.\n');
-  } else {
-    process.stdout.write('Otillräckligt underlag — läs rådata ovan.\n');
-  }
+  process.stdout.write(
+    `${tolkaLäge(override.ok ? override.data : null, status.ok ? status.data : null).text}\n`
+  );
 }
 
-main().catch((error) => {
-  console.error('❌ Kunde inte läsa scheduler-konfigurationen');
-  console.error(text(error?.message || error) || error);
-  process.exit(1);
-});
+// GET /api/v1/ops/scheduler/status svarar { ok, generatedAt, scheduler: {...} }.
+// Statusen ligger NÄSTLAD. Läses den platt blir enabled undefined, och då
+// rapporterar verktyget "otillräckligt underlag" på fullgod data — ett tyst fel
+// i just det verktyg som ska bevisa något.
+function plockaStatus(data) {
+  if (!data || typeof data !== 'object') return null;
+  if (data.scheduler && typeof data.scheduler === 'object') return data.scheduler;
+  // Tolerera platt form om ändpunkten någon gång ändras.
+  if (typeof data.enabled === 'boolean') return data;
+  return null;
+}
+
+/**
+ * Ren funktion — hela poängen är att den ska gå att testa mot de EXAKTA former
+ * rutthanterarna svarar med, utan att någon behöver prod.
+ *
+ * GET /scheduler/override svarar en av tre former:
+ *   { ok, path, exists: false }                        — ingen fil
+ *   { ok, path, exists: true, valid: false }           — fil med trasig JSON
+ *   { ok, path, exists: true, valid: true, override }  — fil som gäller
+ */
+function tolkaLäge(overrideData, statusData) {
+  const s = plockaStatus(statusData);
+  if (!s || typeof s.enabled !== 'boolean') {
+    return { kod: 'okänt', text: 'Otillräckligt underlag — läs rådata ovan.' };
+  }
+  if (s.enabled === true) {
+    return { kod: 'på', text: 'Schedulern är på. Ingen åtgärd.' };
+  }
+
+  const finns = Boolean(overrideData && overrideData.exists === true);
+  const trasig = finns && overrideData.valid === false;
+  const sägerPå = finns && overrideData?.override?.schedulerEnabled === true;
+
+  if (trasig) {
+    return {
+      kod: 'trasig_fil',
+      text:
+        'Override-filen finns men innehåller ogiltig JSON och ignoreras därför helt.\n' +
+        'Åtgärd: skriv om den via POST /api/v1/ops/scheduler/override.',
+    };
+  }
+  if (sägerPå) {
+    return {
+      kod: 'safe_mode',
+      text:
+        'Override-filen säger schedulerEnabled=true men schedulern är av.\n' +
+        'Då är det prod safe-mode som vann — server.js kör den EFTER overriden.\n' +
+        'Åtgärd: ARCANA_SCHEDULER_PROD_SAFE_MODE=false i dashboarden, inte i render.yaml,\n' +
+        'eftersom Blueprint-syncen är pausad och yaml:en aldrig når tjänsten.',
+    };
+  }
+  if (finns) {
+    return {
+      kod: 'fil_tänder_inte',
+      text:
+        'Override-filen finns men tänder inte schedulern.\n' +
+        'Åtgärd: POST /api/v1/ops/scheduler/override med {"schedulerEnabled": true}.',
+    };
+  }
+  if (overrideData && overrideData.exists === false) {
+    return {
+      kod: 'ingen_fil',
+      text:
+        'Ingen override-fil. Då styr env ensam, och dashboarden har ENABLED=false\n' +
+        '(render.yaml säger true men syncen är pausad, så yaml:en når inte tjänsten).\n' +
+        'Det matchar hypotesen att overriden raderades INNAN syncen återupptogs.',
+    };
+  }
+  return {
+    kod: 'okänt',
+    text: 'Schedulern är av, men override-filen kunde inte läsas. Läs rådata ovan.',
+  };
+}
+
+module.exports = { tolkaLäge, plockaStatus };
+
+// Kör bara när filen startas direkt. Ett test som importerar tolkningen ska
+// inte logga in mot prod som sidoeffekt.
+if (require.main === module) {
+  main().catch((error) => {
+    console.error('❌ Kunde inte läsa scheduler-konfigurationen');
+    console.error(text(error?.message || error) || error);
+    process.exit(1);
+  });
+}
