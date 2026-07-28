@@ -40482,7 +40482,10 @@
     makron: "makron",
     notiser: "notiser",
     skickat: "skickat",
-    senarekopanel: "senare",
+    // Huvudknappen Senare öppnar panelen, som i legacy. Ett-kliks-snooze från
+    // bottenknappen avvisades uttryckligen i PR 11 — se kommentaren vid knappen
+    // i cco-conversations-v2-shell.js. reply_later finns kvar för bulkfältet.
+    senare: "senare",
     noshow: "noshow",
     signering: "signaturer",
     portal: "portalmetrics",

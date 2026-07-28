@@ -1923,7 +1923,14 @@
       '<button class="action-btn action-btn--note" type="button" data-v2-action="note"' + noteContextAttr + '><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
       '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"><span class="action-ico">📆</span><span>Kalender</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="handled"><span class="action-ico">✓</span><span>Markera klar</span></button>' +
-      '<button class="action-btn" type="button" data-v2-action="reply_later"><span class="action-ico">⌛</span><span>Senare</span></button>' +
+      // Senare öppnar admin#cco:s panel (cco-senare-v3), inte ett-kliks-snooze.
+      // Det är inget val vi gör här: PR 11 avgjorde det redan för legacy —
+      // "reply_later körs först när användaren bekräftar snooze-tid i panelen
+      // (inte ett-klicks-snooze från bottenknappen)". V2 hade en egen ett-kliks-
+      // väg som satte uppföljning UTAN tid, vilket är en annan operation än den
+      // operatören är van vid. Bulkfältet behåller ett-klick — en panel går inte
+      // att fylla i för N trådar, och legacy har ingen bulkväg alls att bryta mot.
+      '<button class="action-btn" type="button" data-v2-action="senare"><span class="action-ico">⌛</span><span>Senare</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="reopen"><span class="action-ico">↩</span><span>Återöppna</span></button>' +
       moreMenu() +
       '</div>';
@@ -1949,7 +1956,8 @@
       { action: 'makron', ico: '🧩', label: 'Makron' },
       { action: 'notiser', ico: '🔔', label: 'Notiser' },
       { action: 'skickat', ico: '📤', label: 'Skickat / kö' },
-      { action: 'senarekopanel', ico: '🗓', label: 'Senare-kö' },
+      // 'senarekopanel' borttagen: den öppnade SAMMA launcher-action ('senare')
+      // som huvudknappen nu gör. Två ingångar till en panel är inte två val.
       { action: 'noshow', ico: '🚫', label: 'No-show' },
       { action: 'signering', ico: '✍️', label: 'Signering' },
       { action: 'portal', ico: '★', label: 'Portal' },

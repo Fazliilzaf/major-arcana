@@ -674,17 +674,26 @@ test('v2-skalet: "Mer"-menyn exponerar alla åtta admin#cco-paneler och togglas 
   assert.ok(menu, '"Mer"-menyn ska finnas i action-baren');
   assert.equal(menu.hasAttribute('hidden'), true, 'menyn ska vara stängd som default');
 
-  // Alla åtta återstående paneler ska finnas som menyval.
+  // De återstående panelerna ska finnas som menyval.
+  //
+  // 'senarekopanel' är borttagen: huvudknappen Senare öppnar numera SAMMA
+  // launcher-action ('senare'), som i legacy. Två menyingångar till en panel
+  // är inte två val. Se PR 11 — ett-klicks-snooze från bottenknappen avvisades
+  // uttryckligen där, och V2:s egen ett-kliksväg var en avvikelse från det.
   const expected = [
     'makron',
     'notiser',
     'skickat',
-    'senarekopanel',
     'noshow',
     'signering',
     'portal',
     'nyttmail',
   ];
+  assert.equal(
+    menu.querySelector('[data-v2-action="senarekopanel"]'),
+    null,
+    'senarekopanel ska inte finnas kvar — huvudknappen öppnar samma panel'
+  );
   for (const action of expected) {
     assert.ok(
       menu.querySelector('[data-v2-action="' + action + '"]'),
@@ -1658,5 +1667,81 @@ test('v2-skalet: desktop/surfplatta använder .inbox-list:s interna scroll', () 
   assert.ok(
     mount.querySelector('[data-thread-id="t-' + (N - 1) + '"]'),
     'intern scroll driver fönstret på desktop/surfplatta'
+  );
+});
+
+/**
+ * Senare öppnar panelen, inte ett-kliks-snooze.
+ *
+ * PR 11 avgjorde det här för legacy och skrev in skälet i
+ * tests/public/konversationerSenarePanelPR11.test.js: "reply_later körs först
+ * när användaren bekräftar snooze-tid i panelen (inte ett-klicks-snooze från
+ * bottenknappen)".
+ *
+ * V2 hade ändå en egen ett-kliksväg som satte uppföljning UTAN tid. Det är en
+ * annan operation än den operatören är van vid, på en knapp med samma namn och
+ * samma plats. Skillnaden syns inte förrän tråden dyker upp i fel läge.
+ *
+ * Bulkfältet behåller reply_later med flit: en panel går inte att fylla i för
+ * N trådar, och legacy har ingen bulkväg alls att bryta paritet mot.
+ */
+test('v2-skalet: Senare-knappen öppnar panelen och gör inte ett-kliks-snooze', async () => {
+  const { window, document, api } = loadShell();
+  const actions = [];
+  const ctx = makeCtx({
+    handlers: {
+      ...makeCtx().handlers,
+      action(name, thread) {
+        actions.push({ name, threadId: thread && thread.id });
+        return Promise.resolve({ ok: true });
+      },
+    },
+  });
+  api.render(ctx);
+
+  const root = document.getElementById('cco-conv-v2-root');
+  const senare = root.querySelector('[data-v2-thread] [data-v2-action="senare"]');
+  assert.ok(senare, 'Senare-knappen ska finnas i action-baren');
+  assert.equal(
+    senare.textContent.includes('Senare'),
+    true,
+    'knappen ska fortfarande heta Senare — det är vägen som ändras, inte namnet'
+  );
+
+  // Den gamla ett-kliksvägen får inte finnas kvar i trådens action-bar.
+  assert.equal(
+    root.querySelector('[data-v2-thread] [data-v2-action="reply_later"]'),
+    null,
+    'ett-kliks-snooze ska inte finnas som trådaction — PR 11 avvisade den'
+  );
+
+  senare.dispatchEvent(new window.Event('click', { bubbles: true }));
+  await Promise.resolve();
+  assert.deepEqual(
+    actions,
+    [{ name: 'senare', threadId: 't-1' }],
+    'klicket ska routa till launcher-panelen, inte till en persistent action'
+  );
+});
+
+test('v2-skalet: bulkfältet behåller reply_later — panelen går inte att fylla i för N trådar', () => {
+  const { document, api } = loadShell();
+  api.render(makeCtx());
+  const root = document.getElementById('cco-conv-v2-root');
+  assert.ok(root, 'skalet ska vara monterat');
+  // Bulklistan är en källnivå-konstant; att den innehåller reply_later vaktas
+  // av ccoConversationsV2ActionsContract. Här låser vi bara att borttagandet
+  // av trådknappen inte råkade ta bulkvägen med sig.
+  const shellSource = require('node:fs').readFileSync(
+    require('node:path').join(
+      __dirname, '..', '..', 'public', 'major-arcana-preview', 'app',
+      'cco-conversations-v2-shell.js'
+    ),
+    'utf8'
+  );
+  assert.match(
+    shellSource,
+    /V3_BULK_ACTIONS[\s\S]*?id: 'reply_later'/,
+    'bulkfältet ska fortfarande kunna lägga flera trådar senare'
   );
 });
