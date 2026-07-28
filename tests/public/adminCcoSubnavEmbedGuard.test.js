@@ -281,10 +281,23 @@ test('admin#cco använder ett neutralt skal utan att byta befintliga målunderla
     /@media \(max-width: 760px\)[\s\S]*?\.cco-subnav \{[\s\S]*?flex-wrap:\s*wrap;[\s\S]*?overflow:\s*visible;/,
     'mobilnav ska visa alla kategorier och inte klippa Mer-menyn'
   );
+  // Den delade toppraden är BORTTAGEN. Den bröt ut workspacet ur grid-layouten
+  // och lade navet absolut i övre vänstra hörnet — byggt för legacy
+  // konversationer.html, vars header hade tomt utrymme där. V2:s header har
+  // filterchipsen på samma plats, så navet ritades ovanpå dem.
+  //
+  // Regeln matchade inte förrän navmarkeringen rättades (#1242): dessförinnan
+  // var sektionen 'mer:konversationer_v2_preview', så navet låg kvar i sin
+  // grid-rad och överlappet syntes aldrig.
+  assert.doesNotMatch(
+    css,
+    /data-cco-active-section="konversationer"[\s\S]{0,400}?position:\s*absolute;/,
+    'Konversationer får inte ha ett eget layout-undantag — navet ligger i grid-raden som alla andra sektioner'
+  );
   assert.match(
     css,
-    /data-cco-active-section="konversationer"[\s\S]*?position:\s*absolute;[\s\S]*?height:\s*100dvh;/,
-    'Konversationer ska dela sin befintliga topprad med det kanoniska skalet på desktop'
+    /#ccoWorkspaceSection\.cco-preview-embed-section \{[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\);/,
+    'skalet ska vara ett grid med nav i första raden och innehåll i den andra'
   );
 });
 
