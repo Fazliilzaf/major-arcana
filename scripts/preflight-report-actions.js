@@ -194,16 +194,16 @@ function buildActions(report) {
       title: 'Läs smoke-loggens felrad: vilket steg föll, och med vilken statuskod',
       command: `BASE_URL=${publicUrl} npm run smoke:public`,
       details:
-        'Skriptet skriver sökväg, statuskod, svarslängd och de första raderna av kroppen vid fel. Statuskod 3xx betyder fel BASE_URL (legacy-värd som redirectar), 000/5xx betyder att ursprungsservern inte svarade, 200 med oväntat innehåll är ett äkta innehållsfel. Först när felet ligger i ett auth-steg är credentials rätt spår.',
+        'Skriptet skriver sökväg, statuskod, svarslängd och de första raderna av kroppen vid fel. Statuskod 3xx betyder fel BASE_URL (legacy-värd som redirectar), 000/5xx betyder att ursprungsservern inte svarade, 200 med oväntat innehåll är ett äkta innehållsfel. VIKTIGT: ett fel i ett AUTH-steg betyder INTE att credentials är fel spår. curl SLÄPPER Authorization-headern vid omdirigering över värdgräns — en avsiktlig säkerhetsspärr. Med BASE_URL på legacy-värden lyckas auth/login (credentials ligger i POST-kroppen, som bevaras) medan auth/me faller, eftersom Bearer-headern tas bort på vägen till .com och servern ser ett anrop helt utan auth. Bevisat 2026-07-28 med fyra anrop: .com + header ger "Sessionen är ogiltig eller har gått ut."; .se + -L + samma header ger "Inloggning krävs." — IDENTISKT med att inte skicka någon header alls; --location-trusted mot .se ger åter "Sessionen är ogiltig". Kontrollera ALLTID BASE_URL före credentials, även när felet ser ut som ett inloggningsfel — särskilt när login lyckas och me faller, för det är signaturen på just det här felet.',
       source: 'preflight',
     });
     pushAction(actions, {
       id: 'public_smoke_credentials',
       priority: 'P1',
-      title: 'Verifiera OWNER credentials — endast om felet ligger i ett auth-steg',
+      title: 'Verifiera OWNER credentials — först efter att BASE_URL uteslutits',
       command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run smoke:public`,
       details:
-        'Gäller stegen efter inloggning (login, me, monitor, mail, booking). Om MFA krävs: sätt ARCANA_OWNER_MFA_CODE, ARCANA_OWNER_MFA_SECRET eller ARCANA_OWNER_MFA_RECOVERY_CODE och kör igen.',
+        'Gäller stegen efter inloggning (login, me, monitor, mail, booking). FÖRUTSÄTTNING: kör inte det här förrän BASE_URL bekräftats peka på den kanoniska värden (arcana.hairtpclinic.com, inte .se). Ett auth-fel med rätt credentials och fel värd ser exakt ut som ett auth-fel med fel credentials — skillnaden syns bara på att login lyckas och me faller. Om MFA krävs: sätt ARCANA_OWNER_MFA_CODE, ARCANA_OWNER_MFA_SECRET eller ARCANA_OWNER_MFA_RECOVERY_CODE och kör igen.',
       source: 'preflight',
     });
     pushAction(actions, {
