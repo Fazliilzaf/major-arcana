@@ -4427,18 +4427,62 @@
       textNode.textContent = labels[key](value ?? 0);
     });
     // Snitt LTV (read-only, "—" om data saknas)
+    //
+    // ORD-87. Noden fanns redan men läste `stats.totalRevenue` — ett fält
+    // getTenantStats ALDRIG skickat. Den har alltså visat "—" hela tiden medan
+    // 41,5 Mkr låg uträknade per kund och renderades på varje kundkort.
+    //
+    // NÄMNAREN SKRIVS UT. Snittet är vunnet delat med HELA registret, inte med
+    // de kunder som har en vunnen affär. Skillnaden är tiofaldig och besvarar
+    // olika frågor, så talet får inte stå ensamt.
+    //
+    // TRENDRADEN BÄR PIPEN, inte intäkt. Ordvalet säger offert med flit —
+    // öppna affärer är pengar som KAN komma in om offerterna går igenom.
     const ltvNode = els.v9Header.querySelector('[data-v9-snitt-ltv-value]');
+    const ltvTrendNode = els.v9Header.querySelector('[data-v9-snitt-ltv-trend]');
     if (ltvNode) {
       if (segmentPending) {
         ltvNode.textContent = '…';
+        if (ltvTrendNode) ltvTrendNode.textContent = '';
       } else {
-        const totalRevenue = Number(stats.totalRevenue ?? stats.revenueTotal ?? 0);
-        const totalCustomers = Number(stats.totalPatients ?? 0);
-        if (totalRevenue > 0 && totalCustomers > 0) {
-          const avg = Math.round(totalRevenue / totalCustomers);
+        const denominator = Number(
+          stats.lifetimeValueDenominator ?? stats.totalPatients ?? 0
+        );
+        // Bakåt-kompat: äldre svar utan aggregat räknar som förut.
+        const wonTotal = Number(
+          stats.wonDealsTotal ?? stats.totalRevenue ?? stats.revenueTotal ?? 0
+        );
+        const avg = Number(
+          stats.lifetimeValueAverage ??
+            (denominator > 0 ? Math.round(wonTotal / denominator) : 0)
+        );
+
+        if (avg > 0 && denominator > 0) {
           ltvNode.textContent = `${formatMetricNumber(avg)} kr`;
+          ltvNode.title =
+            `${formatV9Sek(wonTotal)} i vunna affärer delat på ${formatMetricNumber(denominator)} kunder. ` +
+            'Golv — kunder vars affärer aldrig matchats saknas.';
         } else {
           ltvNode.textContent = '—';
+          ltvNode.removeAttribute('title');
+        }
+
+        if (ltvTrendNode) {
+          const openTotal = Number(stats.openDealsTotal ?? 0);
+          if (avg > 0 && denominator > 0) {
+            const nämnare = `snitt över ${formatMetricNumber(denominator)} kunder`;
+            ltvTrendNode.textContent =
+              openTotal > 0
+                ? `${nämnare} · ${formatV9Sek(openTotal)} i öppna offerter`
+                : nämnare;
+            ltvTrendNode.title =
+              openTotal > 0
+                ? 'Öppna offerter är inte intäkt — det är vad som kan komma in om de går igenom.'
+                : '';
+          } else {
+            ltvTrendNode.textContent = '';
+            ltvTrendNode.removeAttribute('title');
+          }
         }
       }
     }

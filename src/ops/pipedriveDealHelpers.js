@@ -40,6 +40,58 @@ function parseDealValue(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+/**
+ * VUNNET — pengar som kommit in. Bas för lifetimeValue per kund.
+ *
+ * Flyttad hit från ccoPatientMasterStore i ORD-87 för att ligga BREDVID
+ * sumPipedriveOpenDeals. De två skiljer sig på en rad, och den raden är hela
+ * skillnaden mellan "intäkt" och "offert". Låg de i olika filer skulle
+ * skillnaden vara osynlig för den som ändrar den ena.
+ */
+function sumPipedriveWonDeals(pipedrive) {
+  const deals = asArray(asObject(pipedrive).deals);
+  let total = 0;
+  let wonCount = 0;
+  for (const deal of deals) {
+    if (!isPipedriveDealWon(deal)) continue;
+    const n = parseDealValue(asObject(deal).value);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    total += n;
+    wonCount += 1;
+  }
+  return { total, wonCount };
+}
+
+/**
+ * ÖPPET — pengar som KAN komma in om offerterna går igenom. Inte intäkt.
+ *
+ * Samma definition som `potentialValue` i ccoKunderEnrichment, som nu läser
+ * härifrån i stället för att räkna själv. Villkoret är exakt: varken vunnen
+ * ELLER förlorad. En affär utan status räknas som öppen — det är avsiktligt,
+ * eftersom Pipedrive-exporten lämnar statusfältet tomt för nyskapade affärer.
+ *
+ * OBS: den här summan får ALDRIG presenteras som intäkt. Se ORD-87.
+ */
+function sumPipedriveOpenDeals(pipedrive) {
+  const deals = asArray(asObject(pipedrive).deals);
+  let total = 0;
+  let openCount = 0;
+  for (const deal of deals) {
+    const safe = asObject(deal);
+    if (isPipedriveDealWon(safe)) continue;
+    if (normalizePipedriveDealStatus(safe.status) === 'lost') continue;
+    const n = parseDealValue(safe.value);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    total += n;
+    openCount += 1;
+  }
+  return { total, openCount };
+}
+
 function maxIsoDate(...values) {
   let best = null;
   let bestMs = null;
@@ -60,5 +112,7 @@ module.exports = {
   normalizePipedriveDealStatus,
   isPipedriveDealWon,
   parseDealValue,
+  sumPipedriveWonDeals,
+  sumPipedriveOpenDeals,
   maxIsoDate,
 };

@@ -22,7 +22,12 @@ const { normalizePhotoPublishConsent } = require('./ccoPhotoPublishConsent');
 const { normalizeFortnoxPatientRef } = require('../cfo/cfoFortnoxPatientSync');
 const { normalizePatientDemographics, buildDemographicsReadout } = require('./patientDemographics');
 const { sanitizePatientDisplayName } = require('../lib/patientDisplayName');
-const { isPipedriveDealWon, parseDealValue } = require('./pipedriveDealHelpers');
+const {
+  isPipedriveDealWon,
+  parseDealValue,
+  sumPipedriveWonDeals,
+  sumPipedriveOpenDeals,
+} = require('./pipedriveDealHelpers');
 const {
   rebuildPatientMasterIndexes,
   lookupPatientsByQuery,
@@ -613,19 +618,9 @@ function mergePatientSources(primary, secondary) {
   };
 }
 
-function sumPipedriveWonDeals(pipedrive) {
-  const deals = asArray(asObject(pipedrive).deals);
-  let total = 0;
-  let wonCount = 0;
-  for (const deal of deals) {
-    if (!isPipedriveDealWon(deal)) continue;
-    const n = parseDealValue(asObject(deal).value);
-    if (!Number.isFinite(n) || n <= 0) continue;
-    total += n;
-    wonCount += 1;
-  }
-  return { total, wonCount };
-}
+// ORD-87: sumPipedriveWonDeals flyttad till ./pipedriveDealHelpers, bredvid
+// sumPipedriveOpenDeals. De två skiljer sig på en rad, och den raden är hela
+// skillnaden mellan intäkt och offert.
 
 function derivePatientHealthProjection(patient = {}) {
   const safe = asObject(patient);
@@ -1504,17 +1499,109 @@ async function createCcoPatientMasterStore({ filePath }) {
     const bucket = tenantBucket(state, tenantId);
     // Active stats exclude archived (merged-away) secondaries; archived count tracked separately.
     const allPatients = asArray(bucket.patients);
-    const archived = allPatients.filter((item) => item.matchStatus === 'merged');
-    const patients = allPatients.filter((item) => item.matchStatus !== 'merged');
+
+    // ORD-87: ETT pass, inte nio.
+    //
+    // Funktionen filtrerade tidigare bucket.patients sju gånger plus två för
+    // arkiverade. Att lägga affärsaggregatet som ett tionde svep hade varit
+    // samma fel som ORD-82 och ORD-85 handlade om — en invariant som räknas om
+    // i en loop — införd samma vecka som fem sådana togs bort. Allt räknas i
+    // en genomgång.
+    //
+    // MÄTT före merge (scripts/measure-tenant-deal-aggregate.js, 7 451
+    // patienter, 3 413 kopplade, 8 595 affärer, median av 20 varv):
+    //
+    //   nio .filter() utan affärer      0,375 ms   <- så här såg det ut förut
+    //   ETT pass utan affärer           0,064 ms   <- omskrivningen ensam, 5,9x snabbare
+    //   ETT pass MED affärer            1,158 ms   <- det som gäller nu
+    //
+    // Aggregatet kostar alltså ~1,09 ms, och skalar linjärt med ANTAL AFFÄRER,
+    // inte antal patienter: 0,117 µs per affär, uppmätt över 8 595 → 163 540.
+    //
+    // BUDGET: tre av fyra anropsvägar är ocachade (ccoStaff x2, ccoMigration);
+    // bara ccoPatientMaster ligger bakom readCache. Vid dagens volym är det
+    // oproblematiskt. Femdubblas affärsvolymen är vi på 5 ms och då ska
+    // summeringen cachas eller flyttas — mät om innan, gissa inte.
+    const s = {
+      totalPatients: 0,
+      withPersonnummer: 0,
+      matched: 0,
+      clientoOnly: 0,
+      driveOnly: 0,
+      needsReview: 0,
+      pipedriveLinked: 0,
+      archivedPatients: 0,
+      wonDealsTotal: 0,
+      wonDealsCount: 0,
+      customersWithWonDeals: 0,
+      openDealsTotal: 0,
+      openDealsCount: 0,
+      customersWithOpenDeals: 0,
+    };
+
+    for (const item of allPatients) {
+      if (item.matchStatus === 'merged') {
+        s.archivedPatients += 1;
+        continue;
+      }
+      s.totalPatients += 1;
+      if (item.personnummer) s.withPersonnummer += 1;
+      if (item.matchStatus === 'matched') s.matched += 1;
+      else if (item.matchStatus === 'cliento_only') s.clientoOnly += 1;
+      else if (item.matchStatus === 'drive_only') s.driveOnly += 1;
+      else if (item.matchStatus === 'needs_review') s.needsReview += 1;
+      if (!item.pipedrive) continue;
+      s.pipedriveLinked += 1;
+
+      const won = sumPipedriveWonDeals(item.pipedrive);
+      if (won.wonCount > 0) {
+        s.wonDealsTotal += won.total;
+        s.wonDealsCount += won.wonCount;
+        s.customersWithWonDeals += 1;
+      }
+      const open = sumPipedriveOpenDeals(item.pipedrive);
+      if (open.openCount > 0) {
+        s.openDealsTotal += open.total;
+        s.openDealsCount += open.openCount;
+        s.customersWithOpenDeals += 1;
+      }
+    }
+
     return {
-      totalPatients: patients.length,
-      withPersonnummer: patients.filter((item) => item.personnummer).length,
-      matched: patients.filter((item) => item.matchStatus === 'matched').length,
-      clientoOnly: patients.filter((item) => item.matchStatus === 'cliento_only').length,
-      driveOnly: patients.filter((item) => item.matchStatus === 'drive_only').length,
-      needsReview: patients.filter((item) => item.matchStatus === 'needs_review').length,
-      pipedriveLinked: patients.filter((item) => item.pipedrive).length,
-      archivedPatients: archived.length,
+      totalPatients: s.totalPatients,
+      withPersonnummer: s.withPersonnummer,
+      matched: s.matched,
+      clientoOnly: s.clientoOnly,
+      driveOnly: s.driveOnly,
+      needsReview: s.needsReview,
+      pipedriveLinked: s.pipedriveLinked,
+      archivedPatients: s.archivedPatients,
+
+      // ORD-87 — affärsaggregatet.
+      //
+      // NÄMNAREN ÄR HELA REGISTRET, inte de kunder som har en vunnen affär.
+      // 41 489 801 / 7 451 = 5 568 kr. Med 726 som nämnare blir det 57 149 kr —
+      // en tiofaldig skillnad, och den besvarar en ANNAN fråga ("vad är en kund
+      // med minst en vunnen affär värd"). Valet får inte vara implicit, därför
+      // skickas nämnaren med som eget fält och ska skrivas ut i UI:t.
+      //
+      // GOLV, INTE FACIT: bara kunder med en Pipedrive-koppling räknas.
+      // Namn-fallbacken skapar needs_review-FÖRSLAG och länkar aldrig
+      // automatiskt, så affärer som aldrig matchats saknas i summan.
+      //
+      // VUNNET och ÖPPET hålls isär med flit. Öppet är offerter som KAN gå
+      // igenom — aldrig intäkt, och ska aldrig presenteras som det.
+      wonDealsTotal: s.wonDealsTotal,
+      wonDealsCount: s.wonDealsCount,
+      customersWithWonDeals: s.customersWithWonDeals,
+      openDealsTotal: s.openDealsTotal,
+      openDealsCount: s.openDealsCount,
+      customersWithOpenDeals: s.customersWithOpenDeals,
+      lifetimeValueDenominator: s.totalPatients,
+      lifetimeValueAverage:
+        s.totalPatients > 0 ? Math.round(s.wonDealsTotal / s.totalPatients) : 0,
+      dealTotalsAreFloor: true,
+
       imports: bucket.imports || {},
       updatedAt: state.updatedAt,
     };
