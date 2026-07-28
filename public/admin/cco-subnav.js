@@ -51,11 +51,14 @@
     // Kalender och övriga segment behåller sina redan byggda målunderlag.
     var CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on';
     var PREVIEW = '/major-arcana-preview/';
-    // Avsiktlig, valbar v2-förhandsvisning. Den delar samma origin och
-    // befintliga Bearer-brygga som övriga admin-embed-ytor; ingen token förs
-    // över i URL:en och legacy-Konversationer fortsätter vara standard.
-    var CONVERSATIONS_V2_PREVIEW =
-      PREVIEW + '?view=conversations&embed=admin&conversations=v2';
+    // V2 är inte längre en valbar förhandsvisning under "Mer" — den ÄR
+    // Konversationer sedan cutovern (#1228). Posten är borttagen ur MORE_TOOLS
+    // och ur menyn, för den pekade på samma URL som huvudfliken.
+    //
+    // Det var den dubbleringen som gjorde att "Mer" markerades aktiv medan
+    // operatören stod på Konversationer: urlToKey testade v2-grenen FÖRE
+    // konversationer-grenen, så huvudflikens egen URL klassificerades som ett
+    // Mer-val. Se isConversationsV2Url nedan.
     var SECTIONS = {
       konversationer: konversationerSrc,
       kunder: '/staff?view=customers&' + CUSTOMER_FLAGS,
@@ -66,7 +69,6 @@
 
     // "Mer"-dropdownens verktyg (v3-familjen).
     var MORE_TOOLS = {
-      konversationer_v2_preview: CONVERSATIONS_V2_PREVIEW,
       integrationer: PREVIEW + 'cco-integrationer-v3.html',
       makron: PREVIEW + 'cco-makron-v3.html',
       installningar: PREVIEW + 'cco-installningar-v3-2.html',
@@ -90,7 +92,6 @@
       kalender: 'Kalender',
       automatisering: 'Automatisering',
       analys: 'Analys',
-      konversationer_v2_preview: 'Konversationer v2 · Förhandsvisning',
       integrationer: 'Integrationer',
       makron: 'Makron',
       installningar: 'Inställningar',
@@ -155,13 +156,17 @@
       var path = parsed.pathname.replace(/\/+$/, '') || '/';
       if (path.endsWith('/konversationer.html')) return 'konversationer';
       if (path.endsWith('/kalender.html')) return 'kalender';
+      // V2-konversationsytan ÄR Konversationer sedan #1228. Den här grenen
+      // returnerade tidigare 'mer:konversationer_v2_preview', vilket markerade
+      // "Mer" som aktiv medan operatören stod på Konversationer. Grenen ligger
+      // kvar för att känna igen URL:en — men den pekar nu på rätt flik.
       if (
         (path === '/major-arcana-preview' || path === '/major-arcana-preview/index.html') &&
         parsed.searchParams.get('view') === 'conversations' &&
         parsed.searchParams.get('embed') === 'admin' &&
         parsed.searchParams.get('conversations') === 'v2'
       ) {
-        return 'mer:konversationer_v2_preview';
+        return 'konversationer';
       }
       if (
         (path === '/staff' ||

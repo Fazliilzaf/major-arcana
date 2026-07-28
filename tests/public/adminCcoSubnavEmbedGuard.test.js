@@ -263,10 +263,12 @@ test('admin#cco använder ett neutralt skal utan att byta befintliga målunderla
   assert.match(subnav, /signaturer:\s*PREVIEW \+ 'cco-signaturer-v3\.html'/);
   assert.match(subnav, /revisor:\s*PREVIEW \+ 'cco-revisor-v3\.html'/);
   assert.match(subnav, /showcase:\s*PREVIEW \+ 'cco-showcase-v3\.html'/);
-  assert.match(
+  // V2 är inte längre en Mer-post: den ÄR Konversationer sedan #1228, och
+  // posten pekade på samma URL som huvudfliken. Se testet längre ned.
+  assert.doesNotMatch(
     html,
-    /data-cco-more="konversationer_v2_preview">\s*Konversationer v2 · Förhandsvisning/s,
-    'v2 ska vara en uttrycklig förhandsvisning under Mer och inte ersätta legacy-fliken'
+    /data-cco-more="konversationer_v2_preview"/,
+    'v2-förhandsvisningen ska vara borta ur Mer-menyn'
   );
 
   assert.match(css, /body\.cco-preview-embed-route \.cco-subnav \{/);
@@ -338,26 +340,47 @@ test('ny CCO-session startar på live-Konversationer och alla huvudkategorier ä
   }
 });
 
-test('admin erbjuder en valbar v2-förhandsvisning utan att ändra legacy-standardrouten', () => {
+test('v2-konversationsytan ÄR Konversationer — inte ett Mer-val', () => {
+  // Före cutovern (#1228) var V2 en valbar förhandsvisning under "Mer", och
+  // urlToKey returnerade 'mer:konversationer_v2_preview' för dess URL.
+  //
+  // När Konversationer-fliken pekades om till samma URL började huvudflikens
+  // EGEN adress klassificeras som ett Mer-val. Följden syntes direkt för
+  // operatören: "Mer" bar den rosa aktiv-pillen medan Konversationer stod
+  // omarkerad — trots att konversationsytan var det som renderades.
+  //
+  // Två saker håller det borta: grenen returnerar 'konversationer', och
+  // Mer-posten är borttagen. Kvar bara den ena hade gett samma dubblering igen.
   const subnav = read(SUBNAV_JS);
   const contract = read(ADMIN_EMBED_CONTRACT);
   const app = read(path.join(ROOT, 'public', 'major-arcana-preview', 'app.js'));
   const adminHtml = read(ADMIN_HTML);
 
+  assert.doesNotMatch(
+    subnav,
+    /konversationer_v2_preview:/,
+    'v2 får inte ligga kvar som egen Mer-rutt — den pekar på samma URL som fliken'
+  );
+  assert.doesNotMatch(
+    subnav,
+    /return 'mer:konversationer_v2_preview';/,
+    'v2-URL:en ska klassificeras som konversationer, inte som ett Mer-val'
+  );
+  assert.doesNotMatch(
+    adminHtml,
+    /data-cco-more="konversationer_v2_preview"/,
+    'menyposten ska vara borta ur admin.html'
+  );
+
+  // Grenen ska finnas kvar och peka rätt — utan den känns URL:en inte igen alls
+  // och navet markerar ingenting.
   assert.match(
     subnav,
-    /konversationer_v2_preview:\s*CONVERSATIONS_V2_PREVIEW/,
-    'v2 ska vara en uttrycklig Mer-rutt, inte den vanliga Konversationer-fliken'
+    /parsed\.searchParams\.get\('conversations'\) === 'v2'[\s\S]{0,120}return 'konversationer';/,
+    'v2-URL:en ska mappa till Konversationer-fliken'
   );
-  assert.match(
-    subnav,
-    /\?view=conversations&embed=admin&conversations=v2/,
-    'v2-målet ska använda samma origin-baserade admin-embed-kontrakt utan token i URL:en'
-  );
-  assert.match(subnav, /return 'mer:konversationer_v2_preview';/);
+
   // Cutover: legacy är inte längre iframens mål — den är kill-switchens mål.
-  // Rollback måste vara en omladdning (?cco=legacy), inte en deploy, och
-  // switchen måste vinna över data-src annars går den inte att slå av.
   const adminJs = read(path.join(ROOT, 'public', 'admin.js'));
   assert.match(
     adminJs,
@@ -378,16 +401,6 @@ test('admin erbjuder en valbar v2-förhandsvisning utan att ändra legacy-standa
   assert.match(app, /const localToken = readTokenFromStorage\(window\.localStorage\)/);
   assert.match(app, /Authorization: `Bearer \$\{authToken\}`/);
   assert.match(app, /getQueueScopedRuntimeThreads\(\)\.filter/);
-  assert.doesNotMatch(subnav, /CONVERSATIONS_V2_PREVIEW[^\n]*token=/i);
-
-  const harness = runSubnavHarness();
-  harness.nav.emit('click', { target: harness.v2PreviewItem });
-  assert.equal(harness.nav.getAttribute('data-active-section'), 'mer:konversationer_v2_preview');
-  assert.match(
-    harness.frame.getAttribute('src'),
-    /\/major-arcana-preview\/\?view=conversations&embed=admin&conversations=v2$/
-  );
-  assert.equal(harness.stored.get('arcana.cco.subsection'), 'mer:konversationer_v2_preview');
 });
 
 test('blank iframe behåller lazy-load men får rätt sparad route innan admin.js laddar', () => {
