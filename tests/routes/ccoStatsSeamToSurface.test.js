@@ -150,6 +150,20 @@ test('SÖM: affärsaggregatet överlever hela vägen från store till shell-payl
   }
 });
 
+/**
+ * Fält som med FLIT inte når ytan. Nyckel -> skäl.
+ *
+ * Utan den här listan har vakten bara ett svar på en avsiktlig utelämning:
+ * ta bort assertionen. Det är samma svaghet som `.se`-vakterna i ORD-86 fick
+ * bort — en vakt utan väg framåt är en vakt någon stänger av, och då skyddar
+ * den ingenting alls.
+ *
+ * Tom idag. Det är rätt läge: allt store räknar fram är billigt och används.
+ */
+const MEDVETET_UTELÄMNADE = Object.freeze({
+  // exempel: 'internDiagnostik': 'bara för ops-loggen, ska inte till klienten',
+});
+
 test('SÖM: INGET fält från store får tappas på vägen', async () => {
   // Bredare än ytans fem fält. Plockas listan om explicit ska varje
   // borttappat fält synas här, inte upptäckas i produktion månader senare.
@@ -159,13 +173,25 @@ test('SÖM: INGET fält från store får tappas på vägen', async () => {
   });
 
   const tappade = Object.keys(STATS_FRÅN_STORE).filter(
-    (nyckel) => !(nyckel in (body.stats || {}))
+    (nyckel) => !(nyckel in (body.stats || {})) && !(nyckel in MEDVETET_UTELÄMNADE)
   );
   assert.deepEqual(
     tappade,
     [],
     `dessa fält nådde aldrig ytan: ${tappade.join(', ')}. ` +
-      'Sprider rutten fortfarande hela stats-objektet?'
+      'Sprider rutten fortfarande hela stats-objektet? Är utelämningen avsiktlig — ' +
+      'lägg nyckeln i MEDVETET_UTELÄMNADE med ett skäl, så blir det ett dokumenterat beslut.'
+  );
+
+  // Åt andra hållet: en post som INTE längre utelämnas ska bort ur listan.
+  // Annars växer undantagen tills de täcker allt och vakten tystnar av sig själv.
+  const föråldrade = Object.keys(MEDVETET_UTELÄMNADE).filter(
+    (nyckel) => nyckel in (body.stats || {})
+  );
+  assert.deepEqual(
+    föråldrade,
+    [],
+    `MEDVETET_UTELÄMNADE har poster som faktiskt når ytan: ${föråldrade.join(', ')}`
   );
 });
 
