@@ -922,27 +922,33 @@ async function createCcoPatientMasterStore({ filePath }) {
   // värde. Ingen sortering, ingen kopiering, inga nästlade objekt.
   //
   // listPatients lämnas orörd — den har andra anropare.
-  async function listPatientIdentities({ tenantId, limit = 20000 } = {}) {
+  // INGET TAK — och det är avsiktligt.
+  //
+  // Populationen används till en unikhetsräkning: "finns exakt en patient med
+  // det här personnumret". En avkortad population gör den räkningen OSANN, inte
+  // ofullständig. Dubbletten som föll bort gör att den kvarvarande ser unik ut,
+  // nameIsUnique/pnrIsUnique blir true på fel grund, och assets kopplas till fel
+  // patient. Tyst, utan larm.
+  //
+  // Ett tak hade alltså inte gjort svaret sämre — det hade gjort det felaktigt.
+  // Att matcha listPatients sorteringsordning och sedan skära hade bara gjort de
+  // två vägarna lika fel.
+  //
+  // Kostnaden motiverar inget tak: 7 451 identiteter är 3,9 MB. Även 100 000
+  // vore ~50 MB. Det var aldrig den här funktionen som drog 517 MB.
+  async function listPatientIdentities({ tenantId } = {}) {
     const bucket = tenantBucket(state, tenantId);
-    const max = Math.max(1, Math.min(20000, Number(limit) || 20000));
     const patients = [];
-    let aktiva = 0;
     for (const item of bucket.patients) {
       // Samma uteslutning som listPatients: sammanslagna sekundärer är inte
       // aktiva identiteter och ska inte räknas i unikhetskontrollen.
       if (item.matchStatus === 'merged') continue;
-      aktiva += 1;
-      if (patients.length < max) {
-        patients.push({
-          personnummer: patientIdentityPnr(item),
-          displayName: patientIdentityName(item),
-        });
-      }
+      patients.push({
+        personnummer: patientIdentityPnr(item),
+        displayName: patientIdentityName(item),
+      });
     }
-    // total = antalet aktiva identiteter FÖRE avkortning, samma innebörd som
-    // listPatients (rows.length före slice). Konsumenten läser aldrig total,
-    // men om någon börjar göra det ska de två ge samma svar.
-    return { total: aktiva, patients };
+    return { total: patients.length, patients };
   }
 
   async function importClientoRows({ tenantId, rows = [], duplicateEmails = new Set() } = {}) {

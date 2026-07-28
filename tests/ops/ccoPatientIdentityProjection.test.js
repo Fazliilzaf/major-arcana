@@ -211,10 +211,10 @@ test('fallback-vägen ger samma unikhetssvar när projektionen saknas', async ()
   const äldreStore = { listPatients: store.listPatients };
   assert.equal(typeof äldreStore.listPatientIdentities, 'undefined');
 
-  const laddaProjektion = () => store.listPatientIdentities({ tenantId: TENANT, limit: 20000 });
+  const laddaProjektion = () => store.listPatientIdentities({ tenantId: TENANT });
   const laddaFallback = () =>
     typeof äldreStore.listPatientIdentities === 'function'
-      ? äldreStore.listPatientIdentities({ tenantId: TENANT, limit: 20000 })
+      ? äldreStore.listPatientIdentities({ tenantId: TENANT })
       : äldreStore.listPatients({ tenantId: TENANT, limit: 20000, offset: 0 });
 
   const a = (await laddaProjektion()).patients;
@@ -227,6 +227,60 @@ test('fallback-vägen ger samma unikhetssvar när projektionen saknas', async ()
       `fallback ska ge samma räkning för ${namn}`
     );
   }
+  städa();
+});
+
+test('INGET TAK: projektionen avkortar aldrig, inte ens på begäran', async () => {
+  // Bugbot: "Identity cap uses wrong patient set" — de två vägarna tappade
+  // olika patienter vid avkortning, eftersom fallbacken sorterar på namn och
+  // projektionen inte gör det.
+  //
+  // Men att matcha sorteringen hade bara gjort dem lika fel. Populationen
+  // besvarar frågan "finns det exakt en patient med det här personnumret".
+  // En avkortad population kan inte svara sant på den — dubbletten som föll
+  // bort gör att den kvarvarande ser unik ut. Svaret blir OSANT, inte
+  // ofullständigt, och konsekvensen är att assets kopplas till fel patient.
+  //
+  // Därför finns inget tak. Det här testet finns för att ett tak inte ska
+  // smyga tillbaka som "en rimlig gräns".
+  const många = [];
+  for (let i = 0; i < 60; i += 1) {
+    många.push({
+      id: `m${i}`,
+      tenantId: TENANT,
+      displayName: `Patient ${i}`,
+      personnummer: `1980010${i % 10}-00${String(i).padStart(2, '0')}`,
+    });
+  }
+  // Dubblettparet ligger med flit på var sin sida om en tänkbar gräns vid 10.
+  många[3].displayName = 'Tvilling Test';
+  många[47].displayName = 'Tvilling Test';
+
+  const { store, städa } = await skapaStore(många);
+
+  const utanArgument = (await store.listPatientIdentities({ tenantId: TENANT })).patients;
+  assert.equal(utanArgument.length, 60, 'alla aktiva identiteter ska med');
+
+  // Ett limit-argument ska inte kunna avkorta — signaturen tar det inte längre.
+  const medLimit = (await store.listPatientIdentities({ tenantId: TENANT, limit: 10 })).patients;
+  assert.equal(medLimit.length, 60, 'limit får inte avkorta identitetspopulationen');
+
+  // Och det som avkortningen skulle ha förstört: dubbletten syns fortfarande.
+  assert.equal(
+    medLimit.filter((r) => patientIdentityName(r) === 'tvilling test').length,
+    2,
+    'dubbletten måste överleva — annars ser den kvarvarande ut som unik'
+  );
+  städa();
+});
+
+test('total räknas före avkortning och matchar listPatients', async () => {
+  const { store, städa } = await skapaStore();
+  const proj = await store.listPatientIdentities({ tenantId: TENANT });
+  const full = await store.listPatients({ tenantId: TENANT, limit: 20000, offset: 0 });
+
+  assert.equal(proj.total, full.total, 'total ska betyda samma sak i båda vägarna');
+  assert.equal(proj.total, proj.patients.length, 'utan tak är total = antalet rader');
   städa();
 });
 
