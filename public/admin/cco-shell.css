@@ -153,35 +153,24 @@ body.cco-preview-embed-route #ccoWorkspaceSection .cco-preview-embed-frame {
   border: 0;
 }
 
-/* Konversationers topprad innehåller redan status och sök. På desktop delar
- * det kanoniska CCO-navet exakt samma rad i stället för att skapa ett lager
- * ovanför den. Övriga segment behåller samma nav som första grid-rad. */
-@media (min-width: 960px) {
-  body.cco-preview-embed-route
-    #ccoWorkspaceSection.cco-preview-embed-section[data-cco-active-section="konversationer"] {
-    position: relative;
-    display: block;
-  }
-
-  body.cco-preview-embed-route
-    #ccoWorkspaceSection[data-cco-active-section="konversationer"]
-    .cco-subnav {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 30;
-    width: max-content;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-
-  body.cco-preview-embed-route
-    #ccoWorkspaceSection[data-cco-active-section="konversationer"]
-    .cco-preview-embed-shell {
-    height: 100dvh;
-    min-height: 100dvh;
-  }
-}
+/* BORTTAGEN: delad topprad för Konversationer på desktop.
+ *
+ * Regeln bröt ut #ccoWorkspaceSection ur grid-layouten (display: block) och
+ * lade navet absolut i övre vänstra hörnet, så att det delade rad med
+ * konversationsytans egen topprad. Den byggdes för LEGACY konversationer.html,
+ * vars header hade tomt utrymme till vänster där navet fick plats.
+ *
+ * V2:s header har inget sådant utrymme — där sitter filterchipsen (Alla /
+ * Obesvarade / SLA-risk / Mina). Med regeln aktiv ritades navet ovanpå dem.
+ *
+ * Regeln matchade inte förrän #1242: dessförinnan var data-cco-active-section
+ * satt till 'mer:konversationer_v2_preview' (samma dubblering som gjorde att
+ * "Mer" markerades aktiv), så navet låg kvar i sin grid-rad och överlappet
+ * syntes aldrig. Att rätta markeringen avslöjade regeln.
+ *
+ * Konversationer använder nu samma grid som alla andra sektioner: nav i första
+ * raden, innehåll i den andra. Ingen sektion har längre ett eget layout-undantag.
+ */
 
 @media (max-width: 760px) {
   body.cco-preview-embed-route .cco-subnav {
