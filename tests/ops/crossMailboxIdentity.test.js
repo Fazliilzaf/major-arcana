@@ -14,6 +14,7 @@ const {
   aggregateByCustomer,
   findCrossMailboxCustomers,
   computeIdentityCoverage,
+  summarizeAggregation,
   pickCustomerEmail,
 } = require('../../src/ops/crossMailboxAggregator');
 
@@ -155,4 +156,27 @@ test('fördelningen skiljer få storsändare från många enstaka', () => {
   assert.equal(d.singletons, 50);
   assert.equal(d.max, 300);
   assert.ok(d.top10Share > 0.8, 'en storsändare ska synas som koncentration, inte som täckning');
+});
+
+test('tenantMailboxIds når hela vägen ner till aggregeringen', () => {
+  // Jag lade grinden i pickCustomerEmail och skickade mängden från rutten —
+  // men findCrossMailboxCustomers och summarizeAggregation anropade
+  // aggregateByCustomer UTAN att vidarebefordra optionerna. Grinden fanns i
+  // båda ändarna och inte i mitten, och våra egna brevlådor blev kunder:
+  // contact@ med 231 mejl över fyra brevlådor, fazli@ med 336 över sex.
+  //
+  // Exakt den söm jag beskrivit hela dagen, den här gången byggd av mig.
+  const messages = [
+    inbound('contact@hairtpclinic.com', 'fazli@hairtpclinic.com', 'Fazli'),
+    inbound('egzona@hairtpclinic.com', 'fazli@hairtpclinic.com', 'Fazli'),
+    inbound('contact@hairtpclinic.com', 'kund@example.com', 'Kund'),
+    inbound('egzona@hairtpclinic.com', 'kund@example.com', 'Kund'),
+  ];
+  const found = findCrossMailboxCustomers(messages, { tenantMailboxIds: TENANT });
+  const emails = found.map((c) => c.customerEmail);
+  assert.ok(!emails.includes('fazli@hairtpclinic.com'), 'en egen brevlåda får aldrig bli kund');
+  assert.deepEqual(emails, ['kund@example.com']);
+
+  const summary = summarizeAggregation(messages, { tenantMailboxIds: TENANT });
+  assert.equal(summary.totalCustomers, 1, 'även summeringen ska räkna bort oss själva');
 });
