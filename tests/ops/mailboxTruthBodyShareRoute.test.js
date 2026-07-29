@@ -83,3 +83,25 @@ test('shardarna mäts minst först', () => {
 test('mätningen skriver ett granskningsspår', () => {
   assert.match(bodyShareHandler(), /ops\.mailbox_truth\.body_share\.measure/);
 });
+
+test('migreringsändpunkten tar EN brevlåda per anrop', () => {
+  // Ingen "kör alla"-knapp. Ordningen minst först är ett säkerhetsbeslut, och
+  // en loop över alla brevlådor gör det möjligt att av misstag möta egzona@
+  // (179 MB) före kons@ (0,9 MB).
+  const start = OPS_ROUTE.indexOf("'/ops/mailbox-truth/body-migration'");
+  assert.ok(start > -1, 'ändpunkten ska finnas');
+  const handler = OPS_ROUTE.slice(start, OPS_ROUTE.indexOf('\n  router.', start));
+  assert.match(handler, /requireRole\(ROLE_OWNER\)/);
+  assert.match(handler, /mailboxId krävs/);
+  assert.ok(!/mailboxIds/.test(handler), 'ingen flerbrevlådeväg');
+});
+
+test('apply måste anges uttryckligen — annars torrkörning', () => {
+  const start = OPS_ROUTE.indexOf("'/ops/mailbox-truth/body-migration'");
+  const handler = OPS_ROUTE.slice(start, OPS_ROUTE.indexOf('\n  router.', start));
+  assert.match(
+    handler,
+    /apply:\s*body\.apply === true/,
+    'allt utom exakt true måste bli torrkörning'
+  );
+});
