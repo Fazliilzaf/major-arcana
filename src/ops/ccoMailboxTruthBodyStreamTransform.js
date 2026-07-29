@@ -25,7 +25,21 @@
  */
 
 const BODY_FIELDS = new Set(['bodyText', 'bodyHtml']);
-const MAX_KEY_CHARS = 64;
+
+/**
+ * Taket måste rymma en VERKLIG meddelandenyckel.
+ *
+ * `${mailboxId}:${graphMessageId}` — Graphs id:n är 140–200 tecken, så en
+ * nyckel landar runt 160–230. Med taket på 64 kastades varje meddelandenyckel
+ * som för lång, och `keyAtDepth[2]` blev kvar med den SENAST giltiga nyckeln
+ * på samma djup: konto-id:t ur `accounts`. Resultatet i prod var att 409
+ * brödtexter skrevs till EN fil, och verifieringen fångade det som
+ * `decoded_chars_stammer_inte`.
+ *
+ * 512 rymmer nyckeln med marginal och håller fortfarande brödtexterna
+ * (capade till 24 000) långt utanför.
+ */
+const MAX_KEY_CHARS = 512;
 
 /**
  * @param {(messageKey: string, field: string, value: string) => Promise<void>} onBody
@@ -112,8 +126,18 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
           continue;
         }
         settle(char);
-        if (char === '{' || char === '[') depth += 1;
-        else if (char === '}' || char === ']') depth -= 1;
+        if (char === '{' || char === '[') {
+          depth += 1;
+          // NYCKLAR ÄRVS ALDRIG MELLAN SYSKON.
+          // Utan den här raden stod en tidigare nyckel på samma djup kvar när
+          // nästa objekt inte satte någon egen — och en brödtext kunde
+          // attribueras till fel meddelande, tyst. Det var precis så konto-id:t
+          // ur `accounts` blev "meddelandenyckel" för 409 brödtexter i prod.
+          keyAtDepth[depth] = '';
+        } else if (char === '}' || char === ']') {
+          keyAtDepth[depth] = '';
+          depth -= 1;
+        }
         push(char);
         continue;
       }

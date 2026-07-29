@@ -137,3 +137,39 @@ test('balansen går ihop — depth är noll när filen är slut', async () => {
   assert.equal(stats.depthAtEnd, 0);
   assert.equal(stats.redirected, 3);
 });
+
+test('VERKLIGA meddelandenycklar med Graph-id håller isär meddelandena', async () => {
+  // PRODFYND 2026-07-29, torrkörning av kons@: 409 brödtexter skrevs till EN
+  // fil. Meddelandenyckeln är `${mailboxId}:${graphMessageId}` och Graph-id:n
+  // är 140–200 tecken, alltså långt över det gamla taket på 64. Nyckeln
+  // kastades som "för lång", och kvar på samma djup stod konto-id:t ur
+  // `accounts` — kort nog att vara giltigt. Varje brödtext attribuerades till
+  // det. Ingen krasch, inget larm; verifieringen fångade det.
+  const graphId = `AAMkAD${'x'.repeat(160)}`;
+  const shard = {
+    version: 1,
+    accounts: { 'kons@hairtpclinic.com': { mailboxId: 'kons@hairtpclinic.com' } },
+    messages: {
+      [`kons@hairtpclinic.com:${graphId}1`]: { bodyText: 'ett', bodyHtml: '<p>ett</p>' },
+      [`kons@hairtpclinic.com:${graphId}2`]: { bodyText: 'två', bodyHtml: '<p>två</p>' },
+    },
+  };
+  const { captured, stats } = await run(JSON.stringify(shard));
+  assert.equal(stats.redirected, 4);
+  const keys = new Set(captured.map((item) => item.messageKey));
+  assert.equal(keys.size, 2, 'varje meddelande ska få sin egen nyckel');
+  for (const key of keys) {
+    assert.ok(key.startsWith('kons@hairtpclinic.com:AAMkAD'), `nyckeln ser fel ut: ${key}`);
+  }
+});
+
+test('en nyckel ärvs aldrig från ett syskonobjekt', async () => {
+  // Fail closed: hellre ingen omstyrning alls än en omstyrning till fel
+  // meddelande. En brödtext på fel nyckel är tyst dataförlust vid migrering.
+  const text = JSON.stringify({
+    accounts: { kort: { x: 1 } },
+    messages: [{ bodyText: 'ligger i en ARRAY, har ingen egen nyckel' }],
+  });
+  const { captured } = await run(text);
+  assert.deepEqual(captured, [], 'utan egen nyckel ska ingenting styras om');
+});
