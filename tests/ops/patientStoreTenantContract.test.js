@@ -106,3 +106,30 @@ test('trådstoren får en brevlådelista, inte bara LRU:ns innehåll', () => {
   assert.match(route, /historyMailboxIds = \[\]/, 'routern ska ta emot listan');
   assert.match(route, /^\s+historyMailboxIds,$/m, 'och skicka den vidare till trådstoren');
 });
+
+test('varje brevlåda laddas precis innan den läses — LRU-taket är 2', () => {
+  // preloadTruthMailboxes laddade alla åtta i följd, men maxLoadedShards = 2,
+  // så sex var utvräkta igen innan loopen läste dem. listMessages returnerar
+  // tom lista för en oladdad shard, tyst.
+  //
+  // Fjärde gången samma tak i dag: korsbrevlåderapporten såg två brevlådor,
+  // listMessages({}) betydde "de laddade", och nu detta.
+  const source = fs.readFileSync(
+    path.join(ROOT, 'src', 'ops', 'ccoConversationThreadStore.js'),
+    'utf8'
+  );
+  const start = source.indexOf('async function listTruthMessagesForCustomer(');
+  assert.ok(start > -1, 'funktionen måste vara async för att kunna ladda');
+  const fn = source.slice(start, source.indexOf('\nfunction asArray', start));
+  const loadPos = fn.indexOf('ensureMailboxLoaded(mailboxId)');
+  const listPos = fn.indexOf('listMessages({');
+  assert.ok(loadPos > -1, 'brevlådan måste laddas i loopen');
+  assert.ok(listPos > loadPos, 'laddningen måste ske FÖRE läsningen');
+});
+
+test('LRU-taket är fortfarande 2 — annars är vakten ovan meningslös', () => {
+  const sharded = stripComments(
+    fs.readFileSync(path.join(ROOT, 'src', 'ops', 'ccoMailboxTruthShardedStore.js'), 'utf8')
+  );
+  assert.match(sharded, /maxLoadedShards = 2/);
+});
