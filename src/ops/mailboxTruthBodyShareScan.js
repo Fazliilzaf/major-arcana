@@ -58,6 +58,23 @@ function createBodyShareScanner() {
   let pendingKey = '';
   // Sträng som just avslutats; vi vet ännu inte om den var nyckel eller värde.
   let closedString = null;
+  // Hög surrogat vars byte ännu inte räknats — se nedan.
+  let pendingHighSurrogate = false;
+
+  // Loopen itererar UTF-16-KODENHETER. Ett tecken utanför BMP (emoji) är ett
+  // surrogatpar, alltså två iterationer, och `Buffer.byteLength` på en ensam
+  // surrogat ger 3 byte (ersättningstecknet) — 3+3=6 där filen har 4.
+  //
+  // `decodedChars` blir däremot rätt av samma skäl: JS `.length` räknar också
+  // paret som två. Det är alltså BARA rawBytes som behöver paras ihop, och
+  // rawBytes är talet steg 2 vilar på.
+  //
+  // Byten skjuts upp tills nästa kodenhet är känd, så att ett par som delas av
+  // en chunkgräns räknas likadant som ett som inte delas.
+  function countSurrogateBytes(isLowSurrogate) {
+    if (isLowSurrogate) return 4; // hela paret
+    return 3; // ensam surrogat: så många byte den faktiskt kodas som
+  }
 
   function settleClosedString(nextChar) {
     if (!closedString) return;
@@ -102,7 +119,32 @@ function createBodyShareScanner() {
       }
 
       // Inuti en sträng.
-      rawBytes += Buffer.byteLength(char, 'utf8');
+      const code = text.charCodeAt(index);
+      const isHighSurrogate = code >= 0xd800 && code <= 0xdbff;
+      const isLowSurrogate = code >= 0xdc00 && code <= 0xdfff;
+
+      if (pendingHighSurrogate) {
+        pendingHighSurrogate = false;
+        rawBytes += countSurrogateBytes(isLowSurrogate);
+        if (isLowSurrogate) {
+          // Andra halvan av paret. Byten är redan räknade för båda.
+          decodedChars += 1;
+          if (keyCandidateValid) keyCandidate += '?';
+          continue;
+        }
+        // Ensam hög surrogat: dess byte är räknade, nuvarande tecken faller
+        // igenom och behandlas som vanligt nedan.
+      }
+
+      if (isHighSurrogate) {
+        // Skjut upp bytesräkningen tills vi vet om nästa kodenhet är låg.
+        pendingHighSurrogate = true;
+        decodedChars += 1;
+        if (keyCandidateValid) keyCandidate += '?';
+        continue;
+      }
+
+      rawBytes += isLowSurrogate ? 3 : Buffer.byteLength(char, 'utf8');
 
       if (unicodeRemaining > 0) {
         unicodeRemaining -= 1;

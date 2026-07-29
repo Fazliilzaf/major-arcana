@@ -138,3 +138,31 @@ test('\\uXXXX är ett tecken avkodat och sex byte i filen', () => {
   assert.equal(result.bodyText.rawBytes, 8, 'a + sex byte escape + b');
   assert.equal(result.decodedChars, truthDecodedChars(text));
 });
+
+test('emoji är TVÅ kodenheter men FYRA byte — inte sex', () => {
+  // Loopen itererar UTF-16-kodenheter. Ett tecken utanför BMP är ett
+  // surrogatpar, och Buffer.byteLength på en ensam surrogat ger 3 byte
+  // (ersättningstecknet) — 3+3=6 där filen har 4. Felet går åt det håll som
+  // ÖVERSKATTAR brödtextandelen, alltså åt det håll som talar för migreringen.
+  // Ett mätverktyg vars enda värde är att talet går att lita på får inte ha en
+  // systematisk skevhet åt den sida slutsatsen lutar.
+  //
+  // decodedChars är däremot rätt av samma skäl: JS .length räknar också paret
+  // som två.
+  for (const body of ['a🙂b', '🙂', 'åäö🙂', 'a🙂🙂b']) {
+    const text = shard([{ bodyText: body, bodyHtml: '' }]);
+    const result = scan(text);
+    assert.equal(result.bodyText.rawBytes, Buffer.byteLength(body, 'utf8'), `rawBytes för ${body}`);
+    assert.equal(result.bodyText.decodedChars, body.length, `decodedChars för ${body}`);
+  }
+});
+
+test('ett surrogatpar som delas av en chunkgräns räknas likadant', () => {
+  // Node delar aldrig ett par i en utf8-ström, men skannern får inte förlita
+  // sig på det — den regeln är inte vår att garantera.
+  const text = shard([{ bodyText: 'x🙂y', bodyHtml: '<p>🙂</p>' }]);
+  const whole = scan(text);
+  for (const chunkSize of [1, 2, 3, 5, 7, 13, 64]) {
+    assert.deepEqual(scan(text, chunkSize), whole, `chunkstorlek ${chunkSize}`);
+  }
+});
