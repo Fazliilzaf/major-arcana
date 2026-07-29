@@ -170,6 +170,8 @@ function createCcoCustomerDossierRouter({
           config.ccoConversationStateStorePath ||
           `${config.stateRoot || config.dataDir || './data'}/cco-conversation-thread-state.json`,
         mailboxTruthStore: locals.ccoMailboxTruthStore || ccoMailboxTruthStore || null,
+        // ORD-96: trådvyn härleder kundens adresser ur patient-mastern
+        patientMasterStore: locals.ccoPatientMasterStore || locals.patientMasterStore || null,
         mailIngestionStore: locals.ccoMailIngestionStore || ccoMailIngestionStore || null,
         conversationNotesStore:
           locals.ccoConversationNotesStore || ccoConversationNotesStore || null,

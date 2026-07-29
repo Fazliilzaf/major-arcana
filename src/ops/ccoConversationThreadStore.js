@@ -123,13 +123,37 @@ function resolveCustomerIdFromIdentity(identity = {}, fallback = '') {
   );
 }
 
-function truthMessageMatchesCustomer(message = {}, customerId = '') {
+/**
+ * ORD-96 — HÄRLED IDENTITETEN, KRÄV DEN INTE LAGRAD.
+ *
+ * Tidigare returnerade den här funktionen `false` så snart meddelandet saknade
+ * `customerIdentity`. Men identiteten sätts aldrig på meddelandet:
+ * `ccoConversationPatientResolver` säger uttryckligen att den läggs på
+ * FLYKTIGA worklist-rader och aldrig skrivs tillbaka.
+ *
+ * Fältet krävdes alltså av läsaren och sattes aldrig av skrivaren. Kundnycklade
+ * trådar var tomma av konstruktion — inte av en bugg någon införde, utan av att
+ * två halvor aldrig möttes. Samma form som #1245.
+ *
+ * `customerEmails` är kundens EGNA adresser, hämtade ur patient-mastern och
+ * grindade på entydighet av samma resolver som worklisten använder. En adress
+ * som pekar på flera patienter kommer aldrig med — en osäker matchning som
+ * slår ihop två personers korrespondens är värre än en tråd som är delad.
+ */
+function truthMessageMatchesCustomer(message = {}, customerId = '', customerEmails = null) {
   const target = normalizeText(customerId);
   if (!target) return false;
+
   const identity = message.customerIdentity || message.identity || null;
   if (identity) {
     const resolved = resolveCustomerIdFromIdentity(identity);
     if (resolved && resolved === target) return true;
+  }
+
+  // Härledning: motpartens adress mot kundens kända adresser.
+  if (customerEmails && customerEmails.size > 0) {
+    const counterpart = pickCustomerEmail(message, null);
+    if (counterpart && customerEmails.has(counterpart)) return true;
   }
   return false;
 }
@@ -232,7 +256,12 @@ async function preloadTruthMailboxes(mailboxTruthStore, historyMailboxIds = []) 
   }
 }
 
-function listTruthMessagesForCustomer(mailboxTruthStore, customerId, historyMailboxIds = []) {
+function listTruthMessagesForCustomer(
+  mailboxTruthStore,
+  customerId,
+  historyMailboxIds = [],
+  customerEmails = null
+) {
   if (!mailboxTruthStore?.listMessages || !customerId) return [];
   const mailboxIds = asArray(historyMailboxIds).map(normalizeMailboxId).filter(Boolean);
   const searchMailboxes =
@@ -250,7 +279,7 @@ function listTruthMessagesForCustomer(mailboxTruthStore, customerId, historyMail
         limit: 0,
       }) || [];
     for (const m of msgs) {
-      if (truthMessageMatchesCustomer(m, customerId)) rows.push(m);
+      if (truthMessageMatchesCustomer(m, customerId, customerEmails)) rows.push(m);
     }
   }
   if (rows.length === 0 && searchMailboxes.length === 0) {
@@ -258,7 +287,7 @@ function listTruthMessagesForCustomer(mailboxTruthStore, customerId, historyMail
       folderTypes: ['inbox', 'sent', 'drafts'],
       limit: 0,
     })) {
-      if (truthMessageMatchesCustomer(m, customerId)) rows.push(m);
+      if (truthMessageMatchesCustomer(m, customerId, customerEmails)) rows.push(m);
     }
   }
   return rows;
@@ -267,6 +296,9 @@ function listTruthMessagesForCustomer(mailboxTruthStore, customerId, historyMail
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
+
+const { pickCustomerEmail } = require('./crossMailboxAggregator');
+const { resolveConversationPatient } = require('./ccoConversationPatientResolver');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -282,6 +314,7 @@ async function createCcoConversationThreadStore({
   auditLog = null,
   historyMailboxIds = [],
   enrichmentLookup = null, // optional (customerId) => { workflowLane, slaStatus, needsAction, riskLabel }
+  patientMasterStore = null, // ORD-96: krävs för att härleda kundens adresser
 } = {}) {
   if (!filePath) throw new Error('filePath required');
 
@@ -342,6 +375,61 @@ async function createCcoConversationThreadStore({
     return state.threadStates[key];
   }
 
+  /**
+   * ORD-96 — kundens egna adresser, grindade på entydighet.
+   *
+   * Vänder frågan rätt: i stället för att resolva VARJE meddelandes motpart
+   * mot registret hämtas kundens egna adresser en gång, och meddelandena
+   * matchas mot den lilla mängden. En patient har en handfull adresser; en
+   * brevlåda har tiotusentals meddelanden.
+   *
+   * Varje adress prövas med SAMMA resolver som worklisten använder
+   * (`resolveConversationPatient`). Pekar adressen på flera patienter blir
+   * status `ambiguous` och adressen släpps — den får aldrig länka. Pekar den
+   * på en annan patient än den vi frågar om släpps den också.
+   */
+  async function resolveCustomerEmailSet(customerId) {
+    const target = normalizeText(customerId);
+    if (!target || !patientMasterStore?.listPatients) return null;
+    let patients = [];
+    try {
+      const result = await patientMasterStore.listPatients({});
+      patients = Array.isArray(result?.patients) ? result.patients : asArray(result);
+    } catch {
+      return null;
+    }
+    const patient = patients.find((item) => normalizeText(item?.id) === target);
+    if (!patient) return null;
+
+    const candidates = new Set(
+      [
+        patient.primaryEmail,
+        ...asArray(patient.emails),
+        ...asArray(patient.cliento?.emails),
+        ...asArray(patient.pipedrive?.emails),
+      ]
+        .map((value) => normalizeText(value).toLowerCase())
+        .filter(Boolean)
+    );
+
+    const confirmed = new Set();
+    for (const email of candidates) {
+      try {
+        const match = await resolveConversationPatient(
+          { customerEmail: email },
+          { patientMasterStore }
+        );
+        // Bara entydiga matchningar mot RÄTT patient. `ambiguous` släpps.
+        if (normalizeText(match?.status) === 'matched' && normalizeText(match?.patientId) === target) {
+          confirmed.add(email);
+        }
+      } catch {
+        /* en adress som inte går att pröva får inte länka */
+      }
+    }
+    return confirmed;
+  }
+
   // ─── Build threads for a customer ─────────────────────────────────
   async function buildThreadsForCustomer(customerId, { tenantId = 'hair_tp' } = {}) {
     if (!customerId) return { threads: [], counts: {}, summary: {}, mailboxes: [] };
@@ -353,10 +441,12 @@ async function createCcoConversationThreadStore({
     // 1. Mailbox truth (primary — includes hydration customerIdentity overlay)
     if (mailboxTruthStore) {
       try {
+        const customerEmails = await resolveCustomerEmailSet(customerId);
         const truthMessages = listTruthMessagesForCustomer(
           mailboxTruthStore,
           customerId,
-          historyMailboxIds
+          historyMailboxIds,
+          customerEmails
         );
         for (const m of truthMessages) {
           const row = buildMailThreadFromTruthMessage(m, customerId);

@@ -14035,6 +14035,9 @@ process.once('SIGTERM', () => {
       commDraftStore: app.locals?.ccoCommDraftStore || null,
       sendActionStore: ccoSendActionStore,
       resolvePatientAssetStore: resolveSharedPatientAssetStore,
+      // ORD-96: trådvyn härleder kundens adresser ur patient-mastern i stället
+      // för att kräva en identitet som aldrig skrivs på meddelandet.
+      patientMasterStore: ccoPatientMasterStore,
       auditLog: ccoAuditLog,
     })
   );
