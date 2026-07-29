@@ -142,3 +142,17 @@ test('en shard vars namn inte går att tolka återställs ur datan', () => {
   const handler = crossMailboxHandler();
   assert.match(handler, /Object\.keys\(state\?\.accounts \|\| \{\}\)\[0\]/);
 });
+
+test('fördelningen skiljer få storsändare från många enstaka', () => {
+  // Meddelanden är fel nämnare: ett nyhetsbrev med 300 utskick väger 300, en
+  // patient med tre mejl väger 3. Är restposten 200 avsändare med mycket post
+  // är den korrekt; är den 15 000 med lite post saknas verkliga människor.
+  const messages = [];
+  for (let i = 0; i < 300; i += 1) messages.push(inbound('contact@hairtpclinic.com', 'utskick@leverantor.se', 'X'));
+  for (let i = 0; i < 50; i += 1) messages.push(inbound('contact@hairtpclinic.com', `p${i}@example.com`, 'P'));
+  const { addressDistribution: d } = computeIdentityCoverage(messages, { tenantMailboxIds: TENANT });
+  assert.equal(d.uniqueAddresses, 51);
+  assert.equal(d.singletons, 50);
+  assert.equal(d.max, 300);
+  assert.ok(d.top10Share > 0.8, 'en storsändare ska synas som koncentration, inte som täckning');
+});

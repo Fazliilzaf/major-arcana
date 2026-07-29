@@ -264,7 +264,15 @@ module.exports = {
 };
 
 /**
- * ANDELEN MEDDELANDEN SOM GÅR ATT KNYTA TILL EN KUND.
+ * ANDELEN MEDDELANDEN DÄR EN KUNDADRESS GÅR ATT UTVINNA.
+ *
+ * OBS: detta är INTE samma sak som "matchar en patient". Funktionen känner
+ * inte till patientregistret och frågar det aldrig. Talet är därför en ÖVRE
+ * GRÄNS för hur många meddelanden som kan knytas till ett patient-id — allt
+ * som inte har en adress kan omöjligen matchas, men allt som har en adress
+ * matchar inte nödvändigtvis.
+ *
+ * Blandas de två ihop ser en registerlucka ut som en fixad bugg.
  *
  * Talet som avgör om den röda tråden är genomförbar. Att stämpla ett kund-id
  * på meddelandena är en engångsoperation över 32 400 poster — den vill man
@@ -287,6 +295,7 @@ function computeIdentityCoverage(messages = [], { tenantMailboxIds = null } = {}
     uniqueCustomers: 0,
   };
   const seen = new Set();
+  const perAddress = new Map();
   for (const raw of Array.isArray(messages) ? messages : []) {
     const msg = asObject(raw);
     out.totalMessages += 1;
@@ -302,11 +311,32 @@ function computeIdentityCoverage(messages = [], { tenantMailboxIds = null } = {}
       out.resolved += 1;
       bucket.resolved += 1;
       seen.add(email);
+      perAddress.set(email, (perAddress.get(email) || 0) + 1);
     } else {
       out.unresolved += 1;
     }
   }
   out.uniqueCustomers = seen.size;
   out.resolvedShare = out.totalMessages > 0 ? out.resolved / out.totalMessages : 0;
+
+  // MEDDELANDEN ÄR FEL NÄMNARE.
+  //
+  // Ett nyhetsbrev med 300 utskick väger 300, en patient med tre mejl väger 3.
+  // Är restposten 200 avsändare med mycket post är den korrekt — leverantörer
+  // och utskick. Är den 15 000 avsändare med lite post saknas verkliga
+  // människor, och då är det ett registerproblem och inte ett CCO-problem.
+  //
+  // Fördelningen nedan skiljer de två fallen åt utan att veta något om
+  // patientregistret.
+  const counts = [...perAddress.values()].sort((a, b) => b - a);
+  out.addressDistribution = {
+    uniqueAddresses: counts.length,
+    singletons: counts.filter((n) => n === 1).length,
+    top10Messages: counts.slice(0, 10).reduce((sum, n) => sum + n, 0),
+    median: counts.length ? counts[Math.floor(counts.length / 2)] : 0,
+    max: counts[0] || 0,
+  };
+  out.addressDistribution.top10Share =
+    out.resolved > 0 ? out.addressDistribution.top10Messages / out.resolved : 0;
   return out;
 }
