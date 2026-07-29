@@ -435,8 +435,13 @@ async function createCcoConversationThreadStore({
     const confirmed = new Set();
     for (const email of candidates) {
       try {
+        // FÄLTET HETER `email`, INTE `customerEmail`.
+        // Med fel nyckel blev `target` tomt, resolvern svarade `no_email`, och
+        // ambiguitetsgrinden släppte VARJE adress. Diagnostiken visade det som
+        // `customerEmails: 0` — patienten hittad, alla adresser bortkastade.
+        // Samma söm som #1245: två korrekta halvor, fel nyckel emellan.
         const match = await resolveConversationPatient(
-          { customerEmail: email, tenantId: tenant },
+          { email, tenantId: tenant },
           { patientMasterStore }
         );
         // Bara entydiga matchningar mot RÄTT patient. `ambiguous` släpps.

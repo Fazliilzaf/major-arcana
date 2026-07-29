@@ -82,3 +82,27 @@ test('resolvern får tenantId från anroparen, inte från en standardvärde', ()
   assert.match(source, /resolveCustomerEmailSet\(customerId, tenantId\)/);
   assert.match(source, /async function resolveCustomerEmailSet\(customerId, tenantId\)/);
 });
+
+test('trådrutten hårdkodar inte en tenant-sträng', () => {
+  // `hairtpclinic` pekade på en TOM bucket — tenantBucket skapar den på
+  // begäran, så inget kastade och getPatient svarade null. Rätt tenant är
+  // hair-tp-clinic, och den ska komma från auth eller konfigurationen.
+  const route = stripComments(
+    fs.readFileSync(path.join(ROOT, 'src', 'routes', 'ccoCustomerComm.js'), 'utf8')
+  );
+  assert.match(route, /normalizeText\(config\?\.defaultTenantId\)/);
+  assert.ok(
+    !/\|\|\s*'hairtpclinic'/.test(route),
+    'ingen hårdkodad tenant-sträng som skapar en tom bucket'
+  );
+});
+
+test('trådstoren får en brevlådelista, inte bara LRU:ns innehåll', () => {
+  // Utan historyMailboxIds blir searchMailboxes = listLoadedMailboxes(),
+  // alltså de två som råkar ligga i cachen. Åtta av tio söktes aldrig.
+  const route = stripComments(
+    fs.readFileSync(path.join(ROOT, 'src', 'routes', 'ccoCustomerComm.js'), 'utf8')
+  );
+  assert.match(route, /historyMailboxIds = \[\]/, 'routern ska ta emot listan');
+  assert.match(route, /^\s+historyMailboxIds,$/m, 'och skicka den vidare till trådstoren');
+});
