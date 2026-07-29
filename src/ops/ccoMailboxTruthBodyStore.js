@@ -49,14 +49,6 @@ function safeSegment(value = '') {
     .slice(0, 120);
 }
 
-/**
- * Två tecken hash-prefix. Finns för att ingen katalog ska bära 10 000 poster —
- * `contact@` har 10 615 meddelanden, och en platt katalog med så många filer är
- * långsam att lista på de flesta filsystem.
- */
-function shardPrefix(messageKey = '') {
-  return crypto.createHash('sha1').update(String(messageKey)).digest('hex').slice(0, 2);
-}
 
 /**
  * Sökvägen till ett meddelandes brödtext. Ren funktion, inga sidoeffekter.
@@ -212,7 +204,6 @@ module.exports = {
   BODY_READ_ERROR,
   removeBody,
   safeSegment,
-  shardPrefix,
   bodyFilePath,
   resolveBodyRoot,
   readBody,
