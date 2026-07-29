@@ -15,6 +15,7 @@ const {
   findCrossMailboxCustomers,
   computeIdentityCoverage,
   summarizeAggregation,
+  createTenantMatcher,
   pickCustomerEmail,
 } = require('../../src/ops/crossMailboxAggregator');
 
@@ -179,4 +180,39 @@ test('tenantMailboxIds når hela vägen ner till aggregeringen', () => {
 
   const summary = summarizeAggregation(messages, { tenantMailboxIds: TENANT });
   assert.equal(summary.totalCustomers, 1, 'även summeringen ska räkna bort oss själva');
+});
+
+test('vi är en DOMÄN, inte en lista över lästa brevlådor', () => {
+  // Personalens egna adresser ligger på samma domän utan att vara brevlådor,
+  // och blev "kunder" med hundratals mejl var: britt-louise@ 496,
+  // fazli@ 336, leonora@ 298, andrea@ 278.
+  //
+  // En lista över lästa brevlådor är ofullständig av konstruktion — den
+  // innehåller bara det VI LÄSER, inte allt som ÄR VI. Tre olika listor
+  // missade info@fazli.se i dag av precis det skälet.
+  const matcher = createTenantMatcher(['contact@hairtpclinic.com', 'info@fazli.se']);
+  assert.deepEqual(matcher.domains.sort(), ['fazli.se', 'hairtpclinic.com']);
+  assert.equal(matcher.has('britt-louise@hairtpclinic.com'), true, 'personal är inte kund');
+  assert.equal(matcher.has('nagon@fazli.se'), true, 'båda domänerna räknas');
+  assert.equal(matcher.has('kund@gmail.com'), false);
+});
+
+test('en ny anställd behöver ingen konfigurationsändring', () => {
+  // Regeln, inte listan: anställs någon i morgon fungerar filtret utan att
+  // någon minns att uppdatera något.
+  const matcher = createTenantMatcher(['kons@hairtpclinic.com']);
+  assert.equal(matcher.has('helt.ny.person@hairtpclinic.com'), true);
+});
+
+test('personalens adresser räknas inte som kunder i aggregeringen', () => {
+  const messages = [
+    inbound('contact@hairtpclinic.com', 'britt-louise@hairtpclinic.com', 'Britt-Louise'),
+    inbound('egzona@hairtpclinic.com', 'britt-louise@hairtpclinic.com', 'Britt-Louise'),
+    inbound('contact@hairtpclinic.com', 'kund@example.com', 'Kund'),
+    inbound('egzona@hairtpclinic.com', 'kund@example.com', 'Kund'),
+  ];
+  const found = findCrossMailboxCustomers(messages, {
+    tenantMailboxIds: ['contact@hairtpclinic.com', 'egzona@hairtpclinic.com'],
+  });
+  assert.deepEqual(found.map((c) => c.customerEmail), ['kund@example.com']);
 });

@@ -51,6 +51,43 @@ function pickMessageTimestamp(msg = {}) {
  * Samma söm som #1245: servern skriver under en väg, läsaren letar under en
  * annan, båda halvorna korrekta var för sig.
  */
+/**
+ * VI ÄR EN DOMÄN, INTE EN LISTA.
+ *
+ * Först filtrerades bara de brevlådor vi LÄSER. Men personalens egna adresser
+ * — britt-louise@, leonora@, andrea@ — ligger på samma domän utan att vara
+ * brevlådor, och blev därför "kunder" med hundratals mejl var.
+ *
+ * En lista över lästa brevlådor är ofullständig av konstruktion: den innehåller
+ * bara det vi läser, inte allt som är vi. Tre olika listor missade
+ * `info@fazli.se` i dag av precis det skälet.
+ *
+ * Domänen härleds ur brevlådorna och gäller sedan alla adresser på den.
+ * Anställs någon i morgon fungerar filtret utan att någon minns att uppdatera
+ * det. Undantaget finns inte: kliniken delar inte ut adresser på sin egen
+ * domän till kunder.
+ */
+function createTenantMatcher(tenantMailboxIds = null) {
+  const ids = new Set(
+    (tenantMailboxIds instanceof Set ? [...tenantMailboxIds] : Array.isArray(tenantMailboxIds) ? tenantMailboxIds : [])
+      .map((value) => normalizeEmail(value))
+      .filter(Boolean)
+  );
+  const domains = new Set(
+    [...ids].map((email) => email.split('@')[1] || '').filter(Boolean)
+  );
+  return {
+    has(email) {
+      const safe = normalizeEmail(email);
+      if (!safe) return false;
+      if (ids.has(safe)) return true;
+      const domain = safe.split('@')[1] || '';
+      return Boolean(domain) && domains.has(domain);
+    },
+    domains: [...domains],
+  };
+}
+
 function pickAddress(candidate = {}) {
   const item = asObject(candidate);
   return (
@@ -111,10 +148,7 @@ function pickCustomerName(msg = {}) {
  *   - firstMessageIso / lastMessageIso (totalt)
  */
 function aggregateByCustomer(messages = [], { tenantMailboxIds = null } = {}) {
-  const tenantSet =
-    tenantMailboxIds instanceof Set
-      ? tenantMailboxIds
-      : new Set((Array.isArray(tenantMailboxIds) ? tenantMailboxIds : []).map(normalizeEmail));
+  const tenantSet = createTenantMatcher(tenantMailboxIds);
   const map = new Map();
   for (const raw of Array.isArray(messages) ? messages : []) {
     const msg = asObject(raw);
@@ -259,6 +293,7 @@ function summarizeAggregation(messages = [], options = {}) {
 }
 
 module.exports = {
+  createTenantMatcher,
   computeIdentityCoverage,
   aggregateByCustomer,
   findCrossMailboxCustomers,
@@ -286,10 +321,7 @@ module.exports = {
  * som föll bort helt när bara `from` lästes.
  */
 function computeIdentityCoverage(messages = [], { tenantMailboxIds = null } = {}) {
-  const tenantSet =
-    tenantMailboxIds instanceof Set
-      ? tenantMailboxIds
-      : new Set((Array.isArray(tenantMailboxIds) ? tenantMailboxIds : []).map(normalizeEmail));
+  const tenantSet = createTenantMatcher(tenantMailboxIds);
   const out = {
     totalMessages: 0,
     resolved: 0,
