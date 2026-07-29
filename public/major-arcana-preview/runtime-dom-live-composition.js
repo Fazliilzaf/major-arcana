@@ -2375,14 +2375,24 @@
         raw?.conversationAliases,
         raw?.sourceConversationIds,
         raw?.underlyingConversationKeys,
+        // Servern lägger medlemsnycklarna BARA under rollup
+        // (ccoMailboxTruthWorklistReadModel.js:877). Utan den här raden blev
+        // memberKeys tom för varje sammanslagen rad, parametern uteblev, och
+        // konversationsrutten fick bara aggregatnyckeln — vilket ger noll
+        // meddelanden. En rollup-rad ÄR korsbrevlådefunktionen, så det var
+        // just de trådarna som öppnades tomma.
+        raw?.rollup?.underlyingConversationKeys,
+        thread?.rollup?.underlyingConversationKeys,
         raw?.conversationId,
       ];
       const keys = new Set();
       candidates.forEach((candidate) => {
-        asArray(candidate).flatMap((value) => asText(value).split(",")).forEach((value) => {
-          const normalized = asText(value);
-          if (normalized && normalized !== asText(conversationId)) keys.add(normalized);
-        });
+        asArray(candidate)
+          .flatMap((value) => asText(value).split(","))
+          .forEach((value) => {
+            const normalized = asText(value);
+            if (normalized && normalized !== asText(conversationId)) keys.add(normalized);
+          });
       });
       return Array.from(keys).slice(0, 50);
     }
@@ -2390,7 +2400,8 @@
     function normalizeV2DirectThreadMessages(payload = {}) {
       return asArray(payload?.messages).map((message) => {
         const safe = message && typeof message === "object" ? message : {};
-        const direction = normalizeKey(safe.direction || safe.dir) === "outbound" ? "outbound" : "inbound";
+        const direction =
+          normalizeKey(safe.direction || safe.dir) === "outbound" ? "outbound" : "inbound";
         return {
           ...safe,
           messageId: asText(safe.messageId || safe.graphMessageId || safe.id),
@@ -2423,7 +2434,10 @@
         thread?.customerEmail || thread?.email || thread?.raw?.customerEmail || thread?.raw?.email
       );
       const contactReference = asText(
-        thread?.contactReference || thread?.customerName || thread?.raw?.contactReference || thread?.raw?.customerName
+        thread?.contactReference ||
+          thread?.customerName ||
+          thread?.raw?.contactReference ||
+          thread?.raw?.customerName
       );
       if (memberKeys.length) params.set("memberKeys", memberKeys.join(","));
       if (customerEmail) params.set("customerEmail", customerEmail);
@@ -2458,7 +2472,9 @@
           return { ...thread, directMailMessages: messages };
         });
       state.runtime.threads = patchCollection(state.runtime.threads);
-      state.runtime.truthPrimaryLegacyThreads = patchCollection(state.runtime.truthPrimaryLegacyThreads);
+      state.runtime.truthPrimaryLegacyThreads = patchCollection(
+        state.runtime.truthPrimaryLegacyThreads
+      );
       return updated;
     }
 
@@ -4019,74 +4035,74 @@
       return perfTime(
         "select:mailbox_scope_sync",
         () => {
-      const nextSelectedMailboxIds =
-        workspaceSourceOfTruth.setSelectedMailboxIds(requestedMailboxIds);
-      const availableMailboxIds = asArray(
-        typeof getAvailableRuntimeMailboxes === "function" ? getAvailableRuntimeMailboxes() : []
-      )
-        .map((mailbox) =>
-          canonicalizeRuntimeMailboxId(mailbox?.canonicalId || mailbox?.email || mailbox?.id)
-        )
-        .filter(Boolean);
-      state.runtime.mailboxScopePinned =
-        nextSelectedMailboxIds.length > 0 &&
-        availableMailboxIds.length > 0 &&
-        nextSelectedMailboxIds.length < availableMailboxIds.length;
-      markRuntimeNonBlockingSync();
-      workspaceSourceOfTruth.setSelectedThreadId("");
-      state.runtime.historyContextThreadId = "";
-      state.runtime.queueInlinePanel = {
-        ...state.runtime.queueInlinePanel,
-        open: false,
-        laneId: "",
-        feedKey: "",
-      };
-      state.runtime.queueHistory = {
-        ...state.runtime.queueHistory,
-        open: false,
-        loading: false,
-        loaded: false,
-        error: "",
-        items: [],
-        selectedConversationId: "",
-        hasMore: false,
-        scopeKey: "",
-      };
-      paintRuntimeShell("queue");
-      renderQueueHistorySection();
-      if (typeof ensureRuntimeSelection === "function") {
-        ensureRuntimeSelection();
-      }
-      captureRuntimeReentrySnapshot("mailboxscope_changed");
-      debugReentrySnapshot("AFTER MAILBOX CHANGE");
-      debugRuntimePipeline("AFTER MAILBOX CHANGE");
-      refreshQueueInlineHistoryIfOpen();
-      void applyRuntimeScopeThreadCacheIfAvailable(nextSelectedMailboxIds);
-      if (!nextSelectedMailboxIds.length) {
-        state.runtime.mailboxScopePinned = false;
-        clearRuntimeBackgroundSync();
-        state.runtime.queueHistory = {
-          ...state.runtime.queueHistory,
-          loading: false,
-          loaded: true,
-          error: "",
-          items: [],
-          selectedConversationId: "",
-          hasMore: false,
-          scopeKey: "",
-        };
-        workspaceSourceOfTruth.setSelectedThreadId("");
-        renderQueueHistorySection();
-        loadBootstrap({
-          preserveActiveDestination: true,
-          applyWorkspacePrefs: false,
-          quiet: true,
-        }).catch((error) => {
-          console.warn("CCO workspace bootstrap misslyckades efter tomt mailboxscope.", error);
-        });
-        return;
-      }
-      scheduleMailboxScopeLiveReload(nextSelectedMailboxIds);
+          const nextSelectedMailboxIds =
+            workspaceSourceOfTruth.setSelectedMailboxIds(requestedMailboxIds);
+          const availableMailboxIds = asArray(
+            typeof getAvailableRuntimeMailboxes === "function" ? getAvailableRuntimeMailboxes() : []
+          )
+            .map((mailbox) =>
+              canonicalizeRuntimeMailboxId(mailbox?.canonicalId || mailbox?.email || mailbox?.id)
+            )
+            .filter(Boolean);
+          state.runtime.mailboxScopePinned =
+            nextSelectedMailboxIds.length > 0 &&
+            availableMailboxIds.length > 0 &&
+            nextSelectedMailboxIds.length < availableMailboxIds.length;
+          markRuntimeNonBlockingSync();
+          workspaceSourceOfTruth.setSelectedThreadId("");
+          state.runtime.historyContextThreadId = "";
+          state.runtime.queueInlinePanel = {
+            ...state.runtime.queueInlinePanel,
+            open: false,
+            laneId: "",
+            feedKey: "",
+          };
+          state.runtime.queueHistory = {
+            ...state.runtime.queueHistory,
+            open: false,
+            loading: false,
+            loaded: false,
+            error: "",
+            items: [],
+            selectedConversationId: "",
+            hasMore: false,
+            scopeKey: "",
+          };
+          paintRuntimeShell("queue");
+          renderQueueHistorySection();
+          if (typeof ensureRuntimeSelection === "function") {
+            ensureRuntimeSelection();
+          }
+          captureRuntimeReentrySnapshot("mailboxscope_changed");
+          debugReentrySnapshot("AFTER MAILBOX CHANGE");
+          debugRuntimePipeline("AFTER MAILBOX CHANGE");
+          refreshQueueInlineHistoryIfOpen();
+          void applyRuntimeScopeThreadCacheIfAvailable(nextSelectedMailboxIds);
+          if (!nextSelectedMailboxIds.length) {
+            state.runtime.mailboxScopePinned = false;
+            clearRuntimeBackgroundSync();
+            state.runtime.queueHistory = {
+              ...state.runtime.queueHistory,
+              loading: false,
+              loaded: true,
+              error: "",
+              items: [],
+              selectedConversationId: "",
+              hasMore: false,
+              scopeKey: "",
+            };
+            workspaceSourceOfTruth.setSelectedThreadId("");
+            renderQueueHistorySection();
+            loadBootstrap({
+              preserveActiveDestination: true,
+              applyWorkspacePrefs: false,
+              quiet: true,
+            }).catch((error) => {
+              console.warn("CCO workspace bootstrap misslyckades efter tomt mailboxscope.", error);
+            });
+            return;
+          }
+          scheduleMailboxScopeLiveReload(nextSelectedMailboxIds);
         },
         {
           mailboxes: asArray(requestedMailboxIds).length,
