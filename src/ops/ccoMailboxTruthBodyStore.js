@@ -28,6 +28,15 @@ const crypto = require('node:crypto');
 const BODY_FIELDS = Object.freeze(['bodyText', 'bodyHtml']);
 
 /**
+ * Sätts på meddelandet när en sidofil fanns men inte gick att läsa.
+ * Efter migreringen är sidofilen enda källan, och då är tyst tomhet det värsta
+ * utfallet: operatören ser en tom bubbla och kan inte skilja "mailet var tomt"
+ * från "vi tappade texten". Ett fel som bara syns hos mottagaren är det
+ * dyraste slaget — samma skäl som gör att ORD-93 vaktar missingCidMetadata.
+ */
+const BODY_READ_ERROR = 'bodyUnavailableReason';
+
+/**
  * Katalognamn får aldrig komma från indata rakt av. En meddelandenyckel
  * innehåller mailadresser och Graph-id:n, och en nyckel med `../` i sig skulle
  * annars skriva utanför datakatalogen.
@@ -74,11 +83,31 @@ async function readBody(filePath) {
   }
   try {
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
+    if (parsed && typeof parsed === 'object') return parsed;
+    return { [BODY_READ_ERROR]: 'ogiltig_form' };
   } catch {
-    // En trasig sidofil får aldrig dölja shardens inline-fält. Faller vi
-    // tillbaka på sharden ser operatören gammal text i stället för ingen text.
-    return null;
+    // TRASIG FIL ≠ SAKNAD FIL, och skillnaden byter innebörd mitt i migreringen.
+    //
+    // Före migreringen finns brödtexten kvar inline i sharden, och ett tyst
+    // `null` betyder "använd den". Efter migreringen finns ingen inline-text —
+    // då betyder samma `null` att operatören ser en tom bubbla utan att kunna
+    // avgöra om mailet var tomt eller om vi tappade det.
+    //
+    // Därför markeras felet i stället för att döljas. Inline vinner fortfarande
+    // om den finns; det är bara tystnaden som tas bort.
+    return { [BODY_READ_ERROR]: 'ogiltig_json' };
+  }
+}
+
+/** Raderar ett meddelandes sidofil. Saknad fil är inte ett fel. */
+async function removeBody(filePath) {
+  if (!filePath) return false;
+  try {
+    await fs.promises.unlink(filePath);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
   }
 }
 
@@ -126,6 +155,15 @@ async function hydrateMessageBody(message = {}, { bodyRoot = '', mailboxId = '',
       hydrated[field] = stored[field];
     }
   }
+  // Inline vinner fortfarande när den finns — men om varken sidofilen eller
+  // sharden bär text ska det SYNAS att det beror på ett läsfel, inte på att
+  // mailet var tomt.
+  if (stored[BODY_READ_ERROR]) {
+    const hasText = BODY_FIELDS.some(
+      (field) => typeof hydrated[field] === 'string' && hydrated[field].length > 0
+    );
+    if (!hasText) hydrated[BODY_READ_ERROR] = stored[BODY_READ_ERROR];
+  }
   return hydrated;
 }
 
@@ -152,6 +190,8 @@ async function checkFreeSpace(targetPath, requiredBytes, { marginRatio = 1.5 } =
 
 module.exports = {
   BODY_FIELDS,
+  BODY_READ_ERROR,
+  removeBody,
   safeSegment,
   shardPrefix,
   bodyFilePath,
