@@ -73,6 +73,11 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
   const bodies = [];
   let redirected = 0;
   let maxValueChars = 0;
+  // Längsta nyckel vi FAKTISKT sett, oavsett taket. Räknas separat från
+  // `candidate`, som slutar växa vid MAX_KEY_CHARS — annars vore talet
+  // begränsat av just det vi vill kunna kontrollera.
+  let maxKeyChars = 0;
+  let candidateChars = 0;
 
   function push(text) {
     out.push(text);
@@ -92,6 +97,7 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
     // bara verkningslöst.
     if (closed === null) return;
     if (nextChar === ':') {
+      if (closed.chars > maxKeyChars) maxKeyChars = closed.chars;
       keyAtDepth[depth] = closed.key;
       pendingKey = closed.key;
     } else {
@@ -124,6 +130,7 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
           unicodeRemaining = 0;
           candidate = '';
           candidateValid = true;
+          candidateChars = 0;
           if (shouldDivert()) {
             diverting = true;
             divertField = pendingKey;
@@ -162,7 +169,10 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
         if (unicodeRemaining === 0) {
           const decoded = String.fromCharCode(parseInt(unicodeDigits, 16));
           if (diverting) divertValue += decoded;
-          else if (candidateValid) candidate += decoded;
+          else {
+            candidateChars += 1;
+            if (candidateValid) candidate += decoded;
+          }
           unicodeDigits = '';
         }
         continue;
@@ -178,7 +188,10 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
         const decoded =
           char === 'n' ? '\n' : char === 't' ? '\t' : char === 'r' ? '\r' : char === 'b' ? '\b' : char === 'f' ? '\f' : char;
         if (diverting) divertValue += decoded;
-        else if (candidateValid) candidate += decoded;
+        else {
+          candidateChars += 1;
+          if (candidateValid) candidate += decoded;
+        }
         continue;
       }
 
@@ -197,7 +210,7 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
           divertValue = '';
           pendingKey = '';
         } else {
-          closed = { key: candidateValid ? candidate : '' };
+          closed = { key: candidateValid ? candidate : '', chars: candidateChars };
         }
         continue;
       }
@@ -206,6 +219,7 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
         divertValue += char;
         continue;
       }
+      candidateChars += 1;
       if (candidateValid) {
         candidate += char;
         if (candidate.length > MAX_KEY_CHARS) candidateValid = false;
@@ -220,7 +234,7 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
 
   async function finish() {
     await Promise.all(bodies);
-    return { redirected, maxValueChars, depthAtEnd: depth };
+    return { redirected, maxValueChars, maxKeyChars, depthAtEnd: depth };
   }
 
   return { write, finish };

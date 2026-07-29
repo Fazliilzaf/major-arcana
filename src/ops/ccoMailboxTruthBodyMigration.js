@@ -187,6 +187,11 @@ async function migrateMailboxBodies({
   report.written = touched.size;
   report.redirectedValues = stats.redirected;
   report.maxValueChars = stats.maxValueChars;
+  // Längsta meddelandenyckel vi faktiskt såg. 512 är valt med marginal mot en
+  // UPPSKATTNING av Graphs id-längder — det här talet gör marginalen läsbar i
+  // stället för antagen. Ligger det nära taket ska det synas som en siffra,
+  // inte som en shard som krympte 60 % när den skulle krympa 87.
+  report.maxKeyChars = stats.maxKeyChars;
   report.expectedDecodedChars = expectedChars;
 
   async function abort(reason, extra = {}) {

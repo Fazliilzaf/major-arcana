@@ -200,3 +200,13 @@ test('en ogiltig nyckel NOLLAR platsen — den ärver aldrig syskonets', async (
     'värdet under en ogiltig nyckel ska inte styras om alls — fail closed'
   );
 });
+
+test('maxKeyChars rapporterar VERKLIG nyckellängd, inte den capade', async () => {
+  // 512 är valt med marginal mot en uppskattning om ett externt system.
+  // Räknades talet på den capade kandidaten vore det begränsat av just det vi
+  // vill kunna kontrollera — och skulle aldrig kunna varna för att taket nås.
+  const key = `kons@hairtpclinic.com:AAMkAD${'x'.repeat(600)}`;
+  const { stats } = await run(JSON.stringify({ messages: { [key]: { bodyText: 'x' } } }));
+  assert.equal(stats.maxKeyChars, key.length);
+  assert.ok(stats.maxKeyChars > 512, 'talet ska kunna överstiga taket');
+});
