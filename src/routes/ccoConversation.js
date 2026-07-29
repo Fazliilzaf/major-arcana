@@ -1730,7 +1730,7 @@ function createCcoConversationRouter({
     '/cco/runtime/conversation/:key/messages',
     authMiddleware,
     requirePermission('mail.read'),
-    (req, res) => {
+    async (req, res) => {
       try {
         if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
           return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
@@ -1756,6 +1756,32 @@ function createCcoConversationRouter({
         // Lättviktig fas-timing (diagnostik) för att lokalisera trådöppnings-
         // latensen. hrtime → ms med 1 decimal. Klienten loggar server- vs nätverks-
         // tid från timings-fältet nedan.
+        // ORD-97: LADDA SHARDEN INNAN DEN LÄSES.
+        //
+        // Utan detta läser rutten en oladdad shard och `listMessages` svarar
+        // tom lista, tyst. Uppmätt 2026-07-29: `truthMs: 0.1`, `truthCount: 0`
+        // på en tråd som bevisligen har meddelanden — ingen scanning skedde
+        // alls, och svaret föll tillbaka på ingestion-lagret.
+        //
+        // FJÄRDE stället samma dag där LRU-taket (2) gav tyst tomhet:
+        // korsbrevlåderapporten, `listMessages({})`, trådstorens preload, och
+        // nu konversationsrutten. Samma konstant, fyra symptom.
+        const mailboxesToLoad = Array.from(
+          new Set(
+            [...mailboxHints, ...lookupKeys.map((item) => String(item).split(':')[0])]
+              .map((item) => normalizeText(item).toLowerCase())
+              .filter((item) => item.includes('@'))
+          )
+        );
+        if (typeof ccoMailboxTruthStore.ensureMailboxLoaded === 'function') {
+          for (const mailboxId of mailboxesToLoad) {
+            try {
+              await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+            } catch (error) {
+              console.warn('[cco-conversation] kunde inte ladda', mailboxId, error?.message);
+            }
+          }
+        }
         const tStart = process.hrtime.bigint();
         const truthMessages = fetchSortedConversationMessages(
           ccoMailboxTruthStore,
