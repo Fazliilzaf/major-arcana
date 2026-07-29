@@ -134,3 +134,21 @@ test('reload sker bara efter en LYCKAD skarp körning', () => {
   const handler = OPS_ROUTE.slice(start, OPS_ROUTE.indexOf('\n  router.', start));
   assert.match(handler, /if \(report\.apply && !report\.stoppedBecause\)/);
 });
+
+test('shardfilen slås upp genom att KODA, inte genom att avkoda', () => {
+  // decodeMailboxIdFromShardFileName hårdkodar _hairtpclinic_com, och det är
+  // ingen slarv: encodeMailboxId ersätter varje icke-alfanumeriskt tecken med
+  // `_`, så `info_fazli_se` kan lika gärna vara `info.fazli@se`. Inversen
+  // finns inte.
+  //
+  // info@fazli.se — 14,5 MB, 92,1 % brödtext — gav 404 och blev den enda
+  // shard som inte gick att migrera. Att koda den efterfrågade mailboxId:n är
+  // entydigt och behöver ingen lista som underhålls.
+  const start = OPS_ROUTE.indexOf("'/ops/mailbox-truth/body-migration'");
+  const handler = stripComments(OPS_ROUTE.slice(start, OPS_ROUTE.indexOf('\n  router.', start)));
+  assert.match(handler, /encodeMailboxId\(mailboxId\)/, 'sökvägen ska kodas fram');
+  assert.ok(
+    !handler.includes('decodeMailboxIdFromShardFileName'),
+    'ingen avkodning i uppslagningen — den är tvetydig'
+  );
+});

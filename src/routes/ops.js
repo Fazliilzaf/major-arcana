@@ -80,7 +80,10 @@ const {
 } = require('../ops/ccoMailboxTruthRestore');
 const { measureMailboxTruthBodyShare } = require('../ops/mailboxTruthBodyShareScan');
 const { migrateMailboxBodies } = require('../ops/ccoMailboxTruthBodyMigration');
-const { decodeMailboxIdFromShardFileName } = require('../ops/ccoMailboxTruthShardedStore');
+const {
+  decodeMailboxIdFromShardFileName,
+  encodeMailboxId,
+} = require('../ops/ccoMailboxTruthShardedStore');
 const { runMailTruthHydration } = require('../ops/mailTruthHydrationFromIngestion');
 const { createCcoAuditLog } = require('../security/ccoAuditLog');
 const fs = require('node:fs/promises');
@@ -3949,16 +3952,29 @@ function createOpsRouter({
         if (!mailboxId) {
           return res.status(400).json({ error: 'mailboxId krävs — en brevlåda per anrop.' });
         }
+        // KODA ÅT DET HÅLL SOM ÄR ENTYDIGT.
+        //
+        // Först letade den här raden upp filen genom att AVKODA varje filnamn
+        // med decodeMailboxIdFromShardFileName. Den funktionen hårdkodar
+        // `_hairtpclinic_com`, och det är ingen slarv: `encodeMailboxId`
+        // ersätter varje icke-alfanumeriskt tecken med `_`, så `info_fazli_se`
+        // kan lika gärna vara `info.fazli@se`. INVERSEN FINNS INTE.
+        //
+        // Följden var att info@fazli.se — 14,5 MB, 92,1 % brödtext — gav 404
+        // och blev den enda shard som inte gick att migrera.
+        //
+        // Att koda den efterfrågade mailboxId:n i stället är entydigt och
+        // behöver ingen avkodning alls. Då fungerar varje brevlåda oavsett
+        // domän, utan en lista som måste underhållas.
+        //
+        // Samma princip som gav sidofilernas sökväg: härled åt det håll som är
+        // entydigt, inte åt det håll som kräver en gissning.
         const shardDir = path.join(config.ccoMailboxTruthShardDir, 'mailboxes');
-        const entries = await fs.readdir(shardDir);
-        const fileName = entries.find(
-          (name) =>
-            name.endsWith('.json') &&
-            !name.startsWith('.') &&
-            decodeMailboxIdFromShardFileName(name) === mailboxId
-        );
-        if (!fileName) {
-          return res.status(404).json({ error: `Ingen shard för ${mailboxId}.` });
+        const fileName = `${encodeMailboxId(mailboxId)}.json`;
+        try {
+          await fs.access(path.join(shardDir, fileName));
+        } catch {
+          return res.status(404).json({ error: `Ingen shard för ${mailboxId} (${fileName}).` });
         }
         const shardPath = path.join(shardDir, fileName);
         const report = await migrateMailboxBodies({
