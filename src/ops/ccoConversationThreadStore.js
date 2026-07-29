@@ -388,8 +388,9 @@ async function createCcoConversationThreadStore({
    * status `ambiguous` och adressen släpps — den får aldrig länka. Pekar den
    * på en annan patient än den vi frågar om släpps den också.
    */
-  async function resolveCustomerEmailSet(customerId) {
+  async function resolveCustomerEmailSet(customerId, tenantId) {
     const target = normalizeText(customerId);
+    const tenant = normalizeText(tenantId);
     if (!target || !patientMasterStore?.getPatient) return null;
 
     // DIREKT UPPSLAGNING, INTE EN LISTNING.
@@ -404,8 +405,18 @@ async function createCcoConversationThreadStore({
     // är inte en fråga om allt.
     let patient = null;
     try {
-      patient = await patientMasterStore.getPatient({ patientId: target });
-    } catch {
+      // tenantId MÅSTE med: tenantBucket kastar `tenantId saknas.` utan den
+      // (ccoPatientMasterStore.js:114).
+      patient = await patientMasterStore.getPatient({ tenantId: tenant, patientId: target });
+    } catch (error) {
+      // FAIL-OPEN, MEN ALDRIG TYST.
+      // Utan den här raden svalde catch:en ett kastat `tenantId saknas.`,
+      // adressmängden blev tom, och trådvyn svarade `threads: []` på 0,17 s —
+      // ett fel som fångas och tystas ser ut som ett tomt resultat.
+      console.warn(
+        '[cco-thread] kunde inte läsa patienten för adressmängden',
+        JSON.stringify({ tenantId: tenant || null, patientId: target, error: error?.message })
+      );
       return null;
     }
     if (!patient) return null;
@@ -425,7 +436,7 @@ async function createCcoConversationThreadStore({
     for (const email of candidates) {
       try {
         const match = await resolveConversationPatient(
-          { customerEmail: email },
+          { customerEmail: email, tenantId: tenant },
           { patientMasterStore }
         );
         // Bara entydiga matchningar mot RÄTT patient. `ambiguous` släpps.
@@ -450,7 +461,7 @@ async function createCcoConversationThreadStore({
     // 1. Mailbox truth (primary — includes hydration customerIdentity overlay)
     if (mailboxTruthStore) {
       try {
-        const customerEmails = await resolveCustomerEmailSet(customerId);
+        const customerEmails = await resolveCustomerEmailSet(customerId, tenantId);
         const truthMessages = listTruthMessagesForCustomer(
           mailboxTruthStore,
           customerId,
