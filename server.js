@@ -11143,6 +11143,8 @@ try {
 
 const ADMIN_HTML_PATH = path.join(__dirname, 'public', 'admin.html');
 const rawAdminHtmlTemplate = fs.readFileSync(ADMIN_HTML_PATH, 'utf8');
+const M_KUNDER_HTML_PATH = path.join(__dirname, 'public', 'm-kunder.html');
+const rawMobileCustomersHtmlTemplate = fs.readFileSync(M_KUNDER_HTML_PATH, 'utf8');
 const uiBuildId = String(
   process.env.ARCANA_UI_BUILD_ID ||
     process.env.RENDER_GIT_COMMIT ||
@@ -11161,6 +11163,17 @@ function sendAdminHtml(res) {
   res.setHeader('Surrogate-Control', 'no-store');
   res.setHeader('X-Arcana-UI-Build', uiBuildId);
   res.type('html').send(renderAdminHtml());
+}
+
+function sendMobileCustomersHtml(res) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  res.setHeader('X-Arcana-UI-Build', uiBuildId);
+  res
+    .type('html')
+    .send(rawMobileCustomersHtmlTemplate.replace(/__ARCANA_UI_BUILD__/g, uiBuildId));
 }
 
 const { createAdminRouter } = require('./src/routes/admin');
@@ -11594,6 +11607,10 @@ app.get('/kunder.html', (req, res) => {
   const v9Param = String(req.query.v9 || 'on');
   res.redirect(301, `/major-arcana-preview/?view=customers&v9=${encodeURIComponent(v9Param)}`);
 });
+
+// Kundvyn laddar flera fristående CCO-skript. Byt deras URL vid varje deploy
+// så en ny auth- eller paneländring aldrig blandas med en gammal browser-cache.
+app.get('/m-kunder.html', (_req, res) => sendMobileCustomersHtml(res));
 
 // Admin-shell måste ligga före express.static: public/admin/ är en katalog och
 // static skulle annars redirecta /admin -> /admin/ innan #cco-vyn laddas.
