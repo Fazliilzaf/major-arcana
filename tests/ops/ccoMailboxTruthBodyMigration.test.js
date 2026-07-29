@@ -56,8 +56,11 @@ test('apply tar bort fälten ur sharden men behåller bodyPreview', async () => 
   const report = await migrateMailboxBodies({ config, mailboxId: 'a@b.se', shardPath, apply: true });
   assert.equal(report.stoppedBecause, '');
   const after = JSON.parse(fs.readFileSync(shardPath, 'utf8'));
-  assert.equal(after.messages['a@b.se:m1'].bodyText, undefined);
-  assert.equal(after.messages['a@b.se:m1'].bodyHtml, undefined);
+  // Värdet töms, fältet tas inte bort. Att klippa bort ett nyckel/värde-par ur
+  // en ström kräver komma-kirurgi, och ett felplacerat komma gör hela sharden
+  // oläsbar. Tomt och saknat beter sig likadant i läsvägen.
+  assert.equal(after.messages['a@b.se:m1'].bodyText, '');
+  assert.equal(after.messages['a@b.se:m1'].bodyHtml, '');
   assert.equal(after.messages['a@b.se:m1'].bodyPreview, 'Hej');
   assert.ok(report.fileBytesAfter < report.fileBytesBefore);
 });
@@ -115,7 +118,8 @@ test('en förlorad sidofil stoppar migreringen med sharden intakt', async () => 
     deps: {
       writeBody: async (filePath, body) => {
         calls += 1;
-        // Andra skrivningen "lyckas" utan att lämna någon fil efter sig.
+        // Ett meddelande buffras och skrivs som EN fil, så anropen är
+        // m1 (båda fälten) och sedan m2. Uteblir m2:s skrivning saknas filen.
         if (calls === 2) return {};
         return bodyStore.writeBody(filePath, body);
       },
