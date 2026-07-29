@@ -7665,11 +7665,20 @@ function toCcoRuntimeHistoryFidelityHandler({ ccoMailboxTruthStore = null }) {
           error: 'Mailbox truth-fidelity är inte tillgänglig just nu.',
         });
       }
-      if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
-        await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
-      }
       const sampleLimit = clampInteger(req.query?.sampleLimit, 0, 50, 20);
-      const inventory = mailboxTruthHistory.getFidelityInventory({
+      // ORD-97: utan detta returnerar en OLADDAD shard tyst noll meddelanden.
+      // info@fazli.se rapporterade 0 av 644 den 29 juli av precis det skälet —
+      // den ligger inte i schedulerns brevlådelista och laddas därför aldrig.
+      if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
+        for (const mailboxId of mailboxIds) {
+          try {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+          } catch (error) {
+            console.warn('[cco-fidelity] kunde inte ladda', mailboxId, error?.message);
+          }
+        }
+      }
+      const inventory = await mailboxTruthHistory.getFidelityInventory({
         mailboxIds,
         sampleLimit,
       });
@@ -7715,7 +7724,19 @@ function toCcoRuntimeHistoryFidelityManifestHandler({ ccoMailboxTruthStore = nul
         await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
       }
       const limit = clampInteger(req.query?.limit, 1, 1000, 1000);
-      const manifest = mailboxTruthHistory.getCidFidelityManifest({ mailboxIds, limit });
+      // ORD-97: utan detta returnerar en OLADDAD shard tyst noll meddelanden.
+      // info@fazli.se rapporterade 0 av 644 den 29 juli av precis det skälet —
+      // den ligger inte i schedulerns brevlådelista och laddas därför aldrig.
+      if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
+        for (const mailboxId of mailboxIds) {
+          try {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+          } catch (error) {
+            console.warn('[cco-fidelity] kunde inte ladda', mailboxId, error?.message);
+          }
+        }
+      }
+      const manifest = await mailboxTruthHistory.getCidFidelityManifest({ mailboxIds, limit });
       res.setHeader('cache-control', 'no-store');
       return res.json({
         ok: true,
