@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const bodyStore = require('./ccoMailboxTruthBodyStore');
 
 const {
   buildMailboxTruthConversations,
@@ -490,6 +491,10 @@ async function createCcoMailboxTruthStore({
 } = {}) {
   const resolvedPath = path.resolve(String(filePath || '').trim());
   if (!resolvedPath) throw new Error('ccoMailboxTruthStore filePath saknas.');
+  // Sidofilerna ligger som syskon till `mailboxes/`, alltså
+  // <shardDir>/bodies/. Härleds ur shardens egen sökväg så att storen inte
+  // behöver ett nytt konfigurationsvärde som kan peka fel.
+  const bodyRoot = path.join(path.dirname(path.dirname(resolvedPath)), 'bodies');
   const keepRuns = Math.max(10, Math.min(2000, Number(maxSyncRuns) || 200));
   const state = await readJsonWithRecovery(
     resolvedPath,
@@ -547,6 +552,15 @@ async function createCcoMailboxTruthStore({
   for (const [messageKey, rawMessage] of Object.entries(state.messages)) {
     const hydratedMessage = hydrateStoredMessage(rawMessage);
     if (!hydratedMessage) {
+      // MEDVETET INGEN SIDOFILSRADERING HÄR (ORD-89 steg 2).
+      // Det här är uppstartshydreringen — alltså exakt den kalla laddning som
+      // hela ordern finns för att avlasta. Att lägga filsystems-I/O i den vore
+      // att stoppa tillbaka kostnaden vi just tog bort, en fil i taget.
+      //
+      // Grenen träffar dessutom bara redan trasiga poster, så mängden
+      // föräldralösa filer den kan lämna efter sig begränsas av hur mycket
+      // trasig data som finns — inte av tiden. De två vägar som faktiskt
+      // ackumulerar (delta-synkens `deleted` och `resetFolder`) städar sina.
       delete state.messages[messageKey];
       initialStateMutated = true;
       continue;
@@ -664,6 +678,10 @@ async function createCcoMailboxTruthStore({
     if (folderKey) delete state.folders[folderKey];
     const safeMailboxId = normalizeMailboxId(mailboxId);
     const safeFolderType = normalizeFolderType(folderType);
+    // Loopen vet redan exakt vilka nycklar som försvinner, så att samla dem
+    // kostar O(raderade) — ingen genomgång av hela sharden, alltså inte den
+    // läsning ORD-89 bygger bort.
+    const removedMessageKeys = [];
     for (const messageKey of Object.keys(state.messages)) {
       const message = state.messages[messageKey];
       if (
@@ -671,10 +689,15 @@ async function createCcoMailboxTruthStore({
         normalizeFolderType(message.folderType) === safeFolderType
       ) {
         delete state.messages[messageKey];
+        removedMessageKeys.push(messageKey);
       }
     }
     maybeRebuildMailboxConversations(safeMailboxId);
     await save();
+    // EFTER save(), aldrig före. Kraschar processen mellan raderna blir en
+    // sidofil föräldralös — några kilobyte. I omvänd ordning får vi ett
+    // meddelande i sharden utan brödtext, och det syns bara hos operatören.
+    await removeBodyFilesFor(removedMessageKeys);
   }
 
   async function startSyncRun({
@@ -830,6 +853,9 @@ async function createCcoMailboxTruthStore({
     const safeRunId = normalizeText(runId) || null;
     let upsertsApplied = 0;
     let deletesApplied = 0;
+    // Nycklarna för de meddelanden som raderas i den här rundan. Sidofilerna
+    // tas bort EFTER save() — se removeBodyFilesFor.
+    const deletedMessageKeys = [];
     const affectedConversationIds = new Set();
 
     for (const rawChange of asArray(changes)) {
@@ -849,6 +875,10 @@ async function createCcoMailboxTruthStore({
         if (existingMessage && normalizeFolderType(existingMessage.folderType) === folderType) {
           delete state.messages[messageKey];
           deletesApplied += 1;
+          // Nyckeln är i handen här. Sidofilen raderas EFTER save() längre ner
+          // — se removeBodyFilesFor. Det här är den väg som faktiskt
+          // ackumulerar: mail som raderas i Outlook, varje dag.
+          deletedMessageKeys.push(messageKey);
         }
         continue;
       }
@@ -959,6 +989,11 @@ async function createCcoMailboxTruthStore({
 
     maybeRebuildMailboxConversations(safeAccount.mailboxId);
     await save();
+    // EFTER save(), aldrig före. Felet ska falla åt det håll som kostar disk
+    // (en föräldralös sidofil på några kilobyte), aldrig åt det håll som
+    // kostar text (ett meddelande i sharden utan brödtext). Flytta inte hit
+    // upp — det ser ut som städning, det är en dataförlust.
+    await removeBodyFilesFor(deletedMessageKeys);
     return {
       folder: { ...nextFolder },
       checkpoint: { ...nextCheckpoint },
@@ -1323,6 +1358,112 @@ async function createCcoMailboxTruthStore({
     return message ? asObject(message) : null;
   }
 
+  // ── ORD-89 steg 2: brödtextläsning ────────────────────────────────────────
+  //
+  // ADDITIVT. `listMessages`, `listWorklistMessages` och `findMessage` är
+  // SYNKRONA och rörs inte. En sidofilsläsning är asynkron, och att göra dem
+  // async skulle träffa 21 anropsställen i tio filer — bland dem
+  // `ccoMailboxTruthWorklistReadModel.js:1184`, alltså precis den worklist-väg
+  // ordern säger att vi inte ska röra.
+  //
+  // Funktionerna nedan används BARA av konversationsprojektionen, som är den
+  // enda ytan som faktiskt visar brödtext. Worklist-vägen kan därför inte
+  // regressera — inte för att det är osannolikt, utan för att den inte ändras.
+
+  /**
+   * Hydrerar brödtexten för EN redan hämtad post.
+   * Saknas sidofil lämnas meddelandet orört: sharden bär då texten inline, och
+   * ett halvmigrerat tillstånd är halvfärdigt i stället för trasigt.
+   */
+  //
+  // NYCKELN ÄR ENDA SANNINGEN.
+  // Sökvägen byggdes först av `mailboxId` OCH `messageKey` hämtade från olika
+  // håll: migreringen skrev på shardens faktiska objektnyckel, medan läsaren
+  // räknade fram en ny nyckel ur meddelandeobjektet. Två saker som råkar
+  // sammanfalla i normalfallet — och som vid minsta divergens ger TOM
+  // BRÖDTEXT, TYST. Inget fel, inget larm, bara en tom bubbla.
+  //
+  // Därför härleds mailbox-segmentet ur nyckeln överallt. En källa, inte tre.
+  function bodyLocationForKey(messageKey = '') {
+    return {
+      bodyRoot,
+      mailboxId: normalizeMailboxId(String(messageKey).split(':')[0]),
+      messageKey,
+    };
+  }
+
+  async function hydrateMessageBodyForKey(message, messageKey = '') {
+    if (!messageKey) return asObject(message);
+    return bodyStore.hydrateMessageBody(asObject(message), bodyLocationForKey(messageKey));
+  }
+
+  async function hydrateMessageBody(message) {
+    const safeMessage = asObject(message);
+    // INGEN `|| id`-fallback. Skrivvägen nycklar bara på graphMessageId, och
+    // saknas den hoppas meddelandet över helt (`if (!messageKey) continue`).
+    // En fallback kan därför bara producera en nyckel som inte finns — den
+    // räddar ingenting och kan bara peka fel.
+    const messageKey = toMessageKey(safeMessage.mailboxId, safeMessage.graphMessageId);
+    if (!messageKey) return safeMessage;
+    if (!state.messages[messageKey]) {
+      // Härledningen har divergerat från shardens verkliga nycklar. Det är
+      // billigare att veta det än att undra varför en bubbla är tom.
+      console.warn('[cco-truth] härledd meddelandenyckel finns inte i sharden', messageKey);
+      return { ...safeMessage, [bodyStore.BODY_READ_ERROR]: 'nyckel_saknas_i_shard' };
+    }
+    return hydrateMessageBodyForKey(safeMessage, messageKey);
+  }
+
+  /**
+   * Hydrerar en lista. Sekventiellt med flit: en tråd har storleksordningen
+   * tiotal meddelanden, och parallella filläsningar mot samma disk ger ingen
+   * vinst men gör felläget svårare att läsa när något går snett.
+   */
+  async function hydrateMessageBodies(messages = []) {
+    const rows = [];
+    for (const message of asArray(messages)) {
+      rows.push(await hydrateMessageBody(message));
+    }
+    return rows;
+  }
+
+  /** Som `findMessage`, men med brödtexten hämtad ur sidofilen om den finns. */
+  async function findMessageWithBody({ mailboxId = '', messageId = '' } = {}) {
+    // Nyckeln räknas fram EN gång och skickas vidare. Att låta hydreringen
+    // räkna om den vore att införa en andra härledning av samma sak.
+    const messageKey = toMessageKey(mailboxId, messageId);
+    const message = messageKey ? state.messages[messageKey] : null;
+    if (!message) return null;
+    return hydrateMessageBodyForKey(asObject(message), messageKey);
+  }
+
+  /**
+   * Raderar sidofilerna för meddelanden som just tagits ur sharden.
+   *
+   * FELET SKA FALLA ÅT DET HÅLL SOM KOSTAR DISK, ALDRIG ÅT DET HÅLL SOM
+   * KOSTAR TEXT. Anropas därför ALLTID EFTER `save()`. Kraschar processen
+   * däremellan blir en sidofil föräldralös — några kilobyte. I omvänd ordning
+   * får vi ett meddelande som finns i sharden men saknar brödtext, och
+   * operatören ser en tom bubbla utan att veta varför.
+   *
+   * Flytta inte det här anropet före sparningen. Det ser ut som städning; det
+   * är en dataförlust.
+   */
+  async function removeBodyFilesFor(messageKeys = []) {
+    let removed = 0;
+    for (const messageKey of asArray(messageKeys)) {
+      const filePath = bodyStore.bodyFilePath(bodyLocationForKey(messageKey));
+      try {
+        if (await bodyStore.removeBody(filePath)) removed += 1;
+      } catch (error) {
+        // En sidofil som inte gick att radera är diskskuld, inte dataförlust.
+        // Den får aldrig fälla raderingen av själva meddelandet.
+        console.warn('[cco-truth] kunde inte radera sidofil', filePath, error?.message);
+      }
+    }
+    return removed;
+  }
+
   function toNormalizedModel() {
     const accounts = Object.values(state.accounts)
       .map((account) => ({ ...account }))
@@ -1640,6 +1781,10 @@ async function createCcoMailboxTruthStore({
     getFidelityInventory,
     getCidFidelityManifest,
     findMessage,
+    // ORD-89 steg 2 — additiva asynkrona läsare. De synkrona ovan rörs inte.
+    findMessageWithBody,
+    hydrateMessageBody,
+    hydrateMessageBodies,
     toNormalizedModel,
     getCompletenessReport,
     getDeltaSyncReport,
