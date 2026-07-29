@@ -166,3 +166,30 @@ test('ett surrogatpar som delas av en chunkgräns räknas likadant', () => {
     assert.deepEqual(scan(text, chunkSize), whole, `chunkstorlek ${chunkSize}`);
   }
 });
+
+test('brödtext kapad mitt i ett surrogatpar räknas rätt och kastar inte', () => {
+  // Caparna i ccoMailboxTruthStore.js:21,25 klipper på KODENHET, inte på
+  // kodpunkt. Ett mail med ett emoji exakt vid capen lagras därför med en halv
+  // surrogat — inte hypotetiskt i 8 939 meddelanden.
+  //
+  // Två former, och den FÖRSTA är den som faktiskt hamnar i sharden: filen
+  // skrivs med JSON.stringify, som serialiserar en ensam surrogat som en
+  // \uXXXX-escape. Den går genom escape-vägen och rörde aldrig
+  // surrogathanteringen. Den andra formen — en rå litteral halva i strömmen —
+  // går genom surrogatvägen och ska ge 3 byte, inte ett kast.
+  const halvEmoji = 'hej\uD83D';
+
+  const serialized = shard([{ bodyText: halvEmoji, bodyHtml: '' }]);
+  assert.ok(serialized.includes('\\ud83d'), 'fixturen ska faktiskt bli en escape');
+  const fromFile = scan(serialized);
+  assert.equal(fromFile.bodyText.decodedChars, halvEmoji.length);
+  assert.equal(fromFile.bodyText.rawBytes, 9, 'hej + sex byte escape');
+
+  const literal = '{"messages":[{"bodyText":"hej\uD83D","bodyHtml":""}]}';
+  const fromStream = scan(literal);
+  assert.equal(fromStream.bodyText.decodedChars, 4);
+  assert.equal(fromStream.bodyText.rawBytes, 6, 'ensam surrogat kodas som tre byte');
+  for (const chunkSize of [1, 2, 3, 7]) {
+    assert.deepEqual(scan(literal, chunkSize), fromStream, `chunkstorlek ${chunkSize}`);
+  }
+});
