@@ -137,3 +137,76 @@ test('balansen går ihop — depth är noll när filen är slut', async () => {
   assert.equal(stats.depthAtEnd, 0);
   assert.equal(stats.redirected, 3);
 });
+
+test('VERKLIGA meddelandenycklar med Graph-id håller isär meddelandena', async () => {
+  // PRODFYND 2026-07-29, torrkörning av kons@: 409 brödtexter skrevs till EN
+  // fil. Meddelandenyckeln är `${mailboxId}:${graphMessageId}` och Graph-id:n
+  // är 140–200 tecken, alltså långt över det gamla taket på 64. Nyckeln
+  // kastades som "för lång", och kvar på samma djup stod konto-id:t ur
+  // `accounts` — kort nog att vara giltigt. Varje brödtext attribuerades till
+  // det. Ingen krasch, inget larm; verifieringen fångade det.
+  const graphId = `AAMkAD${'x'.repeat(160)}`;
+  const shard = {
+    version: 1,
+    accounts: { 'kons@hairtpclinic.com': { mailboxId: 'kons@hairtpclinic.com' } },
+    messages: {
+      [`kons@hairtpclinic.com:${graphId}1`]: { bodyText: 'ett', bodyHtml: '<p>ett</p>' },
+      [`kons@hairtpclinic.com:${graphId}2`]: { bodyText: 'två', bodyHtml: '<p>två</p>' },
+    },
+  };
+  const { captured, stats } = await run(JSON.stringify(shard));
+  assert.equal(stats.redirected, 4);
+  const keys = new Set(captured.map((item) => item.messageKey));
+  assert.equal(keys.size, 2, 'varje meddelande ska få sin egen nyckel');
+  for (const key of keys) {
+    assert.ok(key.startsWith('kons@hairtpclinic.com:AAMkAD'), `nyckeln ser fel ut: ${key}`);
+  }
+});
+
+test('en nyckel ärvs aldrig från ett syskonobjekt', async () => {
+  // Fail closed: hellre ingen omstyrning alls än en omstyrning till fel
+  // meddelande. En brödtext på fel nyckel är tyst dataförlust vid migrering.
+  const text = JSON.stringify({
+    accounts: { kort: { x: 1 } },
+    messages: [{ bodyText: 'ligger i en ARRAY, har ingen egen nyckel' }],
+  });
+  const { captured } = await run(text);
+  assert.deepEqual(captured, [], 'utan egen nyckel ska ingenting styras om');
+});
+
+test('en ogiltig nyckel NOLLAR platsen — den ärver aldrig syskonets', async () => {
+  // MEKANISMEN bakom prodfyndet, inte symtomet.
+  //
+  // Klammer-rensningen hjälper mellan objekt. Den hjälper inte mellan syskon i
+  // SAMMA objekt: är nyckel 1 giltig och nyckel 2 för lång, skulle värde 2
+  // ärva nyckel 1. Samma bugg, bara med ett högre tak.
+  //
+  // Fixen är att en ogiltig nyckel nollar platsen. Då spelar taket ingen roll
+  // för korrektheten — det avgör bara hur mycket som migreras, inte om det
+  // migreras rätt.
+  const tooLong = 'k'.repeat(600);
+  const text = JSON.stringify({
+    messages: {
+      giltig: { bodyText: 'hör till giltig' },
+      [tooLong]: { bodyText: 'FÅR ALDRIG HAMNA PÅ giltig' },
+    },
+  });
+  const { captured } = await run(text);
+  const forValid = captured.filter((item) => item.messageKey === 'giltig');
+  assert.equal(forValid.length, 1, 'den giltiga nyckeln ska få exakt sin egen brödtext');
+  assert.equal(forValid[0].value, 'hör till giltig');
+  assert.ok(
+    !captured.some((item) => item.value.includes('FÅR ALDRIG')),
+    'värdet under en ogiltig nyckel ska inte styras om alls — fail closed'
+  );
+});
+
+test('maxKeyChars rapporterar VERKLIG nyckellängd, inte den capade', async () => {
+  // 512 är valt med marginal mot en uppskattning om ett externt system.
+  // Räknades talet på den capade kandidaten vore det begränsat av just det vi
+  // vill kunna kontrollera — och skulle aldrig kunna varna för att taket nås.
+  const key = `kons@hairtpclinic.com:AAMkAD${'x'.repeat(600)}`;
+  const { stats } = await run(JSON.stringify({ messages: { [key]: { bodyText: 'x' } } }));
+  assert.equal(stats.maxKeyChars, key.length);
+  assert.ok(stats.maxKeyChars > 512, 'talet ska kunna överstiga taket');
+});

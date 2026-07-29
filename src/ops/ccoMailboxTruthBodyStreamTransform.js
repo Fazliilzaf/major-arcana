@@ -25,7 +25,21 @@
  */
 
 const BODY_FIELDS = new Set(['bodyText', 'bodyHtml']);
-const MAX_KEY_CHARS = 64;
+
+/**
+ * Taket måste rymma en VERKLIG meddelandenyckel.
+ *
+ * `${mailboxId}:${graphMessageId}` — Graphs id:n är 140–200 tecken, så en
+ * nyckel landar runt 160–230. Med taket på 64 kastades varje meddelandenyckel
+ * som för lång, och `keyAtDepth[2]` blev kvar med den SENAST giltiga nyckeln
+ * på samma djup: konto-id:t ur `accounts`. Resultatet i prod var att 409
+ * brödtexter skrevs till EN fil, och verifieringen fångade det som
+ * `decoded_chars_stammer_inte`.
+ *
+ * 512 rymmer nyckeln med marginal och håller fortfarande brödtexterna
+ * (capade till 24 000) långt utanför.
+ */
+const MAX_KEY_CHARS = 512;
 
 /**
  * @param {(messageKey: string, field: string, value: string) => Promise<void>} onBody
@@ -59,16 +73,33 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
   const bodies = [];
   let redirected = 0;
   let maxValueChars = 0;
+  // Längsta nyckel vi FAKTISKT sett, oavsett taket. Räknas separat från
+  // `candidate`, som slutar växa vid MAX_KEY_CHARS — annars vore talet
+  // begränsat av just det vi vill kunna kontrollera.
+  let maxKeyChars = 0;
+  let candidateChars = 0;
 
   function push(text) {
     out.push(text);
   }
 
   function settle(nextChar) {
-    if (!closed) return;
+    // `closed` är ETT OBJEKT eller null — aldrig en sträng.
+    //
+    // DETTA ÄR MEKANISMEN BAKOM PRODFYNDET. Tidigare bar `closed` själva
+    // strängen, och en nyckel som var för lång blev `''`. Tomma strängen är
+    // falsy, så `if (!closed) return` hoppade ur FÖRE tilldelningen — och
+    // platsen behöll den föregående nyckeln. Konto-id:t ur `accounts` stod
+    // kvar och fick 409 brödtexter på sig.
+    //
+    // En ogiltig nyckel måste NOLLA platsen, inte lämna den orörd. Med det på
+    // plats spelar taket ingen roll för korrektheten: 64 hade varit säkert,
+    // bara verkningslöst.
+    if (closed === null) return;
     if (nextChar === ':') {
-      keyAtDepth[depth] = closed;
-      pendingKey = closed;
+      if (closed.chars > maxKeyChars) maxKeyChars = closed.chars;
+      keyAtDepth[depth] = closed.key;
+      pendingKey = closed.key;
     } else {
       pendingKey = '';
     }
@@ -99,6 +130,7 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
           unicodeRemaining = 0;
           candidate = '';
           candidateValid = true;
+          candidateChars = 0;
           if (shouldDivert()) {
             diverting = true;
             divertField = pendingKey;
@@ -112,8 +144,18 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
           continue;
         }
         settle(char);
-        if (char === '{' || char === '[') depth += 1;
-        else if (char === '}' || char === ']') depth -= 1;
+        if (char === '{' || char === '[') {
+          depth += 1;
+          // NYCKLAR ÄRVS ALDRIG MELLAN SYSKON.
+          // Utan den här raden stod en tidigare nyckel på samma djup kvar när
+          // nästa objekt inte satte någon egen — och en brödtext kunde
+          // attribueras till fel meddelande, tyst. Det var precis så konto-id:t
+          // ur `accounts` blev "meddelandenyckel" för 409 brödtexter i prod.
+          keyAtDepth[depth] = '';
+        } else if (char === '}' || char === ']') {
+          keyAtDepth[depth] = '';
+          depth -= 1;
+        }
         push(char);
         continue;
       }
@@ -127,7 +169,10 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
         if (unicodeRemaining === 0) {
           const decoded = String.fromCharCode(parseInt(unicodeDigits, 16));
           if (diverting) divertValue += decoded;
-          else if (candidateValid) candidate += decoded;
+          else {
+            candidateChars += 1;
+            if (candidateValid) candidate += decoded;
+          }
           unicodeDigits = '';
         }
         continue;
@@ -143,7 +188,10 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
         const decoded =
           char === 'n' ? '\n' : char === 't' ? '\t' : char === 'r' ? '\r' : char === 'b' ? '\b' : char === 'f' ? '\f' : char;
         if (diverting) divertValue += decoded;
-        else if (candidateValid) candidate += decoded;
+        else {
+          candidateChars += 1;
+          if (candidateValid) candidate += decoded;
+        }
         continue;
       }
 
@@ -162,7 +210,7 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
           divertValue = '';
           pendingKey = '';
         } else {
-          closed = candidateValid ? candidate : '';
+          closed = { key: candidateValid ? candidate : '', chars: candidateChars };
         }
         continue;
       }
@@ -171,6 +219,7 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
         divertValue += char;
         continue;
       }
+      candidateChars += 1;
       if (candidateValid) {
         candidate += char;
         if (candidate.length > MAX_KEY_CHARS) candidateValid = false;
@@ -185,7 +234,7 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
 
   async function finish() {
     await Promise.all(bodies);
-    return { redirected, maxValueChars, depthAtEnd: depth };
+    return { redirected, maxValueChars, maxKeyChars, depthAtEnd: depth };
   }
 
   return { write, finish };
