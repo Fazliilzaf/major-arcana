@@ -14055,6 +14055,11 @@ process.once('SIGTERM', () => {
       // ORD-96: trådvyn härleder kundens adresser ur patient-mastern i stället
       // för att kräva en identitet som aldrig skrivs på meddelandet.
       patientMasterStore: ccoPatientMasterStore,
+      // OBS: åtta brevlådor, inte tio. Listan saknar info@fazli.se och
+      // receipt@ — samma ofullständiga lista som missade info@fazli.se tre
+      // gånger i dag. Bättre än de två LRU:n råkade bära, men inte komplett,
+      // och det ska stå här och inte upptäckas senare.
+      historyMailboxIds: config.schedulerCcoHistoryMailboxIds || [],
       auditLog: ccoAuditLog,
     })
   );

@@ -135,3 +135,20 @@ test('kundens adresser hämtas med getPatient, aldrig med en listning', () => {
     'en listning med tyst tak får inte användas som uppslagning'
   );
 });
+
+test('resolvern anropas med `email`, inte `customerEmail`', () => {
+  // resolveConversationPatient läser `ref.email`. Med `customerEmail` blev
+  // target tomt, svaret `no_email`, och ambiguitetsgrinden släppte VARJE
+  // adress — diagnostiken visade det som customerEmails: 0, alltså patienten
+  // hittad men alla adresser bortkastade.
+  const resolver = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'ops', 'ccoConversationPatientResolver.js'),
+    'utf8'
+  );
+  assert.match(resolver, /const target = normalizeEmail\(ref\.email\)/, 'kontraktet är ref.email');
+  assert.match(SOURCE, /resolveConversationPatient\(\s*\{ email,/);
+  assert.ok(
+    !/resolveConversationPatient\(\s*\{ customerEmail/.test(SOURCE),
+    'fel nyckel får inte återinföras'
+  );
+});

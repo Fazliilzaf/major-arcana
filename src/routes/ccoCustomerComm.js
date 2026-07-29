@@ -20,6 +20,7 @@ function createCcoCustomerCommRouter({
   sendActionStore = null,
   resolvePatientAssetStore = null,
   patientMasterStore = null, // ORD-96
+  historyMailboxIds = [], // ORD-96: utan denna söks bara de 2 som råkar ligga i LRU:n
   auditLog = null,
 }) {
   const router = express.Router();
@@ -58,6 +59,11 @@ function createCcoCustomerCommRouter({
         mailboxTruthStore,
         // ORD-96: trådvyn härleder kundens adresser ur patient-mastern
         patientMasterStore,
+        // Utan denna blir searchMailboxes = listLoadedMailboxes(), alltså de
+        // två som råkar ligga i LRU:n. Diagnostiken visade det som
+        // `historyMailboxIds: 0, loadedMailboxes: 2` — åtta av tio brevlådor
+        // söktes aldrig igenom.
+        historyMailboxIds,
         mailIngestionStore,
         commDraftStore,
         sendActionsList: sendActionStore?.listSends
@@ -77,7 +83,15 @@ function createCcoCustomerCommRouter({
     async (req, res) => {
       try {
         const customerId = normalizeText(req.params.id);
-        const tenantId = normalizeText(req.query.tenantId) || 'hairtpclinic';
+        // Tenanten är `hair-tp-clinic` (bekräftat ur auth/me). Den hårdkodade
+        // strängen `hairtpclinic` pekade på en TOM bucket — tenantBucket skapar
+        // den på begäran, så inget kastade och getPatient svarade null.
+        // Diagnostiken visade det som `customerEmails: null`.
+        const tenantId =
+          normalizeText(req.query.tenantId) ||
+          normalizeText(req.auth?.tenantId) ||
+          normalizeText(config?.defaultTenantId) ||
+          'hair-tp-clinic';
         const filter = normalizeText(req.query.filter) || 'all';
         const store = await getThreadStore();
         const built = await store.buildThreadsForCustomer(customerId, { tenantId });
@@ -110,7 +124,15 @@ function createCcoCustomerCommRouter({
     async (req, res) => {
       try {
         const customerId = normalizeText(req.params.id);
-        const tenantId = normalizeText(req.query.tenantId) || 'hairtpclinic';
+        // Tenanten är `hair-tp-clinic` (bekräftat ur auth/me). Den hårdkodade
+        // strängen `hairtpclinic` pekade på en TOM bucket — tenantBucket skapar
+        // den på begäran, så inget kastade och getPatient svarade null.
+        // Diagnostiken visade det som `customerEmails: null`.
+        const tenantId =
+          normalizeText(req.query.tenantId) ||
+          normalizeText(req.auth?.tenantId) ||
+          normalizeText(config?.defaultTenantId) ||
+          'hair-tp-clinic';
         const filter = normalizeText(req.query.filter) || 'all';
         const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 80));
         const journeyStore = await getJourneyStore();
@@ -149,7 +171,15 @@ function createCcoCustomerCommRouter({
     async (req, res) => {
       try {
         const customerId = normalizeText(req.params.id);
-        const tenantId = normalizeText(req.query.tenantId) || 'hairtpclinic';
+        // Tenanten är `hair-tp-clinic` (bekräftat ur auth/me). Den hårdkodade
+        // strängen `hairtpclinic` pekade på en TOM bucket — tenantBucket skapar
+        // den på begäran, så inget kastade och getPatient svarade null.
+        // Diagnostiken visade det som `customerEmails: null`.
+        const tenantId =
+          normalizeText(req.query.tenantId) ||
+          normalizeText(req.auth?.tenantId) ||
+          normalizeText(config?.defaultTenantId) ||
+          'hair-tp-clinic';
         const store = await getJourneyStore();
         const journey = store.getJourney(customerId, { tenantId });
         return res.json({ customerId, tenantId, journey });
@@ -169,7 +199,11 @@ function createCcoCustomerCommRouter({
       try {
         const customerId = normalizeText(req.params.id);
         const body = req.body && typeof req.body === 'object' ? req.body : {};
-        const tenantId = normalizeText(body.tenantId || req.query.tenantId) || 'hairtpclinic';
+        const tenantId =
+          normalizeText(body.tenantId || req.query.tenantId) ||
+          normalizeText(req.auth?.tenantId) ||
+          normalizeText(config?.defaultTenantId) ||
+          'hair-tp-clinic';
         const targetStep = normalizeText(body.targetStep);
         const reason = normalizeText(body.reason);
         const triggerSource = normalizeText(body.triggerSource) || 'manual';
@@ -204,7 +238,11 @@ function createCcoCustomerCommRouter({
       try {
         const customerId = normalizeText(req.params.id);
         const body = req.body && typeof req.body === 'object' ? req.body : {};
-        const tenantId = normalizeText(body.tenantId || req.query.tenantId) || 'hairtpclinic';
+        const tenantId =
+          normalizeText(body.tenantId || req.query.tenantId) ||
+          normalizeText(req.auth?.tenantId) ||
+          normalizeText(config?.defaultTenantId) ||
+          'hair-tp-clinic';
         const reason = normalizeText(body.reason);
         const store = await getJourneyStore();
         const journey = store.rollback({
