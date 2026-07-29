@@ -115,3 +115,20 @@ test('adressmängden byggs med SAMMA resolver som worklisten', () => {
   assert.match(SOURCE, /resolveConversationPatient\(/);
   assert.match(SOURCE, /status\)\s*===\s*'matched'/, 'bara entydiga matchningar får länka');
 });
+
+test('kundens adresser hämtas med getPatient, aldrig med en listning', () => {
+  // listPatients har limit = 100 som standard. Första versionen frågade efter
+  // hela registret och fick 100 av 7 451 — patienten fanns aldrig i svaret och
+  // trådvyn returnerade noll rader utan att något gick fel.
+  //
+  // Exakt samma fel som listMessages({}) som betydde "de laddade" och inte
+  // "alla": ett listnings-API med ett tyst tak är inte en fråga om allt.
+  // Kommentarer strippas först — annars fäller vakten på sin egen
+  // dokumentation, precis som ORD-87:s .filter()-vakt gjorde.
+  const code = SOURCE.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.match(code, /patientMasterStore\.getPatient\(\{ patientId: target \}\)/);
+  assert.ok(
+    !code.includes('listPatients'),
+    'en listning med tyst tak får inte användas som uppslagning'
+  );
+});
