@@ -109,12 +109,7 @@ test('VAKT: rollup-vägen får inte försvinna ur kandidatlistan igen', () => {
   );
 });
 
-test('VAKT: den byggda bundlen bär samma fix', () => {
-  // Bundlen serveras till operatören. Källan kan vara rätt medan bundlen är
-  // gammal — då är fixen inte i prod trots grön källa.
-  const BUNDLE = fs.readFileSync(
-    path.join(ROOT, 'public', 'major-arcana-preview', 'app.bundle.js'),
-    'utf8'
-  );
-  assert.match(BUNDLE, /rollup\?\.underlyingConversationKeys/, 'kör bin/build-bundle.js');
-});
+// Ingen vakt på app.bundle.js här: den är gitignorerad och byggs av
+// bin/ensure-bundle.js vid prestart, så filen finns inte i CI. Att läsa den
+// skulle testa den lokala byggkatalogen, inte repot. Källvakten ovan är den
+// som faktiskt skyddar fixen.
