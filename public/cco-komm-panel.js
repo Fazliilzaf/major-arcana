@@ -56,6 +56,13 @@
     }
   }
 
+  // The host owns authentication. Preserve its session header while keeping
+  // the panel's role and tenant explicit for every request it makes.
+  function requestHeaders(opts, defaults) {
+    const inherited = opts?.headers && typeof opts.headers === 'object' ? opts.headers : {};
+    return { ...inherited, ...defaults };
+  }
+
   async function fetchFeed(customerId, opts) {
     const tenantId = opts?.tenantId || 'hair_tp';
     const role = opts?.role || 'owner';
@@ -64,7 +71,7 @@
         encodeURIComponent(customerId) +
         '/communication-feed?tenantId=' +
         tenantId,
-      { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } }
+      { headers: requestHeaders(opts, { 'x-cco-role': role, 'x-cco-tenant': tenantId }) }
     );
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
@@ -77,11 +84,11 @@
       '/api/v1/cco-customers/' + encodeURIComponent(customerId) + '/internal-note',
       {
         method: 'POST',
-        headers: {
+        headers: requestHeaders(opts, {
           'Content-Type': 'application/json',
           'x-cco-role': role,
           'x-cco-tenant': tenantId,
-        },
+        }),
         body: JSON.stringify({ body, tenantId }),
       }
     );
@@ -93,7 +100,11 @@
     const role = opts?.role || 'owner';
     const r = await fetch('/api/v1/cco-send/form/' + encodeURIComponent(customerId), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+      headers: requestHeaders(opts, {
+        'Content-Type': 'application/json',
+        'x-cco-role': role,
+        'x-cco-tenant': tenantId,
+      }),
       body: JSON.stringify({ formKind: formType, dryRun: false, tenantId }),
     });
     return r.json();
@@ -177,11 +188,11 @@
         const role = opts?.role || 'owner';
         const r = await fetch('/api/v1/cco-send/consent/' + encodeURIComponent(customerId), {
           method: 'POST',
-          headers: {
+          headers: requestHeaders(opts, {
             'Content-Type': 'application/json',
             'x-cco-role': role,
             'x-cco-tenant': tenantId,
-          },
+          }),
           body: JSON.stringify({ consentKind: 'consent_treatment', dryRun: false, tenantId }),
         });
         const j = await r.json();
@@ -205,7 +216,7 @@
     try {
       const r = await fetch(
         '/api/v1/cco-comm/templates?brand=' + (tenantId === 'curatiio' ? 'curatiio' : 'hair_tp'),
-        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } }
+        { headers: requestHeaders(opts, { 'x-cco-role': role, 'x-cco-tenant': tenantId }) }
       );
       const j = await r.json();
       _commTemplatesCache = j.templates || [];
@@ -440,11 +451,11 @@
           try {
             const r = await fetch('/api/v1/cco-comm/drafts', {
               method: 'POST',
-              headers: {
+              headers: requestHeaders(opts, {
                 'Content-Type': 'application/json',
                 'x-cco-role': role,
                 'x-cco-tenant': tenantId,
-              },
+              }),
               body: JSON.stringify({
                 customerId,
                 tenantId,
@@ -510,11 +521,11 @@
           '/api/v1/cco-comm/drafts/' + encodeURIComponent(state.currentDraftId) + '/transition',
           {
             method: 'POST',
-            headers: {
+            headers: requestHeaders(opts, {
               'Content-Type': 'application/json',
               'x-cco-role': role,
               'x-cco-tenant': tenantId,
-            },
+            }),
             body: JSON.stringify({ status: newStatus, reason }),
           }
         );
@@ -795,7 +806,9 @@
       encodeURIComponent(filter || 'all') +
       '&tenantId=' +
       encodeURIComponent(tenantId);
-    const r = await fetch(url, { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+    const r = await fetch(url, {
+      headers: requestHeaders(opts, { 'x-cco-role': role, 'x-cco-tenant': tenantId }),
+    });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
   }
@@ -806,7 +819,11 @@
     const body = Object.assign({ customerId, threadId, action, tenantId }, extra || {});
     const r = await fetch('/api/v1/cco-conversation-threads/action', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+      headers: requestHeaders(opts, {
+        'Content-Type': 'application/json',
+        'x-cco-role': role,
+        'x-cco-tenant': tenantId,
+      }),
       body: JSON.stringify(body),
     });
     return r.json();
@@ -1188,7 +1205,11 @@
     const role = opts?.role || 'owner';
     const r = await fetch('/api/v1/cco-comm/drafts/batch-approve', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+      headers: requestHeaders(opts, {
+        'Content-Type': 'application/json',
+        'x-cco-role': role,
+        'x-cco-tenant': tenantId,
+      }),
       body: JSON.stringify({ draftIds, tenantId, reason: 'batch via Svarstudio' }),
     });
     return r.json();
@@ -1198,7 +1219,11 @@
     const role = opts?.role || 'owner';
     const r = await fetch('/api/v1/cco-comm/drafts/batch-cancel', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+      headers: requestHeaders(opts, {
+        'Content-Type': 'application/json',
+        'x-cco-role': role,
+        'x-cco-tenant': tenantId,
+      }),
       body: JSON.stringify({ draftIds, tenantId, reason: 'batch via Svarstudio' }),
     });
     return r.json();
@@ -1254,7 +1279,7 @@
         '&tenantId=' +
         encodeURIComponent(tenantId) +
         '&limit=80',
-      { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } }
+      { headers: requestHeaders(opts, { 'x-cco-role': role, 'x-cco-tenant': tenantId }) }
     );
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
@@ -1457,7 +1482,7 @@
     const role = opts?.role || 'owner';
     const r = await fetch(
       '/api/v1/cco-customers/' + encodeURIComponent(customerId) + '/journey?tenantId=' + tenantId,
-      { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } }
+      { headers: requestHeaders(opts, { 'x-cco-role': role, 'x-cco-tenant': tenantId }) }
     );
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
@@ -1470,11 +1495,11 @@
       '/api/v1/cco-customers/' + encodeURIComponent(customerId) + '/journey/advance',
       {
         method: 'POST',
-        headers: {
+        headers: requestHeaders(opts, {
           'Content-Type': 'application/json',
           'x-cco-role': role,
           'x-cco-tenant': tenantId,
-        },
+        }),
         body: JSON.stringify({
           targetStep,
           reason: reason || null,
@@ -1493,11 +1518,11 @@
       '/api/v1/cco-customers/' + encodeURIComponent(customerId) + '/journey/rollback',
       {
         method: 'POST',
-        headers: {
+        headers: requestHeaders(opts, {
           'Content-Type': 'application/json',
           'x-cco-role': role,
           'x-cco-tenant': tenantId,
-        },
+        }),
         body: JSON.stringify({ reason: 'manual rollback', tenantId }),
       }
     );

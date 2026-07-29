@@ -104,7 +104,7 @@ function findAll(root, sel) {
   return out;
 }
 
-function loadPanel({ timelinePayload }) {
+function loadPanel({ timelinePayload, fetchRequests = [] }) {
   const dispatched = [];
   const documentStub = {
     readyState: 'complete',
@@ -130,7 +130,11 @@ function loadPanel({ timelinePayload }) {
       this.bubbles = !!(init || {}).bubbles;
     }
   }
-  async function fetchStub(url) {
+  async function fetchStub(url, options = {}) {
+    fetchRequests.push({
+      url: String(url),
+      headers: { ...(options.headers || {}) },
+    });
     return {
       ok: true,
       status: 200,
@@ -163,7 +167,7 @@ function loadPanel({ timelinePayload }) {
   win.CustomEvent = CustomEventStub;
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(PANEL_PATH, 'utf8'), sandbox);
-  return { CcoKommPanel: win.CcoKommPanel, dispatched };
+  return { CcoKommPanel: win.CcoKommPanel, dispatched, fetchRequests };
 }
 
 async function flush() {
@@ -277,4 +281,38 @@ test('C6 UI: tom kund ger trygg empty state', async () => {
     empties.some((t) => /ännu inga händelser/.test(t)),
     'trygg total-empty text visas'
   );
+});
+
+test('communication panel forwards the host session header to every initial customer read', async () => {
+  const fetchRequests = [];
+  const { CcoKommPanel } = loadPanel({
+    timelinePayload: { customerId: 'cust-auth', counts: { all: 0 }, events: [] },
+    fetchRequests,
+  });
+  const host = makeNode('div');
+  await CcoKommPanel.mount(host, {
+    customerId: 'cust-auth',
+    tenantId: 'hairtpclinic',
+    role: 'owner',
+    headers: {
+      Authorization: 'Bearer test-session',
+      'x-cco-role': 'untrusted',
+      'x-cco-tenant': 'wrong-tenant',
+    },
+  });
+  await flush();
+
+  const initialReads = [
+    '/communication-feed',
+    '/conversation-threads',
+    '/journey?',
+    '/unified-timeline',
+  ];
+  for (const fragment of initialReads) {
+    const request = fetchRequests.find((entry) => entry.url.includes(fragment));
+    assert.ok(request, 'initial read made: ' + fragment);
+    assert.equal(request.headers.Authorization, 'Bearer test-session', fragment + ' gets session auth');
+    assert.equal(request.headers['x-cco-role'], 'owner', fragment + ' keeps panel role');
+    assert.equal(request.headers['x-cco-tenant'], 'hairtpclinic', fragment + ' keeps panel tenant');
+  }
 });
