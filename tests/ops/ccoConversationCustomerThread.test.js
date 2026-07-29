@@ -126,7 +126,10 @@ test('kundens adresser hämtas med getPatient, aldrig med en listning', () => {
   // Kommentarer strippas först — annars fäller vakten på sin egen
   // dokumentation, precis som ORD-87:s .filter()-vakt gjorde.
   const code = SOURCE.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  assert.match(code, /patientMasterStore\.getPatient\(\{ patientId: target \}\)/);
+  assert.match(code, /patientMasterStore\.getPatient\(\{[^}]*patientId: target[^}]*\}\)/);
+  // tenantId måste med — tenantBucket kastar utan den (se
+  // patientStoreTenantContract.test.js).
+  assert.match(code, /patientMasterStore\.getPatient\(\{[^}]*tenantId[^}]*\}\)/);
   assert.ok(
     !code.includes('listPatients'),
     'en listning med tyst tak får inte användas som uppslagning'
