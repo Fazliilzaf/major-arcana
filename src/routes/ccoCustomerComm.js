@@ -90,6 +90,10 @@ function createCcoCustomerCommRouter({
           counts: built.counts || {},
           summary: built.summary || {},
           mailboxes: built.mailboxes || [],
+          // ORD-96-diagnostik: skiljer "ingen kundadress" från "inga
+          // brevlådor lästa" från "inga träffar". Utan den gav svaret
+          //  och tre lika rimliga förklaringar.
+          diagnostics: built.diagnostics || null,
         });
       } catch (error) {
         console.error(error);

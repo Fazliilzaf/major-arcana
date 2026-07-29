@@ -455,6 +455,7 @@ async function createCcoConversationThreadStore({
     if (!customerId) return { threads: [], counts: {}, summary: {}, mailboxes: [] };
     const threads = [];
     const mailKeys = new Set();
+    let diagnostics = null;
 
     await preloadTruthMailboxes(mailboxTruthStore, historyMailboxIds);
 
@@ -468,6 +469,21 @@ async function createCcoConversationThreadStore({
           historyMailboxIds,
           customerEmails
         );
+        // DIAGNOSTIK (ORD-96). Tre gissningar i rad om varför tråden var tom —
+        // tenantId, patientMasterStore, brevlådelistan — och ingen av dem gick
+        // att avgöra utifrån ett svar som bara sa `threads: []`. Talen nedan
+        // skiljer de tre fallen åt utan att någon behöver gissa igen.
+        diagnostics = {
+          customerEmails: customerEmails ? customerEmails.size : null,
+          historyMailboxIds: asArray(historyMailboxIds).length,
+          loadedMailboxes:
+            typeof mailboxTruthStore.listLoadedMailboxes === 'function'
+              ? mailboxTruthStore.listLoadedMailboxes().length
+              : null,
+          truthMessagesMatched: truthMessages.length,
+          patientMasterStore: Boolean(patientMasterStore?.getPatient),
+          tenantId: tenantId || null,
+        };
         for (const m of truthMessages) {
           const row = buildMailThreadFromTruthMessage(m, customerId);
           const key =
@@ -729,7 +745,7 @@ async function createCcoConversationThreadStore({
       riskLabel: enrichment?.riskLabel || enrichment?.dominantRisk || null,
     };
 
-    return { threads, counts, summary, mailboxes };
+    return { threads, counts, summary, mailboxes, diagnostics };
   }
 
   function filterThreads(threads, filter = 'all') {
