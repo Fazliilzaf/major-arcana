@@ -256,7 +256,21 @@ async function preloadTruthMailboxes(mailboxTruthStore, historyMailboxIds = []) 
   }
 }
 
-function listTruthMessagesForCustomer(
+/**
+ * LADDA VARJE BREVLÅDA PRECIS INNAN DEN LÄSES.
+ *
+ * `preloadTruthMailboxes` laddade alla åtta i följd — men LRU-taket är TVÅ
+ * (`maxLoadedShards`), så sex av dem var utvräkta igen innan loopen nedan
+ * hann läsa dem. `listMessages` returnerar tom lista för en oladdad shard,
+ * tyst. Diagnostiken visade det som `historyMailboxIds: 8` men
+ * `loadedMailboxes: 2` och `truthMessagesMatched: 0`.
+ *
+ * Fjärde gången i dag samma tak: korsbrevlåderapporten såg två brevlådor,
+ * `listMessages({})` betydde "de laddade", och nu detta. Åtgärden är densamma
+ * som i rapporten — ladda EN i taget, direkt före läsningen, så att LRU:n
+ * aldrig hinner vräka ut det vi just bad om.
+ */
+async function listTruthMessagesForCustomer(
   mailboxTruthStore,
   customerId,
   historyMailboxIds = [],
@@ -272,6 +286,14 @@ function listTruthMessagesForCustomer(
         : [];
   const rows = [];
   for (const mailboxId of searchMailboxes) {
+    try {
+      if (typeof mailboxTruthStore.ensureMailboxLoaded === 'function') {
+        await mailboxTruthStore.ensureMailboxLoaded(mailboxId);
+      }
+    } catch (error) {
+      console.warn('[cco-thread] kunde inte ladda brevlådan', mailboxId, error?.message);
+      continue;
+    }
     const msgs =
       mailboxTruthStore.listMessages({
         mailboxIds: [mailboxId],
@@ -468,7 +490,7 @@ async function createCcoConversationThreadStore({
     if (mailboxTruthStore) {
       try {
         const customerEmails = await resolveCustomerEmailSet(customerId, tenantId);
-        const truthMessages = listTruthMessagesForCustomer(
+        const truthMessages = await listTruthMessagesForCustomer(
           mailboxTruthStore,
           customerId,
           historyMailboxIds,
