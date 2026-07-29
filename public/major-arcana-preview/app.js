@@ -12823,7 +12823,24 @@
         .filter(Boolean)
         .sort((left, right) => right.localeCompare(left))[0] || "";
     const getCanonicalLiveCustomerKey = (row = {}) => {
+      // Patient-id först: det är den enda kandidaten i listan som är en
+      // FASTSTÄLLD identitet. De övriga är hur kunden råkade skriva sitt namn
+      // eller vilken adress hen använde. Servern har redan gjort matchningen
+      // och grindat den (capabilities.js:8882 sätter patientId enbart när
+      // patientMatch.status === 'matched'), så att låta e-postadressen slå den
+      // vore att låta en svagare signal vinna över en starkare.
+      //
+      // Legacy nycklade likadant — `patient:${patientId}`
+      // (konversationer.html:5772). V2 tappade det, vilket delade upp en
+      // matchad patient som skrivit från två olika adresser i två rader.
+      // Prefixet behålls från legacy så att ett patient-id aldrig kan kollidera
+      // med en customerKey som råkar se likadan ut.
+      const matchedPatientId =
+        normalizeKey(asText(row?.patientMatch?.status)) === "matched"
+          ? asText(row?.patientMatch?.patientId)
+          : asText(row?.patientId);
       const candidateKeys = [
+        matchedPatientId ? `patient:${matchedPatientId}` : "",
         row?.customerSummary?.customerKey,
         row?.customerKey,
         row?.customerIdentity?.canonicalCustomerId,
