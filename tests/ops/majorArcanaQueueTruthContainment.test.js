@@ -3,14 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 function extractFunctionSource(source, functionName) {
   const signature = `function ${functionName}(`;
@@ -118,16 +111,34 @@ function createBuildLiveThreadsHarness() {
     (events) => events.map((event) => ({ id: event.id || event.conversationId })),
     (row = {}) => {
       const tags = ['all'];
-      const workflowLane = String(row?.workflowLane || '').trim().toLowerCase();
-      const priorityLevel = String(row?.priorityLevel || '').trim().toLowerCase();
-      const slaStatus = String(row?.slaStatus || '').trim().toLowerCase();
-      if (workflowLane === 'waiting_reply' || String(row?.waitingOn || '').trim().toLowerCase() === 'customer') {
+      const workflowLane = String(row?.workflowLane || '')
+        .trim()
+        .toLowerCase();
+      const priorityLevel = String(row?.priorityLevel || '')
+        .trim()
+        .toLowerCase();
+      const slaStatus = String(row?.slaStatus || '')
+        .trim()
+        .toLowerCase();
+      if (
+        workflowLane === 'waiting_reply' ||
+        String(row?.waitingOn || '')
+          .trim()
+          .toLowerCase() === 'customer'
+      ) {
         tags.push('later', 'followup');
       }
-      if (workflowLane === 'booking_ready' || String(row?.bookingState || '').trim().toLowerCase().includes('ready')) {
+      if (
+        workflowLane === 'booking_ready' ||
+        String(row?.bookingState || '')
+          .trim()
+          .toLowerCase()
+          .includes('ready')
+      ) {
         tags.push('bookable');
       }
-      if (workflowLane === 'medical_review' || row?.needsMedicalReview === true) tags.push('medical');
+      if (workflowLane === 'medical_review' || row?.needsMedicalReview === true)
+        tags.push('medical');
       if (workflowLane === 'admin_low') tags.push('admin');
       if (['critical', 'high'].includes(priorityLevel)) tags.push('sprint');
       if (slaStatus === 'breach' || workflowLane === 'action_now') tags.push('act-now', 'today');
@@ -201,9 +212,7 @@ test('buildLiveThreads still builds history-only threads when live worklist is e
       needsReplyToday: [],
     },
     {
-      historyMessages: [
-        { conversationId: 'conv-history-only', messageId: 'm-2' },
-      ],
+      historyMessages: [{ conversationId: 'conv-history-only', messageId: 'm-2' }],
       historyEvents: [{ conversationId: 'conv-history-only', id: 'e-2' }],
     }
   );
@@ -271,13 +280,104 @@ test('buildLiveThreads merges rows that belong to the same canonical customer ac
   assert.equal(calls.buildHistoryBackedRuntimeRow.length, 1);
   assert.equal(calls.buildHistoryBackedRuntimeRow[0].messages.length, 2);
   assert.equal(calls.buildRuntimeThread.length, 1);
-  assert.deepEqual(
-    calls.buildRuntimeThread[0].row.sourceConversationIds.sort(),
-    ['conv-a', 'conv-b']
-  );
-  assert.deepEqual(
-    calls.buildRuntimeThread[0].row.customerSummary.historyMailboxIds.sort(),
-    ['contact@hairtpclinic.com', 'kons@hairtpclinic.com']
-  );
+  assert.deepEqual(calls.buildRuntimeThread[0].row.sourceConversationIds.sort(), [
+    'conv-a',
+    'conv-b',
+  ]);
+  assert.deepEqual(calls.buildRuntimeThread[0].row.customerSummary.historyMailboxIds.sort(), [
+    'contact@hairtpclinic.com',
+    'kons@hairtpclinic.com',
+  ]);
   assert.ok(calls.buildRuntimeThread[0].row.tags.includes('act-now'));
+});
+
+/**
+ * Luckan mot legacy: en MATCHAD patient som skrivit från två olika adresser.
+ *
+ * Testet ovanför ger båda raderna samma `customerKey` — då räcker vilken
+ * kandidat som helst. Här skiljer sig både nyckel och adress, och bara den
+ * fastställda patientidentiteten binder ihop dem.
+ *
+ * Legacy nycklade på `patient:${patientId}` när `patientMatch.status` var
+ * 'matched' (konversationer.html:5772). V2:s kandidatlista saknade fältet, så
+ * e-postadressen vann över en starkare signal och patienten delades i två
+ * rader — trots att servern redan hade gjort matchningen.
+ *
+ * Ordningen är hela poängen: listan returnerar FÖRSTA icke-tomma kandidaten.
+ * Läggs patient-id sist blir det en no-op, eftersom customerEmail nästan alltid
+ * finns.
+ */
+test('buildLiveThreads slår ihop en matchad patient med två olika adresser', () => {
+  const { buildLiveThreads } = createBuildLiveThreadsHarness();
+
+  const threads = buildLiveThreads(
+    {
+      conversationWorklist: [
+        {
+          conversationId: 'conv-privat',
+          mailboxConversationId: 'kons@:conv-privat',
+          mailboxAddress: 'kons@hairtpclinic.com',
+          customerKey: 'anna_privat',
+          customerEmail: 'anna@example.com',
+          customerName: 'Anna Andersson',
+          patientId: 'pat-4711',
+          patientMatch: { status: 'matched', patientId: 'pat-4711' },
+          subject: 'Fråga om tid',
+          lastInboundAt: '2026-04-13T18:00:00.000Z',
+        },
+        {
+          conversationId: 'conv-jobb',
+          mailboxConversationId: 'contact@:conv-jobb',
+          mailboxAddress: 'contact@hairtpclinic.com',
+          customerKey: 'anna_jobb',
+          customerEmail: 'anna.andersson@arbetet.se',
+          customerName: 'Anna Andersson',
+          patientId: 'pat-4711',
+          patientMatch: { status: 'matched', patientId: 'pat-4711' },
+          subject: 'Uppföljning',
+          lastInboundAt: '2026-04-13T18:05:00.000Z',
+        },
+      ],
+      needsReplyToday: [],
+    },
+    { historyMessages: [], historyEvents: [] }
+  );
+
+  assert.equal(threads.length, 1, 'en patient ska vara en tråd, oavsett avsändaradress');
+  // normalizeKey saniterar avgränsare, så id:t jämförs på innehåll och inte på
+  // exakt form — testet ska inte gå sönder av att saneringen ändras.
+  assert.match(threads[0].id, /patient.pat.4711/, 'tråden ska nycklas på patienten');
+  assert.doesNotMatch(threads[0].id, /anna_(privat|jobb)/, 'inte på någon av adressnycklarna');
+});
+
+test('en OMATCHAD patientgissning får inte slå ihop två kunder', () => {
+  const { buildLiveThreads } = createBuildLiveThreadsHarness();
+
+  // status !== 'matched' ⇒ patientId ska inte användas som nyckel. Servern
+  // sätter redan patientId till null i det läget; grinden här är ett andra
+  // försvar mot att en osäker matchning slår ihop två verkliga personer.
+  const threads = buildLiveThreads(
+    {
+      conversationWorklist: [
+        {
+          conversationId: 'conv-1',
+          mailboxAddress: 'kons@hairtpclinic.com',
+          customerEmail: 'ett@example.com',
+          patientMatch: { status: 'ambiguous', patientId: 'pat-gissning' },
+          lastInboundAt: '2026-04-13T18:00:00.000Z',
+        },
+        {
+          conversationId: 'conv-2',
+          mailboxAddress: 'contact@hairtpclinic.com',
+          customerEmail: 'tva@example.com',
+          patientMatch: { status: 'ambiguous', patientId: 'pat-gissning' },
+          lastInboundAt: '2026-04-13T18:05:00.000Z',
+        },
+      ],
+      needsReplyToday: [],
+    },
+    { historyMessages: [], historyEvents: [] }
+  );
+
+  assert.equal(threads.length, 2, 'en osäker matchning får aldrig slå ihop två personer');
 });
