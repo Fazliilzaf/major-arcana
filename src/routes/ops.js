@@ -79,6 +79,7 @@ const {
   restoreMailboxTruthShards,
 } = require('../ops/ccoMailboxTruthRestore');
 const { measureMailboxTruthBodyShare } = require('../ops/mailboxTruthBodyShareScan');
+const { migrateMailboxBodies } = require('../ops/ccoMailboxTruthBodyMigration');
 const { decodeMailboxIdFromShardFileName } = require('../ops/ccoMailboxTruthShardedStore');
 const { runMailTruthHydration } = require('../ops/mailTruthHydrationFromIngestion');
 const { createCcoAuditLog } = require('../security/ccoAuditLog');
@@ -3925,6 +3926,58 @@ function createOpsRouter({
         return res
           .status(500)
           .json({ error: error?.message || 'Kunde inte mäta brödtextandelen.' });
+      }
+    }
+  );
+
+  // ORD-89 steg 2 — körvägen för brödtextmigreringen.
+  //
+  // EN BREVLÅDA PER ANROP, uttryckligen namngiven. Ingen "kör alla"-knapp:
+  // ordningen minst först är ett säkerhetsbeslut, och en loop över alla
+  // brevlådor gör det möjligt att av misstag möta egzona@ (179 MB) först.
+  //
+  // `apply` måste anges uttryckligen. Utan den är anropet en torrkörning som
+  // skriver sidofilerna och verifierar dem utan att röra sharden.
+  router.post(
+    '/ops/mailbox-truth/body-migration',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const mailboxId = normalizeText(body.mailboxId).toLowerCase();
+        if (!mailboxId) {
+          return res.status(400).json({ error: 'mailboxId krävs — en brevlåda per anrop.' });
+        }
+        const shardDir = path.join(config.ccoMailboxTruthShardDir, 'mailboxes');
+        const entries = await fs.readdir(shardDir);
+        const fileName = entries.find(
+          (name) =>
+            name.endsWith('.json') &&
+            !name.startsWith('.') &&
+            decodeMailboxIdFromShardFileName(name) === mailboxId
+        );
+        if (!fileName) {
+          return res.status(404).json({ error: `Ingen shard för ${mailboxId}.` });
+        }
+        const report = await migrateMailboxBodies({
+          config,
+          mailboxId,
+          shardPath: path.join(shardDir, fileName),
+          apply: body.apply === true,
+        });
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.mailbox_truth.body_migration',
+          outcome: report.stoppedBecause && report.stoppedBecause !== 'torrkorning' ? 'failure' : 'success',
+          targetType: 'ops',
+          targetId: mailboxId,
+        });
+        return res.json({ ok: !report.stoppedBecause || report.stoppedBecause === 'torrkorning', report });
+      } catch (error) {
+        console.error('[ops/mailbox-truth/body-migration]', error);
+        return res.status(500).json({ error: error?.message || 'Migreringen kunde inte köras.' });
       }
     }
   );
