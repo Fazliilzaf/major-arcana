@@ -93,7 +93,10 @@ test('migreringsändpunkten tar EN brevlåda per anrop', () => {
   const handler = OPS_ROUTE.slice(start, OPS_ROUTE.indexOf('\n  router.', start));
   assert.match(handler, /requireRole\(ROLE_OWNER\)/);
   assert.match(handler, /mailboxId krävs/);
-  assert.ok(!/mailboxIds/.test(handler), 'ingen flerbrevlådeväg');
+  // Ingen flerbrevlådeväg IN. (listMessages tar en mailboxIds-array internt
+  // efter reloaden — det är en läsning av EN brevlåda, inte en väg in.)
+  assert.ok(!/body\.mailboxIds/.test(handler), 'ingen flerbrevlådeväg in');
+  assert.ok(!/Array\.isArray\(body\./.test(handler), 'inget listargument från anroparen');
 });
 
 test('apply måste anges uttryckligen — annars torrkörning', () => {
@@ -104,4 +107,30 @@ test('apply måste anges uttryckligen — annars torrkörning', () => {
     /apply:\s*body\.apply === true/,
     'allt utom exakt true måste bli torrkörning'
   );
+});
+
+test('migreringen laddar om sharden i SAMMA anrop', () => {
+  // Migreringen byter shard-FILEN. Servern håller samma shard i minnet med
+  // brödtexterna kvar inline, och nästa save() skriver tillbaka minnesbilden.
+  // kons@ gick tillbaka från 401 737 till exakt 910 355 byte den 29 juli.
+  //
+  // En femminutersgrind räcker inte: save() sker när något ÄNDRAS i brevlådan,
+  // inte på klockan. Reloaden måste ligga i handlern, inte som ett steg
+  // anroparen kan glömma.
+  const start = OPS_ROUTE.indexOf("'/ops/mailbox-truth/body-migration'");
+  const handler = OPS_ROUTE.slice(start, OPS_ROUTE.indexOf('\n  router.', start));
+  const unloadPos = handler.indexOf('unloadMailbox(');
+  const reloadPos = handler.indexOf('ensureMailboxLoaded(');
+  const sizePos = handler.indexOf('fileBytesAfterReload');
+  assert.ok(unloadPos > -1, 'minnesbilden måste kastas');
+  assert.ok(reloadPos > unloadPos, 'reload efter unload — annars läses cachen om');
+  assert.ok(sizePos > reloadPos, 'storleken läses EFTER reloaden');
+});
+
+test('reload sker bara efter en LYCKAD skarp körning', () => {
+  // En torrkörning har inte rört sharden, och en stoppad körning ska inte
+  // belönas med en omladdning som ser ut som ett kvitto.
+  const start = OPS_ROUTE.indexOf("'/ops/mailbox-truth/body-migration'");
+  const handler = OPS_ROUTE.slice(start, OPS_ROUTE.indexOf('\n  router.', start));
+  assert.match(handler, /if \(report\.apply && !report\.stoppedBecause\)/);
 });
