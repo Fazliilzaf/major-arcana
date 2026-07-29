@@ -25,6 +25,7 @@
  */
 
 const fs = require('node:fs');
+const path = require('node:path');
 
 const BODY_KEYS = new Set(['bodyText', 'bodyHtml']);
 /** Längsta sträng vi bryr oss om att bevara för att kunna vara en nyckel. */
@@ -187,8 +188,78 @@ async function scanShardBodyShare(filePath) {
   };
 }
 
+/**
+ * Listar shardfilerna, MINST FÖRST.
+ *
+ * Ordningen är inte kosmetisk. `kons@` är 0,9 MB och kostar ingenting att göra
+ * fel på; `egzona@` är 179 MB och kommer sist. Faller något ska det falla
+ * billigt, och de tidiga raderna ska redan vara utskrivna när det händer.
+ */
+async function listMailboxTruthShardFiles(config = {}) {
+  const shardDir = path.join(config.ccoMailboxTruthShardDir, 'mailboxes');
+  let entries = [];
+  try {
+    entries = await fs.promises.readdir(shardDir);
+  } catch {
+    return [];
+  }
+  const files = [];
+  for (const name of entries) {
+    if (!name.endsWith('.json') || name.startsWith('.')) continue;
+    const filePath = path.join(shardDir, name);
+    try {
+      const stat = await fs.promises.stat(filePath);
+      files.push({
+        mailbox: name.replace(/\.json$/, ''),
+        filePath,
+        sizeBytes: Number(stat.size || 0),
+      });
+    } catch {
+      /* en shard som försvinner mitt i listningen ska inte fälla mätningen */
+    }
+  }
+  return files.sort((left, right) => left.sizeBytes - right.sizeBytes);
+}
+
+/**
+ * Mäter samtliga shardar, en i taget, minst först.
+ * Ren läsning. Rör inte `loadShard()` och därmed inte shard-cachen.
+ */
+async function measureMailboxTruthBodyShare(config = {}) {
+  const files = await listMailboxTruthShardFiles(config);
+  const mailboxes = [];
+  for (const file of files) {
+    const startedAt = Date.now();
+    const rssBefore = process.memoryUsage().rss;
+    const result = await scanShardBodyShare(file.filePath);
+    mailboxes.push({
+      mailbox: file.mailbox,
+      fileBytes: result.fileBytes,
+      bodyRawBytes: result.rawBytes,
+      bodyDecodedChars: result.decodedChars,
+      bodyShare: result.bodyShare,
+      bodyTextValues: result.bodyText.values,
+      bodyHtmlValues: result.bodyHtml.values,
+      msSpent: Date.now() - startedAt,
+      // Ska INTE följa filstorleken. Gör den det är skannern inte strömmande.
+      rssDeltaBytes: process.memoryUsage().rss - rssBefore,
+    });
+  }
+  const totalFileBytes = mailboxes.reduce((sum, row) => sum + row.fileBytes, 0);
+  const totalBodyBytes = mailboxes.reduce((sum, row) => sum + row.bodyRawBytes, 0);
+  return {
+    mailboxes,
+    totalFileBytes,
+    totalBodyBytes,
+    totalBodyShare: totalFileBytes > 0 ? totalBodyBytes / totalFileBytes : 0,
+    measuredAt: new Date().toISOString(),
+  };
+}
+
 module.exports = {
   createBodyShareScanner,
   scanShardBodyShare,
+  listMailboxTruthShardFiles,
+  measureMailboxTruthBodyShare,
   MAX_KEY_CHARS,
 };
