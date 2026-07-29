@@ -79,10 +79,21 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
   }
 
   function settle(nextChar) {
-    if (!closed) return;
+    // `closed` är ETT OBJEKT eller null — aldrig en sträng.
+    //
+    // DETTA ÄR MEKANISMEN BAKOM PRODFYNDET. Tidigare bar `closed` själva
+    // strängen, och en nyckel som var för lång blev `''`. Tomma strängen är
+    // falsy, så `if (!closed) return` hoppade ur FÖRE tilldelningen — och
+    // platsen behöll den föregående nyckeln. Konto-id:t ur `accounts` stod
+    // kvar och fick 409 brödtexter på sig.
+    //
+    // En ogiltig nyckel måste NOLLA platsen, inte lämna den orörd. Med det på
+    // plats spelar taket ingen roll för korrektheten: 64 hade varit säkert,
+    // bara verkningslöst.
+    if (closed === null) return;
     if (nextChar === ':') {
-      keyAtDepth[depth] = closed;
-      pendingKey = closed;
+      keyAtDepth[depth] = closed.key;
+      pendingKey = closed.key;
     } else {
       pendingKey = '';
     }
@@ -186,7 +197,7 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
           divertValue = '';
           pendingKey = '';
         } else {
-          closed = candidateValid ? candidate : '';
+          closed = { key: candidateValid ? candidate : '' };
         }
         continue;
       }

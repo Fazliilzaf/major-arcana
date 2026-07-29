@@ -173,3 +173,30 @@ test('en nyckel ärvs aldrig från ett syskonobjekt', async () => {
   const { captured } = await run(text);
   assert.deepEqual(captured, [], 'utan egen nyckel ska ingenting styras om');
 });
+
+test('en ogiltig nyckel NOLLAR platsen — den ärver aldrig syskonets', async () => {
+  // MEKANISMEN bakom prodfyndet, inte symtomet.
+  //
+  // Klammer-rensningen hjälper mellan objekt. Den hjälper inte mellan syskon i
+  // SAMMA objekt: är nyckel 1 giltig och nyckel 2 för lång, skulle värde 2
+  // ärva nyckel 1. Samma bugg, bara med ett högre tak.
+  //
+  // Fixen är att en ogiltig nyckel nollar platsen. Då spelar taket ingen roll
+  // för korrektheten — det avgör bara hur mycket som migreras, inte om det
+  // migreras rätt.
+  const tooLong = 'k'.repeat(600);
+  const text = JSON.stringify({
+    messages: {
+      giltig: { bodyText: 'hör till giltig' },
+      [tooLong]: { bodyText: 'FÅR ALDRIG HAMNA PÅ giltig' },
+    },
+  });
+  const { captured } = await run(text);
+  const forValid = captured.filter((item) => item.messageKey === 'giltig');
+  assert.equal(forValid.length, 1, 'den giltiga nyckeln ska få exakt sin egen brödtext');
+  assert.equal(forValid[0].value, 'hör till giltig');
+  assert.ok(
+    !captured.some((item) => item.value.includes('FÅR ALDRIG')),
+    'värdet under en ogiltig nyckel ska inte styras om alls — fail closed'
+  );
+});
