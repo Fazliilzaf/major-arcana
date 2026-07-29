@@ -457,6 +457,7 @@ function createOpsRouter({
           ok: true,
           generatedAt: new Date().toISOString(),
           scannedMailboxIds,
+          skippedShardFiles,
           coverage,
           tenantId,
           report: live,
@@ -4392,9 +4393,59 @@ function createOpsRouter({
         const shardFiles = (await fs.readdir(shardDir)).filter(
           (name) => name.endsWith('.json') && !name.startsWith('.')
         );
-        const allMailboxIds = shardFiles
-          .map((name) => decodeMailboxIdFromShardFileName(name))
-          .filter(Boolean);
+        // INGEN AVKODNING, OCH INGEN TYST BORTFILTRERING.
+        //
+        // `decodeMailboxIdFromShardFileName` matchar bara `_hairtpclinic_com`,
+        // så `info_fazli_se.json` blev `''` och försvann i `.filter(Boolean)`.
+        // Rapporten som finns för att svara "alla brevlådor" hade täckt åtta av
+        // nio och sett komplett ut — och `resolvedShare` hade räknats över fel
+        // nämnare. Samma avkodare vi tog bort ur migreringsuppslagningen i
+        // #1256, tillbaka i ny kod av samma skäl.
+        //
+        // Konfigurationslistan räcker inte heller: den bär åtta brevlådor och
+        // saknar `info@fazli.se`. Därför tre led, i fallande tillförlitlighet:
+        //   1. koda kända id:n och matcha filnamnet — entydigt
+        //   2. för filer som blir över: läs mailboxId ur shardens `accounts`,
+        //      alltså ur datan själv i stället för ur namnet
+        //   3. det som ändå inte går att para ihop rapporteras som
+        //      `skippedShardFiles` — en lucka ska synas, inte försvinna
+        const candidateMailboxIds = new Set(
+          [
+            ...resolveCcoHistoryMailboxIds(config),
+            ...shardFiles.map((name) => decodeMailboxIdFromShardFileName(name)),
+          ]
+            .map((id) => normalizeText(id).toLowerCase())
+            .filter(Boolean)
+        );
+        const byFileName = new Map();
+        for (const mailboxId of candidateMailboxIds) {
+          byFileName.set(`${encodeMailboxId(mailboxId)}.json`, mailboxId);
+        }
+
+        const allMailboxIds = [];
+        const skippedShardFiles = [];
+        for (const fileName of shardFiles) {
+          const known = byFileName.get(fileName);
+          if (known) {
+            allMailboxIds.push(known);
+            continue;
+          }
+          // Led 2: datan vet vad den heter även när namnet inte går att tolka.
+          try {
+            const filePath = path.join(shardDir, fileName);
+            const stat = await fs.stat(filePath);
+            if (stat.size > 64 * 1024 * 1024) {
+              skippedShardFiles.push({ fileName, reason: 'for_stor_for_namnaterstallning' });
+              continue;
+            }
+            const state = JSON.parse(await fs.readFile(filePath, 'utf8'));
+            const recovered = normalizeText(Object.keys(state?.accounts || {})[0]).toLowerCase();
+            if (recovered) allMailboxIds.push(recovered);
+            else skippedShardFiles.push({ fileName, reason: 'inget_konto_i_sharden' });
+          } catch (error) {
+            skippedShardFiles.push({ fileName, reason: error?.message || 'kunde_inte_lasas' });
+          }
+        }
         const messages = [];
         const scannedMailboxIds = [];
         for (const mailboxId of allMailboxIds) {

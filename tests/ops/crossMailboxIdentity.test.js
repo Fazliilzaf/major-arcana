@@ -103,3 +103,42 @@ test('aggregeringen tappar inte kunden när bara namnet saknas', () => {
   );
   assert.equal(map.size, 1);
 });
+
+// ── Källvakt för rutten ──────────────────────────────────────────────────────
+const fs = require('node:fs');
+const path = require('node:path');
+const OPS_ROUTE = fs.readFileSync(
+  path.join(__dirname, '..', '..', 'src', 'routes', 'ops.js'),
+  'utf8'
+);
+
+function crossMailboxHandler() {
+  const start = OPS_ROUTE.indexOf("'/ops/customers/cross-mailbox-report'");
+  assert.ok(start > -1, 'rutten ska finnas');
+  const end = OPS_ROUTE.indexOf('\n  router.', start);
+  return OPS_ROUTE.slice(start, end > -1 ? end : start + 6000);
+}
+
+test('brevlådelistan byggs genom att KODA, och luckor rapporteras', () => {
+  // decodeMailboxIdFromShardFileName matchar bara _hairtpclinic_com, så
+  // info_fazli_se.json blev '' och försvann i .filter(Boolean). Rapporten som
+  // finns för att svara "alla brevlådor" hade täckt åtta av nio och sett
+  // komplett ut — och resolvedShare hade räknats över fel nämnare.
+  const handler = crossMailboxHandler();
+  assert.match(handler, /encodeMailboxId\(mailboxId\)/, 'filnamnet ska kodas fram');
+  assert.match(handler, /skippedShardFiles/, 'en lucka ska synas i svaret');
+  assert.ok(
+    !/\.map\(\(name\) => decodeMailboxIdFromShardFileName\(name\)\)\s*\n?\s*\.filter\(Boolean\)/.test(
+      handler
+    ),
+    'ingen tyst bortfiltrering av oavkodbara filnamn'
+  );
+});
+
+test('en shard vars namn inte går att tolka återställs ur datan', () => {
+  // Konfigurationslistan bär åtta brevlådor och saknar info@fazli.se, så
+  // varken avkodning eller konfiguration räcker ensam. Sharden vet vad den
+  // heter: accounts är nyckelad på mailboxId.
+  const handler = crossMailboxHandler();
+  assert.match(handler, /Object\.keys\(state\?\.accounts \|\| \{\}\)\[0\]/);
+});
