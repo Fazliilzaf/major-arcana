@@ -23,7 +23,10 @@ function tmpRoot() {
 test('sökvägen härleds ur nyckeln — ingen index behövs', () => {
   const args = { bodyRoot: '/data/bodies', mailboxId: 'fazli@hairtpclinic.com', messageKey: 'abc' };
   assert.equal(store.bodyFilePath(args), store.bodyFilePath({ ...args }));
-  assert.match(store.bodyFilePath(args), /^\/data\/bodies\/fazli@hairtpclinic\.com\/[0-9a-f]{2}\/abc\.json$/);
+  assert.match(
+    store.bodyFilePath(args),
+    /^\/data\/bodies\/fazli@hairtpclinic\.com\/[0-9a-f]{2}\/abc\.[0-9a-f]{64}\.json$/
+  );
 });
 
 test('två olika nycklar delar aldrig fil', () => {
@@ -149,4 +152,40 @@ test('samtidiga skrivningar av samma meddelande ger aldrig en trasig fil', async
     name.endsWith('.tmp')
   );
   assert.deepEqual(leftovers, []);
+});
+
+test('verkliga meddelandenycklar får ALDRIG samma fil', () => {
+  // PRODFYND 2026-07-29. safeSegment kapar vid 120 tecken; verkliga nycklar är
+  // ~174 och delar ett långt gemensamt Graph-prefix, så de kapade namnen blev
+  // identiska. Kvar som åtskillnad fanns katalogens två hash-tecken — 256
+  // hinkar för 205 meddelanden. Uppmätt kollisionsgrad: 31,7 %.
+  //
+  // En brödtext skrev över en annan, och verifieringen läste samma fil flera
+  // gånger: verified 570 765 mot expected 491 108.
+  const prefix =
+    'kons@hairtpclinic.com:AAMkADk2ZjYwMTY3LTk5ZTUtNDQ3Yi1hZmE2LTBhYmYxMTQ0ZTAwMwBGAAAAAAB' +
+    'q'.repeat(50);
+  const paths = new Set();
+  for (let index = 0; index < 500; index += 1) {
+    paths.add(
+      store.bodyFilePath({
+        bodyRoot: '/r',
+        mailboxId: 'kons@hairtpclinic.com',
+        messageKey: `${prefix}${String(index).padStart(6, '0')}ZZZ`,
+      })
+    );
+  }
+  assert.equal(paths.size, 500, 'varje nyckel ska ha sin egen fil');
+});
+
+test('filnamnet bär hela nyckelns hash, inte bara en läsbar stump', () => {
+  const filePath = store.bodyFilePath({
+    bodyRoot: '/r',
+    mailboxId: 'a@b.se',
+    messageKey: 'a@b.se:XYZ',
+  });
+  assert.match(path.basename(filePath), /\.[0-9a-f]{64}\.json$/, 'full sha256 i namnet');
+  // Den läsbara stumpen finns kvar så att en människa ser vilket meddelande
+  // filen hör till.
+  assert.match(path.basename(filePath), /^a@b\.se_xyz\./);
 });
