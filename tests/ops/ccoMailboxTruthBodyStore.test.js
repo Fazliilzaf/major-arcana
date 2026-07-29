@@ -120,3 +120,33 @@ test('diskspärren kräver marginal, inte bara utrymme', async () => {
   const absurd = await store.checkFreeSpace(root, Number.MAX_SAFE_INTEGER, { marginRatio: 1.5 });
   assert.equal(absurd.ok, false, 'ett orimligt krav måste falla, annars är spärren dekoration');
 });
+
+test('samtidiga skrivningar av samma meddelande ger aldrig en trasig fil', async () => {
+  // Delta-synken skriver löpande. Med ett temporärnamn per PROCESS i stället
+  // för per SKRIVNING delar två samtidiga skrivningar av samma meddelande
+  // temporärfil, och resultatet är en halvskriven fil som JSON.parse avvisar —
+  // permanent, tills något råkar skriva över den. In-flight-dedupen i #1244
+  // skyddar laddningar, inte skrivningar.
+  const root = tmpRoot();
+  const filePath = store.bodyFilePath({ bodyRoot: root, mailboxId: 'a@b.se', messageKey: 'race' });
+  const long = 'A'.repeat(200000);
+  const short = 'B'.repeat(200000);
+  await Promise.all([
+    store.writeBody(filePath, { bodyText: long }),
+    store.writeBody(filePath, { bodyText: short }),
+    store.writeBody(filePath, { bodyText: long }),
+    store.writeBody(filePath, { bodyText: short }),
+  ]);
+  const stored = await store.readBody(filePath);
+  assert.ok(stored, 'filen ska vara läsbar — inte halvskriven');
+  // Vem som vann spelar ingen roll. Att resultatet är EN av de hela texterna gör det.
+  assert.ok(
+    stored.bodyText === long || stored.bodyText === short,
+    'innehållet ska vara en komplett skrivning, inte en blandning'
+  );
+  // Inga temporärfiler får bli kvar.
+  const leftovers = (await fs.promises.readdir(path.dirname(filePath))).filter((name) =>
+    name.endsWith('.tmp')
+  );
+  assert.deepEqual(leftovers, []);
+});

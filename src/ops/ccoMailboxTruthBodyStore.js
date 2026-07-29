@@ -82,14 +82,24 @@ async function readBody(filePath) {
   }
 }
 
-/** Atomisk skrivning: temporärfil + rename, aldrig en halvskriven brödtext. */
+/**
+ * Atomisk skrivning: temporärfil + rename, aldrig en halvskriven brödtext.
+ *
+ * TEMPORÄRNAMNET MÅSTE VARA UNIKT PER SKRIVNING, inte per process.
+ * Med `${filePath}.${process.pid}.tmp` delar två samtidiga skrivningar av
+ * samma meddelande i samma process temporärfil. Delta-synken skriver löpande,
+ * och in-flight-dedupen i #1244 skyddar LADDNINGAR, inte skrivningar. Utfallet
+ * blir en halvskriven fil som `JSON.parse` avvisar — permanent, tills något
+ * råkar skriva över den. Atomiciteten var rätt tänkt; det var namnet som
+ * saknade unikhet.
+ */
 async function writeBody(filePath, body = {}) {
   const payload = {};
   for (const field of BODY_FIELDS) {
     if (typeof body[field] === 'string' && body[field].length > 0) payload[field] = body[field];
   }
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-  const tmpPath = `${filePath}.${process.pid}.tmp`;
+  const tmpPath = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
   await fs.promises.writeFile(tmpPath, `${JSON.stringify(payload)}\n`, 'utf8');
   await fs.promises.rename(tmpPath, filePath);
   return payload;
