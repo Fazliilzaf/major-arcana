@@ -390,15 +390,24 @@ async function createCcoConversationThreadStore({
    */
   async function resolveCustomerEmailSet(customerId) {
     const target = normalizeText(customerId);
-    if (!target || !patientMasterStore?.listPatients) return null;
-    let patients = [];
+    if (!target || !patientMasterStore?.getPatient) return null;
+
+    // DIREKT UPPSLAGNING, INTE EN LISTNING.
+    //
+    // Första versionen kallade `listPatients({})` och letade i resultatet.
+    // `listPatients` har `limit = 100` som standard — jag frågade efter hela
+    // registret och fick 100 av 7 451. Patienten fanns aldrig i svaret, och
+    // trådvyn returnerade noll rader utan att något gick fel.
+    //
+    // Exakt samma fel som `listMessages({})` som betydde "de laddade" och inte
+    // "alla" — samma order, tre timmar isär. Ett listnings-API med ett tyst tak
+    // är inte en fråga om allt.
+    let patient = null;
     try {
-      const result = await patientMasterStore.listPatients({});
-      patients = Array.isArray(result?.patients) ? result.patients : asArray(result);
+      patient = await patientMasterStore.getPatient({ patientId: target });
     } catch {
       return null;
     }
-    const patient = patients.find((item) => normalizeText(item?.id) === target);
     if (!patient) return null;
 
     const candidates = new Set(
