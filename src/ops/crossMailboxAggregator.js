@@ -40,23 +40,60 @@ function pickMessageTimestamp(msg = {}) {
   );
 }
 
-function pickCustomerEmail(msg = {}) {
-  // Föredra explicit customerEmail (normaliserad i mailboxTruthStore)
+/**
+ * DEN LAGRADE FORMEN, INTE GRAPHS.
+ *
+ * Fram till 2026-07-29 letade den här funktionen bara på Graphs form
+ * (`from.emailAddress.address`). Truth-storen lagrar `from.address` — den
+ * platta formen. Ingen av de fem vägarna träffade, och rapporten svarade
+ * "0 kunder" på 19 978 meddelanden utan att något gick fel.
+ *
+ * Samma söm som #1245: servern skriver under en väg, läsaren letar under en
+ * annan, båda halvorna korrekta var för sig.
+ */
+function pickAddress(candidate = {}) {
+  const item = asObject(candidate);
   return (
-    normalizeEmail(msg.customerEmail) ||
-    normalizeEmail(msg.fromEmail) ||
-    normalizeEmail(msg.from?.emailAddress?.address) ||
-    normalizeEmail(msg.sender?.emailAddress?.address) ||
-    normalizeEmail(msg.senderEmail) ||
-    null
+    normalizeEmail(item.address) ||
+    normalizeEmail(item.emailAddress?.address) ||
+    normalizeEmail(typeof candidate === 'string' ? candidate : '')
   );
+}
+
+/**
+ * UTGÅENDE MEJL HAR KUNDEN I MOTTAGAREN.
+ *
+ * `from` är vår egen brevlåda på allt vi skickat, och den raden slogs bort av
+ * `email === mailboxId`-kontrollen. Halva korrespondensen med varje kund
+ * försvann alltså ur underlaget — och just svaren är det Fazli vill se i
+ * tråden ("vem svarade").
+ */
+function pickCustomerEmail(msg = {}, tenantMailboxIds = null) {
+  const isTenant = (email) =>
+    Boolean(email) && (tenantMailboxIds ? tenantMailboxIds.has(email) : false);
+  const mailboxId = normalizeEmail(msg.mailboxId);
+
+  const explicit =
+    normalizeEmail(msg.customerEmail) || normalizeEmail(msg.fromEmail) || normalizeEmail(msg.senderEmail);
+  if (explicit && explicit !== mailboxId && !isTenant(explicit)) return explicit;
+
+  const from = pickAddress(msg.from) || pickAddress(msg.sender);
+  if (from && from !== mailboxId && !isTenant(from)) return from;
+
+  for (const recipient of Array.isArray(msg.toRecipients) ? msg.toRecipients : []) {
+    const address = pickAddress(recipient);
+    if (address && address !== mailboxId && !isTenant(address)) return address;
+  }
+  return null;
 }
 
 function pickCustomerName(msg = {}) {
   return (
     normalizeText(msg.customerName) ||
     normalizeText(msg.fromName) ||
+    normalizeText(asObject(msg.from).name) ||
     normalizeText(msg.from?.emailAddress?.name) ||
+    normalizeText(asObject(msg.sender).name) ||
     normalizeText(msg.sender?.emailAddress?.name) ||
     null
   );
@@ -73,11 +110,15 @@ function pickCustomerName(msg = {}) {
  *   - conversationIds: Set
  *   - firstMessageIso / lastMessageIso (totalt)
  */
-function aggregateByCustomer(messages = []) {
+function aggregateByCustomer(messages = [], { tenantMailboxIds = null } = {}) {
+  const tenantSet =
+    tenantMailboxIds instanceof Set
+      ? tenantMailboxIds
+      : new Set((Array.isArray(tenantMailboxIds) ? tenantMailboxIds : []).map(normalizeEmail));
   const map = new Map();
   for (const raw of Array.isArray(messages) ? messages : []) {
     const msg = asObject(raw);
-    const email = pickCustomerEmail(msg);
+    const email = pickCustomerEmail(msg, tenantSet);
     if (!email) continue;
     // Filtrera bort interna tenant-mailboxar (om kunden råkar vara
     // hair-personal som mailat dem själva — sällan men möjligt)
@@ -214,9 +255,58 @@ function summarizeAggregation(messages = [], options = {}) {
 }
 
 module.exports = {
+  computeIdentityCoverage,
   aggregateByCustomer,
   findCrossMailboxCustomers,
   summarizeAggregation,
   pickCustomerEmail,
   pickCustomerName,
 };
+
+/**
+ * ANDELEN MEDDELANDEN SOM GÅR ATT KNYTA TILL EN KUND.
+ *
+ * Talet som avgör om den röda tråden är genomförbar. Att stämpla ett kund-id
+ * på meddelandena är en engångsoperation över 32 400 poster — den vill man
+ * göra en gång, på rätt underlag. Är täckningen 30 % får man en tråd med hål i.
+ *
+ * Rapporteras uppdelat på inkommande och utgående, för utgående var den grupp
+ * som föll bort helt när bara `from` lästes.
+ */
+function computeIdentityCoverage(messages = [], { tenantMailboxIds = null } = {}) {
+  const tenantSet =
+    tenantMailboxIds instanceof Set
+      ? tenantMailboxIds
+      : new Set((Array.isArray(tenantMailboxIds) ? tenantMailboxIds : []).map(normalizeEmail));
+  const out = {
+    totalMessages: 0,
+    resolved: 0,
+    unresolved: 0,
+    inbound: { total: 0, resolved: 0 },
+    outbound: { total: 0, resolved: 0 },
+    uniqueCustomers: 0,
+  };
+  const seen = new Set();
+  for (const raw of Array.isArray(messages) ? messages : []) {
+    const msg = asObject(raw);
+    out.totalMessages += 1;
+    const mailboxId = normalizeEmail(msg.mailboxId);
+    const from = pickAddress(msg.from) || pickAddress(msg.sender);
+    const isOutbound =
+      normalizeText(msg.folderType).toLowerCase() === 'sent' ||
+      (Boolean(from) && (from === mailboxId || tenantSet.has(from)));
+    const bucket = isOutbound ? out.outbound : out.inbound;
+    bucket.total += 1;
+    const email = pickCustomerEmail(msg, tenantSet);
+    if (email) {
+      out.resolved += 1;
+      bucket.resolved += 1;
+      seen.add(email);
+    } else {
+      out.unresolved += 1;
+    }
+  }
+  out.uniqueCustomers = seen.size;
+  out.resolvedShare = out.totalMessages > 0 ? out.resolved / out.totalMessages : 0;
+  return out;
+}

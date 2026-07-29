@@ -23,6 +23,7 @@ const {
   aggregateByCustomer,
   findCrossMailboxCustomers,
   summarizeAggregation,
+  computeIdentityCoverage,
 } = require('../ops/crossMailboxAggregator');
 const { getBootstrapStatus, isEnabled: isBootstrapEnabled } = require('../ops/bootstrapRunner');
 const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
@@ -455,6 +456,8 @@ function createOpsRouter({
         return res.json({
           ok: true,
           generatedAt: new Date().toISOString(),
+          scannedMailboxIds,
+          coverage,
           tenantId,
           report: live,
           lastScheduledRun: cached,
@@ -4374,10 +4377,48 @@ function createOpsRouter({
           req.query?.preferredMailbox || DEFAULT_PREFERRED_MAILBOX
         ).toLowerCase();
         const limit = Math.max(1, Math.min(500, Number(req.query?.limit) || 200));
-        const messages = ccoMailboxTruthStore.listMessages({}) || [];
-        const summary = summarizeAggregation(messages, { preferredMailboxId: preferred });
+        // TOMT BETYDER "ALLA", INTE "DE SOM RÅKAR VARA LADDADE".
+        //
+        // `listMessages({})` föll tillbaka på `shardCache.keys()`, och med
+        // maxLoadedShards = 2 såg rapporten högst TVÅ brevlådor — vilka två
+        // berodde på vad någon senast öppnade. En kund som skrivit till tre
+        // kunde den aldrig hitta, hur bra aggregeringen än var. Rapporten
+        // mätte sitt eget cachetillstånd och kallade resultatet för världen.
+        //
+        // Att ladda alla var 554 MB före ORD-89. Nu är det 70,6 MB, och därför
+        // går det att göra det som alltid var rätt: läs en brevlåda i taget
+        // och lägg ihop. En i taget, så att LRU:n aldrig pressas.
+        const shardDir = path.join(config.ccoMailboxTruthShardDir, 'mailboxes');
+        const shardFiles = (await fs.readdir(shardDir)).filter(
+          (name) => name.endsWith('.json') && !name.startsWith('.')
+        );
+        const allMailboxIds = shardFiles
+          .map((name) => decodeMailboxIdFromShardFileName(name))
+          .filter(Boolean);
+        const messages = [];
+        const scannedMailboxIds = [];
+        for (const mailboxId of allMailboxIds) {
+          try {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+            messages.push(...(ccoMailboxTruthStore.listMessages({ mailboxIds: [mailboxId] }) || []));
+            scannedMailboxIds.push(mailboxId);
+          } catch (error) {
+            console.warn('[ops/cross-mailbox-report] kunde inte läsa', mailboxId, error?.message);
+          }
+        }
+
+        // Våra egna brevlådor är inte kunder. Utan den här mängden blir
+        // intern post mellan contact@ och fazli@ en "korsbrevlådekund".
+        const tenantMailboxIds = new Set(allMailboxIds.map((id) => String(id).toLowerCase()));
+
+        const coverage = computeIdentityCoverage(messages, { tenantMailboxIds });
+        const summary = summarizeAggregation(messages, {
+          preferredMailboxId: preferred,
+          tenantMailboxIds,
+        });
         const customers = findCrossMailboxCustomers(messages, {
           preferredMailboxId: preferred,
+          tenantMailboxIds,
         }).slice(0, limit);
         // Debug: när inga kunder hittas, returnera shape av första 3 messages
         const debug =
