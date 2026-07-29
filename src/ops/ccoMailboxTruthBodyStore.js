@@ -58,12 +58,31 @@ function shardPrefix(messageKey = '') {
   return crypto.createHash('sha1').update(String(messageKey)).digest('hex').slice(0, 2);
 }
 
-/** Sökvägen till ett meddelandes brödtext. Ren funktion, inga sidoeffekter. */
+/**
+ * Sökvägen till ett meddelandes brödtext. Ren funktion, inga sidoeffekter.
+ *
+ * FILNAMNET BÄR EN FULL HASH AV NYCKELN, inte bara en läsbar stump.
+ *
+ * PRODFYND 2026-07-29: `safeSegment` kapar vid 120 tecken. Verkliga
+ * meddelandenycklar är ~174 tecken och delar ett långt gemensamt Graph-prefix,
+ * så de kapade namnen blev IDENTISKA för de flesta meddelanden. Kvar som
+ * åtskillnad fanns bara katalogens två hash-tecken — 256 hinkar för 205
+ * meddelanden. Uppmätt kollisionsgrad på realistiska nycklar: 31,7 %.
+ *
+ * Följden var att en brödtext skrev över en annan, och verifieringen läste
+ * samma fil flera gånger: `verifiedDecodedChars` 570 765 mot `expected`
+ * 491 108. Att verifieringen var STÖRRE än det förväntade var vad som
+ * avslöjade det — en förlust hade sett ut som en minskning.
+ *
+ * Den läsbara stumpen behålls för att en människa ska kunna se vilket
+ * meddelande en fil hör till. Åtskillnaden görs av hashen.
+ */
 function bodyFilePath({ bodyRoot = '', mailboxId = '', messageKey = '' } = {}) {
   const mailbox = safeSegment(mailboxId);
-  const key = safeSegment(messageKey);
-  if (!bodyRoot || !mailbox || !key) return '';
-  return path.join(bodyRoot, mailbox, shardPrefix(messageKey), `${key}.json`);
+  if (!bodyRoot || !mailbox || !messageKey) return '';
+  const readable = safeSegment(messageKey).slice(0, 48);
+  const digest = crypto.createHash('sha256').update(String(messageKey)).digest('hex');
+  return path.join(bodyRoot, mailbox, digest.slice(0, 2), `${readable}.${digest}.json`);
 }
 
 /** Roten för sidofilerna, syskon till `mailboxes/`. */
