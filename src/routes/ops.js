@@ -78,6 +78,7 @@ const {
   inspectMailboxTruthLayout,
   restoreMailboxTruthShards,
 } = require('../ops/ccoMailboxTruthRestore');
+const { measureMailboxTruthBodyShare } = require('../ops/mailboxTruthBodyShareScan');
 const { decodeMailboxIdFromShardFileName } = require('../ops/ccoMailboxTruthShardedStore');
 const { runMailTruthHydration } = require('../ops/mailTruthHydrationFromIngestion');
 const { createCcoAuditLog } = require('../security/ccoAuditLog');
@@ -3894,6 +3895,36 @@ function createOpsRouter({
         return res
           .status(500)
           .json({ error: error?.message || 'Kunde inte inspektera truth-backup.' });
+      }
+    }
+  );
+
+  // ORD-89 steg 1. Ren läsning: mäter hur stor del av varje shard som är
+  // brödtext. Går INTE genom loadShard() — varje läsväg där parsar hela filen,
+  // alltså exakt felläget mätningen finns för att undersöka. Skannern är
+  // strömmande (30,8 MB RSS mot JSON.parse 1 285,2 MB på 275,7 MB fil), och
+  // shardsen tas minst först så att ett fel faller billigt.
+  router.get(
+    '/ops/mailbox-truth/body-share',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const measurement = await measureMailboxTruthBodyShare(config);
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.mailbox_truth.body_share.measure',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'mailbox_truth_body_share',
+        });
+        return res.json({ ok: true, measurement });
+      } catch (error) {
+        console.error('[ops/mailbox-truth/body-share]', error);
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte mäta brödtextandelen.' });
       }
     }
   );
