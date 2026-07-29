@@ -616,10 +616,14 @@
     const kommHost = body.querySelector('[data-mk-komm-host]');
     if (kommHost && global.CcoKommPanel) {
       try {
+        const token = getToken();
         await global.CcoKommPanel.mount(kommHost, {
           customerId: card.patientId,
           tenantId: TENANT_ID,
           role: getRole(),
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         });
       } catch (e) {
         kommHost.innerHTML = `<p class="mk-data-missing">${escapeHtml(e.message)}</p>`;
