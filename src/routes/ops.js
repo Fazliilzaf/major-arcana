@@ -3960,12 +3960,48 @@ function createOpsRouter({
         if (!fileName) {
           return res.status(404).json({ error: `Ingen shard för ${mailboxId}.` });
         }
+        const shardPath = path.join(shardDir, fileName);
         const report = await migrateMailboxBodies({
           config,
           mailboxId,
-          shardPath: path.join(shardDir, fileName),
+          shardPath,
           apply: body.apply === true,
         });
+
+        // RELOAD I SAMMA ANROP, inte som ett separat steg.
+        //
+        // Migreringen byter shard-FILEN. Servern håller samma shard i minnet
+        // MED brödtexterna kvar inline, och nästa save() skriver tillbaka
+        // minnesbilden — migreringen blir ogjord, tyst. kons@ gick tillbaka
+        // från 401 737 till exakt 910 355 byte den 29 juli.
+        //
+        // En femminutersgrind räcker inte: save() sker när något ÄNDRAS i
+        // brevlådan, inte på klockan. En tyst brevlåda passerar grinden och
+        // skrivs tillbaka en timme senare.
+        //
+        // Att göra det här inne i handlern gör fönstret millisekunder i
+        // stället för minuter. Och reloaden är billig just för att
+        // migreringen lyckades: egzona@ är ~20 MB efteråt, inte 179. Den
+        // bevisar dessutom att den migrerade filen går att läsa.
+        //
+        // RISK: reloaden kastar minnesbilden. Pågår en delta-synk med
+        // osparade ändringar försvinner de. Storen sparar efter varje
+        // recordFolderPage och varje delta-tillämpning, så fönstret är kort
+        // men inte noll. Värsta utfall är att några mejl hämtas om.
+        if (report.apply && !report.stoppedBecause) {
+          if (typeof ccoMailboxTruthStore?.unloadMailbox === 'function') {
+            report.unloaded = ccoMailboxTruthStore.unloadMailbox(mailboxId);
+          }
+          if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+            report.reloadedMessages = ccoMailboxTruthStore.listMessages({
+              mailboxIds: [mailboxId],
+            }).length;
+          }
+          // Storleken EFTER reloaden. Har den vuxit hann en save() emellan:
+          // körningen är ogjord, aldrig trasig, och den körs om.
+          report.fileBytesAfterReload = (await fs.stat(shardPath)).size;
+        }
         await authStore.addAuditEvent({
           tenantId: req.auth.tenantId,
           actorUserId: req.auth.userId,

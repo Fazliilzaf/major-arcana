@@ -212,6 +212,26 @@ async function createCcoMailboxTruthShardedStore({
     return store;
   }
 
+  /**
+   * Kastar minnesbilden av en shard så att nästa laddning läser från disk.
+   *
+   * ORD-89: en migrering byter shard-FILEN. Servern håller samma shard i
+   * minnet MED brödtexterna kvar inline, och nästa `save()` skriver tillbaka
+   * minnesbilden — migreringen blir ogjord, tyst. `kons@` gick tillbaka från
+   * 401 737 till exakt 910 355 byte den 29 juli av precis det skälet.
+   *
+   * RISK, medvetet tagen: pågår en delta-synk med ändringar som ännu inte
+   * sparats försvinner de. Storen sparar efter varje `recordFolderPage` och
+   * varje delta-tillämpning, så fönstret är kort men inte noll. Värsta utfall
+   * är att några mejl hämtas om vid nästa synk — rätt sorts pris jämfört med
+   * en migrering som rullas tillbaka utan att någon märker det.
+   */
+  function unloadMailbox(mailboxId = '') {
+    const safeMailboxId = normalizeMailboxId(mailboxId);
+    if (!safeMailboxId) return false;
+    return shardCache.delete(safeMailboxId);
+  }
+
   async function loadShard(mailboxId = '') {
     const safeMailboxId = normalizeMailboxId(mailboxId);
     if (!safeMailboxId) {
@@ -402,6 +422,7 @@ async function createCcoMailboxTruthShardedStore({
     sharded: true,
     migration,
     ensureMailboxLoaded,
+    unloadMailbox,
     listLoadedMailboxes,
     startBackfillRun,
     startDeltaRun,
