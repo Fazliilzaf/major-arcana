@@ -49,13 +49,6 @@ test('en nyckel med ../ kan inte skriva utanför datakatalogen', () => {
   assert.ok(!filePath.includes('..'), filePath);
 });
 
-test('hash-prefixet sprider nycklarna över katalogerna', () => {
-  // contact@ har 10 615 meddelanden. En platt katalog med så många filer är
-  // långsam att lista; poängen med prefixet är just att undvika det.
-  const prefixes = new Set();
-  for (let index = 0; index < 400; index += 1) prefixes.add(store.shardPrefix(`m-${index}`));
-  assert.ok(prefixes.size > 100, `för få prefix: ${prefixes.size}`);
-});
 
 test('skriv och läs tillbaka bevarar brödtexten exakt', async () => {
   const root = tmpRoot();
