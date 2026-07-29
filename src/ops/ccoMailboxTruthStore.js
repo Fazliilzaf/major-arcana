@@ -1375,15 +1375,43 @@ async function createCcoMailboxTruthStore({
    * Saknas sidofil lämnas meddelandet orört: sharden bär då texten inline, och
    * ett halvmigrerat tillstånd är halvfärdigt i stället för trasigt.
    */
+  //
+  // NYCKELN ÄR ENDA SANNINGEN.
+  // Sökvägen byggdes först av `mailboxId` OCH `messageKey` hämtade från olika
+  // håll: migreringen skrev på shardens faktiska objektnyckel, medan läsaren
+  // räknade fram en ny nyckel ur meddelandeobjektet. Två saker som råkar
+  // sammanfalla i normalfallet — och som vid minsta divergens ger TOM
+  // BRÖDTEXT, TYST. Inget fel, inget larm, bara en tom bubbla.
+  //
+  // Därför härleds mailbox-segmentet ur nyckeln överallt. En källa, inte tre.
+  function bodyLocationForKey(messageKey = '') {
+    return {
+      bodyRoot,
+      mailboxId: normalizeMailboxId(String(messageKey).split(':')[0]),
+      messageKey,
+    };
+  }
+
+  async function hydrateMessageBodyForKey(message, messageKey = '') {
+    if (!messageKey) return asObject(message);
+    return bodyStore.hydrateMessageBody(asObject(message), bodyLocationForKey(messageKey));
+  }
+
   async function hydrateMessageBody(message) {
     const safeMessage = asObject(message);
-    const messageKey = toMessageKey(safeMessage.mailboxId, safeMessage.graphMessageId || safeMessage.id);
+    // INGEN `|| id`-fallback. Skrivvägen nycklar bara på graphMessageId, och
+    // saknas den hoppas meddelandet över helt (`if (!messageKey) continue`).
+    // En fallback kan därför bara producera en nyckel som inte finns — den
+    // räddar ingenting och kan bara peka fel.
+    const messageKey = toMessageKey(safeMessage.mailboxId, safeMessage.graphMessageId);
     if (!messageKey) return safeMessage;
-    return bodyStore.hydrateMessageBody(safeMessage, {
-      bodyRoot,
-      mailboxId: normalizeMailboxId(safeMessage.mailboxId),
-      messageKey,
-    });
+    if (!state.messages[messageKey]) {
+      // Härledningen har divergerat från shardens verkliga nycklar. Det är
+      // billigare att veta det än att undra varför en bubbla är tom.
+      console.warn('[cco-truth] härledd meddelandenyckel finns inte i sharden', messageKey);
+      return { ...safeMessage, [bodyStore.BODY_READ_ERROR]: 'nyckel_saknas_i_shard' };
+    }
+    return hydrateMessageBodyForKey(safeMessage, messageKey);
   }
 
   /**
@@ -1401,9 +1429,12 @@ async function createCcoMailboxTruthStore({
 
   /** Som `findMessage`, men med brödtexten hämtad ur sidofilen om den finns. */
   async function findMessageWithBody({ mailboxId = '', messageId = '' } = {}) {
-    const message = findMessage({ mailboxId, messageId });
+    // Nyckeln räknas fram EN gång och skickas vidare. Att låta hydreringen
+    // räkna om den vore att införa en andra härledning av samma sak.
+    const messageKey = toMessageKey(mailboxId, messageId);
+    const message = messageKey ? state.messages[messageKey] : null;
     if (!message) return null;
-    return hydrateMessageBody(message);
+    return hydrateMessageBodyForKey(asObject(message), messageKey);
   }
 
   /**
@@ -1421,8 +1452,7 @@ async function createCcoMailboxTruthStore({
   async function removeBodyFilesFor(messageKeys = []) {
     let removed = 0;
     for (const messageKey of asArray(messageKeys)) {
-      const mailboxId = normalizeMailboxId(String(messageKey).split(':')[0]);
-      const filePath = bodyStore.bodyFilePath({ bodyRoot, mailboxId, messageKey });
+      const filePath = bodyStore.bodyFilePath(bodyLocationForKey(messageKey));
       try {
         if (await bodyStore.removeBody(filePath)) removed += 1;
       } catch (error) {

@@ -112,3 +112,49 @@ test('en migrerad shard ger tillbaka brödtexten genom den asynkrona läsaren', 
   const hydrated = await store.findMessageWithBody({ mailboxId: 'a@b.se', messageId: 'g1' });
   assert.equal(hydrated.bodyText, 'Texten ligger i sidofilen');
 });
+
+test('mailbox-segmentet härleds ur nyckeln, aldrig ur meddelandeobjektet', () => {
+  // Sökvägen byggdes först av mailboxId OCH messageKey hämtade från olika
+  // håll: migreringen skrev på shardens faktiska objektnyckel, läsaren räknade
+  // fram en ny ur meddelandet. Divergerar de blir utfallet TOM BRÖDTEXT, TYST.
+  const source = stripComments(SOURCE);
+  const start = source.indexOf('function bodyLocationForKey(');
+  assert.ok(start > -1, 'den gemensamma härledningen ska finnas');
+  assert.match(
+    source.slice(start, start + 300),
+    /String\(messageKey\)\.split\(':'\)\[0\]/,
+    'mailbox-segmentet ska komma ur nyckeln'
+  );
+  // Ingen annan plats får bygga en bodyFilePath med ett eget mailboxId.
+  const handRolled = source.match(/bodyFilePath\(\{[^}]*mailboxId:\s*normalizeMailboxId\(safeMessage/g);
+  assert.equal(handRolled, null, 'ingen får härleda mailbox ur meddelandeobjektet');
+});
+
+test('ingen id-fallback när graphMessageId saknas', () => {
+  // Skrivvägen nycklar bara på graphMessageId och hoppar över meddelandet helt
+  // när den saknas. En fallback kan därför bara producera en nyckel som inte
+  // finns — den räddar ingenting och kan bara peka fel.
+  const source = stripComments(SOURCE);
+  assert.ok(
+    !source.includes('safeMessage.graphMessageId || safeMessage.id'),
+    'id-fallbacken får inte återinföras'
+  );
+});
+
+test('en nyckel som inte finns i sharden ger en synlig signal, inte tomhet', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ord89-div-'));
+  const shardDir = path.join(root, 'mailboxes');
+  fs.mkdirSync(shardDir, { recursive: true });
+  const shardPath = path.join(shardDir, 'a_b_se.json');
+  fs.writeFileSync(shardPath, JSON.stringify({ version: 1, messages: {} }), 'utf8');
+  const store = await createCcoMailboxTruthStore({ filePath: shardPath, deferInitialSave: true });
+
+  const [row] = await store.hydrateMessageBodies([
+    { mailboxId: 'a@b.se', graphMessageId: 'finns-inte', bodyPreview: 'x' },
+  ]);
+  assert.equal(
+    row[bodyStore.BODY_READ_ERROR],
+    'nyckel_saknas_i_shard',
+    'divergerad härledning ska synas, inte bli en tom bubbla'
+  );
+});
