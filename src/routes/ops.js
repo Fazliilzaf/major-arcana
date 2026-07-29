@@ -456,9 +456,6 @@ function createOpsRouter({
         return res.json({
           ok: true,
           generatedAt: new Date().toISOString(),
-          scannedMailboxIds,
-          skippedShardFiles,
-          coverage,
           tenantId,
           report: live,
           lastScheduledRun: cached,
@@ -4495,6 +4492,9 @@ function createOpsRouter({
         return res.json({
           ok: true,
           generatedAt: new Date().toISOString(),
+          scannedMailboxIds,
+          skippedShardFiles,
+          coverage,
           preferredMailboxId: preferred,
           summary,
           customers,
