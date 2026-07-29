@@ -194,7 +194,9 @@ function aggregateByCustomer(messages = [], { tenantMailboxIds = null } = {}) {
  */
 function findCrossMailboxCustomers(messages = [], options = {}) {
   const preferred = normalizeEmail(options.preferredMailboxId || '');
-  const map = aggregateByCustomer(messages);
+  // Vidarebefordra optionerna. Utan detta får aggregeringen aldrig veta vilka
+  // adresser som är VÅRA EGNA, och personalens brevlådor blir kunder.
+  const map = aggregateByCustomer(messages, options);
   const customers = [];
   for (const summary of map.values()) {
     if (summary.mailboxes.length < 2) continue;
@@ -218,7 +220,9 @@ function findCrossMailboxCustomers(messages = [], options = {}) {
  */
 function summarizeAggregation(messages = [], options = {}) {
   const preferred = normalizeEmail(options.preferredMailboxId || '');
-  const map = aggregateByCustomer(messages);
+  // Vidarebefordra optionerna. Utan detta får aggregeringen aldrig veta vilka
+  // adresser som är VÅRA EGNA, och personalens brevlådor blir kunder.
+  const map = aggregateByCustomer(messages, options);
   let totalCustomers = 0;
   let crossMailboxCount = 0;
   let needsConsolidationCount = 0;
