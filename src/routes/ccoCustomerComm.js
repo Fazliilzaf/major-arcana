@@ -19,6 +19,7 @@ function createCcoCustomerCommRouter({
   commDraftStore = null,
   sendActionStore = null,
   resolvePatientAssetStore = null,
+  patientMasterStore = null, // ORD-96
   auditLog = null,
 }) {
   const router = express.Router();
@@ -55,6 +56,8 @@ function createCcoCustomerCommRouter({
       threadStorePromise = createCcoConversationThreadStore({
         filePath: threadStorePath(),
         mailboxTruthStore,
+        // ORD-96: trådvyn härleder kundens adresser ur patient-mastern
+        patientMasterStore,
         mailIngestionStore,
         commDraftStore,
         sendActionsList: sendActionStore?.listSends

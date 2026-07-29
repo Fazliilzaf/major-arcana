@@ -23,6 +23,7 @@ const {
   aggregateByCustomer,
   findCrossMailboxCustomers,
   summarizeAggregation,
+  computeIdentityCoverage,
 } = require('../ops/crossMailboxAggregator');
 const { getBootstrapStatus, isEnabled: isBootstrapEnabled } = require('../ops/bootstrapRunner');
 const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
@@ -455,6 +456,9 @@ function createOpsRouter({
         return res.json({
           ok: true,
           generatedAt: new Date().toISOString(),
+          scannedMailboxIds,
+          skippedShardFiles,
+          coverage,
           tenantId,
           report: live,
           lastScheduledRun: cached,
@@ -4374,10 +4378,98 @@ function createOpsRouter({
           req.query?.preferredMailbox || DEFAULT_PREFERRED_MAILBOX
         ).toLowerCase();
         const limit = Math.max(1, Math.min(500, Number(req.query?.limit) || 200));
-        const messages = ccoMailboxTruthStore.listMessages({}) || [];
-        const summary = summarizeAggregation(messages, { preferredMailboxId: preferred });
+        // TOMT BETYDER "ALLA", INTE "DE SOM RÅKAR VARA LADDADE".
+        //
+        // `listMessages({})` föll tillbaka på `shardCache.keys()`, och med
+        // maxLoadedShards = 2 såg rapporten högst TVÅ brevlådor — vilka två
+        // berodde på vad någon senast öppnade. En kund som skrivit till tre
+        // kunde den aldrig hitta, hur bra aggregeringen än var. Rapporten
+        // mätte sitt eget cachetillstånd och kallade resultatet för världen.
+        //
+        // Att ladda alla var 554 MB före ORD-89. Nu är det 70,6 MB, och därför
+        // går det att göra det som alltid var rätt: läs en brevlåda i taget
+        // och lägg ihop. En i taget, så att LRU:n aldrig pressas.
+        const shardDir = path.join(config.ccoMailboxTruthShardDir, 'mailboxes');
+        const shardFiles = (await fs.readdir(shardDir)).filter(
+          (name) => name.endsWith('.json') && !name.startsWith('.')
+        );
+        // INGEN AVKODNING, OCH INGEN TYST BORTFILTRERING.
+        //
+        // `decodeMailboxIdFromShardFileName` matchar bara `_hairtpclinic_com`,
+        // så `info_fazli_se.json` blev `''` och försvann i `.filter(Boolean)`.
+        // Rapporten som finns för att svara "alla brevlådor" hade täckt åtta av
+        // nio och sett komplett ut — och `resolvedShare` hade räknats över fel
+        // nämnare. Samma avkodare vi tog bort ur migreringsuppslagningen i
+        // #1256, tillbaka i ny kod av samma skäl.
+        //
+        // Konfigurationslistan räcker inte heller: den bär åtta brevlådor och
+        // saknar `info@fazli.se`. Därför tre led, i fallande tillförlitlighet:
+        //   1. koda kända id:n och matcha filnamnet — entydigt
+        //   2. för filer som blir över: läs mailboxId ur shardens `accounts`,
+        //      alltså ur datan själv i stället för ur namnet
+        //   3. det som ändå inte går att para ihop rapporteras som
+        //      `skippedShardFiles` — en lucka ska synas, inte försvinna
+        const candidateMailboxIds = new Set(
+          [
+            ...resolveCcoHistoryMailboxIds(config),
+            ...shardFiles.map((name) => decodeMailboxIdFromShardFileName(name)),
+          ]
+            .map((id) => normalizeText(id).toLowerCase())
+            .filter(Boolean)
+        );
+        const byFileName = new Map();
+        for (const mailboxId of candidateMailboxIds) {
+          byFileName.set(`${encodeMailboxId(mailboxId)}.json`, mailboxId);
+        }
+
+        const allMailboxIds = [];
+        const skippedShardFiles = [];
+        for (const fileName of shardFiles) {
+          const known = byFileName.get(fileName);
+          if (known) {
+            allMailboxIds.push(known);
+            continue;
+          }
+          // Led 2: datan vet vad den heter även när namnet inte går att tolka.
+          try {
+            const filePath = path.join(shardDir, fileName);
+            const stat = await fs.stat(filePath);
+            if (stat.size > 64 * 1024 * 1024) {
+              skippedShardFiles.push({ fileName, reason: 'for_stor_for_namnaterstallning' });
+              continue;
+            }
+            const state = JSON.parse(await fs.readFile(filePath, 'utf8'));
+            const recovered = normalizeText(Object.keys(state?.accounts || {})[0]).toLowerCase();
+            if (recovered) allMailboxIds.push(recovered);
+            else skippedShardFiles.push({ fileName, reason: 'inget_konto_i_sharden' });
+          } catch (error) {
+            skippedShardFiles.push({ fileName, reason: error?.message || 'kunde_inte_lasas' });
+          }
+        }
+        const messages = [];
+        const scannedMailboxIds = [];
+        for (const mailboxId of allMailboxIds) {
+          try {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+            messages.push(...(ccoMailboxTruthStore.listMessages({ mailboxIds: [mailboxId] }) || []));
+            scannedMailboxIds.push(mailboxId);
+          } catch (error) {
+            console.warn('[ops/cross-mailbox-report] kunde inte läsa', mailboxId, error?.message);
+          }
+        }
+
+        // Våra egna brevlådor är inte kunder. Utan den här mängden blir
+        // intern post mellan contact@ och fazli@ en "korsbrevlådekund".
+        const tenantMailboxIds = new Set(allMailboxIds.map((id) => String(id).toLowerCase()));
+
+        const coverage = computeIdentityCoverage(messages, { tenantMailboxIds });
+        const summary = summarizeAggregation(messages, {
+          preferredMailboxId: preferred,
+          tenantMailboxIds,
+        });
         const customers = findCrossMailboxCustomers(messages, {
           preferredMailboxId: preferred,
+          tenantMailboxIds,
         }).slice(0, limit);
         // Debug: när inga kunder hittas, returnera shape av första 3 messages
         const debug =
