@@ -133,3 +133,31 @@ function loadFetcher() {
   vm.runInNewContext(src, sandbox);
   return sandbox.module.exports;
 }
+
+test('meddelanden utan id dedupliceras inte bort mot varandra', async () => {
+  // `\`...\` || fallback` kan aldrig nå fallbacken — en mall-sträng är alltid
+  // sann, även ":". Saknar två meddelanden både mailboxId och id fick de
+  // samma nyckel, och det andra kastades tyst som "redan sett".
+  const MAILBOXES = ['a@x.se', 'b@x.se'];
+  const messagesByMailbox = {
+    'a@x.se': [{ conversationId: 'C', receivedAt: '2026-07-20T10:00:00.000Z', subject: 'ett' }],
+    'b@x.se': [{ conversationId: 'C', receivedAt: '2026-07-20T11:00:00.000Z', subject: 'två' }],
+  };
+  const store = createCappedStore(messagesByMailbox, 2);
+  const rows = await loadFetcher()(store, 'C', [], { mailboxHints: MAILBOXES });
+  assert.equal(rows.length, 2, 'båda ska överleva — de är olika meddelanden');
+  assert.equal(
+    JSON.stringify(rows.map((r) => r.subject)),
+    JSON.stringify(['ett', 'två'])
+  );
+});
+
+test('äkta dubbletter dedupliceras fortfarande', () => {
+  // Fixen får inte bli en avstängd deduplicering.
+  const code = SOURCE.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.match(code, /const hasIdentity = Boolean\(/);
+  assert.ok(
+    !/`\$\{normalizeEmail\(safe\.mailboxId\)\}:\$\{[^`]*\}` \|\|/.test(code),
+    'mall-sträng med || får inte återinföras — vänstersidan kan aldrig vara falsy'
+  );
+});

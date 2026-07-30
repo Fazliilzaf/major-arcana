@@ -999,9 +999,20 @@ async function fetchConversationMessagesLoadingEachMailbox(
     });
     for (const row of rows) {
       const safe = asObject(row);
-      const dedupeKey =
-        `${normalizeEmail(safe.mailboxId)}:${normalizeText(safe.graphMessageId || safe.id)}` ||
-        JSON.stringify(safe);
+      // PRÖVA KOMPONENTERNA FÖRE SAMMANSLAGNINGEN.
+      //
+      // `\`...\` || fallback` kan aldrig nå fallbacken: en mall-sträng är
+      // alltid sann, även när den bara är ":". Saknar ett meddelande både
+      // mailboxId och id blir nyckeln ":" — delad av VARJE sådant meddelande
+      // från vilken brevlåda som helst, så det andra och alla följande
+      // kastades tyst som "redan sett".
+      //
+      // Samma familj som `??` mot `||` i ORD-85: en operator som ser lyckad ut
+      // men prövar fel sak. Skillnaden är att `||` här inte ens KAN falla ut.
+      const hasIdentity = Boolean(safe.mailboxId || safe.graphMessageId || safe.id);
+      const dedupeKey = hasIdentity
+        ? `${normalizeEmail(safe.mailboxId)}:${normalizeText(safe.graphMessageId || safe.id)}`
+        : JSON.stringify(safe);
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
       merged.push(row);
