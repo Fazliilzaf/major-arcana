@@ -92,3 +92,43 @@ test('fetchSortedConversationMessages hydrerar — den ENDA plats alla trådväg
     'utan detta läser varje anropsställe (summary/booking-confirm/draft/bulk) en oavhuggen bodyPreview'
   );
 });
+
+test('VAKT: att fetchSortedConversationMessages hydrerar räcker inte — varje anropsställe måste awaita', () => {
+  // Chokepunkten löser HÄLFTEN av problemet: rätt kod finns. Men
+  // fetchSortedConversationMessages blev async i och med detta, och ett
+  // anropsställe som glömmer `await` får ett Promise-objekt i stället för
+  // en array. `sorted.length` på ett Promise är `undefined`, `undefined
+  // === 0` är falskt — så "inga meddelanden"-grenen triggas INTE, men
+  // `.find`/`.filter`/`for...of` på ett Promise kastar direkt. Synligt
+  // (500), men bara om man händelsevis läser felmeddelandet rätt — inte
+  // ett skydd i sig. Samma lärdom som ovan: koden finns, men måste vara
+  // NÅBAR — och nåbarheten hänger nu på att ingen av de elva anropen
+  // tappar sin `await`.
+  const source = fs.readFileSync(path.join(ROOT, 'src', 'routes', 'ccoConversation.js'), 'utf8');
+  const code = stripComments(source);
+  // OBS: matchar bara den fristående funktionen, inte
+  // `fetchSortedConversationMessagesForKeys(` — den strängen innehåller
+  // aldrig `fetchSortedConversationMessages(` som substräng eftersom tecknet
+  // direkt efter "Messages" där är "F", inte "(".
+  const CALL = 'fetchSortedConversationMessages(';
+  const callSites = [];
+  for (let index = code.indexOf(CALL); index !== -1; index = code.indexOf(CALL, index + 1)) {
+    // Hoppa över själva funktionsdefinitionen ("async function
+    // fetchSortedConversationMessages(").
+    const precedingText = code.slice(Math.max(0, index - 40), index);
+    if (/function\s+$/.test(precedingText)) continue;
+    callSites.push(index);
+  }
+  assert.ok(
+    callSites.length >= 10,
+    'förväntade minst tio anropsställen — annars mäter testet fel fil'
+  );
+  for (const index of callSites) {
+    const precedingText = code.slice(Math.max(0, index - 60), index);
+    assert.match(
+      precedingText,
+      /(await|return)\s*$/,
+      `anropet vid tecken ${index} måste awaitas eller returneras direkt — annars blir "sorted" ett Promise`
+    );
+  }
+});
