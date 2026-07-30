@@ -33,6 +33,7 @@ const {
 } = require('../ops/ccoContactFormIdentity');
 const { toCanonicalMailboxConversationKey } = require('../ops/ccoMailboxTruthWorklistReadModel');
 const { computeReplyConfidence } = require('../ops/replyConfidencePanel');
+const { normalizeCidCandidates, rewriteCidImageReferences } = require('../ops/ccoCidImageRewrite');
 const {
   ANSWERED_CATEGORY_PREFIX,
   ANSWERED_CATEGORY_COLOR,
@@ -560,14 +561,10 @@ function mergeConversationAttachments(...messages) {
   return merged;
 }
 
+// Tunn wrapper: resten av filen (t.ex. hasCidWithoutLocalAsset) förväntar sig
+// en enda nyckel, inte kandidatlistan rewriteMailCidImageSources behöver.
 function normalizeContentId(value = '') {
-  const raw = normalizeText(value).replace(/^cid:/i, '').replace(/^<|>$/g, '').trim();
-  if (!raw) return '';
-  try {
-    return decodeURIComponent(raw).toLowerCase();
-  } catch (_err) {
-    return raw.toLowerCase();
-  }
+  return normalizeCidCandidates(value)[0] || '';
 }
 
 function buildInlineAttachmentUrlMap(attachments = []) {
@@ -581,7 +578,7 @@ function buildInlineAttachmentUrlMap(attachments = []) {
       normalizeText(safe.href);
     if (!url) return;
     [safe.contentId, safe.id, safe.attachmentId, safe.name]
-      .map(normalizeContentId)
+      .flatMap((field) => normalizeCidCandidates(field))
       .filter(Boolean)
       .forEach((key) => {
         if (!map.has(key)) map.set(key, url);
@@ -590,33 +587,7 @@ function buildInlineAttachmentUrlMap(attachments = []) {
   return map;
 }
 
-// ORD-93: en cid: som webbläsaren inte kan lösa upp visas som en trasig
-// bildikon — utan felmeddelande, utan logg, utan spår. Samma princip som
-// konversationer.html redan använder för äldre mail utan bilagemetadata:
-// aldrig en trasig cid: kvar, alltid en synlig markering.
-const CID_MISSING_IMAGE_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 64" width="96" height="64">' +
-  '<rect width="96" height="64" rx="6" fill="#f2efec"/>' +
-  '<rect x="14" y="14" width="68" height="36" rx="4" fill="none" stroke="#c2aa9c" stroke-width="2"/>' +
-  '<circle cx="30" cy="28" r="4" fill="#c2aa9c"/>' +
-  '<path d="M20 44 L34 30 L44 38 L54 26 L76 44" fill="none" stroke="#c2aa9c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-  '</svg>';
-const CID_MISSING_IMAGE_PLACEHOLDER = `data:image/svg+xml;utf8,${encodeURIComponent(CID_MISSING_IMAGE_SVG)}`;
-const CID_MISSING_IMAGE_TITLE = 'Bilden kunde inte visas — bilagemetadata saknas i truth-lagret';
-
-function toCidMissingImageMarkup(prefix, quote) {
-  return (
-    `${prefix}${quote}${CID_MISSING_IMAGE_PLACEHOLDER}${quote}` +
-    ` title=${quote}${CID_MISSING_IMAGE_TITLE}${quote} data-cid-missing="true"`
-  );
-}
-
 function rewriteMailCidImageSources(html = '', attachments = []) {
-  const safeHtml = normalizeText(html);
-  if (!safeHtml || !/cid:|about:blank/i.test(safeHtml)) return safeHtml;
-  // Ingen early-return när kartan är tom: en tom karta betyder att INGEN
-  // cid: kan lösas, inte att inget behöver göras. Utan reglerna nedan
-  // överlever varje cid: oförändrad in i webbläsaren.
   const cidMap = buildInlineAttachmentUrlMap(attachments);
   const inlineImages = asArray(attachments).filter(
     (attachment) =>
@@ -626,20 +597,7 @@ function rewriteMailCidImageSources(html = '', attachments = []) {
     inlineImages.length === 1
       ? normalizeText(inlineImages[0].inlineUrl || inlineImages[0].openUrl)
       : '';
-  return safeHtml
-    .replace(/\b(src\s*=\s*)(["'])cid:([^"']+)\2/gi, (match, prefix, quote, rawCid) => {
-      const url = cidMap.get(normalizeContentId(rawCid));
-      return url ? `${prefix}${quote}${url}${quote}` : toCidMissingImageMarkup(prefix, quote);
-    })
-    .replace(/url\(\s*(['"]?)cid:([^)'"\\]+)\1\s*\)/gi, (match, _quote, rawCid) => {
-      const url = cidMap.get(normalizeContentId(rawCid));
-      return url ? `url("${url}")` : `url("${CID_MISSING_IMAGE_PLACEHOLDER}")`;
-    })
-    .replace(/\b(src\s*=\s*)(["'])about:blank(?:\2|$)/gi, (match, prefix, quote) => {
-      return fallbackInlineUrl
-        ? `${prefix}${quote}${fallbackInlineUrl}${quote}`
-        : toCidMissingImageMarkup(prefix, quote);
-    });
+  return rewriteCidImageReferences(html, cidMap, { fallbackInlineUrl, handleAboutBlank: true });
 }
 
 function objectHasKeys(value) {

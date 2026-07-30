@@ -1,3 +1,7 @@
+// ORD-93: delad med microsoftGraphReadConnector.js — se ccoCidImageRewrite.js
+// för varför en tredje kopia av samma normalisering inte får komma tillbaka.
+const { normalizeCidCandidates: normalizeInlineCidValue } = require('./ccoCidImageRewrite');
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -8,20 +12,6 @@ function asArray(value) {
 
 function normalizeContentType(value = '') {
   return normalizeText(value).toLowerCase();
-}
-
-function normalizeInlineCidValue(value = '') {
-  const normalized = normalizeText(value)
-    .replace(/^cid:/i, '')
-    .replace(/^<|>$/g, '')
-    .trim()
-    .toLowerCase();
-  if (!normalized) return [];
-  const candidates = new Set([normalized]);
-  if (normalized.includes('/')) {
-    candidates.add(normalized.split('/')[0]);
-  }
-  return Array.from(candidates).filter(Boolean);
 }
 
 function extractDataImageContentType(value = '') {
@@ -75,9 +65,7 @@ function countCanonicalMailAssetFamilies(assets = []) {
 function extractInlineAssetReferences(bodyHtml = '') {
   const html = normalizeText(bodyHtml);
   if (!html) return [];
-  const matches = Array.from(
-    html.matchAll(/<img\b([^>]*)\bsrc\s*=\s*(["'])(.*?)\2([^>]*)>/gi)
-  );
+  const matches = Array.from(html.matchAll(/<img\b([^>]*)\bsrc\s*=\s*(["'])(.*?)\2([^>]*)>/gi));
   return matches.map((match, index) => {
     const attrs = `${match?.[1] || ''} ${match?.[4] || ''}`;
     const src = normalizeText(match?.[3]);
@@ -107,7 +95,8 @@ function normalizeAttachmentMetadata(attachment = {}) {
   const contentId = normalizeText(attachment?.contentId);
   const size = Number(attachment?.size || 0);
   const contentBytesAvailable =
-    attachment?.contentBytesAvailable === true || normalizeText(attachment?.contentBytes).length > 0;
+    attachment?.contentBytesAvailable === true ||
+    normalizeText(attachment?.contentBytes).length > 0;
   if (!id && !name && !contentType && !contentId && !size) return null;
   return {
     id: id || null,
@@ -117,7 +106,8 @@ function normalizeAttachmentMetadata(attachment = {}) {
     isInline: attachment?.isInline === true,
     size: Number.isFinite(size) && size > 0 ? size : 0,
     contentBytesAvailable,
-    sourceType: normalizeText(attachment?.sourceType || 'message_attachment') || 'message_attachment',
+    sourceType:
+      normalizeText(attachment?.sourceType || 'message_attachment') || 'message_attachment',
   };
 }
 
@@ -298,7 +288,9 @@ function buildCanonicalMailAssets({
     return registry;
   }, {});
   const inlineAssets = allAssets.filter((asset) => asset?.disposition === 'inline');
-  const attachmentList = allAssets.filter((asset) => attachmentAssetIds.has(normalizeText(asset?.assetId)));
+  const attachmentList = allAssets.filter((asset) =>
+    attachmentAssetIds.has(normalizeText(asset?.assetId))
+  );
   const familyCounts = countCanonicalMailAssetFamilies(allAssets);
 
   return {
@@ -314,9 +306,11 @@ function buildCanonicalMailAssets({
       downloadableCount: allAssets.filter((asset) => asset?.download?.available === true).length,
       renderableInlineCount: inlineAssets.filter((asset) => asset?.render?.safe === true).length,
       unresolvedInlineCount: inlineAssets.filter((asset) =>
-        ['cid_unresolved', 'cid_attachment_metadata_only', 'inline_attachment_metadata_only'].includes(
-          normalizeText(asset?.render?.state)
-        )
+        [
+          'cid_unresolved',
+          'cid_attachment_metadata_only',
+          'inline_attachment_metadata_only',
+        ].includes(normalizeText(asset?.render?.state))
       ).length,
     },
   };

@@ -1,5 +1,11 @@
 const crypto = require('node:crypto');
 const { maskInboxText } = require('../privacy/inboxMasking');
+// ORD-93: delad med ccoMailAssetLayer.js — se ccoCidImageRewrite.js för
+// varför en tredje kopia av samma normalisering inte får komma tillbaka.
+// OBS: rewriteCidImageReferences (samma fil) importeras INTE här —
+// resolveInlineCidImages nedan är skrivvägen och har ett annat kontrakt,
+// se kommentaren ovanför den.
+const { normalizeCidCandidates: normalizeInlineCidValue } = require('../ops/ccoCidImageRewrite');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -47,8 +53,14 @@ function sanitizeStoredBodyHtml(value = '') {
   const html = normalizeText(value);
   if (!html) return '';
   const sanitized = html
-    .replace(/<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
-    .replace(/<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base)[^>]*\/?\s*>/gi, '')
+    .replace(
+      /<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi,
+      ''
+    )
+    .replace(
+      /<\s*(script|style|iframe|object|embed|form|input|button|textarea|select|meta|link|base)[^>]*\/?\s*>/gi,
+      ''
+    )
     .replace(/\son[a-z]+\s*=\s*(['"]).*?\1/gi, '')
     .replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, '')
     .replace(/\s(src|href)\s*=\s*(['"])\s*(javascript:|data:text\/html)[\s\S]*?\2/gi, ' $1="#"');
@@ -67,20 +79,6 @@ function extractInlineCidReferences(bodyHtml = '') {
     values.add(raw);
   }
   return Array.from(values);
-}
-
-function normalizeInlineCidValue(value = '') {
-  const normalized = normalizeText(value)
-    .replace(/^cid:/i, '')
-    .replace(/^<|>$/g, '')
-    .trim()
-    .toLowerCase();
-  if (!normalized) return [];
-  const candidates = new Set([normalized]);
-  if (normalized.includes('/')) {
-    candidates.add(normalized.split('/')[0]);
-  }
-  return Array.from(candidates).filter(Boolean);
 }
 
 function buildInlineAttachmentReplacementMap(attachments = []) {
@@ -103,6 +101,16 @@ function buildInlineAttachmentReplacementMap(attachments = []) {
   return replacements;
 }
 
+// ORD-93: SKRIVVÄGEN, INTE LÄSVÄGEN — rör inte tillsammans med
+// rewriteCidImageReferences (ccoCidImageRewrite.js).
+//
+// Den här funktionen körs vid ingestion, innan lagring. Ett olöst cid: MÅSTE
+// lämnas oförändrat: toStoredBodyHtml (ccoMailboxTruthStore.js) strippar
+// redan lösta data:-URI:er ovillkorligt, så bara en kvarlämnad cid:-referens
+// går att reparera senare med lokal bilagemetadata. En permanent
+// "saknas"-markör här, före den lokala kopplingen ens finns, skulle göra ett
+// annars lagningsbart fall olagbart. Mätt 2026-07-30: 15 av 594 <img> i
+// fazli@ är redan src="#" — precis den skadan, i produktion.
 function resolveInlineCidImages(bodyHtml = '', attachments = []) {
   const html = normalizeText(bodyHtml);
   if (!html) return '';
@@ -324,7 +332,8 @@ function toEmailAliases(value = '') {
     const tld = normalizeText(domainRootMatch[2]).toLowerCase();
     if (domainRoot) {
       aliases.add(`${plusNormalized}@${domainRoot}.${tld === 'com' ? 'se' : 'com'}`);
-      if (separatorless) aliases.add(`${separatorless}@${domainRoot}.${tld === 'com' ? 'se' : 'com'}`);
+      if (separatorless)
+        aliases.add(`${separatorless}@${domainRoot}.${tld === 'com' ? 'se' : 'com'}`);
     }
   }
   return Array.from(aliases);
@@ -399,10 +408,7 @@ function toEmailAliasFingerprint(value = '') {
   const email = normalizeEmailAddress(value);
   if (!email) return null;
   const [rawLocal = '', rawDomain = ''] = email.split('@');
-  const local = normalizeText(rawLocal)
-    .toLowerCase()
-    .replace(/\+.*/, '')
-    .replace(/[._-]/g, '');
+  const local = normalizeText(rawLocal).toLowerCase().replace(/\+.*/, '').replace(/[._-]/g, '');
   if (!local) return null;
   const domain = normalizeText(rawDomain).toLowerCase();
   if (!domain) return null;
@@ -422,7 +428,10 @@ function isEmailAliasFuzzyMatch(left = '', right = '') {
   if (a.local === b.local) return true;
   const lengthGap = Math.abs(a.local.length - b.local.length);
   if (lengthGap > 2) return false;
-  const maxDistance = Math.max(1, Math.min(2, Math.floor(Math.max(a.local.length, b.local.length) / 6)));
+  const maxDistance = Math.max(
+    1,
+    Math.min(2, Math.floor(Math.max(a.local.length, b.local.length) / 6))
+  );
   const distance = computeLevenshteinDistance(a.local, b.local, maxDistance);
   return Number.isFinite(distance) && distance <= maxDistance;
 }
@@ -464,7 +473,10 @@ function parseGraphServiceCode(payload = {}) {
   return normalizeText(graphError.code || payload?.error || '');
 }
 
-function createGraphError(message, { code = '', status = 0, retryAfterSeconds = null, details = null } = {}) {
+function createGraphError(
+  message,
+  { code = '', status = 0, retryAfterSeconds = null, details = null } = {}
+) {
   const error = new Error(normalizeText(message) || 'graph_request_failed');
   if (code) error.code = code;
   if (Number.isFinite(Number(status)) && Number(status) > 0) error.status = Number(status);
@@ -674,7 +686,13 @@ function conversationMatchesIdFilter(conversation = {}, filterSet = new Set()) {
 
 function toNormalizedMessage(
   raw = {},
-  { mailboxId = '', mailboxKey = '', mailboxAddress = '', userPrincipalName = '', direction = 'inbound' } = {}
+  {
+    mailboxId = '',
+    mailboxKey = '',
+    mailboxAddress = '',
+    userPrincipalName = '',
+    direction = 'inbound',
+  } = {}
 ) {
   const messageId = normalizeText(raw.id);
   if (!messageId) return null;
@@ -694,7 +712,9 @@ function toNormalizedMessage(
   const senderName = normalizeText(raw?.from?.emailAddress?.name);
   const recipients = toRecipientList(raw?.toRecipients);
   const replyToRecipients = toReplyToList(raw?.replyTo);
-  const internetHeaders = Array.isArray(raw?.internetMessageHeaders) ? raw.internetMessageHeaders : [];
+  const internetHeaders = Array.isArray(raw?.internetMessageHeaders)
+    ? raw.internetMessageHeaders
+    : [];
   const inReplyTo =
     normalizeHeaderMessageId(raw?.inReplyTo) ||
     normalizeHeaderMessageId(toHeaderValue(internetHeaders, 'in-reply-to')) ||
@@ -726,9 +746,7 @@ function toNormalizedMessage(
     direction: normalizedDirection,
     hasAttachments: raw?.hasAttachments === true || attachments.length > 0,
     isRead:
-      normalizedDirection === 'inbound' && typeof raw?.isRead === 'boolean'
-        ? raw.isRead
-        : null,
+      normalizedDirection === 'inbound' && typeof raw?.isRead === 'boolean' ? raw.isRead : null,
     senderEmail: senderEmail || null,
     senderName: senderName || null,
     recipients,
@@ -894,7 +912,9 @@ function toConversationSnapshots(messages = []) {
       replyToRecipients: asArray(message.replyToRecipients).slice(0, 20),
       internetMessageId: normalizeHeaderMessageId(message.internetMessageId) || null,
       inReplyTo: normalizeHeaderMessageId(message.inReplyTo) || null,
-      references: asArray(message.references).map((item) => normalizeHeaderMessageId(item)).filter(Boolean),
+      references: asArray(message.references)
+        .map((item) => normalizeHeaderMessageId(item))
+        .filter(Boolean),
     });
     if (messageDirection === 'inbound') {
       if (message.sentAt && compareIsoDesc(entry.lastInboundAt, message.sentAt) > 0) {
@@ -967,7 +987,10 @@ function toMailboxIdentity(user = {}, fallback = '') {
   const mail = normalizeText(safeUser.mail);
   const userPrincipalName = normalizeText(safeUser.userPrincipalName);
   const mailboxId = mail || userPrincipalName || id;
-  const mailboxKey = normalizeText(mailboxId).replace(/[^a-zA-Z0-9._@-]/g, '_').slice(0, 120) || 'mailbox';
+  const mailboxKey =
+    normalizeText(mailboxId)
+      .replace(/[^a-zA-Z0-9._@-]/g, '_')
+      .slice(0, 120) || 'mailbox';
   return {
     id,
     mailboxId,
@@ -979,7 +1002,9 @@ function toMailboxIdentity(user = {}, fallback = '') {
 
 function matchesMailboxIdFilter(user = {}, rawFilter = '') {
   const filterAliases = new Set(
-    toEmailAliases(rawFilter).map((item) => normalizeText(item).toLowerCase()).filter(Boolean)
+    toEmailAliases(rawFilter)
+      .map((item) => normalizeText(item).toLowerCase())
+      .filter(Boolean)
   );
   const normalizedFilter = normalizeText(rawFilter).toLowerCase();
   if (normalizedFilter) filterAliases.add(normalizedFilter);
@@ -1042,20 +1067,14 @@ const MAILBOX_TRUTH_FOLDER_SPECS = Object.freeze([
 
 function resolveMailboxTruthFolderSpecs(requestedFolders = null) {
   const requested = Array.isArray(requestedFolders)
-    ? requestedFolders
-        .map((item) => normalizeText(item).toLowerCase())
-        .filter(Boolean)
+    ? requestedFolders.map((item) => normalizeText(item).toLowerCase()).filter(Boolean)
     : [];
   if (requested.length === 0) return MAILBOX_TRUTH_FOLDER_SPECS.slice();
   const requestedSet = new Set(requested);
   return MAILBOX_TRUTH_FOLDER_SPECS.filter((item) => requestedSet.has(item.folderType));
 }
 
-function toFolderMetadataUrl({
-  graphBaseUrl,
-  userId,
-  graphFolderName,
-}) {
+function toFolderMetadataUrl({ graphBaseUrl, userId, graphFolderName }) {
   const folderUrl = new URL(
     `${graphBaseUrl}/users/${encodeURIComponent(userId)}/mailFolders/${encodeURIComponent(
       graphFolderName
@@ -1128,12 +1147,7 @@ function toFolderMessagesUrl({
   return messagesUrl;
 }
 
-function toFolderMessagesDeltaUrl({
-  graphBaseUrl,
-  userId,
-  graphFolderName,
-  maxMessages,
-}) {
+function toFolderMessagesDeltaUrl({ graphBaseUrl, userId, graphFolderName, maxMessages }) {
   const messagesUrl = new URL(
     `${graphBaseUrl}/users/${encodeURIComponent(userId)}/mailFolders/${encodeURIComponent(
       graphFolderName
@@ -1168,11 +1182,7 @@ function toFolderMessagesDeltaUrl({
   return messagesUrl;
 }
 
-function inferMailboxTruthDirection({
-  raw = {},
-  folderType = 'unknown',
-  mailboxAliases = [],
-}) {
+function inferMailboxTruthDirection({ raw = {}, folderType = 'unknown', mailboxAliases = [] }) {
   if (folderType === 'inbox') return 'inbound';
   if (folderType === 'sent') return 'outbound';
   if (folderType === 'drafts') return 'draft';
@@ -1353,13 +1363,7 @@ function toInboxMessagesUrl({
   return messagesUrl;
 }
 
-function toSentMessagesUrl({
-  graphBaseUrl,
-  userId,
-  maxMessages,
-  sentSinceIso,
-  sentUntilIso,
-}) {
+function toSentMessagesUrl({ graphBaseUrl, userId, maxMessages, sentSinceIso, sentUntilIso }) {
   const messagesUrl = new URL(
     `${graphBaseUrl}/users/${encodeURIComponent(userId)}/mailFolders/SentItems/messages`
   );
@@ -1394,7 +1398,10 @@ function createMicrosoftGraphReadConnector(config = {}) {
   const clientId = requiredConfig('clientId', config.clientId);
   const clientSecret = requiredConfig('clientSecret', config.clientSecret);
   const configuredFullTenant = toBoolean(config.fullTenant, false);
-  const configuredUserScope = normalizeUserScope(config.userScope, configuredFullTenant ? 'all' : 'single');
+  const configuredUserScope = normalizeUserScope(
+    config.userScope,
+    configuredFullTenant ? 'all' : 'single'
+  );
   const userId = normalizeText(config.userId);
   if (!(configuredFullTenant && configuredUserScope === 'all')) {
     requiredConfig('userId', userId);
@@ -1444,9 +1451,12 @@ function createMicrosoftGraphReadConnector(config = {}) {
     const payload = await parseJsonResponse(response, 'Microsoft Graph token request');
     const accessToken = normalizeText(payload.access_token);
     if (!accessToken) {
-      throw createGraphError('Microsoft Graph token request succeeded but access_token is missing.', {
-        code: 'GRAPH_TOKEN_MISSING',
-      });
+      throw createGraphError(
+        'Microsoft Graph token request succeeded but access_token is missing.',
+        {
+          code: 'GRAPH_TOKEN_MISSING',
+        }
+      );
     }
     return accessToken;
   }
@@ -1654,12 +1664,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
       seenPageUrls.add(normalizedPageUrl);
       pageCount += 1;
       if (pageCount > safeMaxPages) {
-        throw createGraphError(
-          `${label} exceeded pagination page limit (${safeMaxPages}).`,
-          {
-            code: 'GRAPH_PAGINATION_PAGE_LIMIT',
-          }
-        );
+        throw createGraphError(`${label} exceeded pagination page limit (${safeMaxPages}).`, {
+          code: 'GRAPH_PAGINATION_PAGE_LIMIT',
+        });
       }
 
       const payload = await fetchGraphPageWithRetry({
@@ -1733,7 +1740,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
         contentId: normalizeText(item?.contentId) || null,
         isInline: item?.isInline === true,
         size: toNumber(item?.size, 0),
-        sourceType: normalizeText(item?.['@odata.type'] || 'graph_file_attachment') || 'graph_file_attachment',
+        sourceType:
+          normalizeText(item?.['@odata.type'] || 'graph_file_attachment') ||
+          'graph_file_attachment',
         contentBytes: (() => {
           const contentType = normalizeText(item?.contentType).toLowerCase();
           const contentBytes = normalizeText(item?.contentBytes);
@@ -1747,9 +1756,8 @@ function createMicrosoftGraphReadConnector(config = {}) {
           return contentBytes;
         })(),
       }))
-      .filter(
-        (item) =>
-          Boolean(item?.id || item?.name || item?.contentType || item?.contentId || item?.size)
+      .filter((item) =>
+        Boolean(item?.id || item?.name || item?.contentType || item?.contentId || item?.size)
       );
   }
 
@@ -1887,8 +1895,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
       contentId: normalizeText(metadata?.contentId) || null,
       buffer: contentBuffer,
       sourceType:
-        normalizeText(metadata?.sourceType || metadata?.['@odata.type'] || 'graph_file_attachment') ||
-        'graph_file_attachment',
+        normalizeText(
+          metadata?.sourceType || metadata?.['@odata.type'] || 'graph_file_attachment'
+        ) || 'graph_file_attachment',
     };
   }
 
@@ -1906,7 +1915,10 @@ function createMicrosoftGraphReadConnector(config = {}) {
     for (const message of asArray(messages)) {
       const graphMessageId = normalizeText(message?.graphMessageId || message?.messageId);
       const targetUserId = normalizeText(
-        message?.userPrincipalName || message?.mailboxAddress || message?.mailboxId || fallbackUserId
+        message?.userPrincipalName ||
+          message?.mailboxAddress ||
+          message?.mailboxId ||
+          fallbackUserId
       );
       if (!graphMessageId || !targetUserId) continue;
       for (const attachment of asArray(message?.attachments)) {
@@ -1956,9 +1968,14 @@ function createMicrosoftGraphReadConnector(config = {}) {
     let skipped = 0;
     let failed = 0;
     for (const message of asArray(messages)) {
-      const graphMessageId = normalizeText(message?.id || message?.graphMessageId || message?.messageId);
+      const graphMessageId = normalizeText(
+        message?.id || message?.graphMessageId || message?.messageId
+      );
       const targetUserId = normalizeText(
-        message?.userPrincipalName || message?.mailboxAddress || message?.mailboxId || fallbackUserId
+        message?.userPrincipalName ||
+          message?.mailboxAddress ||
+          message?.mailboxId ||
+          fallbackUserId
       );
       const bodyHtml = normalizeText(message?.body?.content || message?.bodyHtml);
       if (!graphMessageId || !targetUserId || !bodyHtml) continue;
@@ -1986,7 +2003,10 @@ function createMicrosoftGraphReadConnector(config = {}) {
           else skipped += 1;
         } catch (error) {
           failed += 1;
-          console.warn(`[cco-mail-assets] kunde inte cacha inlinebild (${label})`, error?.message || error);
+          console.warn(
+            `[cco-mail-assets] kunde inte cacha inlinebild (${label})`,
+            error?.message || error
+          );
         }
       }
     }
@@ -2020,7 +2040,8 @@ function createMicrosoftGraphReadConnector(config = {}) {
     const safeMessages = Array.isArray(rawMessages) ? rawMessages : [];
     const enriched = [];
     for (const rawMessage of safeMessages) {
-      const safeMessage = rawMessage && typeof rawMessage === 'object' ? { ...rawMessage } : rawMessage;
+      const safeMessage =
+        rawMessage && typeof rawMessage === 'object' ? { ...rawMessage } : rawMessage;
       const bodyContent = normalizeText(safeMessage?.body?.content);
       const embeddedImages = extractEmbeddedDataImages(bodyContent);
       if (embeddedImages.length && mailAssetCache) {
@@ -2033,7 +2054,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
         let rewrittenBody = bodyContent;
         for (const image of embeddedImages) {
           const context = {
-            mailboxId: normalizeText(safeMessage?.mailboxId || safeMessage?.mailboxAddress || userId),
+            mailboxId: normalizeText(
+              safeMessage?.mailboxId || safeMessage?.mailboxAddress || userId
+            ),
             messageId: normalizeText(safeMessage?.id),
             attachmentId: image.attachmentId,
           };
@@ -2092,8 +2115,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
             content: resolveInlineCidImages(bodyContent, resolvedAttachments),
           };
         }
-      } catch (_error) {
-      }
+      } catch (_error) {}
       enriched.push(safeMessage);
     }
     return enriched;
@@ -2131,9 +2153,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
     const enriched = [];
     for (const message of safeMessages) {
       const safeMessage = message && typeof message === 'object' ? { ...message } : message;
-      const graphMessageId = normalizeText(
-        safeMessage?.graphMessageId || safeMessage?.messageId
-      );
+      const graphMessageId = normalizeText(safeMessage?.graphMessageId || safeMessage?.messageId);
       const targetUserId = normalizeText(
         safeMessage?.userPrincipalName ||
           safeMessage?.mailboxAddress ||
@@ -2168,8 +2188,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
             resolveInlineCidImages(bodyHtml, resolvedAttachments)
           );
         }
-      } catch (_error) {
-      }
+      } catch (_error) {}
       enriched.push(safeMessage);
     }
     return enriched;
@@ -2188,7 +2207,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
     const requestedFolderType = normalizeText(options.folderType).toLowerCase();
     const folderSpec = resolveMailboxTruthFolderSpecs([requestedFolderType])[0];
     if (!folderSpec) {
-      throw new Error(`MicrosoftGraphReadConnector unknown mailbox truth folderType: ${requestedFolderType || 'missing'}.`);
+      throw new Error(
+        `MicrosoftGraphReadConnector unknown mailbox truth folderType: ${requestedFolderType || 'missing'}.`
+      );
     }
 
     const includeReadMessages = options.includeRead !== false;
@@ -2216,26 +2237,27 @@ function createMicrosoftGraphReadConnector(config = {}) {
     const providedIdentity = {
       id: normalizeText(options.graphUserId) || targetUserId,
       mail:
-        normalizeText(options.mailboxAddress) ||
-        normalizeText(options.mailboxId) ||
-        targetUserId,
+        normalizeText(options.mailboxAddress) || normalizeText(options.mailboxId) || targetUserId,
       userPrincipalName: normalizeText(options.userPrincipalName) || targetUserId,
     };
     const identity = toMailboxIdentity(providedIdentity, targetUserId);
     const accessToken = await fetchAccessToken();
 
-    let folderMetadata = options.folderMetadata && typeof options.folderMetadata === 'object'
-      ? {
-          folderId: normalizeText(options.folderMetadata.folderId || options.folderMetadata.id) || null,
-          folderName:
-            normalizeText(options.folderMetadata.folderName || options.folderMetadata.displayName) ||
-            folderSpec.fallbackDisplayName,
-          wellKnownName:
-            normalizeText(options.folderMetadata.wellKnownName) || folderSpec.graphFolderName,
-          totalItemCount: toNumber(options.folderMetadata.totalItemCount, 0),
-          unreadItemCount: toNumber(options.folderMetadata.unreadItemCount, 0),
-        }
-      : null;
+    let folderMetadata =
+      options.folderMetadata && typeof options.folderMetadata === 'object'
+        ? {
+            folderId:
+              normalizeText(options.folderMetadata.folderId || options.folderMetadata.id) || null,
+            folderName:
+              normalizeText(
+                options.folderMetadata.folderName || options.folderMetadata.displayName
+              ) || folderSpec.fallbackDisplayName,
+            wellKnownName:
+              normalizeText(options.folderMetadata.wellKnownName) || folderSpec.graphFolderName,
+            totalItemCount: toNumber(options.folderMetadata.totalItemCount, 0),
+            unreadItemCount: toNumber(options.folderMetadata.unreadItemCount, 0),
+          }
+        : null;
 
     if (!folderMetadata || !normalizeText(folderMetadata.folderId)) {
       const metadataPayload = await fetchGraphPageWithRetry({
@@ -2253,10 +2275,8 @@ function createMicrosoftGraphReadConnector(config = {}) {
       });
       folderMetadata = {
         folderId: normalizeText(metadataPayload?.id) || null,
-        folderName:
-          normalizeText(metadataPayload?.displayName) || folderSpec.fallbackDisplayName,
-        wellKnownName:
-          normalizeText(metadataPayload?.wellKnownName) || folderSpec.graphFolderName,
+        folderName: normalizeText(metadataPayload?.displayName) || folderSpec.fallbackDisplayName,
+        wellKnownName: normalizeText(metadataPayload?.wellKnownName) || folderSpec.graphFolderName,
         totalItemCount: toNumber(metadataPayload?.totalItemCount, 0),
         unreadItemCount: toNumber(metadataPayload?.unreadItemCount, 0),
       };
@@ -2357,7 +2377,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
   async function fetchMailboxTruthFolderDeltaPage(options = {}) {
     const targetUserId = normalizeText(options.userId || userId);
     if (!targetUserId) {
-      throw new Error('MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage requires userId.');
+      throw new Error(
+        'MicrosoftGraphReadConnector fetchMailboxTruthFolderDeltaPage requires userId.'
+      );
     }
     const requestedFolderType = normalizeText(options.folderType).toLowerCase();
     const folderSpec = resolveMailboxTruthFolderSpecs([requestedFolderType])[0];
@@ -2378,9 +2400,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
     const providedIdentity = {
       id: normalizeText(options.graphUserId) || targetUserId,
       mail:
-        normalizeText(options.mailboxAddress) ||
-        normalizeText(options.mailboxId) ||
-        targetUserId,
+        normalizeText(options.mailboxAddress) || normalizeText(options.mailboxId) || targetUserId,
       userPrincipalName: normalizeText(options.userPrincipalName) || targetUserId,
     };
     const identity = toMailboxIdentity(providedIdentity, targetUserId);
@@ -2389,10 +2409,12 @@ function createMicrosoftGraphReadConnector(config = {}) {
     let folderMetadata =
       options.folderMetadata && typeof options.folderMetadata === 'object'
         ? {
-            folderId: normalizeText(options.folderMetadata.folderId || options.folderMetadata.id) || null,
+            folderId:
+              normalizeText(options.folderMetadata.folderId || options.folderMetadata.id) || null,
             folderName:
-              normalizeText(options.folderMetadata.folderName || options.folderMetadata.displayName) ||
-              folderSpec.fallbackDisplayName,
+              normalizeText(
+                options.folderMetadata.folderName || options.folderMetadata.displayName
+              ) || folderSpec.fallbackDisplayName,
             wellKnownName:
               normalizeText(options.folderMetadata.wellKnownName) || folderSpec.graphFolderName,
             totalItemCount: toNumber(options.folderMetadata.totalItemCount, 0),
@@ -2416,10 +2438,8 @@ function createMicrosoftGraphReadConnector(config = {}) {
       });
       folderMetadata = {
         folderId: normalizeText(metadataPayload?.id) || null,
-        folderName:
-          normalizeText(metadataPayload?.displayName) || folderSpec.fallbackDisplayName,
-        wellKnownName:
-          normalizeText(metadataPayload?.wellKnownName) || folderSpec.graphFolderName,
+        folderName: normalizeText(metadataPayload?.displayName) || folderSpec.fallbackDisplayName,
+        wellKnownName: normalizeText(metadataPayload?.wellKnownName) || folderSpec.graphFolderName,
         totalItemCount: toNumber(metadataPayload?.totalItemCount, 0),
         unreadItemCount: toNumber(metadataPayload?.unreadItemCount, 0),
       };
@@ -2514,7 +2534,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
           .filter(Boolean)
       : [];
     await cacheMailboxTruthMessageAssets({
-      messages: changes.filter((change) => change?.changeType === 'upsert').map((change) => change.message),
+      messages: changes
+        .filter((change) => change?.changeType === 'upsert')
+        .map((change) => change.message),
       fallbackUserId: targetUserId,
       label: `Microsoft Graph local mail asset cache (${identity.mailboxId || targetUserId} · ${folderSpec.folderType} delta)`,
     });
@@ -2566,7 +2588,11 @@ function createMicrosoftGraphReadConnector(config = {}) {
     const includeReadMessages = options.includeRead === true;
     const explicitSinceIso = toIso(options.sinceIso);
     const explicitUntilIso = toIso(options.untilIso);
-    if (explicitSinceIso && explicitUntilIso && Date.parse(explicitUntilIso) <= Date.parse(explicitSinceIso)) {
+    if (
+      explicitSinceIso &&
+      explicitUntilIso &&
+      Date.parse(explicitUntilIso) <= Date.parse(explicitSinceIso)
+    ) {
       throw new Error('MicrosoftGraphReadConnector untilIso must be later than sinceIso.');
     }
     const fallbackSinceIso = toIsoFromMs(nowMs - windowDays * 24 * 60 * 60 * 1000);
@@ -2591,18 +2617,8 @@ function createMicrosoftGraphReadConnector(config = {}) {
     const splitPerUserDefault = Math.max(1, Math.floor(maxMessagesPerUser / 2));
     const defaultInboxMaxMessagesPerUser = Math.max(1, maxMessagesPerUser - splitPerUserDefault);
     const defaultSentMaxMessagesPerUser = splitPerUserDefault;
-    const maxInboxMessages = clampInt(
-      options.maxInboxMessages,
-      1,
-      200,
-      defaultInboxMaxMessages
-    );
-    const maxSentMessages = clampInt(
-      options.maxSentMessages,
-      1,
-      200,
-      defaultSentMaxMessages
-    );
+    const maxInboxMessages = clampInt(options.maxInboxMessages, 1, 200, defaultInboxMaxMessages);
+    const maxSentMessages = clampInt(options.maxSentMessages, 1, 200, defaultSentMaxMessages);
     const maxInboxMessagesPerUser = clampInt(
       options.maxInboxMessagesPerUser,
       1,
@@ -2744,7 +2760,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
       const runStartedAt = Date.now();
       const mailboxIdFilterActive = mailboxIdFilter.length > 0;
       const usersListingTop = mailboxIdFilterActive ? Math.max(200, maxUsers) : maxUsers;
-      const usersListingMaxItems = mailboxIdFilterActive ? Math.max(500, usersListingTop) : maxUsers;
+      const usersListingMaxItems = mailboxIdFilterActive
+        ? Math.max(500, usersListingTop)
+        : maxUsers;
 
       const usersUrl = new URL(`${graphBaseUrl}/users`);
       usersUrl.searchParams.set('$top', String(Math.min(999, usersListingTop)));
@@ -2785,14 +2803,20 @@ function createMicrosoftGraphReadConnector(config = {}) {
         if (mailboxIdFilter.length > 0) {
           const mailboxMatchPool = users.length > 0 ? users : limitedUsers;
           mailboxIdFilter.forEach((mailboxId) => {
-            const matched = mailboxMatchPool.find((user) => matchesMailboxIdFilter(user, mailboxId));
+            const matched = mailboxMatchPool.find((user) =>
+              matchesMailboxIdFilter(user, mailboxId)
+            );
             if (matched) includeUser(matched);
           });
         }
         return selected;
       })();
       selectedUsers.forEach((user) => {
-        [normalizeText(user.mailboxId), normalizeText(user.mail), normalizeText(user.userPrincipalName)]
+        [
+          normalizeText(user.mailboxId),
+          normalizeText(user.mail),
+          normalizeText(user.userPrincipalName),
+        ]
           .filter(Boolean)
           .forEach((mailboxId) => processedMailboxIds.add(mailboxId));
       });
@@ -2888,7 +2912,11 @@ function createMicrosoftGraphReadConnector(config = {}) {
                 .filter(Boolean)
             : [];
           const normalizedMessages = [...normalizedInboundMessages, ...normalizedOutboundMessages];
-          [normalizeText(user.mailboxId), normalizeText(user.mail), normalizeText(user.userPrincipalName)]
+          [
+            normalizeText(user.mailboxId),
+            normalizeText(user.mail),
+            normalizeText(user.userPrincipalName),
+          ]
             .filter(Boolean)
             .forEach((mailboxId) => processedMailboxIds.add(mailboxId));
 
@@ -2905,9 +2933,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
           }
 
           warnings.push(
-            `Mailbox ${normalizeText(user.mailboxId) || 'unknown'} kunde inte lasas (${normalizeText(
-              error?.message
-            ) || 'request_failed'}).`
+            `Mailbox ${normalizeText(user.mailboxId) || 'unknown'} kunde inte lasas (${
+              normalizeText(error?.message) || 'request_failed'
+            }).`
           );
 
           if (mailboxErrors > maxMailboxErrors) {
@@ -2924,8 +2952,8 @@ function createMicrosoftGraphReadConnector(config = {}) {
       if (selectedUsers.length === 0) {
         warnings.push('Full-tenant ingest hittade inga mailbox-anvandare i user-listing.');
       } else if (mailboxIndexes.length > 0) {
-        const matchedIndexes = selectedUsers.map((user) =>
-          limitedUsers.findIndex((candidate) => candidate.id === user.id) + 1
+        const matchedIndexes = selectedUsers.map(
+          (user) => limitedUsers.findIndex((candidate) => candidate.id === user.id) + 1
         );
         if (matchedIndexes.length < mailboxIndexes.length) {
           warnings.push(
@@ -2988,13 +3016,12 @@ function createMicrosoftGraphReadConnector(config = {}) {
         maxPagesPerCollection,
         mailboxIndexes,
         mailboxIdFilter,
-        mailboxIds:
-          (() => {
-            const fromConversations = Array.isArray(conversations)
-              ? conversations.map((item) => normalizeText(item?.mailboxId)).filter(Boolean)
-              : [];
-            return Array.from(new Set([...processedMailboxIds, ...fromConversations]));
-          })(),
+        mailboxIds: (() => {
+          const fromConversations = Array.isArray(conversations)
+            ? conversations.map((item) => normalizeText(item?.mailboxId)).filter(Boolean)
+            : [];
+          return Array.from(new Set([...processedMailboxIds, ...fromConversations]));
+        })(),
         mailboxErrors,
         mailboxCount,
         fetchedMessages,
@@ -3063,11 +3090,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
     let fetchedMessages = 0;
     let truncatedFolderCount = 0;
 
-    const fetchFolderPayload = async ({
-      user,
-      folderSpec,
-      maxMessages,
-    }) => {
+    const fetchFolderPayload = async ({ user, folderSpec, maxMessages }) => {
       const metadataPayload = await fetchGraphPageWithRetry({
         url: toFolderMetadataUrl({
           graphBaseUrl,
@@ -3121,7 +3144,8 @@ function createMicrosoftGraphReadConnector(config = {}) {
             folderSpec,
             maxMessages,
           });
-          const folderMetadata = payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : {};
+          const folderMetadata =
+            payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : {};
           const enrichedRawMessages = await enrichMessagesWithInlineHtmlAssets({
             rawMessages: payload.messages?.value,
             graphBaseUrl,
@@ -3157,8 +3181,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
           folders.push({
             folderType: folderSpec.folderType,
             folderId: normalizeText(folderMetadata.id) || null,
-            folderName:
-              normalizeText(folderMetadata.displayName) || folderSpec.fallbackDisplayName,
+            folderName: normalizeText(folderMetadata.displayName) || folderSpec.fallbackDisplayName,
             wellKnownName:
               normalizeText(folderMetadata.wellKnownName) || folderSpec.graphFolderName,
             fetchStatus: 'success',
@@ -3171,9 +3194,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
         } catch (error) {
           folderErrors += 1;
           warnings.push(
-            `Mailbox ${normalizeText(user.mailboxId) || 'unknown'} folder ${folderSpec.folderType} kunde inte lasas (${normalizeText(
-              error?.message
-            ) || 'request_failed'}).`
+            `Mailbox ${normalizeText(user.mailboxId) || 'unknown'} folder ${folderSpec.folderType} kunde inte lasas (${
+              normalizeText(error?.message) || 'request_failed'
+            }).`
           );
           folders.push({
             folderType: folderSpec.folderType,
@@ -3222,14 +3245,18 @@ function createMicrosoftGraphReadConnector(config = {}) {
         mailboxId: identity.mailboxId,
         mailboxAddress: identity.mail,
         userPrincipalName: identity.userPrincipalName,
-        fetchStatus: folders.some((folder) => folder.fetchStatus === 'error') ? 'partial' : 'success',
+        fetchStatus: folders.some((folder) => folder.fetchStatus === 'error')
+          ? 'partial'
+          : 'success',
         folders,
       });
     } else {
       const runStartedAt = Date.now();
       const mailboxIdFilterActive = mailboxIdFilter.length > 0;
       const usersListingTop = mailboxIdFilterActive ? Math.max(200, maxUsers) : maxUsers;
-      const usersListingMaxItems = mailboxIdFilterActive ? Math.max(500, usersListingTop) : maxUsers;
+      const usersListingMaxItems = mailboxIdFilterActive
+        ? Math.max(500, usersListingTop)
+        : maxUsers;
 
       const usersUrl = new URL(`${graphBaseUrl}/users`);
       usersUrl.searchParams.set('$top', String(Math.min(999, usersListingTop)));
@@ -3269,7 +3296,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
         if (mailboxIdFilter.length > 0) {
           const mailboxMatchPool = users.length > 0 ? users : limitedUsers;
           mailboxIdFilter.forEach((mailboxId) => {
-            const matched = mailboxMatchPool.find((user) => matchesMailboxIdFilter(user, mailboxId));
+            const matched = mailboxMatchPool.find((user) =>
+              matchesMailboxIdFilter(user, mailboxId)
+            );
             if (matched) includeUser(matched);
           });
         }
@@ -3285,7 +3314,11 @@ function createMicrosoftGraphReadConnector(config = {}) {
         }
 
         const folders = await normalizeAccountFolders(user, maxMessagesPerFolderPerUser);
-        [normalizeText(user.mailboxId), normalizeText(user.mail), normalizeText(user.userPrincipalName)]
+        [
+          normalizeText(user.mailboxId),
+          normalizeText(user.mail),
+          normalizeText(user.userPrincipalName),
+        ]
           .filter(Boolean)
           .forEach((mailboxId) => processedMailboxIds.add(mailboxId));
         accounts.push({
@@ -3293,13 +3326,17 @@ function createMicrosoftGraphReadConnector(config = {}) {
           mailboxId: user.mailboxId,
           mailboxAddress: user.mail,
           userPrincipalName: user.userPrincipalName,
-          fetchStatus: folders.some((folder) => folder.fetchStatus === 'error') ? 'partial' : 'success',
+          fetchStatus: folders.some((folder) => folder.fetchStatus === 'error')
+            ? 'partial'
+            : 'success',
           folders,
         });
       }
 
       if (selectedUsers.length === 0) {
-        warnings.push('Full-tenant mailbox truth ingest hittade inga mailbox-anvandare i user-listing.');
+        warnings.push(
+          'Full-tenant mailbox truth ingest hittade inga mailbox-anvandare i user-listing.'
+        );
       }
     }
 

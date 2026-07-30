@@ -1,4 +1,5 @@
 const { buildCanonicalMailAssets } = require('./ccoMailAssetLayer');
+const { rewriteCidImageReferences } = require('./ccoCidImageRewrite');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -261,10 +262,13 @@ function mergeAttachmentMetadata(primary = [], secondary = []) {
   return merged;
 }
 
+// ORD-93: /history och /history/search (capabilities.js) går via
+// buildCanonicalMailDocument → resolveCidInHtml. Den delar nu
+// rewriteCidImageReferences (ccoCidImageRewrite.js) med
+// rewriteMailCidImageSources (ccoConversation.js) i stället för att bära sin
+// egen kopia — se den filen för varför en tredje kopia av samma logik är
+// precis det som gjorde felet svårt att hitta i första läget.
 function resolveCidInHtml(html = '', attachments = [], message = {}) {
-  const source = normalizeText(html);
-  if (!source || !/\bcid:/i.test(source)) return source;
-
   const cidMap = new Map();
 
   for (const att of asArray(attachments)) {
@@ -304,20 +308,7 @@ function resolveCidInHtml(html = '', attachments = [], message = {}) {
     }
   }
 
-  if (cidMap.size === 0) return source;
-
-  return source.replace(
-    /(<img\b[^>]*\bsrc\s*=\s*['"])\s*cid:([^'"]+)(['"][^>]*>)/gi,
-    (match, prefix, rawCid, suffix) => {
-      const candidates = [
-        normalizeText(rawCid).toLowerCase(),
-        normalizeText(rawCid).toLowerCase().replace(/^<|>$/g, ''),
-      ].filter(Boolean);
-      const resolved = candidates.find((c) => cidMap.has(c));
-      if (!resolved) return match;
-      return `${prefix}${cidMap.get(resolved)}${suffix}`;
-    }
-  );
+  return rewriteCidImageReferences(html, cidMap);
 }
 
 function buildCanonicalMailDocument(message = {}, { sourceStore = 'unknown' } = {}) {
