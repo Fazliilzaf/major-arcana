@@ -59,9 +59,16 @@ test('produktionen använder den SHARDADE storen — annars vaktar testet fel la
 test('konversationsrutten hydrerar innan den projicerar', () => {
   // Hydreringen måste ske FÖRE enrichConversationMessagesWithIngestion, annars
   // projiceras den tomma shard-versionen och sidofilen läses aldrig.
+  //
+  // Whitespace normaliseras bort innan sökningen: prettier radbryter ett
+  // funktionsanrop olika beroende på total radlängd, och en efterföljande
+  // körning av `npm run` (via lint-staged) på HELA filen — inte bara den
+  // rad som faktiskt ändrades — kan alltid flytta ett argument till en ny
+  // rad. Testet ska verifiera ORDNINGEN mellan anropen, inte råka verifiera
+  // en enda prettier-körnings radbrytning.
   const route = stripComments(
     fs.readFileSync(path.join(ROOT, 'src', 'routes', 'ccoConversation.js'), 'utf8')
-  );
+  ).replace(/\s+/g, '');
   const hydratePos = route.indexOf('hydrateMessageBodies(truthMessages)');
   const projectPos = route.indexOf('enrichConversationMessagesWithIngestion(hydratedTruthMessages');
   assert.ok(hydratePos > -1, 'rutten måste hydrera');
