@@ -20,8 +20,12 @@
  * `data:`-URI:er ovillkorligt — bara en kvarlämnad `cid:`-referens går att
  * reparera senare med lokal bilagemetadata. En permanent "saknas"-markör
  * där, före den lokala kopplingen ens finns, skulle göra ett lagningsbart
- * fall olagbart. Mätt 2026-07-30: 15 av 594 <img> i fazli@ är redan
- * `src="#"` — precis den skadan.
+ * fall olagbart.
+ *
+ * (Ett tidigare mätvärde här — "15 av 594 redan src='#'" — var ett mätfel:
+ * de femton var `src=""` i vår egen mejlsignatur, inte skada från den här
+ * skrivvägen. Slutsatsen ovan står ändå på egna meriter, den lutar sig inte
+ * på det talet.)
  */
 
 function normalizeText(value) {
