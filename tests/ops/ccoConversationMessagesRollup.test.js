@@ -63,14 +63,14 @@ const MESSAGES = [
 
 const store = { listMessages: () => MESSAGES };
 
-test('enkel tråd: exakt nyckel ger samma resultat som förut', () => {
-  const sorted = fetchSortedConversationMessages(store, 'kons@hairtpclinic.com:conv-svar');
+test('enkel tråd: exakt nyckel ger samma resultat som förut', async () => {
+  const sorted = await fetchSortedConversationMessages(store, 'kons@hairtpclinic.com:conv-svar');
   assert.equal(sorted.length, 2);
   assert.equal(sorted[0].graphMessageId, 'g-2');
   assert.equal(sorted[1].graphMessageId, 'g-3');
 });
 
-test('OOM-skydd: listMessages scopas till trådens mailbox, inte hela storen', () => {
+test('OOM-skydd: listMessages scopas till trådens mailbox, inte hela storen', async () => {
   // fetchSortedConversationMessages laddade förr ALLA shards per request
   // (store.listMessages({})) → heapen spikade > 4 GB (Render-OOM) för
   // kontaktformulär-trådar med många memberKeys. Nu scopas den till mailboxen.
@@ -81,7 +81,7 @@ test('OOM-skydd: listMessages scopas till trådens mailbox, inte hela storen', (
       return MESSAGES;
     },
   };
-  fetchSortedConversationMessages(
+  await fetchSortedConversationMessages(
     spyStore,
     'kons@hairtpclinic.com:AAQ123::contact-form:blend.bytyci@hotmail.com',
     ['kons@hairtpclinic.com:AAMk456::contact-form-ref:blend']
@@ -94,9 +94,9 @@ test('OOM-skydd: listMessages scopas till trådens mailbox, inte hela storen', (
   );
 });
 
-test('rollup: primärnyckel + memberKeys unionerar HELA kundtråden i tidsordning', () => {
+test('rollup: primärnyckel + memberKeys unionerar HELA kundtråden i tidsordning', async () => {
   // Radens nyckel är svarstrådens — kontaktformulärstråden är rollup-medlem.
-  const sorted = fetchSortedConversationMessages(store, 'kons@hairtpclinic.com:conv-svar', [
+  const sorted = await fetchSortedConversationMessages(store, 'kons@hairtpclinic.com:conv-svar', [
     'kons@hairtpclinic.com:conv-form',
   ]);
   assert.equal(sorted.length, 3, 'både inkommande formulärsmail och båda svaren');
@@ -107,19 +107,19 @@ test('rollup: primärnyckel + memberKeys unionerar HELA kundtråden i tidsordnin
   );
 });
 
-test('identitetsnyckel utan medlemmar ger tom lista — men MED medlemmar hittas tråden', () => {
+test('identitetsnyckel utan medlemmar ger tom lista — men MED medlemmar hittas tråden', async () => {
   // Rollup-rader med mergedCount > 1 kan bära en identitetsnyckel som aldrig
   // finns bland lagrade mailboxConversationId ("0 meddelanden"-buggen).
-  const withoutMembers = fetchSortedConversationMessages(store, 'email:kund@example.com');
+  const withoutMembers = await fetchSortedConversationMessages(store, 'email:kund@example.com');
   assert.equal(withoutMembers.length, 0);
-  const withMembers = fetchSortedConversationMessages(store, 'email:kund@example.com', [
+  const withMembers = await fetchSortedConversationMessages(store, 'email:kund@example.com', [
     'kons@hairtpclinic.com:conv-form',
     'kons@hairtpclinic.com:conv-svar',
   ]);
   assert.equal(withMembers.length, 3, 'medlemsnycklarna räddar hela tråden');
 });
 
-test('kontaktformulär: öppnad scope-nyckel visar bara den kundens meddelanden', () => {
+test('kontaktformulär: öppnad scope-nyckel visar bara den kundens meddelanden', async () => {
   const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
   const scopedBlendKey = toContactFormScopedConversationKey(sharedBaseKey, 'blend@example.com');
   const contactFormStore = {
@@ -165,14 +165,14 @@ test('kontaktformulär: öppnad scope-nyckel visar bara den kundens meddelanden'
     ],
   };
 
-  const sorted = fetchSortedConversationMessages(contactFormStore, scopedBlendKey);
+  const sorted = await fetchSortedConversationMessages(contactFormStore, scopedBlendKey);
 
   assert.deepEqual(
     sorted.map((message) => message.graphMessageId),
     ['cf-blend-in', 'cf-blend-out']
   );
 
-  const sortedWithRawSharedMemberKey = fetchSortedConversationMessages(
+  const sortedWithRawSharedMemberKey = await fetchSortedConversationMessages(
     contactFormStore,
     scopedBlendKey,
     [sharedBaseKey]
@@ -183,7 +183,7 @@ test('kontaktformulär: öppnad scope-nyckel visar bara den kundens meddelanden'
     'rå shared WordPress-/Graph-nyckel får inte bredda en scoped kontaktformulärstråd'
   );
 
-  const sortedWithRawPrimaryAndScopedMember = fetchSortedConversationMessages(
+  const sortedWithRawPrimaryAndScopedMember = await fetchSortedConversationMessages(
     contactFormStore,
     sharedBaseKey,
     [scopedBlendKey]
@@ -194,7 +194,7 @@ test('kontaktformulär: öppnad scope-nyckel visar bara den kundens meddelanden'
     'även rå primärnyckel ska ärva scope från scoped memberKey och inte visa andra kontaktformulär'
   );
 
-  const sortedWithRawPrimaryAndCustomerEmail = fetchSortedConversationMessages(
+  const sortedWithRawPrimaryAndCustomerEmail = await fetchSortedConversationMessages(
     contactFormStore,
     sharedBaseKey,
     [],
@@ -206,7 +206,7 @@ test('kontaktformulär: öppnad scope-nyckel visar bara den kundens meddelanden'
     'prod-rader med rå shared key måste scopa på kundens e-post från worklisten'
   );
 
-  const sortedViaHelper = fetchSortedConversationMessagesForKeys(contactFormStore, [
+  const sortedViaHelper = await fetchSortedConversationMessagesForKeys(contactFormStore, [
     scopedBlendKey,
     sharedBaseKey,
   ]);
@@ -280,7 +280,7 @@ test('kontaktformulär: ingestion-helper ärver scoped key och breddar inte shar
   );
 });
 
-test('kontaktformulär utan e-post: öppnad reference scope visar bara rätt formulärnamn', () => {
+test('kontaktformulär utan e-post: öppnad reference scope visar bara rätt formulärnamn', async () => {
   const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
   const scopedSudarshanKey = toContactFormReferenceScopedConversationKey(
     sharedBaseKey,
@@ -330,14 +330,14 @@ test('kontaktformulär utan e-post: öppnad reference scope visar bara rätt for
     ],
   };
 
-  const sorted = fetchSortedConversationMessages(contactFormStore, scopedSudarshanKey);
+  const sorted = await fetchSortedConversationMessages(contactFormStore, scopedSudarshanKey);
 
   assert.deepEqual(
     sorted.map((message) => message.graphMessageId),
     ['cf-sudarshan']
   );
 
-  const sortedWithRawSharedMemberKey = fetchSortedConversationMessages(
+  const sortedWithRawSharedMemberKey = await fetchSortedConversationMessages(
     contactFormStore,
     scopedSudarshanKey,
     [sharedBaseKey]
@@ -348,7 +348,7 @@ test('kontaktformulär utan e-post: öppnad reference scope visar bara rätt for
     'rå shared WordPress-/Graph-nyckel får inte bredda en reference-scopad kontaktformulärstråd'
   );
 
-  const sortedWithRawPrimaryAndScopedMember = fetchSortedConversationMessages(
+  const sortedWithRawPrimaryAndScopedMember = await fetchSortedConversationMessages(
     contactFormStore,
     sharedBaseKey,
     [scopedSudarshanKey]
@@ -359,7 +359,7 @@ test('kontaktformulär utan e-post: öppnad reference scope visar bara rätt for
     'rå primärnyckel ska ärva reference-scope från scoped memberKey'
   );
 
-  const sortedWithRawPrimaryAndContactReference = fetchSortedConversationMessages(
+  const sortedWithRawPrimaryAndContactReference = await fetchSortedConversationMessages(
     contactFormStore,
     sharedBaseKey,
     [],
@@ -372,7 +372,7 @@ test('kontaktformulär utan e-post: öppnad reference scope visar bara rätt for
   );
 });
 
-test('kontaktformulär utan e-post: message-id som bas visar bara vald formulärrad', () => {
+test('kontaktformulär utan e-post: message-id som bas visar bara vald formulärrad', async () => {
   const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
   const scopedSudarshanMessageKey = toContactFormReferenceScopedConversationKey(
     'cf-sudarshan',
@@ -422,9 +422,11 @@ test('kontaktformulär utan e-post: message-id som bas visar bara vald formulär
     ],
   };
 
-  const sorted = fetchSortedConversationMessages(contactFormStore, scopedSudarshanMessageKey, [
-    sharedBaseKey,
-  ]);
+  const sorted = await fetchSortedConversationMessages(
+    contactFormStore,
+    scopedSudarshanMessageKey,
+    [sharedBaseKey]
+  );
 
   assert.deepEqual(
     sorted.map((message) => message.graphMessageId),
@@ -433,7 +435,7 @@ test('kontaktformulär utan e-post: message-id som bas visar bara vald formulär
   );
 });
 
-test('kontaktformulär reference-scope matchar namn även när meddelandet har telefon eller e-post', () => {
+test('kontaktformulär reference-scope matchar namn även när meddelandet har telefon eller e-post', async () => {
   const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
   const scopedSudarshanMessageKey = toContactFormReferenceScopedConversationKey(
     'cf-sudarshan',
@@ -470,9 +472,11 @@ test('kontaktformulär reference-scope matchar namn även när meddelandet har t
     ],
   };
 
-  const sorted = fetchSortedConversationMessages(contactFormStore, scopedSudarshanMessageKey, [
-    sharedBaseKey,
-  ]);
+  const sorted = await fetchSortedConversationMessages(
+    contactFormStore,
+    scopedSudarshanMessageKey,
+    [sharedBaseKey]
+  );
 
   assert.deepEqual(
     sorted.map((message) => message.graphMessageId),
@@ -481,7 +485,7 @@ test('kontaktformulär reference-scope matchar namn även när meddelandet har t
   );
 });
 
-test('kontaktformulär utan e-post: ämnesrad räcker för reference-scope när body är mager', () => {
+test('kontaktformulär utan e-post: ämnesrad räcker för reference-scope när body är mager', async () => {
   const sharedBaseKey = 'kons@hairtpclinic.com:wp-shared-thread';
   const scopedSudarshanKey = toContactFormReferenceScopedConversationKey(
     sharedBaseKey,
@@ -516,7 +520,7 @@ test('kontaktformulär utan e-post: ämnesrad räcker för reference-scope när 
     ],
   };
 
-  const sorted = fetchSortedConversationMessages(contactFormStore, scopedSudarshanKey);
+  const sorted = await fetchSortedConversationMessages(contactFormStore, scopedSudarshanKey);
 
   assert.deepEqual(
     sorted.map((message) => message.graphMessageId),
@@ -731,7 +735,8 @@ test('komplett canonical HTML hoppar over dyr ingestion-berikning', () => {
     receivedAt: '2026-07-19T10:00:00.000Z',
     bodyPreview: 'Kort preview',
     bodyText: 'Hej, detta ar den kompletta lokalt lagrade meddelandetexten.',
-    bodyHtml: '<html><body><p>Hej, detta ar den kompletta lokalt lagrade meddelandetexten.</p></body></html>',
+    bodyHtml:
+      '<html><body><p>Hej, detta ar den kompletta lokalt lagrade meddelandetexten.</p></body></html>',
   };
   const store = {
     listRawMessages() {
@@ -870,14 +875,16 @@ test('avhuggen truth-html använder komplett lokal ingestion-html för signatur 
 
 test('rich mail behåller signatur efter stor lokal GIF/logotyp', () => {
   const largeLogoSpacer = '<!-- local-logo -->' + 'x'.repeat(30000);
-  const truthMessages = [{
-    graphMessageId: 'rich-after-logo-1',
-    mailboxId: 'kons@hairtpclinic.com',
-    mailboxConversationId: 'kons@hairtpclinic.com:conv-rich-after-logo-1',
-    conversationId: 'conv-rich-after-logo-1',
-    folderType: 'inbox',
-    bodyHtml: `<html><body>${largeLogoSpacer}<img src="/api/mail-asset/logo"><div>Fazli Krasniqi</div><div>031-88 11 66</div></body></html>`,
-  }];
+  const truthMessages = [
+    {
+      graphMessageId: 'rich-after-logo-1',
+      mailboxId: 'kons@hairtpclinic.com',
+      mailboxConversationId: 'kons@hairtpclinic.com:conv-rich-after-logo-1',
+      conversationId: 'conv-rich-after-logo-1',
+      folderType: 'inbox',
+      bodyHtml: `<html><body>${largeLogoSpacer}<img src="/api/mail-asset/logo"><div>Fazli Krasniqi</div><div>031-88 11 66</div></body></html>`,
+    },
+  ];
   const ingestionStore = {
     getState: () => ({
       mailRawMessages: {
@@ -962,7 +969,7 @@ test('kontaktformulär-preview berikas från scoped raw-store även när Graph-i
   assert.ok(enriched.bodyText.length > preview.length + 100);
 });
 
-test('mailbox-hint scopar truth-läsningen till trådens shard (ingen hela-storen-svep)', () => {
+test('mailbox-hint scopar truth-läsningen till trådens shard (ingen hela-storen-svep)', async () => {
   // Kontaktformulär-nyckel utan mailbox-prefix. Utan hint → listMessages({}) läser
   // ALLA shards (combine+sort av hela storen) per trådöppning = sekunders latens.
   // Med klientens mailbox-hint ska bara trådens shard begäras.
@@ -987,14 +994,14 @@ test('mailbox-hint scopar truth-läsningen till trådens shard (ingen hela-store
   };
   const key = 'contact-form-xyz';
 
-  const scoped = fetchSortedConversationMessages(store, key, [], {
+  const scoped = await fetchSortedConversationMessages(store, key, [], {
     mailboxHints: ['kons@hairtpclinic.com'],
   });
   assert.equal(scoped.length, 1);
   assert.deepEqual(listCalls[0].mailboxIds, ['kons@hairtpclinic.com']);
 
   // Utan hint (och utan prefix i nyckeln) faller vi tillbaka till hela storen.
-  fetchSortedConversationMessages(store, key, [], {});
+  await fetchSortedConversationMessages(store, key, [], {});
   assert.equal(listCalls[1].mailboxIds, undefined);
 });
 
@@ -1148,7 +1155,7 @@ test('enrichment merge:ar truth- och raw-bilagor i samma tråd', () => {
   ]);
 });
 
-test('tom/ogiltig nyckel ger tom lista', () => {
-  assert.deepEqual(fetchSortedConversationMessages(store, ''), []);
-  assert.deepEqual(fetchSortedConversationMessages(null, 'x'), []);
+test('tom/ogiltig nyckel ger tom lista', async () => {
+  assert.deepEqual(await fetchSortedConversationMessages(store, ''), []);
+  assert.deepEqual(await fetchSortedConversationMessages(null, 'x'), []);
 });

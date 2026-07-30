@@ -811,7 +811,7 @@ function collapseDuplicateMessages(messages = []) {
   return result;
 }
 
-function fetchSortedConversationMessagesForKeys(store, keys = [], options = {}) {
+async function fetchSortedConversationMessagesForKeys(store, keys = [], options = {}) {
   const safeKeys = Array.from(
     new Set(
       asArray(keys)
@@ -942,7 +942,7 @@ function deriveMailboxIdsFromLookupKeys(keys = []) {
   return [...ids];
 }
 
-function fetchSortedConversationMessages(store, key, memberKeys = [], options = {}) {
+async function fetchSortedConversationMessages(store, key, memberKeys = [], options = {}) {
   if (!store || typeof store.listMessages !== 'function') return [];
   const safeMemberKeys = Array.isArray(memberKeys) ? memberKeys : [];
   const scopes = buildConversationLookupScopes([key, ...safeMemberKeys], options);
@@ -968,7 +968,17 @@ function fetchSortedConversationMessages(store, key, memberKeys = [], options = 
     : Array.from(new Set([...keyMailboxIds, ...hintMailboxIds]));
   const all = store.listMessages(mailboxIds.length ? { mailboxIds } : {});
   const matches = all.filter((m) => conversationMessageMatchesScopes(asObject(m), scopes));
-  return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
+  // ORD-98, fjärde och femte kodvägen: /summary, /booking-confirm och /draft
+  // läste alla via den här funktionen utan att hydrera — samma avhuggna
+  // bodyPreview matades rakt in i AI-sammanfattningen och utkasten.
+  // Hydreringen sker HÄR, en gång, i stället för i varje anropsställe, så
+  // ett nytt anrop inte kan glömma den — det var precis så de tre första
+  // instanserna av samma bugg uppstod.
+  const hydrated =
+    typeof store.hydrateMessageBodies === 'function'
+      ? await store.hydrateMessageBodies(matches)
+      : matches;
+  return [...hydrated].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
 /**
@@ -1034,7 +1044,7 @@ async function fetchConversationMessagesLoadingEachMailbox(
         continue;
       }
     }
-    const rows = fetchSortedConversationMessages(store, key, safeMemberKeys, {
+    const rows = await fetchSortedConversationMessages(store, key, safeMemberKeys, {
       ...options,
       mailboxIdsOverride: [mailboxId],
     });
@@ -1608,7 +1618,7 @@ function threadHasConfirmedIdentity(sorted) {
 // Ren utvärdering (INGEN mutation): returnerar exakt vad som skulle påverkas +
 // varningar per tråd. Används av både preview och confirm (confirm re-validerar
 // alltid — klienten litas aldrig på).
-function evaluateConversationBulkItem(store, item, action, options = {}) {
+async function evaluateConversationBulkItem(store, item, action, options = {}) {
   const conversationKey = normalizeText(asObject(item).conversationKey);
   const customerId = normalizeText(asObject(item).customerId).toLowerCase();
   const row = {
@@ -1631,7 +1641,7 @@ function evaluateConversationBulkItem(store, item, action, options = {}) {
   // Samma resolution som single-action-routen: mailbox-truth först, sedan
   // mail-ingestion-storen (web-form-/ingesterade trådar ligger inte i truth-storen).
   const { ingestionStore = null, scopeOptions = {} } = asObject(options);
-  let sorted = fetchSortedConversationMessages(store, conversationKey, [], scopeOptions);
+  let sorted = await fetchSortedConversationMessages(store, conversationKey, [], scopeOptions);
   if (sorted.length === 0 && ingestionStore) {
     sorted = fetchSortedIngestionConversationMessagesForKeys(
       ingestionStore,
@@ -1897,26 +1907,15 @@ function createCcoConversationRouter({
           scopeOptions
         );
         const tTruth = process.hrtime.bigint();
-        // ORD-98: HYDRERA BRÖDTEXTEN INNAN DEN PROJICERAS.
-        //
-        // Efter ORD-89 ligger brödtexten i sidofiler och shardens fält är
-        // tomt. Utan det här steget faller `deriveBodyHtml`/`deriveBody`
-        // tillbaka på `bodyPreview` — capad till 500 tecken — och operatören
-        // får en avhuggen skiva av mejlet i stället för hela.
-        //
-        // Uppmätt 2026-07-30: bodyText 158 tecken, identisk med början av
-        // bodyPreview, medan sidofilen bär hela texten. Korta mejl såg
-        // kompletta ut; långa klipptes mitt i ordet.
-        const hydratedTruthMessages =
-          truthMessages.length && typeof ccoMailboxTruthStore.hydrateMessageBodies === 'function'
-            ? await ccoMailboxTruthStore.hydrateMessageBodies(truthMessages)
-            : truthMessages;
-        const sorted = hydratedTruthMessages.length
-          ? enrichConversationMessagesWithIngestion(
-              hydratedTruthMessages,
-              mailIngestionStore,
-              scopeOptions
-            )
+        // ORD-98: brödtexten hydreras nu INUTI fetchSortedConversationMessages
+        // (via fetchConversationMessagesLoadingEachMailbox ovan), en gång, i
+        // stället för här igen ovanpå en redan hydrerad lista. Efter ORD-89
+        // ligger brödtexten i sidofiler och shardens fält är tomt — utan
+        // hydreringen faller `deriveBodyHtml`/`deriveBody` tillbaka på
+        // `bodyPreview` (capad till 500 tecken) och operatören ser en
+        // avhuggen skiva av mejlet i stället för hela.
+        const sorted = truthMessages.length
+          ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore, scopeOptions)
           : fetchSortedIngestionConversationMessagesForKeys(
               mailIngestionStore,
               lookupKeys,
@@ -2023,7 +2022,7 @@ function createCcoConversationRouter({
         if (!key) {
           return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
         }
-        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        const sorted = await fetchSortedConversationMessages(ccoMailboxTruthStore, key);
         if (sorted.length === 0) {
           return res.json({
             ok: true,
@@ -2115,14 +2114,14 @@ function createCcoConversationRouter({
     '/cco/runtime/conversation/:key/bookings',
     authMiddleware,
     requirePermission('mail.read'),
-    (req, res) => {
+    async (req, res) => {
       try {
         if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
           return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
         }
         const key = normalizeText(req.params.key);
         if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
-        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        const sorted = await fetchSortedConversationMessages(ccoMailboxTruthStore, key);
         const firstInbound =
           sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0] || {};
         const customerEmail =
@@ -2211,7 +2210,7 @@ function createCcoConversationRouter({
             .status(400)
             .json({ ok: false, error: 'invalid_slot', detail: 'slot måste vara giltig ISO-tid.' });
         }
-        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        const sorted = await fetchSortedConversationMessages(ccoMailboxTruthStore, key);
         if (sorted.length === 0) {
           return res.status(404).json({ ok: false, error: 'conversation_not_found' });
         }
@@ -2289,7 +2288,7 @@ function createCcoConversationRouter({
         }
         const key = normalizeText(req.params.key);
         if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
-        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        const sorted = await fetchSortedConversationMessages(ccoMailboxTruthStore, key);
         if (sorted.length === 0) {
           return res.status(404).json({ ok: false, error: 'conversation_not_found' });
         }
@@ -2399,7 +2398,7 @@ function createCcoConversationRouter({
         if (!body) {
           return res.status(400).json({ ok: false, error: 'missing_body' });
         }
-        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        const sorted = await fetchSortedConversationMessages(ccoMailboxTruthStore, key);
         if (sorted.length === 0) {
           return res.status(404).json({ ok: false, error: 'conversation_not_found' });
         }
@@ -2661,7 +2660,7 @@ function createCcoConversationRouter({
           ...(mailboxHints.length ? { mailboxHints } : {}),
           ...(configuredMailboxIds.length ? { allowedMailboxIds: configuredMailboxIds } : {}),
         };
-        let sorted = fetchSortedConversationMessages(
+        let sorted = await fetchSortedConversationMessages(
           ccoMailboxTruthStore,
           key,
           memberKeys,
@@ -2817,7 +2816,7 @@ function createCcoConversationRouter({
     authMiddleware,
     requirePermission('mail.write'),
     express.json({ limit: '128kb' }),
-    (req, res) => {
+    async (req, res) => {
       try {
         if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
           return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
@@ -2832,13 +2831,15 @@ function createCcoConversationRouter({
         if (items.length > MAX_BULK_ITEMS) {
           return res.status(400).json({ ok: false, error: 'too_many_items', max: MAX_BULK_ITEMS });
         }
-        const rows = items.map((item) =>
-          evaluateConversationBulkItem(ccoMailboxTruthStore, item, action, {
-            ingestionStore: mailIngestionStore,
-            scopeOptions: configuredMailboxIds.length
-              ? { allowedMailboxIds: configuredMailboxIds }
-              : {},
-          })
+        const rows = await Promise.all(
+          items.map((item) =>
+            evaluateConversationBulkItem(ccoMailboxTruthStore, item, action, {
+              ingestionStore: mailIngestionStore,
+              scopeOptions: configuredMailboxIds.length
+                ? { allowedMailboxIds: configuredMailboxIds }
+                : {},
+            })
+          )
         );
         const eligible = rows.filter((r) => r.eligible);
         const batchId = crypto.randomUUID();
@@ -2914,12 +2915,17 @@ function createCcoConversationRouter({
         const failed = [];
         for (const item of items) {
           // Re-validera varje tråd — confirm litar aldrig på klientens preview.
-          const evaluation = evaluateConversationBulkItem(ccoMailboxTruthStore, item, action, {
-            ingestionStore: mailIngestionStore,
-            scopeOptions: configuredMailboxIds.length
-              ? { allowedMailboxIds: configuredMailboxIds }
-              : {},
-          });
+          const evaluation = await evaluateConversationBulkItem(
+            ccoMailboxTruthStore,
+            item,
+            action,
+            {
+              ingestionStore: mailIngestionStore,
+              scopeOptions: configuredMailboxIds.length
+                ? { allowedMailboxIds: configuredMailboxIds }
+                : {},
+            }
+          );
           if (!evaluation.eligible) {
             skipped.push({
               conversationKey: evaluation.conversationKey,
@@ -2935,7 +2941,7 @@ function createCcoConversationRouter({
             const bulkScopeOptions = configuredMailboxIds.length
               ? { allowedMailboxIds: configuredMailboxIds }
               : {};
-            let sorted = fetchSortedConversationMessages(
+            let sorted = await fetchSortedConversationMessages(
               ccoMailboxTruthStore,
               evaluation.conversationKey,
               [],
@@ -3260,13 +3266,11 @@ function createCcoConversationRouter({
           syncEnabled: Boolean(graphReadConnector),
         });
       } catch (err) {
-        return res
-          .status(500)
-          .json({
-            ok: false,
-            error: 'internal_error',
-            detail: String((err && err.message) || err),
-          });
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
       }
     }
   );
@@ -3393,13 +3397,11 @@ function createCcoConversationRouter({
           generatedAt: new Date().toISOString(),
         });
       } catch (err) {
-        return res
-          .status(500)
-          .json({
-            ok: false,
-            error: 'internal_error',
-            detail: String((err && err.message) || err),
-          });
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
       }
     }
   );
@@ -3561,13 +3563,11 @@ function createCcoConversationRouter({
           volumeChart,
         });
       } catch (err) {
-        return res
-          .status(500)
-          .json({
-            ok: false,
-            error: 'internal_error',
-            detail: String((err && err.message) || err),
-          });
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
       }
     }
   );
@@ -3634,13 +3634,11 @@ function createCcoConversationRouter({
           tenantId: defaultTenantId,
         });
       } catch (err) {
-        return res
-          .status(500)
-          .json({
-            ok: false,
-            error: 'internal_error',
-            detail: String((err && err.message) || err),
-          });
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
       }
     }
   );
@@ -3662,13 +3660,11 @@ function createCcoConversationRouter({
         const templates = ccoMailTemplateStore.listTemplates();
         return res.json({ ok: true, count: templates.length, templates });
       } catch (err) {
-        return res
-          .status(500)
-          .json({
-            ok: false,
-            error: 'internal_error',
-            detail: String((err && err.message) || err),
-          });
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
       }
     }
   );
@@ -3716,13 +3712,11 @@ function createCcoConversationRouter({
         if (!ok) return res.status(404).json({ ok: false, error: 'not_found' });
         return res.json({ ok: true });
       } catch (err) {
-        return res
-          .status(500)
-          .json({
-            ok: false,
-            error: 'internal_error',
-            detail: String((err && err.message) || err),
-          });
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
       }
     }
   );
