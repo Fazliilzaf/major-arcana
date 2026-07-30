@@ -931,10 +931,110 @@ function fetchSortedConversationMessages(store, key, memberKeys = [], options = 
   const hintMailboxIds = asArray(asObject(options).mailboxHints)
     .map((item) => normalizeEmail(item))
     .filter(Boolean);
-  const mailboxIds = Array.from(new Set([...keyMailboxIds, ...hintMailboxIds]));
+  // `mailboxIdsOverride` låter anroparen läsa EN brevlåda i taget. Används av
+  // fetchConversationMessagesLoadingEachMailbox nedan, som måste kunna ladda
+  // och läsa i samma steg — LRU-taket är 2, så en tredje laddning vräker ut
+  // den första innan en samlad läsning ens börjar.
+  const overrideMailboxIds = asArray(asObject(options).mailboxIdsOverride)
+    .map((item) => normalizeEmail(item))
+    .filter(Boolean);
+  const mailboxIds = overrideMailboxIds.length
+    ? overrideMailboxIds
+    : Array.from(new Set([...keyMailboxIds, ...hintMailboxIds]));
   const all = store.listMessages(mailboxIds.length ? { mailboxIds } : {});
   const matches = all.filter((m) => conversationMessageMatchesScopes(asObject(m), scopes));
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
+}
+
+/**
+ * LADDA OCH LÄS PER BREVLÅDA, I SAMMA STEG.
+ *
+ * Första versionen laddade ALLA brevlådor i en loop och läste dem sedan i ett
+ * svep. Med `maxLoadedShards = 2` vräks den första ut så snart en tredje
+ * laddas — innan läsningen ens börjar. Alexander-fallet hade två brevlådor,
+ * alltså precis under taket, och missade det helt.
+ *
+ * Rollup-trådar och kontaktformulär kan spänna över fler; det var där det
+ * historiska OOM:et satt. Så det är just det fallet som behöver skyddet, och
+ * just det fallet som inte prövades.
+ *
+ * Brevlåde-id:n härleds med `deriveMailboxIdsFromLookupKeys` — samma funktion
+ * som läsningen redan använder. Två härledningar av samma sak är ett brutet
+ * kontrakt även när båda råkar ge samma svar.
+ */
+async function fetchConversationMessagesLoadingEachMailbox(
+  store,
+  key,
+  memberKeys = [],
+  options = {}
+) {
+  if (!store || typeof store.listMessages !== 'function') return [];
+  const safeMemberKeys = Array.isArray(memberKeys) ? memberKeys : [];
+  const keyMailboxIds = deriveMailboxIdsFromLookupKeys([key, ...safeMemberKeys]);
+  const hintMailboxIds = asArray(asObject(options).mailboxHints)
+    .map((item) => normalizeEmail(item))
+    .filter(Boolean);
+  const requestedMailboxIds = Array.from(new Set([...keyMailboxIds, ...hintMailboxIds]));
+
+  // ALLOWLISTEN MÅSTE TÄCKA LADDNINGEN, INTE BARA LÄSNINGEN.
+  //
+  // `allowedMailboxIds` filtrerade ingestion-fallbacken men aldrig
+  // truth-läsningen. Det var latent ofarligt så länge en olistad brevlåda
+  // ändå var OLADDAD och därför svarade tomt — men laddningssteget ovan gör
+  // bypassen verklig: en klient som namnger en brevlåda i `mailboxHints`
+  // eller i nyckelprefixet skulle annars få den laddad OCH läst, oavsett
+  // CCO-scope.
+  //
+  // En skyddsmekanism som vilar på att data råkar vara otillgänglig är ingen
+  // skyddsmekanism. Den ska säga nej, inte tomt.
+  const allowedMailboxIds = normalizeConfiguredMailboxIds(asObject(options).allowedMailboxIds);
+  const mailboxIds = allowedMailboxIds.length
+    ? requestedMailboxIds.filter((mailboxId) => allowedMailboxIds.includes(mailboxId))
+    : requestedMailboxIds;
+
+  // Utan brevlåde-id faller vi tillbaka på oförändrat beteende: läs allt som
+  // råkar vara laddat. Att ladda "alla" här vore att gissa.
+  if (!mailboxIds.length) {
+    return fetchSortedConversationMessages(store, key, safeMemberKeys, options);
+  }
+
+  const seen = new Set();
+  const merged = [];
+  for (const mailboxId of mailboxIds) {
+    if (typeof store.ensureMailboxLoaded === 'function') {
+      try {
+        await store.ensureMailboxLoaded(mailboxId);
+      } catch (error) {
+        console.warn('[cco-conversation] kunde inte ladda', mailboxId, error?.message);
+        continue;
+      }
+    }
+    const rows = fetchSortedConversationMessages(store, key, safeMemberKeys, {
+      ...options,
+      mailboxIdsOverride: [mailboxId],
+    });
+    for (const row of rows) {
+      const safe = asObject(row);
+      // PRÖVA KOMPONENTERNA FÖRE SAMMANSLAGNINGEN.
+      //
+      // `\`...\` || fallback` kan aldrig nå fallbacken: en mall-sträng är
+      // alltid sann, även när den bara är ":". Saknar ett meddelande både
+      // mailboxId och id blir nyckeln ":" — delad av VARJE sådant meddelande
+      // från vilken brevlåda som helst, så det andra och alla följande
+      // kastades tyst som "redan sett".
+      //
+      // Samma familj som `??` mot `||` i ORD-85: en operator som ser lyckad ut
+      // men prövar fel sak. Skillnaden är att `||` här inte ens KAN falla ut.
+      const hasIdentity = Boolean(safe.mailboxId || safe.graphMessageId || safe.id);
+      const dedupeKey = hasIdentity
+        ? `${normalizeEmail(safe.mailboxId)}:${normalizeText(safe.graphMessageId || safe.id)}`
+        : JSON.stringify(safe);
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      merged.push(row);
+    }
+  }
+  return merged.sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
 function buildConversationAliases(message = {}) {
@@ -1730,7 +1830,7 @@ function createCcoConversationRouter({
     '/cco/runtime/conversation/:key/messages',
     authMiddleware,
     requirePermission('mail.read'),
-    (req, res) => {
+    async (req, res) => {
       try {
         if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
           return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
@@ -1757,7 +1857,9 @@ function createCcoConversationRouter({
         // latensen. hrtime → ms med 1 decimal. Klienten loggar server- vs nätverks-
         // tid från timings-fältet nedan.
         const tStart = process.hrtime.bigint();
-        const truthMessages = fetchSortedConversationMessages(
+        // ORD-97: laddar och läser per brevlåda i samma steg — se
+        // fetchConversationMessagesLoadingEachMailbox.
+        const truthMessages = await fetchConversationMessagesLoadingEachMailbox(
           ccoMailboxTruthStore,
           key,
           memberKeys,
