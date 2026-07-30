@@ -931,10 +931,83 @@ function fetchSortedConversationMessages(store, key, memberKeys = [], options = 
   const hintMailboxIds = asArray(asObject(options).mailboxHints)
     .map((item) => normalizeEmail(item))
     .filter(Boolean);
-  const mailboxIds = Array.from(new Set([...keyMailboxIds, ...hintMailboxIds]));
+  // `mailboxIdsOverride` låter anroparen läsa EN brevlåda i taget. Används av
+  // fetchConversationMessagesLoadingEachMailbox nedan, som måste kunna ladda
+  // och läsa i samma steg — LRU-taket är 2, så en tredje laddning vräker ut
+  // den första innan en samlad läsning ens börjar.
+  const overrideMailboxIds = asArray(asObject(options).mailboxIdsOverride)
+    .map((item) => normalizeEmail(item))
+    .filter(Boolean);
+  const mailboxIds = overrideMailboxIds.length
+    ? overrideMailboxIds
+    : Array.from(new Set([...keyMailboxIds, ...hintMailboxIds]));
   const all = store.listMessages(mailboxIds.length ? { mailboxIds } : {});
   const matches = all.filter((m) => conversationMessageMatchesScopes(asObject(m), scopes));
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
+}
+
+/**
+ * LADDA OCH LÄS PER BREVLÅDA, I SAMMA STEG.
+ *
+ * Första versionen laddade ALLA brevlådor i en loop och läste dem sedan i ett
+ * svep. Med `maxLoadedShards = 2` vräks den första ut så snart en tredje
+ * laddas — innan läsningen ens börjar. Alexander-fallet hade två brevlådor,
+ * alltså precis under taket, och missade det helt.
+ *
+ * Rollup-trådar och kontaktformulär kan spänna över fler; det var där det
+ * historiska OOM:et satt. Så det är just det fallet som behöver skyddet, och
+ * just det fallet som inte prövades.
+ *
+ * Brevlåde-id:n härleds med `deriveMailboxIdsFromLookupKeys` — samma funktion
+ * som läsningen redan använder. Två härledningar av samma sak är ett brutet
+ * kontrakt även när båda råkar ge samma svar.
+ */
+async function fetchConversationMessagesLoadingEachMailbox(
+  store,
+  key,
+  memberKeys = [],
+  options = {}
+) {
+  if (!store || typeof store.listMessages !== 'function') return [];
+  const safeMemberKeys = Array.isArray(memberKeys) ? memberKeys : [];
+  const keyMailboxIds = deriveMailboxIdsFromLookupKeys([key, ...safeMemberKeys]);
+  const hintMailboxIds = asArray(asObject(options).mailboxHints)
+    .map((item) => normalizeEmail(item))
+    .filter(Boolean);
+  const mailboxIds = Array.from(new Set([...keyMailboxIds, ...hintMailboxIds]));
+
+  // Utan brevlåde-id faller vi tillbaka på oförändrat beteende: läs allt som
+  // råkar vara laddat. Att ladda "alla" här vore att gissa.
+  if (!mailboxIds.length) {
+    return fetchSortedConversationMessages(store, key, safeMemberKeys, options);
+  }
+
+  const seen = new Set();
+  const merged = [];
+  for (const mailboxId of mailboxIds) {
+    if (typeof store.ensureMailboxLoaded === 'function') {
+      try {
+        await store.ensureMailboxLoaded(mailboxId);
+      } catch (error) {
+        console.warn('[cco-conversation] kunde inte ladda', mailboxId, error?.message);
+        continue;
+      }
+    }
+    const rows = fetchSortedConversationMessages(store, key, safeMemberKeys, {
+      ...options,
+      mailboxIdsOverride: [mailboxId],
+    });
+    for (const row of rows) {
+      const safe = asObject(row);
+      const dedupeKey =
+        `${normalizeEmail(safe.mailboxId)}:${normalizeText(safe.graphMessageId || safe.id)}` ||
+        JSON.stringify(safe);
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      merged.push(row);
+    }
+  }
+  return merged.sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
 function buildConversationAliases(message = {}) {
@@ -1756,34 +1829,10 @@ function createCcoConversationRouter({
         // Lättviktig fas-timing (diagnostik) för att lokalisera trådöppnings-
         // latensen. hrtime → ms med 1 decimal. Klienten loggar server- vs nätverks-
         // tid från timings-fältet nedan.
-        // ORD-97: LADDA SHARDEN INNAN DEN LÄSES.
-        //
-        // Utan detta läser rutten en oladdad shard och `listMessages` svarar
-        // tom lista, tyst. Uppmätt 2026-07-29: `truthMs: 0.1`, `truthCount: 0`
-        // på en tråd som bevisligen har meddelanden — ingen scanning skedde
-        // alls, och svaret föll tillbaka på ingestion-lagret.
-        //
-        // FJÄRDE stället samma dag där LRU-taket (2) gav tyst tomhet:
-        // korsbrevlåderapporten, `listMessages({})`, trådstorens preload, och
-        // nu konversationsrutten. Samma konstant, fyra symptom.
-        const mailboxesToLoad = Array.from(
-          new Set(
-            [...mailboxHints, ...lookupKeys.map((item) => String(item).split(':')[0])]
-              .map((item) => normalizeText(item).toLowerCase())
-              .filter((item) => item.includes('@'))
-          )
-        );
-        if (typeof ccoMailboxTruthStore.ensureMailboxLoaded === 'function') {
-          for (const mailboxId of mailboxesToLoad) {
-            try {
-              await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
-            } catch (error) {
-              console.warn('[cco-conversation] kunde inte ladda', mailboxId, error?.message);
-            }
-          }
-        }
         const tStart = process.hrtime.bigint();
-        const truthMessages = fetchSortedConversationMessages(
+        // ORD-97: laddar och läser per brevlåda i samma steg — se
+        // fetchConversationMessagesLoadingEachMailbox.
+        const truthMessages = await fetchConversationMessagesLoadingEachMailbox(
           ccoMailboxTruthStore,
           key,
           memberKeys,
