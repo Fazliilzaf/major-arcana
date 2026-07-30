@@ -204,3 +204,84 @@ test('sharded store keeps a bounded LRU cache while mailbox selections change', 
 
   await fs.rm(tempDir, { recursive: true, force: true });
 });
+
+test('sharded store delegerar getFidelityInventory/getCidFidelityManifest till sin shard', async () => {
+  // Bugbot-fynd (ORD-97): varje shard ÄR en ccoMailboxTruthStore och bär
+  // redan deepScan/bodySource, men den sharded wrappern (produktionens
+  // default) vidarebefordrade aldrig anropen. Adaptern föll då tillbaka på
+  // sin egna enkla bodyHtml-only-väg, och deepScan blev en no-op i drift.
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-mailbox-truth-sharded-fidelity-')
+  );
+  const baseDir = path.join(tempDir, 'cco-mailbox-truth');
+  const MAILBOX = 'contact@hairtpclinic.com';
+  const store = await createCcoMailboxTruthShardedStore({
+    baseDir,
+    legacyFilePath: path.join(tempDir, 'saknas-cco-mailbox-truth.json'),
+    lazyPreload: false,
+  });
+  await store.recordFolderPage({
+    runId: 'run-1',
+    account: { mailboxId: MAILBOX, mailboxAddress: MAILBOX },
+    folder: { folderType: 'inbox', totalItemCount: 1, messageCollectionCount: 1 },
+    messages: [
+      {
+        mailboxId: MAILBOX,
+        graphMessageId: 'cid-gap-message',
+        folderType: 'inbox',
+        bodyHtml: '<div><img src="cid:logo@cid"></div>',
+        attachments: [],
+        hasAttachments: false,
+      },
+    ],
+    nextPageUrl: null,
+    complete: true,
+  });
+
+  const inventory = await store.getFidelityInventory({
+    mailboxIds: [MAILBOX],
+    sampleLimit: 5,
+    deepScan: false,
+  });
+  assert.equal(
+    inventory.summary.fidelityGapCount,
+    1,
+    'utan delegeringen ser den sharded storen ingen brödtext alls och rapporterar noll gap'
+  );
+  assert.equal(inventory.summary.bodySource, 'shard_inline_only');
+
+  const inventoryDeepScan = await store.getFidelityInventory({
+    mailboxIds: [MAILBOX],
+    sampleLimit: 5,
+    deepScan: true,
+  });
+  assert.equal(
+    inventoryDeepScan.summary.bodySource,
+    'bodies_sidecar',
+    'deepScan måste synas i svaret även via den sharded storen'
+  );
+
+  const manifest = await store.getCidFidelityManifest({
+    mailboxIds: [MAILBOX],
+    limit: 10,
+    deepScan: false,
+  });
+  assert.equal(manifest.summary.cidReferencesWithoutAttachmentMetadata, 1);
+  assert.equal(manifest.entries[0]?.cid, 'logo@cid');
+  assert.equal(manifest.summary.bodySource, 'shard_inline_only');
+
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+test('VAKT: sharded store exponerar fidelity-metoderna den vidarebefordrar', () => {
+  const SOURCE = require('node:fs').readFileSync(
+    path.join(__dirname, '..', '..', 'src', 'ops', 'ccoMailboxTruthShardedStore.js'),
+    'utf8'
+  );
+  assert.match(
+    SOURCE,
+    /async getFidelityInventory\(options = \{\}\) \{/,
+    'utan denna faller adaptern tillbaka på sin bodyHtml-only-väg i produktion'
+  );
+  assert.match(SOURCE, /async getCidFidelityManifest\(options = \{\}\) \{/);
+});

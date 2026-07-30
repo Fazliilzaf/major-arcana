@@ -1186,7 +1186,48 @@ async function createCcoMailboxTruthStore({
     return safeLimit > 0 ? rows.slice(0, safeLimit) : rows;
   }
 
-  function getFidelityInventory({ mailboxIds = [], sampleLimit = 20 } = {}) {
+
+  /**
+   * ORD-97: FIDELITY-INSTRUMENTEN BLEV BLINDA AV ORD-89.
+   *
+   * `getFidelityInventory` och `getCidFidelityManifest` läser
+   * `message.bodyHtml` ur sharden. ORD-89 flyttade brödtexten till sidofiler
+   * och lämnade fältet tomt — så instrumenten slutade se HTML:en de finns för
+   * att granska. Uppmätt 2026-07-29: `contact@` rapporterade 13 HTML-kroppar
+   * av 10 647 meddelanden, och de tretton var posten som kommit in EFTER
+   * migreringen.
+   *
+   * Följden: `cidReferencesWithoutAttachmentMetadata` kan aldrig bli annat än
+   * noll. Ett larm som inte kan larma. Exakt den klass av fel vi jagat hela
+   * dagen, och den här gången orsakad av vår egen migrering.
+   *
+   * Läser en fil i taget, håller aldrig mer än en kropp.
+   */
+  async function readBodyHtmlForFidelity(messageKey, message, deepScan = false) {
+    const inline = normalizeText(message.bodyHtml);
+    if (inline) return inline;
+    // OPT-IN. Efter ORD-89 är inline-fältet tomt för ALLA äldre meddelanden,
+    // så en ovillkorlig sidofilsläsning blir EN FIL PER MEDDELANDE — 10 647
+    // för contact@, per anrop. Det vore att återinföra kostnaden ORD-89 tog
+    // bort, i motsatt riktning: en fältkoll i minnet blir 10 000 disk-I/O.
+    //
+    // Standard är därför shard-läsning (billig, men ser bara post som kommit
+    // in efter migreringen), och svaret SÄGER vilken källa det mätte.
+    // `deepScan` läser sidofilerna, en i taget, och är avsedd för en riktad
+    // granskning — inte för en panel som pollar.
+    if (!deepScan) return '';
+    const mailboxId = normalizeMailboxId(String(messageKey).split(':')[0]);
+    const filePath = bodyStore.bodyFilePath({ bodyRoot, mailboxId, messageKey });
+    if (!filePath) return '';
+    try {
+      const stored = await bodyStore.readBody(filePath);
+      return normalizeText(stored?.bodyHtml);
+    } catch {
+      return '';
+    }
+  }
+
+  async function getFidelityInventory({ mailboxIds = [], sampleLimit = 20, deepScan = false } = {}) {
     const safeMailboxIds = asArray(mailboxIds)
       .map((item) => normalizeMailboxId(item))
       .filter(Boolean);
@@ -1204,6 +1245,10 @@ async function createCcoMailboxTruthStore({
       cidWithoutAttachmentMetadata: 0,
       richCandidatesWithoutMime: 0,
       fidelityGapCount: 0,
+      // Vilken källa talen bygger på. Utan detta ser ett shard-svep efter
+      // ORD-89 ut som "inga inbäddade bilder finns" i stället för "vi tittade
+      // inte där de ligger".
+      bodySource: deepScan ? 'bodies_sidecar' : 'shard_inline_only',
     };
     const samples = [];
 
@@ -1216,13 +1261,13 @@ async function createCcoMailboxTruthStore({
       if (samples.length > safeSampleLimit) samples.pop();
     };
 
-    for (const rawMessage of Object.values(state.messages)) {
+    for (const [messageKey, rawMessage] of Object.entries(state.messages)) {
       const message = asObject(rawMessage);
       const mailboxId = normalizeMailboxId(message.mailboxId);
       if (mailboxIdSet && !mailboxIdSet.has(mailboxId)) continue;
 
       summary.messages += 1;
-      const bodyHtml = normalizeText(message.bodyHtml);
+      const bodyHtml = await readBodyHtmlForFidelity(messageKey, message, deepScan);
       const attachments = asArray(message.attachments);
       const mimeAvailable = asObject(message.mime).available === true;
       const hasInlineImage = /<img\b/i.test(bodyHtml);
@@ -1277,7 +1322,7 @@ async function createCcoMailboxTruthStore({
     };
   }
 
-  function getCidFidelityManifest({ mailboxIds = [], limit = 1000 } = {}) {
+  async function getCidFidelityManifest({ mailboxIds = [], limit = 1000, deepScan = false } = {}) {
     const safeMailboxIds = asArray(mailboxIds)
       .map((item) => normalizeMailboxId(item))
       .filter(Boolean);
@@ -1287,18 +1332,20 @@ async function createCcoMailboxTruthStore({
     const summary = {
       messagesWithMissingCidMetadata: 0,
       cidReferencesWithoutAttachmentMetadata: 0,
+      bodySource: deepScan ? 'bodies_sidecar' : 'shard_inline_only',
       entriesReturned: 0,
       truncated: false,
       byFolderType: {},
       byMessageType: {},
     };
 
-    for (const rawMessage of Object.values(state.messages)) {
+    for (const [messageKey, rawMessage] of Object.entries(state.messages)) {
       const message = asObject(rawMessage);
       const mailboxId = normalizeMailboxId(message.mailboxId);
       if (mailboxIdSet && !mailboxIdSet.has(mailboxId)) continue;
 
-      const referencedCids = listReferencedContentIds(message.bodyHtml);
+      const bodyHtmlForCid = await readBodyHtmlForFidelity(messageKey, message, deepScan);
+      const referencedCids = listReferencedContentIds(bodyHtmlForCid);
       if (referencedCids.length === 0) continue;
       const attachmentCids = new Set(
         asArray(message.attachments)

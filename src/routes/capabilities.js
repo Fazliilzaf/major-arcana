@@ -7665,13 +7665,22 @@ function toCcoRuntimeHistoryFidelityHandler({ ccoMailboxTruthStore = null }) {
           error: 'Mailbox truth-fidelity är inte tillgänglig just nu.',
         });
       }
-      if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
-        await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
-      }
       const sampleLimit = clampInteger(req.query?.sampleLimit, 0, 50, 20);
-      const inventory = mailboxTruthHistory.getFidelityInventory({
+      // ORD-97: utan detta returnerar en OLADDAD shard tyst noll meddelanden.
+      // info@fazli.se rapporterade 0 av 644 den 29 juli av precis det skälet —
+      // den ligger inte i schedulerns brevlådelista och laddas därför aldrig.
+      // Ett kast här får INTE sväljas: en shard som inte går att ladda ska ge
+      // ett fel, inte se ut som en frisk mailbox utan gap (bugbot-fynd).
+      if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
+        for (const mailboxId of mailboxIds) {
+          await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+        }
+      }
+      const deepScan = String(req.query?.deepScan || '') === 'true';
+      const inventory = await mailboxTruthHistory.getFidelityInventory({
         mailboxIds,
         sampleLimit,
+        deepScan,
       });
       return res.json({
         ok: true,
@@ -7711,11 +7720,22 @@ function toCcoRuntimeHistoryFidelityManifestHandler({ ccoMailboxTruthStore = nul
           error: 'Mailbox truth-CID-manifest är inte tillgängligt just nu.',
         });
       }
-      if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
-        await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
-      }
       const limit = clampInteger(req.query?.limit, 1, 1000, 1000);
-      const manifest = mailboxTruthHistory.getCidFidelityManifest({ mailboxIds, limit });
+      // ORD-97: utan detta returnerar en OLADDAD shard tyst noll meddelanden.
+      // info@fazli.se rapporterade 0 av 644 den 29 juli av precis det skälet —
+      // den ligger inte i schedulerns brevlådelista och laddas därför aldrig.
+      // Ett kast här får INTE sväljas: en shard som inte går att ladda ska ge
+      // ett fel, inte se ut som en frisk mailbox utan gap (bugbot-fynd).
+      if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
+        for (const mailboxId of mailboxIds) {
+          await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+        }
+      }
+      const manifest = await mailboxTruthHistory.getCidFidelityManifest({
+        mailboxIds,
+        limit,
+        deepScan: String(req.query?.deepScan || '') === 'true',
+      });
       res.setHeader('cache-control', 'no-store');
       return res.json({
         ok: true,

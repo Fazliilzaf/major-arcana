@@ -421,9 +421,9 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     };
   }
 
-  function getFidelityInventory({ mailboxIds = [], sampleLimit = 20 } = {}) {
+  function getFidelityInventory({ mailboxIds = [], sampleLimit = 20, deepScan = false } = {}) {
     if (typeof store.getFidelityInventory === 'function') {
-      return store.getFidelityInventory({ mailboxIds, sampleLimit });
+      return store.getFidelityInventory({ mailboxIds, sampleLimit, deepScan });
     }
 
     // Fallbacken behåller adaptern testbar med enklare read-only stores.
@@ -509,9 +509,9 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     };
   }
 
-  function getCidFidelityManifest({ mailboxIds = [], limit = 1000 } = {}) {
+  function getCidFidelityManifest({ mailboxIds = [], limit = 1000, deepScan = false } = {}) {
     if (typeof store.getCidFidelityManifest === 'function') {
-      return store.getCidFidelityManifest({ mailboxIds, limit });
+      return store.getCidFidelityManifest({ mailboxIds, limit, deepScan });
     }
 
     const safeMailboxIds = asArray(mailboxIds).map(normalizeMailboxId).filter(Boolean);
