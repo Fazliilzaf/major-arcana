@@ -1,0 +1,69 @@
+'use strict';
+
+/**
+ * DET SOM LÄGGS TILL I SHARD-STOREN ÄR ONÅBART TILLS WRAPPERN NÄMNER DET.
+ *
+ * Produktionen använder `ccoMailboxTruthShardedStore` (se
+ * ccoMailboxTruthStoreFactory.js). Varje shard ÄR en `ccoMailboxTruthStore`,
+ * men wrappern exponerar bara de metoder den uttryckligen delegerar.
+ *
+ * Två gånger har det bitit på en dag:
+ *   getFidelityInventory / getCidFidelityManifest → deepScan blev en no-op i
+ *     produktion; adapterns fallback tog över och läste bara inline bodyHtml
+ *   hydrateMessageBodies → konversationsrutten kunde inte hydrera, så
+ *     operatören fick en 500-teckens bodyPreview i stället för hela mejlet
+ *
+ * Båda fixarna var korrekta och oåtkomliga. Vakten nedan listar de metoder
+ * som MÅSTE delegeras, så att den tredje inte behöver upptäckas i drift.
+ */
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const ROOT = path.join(__dirname, '..', '..');
+const SHARDED = fs.readFileSync(
+  path.join(ROOT, 'src', 'ops', 'ccoMailboxTruthShardedStore.js'),
+  'utf8'
+);
+
+function stripComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+}
+
+const MUST_DELEGATE = [
+  ['getFidelityInventory', 'deepScan blir en no-op i produktion utan den'],
+  ['getCidFidelityManifest', 'CID-larmet kan inte larma utan den'],
+  ['hydrateMessageBodies', 'operatören får bodyPreview i stället för hela mejlet utan den'],
+];
+
+for (const [method, why] of MUST_DELEGATE) {
+  test(`sharded storen delegerar ${method}`, () => {
+    const code = stripComments(SHARDED);
+    assert.match(
+      code,
+      new RegExp(`async ${method}\\(`),
+      `${method} saknas i den shardade wrappern — ${why}`
+    );
+  });
+}
+
+test('produktionen använder den SHARDADE storen — annars vaktar testet fel lager', () => {
+  const factory = stripComments(
+    fs.readFileSync(path.join(ROOT, 'src', 'ops', 'ccoMailboxTruthStoreFactory.js'), 'utf8')
+  );
+  assert.match(factory, /createCcoMailboxTruthShardedStore/);
+});
+
+test('konversationsrutten hydrerar innan den projicerar', () => {
+  // Hydreringen måste ske FÖRE enrichConversationMessagesWithIngestion, annars
+  // projiceras den tomma shard-versionen och sidofilen läses aldrig.
+  const route = stripComments(
+    fs.readFileSync(path.join(ROOT, 'src', 'routes', 'ccoConversation.js'), 'utf8')
+  );
+  const hydratePos = route.indexOf('hydrateMessageBodies(truthMessages)');
+  const projectPos = route.indexOf('enrichConversationMessagesWithIngestion(hydratedTruthMessages');
+  assert.ok(hydratePos > -1, 'rutten måste hydrera');
+  assert.ok(projectPos > hydratePos, 'hydreringen måste ske före projektionen');
+});

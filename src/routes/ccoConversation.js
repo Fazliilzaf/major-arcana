@@ -1866,8 +1866,22 @@ function createCcoConversationRouter({
           scopeOptions
         );
         const tTruth = process.hrtime.bigint();
-        const sorted = truthMessages.length
-          ? enrichConversationMessagesWithIngestion(truthMessages, mailIngestionStore, scopeOptions)
+        // ORD-98: HYDRERA BRÖDTEXTEN INNAN DEN PROJICERAS.
+        //
+        // Efter ORD-89 ligger brödtexten i sidofiler och shardens fält är
+        // tomt. Utan det här steget faller `deriveBodyHtml`/`deriveBody`
+        // tillbaka på `bodyPreview` — capad till 500 tecken — och operatören
+        // får en avhuggen skiva av mejlet i stället för hela.
+        //
+        // Uppmätt 2026-07-30: bodyText 158 tecken, identisk med början av
+        // bodyPreview, medan sidofilen bär hela texten. Korta mejl såg
+        // kompletta ut; långa klipptes mitt i ordet.
+        const hydratedTruthMessages =
+          truthMessages.length && typeof ccoMailboxTruthStore.hydrateMessageBodies === 'function'
+            ? await ccoMailboxTruthStore.hydrateMessageBodies(truthMessages)
+            : truthMessages;
+        const sorted = hydratedTruthMessages.length
+          ? enrichConversationMessagesWithIngestion(hydratedTruthMessages, mailIngestionStore, scopeOptions)
           : fetchSortedIngestionConversationMessagesForKeys(
               mailIngestionStore,
               lookupKeys,
