@@ -590,11 +590,34 @@ function buildInlineAttachmentUrlMap(attachments = []) {
   return map;
 }
 
+// ORD-93: en cid: som webbläsaren inte kan lösa upp visas som en trasig
+// bildikon — utan felmeddelande, utan logg, utan spår. Samma princip som
+// konversationer.html redan använder för äldre mail utan bilagemetadata:
+// aldrig en trasig cid: kvar, alltid en synlig markering.
+const CID_MISSING_IMAGE_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 64" width="96" height="64">' +
+  '<rect width="96" height="64" rx="6" fill="#f2efec"/>' +
+  '<rect x="14" y="14" width="68" height="36" rx="4" fill="none" stroke="#c2aa9c" stroke-width="2"/>' +
+  '<circle cx="30" cy="28" r="4" fill="#c2aa9c"/>' +
+  '<path d="M20 44 L34 30 L44 38 L54 26 L76 44" fill="none" stroke="#c2aa9c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+  '</svg>';
+const CID_MISSING_IMAGE_PLACEHOLDER = `data:image/svg+xml;utf8,${encodeURIComponent(CID_MISSING_IMAGE_SVG)}`;
+const CID_MISSING_IMAGE_TITLE = 'Bilden kunde inte visas — bilagemetadata saknas i truth-lagret';
+
+function toCidMissingImageMarkup(prefix, quote) {
+  return (
+    `${prefix}${quote}${CID_MISSING_IMAGE_PLACEHOLDER}${quote}` +
+    ` title=${quote}${CID_MISSING_IMAGE_TITLE}${quote} data-cid-missing="true"`
+  );
+}
+
 function rewriteMailCidImageSources(html = '', attachments = []) {
   const safeHtml = normalizeText(html);
   if (!safeHtml || !/cid:|about:blank/i.test(safeHtml)) return safeHtml;
+  // Ingen early-return när kartan är tom: en tom karta betyder att INGEN
+  // cid: kan lösas, inte att inget behöver göras. Utan reglerna nedan
+  // överlever varje cid: oförändrad in i webbläsaren.
   const cidMap = buildInlineAttachmentUrlMap(attachments);
-  if (!cidMap.size) return safeHtml;
   const inlineImages = asArray(attachments).filter(
     (attachment) =>
       attachment?.isInline === true && /^image\//i.test(normalizeText(attachment?.contentType))
@@ -606,14 +629,16 @@ function rewriteMailCidImageSources(html = '', attachments = []) {
   return safeHtml
     .replace(/\b(src\s*=\s*)(["'])cid:([^"']+)\2/gi, (match, prefix, quote, rawCid) => {
       const url = cidMap.get(normalizeContentId(rawCid));
-      return url ? `${prefix}${quote}${url}${quote}` : match;
+      return url ? `${prefix}${quote}${url}${quote}` : toCidMissingImageMarkup(prefix, quote);
     })
     .replace(/url\(\s*(['"]?)cid:([^)'"\\]+)\1\s*\)/gi, (match, _quote, rawCid) => {
       const url = cidMap.get(normalizeContentId(rawCid));
-      return url ? `url("${url}")` : match;
+      return url ? `url("${url}")` : `url("${CID_MISSING_IMAGE_PLACEHOLDER}")`;
     })
     .replace(/\b(src\s*=\s*)(["'])about:blank(?:\2|$)/gi, (match, prefix, quote) => {
-      return fallbackInlineUrl ? `${prefix}${quote}${fallbackInlineUrl}${quote}` : match;
+      return fallbackInlineUrl
+        ? `${prefix}${quote}${fallbackInlineUrl}${quote}`
+        : toCidMissingImageMarkup(prefix, quote);
     });
 }
 
@@ -1234,8 +1259,9 @@ function fetchSortedIngestionConversationMessages(store, key, options = {}) {
         excludeUnscoped: true,
       })
     : readIngestionRawMessages(store).map(toConversationMessageFromRaw);
-  const matches = rawMessages
-    .filter((message) => conversationMessageMatchesScopes(message, scopes));
+  const matches = rawMessages.filter((message) =>
+    conversationMessageMatchesScopes(message, scopes)
+  );
   return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
@@ -1256,8 +1282,9 @@ function fetchSortedIngestionConversationMessagesForKeys(store, keys = [], optio
         excludeUnscoped: true,
       })
     : readIngestionRawMessages(store).map(toConversationMessageFromRaw);
-  const matches = rawMessages
-    .filter((message) => conversationMessageMatchesScopes(message, scopes));
+  const matches = rawMessages.filter((message) =>
+    conversationMessageMatchesScopes(message, scopes)
+  );
   return dedupeConversationMessages(matches).sort((a, b) =>
     String(deriveTime(a)).localeCompare(String(deriveTime(b)))
   );
@@ -1277,7 +1304,11 @@ function deriveMailboxIdsFromConversationMessages(messages = []) {
 // Läs + mappa ingestion-råmeddelanden EN gång, scopat till angivna mailbox(ar).
 // Råmeddelanden utan mailbox tas alltid med (säkerhet). Ersätter de tidigare
 // hela-korpus-passen som körde per trådöppning.
-function readScopedIngestionConversationMessages(store, mailboxIds = null, { excludeUnscoped = false } = {}) {
+function readScopedIngestionConversationMessages(
+  store,
+  mailboxIds = null,
+  { excludeUnscoped = false } = {}
+) {
   if (!storeCanReadIngestion(store)) return [];
   const scope = mailboxIds instanceof Set && mailboxIds.size ? mailboxIds : null;
   const out = [];
@@ -1881,7 +1912,11 @@ function createCcoConversationRouter({
             ? await ccoMailboxTruthStore.hydrateMessageBodies(truthMessages)
             : truthMessages;
         const sorted = hydratedTruthMessages.length
-          ? enrichConversationMessagesWithIngestion(hydratedTruthMessages, mailIngestionStore, scopeOptions)
+          ? enrichConversationMessagesWithIngestion(
+              hydratedTruthMessages,
+              mailIngestionStore,
+              scopeOptions
+            )
           : fetchSortedIngestionConversationMessagesForKeys(
               mailIngestionStore,
               lookupKeys,
@@ -1900,7 +1935,8 @@ function createCcoConversationRouter({
           const bodyHtml = rewriteMailCidImageSources(boundedBodyHtml, attachments);
           const derivedBodyText = displayBody.text;
           const bodyText =
-            (derivedBodyText.length > 50000 || /<img\b[^>]*(?:data:image|about:blank)/i.test(derivedBodyText)) &&
+            (derivedBodyText.length > 50000 ||
+              /<img\b[^>]*(?:data:image|about:blank)/i.test(derivedBodyText)) &&
             bodyHtml
               ? extractTextFromHtml(boundedBodyHtml)
               : derivedBodyText;
@@ -3090,7 +3126,9 @@ function createCcoConversationRouter({
           normalizeEmail(mailboxId)
         );
         const invalidMailboxIds = normalizedRequestedMailboxIds.filter((mailboxId) => !mailboxId);
-        const requestedMailboxIds = Array.from(new Set(normalizedRequestedMailboxIds.filter(Boolean)));
+        const requestedMailboxIds = Array.from(
+          new Set(normalizedRequestedMailboxIds.filter(Boolean))
+        );
         const offScopeMailboxIds = requestedMailboxIds.filter(
           (mailboxId) => !configuredGraphMailboxIdSet.has(mailboxId)
         );
@@ -3101,7 +3139,8 @@ function createCcoConversationRouter({
             detail: 'Manuell Graph-sync far bara koras for tillatna Graph-mailboxar.',
           });
         }
-        const mailboxIds = requestedMailboxIds.length > 0 ? requestedMailboxIds : configuredGraphMailboxIds;
+        const mailboxIds =
+          requestedMailboxIds.length > 0 ? requestedMailboxIds : configuredGraphMailboxIds;
         if (mailboxIds.length === 0) {
           return res
             .status(400)
@@ -3169,414 +3208,470 @@ function createCcoConversationRouter({
   // GET /cco/runtime/health/mailboxes
   // Visar antal mejl per mailbox + senaste mejlets timestamp.
   // Inga email-bodies eller customer-data exponeras — bara counts.
-  router.get('/cco/runtime/health/mailboxes', authMiddleware, requireTenantScope, requirePermission('mail.read'), (_req, res) => {
-    try {
-      if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
-        return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
-      }
-      // Iterera per mailbox så bara EN shard materialiseras åt gången, i stället
-      // för att bygga + sortera en array av HELA storen (listMessages({})). Skalar
-      // med antal konton utan minnesspik. Faller tillbaka till allt om mailbox-
-      // listan inte kan härledas. Counts/latest är oförändrade.
-      const report =
-        typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
-          ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds: configuredMailboxIds })
-          : null;
-      const mailboxIds = report
-        ? asArray(report.accountReports)
-            .map((account) => normalizeText(account.mailboxId))
-            .filter(Boolean)
-        : configuredMailboxIds;
-      const scopeList = mailboxIds.length ? mailboxIds.map((id) => ({ mailboxIds: [id] })) : [{}];
-      const byMailbox = {};
-      let totalMessages = 0;
-      for (const scope of scopeList) {
-        for (const raw of ccoMailboxTruthStore.listMessages(scope)) {
-          const m = asObject(raw);
-          const mb = normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'unknown';
-          if (!byMailbox[mb]) byMailbox[mb] = { mailboxId: mb, count: 0, latestAt: null };
-          byMailbox[mb].count += 1;
-          totalMessages += 1;
-          const tIso =
-            normalizeText(m.sentAt) ||
-            normalizeText(m.receivedAt) ||
-            normalizeText(m.lastModifiedAt);
-          if (tIso) {
-            const cur = byMailbox[mb].latestAt ? Date.parse(byMailbox[mb].latestAt) : 0;
-            if (Date.parse(tIso) > cur) byMailbox[mb].latestAt = tIso;
+  router.get(
+    '/cco/runtime/health/mailboxes',
+    authMiddleware,
+    requireTenantScope,
+    requirePermission('mail.read'),
+    (_req, res) => {
+      try {
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        }
+        // Iterera per mailbox så bara EN shard materialiseras åt gången, i stället
+        // för att bygga + sortera en array av HELA storen (listMessages({})). Skalar
+        // med antal konton utan minnesspik. Faller tillbaka till allt om mailbox-
+        // listan inte kan härledas. Counts/latest är oförändrade.
+        const report =
+          typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
+            ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds: configuredMailboxIds })
+            : null;
+        const mailboxIds = report
+          ? asArray(report.accountReports)
+              .map((account) => normalizeText(account.mailboxId))
+              .filter(Boolean)
+          : configuredMailboxIds;
+        const scopeList = mailboxIds.length ? mailboxIds.map((id) => ({ mailboxIds: [id] })) : [{}];
+        const byMailbox = {};
+        let totalMessages = 0;
+        for (const scope of scopeList) {
+          for (const raw of ccoMailboxTruthStore.listMessages(scope)) {
+            const m = asObject(raw);
+            const mb = normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'unknown';
+            if (!byMailbox[mb]) byMailbox[mb] = { mailboxId: mb, count: 0, latestAt: null };
+            byMailbox[mb].count += 1;
+            totalMessages += 1;
+            const tIso =
+              normalizeText(m.sentAt) ||
+              normalizeText(m.receivedAt) ||
+              normalizeText(m.lastModifiedAt);
+            if (tIso) {
+              const cur = byMailbox[mb].latestAt ? Date.parse(byMailbox[mb].latestAt) : 0;
+              if (Date.parse(tIso) > cur) byMailbox[mb].latestAt = tIso;
+            }
           }
         }
+        return res.json({
+          ok: true,
+          totalMessages,
+          mailboxes: Object.values(byMailbox).sort((a, b) => b.count - a.count),
+          generatedAt: new Date().toISOString(),
+          graphReadEnabled: process.env.ARCANA_GRAPH_READ_ENABLED === 'true',
+          syncEnabled: Boolean(graphReadConnector),
+        });
+      } catch (err) {
+        return res
+          .status(500)
+          .json({
+            ok: false,
+            error: 'internal_error',
+            detail: String((err && err.message) || err),
+          });
       }
-      return res.json({
-        ok: true,
-        totalMessages,
-        mailboxes: Object.values(byMailbox).sort((a, b) => b.count - a.count),
-        generatedAt: new Date().toISOString(),
-        graphReadEnabled: process.env.ARCANA_GRAPH_READ_ENABLED === 'true',
-        syncEnabled: Boolean(graphReadConnector),
-      });
-    } catch (err) {
-      return res
-        .status(500)
-        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
     }
-  });
+  );
 
   // ----- Mailbox-väljarens status-spegel (RBAC-grindad aggregatstatus) -----
   // GET /cco/runtime/mailboxes
   // Frontendens vänsterräls behöver per mailbox visa vad som faktiskt kan
   // väljas. Läs endast completeness-rapporten: den materialiserar inte alla
   // mejl och exponerar inga adresser, ämnen eller bodies.
-  router.get('/cco/runtime/mailboxes', authMiddleware, requireTenantScope, requirePermission('mail.read'), (_req, res) => {
-    try {
-      const report =
-        ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
-          ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds: configuredMailboxIds })
-          : null;
-      const reportByMailboxId = new Map(
-        asArray(report?.accountReports).map((account) => [
-          normalizeText(account?.mailboxId).toLowerCase(),
-          asObject(account),
-        ])
-      );
-      const deltaReport =
-        ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getDeltaSyncReport === 'function'
-          ? ccoMailboxTruthStore.getDeltaSyncReport({ mailboxIds: configuredMailboxIds })
-          : null;
-      const deltaByMailboxId = new Map(
-        asArray(deltaReport?.accountReports).map((account) => [
-          normalizeText(account?.mailboxId).toLowerCase(),
-          asObject(account),
-        ])
-      );
-      const latestIso = (values = []) => {
-        const timestamps = asArray(values)
-          .map((value) => normalizeText(value))
-          .filter((value) => Number.isFinite(Date.parse(value)));
-        return timestamps.sort((left, right) => Date.parse(right) - Date.parse(left))[0] || null;
-      };
-      const mailboxes = configuredMailboxIds.map((mailboxId) => {
-        const runtimeStatus =
-          typeof mailboxRuntimeStatusProvider === 'function'
-            ? asObject(mailboxRuntimeStatusProvider({ mailboxId }))
-            : {};
-        const isExternalMailbox = normalizeText(runtimeStatus.provider) === 'imap';
-        const account = reportByMailboxId.get(mailboxId) || {};
-        const deltaAccount = deltaByMailboxId.get(mailboxId) || {};
-        const counts = {};
-        for (const folder of asArray(account.folderCounts)) {
-          const folderType = normalizeText(folder?.folderType).toLowerCase();
-          if (folderType === 'inbox' || folderType === 'sent') {
-            counts[folderType] = Math.max(0, Number(folder?.totalItemCount) || 0);
-          }
-        }
-        const checkpoints = Object.entries(asObject(deltaAccount.checkpointsByFolderType))
-          .filter(([folderType]) => ['inbox', 'sent'].includes(normalizeText(folderType)))
-          .map(([, checkpoint]) => asObject(checkpoint))
-          .filter((checkpoint) => Object.keys(checkpoint).length > 0);
-        const failedCheckpoint = checkpoints.find((checkpoint) =>
-          ['error', 'resync_required'].includes(normalizeText(checkpoint.syncStatus).toLowerCase())
+  router.get(
+    '/cco/runtime/mailboxes',
+    authMiddleware,
+    requireTenantScope,
+    requirePermission('mail.read'),
+    (_req, res) => {
+      try {
+        const report =
+          ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
+            ? ccoMailboxTruthStore.getCompletenessReport({ mailboxIds: configuredMailboxIds })
+            : null;
+        const reportByMailboxId = new Map(
+          asArray(report?.accountReports).map((account) => [
+            normalizeText(account?.mailboxId).toLowerCase(),
+            asObject(account),
+          ])
         );
-        return {
-          id: mailboxId,
-          mailboxId,
-          // Keep the established Graph response contract unchanged. Only the
-          // server-declared external mailbox carries provider/label metadata
-          // for the CCO selector to add it at runtime.
-          ...(isExternalMailbox
-            ? {
-                label: normalizeText(runtimeStatus.label) || null,
-                provider: 'imap',
-              }
-            : {}),
-          active: isExternalMailbox ? runtimeStatus.active === true : Boolean(graphReadConnector),
-          status: isExternalMailbox
-            ? normalizeText(runtimeStatus.status) || (runtimeStatus.active === true ? 'active' : 'inactive')
-            : graphReadConnector
-              ? 'active'
-              : 'inactive',
-          completenessStatus: normalizeText(account.accountStatus) || 'NOT VERIFIED',
-          deltaStatus: normalizeText(deltaAccount.accountStatus) || 'NOT STARTED',
-          lastSyncAt: latestIso(
-            checkpoints.flatMap((checkpoint) => [
-              checkpoint.lastSuccessfulAt,
-              checkpoint.lastCompletedAt,
-              checkpoint.lastUpdatedAt,
-            ])
-          ),
-          lastAttemptAt: latestIso(checkpoints.map((checkpoint) => checkpoint.lastAttemptedAt)),
-          error: failedCheckpoint
-            ? {
-                code: normalizeText(failedCheckpoint.lastErrorCode) || 'delta_sync_error',
-                message: normalizeText(failedCheckpoint.lastErrorMessage) || 'Delta-synk misslyckades.',
-                lastAttemptAt: normalizeText(failedCheckpoint.lastAttemptedAt) || null,
-              }
-            : null,
-          counts: {
-            // Saknas folderCounts helt betyder det att status-spegeln inte har
-            // lokala siffror ännu - det är inte samma sak som en tom mailbox.
-            inbox: counts.inbox ?? null,
-            sent: counts.sent ?? null,
-          },
+        const deltaReport =
+          ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getDeltaSyncReport === 'function'
+            ? ccoMailboxTruthStore.getDeltaSyncReport({ mailboxIds: configuredMailboxIds })
+            : null;
+        const deltaByMailboxId = new Map(
+          asArray(deltaReport?.accountReports).map((account) => [
+            normalizeText(account?.mailboxId).toLowerCase(),
+            asObject(account),
+          ])
+        );
+        const latestIso = (values = []) => {
+          const timestamps = asArray(values)
+            .map((value) => normalizeText(value))
+            .filter((value) => Number.isFinite(Date.parse(value)));
+          return timestamps.sort((left, right) => Date.parse(right) - Date.parse(left))[0] || null;
         };
-      });
-      return res.json({
-        ok: true,
-        syncEnabled: Boolean(graphReadConnector) || configuredMailboxIds.some((mailboxId) => {
+        const mailboxes = configuredMailboxIds.map((mailboxId) => {
           const runtimeStatus =
             typeof mailboxRuntimeStatusProvider === 'function'
               ? asObject(mailboxRuntimeStatusProvider({ mailboxId }))
               : {};
-          return runtimeStatus.active === true;
-        }),
-        mailboxes,
-        generatedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      return res
-        .status(500)
-        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
+          const isExternalMailbox = normalizeText(runtimeStatus.provider) === 'imap';
+          const account = reportByMailboxId.get(mailboxId) || {};
+          const deltaAccount = deltaByMailboxId.get(mailboxId) || {};
+          const counts = {};
+          for (const folder of asArray(account.folderCounts)) {
+            const folderType = normalizeText(folder?.folderType).toLowerCase();
+            if (folderType === 'inbox' || folderType === 'sent') {
+              counts[folderType] = Math.max(0, Number(folder?.totalItemCount) || 0);
+            }
+          }
+          const checkpoints = Object.entries(asObject(deltaAccount.checkpointsByFolderType))
+            .filter(([folderType]) => ['inbox', 'sent'].includes(normalizeText(folderType)))
+            .map(([, checkpoint]) => asObject(checkpoint))
+            .filter((checkpoint) => Object.keys(checkpoint).length > 0);
+          const failedCheckpoint = checkpoints.find((checkpoint) =>
+            ['error', 'resync_required'].includes(
+              normalizeText(checkpoint.syncStatus).toLowerCase()
+            )
+          );
+          return {
+            id: mailboxId,
+            mailboxId,
+            // Keep the established Graph response contract unchanged. Only the
+            // server-declared external mailbox carries provider/label metadata
+            // for the CCO selector to add it at runtime.
+            ...(isExternalMailbox
+              ? {
+                  label: normalizeText(runtimeStatus.label) || null,
+                  provider: 'imap',
+                }
+              : {}),
+            active: isExternalMailbox ? runtimeStatus.active === true : Boolean(graphReadConnector),
+            status: isExternalMailbox
+              ? normalizeText(runtimeStatus.status) ||
+                (runtimeStatus.active === true ? 'active' : 'inactive')
+              : graphReadConnector
+                ? 'active'
+                : 'inactive',
+            completenessStatus: normalizeText(account.accountStatus) || 'NOT VERIFIED',
+            deltaStatus: normalizeText(deltaAccount.accountStatus) || 'NOT STARTED',
+            lastSyncAt: latestIso(
+              checkpoints.flatMap((checkpoint) => [
+                checkpoint.lastSuccessfulAt,
+                checkpoint.lastCompletedAt,
+                checkpoint.lastUpdatedAt,
+              ])
+            ),
+            lastAttemptAt: latestIso(checkpoints.map((checkpoint) => checkpoint.lastAttemptedAt)),
+            error: failedCheckpoint
+              ? {
+                  code: normalizeText(failedCheckpoint.lastErrorCode) || 'delta_sync_error',
+                  message:
+                    normalizeText(failedCheckpoint.lastErrorMessage) || 'Delta-synk misslyckades.',
+                  lastAttemptAt: normalizeText(failedCheckpoint.lastAttemptedAt) || null,
+                }
+              : null,
+            counts: {
+              // Saknas folderCounts helt betyder det att status-spegeln inte har
+              // lokala siffror ännu - det är inte samma sak som en tom mailbox.
+              inbox: counts.inbox ?? null,
+              sent: counts.sent ?? null,
+            },
+          };
+        });
+        return res.json({
+          ok: true,
+          syncEnabled:
+            Boolean(graphReadConnector) ||
+            configuredMailboxIds.some((mailboxId) => {
+              const runtimeStatus =
+                typeof mailboxRuntimeStatusProvider === 'function'
+                  ? asObject(mailboxRuntimeStatusProvider({ mailboxId }))
+                  : {};
+              return runtimeStatus.active === true;
+            }),
+          mailboxes,
+          generatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        return res
+          .status(500)
+          .json({
+            ok: false,
+            error: 'internal_error',
+            detail: String((err && err.message) || err),
+          });
+      }
     }
-  });
+  );
 
   // ----- Dashboard: KPI-aggregat -----
   // GET /cco/runtime/dashboard?days=7
-  router.get('/cco/runtime/dashboard', authMiddleware, requireTenantScope, requirePermission('mail.read'), (req, res) => {
-    try {
-      if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
-        return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
-      }
-      const days = Math.max(1, Math.min(90, Number(req.query.days) || 7));
-      const nowMs = Date.now();
-      const dayMs = 24 * 60 * 60 * 1000;
-      const startMs = nowMs - days * dayMs;
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const yesterdayStart = todayStart.getTime() - dayMs;
-
-      const allMessages = ccoMailboxTruthStore.listMessages({});
-      // Filter: alla i intervallet
-      const inWindow = allMessages.filter((m) => {
-        const safe = asObject(m);
-        const t = Date.parse(safe.sentAt || safe.receivedAt || safe.lastModifiedAt || '');
-        return Number.isFinite(t) && t >= startMs;
-      });
-
-      // Volym per dag (senaste N dagar) — för chart
-      const volumePerDay = {};
-      for (let i = 0; i < days; i += 1) {
-        const dKey = new Date(nowMs - i * dayMs).toISOString().slice(0, 10);
-        volumePerDay[dKey] = { inbound: 0, outbound: 0 };
-      }
-      let inboundCount = 0;
-      let outboundCount = 0;
-      let todayInboundCount = 0;
-      let yesterdayInboundCount = 0;
-      const perMailboxCount = {};
-      const customerActivity = {};
-      for (const raw of inWindow) {
-        const m = asObject(raw);
-        const tIso = m.sentAt || m.receivedAt || m.lastModifiedAt || '';
-        const tMs = Date.parse(tIso);
-        if (!Number.isFinite(tMs)) continue;
-        const dir = deriveDir(m.folderType);
-        const dKey = new Date(tMs).toISOString().slice(0, 10);
-        if (!volumePerDay[dKey]) volumePerDay[dKey] = { inbound: 0, outbound: 0 };
-        if (dir === 'outbound') {
-          volumePerDay[dKey].outbound += 1;
-          outboundCount += 1;
-        } else if (dir === 'inbound') {
-          volumePerDay[dKey].inbound += 1;
-          inboundCount += 1;
-          if (tMs >= todayStart.getTime()) todayInboundCount += 1;
-          else if (tMs >= yesterdayStart) yesterdayInboundCount += 1;
+  router.get(
+    '/cco/runtime/dashboard',
+    authMiddleware,
+    requireTenantScope,
+    requirePermission('mail.read'),
+    (req, res) => {
+      try {
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
         }
-        // Per mailbox (sender mailbox)
-        const mailboxAddr =
-          normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'okänd';
-        if (!perMailboxCount[mailboxAddr])
-          perMailboxCount[mailboxAddr] = { total: 0, inbound: 0, outbound: 0 };
-        perMailboxCount[mailboxAddr].total += 1;
-        if (dir === 'outbound') perMailboxCount[mailboxAddr].outbound += 1;
-        else if (dir === 'inbound') perMailboxCount[mailboxAddr].inbound += 1;
-        // Per kund (customer email)
-        const customerEmail =
-          normalizeText(asObject(asObject(m.from).emailAddress).address) ||
-          normalizeText(m.senderEmail) ||
-          normalizeText(m.fromAddress);
-        if (customerEmail && dir === 'inbound') {
-          const fromName =
-            normalizeText(asObject(asObject(m.from).emailAddress).name) ||
-            normalizeText(m.senderName) ||
-            customerEmail;
-          if (!customerActivity[customerEmail])
-            customerActivity[customerEmail] = {
-              email: customerEmail,
-              name: fromName,
-              count: 0,
-              lastAt: null,
-            };
-          customerActivity[customerEmail].count += 1;
-          const cur = customerActivity[customerEmail].lastAt
-            ? Date.parse(customerActivity[customerEmail].lastAt)
-            : 0;
-          if (tMs > cur) customerActivity[customerEmail].lastAt = tIso;
-        }
-      }
+        const days = Math.max(1, Math.min(90, Number(req.query.days) || 7));
+        const nowMs = Date.now();
+        const dayMs = 24 * 60 * 60 * 1000;
+        const startMs = nowMs - days * dayMs;
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const yesterdayStart = todayStart.getTime() - dayMs;
 
-      // Snitt-svartid: för varje konversation, hitta första outbound efter senaste inbound
-      const conversationLatest = {};
-      for (const raw of allMessages) {
-        const m = asObject(raw);
-        const key = normalizeText(m.mailboxConversationId);
-        if (!key) continue;
-        const tMs = Date.parse(m.sentAt || m.receivedAt || m.lastModifiedAt || '');
-        if (!Number.isFinite(tMs)) continue;
-        if (!conversationLatest[key]) conversationLatest[key] = { inbounds: [], outbounds: [] };
-        const dir = deriveDir(m.folderType);
-        if (dir === 'inbound') conversationLatest[key].inbounds.push(tMs);
-        else if (dir === 'outbound') conversationLatest[key].outbounds.push(tMs);
-      }
-      const responseTimes = [];
-      for (const key of Object.keys(conversationLatest)) {
-        const { inbounds, outbounds } = conversationLatest[key];
-        if (!inbounds.length || !outbounds.length) continue;
-        inbounds.sort((a, b) => a - b);
-        outbounds.sort((a, b) => a - b);
-        for (const inb of inbounds) {
-          const reply = outbounds.find((o) => o > inb);
-          if (reply) {
-            const diffH = (reply - inb) / 3600000;
-            if (diffH >= 0 && diffH < 168) responseTimes.push(diffH);
-            break;
+        const allMessages = ccoMailboxTruthStore.listMessages({});
+        // Filter: alla i intervallet
+        const inWindow = allMessages.filter((m) => {
+          const safe = asObject(m);
+          const t = Date.parse(safe.sentAt || safe.receivedAt || safe.lastModifiedAt || '');
+          return Number.isFinite(t) && t >= startMs;
+        });
+
+        // Volym per dag (senaste N dagar) — för chart
+        const volumePerDay = {};
+        for (let i = 0; i < days; i += 1) {
+          const dKey = new Date(nowMs - i * dayMs).toISOString().slice(0, 10);
+          volumePerDay[dKey] = { inbound: 0, outbound: 0 };
+        }
+        let inboundCount = 0;
+        let outboundCount = 0;
+        let todayInboundCount = 0;
+        let yesterdayInboundCount = 0;
+        const perMailboxCount = {};
+        const customerActivity = {};
+        for (const raw of inWindow) {
+          const m = asObject(raw);
+          const tIso = m.sentAt || m.receivedAt || m.lastModifiedAt || '';
+          const tMs = Date.parse(tIso);
+          if (!Number.isFinite(tMs)) continue;
+          const dir = deriveDir(m.folderType);
+          const dKey = new Date(tMs).toISOString().slice(0, 10);
+          if (!volumePerDay[dKey]) volumePerDay[dKey] = { inbound: 0, outbound: 0 };
+          if (dir === 'outbound') {
+            volumePerDay[dKey].outbound += 1;
+            outboundCount += 1;
+          } else if (dir === 'inbound') {
+            volumePerDay[dKey].inbound += 1;
+            inboundCount += 1;
+            if (tMs >= todayStart.getTime()) todayInboundCount += 1;
+            else if (tMs >= yesterdayStart) yesterdayInboundCount += 1;
+          }
+          // Per mailbox (sender mailbox)
+          const mailboxAddr =
+            normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'okänd';
+          if (!perMailboxCount[mailboxAddr])
+            perMailboxCount[mailboxAddr] = { total: 0, inbound: 0, outbound: 0 };
+          perMailboxCount[mailboxAddr].total += 1;
+          if (dir === 'outbound') perMailboxCount[mailboxAddr].outbound += 1;
+          else if (dir === 'inbound') perMailboxCount[mailboxAddr].inbound += 1;
+          // Per kund (customer email)
+          const customerEmail =
+            normalizeText(asObject(asObject(m.from).emailAddress).address) ||
+            normalizeText(m.senderEmail) ||
+            normalizeText(m.fromAddress);
+          if (customerEmail && dir === 'inbound') {
+            const fromName =
+              normalizeText(asObject(asObject(m.from).emailAddress).name) ||
+              normalizeText(m.senderName) ||
+              customerEmail;
+            if (!customerActivity[customerEmail])
+              customerActivity[customerEmail] = {
+                email: customerEmail,
+                name: fromName,
+                count: 0,
+                lastAt: null,
+              };
+            customerActivity[customerEmail].count += 1;
+            const cur = customerActivity[customerEmail].lastAt
+              ? Date.parse(customerActivity[customerEmail].lastAt)
+              : 0;
+            if (tMs > cur) customerActivity[customerEmail].lastAt = tIso;
           }
         }
+
+        // Snitt-svartid: för varje konversation, hitta första outbound efter senaste inbound
+        const conversationLatest = {};
+        for (const raw of allMessages) {
+          const m = asObject(raw);
+          const key = normalizeText(m.mailboxConversationId);
+          if (!key) continue;
+          const tMs = Date.parse(m.sentAt || m.receivedAt || m.lastModifiedAt || '');
+          if (!Number.isFinite(tMs)) continue;
+          if (!conversationLatest[key]) conversationLatest[key] = { inbounds: [], outbounds: [] };
+          const dir = deriveDir(m.folderType);
+          if (dir === 'inbound') conversationLatest[key].inbounds.push(tMs);
+          else if (dir === 'outbound') conversationLatest[key].outbounds.push(tMs);
+        }
+        const responseTimes = [];
+        for (const key of Object.keys(conversationLatest)) {
+          const { inbounds, outbounds } = conversationLatest[key];
+          if (!inbounds.length || !outbounds.length) continue;
+          inbounds.sort((a, b) => a - b);
+          outbounds.sort((a, b) => a - b);
+          for (const inb of inbounds) {
+            const reply = outbounds.find((o) => o > inb);
+            if (reply) {
+              const diffH = (reply - inb) / 3600000;
+              if (diffH >= 0 && diffH < 168) responseTimes.push(diffH);
+              break;
+            }
+          }
+        }
+        responseTimes.sort((a, b) => a - b);
+        const avgResponseHours = responseTimes.length
+          ? responseTimes.reduce((s, v) => s + v, 0) / responseTimes.length
+          : null;
+        const medianResponseHours = responseTimes.length
+          ? responseTimes[Math.floor(responseTimes.length / 2)]
+          : null;
+
+        // Topp-kunder (efter aktivitet senaste N dagar)
+        const topCustomers = Object.values(customerActivity)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 8);
+
+        // Volume-array (sorterad äldst → nyast för chart)
+        const volumeChart = Object.entries(volumePerDay)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, counts]) => ({ date, ...counts }));
+
+        return res.json({
+          ok: true,
+          windowDays: days,
+          generatedAt: new Date().toISOString(),
+          today: { inboundCount: todayInboundCount },
+          yesterday: { inboundCount: yesterdayInboundCount },
+          totals: {
+            inbound: inboundCount,
+            outbound: outboundCount,
+            total: inboundCount + outboundCount,
+          },
+          responseTime: {
+            count: responseTimes.length,
+            avgHours: avgResponseHours,
+            medianHours: medianResponseHours,
+          },
+          perMailbox: perMailboxCount,
+          topCustomers,
+          volumeChart,
+        });
+      } catch (err) {
+        return res
+          .status(500)
+          .json({
+            ok: false,
+            error: 'internal_error',
+            detail: String((err && err.message) || err),
+          });
       }
-      responseTimes.sort((a, b) => a - b);
-      const avgResponseHours = responseTimes.length
-        ? responseTimes.reduce((s, v) => s + v, 0) / responseTimes.length
-        : null;
-      const medianResponseHours = responseTimes.length
-        ? responseTimes[Math.floor(responseTimes.length / 2)]
-        : null;
-
-      // Topp-kunder (efter aktivitet senaste N dagar)
-      const topCustomers = Object.values(customerActivity)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 8);
-
-      // Volume-array (sorterad äldst → nyast för chart)
-      const volumeChart = Object.entries(volumePerDay)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, counts]) => ({ date, ...counts }));
-
-      return res.json({
-        ok: true,
-        windowDays: days,
-        generatedAt: new Date().toISOString(),
-        today: { inboundCount: todayInboundCount },
-        yesterday: { inboundCount: yesterdayInboundCount },
-        totals: {
-          inbound: inboundCount,
-          outbound: outboundCount,
-          total: inboundCount + outboundCount,
-        },
-        responseTime: {
-          count: responseTimes.length,
-          avgHours: avgResponseHours,
-          medianHours: medianResponseHours,
-        },
-        perMailbox: perMailboxCount,
-        topCustomers,
-        volumeChart,
-      });
-    } catch (err) {
-      return res
-        .status(500)
-        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
     }
-  });
+  );
 
   // ----- Settings-info: mailboxar + AI-konfiguration -----
   // GET /cco/runtime/settings/info
-  router.get('/cco/runtime/settings/info', authMiddleware, requireTenantScope, requirePermission('settings.read'), (_req, res) => {
-    try {
-      // Sammanställ mailbox-info från allowlist + senaste sync
-      const allowlistRaw = String(process.env.ARCANA_MAILBOX_ALLOWLIST || '')
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-      const mailboxIds = allowlistRaw.length > 0 ? allowlistRaw : mailboxIdsForSync || [];
-      const ai = {
-        provider: openai && openaiModel ? 'openai' : 'heuristic',
-        model: openai && openaiModel ? openaiModel : null,
-        status: openai && openaiModel ? 'aktiv' : 'fallback',
-      };
-      const liveSendReady = Boolean(
-        graphSendConnector && typeof graphSendConnector.sendReply === 'function'
-      );
-      const testRedirectActive =
-        shadowSendEnabled !== true && liveSendReady && Boolean(normalizeText(sendTestRecipient));
-      const sendMode =
-        shadowSendEnabled === true
-          ? 'shadow'
-          : !liveSendReady
-            ? 'off'
-            : testRedirectActive
-              ? 'live_test'
-              : 'live';
-      const send = {
-        // enabled = skarp sändning möjlig. Shadow räknas inte som skarpt.
-        enabled: liveSendReady,
-        shadow: shadowSendEnabled === true,
-        testRedirect: testRedirectActive,
-        mode: sendMode,
-        status:
-          sendMode === 'shadow'
-            ? 'shadow (dry-run)'
-            : sendMode === 'live_test'
-              ? 'live (test-redirect)'
-              : sendMode === 'live'
-                ? 'aktiv'
-                : 'avstängd',
-      };
-      const sync = {
-        enabled: Boolean(graphReadConnector),
-        status: graphReadConnector ? 'aktiv' : 'avstängd',
-        lookbackDays: syncLookbackDays || 14,
-      };
-      return res.json({
-        ok: true,
-        mailboxes: mailboxIds.map((id) => ({ mailboxId: id, mailboxAddress: id })),
-        ai,
-        send,
-        sync,
-        tenantId: defaultTenantId,
-      });
-    } catch (err) {
-      return res
-        .status(500)
-        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
+  router.get(
+    '/cco/runtime/settings/info',
+    authMiddleware,
+    requireTenantScope,
+    requirePermission('settings.read'),
+    (_req, res) => {
+      try {
+        // Sammanställ mailbox-info från allowlist + senaste sync
+        const allowlistRaw = String(process.env.ARCANA_MAILBOX_ALLOWLIST || '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const mailboxIds = allowlistRaw.length > 0 ? allowlistRaw : mailboxIdsForSync || [];
+        const ai = {
+          provider: openai && openaiModel ? 'openai' : 'heuristic',
+          model: openai && openaiModel ? openaiModel : null,
+          status: openai && openaiModel ? 'aktiv' : 'fallback',
+        };
+        const liveSendReady = Boolean(
+          graphSendConnector && typeof graphSendConnector.sendReply === 'function'
+        );
+        const testRedirectActive =
+          shadowSendEnabled !== true && liveSendReady && Boolean(normalizeText(sendTestRecipient));
+        const sendMode =
+          shadowSendEnabled === true
+            ? 'shadow'
+            : !liveSendReady
+              ? 'off'
+              : testRedirectActive
+                ? 'live_test'
+                : 'live';
+        const send = {
+          // enabled = skarp sändning möjlig. Shadow räknas inte som skarpt.
+          enabled: liveSendReady,
+          shadow: shadowSendEnabled === true,
+          testRedirect: testRedirectActive,
+          mode: sendMode,
+          status:
+            sendMode === 'shadow'
+              ? 'shadow (dry-run)'
+              : sendMode === 'live_test'
+                ? 'live (test-redirect)'
+                : sendMode === 'live'
+                  ? 'aktiv'
+                  : 'avstängd',
+        };
+        const sync = {
+          enabled: Boolean(graphReadConnector),
+          status: graphReadConnector ? 'aktiv' : 'avstängd',
+          lookbackDays: syncLookbackDays || 14,
+        };
+        return res.json({
+          ok: true,
+          mailboxes: mailboxIds.map((id) => ({ mailboxId: id, mailboxAddress: id })),
+          ai,
+          send,
+          sync,
+          tenantId: defaultTenantId,
+        });
+      } catch (err) {
+        return res
+          .status(500)
+          .json({
+            ok: false,
+            error: 'internal_error',
+            detail: String((err && err.message) || err),
+          });
+      }
     }
-  });
+  );
 
   // ----- Mejl-mallar -----
   // GET /cco/runtime/mail-templates                          → lista alla
   // POST /cco/runtime/mail-templates                         → upsert (templateId optional)
   // DELETE /cco/runtime/mail-templates/:templateId           → ta bort
-  router.get('/cco/runtime/mail-templates', authMiddleware, requireTenantScope, requirePermission('templates.read'), (_req, res) => {
-    try {
-      if (!ccoMailTemplateStore) {
-        return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
+  router.get(
+    '/cco/runtime/mail-templates',
+    authMiddleware,
+    requireTenantScope,
+    requirePermission('templates.read'),
+    (_req, res) => {
+      try {
+        if (!ccoMailTemplateStore) {
+          return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
+        }
+        const templates = ccoMailTemplateStore.listTemplates();
+        return res.json({ ok: true, count: templates.length, templates });
+      } catch (err) {
+        return res
+          .status(500)
+          .json({
+            ok: false,
+            error: 'internal_error',
+            detail: String((err && err.message) || err),
+          });
       }
-      const templates = ccoMailTemplateStore.listTemplates();
-      return res.json({ ok: true, count: templates.length, templates });
-    } catch (err) {
-      return res
-        .status(500)
-        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
     }
-  });
+  );
   router.post(
     '/cco/runtime/mail-templates',
     authMiddleware,
@@ -3607,20 +3702,30 @@ function createCcoConversationRouter({
       }
     }
   );
-  router.delete('/cco/runtime/mail-templates/:templateId', authMiddleware, requireTenantScope, requirePermission('templates.write'), async (req, res) => {
-    try {
-      if (!ccoMailTemplateStore) {
-        return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
+  router.delete(
+    '/cco/runtime/mail-templates/:templateId',
+    authMiddleware,
+    requireTenantScope,
+    requirePermission('templates.write'),
+    async (req, res) => {
+      try {
+        if (!ccoMailTemplateStore) {
+          return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
+        }
+        const ok = await ccoMailTemplateStore.deleteTemplate(req.params.templateId);
+        if (!ok) return res.status(404).json({ ok: false, error: 'not_found' });
+        return res.json({ ok: true });
+      } catch (err) {
+        return res
+          .status(500)
+          .json({
+            ok: false,
+            error: 'internal_error',
+            detail: String((err && err.message) || err),
+          });
       }
-      const ok = await ccoMailTemplateStore.deleteTemplate(req.params.templateId);
-      if (!ok) return res.status(404).json({ ok: false, error: 'not_found' });
-      return res.json({ ok: true });
-    } catch (err) {
-      return res
-        .status(500)
-        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
     }
-  });
+  );
 
   return router;
 }
