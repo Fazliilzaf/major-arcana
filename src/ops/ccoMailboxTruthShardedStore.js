@@ -588,6 +588,49 @@ async function createCcoMailboxTruthShardedStore({
       };
     },
     /**
+     * ORD-98: SAMMA DELEGERINGSLUCKA, MEN FÖR OPERATÖRENS LÄSVÄG.
+     *
+     * `hydrateMessageBodies` lades till i ORD-96 på per-shard-storen. Den
+     * shardade wrappern exponerade den aldrig, så konversationsrutten kunde
+     * inte hydrera — och efter ORD-89 ligger brödtexten i sidofiler.
+     *
+     * Följden, uppmätt 2026-07-30: operatören fick `bodyText` 158 tecken där
+     * sidofilen bär hela mejlet — en avhuggen skiva av den 500-teckens
+     * `bodyPreview` som stannar inline. Mejl såg kompletta ut när de var korta
+     * och klipptes mitt i ordet när de var långa. Jag såg det själv i
+     * trådvyn i går ("…medgrundare till Byond Cre…") och läste det som en
+     * visningsklippning.
+     *
+     * Fidelity-delegeringen nedan fixades av samma skäl. Att båda saknades
+     * betyder att lagret är lätt att glömma: det som läggs till i shard-storen
+     * blir onåbart tills wrappern nämner det.
+     */
+    async hydrateMessageBodies(messages = []) {
+      const rows = Array.isArray(messages) ? messages : [];
+      const byMailbox = new Map();
+      for (const message of rows) {
+        const mailboxId = normalizeMailboxId(asObject(message).mailboxId);
+        if (!mailboxId) continue;
+        if (!byMailbox.has(mailboxId)) byMailbox.set(mailboxId, []);
+        byMailbox.get(mailboxId).push(message);
+      }
+      const hydratedByRef = new Map();
+      for (const [mailboxId, group] of byMailbox.entries()) {
+        let store = null;
+        try {
+          store = await loadShard(mailboxId);
+        } catch (error) {
+          console.warn('[cco-truth-sharded] kunde inte ladda för hydrering', mailboxId, error?.message);
+          continue;
+        }
+        if (!store || typeof store.hydrateMessageBodies !== 'function') continue;
+        const hydrated = await store.hydrateMessageBodies(group);
+        group.forEach((original, index) => hydratedByRef.set(original, hydrated[index] || original));
+      }
+      return rows.map((message) => hydratedByRef.get(message) || message);
+    },
+
+    /**
      * ORD-97 bugbot-fynd: den här delegeringen saknades. Varje shard ÄR en
      * `ccoMailboxTruthStore`-instans och bär redan `getFidelityInventory` med
      * `deepScan`/`bodySource` — men den sharded wrappern exponerade aldrig
