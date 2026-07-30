@@ -2057,6 +2057,95 @@ test('runtime history fidelity inventory is local-only and requires one mailbox'
   }
 });
 
+test('runtime history fidelity accepterar en IMAP-brevlåda utanför Graph-allowlisten', async () => {
+  // `info@fazli.se` är ett IMAP-konto (one.com), ingen Graph/M365-mailbox, och
+  // fanns därför aldrig i CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET. Fidelity-
+  // endpointen läser bara redan materialiserad lokal truth-data — precis som
+  // worklisten redan får göra för samma sorts konto — så den ska inte falla
+  // tyst tillbaka till standardmailboxarna bara för att kontot är IMAP.
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-runtime-fidelity-imap-'));
+  const IMAP_MAILBOX = 'info@fazli.se';
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  let inventoryCalls = 0;
+  const ccoMailboxTruthStore = {
+    listMessages() {
+      return [];
+    },
+    getCompletenessReport() {
+      return {};
+    },
+    async ensureMailboxLoaded() {},
+    getFidelityInventory({ mailboxIds, sampleLimit }) {
+      inventoryCalls += 1;
+      assert.deepEqual(mailboxIds, [IMAP_MAILBOX]);
+      return {
+        mailboxIds,
+        sampleLimit,
+        summary: {
+          messages: 644,
+          htmlBodies: 0,
+          inlineImageTags: 0,
+          inlineCidReferences: 0,
+          mimeAvailable: 0,
+          declaredAttachments: 0,
+          attachmentMetadata: 0,
+          declaredAttachmentsWithoutMetadata: 0,
+          cidWithoutAttachmentMetadata: 0,
+          richCandidatesWithoutMime: 0,
+          fidelityGapCount: 0,
+        },
+        samples: [],
+      };
+    },
+  };
+
+  try {
+    const app = express();
+    app.use(express.json());
+    const auth = createMockAuth('OWNER');
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore,
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+        ccoMailboxTruthStore,
+        ccoRuntimeMailboxIds: [IMAP_MAILBOX],
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/history/fidelity?mailboxIds=${encodeURIComponent(IMAP_MAILBOX)}`
+      );
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      assert.equal(payload.ok, true);
+      assert.deepEqual(payload.mailboxIds, [IMAP_MAILBOX]);
+      assert.equal(
+        payload.inventory.summary.messages,
+        644,
+        'utan runtimeMailboxIds faller anropet tyst tillbaka till standardmailboxarna'
+      );
+      assert.equal(inventoryCalls, 1);
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('en shard som inte går att ladda ger fel, inte en tyst tom fidelity-rapport', async () => {
   // Bugbot-fynd: att svälja ensureMailboxLoaded-felet och fortsätta gav 200
   // med nollställda mätvärden — omöjligt att skilja från en frisk mailbox

@@ -1462,16 +1462,30 @@ function normalizeMailboxIdList(rawMailboxIds = [], maxItems = 50) {
   return normalized;
 }
 
-function resolveCcoRuntimeHistoryMailboxIds(input = {}) {
+// `extraAllowedMailboxIds` vidgar ALDRIG Graph-läsning — den låter bara den
+// här funktionen erkänna mailboxar utanför Graph-lådans hårda allowlist när
+// anroparen bara läser redan materialiserad CCO truth-data (samma motivering
+// som `resolveCcoRuntimeWorklistMailboxIds` redan bygger på). Utan detta
+// filtrerades `info@fazli.se` (IMAP, ingen Graph-mailbox) alltid bort här och
+// föll tyst tillbaka till standardmailboxarna — samma symptom, ett lager
+// djupare än ORD-97:s `ensureMailboxLoaded`-fix.
+function resolveCcoRuntimeHistoryMailboxIds(input = {}, extraAllowedMailboxIds = []) {
   const safeInput = asObject(input);
+  const allowedMailboxIds =
+    extraAllowedMailboxIds.length > 0
+      ? new Set([
+          ...CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET,
+          ...normalizeMailboxIdList(extraAllowedMailboxIds, 50),
+        ])
+      : CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET;
   const explicitMailboxIds = normalizeMailboxIdList(
     parseMailboxIdValues(safeInput.mailboxIds, 50),
     50
-  ).filter((mailboxId) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(mailboxId));
+  ).filter((mailboxId) => allowedMailboxIds.has(mailboxId));
   if (explicitMailboxIds.length > 0) return explicitMailboxIds;
 
   const fallbackMailboxId = toMailboxAddress(safeInput.mailboxId);
-  if (fallbackMailboxId && CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(fallbackMailboxId)) {
+  if (fallbackMailboxId && allowedMailboxIds.has(fallbackMailboxId)) {
     return [fallbackMailboxId];
   }
 
@@ -5438,9 +5452,9 @@ function toCcoRuntimeHistoryBackfillInput(input = {}) {
   };
 }
 
-function toCcoRuntimeHistoryStatusQuery(query = {}) {
+function toCcoRuntimeHistoryStatusQuery(query = {}, runtimeMailboxIds = []) {
   const safeQuery = asObject(query);
-  const mailboxIds = resolveCcoRuntimeHistoryMailboxIds(safeQuery);
+  const mailboxIds = resolveCcoRuntimeHistoryMailboxIds(safeQuery, runtimeMailboxIds);
   return {
     mailboxId: mailboxIds[0] || CCO_KONS_HISTORY_DEFAULT_MAILBOX,
     mailboxIds,
@@ -5467,8 +5481,8 @@ function listCcoRuntimeReferencedContentIds(bodyHtml = '') {
   );
 }
 
-function toCcoRuntimeHistoryFidelityProbeQuery(query = {}) {
-  const { mailboxId, mailboxIds } = toCcoRuntimeHistoryStatusQuery(query);
+function toCcoRuntimeHistoryFidelityProbeQuery(query = {}, runtimeMailboxIds = []) {
+  const { mailboxId, mailboxIds } = toCcoRuntimeHistoryStatusQuery(query, runtimeMailboxIds);
   const safeQuery = asObject(query);
   return {
     mailboxId,
@@ -7503,6 +7517,7 @@ function toCcoRuntimeHistoryStatusHandler({
   ccoMailboxTruthStore = null,
   graphReadEnabled = false,
   scheduler = null,
+  runtimeMailboxIds = [],
 }) {
   return async (req, res) => {
     try {
@@ -7510,7 +7525,10 @@ function toCcoRuntimeHistoryStatusHandler({
         store: ccoMailboxTruthStore,
       });
       if (mailboxTruthHistory) {
-        const { mailboxId, mailboxIds, lookbackDays } = toCcoRuntimeHistoryStatusQuery(req.query);
+        const { mailboxId, mailboxIds, lookbackDays } = toCcoRuntimeHistoryStatusQuery(
+          req.query,
+          runtimeMailboxIds
+        );
         if (
           ccoMailboxTruthStore &&
           typeof ccoMailboxTruthStore.ensureMailboxLoaded === 'function'
@@ -7553,7 +7571,10 @@ function toCcoRuntimeHistoryStatusHandler({
         });
       }
 
-      const { mailboxId, mailboxIds, lookbackDays } = toCcoRuntimeHistoryStatusQuery(req.query);
+      const { mailboxId, mailboxIds, lookbackDays } = toCcoRuntimeHistoryStatusQuery(
+        req.query,
+        runtimeMailboxIds
+      );
       const tenantId = toTenantId(req);
       const { startIso, endIso } = toHistoryWindowBounds(lookbackDays);
       const mailboxes = normalizeMailboxIdList(mailboxIds, 50).map((currentMailboxId) => {
@@ -7646,10 +7667,16 @@ function toCcoRuntimeHistoryStatusHandler({
   };
 }
 
-function toCcoRuntimeHistoryFidelityHandler({ ccoMailboxTruthStore = null }) {
+function toCcoRuntimeHistoryFidelityHandler({
+  ccoMailboxTruthStore = null,
+  runtimeMailboxIds = [],
+}) {
   return async (req, res) => {
     try {
-      const { mailboxId, mailboxIds } = toCcoRuntimeHistoryStatusQuery(req.query);
+      const { mailboxId, mailboxIds } = toCcoRuntimeHistoryStatusQuery(
+        req.query,
+        runtimeMailboxIds
+      );
       if (mailboxIds.length !== 1) {
         return res.status(400).json({
           ok: false,
@@ -7698,10 +7725,16 @@ function toCcoRuntimeHistoryFidelityHandler({ ccoMailboxTruthStore = null }) {
   };
 }
 
-function toCcoRuntimeHistoryFidelityManifestHandler({ ccoMailboxTruthStore = null }) {
+function toCcoRuntimeHistoryFidelityManifestHandler({
+  ccoMailboxTruthStore = null,
+  runtimeMailboxIds = [],
+}) {
   return async (req, res) => {
     try {
-      const { mailboxId, mailboxIds } = toCcoRuntimeHistoryStatusQuery(req.query);
+      const { mailboxId, mailboxIds } = toCcoRuntimeHistoryStatusQuery(
+        req.query,
+        runtimeMailboxIds
+      );
       if (mailboxIds.length !== 1) {
         return res.status(400).json({
           ok: false,
@@ -7758,10 +7791,11 @@ function toCcoRuntimeHistoryFidelityProbeHandler({
   graphReadConnector = null,
   graphReadEnabled = false,
   ccoMailAssetCache = null,
+  runtimeMailboxIds = [],
 }) {
   return async (req, res) => {
     try {
-      const input = toCcoRuntimeHistoryFidelityProbeQuery(req.query);
+      const input = toCcoRuntimeHistoryFidelityProbeQuery(req.query, runtimeMailboxIds);
       if (input.mailboxIds.length !== 1) {
         return res.status(400).json({
           ok: false,
@@ -10575,6 +10609,7 @@ function createCapabilitiesRouter({
         ccoMailboxTruthStore,
         graphReadEnabled: isGraphReadOperational,
         scheduler,
+        runtimeMailboxIds: runtimeWorklistMailboxIds,
       })
     )
   );
@@ -10586,6 +10621,7 @@ function createCapabilitiesRouter({
     toRoleGuardedHandler(
       toCcoRuntimeHistoryFidelityHandler({
         ccoMailboxTruthStore,
+        runtimeMailboxIds: runtimeWorklistMailboxIds,
       })
     )
   );
@@ -10597,6 +10633,7 @@ function createCapabilitiesRouter({
     toRoleGuardedHandler(
       toCcoRuntimeHistoryFidelityManifestHandler({
         ccoMailboxTruthStore,
+        runtimeMailboxIds: runtimeWorklistMailboxIds,
       })
     )
   );
@@ -10611,6 +10648,7 @@ function createCapabilitiesRouter({
         graphReadConnector: resolvedGraphReadConnector,
         graphReadEnabled: isGraphReadOperational,
         ccoMailAssetCache,
+        runtimeMailboxIds: runtimeWorklistMailboxIds,
       })
     )
   );

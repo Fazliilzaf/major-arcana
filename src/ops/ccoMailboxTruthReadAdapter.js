@@ -95,6 +95,34 @@ function deriveFidelityMessageType(message = {}) {
   return 'unknown';
 }
 
+function toFidelityParticipantLabel(participant) {
+  const safe = asObject(participant);
+  const name = normalizeText(safe.name);
+  const address = normalizeText(safe.address).toLowerCase();
+  if (name && address) return `${name} <${address}>`;
+  return name || address || null;
+}
+
+/**
+ * Ett fidelity-gap-prov utan motpart går inte att slå upp — operatören ser
+ * bara ett messageId utan kontext. Inkommande mejl pekar ut avsändaren,
+ * utgående/utkast den första mottagaren.
+ */
+function deriveFidelityCounterparty(message = {}) {
+  const safe = asObject(message);
+  const messageType = deriveFidelityMessageType(safe);
+  if (messageType === 'inbound') {
+    return (
+      toFidelityParticipantLabel(safe.from) ||
+      toFidelityParticipantLabel(asArray(safe.toRecipients)[0])
+    );
+  }
+  return (
+    toFidelityParticipantLabel(asArray(safe.toRecipients)[0]) ||
+    toFidelityParticipantLabel(safe.from)
+  );
+}
+
 function matchesMailboxAddressAlias(target = '', candidates = []) {
   const safeTarget = extractEmail(target);
   if (!safeTarget) return false;
@@ -125,11 +153,7 @@ function deriveHistoryDirection(message = {}) {
   if (declaredDirection !== 'unknown') return declaredDirection;
 
   const mailboxIds = new Set(
-    [
-      safeMessage.mailboxId,
-      safeMessage.mailboxAddress,
-      safeMessage.userPrincipalName,
-    ]
+    [safeMessage.mailboxId, safeMessage.mailboxAddress, safeMessage.userPrincipalName]
       .map((item) => extractEmail(item))
       .filter(Boolean)
   );
@@ -213,8 +237,9 @@ function toHistoryMessage(message = {}) {
     mailboxId: normalizeMailboxId(safeMessage.mailboxId) || null,
     mailboxAddress: normalizeMailboxId(safeMessage.mailboxAddress || safeMessage.mailboxId) || null,
     userPrincipalName:
-      normalizeMailboxId(safeMessage.userPrincipalName || safeMessage.mailboxAddress || safeMessage.mailboxId) ||
-      null,
+      normalizeMailboxId(
+        safeMessage.userPrincipalName || safeMessage.mailboxAddress || safeMessage.mailboxId
+      ) || null,
     folderType: normalizeFolderType(safeMessage.folderType),
     hasAttachments: safeMessage.hasAttachments === true,
     attachments: toSafeAttachmentMetadata(safeMessage.attachments),
@@ -233,13 +258,16 @@ function doesHistoryMessageMatch(message = {}, { conversationId = '', customerEm
     ].filter(Boolean);
     if (candidates.includes(safeConversationId)) return true;
   }
-  if (safeCustomerEmail && matchesMailboxAddressAlias(safeCustomerEmail, [
-    message.customerEmail,
-    message.counterpartyEmail,
-    message.senderEmail,
-    ...asArray(message.recipients),
-    ...asArray(message.replyToRecipients),
-  ])) {
+  if (
+    safeCustomerEmail &&
+    matchesMailboxAddressAlias(safeCustomerEmail, [
+      message.customerEmail,
+      message.counterpartyEmail,
+      message.senderEmail,
+      ...asArray(message.recipients),
+      ...asArray(message.replyToRecipients),
+    ])
+  ) {
     return true;
   }
   return !safeConversationId && !safeCustomerEmail;
@@ -257,12 +285,25 @@ function buildHistoryEvent(message = {}) {
     actionType: null,
     outcomeCode: null,
     title,
-    summary: normalizeText(safeMessage.bodyPreview) || normalizeText(safeMessage.subject) || 'Historikhändelse',
-    detail: normalizeText(safeMessage.bodyPreview) || normalizeText(safeMessage.subject) || 'Historikhändelse',
+    summary:
+      normalizeText(safeMessage.bodyPreview) ||
+      normalizeText(safeMessage.subject) ||
+      'Historikhändelse',
+    detail:
+      normalizeText(safeMessage.bodyPreview) ||
+      normalizeText(safeMessage.subject) ||
+      'Historikhändelse',
     recordedAt: normalizeText(safeMessage.sentAt) || null,
     mailboxId: normalizeMailboxId(safeMessage.mailboxId || safeMessage.mailboxAddress) || null,
-    customerEmail: extractEmail(safeMessage.customerEmail || safeMessage.counterpartyEmail || safeMessage.senderEmail) || null,
-    conversationId: normalizeText(safeMessage.conversationId) || normalizeText(safeMessage.mailboxConversationId) || buildFallbackConversationKey(safeMessage) || null,
+    customerEmail:
+      extractEmail(
+        safeMessage.customerEmail || safeMessage.counterpartyEmail || safeMessage.senderEmail
+      ) || null,
+    conversationId:
+      normalizeText(safeMessage.conversationId) ||
+      normalizeText(safeMessage.mailboxConversationId) ||
+      buildFallbackConversationKey(safeMessage) ||
+      null,
     direction,
     folderType,
     graphMessageId: normalizeText(safeMessage.graphMessageId || safeMessage.messageId) || null,
@@ -270,7 +311,11 @@ function buildHistoryEvent(message = {}) {
 }
 
 function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
-  if (!store || typeof store.listMessages !== 'function' || typeof store.getCompletenessReport !== 'function') {
+  if (
+    !store ||
+    typeof store.listMessages !== 'function' ||
+    typeof store.getCompletenessReport !== 'function'
+  ) {
     return null;
   }
 
@@ -359,7 +404,9 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
   function listHistoryEvents(options = {}) {
     return listHistoryMessages(options)
       .map(buildHistoryEvent)
-      .sort((left, right) => String(right?.recordedAt || '').localeCompare(String(left?.recordedAt || '')));
+      .sort((left, right) =>
+        String(right?.recordedAt || '').localeCompare(String(left?.recordedAt || ''))
+      );
   }
 
   function getHistoryCoverage({ mailboxIds = [] } = {}) {
@@ -407,15 +454,17 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
       mailboxes,
       coverage: {
         missingWindowCount,
-        missingWindowsPreview: mailboxes.flatMap((mailbox) =>
-          asArray(mailbox?.coverage?.missingWindowsPreview).map((item) => ({
-            mailboxId: mailbox.mailboxId,
-            folderType: item.folderType,
-            status: item.status,
-            reason: item.reason,
-            detail: item.detail,
-          }))
-        ).slice(0, 6),
+        missingWindowsPreview: mailboxes
+          .flatMap((mailbox) =>
+            asArray(mailbox?.coverage?.missingWindowsPreview).map((item) => ({
+              mailboxId: mailbox.mailboxId,
+              folderType: item.folderType,
+              status: item.status,
+              reason: item.reason,
+              detail: item.detail,
+            }))
+          )
+          .slice(0, 6),
         complete: missingWindowCount === 0,
       },
     };
@@ -447,7 +496,9 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     const addSample = (sample) => {
       if (safeSampleLimit === 0) return;
       samples.push(sample);
-      samples.sort((left, right) => String(left.observedAt || '').localeCompare(String(right.observedAt || '')));
+      samples.sort((left, right) =>
+        String(left.observedAt || '').localeCompare(String(right.observedAt || ''))
+      );
       if (samples.length > safeSampleLimit) samples.pop();
     };
 
@@ -496,6 +547,8 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
           mailboxId: normalizeMailboxId(message.mailboxId || message.mailboxAddress) || null,
           folderType: normalizeFolderType(message.folderType),
           observedAt: toMessageSortIso(message),
+          subject: normalizeText(message.subject) || null,
+          counterparty: deriveFidelityCounterparty(message),
           reasons,
         });
       }
@@ -563,7 +616,9 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
         });
       }
     }
-    entries.sort((left, right) => String(right.observedAt || '').localeCompare(String(left.observedAt || '')));
+    entries.sort((left, right) =>
+      String(right.observedAt || '').localeCompare(String(left.observedAt || ''))
+    );
     summary.entriesReturned = entries.length;
     return { mailboxIds: safeMailboxIds, limit: safeLimit, summary, entries };
   }
@@ -577,8 +632,10 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     return (
       store
         .listMessages({ mailboxIds: safeMailboxId ? [safeMailboxId] : [] })
-        .find((message) =>
-          normalizeText(asObject(message).graphMessageId || asObject(message).messageId) === safeMessageId
+        .find(
+          (message) =>
+            normalizeText(asObject(message).graphMessageId || asObject(message).messageId) ===
+            safeMessageId
         ) || null
     );
   }
