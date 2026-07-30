@@ -469,7 +469,7 @@ test('C8: worklist consumer rolls the same confirmed customer up across mailbox 
   assert.equal(separateRow.rollup?.count, 1);
 });
 
-test('history read adapter uses shared counterparty truth for generic sender emails', () => {
+test('history read adapter uses shared counterparty truth for generic sender emails', async () => {
   const adapter = createCcoMailboxTruthReadAdapter({
     store: {
       listMessages() {
@@ -503,7 +503,7 @@ test('history read adapter uses shared counterparty truth for generic sender ema
     },
   });
 
-  const messages = adapter.listHistoryMessages({
+  const messages = await adapter.listHistoryMessages({
     mailboxIds: ['egzona@hairtpclinic.com'],
   });
 
@@ -512,7 +512,7 @@ test('history read adapter uses shared counterparty truth for generic sender ema
   assert.equal(messages[0].counterpartyEmail, 'info@e.circlekextra.se');
 });
 
-test('history read adapter carries safe attachment metadata from mailbox truth store into runtime history messages', () => {
+test('history read adapter carries safe attachment metadata from mailbox truth store into runtime history messages', async () => {
   const adapter = createCcoMailboxTruthReadAdapter({
     store: {
       listMessages() {
@@ -566,7 +566,7 @@ test('history read adapter carries safe attachment metadata from mailbox truth s
     },
   });
 
-  const messages = adapter.listHistoryMessages({
+  const messages = await adapter.listHistoryMessages({
     mailboxIds: ['fazli@hairtpclinic.com'],
   });
 

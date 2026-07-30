@@ -5777,7 +5777,17 @@ function toCcoRuntimeHistoryHandler({
       });
 
       if (mailboxTruthHistory) {
-        let messages = mailboxTruthHistory.listHistoryMessages({
+        // ORD-98, tredje kodvägen: den icke-V2 trådvyn och Svarstudios
+        // lat-laddning går via /cco/runtime/history, som aldrig laddade
+        // shardar eller hydrerade brödtexten. Samma symptom som
+        // konversationsrutten hade — avhuggen text, saknad signatur —
+        // fast här osynligt tills någon läste ett gammalt, långt mejl.
+        if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
+          for (const currentMailboxId of mailboxIds) {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(currentMailboxId);
+          }
+        }
+        let messages = await mailboxTruthHistory.listHistoryMessages({
           mailboxIds,
           sinceIso: startIso,
           untilIso: endIso,
@@ -5804,7 +5814,7 @@ function toCcoRuntimeHistoryHandler({
           customerEmail,
         });
         messages = hydratedThread.messages;
-        const events = mailboxTruthHistory.listHistoryEvents({
+        const events = await mailboxTruthHistory.listHistoryEvents({
           mailboxIds,
           sinceIso: startIso,
           untilIso: endIso,
@@ -10156,7 +10166,7 @@ function toCcoRuntimeHistorySearchHandler({ ccoHistoryStore = null, ccoMailboxTr
           sinceIso: parsedQuery.sinceIso,
           untilIso: parsedQuery.untilIso,
         });
-        const results = mailboxTruthHistory.searchHistoryMessages({
+        const results = await mailboxTruthHistory.searchHistoryMessages({
           mailboxIds: parsedQuery.mailboxIds,
           customerEmail: parsedQuery.customerEmail,
           conversationId: parsedQuery.conversationId,
