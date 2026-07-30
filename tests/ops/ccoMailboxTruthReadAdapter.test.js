@@ -42,7 +42,7 @@ test('createCcoMailboxTruthReadAdapter returns null without valid store', () => 
   );
 });
 
-test('listHistoryMessages filters by conversationId', () => {
+test('listHistoryMessages filters by conversationId', async () => {
   const iso = '2026-05-10T12:00:00.000Z';
   const messages = [
     {
@@ -65,7 +65,7 @@ test('listHistoryMessages filters by conversationId', () => {
     },
   ];
   const adapter = createCcoMailboxTruthReadAdapter({ store: mockStore(messages) });
-  const rows = adapter.listHistoryMessages({
+  const rows = await adapter.listHistoryMessages({
     mailboxIds: ['clinic@demo.se'],
     conversationId: 'thread-alpha',
   });
@@ -73,7 +73,7 @@ test('listHistoryMessages filters by conversationId', () => {
   assert.equal(rows[0].graphMessageId, 'g-a');
 });
 
-test('listHistoryMessages strips bodyHtml when includeBodyHtml is false', () => {
+test('listHistoryMessages strips bodyHtml when includeBodyHtml is false', async () => {
   const messages = [
     {
       graphMessageId: 'g1',
@@ -86,7 +86,7 @@ test('listHistoryMessages strips bodyHtml when includeBodyHtml is false', () => 
     },
   ];
   const adapter = createCcoMailboxTruthReadAdapter({ store: mockStore(messages) });
-  const rows = adapter.listHistoryMessages({
+  const rows = await adapter.listHistoryMessages({
     mailboxIds: ['clinic@demo.se'],
     includeBodyHtml: false,
   });
@@ -94,7 +94,40 @@ test('listHistoryMessages strips bodyHtml when includeBodyHtml is false', () => 
   assert.equal(rows[0].bodyHtml, null);
 });
 
-test('searchHistoryMessages requires all query tokens to match', () => {
+test('listHistoryMessages hydrerar brödtexten från sidofilen innan den projicerar', async () => {
+  // ORD-98, tredje kodvägen: /cco/runtime/history (den icke-V2 trådvyn och
+  // Svarstudios lat-laddning) hydrerade aldrig, så en gammal, lång tråd
+  // visade en avhuggen bodyPreview i stället för hela mejlet — samma
+  // symptom konversationsrutten redan var lagad för, i en annan rutt.
+  let hydrateCalls = 0;
+  const store = {
+    listMessages: () => [
+      {
+        graphMessageId: 'g1',
+        mailboxId: 'clinic@demo.se',
+        subject: 'Långt mejl',
+        folderType: 'inbox',
+        from: { address: 'c@x.se' },
+        receivedAt: '2026-05-01T10:00:00.000Z',
+        bodyHtml: '',
+      },
+    ],
+    getCompletenessReport: () => ({ accountReports: [] }),
+    async hydrateMessageBodies(messages) {
+      hydrateCalls += 1;
+      return messages.map((message) => ({
+        ...message,
+        bodyHtml: '<p>Hela texten, hydrerad ur sidofilen.</p>',
+      }));
+    },
+  };
+  const adapter = createCcoMailboxTruthReadAdapter({ store });
+  const rows = await adapter.listHistoryMessages({ mailboxIds: ['clinic@demo.se'] });
+  assert.equal(hydrateCalls, 1, 'hydreringen måste faktiskt anropas, inte bara finnas');
+  assert.match(rows[0].bodyHtml, /Hela texten, hydrerad ur sidofilen/);
+});
+
+test('searchHistoryMessages requires all query tokens to match', async () => {
   const messages = [
     {
       graphMessageId: 'g1',
@@ -107,14 +140,14 @@ test('searchHistoryMessages requires all query tokens to match', () => {
     },
   ];
   const adapter = createCcoMailboxTruthReadAdapter({ store: mockStore(messages) });
-  const hit = adapter.searchHistoryMessages({
+  const hit = await adapter.searchHistoryMessages({
     mailboxIds: ['clinic@demo.se'],
     q: 'booking tuesday',
     limit: 10,
   });
   assert.equal(hit.length, 1);
 
-  const miss = adapter.searchHistoryMessages({
+  const miss = await adapter.searchHistoryMessages({
     mailboxIds: ['clinic@demo.se'],
     q: 'booking missingtoken',
     limit: 10,

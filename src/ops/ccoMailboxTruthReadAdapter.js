@@ -319,7 +319,7 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     return null;
   }
 
-  function listHistoryMessages({
+  async function listHistoryMessages({
     mailboxIds = [],
     sinceIso = null,
     untilIso = null,
@@ -328,12 +328,21 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     limit = 0,
     includeBodyHtml = true,
   } = {}) {
-    const messages = store
-      .listMessages({
-        mailboxIds,
-        sinceIso: normalizeText(conversationId) ? null : sinceIso,
-        untilIso: normalizeText(conversationId) ? null : untilIso,
-      })
+    const rawMessages = store.listMessages({
+      mailboxIds,
+      sinceIso: normalizeText(conversationId) ? null : sinceIso,
+      untilIso: normalizeText(conversationId) ? null : untilIso,
+    });
+    // ORD-98, samma fix, en tredje kodväg: efter ORD-89 ligger brödtexten i
+    // sidofiler och shardens fält är tomt. `/cco/runtime/history` (och
+    // därmed den icke-V2 trådvyn och Svarstudios lat-laddning) hydrerade
+    // aldrig, så `buildCanonicalMailDocument` föll tillbaka på `bodyPreview`
+    // — samma avhuggna text, samma saknade signatur, en annan rutt.
+    const hydratedMessages =
+      typeof store.hydrateMessageBodies === 'function'
+        ? await store.hydrateMessageBodies(rawMessages)
+        : rawMessages;
+    const messages = hydratedMessages
       .map(toHistoryMessage)
       .filter((message) =>
         doesHistoryMessageMatch(message, {
@@ -352,7 +361,7 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     }));
   }
 
-  function searchHistoryMessages({
+  async function searchHistoryMessages({
     mailboxIds = [],
     sinceIso = null,
     untilIso = null,
@@ -362,13 +371,14 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     limit = 50,
   } = {}) {
     const queryTokens = normalizeHistoryQueryTokens(q);
-    const messages = listHistoryMessages({
+    const allMessages = await listHistoryMessages({
       mailboxIds,
       sinceIso,
       untilIso,
       customerEmail,
       conversationId,
-    }).filter((message) => {
+    });
+    const messages = allMessages.filter((message) => {
       if (queryTokens.length === 0) return true;
       const haystack = [
         message.subject,
@@ -401,8 +411,9 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     }));
   }
 
-  function listHistoryEvents(options = {}) {
-    return listHistoryMessages(options)
+  async function listHistoryEvents(options = {}) {
+    const messages = await listHistoryMessages(options);
+    return messages
       .map(buildHistoryEvent)
       .sort((left, right) =>
         String(right?.recordedAt || '').localeCompare(String(left?.recordedAt || ''))
