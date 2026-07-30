@@ -7678,9 +7678,11 @@ function toCcoRuntimeHistoryFidelityHandler({ ccoMailboxTruthStore = null }) {
           }
         }
       }
+      const deepScan = String(req.query?.deepScan || '') === 'true';
       const inventory = await mailboxTruthHistory.getFidelityInventory({
         mailboxIds,
         sampleLimit,
+        deepScan,
       });
       return res.json({
         ok: true,
@@ -7736,7 +7738,11 @@ function toCcoRuntimeHistoryFidelityManifestHandler({ ccoMailboxTruthStore = nul
           }
         }
       }
-      const manifest = await mailboxTruthHistory.getCidFidelityManifest({ mailboxIds, limit });
+      const manifest = await mailboxTruthHistory.getCidFidelityManifest({
+        mailboxIds,
+        limit,
+        deepScan: String(req.query?.deepScan || '') === 'true',
+      });
       res.setHeader('cache-control', 'no-store');
       return res.json({
         ok: true,
