@@ -7722,9 +7722,6 @@ function toCcoRuntimeHistoryFidelityManifestHandler({ ccoMailboxTruthStore = nul
           error: 'Mailbox truth-CID-manifest är inte tillgängligt just nu.',
         });
       }
-      if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
-        await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
-      }
       const limit = clampInteger(req.query?.limit, 1, 1000, 1000);
       // ORD-97: utan detta returnerar en OLADDAD shard tyst noll meddelanden.
       // info@fazli.se rapporterade 0 av 644 den 29 juli av precis det skälet —
