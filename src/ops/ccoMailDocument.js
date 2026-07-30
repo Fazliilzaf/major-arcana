@@ -261,6 +261,23 @@ function mergeAttachmentMetadata(primary = [], secondary = []) {
   return merged;
 }
 
+// ORD-93: en cid: som webbläsaren inte kan lösa upp visas som en trasig
+// bildikon — utan felmeddelande, utan logg, utan spår. Samma princip #1272
+// portade från konversationer.html till rewriteMailCidImageSources
+// (ccoConversation.js) — men den funktionen delas inte med den här. /history
+// och /history/search (capabilities.js) går via buildCanonicalMailDocument →
+// resolveCidInHtml, en helt separat implementation som #1272 aldrig rörde och
+// som hade samma tysta bail: tom karta eller okänt cid → returnera oförändrat.
+const CID_MISSING_IMAGE_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 64" width="96" height="64">' +
+  '<rect width="96" height="64" rx="6" fill="#f2efec"/>' +
+  '<rect x="14" y="14" width="68" height="36" rx="4" fill="none" stroke="#c2aa9c" stroke-width="2"/>' +
+  '<circle cx="30" cy="28" r="4" fill="#c2aa9c"/>' +
+  '<path d="M20 44 L34 30 L44 38 L54 26 L76 44" fill="none" stroke="#c2aa9c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+  '</svg>';
+const CID_MISSING_IMAGE_PLACEHOLDER = `data:image/svg+xml;utf8,${encodeURIComponent(CID_MISSING_IMAGE_SVG)}`;
+const CID_MISSING_IMAGE_TITLE = 'Bilden kunde inte visas — bilagemetadata saknas i truth-lagret';
+
 function resolveCidInHtml(html = '', attachments = [], message = {}) {
   const source = normalizeText(html);
   if (!source || !/\bcid:/i.test(source)) return source;
@@ -304,8 +321,9 @@ function resolveCidInHtml(html = '', attachments = [], message = {}) {
     }
   }
 
-  if (cidMap.size === 0) return source;
-
+  // Ingen early-return när kartan är tom: en tom karta betyder att INGEN
+  // cid: kan lösas, inte att inget behöver göras. Se #1272 för samma fix i
+  // rewriteMailCidImageSources.
   return source.replace(
     /(<img\b[^>]*\bsrc\s*=\s*['"])\s*cid:([^'"]+)(['"][^>]*>)/gi,
     (match, prefix, rawCid, suffix) => {
@@ -314,7 +332,12 @@ function resolveCidInHtml(html = '', attachments = [], message = {}) {
         normalizeText(rawCid).toLowerCase().replace(/^<|>$/g, ''),
       ].filter(Boolean);
       const resolved = candidates.find((c) => cidMap.has(c));
-      if (!resolved) return match;
+      if (!resolved) {
+        return (
+          `${prefix}${CID_MISSING_IMAGE_PLACEHOLDER}${suffix.replace('>', '')}` +
+          ` title="${CID_MISSING_IMAGE_TITLE}" data-cid-missing="true">`
+        );
+      }
       return `${prefix}${cidMap.get(resolved)}${suffix}`;
     }
   );

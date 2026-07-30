@@ -1,7 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildCanonicalMailDocument, extractTextFromHtml } = require('../../src/ops/ccoMailDocument');
+const {
+  buildCanonicalMailDocument,
+  extractTextFromHtml,
+} = require('../../src/ops/ccoMailDocument');
 
 test('extractTextFromHtml normaliserar enkel mail-html till lasbar text', () => {
   const text = extractTextFromHtml(
@@ -15,96 +18,99 @@ test('extractTextFromHtml normaliserar enkel mail-html till lasbar text', () => 
 });
 
 test('buildCanonicalMailDocument bygger ett phase_2 mailDocument med canonical asset layer', () => {
-  const document = buildCanonicalMailDocument({
-    messageId: 'msg-1',
-    conversationId: 'conv-1',
-    mailboxId: 'contact@hairtpclinic.com',
-    mailboxAddress: 'contact@hairtpclinic.com',
-    userPrincipalName: 'contact@hairtpclinic.com',
-    subject: 'Ombokning',
-    direction: 'inbound',
-    sentAt: '2026-04-08T09:00:00.000Z',
-    bodyPreview: 'Kort preview',
-    bodyHtml:
-      '<table><tr><td>Hej Exona</td></tr><tr><td>Med vänlig hälsning<br />Vincent</td></tr></table>',
-    senderEmail: 'vincent@example.com',
-    senderName: 'Vincent',
-    recipients: ['contact@hairtpclinic.com'],
-    replyToRecipients: ['vincent@example.com'],
-    hasAttachments: true,
-    attachments: [
-      {
-        id: 'att-1',
-        name: 'logo.png',
-        contentType: 'image/png',
-        contentId: 'logo-1',
-        isInline: true,
-        size: 1280,
-        contentBytesAvailable: true,
-      },
-      {
-        id: 'att-2',
-        name: 'price-list.pdf',
-        contentType: 'application/pdf',
-        isInline: false,
-        size: 20480,
-      },
-    ],
-    mime: {
-      version: 'phase_b',
-      kind: 'mail_mime_metadata',
-      source: 'graph_message_mime',
-      fetchState: 'fetched',
-      available: true,
-      mimeBacked: true,
-      contentType: 'message/rfc822',
-      triggerReasons: ['tabular_html', 'inline_cid_reference'],
-      sizeBytes: 4096,
-      signals: {
-        hasMimeVersion: true,
-        hasMultipart: true,
-        hasTextHtmlPart: true,
-        hasTextPlainPart: true,
-        hasInlineCidReferences: true,
-        hasInlineDisposition: true,
-        hasAttachmentDisposition: false,
-      },
-      parsed: {
-        preferredBodyKind: 'html',
-        body: {
-          preferredHtml:
-            '<table><tr><td>Hej Exona</td></tr><tr><td><img src="cid:logo-1" alt="Logo" /></td></tr><tr><td>Med vänlig hälsning<br />Vincent</td></tr></table>',
-          preferredText: 'Hej Exona\n\nMed vänlig hälsning\nVincent',
-          htmlPartId: '1.1',
-          textPartId: '1.2',
+  const document = buildCanonicalMailDocument(
+    {
+      messageId: 'msg-1',
+      conversationId: 'conv-1',
+      mailboxId: 'contact@hairtpclinic.com',
+      mailboxAddress: 'contact@hairtpclinic.com',
+      userPrincipalName: 'contact@hairtpclinic.com',
+      subject: 'Ombokning',
+      direction: 'inbound',
+      sentAt: '2026-04-08T09:00:00.000Z',
+      bodyPreview: 'Kort preview',
+      bodyHtml:
+        '<table><tr><td>Hej Exona</td></tr><tr><td>Med vänlig hälsning<br />Vincent</td></tr></table>',
+      senderEmail: 'vincent@example.com',
+      senderName: 'Vincent',
+      recipients: ['contact@hairtpclinic.com'],
+      replyToRecipients: ['vincent@example.com'],
+      hasAttachments: true,
+      attachments: [
+        {
+          id: 'att-1',
+          name: 'logo.png',
+          contentType: 'image/png',
+          contentId: 'logo-1',
+          isInline: true,
+          size: 1280,
+          contentBytesAvailable: true,
         },
-        assets: {
-          inlineAssets: [
-            {
-              partId: '1.3',
-              contentType: 'image/png',
-              disposition: 'inline',
-              filename: 'logo.png',
-              contentId: 'logo-1',
-              transferEncoding: 'base64',
-              decodedSizeBytes: 1280,
-              referencedInPreferredHtml: true,
-              sourceType: 'mime_part_inline',
-            },
-          ],
-          attachments: [],
-          htmlCidReferences: ['logo-1'],
+        {
+          id: 'att-2',
+          name: 'price-list.pdf',
+          contentType: 'application/pdf',
+          isInline: false,
+          size: 20480,
         },
-        diagnostics: {
-          partCount: 3,
-          htmlPartCount: 1,
-          textPartCount: 1,
-          inlineAssetCount: 1,
-          attachmentCount: 0,
+      ],
+      mime: {
+        version: 'phase_b',
+        kind: 'mail_mime_metadata',
+        source: 'graph_message_mime',
+        fetchState: 'fetched',
+        available: true,
+        mimeBacked: true,
+        contentType: 'message/rfc822',
+        triggerReasons: ['tabular_html', 'inline_cid_reference'],
+        sizeBytes: 4096,
+        signals: {
+          hasMimeVersion: true,
+          hasMultipart: true,
+          hasTextHtmlPart: true,
+          hasTextPlainPart: true,
+          hasInlineCidReferences: true,
+          hasInlineDisposition: true,
+          hasAttachmentDisposition: false,
+        },
+        parsed: {
+          preferredBodyKind: 'html',
+          body: {
+            preferredHtml:
+              '<table><tr><td>Hej Exona</td></tr><tr><td><img src="cid:logo-1" alt="Logo" /></td></tr><tr><td>Med vänlig hälsning<br />Vincent</td></tr></table>',
+            preferredText: 'Hej Exona\n\nMed vänlig hälsning\nVincent',
+            htmlPartId: '1.1',
+            textPartId: '1.2',
+          },
+          assets: {
+            inlineAssets: [
+              {
+                partId: '1.3',
+                contentType: 'image/png',
+                disposition: 'inline',
+                filename: 'logo.png',
+                contentId: 'logo-1',
+                transferEncoding: 'base64',
+                decodedSizeBytes: 1280,
+                referencedInPreferredHtml: true,
+                sourceType: 'mime_part_inline',
+              },
+            ],
+            attachments: [],
+            htmlCidReferences: ['logo-1'],
+          },
+          diagnostics: {
+            partCount: 3,
+            htmlPartCount: 1,
+            textPartCount: 1,
+            inlineAssetCount: 1,
+            attachmentCount: 0,
+          },
         },
       },
     },
-  }, { sourceStore: 'mailbox_truth_store' });
+    { sourceStore: 'mailbox_truth_store' }
+  );
 
   assert.equal(document.version, 'phase_2');
   assert.equal(document.kind, 'mail_document');
@@ -293,7 +299,13 @@ test('buildCanonicalMailDocument foredrar MIME-backed body och asset metadata na
     { sourceStore: 'graph_runtime_fallback' }
   );
 
-  assert.match(String(document.primaryBodyHtml || ''), /cid:booking-logo@arcana/i);
+  // ORD-93: resolveCidInHtml läser message.attachments (tomt i det här
+  // fixturet — inline-assetet finns bara i mime.parsed), så cid:et kan inte
+  // lösas till en riktig URL. Sedan ORD-93 uppgift 1 överlever den då inte
+  // längre oförändrad in i primaryBodyHtml — den ersätts med en synlig
+  // markering i stället för en trasig bildikon.
+  assert.doesNotMatch(String(document.primaryBodyHtml || ''), /cid:booking-logo@arcana/i);
+  assert.match(String(document.primaryBodyHtml || ''), /data-cid-missing="true"/);
   assert.match(String(document.primaryBodyText || ''), /Fredag 10:00/);
   assert.equal(document.assets.length, 1);
   assert.equal(document.inlineAssets.length, 1);
@@ -350,4 +362,42 @@ test('buildCanonicalMailDocument accepterar outbound med varierande casing', () 
     recipients: ['kund@example.com'],
   });
   assert.equal(document.direction, 'outbound');
+});
+
+// ORD-93: samma princip #1272 portade till rewriteMailCidImageSources
+// (ccoConversation.js) — men resolveCidInHtml här är en separat funktion
+// som /history och /history/search (capabilities.js) går via, och som #1272
+// aldrig rörde. Mätt i drift 2026-07-30: 5 av 594 <img> i fazli@ var
+// olösta cid: som överlevde in i /history-svaret, oförändrade.
+test('resolveCidInHtml (via buildCanonicalMailDocument) ersätter ett olöst cid med en synlig markering', () => {
+  const document = buildCanonicalMailDocument({
+    messageId: 'msg-cid-missing',
+    subject: 'Ne8xo.com löper snart ut',
+    bodyHtml: '<div><img src="cid:inline-data-1234"></div>',
+    bodyPreview: 'Preview',
+    attachments: [],
+  });
+  assert.doesNotMatch(
+    String(document.primaryBodyHtml || ''),
+    /cid:inline-data-1234/i,
+    'ingen olöst cid: får överleva till /history-svaret'
+  );
+  assert.match(String(document.primaryBodyHtml || ''), /data:image\/svg\+xml/);
+  assert.match(String(document.primaryBodyHtml || ''), /data-cid-missing="true"/);
+});
+
+test('resolveCidInHtml rör inte ett cid som faktiskt löses', () => {
+  const document = buildCanonicalMailDocument({
+    messageId: 'msg-cid-resolved',
+    mailboxId: 'kons@hairtpclinic.com',
+    subject: 'Bokning',
+    bodyHtml: '<div><img src="cid:logo-ok"></div>',
+    bodyPreview: 'Preview',
+    attachments: [{ id: 'att-ok', contentId: 'logo-ok', contentType: 'image/png' }],
+  });
+  assert.doesNotMatch(String(document.primaryBodyHtml || ''), /data-cid-missing/);
+  assert.match(
+    String(document.primaryBodyHtml || ''),
+    /\/api\/v1\/cco\/runtime\/mail-asset\/content\?/
+  );
 });
