@@ -587,6 +587,111 @@ async function createCcoMailboxTruthShardedStore({
         },
       };
     },
+    /**
+     * ORD-97 bugbot-fynd: den här delegeringen saknades. Varje shard ÄR en
+     * `ccoMailboxTruthStore`-instans och bär redan `getFidelityInventory` med
+     * `deepScan`/`bodySource` — men den sharded wrappern exponerade aldrig
+     * metoden, så adaptern föll tillbaka på sin enkla `bodyHtml`-only-väg och
+     * `deepScan` blev en no-op i produktion (default är sharded).
+     */
+    async getFidelityInventory(options = {}) {
+      const mailboxIds = listedMailboxIds(options.mailboxIds);
+      const sampleLimit = Math.max(0, Math.min(50, Number(options.sampleLimit ?? 20) || 0));
+      const deepScan = options.deepScan === true;
+      const summary = {
+        messages: 0,
+        htmlBodies: 0,
+        inlineImageTags: 0,
+        inlineCidReferences: 0,
+        mimeAvailable: 0,
+        declaredAttachments: 0,
+        attachmentMetadata: 0,
+        declaredAttachmentsWithoutMetadata: 0,
+        cidWithoutAttachmentMetadata: 0,
+        richCandidatesWithoutMime: 0,
+        fidelityGapCount: 0,
+        bodySource: deepScan ? 'bodies_sidecar' : 'shard_inline_only',
+      };
+      let samples = [];
+      for (const mailboxId of mailboxIds) {
+        const store = shardFor(mailboxId);
+        if (!store || typeof store.getFidelityInventory !== 'function') continue;
+        const result = await store.getFidelityInventory({
+          mailboxIds: [mailboxId],
+          sampleLimit,
+          deepScan,
+        });
+        for (const key of Object.keys(summary)) {
+          if (key === 'bodySource') continue;
+          summary[key] += Number(result?.summary?.[key] || 0);
+        }
+        samples.push(...asArray(result?.samples));
+      }
+      samples.sort((left, right) =>
+        String(left.observedAt || '').localeCompare(String(right.observedAt || ''))
+      );
+      if (samples.length > sampleLimit) samples = samples.slice(0, sampleLimit);
+      return {
+        mailboxIds,
+        sampleLimit,
+        summary,
+        samples,
+      };
+    },
+    async getCidFidelityManifest(options = {}) {
+      const mailboxIds = listedMailboxIds(options.mailboxIds);
+      const limit = Math.max(1, Math.min(1000, Number(options.limit ?? 1000) || 1000));
+      const deepScan = options.deepScan === true;
+      const summary = {
+        messagesWithMissingCidMetadata: 0,
+        cidReferencesWithoutAttachmentMetadata: 0,
+        bodySource: deepScan ? 'bodies_sidecar' : 'shard_inline_only',
+        entriesReturned: 0,
+        truncated: false,
+        byFolderType: {},
+        byMessageType: {},
+      };
+      let entries = [];
+      for (const mailboxId of mailboxIds) {
+        const store = shardFor(mailboxId);
+        if (!store || typeof store.getCidFidelityManifest !== 'function') continue;
+        const result = await store.getCidFidelityManifest({
+          mailboxIds: [mailboxId],
+          limit,
+          deepScan,
+        });
+        summary.messagesWithMissingCidMetadata += Number(
+          result?.summary?.messagesWithMissingCidMetadata || 0
+        );
+        summary.cidReferencesWithoutAttachmentMetadata += Number(
+          result?.summary?.cidReferencesWithoutAttachmentMetadata || 0
+        );
+        if (result?.summary?.truncated) summary.truncated = true;
+        for (const [folderType, count] of Object.entries(result?.summary?.byFolderType || {})) {
+          summary.byFolderType[folderType] =
+            Number(summary.byFolderType[folderType] || 0) + Number(count || 0);
+        }
+        for (const [messageType, count] of Object.entries(result?.summary?.byMessageType || {})) {
+          summary.byMessageType[messageType] =
+            Number(summary.byMessageType[messageType] || 0) + Number(count || 0);
+        }
+        entries.push(...asArray(result?.entries));
+      }
+      entries.sort((left, right) =>
+        String(right.observedAt || '').localeCompare(String(left.observedAt || ''))
+      );
+      if (entries.length > limit) {
+        entries = entries.slice(0, limit);
+        summary.truncated = true;
+      }
+      summary.entriesReturned = entries.length;
+      return {
+        mailboxIds,
+        limit,
+        summary,
+        entries,
+      };
+    },
   };
 }
 

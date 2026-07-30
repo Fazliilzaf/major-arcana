@@ -1850,7 +1850,11 @@ test('runtime mail asset route streams attachment content for focus attachment a
       assert.match(String(response.headers.get('content-disposition') || ''), /attachment;/);
       const buffer = Buffer.from(await response.arrayBuffer());
       assert.equal(String(buffer), 'PDF-BYTES');
-      assert.equal(graphAttachmentRead, false, 'visningen ska använda lokal cache utan Graph-läsning');
+      assert.equal(
+        graphAttachmentRead,
+        false,
+        'visningen ska använda lokal cache utan Graph-läsning'
+      );
     });
   } finally {
     if (previousGraphReadEnabled === undefined) {
@@ -1905,7 +1909,11 @@ test('runtime mail asset route fences tenant and active mailbox before reading t
       '/api/v1',
       createCapabilitiesRouter({
         authStore,
-        tenantConfigStore: { async getTenantConfig() { return {}; } },
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
         requireAuth: auth.requireAuth,
         requireRole: auth.requireRole,
         appConfig: { defaultTenantId: 'tenant-a' },
@@ -2033,9 +2041,7 @@ test('runtime history fidelity inventory is local-only and requires one mailbox'
       assert.equal(payload.source, 'mailbox_truth_store');
       assert.equal(payload.mailboxId, 'contact@hairtpclinic.com');
       assert.equal(payload.inventory.summary.fidelityGapCount, 1);
-      assert.deepEqual(payload.inventory.samples[0]?.reasons, [
-        'cid_without_attachment_metadata',
-      ]);
+      assert.deepEqual(payload.inventory.samples[0]?.reasons, ['cid_without_attachment_metadata']);
       assert.equal(inventoryCalls, 1);
 
       const invalidScope = await fetch(
@@ -2045,6 +2051,78 @@ test('runtime history fidelity inventory is local-only and requires one mailbox'
       const invalidPayload = await invalidScope.json();
       assert.match(invalidPayload.error, /exakt en mailbox/i);
       assert.equal(inventoryCalls, 1);
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('en shard som inte går att ladda ger fel, inte en tyst tom fidelity-rapport', async () => {
+  // Bugbot-fynd: att svälja ensureMailboxLoaded-felet och fortsätta gav 200
+  // med nollställda mätvärden — omöjligt att skilja från en frisk mailbox
+  // utan gap. Det är exakt den klass av tystnad ORD-97 skulle bota.
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-runtime-fidelity-load-fail-')
+  );
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  const ccoMailboxTruthStore = {
+    listMessages() {
+      return [];
+    },
+    getCompletenessReport() {
+      return {};
+    },
+    async ensureMailboxLoaded() {
+      throw new Error('shard är trasig');
+    },
+    getFidelityInventory() {
+      throw new Error('får inte anropas när laddningen misslyckats tyst');
+    },
+    getCidFidelityManifest() {
+      throw new Error('får inte anropas när laddningen misslyckats tyst');
+    },
+  };
+
+  try {
+    const app = express();
+    app.use(express.json());
+    const auth = createMockAuth('OWNER');
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore,
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+        ccoMailboxTruthStore,
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const inventoryResponse = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/history/fidelity?mailboxIds=contact@hairtpclinic.com`
+      );
+      assert.equal(inventoryResponse.status, 500);
+      const inventoryPayload = await inventoryResponse.json();
+      assert.equal(inventoryPayload.ok, false);
+
+      const manifestResponse = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/history/fidelity/manifest?mailboxId=contact@hairtpclinic.com`
+      );
+      assert.equal(manifestResponse.status, 500);
+      const manifestPayload = await manifestResponse.json();
+      assert.equal(manifestPayload.ok, false);
     });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
@@ -2163,11 +2241,14 @@ test('runtime CID manifest stays local and a probe checks one Graph attachment w
         ccoMailAssetCache: {
           async get({ mailboxId, messageId, attachmentId }) {
             cacheGetCalls += 1;
-            assert.deepEqual({ mailboxId, messageId, attachmentId }, {
-              mailboxId: 'contact@hairtpclinic.com',
-              messageId: 'cid-gap-message',
-              attachmentId: 'graph-attachment-1',
-            });
+            assert.deepEqual(
+              { mailboxId, messageId, attachmentId },
+              {
+                mailboxId: 'contact@hairtpclinic.com',
+                messageId: 'cid-gap-message',
+                attachmentId: 'graph-attachment-1',
+              }
+            );
             return { buffer: Buffer.from('cached-image') };
           },
         },

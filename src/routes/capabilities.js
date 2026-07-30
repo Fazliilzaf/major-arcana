@@ -7669,13 +7669,11 @@ function toCcoRuntimeHistoryFidelityHandler({ ccoMailboxTruthStore = null }) {
       // ORD-97: utan detta returnerar en OLADDAD shard tyst noll meddelanden.
       // info@fazli.se rapporterade 0 av 644 den 29 juli av precis det skälet —
       // den ligger inte i schedulerns brevlådelista och laddas därför aldrig.
+      // Ett kast här får INTE sväljas: en shard som inte går att ladda ska ge
+      // ett fel, inte se ut som en frisk mailbox utan gap (bugbot-fynd).
       if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
         for (const mailboxId of mailboxIds) {
-          try {
-            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
-          } catch (error) {
-            console.warn('[cco-fidelity] kunde inte ladda', mailboxId, error?.message);
-          }
+          await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
         }
       }
       const deepScan = String(req.query?.deepScan || '') === 'true';
@@ -7726,13 +7724,11 @@ function toCcoRuntimeHistoryFidelityManifestHandler({ ccoMailboxTruthStore = nul
       // ORD-97: utan detta returnerar en OLADDAD shard tyst noll meddelanden.
       // info@fazli.se rapporterade 0 av 644 den 29 juli av precis det skälet —
       // den ligger inte i schedulerns brevlådelista och laddas därför aldrig.
+      // Ett kast här får INTE sväljas: en shard som inte går att ladda ska ge
+      // ett fel, inte se ut som en frisk mailbox utan gap (bugbot-fynd).
       if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
         for (const mailboxId of mailboxIds) {
-          try {
-            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
-          } catch (error) {
-            console.warn('[cco-fidelity] kunde inte ladda', mailboxId, error?.message);
-          }
+          await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
         }
       }
       const manifest = await mailboxTruthHistory.getCidFidelityManifest({
