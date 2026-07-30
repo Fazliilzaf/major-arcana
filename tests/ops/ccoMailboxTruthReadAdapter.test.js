@@ -35,8 +35,10 @@ test('createCcoMailboxTruthReadAdapter returns null without valid store', () => 
   assert.equal(createCcoMailboxTruthReadAdapter(), null);
   assert.equal(createCcoMailboxTruthReadAdapter({ store: {} }), null);
   assert.equal(
-    createCcoMailboxTruthReadAdapter({ store: { listMessages: () => [], getCompletenessReport: null } }),
-    null,
+    createCcoMailboxTruthReadAdapter({
+      store: { listMessages: () => [], getCompletenessReport: null },
+    }),
+    null
   );
 });
 
@@ -156,6 +158,8 @@ test('getFidelityInventory identifies local MIME and attachment metadata gaps wi
       graphMessageId: 'rich-missing-mime',
       mailboxId: 'clinic@demo.se',
       folderType: 'inbox',
+      subject: 'Bokningsbekräftelse',
+      from: { address: 'patient@example.com', name: 'Pat Ient' },
       receivedAt: '2025-01-01T10:00:00.000Z',
       bodyHtml: '<p>Hej</p><img src="cid:logo-1">',
       hasAttachments: true,
@@ -199,12 +203,38 @@ test('getFidelityInventory identifies local MIME and attachment metadata gaps wi
       mailboxId: 'clinic@demo.se',
       folderType: 'inbox',
       observedAt: '2025-01-01T10:00:00.000Z',
-      reasons: [
-        'declared_attachment_without_metadata',
-        'cid_without_attachment_metadata',
-      ],
+      subject: 'Bokningsbekräftelse',
+      counterparty: 'Pat Ient <patient@example.com>',
+      reasons: ['declared_attachment_without_metadata', 'cid_without_attachment_metadata'],
     },
   ]);
+});
+
+test('getFidelityInventory-provet pekar ut mottagaren för utgående gap, inte avsändaren', () => {
+  // Ett prov utan motpart går inte att slå upp — bara messageId, ingen ledtråd
+  // om vem operatören ska öppna meddelandet mot. Utgående/utkast ska peka på
+  // mottagaren, inte den egna brevlådan.
+  const messages = [
+    {
+      graphMessageId: 'outbound-missing-mime',
+      mailboxId: 'clinic@demo.se',
+      folderType: 'sent',
+      subject: 'Uppföljning',
+      from: { address: 'clinic@demo.se', name: 'Clinic' },
+      toRecipients: [{ address: 'patient@example.com', name: 'Pat Ient' }],
+      receivedAt: '2025-01-04T10:00:00.000Z',
+      bodyHtml: '<p>Hej</p><img src="cid:logo-4">',
+      hasAttachments: true,
+      attachments: [],
+    },
+  ];
+  const adapter = createCcoMailboxTruthReadAdapter({ store: mockStore(messages) });
+  const inventory = adapter.getFidelityInventory({
+    mailboxIds: ['clinic@demo.se'],
+    sampleLimit: 10,
+  });
+  assert.equal(inventory.samples[0]?.subject, 'Uppföljning');
+  assert.equal(inventory.samples[0]?.counterparty, 'Pat Ient <patient@example.com>');
 });
 
 test('getCidFidelityManifest partitions each missing CID without exposing mail content', () => {

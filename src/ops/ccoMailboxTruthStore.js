@@ -153,6 +153,34 @@ function deriveFidelityMessageType(message = {}) {
   return 'unknown';
 }
 
+function toFidelityParticipantLabel(participant) {
+  const safe = asObject(participant);
+  const name = normalizeText(safe.name);
+  const address = normalizeText(safe.address).toLowerCase();
+  if (name && address) return `${name} <${address}>`;
+  return name || address || null;
+}
+
+/**
+ * Ett fidelity-gap-prov utan motpart går inte att slå upp — operatören ser
+ * bara ett messageId utan kontext. Inkommande mejl pekar ut avsändaren,
+ * utgående/utkast den första mottagaren.
+ */
+function deriveFidelityCounterparty(message = {}) {
+  const safe = asObject(message);
+  const messageType = deriveFidelityMessageType(safe);
+  if (messageType === 'inbound') {
+    return (
+      toFidelityParticipantLabel(safe.from) ||
+      toFidelityParticipantLabel(asArray(safe.toRecipients)[0])
+    );
+  }
+  return (
+    toFidelityParticipantLabel(asArray(safe.toRecipients)[0]) ||
+    toFidelityParticipantLabel(safe.from)
+  );
+}
+
 async function readJson(filePath, fallbackValue) {
   try {
     const raw = await fs.readFile(filePath, 'utf8');
@@ -1186,7 +1214,6 @@ async function createCcoMailboxTruthStore({
     return safeLimit > 0 ? rows.slice(0, safeLimit) : rows;
   }
 
-
   /**
    * ORD-97: FIDELITY-INSTRUMENTEN BLEV BLINDA AV ORD-89.
    *
@@ -1227,7 +1254,11 @@ async function createCcoMailboxTruthStore({
     }
   }
 
-  async function getFidelityInventory({ mailboxIds = [], sampleLimit = 20, deepScan = false } = {}) {
+  async function getFidelityInventory({
+    mailboxIds = [],
+    sampleLimit = 20,
+    deepScan = false,
+  } = {}) {
     const safeMailboxIds = asArray(mailboxIds)
       .map((item) => normalizeMailboxId(item))
       .filter(Boolean);
@@ -1309,6 +1340,10 @@ async function createCcoMailboxTruthStore({
           mailboxId: mailboxId || null,
           folderType: normalizeFolderType(message.folderType),
           observedAt: toMessageSortIso(message) || null,
+          // Utan ämne/motpart är provet ett messageId utan kontext — omöjligt
+          // att avgöra vilket meddelande operatören ska öppna för att verifiera.
+          subject: normalizeText(message.subject) || null,
+          counterparty: deriveFidelityCounterparty(message),
           reasons,
         });
       }
