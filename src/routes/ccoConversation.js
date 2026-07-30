@@ -974,7 +974,23 @@ async function fetchConversationMessagesLoadingEachMailbox(
   const hintMailboxIds = asArray(asObject(options).mailboxHints)
     .map((item) => normalizeEmail(item))
     .filter(Boolean);
-  const mailboxIds = Array.from(new Set([...keyMailboxIds, ...hintMailboxIds]));
+  const requestedMailboxIds = Array.from(new Set([...keyMailboxIds, ...hintMailboxIds]));
+
+  // ALLOWLISTEN MÅSTE TÄCKA LADDNINGEN, INTE BARA LÄSNINGEN.
+  //
+  // `allowedMailboxIds` filtrerade ingestion-fallbacken men aldrig
+  // truth-läsningen. Det var latent ofarligt så länge en olistad brevlåda
+  // ändå var OLADDAD och därför svarade tomt — men laddningssteget ovan gör
+  // bypassen verklig: en klient som namnger en brevlåda i `mailboxHints`
+  // eller i nyckelprefixet skulle annars få den laddad OCH läst, oavsett
+  // CCO-scope.
+  //
+  // En skyddsmekanism som vilar på att data råkar vara otillgänglig är ingen
+  // skyddsmekanism. Den ska säga nej, inte tomt.
+  const allowedMailboxIds = normalizeConfiguredMailboxIds(asObject(options).allowedMailboxIds);
+  const mailboxIds = allowedMailboxIds.length
+    ? requestedMailboxIds.filter((mailboxId) => allowedMailboxIds.includes(mailboxId))
+    : requestedMailboxIds;
 
   // Utan brevlåde-id faller vi tillbaka på oförändrat beteende: läs allt som
   // råkar vara laddat. Att ladda "alla" här vore att gissa.

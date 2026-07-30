@@ -115,6 +115,8 @@ function loadFetcher() {
     console,
     normalizeEmail: (v) => (typeof v === 'string' ? v.trim().toLowerCase() : ''),
     normalizeText: (v) => (typeof v === 'string' ? v.trim() : ''),
+    normalizeConfiguredMailboxIds: (v) =>
+      (Array.isArray(v) ? v : []).map((x) => String(x).trim().toLowerCase()).filter(Boolean),
     asObject: (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {}),
     asArray: (v) => (Array.isArray(v) ? v : v == null ? [] : [v]),
     deriveTime: (m) => String((m && (m.receivedAt || m.sentAt)) || ''),
@@ -159,5 +161,32 @@ test('äkta dubbletter dedupliceras fortfarande', () => {
   assert.ok(
     !/`\$\{normalizeEmail\(safe\.mailboxId\)\}:\$\{[^`]*\}` \|\|/.test(code),
     'mall-sträng med || får inte återinföras — vänstersidan kan aldrig vara falsy'
+  );
+});
+
+test('en brevlåda utanför CCO-scope varken laddas eller läses', async () => {
+  // allowedMailboxIds filtrerade ingestion-fallbacken men aldrig
+  // truth-läsningen. Det var latent ofarligt så länge en olistad brevlåda ändå
+  // var OLADDAD — laddningssteget gjorde bypassen verklig.
+  //
+  // En skyddsmekanism som vilar på att data råkar vara otillgänglig är ingen
+  // skyddsmekanism.
+  const messagesByMailbox = {
+    'tillaten@x.se': [{ mailboxId: 'tillaten@x.se', conversationId: 'C', graphMessageId: 'g1' }],
+    'utanfor@y.se': [{ mailboxId: 'utanfor@y.se', conversationId: 'C', graphMessageId: 'g2' }],
+  };
+  const store = createCappedStore(messagesByMailbox, 2);
+  const rows = await loadFetcher()(store, 'C', [], {
+    mailboxHints: ['tillaten@x.se', 'utanfor@y.se'],
+    allowedMailboxIds: ['tillaten@x.se'],
+  });
+  assert.equal(
+    JSON.stringify(rows.map((r) => r.mailboxId)),
+    JSON.stringify(['tillaten@x.se'])
+  );
+  assert.equal(
+    JSON.stringify(store.loadOrder),
+    JSON.stringify(['tillaten@x.se']),
+    'den olistade brevlådan får inte ens LADDAS'
   );
 });
