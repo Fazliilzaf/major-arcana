@@ -127,6 +127,57 @@ test('listHistoryMessages hydrerar brödtexten från sidofilen innan den projice
   assert.match(rows[0].bodyHtml, /Hela texten, hydrerad ur sidofilen/);
 });
 
+test('findMessageWithBody hydrerar via store.findMessageWithBody när den finns', async () => {
+  // ORD-93 uppgift 1: /fidelity/probes deepScan letar cid-referenser i
+  // bodyHtml. En ohydrerad findMessage ger tom text för sidofils-migrerade
+  // mejl → cid-referensen "finns" aldrig → 404 innan Graph-anropet görs.
+  let calls = 0;
+  const store = {
+    listMessages: () => [],
+    getCompletenessReport: () => ({ accountReports: [] }),
+    async findMessageWithBody({ mailboxId, messageId }) {
+      calls += 1;
+      return { mailboxId, graphMessageId: messageId, bodyHtml: '<img src="cid:logo">' };
+    },
+  };
+  const adapter = createCcoMailboxTruthReadAdapter({ store });
+  const message = await adapter.findMessageWithBody({
+    mailboxId: 'clinic@demo.se',
+    messageId: 'g1',
+  });
+  assert.equal(calls, 1);
+  assert.match(message.bodyHtml, /cid:logo/);
+});
+
+test('findMessageWithBody faller tillbaka på findMessage + hydrateMessageBody utan en direkt delegering', async () => {
+  const store = {
+    listMessages: () => [
+      {
+        graphMessageId: 'g1',
+        mailboxId: 'clinic@demo.se',
+        subject: 'S',
+        folderType: 'inbox',
+        from: { address: 'c@x.se' },
+        receivedAt: '2026-05-01T10:00:00.000Z',
+        bodyHtml: '',
+      },
+    ],
+    getCompletenessReport: () => ({ accountReports: [] }),
+    findMessage: ({ mailboxId, messageId }) =>
+      store.listMessages({ mailboxIds: [mailboxId] }).find((m) => m.graphMessageId === messageId) ||
+      null,
+    async hydrateMessageBody(message) {
+      return { ...message, bodyHtml: '<img src="cid:logo">' };
+    },
+  };
+  const adapter = createCcoMailboxTruthReadAdapter({ store });
+  const message = await adapter.findMessageWithBody({
+    mailboxId: 'clinic@demo.se',
+    messageId: 'g1',
+  });
+  assert.match(message.bodyHtml, /cid:logo/);
+});
+
 test('searchHistoryMessages requires all query tokens to match', async () => {
   const messages = [
     {

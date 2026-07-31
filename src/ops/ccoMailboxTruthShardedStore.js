@@ -620,14 +620,44 @@ async function createCcoMailboxTruthShardedStore({
         try {
           store = await loadShard(mailboxId);
         } catch (error) {
-          console.warn('[cco-truth-sharded] kunde inte ladda för hydrering', mailboxId, error?.message);
+          console.warn(
+            '[cco-truth-sharded] kunde inte ladda för hydrering',
+            mailboxId,
+            error?.message
+          );
           continue;
         }
         if (!store || typeof store.hydrateMessageBodies !== 'function') continue;
         const hydrated = await store.hydrateMessageBodies(group);
-        group.forEach((original, index) => hydratedByRef.set(original, hydrated[index] || original));
+        group.forEach((original, index) =>
+          hydratedByRef.set(original, hydrated[index] || original)
+        );
       }
       return rows.map((message) => hydratedByRef.get(message) || message);
+    },
+
+    /**
+     * ORD-93 uppgift 1, samma delegeringslucka en tredje gång: den shardade
+     * wrappern exponerade aldrig `findMessage`/`findMessageWithBody`, så
+     * `/fidelity/probes` föll tillbaka på adapterns `listMessages`-scan —
+     * som aldrig hydrerar. `deepScan` läste sharden HEL sidofil för sidofil,
+     * och det spelade ingen roll: proben letade cid-referenser i den tomma
+     * inline-`bodyHtml:n` och gav 404 innan Graph-anropet ens gjordes.
+     */
+    findMessage(options = {}) {
+      const mailboxId = normalizeMailboxId(options?.mailboxId);
+      const store = shardFor(mailboxId);
+      return typeof store?.findMessage === 'function' ? store.findMessage(options) : null;
+    },
+    async findMessageWithBody(options = {}) {
+      const mailboxId = normalizeMailboxId(options?.mailboxId);
+      const store = shardFor(mailboxId);
+      if (!store) return null;
+      if (typeof store.findMessageWithBody === 'function') {
+        return store.findMessageWithBody(options);
+      }
+      if (typeof store.findMessage === 'function') return store.findMessage(options);
+      return null;
     },
 
     /**

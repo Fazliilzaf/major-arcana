@@ -7831,7 +7831,7 @@ function toCcoRuntimeHistoryFidelityProbeHandler({
       const mailboxTruthHistory = createCcoMailboxTruthReadAdapter({
         store: ccoMailboxTruthStore,
       });
-      if (!mailboxTruthHistory || typeof mailboxTruthHistory.findMessage !== 'function') {
+      if (!mailboxTruthHistory || typeof mailboxTruthHistory.findMessageWithBody !== 'function') {
         return res.status(503).json({
           ok: false,
           error: 'Mailbox truth-data är inte tillgänglig för CID-proben.',
@@ -7840,7 +7840,10 @@ function toCcoRuntimeHistoryFidelityProbeHandler({
       if (typeof ccoMailboxTruthStore?.ensureMailboxLoaded === 'function') {
         await ccoMailboxTruthStore.ensureMailboxLoaded(input.mailboxId);
       }
-      const message = mailboxTruthHistory.findMessage({
+      // ORD-93 uppgift 1: hydrerad läsning — sharden bär bara tom inline-html
+      // för mejl migrerade till sidofil (ORD-89), och listCcoRuntimeReferencedContentIds
+      // nedan letar cid-referenser i just den texten.
+      const message = await mailboxTruthHistory.findMessageWithBody({
         mailboxId: input.mailboxId,
         messageId: input.messageId,
       });
