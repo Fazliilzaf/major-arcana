@@ -2362,6 +2362,9 @@ test('runtime CID manifest stays local and a probe checks one Graph attachment w
       assert.equal(probeResponse.status, 200);
       const probePayload = await probeResponse.json();
       assert.equal(probePayload.graph.attachmentCollectionRead, true);
+      // matchCount: 0 är annars tvetydigt — noll bilagor alls, eller N
+      // bilagor som ingen matchade contentId på. attachmentCount skiljer dem.
+      assert.equal(probePayload.graph.attachmentCount, 1);
       assert.equal(probePayload.graph.attachment.attachmentId, 'graph-attachment-1');
       assert.equal(probePayload.graph.attachment.inlineContentBytesAvailable, true);
       assert.equal('contentBytes' in probePayload.graph.attachment, false);
