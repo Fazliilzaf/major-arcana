@@ -7,14 +7,17 @@
  * ccoMailboxTruthStoreFactory.js). Varje shard ÄR en `ccoMailboxTruthStore`,
  * men wrappern exponerar bara de metoder den uttryckligen delegerar.
  *
- * Två gånger har det bitit på en dag:
+ * Tre gånger har det bitit på en dag:
  *   getFidelityInventory / getCidFidelityManifest → deepScan blev en no-op i
  *     produktion; adapterns fallback tog över och läste bara inline bodyHtml
  *   hydrateMessageBodies → konversationsrutten kunde inte hydrera, så
  *     operatören fick en 500-teckens bodyPreview i stället för hela mejlet
+ *   findMessageWithBody → /fidelity/probes deepScan letade cid-referenser i
+ *     en tom inline-bodyHtml och gav 404 innan Graph-anropet ens gjordes
  *
- * Båda fixarna var korrekta och oåtkomliga. Vakten nedan listar de metoder
- * som MÅSTE delegeras, så att den tredje inte behöver upptäckas i drift.
+ * Alla tre fixarna var korrekta och oåtkomliga. Vakten nedan listar de
+ * metoder som MÅSTE delegeras, så att den fjärde inte behöver upptäckas i
+ * drift.
  */
 
 const test = require('node:test');
@@ -36,6 +39,7 @@ const MUST_DELEGATE = [
   ['getFidelityInventory', 'deepScan blir en no-op i produktion utan den'],
   ['getCidFidelityManifest', 'CID-larmet kan inte larma utan den'],
   ['hydrateMessageBodies', 'operatören får bodyPreview i stället för hela mejlet utan den'],
+  ['findMessageWithBody', '/fidelity/probes deepScan letar cid i tom bodyHtml och 404:ar utan den'],
 ];
 
 for (const [method, why] of MUST_DELEGATE) {
@@ -48,6 +52,18 @@ for (const [method, why] of MUST_DELEGATE) {
     );
   });
 }
+
+test('sharded storen delegerar findMessage (synkron, som per-shard-storen)', () => {
+  const code = stripComments(SHARDED);
+  // Måste träffa METODDEFINITIONEN (`findMessage(options = {}) {`), inte
+  // anropsstället `store.findMessage(options)` inuti findMessageWithBody —
+  // annars kan definitionen döpas om utan att vakten märker det.
+  assert.match(
+    code,
+    /(?<!\.)\bfindMessage\(options\s*=\s*\{\}\)\s*\{/,
+    'findMessage saknas i den shardade wrappern — findMessageWithBody kan inte falla tillbaka på den'
+  );
+});
 
 test('produktionen använder den SHARDADE storen — annars vaktar testet fel lager', () => {
   const factory = stripComments(

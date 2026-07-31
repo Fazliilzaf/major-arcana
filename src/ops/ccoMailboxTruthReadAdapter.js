@@ -651,11 +651,30 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     );
   }
 
+  /**
+   * ORD-93 uppgift 1: som `findMessage`, men hydrerad — läst från sidofilen
+   * om sharden bara bär tom inline-`bodyHtml`. `/fidelity/probes` letar
+   * cid-referenser i HTML:en och behöver den fulla texten, inte shardens
+   * ohydrerade kopia.
+   */
+  async function findMessageWithBody({ mailboxId = '', messageId = '' } = {}) {
+    if (typeof store.findMessageWithBody === 'function') {
+      return store.findMessageWithBody({ mailboxId, messageId });
+    }
+    const message = findMessage({ mailboxId, messageId });
+    if (!message) return null;
+    if (typeof store.hydrateMessageBody === 'function') {
+      return store.hydrateMessageBody(message);
+    }
+    return message;
+  }
+
   return {
     getHistoryCoverage,
     getFidelityInventory,
     getCidFidelityManifest,
     findMessage,
+    findMessageWithBody,
     listHistoryMessages,
     listHistoryEvents,
     searchHistoryMessages,
