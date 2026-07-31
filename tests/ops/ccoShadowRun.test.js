@@ -157,7 +157,9 @@ test('buildShadowRunOutput clamps priorityScore and intentConfidence', () => {
 });
 
 test('summarizeShadowReview filters by intent when provided', () => {
-  const ts = '2026-06-01T12:00:00.000Z';
+  // Relativt "nu" i stället för ett hårdkodat datum — annars slutar testet
+  // falla innanför lookbackDays-fönstret rent av kalendern, inte av en bugg.
+  const ts = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
   const entry = {
     ts,
     output: {
@@ -194,7 +196,7 @@ test('summarizeShadowReview filters by intent when provided', () => {
 });
 
 test('summarizeShadowReview normalizes cco.reply.sent to reply_sent', () => {
-  const ts = '2026-06-02T12:00:00.000Z';
+  const ts = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
   const review = summarizeShadowReview({
     shadowEntries: [
       {
