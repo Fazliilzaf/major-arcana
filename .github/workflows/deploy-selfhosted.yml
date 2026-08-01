@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: [self-hosted, majorarcana]
+    runs-on: [self-hosted, majorarcana-legacy]
     env:
       ARCANA_AI_PROVIDER: fallback
       ARCANA_DEFAULT_TENANT: hair-tp-clinic
