@@ -1,0 +1,42 @@
+name: Self-hosted deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: [self-hosted, majorarcana]
+    env:
+      ARCANA_AI_PROVIDER: fallback
+      ARCANA_DEFAULT_TENANT: hair-tp-clinic
+      PORT: 3000
+      PUBLIC_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          nvm use 22
+          npm ci
+
+      - name: Build bundle
+        run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          nvm use 22
+          npm run build:bundle
+
+      - name: Deploy to server
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          nvm use 22
+          cd /home/fazli/major-arcana-legacy
+          ./scripts/deploy-selfhosted.sh
