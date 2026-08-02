@@ -499,6 +499,28 @@ const config = {
     stateRoot,
     fileName: 'cco-booking-engine.json',
   }),
+  // Tidigare hårdkodade som path.join(__dirname, 'data', ...) i server.js, vilket
+  // gjorde dem oåtkomliga för ARCANA_STATE_ROOT — en lokal körning skrev alltid
+  // in i repots data/. Samma parametrisering som authStorePath ovan.
+  ccoNotificationStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_NOTIFICATION_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-notifications.json',
+  }),
+  ccoComplianceScanStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_COMPLIANCE_SCAN_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-compliance-scans.json',
+  }),
+  // Roten för säker patientdokumentlagring. Fallbacken låg tidigare hårdkodad i
+  // ccoSecureStorageProvider.js och pekade på en iCloud-katalog i hemkatalogen,
+  // vilket gjorde att en SAKNAD env-variabel aktiverade skarp lagring i stället
+  // för att stängas av. Nu följer den stateRoot som allt annat.
+  ccoSecureStorageRoot: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_SECURE_STORAGE_ROOT,
+    stateRoot,
+    fileName: 'cco-secure-storage',
+  }),
   clientoBookingStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CLIENTO_BOOKING_STORE_PATH,
     stateRoot,

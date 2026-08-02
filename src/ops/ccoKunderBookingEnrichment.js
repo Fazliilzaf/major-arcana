@@ -1284,14 +1284,17 @@ async function loadKunderBookingIndex(
         const { createCcoBookingEngineStore } = require('./ccoBookingEngineStore');
         const { createCcoBookingStore } = require('./ccoBookingStore');
         const { createCcoTreatmentEncounterStore } = require('./ccoTreatmentEncounterStore');
+        // Fallbacken pekade tidigare på path.join(process.cwd(), 'data', ...) —
+        // en hårdkodad sökväg som gick förbi ARCANA_STATE_ROOT helt. Den träffar
+        // bara när anroparen glömt tråda igenom config, och då skrev en lokal
+        // körning rakt in i repots data/. Samma fallback finns kvar, men löses nu
+        // via config-modulens resolveStatePath i stället.
+        const { config: defaultConfig } = require('../config');
         const enginePath =
-          config?.ccoBookingEngineStorePath ||
-          path.join(process.cwd(), 'data', 'cco-booking-engine.json');
-        const casesPath =
-          config?.ccoBookingStorePath || path.join(process.cwd(), 'data', 'cco-bookings.json');
+          config?.ccoBookingEngineStorePath || defaultConfig.ccoBookingEngineStorePath;
+        const casesPath = config?.ccoBookingStorePath || defaultConfig.ccoBookingStorePath;
         const encPath =
-          config?.ccoTreatmentEncounterStorePath ||
-          path.join(process.cwd(), 'data', 'cco-treatment-encounters.json');
+          config?.ccoTreatmentEncounterStorePath || defaultConfig.ccoTreatmentEncounterStorePath;
         const [engineStore, caseStore, encounterStore] = await Promise.all([
           createCcoBookingEngineStore({ filePath: enginePath }),
           createCcoBookingStore({ filePath: casesPath }),

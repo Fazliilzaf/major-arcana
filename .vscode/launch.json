@@ -1,0 +1,59 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "CCO: starta lokalt (säker profil)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server.js",
+      "cwd": "${workspaceFolder}",
+      "runtimeArgs": ["--max-old-space-size=6144"],
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "env": {
+        "PORT": "3001",
+        "PUBLIC_BASE_URL": "http://localhost:3001",
+
+        "ARCANA_STATE_ROOT": "${workspaceFolder}/.local-state",
+        "ARCANA_REPORTS_DIR": "${workspaceFolder}/.local-state/reports",
+        "MEMORY_STORE_PATH": "${workspaceFolder}/.local-state/memory.json",
+        "AUTH_STORE_PATH": "${workspaceFolder}/.local-state/auth.json",
+        "ARCANA_SECRET_ROTATION_STORE_PATH": "${workspaceFolder}/.local-state/secret-rotation.json",
+        "ARCANA_SLO_TICKET_STORE_PATH": "${workspaceFolder}/.local-state/slo-tickets.json",
+        "ARCANA_CAPABILITY_ANALYSIS_STORE_PATH": "${workspaceFolder}/.local-state/capability-analysis.json",
+        "ARCANA_RELEASE_GOVERNANCE_STORE_PATH": "${workspaceFolder}/.local-state/release-governance.json",
+        "ARCANA_PUBLIC_PILOT_PREFLIGHT_REPORT_FILE": "${workspaceFolder}/.local-state/reports/preflight-public-latest.json",
+        "ARCANA_RELEASE_CYCLE_OUT_FILE": "${workspaceFolder}/.local-state/reports/release-cycle-latest.json",
+        "ARCANA_STABILITY_WINDOW_OUT_FILE": "${workspaceFolder}/.local-state/reports/stability-window-latest.json",
+        "ARCANA_FINALIZATION_SWEEP_OUT_FILE": "${workspaceFolder}/.local-state/reports/finalization-sweep-latest.json",
+        "ARCANA_FINALIZATION_SWEEP_REPORT_FILE": "${workspaceFolder}/.local-state/reports/finalization-sweep-latest.json",
+        "ARCANA_CLOSURE_STATUS_REPORT_FILE": "${workspaceFolder}/.local-state/reports/closure-status-latest.json",
+
+        "ARCANA_GRAPH_READ_ENABLED": "false",
+        "ARCANA_GRAPH_SEND_ENABLED": "false",
+        "ARCANA_SCHEDULER_ENABLED": "false",
+        "ARCANA_CCO_MAIL_INGESTION_ENABLED": "false",
+        "ARCANA_CCO_MAIL_INGESTION_POLL_ENABLED": "false",
+        "ARCANA_CCO_IMAP_ENABLED": "false",
+        "ARCANA_CCO_IMAP_POLL_ENABLED": "false",
+        "ARCANA_AI_PROVIDER": "fallback"
+      }
+    },
+    {
+      "name": "CCO: kör aktuell testfil",
+      "type": "node",
+      "request": "launch",
+      "program": "${file}",
+      "cwd": "${workspaceFolder}",
+      "runtimeArgs": ["--test"],
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "env": {
+        "ARCANA_STATE_ROOT": "${workspaceFolder}/.local-state",
+        "ARCANA_REPORTS_DIR": "${workspaceFolder}/.local-state/reports",
+        "MEMORY_STORE_PATH": "${workspaceFolder}/.local-state/memory.json",
+        "AUTH_STORE_PATH": "${workspaceFolder}/.local-state/auth.json"
+      }
+    }
+  ]
+}
