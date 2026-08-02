@@ -444,7 +444,10 @@ function flattenShadowRecommendations(entries = [], {
 } = {}) {
   const safeMailboxIds = new Set(asArray(mailboxIds).map((item) => normalizeEmail(item)).filter(Boolean));
   const safeIntent = normalizeText(intent).toLowerCase();
-  const thresholdMs = Date.now() - clamp(lookbackDays, 1, 365, 14) * 24 * 60 * 60 * 1000;
+  // now-parametern styr fönstret; utan detta ignorerades den och lookback rakade
+  // alltid mot väggklockan, vilket gör historiska omkörningar omöjliga.
+  const nowMs = toTimestampMs(now) ?? Date.now();
+  const thresholdMs = nowMs - clamp(lookbackDays, 1, 365, 14) * 24 * 60 * 60 * 1000;
   const latestByConversation = new Map();
 
   for (const entry of asArray(entries)) {
