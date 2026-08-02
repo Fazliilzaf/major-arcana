@@ -540,6 +540,7 @@
     drawerAuditCorrelation: document.getElementById('drawerAuditCorrelation'),
     toastViewport: document.getElementById('toastViewport'),
     sessionMeta: document.getElementById('sessionMeta'),
+    headerMenuRow: document.getElementById('headerMenuRow'),
     languageSelect: document.getElementById('languageSelect'),
     densityToggleBtn: document.getElementById('densityToggleBtn'),
     tenantSwitchSelect: document.getElementById('tenantSwitchSelect'),
@@ -2553,6 +2554,11 @@
     els.dashboardPanel.classList.toggle('hidden', !isLoggedIn);
     if (els.sectionNav) {
       els.sectionNav.hidden = !isLoggedIn;
+    }
+    // Header-kontrollerna (byt klinik, personalportal, uppdatera, logga ut) kräver
+    // session — utan detta renderades de aktiva bredvid "Inte inloggad".
+    if (els.headerMenuRow) {
+      els.headerMenuRow.classList.toggle('hidden', !isLoggedIn);
     }
     syncMobileStaffJournalBanner(isLoggedIn);
     if (isLoggedIn) {
