@@ -7906,6 +7906,10 @@ function toCcoRuntimeHistoryFidelityProbeHandler({
         cid: input.cid,
         graph: {
           attachmentCollectionRead: true,
+          // Utan denna är `matchCount: 0` tvetydig: den kan betyda "Graph gav
+          // noll bilagor" (inget att hämta) eller "Graph gav N men ingen
+          // matchade på contentId" (normaliseringen är fel, bytesen finns).
+          attachmentCount: asArray(attachments).length,
           matchCount: matches.length,
           attachment: graphAttachment
             ? {
