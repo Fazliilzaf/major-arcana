@@ -2273,7 +2273,7 @@
             </select>
           </div>
           <div id="sessionMeta" class="muted" data-i18n="session_not_logged">Inte inloggad</div>
-          <div class="seg header-menu-row glass-toolbar">
+          <div id="headerMenuRow" class="seg header-menu-row glass-toolbar hidden">
             <button id="densityToggleBtn" class="btn" data-i18n="density_compact">
               Kompakt vy
             </button>
@@ -2316,16 +2316,11 @@
         <div class="grid" style="margin-top: 10px">
           <div>
             <label for="emailInput" data-i18n="label_email">E-post</label>
-            <input
-              id="emailInput"
-              type="email"
-              value="fazli@hairtpclinic.com"
-              autocomplete="email"
-            />
+            <input id="emailInput" type="email" autocomplete="email" />
           </div>
           <div>
             <label for="tenantInput" data-i18n="label_tenant_optional">Klinik (valfri)</label>
-            <input id="tenantInput" type="text" value="hair-tp-clinic" />
+            <input id="tenantInput" type="text" />
           </div>
           <div>
             <label for="passwordInput" data-i18n="label_password">Lösenord</label>
