@@ -100,6 +100,30 @@ function createCcoJournalRouter({
     return patient;
   }
 
+  /**
+   * Läsvariant av ovanstående: patienten måste finnas i ANROPARENS tenant, men
+   * behöver inte vara journal-skrivbar — foton ska gå att se även på en patient
+   * som är låst för skrivning.
+   *
+   * Finns för att `patientId` blir ett katalognamn i `ccoJournalPhotoStore`.
+   * Storen har numera en egen segment-spärr, men den svarar 500 på ett angrepp;
+   * den här grinden avvisar ett patientId utanför tenanten som 404 innan
+   * sökvägen ens byggs, så att legitim trafik aldrig når spärren.
+   */
+  async function requirePatientInTenant(actor, patientId) {
+    if (!patientMasterStore || !patientId) return null;
+    const patient = await patientMasterStore.getPatient({
+      tenantId: actor.tenantId,
+      patientId,
+    });
+    if (!patient) {
+      const error = new Error('Patienten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    return patient;
+  }
+
   async function assertOperationDayGate(actor, patientId, journalType, patient = null) {
     const resolvedPatient =
       patient ||
@@ -545,6 +569,10 @@ function createCcoJournalRouter({
         if (!patientId || !photoId) {
           return res.status(400).json({ error: 'patientId och photoId krävs.' });
         }
+        // patientId blir ett katalognamn i journalPhotoStore. Slå upp den mot
+        // registret i anroparens tenant INNAN sökvägen byggs — annars är
+        // tenant-isoleringen bara en strängkonkatenering.
+        await requirePatientInTenant(actor, patientId);
         const payload =
           variant === 'annotated'
             ? await journalPhotoStore.readAnnotatedPreview({

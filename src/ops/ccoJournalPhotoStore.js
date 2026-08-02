@@ -25,25 +25,56 @@ function extensionForMime(mimeType) {
   return 'jpg';
 }
 
+/**
+ * TENANT-ISOLERINGEN HÄR ÄR KATALOGNAMN — ALLTSÅ MÅSTE SEGMENTEN VARA SÄKRA.
+ *
+ * `tenantId`, `patientId` och `photoId` blir katalog- respektive filnamn. Fram
+ * till nu var `normalizeText` (som är `trim()`, inte sanering) enda
+ * bearbetningen, och `patientId` kommer rakt från `req.query` i
+ * `GET /cco-journal/photo`. Ett värde som `../<annan-tenant>/<patient>` hade
+ * därmed nått utanför den egna tenant-katalogen — patientfoton är det känsligaste
+ * vi lagrar.
+ *
+ * `ccoSecureStorageProvider` har haft den här spärren sedan start (se dess
+ * `absolute()`), och storen är den rätta platsen: sex filer konsumerar den,
+ * däribland patient- och personalportalen. En vakt i EN rutt hade bara skyddat
+ * den rutten — samma lärdom som chokepunkten i ORD-98.
+ */
+function safePathSegment(value, label) {
+  const segment = normalizeText(value);
+  if (!segment) throw new Error(`${label} saknas`);
+  if (segment.includes('..') || segment.includes('/') || segment.includes('\\')) {
+    throw new Error(`unsafe ${label}: "${segment}"`);
+  }
+  return segment;
+}
+
 function patientDir(baseDir, tenantId, patientId) {
-  return path.join(baseDir, normalizeText(tenantId), normalizeText(patientId));
+  return path.join(
+    baseDir,
+    safePathSegment(tenantId, 'tenantId'),
+    safePathSegment(patientId, 'patientId')
+  );
 }
 
 function photoPath(baseDir, tenantId, patientId, photoId, ext = 'jpg') {
-  return path.join(patientDir(baseDir, tenantId, patientId), `${normalizeText(photoId)}.${ext}`);
+  return path.join(
+    patientDir(baseDir, tenantId, patientId),
+    `${safePathSegment(photoId, 'photoId')}.${ext}`
+  );
 }
 
 function annotationPath(baseDir, tenantId, patientId, photoId) {
   return path.join(
     patientDir(baseDir, tenantId, patientId),
-    `${normalizeText(photoId)}.annotations.json`
+    `${safePathSegment(photoId, 'photoId')}.annotations.json`
   );
 }
 
 function annotatedPreviewPath(baseDir, tenantId, patientId, photoId) {
   return path.join(
     patientDir(baseDir, tenantId, patientId),
-    `${normalizeText(photoId)}.annotated.png`
+    `${safePathSegment(photoId, 'photoId')}.annotated.png`
   );
 }
 
@@ -95,7 +126,10 @@ async function createCcoJournalPhotoStore({ baseDir }) {
   }
 
   async function resolvePhotoFile({ tenantId, patientId, photoId }) {
-    const id = normalizeText(photoId);
+    // Bygger filnamnet själv i stället för via photoPath (den provar tre
+    // ändelser), så segment-spärren måste tillämpas uttryckligen här — annars
+    // är photoId osanerat på just den här vägen. readPhoto går via den.
+    const id = safePathSegment(photoId, 'photoId');
     if (!id) return null;
     const dir = patientDir(root, tenantId, patientId);
     for (const ext of ['jpg', 'jpeg', 'png']) {
