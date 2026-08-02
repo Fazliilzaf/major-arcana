@@ -75,3 +75,6 @@ migration/pipedrive/*.json
 # Visuell regression — genererade artefakter (lagringsstrategi beslutas separat)
 test/visual/baselines/
 test/visual/diffs/
+
+# Lokal utvecklings-state-root (ARCANA_STATE_ROOT) — aldrig skarp data
+.local-state/

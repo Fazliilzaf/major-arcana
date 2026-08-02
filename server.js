@@ -5584,7 +5584,7 @@ let ccoCollabStore = null;
       auditLog: ccoAuditLog,
     });
     const notificationStore = await createCcoNotificationStore({
-      filePath: path.join(__dirname, 'data', 'cco-notifications.json'),
+      filePath: config.ccoNotificationStorePath,
       auditLog: ccoAuditLog,
     });
     const cronScheduler = createCronScheduler({
@@ -8437,7 +8437,7 @@ let ccoComplianceScanStore = null;
     }
 
     ccoComplianceScanStore = await createCcoComplianceScanStore({
-      filePath: path.join(__dirname, 'data', 'cco-compliance-scans.json'),
+      filePath: config.ccoComplianceScanStorePath,
       externalVersionsPath: path.join(__dirname, 'config', 'external-template-versions.json'),
       meridiqSchemaPath: path.join(
         __dirname,
@@ -11171,9 +11171,7 @@ function sendMobileCustomersHtml(res) {
   res.setHeader('Expires', '0');
   res.setHeader('Surrogate-Control', 'no-store');
   res.setHeader('X-Arcana-UI-Build', uiBuildId);
-  res
-    .type('html')
-    .send(rawMobileCustomersHtmlTemplate.replace(/__ARCANA_UI_BUILD__/g, uiBuildId));
+  res.type('html').send(rawMobileCustomersHtmlTemplate.replace(/__ARCANA_UI_BUILD__/g, uiBuildId));
 }
 
 const { createAdminRouter } = require('./src/routes/admin');
@@ -11580,9 +11578,12 @@ function servePreviewHtml(req, res, next) {
     if (!previewBuild.ok) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       res.setHeader('X-Arcana-Preview-Integrity', 'mismatch');
-      return res.status(503).type('html').send(
-        '<!doctype html><title>Uppdatering pågår</title><p>CCO uppdateras. Ladda om om ett ögonblick.</p>'
-      );
+      return res
+        .status(503)
+        .type('html')
+        .send(
+          '<!doctype html><title>Uppdatering pågår</title><p>CCO uppdateras. Ladda om om ett ögonblick.</p>'
+        );
     }
     const transformed = transformPreviewHtml(rawHtml);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');

@@ -47,22 +47,18 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
-const os = require('node:os');
 const { Readable } = require('node:stream');
 
 const SCHEMA_VERSION = '1.0.0';
 
-const DEFAULT_LOCAL_ROOT =
-  process.env.ARCANA_CCO_SECURE_STORAGE_ROOT ||
-  path.join(
-    os.homedir(),
-    'Library',
-    'Mobile Documents',
-    'com~apple~CloudDocs',
-    'Major Arcana 2.0',
-    'Migration-data',
-    'cco-secure-storage'
-  );
+// Sökvägen löses av config.js (resolveStatePath): explicit
+// ARCANA_CCO_SECURE_STORAGE_ROOT vinner, annars stateRoot/cco-secure-storage.
+// Tidigare låg fallbacken hårdkodad här och pekade på en iCloud-katalog i
+// hemkatalogen — en SAKNAD env-variabel aktiverade alltså skarp patientlagring
+// i stället för att stängas av, och ARCANA_STATE_ROOT hade ingen verkan.
+const { config: secureStorageConfig } = require('../config');
+
+const DEFAULT_LOCAL_ROOT = secureStorageConfig.ccoSecureStorageRoot;
 
 const MIME_TO_EXT = Object.freeze({
   'application/pdf': '.pdf',
