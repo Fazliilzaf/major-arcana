@@ -72,8 +72,13 @@
       .map(function (note) {
         var noteText = txt(note && note.text);
         if (!noteText) return '';
-        return '<div class="book-meta"><strong>' +
-          esc(txt(note.label) || 'Anteckning') + ':</strong> ' + esc(noteText) + '</div>';
+        return (
+          '<div class="book-meta"><strong>' +
+          esc(txt(note.label) || 'Anteckning') +
+          ':</strong> ' +
+          esc(noteText) +
+          '</div>'
+        );
       })
       .join('');
   }
@@ -82,8 +87,12 @@
     var raw = txt(booking && (booking.stateLabel || booking.status || booking.state));
     var key = raw.toLowerCase().replace(/[\s-]+/g, '_');
     var labels = {
-      confirmed: 'Bokad', upcoming: 'Bokad', completed: 'Genomförd',
-      cancelled: 'Avbokad', canceled: 'Avbokad', no_show: 'Utebliven',
+      confirmed: 'Bokad',
+      upcoming: 'Bokad',
+      completed: 'Genomförd',
+      cancelled: 'Avbokad',
+      canceled: 'Avbokad',
+      no_show: 'Utebliven',
     };
     return labels[key] || raw || fallback;
   }
@@ -114,6 +123,8 @@
     ctx = ctx || {};
     var card = ctx.bcard || ctx.card || {};
     var bundle = ctx.dossierBundle || null;
+    // Offert-ärendet kommer på ctx, inte i bundeln. Se offert-blocket nedan.
+    var commercialCase = ctx.commercialCase || (bundle && bundle.commercialCase) || null;
     var journey = call('buildJourneyFromState', [card, ctx.journalEntries, bundle], null);
     var av = call('buildActiveVisitFromBundle', [bundle], null);
     var warnings = call('buildCriticalWarnings', [card, ctx.journalEntries, bundle], null);
@@ -414,15 +425,21 @@
                   '"'
                 : '';
               return (
-                '<' + tag + ' class="j-step ' +
+                '<' +
+                tag +
+                ' class="j-step ' +
                 st +
-                '"' + docAttrs + '><span class="badge">' +
+                '"' +
+                docAttrs +
+                '><span class="badge">' +
                 badge +
                 '</span><span class="label">' +
                 esc(txt(s.label)) +
                 '</span>' +
                 tail +
-                '</' + tag + '>'
+                '</' +
+                tag +
+                '>'
               );
             })
             .join('') +
@@ -446,9 +463,11 @@
     }
 
     /* H · KOMMANDE BOKNINGAR */
-    var upReadout = call('buildBookingsFromExtras',
+    var upReadout = call(
+      'buildBookingsFromExtras',
       [ctx.card || {}, card, bundle, ctx.occasionTimeline],
-      { items: arr(bundle && bundle.upcomingBookings) });
+      { items: arr(bundle && bundle.upcomingBookings) }
+    );
     var up = arr(upReadout && upReadout.items);
     out += secOpen(
       'upcoming',
@@ -475,10 +494,15 @@
                       .filter(Boolean)
                       .join(' · ')
                   ) +
-                  '</div>' + bookingNotesHtml(b.notes || b.bookingNotes) +
-                  bookingAuditDetailsHtml(b, upReadout && upReadout.patientId) + '</div>' +
-                  '<span class="q-status ' + (b.state === 'completed' ? 'green' : 'warn') + '">' +
-                  esc(bookingStatusLabel(b, 'Bokad')) + '</span></div>'
+                  '</div>' +
+                  bookingNotesHtml(b.notes || b.bookingNotes) +
+                  bookingAuditDetailsHtml(b, upReadout && upReadout.patientId) +
+                  '</div>' +
+                  '<span class="q-status ' +
+                  (b.state === 'completed' ? 'green' : 'warn') +
+                  '">' +
+                  esc(bookingStatusLabel(b, 'Bokad')) +
+                  '</span></div>'
                 );
               })
               .join('')
@@ -486,9 +510,11 @@
     );
 
     /* I · BESÖK / TILLFÄLLEN (bokningshistorik enligt V11-facit) */
-    var historyReadout = call('buildHistoryFromExtras',
+    var historyReadout = call(
+      'buildHistoryFromExtras',
       [ctx.card || {}, card, bundle, ctx.occasionTimeline],
-      { items: arr(bundle && bundle.historyBookings) });
+      { items: arr(bundle && bundle.historyBookings) }
+    );
     var hist = arr(historyReadout && historyReadout.items);
     if (hist.length) {
       out += secOpen(
@@ -513,8 +539,11 @@
                 '</div>' +
                 (meta.length ? '<div class="book-meta">' + esc(meta.join(' · ')) + '</div>' : '') +
                 bookingNotesHtml(b.notes || b.bookingNotes) +
-                '</div><span class="q-status ' + (b.state === 'completed' ? 'green' : 'warn') + '">' +
-                esc(bookingStatusLabel(b, 'Genomförd')) + '</span></div>'
+                '</div><span class="q-status ' +
+                (b.state === 'completed' ? 'green' : 'warn') +
+                '">' +
+                esc(bookingStatusLabel(b, 'Genomförd')) +
+                '</span></div>'
               );
             })
             .join('')
@@ -567,6 +596,46 @@
     var offers = arr(
       (bundle && (bundle.offers || (bundle.commercialCase && bundle.commercialCase.offers))) || []
     );
+    // `bundle.offers`-grenen ovan lämnas orörd: den är korrekt den dag bundeln
+    // faktiskt bär en offertLISTA, och en äkta lista ska alltid vinna.
+    //
+    // Men `commercialCase` är ETT ärende, inte en lista
+    // (ccoCommercialStore.js:494 normalizeCommercialCase) — det finns inget
+    // `.offers`-fält. Därför har stora kortet alltid visat "Inga offerter
+    // ännu", även för en patient med en skickad och accepterad offert.
+    //
+    // Raden syntetiseras med EXAKT de fältnamn mapparen nedan redan läser, så
+    // ingen ny markup och ingen ny CSS behövs: .q-pill/.q-title/.q-meta/
+    // .q-amount/.q-status gör jobbet, och `st`-logiken på raden nedan ger
+    // quoteStatus-badgen grön vid accepterad via sin befintliga /accept/i-test.
+    if (!offers.length && commercialCase) {
+      var ccStatus = txt(commercialCase.quoteStatus);
+      var ccAmount = txt(commercialCase.quotedAmount);
+      if (ccStatus || ccAmount) {
+        offers = [
+          {
+            kind: commercialCase.offerType,
+            title: commercialCase.offerType || 'Offert',
+            dateLabel: txt(commercialCase.quoteAcceptedAt) || txt(commercialCase.quoteSentAt),
+            amount: ccAmount,
+            status: ccStatus,
+            statusLabel: ccStatus,
+          },
+        ];
+      }
+    }
+    // Kundportalen har aldrig varit nåbar från någon av de stora vyerna.
+    // Länken härleds deterministiskt ur esignToken — samma formel som
+    // buildCustomerPortalUrlFromOffer (patient-master-ui.js:9841). Den
+    // funktionen är IIFE-privat och går inte att importera hit.
+    // Renderas med file-row-mönstret som redan används på :700 och :972.
+    var portalToken = txt(commercialCase && commercialCase.esignToken);
+    var portalRow = portalToken
+      ? '<a class="file-row" href="/api/v1/cco-commercial/customer-offer-portal?token=' +
+        esc(encodeURIComponent(portalToken)) +
+        '" target="_blank" rel="noopener" title="Kundportal">' +
+        '<span class="file-icn">🔗</span><span class="file-name">Kundportal</span></a>'
+      : '';
     out += secOpen(
       'avtal',
       'sec',
@@ -600,7 +669,8 @@
                 );
               })
               .join('')
-          : '<div class="next-row"><div class="what" style="color:var(--ink-mute)">Inga offerter ännu</div></div>')
+          : '<div class="next-row"><div class="what" style="color:var(--ink-mute)">Inga offerter ännu</div></div>') +
+        portalRow
     );
 
     /* L · AUTO-DOKUMENT */
@@ -721,18 +791,18 @@
         'anteckningar',
         'sec',
         label('Anteckningar') +
-        notes
-          .slice(0, 3)
-          .map(function (e) {
-            return (
-              '<div class="note-row">' +
-              esc(txt(e.note || e.body || e.text || e.title)) +
-              '<div class="when">' +
-              esc(txt(e.dateLabel || e.date || '') + (e.author ? ' · ' + e.author : '')) +
-              '</div></div>'
-            );
-          })
-          .join('')
+          notes
+            .slice(0, 3)
+            .map(function (e) {
+              return (
+                '<div class="note-row">' +
+                esc(txt(e.note || e.body || e.text || e.title)) +
+                '<div class="when">' +
+                esc(txt(e.dateLabel || e.date || '') + (e.author ? ' · ' + e.author : '')) +
+                '</div></div>'
+              );
+            })
+            .join('')
       );
     }
 
@@ -743,33 +813,33 @@
         'kommunikation',
         'sec',
         label('Kommunikation') +
-        cm
-          .slice(0, 4)
-          .map(function (c) {
-            var dir = /ut|out/i.test(txt(c.dir || c.direction)) ? 'out' : 'in';
-            var ic = /sms/i.test(txt(c.type))
-              ? '📱'
-              : /call|phone|samtal|ring/i.test(txt(c.type))
-                ? '📞'
-                : '✉';
-            var sub = txt(c.text);
-            var pre = txt(c.preview);
-            return (
-              '<div class="comm-row"><span class="comm-icn ' +
-              dir +
-              '">' +
-              ic +
-              '</span>' +
-              '<div class="comm-text">' +
-              (sub ? '<b>' + esc(sub) + '</b>' : '') +
-              (pre ? (sub ? ' — ' : '') + esc(pre) : '') +
-              (!sub && !pre ? 'Meddelande' : '') +
-              '<div class="comm-meta">' +
-              esc(txt(c.meta || c.dateLabel || c.date || '')) +
-              '</div></div></div>'
-            );
-          })
-          .join('')
+          cm
+            .slice(0, 4)
+            .map(function (c) {
+              var dir = /ut|out/i.test(txt(c.dir || c.direction)) ? 'out' : 'in';
+              var ic = /sms/i.test(txt(c.type))
+                ? '📱'
+                : /call|phone|samtal|ring/i.test(txt(c.type))
+                  ? '📞'
+                  : '✉';
+              var sub = txt(c.text);
+              var pre = txt(c.preview);
+              return (
+                '<div class="comm-row"><span class="comm-icn ' +
+                dir +
+                '">' +
+                ic +
+                '</span>' +
+                '<div class="comm-text">' +
+                (sub ? '<b>' + esc(sub) + '</b>' : '') +
+                (pre ? (sub ? ' — ' : '') + esc(pre) : '') +
+                (!sub && !pre ? 'Meddelande' : '') +
+                '<div class="comm-meta">' +
+                esc(txt(c.meta || c.dateLabel || c.date || '')) +
+                '</div></div></div>'
+              );
+            })
+            .join('')
       );
     }
 
@@ -800,18 +870,18 @@
         'insights',
         'sec',
         label('Insikter') +
-        ins
-          .slice(0, 3)
-          .map(function (i) {
-            return (
-              '<div class="insight-row"><b>' +
-              esc(txt(i.title)) +
-              '</b>' +
-              (i.text ? ' ' + esc(txt(i.text)) : '') +
-              '</div>'
-            );
-          })
-          .join('')
+          ins
+            .slice(0, 3)
+            .map(function (i) {
+              return (
+                '<div class="insight-row"><b>' +
+                esc(txt(i.title)) +
+                '</b>' +
+                (i.text ? ' ' + esc(txt(i.text)) : '') +
+                '</div>'
+              );
+            })
+            .join('')
       );
     }
 
@@ -1048,7 +1118,9 @@
       .then(function (response) {
         return response
           .json()
-          .catch(function () { return {}; })
+          .catch(function () {
+            return {};
+          })
           .then(function (payload) {
             if (!response.ok) throw new Error(payload.error || 'audit_read_failed');
             if (payload.readOnly !== true || payload.zeroWrites !== true) {

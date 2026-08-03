@@ -2326,7 +2326,10 @@
         const token = getAdminToken();
         const headers = {};
         if (token) headers.Authorization = `Bearer ${token}`;
-        setStatus(`Förbereder ${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB…`, 'loading');
+        setStatus(
+          `Förbereder ${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB…`,
+          'loading'
+        );
         durationReady
           .then(() =>
             uploadFormDataWithProgress('/api/v1/cco-journal-quick/visit-media', formData, {
@@ -4445,16 +4448,13 @@
         ltvNode.textContent = '…';
         if (ltvTrendNode) ltvTrendNode.textContent = '';
       } else {
-        const denominator = Number(
-          stats.lifetimeValueDenominator ?? stats.totalPatients ?? 0
-        );
+        const denominator = Number(stats.lifetimeValueDenominator ?? stats.totalPatients ?? 0);
         // Bakåt-kompat: äldre svar utan aggregat räknar som förut.
         const wonTotal = Number(
           stats.wonDealsTotal ?? stats.totalRevenue ?? stats.revenueTotal ?? 0
         );
         const avg = Number(
-          stats.lifetimeValueAverage ??
-            (denominator > 0 ? Math.round(wonTotal / denominator) : 0)
+          stats.lifetimeValueAverage ?? (denominator > 0 ? Math.round(wonTotal / denominator) : 0)
         );
 
         if (avg > 0 && denominator > 0) {
@@ -4472,9 +4472,7 @@
           if (avg > 0 && denominator > 0) {
             const nämnare = `snitt över ${formatMetricNumber(denominator)} kunder`;
             ltvTrendNode.textContent =
-              openTotal > 0
-                ? `${nämnare} · ${formatV9Sek(openTotal)} i öppna offerter`
-                : nämnare;
+              openTotal > 0 ? `${nämnare} · ${formatV9Sek(openTotal)} i öppna offerter` : nämnare;
             ltvTrendNode.title =
               openTotal > 0
                 ? 'Öppna offerter är inte intäkt — det är vad som kan komma in om de går igenom.'
@@ -4757,14 +4755,16 @@
     const body = drawer?.querySelector('[data-customer-journey-audit-body]');
     if (!body) return;
     if (runtime.journeyAuditLoading) {
-      body.innerHTML = '<p class="v9-intel-drawer__intro">Kontrollerar bokningar, HD, offert, avtal och första PRP…</p>';
+      body.innerHTML =
+        '<p class="v9-intel-drawer__intro">Kontrollerar bokningar, HD, offert, avtal och första PRP…</p>';
       return;
     }
     const audit = runtime.journeyAudit || {};
     const rows = asArray(audit.rows);
     const summary = audit.summary || {};
     if (!rows.length) {
-      body.innerHTML = '<p class="v9-intel-drawer__intro">Inga kundreseavvikelser att granska just nu.</p>';
+      body.innerHTML =
+        '<p class="v9-intel-drawer__intro">Inga kundreseavvikelser att granska just nu.</p>';
       return;
     }
     const pageMeta = audit.page?.hasMore
@@ -6888,6 +6888,11 @@
       patient,
       tab,
       lite,
+      // Samma data som lilla referenskortet redan får på :6837. Utan den kan
+      // rk:s offert-block aldrig visa något annat än "Inga offerter ännu" —
+      // dess bundle.commercialCase.offers-gren är död, för commercialCase är
+      // ETT ärende (ccoCommercialStore.js:494), inte en lista.
+      commercialCase: runtime.commercialCase || null,
     };
     let inner = '';
     // Lilla dossier-railen = HÖGERSPALT-v11-komplett (22 sektioner, identisk med
@@ -8621,7 +8626,9 @@
       });
       const canvas = document.createElement('canvas');
       canvas.width = Math.min(video.videoWidth || 640, 960);
-      canvas.height = Math.round(canvas.width * ((video.videoHeight || 360) / (video.videoWidth || 640)));
+      canvas.height = Math.round(
+        canvas.width * ((video.videoHeight || 360) / (video.videoWidth || 640))
+      );
       const context = canvas.getContext('2d');
       if (!context || !canvas.width || !canvas.height) return;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
