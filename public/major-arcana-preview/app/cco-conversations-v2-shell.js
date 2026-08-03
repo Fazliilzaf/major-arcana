@@ -324,7 +324,13 @@
   ];
 
   function mailboxTone(mailbox) {
-    var haystack = (text(mailbox.id) + ' ' + text(mailbox.email) + ' ' + text(mailbox.label)).toLowerCase();
+    var haystack = (
+      text(mailbox.id) +
+      ' ' +
+      text(mailbox.email) +
+      ' ' +
+      text(mailbox.label)
+    ).toLowerCase();
     for (var i = 0; i < MAILBOX_TONES.length; i++) {
       if (haystack.indexOf(MAILBOX_TONES[i][0]) >= 0) return MAILBOX_TONES[i][1];
     }
@@ -358,7 +364,12 @@
     if (isVip(thread)) tags.push({ kind: 'vip', label: 'VIP' });
     if (isBooking(thread)) tags.push({ kind: 'booking', label: 'Bokning' });
     var label = smartLabel(thread);
-    if (label && !tags.some(function (tag) { return tag.label === label; })) {
+    if (
+      label &&
+      !tags.some(function (tag) {
+        return tag.label === label;
+      })
+    ) {
       tags.push({ kind: 'smart', label: label });
     }
     return tags;
@@ -415,15 +426,18 @@
     // Äldre CCO-poster kan ha explicita null-värden i stället för ett
     // mailDocument/primaryBody-objekt. De ska rendera sin text-fallback,
     // aldrig fälla hela v2-skalet.
-    var mailDocument = safeMessage.mailDocument && typeof safeMessage.mailDocument === 'object'
-      ? safeMessage.mailDocument
-      : {};
-    var primaryBody = safeMessage.primaryBody && typeof safeMessage.primaryBody === 'object'
-      ? safeMessage.primaryBody
-      : {};
-    var presentation = safeMessage.presentation && typeof safeMessage.presentation === 'object'
-      ? safeMessage.presentation
-      : {};
+    var mailDocument =
+      safeMessage.mailDocument && typeof safeMessage.mailDocument === 'object'
+        ? safeMessage.mailDocument
+        : {};
+    var primaryBody =
+      safeMessage.primaryBody && typeof safeMessage.primaryBody === 'object'
+        ? safeMessage.primaryBody
+        : {};
+    var presentation =
+      safeMessage.presentation && typeof safeMessage.presentation === 'object'
+        ? safeMessage.presentation
+        : {};
     return (
       text(primaryBody.html) ||
       text(presentation.conversationHtml) ||
@@ -467,7 +481,11 @@
         return;
       }
       var notice = link.closest && link.closest('p, div, td');
-      if (/^(?:Du\s+f[åa]r\s+inte\s+e-post\s+ofta\s+från|You\s+don't\s+often\s+get\s+email\s+from)\b/i.test(text(notice && notice.textContent))) {
+      if (
+        /^(?:Du\s+f[åa]r\s+inte\s+e-post\s+ofta\s+från|You\s+don't\s+often\s+get\s+email\s+from)\b/i.test(
+          text(notice && notice.textContent)
+        )
+      ) {
         notice.remove();
       }
     });
@@ -482,7 +500,10 @@
       // Wrappa fragmentet uttryckligt. Riktiga browser-DOMParser gör detta
       // implicit, medan vår lätta DOM-smoke annars kan placera ett fragment
       // utanför body och missa samma säkra renderingsväg.
-      mailDoc = new Parser().parseFromString('<!doctype html><html><body>' + source + '</body></html>', 'text/html');
+      mailDoc = new Parser().parseFromString(
+        '<!doctype html><html><body>' + source + '</body></html>',
+        'text/html'
+      );
     } catch (_error) {
       return '';
     }
@@ -490,7 +511,9 @@
     removeOutlookSenderNotice(mailDoc);
     Array.prototype.forEach.call(
       mailDoc.querySelectorAll('script,style,iframe,object,embed,form,meta,link,base,input,button'),
-      function (node) { node.remove(); }
+      function (node) {
+        node.remove();
+      }
     );
     var missingInline = 0;
     Array.prototype.forEach.call(mailDoc.body.querySelectorAll('*'), function (node) {
@@ -521,9 +544,10 @@
     if (missingInline) {
       var note = mailDoc.createElement('p');
       note.className = 'mail-inline-asset-missing';
-      note.textContent = missingInline === 1
-        ? 'En inlinebild saknas i det här äldre mailet.'
-        : missingInline + ' inlinebilder saknas i det här äldre mailet.';
+      note.textContent =
+        missingInline === 1
+          ? 'En inlinebild saknas i det här äldre mailet.'
+          : missingInline + ' inlinebilder saknas i det här äldre mailet.';
       mailDoc.body.appendChild(note);
     }
     return mailDoc.body.innerHTML;
@@ -531,9 +555,10 @@
 
   function attachmentCandidates(message) {
     var safeMessage = message && typeof message === 'object' ? message : {};
-    var mailDocument = safeMessage.mailDocument && typeof safeMessage.mailDocument === 'object'
-      ? safeMessage.mailDocument
-      : {};
+    var mailDocument =
+      safeMessage.mailDocument && typeof safeMessage.mailDocument === 'object'
+        ? safeMessage.mailDocument
+        : {};
     var candidates = []
       .concat(Array.isArray(safeMessage.attachments) ? safeMessage.attachments : [])
       .concat(Array.isArray(mailDocument.attachments) ? mailDocument.attachments : [])
@@ -541,7 +566,9 @@
     var seen = {};
     return candidates.filter(function (attachment) {
       var safe = attachment && typeof attachment === 'object' ? attachment : {};
-      var key = text(safe.attachmentId || safe.id || safe.assetId || safe.contentId || safe.name).toLowerCase();
+      var key = text(
+        safe.attachmentId || safe.id || safe.assetId || safe.contentId || safe.name
+      ).toLowerCase();
       if (!key || seen[key]) return false;
       seen[key] = true;
       return true;
@@ -549,7 +576,10 @@
   }
 
   function attachmentName(attachment) {
-    return text(attachment && (attachment.name || attachment.filename || attachment.fileName)) || 'Bilaga';
+    return (
+      text(attachment && (attachment.name || attachment.filename || attachment.fileName)) ||
+      'Bilaga'
+    );
   }
 
   function attachmentType(attachment) {
@@ -557,7 +587,10 @@
   }
 
   function attachmentIsImage(attachment) {
-    return /^image\//i.test(attachmentType(attachment)) || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(attachmentName(attachment));
+    return (
+      /^image\//i.test(attachmentType(attachment)) ||
+      /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(attachmentName(attachment))
+    );
   }
 
   function attachmentUrl(attachment, message) {
@@ -568,17 +601,33 @@
     var mailboxId = text(message && message.mailboxId);
     var messageId = text(message && (message.graphMessageId || message.messageId));
     if (!attachmentId || !mailboxId || !messageId) return '';
-    return '/api/v1/cco/runtime/mail-asset/content?mailboxId=' +
-      encodeURIComponent(mailboxId) + '&messageId=' + encodeURIComponent(messageId) +
-      '&attachmentId=' + encodeURIComponent(attachmentId) + '&mode=open&fileName=' +
-      encodeURIComponent(attachmentName(safe));
+    return (
+      '/api/v1/cco/runtime/mail-asset/content?mailboxId=' +
+      encodeURIComponent(mailboxId) +
+      '&messageId=' +
+      encodeURIComponent(messageId) +
+      '&attachmentId=' +
+      encodeURIComponent(attachmentId) +
+      '&mode=open&fileName=' +
+      encodeURIComponent(attachmentName(safe))
+    );
   }
 
   function attachmentIsInline(attachment, message, html) {
     var safe = attachment && typeof attachment === 'object' ? attachment : {};
-    if (safe.isInline === true || safe.inline === true || text(safe.disposition).toLowerCase() === 'inline') return true;
+    if (
+      safe.isInline === true ||
+      safe.inline === true ||
+      text(safe.disposition).toLowerCase() === 'inline'
+    )
+      return true;
     var contentId = text(safe.contentId).replace(/^<|>$/g, '');
-    return Boolean(contentId && text(html).toLowerCase().indexOf('cid:' + contentId.toLowerCase()) >= 0);
+    return Boolean(
+      contentId &&
+      text(html)
+        .toLowerCase()
+        .indexOf('cid:' + contentId.toLowerCase()) >= 0
+    );
   }
 
   function renderMessageAttachments(message) {
@@ -587,29 +636,60 @@
       return !attachmentIsInline(attachment, message, html);
     });
     if (!attachments.length) return '';
-    return '<div class="v2-msg-attachments" aria-label="Bilagor">' + attachments.map(function (attachment, index) {
-      var url = attachmentUrl(attachment, message);
-      var type = attachmentType(attachment);
-      var size = Number(attachment && attachment.size) || 0;
-      var meta = [type, size ? Math.max(1, Math.round(size / 1024)) + ' kB' : ''].filter(Boolean).join(' · ');
-      return '<button type="button" class="v2-msg-attachment" data-v2-attachment-index="' + index +
-        '" data-v2-message-id="' + esc(text(message.messageId || message.graphMessageId)) +
-        '" title="' + esc(meta || attachmentName(attachment)) + '"' + (url ? '' : ' disabled') + '>' +
-        '<span aria-hidden="true">' + (attachmentIsImage(attachment) ? '🖼' : '📎') + '</span><span>' +
-        esc(attachmentName(attachment)) + '</span></button>';
-    }).join('') + '</div>';
+    return (
+      '<div class="v2-msg-attachments" aria-label="Bilagor">' +
+      attachments
+        .map(function (attachment, index) {
+          var url = attachmentUrl(attachment, message);
+          var type = attachmentType(attachment);
+          var size = Number(attachment && attachment.size) || 0;
+          var meta = [type, size ? Math.max(1, Math.round(size / 1024)) + ' kB' : '']
+            .filter(Boolean)
+            .join(' · ');
+          return (
+            '<button type="button" class="v2-msg-attachment" data-v2-attachment-index="' +
+            index +
+            '" data-v2-message-id="' +
+            esc(text(message.messageId || message.graphMessageId)) +
+            '" title="' +
+            esc(meta || attachmentName(attachment)) +
+            '"' +
+            (url ? '' : ' disabled') +
+            '>' +
+            '<span aria-hidden="true">' +
+            (attachmentIsImage(attachment) ? '🖼' : '📎') +
+            '</span><span>' +
+            esc(attachmentName(attachment)) +
+            '</span></button>'
+          );
+        })
+        .join('') +
+      '</div>'
+    );
   }
 
   function renderRichMessageBubble(message) {
     var html = sanitizeMailHtmlForDisplay(messageBodyHtml(message));
     if (!html) {
-      return '<div class="msg-bubble">' + esc(messageBody(message)).replace(/\n/g, '<br>') + '</div>' + renderMessageAttachments(message);
+      return (
+        '<div class="msg-bubble">' +
+        esc(messageBody(message)).replace(/\n/g, '<br>') +
+        '</div>' +
+        renderMessageAttachments(message)
+      );
     }
-    var frameDocument = '<!doctype html><html><head><meta charset="utf-8"><base target="_blank">' +
+    var frameDocument =
+      '<!doctype html><html><head><meta charset="utf-8"><base target="_blank">' +
       '<style>body{margin:0;padding:10px 12px;font:13px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#2b251f;background:#fffdfb;word-break:break-word}img{max-width:100%;height:auto}.mail-inline-asset-missing{margin:8px 0 0;color:#766f65;font-size:11px;font-style:italic}</style>' +
-      '</head><body>' + html + '</body></html>';
-    return '<div class="msg-bubble msg-bubble--html"><iframe class="v2-msg-html-frame" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin" referrerpolicy="no-referrer" loading="lazy" srcdoc="' +
-      esc(frameDocument) + '" title="Mailinnehåll"></iframe></div>' + renderMessageAttachments(message);
+      '</head><body>' +
+      html +
+      '</body></html>';
+    return (
+      '<div class="msg-bubble msg-bubble--html"><iframe class="v2-msg-html-frame" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin" referrerpolicy="no-referrer" loading="lazy" srcdoc="' +
+      esc(frameDocument) +
+      '" title="Mailinnehåll"></iframe></div>' +
+      renderMessageAttachments(message)
+    );
   }
 
   function messageDate(message) {
@@ -801,9 +881,13 @@
       html +=
         '<div class="msg ' +
         (incoming ? 'is-incoming' : 'is-outgoing') +
-        '" data-v2-message-id="' + esc(text(message.messageId || message.graphMessageId)) + '">' +
+        '" data-v2-message-id="' +
+        esc(text(message.messageId || message.graphMessageId)) +
+        '">' +
         av +
-        '<div>' + renderRichMessageBubble(message) + '<div class="msg-meta">' +
+        '<div>' +
+        renderRichMessageBubble(message) +
+        '<div class="msg-meta">' +
         read +
         esc(author) +
         (messageWhen(message) ? ' · ' + esc(messageWhen(message)) : '') +
@@ -817,7 +901,11 @@
 
   function releaseMailAssetUrls() {
     mailAssetObjectUrls.forEach(function (url) {
-      try { global.URL.revokeObjectURL(url); } catch (_error) { /* best-effort */ }
+      try {
+        global.URL.revokeObjectURL(url);
+      } catch (_error) {
+        /* best-effort */
+      }
     });
     mailAssetObjectUrls = [];
     mailAssetUrlCache = {};
@@ -825,20 +913,27 @@
 
   function resolveMailAssetUrl(url) {
     var source = text(url);
-    if (!source || !boundCtx || !boundCtx.handlers || typeof boundCtx.handlers.resolveMailAssetUrl !== 'function') {
+    if (
+      !source ||
+      !boundCtx ||
+      !boundCtx.handlers ||
+      typeof boundCtx.handlers.resolveMailAssetUrl !== 'function'
+    ) {
       return Promise.reject(new Error('Bilagan kan inte öppnas i den här vyn.'));
     }
     if (mailAssetUrlCache[source]) return mailAssetUrlCache[source];
-    var pending = Promise.resolve(boundCtx.handlers.resolveMailAssetUrl(source)).then(function (blobUrl) {
-      var resolved = text(blobUrl);
-      if (!resolved) throw new Error('Bilagan kunde inte läsas.');
-      mailAssetObjectUrls.push(resolved);
-      mailAssetUrlCache[source] = Promise.resolve(resolved);
-      return resolved;
-    }).catch(function (error) {
-      delete mailAssetUrlCache[source];
-      throw error;
-    });
+    var pending = Promise.resolve(boundCtx.handlers.resolveMailAssetUrl(source))
+      .then(function (blobUrl) {
+        var resolved = text(blobUrl);
+        if (!resolved) throw new Error('Bilagan kunde inte läsas.');
+        mailAssetObjectUrls.push(resolved);
+        mailAssetUrlCache[source] = Promise.resolve(resolved);
+        return resolved;
+      })
+      .catch(function (error) {
+        delete mailAssetUrlCache[source];
+        throw error;
+      });
     mailAssetUrlCache[source] = pending;
     return pending;
   }
@@ -862,19 +957,24 @@
       var hydrate = function () {
         var frameDoc = frame.contentDocument;
         if (!frameDoc) return;
-        Array.prototype.forEach.call(frameDoc.querySelectorAll('[data-v2-mail-asset-src]'), function (element) {
-          var source = text(element.getAttribute('data-v2-mail-asset-src'));
-          if (!source || element.getAttribute('data-v2-mail-asset-ready') === 'true') return;
-          element.setAttribute('data-v2-mail-asset-ready', 'true');
-          resolveMailAssetUrl(source).then(function (blobUrl) {
-            element.setAttribute('src', blobUrl);
-            element.removeAttribute('data-v2-mail-asset-src');
-            resizeRichMailFrame(frame);
-          }).catch(function () {
-            element.replaceWith(frameDoc.createTextNode('Bild kunde inte laddas.'));
-            resizeRichMailFrame(frame);
-          });
-        });
+        Array.prototype.forEach.call(
+          frameDoc.querySelectorAll('[data-v2-mail-asset-src]'),
+          function (element) {
+            var source = text(element.getAttribute('data-v2-mail-asset-src'));
+            if (!source || element.getAttribute('data-v2-mail-asset-ready') === 'true') return;
+            element.setAttribute('data-v2-mail-asset-ready', 'true');
+            resolveMailAssetUrl(source)
+              .then(function (blobUrl) {
+                element.setAttribute('src', blobUrl);
+                element.removeAttribute('data-v2-mail-asset-src');
+                resizeRichMailFrame(frame);
+              })
+              .catch(function () {
+                element.replaceWith(frameDoc.createTextNode('Bild kunde inte laddas.'));
+                resizeRichMailFrame(frame);
+              });
+          }
+        );
         resizeRichMailFrame(frame);
       };
       frame.addEventListener('load', hydrate, { once: true });
@@ -884,9 +984,11 @@
 
   function attachmentForMessage(message, index) {
     var html = messageBodyHtml(message);
-    return attachmentCandidates(message).filter(function (attachment) {
-      return !attachmentIsInline(attachment, message, html);
-    })[index] || null;
+    return (
+      attachmentCandidates(message).filter(function (attachment) {
+        return !attachmentIsInline(attachment, message, html);
+      })[index] || null
+    );
   }
 
   var attachmentPreviewScriptPromises = {};
@@ -955,15 +1057,18 @@
   }
 
   function loadAttachmentPreviewBlob(blobUrl) {
-    return global.fetch(blobUrl).then(function (response) {
-      if (!response.ok) throw new Error('Bilagan kunde inte läsas.');
-      return response.blob();
-    }).then(function (blob) {
-      if (blob.size > ATTACHMENT_PREVIEW_MAX_BYTES) {
-        throw new Error('Filen är större än 25 MB och kan inte förhandsvisas.');
-      }
-      return blob;
-    });
+    return global
+      .fetch(blobUrl)
+      .then(function (response) {
+        if (!response.ok) throw new Error('Bilagan kunde inte läsas.');
+        return response.blob();
+      })
+      .then(function (blob) {
+        if (blob.size > ATTACHMENT_PREVIEW_MAX_BYTES) {
+          throw new Error('Filen är större än 25 MB och kan inte förhandsvisas.');
+        }
+        return blob;
+      });
   }
 
   function renderAttachmentPdfPreview(stage, blobUrl) {
@@ -973,77 +1078,89 @@
         throw error;
       });
     }
-    return Promise.all([attachmentPdfJsPromise, loadAttachmentPreviewBlob(blobUrl)]).then(function (values) {
-      var pdfjs = values[0];
-      var blob = values[1];
-      pdfjs.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
-      return blob.arrayBuffer().then(function (data) {
-        var loadingTask = pdfjs.getDocument({ data: data });
-        return loadingTask.promise.then(function (pdf) {
-          var pageNumber = 1;
-          var scale = 1.2;
-          var renderTask = null;
-          stage.innerHTML = '<div class="v2-attachment-pdf"><div class="v2-attachment-pdf-toolbar">' +
-            '<button type="button" data-v2-pdf-action="previous" aria-label="Föregående sida">‹</button>' +
-            '<span data-v2-pdf-page>Laddar PDF…</span>' +
-            '<button type="button" data-v2-pdf-action="next" aria-label="Nästa sida">›</button>' +
-            '<button type="button" data-v2-pdf-action="zoom-out" aria-label="Zooma ut">−</button>' +
-            '<button type="button" data-v2-pdf-action="zoom-in" aria-label="Zooma in">+</button>' +
-            '</div><div class="v2-attachment-pdf-canvas"><canvas></canvas></div></div>';
-          var canvas = stage.querySelector('canvas');
-          var pageLabel = stage.querySelector('[data-v2-pdf-page]');
-          var renderPage = function () {
-            if (renderTask) renderTask.cancel();
-            return pdf.getPage(pageNumber).then(function (page) {
-              var viewport = page.getViewport({ scale: scale });
-              var ratio = global.devicePixelRatio || 1;
-              canvas.width = Math.floor(viewport.width * ratio);
-              canvas.height = Math.floor(viewport.height * ratio);
-              canvas.style.width = Math.floor(viewport.width) + 'px';
-              canvas.style.height = Math.floor(viewport.height) + 'px';
-              var context = canvas.getContext('2d');
-              context.setTransform(ratio, 0, 0, ratio, 0, 0);
-              renderTask = page.render({ canvasContext: context, viewport: viewport });
-              return renderTask.promise.catch(function (error) {
-                if (error && error.name !== 'RenderingCancelledException') throw error;
-              }).then(function () {
-                renderTask = null;
-                pageLabel.textContent = 'Sida ' + pageNumber + ' av ' + pdf.numPages;
-              });
-            });
-          };
-          stage.querySelector('.v2-attachment-pdf-toolbar').addEventListener('click', function (event) {
-            var action = event.target.closest('[data-v2-pdf-action]');
-            if (!action) return;
-            var name = action.getAttribute('data-v2-pdf-action');
-            if (name === 'previous' && pageNumber > 1) pageNumber -= 1;
-            if (name === 'next' && pageNumber < pdf.numPages) pageNumber += 1;
-            if (name === 'zoom-in') scale = Math.min(3, scale + 0.2);
-            if (name === 'zoom-out') scale = Math.max(0.5, scale - 0.2);
-            void renderPage();
-          });
-          var dialog = stage.closest('[data-v2-attachment-preview]');
-          if (dialog) {
-            dialog._attachmentPreviewCleanup = function () {
+    return Promise.all([attachmentPdfJsPromise, loadAttachmentPreviewBlob(blobUrl)]).then(
+      function (values) {
+        var pdfjs = values[0];
+        var blob = values[1];
+        pdfjs.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+        return blob.arrayBuffer().then(function (data) {
+          var loadingTask = pdfjs.getDocument({ data: data });
+          return loadingTask.promise.then(function (pdf) {
+            var pageNumber = 1;
+            var scale = 1.2;
+            var renderTask = null;
+            stage.innerHTML =
+              '<div class="v2-attachment-pdf"><div class="v2-attachment-pdf-toolbar">' +
+              '<button type="button" data-v2-pdf-action="previous" aria-label="Föregående sida">‹</button>' +
+              '<span data-v2-pdf-page>Laddar PDF…</span>' +
+              '<button type="button" data-v2-pdf-action="next" aria-label="Nästa sida">›</button>' +
+              '<button type="button" data-v2-pdf-action="zoom-out" aria-label="Zooma ut">−</button>' +
+              '<button type="button" data-v2-pdf-action="zoom-in" aria-label="Zooma in">+</button>' +
+              '</div><div class="v2-attachment-pdf-canvas"><canvas></canvas></div></div>';
+            var canvas = stage.querySelector('canvas');
+            var pageLabel = stage.querySelector('[data-v2-pdf-page]');
+            var renderPage = function () {
               if (renderTask) renderTask.cancel();
-              loadingTask.destroy();
+              return pdf.getPage(pageNumber).then(function (page) {
+                var viewport = page.getViewport({ scale: scale });
+                var ratio = global.devicePixelRatio || 1;
+                canvas.width = Math.floor(viewport.width * ratio);
+                canvas.height = Math.floor(viewport.height * ratio);
+                canvas.style.width = Math.floor(viewport.width) + 'px';
+                canvas.style.height = Math.floor(viewport.height) + 'px';
+                var context = canvas.getContext('2d');
+                context.setTransform(ratio, 0, 0, ratio, 0, 0);
+                renderTask = page.render({ canvasContext: context, viewport: viewport });
+                return renderTask.promise
+                  .catch(function (error) {
+                    if (error && error.name !== 'RenderingCancelledException') throw error;
+                  })
+                  .then(function () {
+                    renderTask = null;
+                    pageLabel.textContent = 'Sida ' + pageNumber + ' av ' + pdf.numPages;
+                  });
+              });
             };
-          }
-          return renderPage();
+            stage
+              .querySelector('.v2-attachment-pdf-toolbar')
+              .addEventListener('click', function (event) {
+                var action = event.target.closest('[data-v2-pdf-action]');
+                if (!action) return;
+                var name = action.getAttribute('data-v2-pdf-action');
+                if (name === 'previous' && pageNumber > 1) pageNumber -= 1;
+                if (name === 'next' && pageNumber < pdf.numPages) pageNumber += 1;
+                if (name === 'zoom-in') scale = Math.min(3, scale + 0.2);
+                if (name === 'zoom-out') scale = Math.max(0.5, scale - 0.2);
+                void renderPage();
+              });
+            var dialog = stage.closest('[data-v2-attachment-preview]');
+            if (dialog) {
+              dialog._attachmentPreviewCleanup = function () {
+                if (renderTask) renderTask.cancel();
+                loadingTask.destroy();
+              };
+            }
+            return renderPage();
+          });
         });
-      });
-    });
+      }
+    );
   }
 
   function renderAttachmentOfficePreview(stage, blobUrl, kind) {
-    return Promise.all([loadAttachmentPreviewLibrary(kind), loadAttachmentPreviewBlob(blobUrl)]).then(function (values) {
+    return Promise.all([
+      loadAttachmentPreviewLibrary(kind),
+      loadAttachmentPreviewBlob(blobUrl),
+    ]).then(function (values) {
       var library = values[0];
       var blob = values[1];
       return blob.arrayBuffer().then(function (buffer) {
         if (kind === 'word') {
           return library.convertToHtml({ arrayBuffer: buffer }).then(function (result) {
-            stage.innerHTML = '<article class="v2-attachment-office">' +
-              (sanitizeMailHtmlForDisplay(result.value || '') || '<p>Dokumentet saknar synligt innehåll.</p>') +
+            stage.innerHTML =
+              '<article class="v2-attachment-office">' +
+              (sanitizeMailHtmlForDisplay(result.value || '') ||
+                '<p>Dokumentet saknar synligt innehåll.</p>') +
               '</article>';
           });
         }
@@ -1051,72 +1168,145 @@
           var workbook = library.read(buffer, { type: 'array', cellDates: true });
           var names = workbook.SheetNames.slice(0, 30);
           if (!names.length) throw new Error('Arbetsboken innehåller inga blad.');
-          stage.innerHTML = '<div class="v2-attachment-sheet-tabs">' + names.map(function (name, index) {
-            return '<button type="button" data-v2-sheet-index="' + index + '"' + (index === 0 ? ' class="active"' : '') + '>' + esc(name) + '</button>';
-          }).join('') + '</div><div class="v2-attachment-office" data-v2-sheet-content></div>';
+          stage.innerHTML =
+            '<div class="v2-attachment-sheet-tabs">' +
+            names
+              .map(function (name, index) {
+                return (
+                  '<button type="button" data-v2-sheet-index="' +
+                  index +
+                  '"' +
+                  (index === 0 ? ' class="active"' : '') +
+                  '>' +
+                  esc(name) +
+                  '</button>'
+                );
+              })
+              .join('') +
+            '</div><div class="v2-attachment-office" data-v2-sheet-content></div>';
           var renderSheet = function (index) {
             var content = stage.querySelector('[data-v2-sheet-content]');
-            if (content) content.innerHTML = sanitizeMailHtmlForDisplay(library.utils.sheet_to_html(workbook.Sheets[names[index]]));
-            Array.prototype.forEach.call(stage.querySelectorAll('[data-v2-sheet-index]'), function (button) {
-              button.classList.toggle('active', Number(button.getAttribute('data-v2-sheet-index')) === index);
-            });
+            if (content)
+              content.innerHTML = sanitizeMailHtmlForDisplay(
+                library.utils.sheet_to_html(workbook.Sheets[names[index]])
+              );
+            Array.prototype.forEach.call(
+              stage.querySelectorAll('[data-v2-sheet-index]'),
+              function (button) {
+                button.classList.toggle(
+                  'active',
+                  Number(button.getAttribute('data-v2-sheet-index')) === index
+                );
+              }
+            );
           };
-          stage.querySelector('.v2-attachment-sheet-tabs').addEventListener('click', function (event) {
-            var button = event.target.closest('[data-v2-sheet-index]');
-            if (button) renderSheet(Number(button.getAttribute('data-v2-sheet-index')));
-          });
+          stage
+            .querySelector('.v2-attachment-sheet-tabs')
+            .addEventListener('click', function (event) {
+              var button = event.target.closest('[data-v2-sheet-index]');
+              if (button) renderSheet(Number(button.getAttribute('data-v2-sheet-index')));
+            });
           renderSheet(0);
           return null;
         }
         return library.loadAsync(buffer).then(function (archive) {
           var slides = Object.keys(archive.files)
-            .filter(function (path) { return /^ppt\/slides\/slide\d+\.xml$/i.test(path); })
+            .filter(function (path) {
+              return /^ppt\/slides\/slide\d+\.xml$/i.test(path);
+            })
             .sort(function (left, right) {
               return Number(left.match(/slide(\d+)/i)[1]) - Number(right.match(/slide(\d+)/i)[1]);
             })
             .slice(0, 100);
           if (!slides.length) throw new Error('Presentationens bilder kunde inte läsas.');
-          return Promise.all(slides.map(function (path, index) {
-            return archive.file(path).async('text').then(function (xml) {
-              var parsed = new global.DOMParser().parseFromString(xml, 'application/xml');
-              var texts = Array.prototype.map.call(parsed.getElementsByTagName('a:t'), function (node) {
-                return text(node.textContent);
-              }).filter(Boolean);
-              var title = texts.shift() || 'Bild ' + (index + 1);
-              var slideNumber = path.match(/slide(\d+)\.xml$/i);
-              var relationshipPath = slideNumber ? 'ppt/slides/_rels/slide' + slideNumber[1] + '.xml.rels' : '';
-              var relationshipFile = relationshipPath && archive.file(relationshipPath);
-              var imageRelations = relationshipFile
-                ? relationshipFile.async('text').then(function (relationshipXml) {
-                  var relationshipDocument = new global.DOMParser().parseFromString(relationshipXml, 'application/xml');
-                  var relationships = {};
-                  Array.prototype.forEach.call(relationshipDocument.getElementsByTagName('Relationship'), function (node) {
-                    relationships[node.getAttribute('Id')] = text(node.getAttribute('Target'));
+          return Promise.all(
+            slides.map(function (path, index) {
+              return archive
+                .file(path)
+                .async('text')
+                .then(function (xml) {
+                  var parsed = new global.DOMParser().parseFromString(xml, 'application/xml');
+                  var texts = Array.prototype.map
+                    .call(parsed.getElementsByTagName('a:t'), function (node) {
+                      return text(node.textContent);
+                    })
+                    .filter(Boolean);
+                  var title = texts.shift() || 'Bild ' + (index + 1);
+                  var slideNumber = path.match(/slide(\d+)\.xml$/i);
+                  var relationshipPath = slideNumber
+                    ? 'ppt/slides/_rels/slide' + slideNumber[1] + '.xml.rels'
+                    : '';
+                  var relationshipFile = relationshipPath && archive.file(relationshipPath);
+                  var imageRelations = relationshipFile
+                    ? relationshipFile.async('text').then(function (relationshipXml) {
+                        var relationshipDocument = new global.DOMParser().parseFromString(
+                          relationshipXml,
+                          'application/xml'
+                        );
+                        var relationships = {};
+                        Array.prototype.forEach.call(
+                          relationshipDocument.getElementsByTagName('Relationship'),
+                          function (node) {
+                            relationships[node.getAttribute('Id')] = text(
+                              node.getAttribute('Target')
+                            );
+                          }
+                        );
+                        return Promise.all(
+                          Array.prototype.slice
+                            .call(parsed.getElementsByTagName('a:blip'), 0, 20)
+                            .map(function (node) {
+                              var target = relationships[node.getAttribute('r:embed')];
+                              if (!target) return '';
+                              var mediaPath =
+                                target.indexOf('../') === 0
+                                  ? 'ppt/' + target.slice(3)
+                                  : 'ppt/slides/' + target;
+                              var media = archive.file(mediaPath);
+                              if (!media) return '';
+                              var extension = mediaPath.split('.').pop().toLowerCase();
+                              var mime = {
+                                png: 'image/png',
+                                jpg: 'image/jpeg',
+                                jpeg: 'image/jpeg',
+                                gif: 'image/gif',
+                                webp: 'image/webp',
+                                svg: 'image/svg+xml',
+                              }[extension];
+                              if (!mime) return '';
+                              return media.async('base64').then(function (data) {
+                                return (
+                                  '<img src="data:' +
+                                  mime +
+                                  ';base64,' +
+                                  data +
+                                  '" alt="Bild från presentationssida ' +
+                                  (index + 1) +
+                                  '">'
+                                );
+                              });
+                            })
+                        );
+                      })
+                    : Promise.resolve([]);
+                  return imageRelations.then(function (images) {
+                    var textMarkup = texts
+                      .map(function (value) {
+                        return '<p>' + esc(value) + '</p>';
+                      })
+                      .join('');
+                    return (
+                      '<section class="v2-attachment-slide"><h3>' +
+                      esc(title) +
+                      '</h3>' +
+                      images.join('') +
+                      (textMarkup || (!images.length ? '<p>Ingen text på bilden.</p>' : '')) +
+                      '</section>'
+                    );
                   });
-                  return Promise.all(Array.prototype.slice.call(parsed.getElementsByTagName('a:blip'), 0, 20).map(function (node) {
-                    var target = relationships[node.getAttribute('r:embed')];
-                    if (!target) return '';
-                    var mediaPath = target.indexOf('../') === 0 ? 'ppt/' + target.slice(3) : 'ppt/slides/' + target;
-                    var media = archive.file(mediaPath);
-                    if (!media) return '';
-                    var extension = mediaPath.split('.').pop().toLowerCase();
-                    var mime = {
-                      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml'
-                    }[extension];
-                    if (!mime) return '';
-                    return media.async('base64').then(function (data) {
-                      return '<img src="data:' + mime + ';base64,' + data + '" alt="Bild från presentationssida ' + (index + 1) + '">';
-                    });
-                  }));
-                })
-                : Promise.resolve([]);
-              return imageRelations.then(function (images) {
-                var textMarkup = texts.map(function (value) { return '<p>' + esc(value) + '</p>'; }).join('');
-                return '<section class="v2-attachment-slide"><h3>' + esc(title) + '</h3>' + images.join('') +
-                  (textMarkup || (!images.length ? '<p>Ingen text på bilden.</p>' : '')) + '</section>';
-              });
-            });
-          })).then(function (slidesHtml) {
+                });
+            })
+          ).then(function (slidesHtml) {
             stage.innerHTML = '<div class="v2-attachment-slides">' + slidesHtml.join('') + '</div>';
           });
         });
@@ -1143,36 +1333,48 @@
     var backdrop = doc.createElement('div');
     backdrop.setAttribute('data-v2-attachment-preview', '');
     backdrop.className = 'v2-attachment-backdrop';
-    backdrop.innerHTML = '<section class="v2-attachment-dialog" role="dialog" aria-modal="true" aria-label="Förhandsvisning av ' + esc(name) + '">' +
-      '<header><strong>' + esc(name) + '</strong><button type="button" data-v2-attachment-close aria-label="Stäng">×</button></header>' +
+    backdrop.innerHTML =
+      '<section class="v2-attachment-dialog" role="dialog" aria-modal="true" aria-label="Förhandsvisning av ' +
+      esc(name) +
+      '">' +
+      '<header><strong>' +
+      esc(name) +
+      '</strong><button type="button" data-v2-attachment-close aria-label="Stäng">×</button></header>' +
       '<div class="v2-attachment-stage" data-v2-attachment-stage>Laddar bilagan…</div>' +
-      '<footer><a data-v2-attachment-download href="#" download="' + esc(name) + '">Ladda ner</a></footer></section>';
+      '<footer><a data-v2-attachment-download href="#" download="' +
+      esc(name) +
+      '">Ladda ner</a></footer></section>';
     root.appendChild(backdrop);
-    resolveMailAssetUrl(url).then(function (blobUrl) {
-      var stage = backdrop.querySelector('[data-v2-attachment-stage]');
-      var download = backdrop.querySelector('[data-v2-attachment-download]');
-      if (download) download.setAttribute('href', blobUrl);
-      if (!stage) return;
-      if (kind === 'image') {
-        stage.innerHTML = '<img src="' + esc(blobUrl) + '" alt="' + esc(name) + '">';
-      } else if (kind === 'pdf') {
-        return renderAttachmentPdfPreview(stage, blobUrl);
-      } else if (kind === 'word' || kind === 'excel' || kind === 'powerpoint') {
-        stage.innerHTML = '<p>Öppnar dokumentet…</p>';
-        return renderAttachmentOfficePreview(stage, blobUrl, kind);
-      } else if (kind === 'video') {
-        stage.innerHTML = '<video src="' + esc(blobUrl) + '" controls playsinline preload="none"></video>';
-      } else if (kind === 'audio') {
-        stage.innerHTML = '<audio src="' + esc(blobUrl) + '" controls preload="none"></audio>';
-      } else if (kind === 'text') {
-        stage.innerHTML = '<iframe src="' + esc(blobUrl) + '" sandbox="" title="' + esc(name) + '"></iframe>';
-      } else {
-        stage.innerHTML = '<p>Ingen inbyggd förhandsvisning för filtypen.</p><p>Ladda ner originalfilen.</p>';
-      }
-    }).catch(function (error) {
-      var stage = backdrop.querySelector('[data-v2-attachment-stage]');
-      if (stage) stage.textContent = (error && error.message) || 'Bilagan kunde inte laddas.';
-    });
+    resolveMailAssetUrl(url)
+      .then(function (blobUrl) {
+        var stage = backdrop.querySelector('[data-v2-attachment-stage]');
+        var download = backdrop.querySelector('[data-v2-attachment-download]');
+        if (download) download.setAttribute('href', blobUrl);
+        if (!stage) return;
+        if (kind === 'image') {
+          stage.innerHTML = '<img src="' + esc(blobUrl) + '" alt="' + esc(name) + '">';
+        } else if (kind === 'pdf') {
+          return renderAttachmentPdfPreview(stage, blobUrl);
+        } else if (kind === 'word' || kind === 'excel' || kind === 'powerpoint') {
+          stage.innerHTML = '<p>Öppnar dokumentet…</p>';
+          return renderAttachmentOfficePreview(stage, blobUrl, kind);
+        } else if (kind === 'video') {
+          stage.innerHTML =
+            '<video src="' + esc(blobUrl) + '" controls playsinline preload="none"></video>';
+        } else if (kind === 'audio') {
+          stage.innerHTML = '<audio src="' + esc(blobUrl) + '" controls preload="none"></audio>';
+        } else if (kind === 'text') {
+          stage.innerHTML =
+            '<iframe src="' + esc(blobUrl) + '" sandbox="" title="' + esc(name) + '"></iframe>';
+        } else {
+          stage.innerHTML =
+            '<p>Ingen inbyggd förhandsvisning för filtypen.</p><p>Ladda ner originalfilen.</p>';
+        }
+      })
+      .catch(function (error) {
+        var stage = backdrop.querySelector('[data-v2-attachment-stage]');
+        if (stage) stage.textContent = (error && error.message) || 'Bilagan kunde inte laddas.';
+      });
   }
 
   // AI · Föreslaget svar — renderas i strömmen när tråden har ett AI-förslag.
@@ -1347,7 +1549,9 @@
       vip: lane.filter(isVip).length,
     };
     if (h2) {
-      var needsReply = lane.filter(function (thread) { return thread && thread.needsReply === true; }).length;
+      var needsReply = lane.filter(function (thread) {
+        return thread && thread.needsReply === true;
+      }).length;
       var history = selectedMailboxHistory(ctx, mailboxHistoryById(ctx));
       h2.textContent = [
         counts.olasta + ' oläst',
@@ -1401,22 +1605,29 @@
   function selectedMailboxHistory(ctx, historyById) {
     var selected = {};
     var history = historyById || mailboxHistoryById(ctx);
-    (ctx.selectedMailboxIds || []).forEach(function (id) { selected[mailboxKey(id)] = true; });
-    return Object.keys(selected).reduce(function (total, id) {
-      var metric = history[id];
-      if (!metric) return total;
-      total.inboxCount += metric.inboxCount;
-      total.sentCount += metric.sentCount;
-      total.messageCount += metric.messageCount;
-      return total;
-    }, { inboxCount: 0, sentCount: 0, messageCount: 0 });
+    (ctx.selectedMailboxIds || []).forEach(function (id) {
+      selected[mailboxKey(id)] = true;
+    });
+    return Object.keys(selected).reduce(
+      function (total, id) {
+        var metric = history[id];
+        if (!metric) return total;
+        total.inboxCount += metric.inboxCount;
+        total.sentCount += metric.sentCount;
+        total.messageCount += metric.messageCount;
+        return total;
+      },
+      { inboxCount: 0, sentCount: 0, messageCount: 0 }
+    );
   }
 
   function renderMailboxSummary(ctx) {
     var el = root.querySelector('[data-v2-mailbox-summary]');
     if (!el) return;
     var selected = {};
-    (ctx.selectedMailboxIds || []).forEach(function (id) { selected[mailboxKey(id)] = true; });
+    (ctx.selectedMailboxIds || []).forEach(function (id) {
+      selected[mailboxKey(id)] = true;
+    });
     var selectedCount = (ctx.mailboxes || []).filter(function (mailbox) {
       return selected[mailboxKey(mailbox.id)];
     }).length;
@@ -1424,13 +1635,16 @@
       el.innerHTML = '';
       return;
     }
-    el.innerHTML = '<span class="v2-mailbox-summary-total">Inkorg + Skickat · hela historiken</span>';
+    el.innerHTML =
+      '<span class="v2-mailbox-summary-total">Inkorg + Skickat · hela historiken</span>';
   }
 
   function renderMailboxControls(ctx) {
     var selectedMailboxIds = (ctx.selectedMailboxIds || []).map(text).filter(Boolean);
     var selectedSet = {};
-    selectedMailboxIds.forEach(function (id) { selectedSet[mailboxKey(id)] = true; });
+    selectedMailboxIds.forEach(function (id) {
+      selectedSet[mailboxKey(id)] = true;
+    });
     var mailboxes = ctx.mailboxes || [];
     var history = mailboxHistoryById(ctx);
     var selectedCount = mailboxes.filter(function (mailbox) {
@@ -1439,7 +1653,11 @@
     var html =
       '<div class="v2-control-kicker">Brevlådor</div>' +
       '<div class="v2-mailbox-menu" role="group" aria-label="Välj brevlådor">' +
-      '<div class="v2-mailbox-menu-heading"><span>Valda konton</span><strong>' + selectedCount + '/' + mailboxes.length + '</strong></div>' +
+      '<div class="v2-mailbox-menu-heading"><span>Valda konton</span><strong>' +
+      selectedCount +
+      '/' +
+      mailboxes.length +
+      '</strong></div>' +
       '<div class="v2-mailbox-list">' +
       mailboxes
         .map(function (mailbox) {
@@ -1450,12 +1668,22 @@
             ? metric.inboxCount + ' ink. · ' + metric.sentCount + ' skick.'
             : 'Historik laddas…';
           return (
-            '<label class="v2-mailbox-option v2-mailbox-option--' + mailboxTone(mailbox) +
-            (isSelected ? ' active' : '') + '">' +
-            '<input type="checkbox" data-v2-mailbox="' + esc(mailbox.id) + '"' + (isSelected ? ' checked' : '') + ' />' +
+            '<label class="v2-mailbox-option v2-mailbox-option--' +
+            mailboxTone(mailbox) +
+            (isSelected ? ' active' : '') +
+            '">' +
+            '<input type="checkbox" data-v2-mailbox="' +
+            esc(mailbox.id) +
+            '"' +
+            (isSelected ? ' checked' : '') +
+            ' />' +
             '<span class="v2-mailbox-check" aria-hidden="true">✓</span>' +
-            '<span class="v2-mailbox-copy"><span>' + esc(mailbox.label || mailbox.email || mailbox.id) + '</span>' +
-            '<small>' + esc(historyLabel) + '</small></span>' +
+            '<span class="v2-mailbox-copy"><span>' +
+            esc(mailbox.label || mailbox.email || mailbox.id) +
+            '</span>' +
+            '<small>' +
+            esc(historyLabel) +
+            '</small></span>' +
             '</label>'
           );
         })
@@ -1471,9 +1699,11 @@
     var el = root.querySelector('[data-v2-folders]');
     if (!el) return;
     el.innerHTML =
-      '<button class="v2-folder' + (activeFolder === 'inbox' ? ' active' : '') +
+      '<button class="v2-folder' +
+      (activeFolder === 'inbox' ? ' active' : '') +
       '" data-v2-folder="inbox" type="button">Inkorg</button>' +
-      '<button class="v2-folder' + (activeFolder === 'sent' ? ' active' : '') +
+      '<button class="v2-folder' +
+      (activeFolder === 'sent' ? ' active' : '') +
       '" data-v2-folder="sent" type="button">Skickat</button>';
   }
 
@@ -1567,7 +1797,11 @@
           tags
             .map(function (tag) {
               return (
-                '<span class="thread-tag thread-tag--' + tag.kind + '">' + esc(tag.label) + '</span>'
+                '<span class="thread-tag thread-tag--' +
+                tag.kind +
+                '">' +
+                esc(tag.label) +
+                '</span>'
               );
             })
             .join('') +
@@ -1725,8 +1959,7 @@
       typeof el.getBoundingClientRect === 'function'
         ? el.getBoundingClientRect()
         : { top: 0, bottom: 0, height: 0 };
-    var vh =
-      (global.visualViewport && global.visualViewport.height) || global.innerHeight || 0;
+    var vh = (global.visualViewport && global.visualViewport.height) || global.innerHeight || 0;
     var scrollTop = Math.max(0, -(rect.top || 0));
     var visibleBottom = Math.min(vh, rect.bottom || 0);
     var visibleTop = Math.max(0, rect.top || 0);
@@ -1830,7 +2063,8 @@
         return;
       }
       if (ctx.authRequired) {
-        el.innerHTML = '<div class="inbox-empty">Logga in igen i admin för att läsa CCO-inkorgen.</div>';
+        el.innerHTML =
+          '<div class="inbox-empty">Logga in igen i admin för att läsa CCO-inkorgen.</div>';
         return;
       }
       if (text(ctx.error)) {
@@ -1867,9 +2101,8 @@
     var handoffAvailable = thread.v2Handoff && thread.v2Handoff.available === true;
     // Testbarhetsmarkörer kommer endast från appens redan autentiserade,
     // valda trådkontext. De ändrar inte interaktionen eller handoff-logiken.
-    var testability = thread.v2Testability && typeof thread.v2Testability === 'object'
-      ? thread.v2Testability
-      : {};
+    var testability =
+      thread.v2Testability && typeof thread.v2Testability === 'object' ? thread.v2Testability : {};
     var noteConversationId = text(testability.noteConversationId);
     var bookingPatientId = handoffAvailable ? text(testability.bookingPatientId) : '';
     var noteContextAttr = noteConversationId
@@ -1898,7 +2131,9 @@
       '</h2></div>' +
       '<div class="thread-header-actions">' +
       '<button class="nav-btn thread-ctx-toggle" type="button" data-v2-ctx-toggle aria-label="Visa kundkontext">ⓘ Kund</button>' +
-      '<button class="nav-btn" type="button" data-v2-action="note"' + noteContextAttr + '>✎ Anteckna</button>' +
+      '<button class="nav-btn" type="button" data-v2-action="note"' +
+      noteContextAttr +
+      '>✎ Anteckna</button>' +
       '<button class="nav-btn nav-btn--ai" type="button" data-v2-action="studio">★ Svarstudio</button>' +
       '</div></header>' +
       '<div class="thread-status-bar">' +
@@ -1919,8 +2154,12 @@
       '</div></div>' +
       '<div class="thread-bottom-actions" role="toolbar" aria-label="Konversations-actions">' +
       '<button class="action-btn action-btn--studio" type="button" data-v2-action="studio"><span class="action-ico">✱</span><span>Svarstudio</span></button>' +
-      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"' + bookingContextAttr + '><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
-      '<button class="action-btn action-btn--note" type="button" data-v2-action="note"' + noteContextAttr + '><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
+      '<button class="action-btn action-btn--booking" type="button" data-v2-action="booking"' +
+      bookingContextAttr +
+      '><span class="action-ico">📅</span><span>Bokningsyta</span></button>' +
+      '<button class="action-btn action-btn--note" type="button" data-v2-action="note"' +
+      noteContextAttr +
+      '><span class="action-ico">📄</span><span>Smart anteckning</span></button>' +
       '<button class="action-btn action-btn--calendar" type="button" data-v2-action="calendar"><span class="action-ico">📆</span><span>Kalender</span></button>' +
       '<button class="action-btn" type="button" data-v2-action="handled"><span class="action-ico">✓</span><span>Markera klar</span></button>' +
       // Senare öppnar admin#cco:s panel (cco-senare-v3), inte ett-kliks-snooze.
@@ -2120,7 +2359,9 @@
   // ─────────────────────────────────────────────────────────────────────
   function buildLauncherThreadContext(thread) {
     if (!thread) return null;
-    var email = text(thread.customerEmail || thread.contactEmail || (thread.from && thread.from.address));
+    var email = text(
+      thread.customerEmail || thread.contactEmail || (thread.from && thread.from.address)
+    );
     var mailbox = text(thread.mailboxId || thread.mailboxAddress || thread.mailboxLabel);
     // Nyans (fail-closed-anda utan att blockera): lås bara en BEKRÄFTAD patient
     // som customerId. Utan bekräftad handoff skickas e-post som sökhjälp —
@@ -2275,7 +2516,10 @@
         openSvarstudioPanel(boundCtx.selected);
         return;
       }
-      if (event.target.closest('[data-v2-attachment-close]') || event.target.matches('[data-v2-attachment-preview]')) {
+      if (
+        event.target.closest('[data-v2-attachment-close]') ||
+        event.target.matches('[data-v2-attachment-preview]')
+      ) {
         closeAttachmentPreview();
         return;
       }
@@ -2285,7 +2529,12 @@
         var message = messageList(boundCtx.selected).find(function (candidate) {
           return text(candidate && (candidate.messageId || candidate.graphMessageId)) === messageId;
         });
-        var attachment = message && attachmentForMessage(message, Number(attachmentEl.getAttribute('data-v2-attachment-index')));
+        var attachment =
+          message &&
+          attachmentForMessage(
+            message,
+            Number(attachmentEl.getAttribute('data-v2-attachment-index'))
+          );
         if (attachment) openAttachmentPreview(message, attachment);
         return;
       }
@@ -2377,7 +2626,9 @@
       if (mailboxEl && boundCtx && typeof boundCtx.handlers.setMailboxScope === 'function') {
         var mailboxId = mailboxEl.getAttribute('data-v2-mailbox');
         var current = (boundCtx.selectedMailboxIds || []).map(text).filter(Boolean);
-        var next = current.filter(function (id) { return id !== mailboxId; });
+        var next = current.filter(function (id) {
+          return id !== mailboxId;
+        });
         if (next.length === current.length) {
           next.push(mailboxId);
         }
