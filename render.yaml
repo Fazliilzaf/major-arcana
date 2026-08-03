@@ -215,8 +215,12 @@ services:
       # verifierats. Claude/Fazli slår på flaggorna manuellt efter gate.
       - key: ARCANA_CCO_IMAP_POLL_ENABLED
         value: "false"
+      # ORD-78: 3 minuter var intervallet som körde slut på minnet mot just
+      # den här brevlådan. 30 minuter ger varje cykel tid att slutföra och
+      # frigöra innan nästa startar. Måste vara på plats INNAN POLL_ENABLED
+      # sätts till true.
       - key: ARCANA_CCO_IMAP_POLL_INTERVAL_MINUTES
-        value: "3"
+        value: "30"
       - key: ARCANA_CCO_IMAP_MAX_MESSAGES_PER_CYCLE
         value: "25"
       # Separat queue-jobb avstangt; truth-delta-jobbet kor en liten ingestion-batch efter ny mail.
