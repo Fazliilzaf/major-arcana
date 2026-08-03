@@ -267,13 +267,19 @@ function createCcoImapMailboxSync({
     return config.enabled && config.user && config.password ? [config.user] : [];
   }
 
+  // Etiketten har EN källa: den här funktionen. Brevlådeväljaren i
+  // konversationer v2 renderar det som står här, via mailboxCapabilities i
+  // /cco/runtime/status. Härled den inte på nytt i frontend — då får vi samma
+  // namn på två ställen och de glider isär.
+  const MAILBOX_LABEL = 'fazli.se';
+
   function getMailboxStatus(mailboxId = '') {
     if (normalizeEmail(mailboxId) !== config.user) return null;
     const active = getConfiguredMailboxIds().length > 0;
     return {
       id: config.user,
       mailboxId: config.user,
-      label: 'Info Fazli',
+      label: MAILBOX_LABEL,
       provider: 'imap',
       active,
       status: active ? 'active' : 'inactive',
