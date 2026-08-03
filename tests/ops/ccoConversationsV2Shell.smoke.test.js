@@ -165,9 +165,7 @@ test('v2-skalet: parity snapshot bevarar exakta scoped keys från befintlig runt
       makeThread({ id: 'kons@hairtpclinic.com:conv-b', customerName: 'Björn' }),
       makeThread({ id: 'contact@hairtpclinic.com:conv-a', customerName: 'Anna dubblett' }),
     ],
-    laneThreads: [
-      makeThread({ id: 'kons@hairtpclinic.com:conv-b', customerName: 'Björn' }),
-    ],
+    laneThreads: [makeThread({ id: 'kons@hairtpclinic.com:conv-b', customerName: 'Björn' })],
     selected: makeThread({ id: 'kons@hairtpclinic.com:conv-b', customerName: 'Björn' }),
   });
 
@@ -180,7 +178,10 @@ test('v2-skalet: parity snapshot bevarar exakta scoped keys från befintlig runt
 
 test('v2-skalet: canonical fallback-nyckel används konsekvent när id saknas', () => {
   const { document, api } = loadShell();
-  const fallbackThread = makeThread({ id: '', conversationKey: 'contact@hairtpclinic.com:conv-fallback' });
+  const fallbackThread = makeThread({
+    id: '',
+    conversationKey: 'contact@hairtpclinic.com:conv-fallback',
+  });
   api.render(
     makeCtx({
       laneThreads: [fallbackThread],
@@ -192,7 +193,10 @@ test('v2-skalet: canonical fallback-nyckel används konsekvent när id saknas', 
   const row = document.querySelector('[data-thread-id]');
   assert.equal(row.getAttribute('data-thread-id'), 'contact@hairtpclinic.com:conv-fallback');
   assert.equal(
-    api._findThreadById({ allThreads: [fallbackThread], laneThreads: [] }, 'contact@hairtpclinic.com:conv-fallback'),
+    api._findThreadById(
+      { allThreads: [fallbackThread], laneThreads: [] },
+      'contact@hairtpclinic.com:conv-fallback'
+    ),
     fallbackThread
   );
 });
@@ -211,7 +215,8 @@ test('v2-skalet: för brett mailbox-urval visar ett ärligt scope-fel utan tråd
       laneThreads: [],
       allThreads: [],
       selected: null,
-      error: 'CCO v2 kan visa en eller två brevlådor åt gången. Välj 1–2 brevlådor och försök igen.',
+      error:
+        'CCO v2 kan visa en eller två brevlådor åt gången. Välj 1–2 brevlådor och försök igen.',
     })
   );
   const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
@@ -250,9 +255,24 @@ test('v2-skalet: mailboxväljaren använder scoped handler för hela admin-scope
   api.render(
     makeCtx({
       mailboxes: [
-        { id: 'kons@hairtpclinic.com', label: 'Kons', email: 'kons@hairtpclinic.com' },
-        { id: 'contact@hairtpclinic.com', label: 'Contact', email: 'contact@hairtpclinic.com' },
-        { id: 'fazli@hairtpclinic.com', label: 'Fazli', email: 'fazli@hairtpclinic.com' },
+        {
+          id: 'kons@hairtpclinic.com',
+          label: 'Kons',
+          email: 'kons@hairtpclinic.com',
+          readAvailable: true,
+        },
+        {
+          id: 'contact@hairtpclinic.com',
+          label: 'Contact',
+          email: 'contact@hairtpclinic.com',
+          readAvailable: true,
+        },
+        {
+          id: 'fazli@hairtpclinic.com',
+          label: 'Fazli',
+          email: 'fazli@hairtpclinic.com',
+          readAvailable: true,
+        },
       ],
       selectedMailboxIds: ['kons@hairtpclinic.com'],
       handlers: {
@@ -272,9 +292,24 @@ test('v2-skalet: mailboxväljaren använder scoped handler för hela admin-scope
   api.render(
     makeCtx({
       mailboxes: [
-        { id: 'kons@hairtpclinic.com', label: 'Kons', email: 'kons@hairtpclinic.com' },
-        { id: 'contact@hairtpclinic.com', label: 'Contact', email: 'contact@hairtpclinic.com' },
-        { id: 'fazli@hairtpclinic.com', label: 'Fazli', email: 'fazli@hairtpclinic.com' },
+        {
+          id: 'kons@hairtpclinic.com',
+          label: 'Kons',
+          email: 'kons@hairtpclinic.com',
+          readAvailable: true,
+        },
+        {
+          id: 'contact@hairtpclinic.com',
+          label: 'Contact',
+          email: 'contact@hairtpclinic.com',
+          readAvailable: true,
+        },
+        {
+          id: 'fazli@hairtpclinic.com',
+          label: 'Fazli',
+          email: 'fazli@hairtpclinic.com',
+          readAvailable: true,
+        },
       ],
       selectedMailboxIds: ['kons@hairtpclinic.com', 'contact@hairtpclinic.com'],
       handlers: {
@@ -300,7 +335,7 @@ test('v2-skalet: mailboxväljaren ligger i vänstra köfältet med kompakt fallb
   const { document, api } = loadShell();
   api.render(
     makeCtx({
-      mailboxes: [{ id: 'kons@hairtpclinic.com', label: 'Kons' }],
+      mailboxes: [{ id: 'kons@hairtpclinic.com', label: 'Kons', readAvailable: true }],
       selectedMailboxIds: ['kons@hairtpclinic.com'],
     })
   );
@@ -323,20 +358,45 @@ test('v2-skalet: mailboxmenyn visar historik per konto och Inkorg visar sammanfa
     needsReply: true,
   });
   const infoThreads = [
-    makeThread({ id: 'info-1', mailboxId: 'info@hairtpclinic.com', mailboxBadge: 'Info', unread: false }),
-    makeThread({ id: 'info-2', mailboxId: 'info@hairtpclinic.com', mailboxBadge: 'Info', unread: false }),
+    makeThread({
+      id: 'info-1',
+      mailboxId: 'info@hairtpclinic.com',
+      mailboxBadge: 'Info',
+      unread: false,
+    }),
+    makeThread({
+      id: 'info-2',
+      mailboxId: 'info@hairtpclinic.com',
+      mailboxBadge: 'Info',
+      unread: false,
+    }),
   ];
   api.render(
     makeCtx({
       laneThreads: [konsThread, ...infoThreads],
       allThreads: [konsThread, ...infoThreads],
       mailboxes: [
-        { id: 'kons@hairtpclinic.com', label: 'Kons', email: 'kons@hairtpclinic.com' },
-        { id: 'info@hairtpclinic.com', label: 'Info', email: 'info@hairtpclinic.com' },
+        {
+          id: 'kons@hairtpclinic.com',
+          label: 'Kons',
+          email: 'kons@hairtpclinic.com',
+          readAvailable: true,
+        },
+        {
+          id: 'info@hairtpclinic.com',
+          label: 'Info',
+          email: 'info@hairtpclinic.com',
+          readAvailable: true,
+        },
       ],
       selectedMailboxIds: ['kons@hairtpclinic.com', 'info@hairtpclinic.com'],
       mailboxMetrics: [
-        { mailboxId: 'kons@hairtpclinic.com', inboxCount: 4976, sentCount: 4457, messageCount: 9433 },
+        {
+          mailboxId: 'kons@hairtpclinic.com',
+          inboxCount: 4976,
+          sentCount: 4457,
+          messageCount: 9433,
+        },
         { mailboxId: 'info@hairtpclinic.com', inboxCount: 42, sentCount: 11, messageCount: 53 },
       ],
     })
@@ -347,10 +407,22 @@ test('v2-skalet: mailboxmenyn visar historik per konto och Inkorg visar sammanfa
   const info = root.querySelector('[data-v2-mailbox="info@hairtpclinic.com"]');
   assert.equal(kons.getAttribute('type'), 'checkbox', 'varje konto ska kunna checkas av');
   assert.equal(info.hasAttribute('checked'), true, 'valt konto ska vara markerat');
-  assert.match(root.querySelector('[data-v2-mailboxes]').textContent, /Kons[\s\S]*4976 ink\. · 4457 skick\./);
-  assert.match(root.querySelector('[data-v2-mailboxes]').textContent, /Info[\s\S]*42 ink\. · 11 skick\./);
-  assert.match(root.querySelector('[data-v2-inbox-h2]').textContent, /1 oläst · 1 behöver svar · 3 trådar · 9486 mail/);
-  assert.match(root.querySelector('[data-v2-mailbox-summary]').textContent, /Inkorg \+ Skickat · hela historiken/);
+  assert.match(
+    root.querySelector('[data-v2-mailboxes]').textContent,
+    /Kons[\s\S]*4976 ink\. · 4457 skick\./
+  );
+  assert.match(
+    root.querySelector('[data-v2-mailboxes]').textContent,
+    /Info[\s\S]*42 ink\. · 11 skick\./
+  );
+  assert.match(
+    root.querySelector('[data-v2-inbox-h2]').textContent,
+    /1 oläst · 1 behöver svar · 3 trådar · 9486 mail/
+  );
+  assert.match(
+    root.querySelector('[data-v2-mailbox-summary]').textContent,
+    /Inkorg \+ Skickat · hela historiken/
+  );
   assert.doesNotMatch(root.querySelector('[data-v2-mailbox-summary]').textContent, /Kons|Info/);
 });
 
@@ -360,9 +432,9 @@ test('v2-skalet: ett brett mailbox-scope kan förfinas ett konto i taget', () =>
   api.render(
     makeCtx({
       mailboxes: [
-        { id: 'kons@hairtpclinic.com', label: 'Kons' },
-        { id: 'contact@hairtpclinic.com', label: 'Contact' },
-        { id: 'fazli@hairtpclinic.com', label: 'Fazli' },
+        { id: 'kons@hairtpclinic.com', label: 'Kons', readAvailable: true },
+        { id: 'contact@hairtpclinic.com', label: 'Contact', readAvailable: true },
+        { id: 'fazli@hairtpclinic.com', label: 'Fazli', readAvailable: true },
       ],
       selectedMailboxIds: [
         'kons@hairtpclinic.com',
@@ -466,7 +538,9 @@ test('v2-skalet: default-Inkorg visar hela aktiva kön; Skickat filtrerar till d
     customerName: 'KlinikSvaradeSist',
     raw: { lastOutboundAt: '2026-06-20T11:00:00Z', lastInboundAt: '2026-06-20T10:00:00Z' },
   });
-  api.render(makeCtx({ laneThreads: [inboxThread, sentThread], allThreads: [inboxThread, sentThread] }));
+  api.render(
+    makeCtx({ laneThreads: [inboxThread, sentThread], allThreads: [inboxThread, sentThread] })
+  );
 
   const inbox = document.querySelector('[data-v2-inbox]');
   assert.match(inbox.textContent, /Inkommande/);
@@ -506,7 +580,11 @@ test('v2-skalet: default-Inkorg gömmer inte trådar när kliniken svarade sist 
     })
   );
   const inbox = document.querySelector('[data-v2-inbox]');
-  assert.equal(inbox.querySelector('.inbox-empty'), null, 'default-Inkorg får inte vara tom när aktiva trådar finns');
+  assert.equal(
+    inbox.querySelector('.inbox-empty'),
+    null,
+    'default-Inkorg får inte vara tom när aktiva trådar finns'
+  );
   const rows = inbox.querySelectorAll('.thread[data-thread-id]');
   assert.equal(rows.length, 2, 'båda aktiva trådarna ska synas i default-Inkorg');
   assert.match(inbox.textContent, /Klinik Svarade Sist/);
@@ -578,7 +656,9 @@ test('v2-skalet: fritext och smart etikett använder befintliga trådfält', () 
     intentLabel: 'pricing',
   });
   const neutralThread = makeThread({ id: 'neutral-1', customerName: 'Neutral kund' });
-  api.render(makeCtx({ laneThreads: [priceThread, neutralThread], allThreads: [priceThread, neutralThread] }));
+  api.render(
+    makeCtx({ laneThreads: [priceThread, neutralThread], allThreads: [priceThread, neutralThread] })
+  );
 
   const inbox = document.querySelector('[data-v2-inbox]');
   assert.match(inbox.textContent, /Prisfråga/);
@@ -596,7 +676,10 @@ test('v2-skalet: appen matar mailboxar och vald scope till samma runtime-rendera
     appSource,
     /selectedMailboxIds: getRequestedRuntimeMailboxIds\(\{ includePreferredFallback: false \}\)/
   );
-  assert.match(appSource, /mailboxMetrics: asArray\(state\.runtime\?\.mailboxDiagnostics\?\.truthPrimary\?\.mailboxReports\)/);
+  assert.match(
+    appSource,
+    /mailboxMetrics: asArray\(state\.runtime\?\.mailboxDiagnostics\?\.truthPrimary\?\.mailboxReports\)/
+  );
   assert.match(appSource, /mailboxReports: truthMailboxReports/);
   assert.doesNotMatch(appSource, /nextMailboxIds\.length > 2/);
   assert.match(appSource, /const defaultScope = availableIds;/);
@@ -680,15 +763,7 @@ test('v2-skalet: "Mer"-menyn exponerar alla åtta admin#cco-paneler och togglas 
   // launcher-action ('senare'), som i legacy. Två menyingångar till en panel
   // är inte två val. Se PR 11 — ett-klicks-snooze från bottenknappen avvisades
   // uttryckligen där, och V2:s egen ett-kliksväg var en avvikelse från det.
-  const expected = [
-    'makron',
-    'notiser',
-    'skickat',
-    'noshow',
-    'signering',
-    'portal',
-    'nyttmail',
-  ];
+  const expected = ['makron', 'notiser', 'skickat', 'noshow', 'signering', 'portal', 'nyttmail'];
   assert.equal(
     menu.querySelector('[data-v2-action="senarekopanel"]'),
     null,
@@ -724,7 +799,9 @@ test('v2-skalet: Bokning/Kalender/Dossier är alltid klickbara men låser aldrig
       reason: 'Kundkopplingen är oklar eller saknas. Öppna först Granskning.',
     },
   });
-  api.render(makeCtx({ laneThreads: [unknownThread], allThreads: [unknownThread], selected: unknownThread }));
+  api.render(
+    makeCtx({ laneThreads: [unknownThread], allThreads: [unknownThread], selected: unknownThread })
+  );
 
   const root = document.getElementById('cco-conv-v2-root');
   // Knapparna beter sig som admin#cco:s bubblor: alltid klickbara. Panelen
@@ -736,7 +813,9 @@ test('v2-skalet: Bokning/Kalender/Dossier är alltid klickbara men låser aldrig
   // Fail-closed-nyansen finns kvar där det spelar roll: ingen obekräftad patient
   // exponeras som låst boknings-/patient-id på den faktiska bokningsåtgärden.
   assert.equal(
-    root.querySelector('[data-v2-action="booking"]').hasAttribute('data-booking-context-patient-id'),
+    root
+      .querySelector('[data-v2-action="booking"]')
+      .hasAttribute('data-booking-context-patient-id'),
     false,
     'obekräftad matchning får aldrig låsa ett boknings-/patient-id'
   );
@@ -751,7 +830,11 @@ test('v2-skalet: oklar kundmatchning (ambiguous) surfas som Manuell kundgranskni
   });
   const clear = makeThread({ id: 't-clear', customerName: 'Tydlig Kund' });
   api.render(
-    makeCtx({ laneThreads: [ambiguous, clear], allThreads: [ambiguous, clear], selected: ambiguous })
+    makeCtx({
+      laneThreads: [ambiguous, clear],
+      allThreads: [ambiguous, clear],
+      selected: ambiguous,
+    })
   );
 
   const root = document.getElementById('cco-conv-v2-root');
@@ -763,7 +846,11 @@ test('v2-skalet: oklar kundmatchning (ambiguous) surfas som Manuell kundgranskni
   );
   // Listrad-tagg på den oklara tråden.
   const ambRow = root.querySelector('[data-thread-id="t-amb"]');
-  assert.match(ambRow.textContent, /Kundgranskning/, 'oklar tråd ska ha Kundgranskning-tagg i listan');
+  assert.match(
+    ambRow.textContent,
+    /Kundgranskning/,
+    'oklar tråd ska ha Kundgranskning-tagg i listan'
+  );
   // Den tydliga tråden får ingen granskningsmarkör.
   const clearRow = root.querySelector('[data-thread-id="t-clear"]');
   assert.doesNotMatch(
@@ -782,7 +869,9 @@ test('v2-skalet: bekräftad patientmatchning öppnar trådscopade handoffar', ()
       bookingPatientId: 'patient-canonical-1',
     },
   });
-  api.render(makeCtx({ laneThreads: [matchedThread], allThreads: [matchedThread], selected: matchedThread }));
+  api.render(
+    makeCtx({ laneThreads: [matchedThread], allThreads: [matchedThread], selected: matchedThread })
+  );
 
   const root = document.getElementById('cco-conv-v2-root');
   for (const action of ['booking', 'calendar', 'dossier']) {
@@ -793,7 +882,9 @@ test('v2-skalet: bekräftad patientmatchning öppnar trådscopade handoffar', ()
     assert.equal(button.getAttribute('data-note-conversation-id'), 't-1');
   }
   assert.equal(
-    root.querySelector('[data-v2-thread] .action-btn--booking').getAttribute('data-booking-context-patient-id'),
+    root
+      .querySelector('[data-v2-thread] .action-btn--booking')
+      .getAttribute('data-booking-context-patient-id'),
     'patient-canonical-1',
     'den faktiska bokningsåtgärden ska bära samma kanoniska patientkontext som handoffen'
   );
@@ -808,7 +899,9 @@ test('v2-skalet: testbarhetsmarkörer läcker inte patient-id för oklar eller p
       bookingPatientId: 'patient-far-inte-lacka',
     },
   });
-  api.render(makeCtx({ laneThreads: [unknownThread], allThreads: [unknownThread], selected: unknownThread }));
+  api.render(
+    makeCtx({ laneThreads: [unknownThread], allThreads: [unknownThread], selected: unknownThread })
+  );
 
   const root = document.getElementById('cco-conv-v2-root');
   assert.equal(
@@ -817,20 +910,26 @@ test('v2-skalet: testbarhetsmarkörer läcker inte patient-id för oklar eller p
     'smart anteckning ska kunna bindas till vald tråd även när patienten granskas'
   );
   assert.equal(
-    root.querySelector('[data-v2-action="booking"]').hasAttribute('data-booking-context-patient-id'),
+    root
+      .querySelector('[data-v2-action="booking"]')
+      .hasAttribute('data-booking-context-patient-id'),
     false,
     'oklar matchning får aldrig exponera ett boknings-/patient-id'
   );
 
   const publicThread = makeThread({ v2Handoff: { available: true, reason: '' } });
-  api.render(makeCtx({ laneThreads: [publicThread], allThreads: [publicThread], selected: publicThread }));
+  api.render(
+    makeCtx({ laneThreads: [publicThread], allThreads: [publicThread], selected: publicThread })
+  );
   assert.equal(
     root.querySelector('[data-v2-action="note"]').hasAttribute('data-note-conversation-id'),
     false,
     'utan autentiserad testbarhetskontext exponeras ingen trådmarkör'
   );
   assert.equal(
-    root.querySelector('[data-v2-action="booking"]').hasAttribute('data-booking-context-patient-id'),
+    root
+      .querySelector('[data-v2-action="booking"]')
+      .hasAttribute('data-booking-context-patient-id'),
     false,
     'utan autentiserad testbarhetskontext exponeras ingen patientmarkör'
   );
@@ -854,7 +953,9 @@ test('v2-skalet: HTML-mail renderas sandboxat, utan Outlook-notis eller rå CID'
       ],
     },
   });
-  api.render(makeCtx({ laneThreads: [richThread], allThreads: [richThread], selected: richThread }));
+  api.render(
+    makeCtx({ laneThreads: [richThread], allThreads: [richThread], selected: richThread })
+  );
   const html = document.querySelector('[data-v2-thread]').innerHTML;
   assert.match(html, /v2-msg-html-frame/, 'HTML-mail ska isoleras i en sandboxad iframe');
   assert.doesNotMatch(html, /alert\(1\)|cid:historisk-logga|LearnAboutSenderIdentification/);
@@ -896,11 +997,13 @@ test('v2-skalet: äldre null-mailDocument faller tillbaka till text utan att kra
   });
 
   assert.doesNotThrow(() => {
-    api.render(makeCtx({
-      laneThreads: [legacyThread],
-      allThreads: [legacyThread],
-      selected: legacyThread,
-    }));
+    api.render(
+      makeCtx({
+        laneThreads: [legacyThread],
+        allThreads: [legacyThread],
+        selected: legacyThread,
+      })
+    );
   });
   assert.match(
     document.querySelector('[data-v2-thread]').textContent,
@@ -956,7 +1059,12 @@ test('v2-skalet: vanlig bilaga visas separat medan inline-signatur inte duplicer
           primaryBody: { html: '<p>Se dokumentet.</p>', text: 'Se dokumentet.' },
           attachments: [
             { attachmentId: 'file-1', name: 'underlag.pdf', contentType: 'application/pdf' },
-            { attachmentId: 'logo-1', name: 'signatur.gif', contentType: 'image/gif', isInline: true },
+            {
+              attachmentId: 'logo-1',
+              name: 'signatur.gif',
+              contentType: 'image/gif',
+              isInline: true,
+            },
           ],
         },
       ],
@@ -1003,8 +1111,8 @@ test('v2-skalet: direktläst rich mail prioriteras före äldre historikprojekti
   api.render(makeCtx({ laneThreads: [thread], allThreads: [thread], selected: thread }));
 
   assert.deepEqual(
-    Array.from(document.querySelectorAll('[data-v2-thread] .msg[data-v2-message-id]')).map((message) =>
-      message.getAttribute('data-v2-message-id')
+    Array.from(document.querySelectorAll('[data-v2-thread] .msg[data-v2-message-id]')).map(
+      (message) => message.getAttribute('data-v2-message-id')
     ),
     ['direct-rich-message'],
     'den scoped direkta payloaden ska vinna över en äldre sammanfattad historikpayload'
@@ -1045,7 +1153,14 @@ test('v2-skalet: Info är strikt i listan men behåller befintlig samlad kundhis
       laneThreads: [infoThread],
       allThreads: [infoThread],
       selected: infoThread,
-      mailboxes: [{ id: 'info@hairtpclinic.com', label: 'Info', email: 'info@hairtpclinic.com' }],
+      mailboxes: [
+        {
+          id: 'info@hairtpclinic.com',
+          label: 'Info',
+          email: 'info@hairtpclinic.com',
+          readAvailable: true,
+        },
+      ],
       selectedMailboxIds: ['info@hairtpclinic.com'],
     })
   );
@@ -1354,11 +1469,7 @@ test('v2-skalet: keyed diff bygger bara om raden vars innehåll ändrats (admin-
 
 test('v2-skalet: keyed diff tar bort borttagna trådar, lägger till nya och håller ordningen', () => {
   const { document, api } = loadShell();
-  const threads = [
-    makeThread({ id: 't-1' }),
-    makeThread({ id: 't-2' }),
-    makeThread({ id: 't-3' }),
-  ];
+  const threads = [makeThread({ id: 't-1' }), makeThread({ id: 't-2' }), makeThread({ id: 't-3' })];
   api.render(makeCtx({ laneThreads: threads, allThreads: threads, selected: threads[0] }));
   const inbox = document.getElementById('cco-conv-v2-root').querySelector('[data-v2-inbox]');
   const t2Before = inbox.querySelector('[data-thread-id="t-2"]');
@@ -1393,10 +1504,7 @@ test('v2-skalet: virtualisering begränsar DOM-fönstret för stora listor (admi
   // tre konton.
   const rowCount = mount.querySelectorAll('[data-thread-id]').length;
   assert.ok(rowCount > 0, 'något fönster ska renderas');
-  assert.ok(
-    rowCount <= 40,
-    `DOM-fönstret ska vara begränsat (fick ${rowCount} rader av 200)`
-  );
+  assert.ok(rowCount <= 40, `DOM-fönstret ska vara begränsat (fick ${rowCount} rader av 200)`);
   assert.ok(rowCount < 200, 'hela listan får INTE ligga i DOM samtidigt');
 
   // Spacers bär de off-screen radernas höjd så scrollen speglar hela listan.
@@ -1454,7 +1562,8 @@ test('v2-skalet: verklig scroll flyttar fönstret, håller höjd-invarianten och
   const px = (v) => parseInt(String(v || '0'), 10) || 0;
   const domRows = () => mount.querySelectorAll('[data-thread-id]').length;
   // Höjd-invariant: topp + fönster*rowH + botten === total*rowH ⇒ ingen drift.
-  const invariant = () => px(topSpacer.style.height) + domRows() * rowH + px(botSpacer.style.height);
+  const invariant = () =>
+    px(topSpacer.style.height) + domRows() * rowH + px(botSpacer.style.height);
 
   // Vid toppen.
   assert.equal(invariant(), N * rowH, 'höjd-invariant vid toppen');
@@ -1734,7 +1843,12 @@ test('v2-skalet: bulkfältet behåller reply_later — panelen går inte att fyl
   // av trådknappen inte råkade ta bulkvägen med sig.
   const shellSource = require('node:fs').readFileSync(
     require('node:path').join(
-      __dirname, '..', '..', 'public', 'major-arcana-preview', 'app',
+      __dirname,
+      '..',
+      '..',
+      'public',
+      'major-arcana-preview',
+      'app',
       'cco-conversations-v2-shell.js'
     ),
     'utf8'

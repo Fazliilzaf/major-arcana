@@ -40956,6 +40956,12 @@
         label: asText(mailbox?.label, titleCaseMailbox(mailbox?.email || mailbox?.id)),
         email: asText(mailbox?.email || mailbox?.id),
         toneClass: asText(mailbox?.toneClass),
+        // V2:s brevlådeväljare är en läsväljare och filtrerar på det här
+        // fältet. Utan genomsläpp här blir det undefined för varje post och
+        // väljaren tömmer sig själv. Flaggan kommer från mailboxCapabilities
+        // och överlever mergen i getAvailableRuntimeMailboxes, eftersom
+        // LEGACY_RUNTIME_MAILBOXES skrapas ur statisk HTML och saknar nyckeln.
+        readAvailable: mailbox?.readAvailable === true,
       })).filter((mailbox) => mailbox.id),
       selectedMailboxIds: getRequestedRuntimeMailboxIds({ includePreferredFallback: false }),
       mailboxMetrics: asArray(state.runtime?.mailboxDiagnostics?.truthPrimary?.mailboxReports),
