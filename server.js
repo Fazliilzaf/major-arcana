@@ -14507,6 +14507,8 @@ process.once('SIGTERM', () => {
       getCommercialStore: () => app.locals.ccoCommercialStore || null,
       getJournalStore: () => app.locals.ccoJournalStore || null,
       getBookingStore: () => app.locals.ccoBookingCaseStore || null,
+      getDocumentInstanceStore: () => ccoDocumentInstanceStore || null,
+      getOfferDocumentStore: () => ccoOfferDocumentStore || null,
       baseUrl: config.publicBaseUrl || process.env.PUBLIC_BASE_URL || '',
     })
   );

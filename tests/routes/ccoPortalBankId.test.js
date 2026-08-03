@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const express = require('express');
 
-const { createCcoPortalBankIdRouter } = require('../../src/routes/ccoPortalBankId');
+const { createCcoPortalBankIdRouter, signCookie } = require('../../src/routes/ccoPortalBankId');
 
 const SECRET = 'test-secret';
 const OWNER = { id: 'p-owner', displayName: 'Ägare', personnummer: '199001011234' };
@@ -225,6 +225,89 @@ test('me returnerar offert-payload från commercial-store efter inloggning', asy
       assert.equal(body.offer.signing.canAccept, true);
     }
   );
+});
+
+test('nivå-2 /me visar dokumentmetadata för ägaren, aldrig instanspayload', async () => {
+  const documentInstanceStore = {
+    listForPatient: async ({ patientId }) =>
+      patientId === 'p-owner'
+        ? [
+            {
+              instanceId: 'inst-owner',
+              documentTypeId: 'haelso_tp_sve',
+              status: 'filled',
+              filledAt: '2026-07-10T12:00:00Z',
+              payload: { secret: 'never-client' },
+            },
+          ]
+        : [],
+  };
+  const cookie = signCookie(
+    { patientId: 'p-owner', tenantId: 'hairtpclinic', exp: Date.now() + 60_000 },
+    SECRET
+  );
+  await withServer({ documentInstanceStore }, async (base) => {
+    const res = await fetch(`${base}/api/v1/cco-portal/me`, {
+      headers: { cookie: `cco_portal_l2=${cookie}` },
+    });
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.offer.documents.length, 1);
+    assert.equal(body.offer.documents[0].titel, 'Hälsodeklaration · Hair TP Clinic');
+    assert.equal(JSON.stringify(body).includes('never-client'), false);
+  });
+});
+
+test('nivå-2 dokumentroute är fail-closed utan session och mellan patienter', async () => {
+  const documentInstanceStore = {
+    listForPatient: async ({ patientId }) =>
+      patientId === 'p-owner'
+        ? [{ instanceId: 'inst-owner', documentTypeId: 'haelso_tp_sve', status: 'filled' }]
+        : [{ instanceId: 'inst-other', documentTypeId: 'haelso_tp_sve', status: 'filled' }],
+  };
+  const ownerCookie = signCookie(
+    { patientId: 'p-owner', tenantId: 'hairtpclinic', exp: Date.now() + 60_000 },
+    SECRET
+  );
+  await withServer({ documentInstanceStore }, async (base) => {
+    const noSession = await fetch(`${base}/api/v1/cco-portal/documents/instance/inst-owner`);
+    assert.equal(noSession.status, 401);
+
+    const other = await fetch(`${base}/api/v1/cco-portal/documents/instance/inst-other`, {
+      headers: { cookie: `cco_portal_l2=${ownerCookie}` },
+    });
+    assert.equal(other.status, 404);
+
+    const own = await fetch(`${base}/api/v1/cco-portal/documents/instance/inst-owner`, {
+      headers: { cookie: `cco_portal_l2=${ownerCookie}` },
+    });
+    assert.equal(own.status, 200);
+    assert.match(await own.text(), /Hälsodeklaration/);
+  });
+});
+
+test('nivå-2 signerat avtal öppnas bara för sessionens patient', async () => {
+  const commercialStore = {
+    getPatientRegisterCase: async ({ patientId }) =>
+      patientId === 'p-owner'
+        ? { quoteStatus: 'accepted', offerDocumentId: 'offer-owner' }
+        : { quoteStatus: 'accepted', offerDocumentId: 'offer-other' },
+  };
+  const offerDocumentStore = {
+    readHtml: async ({ documentId }) =>
+      documentId === 'offer-owner' ? { html: '<h1>Ägarens avtal</h1>' } : null,
+  };
+  const ownerCookie = signCookie(
+    { patientId: 'p-owner', tenantId: 'hairtpclinic', exp: Date.now() + 60_000 },
+    SECRET
+  );
+  await withServer({ commercialStore, offerDocumentStore }, async (base) => {
+    const res = await fetch(`${base}/api/v1/cco-portal/documents/offer?patientId=p-other`, {
+      headers: { cookie: `cco_portal_l2=${ownerCookie}` },
+    });
+    assert.equal(res.status, 200);
+    assert.match(await res.text(), /Ägarens avtal/);
+  });
 });
 
 /* ── ORD-80: esign-token (rika offer-portalen) + tokensort-styrt återhopp ── */

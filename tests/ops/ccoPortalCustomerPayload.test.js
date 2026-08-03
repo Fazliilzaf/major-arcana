@@ -11,6 +11,7 @@ const {
   deriveSigningStatus,
   buildJournalReference,
   buildBookingsView,
+  buildLevelTwoDocuments,
 } = require('../../src/ops/ccoPortalCustomerPayload');
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -159,4 +160,37 @@ test('buildLevelTwoPayload inkluderar journal + bookings', () => {
   assert.equal(p.journal.count, 1);
   assert.equal(p.journal.signedCount, 1);
   assert.equal(p.bookings.upcomingCount, 1);
+});
+
+test('Dina dokument: instans + signerat avtal är metadata-only och säkert sorterade', () => {
+  const documents = buildLevelTwoDocuments({
+    documentInstances: [
+      {
+        instanceId: 'inst-1',
+        documentTypeId: 'haelso_tp_sve',
+        status: 'filled',
+        filledAt: '2026-07-10T12:00:00Z',
+        payload: { personnummer: '199001011234', secret: 'får inte läcka' },
+      },
+    ],
+    commercialCase: {
+      quoteStatus: 'accepted',
+      offerDocumentId: 'offer-1',
+      quoteAcceptedAt: '2026-07-11T12:00:00Z',
+    },
+    meridiqOriginals: [{ titel: 'Historiskt original', datum: '2026-07-09T12:00:00Z' }],
+  });
+  assert.equal(documents.length, 3);
+  assert.equal(documents[0].titel, 'Signerat avtal');
+  assert.equal(documents[1].status, 'inskickat');
+  assert.match(documents[1].openUrl, /instance\/inst-1/);
+  assert.equal(documents[2].källa, 'Meridiq');
+  assert.equal(documents[2].openUrl, null);
+  assert.equal(JSON.stringify(documents).includes('199001011234'), false);
+  assert.equal(JSON.stringify(documents).includes('får inte läcka'), false);
+});
+
+test('Dina dokument: tomt utan instans eller signerat avtal', () => {
+  const p = buildLevelTwoPayload({ patientId: 'p-1', commercialCase: null });
+  assert.deepEqual(p.documents, []);
 });

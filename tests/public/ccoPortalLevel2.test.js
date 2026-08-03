@@ -96,6 +96,30 @@ test('bokningar tomma → "Inga kommande bokningar"', () => {
   assert.match(l2.renderBookings({ upcoming: [] }), /Inga kommande bokningar/);
 });
 
+test('Dina dokument: rad visar titel, status, datum och skyddad öppna-länk', () => {
+  const html = l2.renderDocuments([
+    {
+      titel: 'Hälsodeklaration',
+      status: 'inskickat',
+      datum: '2026-07-10T09:00:00Z',
+      källa: 'CCO',
+      openUrl: '/api/v1/cco-portal/documents/instance/inst-1',
+    },
+    { titel: 'Historiskt original', status: 'väntar', datum: '2026-07-09T09:00:00Z', källa: 'Meridiq' },
+  ]);
+  assert.match(html, /Dina dokument/);
+  assert.match(html, /Hälsodeklaration/);
+  assert.match(html, /Inskickad/);
+  assert.match(html, /2026-07-10/);
+  assert.match(html, /documents\/instance\/inst-1/);
+  assert.match(html, /Hos kliniken/);
+  assert.doesNotMatch(html, /href="undefined"/);
+});
+
+test('Dina dokument: tomt läge är ärligt', () => {
+  assert.match(l2.renderDocuments([]), /Inga dokument att visa ännu/);
+});
+
 test('XSS: dynamiska värden escape:as', () => {
   const html = l2.renderOffer({
     hasOffer: true,

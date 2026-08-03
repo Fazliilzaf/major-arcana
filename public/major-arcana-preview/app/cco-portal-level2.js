@@ -36,6 +36,11 @@
     ready_to_sign: 'Redo att signera',
     signed: 'Signerad ✓',
   };
+  var DOCUMENT_STATUS_LABELS = {
+    signerat: 'Signerad',
+    inskickat: 'Inskickad',
+    väntar: 'Väntar',
+  };
 
   function renderOffer(offer) {
     if (!offer || !offer.hasOffer) {
@@ -113,10 +118,51 @@
     );
   }
 
+  function renderDocuments(documents) {
+    var rows = Array.isArray(documents) ? documents : [];
+    if (!rows.length) {
+      return '<div class="l2-card l2-muted">Inga dokument att visa ännu.</div>';
+    }
+    var html = rows
+      .map(function (doc) {
+        var title = esc(doc && doc.titel ? doc.titel : 'Dokument');
+        var source = esc(doc && doc.källa ? doc.källa : 'CCO');
+        var date = esc(fmtDate(doc && doc.datum) || 'Datum ej angivet');
+        var status = String((doc && doc.status) || 'väntar');
+        var statusLabel = esc(DOCUMENT_STATUS_LABELS[status] || 'Väntar');
+        var openUrl = doc && doc.openUrl ? esc(doc.openUrl) : '';
+        var action = openUrl
+          ? '<a class="l2-document-open" href="' + openUrl + '" target="_blank" rel="noopener">Öppna</a>'
+          : '<span class="l2-document-unavailable">Hos kliniken</span>';
+        return (
+          '<li class="l2-document"><div><strong>' +
+          title +
+          '</strong><small>' +
+          source +
+          '</small></div><div class="l2-document-meta"><span class="l2-document-status l2-document-status--' +
+          esc(status) +
+          '">' +
+          statusLabel +
+          '</span><time>' +
+          date +
+          '</time>' +
+          action +
+          '</div></li>'
+        );
+      })
+      .join('');
+    return (
+      '<div class="l2-card"><div class="l2-kicker">Dina dokument</div><ul class="l2-documents">' +
+      html +
+      '</ul></div>'
+    );
+  }
+
   function renderLoggedIn(payload) {
     return (
       '<div class="l2-panel">' +
       renderOffer(payload) +
+      renderDocuments(payload.documents) +
       renderJournal(payload.journal) +
       renderBookings(payload.bookings) +
       '</div>'
@@ -201,7 +247,12 @@
     '.l2-bookings{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}' +
     '.l2-booking{display:flex;justify-content:space-between;gap:10px;font-size:12px;' +
     'padding:7px 0;border-bottom:1px solid rgba(43,37,31,.08)}' +
-    '.l2-booking:last-child{border-bottom:none}';
+    '.l2-booking:last-child{border-bottom:none}' +
+    '.l2-documents{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}' +
+    '.l2-document{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(43,37,31,.08)}' +
+    '.l2-document:last-child{border-bottom:none}.l2-document strong,.l2-document small{display:block}.l2-document small{margin-top:3px;color:rgba(70,60,50,.62);font-size:11px}' +
+    '.l2-document-meta{display:flex;align-items:center;gap:8px;font-size:11px;white-space:nowrap}.l2-document-status{padding:3px 7px;border-radius:999px;background:rgba(74,130,104,.12);color:#2e5a47;font-weight:800}' +
+    '.l2-document-status--väntar{background:rgba(200,130,30,.14);color:#a86d19}.l2-document-open{color:#2e5a47;font-weight:800;text-decoration:none}.l2-document-unavailable{color:rgba(70,60,50,.62)}';
 
   function ensureStyles() {
     if (typeof document === 'undefined' || document.getElementById(STYLE_ID)) return;
@@ -228,6 +279,7 @@
     renderOffer: renderOffer,
     renderJournal: renderJournal,
     renderBookings: renderBookings,
+    renderDocuments: renderDocuments,
     renderFromMe: renderFromMe,
     renderLoggedOut: renderLoggedOut,
     tokenFromLocation: tokenFromLocation,
