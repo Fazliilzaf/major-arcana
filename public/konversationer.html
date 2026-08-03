@@ -3216,6 +3216,12 @@
         'marknad@hairtpclinic.com',
         'kvitto@hairtpclinic.com',
         'halso@hairtpclinic.com',
+        // One.com-lådan, utanför M365-tenanten och därför hämtad via IMAP i
+        // stället för Graph (ARCANA_CCO_IMAP_*). Backend exponerar den redan i
+        // /cco/runtime/mailboxes som provider "imap", men den här listan är
+        // hårdkodad och kände inte till den — därför saknades den i väljaren
+        // trots att flaggan var påslagen i produktion.
+        'info@fazli.se',
       ];
       const WORKLIST_MAX_MAILBOXES_PER_REQUEST = 2;
       let selectedMailboxIds = LIVE_MAILBOX_IDS.slice();
@@ -4727,6 +4733,11 @@
         'marknad@hairtpclinic.com': { label: 'Marknad', tone: 'marknad' },
         'kvitto@hairtpclinic.com': { label: 'Kvitto', tone: 'kvitto' },
         'halso@hairtpclinic.com': { label: 'Hälso', tone: 'halso' },
+        // Etiketten kommer från backend (ccoImapMailboxSync.js:276). tone
+        // 'info' återanvänds med flit: det finns ingen .msg-mailbox-chip--info
+        // i CSS:en, så den renderas med bas-stilen — samma som
+        // info@hairtpclinic.com och samma som fallbacken nedan. Ingen ny CSS.
+        'info@fazli.se': { label: 'Info Fazli', tone: 'info' },
       });
 
       function mailboxMetaPresentation(mailbox) {
