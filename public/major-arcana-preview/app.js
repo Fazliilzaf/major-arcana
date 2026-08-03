@@ -5017,14 +5017,30 @@
     };
   }
 
+  // getMailboxIdentityTokens lägger till adressens lokaldel som token, så att
+  // poster som bara härletts ur en etikett ("Info") kan hitta sin brevlåda.
+  // Men matchning på lokaldel ensam slog ihop info@fazli.se med
+  // info@hairtpclinic.com — de delar token "info" — och den ena försvann ur
+  // brevlådeväljaren.
+  //
+  // Har BÅDA sidor en full adress ska adressen avgöra. Först när en sida
+  // saknar domän får lokaldelen tala.
   function findExistingMailboxKey(mergedMailboxes, mailbox) {
     const mailboxTokens = new Set(getMailboxIdentityTokens(mailbox));
     if (!mailboxTokens.size) return "";
+    const mailboxAddresses = new Set(
+      Array.from(mailboxTokens).filter((token) => token.includes("@"))
+    );
     for (const [key, entry] of mergedMailboxes.entries()) {
       const entryTokens = Array.isArray(entry.identityTokens)
         ? entry.identityTokens
         : getMailboxIdentityTokens(entry);
-      if (entryTokens.some((token) => mailboxTokens.has(token))) {
+      const entryAddresses = entryTokens.filter((token) => token.includes("@"));
+      const matched =
+        mailboxAddresses.size && entryAddresses.length
+          ? entryAddresses.some((token) => mailboxAddresses.has(token))
+          : entryTokens.some((token) => mailboxTokens.has(token));
+      if (matched) {
         return key;
       }
     }
