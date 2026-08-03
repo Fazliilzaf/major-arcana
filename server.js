@@ -14348,6 +14348,8 @@ process.once('SIGTERM', () => {
       ccoSettingsStore,
       ccoConversationStateStore,
       ccoMailIngestionStore,
+      // Låter /cco/runtime/status lista CCO:s IMAP-konto som en egen brevlåda.
+      ccoImapMailboxSync,
       templateStore,
       adminTasksStore,
       requireAuth: auth.requireAuth,

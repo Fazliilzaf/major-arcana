@@ -4661,6 +4661,7 @@ function toCcoRuntimeStatusHandler({
   graphDeleteEnabled = false,
   graphReadConnectorAvailable = false,
   graphSendConnectorAvailable = false,
+  ccoImapMailboxSync = null,
 }) {
   return async (req, res) => {
     const tenantId = toTenantId(req);
@@ -4688,6 +4689,22 @@ function toCcoRuntimeStatusHandler({
       ccoSettingsStore && typeof ccoSettingsStore.getTenantSettings === 'function'
         ? await ccoSettingsStore.getTenantSettings({ tenantId })
         : {};
+    // CCO:s IMAP-konto är ingen Graph-mailbox och står därför inte i någon av
+    // Graph-allowlistorna ovan. Det levereras som en egen lista, med sin egen
+    // etikett, och får sina åtkomstflaggor av en egen gren i
+    // buildCanonicalCcoMailboxSettingsDocument. Är IMAP avstängt eller
+    // okonfigurerat är listan tom och ingenting ändras.
+    const imapMailboxes =
+      ccoImapMailboxSync && typeof ccoImapMailboxSync.getConfiguredMailboxIds === 'function'
+        ? asArray(ccoImapMailboxSync.getConfiguredMailboxIds())
+            .map((mailboxId) =>
+              typeof ccoImapMailboxSync.getMailboxStatus === 'function'
+                ? ccoImapMailboxSync.getMailboxStatus(mailboxId)
+                : null
+            )
+            .filter((status) => status && status.active === true)
+            .map((status) => ({ id: status.mailboxId || status.id, label: status.label }))
+        : [];
     const mailboxSettingsDocument = buildCanonicalCcoMailboxSettingsDocument({
       tenantSettings,
       defaultSenderMailboxId: process.env.ARCANA_CCO_DEFAULT_SENDER_MAILBOX,
@@ -4697,6 +4714,7 @@ function toCcoRuntimeStatusHandler({
       graphReadEnabled,
       graphSendEnabled,
       graphDeleteEnabled,
+      imapMailboxes,
     });
     const signatureProfiles = asArray(mailboxSettingsDocument.signatureProfiles).map((profile) => ({
       key: normalizeText(profile?.key) || 'fazli',
@@ -10358,6 +10376,7 @@ function createCapabilitiesRouter({
   ccoSettingsStore = null,
   ccoConversationStateStore = null,
   ccoMailIngestionStore = null,
+  ccoImapMailboxSync = null,
   requireAuth,
   requireRole,
   executionGateway = null,
@@ -10612,6 +10631,7 @@ function createCapabilitiesRouter({
           (typeof resolvedGraphSendConnector.sendComposeDocument === 'function' ||
             typeof resolvedGraphSendConnector.sendReply === 'function' ||
             typeof resolvedGraphSendConnector.sendNewMessage === 'function'),
+        ccoImapMailboxSync,
       })
     )
   );

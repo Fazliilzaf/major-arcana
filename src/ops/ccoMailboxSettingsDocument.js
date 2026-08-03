@@ -38,14 +38,15 @@ function isApprovedSignatureMailboxIdentity(value = {}) {
     normalizeKey(mailbox?.fullName),
     normalizeKey(mailbox?.name),
     normalizeMailboxId(mailbox?.email || mailbox?.senderMailboxId || mailbox?.mailboxId),
-    normalizeMailboxId(mailbox?.senderMailboxId || mailbox?.email || mailbox?.mailboxId).split('@')[0],
+    normalizeMailboxId(mailbox?.senderMailboxId || mailbox?.email || mailbox?.mailboxId).split(
+      '@'
+    )[0],
   ].filter(Boolean);
   return tokens.some((token) => approvedTokens.has(token));
 }
 
 const CCO_DEFAULT_SENDER_MAILBOX =
-  normalizeMailboxId(process.env.ARCANA_CCO_DEFAULT_SENDER_MAILBOX) ||
-  'contact@hairtpclinic.com';
+  normalizeMailboxId(process.env.ARCANA_CCO_DEFAULT_SENDER_MAILBOX) || 'contact@hairtpclinic.com';
 const CCO_SIGNATURE_PUBLIC_BASE_URL =
   normalizeText(process.env.PUBLIC_BASE_URL || process.env.ARCANA_PUBLIC_BASE_URL).replace(
     /\/+$/,
@@ -62,23 +63,24 @@ function rewriteApprovedSignatureAssetUrls(
   const normalizedBaseUrl = normalizeText(publicBaseUrl).replace(/\/+$/, '');
   const assetBaseUrl = normalizedBaseUrl || CCO_SIGNATURE_PUBLIC_BASE_URL;
   return normalizeText(html)
-    .replace(/https:\/\/img2\.gimm\.io\/9e99c2fb-11b4-402b-8a43-6022ede8aa2b\/image\.png/gi, CCO_APPROVED_HAIR_TP_SIGNATURE_LOGO_URL)
-    .replace(/https?:\/\/(?:127\.0\.0\.1|localhost):3000(?=\/assets\/hair-tp-clinic\/)/gi, assetBaseUrl);
+    .replace(
+      /https:\/\/img2\.gimm\.io\/9e99c2fb-11b4-402b-8a43-6022ede8aa2b\/image\.png/gi,
+      CCO_APPROVED_HAIR_TP_SIGNATURE_LOGO_URL
+    )
+    .replace(
+      /https?:\/\/(?:127\.0\.0\.1|localhost):3000(?=\/assets\/hair-tp-clinic\/)/gi,
+      assetBaseUrl
+    );
 }
 
-function buildApprovedFazliSignatureHtml({
-  publicBaseUrl = CCO_SIGNATURE_PUBLIC_BASE_URL,
-} = {}) {
+function buildApprovedFazliSignatureHtml({ publicBaseUrl = CCO_SIGNATURE_PUBLIC_BASE_URL } = {}) {
   return rewriteApprovedSignatureAssetUrls(CCO_APPROVED_FAZLI_SIGNATURE_HTML, {
     publicBaseUrl,
   });
 }
 
-function buildApprovedEgzonaSignatureHtml({
-  publicBaseUrl = CCO_SIGNATURE_PUBLIC_BASE_URL,
-} = {}) {
-  const egzonaHtml = CCO_APPROVED_FAZLI_SIGNATURE_HTML
-    .replace('Fazli Krasniqi', 'Egzona Krasniqi')
+function buildApprovedEgzonaSignatureHtml({ publicBaseUrl = CCO_SIGNATURE_PUBLIC_BASE_URL } = {}) {
+  const egzonaHtml = CCO_APPROVED_FAZLI_SIGNATURE_HTML.replace('Fazli Krasniqi', 'Egzona Krasniqi')
     .replace('mailto:contact@hairtpclinic.com', 'mailto:egzona@hairtpclinic.com')
     .replace(' contact@hairtpclinic.com ', ' egzona@hairtpclinic.com ');
   return rewriteApprovedSignatureAssetUrls(egzonaHtml, {
@@ -139,7 +141,9 @@ function buildSignatureProfileIdentityTokens(profile = {}) {
         ...normalizeMailboxIdentityTokens(profile?.senderMailboxId),
         ...normalizeMailboxIdentityTokens(profile?.email),
         ...normalizeMailboxIdentityTokens(profile?.mailboxId),
-        ...asArray(profile?.aliases).map((alias) => normalizeKey(alias) || normalizeMailboxId(alias)),
+        ...asArray(profile?.aliases).map(
+          (alias) => normalizeKey(alias) || normalizeMailboxId(alias)
+        ),
       ].filter(Boolean)
     )
   );
@@ -252,13 +256,7 @@ function buildCustomMailboxSignatureProfile(mailbox = {}, index = 0) {
 
 function parseMailboxIds(value) {
   if (Array.isArray(value)) {
-    return Array.from(
-      new Set(
-        value
-          .map((item) => normalizeMailboxId(item))
-          .filter(Boolean)
-      )
-    );
+    return Array.from(new Set(value.map((item) => normalizeMailboxId(item)).filter(Boolean)));
   }
   return Array.from(
     new Set(
@@ -273,10 +271,13 @@ function parseMailboxIds(value) {
 function normalizeMailFoundationDefaults(input = {}) {
   const source = safeObject(input);
   return {
-    senderMailboxId: normalizeMailboxId(source.senderMailboxId || source.defaultSenderMailboxId) || '',
+    senderMailboxId:
+      normalizeMailboxId(source.senderMailboxId || source.defaultSenderMailboxId) || '',
     composeSenderMailboxId: normalizeMailboxId(source.composeSenderMailboxId) || '',
     replySenderMailboxId: normalizeMailboxId(source.replySenderMailboxId) || '',
-    signatureProfileId: normalizeText(source.signatureProfileId || source.defaultSignatureProfileId),
+    signatureProfileId: normalizeText(
+      source.signatureProfileId || source.defaultSignatureProfileId
+    ),
   };
 }
 
@@ -353,7 +354,8 @@ function chooseDefaultSenderMailbox({
   fallbackMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
 }) {
   const normalizedRequestedMailboxId = normalizeMailboxId(requestedMailboxId);
-  const normalizedFallbackMailboxId = normalizeMailboxId(fallbackMailboxId) || CCO_DEFAULT_SENDER_MAILBOX;
+  const normalizedFallbackMailboxId =
+    normalizeMailboxId(fallbackMailboxId) || CCO_DEFAULT_SENDER_MAILBOX;
   const normalizedSenderMailboxOptions = parseMailboxIds(senderMailboxOptions);
   if (!normalizedSenderMailboxOptions.length) {
     return normalizedRequestedMailboxId || normalizedFallbackMailboxId;
@@ -387,11 +389,24 @@ function buildCanonicalCcoMailboxSettingsDocument({
   graphReadEnabled = false,
   graphSendEnabled = false,
   graphDeleteEnabled = false,
+  // Brevlådor som betjänas av CCO:s IMAP-väg, inte av Graph. Form:
+  // [{ id, label }]. Se resolveMailboxAccess nedan för varför de behöver en
+  // egen gren i stället för att stoppas in i Graph-allowlistorna.
+  imapMailboxes = [],
 } = {}) {
   const normalizedTenantSettings = safeObject(tenantSettings);
   const mailFoundation = normalizeCcoMailFoundation(normalizedTenantSettings.mailFoundation);
   const customMailboxes = mailFoundation.customMailboxes;
   const signatureProfiles = addUniqueProfiles([...CCO_BASE_SIGNATURE_PROFILES]);
+
+  const normalizedImapMailboxes = (Array.isArray(imapMailboxes) ? imapMailboxes : [])
+    .map((mailbox) => {
+      const mailboxId = normalizeMailboxId(mailbox?.id || mailbox?.email || mailbox?.mailboxId);
+      if (!mailboxId) return null;
+      return { id: mailboxId, label: normalizeText(mailbox?.label) };
+    })
+    .filter(Boolean);
+  const imapMailboxById = new Map(normalizedImapMailboxes.map((mailbox) => [mailbox.id, mailbox]));
 
   const normalizedReadAllowlistMailboxIds = parseMailboxIds(readAllowlistMailboxIds);
   const normalizedSendAllowlistMailboxIds = parseMailboxIds(sendAllowlistMailboxIds);
@@ -451,6 +466,45 @@ function buildCanonicalCcoMailboxSettingsDocument({
       .filter(Boolean)
   );
 
+  // Åtkomstgrindarna per brevlåda. IMAP-konton har en EGEN gren, medvetet.
+  //
+  // Graph-grindarna (graphReadEnabled, readMailboxTokenSet) beskriver
+  // Graph-lådans behörigheter och säger ingenting om ett IMAP-konto. Hade vi
+  // bara lagt in id:t i unionen nedan och låtit dem svara, hade
+  // info@fazli.se landat på readAvailable: false — läs-allowlistan innehåller
+  // bara @hairtpclinic.com-adresserna — och brevlådan hade fortsatt vara
+  // osynlig, fast nu med en grind som SÅG ut att gälla den.
+  //
+  // Att kontot är konfigurerat är hela villkoret för att dess redan
+  // materialiserade truth-data ska gå att läsa. Samma motivering som
+  // `resolveCcoRuntimeWorklistMailboxIds` (capabilities.js:1495) redan vilar
+  // på. Sändning och radering går enbart via Graph, så de är hårt false här —
+  // aldrig ärvda från avsändar- eller raderingslistorna.
+  function resolveMailboxAccess(mailboxId) {
+    if (imapMailboxById.has(mailboxId)) {
+      return {
+        readAvailable: true,
+        sendAvailable: false,
+        deleteAvailable: false,
+        senderAvailable: false,
+      };
+    }
+    const mailboxTokens = normalizeMailboxIdentityTokens(mailboxId);
+    const senderAvailable = mailboxTokens.some((token) => senderMailboxTokenSet.has(token));
+    return {
+      readAvailable:
+        graphReadEnabled !== true
+          ? false
+          : !readMailboxTokenSet.size ||
+            mailboxTokens.some((token) => readMailboxTokenSet.has(token)),
+      sendAvailable: graphSendEnabled === true && senderAvailable,
+      deleteAvailable:
+        graphDeleteEnabled === true &&
+        mailboxTokens.some((token) => deleteMailboxTokenSet.has(token)),
+      senderAvailable,
+    };
+  }
+
   const mailboxCapabilities = Array.from(
     new Set([
       resolvedDefaultSenderMailboxId,
@@ -458,6 +512,7 @@ function buildCanonicalCcoMailboxSettingsDocument({
       ...normalizedReadAllowlistMailboxIds,
       ...normalizedDeleteAllowlistMailboxIds,
       ...senderMailboxOptions,
+      ...normalizedImapMailboxes.map((mailbox) => mailbox.id),
       ...customMailboxes.map((mailbox) => normalizeMailboxId(mailbox.email || mailbox.id)),
       ...signatureProfiles.map((profile) => normalizeMailboxId(profile.senderMailboxId)),
     ])
@@ -477,24 +532,23 @@ function buildCanonicalCcoMailboxSettingsDocument({
           },
           mailboxId
         );
-      const mailboxTokens = normalizeMailboxIdentityTokens(mailboxId);
-      const senderAvailable = mailboxTokens.some((token) => senderMailboxTokenSet.has(token));
-      const deleteAvailable = mailboxTokens.some((token) => deleteMailboxTokenSet.has(token));
-      const readAvailable =
-        graphReadEnabled !== true
-          ? false
-          : !readMailboxTokenSet.size ||
-            mailboxTokens.some((token) => readMailboxTokenSet.has(token));
+      const imapMailbox = imapMailboxById.get(mailboxId) || null;
+      const access = resolveMailboxAccess(mailboxId);
       return {
         id: mailboxId,
         email: mailboxId,
-        label: normalizeText(customMailbox?.label) || mailboxLabelFromId(mailboxId),
-        owner: normalizeText(customMailbox?.owner) || 'Mailbox',
+        // IMAP-brevlådans etikett äger sitt eget namn (ccoImapMailboxSync.js).
+        label:
+          normalizeText(imapMailbox?.label) ||
+          normalizeText(customMailbox?.label) ||
+          mailboxLabelFromId(mailboxId),
+        owner: normalizeText(customMailbox?.owner) || (imapMailbox ? 'IMAP' : 'Mailbox'),
         custom: Boolean(customMailbox),
-        readAvailable,
-        sendAvailable: graphSendEnabled === true && senderAvailable,
-        deleteAvailable: graphDeleteEnabled === true && deleteAvailable,
-        senderAvailable,
+        provider: imapMailbox ? 'imap' : 'graph',
+        readAvailable: access.readAvailable,
+        sendAvailable: access.sendAvailable,
+        deleteAvailable: access.deleteAvailable,
+        senderAvailable: access.senderAvailable,
         signatureProfileId: normalizeText(signatureProfile?.key) || null,
         signatureProfileAvailable: Boolean(signatureProfile),
         signatureProfileLabel:
