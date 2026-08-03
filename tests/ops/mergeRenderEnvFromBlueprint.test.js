@@ -17,7 +17,11 @@ test('parseRenderYamlEnvDefaults läser value från render.yaml', () => {
   assert.ok(defaults.has('PUBLIC_BASE_URL'));
   assert.equal(defaults.get('ARCANA_STAFF_JOURNAL_OPEN_ACCESS'), 'false');
   assert.equal(defaults.get('ARCANA_CCO_IMAP_POLL_ENABLED'), 'false');
-  assert.equal(defaults.get('ARCANA_CCO_IMAP_POLL_INTERVAL_MINUTES'), '3');
+  // ORD-78: 3 minuter var intervallet som körde slut på minnet mot
+  // info@fazli.se. Blueprinten överskuggade dessutom en säker kod-default —
+  // src/config.js:376 har redan 30. Måste stå på 30 innan POLL_ENABLED
+  // sätts till true.
+  assert.equal(defaults.get('ARCANA_CCO_IMAP_POLL_INTERVAL_MINUTES'), '30');
   assert.equal(defaults.get('ARCANA_CCO_IMAP_MAX_MESSAGES_PER_CYCLE'), '25');
   // ORD-74 2026-07-17: frysen lyft — schedulern PÅ igen; yaml avstämd mot Dashboard.
   assert.equal(defaults.get('ARCANA_SCHEDULER_ENABLED'), 'true');
