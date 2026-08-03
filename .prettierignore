@@ -14,3 +14,10 @@ public/major-arcana-preview/app.js
 public/major-arcana-preview/runtime-v5-layout-guard.js
 public/cco-kalender-shell.js
 public/cco-kalender-shell.css
+# Flera källkodsläsande vakter matchar exakta strängar i den här filen
+# (t.ex. konversationerLiveInbox.test.js:294, :434, :788). Filen har aldrig
+# prettier-formaterats, så lint-staged formaterar om HELA den vid minsta
+# ändring — 438 rader — och radbrytningarna bryter då de vakterna.
+# Filen ska dessutom raderas vid cutovern till den nyare ytan, så att låsa
+# formateringen kostar inget.
+public/konversationer.html
