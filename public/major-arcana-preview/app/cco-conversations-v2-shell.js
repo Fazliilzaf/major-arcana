@@ -1645,7 +1645,15 @@
     selectedMailboxIds.forEach(function (id) {
       selectedSet[mailboxKey(id)] = true;
     });
-    var mailboxes = ctx.mailboxes || [];
+    // Den här väljaren är en LÄSväljare — den styr vilka brevlådor som bläddras.
+    // `mailboxCapabilities` (ccoMailboxSettingsDocument.js:454) är däremot en
+    // union av läs-, radera- OCH avsändarlistorna, så avsändar-jokern `*`
+    // ("får skicka från vilken adress som helst") följde med som om den vore en
+    // brevlåda och renderades som en namnlös rad. Den bär readAvailable: false
+    // och hör inte hemma här.
+    var mailboxes = (ctx.mailboxes || []).filter(function (mailbox) {
+      return mailbox && mailbox.readAvailable === true;
+    });
     var history = mailboxHistoryById(ctx);
     var selectedCount = mailboxes.filter(function (mailbox) {
       return selectedSet[mailboxKey(mailbox.id)];
