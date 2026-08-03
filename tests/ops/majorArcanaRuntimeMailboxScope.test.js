@@ -418,6 +418,58 @@ test('getMailboxScopedRuntimeThreads matchar tråd vars mailbox bärs av mailbox
   assert.deepEqual(getMailboxScopedRuntimeThreads(), [runtimeThread, upnThread]);
 });
 
+test('getMailboxScopedRuntimeThreads behåller sammanslagen kundtråd för vald mailbox i historiken', () => {
+  const aggregatedThread = {
+    id: 'thread-customer-merged-across-mailboxes',
+    mailboxAddress: 'contact@hairtpclinic.com',
+    mailboxLabel: 'Contact',
+    historyMailboxOptions: [
+      { id: 'contact@hairtpclinic.com', label: 'Contact' },
+      { id: 'fazli@hairtpclinic.com', label: 'Fazli' },
+    ],
+    raw: {
+      customerSummary: {
+        historyMailboxIds: ['contact@hairtpclinic.com', 'fazli@hairtpclinic.com'],
+      },
+      sourceRows: [
+        { mailboxId: 'contact@hairtpclinic.com' },
+        { mailboxId: 'fazli@hairtpclinic.com' },
+      ],
+    },
+  };
+  const availableMailboxes = [
+    { id: 'contact', email: 'contact@hairtpclinic.com', label: 'Contact' },
+    { id: 'fazli', email: 'fazli@hairtpclinic.com', label: 'Fazli' },
+    { id: 'info', email: 'info@hairtpclinic.com', label: 'Info' },
+  ];
+  const selectedFazli = createMailboxScopeHarness({
+    selectedMailboxIds: ['fazli'],
+    threads: [aggregatedThread],
+    availableMailboxes,
+  });
+  const selectedInfo = createMailboxScopeHarness({
+    selectedMailboxIds: ['info'],
+    threads: [aggregatedThread],
+    availableMailboxes,
+  });
+
+  const fazliScopedThreads = selectedFazli();
+  assert.equal(fazliScopedThreads.length, 1);
+  assert.equal(fazliScopedThreads[0].mailboxAddress, 'fazli@hairtpclinic.com');
+  assert.equal(fazliScopedThreads[0].mailboxId, 'fazli@hairtpclinic.com');
+  assert.equal(fazliScopedThreads[0].mailboxLabel, 'Fazli');
+  assert.deepEqual(fazliScopedThreads[0].mailboxTrail, [
+    'fazli@hairtpclinic.com',
+    'contact@hairtpclinic.com',
+  ]);
+  assert.deepEqual(
+    fazliScopedThreads[0].historyMailboxOptions.map((mailbox) => mailbox.id),
+    ['fazli@hairtpclinic.com', 'contact@hairtpclinic.com']
+  );
+  assert.equal(aggregatedThread.mailboxAddress, 'contact@hairtpclinic.com');
+  assert.deepEqual(selectedInfo(), []);
+});
+
 test('getRequestedRuntimeMailboxIds canonicaliserar legacy mailbox-id till full mailboxadress innan live-request', () => {
   const getRequestedRuntimeMailboxIds = createRequestedMailboxIdsHarness({
     selectedMailboxIds: ['contact', 'fazli'],

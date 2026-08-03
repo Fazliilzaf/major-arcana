@@ -15476,18 +15476,85 @@
       });
     });
 
-    return threads.filter((thread) => {
+    return threads.flatMap((thread) => {
       // Servern serialiserar trådens mailbox över tre fält och mailboxAddress
       // KAN vara null för live-rader medan mailboxId/userPrincipalName bär
       // värdet (capabilities.js). buildLiveThreads och serverns egna filter
       // matchar därför på `mailboxAddress || mailboxId || userPrincipalName`.
-      // Display-filtret måste göra detsamma — annars filtreras trådar som hör
-      // till en vald mailbox bort (V2 visar noll rader trots inläst data i två
-      // valda mailboxar). Detta vidgar MATCHNINGEN, inte scopet (≤ valt urval).
-      const threadMailboxTokens = [thread?.mailboxAddress, thread?.mailboxId, thread?.userPrincipalName]
+      // En live-tråd kan dessutom vara kundsammanslagen över flera mailboxar.
+      // Behåll den inom ett valt scope när någon av dess historiska mailboxar
+      // matchar, utan att vidga scopet till mailboxar som inte är valda.
+      const historicalMailboxIds = [
+        ...asArray(thread?.mailboxTrail),
+        ...asArray(thread?.historyMailboxOptions).map((mailbox) =>
+          mailbox && typeof mailbox === "object"
+            ? mailbox.id || mailbox.email || mailbox.label
+            : mailbox
+        ),
+        ...asArray(thread?.raw?.customerSummary?.historyMailboxIds),
+        ...asArray(thread?.raw?.sourceRows).flatMap((row) => [
+          row?.mailboxAddress,
+          row?.mailboxId,
+          row?.userPrincipalName,
+          ...asArray(row?.customerSummary?.historyMailboxIds),
+        ]),
+      ];
+      const threadMailboxTokens = [
+        thread?.mailboxAddress,
+        thread?.mailboxId,
+        thread?.userPrincipalName,
+        ...historicalMailboxIds,
+      ]
         .flatMap((address) => getMailboxIdentityTokens({ id: address, email: address }))
         .concat(getMailboxIdentityTokens({ label: thread?.mailboxLabel }));
-      return threadMailboxTokens.some((token) => allowedMailboxTokens.has(normalizeMailboxId(token)));
+      const matchesSelectedMailbox = threadMailboxTokens.some((token) =>
+        allowedMailboxTokens.has(normalizeMailboxId(token))
+      );
+      if (!matchesSelectedMailbox) return [];
+
+      // Legacy gör den mailbox som operatören faktiskt valt till trådens
+      // primära provenance. Det styr källa, signatur och standardavsändare i
+      // Svarstudio utan att ändra trådens kanoniska kund- eller historikdata.
+      const preferredMailboxId = selectedMailboxIds.find((selectedMailboxId) => {
+        const selectedMailbox = findRuntimeMailboxByScopeId(selectedMailboxId, availableMailboxes);
+        const selectedMailboxTokens = selectedMailbox
+          ? getMailboxIdentityTokens(selectedMailbox)
+          : [selectedMailboxId];
+        const selectedTokenSet = new Set(
+          selectedMailboxTokens.map((token) => normalizeMailboxId(token)).filter(Boolean)
+        );
+        return threadMailboxTokens.some((token) => selectedTokenSet.has(normalizeMailboxId(token)));
+      });
+      const currentMailboxId = canonicalizeRuntimeMailboxId(
+        thread?.mailboxAddress || thread?.mailboxId || thread?.userPrincipalName,
+        availableMailboxes
+      );
+      if (!preferredMailboxId || preferredMailboxId === currentMailboxId) return [thread];
+
+      const preferredMailbox = findRuntimeMailboxByScopeId(preferredMailboxId, availableMailboxes);
+      const mailboxTrail = Array.from(
+        new Set(
+          [preferredMailboxId, currentMailboxId, ...historicalMailboxIds]
+            .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId, availableMailboxes))
+            .filter(Boolean)
+        )
+      );
+      return [
+        {
+          ...thread,
+          mailboxAddress: preferredMailboxId,
+          mailboxId: preferredMailboxId,
+          mailboxLabel: preferredMailbox?.label || thread?.mailboxLabel,
+          mailboxTrail,
+          historyMailboxOptions: mailboxTrail.map((mailboxId) => {
+            const mailbox = findRuntimeMailboxByScopeId(mailboxId, availableMailboxes);
+            return {
+              id: mailboxId,
+              label: mailbox?.label || mailboxId,
+            };
+          }),
+        },
+      ];
     });
   }
 
