@@ -538,4 +538,106 @@ describe('ccoKunderBookingEnrichment', () => {
     assert.equal(sig.lastActivityAt, treatmentDate);
     assert.equal(sig.completedVisitCount, 1);
   });
+
+  /**
+   * BRYGGAN MELLAN BOKNING OCH KUNDKORT.
+   *
+   * `patientId` är kanonisk identitet i patient-/journaldomänen, men
+   * bokningsdomänen identifierar på `customerEmail`. `canonicalPatientId`
+   * skrivs av create/confirm-flödet (ccoBookingEngine.js:1002 →
+   * ccoBookingEngineStore.js:911) och ÄR den verifierade kopplingen.
+   *
+   * Fram till nu läste båda looparna här fel: readouts letade efter fältnamnet
+   * `patientId` (som inte finns på engine-poster) och signalindexet hade ingen
+   * canonical-gren alls. Resultatet var att en verifierad patientkoppling
+   * kastades bort och ersattes av en e-postmatchning — tyst.
+   *
+   * Testerna nedan matar in en bokning där e-posten INTE matchar men
+   * `canonicalPatientId` gör det. Det är precis den kombination som de
+   * befintliga testerna aldrig prövar: de använder genomgående bokningar vars
+   * e-post redan matchar, så den döda grenen kunde aldrig upptäckas.
+   */
+  const CANONICAL_PATIENT = {
+    id: 'p-canonical',
+    tenantId: 't1',
+    displayName: 'Canonical Patient',
+    primaryEmail: 'registrerad@example.com',
+    emails: [],
+    flags: [],
+    fileSummary: {},
+  };
+
+  function bookingWithMismatchedEmail(startsAt) {
+    return {
+      tenantId: 't1',
+      // Adressen finns inte på någon patient — bara canonicalPatientId binder.
+      customerEmail: 'bokade-med-annan-adress@example.com',
+      canonicalPatientId: 'p-canonical',
+      conversationId: 'c-canonical',
+      bookingId: 'b-canonical',
+      status: 'confirmed',
+      slot: { startsAt, durationMinutes: 60, serviceId: 'dhi' },
+    };
+  }
+
+  it('signalindexet hittar patienten via canonicalPatientId när e-posten inte matchar', () => {
+    const startsAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    const { index } = buildBookingSignalsIndex({
+      patients: [CANONICAL_PATIENT],
+      engineBookings: [bookingWithMismatchedEmail(startsAt)],
+      bookingCases: [],
+      encounters: [],
+    });
+    const sig = getBookingSignals(index, 'p-canonical');
+    assert.equal(sig.hasUpcomingBooking, true, 'bokningen ska nå patientens signaler');
+    assert.equal(sig.upcomingBookings.length, 1);
+  });
+
+  it('readouts hittar patienten via canonicalPatientId när e-posten inte matchar', () => {
+    const startsAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    // Returnerar en Map keyad på patientId, inte en array.
+    const out = collectBookingReadouts({
+      patients: [CANONICAL_PATIENT],
+      engineBookings: [bookingWithMismatchedEmail(startsAt)],
+      bookingCases: [],
+      encounters: [],
+      clientoBookings: [],
+    });
+    const bucket = out.get('p-canonical');
+    assert.ok(bucket, 'patienten ska finnas i utfallet');
+    assert.equal(bucket.upcomingBookings.length, 1, 'bokningen ska hamna på rätt patient');
+    assert.equal(bucket.upcomingBookings[0].source, 'cco_booking_engine');
+  });
+
+  it('en okänd canonicalPatientId hittar inte på en patient', () => {
+    // getOrCreate skapar en post för vilket id som helst, så grenen måste
+    // valideras mot patientregistret — annars vore fixen värre än buggen.
+    const startsAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    const booking = bookingWithMismatchedEmail(startsAt);
+    booking.canonicalPatientId = 'p-finns-inte';
+    const { index } = buildBookingSignalsIndex({
+      patients: [CANONICAL_PATIENT],
+      engineBookings: [booking],
+      bookingCases: [],
+      encounters: [],
+    });
+    assert.equal(index.has('p-finns-inte'), false, 'okänt id ska inte skapa en patient');
+    const sig = getBookingSignals(index, 'p-canonical');
+    assert.equal(sig.hasUpcomingBooking, false, 'och inte heller läcka till fel patient');
+  });
+
+  it('e-postmatchning fungerar fortfarande när canonicalPatientId saknas', () => {
+    const startsAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    const booking = bookingWithMismatchedEmail(startsAt);
+    delete booking.canonicalPatientId;
+    booking.customerEmail = 'registrerad@example.com';
+    const { index } = buildBookingSignalsIndex({
+      patients: [CANONICAL_PATIENT],
+      engineBookings: [booking],
+      bookingCases: [],
+      encounters: [],
+    });
+    const sig = getBookingSignals(index, 'p-canonical');
+    assert.equal(sig.hasUpcomingBooking, true, 'den gamla vägen får inte regressera');
+  });
 });

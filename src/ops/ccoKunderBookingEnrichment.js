@@ -605,9 +605,19 @@ function collectBookingReadouts({
   for (const row of historicalShadow.rows) push(row);
 
   for (const booking of asArray(engineBookings)) {
+    // FÄLTET HETER canonicalPatientId PÅ ENGINE-POSTER, INTE patientId.
+    //
+    // normalizeBookingRecord (ccoBookingEngineStore.js:911) tar emot bådadera
+    // men LAGRAR under `canonicalPatientId`; `patientId` finns inte på posten.
+    // Grenen läste därför alltid undefined och föll igenom till e-post — den
+    // canonical-patient som create/confirm-flödet bevisligen verifierade
+    // (ccoBookingEngine.js:1002) kastades bort vid varje kortbygge.
+    //
+    // Följden var tyst: en bokning vars kund har en annan e-post än den
+    // registrerade försvann helt från kundkortet, trots korrekt patientkoppling.
+    const canonicalPatientId = normalizeText(booking.canonicalPatientId);
     const patientId =
-      (lookup.patientIds?.has(normalizeText(booking.patientId)) &&
-        normalizeText(booking.patientId)) ||
+      (lookup.patientIds?.has(canonicalPatientId) && canonicalPatientId) ||
       emailToPatient.get(normalizeEmail(booking.customerEmail));
     if (!patientId) continue;
     const slot = asObject(booking.slot);
@@ -1045,8 +1055,15 @@ function buildBookingSignalsIndex({
   }
 
   for (const booking of asArray(engineBookings)) {
-    const email = normalizeKey(booking.customerEmail);
-    const patientId = emailToPatient.get(email);
+    // Samma brygga som i collectBookingReadouts ovan. Signalindexet hade ingen
+    // canonical-gren alls, bara e-post — så en bokning kunde synas i readouts
+    // men saknas i signalerna, vilket är ett sämre läge än att båda saknar den.
+    // Valideras mot lookup.patientIds eftersom getOrCreate skapar en post för
+    // vilket id som helst och annars skulle hitta på en patient.
+    const canonicalPatientId = normalizeText(booking.canonicalPatientId);
+    const patientId =
+      (lookup.patientIds?.has(canonicalPatientId) && canonicalPatientId) ||
+      emailToPatient.get(normalizeKey(booking.customerEmail));
     if (!patientId) continue;
     const sig = getOrCreate(index, patientId);
     if (!sig) continue;
