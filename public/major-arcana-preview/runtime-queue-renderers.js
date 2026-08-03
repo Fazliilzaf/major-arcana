@@ -138,7 +138,21 @@
     return `/api/v1/cco/runtime/worklist/consumer?${params.toString()}`;
   }
 
+  // In-flight-spärr. Varje anrop är en kall shard-läsning på servern
+  // (cco.worklist.consumer.cold_timing, dataReadMs upp till 1,6 s), och med
+  // maxLoadedShards=2 mot åtta brevlådor blir samtidiga anrop shard-thrash.
+  // Utan spärren observerades samma fråga 43 gånger på tio sekunder.
+  let __worklistFetchInflight = null;
+
   async function __fetchWorklistAndBuildMap() {
+    if (__worklistFetchInflight) return __worklistFetchInflight;
+    __worklistFetchInflight = __fetchWorklistAndBuildMapInternal().finally(() => {
+      __worklistFetchInflight = null;
+    });
+    return __worklistFetchInflight;
+  }
+
+  async function __fetchWorklistAndBuildMapInternal() {
     try {
       const token = localStorage.getItem("ARCANA_ADMIN_TOKEN") || "";
       if (!token) return false;
@@ -259,14 +273,24 @@
   // Bootstrap: en gång vid load + lågfrekvent re-fetch (var 60s) för att fånga
   // nya trådar. Tidigare 1500ms-pollingen är borta — scan körs istället
   // direkt efter render (se renderQueueHistoryList / renderQueueInlineLaneList).
+  // Modulen ligger i BÅDE app.bundle och app.bundle.staff-core. En vy som
+  // laddar båda evaluerade den här IIFE:n två gånger och registrerade två
+  // intervall — och ingenting avregistrerade dem, för filen hade noll
+  // clearInterval. Flaggan sitter på window så den överlever att modulen
+  // körs igen i samma dokument.
+  const __BOOTSTRAP_FLAG = "__arcanaCustomerNameResolverBootstrapped";
   (async function bootstrapCustomerNameResolver() {
+    if (typeof window === "undefined") return;
+    if (window[__BOOTSTRAP_FLAG]) return;
+    window[__BOOTSTRAP_FLAG] = true;
+
     try {
       await __fetchWorklistAndBuildMap();
     } catch (_e) {}
     try {
       __scanAndFixUnknownSenders();
     } catch (_e) {}
-    setInterval(async () => {
+    const intervalId = setInterval(async () => {
       try {
         await __fetchWorklistAndBuildMap();
         // Rensa fixed-flag så nästa render-scan tar med ev. nya trådar
@@ -276,6 +300,10 @@
         __scanAndFixUnknownSenders();
       } catch (_e) {}
     }, 60000);
+    window.addEventListener("pagehide", () => {
+      clearInterval(intervalId);
+      window[__BOOTSTRAP_FLAG] = false;
+    });
   })();
 
   // Seed-funktion för demo-data (eller andra externa källor) som vill registrera
@@ -1125,7 +1153,20 @@
     }
   }
 
+  // Samma in-flight-spärr som __fetchWorklistAndBuildMap. Den här pollaren
+  // träffar samma endpoint, fast med alla åtta brevlådor i en fråga — en
+  // ännu tyngre kall läsning.
+  let __mailboxCountsInflight = null;
+
   async function __fetchMailboxCounts() {
+    if (__mailboxCountsInflight) return __mailboxCountsInflight;
+    __mailboxCountsInflight = __fetchMailboxCountsInternal().finally(() => {
+      __mailboxCountsInflight = null;
+    });
+    return __mailboxCountsInflight;
+  }
+
+  async function __fetchMailboxCountsInternal() {
     try {
       const token = localStorage.getItem("ARCANA_ADMIN_TOKEN") || "";
       if (!token) return;
@@ -1191,17 +1232,31 @@
 
   // Bootstrap: en gång + lågfrekvent re-fetch + MutationObserver för att fånga
   // när dropdown öppnas (nya checkbox-labels mountas).
+  const __MAILBOX_COUNTS_FLAG = "__arcanaMailboxCountsBootstrapped";
   (async function bootstrapMailboxCounts() {
+    // Andra pollaren i samma fil, samma problem som ovan: modulnivå-IIFE utan
+    // spärr, intervall som aldrig avregistrerades, och en MutationObserver som
+    // aldrig kopplades bort. Två bundles gav alltså fyra pollare totalt.
+    if (typeof window === "undefined") return;
+    if (window[__MAILBOX_COUNTS_FLAG]) return;
+    window[__MAILBOX_COUNTS_FLAG] = true;
+
     try {
       await __fetchMailboxCounts();
       __applyMailboxCountsToDom();
     } catch (_e) {}
-    setInterval(async () => {
+    const intervalId = setInterval(async () => {
       try {
         await __fetchMailboxCounts();
         __applyMailboxCountsToDom();
       } catch (_e) {}
     }, 60000);
+    let activeObserver = null;
+    window.addEventListener("pagehide", () => {
+      clearInterval(intervalId);
+      if (activeObserver) activeObserver.disconnect();
+      window[__MAILBOX_COUNTS_FLAG] = false;
+    });
 
     if (typeof document !== "undefined") {
       const start = () => {
@@ -1221,6 +1276,7 @@
           }
         });
         observer.observe(document.body, { childList: true, subtree: true });
+        activeObserver = observer;
       };
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", start);
