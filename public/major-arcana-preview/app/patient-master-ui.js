@@ -13051,8 +13051,64 @@
     return true;
   }
 
+  // TILLFÄLLIG INSTRUMENTERING — ingen beteendeändring, bara mätning.
+  //
+  // 2026-08-03 kl 04:22 gjordes 229 anrop till /api/v1/cco-commercial/patient-case
+  // med 229 UNIKA patientId på en minut, från en enda webbläsare, utan att någon
+  // satt vid tangenterna. Det motsvarar 229 skilda detaljladdningar. Samtliga 44
+  // anropsställen till loadPatientDetail tar en enskild patient från ett event
+  // eller en deep-link — inget itererar över en lista. Mekanismen går alltså inte
+  // ihop, och den går inte att reproducera lokalt: scratch-profilen saknar
+  // patientdata.
+  //
+  // Den här ringbufferten fångar nästa riktiga förekomst. Den är medvetet
+  // begränsad till MAX — instrumentering som mäter en minnesbugg får inte själv
+  // hålla kvar data.
+  const PATIENT_DETAIL_TRACE_MAX = 200;
+  const PATIENT_DETAIL_BURST_THRESHOLD = 20;
+  const PATIENT_DETAIL_BURST_WINDOW_MS = 60000;
+  const PATIENT_DETAIL_WARN_COOLDOWN_MS = 30000;
+  let patientDetailLastWarnAt = 0;
+
+  function tracePatientDetailCall(patientId) {
+    if (typeof window === 'undefined') return;
+    const now = Date.now();
+    const trace = (window.__ccoPatientDetailTrace = window.__ccoPatientDetailTrace || []);
+    // Första ramen utanför den här funktionen = den faktiska anroparen.
+    const caller = String(new Error().stack || '')
+      .split('\n')
+      .slice(2, 5)
+      .map((line) => line.trim())
+      .join(' | ');
+    trace.push({ at: now, patientId, caller });
+    if (trace.length > PATIENT_DETAIL_TRACE_MAX) {
+      trace.splice(0, trace.length - PATIENT_DETAIL_TRACE_MAX);
+    }
+
+    const recent = trace.filter((entry) => now - entry.at <= PATIENT_DETAIL_BURST_WINDOW_MS);
+    if (recent.length < PATIENT_DETAIL_BURST_THRESHOLD) return;
+    if (now - patientDetailLastWarnAt < PATIENT_DETAIL_WARN_COOLDOWN_MS) return;
+    patientDetailLastWarnAt = now;
+    const callerCounts = {};
+    recent.forEach((entry) => {
+      callerCounts[entry.caller] = (callerCounts[entry.caller] || 0) + 1;
+    });
+    console.warn(
+      '[cco.patient_detail.burst] ' +
+        JSON.stringify({
+          antalSenasteMinuten: recent.length,
+          unikaPatienter: new Set(recent.map((entry) => entry.patientId)).size,
+          anropare: Object.entries(callerCounts)
+            .sort((left, right) => right[1] - left[1])
+            .slice(0, 3),
+          las: 'window.__ccoPatientDetailTrace',
+        })
+    );
+  }
+
   async function loadPatientDetail(patientId) {
     if (!patientId || runtime.mode !== 'register') return;
+    tracePatientDetailCall(patientId);
     const key = normalizeText(patientId);
     const visitRoomState = captureOpenV12VisitRoomState();
     syncSelectedPatientDeepLink(key);
