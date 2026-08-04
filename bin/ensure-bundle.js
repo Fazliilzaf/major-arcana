@@ -75,18 +75,16 @@ function main() {
     rebuild();
     return;
   }
-  // Validera BÅDE latest.json:s filer OCH de index.html faktiskt refererar. Det
-  // senare är avgörande: pekar index.html på en gammal/saknad hash (t.ex. efter
-  // build:bundle utan inject, eller en stale committad hash) 404:ar appen och
-  // visar scaffold — även om latest.json-filerna finns.
-  const referenced = referencedBundleFiles();
-  const toCheck = [...new Set([...expected, ...referenced])];
+  // Validera enbart filerna som app.bundle.latest.json pekar på. Att även
+  // scanna index.html efter gamla fallback-referenser triggar onödiga rebuilds
+  // varje gång prestart körs (t.ex. gamla fallback-URL:er i arcanaPreloadBundle).
+  const toCheck = expected;
   const missing = toCheck.filter((f) => !fs.existsSync(path.join(PREVIEW_DIR, f)));
   if (missing.length === 0) {
     return;
   }
   console.log(
-    `[ensure-bundle] ${missing.length} refererad(e) bundle-fil(er) saknas: ${missing.join(', ')} — bygger + injectar om.`
+    `[ensure-bundle] ${missing.length} bundle-fil(er) saknas: ${missing.join(', ')} — bygger + injectar om.`
   );
   rebuild();
 }
