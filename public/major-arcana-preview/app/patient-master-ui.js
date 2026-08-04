@@ -7001,6 +7001,10 @@
       patient,
       tab,
       lite,
+      // Samma wiring-glapp som railCtx hade på :6880. Den här ctx:en går till
+      // CcoV12Canon och CcoV12Workspace, och utan commercialCase kan deras
+      // offert-block aldrig visa något annat än "Inga offerter ännu".
+      commercialCase: runtime.commercialCase || null,
     };
     // Stora kundvyn = CONTENT-CANON (13 sektioner, identisk med facit
     // V12-WORKSPACE-CONTENT-CANON). Sektionsklick i lilla railen → scrollar till

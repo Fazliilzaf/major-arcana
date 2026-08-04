@@ -1580,8 +1580,15 @@
     try {
       if (global.CcoV11RailAdapters) {
         if (typeof global.CcoV11RailAdapters.buildOffersFromPayload === 'function') {
+          // Tredje argumentet: offert-ärendet kommer på ctx, inte i bundeln.
+          // Utan det kan blocket aldrig visa något annat än "Inga offerter
+          // ännu" — se buildOfferRowFromCommercialCase i adaptern.
           offers =
-            global.CcoV11RailAdapters.buildOffersFromPayload(ctx.card, ctx.dossierBundle) || offers;
+            global.CcoV11RailAdapters.buildOffersFromPayload(
+              ctx.card,
+              ctx.dossierBundle,
+              ctx.commercialCase
+            ) || offers;
         }
         if (typeof global.CcoV11RailAdapters.buildAutoDocsFromPayload === 'function') {
           autoDocs =
