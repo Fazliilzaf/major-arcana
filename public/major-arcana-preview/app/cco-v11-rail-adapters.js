@@ -1216,7 +1216,35 @@
    *
    * @returns {{items:Array, count:number}}
    */
-  function buildOffersFromPayload(card, dossierBundle) {
+  /**
+   * `commercialCase` är ETT ärende, inte en lista — `normalizeCommercialCase`
+   * (`ccoCommercialStore.js:494`) ger ett platt objekt med `quoteStatus`,
+   * `quotedAmount`, `esignToken`. Det finns inget `.offers`-fält att läsa.
+   *
+   * Utan den här grenen visar v12-arbetsytan alltid "Inga offerter ännu", även
+   * för en patient med en skickad och accepterad offert. Exakt samma blindfläck
+   * som rättades i rk-railen (`cco-v11-rk.js:611`).
+   *
+   * Raden byggs med de fältnamn `normalizeOffer` redan läser — ingen ny markup
+   * och ingen ny CSS. `statusLabel` sätts medvetet INTE här, så att den
+   * befintliga `OFFER_STATUS_LABELS`-mappningen får ge "Skickad" i stället för
+   * det råa "sent".
+   */
+  function buildOfferRowFromCommercialCase(commercialCase) {
+    if (!commercialCase) return null;
+    var status = text(commercialCase.quoteStatus);
+    var amount = text(commercialCase.quotedAmount);
+    // Utan status eller belopp finns ingenting att visa — syntetisera inte en
+    // tom rad bara för att ärendet existerar.
+    if (!status && !amount) return null;
+    return {
+      title: text(commercialCase.offerType) || 'Offert',
+      amount: amount,
+      status: status,
+    };
+  }
+
+  function buildOffersFromPayload(card, dossierBundle, commercialCase) {
     card = card || {};
     var rows = [];
     var parity = global.CcoV9CustomersParity;
@@ -1233,6 +1261,14 @@
       if (docs) rows = toArray(docs.offers || docs.offerter);
     }
     if (!rows.length) rows = toArray(card.offers);
+    // En äkta offertlista vinner alltid. Först när ingen sådan finns faller vi
+    // tillbaka på det enskilda ärendet.
+    if (!rows.length) {
+      var synthesized = buildOfferRowFromCommercialCase(
+        commercialCase || (dossierBundle && dossierBundle.commercialCase)
+      );
+      if (synthesized) rows = [synthesized];
+    }
 
     var items = rows
       .map(normalizeOffer)
@@ -1938,6 +1974,7 @@
     buildHistoryFromExtras: buildHistoryFromExtras,
     buildJournalsFromEntries: buildJournalsFromEntries,
     buildOffersFromPayload: buildOffersFromPayload,
+    buildOfferRowFromCommercialCase: buildOfferRowFromCommercialCase,
     buildAutoDocsFromPayload: buildAutoDocsFromPayload,
     buildPhotosFromDriveFiles: buildPhotosFromDriveFiles,
     buildFilesFromDriveFiles: buildFilesFromDriveFiles,
