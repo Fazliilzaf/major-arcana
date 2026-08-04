@@ -187,7 +187,10 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
   const hdExpected =
     hasAuthoritativeBooking && (hasConsultationBooking || hasTreatmentBooking) && !nonAttendedOnly;
   const ffExpected = hasHairTransplant && !nonAttendedOnly;
-  const offerExpected = hasTreatmentBooking && !nonAttendedOnly;
+  // Offerten skapas efter en genomford konsultation, inte forst nar en
+  // behandling redan ar bokad. En behandlingsbokning ar fortfarande ett
+  // starkt sekundart tecken pa att offertsteget ska finnas.
+  const offerExpected = (hasAttendedConsultation || hasTreatmentBooking) && !nonAttendedOnly;
   const agreementExpected = hasHairTransplantBooking && !nonAttendedOnly;
   const requirements = {
     healthDeclaration: requirement(
@@ -211,7 +214,11 @@ function auditPatientJourney({ patient, bookings = [], assets = [] } = {}) {
     offer: requirement(
       offerExpected,
       evidence.offer,
-      offerExpected ? 'cliento_treatment_booking' : 'no_treatment_progression'
+      offerExpected
+        ? hasAttendedConsultation
+          ? 'attended_cliento_consultation'
+          : 'cliento_treatment_booking'
+        : 'no_consultation_or_treatment_progression'
     ),
     agreement: requirement(
       agreementExpected,

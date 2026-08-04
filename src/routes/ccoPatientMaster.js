@@ -112,6 +112,71 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function normalizeKey(value) {
+  return normalizeText(value).toLowerCase();
+}
+
+function isCompletedClientoBooking(booking) {
+  return ['completed', 'show', 'klar'].includes(normalizeKey(booking?.status));
+}
+
+function isConsultationBooking(booking) {
+  return /konsult|consult/.test(normalizeKey(booking?.serviceLabel));
+}
+
+function isOfferDeal(deal) {
+  return /offert|behandlingsplan|quote/.test(
+    [deal?.stage, deal?.title, deal?.name, deal?.pipelineStage]
+      .map(normalizeKey)
+      .filter(Boolean)
+      .join(' ')
+  );
+}
+
+/**
+ * Kallbevis for kundresan. Har finns bara uppgifter som redan ligger i
+ * Cliento- eller Pipedrive-importen; ett saknat bevis blir aldrig "klart".
+ */
+function buildJourneySourceEvidence({ patient, bookings = [] } = {}) {
+  const completedConsultation = asArray(bookings)
+    .filter(
+      (booking) =>
+        isCompletedClientoBooking(booking) &&
+        isConsultationBooking(booking) &&
+        normalizeKey(booking?.source) !== 'cliento_web_mail'
+    )
+    .sort((a, b) => Date.parse(b?.startsAt || '') - Date.parse(a?.startsAt || ''))[0];
+  const offerDeal = asArray(patient?.pipedrive?.deals)
+    .filter(isOfferDeal)
+    .sort((a, b) => Date.parse(b?.updatedAt || b?.createdAt || '') - Date.parse(a?.updatedAt || a?.createdAt || ''))[0];
+
+  return {
+    booking: completedConsultation
+      ? {
+          source: normalizeText(completedConsultation.source) || 'cliento',
+          bookingId: normalizeText(completedConsultation.bookingId) || null,
+          occurredAt: normalizeText(completedConsultation.startsAt) || null,
+          status: normalizeText(completedConsultation.status) || null,
+          serviceLabel: normalizeText(completedConsultation.serviceLabel) || null,
+          notes: normalizeText(completedConsultation.notes) || null,
+        }
+      : null,
+    offer: offerDeal
+      ? {
+          source: 'pipedrive',
+          dealId: normalizeText(offerDeal.dealId || offerDeal.id) || null,
+          stage: normalizeText(offerDeal.stage) || null,
+          value: offerDeal.value ?? null,
+          currency: normalizeText(offerDeal.currency) || null,
+          occurredAt: normalizeText(offerDeal.updatedAt || offerDeal.createdAt) || null,
+        }
+      : null,
+    // Satt till null tills en faktisk, unik Microsoft-post ar länkad till kunden.
+    // En Cliento-notis till kliniken ar inte bevis for att kunden fick mailet.
+    bookingConfirmation: null,
+  };
+}
+
 async function buildEncounterAssetAliasesByCanonicalPatient({
   tenantId,
   patientMasterStore,
@@ -1193,6 +1258,21 @@ function createCcoPatientMasterRouter({
       card = enrichPatientCardPreTreatmentForms(card, patient, null);
     }
 
+    const journeyEvidence = buildJourneySourceEvidence({
+      patient,
+      bookings: bookingContext.historyBookings,
+    });
+    card = {
+      ...card,
+      journeyEvidence,
+      // Pipedrive-steg "Offert" ar ett faktiskt affarsspar, inte en gissning
+      // fran ett filnamn. Det gor steg 5 synligt medan dokumentlanken fortsatt
+      // endast visas nar en intern CCO-fil ar verifierad.
+      ...(journeyEvidence.offer && !normalizeText(card.treatmentPlanStatus)
+        ? { treatmentPlanStatus: 'sent', missingTreatmentPlan: false }
+        : {}),
+    };
+
     try {
       const fasAMap = await loadFasAContextForPatients({
         config,
@@ -1211,6 +1291,7 @@ function createCcoPatientMasterRouter({
     return {
       patient: hydratePatientHealthProjection(patient),
       card,
+      journeyEvidence,
       activeVisit: buildActiveVisitPayload({
         card,
         bookingContext,
@@ -3729,6 +3810,7 @@ function createCcoPatientMasterRouter({
 }
 
 module.exports = {
+  buildJourneySourceEvidence,
   createCcoPatientMasterRouter,
   repairFilenamesBatch,
   resolveRepairScopeFiles,
