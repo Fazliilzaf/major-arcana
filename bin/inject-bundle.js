@@ -57,11 +57,10 @@ function buildBundleUrlsBlock(latestInfo) {
     staffCore: latestInfo.staffCore ? `./${latestInfo.staffCore.filename}` : null,
     staffDeferred: latestInfo.staffDeferred ? `./${latestInfo.staffDeferred.filename}` : null,
   };
-  const buildCommit = String(latestInfo.buildCommit || '').trim();
-  const identity = buildCommit
-    ? `\n    <meta name="arcana-preview-build" content="${buildCommit}" />`
-    : '';
-  return `\n    <!-- ARCANA bundle URLs (content-hash: ${latestInfo.hash}) -->${identity}\n    <script>window.__ARCANA_BUNDLE_URLS__=${JSON.stringify(urls)};</script>\n    `;
+  return `
+    <!-- ARCANA bundle URLs (content-hash: ${latestInfo.hash}) -->
+    <script>window.__ARCANA_BUNDLE_URLS__=${JSON.stringify(urls)};</script>
+    `;
 }
 
 function buildBundlePreloadScript(latestInfo) {
