@@ -49,6 +49,36 @@ function normalizeText(v) {
   return typeof v === 'string' ? v.trim().normalize('NFC') : '';
 }
 
+/**
+ * Reparera dubbelkodade filnamn från Drive.
+ *
+ * UTF-8-byten för "ä" (C3 A4) har tolkats som Latin-1 och blivit "Ã¤". I
+ * Drive-indexet bär 753 hälsodeklarationer och 697 friskförsäkringar den
+ * formen — 56 % respektive 63 % av alla sådana dokument. FORM_PATTERNS
+ * matchar dem inte: `/h[aä]lsodekl/i` kan omöjligt träffa "HÃ¤lsodekl",
+ * eftersom "Ã" varken är "a" eller "ä". Dokumenten klassificerades därför
+ * som `other` och blev aldrig hälsodeklarationer i kundkortet.
+ *
+ * Reparationen körs BARA när strängen faktiskt ser dubbelkodad ut och
+ * avkodningen ger ett rent resultat. Ett korrekt kodat namn skulle annars
+ * förstöras: "ä" är U+00E4, som ryms i Latin-1 men inte är giltig UTF-8
+ * ensam.
+ */
+const MOJIBAKE_SIGNATURE = /[ÂÃ][-¿]/;
+
+function repairMojibake(value) {
+  const text = typeof value === 'string' ? value : '';
+  if (!text || !MOJIBAKE_SIGNATURE.test(text)) return text;
+  try {
+    const repaired = Buffer.from(text, 'latin1').toString('utf8');
+    // U+FFFD betyder att avkodningen misslyckades — behåll originalet.
+    if (!repaired || repaired.includes('�')) return text;
+    return repaired;
+  } catch (_error) {
+    return text;
+  }
+}
+
 function parseJournalFilename(fileName) {
   const base = normalizeText(fileName);
   const m = base.match(/^journal-([^-]+)-/i);
@@ -113,8 +143,8 @@ function categoryFromMime(mimeType, fileName) {
  * @returns {{ category, subCategory, documentTitle, treatmentType, confidence, signals }}
  */
 function classifyDocument(asset = {}) {
-  const fileName = normalizeText(asset.originalFileName);
-  const folder = normalizeText(asset.originalDrivePath);
+  const fileName = repairMojibake(normalizeText(asset.originalFileName));
+  const folder = repairMojibake(normalizeText(asset.originalDrivePath));
   const haystack = `${fileName} ${folder}`;
   const existingCategory = normalizeText(asset.category);
   const signals = [];
@@ -238,6 +268,7 @@ module.exports = {
   detectTreatment,
   detectFormTitle,
   parseJournalFilename,
+  repairMojibake,
   FORM_PATTERNS,
   TREATMENT_PATTERNS,
 };
