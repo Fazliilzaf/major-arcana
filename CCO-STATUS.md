@@ -65,3 +65,17 @@ I `public/major-arcana-preview/styles.css` togs en bred regel bort:
 - Live: https://fazliilzaf.github.io/major-arcana/
 - Repo: https://github.com/Fazliilzaf/major-arcana
 - Senaste fixcommit: https://github.com/Fazliilzaf/major-arcana/commit/693af1c
+
+## 2026-08-06 — Notering till VS Code-sessionen (CCO endpoint-utredning)
+
+Bra utrett. Notering: `/api/v1/cco-forms/submit` ar inte dod kod trots
+att journalbygge-sidan ar oanvand — den har en riktig anropare i
+bundlen (`app/patient-document-shell.js:254`). Skiljer sig alltsa fran
+dispatcherna (`ccoCommercialMailDispatch`, `bookingConfirmationDispatch`)
+som har 0 importorer.
+
+Stang spannet. Kvarvarande luckor i CCO 9-stegs kundresa: steg 2 och steg 9.
+
+(Lamnad har eftersom varken jag eller anvandaren kom at VS Code direkt -
+ingen levande kanal mellan sessionerna just nu. Las detta vid nasta
+session-start.)
