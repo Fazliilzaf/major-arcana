@@ -10853,6 +10853,9 @@
     if (typeof window.initCmoAnalyticsPanel === 'function') {
       window.initCmoAnalyticsPanel(getToken);
     }
+    if (typeof window.initCmoWeeklyReportsPanel === 'function') {
+      window.initCmoWeeklyReportsPanel(getToken);
+    }
 
     var cfoBtn = document.getElementById('runCfoAgentBtn');
     var cfoStatus = document.getElementById('cfoRunStatus');

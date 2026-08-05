@@ -36,6 +36,9 @@ const RENDER_RUNTIME_DEFAULTS = Object.freeze({
   ARCANA_MARKETING_GOOGLE_ADS_ENABLED: 'true',
   ARCANA_MARKETING_META_ENABLED: 'true',
   ARCANA_MARKETING_LINKEDIN_ENABLED: 'true',
+  ARCANA_MARKETING_GSC_ENABLED: 'false',
+  ARCANA_MARKETING_GSC_MODE: 'fixture',
+  ARCANA_MARKETING_GSC_LIVE_FETCH: 'false',
 });
 
 function isRenderRuntime() {
@@ -677,6 +680,11 @@ const config = {
     stateRoot,
     fileName: 'marketing-content-assets.json',
   }),
+  marketingWeeklyReportsPath: resolveStatePath({
+    explicitPath: process.env.ARCANA_MARKETING_WEEKLY_REPORTS_PATH,
+    stateRoot,
+    fileName: 'marketing-weekly-reports.json',
+  }),
   marketingConnectorsEnabled: asBool(process.env.ARCANA_MARKETING_CONNECTORS_ENABLED, true),
   marketingConnectorsMode: asNonEmptyString(process.env.ARCANA_MARKETING_CONNECTORS_MODE, 'live'),
   marketingConnectorsLiveFetch: asBool(process.env.ARCANA_MARKETING_CONNECTORS_LIVE_FETCH, true),
@@ -752,6 +760,16 @@ const config = {
       mode: asNonEmptyString(process.env.ARCANA_MARKETING_MAIL_MODE),
       liveFetch: asBool(process.env.ARCANA_MARKETING_MAIL_LIVE_FETCH, false),
       fixtureId: asNonEmptyString(process.env.ARCANA_MARKETING_MAIL_FIXTURE_ID, 'mail'),
+    },
+    gsc: {
+      enabled: asBool(process.env.ARCANA_MARKETING_GSC_ENABLED, false),
+      accessToken: asNonEmptyString(process.env.ARCANA_MARKETING_GSC_ACCESS_TOKEN),
+      siteUrl: asNonEmptyString(process.env.ARCANA_MARKETING_GSC_SITE_URL),
+      apiBaseUrl: asNonEmptyString(process.env.ARCANA_MARKETING_GSC_API_BASE_URL),
+      metricsPath: asNonEmptyString(process.env.ARCANA_MARKETING_GSC_METRICS_PATH, '/metrics'),
+      mode: asNonEmptyString(process.env.ARCANA_MARKETING_GSC_MODE),
+      liveFetch: asBool(process.env.ARCANA_MARKETING_GSC_LIVE_FETCH, false),
+      fixtureId: asNonEmptyString(process.env.ARCANA_MARKETING_GSC_FIXTURE_ID, 'gsc'),
     },
   },
   sloTicketStorePath: resolveStatePath({

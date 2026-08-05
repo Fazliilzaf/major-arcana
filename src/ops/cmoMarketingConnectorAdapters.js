@@ -1,5 +1,7 @@
 'use strict';
 
+const { canFetchGsc, fetchGscMetrics } = require('./cmoGscAdapter');
+
 const GOOGLE_ADS_API_VERSION = 'v18';
 const META_GRAPH_VERSION = 'v21.0';
 const LINKEDIN_API_VERSION = '202405';
@@ -120,23 +122,29 @@ async function fetchWithTimeout(url, options = {}, fetchImpl = globalThis.fetch)
 function canFetchGoogleAds(connector = {}) {
   return Boolean(
     normalizeText(connector.customerId || connector.accountId) &&
-      normalizeText(connector.accessToken) &&
-      normalizeText(connector.developerToken || connector.apiKey)
+    normalizeText(connector.accessToken) &&
+    normalizeText(connector.developerToken || connector.apiKey)
   );
 }
 
 function canFetchMeta(connector = {}) {
-  return Boolean(normalizeText(connector.adAccountId || connector.accountId) && normalizeText(connector.accessToken));
+  return Boolean(
+    normalizeText(connector.adAccountId || connector.accountId) &&
+    normalizeText(connector.accessToken)
+  );
 }
 
 function canFetchLinkedIn(connector = {}) {
-  return Boolean(normalizeText(connector.adAccountId || connector.accountId) && normalizeText(connector.accessToken));
+  return Boolean(
+    normalizeText(connector.adAccountId || connector.accountId) &&
+    normalizeText(connector.accessToken)
+  );
 }
 
 function canFetchMail(connector = {}) {
   return Boolean(
     normalizeText(connector.apiBaseUrl) &&
-      (normalizeText(connector.accessToken) || normalizeText(connector.apiKey))
+    (normalizeText(connector.accessToken) || normalizeText(connector.apiKey))
   );
 }
 
@@ -146,6 +154,7 @@ function resolveLiveAdapter(channel = '', connector = {}) {
   if (normalizedChannel === 'meta' && canFetchMeta(connector)) return 'meta';
   if (normalizedChannel === 'linkedin' && canFetchLinkedIn(connector)) return 'linkedin';
   if (normalizedChannel === 'mail' && canFetchMail(connector)) return 'mail';
+  if (normalizedChannel === 'gsc' && canFetchGsc(connector)) return 'gsc';
   return null;
 }
 
@@ -171,7 +180,11 @@ function aggregateGoogleAdsRows(rows = []) {
   });
 }
 
-async function fetchGoogleAdsMetrics({ connector = {}, window = '7d', fetchImpl = globalThis.fetch } = {}) {
+async function fetchGoogleAdsMetrics({
+  connector = {},
+  window = '7d',
+  fetchImpl = globalThis.fetch,
+} = {}) {
   const customerId = normalizeText(connector.customerId || connector.accountId).replace(/-/g, '');
   const accessToken = normalizeText(connector.accessToken);
   const developerToken = normalizeText(connector.developerToken || connector.apiKey);
@@ -214,9 +227,7 @@ async function fetchGoogleAdsMetrics({ connector = {}, window = '7d', fetchImpl 
 }
 
 function normalizeMetaInsightsRow(row = {}) {
-  const leads = asArray(row.actions).find((item) =>
-    /lead/i.test(normalizeText(item.action_type))
-  );
+  const leads = asArray(row.actions).find((item) => /lead/i.test(normalizeText(item.action_type)));
   return buildNormalizedMetrics({
     impressions: row.impressions,
     clicks: row.clicks,
@@ -227,8 +238,15 @@ function normalizeMetaInsightsRow(row = {}) {
   });
 }
 
-async function fetchMetaMetrics({ connector = {}, window = '7d', fetchImpl = globalThis.fetch } = {}) {
-  const adAccountId = normalizeText(connector.adAccountId || connector.accountId).replace(/^act_/, '');
+async function fetchMetaMetrics({
+  connector = {},
+  window = '7d',
+  fetchImpl = globalThis.fetch,
+} = {}) {
+  const adAccountId = normalizeText(connector.adAccountId || connector.accountId).replace(
+    /^act_/,
+    ''
+  );
   const accessToken = normalizeText(connector.accessToken);
   const graphVersion = normalizeText(connector.apiVersion) || META_GRAPH_VERSION;
   const datePreset = windowToMetaDatePreset(window);
@@ -240,7 +258,11 @@ async function fetchMetaMetrics({ connector = {}, window = '7d', fetchImpl = glo
   url.searchParams.set('date_preset', datePreset);
   url.searchParams.set('access_token', accessToken);
 
-  const response = await fetchWithTimeout(url.toString(), { timeoutMs: connector.timeoutMs }, fetchImpl);
+  const response = await fetchWithTimeout(
+    url.toString(),
+    { timeoutMs: connector.timeoutMs },
+    fetchImpl
+  );
   const body = await readJsonResponse(response);
   const row = asArray(body.data)[0];
   if (!row) throw new Error('Meta insights response saknar data.');
@@ -268,7 +290,11 @@ function buildLinkedInDateRange(window = '7d') {
   return `(start:${part(start)},end:${part(end)})`;
 }
 
-async function fetchLinkedInMetrics({ connector = {}, window = '7d', fetchImpl = globalThis.fetch } = {}) {
+async function fetchLinkedInMetrics({
+  connector = {},
+  window = '7d',
+  fetchImpl = globalThis.fetch,
+} = {}) {
   const accountUrn = resolveLinkedInAccountUrn(connector);
   const accessToken = normalizeText(connector.accessToken);
   const linkedInVersion = normalizeText(connector.apiVersion) || LINKEDIN_API_VERSION;
@@ -312,7 +338,11 @@ async function fetchLinkedInMetrics({ connector = {}, window = '7d', fetchImpl =
   return normalized;
 }
 
-async function fetchMailMetrics({ connector = {}, window = '7d', fetchImpl = globalThis.fetch } = {}) {
+async function fetchMailMetrics({
+  connector = {},
+  window = '7d',
+  fetchImpl = globalThis.fetch,
+} = {}) {
   const apiBaseUrl = normalizeText(connector.apiBaseUrl);
   const metricsPath = normalizeText(connector.metricsPath) || '/metrics';
   const url = new URL(metricsPath, apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`);
@@ -324,7 +354,11 @@ async function fetchMailMetrics({ connector = {}, window = '7d', fetchImpl = glo
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   else if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
-  const response = await fetchWithTimeout(url.toString(), { headers, timeoutMs: connector.timeoutMs }, fetchImpl);
+  const response = await fetchWithTimeout(
+    url.toString(),
+    { headers, timeoutMs: connector.timeoutMs },
+    fetchImpl
+  );
   const body = await readJsonResponse(response);
   const metricsSource = asObject(body.metrics || body.kpis || body);
   const normalized = buildNormalizedMetrics({
@@ -362,6 +396,9 @@ async function fetchLiveMetricsViaAdapter({
   if (adapter === 'mail') {
     return fetchMailMetrics({ connector, window, fetchImpl });
   }
+  if (adapter === 'gsc') {
+    return fetchGscMetrics({ connector, window, fetchImpl });
+  }
   return null;
 }
 
@@ -381,4 +418,6 @@ module.exports = {
   canFetchLinkedIn,
   canFetchMail,
   fetchMailMetrics,
+  canFetchGsc,
+  fetchGscMetrics,
 };

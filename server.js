@@ -11683,6 +11683,7 @@ const { createMarketingWorkspaceRouter } = require('./src/routes/marketingWorksp
 const { createMarketingCampaignDraftsStore } = require('./src/ops/marketingCampaignDraftsStore');
 const { createMarketingContentAssetsStore } = require('./src/ops/marketingContentAssetsStore');
 const { createMarketingClaimsWhitelistStore } = require('./src/ops/marketingClaimsWhitelistStore');
+const { createMarketingWeeklyReportsStore } = require('./src/ops/marketingWeeklyReportsStore');
 const { createReportsRouter } = require('./src/routes/reports');
 const { createMonitorRouter } = require('./src/routes/monitor');
 const { createOpsRouter } = require('./src/routes/ops');
@@ -13199,6 +13200,9 @@ process.once('SIGTERM', () => {
   const marketingClaimsWhitelistStore = await createMarketingClaimsWhitelistStore({
     filePath: config.marketingClaimsWhitelistPath,
   });
+  const marketingWeeklyReportsStore = await createMarketingWeeklyReportsStore({
+    filePath: config.marketingWeeklyReportsPath,
+  });
   const connectorHealthStateStore = createCmoConnectorHealthStateStore({
     filePath: config.marketingConnectorHealthStatePath,
     alertAfterMs: config.marketingConnectorAlertAfterMs,
@@ -13894,6 +13898,7 @@ process.once('SIGTERM', () => {
       marketingClaimsWhitelistStore,
       tenantConfigStore,
       connectorHealthStateStore,
+      marketingWeeklyReportsStore,
       config,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,

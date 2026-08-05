@@ -4507,6 +4507,15 @@
             >
               Connectors
             </button>
+            <button
+              type="button"
+              class="btn small"
+              data-cmo-tab="weekly-reports"
+              role="tab"
+              aria-selected="false"
+            >
+              Veckorapporter
+            </button>
           </div>
 
           <div data-cmo-tab-panel="strategi">
@@ -4796,6 +4805,48 @@
                 style="font-size: 12px; max-height: 360px; overflow: auto"
               >
                 Öppna fliken eller klicka Uppdatera för att hämta status.
+              </div>
+            </div>
+          </div>
+
+          <div data-cmo-tab-panel="weekly-reports" hidden>
+            <div class="seg" id="cmoWeeklyReportsPanel">
+              <h3>Veckorapporter</h3>
+              <div class="muted mini" style="margin-bottom: 10px">
+                Genererade rapporter från GSC, Google Ads, Meta och andra kanaler. Redigera
+                sammanfattning, utfört, planerat och blockerare innan du markerar som final.
+              </div>
+              <div
+                class="seg glass-toolbar"
+                style="flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center"
+              >
+                <button type="button" id="cmoWeeklyReportsGenerateBtn" class="btn small primary">
+                  Generera ny veckorapport
+                </button>
+                <button type="button" id="cmoWeeklyReportsBackBtn" class="btn small" hidden>
+                  ← Tillbaka till lista
+                </button>
+                <span id="cmoWeeklyReportsStatus" class="mini muted"></span>
+              </div>
+              <div
+                id="cmoWeeklyReportsList"
+                class="code-block"
+                style="font-size: 13px; max-height: 420px; overflow: auto"
+              >
+                Laddar...
+              </div>
+              <div id="cmoWeeklyReportsDetail" hidden>
+                <div
+                  class="seg glass-toolbar"
+                  style="flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center"
+                >
+                  <button type="button" id="cmoWeeklyReportsSaveBtn" class="btn small primary">
+                    Spara utkast
+                  </button>
+                  <button type="button" id="cmoWeeklyReportsFinalBtn" class="btn small">
+                    Markera final
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -5536,6 +5587,7 @@ const BOOKING_STATUSES = Object.freeze([
     <script src="/admin/cmo-content-assets.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/cmo-analytics.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/cmo-connectors.js?v=__ARCANA_UI_BUILD__"></script>
+    <script src="/admin/cmo-weekly-reports.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/executive-feed.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/cao-workspace.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/arcana-page-titles.js?v=__ARCANA_UI_BUILD__"></script>

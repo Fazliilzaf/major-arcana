@@ -15,6 +15,7 @@ function createMarketingWorkspaceRouter({
   marketingClaimsWhitelistStore = null,
   tenantConfigStore = null,
   connectorHealthStateStore = null,
+  marketingWeeklyReportsStore = null,
   config = null,
   requireAuth,
   requireRole,
@@ -191,7 +192,9 @@ function createMarketingWorkspaceRouter({
         }
         return res.json(result);
       } catch (error) {
-        return res.status(500).json({ error: error?.message || 'Kunde inte uppdatera kampanjutkast.' });
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte uppdatera kampanjutkast.' });
       }
     }
   );
@@ -320,9 +323,10 @@ function createMarketingWorkspaceRouter({
           PUBLISH_MODES,
         } = require('../ops/cmoPublishPolicy');
         const loadedConfig = config && typeof config === 'object' ? config : require('../config');
-        const appConfig = loadedConfig.config && typeof loadedConfig.config === 'object'
-          ? loadedConfig.config
-          : loadedConfig;
+        const appConfig =
+          loadedConfig.config && typeof loadedConfig.config === 'object'
+            ? loadedConfig.config
+            : loadedConfig;
         const policy = resolvePublishPolicyConfig(appConfig, {});
         return res.json({
           policy,
@@ -347,11 +351,15 @@ function createMarketingWorkspaceRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
       try {
-        const { listConnectorStatuses, resolveAppConfig } = require('../ops/cmoMarketingConnectors');
+        const {
+          listConnectorStatuses,
+          resolveAppConfig,
+        } = require('../ops/cmoMarketingConnectors');
         const loadedConfig = config && typeof config === 'object' ? config : require('../config');
         const appConfig = resolveAppConfig(loadedConfig);
         const window = normalizeText(req.query?.window) || '7d';
-        const forceRefresh = normalizeText(req.query?.force) === '1' || req.query?.forceRefresh === 'true';
+        const forceRefresh =
+          normalizeText(req.query?.force) === '1' || req.query?.forceRefresh === 'true';
         const tenantConfig =
           tenantConfigStore && typeof tenantConfigStore.getTenantConfig === 'function'
             ? await tenantConfigStore.getTenantConfig(req.auth.tenantId)
@@ -365,7 +373,10 @@ function createMarketingWorkspaceRouter({
         });
         const errorItems = items.filter((item) => item.status === 'error');
         let healthSummary = null;
-        if (connectorHealthStateStore && typeof connectorHealthStateStore.recordStatuses === 'function') {
+        if (
+          connectorHealthStateStore &&
+          typeof connectorHealthStateStore.recordStatuses === 'function'
+        ) {
           healthSummary = await connectorHealthStateStore.recordStatuses({
             tenantId: req.auth.tenantId,
             items,
@@ -387,7 +398,9 @@ function createMarketingWorkspaceRouter({
           forceRefresh,
         });
       } catch (error) {
-        return res.status(500).json({ error: error?.message || 'Kunde inte läsa connector-status.' });
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte läsa connector-status.' });
       }
     }
   );
@@ -407,7 +420,262 @@ function createMarketingWorkspaceRouter({
         const items = await marketingClaimsWhitelistStore.listClaims();
         return res.json({ items, summary: { total: items.length } });
       } catch (error) {
-        return res.status(500).json({ error: error?.message || 'Kunde inte läsa claims whitelist.' });
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte läsa claims whitelist.' });
+      }
+    }
+  );
+
+  router.get(
+    '/marketing/weekly-reports',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        if (
+          !marketingWeeklyReportsStore ||
+          typeof marketingWeeklyReportsStore.listReports !== 'function'
+        ) {
+          return res.status(503).json({ error: 'Marketing weekly reports store saknas.' });
+        }
+        const items = await marketingWeeklyReportsStore.listReports({
+          tenantId: req.auth.tenantId,
+          brand: normalizeText(req.query?.brand),
+          week: normalizeText(req.query?.week),
+          status: normalizeText(req.query?.status),
+          limit: Number(req.query?.limit) || 200,
+        });
+        return res.json({
+          items,
+          summary: {
+            total: items.length,
+            draft: items.filter((item) => item.status === 'draft').length,
+            final: items.filter((item) => item.status === 'final').length,
+          },
+        });
+      } catch (error) {
+        return res.status(500).json({ error: error?.message || 'Kunde inte läsa veckorapporter.' });
+      }
+    }
+  );
+
+  router.get(
+    '/marketing/weekly-reports/:reportId',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        if (
+          !marketingWeeklyReportsStore ||
+          typeof marketingWeeklyReportsStore.getReport !== 'function'
+        ) {
+          return res.status(503).json({ error: 'Marketing weekly reports store saknas.' });
+        }
+        const item = await marketingWeeklyReportsStore.getReport({
+          tenantId: req.auth.tenantId,
+          id: normalizeText(req.params?.reportId),
+        });
+        if (!item) {
+          return res.status(404).json({ error: 'Veckorapport hittades inte.' });
+        }
+        return res.json({ item });
+      } catch (error) {
+        return res.status(500).json({ error: error?.message || 'Kunde inte läsa veckorapport.' });
+      }
+    }
+  );
+
+  router.post(
+    '/marketing/weekly-reports',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        if (
+          !marketingWeeklyReportsStore ||
+          typeof marketingWeeklyReportsStore.upsertReport !== 'function'
+        ) {
+          return res.status(503).json({ error: 'Marketing weekly reports store saknas.' });
+        }
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const item = await marketingWeeklyReportsStore.upsertReport({
+          ...body,
+          tenantId: req.auth.tenantId,
+          createdBy: req.auth.userId || 'agent',
+        });
+        if (authStore && typeof authStore.addAuditEvent === 'function') {
+          await authStore.addAuditEvent({
+            tenantId: req.auth.tenantId,
+            actorUserId: req.auth.userId,
+            action: 'cmo.weekly_report.create',
+            outcome: 'success',
+            targetType: 'marketing_weekly_report',
+            targetId: item.id,
+            metadata: { week: item.week, brand: item.brand },
+          });
+        }
+        return res.json({ item });
+      } catch (error) {
+        return res.status(500).json({ error: error?.message || 'Kunde inte spara veckorapport.' });
+      }
+    }
+  );
+
+  router.patch(
+    '/marketing/weekly-reports/:reportId',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        if (
+          !marketingWeeklyReportsStore ||
+          typeof marketingWeeklyReportsStore.patchReport !== 'function'
+        ) {
+          return res.status(503).json({ error: 'Marketing weekly reports store saknas.' });
+        }
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const item = await marketingWeeklyReportsStore.patchReport({
+          tenantId: req.auth.tenantId,
+          id: normalizeText(req.params?.reportId),
+          fields: body,
+          changedBy: req.auth.userId || 'agent',
+        });
+        if (!item) {
+          return res.status(404).json({ error: 'Veckorapport hittades inte.' });
+        }
+        if (authStore && typeof authStore.addAuditEvent === 'function') {
+          await authStore.addAuditEvent({
+            tenantId: req.auth.tenantId,
+            actorUserId: req.auth.userId,
+            action: 'cmo.weekly_report.update',
+            outcome: 'success',
+            targetType: 'marketing_weekly_report',
+            targetId: item.id,
+            metadata: { week: item.week, status: item.status },
+          });
+        }
+        return res.json({ item });
+      } catch (error) {
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte uppdatera veckorapport.' });
+      }
+    }
+  );
+
+  router.post(
+    '/marketing/weekly-reports/:reportId/generate',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        if (
+          !marketingWeeklyReportsStore ||
+          typeof marketingWeeklyReportsStore.upsertReport !== 'function'
+        ) {
+          return res.status(503).json({ error: 'Marketing weekly reports store saknas.' });
+        }
+        const { composeWeeklyReport } = require('../ops/cmoWeeklyReportComposer');
+        const loadedConfig = config && typeof config === 'object' ? config : require('../config');
+        const appConfig =
+          loadedConfig.config && typeof loadedConfig.config === 'object'
+            ? loadedConfig.config
+            : loadedConfig;
+        const tenantConfig =
+          tenantConfigStore && typeof tenantConfigStore.getTenantConfig === 'function'
+            ? await tenantConfigStore.getTenantConfig(req.auth.tenantId)
+            : null;
+
+        const reportId = normalizeText(req.params?.reportId);
+        const existing = reportId
+          ? await marketingWeeklyReportsStore.getReport({
+              tenantId: req.auth.tenantId,
+              id: reportId,
+            })
+          : null;
+
+        const previousWeek = existing?.week
+          ? await marketingWeeklyReportsStore.getReportByWeek({
+              tenantId: req.auth.tenantId,
+              brand: normalizeText(req.body?.brand) || existing?.brand || req.auth.tenantId,
+              week: existing.week,
+            })
+          : null;
+        // previousWeek is the same week as existing; we want the previous ISO week.
+
+        const draft = await composeWeeklyReport({
+          tenantId: req.auth.tenantId,
+          brand: normalizeText(req.body?.brand) || existing?.brand || req.auth.tenantId,
+          week: normalizeText(req.body?.week) || existing?.week || '',
+          config: appConfig,
+          tenantConfig,
+          previousReport: existing || null,
+          channels: req.body?.channels || ['gsc', 'google_ads', 'meta', 'linkedin', 'mail'],
+          window: normalizeText(req.body?.window) || '7d',
+          createdBy: req.auth.userId || 'agent',
+        });
+
+        const item = await marketingWeeklyReportsStore.upsertReport({
+          ...draft,
+          id: reportId || undefined,
+        });
+
+        if (authStore && typeof authStore.addAuditEvent === 'function') {
+          await authStore.addAuditEvent({
+            tenantId: req.auth.tenantId,
+            actorUserId: req.auth.userId,
+            action: 'cmo.weekly_report.generate',
+            outcome: 'success',
+            targetType: 'marketing_weekly_report',
+            targetId: item.id,
+            metadata: { week: item.week, brand: item.brand },
+          });
+        }
+        return res.json({ item, generated: true });
+      } catch (error) {
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte generera veckorapport.' });
+      }
+    }
+  );
+
+  router.delete(
+    '/marketing/weekly-reports/:reportId',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        if (
+          !marketingWeeklyReportsStore ||
+          typeof marketingWeeklyReportsStore.deleteReport !== 'function'
+        ) {
+          return res.status(503).json({ error: 'Marketing weekly reports store saknas.' });
+        }
+        const item = await marketingWeeklyReportsStore.deleteReport({
+          tenantId: req.auth.tenantId,
+          id: normalizeText(req.params?.reportId),
+        });
+        if (!item) {
+          return res.status(404).json({ error: 'Veckorapport hittades inte.' });
+        }
+        if (authStore && typeof authStore.addAuditEvent === 'function') {
+          await authStore.addAuditEvent({
+            tenantId: req.auth.tenantId,
+            actorUserId: req.auth.userId,
+            action: 'cmo.weekly_report.delete',
+            outcome: 'success',
+            targetType: 'marketing_weekly_report',
+            targetId: item.id,
+            metadata: { week: item.week, brand: item.brand },
+          });
+        }
+        return res.json({ item, deleted: true });
+      } catch (error) {
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte ta bort veckorapport.' });
       }
     }
   );

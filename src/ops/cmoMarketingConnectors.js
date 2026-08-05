@@ -12,7 +12,7 @@ const CONNECTOR_STATUS = Object.freeze({
   ERROR: 'error',
 });
 
-const DEFAULT_CHANNELS = Object.freeze(['google_ads', 'meta', 'linkedin', 'mail']);
+const DEFAULT_CHANNELS = Object.freeze(['google_ads', 'meta', 'linkedin', 'mail', 'gsc']);
 const metricsCache = new Map();
 
 function cacheKey(tenantId, channel, window, connector = {}, appConfig = {}) {
@@ -82,6 +82,11 @@ const CHANNEL_FIXTURES = Object.freeze({
     spend: 120,
     impressions: 12000,
     clicks: 540,
+  },
+  gsc: {
+    metrics: { ctr: 0.032, position: 12.4 },
+    impressions: 14500,
+    clicks: 464,
   },
 });
 
