@@ -108,6 +108,18 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+/**
+ * Filnamn och sökvägar kommer från Google Drive och macOS, som lagrar å ä ö
+ * dekomponerat (NFD: o + U+0308). Samma namn fick därför två representationer
+ * beroende på källa, vilket bröt jämförelser och såg trasigt ut i kundkortet.
+ * NFC ger en enda kanonisk form. Bara textfält normaliseras — id:n och enums
+ * är ASCII och rörs inte.
+ */
+function normalizeFileText(value) {
+  const text = normalizeText(value);
+  return text ? text.normalize('NFC') : text;
+}
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -179,8 +191,8 @@ function normalizeAsset(input = {}, existing = {}) {
     sourceSystem,
     sourceRecordId: normalizeText(safe.sourceRecordId || ex.sourceRecordId) || null,
     originalDriveFileId: normalizeText(safe.originalDriveFileId || ex.originalDriveFileId) || null,
-    originalDrivePath: normalizeText(safe.originalDrivePath || ex.originalDrivePath) || null,
-    originalFileName: normalizeText(safe.originalFileName || ex.originalFileName) || null,
+    originalDrivePath: normalizeFileText(safe.originalDrivePath || ex.originalDrivePath) || null,
+    originalFileName: normalizeFileText(safe.originalFileName || ex.originalFileName) || null,
     storageProvider,
     storageKey: normalizeText(safe.storageKey || ex.storageKey) || null,
     thumbnailKey: normalizeText(safe.thumbnailKey || ex.thumbnailKey) || null,
