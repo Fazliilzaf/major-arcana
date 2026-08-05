@@ -106,7 +106,7 @@ const {
 } = require('../ops/ccoEncounterLinkRepair');
 const { buildEncounterLinkReviewQueue } = require('../ops/ccoEncounterLinkReviewQueue');
 const { hydratePatientHealthProjection } = require('../ops/ccoPatientMasterStore');
-const { buildClientoLedJourneyAudit } = require('../ops/ccoClientoLedJourneyAudit');
+const { buildClientoLedJourneyAudit, isAttended } = require('../ops/ccoClientoLedJourneyAudit');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -116,9 +116,10 @@ function normalizeKey(value) {
   return normalizeText(value).toLowerCase();
 }
 
-function isCompletedClientoBooking(booking) {
-  return ['completed', 'show', 'klar'].includes(normalizeKey(booking?.status));
-}
+// isAttended exporteras av ccoClientoLedJourneyAudit och är den enda
+// definitionen av "genomförd bokning". En lokal kopia av statuslistan skulle
+// drifta isär, och den skulle dessutom tappa filtret mot cliento_web_mail som
+// originalet har inbyggt — en notis till kliniken är inte ett genomfört besök.
 
 function isConsultationBooking(booking) {
   return /konsult|consult/.test(normalizeKey(booking?.serviceLabel));
@@ -140,15 +141,17 @@ function isOfferDeal(deal) {
 function buildJourneySourceEvidence({ patient, bookings = [] } = {}) {
   const completedConsultation = asArray(bookings)
     .filter(
-      (booking) =>
-        isCompletedClientoBooking(booking) &&
-        isConsultationBooking(booking) &&
-        normalizeKey(booking?.source) !== 'cliento_web_mail'
+      // isAttended filtrerar bort cliento_web_mail internt.
+      (booking) => isAttended(booking) && isConsultationBooking(booking)
     )
     .sort((a, b) => Date.parse(b?.startsAt || '') - Date.parse(a?.startsAt || ''))[0];
   const offerDeal = asArray(patient?.pipedrive?.deals)
     .filter(isOfferDeal)
-    .sort((a, b) => Date.parse(b?.updatedAt || b?.createdAt || '') - Date.parse(a?.updatedAt || a?.createdAt || ''))[0];
+    .sort(
+      (a, b) =>
+        Date.parse(b?.updatedAt || b?.createdAt || '') -
+        Date.parse(a?.updatedAt || a?.createdAt || '')
+    )[0];
 
   return {
     booking: completedConsultation
@@ -1986,7 +1989,11 @@ function createCcoPatientMasterRouter({
             item.structuredForm && typeof item.structuredForm === 'object'
               ? item.structuredForm
               : null;
-          if (!patientId || !structuredForm || !['health_declaration', 'fitness_certificate'].includes(formType)) {
+          if (
+            !patientId ||
+            !structuredForm ||
+            !['health_declaration', 'fitness_certificate'].includes(formType)
+          ) {
             skipped.push({ index, patientId: patientId || null, reason: 'invalid_form_patch' });
             continue;
           }
@@ -2615,14 +2622,19 @@ function createCcoPatientMasterRouter({
         if (!importRunId) {
           return res.status(400).json({ error: 'importRunId krävs.' });
         }
-        if (!dryRun && normalizeText(req.body?.confirmText) !== 'QUARANTINE METADATA WITHOUT BINARY') {
+        if (
+          !dryRun &&
+          normalizeText(req.body?.confirmText) !== 'QUARANTINE METADATA WITHOUT BINARY'
+        ) {
           return res.status(409).json({
             error: 'Commit kräver confirmText: QUARANTINE METADATA WITHOUT BINARY',
           });
         }
         const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
         if (!stores.assetStore || !stores.reviewQueueStore) {
-          return res.status(503).json({ error: 'Asset store eller review queue saknas på servern.' });
+          return res
+            .status(503)
+            .json({ error: 'Asset store eller review queue saknas på servern.' });
         }
         const report = await quarantineMetadataWithoutBinary({
           assetStore: stores.assetStore,
@@ -2670,7 +2682,9 @@ function createCcoPatientMasterRouter({
         const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
         const assetStore =
           stores.assetStore ||
-          (typeof resolvePatientAssetStore === 'function' ? await resolvePatientAssetStore() : null);
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
         const storage = stores.secureStorage || stores.storage || null;
         if (!assetStore || !storage) {
           return res.status(503).json({ error: 'Asset store eller storage saknas på servern.' });
