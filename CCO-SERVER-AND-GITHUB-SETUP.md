@@ -56,16 +56,27 @@ alla andra (se steg 9).
 
 ---
 
-## 2–3. Arbetsmiljö — servern kör CI och deploy, utveckling sker lokalt
+## 2–3. Arbetsmiljö — servern kör CI, Render kör prod, utveckling sker lokalt
 
-**Servern (`134.209.232.101`, användare `fazli`) kör uteslutande GitHub
-Actions-runnern och produktions-deploy. Ingen utvecklarkopia av repot ska
-klonas dit, och inget utvecklingsarbete sker där — allt sådant sker lokalt i
+**Servern (`134.209.232.101`, användare `fazli`) kör GitHub Actions-runnern
+— inget annat som rör CCO. Ingen utvecklarkopia av repot ska klonas dit, och
+inget utvecklingsarbete sker där — allt sådant sker lokalt i
 `~/Code/major-arcana` på utvecklingsmaskinen.**
 
-Den enda utcheckningen på servern är runnerns egen arbetskatalog
-(`~/actions-runner-major-arcana/_work/…`). Den är CI-ägd och nollställs per
-jobb — redigera aldrig i den.
+**Servern är INTE deploy-mål.** Produktion är Render Frankfurt
+(`srv-d8b3i3tckfvc73clgeng`, arcana.hairtpclinic.com), Blueprint-managed via
+`render.yaml` med autodeploy på commit till `main`. En tidigare version av
+det här dokumentet kallade servern "deploy-mål" — det stämde aldrig.
+Verifierat 2026-08-05: ingen systemd-unit för CCO, tom `/var/www/majorarcona`,
+inget nginx-vhost för arcana.
+
+Den enda CCO-relaterade utcheckningen på servern är runnerns egen
+arbetskatalog (`~/actions-runner-major-arcana/_work/…`). Den är CI-ägd och
+nollställs per jobb — redigera aldrig i den.
+
+Servern kör därutöver `majorarcana-legacy.service` (systemd --user, från
+`~/major-arcana-legacy`, lyssnar `127.0.0.1:4020`). Den är en referenskopia av
+en äldre app, inte prod och inte del av det här repots deploy-kedja.
 
 Anslut till servern bara när du faktiskt behöver felsöka CI eller deploy, och
 ändra inte dess SSH-konfiguration eller brandvägg utan ett tydligt, verifierat
@@ -313,7 +324,8 @@ utvecklarmiljö — manuellt arbete där skrivs över av nästa körning och kan
 störa pågående CI-jobb. Vid kontrolltillfället stod den på
 `c3e22c1 Merge f3fb259f into d27962ca`, alltså merge-testet av PR #1281.
 
-**Slutsats:** servern är CI-runner och deploy-mål, inte utvecklingsmiljö.
+**Slutsats:** servern är CI-runner, varken utvecklingsmiljö eller deploy-mål
+(se avsnitt 2–3 — deploy går till Render Frankfurt).
 Utvecklingsarbetet sker på den lokala maskinen i `~/Code/major-arcana`, där
 `.vscode`-profilerna, `.env` och `.local-state/` redan finns.
 
