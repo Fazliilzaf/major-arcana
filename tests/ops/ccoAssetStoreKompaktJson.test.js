@@ -42,6 +42,9 @@ async function skrivEnAsset() {
   const filePath = path.join(tmp, 'cco-patient-assets.json');
   const store = await createCcoPatientAssetStore({ filePath });
   await store.addAsset({ ...BASE_ASSET, sourceRecordId: 'kompakt-1' });
+  // Monolit-skrivningen ar debouncad sedan sharding-andringen. Tvinga fram
+  // den, annars laser vi en fil som inte skrivits an.
+  await store.flushCompatMonolith();
   const raa = await fs.readFile(filePath, 'utf8');
   return { tmp, raa };
 }
@@ -64,6 +67,7 @@ test('innehållet är fortfarande giltig JSON och läsbart tillbaka', async () =
     const store = await createCcoPatientAssetStore({ filePath });
     const skapad = await store.addAsset({ ...BASE_ASSET, sourceRecordId: 'kompakt-2' });
 
+    await store.flushCompatMonolith();
     const parsad = JSON.parse(await fs.readFile(filePath, 'utf8'));
     assert.equal(parsad.items[skapad.id].sourceRecordId, 'kompakt-2');
 
