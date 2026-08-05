@@ -173,6 +173,43 @@ async function writeJsonAtomic(filePath, data) {
   await fs.rename(tmp, filePath);
 }
 
+/**
+ * DELAD PERSISTENS.
+ *
+ * Lagret hålls HELT i minnet precis som förut — 52 anropsställen skannar alla
+ * assets via listItemsForEnrichment, och att ladda shards på begäran skulle
+ * tvinga in varenda en ändå. Det är bara skrivningen till disk som delas upp.
+ *
+ * Före: varje save() serialiserade hela lagret, ~196 MB som en sammanhängande
+ * sträng i minnet, även när en enda asset ändrats. 2026-08-04 fällde det
+ * produktionen mitt i en bulkkörning.
+ *
+ * Efter: assets fördelas på SHARD_COUNT filer via en stabil hash av id:t.
+ * save() sveper updatedAt, ser vilka shards som berörts, och skriver bara dem.
+ * En typisk skrivning rör en shard — ~3 MB i stället för 196.
+ */
+const SHARD_COUNT = 64;
+
+function shardIndexFor(assetId) {
+  // FNV-1a. Stabil över processer och Node-versioner, till skillnad från
+  // inbyggda hashar — shard-tillhörigheten måste överleva omstarter.
+  const text = String(assetId || '');
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash % SHARD_COUNT;
+}
+
+function shardFileName(index) {
+  return `shard-${String(index).padStart(2, '0')}.json`;
+}
+
+function shardDirFor(filePath) {
+  return path.join(path.dirname(filePath), `${path.basename(filePath, '.json')}.shards`);
+}
+
 function validateEnum(name, value, allowed) {
   if (!allowed.includes(value)) {
     const e = new Error(`invalid ${name} "${value}" — must be one of ${allowed.join('|')}`);
@@ -363,9 +400,77 @@ function logAudit(auditLog, action, asset, actor, result = 'ok', extra = {}) {
   }
 }
 
+/**
+ * Läser lagret från shard-katalogen. Finns den inte men monoliten gör det,
+ * migreras den en gång: shards skrivs, monoliten lämnas kvar som backup och en
+ * markörfil hindrar att migreringen körs om.
+ *
+ * Returnerar state PLUS en karta assetId -> shard, som save() behöver för att
+ * upptäcka raderingar (en borttagen asset syns inte i en updatedAt-svep).
+ */
+async function loadShardedState(filePath) {
+  const shardDir = shardDirFor(filePath);
+  const metaPath = path.join(shardDir, 'meta.json');
+  const meta = await readJson(metaPath, null);
+
+  const state = emptyState();
+  const shardByAssetId = new Map();
+
+  if (meta) {
+    for (let i = 0; i < SHARD_COUNT; i += 1) {
+      const shard = await readJson(path.join(shardDir, shardFileName(i)), null);
+      for (const [id, asset] of Object.entries(shard?.items || {})) {
+        state.items[id] = asset;
+        shardByAssetId.set(id, i);
+      }
+    }
+    state.schemaVersion = meta.schemaVersion || SCHEMA_VERSION;
+    state.createdAt = meta.createdAt || nowIso();
+    state.updatedAt = meta.updatedAt || nowIso();
+    return { state, shardByAssetId, migrated: false };
+  }
+
+  // Ingen shard-katalog än — läs monoliten och migrera.
+  const monolith = await readJson(filePath, null);
+  if (monolith?.items && typeof monolith.items === 'object') {
+    for (const [id, asset] of Object.entries(monolith.items)) {
+      state.items[id] = asset;
+      shardByAssetId.set(id, shardIndexFor(id));
+    }
+    state.schemaVersion = monolith.schemaVersion || SCHEMA_VERSION;
+    state.createdAt = monolith.createdAt || nowIso();
+  }
+  if (Array.isArray(monolith?.audit)) state.audit = monolith.audit;
+
+  await writeAllShards(filePath, state);
+  return { state, shardByAssetId, migrated: Boolean(monolith) };
+}
+
+async function writeAllShards(filePath, state) {
+  const shardDir = shardDirFor(filePath);
+  await fs.mkdir(shardDir, { recursive: true });
+  const buckets = Array.from({ length: SHARD_COUNT }, () => ({}));
+  for (const [id, asset] of Object.entries(state.items)) {
+    buckets[shardIndexFor(id)][id] = asset;
+  }
+  for (let i = 0; i < SHARD_COUNT; i += 1) {
+    await writeJsonAtomic(path.join(shardDir, shardFileName(i)), { items: buckets[i] });
+  }
+  await writeJsonAtomic(path.join(shardDir, 'meta.json'), {
+    schemaVersion: state.schemaVersion,
+    createdAt: state.createdAt,
+    updatedAt: state.updatedAt,
+    shardCount: SHARD_COUNT,
+    audit: state.audit,
+  });
+}
+
 async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
   if (!filePath) throw new Error('filePath krävs för ccoPatientAssetStore');
-  const state = await readJson(filePath, emptyState());
+  const loaded = await loadShardedState(filePath);
+  const state = loaded.state;
+  const shardByAssetId = loaded.shardByAssetId;
+  let lastSaveTs = state.updatedAt || nowIso();
   if (!state.items || typeof state.items !== 'object') state.items = {};
   if (!Array.isArray(state.audit)) state.audit = [];
   if (!state.schemaVersion) state.schemaVersion = SCHEMA_VERSION;
@@ -374,13 +479,98 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
   // Gör massimport snabb + concurrency säker (ingen skriv-storm av stort index).
   let __batchDepth = 0;
   let __batchDirty = false;
+  // Egen flagga: checkpointBatch nollstaller __batchDirty, sa den kan inte
+  // anvandas for att avgora om batchen skrev nagot. Utan den har hoppar
+  // flushBatch over monolit-regenereringen efter en checkpoint, och de tre
+  // tjanster som laser filen direkt ser permanent inaktuella data.
+  let __batchWrote = false;
+
+  /**
+   * Vilka shards har ändrats sedan förra skrivningen?
+   *
+   * Två källor. Ändrade och nya assets hittas på updatedAt — varje
+   * normalizeAsset sätter den. Raderade hittas på att de finns i
+   * shardByAssetId men inte längre i state.items; en updatedAt-svep kan
+   * omöjligt se något som är borta.
+   *
+   * Svepet är O(n) över objektreferenser, inte serialisering. 77 000 assets
+   * kostar mikrosekunder mot 196 MB.
+   */
+  function collectDirtyShards() {
+    const dirty = new Set();
+    const seen = new Set();
+    for (const [id, asset] of Object.entries(state.items)) {
+      seen.add(id);
+      const index = shardIndexFor(id);
+      if (shardByAssetId.get(id) !== index) {
+        // Ny asset, eller en som aldrig laddats. Bägge smutsar sin shard.
+        if (shardByAssetId.has(id)) dirty.add(shardByAssetId.get(id));
+        shardByAssetId.set(id, index);
+        dirty.add(index);
+        continue;
+      }
+      if (String(asset?.updatedAt || '') > lastSaveTs) dirty.add(index);
+    }
+    for (const [id, index] of shardByAssetId) {
+      if (!seen.has(id)) {
+        dirty.add(index);
+        shardByAssetId.delete(id);
+      }
+    }
+    return dirty;
+  }
+
+  async function persist() {
+    const dirty = collectDirtyShards();
+    const shardDir = shardDirFor(filePath);
+    await fs.mkdir(shardDir, { recursive: true });
+
+    if (dirty.size) {
+      const buckets = new Map();
+      for (const index of dirty) buckets.set(index, {});
+      for (const [id, asset] of Object.entries(state.items)) {
+        const index = shardIndexFor(id);
+        if (buckets.has(index)) buckets.get(index)[id] = asset;
+      }
+      for (const [index, items] of buckets) {
+        await writeJsonAtomic(path.join(shardDir, shardFileName(index)), { items });
+      }
+    }
+
+    await writeJsonAtomic(path.join(shardDir, 'meta.json'), {
+      schemaVersion: state.schemaVersion,
+      createdAt: state.createdAt,
+      updatedAt: state.updatedAt,
+      shardCount: SHARD_COUNT,
+      audit: state.audit,
+    });
+    lastSaveTs = state.updatedAt;
+  }
+
+  /**
+   * Monoliten är inte längre skrivvägen, men den är fortfarande LÄSvägen för
+   * tre produktionstjänster — ccoKunderEnrichment, ccoImportReviewReadService,
+   * ccoDriveImportReviewReadService — och ett femtiotal skript. De öppnar
+   * filen direkt, förbi lagret.
+   *
+   * Därför regenereras den, men bara när en bulkkörning avslutas eller en
+   * ensam skrivning sker. Tolv batchar kostar 12 × ~3 MB plus EN 196
+   * MB-skrivning i stället för 12 × 196 MB. Det var upprepningen som fällde
+   * processen 2026-08-04, inte den enskilda serialiseringen.
+   */
+  async function writeCompatMonolith() {
+    await writeJsonAtomic(filePath, state);
+  }
+
   async function save() {
     state.updatedAt = nowIso();
     if (__batchDepth > 0) {
       __batchDirty = true;
+      __batchWrote = true;
       return;
     }
-    await writeJsonAtomic(filePath, state);
+    await persist();
+    await writeCompatMonolith();
   }
   function beginBatch() {
     __batchDepth += 1;
@@ -389,15 +579,17 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     if (__batchDepth === 0 || !__batchDirty) return false;
     __batchDirty = false;
     state.updatedAt = nowIso();
-    await writeJsonAtomic(filePath, state);
+    await persist();
     return true;
   }
   async function flushBatch() {
     if (__batchDepth > 0) __batchDepth -= 1;
-    if (__batchDepth === 0 && __batchDirty) {
+    if (__batchDepth === 0 && __batchWrote) {
       __batchDirty = false;
+      __batchWrote = false;
       state.updatedAt = nowIso();
-      await writeJsonAtomic(filePath, state);
+      await persist();
+      await writeCompatMonolith();
     }
   }
 
