@@ -172,7 +172,7 @@ describe('ccoClientoLedJourneyAudit', () => {
     );
   });
 
-  it('requires HD after an attended consultation but not treatment documents yet', () => {
+  it('requires HD and offer after an attended consultation', () => {
     const row = auditPatientJourney({
       patient: { id: 'p1' },
       bookings: [
@@ -185,9 +185,26 @@ describe('ccoClientoLedJourneyAudit', () => {
       ],
     });
     assert.equal(row.stage, 'consultation_only');
-    assert.deepEqual(row.gaps, ['healthDeclaration']);
-    assert.equal(row.requirements.offer.status, 'not_expected');
+    assert.deepEqual(row.gaps, ['healthDeclaration', 'offer']);
+    assert.equal(row.requirements.offer.status, 'missing');
+    assert.equal(row.requirements.offer.reason, 'attended_cliento_consultation');
     assert.equal(row.requirements.agreement.status, 'not_expected');
+  });
+
+  it('does not require an offer from a consultation notification without attendance proof', () => {
+    const row = auditPatientJourney({
+      patient: { id: 'p1' },
+      bookings: [
+        {
+          bookingId: 'mail-only',
+          startsAt: '2026-05-21T17:15:00.000Z',
+          serviceLabel: 'Online konsultation',
+          status: 'completed',
+          source: 'cliento_web_mail',
+        },
+      ],
+    });
+    assert.equal(row.requirements.offer.status, 'not_expected');
   });
 
   it('requires HD and offer for attended PRP but not FF or hair-transplant agreement', () => {

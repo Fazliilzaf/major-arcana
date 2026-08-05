@@ -1300,9 +1300,15 @@ test('journey-audit scans every patient from Cliento truth without writes', asyn
       assert.equal(json.summary.patientsWithClientoHistory, 1);
       assert.equal(json.summary.patientsWithoutClientoHistory, 1);
       assert.equal(json.summary.gapCounts.healthDeclaration, 1);
+      // Offerten förväntas efter en GENOMFÖRD konsultation, inte först när en
+      // behandling är bokad. Fixturen har status 'completed' på en
+      // Konsultation men inget offertdokument — alltså ett offert-gap.
+      // Före den regeln räknades bara behandlingsbokning, och steg 5 kunde
+      // stå tomt i kundresan utan att synas som saknat.
+      assert.equal(json.summary.gapCounts.offer, 1);
       const journey = json.rows.find((row) => row.patientId === 'journey-patient-1');
       assert.equal(journey.stage, 'consultation_only');
-      assert.deepEqual(journey.gaps, ['healthDeclaration']);
+      assert.deepEqual(journey.gaps, ['healthDeclaration', 'offer']);
       assert.equal(journey.notes[0].note, 'Konsultation genomförd');
       assert.equal(
         fixture.authStore.events.some(
@@ -1346,31 +1352,28 @@ test('patient forms batch applies HD and FF with one owner-gated request', async
       matchStatus: 'matched',
     });
     await withServer(fixture.app, async (base) => {
-      const response = await fetch(
-        `${base}/api/v1/cco-patient-master/patient/forms/batch`,
-        {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            confirmText: 'UPSERT PATIENT FORMS',
-            items: [
-              {
-                patientId: 'forms-patient-1',
-                personnummer: '19800101-1234',
-                formType: 'health_declaration',
-                structuredForm: { signedAt: '2026-07-01T10:00:00.000Z', answers: [] },
-                allergies: ['Penicillin'],
-              },
-              {
-                patientId: 'forms-patient-1',
-                personnummer: '19800101-1234',
-                formType: 'fitness_certificate',
-                structuredForm: { signedAt: '2026-07-02T10:00:00.000Z', answers: [] },
-              },
-            ],
-          }),
-        }
-      );
+      const response = await fetch(`${base}/api/v1/cco-patient-master/patient/forms/batch`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          confirmText: 'UPSERT PATIENT FORMS',
+          items: [
+            {
+              patientId: 'forms-patient-1',
+              personnummer: '19800101-1234',
+              formType: 'health_declaration',
+              structuredForm: { signedAt: '2026-07-01T10:00:00.000Z', answers: [] },
+              allergies: ['Penicillin'],
+            },
+            {
+              patientId: 'forms-patient-1',
+              personnummer: '19800101-1234',
+              formType: 'fitness_certificate',
+              structuredForm: { signedAt: '2026-07-02T10:00:00.000Z', answers: [] },
+            },
+          ],
+        }),
+      });
       const body = await response.json();
       assert.equal(response.status, 200);
       assert.equal(body.applied, 2);
@@ -1401,25 +1404,19 @@ test('patient forms batch requires OWNER and exact confirmation', async () => {
   const staff = await makeFixture({ role: 'STAFF' });
   try {
     await withServer(owner.app, async (base) => {
-      const response = await fetch(
-        `${base}/api/v1/cco-patient-master/patient/forms/batch`,
-        {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ items: [{}] }),
-        }
-      );
+      const response = await fetch(`${base}/api/v1/cco-patient-master/patient/forms/batch`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ items: [{}] }),
+      });
       assert.equal(response.status, 400);
     });
     await withServer(staff.app, async (base) => {
-      const response = await fetch(
-        `${base}/api/v1/cco-patient-master/patient/forms/batch`,
-        {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ confirmText: 'UPSERT PATIENT FORMS', items: [{}] }),
-        }
-      );
+      const response = await fetch(`${base}/api/v1/cco-patient-master/patient/forms/batch`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ confirmText: 'UPSERT PATIENT FORMS', items: [{}] }),
+      });
       assert.equal(response.status, 403);
     });
   } finally {

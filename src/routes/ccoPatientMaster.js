@@ -106,10 +106,78 @@ const {
 } = require('../ops/ccoEncounterLinkRepair');
 const { buildEncounterLinkReviewQueue } = require('../ops/ccoEncounterLinkReviewQueue');
 const { hydratePatientHealthProjection } = require('../ops/ccoPatientMasterStore');
-const { buildClientoLedJourneyAudit } = require('../ops/ccoClientoLedJourneyAudit');
+const { buildClientoLedJourneyAudit, isAttended } = require('../ops/ccoClientoLedJourneyAudit');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeKey(value) {
+  return normalizeText(value).toLowerCase();
+}
+
+// isAttended exporteras av ccoClientoLedJourneyAudit och är den enda
+// definitionen av "genomförd bokning". En lokal kopia av statuslistan skulle
+// drifta isär, och den skulle dessutom tappa filtret mot cliento_web_mail som
+// originalet har inbyggt — en notis till kliniken är inte ett genomfört besök.
+
+function isConsultationBooking(booking) {
+  return /konsult|consult/.test(normalizeKey(booking?.serviceLabel));
+}
+
+function isOfferDeal(deal) {
+  return /offert|behandlingsplan|quote/.test(
+    [deal?.stage, deal?.title, deal?.name, deal?.pipelineStage]
+      .map(normalizeKey)
+      .filter(Boolean)
+      .join(' ')
+  );
+}
+
+/**
+ * Kallbevis for kundresan. Har finns bara uppgifter som redan ligger i
+ * Cliento- eller Pipedrive-importen; ett saknat bevis blir aldrig "klart".
+ */
+function buildJourneySourceEvidence({ patient, bookings = [] } = {}) {
+  const completedConsultation = asArray(bookings)
+    .filter(
+      // isAttended filtrerar bort cliento_web_mail internt.
+      (booking) => isAttended(booking) && isConsultationBooking(booking)
+    )
+    .sort((a, b) => Date.parse(b?.startsAt || '') - Date.parse(a?.startsAt || ''))[0];
+  const offerDeal = asArray(patient?.pipedrive?.deals)
+    .filter(isOfferDeal)
+    .sort(
+      (a, b) =>
+        Date.parse(b?.updatedAt || b?.createdAt || '') -
+        Date.parse(a?.updatedAt || a?.createdAt || '')
+    )[0];
+
+  return {
+    booking: completedConsultation
+      ? {
+          source: normalizeText(completedConsultation.source) || 'cliento',
+          bookingId: normalizeText(completedConsultation.bookingId) || null,
+          occurredAt: normalizeText(completedConsultation.startsAt) || null,
+          status: normalizeText(completedConsultation.status) || null,
+          serviceLabel: normalizeText(completedConsultation.serviceLabel) || null,
+          notes: normalizeText(completedConsultation.notes) || null,
+        }
+      : null,
+    offer: offerDeal
+      ? {
+          source: 'pipedrive',
+          dealId: normalizeText(offerDeal.dealId || offerDeal.id) || null,
+          stage: normalizeText(offerDeal.stage) || null,
+          value: offerDeal.value ?? null,
+          currency: normalizeText(offerDeal.currency) || null,
+          occurredAt: normalizeText(offerDeal.updatedAt || offerDeal.createdAt) || null,
+        }
+      : null,
+    // Satt till null tills en faktisk, unik Microsoft-post ar länkad till kunden.
+    // En Cliento-notis till kliniken ar inte bevis for att kunden fick mailet.
+    bookingConfirmation: null,
+  };
 }
 
 async function buildEncounterAssetAliasesByCanonicalPatient({
@@ -1193,6 +1261,21 @@ function createCcoPatientMasterRouter({
       card = enrichPatientCardPreTreatmentForms(card, patient, null);
     }
 
+    const journeyEvidence = buildJourneySourceEvidence({
+      patient,
+      bookings: bookingContext.historyBookings,
+    });
+    card = {
+      ...card,
+      journeyEvidence,
+      // Pipedrive-steg "Offert" ar ett faktiskt affarsspar, inte en gissning
+      // fran ett filnamn. Det gor steg 5 synligt medan dokumentlanken fortsatt
+      // endast visas nar en intern CCO-fil ar verifierad.
+      ...(journeyEvidence.offer && !normalizeText(card.treatmentPlanStatus)
+        ? { treatmentPlanStatus: 'sent', missingTreatmentPlan: false }
+        : {}),
+    };
+
     try {
       const fasAMap = await loadFasAContextForPatients({
         config,
@@ -1211,6 +1294,7 @@ function createCcoPatientMasterRouter({
     return {
       patient: hydratePatientHealthProjection(patient),
       card,
+      journeyEvidence,
       activeVisit: buildActiveVisitPayload({
         card,
         bookingContext,
@@ -1905,7 +1989,11 @@ function createCcoPatientMasterRouter({
             item.structuredForm && typeof item.structuredForm === 'object'
               ? item.structuredForm
               : null;
-          if (!patientId || !structuredForm || !['health_declaration', 'fitness_certificate'].includes(formType)) {
+          if (
+            !patientId ||
+            !structuredForm ||
+            !['health_declaration', 'fitness_certificate'].includes(formType)
+          ) {
             skipped.push({ index, patientId: patientId || null, reason: 'invalid_form_patch' });
             continue;
           }
@@ -2534,14 +2622,19 @@ function createCcoPatientMasterRouter({
         if (!importRunId) {
           return res.status(400).json({ error: 'importRunId krävs.' });
         }
-        if (!dryRun && normalizeText(req.body?.confirmText) !== 'QUARANTINE METADATA WITHOUT BINARY') {
+        if (
+          !dryRun &&
+          normalizeText(req.body?.confirmText) !== 'QUARANTINE METADATA WITHOUT BINARY'
+        ) {
           return res.status(409).json({
             error: 'Commit kräver confirmText: QUARANTINE METADATA WITHOUT BINARY',
           });
         }
         const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
         if (!stores.assetStore || !stores.reviewQueueStore) {
-          return res.status(503).json({ error: 'Asset store eller review queue saknas på servern.' });
+          return res
+            .status(503)
+            .json({ error: 'Asset store eller review queue saknas på servern.' });
         }
         const report = await quarantineMetadataWithoutBinary({
           assetStore: stores.assetStore,
@@ -2589,7 +2682,9 @@ function createCcoPatientMasterRouter({
         const stores = typeof resolveAssetStores === 'function' ? await resolveAssetStores() : {};
         const assetStore =
           stores.assetStore ||
-          (typeof resolvePatientAssetStore === 'function' ? await resolvePatientAssetStore() : null);
+          (typeof resolvePatientAssetStore === 'function'
+            ? await resolvePatientAssetStore()
+            : null);
         const storage = stores.secureStorage || stores.storage || null;
         if (!assetStore || !storage) {
           return res.status(503).json({ error: 'Asset store eller storage saknas på servern.' });
@@ -3729,6 +3824,7 @@ function createCcoPatientMasterRouter({
 }
 
 module.exports = {
+  buildJourneySourceEvidence,
   createCcoPatientMasterRouter,
   repairFilenamesBatch,
   resolveRepairScopeFiles,
