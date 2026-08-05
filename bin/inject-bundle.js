@@ -45,7 +45,7 @@ const EXISTING_BUNDLE_RE =
 const EXISTING_PRELOAD_RE =
   /\s*<!-- Bundlade scripts preload[^>]*-->\s*\n?(?:\s*<link\s+rel="preload"\s+as="script"\s+href="\.\/[^"]+"\s*\/?>\s*)+/g;
 const BUNDLE_URLS_RE =
-  /\s*<!-- ARCANA bundle URLs[^>]*-->\s*\n?\s*<script>\s*window\.__ARCANA_BUNDLE_URLS__[\s\S]*?<\/script>\s*/g;
+  /\s*<!-- ARCANA bundle URLs[^>]*-->\s*\n?\s*(?:<meta name="arcana-preview-build" content="[^"]*" \/>\s*\n?\s*)?<script>\s*window\.__ARCANA_BUNDLE_URLS__[\s\S]*?<\/script>\s*/g;
 const BUNDLE_PRELOAD_SCRIPT_RE =
   /\s*<!-- ARCANA bundle preload[^>]*-->\s*\n?\s*<script>\s*\(function arcanaPreloadBundle\(\)[\s\S]*?<\/script>\s*/g;
 const EARLY_PATIENT_UI_RE =
@@ -57,11 +57,10 @@ function buildBundleUrlsBlock(latestInfo) {
     staffCore: latestInfo.staffCore ? `./${latestInfo.staffCore.filename}` : null,
     staffDeferred: latestInfo.staffDeferred ? `./${latestInfo.staffDeferred.filename}` : null,
   };
-  const buildCommit = String(latestInfo.buildCommit || '').trim();
-  const identity = buildCommit
-    ? `\n    <meta name="arcana-preview-build" content="${buildCommit}" />`
-    : '';
-  return `\n    <!-- ARCANA bundle URLs (content-hash: ${latestInfo.hash}) -->${identity}\n    <script>window.__ARCANA_BUNDLE_URLS__=${JSON.stringify(urls)};</script>\n    `;
+  return `
+    <!-- ARCANA bundle URLs (content-hash: ${latestInfo.hash}) -->
+    <script>window.__ARCANA_BUNDLE_URLS__=${JSON.stringify(urls)};</script>
+    `;
 }
 
 function buildBundlePreloadScript(latestInfo) {
@@ -126,10 +125,7 @@ function injectHeadBundleMeta(html, latestInfo) {
 function injectLauncherCacheBust(html, latestInfo) {
   const token = String(latestInfo.buildCommit || latestInfo.hash || '').trim();
   if (!token) return html;
-  return html.replace(
-    /(src="\/konversationer-bottom-actions\.js\?v=)[^"]+(")/g,
-    `$1${token}$2`
-  );
+  return html.replace(/(src="\/konversationer-bottom-actions\.js\?v=)[^"]+(")/g, `$1${token}$2`);
 }
 
 function injectEarlyPatientUiScript(html) {
