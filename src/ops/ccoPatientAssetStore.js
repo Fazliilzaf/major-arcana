@@ -150,10 +150,26 @@ async function readJson(filePath, fallback) {
   }
 }
 
+/**
+ * Kompakt JSON, inte snyggformaterad.
+ *
+ * Den här filen läses bara av maskiner, och den är stor: 77 526 assets,
+ * 259 MB snyggformaterat mot 196 MB kompakt (mätt 2026-08-04). Skillnaden är
+ * ren indentering — 24 % av varje skrivning.
+ *
+ * Det spelar roll eftersom JSON.stringify bygger HELA utdatan som en
+ * sammanhängande sträng i minnet innan något når disk, och varje skrivning
+ * serialiserar hela lagret även när en enda asset ändrats. Under bulkkörningar
+ * upprepas den allokeringen gång på gång; 2026-08-04 föll produktionen på
+ * fjärde omgången av en besökskoppling med tio patienter åt gången.
+ *
+ * Det här tar inte bort grundproblemet — hela lagret serialiseras fortfarande
+ * per skrivning — men det tar bort en fjärdedel av toppen.
+ */
 async function writeJsonAtomic(filePath, data) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   const tmp = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
-  await fs.writeFile(tmp, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  await fs.writeFile(tmp, `${JSON.stringify(data)}\n`, 'utf8');
   await fs.rename(tmp, filePath);
 }
 
