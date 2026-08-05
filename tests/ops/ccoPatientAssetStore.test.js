@@ -212,6 +212,8 @@ test('addAsset persists with UUID, default status, and emits asset.imported', as
     assert.equal(ev.detail.category, 'journal');
     assert.ok(!ev.detail.email);
     assert.ok(!ev.detail.personnummer);
+    // Monoliten skrivs debouncat sedan lagret delades i shards.
+    await store.flushCompatMonolith();
     const raw = JSON.parse(await fs.readFile(filePath, 'utf8'));
     assert.equal(Object.keys(raw.items).length, 1);
     assert.equal(raw.schemaVersion, '1.1.0');

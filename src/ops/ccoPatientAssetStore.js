@@ -190,6 +190,11 @@ async function writeJsonAtomic(filePath, data) {
  */
 const SHARD_COUNT = 64;
 
+// Hur lange monolit-skrivningen far vanta. Kort nog att de tre tjanster som
+// laser filen direkt inte marker skillnaden, langt nog att en skur av
+// andringar kollapsar till EN skrivning i stallet for en per andring.
+const COMPAT_MONOLITH_DELAY_MS = 5000;
+
 function shardIndexFor(assetId) {
   // FNV-1a. Stabil över processer och Node-versioner, till skillnad från
   // inbyggda hashar — shard-tillhörigheten måste överleva omstarter.
@@ -484,6 +489,8 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
   // flushBatch over monolit-regenereringen efter en checkpoint, och de tre
   // tjanster som laser filen direkt ser permanent inaktuella data.
   let __batchWrote = false;
+  let __compatTimer = null;
+  let __compatPending = false;
 
   /**
    * Vilka shards har ändrats sedan förra skrivningen?
@@ -559,7 +566,39 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
    * processen 2026-08-04, inte den enskilda serialiseringen.
    */
   async function writeCompatMonolith() {
+    if (__compatTimer) {
+      clearTimeout(__compatTimer);
+      __compatTimer = null;
+    }
+    __compatPending = false;
     await writeJsonAtomic(filePath, state);
+  }
+
+  /**
+   * Skriv monoliten SENARE, inte nu.
+   *
+   * En ensam skrivning skulle annars kosta 3 MB shard PLUS 196 MB monolit —
+   * mer an de 196 MB det kostade fore sharding. Hela poangen gar forlorad om
+   * varje transitionStatus drar med sig en full serialisering.
+   *
+   * Timern nollstalls vid varje ny skrivning, sa en skur av andringar ger EN
+   * monolitskrivning nar det lugnat sig. flushBatch skriver alltid direkt.
+   *
+   * Dor processen innan timern loper ut ar monoliten inaktuell, men INGEN data
+   * ar forlorad — shardarna ar sanningen och skrevs synkront. De tre tjanster
+   * som laser monoliten direkt ser da gamla siffror tills nasta skrivning. Det
+   * ar avvagningen, och den ar medveten.
+   */
+  function scheduleCompatMonolith() {
+    __compatPending = true;
+    if (__compatTimer) clearTimeout(__compatTimer);
+    __compatTimer = setTimeout(() => {
+      __compatTimer = null;
+      writeCompatMonolith().catch(() => {
+        /* monoliten ar en bekvamlighetskopia — shardarna ar sanningen */
+      });
+    }, COMPAT_MONOLITH_DELAY_MS);
+    if (typeof __compatTimer.unref === 'function') __compatTimer.unref();
   }
 
   async function save() {
@@ -570,7 +609,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       return;
     }
     await persist();
-    await writeCompatMonolith();
+    scheduleCompatMonolith();
   }
   function beginBatch() {
     __batchDepth += 1;
@@ -1749,6 +1788,14 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
   }
 
   return {
+    // Tvinga fram en vantande monolit-skrivning. Behovs vid nedstangning och i
+    // tester — utan den kan processen do med en schemalagd skrivning kvar och
+    // lamna de tre direktlasarna med gamla siffror.
+    async flushCompatMonolith() {
+      if (!__compatPending) return false;
+      await writeCompatMonolith();
+      return true;
+    },
     beginBatch,
     checkpointBatch,
     flushBatch,

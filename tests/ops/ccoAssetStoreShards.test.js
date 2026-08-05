@@ -167,15 +167,61 @@ test('en raderad asset försvinner ur sin shard', async () => {
   }
 });
 
-test('monoliten hålls i synk för de som läser den direkt', async () => {
+test('en ensam skrivning ror INTE monoliten direkt', async () => {
+  const tmp = await tempdir();
+  const filePath = path.join(tmp, 'cco-patient-assets.json');
+  try {
+    const store = await createCcoPatientAssetStore({ filePath });
+    await store.addAsset({ ...BASE, sourceRecordId: 'forst' });
+    await store.flushCompatMonolith();
+    const fore = (await fs.stat(filePath)).mtimeMs;
+
+    await new Promise((r) => setTimeout(r, 20));
+    await store.addAsset({ ...BASE, sourceRecordId: 'debounce' });
+
+    // Karnan i debouncen: shardarna skrevs, men de 196 MB vantar.
+    assert.equal(
+      (await fs.stat(filePath)).mtimeMs,
+      fore,
+      'monoliten ska inte skrivas synkront vid en ensam andring'
+    );
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('den vantande monolit-skrivningen gar att tvinga fram', async () => {
   const tmp = await tempdir();
   const filePath = path.join(tmp, 'cco-patient-assets.json');
   try {
     const store = await createCcoPatientAssetStore({ filePath });
     const a = await store.addAsset({ ...BASE, sourceRecordId: 'kompat' });
 
+    assert.equal(await store.flushCompatMonolith(), true, 'det ska finnas nagot att skriva');
     const monolit = JSON.parse(await fs.readFile(filePath, 'utf8'));
     assert.equal(monolit.items[a.id].sourceRecordId, 'kompat');
+
+    // Inget vantar langre.
+    assert.equal(await store.flushCompatMonolith(), false);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('shardarna ar sanningen aven om monoliten aldrig hinner skrivas', async () => {
+  const tmp = await tempdir();
+  const filePath = path.join(tmp, 'cco-patient-assets.json');
+  try {
+    const store = await createCcoPatientAssetStore({ filePath });
+    const a = await store.addAsset({ ...BASE, sourceRecordId: 'bara-shard' });
+    // Ingen flushCompatMonolith: simulerar att processen dor med timern kvar.
+
+    const igen = await createCcoPatientAssetStore({ filePath });
+    assert.equal(
+      igen.getAsset(a.id).sourceRecordId,
+      'bara-shard',
+      'ingen data far ga forlorad nar monoliten ar inaktuell'
+    );
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }
@@ -187,6 +233,8 @@ test('en batch skriver monoliten en gång, inte per checkpoint', async () => {
   try {
     const store = await createCcoPatientAssetStore({ filePath });
     await store.addAsset({ ...BASE, sourceRecordId: 'forst' });
+    // Baslinje: tvinga fram monoliten, annars ar den debouncad och finns inte an.
+    await store.flushCompatMonolith();
     const fore = (await fs.stat(filePath)).mtimeMs;
 
     await new Promise((r) => setTimeout(r, 20));
