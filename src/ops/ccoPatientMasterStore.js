@@ -782,9 +782,7 @@ async function createCcoPatientMasterStore({ filePath }) {
           primaryEmail: normalizeEmail(patient?.primaryEmail),
           emails: asArray(patient?.emails).map(normalizeEmail).filter(Boolean),
           cliento: {
-            emails: asArray(asObject(patient?.cliento).emails)
-              .map(normalizeEmail)
-              .filter(Boolean),
+            emails: asArray(asObject(patient?.cliento).emails).map(normalizeEmail).filter(Boolean),
           },
           pipedrive: {
             emails: asArray(asObject(patient?.pipedrive).emails)
@@ -823,7 +821,24 @@ async function createCcoPatientMasterStore({ filePath }) {
       index = bucket.patients.findIndex((item) => item.id === normalized.id);
     }
     if (index >= 0) {
-      bucket.patients[index] = normalizePatientRecord(normalized, bucket.patients[index]);
+      const traff = bucket.patients[index];
+      // Personnummer matchar FÖRE id (raderna ovan). Bär den inkommande posten
+      // ett id som redan tillhör någon annan, skulle träffen annars ärva det
+      // id:t — och registret få två poster med samma id. normalizePatientRecord
+      // låter safe.id vinna över existingSafe.id, så det sker tyst.
+      //
+      // Upptäckt 2026-08-05: en patient dök upp två gånger i patientlistan och
+      // gick inte att slå ihop, eftersom båda posterna hade samma id.
+      //
+      // Invarianten är att en patch aldrig får flytta ett id till en post när
+      // en annan post redan håller det. Vid krock behåller träffen sitt eget id.
+      if (normalized.id && traff?.id && normalized.id !== traff.id) {
+        const krockar = bucket.patients.some(
+          (item, position) => position !== index && item?.id === normalized.id
+        );
+        if (krockar) normalized.id = traff.id;
+      }
+      bucket.patients[index] = normalizePatientRecord(normalized, traff);
     } else {
       bucket.patients.push(normalized);
     }
@@ -1598,8 +1613,7 @@ async function createCcoPatientMasterStore({ filePath }) {
       openDealsCount: s.openDealsCount,
       customersWithOpenDeals: s.customersWithOpenDeals,
       lifetimeValueDenominator: s.totalPatients,
-      lifetimeValueAverage:
-        s.totalPatients > 0 ? Math.round(s.wonDealsTotal / s.totalPatients) : 0,
+      lifetimeValueAverage: s.totalPatients > 0 ? Math.round(s.wonDealsTotal / s.totalPatients) : 0,
       dealTotalsAreFloor: true,
 
       imports: bucket.imports || {},
