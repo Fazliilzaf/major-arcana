@@ -209,6 +209,16 @@ function rememberFormDocumentUrl(sig, slot, asset = {}) {
 function isHealthDeclarationAsset(asset = {}) {
   const cat = normalizeKey(asset.category);
   if (cat === 'form') return true;
+  // `documentClassifier` sätter kategorin till subkategorin vid en säker
+  // filnamnsträff — en Drive-fil som heter "Hälsodeklaration.pdf" får
+  // `health_declaration`, inte `form`. Utan den här raden föll den vidare
+  // till källkontrollen nedan och avvisades, eftersom källan är
+  // `drive_import` och inte `m365_halso`.
+  //
+  // isFitnessCertificateAsset har aldrig haft den låsningen — den matchar på
+  // filnamn oavsett källa. Asymmetrin är hela förklaringen till att
+  // HD-gapet är 4 111 medan FF-gapet är 1 337.
+  if (cat === 'health_declaration') return true;
 
   const source = normalizeKey(asset.sourceSystem);
   if (source !== 'm365_halso') return false;

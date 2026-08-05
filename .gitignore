@@ -30,6 +30,7 @@ major-arcana-cco-next/
 public/major-arcana-preview/app.bundle.js
 public/major-arcana-preview/app.bundle.*.min.js
 public/major-arcana-preview/app.bundle.latest.json
+public/major-arcana-preview/build-meta.json
 major-arcana-test/
 
 # Stryker / mutation testing

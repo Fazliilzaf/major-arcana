@@ -16,16 +16,21 @@
          (konversationer-bottom-actions.js) i library-läge: ingen legacy-chrome
          injiceras, bara panel-öppnandet exponeras via window.CCOBottomActions.
          Flaggan måste sättas före launchern laddas. -->
-    <script>window.__CCO_BOTTOM_ACTIONS_LIBRARY__ = true;</script>
-    <script src="/konversationer-bottom-actions.js?v=20260724-inkoppling-patientmaster-1" defer></script>
+    <script>
+      window.__CCO_BOTTOM_ACTIONS_LIBRARY__ = true;
+    </script>
+    <script
+      src="/konversationer-bottom-actions.js?v=f731aae2222954d974611bdfe0a866c65d16707a"
+      defer
+    ></script>
     <!-- /admin#cco owns the global shell. Lock explicit admin embeds to their
          requested content before the asynchronous application bundle boots. -->
     <script src="./app/cco-admin-embed-contract.js?v=customer-full-product-contract-v1"></script>
-    <!-- ARCANA bundle URLs (content-hash: 5f90b9b8d4) -->
+    <!-- ARCANA bundle URLs (content-hash: 52f86cb757) -->
     <script>
       window.__ARCANA_BUNDLE_URLS__ = {
-        full: './app.bundle.5f90b9b8d4.min.js',
-        staffCore: './app.bundle.staff-core.0ac1db0da8.min.js',
+        full: './app.bundle.52f86cb757.min.js',
+        staffCore: './app.bundle.staff-core.763fd8122b.min.js',
         staffDeferred: './app.bundle.staff-deferred.6d4631df1b.min.js',
       };
     </script>
@@ -61,7 +66,11 @@
       as="script"
       href="./app/mobile-deeplink-boot.js?v=v12-real-customer-surface-v1"
     />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=booking-audit-capture-v1" />
+    <link
+      rel="preload"
+      as="script"
+      href="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
+    />
     <script>
       (function deferInboxUntilNeeded() {
         try {
@@ -3679,7 +3688,10 @@
                   <script defer src="/cco-scalp-analysis.js"></script>
                   <script src="/cco-kunder-staff-owner.js?v=build-39eec9b8" defer></script>
                   <script src="./app/journal-photo-client.js?v=kkx-photo-uat2"></script>
-                  <script async src="./app/patient-master-ui.js?v=booking-audit-capture-v1"></script>
+                  <script
+                    async
+                    src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
+                  ></script>
                   <script
                     defer
                     src="./app/cco-v9-interactions.js?v=build-cmdk-server-search"
@@ -3752,7 +3764,10 @@
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=booking-audit-capture-v1"></script>
+                  <script
+                    async
+                    src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
+                  ></script>
                   <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
@@ -11645,12 +11660,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="/arcana-page-titles.js"></script>
     <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 5f90b9b8d4) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 52f86cb757) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.5f90b9b8d4.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.0ac1db0da8.min.js';
+        var fullSrc = urls.full || './app.bundle.52f86cb757.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.763fd8122b.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.6d4631df1b.min.js';
 
         function injectScript(src, onload) {

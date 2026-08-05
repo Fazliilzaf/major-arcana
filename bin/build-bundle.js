@@ -18,6 +18,7 @@ const ROOT = path.join(__dirname, '..');
 const PREVIEW_DIR = path.join(ROOT, 'public/major-arcana-preview');
 const OUT_CONCAT = path.join(PREVIEW_DIR, 'app.bundle.js');
 const LATEST_JSON = path.join(PREVIEW_DIR, 'app.bundle.latest.json');
+const BUILD_META_JSON = path.join(PREVIEW_DIR, 'build-meta.json');
 const MANIFEST = path.join(__dirname, 'bundle-manifest.json');
 const DEFERRED_MANIFEST = path.join(__dirname, 'bundle-manifest-staff-deferred.json');
 
@@ -70,10 +71,10 @@ function minifyConcat(concatSrc) {
   const tmpIn = path.join(require('node:os').tmpdir(), `cco-bundle-in-${process.pid}.js`);
   fs.writeFileSync(tmpIn, concatSrc);
   execSync('npx --yes esbuild --version', { stdio: 'pipe' });
-  return execSync(
-    `npx --yes esbuild ${tmpIn} --minify --target=es2020 --legal-comments=none`,
-    { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 }
-  );
+  return execSync(`npx --yes esbuild ${tmpIn} --minify --target=es2020 --legal-comments=none`, {
+    encoding: 'utf8',
+    maxBuffer: 50 * 1024 * 1024,
+  });
 }
 
 function buildHashedBundle({ sources, label, namePrefix = '' }) {
@@ -119,7 +120,9 @@ console.log(`Staff defer:   ${deferredSources.length} filer`);
 // Debug concat (full only)
 const fullConcat = concatSources(fullSources, 'full');
 fs.writeFileSync(OUT_CONCAT, fullConcat.concatSrc);
-console.log(`✓ ${path.relative(ROOT, OUT_CONCAT)}: ${fullConcat.concatSrc.length} bytes (concat debug)`);
+console.log(
+  `✓ ${path.relative(ROOT, OUT_CONCAT)}: ${fullConcat.concatSrc.length} bytes (concat debug)`
+);
 
 const full = buildHashedBundle({ sources: fullSources, label: 'full', namePrefix: '' });
 const staffCore = buildHashedBundle({
@@ -159,6 +162,14 @@ const latestInfo = {
 fs.writeFileSync(LATEST_JSON, `${JSON.stringify(latestInfo, null, 2)}\n`);
 console.log(`✓ ${path.relative(ROOT, LATEST_JSON)} skriven`);
 
+const buildMeta = {
+  buildCommit: latestInfo.buildCommit,
+  hash: latestInfo.hash,
+  generatedAt: latestInfo.generatedAt,
+};
+fs.writeFileSync(BUILD_META_JSON, `${JSON.stringify(buildMeta, null, 2)}\n`);
+console.log(`✓ ${path.relative(ROOT, BUILD_META_JSON)} skriven`);
+
 const ALL_BUNDLES_RE = /^app\.bundle(?:\.(?:staff-core|staff-deferred))?\.[a-f0-9]{6,}\.min\.js$/;
 const allBundles = fs
   .readdirSync(PREVIEW_DIR)
@@ -179,6 +190,8 @@ if (toDelete.length) {
 const saved = full.minBytes - staffCore.minBytes;
 console.log('\n=== Bundle-resultat ===');
 console.log(`Full:           ${full.minBytes.toLocaleString('sv-SE')} bytes`);
-console.log(`Staff core:     ${staffCore.minBytes.toLocaleString('sv-SE')} bytes (−${saved.toLocaleString('sv-SE')} vs full)`);
+console.log(
+  `Staff core:     ${staffCore.minBytes.toLocaleString('sv-SE')} bytes (−${saved.toLocaleString('sv-SE')} vs full)`
+);
 console.log(`Staff deferred: ${staffDeferred.minBytes.toLocaleString('sv-SE')} bytes (lazy)`);
 console.log('\nNästa steg: kör bin/inject-bundle.js för att modifiera index.html.');

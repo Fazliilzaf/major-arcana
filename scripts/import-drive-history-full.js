@@ -190,6 +190,33 @@ function selectBatch(candidates, opts = {}) {
   return batch;
 }
 
+/**
+ * Dokumentkategorier som får bli synliga direkt i documents-fasen.
+ *
+ * Tidigare stod det bara `category === 'journal'` här. Allt annat
+ * importerades men landade osynligt — och kundrese-revisionen räknar bara
+ * synliga assets (`hasVisibleStatus`, ccoClientoLedJourneyAudit.js:67). En
+ * hälsodeklaration kunde alltså hämtas utan att gapet minskade, vilket såg
+ * ut som att importen inte fungerade.
+ *
+ * Listan är avsiktligt explicit i stället för "allt som klassificerats
+ * säkert". Kategorierna nedan motsvarar steg i kundresan och hör hemma på
+ * kundkortet; en framtida kategori ska behöva läggas till medvetet.
+ *
+ * `!needsClassification` gäller fortfarande, så bara träffar med hög
+ * konfidens och känd kategori kommer hit — aldrig `other`.
+ */
+const VISIBLE_DOCUMENT_CATEGORIES = new Set([
+  'journal',
+  'health_declaration',
+  'fitness_certificate',
+  'consent',
+  'treatment_consent',
+  'agreement',
+  'offer',
+  'treatment_plan',
+]);
+
 function buildImportMetadata({ row, phase }) {
   const { file, classification, documentDate } = row;
   let category = classification.category;
@@ -232,7 +259,8 @@ function buildImportMetadata({ row, phase }) {
     needsPhotoReview,
     needsEncounterReview: true,
     imageStage,
-    makeVisible: phase === 'documents' && !needsClassification && category === 'journal',
+    makeVisible:
+      phase === 'documents' && !needsClassification && VISIBLE_DOCUMENT_CATEGORIES.has(category),
   };
 }
 
