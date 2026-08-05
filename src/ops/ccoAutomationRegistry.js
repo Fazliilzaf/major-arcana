@@ -37,7 +37,11 @@ const RULES = Object.freeze([
     next: 'Skapa/skicka behandlingsplan',
     risk: 'blocker',
     humanApprovalRequired: true,
-    suggestedRoute: null,
+    // Kundens portal (cco-patient-offer-portal-v3) nås via esignToken och kan
+    // inte länkas statiskt. Signalen pekar därför på PERSONALENS yta — kundens
+    // workspace, där offerten skapas och portaldelningen utlöses. Samma
+    // mönster som övriga rutter: konsumenten hänger på patientId sist.
+    suggestedRoute: '/major-arcana-preview/?view=customers&workspace=1&patientId=',
     confidenceDefault: 'low',
     v1Enabled: true,
   },
@@ -73,7 +77,10 @@ const RULES = Object.freeze([
     next: 'Legal review → bundle-signering',
     risk: 'legal_blocker',
     humanApprovalRequired: true,
-    suggestedRoute: null,
+    // Avtal + samtycke signeras av kunden i offertportalen via samma
+    // esignToken-kedja som steg 5. Token är per kund, så signalen pekar på
+    // personalens workspace där bundle-delningen utlöses.
+    suggestedRoute: '/major-arcana-preview/?view=customers&workspace=1&patientId=',
     confidenceDefault: 'medium',
     v1Enabled: true,
   },
