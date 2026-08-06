@@ -845,7 +845,7 @@
         url.searchParams.set('demo', 'off');
         url.searchParams.set('embed', 'admin');
         url.searchParams.set('v11rail', 'on');
-        url.searchParams.set('v12workspace', 'on');
+        // v12workspace följer admin-embed-kontraktets URL-flagga, inte hårdkodat här.
       }
       if (patientId) {
         url.searchParams.set('patientId', patientId);
@@ -1472,7 +1472,7 @@
   ];
 
   function inferV12ModuleFromRailClick(target) {
-    if (!target || !usesV12Workspace()) return '';
+    if (!target) return '';
     if (
       target.closest(
         'a[href^="tel:"],a[href^="sms:"],a[href^="mailto:"],[data-v11-active-visit-action],[data-v11-booking-audit],[data-v9-quick],[data-kk-sig],[data-kk-open-doc],[data-kk-ord48-open-calendar],[data-patient-photo-camera],[data-v11-doc-action],[data-patient-action]'
@@ -2409,7 +2409,20 @@
   }
 
   function openV12WorkspaceFromRail(root, ctx, moduleName, options = {}) {
-    if (!root || !ctx || !usesV12Workspace()) return;
+    if (!root || !ctx) return;
+    // V11-railen är alltid en launcher för V12-arbetsytan — även när
+    // ?v12workspace=off är default. Vid första klick sätter vi flaggan
+    // sticky för sessionen så CSS och övriga usesV12Workspace()-grinder
+    // följer med utan att ladda om sidan.
+    if (!usesV12Workspace()) {
+      try {
+        localStorage.setItem('arcana.v12workspace.enabled', '1');
+      } catch (_error) {
+        /* private mode */
+      }
+      document.documentElement.setAttribute('data-v12-workspace', 'on');
+      window.__ARCANA_V12_WORKSPACE_ENABLED__ = true;
+    }
     const launch = async () => {
       const patientId = normalizeText(
         ctx?.card?.patientId || ctx?.card?.id || runtime.selectedPatientId
@@ -2529,7 +2542,7 @@
   }
 
   function bindV12WorkspaceRailLauncher(root, ctx) {
-    if (!root || !usesV12Workspace()) return;
+    if (!root) return;
     const railShell = root.querySelector('[data-v11-rail-shell="1"]');
     if (!railShell || root.querySelector('[data-v12-workspace-shell="1"]')) return;
     if (railShell.dataset.v12WorkspaceLauncherBound === '1') return;
