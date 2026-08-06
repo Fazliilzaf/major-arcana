@@ -1,24 +1,48 @@
 # ORD-86 — Legacy `.se` som inbyggd standard (secret + ~83 hårdkodade fallbacks)
 
-| | |
-|---|---|
-| **Bas-commit** | `ab401504` (origin/main, 2026-07-28) |
-| **Ägare** | Cowork |
-| **GO** | väntar Fazli |
-| **Föregångare** | Drift-gatens sex falsklarm (BASE_URL på legacy `.se` + `-L` saknades i `smoke-public.sh`) |
+|                 |                                                                                                                                                                                                                                                     |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Bas-commit**  | `ab401504` (origin/main, 2026-07-28)                                                                                                                                                                                                                |
+| **Ägare**       | Cowork                                                                                                                                                                                                                                              |
+| **GO**          | ~~väntar Fazli~~                                                                                                                                                                                                                                    |
+| **Status**      | **LEVERERAD** — steg 2–5 verifierade i kod 2026-08-06. Endast steg 1 (Render-secreten) kvar, och det är Fazlis. Orderfilen uppdaterades aldrig när bygget gick in — samma lucka som ordern själv dokumenterar för ORD-80 och ORD-84.                |
+| **Föregångare** | Drift-gatens sex falsklarm (BASE_URL på legacy `.se` + `-L` saknades i `smoke-public.sh`)                                                                                                                                                           |
 | **Ordernummer** | ORD-86, ledigt. Verifierat mot git-loggen: ORD-80 är **använt** (`10fd7be4`, BankID-login med esign-token, #1114) men fick aldrig sin orderfil commitad. ORD-84:s orderfil låg i draft-PR #1229 och mergades aldrig. Ingen Notion-avstämning krävs. |
+
+## Verifiering 2026-08-06 — vad som faktiskt finns i koden
+
+Ordern beskriver 84 platser. Vid kontroll mot `e8e7dd41` finns **9 filer** kvar
+med `arcana.hairtpclinic.se`, och varje enskild är redovisad:
+
+| Fil                                              | Varfor `.se` star kvar                                      |
+| ------------------------------------------------ | ----------------------------------------------------------- |
+| `src/config.js`                                  | **Avsiktlig** — redirect-tabellen (steg 3)                  |
+| `src/brand/resolveLegacyHostRedirectUrl.js`      | **Avsiktlig** — steg 3                                      |
+| `src/brand/brandConfig.js`                       | **Avsiktlig** — `domains` (steg 3)                          |
+| `src/brand/canonicalPublicOrigin.js`             | Den delade konstanten steg 2 bad om — **finns**             |
+| `scripts/lib/canonical-base-url.js`              | Samma, skript-sidan — **finns**                             |
+| `scripts/smoke-public.sh`                        | Testar redirecten, ska inte roras                           |
+| `src/ops/icalExport.js:34`                       | iCal-**UID**, inte URL. Byte skulle dubblera kalenderposter |
+| `scripts/setup-owner-mfa.js:378`                 | `x-forwarded-host` — testar legacy-varden avsiktligt        |
+| `scripts/verify-post-op-uppfoljning-prod.mjs:23` | Endast en kommentar som beskriver svepet                    |
+
+Steg 4 ar ocksa klart: `extract-owner-token.sh:4` defaultar till `.com`, och
+raderna 98, 115 och 173 har `-L --max-redirs 5 --post301 --post302 --post303`.
+
+**Kvar:** steg 1 — `ARCANA_PUBLIC_BASE_URL` = `https://arcana.hairtpclinic.com`
+i Render Dashboard. Ingen agent skriver hemligheter.
 
 ## Bas och observation
 
 **Runtime:** prod, mätt 2026-07-28 från sandlådan mot publika domäner. Inget inloggat läge, inga skrivningar.
 
-| Påstående | Fönster | Stabilt? | Belägg |
-|---|---|---|---|
-| `.se` svarar 301 → `.com` | enstaka anrop, `/healthz` | ja | `curl -w '%{http_code} %{redirect_url}'` |
-| POST utan `-L` mot `.se` ger 301, inte svar | enstaka anrop, `/api/v1/auth/login` | ja | svarskropp `Moved Permanently. Redirecting to …`, HTTP 301 |
-| Samma POST mot `.com` når applikationen | enstaka anrop | ja | `{"error":"Fel e-postadress eller lösenord."}`, HTTP 401 |
-| Signaturbildens `.se`-URL redirectar | enstaka anrop | ja | 301 → `.com` på `/assets/hair-tp-clinic/…svg` |
-| Antal filer med `arcana.hairtpclinic.se` | statisk sökning på bas-commit | ja | `grep -rl`, exkl. `tests/` och `node_modules` |
+| Påstående                                   | Fönster                             | Stabilt? | Belägg                                                     |
+| ------------------------------------------- | ----------------------------------- | -------- | ---------------------------------------------------------- |
+| `.se` svarar 301 → `.com`                   | enstaka anrop, `/healthz`           | ja       | `curl -w '%{http_code} %{redirect_url}'`                   |
+| POST utan `-L` mot `.se` ger 301, inte svar | enstaka anrop, `/api/v1/auth/login` | ja       | svarskropp `Moved Permanently. Redirecting to …`, HTTP 301 |
+| Samma POST mot `.com` når applikationen     | enstaka anrop                       | ja       | `{"error":"Fel e-postadress eller lösenord."}`, HTTP 401   |
+| Signaturbildens `.se`-URL redirectar        | enstaka anrop                       | ja       | 301 → `.com` på `/assets/hair-tp-clinic/…svg`              |
+| Antal filer med `arcana.hairtpclinic.se`    | statisk sökning på bas-commit       | ja       | `grep -rl`, exkl. `tests/` och `node_modules`              |
 
 ## Problemet
 
@@ -28,15 +52,15 @@ som Fazli kan rätta.
 
 Fördelning av hårdkodade `https://arcana.hairtpclinic.se`-fallbacks (exkl. `tests/`):
 
-| Katalog | Filer | Vad de påverkar |
-|---|---|---|
-| `scripts/` (+ `scripts/lib`) | 69 | verifierings- och driftskript |
-| `src/ops` | 5 | patientlänkar, uptime-check, mailboxdokument |
-| `src/capabilities` | 2 | post-op-granskningslänk, executionService |
-| `src/brand` | 2 | patientportal-URL, brand-domänlista |
-| `src/routes` | 1 | post-op-granskning |
-| `src/config.js` | 1 | redirect-tabell (**korrekt** — den ska känna till `.se`) |
-| `public/major-arcana-preview` | 2 | signaturens bas-URL, focus-intel-renderare |
+| Katalog                       | Filer | Vad de påverkar                                          |
+| ----------------------------- | ----- | -------------------------------------------------------- |
+| `scripts/` (+ `scripts/lib`)  | 69    | verifierings- och driftskript                            |
+| `src/ops`                     | 5     | patientlänkar, uptime-check, mailboxdokument             |
+| `src/capabilities`            | 2     | post-op-granskningslänk, executionService                |
+| `src/brand`                   | 2     | patientportal-URL, brand-domänlista                      |
+| `src/routes`                  | 1     | post-op-granskning                                       |
+| `src/config.js`               | 1     | redirect-tabell (**korrekt** — den ska känna till `.se`) |
+| `public/major-arcana-preview` | 2     | signaturens bas-URL, focus-intel-renderare               |
 
 ## Varför det inte är kosmetiskt
 
@@ -124,8 +148,8 @@ produktionskoden.
 
 Två nummer saknade orderfiler i `docs/handover/ORDERS/`. Båda är utredda mot git-loggen:
 
-- **ORD-80** — numret är **använt**. `10fd7be4`, *"feat(portal): ORD-80 — BankID-login
-  accepterar esign-token + tokensort-styrt återhopp till rika offer-portalen"* (#1114).
+- **ORD-80** — numret är **använt**. `10fd7be4`, _"feat(portal): ORD-80 — BankID-login
+  accepterar esign-token + tokensort-styrt återhopp till rika offer-portalen"_ (#1114).
   Arbetet är mergat; endast orderfilen commitades aldrig.
 - **ORD-84** — orderfilen skrevs och öppnades som draft-PR #1229, men mergades aldrig.
   Implementationen gick in via #1231. Den här grenen bär en ersättande version med
