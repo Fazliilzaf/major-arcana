@@ -1,25 +1,50 @@
 # ORD-87 — 41,5 Mkr vunna affärer finns per kund men aggregeras aldrig
 
-| | |
-|---|---|
-| **Bas-commit** | `ab401504` (origin/main, 2026-07-28) |
-| **Ägare** | Cowork |
-| **GO** | väntar Fazli |
-| **Föregångare** | Pipedrive prod-länkning 2026-06-10 (3 413 länkade, 3 664 matchade), UI-integration PR #112 |
-| **Ordernummer** | ORD-87. Se numreringsnoten i ORD-86 — ORD-80 och ORD-84 saknar orderfiler. |
+|                 |                                                                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Bas-commit**  | `ab401504` (origin/main, 2026-07-28)                                                                                             |
+| **Ägare**       | Cowork                                                                                                                           |
+| **GO**          | ~~väntar Fazli~~                                                                                                                 |
+| **Status**      | **LEVERERAD I SIN HELHET** — verifierad i kod 2026-08-06. Se avsnittet nedan. Orderfilen uppdaterades aldrig nar bygget gick in. |
+| **Föregångare** | Pipedrive prod-länkning 2026-06-10 (3 413 länkade, 3 664 matchade), UI-integration PR #112                                       |
+| **Ordernummer** | ORD-87. Se numreringsnoten i ORD-86 — ORD-80 och ORD-84 saknar orderfiler.                                                       |
+
+## Verifiering 2026-08-06 — allt ordern kraver finns
+
+Kontrollerat mot `e8e7dd41`:
+
+**Steg 1 — aggregatet.** `getTenantStats` returnerar `wonDealsTotal`,
+`wonDealsCount`, `customersWithWonDeals`, `lifetimeValueDenominator`,
+`lifetimeValueAverage` och `dealTotalsAreFloor` — plus `openDealsTotal` /
+`openDealsCount` / `customersWithOpenDeals`, som ordern inte bad om.
+`sumPipedriveWonDeals` ar flyttad till `./pipedriveDealHelpers` med en
+ORD-87-markor pa `ccoPatientMasterStore.js:621`.
+
+**Steg 2 — API.** Konsumeras dar `getTenantStats` redan konsumeras, inget nytt
+endpoint. Somen tackt av `tests/routes/ccoStatsSeamToSurface.test.js`.
+
+**Steg 3 — UI med utskriven namnare.** `data-v9-snitt-ltv-value` /
+`data-v9-snitt-ltv-trend` visar `snitt over N kunder`, och golv-forbehallet fran
+"Osakerhet som ska baras vidare" ligger i tooltip: _"…delat pa N kunder. Golv —
+kunder vars affarer aldrig matchats saknas."_ Oppna offerter visas separat med
+egen forklaring om att de inte ar intakt.
+
+**Testkraven.** `tests/ops/ccoTenantDealAggregate.test.js` (aggregat = summan av
+per-kund-varden), `tests/public/ccoSnittLtvHeader.test.js` (namnaren),
+`tests/routes/ccoStatsSeamToSurface.test.js` (somen).
 
 ## Bas och observation
 
 **Kodmiljö:** worktree på `ab401504`.
 **Datakälla:** `scripts/audit-kunder-ltv-sources-prod.js` mot prod, ägar-API.
 
-| Påstående | Fönster | Stabilt? | Belägg |
-|---|---|---|---|
-| 41 489 801 kr vunna affärer, 726 kunder | ett svep över hela registret | ja | audit-skriptets summering |
-| Registret har 7 451 aktiva identiteter | samma svep | ja | `listPatients` / UI-räknare |
-| `getTenantStats` saknar intäktsfält | statisk läsning | ja | `ccoPatientMasterStore.js:1503–1521`, elva fält, inget om pengar |
-| `lifetimeValue` beräknas per kund | statisk läsning | ja | `ccoPatientMasterStore.js:703` via `sumPipedriveWonDeals` (rad 616) |
-| `lifetimeValue` renderas per kundkort | statisk läsning | ja | `patient-master-ui.js:6111`, `7202` |
+| Påstående                               | Fönster                      | Stabilt? | Belägg                                                              |
+| --------------------------------------- | ---------------------------- | -------- | ------------------------------------------------------------------- |
+| 41 489 801 kr vunna affärer, 726 kunder | ett svep över hela registret | ja       | audit-skriptets summering                                           |
+| Registret har 7 451 aktiva identiteter  | samma svep                   | ja       | `listPatients` / UI-räknare                                         |
+| `getTenantStats` saknar intäktsfält     | statisk läsning              | ja       | `ccoPatientMasterStore.js:1503–1521`, elva fält, inget om pengar    |
+| `lifetimeValue` beräknas per kund       | statisk läsning              | ja       | `ccoPatientMasterStore.js:703` via `sumPipedriveWonDeals` (rad 616) |
+| `lifetimeValue` renderas per kundkort   | statisk läsning              | ja       | `patient-master-ui.js:6111`, `7202`                                 |
 
 ## Vad som faktiskt saknas
 
