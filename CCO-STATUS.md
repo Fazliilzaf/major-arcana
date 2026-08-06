@@ -3,9 +3,10 @@
 ## Starta har i ny chatt (uppdaterad 2026-08-06)
 
 - Repo: `~/Code/major-arcana` (Mac) / `/home/fazli/major-arcana-legacy` (VPS 134.209.232.101). INTE iCloud-mappen.
-- Kor `git pull` forst — main ska vara vid commit `8f6632ba` eller senare.
+- Kor `git pull` forst — main ska vara vid commit `2c335de7` eller senare
+  (verifierat 2026-08-06 som live build-tagg pa prod, `meta-arcana-ui-build`).
 - Las hela detta dokument, sen `docs/ops/encounter-link-disambiguation-2026-08-06.md`.
-- Kor Sonnet 5 som standard. Opus bara for hårda arkitekturbeslut. Se `[[cco-model-val-sonnet-standard]]` i minnessystemet (lokalt pa Mac, foljer inte med till VPS-session).
+- Kor Sonnet 5 som standard. Opus bara for hårda arkitekturbeslut. Se `[[cco-model-val-sonnet-standard]]` i minnessystemet — finns bade pa Mac och pa VPS:en (skapad dar 2026-08-06). Minnesfiler ar per maskin och synkas INTE automatiskt: skapas de pa en maskin maste de skapas om pa den andra.
 - Prioritet just nu: manuell disambiguering av 12 grupper i encounter-link-kon (kraver Cliento-atkomst, ingen kod). Se detaljfil.
 - Sekundart: CCO 9-stegs kundresa — steg 2 och steg 9 saknar bekraftad kod-kartlaggning.
 
@@ -69,7 +70,13 @@
 - Kor Sonnet 5 som standard i CCO-arbetet. Se minnesfil `cco-model-val-sonnet-standard.md`.
 - Skarpa produktionsskrivningar (patientdata, merge, git force-push, PR-merge) blockeras av en klassificerare i Claude Code — losning ar att köra kommandot sjalv i terminal, inte att forsoka kringga.
 
-## Gjort i denna session
+## ARKIV — tidigare session (CSS-arbete, `major-arcana-preview`)
+
+> UTGANGEN KONTEXT. Allt nedanfor ror en aldre session och GitHub Pages-previewn,
+> INTE dagens CCO-arbete och INTE produktion. Blanda inte ihop med
+> "Sessionslogg 2026-08-06" ovan. Behallen som historik.
+
+### Gjort i den sessionen
 
 - GitHub SSH sattes upp pa MacBook Air och verifierades med `ssh -T git@github.com`.
 - Repon klonades lokalt:
@@ -81,7 +88,7 @@
   - Commit: `693af1c`
   - Budskap: scopea textfarg i historik-kort sa chips/symboler inte overskrivs globalt
 
-## Viktig andring som pushats
+### Viktig andring som pushats
 
 I `public/major-arcana-preview/styles.css` togs en bred regel bort:
 
@@ -91,12 +98,12 @@ I `public/major-arcana-preview/styles.css` togs en bred regel bort:
   - `... .thread-subject-primary { color: #1a1a1a; }`
   - `... .thread-story { color: #666; }`
 
-## Problem som fortfarande ar oppna (staging)
+### Problem som fortfarande ar oppna (i previewn, inte i prod)
 
 1. Ko-korten i vansterkolumnen ser tomma ut (rosa rail syns, text saknas/ser osynlig ut).
 2. Mailinnehall i fokusytan bryts per tecken (en bokstav per rad).
 
-## Analys gjord (ingen ny kod andrad efter analys)
+### Analys gjord (ingen ny kod andrad efter analys)
 
 - Trolig orsak till kort-problemet:
   - History-mode fick for smal farg-scope efter borttag av wildcard-regeln.
@@ -105,7 +112,7 @@ I `public/major-arcana-preview/styles.css` togs en bred regel bort:
   - Kombination av krympt layout + `overflow-wrap: anywhere` i conversation/rich-text-klasser.
   - Detta kan ge tecken-for-tecken-brytning i smala/min-content-lagen.
 
-## Rekommenderad nasta insats
+### Rekommenderad nasta insats (for previewn, lag prioritet)
 
 - Reproa i staging med devtools och verifiera computed styles for:
   - Vansterkolumn: `thread-subject-primary`, `thread-story`, `thread-owner`, `thread-intelligence-item-value`, `intel-card-provenance-detail`.
@@ -114,11 +121,20 @@ I `public/major-arcana-preview/styles.css` togs en bred regel bort:
   - History-kort: explicit textfarg pa alla relevanta textnoder (inte wildcard `*`).
   - Fokusyta: mildra wrap-regel for primar mailbody (undvik `anywhere` dar den skadar).
 
-## Snabblankar
+## Snabblankar (verifierade 2026-08-06 via DNS + live-hamtning)
 
-- Live: https://fazliilzaf.github.io/major-arcana/
+- **Produktion (enda riktiga ytan):** https://arcana.hairtpclinic.com/admin
+  — Render (CNAME `major-arcana-frankfurt.onrender.com`, A `216.24.57.7` / `216.24.57.15`).
+  Login + COO/CAO/CFO/CMO/CCO, mallar, incidenter, revision, drift.
 - Repo: https://github.com/Fazliilzaf/major-arcana
-- Senaste fixcommit: https://github.com/Fazliilzaf/major-arcana/commit/693af1c
+- Marknadssajt (separat yta, ej denna kodbas): https://hairtpclinic.com — Vercel (`76.76.21.21`).
+- VPS `134.209.232.101` — CI-runner. Serverar INTE arcana. Ga inte dit for att se prod.
+
+**UTGANGEN — folj inte:** `fazliilzaf.github.io/major-arcana/` (GitHub Pages) serverar
+sedan dess ett helt annat projekt ("Torti Massimiliano – The Art of Layering", parfym).
+Lanken ar struken har med flit. En agent som foljer den hamnar i fel kodbas.
+
+Arkiverad fixcommit fran CSS-sessionen: https://github.com/Fazliilzaf/major-arcana/commit/693af1c
 
 ## 2026-08-06 — Notering till VS Code-sessionen (CCO endpoint-utredning)
 
