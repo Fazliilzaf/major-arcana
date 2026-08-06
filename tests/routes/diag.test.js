@@ -44,3 +44,34 @@ test('GET /_diag/version speglar runtimeState.startedAt', async () => {
     assert.ok(Array.isArray(body.fixes));
   });
 });
+
+// ORD-86: bada bas-URL-namnen ska synas, och det effektiva vardet ska rapporteras.
+// Utan detta gar det inte att se utifran att PUBLIC_BASE_URL och
+// ARCANA_PUBLIC_BASE_URL pekar olika — vilket de gjorde tills 2026-08-06.
+test('GET /_diag/env exponerar bada bas-URL-namnen och det effektiva vardet', async () => {
+  const config = {
+    stateRoot: '/tmp/state',
+    aiProvider: 'fallback',
+    publicBaseUrl: 'https://arcana.hairtpclinic.com',
+  };
+  const previous = {
+    plain: process.env.PUBLIC_BASE_URL,
+    prefixed: process.env.ARCANA_PUBLIC_BASE_URL,
+  };
+  process.env.PUBLIC_BASE_URL = 'https://arcana.hairtpclinic.com';
+  process.env.ARCANA_PUBLIC_BASE_URL = 'https://arcana.hairtpclinic.se';
+  try {
+    await withServer({ config, runtimeState: {} }, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/_diag/env`);
+      const body = await res.json();
+      assert.equal(body.env.PUBLIC_BASE_URL, 'https://arcana.hairtpclinic.com');
+      assert.equal(body.env.ARCANA_PUBLIC_BASE_URL, 'https://arcana.hairtpclinic.se');
+      assert.equal(body.resolved.publicBaseUrl, 'https://arcana.hairtpclinic.com');
+    });
+  } finally {
+    if (previous.plain === undefined) delete process.env.PUBLIC_BASE_URL;
+    else process.env.PUBLIC_BASE_URL = previous.plain;
+    if (previous.prefixed === undefined) delete process.env.ARCANA_PUBLIC_BASE_URL;
+    else process.env.ARCANA_PUBLIC_BASE_URL = previous.prefixed;
+  }
+});
