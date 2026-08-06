@@ -1,19 +1,73 @@
 # CCO Status - Handover
 
-## Starta har i ny chatt
+## Starta har i ny chatt (uppdaterad 2026-08-06)
 
-- Oppna projektet `major-arcana` i Cursor pa MacBook Air.
-- Be assistenten lasa `CCO-STATUS.md` for handover.
-- Ange malet direkt: fixa de 2 staging-buggarna utan regressions.
-- Prioritera steg 1:
-  - Verifiera computed styles i vansterkolumnens ko-kort.
-  - Verifiera text-wrap/bredd i fokusytans mailbody.
-- Prioritera steg 2:
-  - Implementera minimala CSS-fixar med tydlig scope.
-  - Testa live + history mode i vansterkolumnen.
-- Prioritera steg 3:
-  - Kor snabb visuell kontroll i staging.
-  - Commit + push till `main` med tydligt commit-meddelande.
+- Repo: `~/Code/major-arcana` (Mac) / `/home/fazli/major-arcana-legacy` (VPS 134.209.232.101). INTE iCloud-mappen.
+- Kor `git pull` forst — main ska vara vid commit `8f6632ba` eller senare.
+- Las hela detta dokument, sen `docs/ops/encounter-link-disambiguation-2026-08-06.md`.
+- Kor Sonnet 5 som standard. Opus bara for hårda arkitekturbeslut. Se `[[cco-model-val-sonnet-standard]]` i minnessystemet (lokalt pa Mac, foljer inte med till VPS-session).
+- Prioritet just nu: manuell disambiguering av 12 grupper i encounter-link-kon (kraver Cliento-atkomst, ingen kod). Se detaljfil.
+- Sekundart: CCO 9-stegs kundresa — steg 2 och steg 9 saknar bekraftad kod-kartlaggning.
+
+## Sessionslogg 2026-08-06 — vad som gjorts och verifierats
+
+### Servermiljo (VPS 134.209.232.101, ubuntu-s-4vcpu-8gb-fra1-01)
+
+- SSH-atkomst bekraftad, samma GitHub-repo (`Fazliilzaf/major-arcana.git`), git rent.
+- Tva node-processer hittades: `dist/server.js` (port 4020, localhost) och `server.js` (port 3000, `major-arcana-legacy`). Ingen nginx-site pekar pa nagon av dem — INGEN av dem serverar riktig trafik. Produktion ar Render (`arcana.hairtpclinic.com`), separat fran VPS:en.
+- UFW blockerar port 3000 utifran (bara 22/80/443/tailscale ar oppna) — ingen sakerhetsrisk.
+- Roten korde vscode-server-processer (tsserver m.fl.) — rester fran anvandarens egen Remote-SSH-session som tappades vid VS Code-uppdatering. Ofarligt, ingen annan agent.
+- Slutsats: ingen dubbelarbete-risk fran VPS:en, koden ar identisk med Mac/GitHub.
+
+### PR:ar mergade denna session (kronologisk ordning i git-loggen)
+
+- `#1298`/`#1297`/`#1299` — build-fixar: `ensure-bundle` skannar inte `index.html` vid prestart, `inject-bundle` ersatter alla gamla bundle-URL-block deterministiskt.
+- `#1295` — reparerar dubbelkodade Drive-filnamn i klassificeraren.
+- `#1296` — Drive-importerade patientdokument syns/raknas korrekt.
+- `#1294` — offert-arendet kopplas till v12-arbetsytan.
+- `#1293`/`#1303` — dependency-overrides hojda (`brace-expansion`, `ip-address`, `fast-uri`) sa `npm audit` blir ren.
+- `#1300` — filnamn/Drive-sokvagar normaliseras till NFC (kant fall: 610 assets med tappade specialtecken, olosligt, dokumenterat separat).
+- `#1301` — enda kalla for "genomford bokning" (`isAttended` i `ccoClientoLedJourneyAudit.js`), tog bort en svagare dubblettdefinition i `ccoPatientMaster.js` som rakande ett bokningsmejl som genomfort besok.
+- `#1302` — assetlagret skrivs som kompakt JSON (grund for minneskraschfixen).
+- `#1306` — `VAR-LIGGER-ALLT.md`, karta over repo/externa ytor for agenter.
+- `#1309` — steg 5/7-signalerna pekar mot personalens workspace.
+- `#1305` — `docs/strategy/marketing-agent-handover.md`, handover for Kimi-marknadsagenten.
+- `#1304` — assetlagrets persistens delad i 64 shards (arkitekturfix for minneskraschen — skrev tidigare om att INTE mergas casually, mergades sen av andra sessionen efter granskning).
+- `#1307` — dokumentation: servern ar CI-runner, inte deploy-mal.
+- `#1308` — patient-id-krock fixad: `applyPatientPatch` matchade pa personnummer FORE id, kunde lata en post arva ett id som redan holls av en annan post → tva poster med samma id, omojliga att sla ihop.
+
+### Root cause — produktionskrascher (lost)
+
+77 526 assets, 259 MB snyggformaterad JSON skrevs om i sin helhet vid VARJE skrivning (aven en enda asset-andring). Bulkkorningar upprepade allokeringen tills processen foll. Fixat i tva steg: kompakt JSON (`#1302`) sen sharding + debounce (`#1304`, 64 shards, bara "dirty" shards skrivs, kompatibilitetsmonolit regenereras debouncead 5s).
+
+### Databatchar korda och verifierade
+
+- 2 307 assets lankade till kanoniska patienter (0 fel).
+- 2 412 assets lankade till encounters (0 fel, matchade dry-run exakt).
+- 33 dubblettpatienter mergade (verifierat via `/stats` `archivedPatients: 33`).
+- Ytterligare batch denna session: encounter-link-kon fran 143→115 assets (15→12 grupper). 56 assets lankade for 5 patienter (Dan Oraham, Johan Oden, Jakob, Lezan Ramzi, Alexandra) via `repair-encounter-links`-endpointen, medium confidence, datumbaserad matchning. 3 av 5 grupper helt losta (28 assets: Jakob/Lezan/Alexandra). 2 kvar (Dan Oraham 2 assets, Johan Oden 1 asset) — ratt patient men ingen encounter matchar datumet med tillrackligt hog confidence.
+- Kvarvarande 12 grupper (9 tvetydiga + 1 olosbar + Dan Oraham + Johan Oden): se `docs/ops/encounter-link-disambiguation-2026-08-06.md`. 8 av 9 tvetydiga foljer monstret kort stubbpost ("Andreas") vs fullt namn+personnummer i sokvagen ("Andreas Paulsen Ernek") — MEN Cliento-importerade poster saknar ofta personnummer (`missing_personnummer`), sa automatisk verifiering ar INTE mojlig via API. Kraver manuell koll i Cliento.
+
+### CCO 9-stegs kundresa — kod-kartlaggning (verifierad, inte antagen)
+
+1. Bokningsbekraftelse — ej kartlagd i denna session.
+2. **Okant — ingen faktisk ifyllningsbar underlag hittad.** Sag det tydligt istallet for att anta.
+3. Halsodeklaration — `journal-clinical-schemas.js` + `journal-pre-treatment-forms.js`, Meridiq-schema, `POST /cco-patient-master/patient/forms/batch`. Verifierad riktig produktionsyta.
+4. Konsultation/journal — `journal-tp-schemas.js` + `journal-tp-form.js` (`window.ArcanaJournalTpForm`), anropas fran `patient-master-ui.js:11222`, `PUT /api/v1/cco-journal/entry`, `formKey: 'tp_treatment'`, backend `journalType: 'consultation_plan'`. INTE `cco-journalbygge-v3.html` (den filen har 0 referenser nagonstans, bara nabar via direkt URL — intern demo-sida, inte personalyta).
+   5–7. Offert/betanketid/avtal — `ccoCommercialMailDispatch`-flodet i `ccoCommercial.js`, kundportal `cco-patient-offer-portal-v3.html` (211KB, redan byggd).
+5. Friskforsakran — samma Meridiq-kedja som steg 3.
+6. **Okant — ingen faktisk ifyllningsbar underlag hittad.** Sag det tydligt istallet for att anta.
+
+### Dod kod identifierad (INTE borttagen, bara dokumenterad)
+
+- `cco-journalbygge-v3.html` — 0 referenser, intern demo/statussida.
+- `app/patient-document-shell.js` — har en riktig anropare (`POST /api/v1/cco-forms/submit`, rad 254), MEN filen sjalv finns i 0 bundle-varianter — bara nadd via ~44 oanslutna `steg*-final-demo.html`-prototyper. Sjalva endpointen ar alltsa INTE dod (patient-document-shell.js kallar den), men filen som kallar den laddas aldrig i produktion.
+- `ccoCommercialMailDispatch.js` och `bookingConfirmationDispatch.js` — 0 importorer nagonstans, aldrig kopplade.
+
+### Regler etablerade denna session
+
+- Kor Sonnet 5 som standard i CCO-arbetet. Se minnesfil `cco-model-val-sonnet-standard.md`.
+- Skarpa produktionsskrivningar (patientdata, merge, git force-push, PR-merge) blockeras av en klassificerare i Claude Code — losning ar att köra kommandot sjalv i terminal, inte att forsoka kringga.
 
 ## Gjort i denna session
 
