@@ -50,13 +50,13 @@
 
 ### CCO 9-stegs kundresa — kod-kartlaggning (verifierad, inte antagen)
 
-1. Bokningsbekraftelse — ej kartlagd i denna session.
-2. **Okant — ingen faktisk ifyllningsbar underlag hittad.** Sag det tydligt istallet for att anta.
-3. Halsodeklaration — `journal-clinical-schemas.js` + `journal-pre-treatment-forms.js`, Meridiq-schema, `POST /cco-patient-master/patient/forms/batch`. Verifierad riktig produktionsyta.
-4. Konsultation/journal — `journal-tp-schemas.js` + `journal-tp-form.js` (`window.ArcanaJournalTpForm`), anropas fran `patient-master-ui.js:11222`, `PUT /api/v1/cco-journal/entry`, `formKey: 'tp_treatment'`, backend `journalType: 'consultation_plan'`. INTE `cco-journalbygge-v3.html` (den filen har 0 referenser nagonstans, bara nabar via direkt URL — intern demo-sida, inte personalyta).
-   5–7. Offert/betanketid/avtal — `ccoCommercialMailDispatch`-flodet i `ccoCommercial.js`, kundportal `cco-patient-offer-portal-v3.html` (211KB, redan byggd).
-5. Friskforsakran — samma Meridiq-kedja som steg 3.
-6. **Okant — ingen faktisk ifyllningsbar underlag hittad.** Sag det tydligt istallet for att anta.
+- **Steg 1** (bokningsbekraftelse) — ej kartlagd i denna session.
+- **Steg 2** — **Okant, ingen faktisk ifyllningsbar underlag hittad.** Sag det tydligt istallet for att anta.
+- **Steg 3** (halsodeklaration) — `journal-clinical-schemas.js` + `journal-pre-treatment-forms.js`, Meridiq-schema, `POST /cco-patient-master/patient/forms/batch`. Verifierad riktig produktionsyta.
+- **Steg 4** (konsultation/journal) — `journal-tp-schemas.js` + `journal-tp-form.js` (`window.ArcanaJournalTpForm`), anropas fran `patient-master-ui.js:11222`, `PUT /api/v1/cco-journal/entry`, `formKey: 'tp_treatment'`, backend `journalType: 'consultation_plan'`. INTE `cco-journalbygge-v3.html` (den filen har 0 referenser nagonstans, bara nabar via direkt URL — intern demo-sida, inte personalyta).
+- **Steg 5–7** (offert/betanketid/avtal) — `ccoCommercialMailDispatch`-flodet i `ccoCommercial.js`, kundportal `cco-patient-offer-portal-v3.html` (211KB, redan byggd).
+- **Steg 8** (friskforsakran) — samma Meridiq-kedja som steg 3.
+- **Steg 9** — **Okant, ingen faktisk ifyllningsbar underlag hittad.** Sag det tydligt istallet for att anta.
 
 ### Dod kod identifierad (INTE borttagen, bara dokumenterad)
 
