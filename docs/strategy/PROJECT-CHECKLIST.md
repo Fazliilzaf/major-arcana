@@ -1,7 +1,7 @@
 # Major Arcana — projektchecklista
 
 Senast uppdaterad: **2026-05-24**  
-Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana` · Arkiv: `~/Code/MA-Archive/`
+Prod: **https://arcana.hairtpclinic.com** (.se → .com 301) · Repo: `~/Code/major-arcana` · Arkiv: `~/Code/MA-Archive/`
 
 > **Följ dagligen:** [MASTER-TODO.md](./MASTER-TODO.md) — **samlad faslista, alla punkter i ordning** · [Notion — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6)
 
@@ -148,7 +148,7 @@ npm run verify:booking-web-e2e-prod
 npm run verify:customer-list-prod
 npm run verify:staff-ui-prod
 npm run verify:auth-go-live-prod
-curl -fsS https://arcana.hairtpclinic.se/readyz
+curl -fsS https://arcana.hairtpclinic.com/readyz
 ```
 
 ---

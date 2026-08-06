@@ -24,9 +24,9 @@ Detta är sanningen. Allt annat är detaljer eller historik.
 > **Precedens:** `PROJECT-CHECKLIST` → `MASTER-TODO` → `ROLLOUT-PLAN`. Säger de
 > emot varandra gäller den högre i listan, och avvikelsen ska rättas.
 
-> ⚠️ **Att verifiera:** `MASTER-TODO` anger prod som `arcana.hairtpclinic.com`
-> (med .se→.com 301), medan `PROJECT-CHECKLIST` anger `arcana.hairtpclinic.se`.
-> Bekräfta vilken domän som är kanonisk och synka båda.
+> ✅ **Verifierat 2026-08-06:** `arcana.hairtpclinic.com` är kanonisk prod
+> (Render, DNS + live `/admin`-byggtagg matchade `origin/main` HEAD; `.se`
+> 301:ar till `.com`). `PROJECT-CHECKLIST` rättad till samma domän.
 
 ---
 
