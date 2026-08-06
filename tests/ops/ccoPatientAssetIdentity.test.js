@@ -453,3 +453,44 @@ test('assetToPatientFile exposes visit video metadata without leaking storage in
   assert.equal(file.uploadedAt, '2026-06-19T10:00:01.000Z');
   assert.equal('storageKey' in file, false);
 });
+
+test('resolveCanonicalPatientsForAssetAliases prefers exact name over first-name prefix', () => {
+  const mappings = resolveCanonicalPatientsForAssetAliases({
+    patients: [
+      { id: 'andreas-full', displayName: 'Andreas Paulsen Ernek' },
+      { id: 'andreas-stub-1', displayName: 'Andreas' },
+      { id: 'andreas-stub-2', displayName: 'Andreas' },
+      { id: 'andreas-stub-3', displayName: 'Andreas' },
+    ],
+    assets: [
+      {
+        patientId: 'cliento_andreas',
+        originalDrivePath: 'Hair TP Clinic 2022/Andreas Paulsen Ernek/IMG_001.HEIC',
+      },
+    ],
+  });
+
+  assert.deepEqual(mappings, [
+    {
+      assetPatientId: 'cliento_andreas',
+      canonicalPatientId: 'andreas-full',
+      reason: 'exact_name_path',
+      candidatePatientIds: ['andreas-full'],
+    },
+  ]);
+});
+
+test('resolveCanonicalPatientsForAssetAliases still falls back to prefix when no exact match', () => {
+  const mappings = resolveCanonicalPatientsForAssetAliases({
+    patients: [{ id: 'simon-stub', displayName: 'Simon' }],
+    assets: [
+      {
+        patientId: 'cliento_simon',
+        originalDrivePath: 'Hair TP Clinic 2024/Simon de Woul/IMG_002.HEIC',
+      },
+    ],
+  });
+
+  assert.equal(mappings[0].canonicalPatientId, 'simon-stub');
+  assert.equal(mappings[0].reason, 'name_prefix_path');
+});

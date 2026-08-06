@@ -298,12 +298,24 @@ function resolveCanonicalPatientsForAssetAliases({ patients, assets }) {
     const pnrMatches = patientRows.filter(
       (row) => row.pnr.length >= 8 && haystackDigits.includes(row.pnr)
     );
-    const nameMatches = patientRows.filter(
-      (row) =>
-        row.name &&
-        segments.some((segment) => segment === row.name || segment.startsWith(`${row.name} `))
+    const exactNameMatches = patientRows.filter(
+      (row) => row.name && segments.some((segment) => segment === row.name)
     );
-    const matches = pnrMatches.length ? pnrMatches : nameMatches;
+    // Prefix matching only when nothing stronger hit: a patient stored under a bare
+    // first name ("Andreas") must not compete with the full-name record the path
+    // actually points at ("Andreas Paulsen Ernek"). Mirrors the precedence in
+    // resolveCanonicalPatientsForAssets.
+    const prefixNameMatches =
+      pnrMatches.length || exactNameMatches.length
+        ? []
+        : patientRows.filter(
+            (row) => row.name && segments.some((segment) => segment.startsWith(`${row.name} `))
+          );
+    const matches = pnrMatches.length
+      ? pnrMatches
+      : exactNameMatches.length
+        ? exactNameMatches
+        : prefixNameMatches;
     const uniquePatientIds = [...new Set(matches.map((row) => row.patientId))];
     return {
       assetPatientId,
@@ -315,7 +327,9 @@ function resolveCanonicalPatientsForAssetAliases({ patients, assets }) {
             ? 'unresolved_path_identity'
             : pnrMatches.length
               ? 'personnummer_path'
-              : 'exact_name_path',
+              : exactNameMatches.length
+                ? 'exact_name_path'
+                : 'name_prefix_path',
       candidatePatientIds: uniquePatientIds,
     };
   });
