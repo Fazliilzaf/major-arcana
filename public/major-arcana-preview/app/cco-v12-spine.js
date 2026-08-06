@@ -43,7 +43,7 @@
   }
 
   /* ---------- HERO ---------- */
-  function renderHero(card, journey) {
+  function renderHero(card, journey, patientId) {
     var name = txt(card.displayName || card.fullName || card.name) || 'Kund';
     var phone = txt(card.primaryPhone || card.phone);
     var email = txt(card.primaryEmail || card.email);
@@ -73,6 +73,16 @@
       ? esc(stepLabel) + (journey && journey.nextLabel ? ' · ' + esc(journey.nextLabel) : '')
       : 'Kundöversikt';
 
+    var actionsMenu =
+      '<div class="hero-actions-menu">' +
+      '<button type="button" class="hero-actions-menu__item" data-v12-scroll-module="active-visit">⚡ Förbered besök</button>' +
+      (patientId
+        ? '<button type="button" class="hero-actions-menu__item" data-kk-ord48-open-calendar data-patient-id="' +
+          esc(patientId) +
+          '">📅 Boka återbesök</button>'
+        : '') +
+      '</div>';
+
     return (
       '<header class="hero">' +
       '<div class="avatar-xl">' +
@@ -95,7 +105,10 @@
       '<div class="hero-actions">' +
       (stepLabel ? '<span class="hero-step-pill">' + esc(stepLabel) + '</span>' : '') +
       '<button type="button" class="btn-gold" data-v12-scroll-module="active-visit">⚡ Förbered besök</button>' +
-      '<button type="button" class="btn-ghost" data-v12-edit-open>Åtgärder ▾</button>' +
+      '<details class="hero-actions-dropdown">' +
+      '<summary class="btn-ghost">Åtgärder <span aria-hidden="true">▾</span></summary>' +
+      actionsMenu +
+      '</details>' +
       '</div>' +
       '</header>'
     );
@@ -284,6 +297,8 @@
         ' →</button>';
     }
 
+    var activeVisitAttr = s.state === 'active' ? ' data-v12-module="active-visit"' : '';
+
     return (
       '<article class="step ' +
       stateClass +
@@ -291,7 +306,9 @@
       esc(idx) +
       '" data-open="' +
       (open ? 'true' : 'false') +
-      '">' +
+      '"' +
+      activeVisitAttr +
+      '>' +
       '<button type="button" class="step-head"' +
       (hasBody ? ' aria-expanded="' + open + '"' : '') +
       '>' +
@@ -492,7 +509,7 @@
 
     var main =
       '<div class="v12-spine__main">' +
-      renderHero(card, journey) +
+      renderHero(card, journey, patientId) +
       renderStats(card, dossierBundle) +
       renderSpine(journey, av, smart) +
       renderPhotos(photos) +

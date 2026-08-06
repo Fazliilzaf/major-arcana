@@ -7006,6 +7006,26 @@
       // offert-block aldrig visa något annat än "Inga offerter ännu".
       commercialCase: runtime.commercialCase || null,
     };
+    // Stora kundvyn = JOURNEY-SPINE (Fas 5) opt-in via ?v13spine=on. Tar
+    // precedens över content-canon när flaggan är satt, men är default OFF
+    // tills facit-paritet är godkänd.
+    if (usesV13Spine() && window.CcoV12Spine && typeof window.CcoV12Spine.render === 'function') {
+      let spineInner = '';
+      try {
+        spineInner = window.CcoV12Spine.render(ctx) || '';
+      } catch (_spineError) {
+        spineInner = '';
+      }
+      if (spineInner && spineInner.indexOf('data-v12-spine="1"') !== -1) {
+        return `
+      <section class="patient-master-card v12-workspace v12-workspace--spine" data-patient-detail data-v12-workspace-shell="1">
+        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (JOURNEY-SPINE)">
+          ${spineInner}
+        </div>
+      </section>`;
+      }
+    }
     // Stora kundvyn = CONTENT-CANON (13 sektioner, identisk med facit
     // V12-WORKSPACE-CONTENT-CANON). Sektionsklick i lilla railen → scrollar till
     // rätt sektion (data-v12-module på varje canon-sektion). Defensiv fallback
@@ -7082,10 +7102,16 @@
     // V12 Customer Workspace · Block 0 — mount/switch (opt-in, default OFF). Tar
     // precedens när ?v12workspace=on; annars körs V11/legacy oförändrat nedan.
     if (usesV12Workspace()) {
-      return renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
-        tab: normalizedTab,
-        lite,
-      });
+      return (
+        renderV12WorkspaceDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+          tab: normalizedTab,
+          lite,
+        }) ||
+        renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+          tab: normalizedTab,
+          lite,
+        })
+      );
     }
     if (usesV11Rail()) {
       return renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
