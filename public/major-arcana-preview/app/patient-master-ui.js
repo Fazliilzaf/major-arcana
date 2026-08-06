@@ -2198,18 +2198,6 @@
         scrollV12WorkspaceModule(body, jumpModule);
         return;
       }
-      // Jump-rail kollaps/expandera.
-      const jrToggle = event.target.closest('[data-v12-jumprail-toggle]');
-      if (jrToggle && body.contains(jrToggle)) {
-        event.preventDefault();
-        const rail = jrToggle.closest('[data-v12-jumprail]');
-        if (rail) {
-          const collapsed = rail.classList.toggle('is-collapsed');
-          jrToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-          jrToggle.setAttribute('title', collapsed ? 'Fäll ut' : 'Fäll ihop');
-        }
-        return;
-      }
       // "Förbered besök" / Åtgärder-meny → scrolla till V12-modul.
       const trigger = event.target.closest('[data-v12-scroll-module]');
       if (!trigger || !body.contains(trigger)) return;
