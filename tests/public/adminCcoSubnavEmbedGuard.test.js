@@ -604,7 +604,7 @@ test('customers content-lock döljer legacy Conversations och visar bara kundreg
   assert.equal(harness.documentElement.getAttribute('data-v9-enabled'), 'on');
   assert.equal(harness.documentElement.getAttribute('data-v9-demo'), 'off');
   assert.equal(harness.documentElement.getAttribute('data-v11-rail'), 'on');
-  assert.equal(harness.documentElement.getAttribute('data-v12-workspace'), 'on');
+  assert.equal(harness.documentElement.getAttribute('data-v12-workspace'), '');
   assert.equal(harness.canvas.getAttribute('data-app-shell-view'), 'customers');
   assert.equal(harness.canvas.getAttribute('data-app-view'), 'customers');
   assert.equal(harness.sections.customers.hidden, false);
@@ -614,7 +614,7 @@ test('customers content-lock döljer legacy Conversations och visar bara kundreg
   assert.equal(harness.window.CcoAdminEmbedContract.view, 'customers');
   assert.equal(harness.window.__ARCANA_V9_ENABLED__, true);
   assert.equal(harness.window.__ARCANA_V11_RAIL_ENABLED__, true);
-  assert.equal(harness.window.__ARCANA_V12_WORKSPACE_ENABLED__, true);
+  assert.equal(harness.window.__ARCANA_V12_WORKSPACE_ENABLED__, undefined);
 });
 
 test('conversations v2 admin embed låser endast vyn och behåller v2:s egna legacy-overlayvägar', () => {

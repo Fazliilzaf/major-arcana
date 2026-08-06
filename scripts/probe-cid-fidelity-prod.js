@@ -88,7 +88,19 @@ async function main() {
     fail('hittade inga brevlador — ange dem med --mailbox <id> (kan upprepas)');
   }
 
-  const report = { base: BASE, mailboxes: [], probe: { attempted: 0, recoverable: 0, lost: 0 } };
+  const report = {
+    base: BASE,
+    mailboxes: [],
+    probe: {
+      attempted: 0,
+      recoverable: 0,
+      cidMismatch: 0,
+      lost: 0,
+      messageNotFound: 0,
+      notFound: [],
+      mismatchSamples: [],
+    },
+  };
   let probeUnavailableReason = '';
 
   for (const mailboxId of mailboxIds) {
@@ -125,14 +137,45 @@ async function main() {
         `&messageId=${encodeURIComponent(entry.messageId)}` +
         `&cid=${encodeURIComponent(entry.cid)}`;
       const probe = await getJson(token, `/api/v1/cco/runtime/history/fidelity/probe${probeQuery}`);
+
+      // 503 = graphReadEnabled ar av. Det ar ett infrastrukturfel och gor hela
+      // uppgift 2 omatbar — sluta proba, men fortsatt svepet.
+      //
+      // Allt annat (typiskt Graph 404 "not found in the store") ar ett SVAR:
+      // just det meddelandet gar inte att hamta om. Ett stickprov som misslyckas
+      // ar data, inte ett avbrott. Forsta versionen av skriptet brot loopen har
+      // och rapporterade hela koringen som obesvarad pa ett enda 404.
       if (!probe.ok) {
-        probeUnavailableReason = probe.body?.error || `HTTP ${probe.status}`;
-        report.probe.attempted -= 1;
-        break;
+        if (probe.status === 503) {
+          probeUnavailableReason = probe.body?.error || `HTTP ${probe.status}`;
+          report.probe.attempted -= 1;
+          break;
+        }
+        report.probe.messageNotFound += 1;
+        report.probe.notFound.push({
+          mailboxId,
+          status: probe.status,
+          error: String(probe.body?.error || '').slice(0, 160),
+        });
+        continue;
       }
-      const found = probe.body?.probe?.graphAttachmentFound ?? probe.body?.graphAttachmentFound;
-      if (found === true) report.probe.recoverable += 1;
-      else report.probe.lost += 1;
+
+      // Tre utfall, inte tva. Kodens egen kommentar i capabilities.js sager
+      // varfor: matchCount 0 kan betyda "Graph gav noll bilagor" (inget att
+      // hamta) ELLER "Graph gav N men ingen matchade pa contentId"
+      // (normaliseringen ar fel — bytesen finns kvar). De kraver helt olika
+      // atgard: backfill respektive rattad cid-normalisering.
+      const graph = probe.body?.graph || {};
+      const attachmentCount = Number(graph.attachmentCount || 0);
+      const matchCount = Number(graph.matchCount || 0);
+      if (graph.attachment) {
+        report.probe.recoverable += 1;
+      } else if (attachmentCount > 0 && matchCount === 0) {
+        report.probe.cidMismatch += 1;
+        report.probe.mismatchSamples.push({ mailboxId, attachmentCount, cid: entry.cid });
+      } else {
+        report.probe.lost += 1;
+      }
     }
     if (probeUnavailableReason) break;
   }
@@ -171,17 +214,26 @@ async function main() {
   } else if (report.probe.attempted === 0) {
     console.log('  OBESVARAD — inga probbara poster hittades.');
   } else {
-    console.log(
-      `  ${report.probe.attempted} stickprov · ${report.probe.recoverable} atkomliga i Graph · ${report.probe.lost} borta`
-    );
-    if (report.probe.recoverable > 0 && report.probe.lost === 0) {
+    const p = report.probe;
+    console.log(`  ${p.attempted} stickprov:`);
+    console.log(`    bilagan hittad i Graph            : ${p.recoverable}`);
+    console.log(`    bilagor finns men cid matchar ej  : ${p.cidMismatch}`);
+    console.log(`    Graph hade inga bilagor alls      : ${p.lost}`);
+    console.log(`    meddelandet fanns inte i Graph    : ${p.messageNotFound}`);
+    for (const miss of p.notFound.slice(0, 3)) {
+      console.log(`      · ${miss.mailboxId} HTTP ${miss.status}: ${miss.error}`);
+    }
+    console.log('');
+    if (p.cidMismatch > 0) {
+      console.log('  → Bytesen FINNS i Graph men contentId-matchningen traffar inte.');
+      console.log('    Ratt atgard ar rattad cid-normalisering, INTE backfill.');
+    } else if (p.recoverable > 0 && p.lost === 0 && p.messageNotFound === 0) {
       console.log('  → Backfill ar ratt atgard: metadatan finns kvar i Graph.');
-    } else if (report.probe.recoverable === 0) {
-      console.log(
-        '  → Backfill ar INTE mojlig: markeringen som redan finns ar ratt slutgiltig atgard.'
-      );
+    } else if (p.recoverable === 0 && p.cidMismatch === 0) {
+      console.log('  → Ingen bilaga gick att na. Markeringen som redan finns ar');
+      console.log('    ratt slutgiltig atgard — men se antalen ovan innan beslut.');
     } else {
-      console.log('  → Blandat utfall. Backfill kan aterskapa en del, resten forblir markerade.');
+      console.log('  → Blandat utfall. Se antalen ovan; en enda kategori rader inte.');
     }
   }
 }

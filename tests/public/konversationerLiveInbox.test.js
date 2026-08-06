@@ -37,7 +37,10 @@ function liveRollupHelpers() {
   ].join('\n');
   const context = {
     normalizeText: (value) => String(value || '').trim(),
-    canonicalHairTpMailbox: (value) => String(value || '').trim().toLowerCase(),
+    canonicalHairTpMailbox: (value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     WORKLIST_MAX_MAILBOXES_PER_REQUEST: 2,
   };
   vm.createContext(context);
@@ -98,7 +101,8 @@ test('konversationer live inbox scopes worklist reads to the selected mailboxes'
     'marknad@hairtpclinic.com',
     'kvitto@hairtpclinic.com',
     'halso@hairtpclinic.com',
-  ]) assert.match(html, new RegExp("'" + mailbox.replace('@', '@') + "'"));
+  ])
+    assert.match(html, new RegExp("'" + mailbox.replace('@', '@') + "'"));
   assert.match(html, /const WORKLIST_MAX_MAILBOXES_PER_REQUEST = 2/);
   assert.match(html, /function chunkMailboxIds\(/);
   assert.match(
@@ -120,7 +124,7 @@ test('konversationer live inbox scopes worklist reads to the selected mailboxes'
   assert.match(html, /function threadMatchesMailboxScope\(thread = \{\}, mailboxIds = \[\]\)/);
   assert.match(html, /function threadForMailboxScope\(thread = \{\}, mailboxIds = \[\]\)/);
   const mergeHelper = html.match(
-    /function mergeWorklistThreads\(threads\) \{([\s\S]*?)\n      \}\n\n      async function loadLiveInbox/
+    /function mergeWorklistThreads\(threads\) \{([\s\S]*?)\n {6}\}\n\n {6}async function loadLiveInbox/
   );
   assert.ok(mergeHelper, 'multi-mailbox merge helper must exist');
   assert.match(mergeHelper[1], /thread\.conversationKey/);
@@ -169,7 +173,10 @@ test('a single selected mailbox makes exactly one scoped worklist request', () =
     [...chunks].map((chunk) => [...chunk]),
     [['fazli@hairtpclinic.com']]
   );
-  assert.ok(chunks.every((chunk) => chunk.length <= 2), 'server two-mailbox limit remains intact');
+  assert.ok(
+    chunks.every((chunk) => chunk.length <= 2),
+    'server two-mailbox limit remains intact'
+  );
 });
 
 test('den sparade mailboxinställningen styr det första live-anropet', () => {
@@ -262,7 +269,10 @@ test('ambiguous e-postmatch visas tydligt och blockerar fortsatt kunddossiern', 
   assert.match(html, /Kundgranskning/);
   assert.match(html, /Manuell kundgranskning/);
   assert.match(html, /Kundkoppling: flera e-postträffar/);
-  assert.match(html, /hasCanonicalPatientMatch = Boolean\(patientId && patientMatchStatus === 'matched'\)/);
+  assert.match(
+    html,
+    /hasCanonicalPatientMatch = Boolean\(patientId && patientMatchStatus === 'matched'\)/
+  );
 });
 
 test('konversationer initializes live inbox state before the first status render', () => {
@@ -601,10 +611,7 @@ test('byte av tråd återställer den interna läsrutan och visar ingen grön la
     html,
     /function renderThreadMessages\(thread, messages\) \{[\s\S]*?mount\.scrollTop = 0;/
   );
-  assert.match(
-    html,
-    /function renderThreadLoading\(thread\) \{[\s\S]*?mount\.scrollTop = 0;/
-  );
+  assert.match(html, /function renderThreadLoading\(thread\) \{[\s\S]*?mount\.scrollTop = 0;/);
   assert.doesNotMatch(html, /CCO-inkorg: \$\{currentThreads\.length\} trådar från/);
 });
 
@@ -627,7 +634,8 @@ test('konversationstråden visar datum och färgkodad mailbox, inte full mailbox
     'marknad@hairtpclinic.com',
     'kvitto@hairtpclinic.com',
     'halso@hairtpclinic.com',
-  ]) assert.match(html, new RegExp("'" + mailbox.replace('@', '@') + "'"));
+  ])
+    assert.match(html, new RegExp("'" + mailbox.replace('@', '@') + "'"));
   assert.match(html, /function messageDateTimeLabel\(value\)/);
   assert.match(html, /day: 'numeric', month: 'long'/);
   assert.match(html, /function renderMessageMeta\(message, fallbackMailbox = ''\)/);
@@ -635,7 +643,10 @@ test('konversationstråden visar datum och färgkodad mailbox, inte full mailbox
   assert.match(html, /msg-mailbox-icon/);
   assert.match(html, /✉/);
   assert.match(html, /\$\{renderMessageMeta\(message, mailbox\)\}/);
-  assert.match(html, /if \(STATIC_DEMO_PREVIEW \|\| window\.location\.protocol === 'file:'\) return;/);
+  assert.match(
+    html,
+    /if \(STATIC_DEMO_PREVIEW \|\| window\.location\.protocol === 'file:'\) return;/
+  );
   assert.doesNotMatch(
     html,
     /<div class="msg-meta">\$\{escapeHtml\(from\)\} · \$\{escapeHtml\(messageTimeLabel\(message\.time\)\)\} · \$\{escapeHtml\(mailbox\)\}<\/div>/,
@@ -941,14 +952,17 @@ test('konversationer deep-links only canonical matched patientIds to the custome
     /window\.open\(`\/staff\?\$\{params\.toString\(\)\}`/,
     'kunddossier far inte oppnas i en ny noopener-flik'
   );
-  assert.match(script, /hasCanonicalPatientMatch = Boolean\(patientId && patientMatchStatus === 'matched'\)/);
+  assert.match(
+    script,
+    /hasCanonicalPatientMatch = Boolean\(patientId && patientMatchStatus === 'matched'\)/
+  );
   assert.match(script, /dossierButton\.disabled = !hasCanonicalPatientMatch/);
   assert.match(script, /status !== 'matched'/);
   assert.match(script, /view: 'customers'/);
   assert.match(script, /demo: 'off'/);
   assert.match(script, /embed: 'admin'/);
   assert.match(script, /v11rail: 'on'/);
-  assert.match(script, /v12workspace: 'on'/);
+  assert.match(script, /v12workspace: 'off'/);
   assert.doesNotMatch(script, /patientId:\s*normalizeText\(row\.customerId\)/);
   assert.match(script, /type:\s*'arcana:cco-open-customer-dossier',\s*patientId/);
   assert.match(script, /window\.parent\.postMessage\(/);
