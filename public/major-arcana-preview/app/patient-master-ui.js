@@ -7014,35 +7014,15 @@
       patient,
       tab,
       lite,
-      // Samma wiring-glapp som railCtx hade på :6880. Den här ctx:en går till
-      // CcoV12Canon och CcoV12Workspace, och utan commercialCase kan deras
-      // offert-block aldrig visa något annat än "Inga offerter ännu".
+      // Ett enda V12-renderer: CONTENT-CANON. CcoV12Workspace och CcoV12Spine
+      // är arkiverade (ingår inte längre i renderingsvägen). commercialCase
+      // behövs fortfarande så buildOffersFromPayload kan syntetisera en rad
+      // när ingen äkta offertlista finns.
       commercialCase: runtime.commercialCase || null,
     };
-    // Stora kundvyn = JOURNEY-SPINE (Fas 5) opt-in via ?v13spine=on. Tar
-    // precedens över content-canon när flaggan är satt, men är default OFF
-    // tills facit-paritet är godkänd.
-    if (usesV13Spine() && window.CcoV12Spine && typeof window.CcoV12Spine.render === 'function') {
-      let spineInner = '';
-      try {
-        spineInner = window.CcoV12Spine.render(ctx) || '';
-      } catch (_spineError) {
-        spineInner = '';
-      }
-      if (spineInner && spineInner.indexOf('data-v12-spine="1"') !== -1) {
-        return `
-      <section class="patient-master-card v12-workspace v12-workspace--spine" data-patient-detail data-v12-workspace-shell="1">
-        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
-        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (JOURNEY-SPINE)">
-          ${spineInner}
-        </div>
-      </section>`;
-      }
-    }
-    // Stora kundvyn = CONTENT-CANON (13 sektioner, identisk med facit
-    // V12-WORKSPACE-CONTENT-CANON). Sektionsklick i lilla railen → scrollar till
-    // rätt sektion (data-v12-module på varje canon-sektion). Defensiv fallback
-    // till 13-modul-stacken om canon-render kastar/är tom (aldrig blank).
+    // V12 Customer Workspace = CONTENT-CANON (enda aktiva renderer). Om canon
+    // saknas eller kraschar returneras tomt så att renderV9MockupDetailShell
+    // faller tillbaka på V11-rail istället (aldrig en trasig/blank vy).
     if (window.CcoV12Canon && typeof window.CcoV12Canon.render === 'function') {
       let canonInner = '';
       try {
@@ -7060,43 +7040,7 @@
       </section>`;
       }
     }
-    // Fallback: 13-modul-stacken (om canon ej tillgänglig).
-    let railInner = '';
-    try {
-      if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
-        railInner = window.CcoV11Rail.render(ctx) || '';
-      }
-    } catch (_error) {
-      railInner = '';
-    }
-    let wsInner = '';
-    try {
-      if (window.CcoV12Workspace && typeof window.CcoV12Workspace.render === 'function') {
-        wsInner = window.CcoV12Workspace.render(ctx) || '';
-      }
-    } catch (_error) {
-      wsInner = '';
-    }
-    // Fas 4 · Hybrid-canon: Zon 1 är en minimal jump-rail (ankarnav till de
-    // primära modulerna) istället för full V11-rail. Modulerna bor i Zon 2; railen
-    // navigerar bara dit via den befintliga scrollV12WorkspaceModule-hooken.
-    // Full V11-rail (railInner) behålls som data-attribut-fritt fallback om
-    // jump-railen någonsin stängs av. Kollapsbar; dold på mobil (V12 äger ytan).
-    const zone1 = renderV12JumpRail();
-    void railInner;
-    const zone2 =
-      wsInner ||
-      '<div class="v12-workspace__inner"><div class="v12-workspace__empty" role="status">' +
-        '<div class="v12-workspace__empty-title">V12 Workspace</div>' +
-        '<div class="v12-workspace__empty-hint">Inga moduler renderade.</div></div></div>';
-    return `
-      <section class="patient-master-card v12-workspace" data-patient-detail data-v12-workspace-shell="1">
-        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
-        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (V12)">
-          <div class="v12-workspace__zone1">${zone1}</div>
-          <div class="v12-workspace__zone2">${zone2}</div>
-        </div>
-      </section>`;
+    return '';
   }
 
   function renderV9MockupDetailShell(
