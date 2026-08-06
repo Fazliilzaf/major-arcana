@@ -5,7 +5,10 @@
 - Repo: `~/Code/major-arcana` (Mac) / `/home/fazli/major-arcana-legacy` (VPS 134.209.232.101). INTE iCloud-mappen.
 - Kor `git pull` forst — main ska vara vid commit `2c335de7` eller senare
   (verifierat 2026-08-06 som live build-tagg pa prod, `meta-arcana-ui-build`).
-- Las hela detta dokument, sen `docs/ops/encounter-link-disambiguation-2026-08-06.md`.
+- Las hela detta dokument, sen `docs/ops/encounter-link-findings-2026-08-06.md`.
+  Den filen INNAN `encounter-link-disambiguation-2026-08-06.md` — disambiguerings-
+  filens rad om att merga stub-poster som dubbletter ar motbevisad och farlig.
+  Merga ingenting i encounter-link-kon utan att ha last fyndfilen forst.
 - Kor Sonnet 5 som standard. Opus bara for hårda arkitekturbeslut. Se `[[cco-model-val-sonnet-standard]]` i minnessystemet — finns bade pa Mac och pa VPS:en (skapad dar 2026-08-06). Minnesfiler ar per maskin och synkas INTE automatiskt: skapas de pa en maskin maste de skapas om pa den andra.
 - Prioritet just nu: manuell disambiguering av 12 grupper i encounter-link-kon (kraver Cliento-atkomst, ingen kod). Se detaljfil.
 - Sekundart: CCO 9-stegs kundresa — steg 2 och steg 9 saknar bekraftad kod-kartlaggning.
