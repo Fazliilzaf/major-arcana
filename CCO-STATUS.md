@@ -11,7 +11,9 @@
   Merga ingenting i encounter-link-kon utan att ha last fyndfilen forst.
 - Kor Sonnet 5 som standard. Opus bara for hårda arkitekturbeslut. Se `[[cco-model-val-sonnet-standard]]` i minnessystemet — finns bade pa Mac och pa VPS:en (skapad dar 2026-08-06). Minnesfiler ar per maskin och synkas INTE automatiskt: skapas de pa en maskin maste de skapas om pa den andra.
 - Prioritet just nu: manuell disambiguering av 12 grupper i encounter-link-kon (kraver Cliento-atkomst, ingen kod). Se detaljfil.
-- Sekundart: CCO 9-stegs kundresa — steg 2 och steg 9 saknar bekraftad kod-kartlaggning.
+- CCO 9-stegs kundresa: KLAR. Steg 2 och 9 kartlagda 2026-08-06 — se steg-sektionen nedan.
+  Enda kvarvarande fragan dar ar operativ: gar bokningsbekraftelsen (steg 2) ut fran
+  Cliento med Meridiq-lanken? Det avgors i Cliento, inte i koden.
 
 ## Sessionslogg 2026-08-06 — vad som gjorts och verifierats
 
@@ -55,12 +57,26 @@
 ### CCO 9-stegs kundresa — kod-kartlaggning (verifierad, inte antagen)
 
 - **Steg 1** (bokningsbekraftelse) — ej kartlagd i denna session.
-- **Steg 2** — **Okant, ingen faktisk ifyllningsbar underlag hittad.** Sag det tydligt istallet for att anta.
+- **Steg 2** (automatisk bokningsbekraftelse) — KARTLAGD 2026-08-06. Ar ingen blankett,
+  darfor hittades inget "ifyllningsbart underlag" — man fyller inte i en avisering.
+  Bar pre-info + Meridiq-lanken som laser upp steg 3 (`ccoAutomationRegistry.js:12`).
+  Klassificerare finns (`ccoDocumentTriageEngine.js:51`). INTE i `patientDocumentSignRegistry`
+  (ej signerbar, korrekt). Ingen automation — registret har poster for steg 3-9, inga for
+  1-2, eftersom bokningen ar Cliento-ledd och CCO inte ager steget.
+  `bookingConfirmationDispatch.js` har 0 importorer, dod. Kvarvarande fraga ar operativ,
+  inte teknisk: gar bekraftelsen ut fran Cliento, och bar den Meridiq-lanken?
 - **Steg 3** (halsodeklaration) — `journal-clinical-schemas.js` + `journal-pre-treatment-forms.js`, Meridiq-schema, `POST /cco-patient-master/patient/forms/batch`. Verifierad riktig produktionsyta.
 - **Steg 4** (konsultation/journal) — `journal-tp-schemas.js` + `journal-tp-form.js` (`window.ArcanaJournalTpForm`), anropas fran `patient-master-ui.js:11222`, `PUT /api/v1/cco-journal/entry`, `formKey: 'tp_treatment'`, backend `journalType: 'consultation_plan'`. INTE `cco-journalbygge-v3.html` (den filen har 0 referenser nagonstans, bara nabar via direkt URL — intern demo-sida, inte personalyta).
 - **Steg 5–7** (offert/betanketid/avtal) — `ccoCommercialMailDispatch`-flodet i `ccoCommercial.js`, kundportal `cco-patient-offer-portal-v3.html` (211KB, redan byggd).
 - **Steg 8** (friskforsakran) — samma Meridiq-kedja som steg 3.
-- **Steg 9** — **Okant, ingen faktisk ifyllningsbar underlag hittad.** Sag det tydligt istallet for att anta.
+- **Steg 9** (foto-samtycke) — KARTLAGD 2026-08-06. Fullt implementerat, var aldrig okant.
+  `patientDocumentSignRegistry.js:100` — egen `handler: 'photo_consent'`,
+  `scope: 'hairline_crown'`, `requiredAckSelectors: ['#photo-ack']`, signeringsprompt.
+  Klassificerare `ccoDocumentTriageEngine.js:66`. Automation
+  `customer.missing_photo_consent` med `step: 9` i `ccoAutomationRegistry.js`.
+  Forekommer i tio produktionsmoduler. Tidigare session hittade den troligen inte
+  for att den sokte pa `steg9`-filnamn bland demo-prototyperna i stallet for pa
+  `foto_samtycke` i produktionskoden.
 
 ### Dod kod identifierad (INTE borttagen, bara dokumenterad)
 
