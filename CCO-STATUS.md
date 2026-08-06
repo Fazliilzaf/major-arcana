@@ -26,17 +26,21 @@
 
 Detta ar allt som faktiskt aterstar av de tre "oppna" ordrarna:
 
-| Vad                                                   | Vem       | Var                                   |
-| ----------------------------------------------------- | --------- | ------------------------------------- |
-| `ARCANA_PUBLIC_BASE_URL` → `.com` (ORD-86 steg 1)     | **Fazli** | Render Dashboard                      |
-| Konsument for `cidWithoutAttachmentMetadata` (ORD-93) | agent     | blockerad, se nedan                   |
-| ORD-93 uppgift 2 — gar bilagorna att hamta om?        | agent     | **Mac:en**, kraver `graphReadEnabled` |
-| Matgrinden — deepScan over nio brevlador              | agent     | Mac:en                                |
+| Vad                                                      | Vem       | Var                                   |
+| -------------------------------------------------------- | --------- | ------------------------------------- |
+| `ARCANA_PUBLIC_BASE_URL` → `.com` (ORD-86 steg 1)        | **Fazli** | Render Dashboard                      |
+| ~~Konsument for `cidWithoutAttachmentMetadata`~~ — utgar | —         | redan uppfyllt av manifestet          |
+| ORD-93 uppgift 2 — gar bilagorna att hamta om?           | agent     | **Mac:en**, kraver `graphReadEnabled` |
+| Matgrinden — deepScan over nio brevlador                 | agent     | Mac:en                                |
 
-Raknar-konsumenten ar medvetet INTE byggd. Ordern sager "Mat innan nagot byggs",
-och konsumentens form beror pa uppgift 2:s svar — en backfill som ska sjunka mot
-noll ar nagot annat an ett permanent arlighetsmatt. Raknaren ar redan exponerad
-via `GET /cco/runtime/history/fidelity` (OWNER/STAFF), men ingenting laser den.
+**Rattelse samma dag:** raknar-konsumenten ska INTE byggas alls. Kravet ar redan
+uppfyllt av `GET /cco/runtime/history/fidelity/manifest`, som rapporterar samma
+fenomen rikare (per meddelande OCH per referens, med `byFolderType`,
+`byMessageType` och `bodySource`). Inventory-raknaren
+`cidWithoutAttachmentMetadata` ar redundant instrumentering — en konsument for
+den vore en tredje rapportvag till samma faktum.
+
+Kvar av ORD-93 ar darmed enbart uppgift 2 och matgrinden, och bada kraver Mac:en.
 
 ## Valideringsnivan ar 0 fel — inte 61
 

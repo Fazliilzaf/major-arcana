@@ -30,10 +30,22 @@ entydig.
 
 ### Vad som faktiskt aterstar
 
-1. **Raknaren har fortfarande ingen konsument.** `cidWithoutAttachmentMetadata`
-   skrivs pa fem stallen (`ccoMailboxTruthStore.js:1330`,
-   `ccoMailboxTruthReadAdapter.js:548`, `ccoMailboxTruthShardedStore.js`) och
-   lases av ingen. Ordern kraver uttryckligen en konsument.
+1. **Raknarkravet ar uppfyllt — av manifestet, inte av inventory-raknaren.**
+   Forst noterade jag att `cidWithoutAttachmentMetadata` skrivs pa fem stallen
+   och lases av ingen. Det stammer, men slutsatsen var fel.
+
+   `getCidFidelityManifest` (`ccoMailboxTruthStore.js:1360`) mater samma
+   fenomen rikare och serveras av `GET /cco/runtime/history/fidelity/manifest`:
+   `messagesWithMissingCidMetadata` (per meddelande),
+   `cidReferencesWithoutAttachmentMetadata` (per referens), `byFolderType`,
+   `byMessageType` och `bodySource`. Ordens egen observationstabell — 1 407
+   referenser med fordelningen "fazli@ inbox 803 · sent 130 · drafts 5" — ar
+   just den utdatan.
+
+   Inventory-raknaren ar alltsa **redundant instrumentering**, inte en lucka.
+   Att bygga en konsument for den skulle ge en tredje rapportvag till samma
+   faktum. **Bygg den inte.**
+
 2. **Uppgift 2 ar obesvarad** — gar bilagorna att hamta om via
    `/cco/runtime/history/fidelity/probe`? Kraver `graphReadEnabled` mot prod.
    Ej korbar fran VPS:en; kors fran Mac:en.
