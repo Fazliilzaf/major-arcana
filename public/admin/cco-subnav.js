@@ -48,8 +48,8 @@
 
     // Kunder använder den kanoniska staff-routen. demo=off rensar tidigare
     // sticky UAT-state; admin-embed-kontraktet hårdlåser SPA:n till customer content.
-    // Kalender och övriga segment behåller sina redan byggda målunderlag.
-    var CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on';
+    // v12workspace=off gör V11-kundkortet till default under /admin#cco (canon §5).
+    var CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=off';
     var PREVIEW = '/major-arcana-preview/';
     // V2 är inte längre en valbar förhandsvisning under "Mer" — den ÄR
     // Konversationer sedan cutovern (#1228). Posten är borttagen ur MORE_TOOLS
@@ -269,8 +269,7 @@
     // V6-embed paths kan falla igenom innan parent-listenern hinner navigera.
     // Exponera därför exakt samma validerade handoff utan ny route/modell.
     window.ArcanaCcoOpenCustomerDossier = function arcanaCcoOpenCustomerDossier(payload) {
-      var patientId =
-        payload && typeof payload === 'object' ? payload.patientId : payload;
+      var patientId = payload && typeof payload === 'object' ? payload.patientId : payload;
       return openCustomerDossier(patientId);
     };
 
