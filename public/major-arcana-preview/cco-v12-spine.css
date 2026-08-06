@@ -41,6 +41,8 @@
   --pulse-amber: 0 0 0 4px rgba(200, 130, 30, 0.18), 0 0 0 8px rgba(200, 130, 30, 0.08);
 
   display: block;
+  container-type: inline-size;
+  container-name: v12spine;
   font:
     14px/1.5 Inter,
     -apple-system,
@@ -85,6 +87,38 @@
   padding: 24px 28px 28px;
   overflow: hidden;
   min-width: 0;
+}
+
+/* Responsiv anpassning när spine monteras i smalare rail/overlay */
+@container v12spine (max-width: 900px) {
+  .v12-spine__grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 14px 16px 20px;
+  }
+  .v12-spine__main {
+    padding: 18px 20px 22px;
+    border-radius: 22px;
+  }
+  .v12-spine .hero {
+    grid-template-columns: 72px 1fr;
+    gap: 14px;
+  }
+  .v12-spine .avatar-xl {
+    width: 72px;
+    height: 72px;
+    font-size: 24px;
+  }
+  .v12-spine .hero-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+  .v12-spine .hero-name {
+    font-size: 24px;
+  }
 }
 
 /* ===== HERO ===== */
@@ -207,6 +241,57 @@
   color: var(--gold);
   border: 1px solid var(--gold);
   cursor: pointer;
+}
+.v12-spine .hero-actions-dropdown {
+  position: relative;
+}
+.v12-spine .hero-actions-dropdown > summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.v12-spine .hero-actions-dropdown > summary::-webkit-details-marker {
+  display: none;
+}
+.v12-spine .hero-actions-dropdown[open] > summary {
+  background: rgba(212, 168, 71, 0.1);
+}
+.v12-spine .hero-actions-dropdown[open] > summary span[aria-hidden="true"] {
+  display: inline-block;
+  transform: rotate(180deg);
+}
+.v12-spine .hero-actions-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  min-width: 190px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--vellum);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--card-shadow-lift);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.v12-spine .hero-actions-menu__item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.v12-spine .hero-actions-menu__item:hover {
+  background: rgba(255, 255, 255, 0.6);
 }
 .v12-spine .btn-gold {
   font-size: 11.5px;
@@ -1138,6 +1223,17 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 6px 16px rgba(43, 37, 31, 0.32);
+}
+
+/* ----- MONTERING i V12-workspace shell (rail + overlay) ----- */
+/* .v12-workspace__zones är flex-row på desktop (två-zonshybrid). När spine är */
+/* ensam child måste den få full bredd, annars kollapsar den till 0 px.          */
+.v12-workspace--spine .v12-workspace__zones {
+  display: block;
+}
+.v12-workspace--spine .v12-spine {
+  width: 100%;
+  min-width: 0;
 }
 
 /* ===== RESPONSIVT ===== */
