@@ -224,7 +224,21 @@ async function main() {
       console.log(`      · ${miss.mailboxId} HTTP ${miss.status}: ${miss.error}`);
     }
     console.log('');
-    if (p.cidMismatch > 0) {
+    // Verdiktet ska folja fordelningen, inte en enda traff. Forsta versionen
+    // slog till pa cidMismatch > 0 och drog slutsatsen "bytesen finns" aven nar
+    // 10 av 15 sa motsatsen. En minoritet ar ett delresultat, inte en dom.
+    const dominant = Math.max(p.recoverable, p.cidMismatch, p.lost, p.messageNotFound);
+    const share = (n) => (p.attempted > 0 ? Math.round((n / p.attempted) * 100) : 0);
+    if (p.cidMismatch > 0 && p.cidMismatch < dominant) {
+      console.log(
+        `  → BLANDAT. ${share(p.cidMismatch)}% har bytes kvar i Graph men fel cid-matchning —`
+      );
+      console.log('    de gar att aterstalla genom rattad normalisering, inte backfill.');
+      console.log(
+        `    Ovriga ${share(p.lost + p.messageNotFound)}% ar inte atkomliga alls; for dem ar`
+      );
+      console.log('    den befintliga markeringen ratt slutgiltig atgard.');
+    } else if (p.cidMismatch > 0) {
       console.log('  → Bytesen FINNS i Graph men contentId-matchningen traffar inte.');
       console.log('    Ratt atgard ar rattad cid-normalisering, INTE backfill.');
     } else if (p.recoverable > 0 && p.lost === 0 && p.messageNotFound === 0) {
