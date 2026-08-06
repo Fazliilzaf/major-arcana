@@ -1,0 +1,151 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh",
+      "label": "sync-patient-documents-live-folder.sh",
+      "file_type": "code",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh__entry",
+      "label": "sync-patient-documents-live-folder.sh script",
+      "file_type": "code",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    },
+    {
+      "id": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_link",
+      "label": "link()",
+      "file_type": "code",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L14",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    },
+    {
+      "id": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_copy_if_newer",
+      "label": "copy_if_newer()",
+      "file_type": "code",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L24",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh",
+      "target": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh",
+      "target": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_link",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh",
+      "target": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_copy_if_newer",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh__entry",
+      "target": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_copy_if_newer",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L38",
+      "weight": 1.0,
+      "context": "call"
+    },
+    {
+      "source": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh__entry",
+      "target": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_link",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L78",
+      "weight": 1.0,
+      "context": "call"
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh__entry",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L4"
+    },
+    {
+      "language": "bash",
+      "callee": "mkdir",
+      "caller_nid": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh__entry",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L12"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh__entry",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L34"
+    },
+    {
+      "language": "bash",
+      "callee": "continue",
+      "caller_nid": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh__entry",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L66"
+    },
+    {
+      "language": "bash",
+      "callee": "cat",
+      "caller_nid": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_sh__entry",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L103"
+    },
+    {
+      "language": "bash",
+      "callee": "ln",
+      "caller_nid": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_link",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L17"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_link",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L18"
+    },
+    {
+      "language": "bash",
+      "callee": "cp",
+      "caller_nid": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_copy_if_newer",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L27"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_ops_sync_patient_documents_live_folder_copy_if_newer",
+      "source_file": "scripts/ops/sync-patient-documents-live-folder.sh",
+      "source_location": "L28"
+    }
+  ],
+  "bash_sources": []
+}

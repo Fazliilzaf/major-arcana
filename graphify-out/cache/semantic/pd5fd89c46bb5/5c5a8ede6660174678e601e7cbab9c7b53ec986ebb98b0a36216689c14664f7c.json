@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_facit_set_registry",
+      "label": "Nordbro/Insatt facit-set registry (config/nordbro-insatt-facit-set.json)",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P0-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_agreement_dhi_2day",
+      "label": "agreement_hair_tp_dhi_2day_nordbro (Behandlingsavtal DHI 2-dagars)",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P0-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_angerfrist_post",
+      "label": "\u00c5ngerfrist/bet\u00e4nketid som separat avtalspost (DEMO_BUNDLE_OK)",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P0-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_p0_pass",
+      "label": "P0_PASS \u2014 grind f\u00f6r kanoniskt DHI-avtal mot Nordbro-facit",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P0-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_agreement_dhi_2day",
+      "target": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_facit_set_registry",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P0-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_agreement_dhi_2day",
+      "target": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_angerfrist_post",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P0-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_agreement_dhi_2day",
+      "target": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_p0_pass",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P0-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_angerfrist_post",
+      "target": "docs_legal_juridik_gdpr_jurist_flode_distansavtalslagen",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P0-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

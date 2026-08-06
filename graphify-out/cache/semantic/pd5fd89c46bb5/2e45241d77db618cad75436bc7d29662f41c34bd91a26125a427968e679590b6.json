@@ -1,0 +1,59 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_ord_10_04_filters",
+      "label": "Sk\u00e4rmdump: filterrad med statuschips",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/ord-10/04-filters.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_ord_10_statusfilterrad",
+      "label": "Filterrad med statuschips och sortering",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/ord-10/04-filters.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_ord_10_04_filters",
+      "target": "docs_ops_screenshots_ord_10_statusfilterrad",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/04-filters.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_statusfilterrad",
+      "target": "docs_ops_screenshots_ord_10_kundstatusar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/04-filters.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_04_filters",
+      "target": "docs_ops_screenshots_ord_10_03_story_cards",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/screenshots/ord-10/04-filters.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

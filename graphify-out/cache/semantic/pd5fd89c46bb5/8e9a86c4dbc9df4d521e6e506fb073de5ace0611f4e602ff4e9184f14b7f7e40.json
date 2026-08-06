@@ -1,0 +1,121 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_aisia_mvp_build_plan_doc",
+      "label": "Aisia Scalp Analysis \u2014 MVP Build Plan",
+      "file_type": "document",
+      "source_file": "docs/strategy/AISIA-MVP-BUILD-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_build_plan_fas1_manual_import_scope",
+      "label": "FAS 1 \u2014 manuell import (12 deliverables)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-BUILD-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_build_plan_out_of_scope_list",
+      "label": "Explicit out of scope (live kamera, exportwatcher, PDF-OCR, produktmotor, CCO-egen AI)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-BUILD-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_build_plan_acceptance_criteria",
+      "label": "Acceptanskriterier f\u00f6r FAS 1 MVP",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-BUILD-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_aisia_mvp_build_plan_doc",
+      "target": "docs_strategy_aisia_mvp_build_plan_fas1_manual_import_scope",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-BUILD-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_build_plan_doc",
+      "target": "docs_strategy_aisia_mvp_build_plan_out_of_scope_list",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-BUILD-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_build_plan_doc",
+      "target": "docs_strategy_aisia_mvp_build_plan_acceptance_criteria",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-BUILD-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_build_plan_fas1_manual_import_scope",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_cco_scalp_analysis_store",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-BUILD-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_build_plan_fas1_manual_import_scope",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_scalp_analysis_rest_api",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-BUILD-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_build_plan_out_of_scope_list",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_phase_2_3_4_block",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/strategy/AISIA-MVP-BUILD-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_build_plan_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-BUILD-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

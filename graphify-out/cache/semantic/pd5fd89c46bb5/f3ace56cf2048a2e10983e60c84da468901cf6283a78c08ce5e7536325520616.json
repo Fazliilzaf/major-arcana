@@ -1,0 +1,105 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_cross_domain_routing",
+      "label": "Cross-dom\u00e4n-routing till ARCANA i adminOrchestrator",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-32-arcana-chief-of-staff-wiring.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Intent som sp\u00e4nner \u00f6ver \u22652 dom\u00e4ner eller matchar chief-of-staff-m\u00f6nster routas till ARCANA s\u00e5 CxO-outputs kan komponeras i ett svep."
+    },
+    {
+      "id": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_cos_enabled_flag",
+      "label": "Flagga ARCANA_COS_ENABLED (default false, noll p\u00e5verkan p\u00e5 live)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-32-arcana-chief-of-staff-wiring.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "N\u00e4r flaggan \u00e4r false ska orkestratorn bete sig exakt som idag \u2014 inga \u00e4ndringar f\u00e5r vara aktiva i avst\u00e4ngt l\u00e4ge, s\u00e5 pilot-risken \u00e4r noll."
+    },
+    {
+      "id": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_execute_boundary_adr_0001",
+      "label": "Execute-boundary enligt ADR-0001 (L1\u2013L3 auto, L3+ kr\u00e4ver OWNER)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-32-arcana-chief-of-staff-wiring.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "ARCANA f\u00e5r ingen ny 'god mode' \u2014 topp-agenten \u00e4rver samma bekr\u00e4ftelsekrav som underliggande agenter."
+    },
+    {
+      "id": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_chief_of_staff_runtime_profile",
+      "label": "Runtime-profil chief_of_staff (toolAllowlist + guardrails)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-32-arcana-chief-of-staff-wiring.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Kill-switch, PII-redact och prompt-injection-filter kr\u00e4vs eftersom profilen sp\u00e4nner \u00f6ver tre dom\u00e4ners verktyg."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_31_arcana_chief_of_staff_agent_module_superseded_by_ceo_agent",
+      "target": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_cross_domain_routing",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-32-arcana-chief-of-staff-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_cross_domain_routing",
+      "target": "docs_handover_orders_ord_31_arcana_chief_of_staff_agent_module_compose_function",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-32-arcana-chief-of-staff-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_cos_enabled_flag",
+      "target": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_cross_domain_routing",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-32-arcana-chief-of-staff-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_cross_domain_routing",
+      "target": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_execute_boundary_adr_0001",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-32-arcana-chief-of-staff-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_chief_of_staff_runtime_profile",
+      "target": "docs_handover_orders_ord_32_arcana_chief_of_staff_wiring_cross_domain_routing",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-32-arcana-chief-of-staff-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

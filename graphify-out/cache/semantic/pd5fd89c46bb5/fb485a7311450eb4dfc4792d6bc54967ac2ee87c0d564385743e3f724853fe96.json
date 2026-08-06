@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_e6_offert_samtycke_2026_06_25_e6_ok_gate",
+      "label": "E6_OK \u2014 legal diff-gate (demo\u2194bundle\u2194facit paritet)",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/E6-OFFERT-SAMTYCKE-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_e6_offert_samtycke_2026_06_25_offert_mallfamilj",
+      "label": "Offertmallar (tp, prp_hair, prp_skin, microneedling, prf, profilo)",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/E6-OFFERT-SAMTYCKE-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_e6_offert_samtycke_2026_06_25_samtyckesmallar",
+      "label": "Samtyckesmallar (samtycke_bokning_2d, samtycke_angerratt)",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/E6-OFFERT-SAMTYCKE-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_e6_offert_samtycke_2026_06_25_offert_mallfamilj",
+      "target": "docs_implementation_patient_documents_live_diffs_e6_offert_samtycke_2026_06_25_e6_ok_gate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/E6-OFFERT-SAMTYCKE-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_e6_offert_samtycke_2026_06_25_samtyckesmallar",
+      "target": "docs_implementation_patient_documents_live_diffs_e6_offert_samtycke_2026_06_25_e6_ok_gate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/E6-OFFERT-SAMTYCKE-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_e6_offert_samtycke_2026_06_25_samtyckesmallar",
+      "target": "docs_legal_juridik_gdpr_jurist_flode_sarskilt_samtycke",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/implementation/patient-documents-live/diffs/E6-OFFERT-SAMTYCKE-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

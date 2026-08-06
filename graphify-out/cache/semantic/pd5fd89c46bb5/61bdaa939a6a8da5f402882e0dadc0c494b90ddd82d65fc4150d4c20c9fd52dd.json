@@ -1,0 +1,168 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_finansrapporter_v3_page",
+      "label": "CCO Finansrapporter & M\u00e5nadsst\u00e4ngning v3 (CF.9)",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_finansrapporter_v3_period_state_machine",
+      "label": "Period-state machine (open \u2192 preparing \u2192 ready_for_review \u2192 approved \u2192 closed, reopen=owner)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_finansrapporter_v3_month_close_checklist",
+      "label": "Blockerande checklista f\u00f6r m\u00e5nadsst\u00e4ngning",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_finansrapporter_v3_report_engine",
+      "label": "Pure-function rapportmotor \u2014 12 rapporttyper",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_finansrapporter_v3_fortnox_blocked",
+      "label": "Fortnox-status BLOCKED_INTEGRATION",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_finansrapporter_v3_page",
+      "target": "public_major_arcana_preview_cco_finansrapporter_v3_period_state_machine",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_finansrapporter_v3_page",
+      "target": "public_major_arcana_preview_cco_finansrapporter_v3_month_close_checklist",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_finansrapporter_v3_page",
+      "target": "public_major_arcana_preview_cco_finansrapporter_v3_report_engine",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_finansrapporter_v3_month_close_checklist",
+      "target": "public_major_arcana_preview_cco_finansrapporter_v3_period_state_machine",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_finansrapporter_v3_month_close_checklist",
+      "target": "public_major_arcana_preview_cco_finansrapporter_v3_fortnox_blocked",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_finansrapporter_v3_month_close_checklist",
+      "target": "public_major_arcana_preview_cco_finance_v3_receipt_inbox",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_finansrapporter_v3_month_close_checklist",
+      "target": "public_major_arcana_preview_cco_finance_v3_recurring_expenses",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_finansrapporter_v3_fortnox_blocked",
+      "target": "public_major_arcana_preview_cco_integrationer_v3_integration_catalog",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_finansrapporter_v3_month_close_checklist",
+      "target": "public_major_arcana_preview_cco_journal_safety_v3_six_checkpoint_gate",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "month_close_decision_chain",
+      "label": "M\u00e5nadsst\u00e4ngning: kvitto-inkorg + \u00e5terkommande kostnader \u2192 blockerande checklista \u2192 period-state machine \u2192 rapportpaket",
+      "nodes": [
+        "public_major_arcana_preview_cco_finance_v3_receipt_inbox",
+        "public_major_arcana_preview_cco_finance_v3_recurring_expenses",
+        "public_major_arcana_preview_cco_finansrapporter_v3_month_close_checklist",
+        "public_major_arcana_preview_cco_finansrapporter_v3_period_state_machine",
+        "public_major_arcana_preview_cco_finansrapporter_v3_report_engine"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-finansrapporter-v3.html"
+    }
+  ]
+}

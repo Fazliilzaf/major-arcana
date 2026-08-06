@@ -1,0 +1,153 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_doc",
+      "label": "ORD-67 CF.9 createVoucher + dryRun-granskning + kvitto-mailk\u00e4lla",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_voucher_sync",
+      "label": "cfoVoucherSync \u2014 dry-run + run-routes mot Fortnox-verifikat",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "Byggt \u00a73",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_aktiveringsordning",
+      "label": "Aktiveringsordning f\u00f6r skarp Fortnox-write (dryRun \u2192 scope \u2192 gate \u2192 manuell k\u00f6rning)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "Aktiveringsordning",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_kvitto_mailbox",
+      "label": "Dedikerad kvitto-delad postl\u00e5da som CM-mailk\u00e4lla (CM_MAIL_ACCOUNT)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "kvitto@",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_ai_ocr_policy",
+      "label": "AI/OCR-policybeslut: extern AI OK f\u00f6r leverant\u00f6rsunderlag, aldrig patientdata",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "\u00c4gar-beslut",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_voucher_gate_env",
+      "label": "ARCANA_CFO_FORTNOX_VOUCHER_SYNC_ENABLED \u2014 fail-closed gate f\u00f6r skarp write",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "Aktiveringsordning \u00a73",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_voucher_sync",
+      "target": "docs_handover_orders_ord_66_cfo_cm_route_flytt_monolit_frozen",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "Byggt \u00a73 (ORGANISATION \u00a74)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_aktiveringsordning",
+      "target": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_voucher_gate_env",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "Aktiveringsordning \u00a73",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_aktiveringsordning",
+      "target": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_voucher_sync",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "Aktiveringsordning",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_voucher_sync",
+      "target": "docs_handover_orders_ord_63_cm_cfo_expense_kontrakt_cfo_expense_store",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "Byggt \u00a72 markFortnoxSynced",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_kvitto_mailbox",
+      "target": "docs_handover_orders_ord_64_cm_pipeline_hardening_delta_sync",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "kvitto@ \u00a74",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_ai_ocr_policy",
+      "target": "docs_handover_orders_ord_64_cm_pipeline_hardening_ai_kostnadstak",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "\u00c4gar-beslut",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_65_cm_kvitto_ui_tester_finance_cm_sektion",
+      "target": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_voucher_sync",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "Byggt \u00a74 finance.html-sektion",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_67_cf9_voucher_sync_dryrun_ai_ocr_policy",
+      "target": "docs_handover_saknade_moduler_2026_06_24_arlig_stub",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.6,
+      "source_file": "docs/handover/ORDERS/ORD-67-cf9-voucher-sync-dryrun.md",
+      "source_location": "Forbidden (patientdata aldrig till extern AI)",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,153 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_24_dokument_segment_backend_document_type_registry",
+      "label": "ccoDocumentTypeRegistry (36 dokumenttyper, 5 klassificeringsaxlar)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "Scope 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Katalogen \u00e4r read-only och laddas fr\u00e5n JSON vid boot s\u00e5 att 36 h\u00e5rdkodade entries kan uppdateras utan migration; klinikf\u00e4ltet skiljer systerklinikens fl\u00f6de fr\u00e5n Hair TP."
+    },
+    {
+      "id": "docs_handover_orders_ord_24_dokument_segment_backend_document_instance_store",
+      "label": "ccoDocumentInstanceStore (per-patient dokumentstatus + audit)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "Scope 2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje status-transition loggar actor och back-refar till ccoAuditTrail eftersom juridiskt k\u00e4nsliga dokument kr\u00e4ver e-sig och sp\u00e5rbarhet."
+    },
+    {
+      "id": "docs_handover_orders_ord_24_dokument_segment_backend_patient_document_aggregator",
+      "label": "buildPatientDocumentBundle (4 UI-grupper + counts + filter)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "Scope 3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Kategori-buckets mappas till exakt de fyra grupper v11-UI:t renderar, s\u00e5 frontend slipper egen grupperingslogik."
+    },
+    {
+      "id": "docs_handover_orders_ord_24_dokument_segment_backend_triage_classification",
+      "label": "Triage-klassificering av inkommande dokument",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "Scope 6",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Vid missklassificering skapas instansen utan documentTypeId och flaggas f\u00f6r manuell triage i st\u00e4llet f\u00f6r att gissa fel typ."
+    },
+    {
+      "id": "docs_handover_orders_ord_24_dokument_segment_backend_required_for_blocking",
+      "label": "requiredFor: dokument blockerar journey-steg i Smart Next Step",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "Scope 7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Kopplar dokument-readiness till n\u00e4sta-steg-actions s\u00e5 att personal inte kan g\u00e5 vidare innan h\u00e4lsodeklaration eller samtycke \u00e4r signerat."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_24_dokument_segment_backend_patient_document_aggregator",
+      "target": "docs_handover_orders_ord_24_dokument_segment_backend_document_type_registry",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "Scope 3 logik",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_24_dokument_segment_backend_patient_document_aggregator",
+      "target": "docs_handover_orders_ord_24_dokument_segment_backend_document_instance_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "Scope 3 logik",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_24_dokument_segment_backend_triage_classification",
+      "target": "docs_handover_orders_ord_24_dokument_segment_backend_document_instance_store",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "Scope 6 createInstance",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_24_dokument_segment_backend_required_for_blocking",
+      "target": "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_smart_next_step_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "Scope 7 + Bakgrund",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_24_dokument_segment_backend_patient_document_aggregator",
+      "target": "docs_handover_orders_ord_23_kundkort_magic_backend_dossier_bundle_endpoint",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "Scope 5 integration i dossier-bundle",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_24_dokument_segment_backend_document_instance_store",
+      "target": "docs_handover_orders_ord_23_kundkort_magic_backend_journal_fill_audit_store",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "analog till ccoJournalFillAuditStore",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_24_dokument_segment_backend_required_for_blocking",
+      "target": "docs_handover_orders_ord_23_kundkort_magic_backend_journey_aggregator",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md",
+      "source_location": "requiredFor blockerar journey-steg",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "kundkort_dossier_bundle_data_chain",
+      "label": "Kundkortets one-call datakedja: registry \u2192 instansstore \u2192 aggregator \u2192 dossier-bundle \u2192 v11-render",
+      "nodes": [
+        "docs_handover_orders_ord_24_dokument_segment_backend_document_type_registry",
+        "docs_handover_orders_ord_24_dokument_segment_backend_document_instance_store",
+        "docs_handover_orders_ord_24_dokument_segment_backend_patient_document_aggregator",
+        "docs_handover_orders_ord_23_kundkort_magic_backend_dossier_bundle_endpoint",
+        "docs_handover_orders_ord_25_kundkort_v11_port_three_zone_composition"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-24-dokument-segment-backend.md"
+    }
+  ]
+}

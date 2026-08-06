@@ -1,0 +1,102 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_v11_rail_v_active_visit_data_contract_2026_06_21_doc",
+      "label": "V11-RAIL \u00b7 V Active Visit \u2014 Data Contract (L\u00c5ST 2026-06-21)",
+      "file_type": "document",
+      "source_file": "docs/handover/V11-RAIL-V-ACTIVE-VISIT-DATA-CONTRACT-2026-06-21.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v11_rail_v_active_visit_data_contract_2026_06_21_visit_fields",
+      "label": "activeVisit-datakontrakt (visible/state/tider/blockers) med synlighetsgrind",
+      "file_type": "concept",
+      "source_file": "docs/handover/V11-RAIL-V-ACTIVE-VISIT-DATA-CONTRACT-2026-06-21.md",
+      "source_location": "\u00a72-\u00a73",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v11_rail_v_active_visit_data_contract_2026_06_21_state_machine",
+      "label": "Active visit state-maskin (scheduled_today/checked_in/in_progress/completed_today)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V11-RAIL-V-ACTIVE-VISIT-DATA-CONTRACT-2026-06-21.md",
+      "source_location": "\u00a74",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v11_rail_v_active_visit_data_contract_2026_06_21_cta_wiring",
+      "label": "CTA-wiring via data-v11-active-visit-action mot befintliga liveHandlers",
+      "file_type": "concept",
+      "source_file": "docs/handover/V11-RAIL-V-ACTIVE-VISIT-DATA-CONTRACT-2026-06-21.md",
+      "source_location": "\u00a75",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v11_rail_v_active_visit_data_contract_2026_06_21_self_contained_adapter",
+      "label": "Self-contained buildActiveVisitFromBundle (ingen parity-intern koppling)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V11-RAIL-V-ACTIVE-VISIT-DATA-CONTRACT-2026-06-21.md",
+      "source_location": "\u00a76",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_v11_rail_v_active_visit_data_contract_2026_06_21_doc",
+      "target": "docs_handover_v11_rail_inventory_2026_06_21_fas3_blockers",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V11-RAIL-V-ACTIVE-VISIT-DATA-CONTRACT-2026-06-21.md",
+      "source_location": "\u00a71 (inventory-blocker #1)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v11_rail_v_active_visit_data_contract_2026_06_21_state_machine",
+      "target": "docs_handover_v11_rail_v_active_visit_data_contract_2026_06_21_visit_fields",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V11-RAIL-V-ACTIVE-VISIT-DATA-CONTRACT-2026-06-21.md",
+      "source_location": "\u00a74",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v11_rail_v_active_visit_data_contract_2026_06_21_cta_wiring",
+      "target": "docs_handover_v11_rail_cutover_audit_2026_06_22_inga_nya_handlers",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V11-RAIL-V-ACTIVE-VISIT-DATA-CONTRACT-2026-06-21.md",
+      "source_location": "\u00a75",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v11_rail_v_active_visit_data_contract_2026_06_21_self_contained_adapter",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_feature_flag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V11-RAIL-V-ACTIVE-VISIT-DATA-CONTRACT-2026-06-21.md",
+      "source_location": "\u00a76 (canon \u00a75 oberoende)",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

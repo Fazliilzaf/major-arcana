@@ -1,0 +1,139 @@
+{
+  "nodes": [
+    {
+      "id": "docs_major_arcana_index_index",
+      "label": "Major Arcana Index (l\u00e4sordning)",
+      "file_type": "document",
+      "source_file": "docs/major-arcana-index.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_major_arcana_index_canon",
+      "label": "Arcana Canon (s\u00e4kert, sp\u00e5rbart, multi-tenant klinik-OS)",
+      "file_type": "concept",
+      "source_file": "docs/major-arcana-index.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_major_arcana_index_source_preservation_rule",
+      "label": "Regel: originalk\u00e4llor skrivs aldrig om, konsolidering sker via nya sammanfattningar",
+      "file_type": "concept",
+      "source_file": "docs/major-arcana-index.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_major_arcana_index_patient_channel_last",
+      "label": "Prioriteringsordning: intern admin \u2192 interna agenter \u2192 patientkanal sist",
+      "file_type": "concept",
+      "source_file": "docs/major-arcana-index.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_major_arcana_index_public_web_separate_repo",
+      "label": "Publik klinikwebb som separat Next.js-monorepo",
+      "file_type": "concept",
+      "source_file": "docs/major-arcana-index.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_major_arcana_index_index",
+      "target": "docs_ops_arcana_finalization_runbook_runbook",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-index.md",
+      "source_location": "L\u00e4sordning \u00a74",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_index_index",
+      "target": "docs_major_arcana_index_canon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-index.md",
+      "source_location": "Canon i kort form",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_index_index",
+      "target": "docs_major_arcana_index_source_preservation_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-index.md",
+      "source_location": "Regel",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_index_canon",
+      "target": "docs_major_arcana_index_patient_channel_last",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-index.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_index_index",
+      "target": "docs_major_arcana_index_public_web_separate_repo",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-index.md",
+      "source_location": "\u00a78",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_index_patient_channel_last",
+      "target": "docs_ops_arcana_finalization_runbook_patient_channel_beta_rollout",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/major-arcana-index.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "human_in_the_loop_external_output_gate",
+      "label": "Genomg\u00e5ende beslutskedja: AI producerar utkast, gate/policy granskar, OWNER sl\u00e4pper ut externt",
+      "nodes": [
+        "docs_major_arcana_index_canon",
+        "docs_ops_cco_analyze_inbox_draft_prep_2026_02_26_manual_review_required",
+        "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_draft_state_machine",
+        "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_live_send_lock",
+        "docs_ops_cmo_marketing_copilot_ia_no_auto_publish_boundary",
+        "docs_ops_arcana_finalization_runbook_release_governance_gate"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/major-arcana-index.md"
+    }
+  ]
+}

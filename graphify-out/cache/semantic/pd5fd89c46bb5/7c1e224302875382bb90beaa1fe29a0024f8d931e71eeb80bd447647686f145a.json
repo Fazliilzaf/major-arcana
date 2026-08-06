@@ -1,0 +1,411 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_channel_document_inventory_kanalinventering",
+      "label": "Channel Document Inventory - 7 kallkanaler",
+      "file_type": "document",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_channel_document_inventory_klassificeringsnyckel",
+      "label": "Klassificeringsnyckel for dokumenttyper",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_channel_document_inventory_kanal_meridiq",
+      "label": "Kanal Meridiq - komplett, 151 objekt i repo-kataloger",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_channel_document_inventory_kanal_cliento",
+      "label": "Kanal Cliento - JSON i repo, kundbas utanfor repo",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_channel_document_inventory_kanal_pipedrive",
+      "label": "Kanal Pipedrive - flyttad ur repo, kvar i git-historik",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_channel_document_inventory_kanal_drive",
+      "label": "Kanal Drive - endast live via API, inget i repo",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_channel_document_inventory_kanal_nordbro",
+      "label": "Kanal Nordbro - endast versionssparning, ramallar saknas",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_channel_document_inventory_kanal_insatt",
+      "label": "Kanal Insatt - endast versionssparning, ramallar saknas",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_channel_document_inventory_kanal_getaccept",
+      "label": "Kanal GetAccept - ingen export, okand volym signerade avtal",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_channel_document_inventory_blockerande_kanaler",
+      "label": "Fyra av sju kanaler blockerar Meridiq-paritet",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Utan Drive, Nordbro, Insatt och GetAccept finns inget facit att diffa mallarna mot, sa paritet mot produktion kan inte verifieras."
+    },
+    {
+      "id": "docs_strategy_channel_document_inventory_pii_utanfor_git",
+      "label": "Regel: PII lagras utanfor Git",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Kundregister, signerade avtal och ifyllda journaler far aldrig commitas; strukturerade kataloger och versionsmappningar ar det enda som hor hemma i repo."
+    },
+    {
+      "id": "docs_strategy_channel_document_inventory_atgardsplan_per_kanal",
+      "label": "Atgardsplan per kanal med agare och deadline",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_channel_document_inventory_kanalinventering",
+      "target": "docs_strategy_channel_document_inventory_klassificeringsnyckel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanalinventering",
+      "target": "docs_strategy_channel_document_inventory_kanal_meridiq",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanalinventering",
+      "target": "docs_strategy_channel_document_inventory_kanal_cliento",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanalinventering",
+      "target": "docs_strategy_channel_document_inventory_kanal_pipedrive",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanalinventering",
+      "target": "docs_strategy_channel_document_inventory_kanal_drive",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanalinventering",
+      "target": "docs_strategy_channel_document_inventory_kanal_nordbro",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanalinventering",
+      "target": "docs_strategy_channel_document_inventory_kanal_insatt",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanalinventering",
+      "target": "docs_strategy_channel_document_inventory_kanal_getaccept",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanalinventering",
+      "target": "docs_strategy_channel_document_inventory_blockerande_kanaler",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanalinventering",
+      "target": "docs_strategy_channel_document_inventory_pii_utanfor_git",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanalinventering",
+      "target": "docs_strategy_channel_document_inventory_atgardsplan_per_kanal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_blockerande_kanaler",
+      "target": "docs_strategy_channel_document_inventory_kanal_drive",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_blockerande_kanaler",
+      "target": "docs_strategy_channel_document_inventory_kanal_nordbro",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_blockerande_kanaler",
+      "target": "docs_strategy_channel_document_inventory_kanal_insatt",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_blockerande_kanaler",
+      "target": "docs_strategy_channel_document_inventory_kanal_getaccept",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_pii_utanfor_git",
+      "target": "docs_strategy_channel_document_inventory_kanal_cliento",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_pii_utanfor_git",
+      "target": "docs_strategy_channel_document_inventory_kanal_pipedrive",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_pii_utanfor_git",
+      "target": "docs_strategy_channel_document_inventory_kanal_drive",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_pii_utanfor_git",
+      "target": "docs_strategy_channel_document_inventory_kanal_getaccept",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_atgardsplan_per_kanal",
+      "target": "docs_strategy_channel_document_inventory_blockerande_kanaler",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanal_nordbro",
+      "target": "docs_strategy_channel_document_inventory_kanal_insatt",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_klassificeringsnyckel",
+      "target": "docs_strategy_channel_document_inventory_kanal_meridiq",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanal_meridiq",
+      "target": "docs_strategy_cco_unified_system_plan_formular_migreringsmatris",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanal_cliento",
+      "target": "docs_strategy_cco_unified_system_plan_tjanstekatalog_trippelmapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_pii_utanfor_git",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_secure_storage_kvitton",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_pii_utanfor_git",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_icloud_arkivinventering",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_channel_document_inventory_kanal_drive",
+      "target": "docs_strategy_cco_system_scope_migration_historik",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CHANNEL-DOCUMENT-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

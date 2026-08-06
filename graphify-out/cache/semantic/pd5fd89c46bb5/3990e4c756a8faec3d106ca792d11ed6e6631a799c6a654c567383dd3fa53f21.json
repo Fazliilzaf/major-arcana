@@ -1,0 +1,155 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_operator_dashboard_v3_page",
+      "label": "CCO Operat\u00f6rsdashboard v3",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_operator_dashboard_v3_draft_approval_queue",
+      "label": "Utkast \u2014 v\u00e4ntar godk\u00e4nnande",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Genererade utkast (booking_confirm, followup_72h, reschedule_offer) h\u00e5lls i k\u00f6 per kanal och resa-steg s\u00e5 att ingen automatiserad text n\u00e5r kund utan m\u00e4nskligt godk\u00e4nnande."
+    },
+    {
+      "id": "public_major_arcana_preview_cco_operator_dashboard_v3_thread_states",
+      "label": "Konversations-tr\u00e5d-states",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_operator_dashboard_v3_cron_dry_run_history",
+      "label": "Cron dry-run-historik",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Automationens cron-k\u00f6rningar loggas som dry-run med 'skulle skapas' kontra 'redan finns', vilket g\u00f6r att effekten kan inspekteras innan skarpa skrivningar aktiveras."
+    },
+    {
+      "id": "public_major_arcana_preview_cco_operator_dashboard_v3_customer_journey_distribution",
+      "label": "Kundresa \u2014 stegf\u00f6rdelning",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_operator_dashboard_v3_mailbox_coverage",
+      "label": "Mailbox-t\u00e4ckning",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_operator_dashboard_v3_page",
+      "target": "public_major_arcana_preview_cco_operator_dashboard_v3_draft_approval_queue",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_operator_dashboard_v3_page",
+      "target": "public_major_arcana_preview_cco_operator_dashboard_v3_thread_states",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_operator_dashboard_v3_page",
+      "target": "public_major_arcana_preview_cco_operator_dashboard_v3_cron_dry_run_history",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_operator_dashboard_v3_page",
+      "target": "public_major_arcana_preview_cco_operator_dashboard_v3_customer_journey_distribution",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_operator_dashboard_v3_page",
+      "target": "public_major_arcana_preview_cco_operator_dashboard_v3_mailbox_coverage",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_operator_dashboard_v3_draft_approval_queue",
+      "target": "public_major_arcana_preview_cco_skickat_v3_owner_live_send_mandate",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_operator_dashboard_v3_cron_dry_run_history",
+      "target": "public_major_arcana_preview_cco_ops_workbench_v3_controlled_completion_canary",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_operator_dashboard_v3_customer_journey_distribution",
+      "target": "public_major_arcana_preview_cco_patient_offer_portal_v1_journey_gates",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,220 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh",
+      "label": "bootstrap-remote-apple-client.sh",
+      "file_type": "code",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh__entry",
+      "label": "bootstrap-remote-apple-client.sh script",
+      "file_type": "code",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    },
+    {
+      "id": "$graphify-root$_scripts_bootstrap_remote_apple_client_copy_file_if_present",
+      "label": "copy_file_if_present()",
+      "file_type": "code",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L18",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    },
+    {
+      "id": "$graphify-root$_scripts_bootstrap_remote_apple_client_detect_local_codex_app",
+      "label": "detect_local_codex_app()",
+      "file_type": "code",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L29",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    },
+    {
+      "id": "$graphify-root$_scripts_bootstrap_remote_apple_client_sync_codex_app_if_present",
+      "label": "sync_codex_app_if_present()",
+      "file_type": "code",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L43",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh",
+      "target": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh",
+      "target": "$graphify-root$_scripts_arcana_sync_common_sh",
+      "relation": "imports_from",
+      "confidence": "INFERRED",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L6",
+      "weight": 1.0,
+      "context": "import",
+      "target_file": "$graphify-root$/scripts/arcana-sync-common.sh"
+    },
+    {
+      "source": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh",
+      "target": "$graphify-root$_scripts_bootstrap_remote_apple_client_copy_file_if_present",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh",
+      "target": "$graphify-root$_scripts_bootstrap_remote_apple_client_detect_local_codex_app",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh",
+      "target": "$graphify-root$_scripts_bootstrap_remote_apple_client_sync_codex_app_if_present",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh__entry",
+      "target": "$graphify-root$_scripts_bootstrap_remote_apple_client_sync_codex_app_if_present",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L93",
+      "weight": 1.0,
+      "context": "call"
+    },
+    {
+      "source": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh__entry",
+      "target": "$graphify-root$_scripts_bootstrap_remote_apple_client_copy_file_if_present",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L99",
+      "weight": 1.0,
+      "context": "call"
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh__entry",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L2"
+    },
+    {
+      "language": "bash",
+      "callee": "printf",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh__entry",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L67"
+    },
+    {
+      "language": "bash",
+      "callee": "exit",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh__entry",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L68"
+    },
+    {
+      "language": "bash",
+      "callee": "ssh",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh__entry",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L71"
+    },
+    {
+      "language": "bash",
+      "callee": "build_arcana_sync_args",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh__entry",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L87"
+    },
+    {
+      "language": "bash",
+      "callee": "rsync",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_sh__entry",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L89"
+    },
+    {
+      "language": "bash",
+      "callee": "return",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_copy_file_if_present",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L23"
+    },
+    {
+      "language": "bash",
+      "callee": "scp",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_copy_file_if_present",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L26"
+    },
+    {
+      "language": "bash",
+      "callee": "printf",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_detect_local_codex_app",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L31"
+    },
+    {
+      "language": "bash",
+      "callee": "return",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_detect_local_codex_app",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L32"
+    },
+    {
+      "language": "bash",
+      "callee": "return",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_sync_codex_app_if_present",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L50"
+    },
+    {
+      "language": "bash",
+      "callee": "ssh",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_sync_codex_app_if_present",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L53"
+    },
+    {
+      "language": "bash",
+      "callee": "printf",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_sync_codex_app_if_present",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L61"
+    },
+    {
+      "language": "bash",
+      "callee": "rsync",
+      "caller_nid": "$graphify-root$_scripts_bootstrap_remote_apple_client_sync_codex_app_if_present",
+      "source_file": "scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L63"
+    }
+  ],
+  "bash_sources": [
+    {
+      "target_path": "$graphify-root$/scripts/arcana-sync-common.sh",
+      "source_file": "$graphify-root$/scripts/bootstrap-remote-apple-client.sh",
+      "source_location": "L6"
+    }
+  ]
+}

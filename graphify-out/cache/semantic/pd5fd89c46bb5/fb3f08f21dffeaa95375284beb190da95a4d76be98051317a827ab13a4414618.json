@@ -1,0 +1,59 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy__deprecated_surfaces_readme_parked_surfaces",
+      "label": "Parkerade (superseded) v3-ytor",
+      "file_type": "document",
+      "source_file": "docs/strategy/_deprecated-surfaces/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Ytorna flyttades ur public/major-arcana-preview vid Fas 0-st\u00e4dning men raderas inte \u2014 de sparas som historik/referens f\u00f6r designbesluten."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy__deprecated_surfaces_readme_parked_surfaces",
+      "target": "docs_strategy__deprecated_surfaces_cco_analys_v3_surface",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/_deprecated-surfaces/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy__deprecated_surfaces_readme_parked_surfaces",
+      "target": "docs_strategy__deprecated_surfaces_cco_analys_v3_2_surface",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/_deprecated-surfaces/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy__deprecated_surfaces_readme_parked_surfaces",
+      "target": "docs_strategy__deprecated_surfaces_cco_installningar_v3_surface",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/_deprecated-surfaces/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy__deprecated_surfaces_readme_parked_surfaces",
+      "target": "docs_strategy_arcana_master_plan_punktvis_cco_ny_surface",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/_deprecated-surfaces/README.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

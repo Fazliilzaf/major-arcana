@@ -1,0 +1,63 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_1_coolingoff_14_to_2_cooling_off_policy",
+      "label": "HAIR_TP_COOLING_OFF_DAYS = 2 (central bet\u00e4nketidspolicy)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-1-coolingoff-14-to-2.md",
+      "source_location": "Central konstant",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Klinikpolicyn \u00e4r 2 dagars bet\u00e4nketid; v\u00e4rdet centraliseras i en policymodul med env-override i st\u00e4llet f\u00f6r spridda 14:or i offert- och avtalskod."
+    },
+    {
+      "id": "docs_handover_orders_ord_1_coolingoff_14_to_2_legacy_cooling_off_retention",
+      "label": "Legacy-policy: sparad coolingOffDays 14 beh\u00e5lls till owner-review",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-1-coolingoff-14-to-2.md",
+      "source_location": "Legacy-policy",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Signerade och arkiverade poster r\u00f6rs inte \u2014 resolveHairTpCoolingOffDays(14) beh\u00e5ller historiskt v\u00e4rde eftersom retroaktiv \u00e4ndring av avtalsvillkor \u00e4r juridiskt riskabelt."
+    },
+    {
+      "id": "docs_handover_orders_ord_1_coolingoff_14_to_2_kundresa_canonical_9_step_gate",
+      "label": "verify-kundresa-canonical-9-step (gate)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-1-coolingoff-14-to-2.md",
+      "source_location": "Verify + gates",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_1_coolingoff_14_to_2_cooling_off_policy",
+      "target": "docs_handover_orders_ord_1_coolingoff_14_to_2_legacy_cooling_off_retention",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-1-coolingoff-14-to-2.md",
+      "source_location": "Legacy-policy",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_1_coolingoff_14_to_2_kundresa_canonical_9_step_gate",
+      "target": "docs_handover_orders_ord_1_coolingoff_14_to_2_cooling_off_policy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-1-coolingoff-14-to-2.md",
+      "source_location": "Verify + gates",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

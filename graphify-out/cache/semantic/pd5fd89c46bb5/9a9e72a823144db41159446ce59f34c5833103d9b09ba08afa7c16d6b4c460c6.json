@@ -1,0 +1,28 @@
+{
+  "nodes": [
+    {
+      "id": "public_assets_cco_next_demo_avatar_female_png",
+      "label": "Demoavatar: portr\u00e4tt av kvinna i r\u00f6d tr\u00f6ja (PNG)",
+      "file_type": "image",
+      "source_file": "public/assets/cco-next/anna-karlsson.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_assets_cco_next_demo_avatar_female_png",
+      "target": "public_assets_cco_next_demo_avatar_set",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/assets/cco-next/anna-karlsson.png",
+      "source_location": null,
+      "weight": 0.85
+    }
+  ],
+  "hyperedges": []
+}

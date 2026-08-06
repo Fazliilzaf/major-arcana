@@ -1,0 +1,82 @@
+{
+  "nodes": [
+    {
+      "id": "docs_implementation_patient_documents_live_ord_24_foto_samtycke_facit_2026_06_25_facit",
+      "label": "ORD-24 / A15 \u2014 foto-samtycke facit (steg 9)",
+      "file_type": "document",
+      "source_file": "docs/implementation/patient-documents-live/ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_ord_24_foto_samtycke_facit_2026_06_25_scope_consent",
+      "label": "Foto-scope-samtycke \u2014 h\u00e5rlinje/krona f\u00f6r journal, aldrig ansikte",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md",
+      "source_location": "Kanonisk scope-text",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_ord_24_foto_samtycke_facit_2026_06_25_publish_separation",
+      "label": "Publiceringssamtycke h\u00e5lls separat fr\u00e5n journal-scope-samtycket",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md",
+      "source_location": "Avgr\u00e4nsning",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Intern uppf\u00f6ljning kr\u00e4ver annat samtycke \u00e4n marknadsf\u00f6ring; publiceringsmallen \u00e4r placeholder tills juridik fyller full text och blockerar d\u00e4rf\u00f6r inte steg 9."
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_ord_24_foto_samtycke_facit_2026_06_25_no_word_required",
+      "label": "Facit utan Word \u2014 journey + bundle + demo r\u00e4cker som U-underlag (CCO-native registry)",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md",
+      "source_location": "Owner-beslut 3\u20135",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_implementation_patient_documents_live_ord_24_foto_samtycke_facit_2026_06_25_facit",
+      "target": "docs_implementation_patient_documents_live_ord_24_foto_samtycke_facit_2026_06_25_scope_consent",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md",
+      "source_location": "Kanonisk scope-text",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_ord_24_foto_samtycke_facit_2026_06_25_no_word_required",
+      "target": "docs_implementation_patient_documents_live_u_exceptions_2026_06_25_exceptions",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/implementation/patient-documents-live/ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md",
+      "source_location": "Owner-beslut 3",
+      "weight": 0.85
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_ord_24_foto_samtycke_facit_2026_06_25_scope_consent",
+      "target": "docs_handover_v12_spec_3_preview_photo_documentation_section",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/implementation/patient-documents-live/ORD-24-FOTO-SAMTYCKE-FACIT-2026-06-25.md",
+      "source_location": "Kanonisk scope-text",
+      "weight": 0.65
+    }
+  ],
+  "hyperedges": []
+}

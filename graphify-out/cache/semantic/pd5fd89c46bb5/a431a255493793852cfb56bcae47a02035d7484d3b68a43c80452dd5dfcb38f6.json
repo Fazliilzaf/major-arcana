@@ -1,0 +1,49 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_ord_10_readme",
+      "label": "ORD-10 prod screenshots \u2014 Kunder v9",
+      "file_type": "document",
+      "source_file": "docs/ops/screenshots/ord-10/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_ord_10_readme_screenshot_evidence_set",
+      "label": "Deploy-bunden screenshot-evidens per DOM-sektion",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/ord-10/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_ord_10_readme",
+      "target": "docs_ops_screenshots_ord_10_readme_screenshot_evidence_set",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_readme_screenshot_evidence_set",
+      "target": "docs_ops_runbooks_u2_4_staff_field_login_checklist_pwa_home_screen",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.55,
+      "source_file": "docs/ops/screenshots/ord-10/README.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

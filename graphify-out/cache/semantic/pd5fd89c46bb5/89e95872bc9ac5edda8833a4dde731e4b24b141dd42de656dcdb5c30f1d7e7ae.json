@@ -1,0 +1,173 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_49_id_verifiering_ready_gate_order",
+      "label": "ORD-49 \u2014 ID-verifiering: ready-pill + behandlingsgate",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_49_id_verifiering_ready_gate_id_ready_pill",
+      "label": "ID-pill i ready-row (status fr\u00e5n readout, ej h\u00e5rdkodad)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_49_id_verifiering_ready_gate_hard_gate_env",
+      "label": "CCO_ID_VERIFICATION_HARD_GATE (hard gate default p\u00e5)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_49_id_verifiering_ready_gate_identity_verification_process",
+      "label": "Patient-ID-verifiering (BankID \u00b7 kundportal \u00b7 manuell \u00b7 wallet)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_49_id_verifiering_ready_gate_bundle_full_vs_treatment_gate",
+      "label": "Dokument-bundle FULL \u2260 behandlingsgate",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_49_id_verifiering_ready_gate_single_truth_readout",
+      "label": "En sanning \u2014 identityVerified i Fas A-readout, inte per yta",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_49_id_verifiering_ready_gate_order",
+      "target": "docs_handover_orders_ord_49_id_verifiering_ready_gate_id_ready_pill",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_49_id_verifiering_ready_gate_order",
+      "target": "docs_handover_orders_ord_49_id_verifiering_ready_gate_hard_gate_env",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_49_id_verifiering_ready_gate_hard_gate_env",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_ready_for_treatment_composite",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_49_id_verifiering_ready_gate_hard_gate_env",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_treatment_booking_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_49_id_verifiering_ready_gate_id_ready_pill",
+      "target": "docs_handover_orders_ord_48_cloud_agent_complete_ready_row_pills",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_49_id_verifiering_ready_gate_id_ready_pill",
+      "target": "docs_handover_orders_ord_49_id_verifiering_ready_gate_identity_verification_process",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_49_id_verifiering_ready_gate_bundle_full_vs_treatment_gate",
+      "target": "docs_handover_orders_ord_49_id_verifiering_ready_gate_order",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_49_id_verifiering_ready_gate_single_truth_readout",
+      "target": "docs_handover_orders_ord_5_fas_a1_readiness_gate_fas_a_readout",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_49_id_verifiering_ready_gate_single_truth_readout",
+      "target": "docs_handover_orders_ord_48_parallel_svep_3_agents_additive_rule",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_49_id_verifiering_ready_gate_order",
+      "target": "docs_handover_orders_ord_48_cloud_agent_complete_bundle_classification",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-49-id-verifiering-ready-gate.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

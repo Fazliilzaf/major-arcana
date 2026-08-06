@@ -1,0 +1,63 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_smart_next_step_module",
+      "label": "CcoKunderSmartNextStep (Smart N\u00e4sta Steg-modul)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-18-smart-next-step-capability-matrix-spa-port.md",
+      "source_location": "Bakgrund + IN SCOPE 2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Modulen \u00e4r read-only i denna order \u2014 bara mount-punkten flyttas till SPA s\u00e5 logiken inte forkas."
+    },
+    {
+      "id": "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_capability_matrix_module",
+      "label": "CcoKunderActions capability-matrix (buildDossierBar / disabled-reasons)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-18-smart-next-step-capability-matrix-spa-port.md",
+      "source_location": "IN SCOPE 3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "actionCtx (tenant/role/basePaths) kopieras 1:1 fr\u00e5n mobil-shellen f\u00f6r att undvika tv\u00e5 divergerande r\u00e4ttighetsmodeller."
+    },
+    {
+      "id": "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_bundle_order_constraint",
+      "label": "Bundle-ordningskrav: globaler f\u00f6re patient-master-ui.js",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-18-smart-next-step-capability-matrix-spa-port.md",
+      "source_location": "IN SCOPE 1 + Risker",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "IIFE-modulerna s\u00e4tter globala namespace vid load; om de hamnar efter dossier-renderaren blir de undefined vid render."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_smart_next_step_module",
+      "target": "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_bundle_order_constraint",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-18-smart-next-step-capability-matrix-spa-port.md",
+      "source_location": "IN SCOPE 1 + Risker",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_capability_matrix_module",
+      "target": "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_bundle_order_constraint",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-18-smart-next-step-capability-matrix-spa-port.md",
+      "source_location": "IN SCOPE 1",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

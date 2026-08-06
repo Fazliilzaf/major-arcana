@@ -1,0 +1,110 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_v12_workspace_economy_viewport_preview_deferred_when_source_lacks_data",
+      "label": "Uppskjutet n\u00e4r k\u00e4lldata saknas (ingen fejkdata)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-economy/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fakturor/betalstatus, skuld-breakdown och rabatter saknas i kallan och skjuts upp i stallet for att renderas som platshallare."
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_economy_viewport_preview_economy_module",
+      "label": "V12 Ekonomi (sektion 11) \u2014 display-only",
+      "file_type": "document",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-economy/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_v12_workspace_economy_viewport_preview_economy_module",
+      "target": "docs_handover_mockups_v12_workspace_journal_viewport_preview_v12_customer_workspace",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_economy_viewport_preview_economy_module",
+      "target": "docs_handover_mockups_v12_workspace_journal_viewport_preview_v12workspace_feature_flag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_economy_viewport_preview_economy_module",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_viewport_preview_pattern",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_economy_viewport_preview_economy_module",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_raster_png_pipeline",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_economy_viewport_preview_economy_module",
+      "target": "docs_handover_mockups_v12_workspace_journal_viewport_preview_v11_adapter_layer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_economy_viewport_preview_economy_module",
+      "target": "docs_handover_mockups_v12_workspace_journal_viewport_preview_handler_reuse_principle",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_economy_viewport_preview_economy_module",
+      "target": "docs_handover_mockups_v12_workspace_communication_viewport_preview_explicit_empty_state",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_economy_viewport_preview_economy_module",
+      "target": "docs_handover_mockups_v12_workspace_economy_viewport_preview_deferred_when_source_lacks_data",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

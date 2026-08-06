@@ -1,0 +1,90 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_ord_10_05_customer_list",
+      "label": "Sk\u00e4rmdump: kundtabell i tomt l\u00e4ge",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/ord-10/05-customer-list.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_ord_10_kundtabell",
+      "label": "Kundtabell (Kund, Kontakt, Status, Senaste bes\u00f6k, Int\u00e4kt LTV, N\u00e4sta steg)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/ord-10/05-customer-list.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_ord_10_inloggningsgrindat_tomt_lage",
+      "label": "Inloggningsgrindat tomt l\u00e4ge ('Logga in f\u00f6r att h\u00e4mta kunder')",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/ord-10/05-customer-list.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_ord_10_05_customer_list",
+      "target": "docs_ops_screenshots_ord_10_kundtabell",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/05-customer-list.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_05_customer_list",
+      "target": "docs_ops_screenshots_ord_10_inloggningsgrindat_tomt_lage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/05-customer-list.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_inloggningsgrindat_tomt_lage",
+      "target": "docs_ops_screenshots_ord_10_patient_master_datakalla",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/05-customer-list.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_05_customer_list",
+      "target": "docs_ops_screenshots_ord_10_03_story_cards",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/screenshots/ord-10/05-customer-list.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_kundtabell",
+      "target": "docs_ops_screenshots_ord_10_patient_master_datakalla",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/screenshots/ord-10/05-customer-list.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,179 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_arcana_phase_2_masterplan_masterplan",
+      "label": "Arcana Executive OS \u2014 Phase 2 Masterplan",
+      "file_type": "document",
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Phase 2 ska g\u00f6ra Arcana till en driftbar, s\u00e4ker och m\u00e4tbar SaaS-k\u00e4rna innan patientkanal \u00f6ppnas; prioriteringsordningen \u00e4r l\u00e5st f\u00f6r att undvika att UI-polish tr\u00e4nger undan s\u00e4kerhetsh\u00e4rdning."
+    },
+    {
+      "id": "docs_strategy_arcana_phase_2_masterplan_workstream_a_security",
+      "label": "Workstream A \u2014 S\u00e4kerhetsh\u00e4rdning (BLOCKER)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_arcana_phase_2_masterplan_audit_immutability",
+      "label": "A6 \u2014 Append-only audit med hash-chain",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Inga update- eller delete-paths f\u00e5r finnas f\u00f6r audit och integritetsverifieringen ska vara k\u00f6rbar, eftersom en muterbar auditkedja \u00e4r en automatisk No-Go f\u00f6r patientkanalen."
+    },
+    {
+      "id": "docs_strategy_arcana_phase_2_masterplan_workstream_b_incident_sla",
+      "label": "Workstream B \u2014 Incident & SLA-system (BLOCKER)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "L4/L5 ska skapa incident automatiskt med \u00e4gare, SLA-deadline och auto-eskalering \u2014 loggning ensam r\u00e4cker inte som operativ f\u00f6rm\u00e5ga."
+    },
+    {
+      "id": "docs_strategy_arcana_phase_2_masterplan_workstream_c_scheduler",
+      "label": "Workstream C \u2014 Scheduler, backup & restore drill (BLOCKER)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Restore-test m\u00e5ste vara utf\u00f6rt inom senaste 30 dagar med dokumenterad RTO/RPO, annars r\u00e4knas backupen inte som bevisad."
+    },
+    {
+      "id": "docs_strategy_arcana_phase_2_masterplan_workstream_d_risk_precision",
+      "label": "Workstream D \u2014 Riskprecision (gold set, confusion matrix, threshold-rollback)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Minst 150 versionerade fall (50 safe/50 borderline/50 critical) och FP/FN per riskniv\u00e5 kr\u00e4vs f\u00f6r att kalibrering ska vara m\u00e4tbar; ingen automatisk regel\u00e4ndring f\u00e5r ske utan owner-godk\u00e4nnande signerat i auditkedjan."
+    },
+    {
+      "id": "docs_strategy_arcana_phase_2_masterplan_workstream_e_observability",
+      "label": "Workstream E \u2014 Observability-h\u00e4rdning (metrics, correlation IDs, SLO)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_arcana_phase_2_masterplan_audit_immutability",
+      "target": "docs_strategy_arcana_master_plan_punktvis_go_no_go_matrix",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_phase_2_masterplan_masterplan",
+      "target": "docs_strategy_arcana_phase_2_masterplan_workstream_a_security",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_phase_2_masterplan_masterplan",
+      "target": "docs_strategy_arcana_phase_2_masterplan_workstream_b_incident_sla",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_phase_2_masterplan_masterplan",
+      "target": "docs_strategy_arcana_phase_2_masterplan_workstream_c_scheduler",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_phase_2_masterplan_masterplan",
+      "target": "docs_strategy_arcana_phase_2_masterplan_workstream_d_risk_precision",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_phase_2_masterplan_masterplan",
+      "target": "docs_strategy_arcana_phase_2_masterplan_workstream_e_observability",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_phase_2_masterplan_workstream_a_security",
+      "target": "docs_strategy_arcana_phase_2_masterplan_audit_immutability",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_phase_2_masterplan_workstream_d_risk_precision",
+      "target": "docs_strategy_arcana_master_plan_punktvis_mandatory_pipeline",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_phase_2_masterplan_workstream_e_observability",
+      "target": "docs_strategy_status_oversikt_generated_status_json",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/strategy/arcana-phase-2-masterplan.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

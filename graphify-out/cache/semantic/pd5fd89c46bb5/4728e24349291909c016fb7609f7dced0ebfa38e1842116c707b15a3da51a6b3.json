@@ -1,0 +1,193 @@
+{
+  "nodes": [
+    {
+      "id": "docs_major_arcana_color_palette_svg",
+      "label": "Major Arcana \u2013 F\u00e4rgpalett (SVG-k\u00e4lla)",
+      "file_type": "image",
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_major_arcana_color_palette_design_tokens",
+      "label": "Major Arcana designtokens",
+      "file_type": "concept",
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_major_arcana_color_palette_base_tokens",
+      "label": "Bas- och ytf\u00e4rger (--bg, --panel, --text, --accent)",
+      "file_type": "concept",
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_major_arcana_color_palette_glass_tokens",
+      "label": "Glasyt-tokens (--glass-*)",
+      "file_type": "concept",
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_major_arcana_color_palette_table_tokens",
+      "label": "Tabell- och badge-tokens (--table-*, --badge-*)",
+      "file_type": "concept",
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_major_arcana_color_palette_depth_tokens",
+      "label": "Djup- och skuggtokens (--depth-*, --ma-shadow-*, --ma-halo)",
+      "file_type": "concept",
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_major_arcana_color_palette_motion_tokens",
+      "label": "R\u00f6relse- och radietokens (--t-fast, --t-med, --ease, --r-sm/md/lg)",
+      "file_type": "concept",
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_major_arcana_color_palette_status_tokens",
+      "label": "Statusf\u00e4rger (--ok #50c878, --warn #f2b84b, --bad #e46b6b)",
+      "file_type": "concept",
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_major_arcana_color_palette_svg",
+      "target": "docs_major_arcana_color_palette_design_tokens",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_color_palette_base_tokens",
+      "target": "docs_major_arcana_color_palette_design_tokens",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_color_palette_glass_tokens",
+      "target": "docs_major_arcana_color_palette_design_tokens",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_color_palette_table_tokens",
+      "target": "docs_major_arcana_color_palette_design_tokens",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_color_palette_depth_tokens",
+      "target": "docs_major_arcana_color_palette_design_tokens",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_color_palette_motion_tokens",
+      "target": "docs_major_arcana_color_palette_design_tokens",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_color_palette_status_tokens",
+      "target": "docs_major_arcana_color_palette_design_tokens",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_major_arcana_color_palette_depth_tokens",
+      "target": "docs_major_arcana_color_palette_glass_tokens",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/major-arcana-color-palette.svg",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "major_arcana_design_token_family",
+      "label": "Major Arcana designtoken-familj",
+      "nodes": [
+        "docs_major_arcana_color_palette_design_tokens",
+        "docs_major_arcana_color_palette_base_tokens",
+        "docs_major_arcana_color_palette_glass_tokens",
+        "docs_major_arcana_color_palette_table_tokens",
+        "docs_major_arcana_color_palette_depth_tokens",
+        "docs_major_arcana_color_palette_motion_tokens",
+        "docs_major_arcana_color_palette_status_tokens"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/major-arcana-color-palette.svg"
+    }
+  ]
+}

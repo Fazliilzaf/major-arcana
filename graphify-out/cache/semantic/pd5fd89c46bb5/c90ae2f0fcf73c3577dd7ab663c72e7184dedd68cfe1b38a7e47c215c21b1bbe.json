@@ -1,0 +1,215 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_status_web_2026_05_26",
+      "label": "hairtpclinic.com + Arcana CCO \u2014 status 2026-05-26",
+      "file_type": "document",
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_status_web_2026_05_26_photo_prune_cron",
+      "label": "GDPR-cron som rensar foton utan publicerings-consent",
+      "file_type": "concept",
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_status_web_2026_05_26_heic_conversion",
+      "label": "HEIC/HEIF-konvertering i browsern f\u00f6re uppladdning",
+      "file_type": "concept",
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_status_web_2026_05_26_operator_thumbnails",
+      "label": "Auth-skyddade operator-thumbnails f\u00f6r post-op-foton",
+      "file_type": "concept",
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_status_web_2026_05_26_lead_context_sanitization",
+      "label": "Webb-lead-kontext med whitelist-sanering och size-limits",
+      "file_type": "concept",
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_status_web_2026_05_26_duplicate_render_service",
+      "label": "Dubbla Render-tj\u00e4nster gav fantom-disk-bug; duplikat suspenderad",
+      "file_type": "concept",
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_status_web_2026_05_26_bootstrap_oom_mitigation",
+      "label": "OOM-mitigering via kortare bootstrap-mailbox-lookback",
+      "file_type": "concept",
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_status_web_2026_05_26_nurse_bookability_pending",
+      "label": "Sjuksk\u00f6terske-resurser ej bokbara i v\u00e4ntan p\u00e5 scope-beslut",
+      "file_type": "concept",
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_status_web_2026_05_26",
+      "target": "docs_ops_status_web_2026_05_19",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_status_web_2026_05_26",
+      "target": "docs_ops_status_web_2026_05_26_duplicate_render_service",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_status_web_2026_05_26_heic_conversion",
+      "target": "docs_ops_status_web_2026_05_19_exif_strip",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_status_web_2026_05_26_operator_thumbnails",
+      "target": "docs_ops_status_web_2026_05_19_exif_strip",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_status_web_2026_05_26_photo_prune_cron",
+      "target": "docs_ops_status_web_2026_05_19_exif_strip",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_status_web_2026_05_26_lead_context_sanitization",
+      "target": "docs_ops_status_web_2026_05_19_lead_forward_best_effort",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_status_web_2026_05_26_lead_context_sanitization",
+      "target": "docs_ops_runbooks_cco_booking_operator_runbook_web_booking_filter",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_status_web_2026_05_26_duplicate_render_service",
+      "target": "docs_ops_status_web_2026_05_26_bootstrap_oom_mitigation",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_status_web_2026_05_26_nurse_bookability_pending",
+      "target": "docs_ops_status_web_2026_05_19_public_booking_engine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_status_web_2026_05_26_photo_prune_cron",
+      "target": "docs_ops_tenant_onboarding_playbook_gdpr_capabilities",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_status_web_2026_05_26_operator_thumbnails",
+      "target": "docs_ops_screenshots_ord_10_readme_screenshot_evidence_set",
+      "relation": "conceptually_related_to",
+      "confidence": "AMBIGUOUS",
+      "confidence_score": 0.2,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_status_web_2026_05_26_bootstrap_oom_mitigation",
+      "target": "docs_ops_runbooks_incident_runbook_slo_breach_ticket",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.55,
+      "source_file": "docs/ops/status-web-2026-05-26.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

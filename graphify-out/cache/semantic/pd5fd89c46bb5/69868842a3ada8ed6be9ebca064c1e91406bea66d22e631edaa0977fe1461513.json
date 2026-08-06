@@ -1,0 +1,253 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_hairtp_document_flow_contract_2026_06_28_contract",
+      "label": "Hair TP document flow contract \u2014 owner decision 2026-06-28",
+      "file_type": "document",
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_hairtp_document_flow_contract_2026_06_28_document_flow_decision",
+      "label": "Canonical consultation\u2192offer\u2192consent\u2192operation document flow",
+      "file_type": "concept",
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_hairtp_document_flow_contract_2026_06_28_reflection_period_start",
+      "label": "Reflection/cooling-off period starts at complete-package receipt",
+      "file_type": "concept",
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision \u00a73",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_hairtp_document_flow_contract_2026_06_28_nordbro_approved_facit_rule",
+      "label": "Nordbro-approved material remains approved when unchanged",
+      "file_type": "concept",
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision: Nordbro-approved material",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_hairtp_document_flow_contract_2026_06_28_insatt_gdpr_scope",
+      "label": "External GDPR counsel scope = GDPR compliance only",
+      "file_type": "concept",
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Source verification: Insatt (completed 2026-06-28)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_hairtp_document_flow_contract_2026_06_28_halsodeklaration_canonical",
+      "label": "H\u00e4lsodeklaration \u2014 svensk canonical + engelsk strikt spegling",
+      "file_type": "concept",
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision: h\u00e4lsodeklarationen approved in Swedish",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_hairtp_document_flow_contract_2026_06_28_structured_graft_zone_rows",
+      "label": "Structured graft-zone rows in consultation plan",
+      "file_type": "concept",
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Current implementation gap",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_hairtp_document_flow_contract_2026_06_28_offer_package_audit",
+      "label": "Immutable sent-offer-package audit",
+      "file_type": "concept",
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision \u00a74 / Implementation gap",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_hairtp_document_flow_contract_2026_06_28_patient_link_access_control",
+      "label": "Access-controlled patient links for annotated photos",
+      "file_type": "concept",
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision \u00a74",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_hairtp_document_flow_contract_2026_06_28_friskforsakran_operation_day_gate",
+      "label": "Friskf\u00f6rs\u00e4kran signed on operation day only",
+      "file_type": "concept",
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision \u00a75",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_hairtp_document_flow_contract_2026_06_28_source_verification_requirement",
+      "label": "Document source verification requirement (no conclusion from filenames)",
+      "file_type": "concept",
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Document source verification requirement",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_hairtp_document_flow_contract_2026_06_28_contract",
+      "target": "docs_ops_hairtp_document_flow_contract_2026_06_28_document_flow_decision",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_hairtp_document_flow_contract_2026_06_28_reflection_period_start",
+      "target": "docs_ops_hairtp_document_flow_contract_2026_06_28_document_flow_decision",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision \u00a73",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_hairtp_document_flow_contract_2026_06_28_structured_graft_zone_rows",
+      "target": "docs_ops_hairtp_document_flow_contract_2026_06_28_document_flow_decision",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Current implementation gap",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_hairtp_document_flow_contract_2026_06_28_offer_package_audit",
+      "target": "docs_ops_hairtp_document_flow_contract_2026_06_28_reflection_period_start",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "sentAt timestamp as start of reflection period",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_hairtp_document_flow_contract_2026_06_28_patient_link_access_control",
+      "target": "docs_ops_hairtp_document_flow_contract_2026_06_28_offer_package_audit",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision \u00a74",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_hairtp_document_flow_contract_2026_06_28_nordbro_approved_facit_rule",
+      "target": "docs_ops_hairtp_document_flow_contract_2026_06_28_source_verification_requirement",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision: Nordbro-approved material remains approved",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_hairtp_document_flow_contract_2026_06_28_insatt_gdpr_scope",
+      "target": "docs_ops_hairtp_document_flow_contract_2026_06_28_source_verification_requirement",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Source verification: Insatt (completed 2026-06-28)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_hairtp_document_flow_contract_2026_06_28_halsodeklaration_canonical",
+      "target": "docs_ops_hairtp_document_flow_contract_2026_06_28_insatt_gdpr_scope",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Insatt-remiss kr\u00e4vs bara om \u00e4ndringen p\u00e5verkar GDPR/patientdata-scope",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_hairtp_document_flow_contract_2026_06_28_friskforsakran_operation_day_gate",
+      "target": "docs_ops_hairtp_document_flow_contract_2026_06_28_document_flow_decision",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Owner decision \u00a75",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_hairtp_document_flow_contract_2026_06_28_nordbro_approved_facit_rule",
+      "target": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_nordbro_word_source_of_truth",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": "Samma Nordbro-facit-integritetsregel",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_hairtp_document_flow_contract_2026_06_28_offer_package_audit",
+      "target": "docs_ops_p0_reality_audit_rerun_2026_02_25_audit_append_only",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "hairtp_offer_package_decision_chain",
+      "label": "Hair TP offer package chain: annotated photos \u2192 graft-zone rows \u2192 sent-package audit \u2192 reflection period",
+      "nodes": [
+        "docs_ops_hairtp_document_flow_contract_2026_06_28_structured_graft_zone_rows",
+        "docs_ops_hairtp_document_flow_contract_2026_06_28_offer_package_audit",
+        "docs_ops_hairtp_document_flow_contract_2026_06_28_reflection_period_start",
+        "docs_ops_hairtp_document_flow_contract_2026_06_28_patient_link_access_control"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/hairtp-document-flow-contract-2026-06-28.md"
+    }
+  ]
+}

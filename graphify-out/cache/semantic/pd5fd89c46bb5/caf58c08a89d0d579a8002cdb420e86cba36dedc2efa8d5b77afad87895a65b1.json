@@ -1,0 +1,58 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg3_health_questionnaire_eng_final_demo_health_questionnaire",
+      "label": "Step 3 \u2014 Health questionnaire (engelsk spegling)",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg3-health-questionnaire-eng-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg3_health_questionnaire_eng_final_demo_health_questionnaire",
+      "target": "public_major_arcana_preview_steg3_halsodeklaration_final_demo_halsodeklaration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg3-health-questionnaire-eng-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg3_health_questionnaire_eng_final_demo_health_questionnaire",
+      "target": "public_major_arcana_preview_steg3_halsodeklaration_final_demo_patient_document_shell",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg3-health-questionnaire-eng-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg3_health_questionnaire_eng_final_demo_health_questionnaire",
+      "target": "public_major_arcana_preview_steg3_halsodeklaration_final_demo_gdpr_patientdatalagen",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg3-health-questionnaire-eng-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg3_health_questionnaire_eng_final_demo_health_questionnaire",
+      "target": "public_major_arcana_preview_steg3_halsodeklaration_final_demo_blodningsrisk_screening",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg3-health-questionnaire-eng-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

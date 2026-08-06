@@ -1,0 +1,69 @@
+{
+  "nodes": [
+    {
+      "id": "docs_a11y_wcag_aa_audit_wcag_audit",
+      "label": "WCAG 2.2 AA-tillg\u00e4nglighetsrevision (self-assessment)",
+      "file_type": "document",
+      "source_file": "docs/a11y/wcag-aa-audit.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_a11y_wcag_aa_audit_critical_gaps",
+      "label": "Kritiska AA-blockerare (skip-link, focus-ring, kontrast, lang, ARIA, aria-live)",
+      "file_type": "concept",
+      "source_file": "docs/a11y/wcag-aa-audit.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_a11y_wcag_aa_audit_wcag_audit",
+      "target": "docs_a11y_wcag_aa_audit_critical_gaps",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/a11y/wcag-aa-audit.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_a11y_wcag_aa_audit_wcag_audit",
+      "target": "readme_arcana_platform",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/a11y/wcag-aa-audit.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_a11y_wcag_aa_audit_critical_gaps",
+      "target": "docs_adr_0003_vanilla_runtime_modules_adr",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/a11y/wcag-aa-audit.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_a11y_wcag_aa_audit_wcag_audit",
+      "target": "readme_owner_mfa",
+      "relation": "references",
+      "confidence": "AMBIGUOUS",
+      "confidence_score": 0.25,
+      "source_file": "docs/a11y/wcag-aa-audit.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

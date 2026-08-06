@@ -1,0 +1,525 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "label": "CFO + CM - nulage och plan framat",
+      "file_type": "document",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": "Claude",
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_nulage",
+      "label": "CFO-nulage - CF.2 till CF.9 levererade som src/cfo",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_gap_mot_cem",
+      "label": "Sex harda gap i CM mot CEM-specen",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_parallella_expense_livscykler",
+      "label": "Strukturfynd: tva parallella expense-livscykler",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "cmStore och cfoExpenseStore har samma verksamhetsflode med egna approve/export-vagar, vilket ger dubbel bokforingslogik, dubbla audit-spar och dubbla UI."
+    },
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_intagsmotor_cfo_livscykel",
+      "label": "Rekommendation: CM som intagsmotor, CFO som enda livscykel",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Bygg inte om det som finns - cfoExpenseStore har redan regelmotor, moms, vendors, revisorportal och audit, sa CM ska lamna over kandidater i stallet for att duplicera."
+    },
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cmstore_monolitisk_json_risk",
+      "label": "Stabilitetsrisk: cmStore ar samma monolitiska JSON-monster som kraschade prod",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "En fil som JSON.parse:as i sin helhet vid boot och vaxer obegransat orsakade crashloop; rotation, shardning och separerad audit kravs innan mail-sync skarplaggs."
+    },
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_ord58b_latensfix",
+      "label": "ORD-58b - tenant-alias och periodcache loste latensen",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_routeflytt_ur_server_js",
+      "label": "Flytta cco-cf och cm-routes ur frysta server.js",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "En doman per PR med grona tester ar organisationsriktningen; CFO/CM ar minst sammanflatade och darfor lampligt pilotflytt."
+    },
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_ai_ocr_policykonflikt",
+      "label": "Policykonflikt: CM skickar underlag till extern AI medan CF-sparet ar blockerat",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "cmAiExtractor anvander redan gpt-4o-mini pa kvitton medan CF.10 vantar pa explicit AI-GO; policyn maste formaliseras eller sa galler Tesseract-sparet."
+    },
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_styrningsgap_masterlistor",
+      "label": "Styrningsgap - CFO/CM saknas i MASTER-TODO och statusoversikt",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_icloud_arkivinventering",
+      "label": "iCloud-arkivinventering och secure-storage-rot",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Lokal secure-storage-rot ligger som default i en molnsynkad mapp; owner maste besluta om den ska flyttas till osynkad disk-path."
+    },
+    {
+      "id": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_foreslagen_ordning_p0_p3",
+      "label": "Foreslagen ordning P0-P3 med ORD-63/64/65",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_nulage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_gap_mot_cem",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_parallella_expense_livscykler",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_intagsmotor_cfo_livscykel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cmstore_monolitisk_json_risk",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_ord58b_latensfix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_routeflytt_ur_server_js",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_ai_ocr_policykonflikt",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_styrningsgap_masterlistor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_icloud_arkivinventering",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_foreslagen_ordning_p0_p3",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_intagsmotor_cfo_livscykel",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_parallella_expense_livscykler",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_gap_mot_cem",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_parallella_expense_livscykler",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_foreslagen_ordning_p0_p3",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_intagsmotor_cfo_livscykel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_foreslagen_ordning_p0_p3",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cmstore_monolitisk_json_risk",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_foreslagen_ordning_p0_p3",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_routeflytt_ur_server_js",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_foreslagen_ordning_p0_p3",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_ord58b_latensfix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_nulage",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_ord58b_latensfix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_ai_ocr_policykonflikt",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_gap_mot_cem",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_styrningsgap_masterlistor",
+      "target": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_icloud_arkivinventering",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_gap_mot_cem",
+      "target": "docs_strategy_cem_corporate_expense_management_cem_specifikation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_gap_mot_cem",
+      "target": "docs_strategy_cem_corporate_expense_management_graph_delta_sync",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_gap_mot_cem",
+      "target": "docs_strategy_cem_corporate_expense_management_originalarkiv_bfn",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_gap_mot_cem",
+      "target": "docs_strategy_cem_corporate_expense_management_cm_dashboard_flikar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cm_intagsmotor_cfo_livscykel",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_parallella_expense_livscykler",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_expense_livscykel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_parallella_expense_livscykler",
+      "target": "docs_strategy_cem_corporate_expense_management_cm_datamodell",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_nulage",
+      "target": "docs_strategy_chief_of_finance_inventory_2026_06_01_cf_inventory_roadmap",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_nulage",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_cco_expense_rule_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_nulage",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_cco_finance_vendor_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_nulage",
+      "target": "docs_strategy_chief_of_finance_mvp5_vat_rules_2026_06_01_cco_expense_vat_rules",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_nulage",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_cco_recurring_expense_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_nulage",
+      "target": "docs_strategy_chief_of_finance_mvp7_accountant_portal_2026_06_01_cco_finance_review_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_routeflytt_ur_server_js",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_cf_receipt_routes",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_ai_ocr_policykonflikt",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf10_ocr_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_nulage",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_blocked_integration",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cfo_cm_nulage_plan",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_p2c_audit_kind_action_mismatch",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cfo_cm_nulage_och_plan_2026_07_12_cmstore_monolitisk_json_risk",
+      "target": "docs_strategy_cem_corporate_expense_management_cm_datamodell",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CFO-CM-NULAGE-OCH-PLAN-2026-07-12.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

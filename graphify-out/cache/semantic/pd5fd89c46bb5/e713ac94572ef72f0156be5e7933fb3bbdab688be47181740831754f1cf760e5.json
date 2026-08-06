@@ -1,0 +1,81 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_v11_rail_block19_q_economy_viewport_preview_block_q_economy",
+      "label": "Block 19 \u00b7 Q Ekonomi (KEEP)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block19-Q-economy/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_block19_q_economy_viewport_preview_kumulativ_css",
+      "label": "Kumulativ rail-CSS per block (varje preview b\u00e4r alla f\u00f6reg\u00e5ende block)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block19-Q-economy/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje viewport-preview embeddar hela den ackumulerade rail-CSS:en, inte bara blockets egen del, s\u00e5 varje block-preview visar regressionsl\u00e4get f\u00f6r alla tidigare sektioner samtidigt."
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_block19_q_economy_viewport_preview_sticky_mobil",
+      "label": "S Sticky footer p\u00e5 mobil (canon \u00a76 S \u2014 f\u00e5r aldrig t\u00e4cka CTA-inneh\u00e5ll)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block19-Q-economy/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_v11_rail_block19_q_economy_viewport_preview_block_q_economy",
+      "target": "docs_handover_mockups_v11_rail_block1_a_profile_viewport_preview_harness",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block19-Q-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block19_q_economy_viewport_preview_kumulativ_css",
+      "target": "docs_handover_mockups_v11_rail_block1_a_profile_viewport_preview_harness",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block19-Q-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block19_q_economy_viewport_preview_sticky_mobil",
+      "target": "docs_handover_mockups_v11_rail_block1_a_profile_viewport_preview_responsiv_canon",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block19-Q-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block19_q_economy_viewport_preview_sticky_mobil",
+      "target": "docs_handover_mockups_kundkort_v11_locked_2026_06_05_zon3_insikter_sticky",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block19-Q-economy/viewport-preview.html",
+      "source_location": null,
+      "weight": 0.85
+    }
+  ],
+  "hyperedges": []
+}

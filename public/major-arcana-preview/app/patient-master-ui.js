@@ -1450,10 +1450,25 @@
         '[class*="v11-rail__file-"]',
       ],
     ],
-    ['communication', ['.v11-rail__comm', '[class*="v11-rail__comm-"]']],
-    ['economy', ['.v11-rail__econ', '[class*="v11-rail__econ-"]', '.v11-rail__stats']],
-    ['insights', ['.v11-rail__smart-info', '.v11-rail__next', '.v11-rail__insights']],
   ];
+
+  const V12_MODULE_TO_SECTION = {
+    'current-state': 's1',
+    'active-visit': 's2',
+    warnings: 's3',
+    health: 's4',
+    journey: 's5',
+    journal: 's6',
+    photos: 's7',
+    bookings: 's8',
+    documents: 's9',
+    communication: 's10',
+    economy: 's11',
+    insights: 's12',
+  };
+  const V12_SECTION_TO_MODULE = Object.fromEntries(
+    Object.entries(V12_MODULE_TO_SECTION).map(([m, s]) => [s, m])
+  );
 
   function inferV12ModuleFromRailClick(target) {
     if (!target) return '';
@@ -1490,6 +1505,28 @@
     module.scrollIntoView({ behavior: 'smooth', block: 'start' });
     module.setAttribute('data-v12-focus-pulse', '1');
     window.setTimeout(() => module.removeAttribute('data-v12-focus-pulse'), 1200);
+  }
+
+  function updateV12FocusUrl(focus) {
+    try {
+      const url = new URL(window.location.href);
+      if (!focus) {
+        url.searchParams.delete('v12focus');
+      } else {
+        url.searchParams.set('v12focus', focus);
+      }
+      window.history.replaceState({}, '', url.toString());
+    } catch (_e) {
+      /* best-effort URL sync */
+    }
+  }
+
+  function getV12FocusFromUrl() {
+    try {
+      return new URL(window.location.href).searchParams.get('v12focus') || '';
+    } catch (_e) {
+      return '';
+    }
   }
 
   function expandV12CanonSection(scope, targetSection) {
@@ -1912,7 +1949,17 @@
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
           target.setAttribute('data-v12-focus-pulse', '1');
           window.setTimeout(() => target.removeAttribute('data-v12-focus-pulse'), 1200);
+          updateV12FocusUrl(secId);
         }
+        return;
+      }
+      // CONTENT-CANON: tillbaka-knapp stänger workspace (samma som data-v9-dossier-close).
+      const canonBack = event.target.closest('[data-v12-canon-back]');
+      if (canonBack && body.contains(canonBack)) {
+        event.preventDefault();
+        const shell = body.closest('[data-v12-workspace-shell="1"]');
+        const closeBtn = shell && shell.querySelector('[data-v9-dossier-close]');
+        if (closeBtn) closeBtn.click();
         return;
       }
       const activeVisitAction = event.target.closest('[data-v11-active-visit-action]');
@@ -2482,6 +2529,8 @@
           deep.__v12OriginalParent = null;
           deep.__v12OriginalNext = null;
         }
+        // Rensa V12-fokus från URL när arbetsytan stängs.
+        updateV12FocusUrl('');
       };
       deep.__v12WorkspaceClose = close;
       const closeBtn = deep.querySelector('[data-v9-deep-close]');
@@ -2502,7 +2551,11 @@
       // Scroll-till-sektion vid öppning. Innehåll (foton/hydrering) växer höjden
       // asynkront EFTER första rendern, så vi scrollar dels direkt (dubbel-rAF)
       // dels igen när höjden hunnit sätta sig (300/700 ms) så modulen hamnar rätt.
-      const targetModule = moduleName || 'current-state';
+      // URL-fokus (?v12focus=sN) har företräde framför passed moduleName — det gör
+      // att deep-links/back-knappar landar rätt, samtidigt som rail-launchern
+      // uppdaterar URL till den klickade sektionen innan den öppnas.
+      const urlFocus = getV12FocusFromUrl();
+      const targetModule = V12_SECTION_TO_MODULE[urlFocus] || moduleName || 'current-state';
       if (targetModule && targetModule !== 'current-state') {
         const doScroll = () => scrollV12WorkspaceModule(body, targetModule);
         window.requestAnimationFrame(() => window.requestAnimationFrame(doScroll));
@@ -2527,6 +2580,8 @@
           ? 'current-state'
           : inferV12ModuleFromRailClick(event.target);
         if (!moduleName) return;
+        const sectionId = V12_MODULE_TO_SECTION[moduleName];
+        if (sectionId) updateV12FocusUrl(sectionId);
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
@@ -6963,6 +7018,15 @@
         return `
       <section class="patient-master-card v12-workspace v12-workspace--canon" data-patient-detail data-v12-workspace-shell="1">
         <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <aside class="v12-workspace__app-nav" aria-label="Global navigering">
+          <button type="button" class="v12-app-nav__back" data-v12-canon-back aria-label="Tillbaka till kundlistan">← Kunder</button>
+          <nav class="v12-app-nav__links" aria-label="Huvudnavigering">
+            <a href="/admin#cco" class="is-active" aria-current="page">Kundvy</a>
+            <a href="/admin#bookings">Bokningar</a>
+            <a href="/admin#economy">Ekonomi</a>
+            <a href="/admin#cco-portal">Portal</a>
+          </nav>
+        </aside>
         <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (CONTENT-CANON)">
           ${canonInner}
         </div>

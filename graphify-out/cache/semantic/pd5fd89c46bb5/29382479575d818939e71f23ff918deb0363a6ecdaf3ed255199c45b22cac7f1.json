@@ -1,0 +1,146 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_29_fas2_go_runbook_batch_ingest_runbook",
+      "label": "ORD-29 Fas 2 batch PUT ingest runbook (halso-hd-batch)",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Batch PUT mot prod patient-master valdes framf\u00f6r bootstrap/mail-ingestion-v\u00e4gen eftersom ARCANA_CCO_HALSO_HD_INGEST_ENABLED f\u00f6rblir false och bootstrap-v\u00e4gen riskerar OOM."
+    },
+    {
+      "id": "docs_handover_orders_ord_29_fas2_go_runbook_batch_2_hold_gate",
+      "label": "Batch 2 HOLD-gate (ingen batch 2 utan b\u00e4ttre PNR-k\u00e4lla)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Kundexport + Dataexport enrichment testade utan f\u00f6rb\u00e4ttring i HD reprocess-metrics; batch 2 och review-reprocess --commit l\u00e5ses tills PNR faktiskt finns i patient master."
+    },
+    {
+      "id": "docs_handover_orders_ord_29_fas2_go_runbook_stickprov_verify_gate",
+      "label": "Gate: verify:ord29-prod-sticks PASS f\u00f6re --commit",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_29_fas2_go_runbook_corpus_scan_checkpoint",
+      "label": "HD-corpus scan med resumebar checkpoint",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Checkpoint complete:true kr\u00e4vs innan batch s\u00e5 avbrutna Graph-skanningar kan \u00e5terupptas utan att r\u00e4kna om hela mailboxen."
+    },
+    {
+      "id": "docs_handover_orders_ord_29_fas2_go_runbook_scheduler_halso_hd_mailbox_ingest",
+      "label": "Scheduler-jobb cco_halso_hd_mailbox_ingest (8h, 3-dagars lookback)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_29_fas2_go_runbook_pii_no_commit_rule",
+      "label": "PII-regel: committa aldrig HD-rapporter, stickprov eller review queue JSONL",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_29_fas2_go_runbook_batch_ingest_runbook",
+      "target": "docs_handover_orders_ord_29_import_halso_health_declarations_phase2_mailbox_ingest",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_29_fas2_go_runbook_batch_2_hold_gate",
+      "target": "docs_handover_orders_ord_29_pnr_enrichment_pnr_enrichment_track",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_29_fas2_go_runbook_batch_2_hold_gate",
+      "target": "docs_handover_orders_ord_29_manual_review_triage_manual_queue_triage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_29_fas2_go_runbook_stickprov_verify_gate",
+      "target": "docs_handover_orders_ord_29_fas2_go_runbook_batch_ingest_runbook",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_29_fas2_go_runbook_corpus_scan_checkpoint",
+      "target": "docs_handover_orders_ord_29_fas2_go_runbook_batch_ingest_runbook",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_29_fas2_go_runbook_scheduler_halso_hd_mailbox_ingest",
+      "target": "docs_handover_orders_ord_29_import_halso_health_declarations_phase2_mailbox_ingest",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_29_fas2_go_runbook_pii_no_commit_rule",
+      "target": "docs_handover_orders_ord_29_fas2_go_runbook_batch_ingest_runbook",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-FAS2-GO-RUNBOOK.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

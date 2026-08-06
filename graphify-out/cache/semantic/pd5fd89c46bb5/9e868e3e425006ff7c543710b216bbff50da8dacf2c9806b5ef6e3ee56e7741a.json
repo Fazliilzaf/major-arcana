@@ -1,0 +1,330 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "label": "CCO Automation OS \u2014 ChatGPT strategi",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_journey_orchestrator",
+      "label": "Journey Orchestrator \u2014 kundl\u00e4ge r\u00e4knas ur fakta, inte manuell status",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_next_best_action",
+      "label": "Next Best Action \u2014 deterministiska regler f\u00f6rst, AI f\u00f6rst senare f\u00f6r formulering",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_worklist_engine",
+      "label": "Worklist Engine \u2014 dagens patienter och saknade artefakter som arbetsk\u00f6",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_smart_communication_pipeline",
+      "label": "Smart Communication: f\u00f6resl\u00e5 \u2192 godk\u00e4nn \u2192 skicka",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_agreement_consent_automation",
+      "label": "Avtals- och samtyckesautomation med legal gate och bet\u00e4nketid",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_clinical_safety_automation",
+      "label": "Clinical Safety Automation (identitetscheck, review-varning, journal lock, audit)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_photo_review_automation",
+      "label": "Photo Review Automation \u2014 gruppering och f\u00f6rslag, ingen autoapprove",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_mail_truth_automation",
+      "label": "Mail automation \u2014 unified thread, true unanswered, SLA, Svarstudio",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_finance_cf_automation",
+      "label": "CF-automation (kvitto\u2192expense, \u00e5terkommande, m\u00e5nadsst\u00e4ngning)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_build_order_five_phases",
+      "label": "Byggordning fas 1\u20135 (foundation \u2192 k\u00f6er \u2192 engine \u2192 comms \u2192 AI-copilot)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_what_why_next_pattern",
+      "label": "What / Why / Next-presentationsm\u00f6nster i Kunder",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_agent_briefs",
+      "label": "Briefar till tekniskt respektive UX-sp\u00e5r (analys f\u00f6rst, bygg inte)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_journey_orchestrator",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_next_best_action",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_worklist_engine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_smart_communication_pipeline",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_agreement_consent_automation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_clinical_safety_automation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_photo_review_automation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_mail_truth_automation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_finance_cf_automation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_build_order_five_phases",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_what_why_next_pattern",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_agent_briefs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_next_best_action",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_what_why_next_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_smart_communication_pipeline",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_human_approval_principle",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_photo_review_automation",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_human_approval_principle",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_agreement_consent_automation",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_journey_orchestrator",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_build_order_five_phases",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_eleven_automation_layers",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_journey_orchestrator",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_status_pills_aggregator_endpoint",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CHATGPT-BRIEF-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

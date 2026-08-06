@@ -1,0 +1,143 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_tenant_onboarding_playbook",
+      "label": "Tenant Onboarding Playbook",
+      "file_type": "document",
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_tenant_onboarding_playbook_tenant_onboard_flow",
+      "label": "Tenant-onboarding: skapa, konfigurera, MFA, kunskapsbas, smoke",
+      "file_type": "concept",
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_tenant_onboarding_playbook_slug_rules",
+      "label": "Tenant-slugregler (a-z, 0-9, bindestreck, unikt per installation)",
+      "file_type": "concept",
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_tenant_onboarding_playbook_soft_disable",
+      "label": "Reversibel soft-disable vid offboarding (data kvarst\u00e5r)",
+      "file_type": "concept",
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_tenant_onboarding_playbook_gdpr_capabilities",
+      "label": "GDPR export- och anonymiseringscapabilities per kund",
+      "file_type": "concept",
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_tenant_onboarding_playbook_mailbox_allowlist",
+      "label": "Mailbox-allowlists f\u00f6r Graph-l\u00e4sning och s\u00e4ndning per tenant",
+      "file_type": "concept",
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_tenant_onboarding_playbook",
+      "target": "docs_ops_tenant_onboarding_playbook_tenant_onboard_flow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_tenant_onboarding_playbook_slug_rules",
+      "target": "docs_ops_tenant_onboarding_playbook_tenant_onboard_flow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_tenant_onboarding_playbook_soft_disable",
+      "target": "docs_ops_tenant_onboarding_playbook_tenant_onboard_flow",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_tenant_onboarding_playbook_gdpr_capabilities",
+      "target": "docs_ops_tenant_onboarding_playbook_soft_disable",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_tenant_onboarding_playbook_mailbox_allowlist",
+      "target": "docs_ops_tenant_onboarding_playbook_tenant_onboard_flow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_tenant_onboarding_playbook_mailbox_allowlist",
+      "target": "docs_ops_runbooks_post_op_review_runbook_graph_auto_send",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_tenant_onboarding_playbook_tenant_onboard_flow",
+      "target": "docs_ops_runbooks_auth_go_live_rollback_runbook_target_env",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/tenant-onboarding-playbook.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

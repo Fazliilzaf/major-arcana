@@ -1,0 +1,282 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "label": "Aisia DS-3 Feature Extraction Matrix",
+      "file_type": "document",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_capture_modes",
+      "label": "DS-3 capture modes (Live Preview, Image Capture, Alopecia Care, Scalp Care)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_magnification_levels",
+      "label": "F\u00f6rstoringsniv\u00e5er 10\u00d7/50\u00d7/100\u00d7/200\u00d7",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_tri_spectral_light",
+      "label": "Tri-spektral belysning (vitt RGB / korspolariserat / UV)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_scalp_analysis_categories",
+      "label": "Scalp Care-analyskategorier (8 indikatorer)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_alopecia_metrics",
+      "label": "Alopecia Care-metrics (10\u00d7 AI-kvantifiering)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_scalp_quantification_metrics",
+      "label": "Scalp 50\u00d7 kvantifiering (9 indikatorer)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_clinical_planning_layer",
+      "label": "Kliniskt planeringslager (CCO-only metricf\u00e4lt)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Donor/recipient-bed\u00f6mning och graft-intervall finns inte i DS-3 \u2014 l\u00e4ggs som manuellt CCO-lager s\u00e5 Aisia-originalet f\u00f6rblir or\u00f6rt."
+    },
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_manual_report_import",
+      "label": "Manuell rapportimport som patient_asset aisia_report",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "MVP v\u00e4ljer manuell import framf\u00f6r API/exportwatcher f\u00f6r att undvika FAS 2-beroenden och h\u00e5lla patientdata i CCO secure storage."
+    },
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_export_channel_investigation",
+      "label": "FAS 2 exportkanal-unders\u00f6kning (PDF, bild, CSV, USB, lokal DB)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_patient_journey_mapping",
+      "label": "CCO patientresa-mappning f\u00f6r scalpanalys",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ds3_feature_extraction_matrix_product_recommendation_blocked",
+      "label": "Produktrekommendation blockerad (FAS 4, kr\u00e4ver legal review)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "AI-driven produktrekommendation bed\u00f6ms som regulatorisk risk och lyfts ur MVP."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_capture_modes",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_magnification_levels",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_tri_spectral_light",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_scalp_analysis_categories",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_alopecia_metrics",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_scalp_quantification_metrics",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_clinical_planning_layer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_manual_report_import",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_export_channel_investigation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_patient_journey_mapping",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_product_recommendation_blocked",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_scalp_analysis_categories",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_magnification_levels",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_scalp_analysis_categories",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_tri_spectral_light",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ds3_feature_extraction_matrix_product_recommendation_blocked",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_no_external_ai_on_journal",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "docs/strategy/AISIA-DS3-FEATURE-EXTRACTION-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

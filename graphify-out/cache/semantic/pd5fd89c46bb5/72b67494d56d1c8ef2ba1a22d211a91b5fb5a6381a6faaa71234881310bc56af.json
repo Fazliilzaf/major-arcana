@@ -1,0 +1,112 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v11_rail_block4_fixture",
+      "label": "V11 Rail Block 4 \u00b7 A + V + B + C",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v11-rail-block4.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block4_active_visit_section",
+      "label": "V Aktivt bes\u00f6k-sektion (state in_progress)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block4.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block4_section_order_lock",
+      "label": "L\u00e5st sektionsordning A \u2192 V \u2192 B \u2192 C",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block4.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Ordningen \u00e4r L\u00c5ST i canon: aktivt bes\u00f6k m\u00e5ste ligga direkt under profilen s\u00e5 personalen ser p\u00e5g\u00e5ende bes\u00f6k f\u00f6re smart information och statistik."
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block4_photo_consent_blocker",
+      "label": "Foto-samtycke-blocker p\u00e5 aktivt bes\u00f6k",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block4.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v11_rail_block4_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block4.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block4_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_adapters",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block4.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block4_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block4_active_visit_section",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block4.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block4_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block4_section_order_lock",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block4.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block4_active_visit_section",
+      "target": "tests_visual_fixtures_v11_rail_block4_photo_consent_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block4.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block4_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block3_stats_section",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block4.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,68 @@
+{
+  "nodes": [
+    {
+      "id": "public_gouraloto_proposal_future_home_v2_mid_image",
+      "label": "Gouraloto future home v2 - mid-page viewport",
+      "file_type": "image",
+      "source_file": "public/gouraloto-proposal/future-home-v2-mid.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_mid_image",
+      "target": "public_gouraloto_proposal_future_home_v2_full_home_screen",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/gouraloto-proposal/future-home-v2-mid.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_mid_image",
+      "target": "public_gouraloto_proposal_future_home_v2_shot_image",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/gouraloto-proposal/future-home-v2-mid.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_mid_image",
+      "target": "public_gouraloto_proposal_future_home_v2_full_pathway_cards",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/gouraloto-proposal/future-home-v2-mid.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_mid_image",
+      "target": "public_gouraloto_proposal_future_home_v2_full_program_status_system",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/gouraloto-proposal/future-home-v2-mid.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_mid_image",
+      "target": "public_gouraloto_proposal_future_home_v2_full_stone_spiral_section",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/gouraloto-proposal/future-home-v2-mid.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

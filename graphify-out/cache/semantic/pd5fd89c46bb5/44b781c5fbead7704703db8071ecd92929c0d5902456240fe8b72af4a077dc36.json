@@ -1,0 +1,51 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_25h_staff_vy_424px_bredd_staff_rail_424px",
+      "label": "Staff-rail 424px i live-vy (utanf\u00f6r facit-preview-context)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25H-staff-vy-424px-bredd.md",
+      "source_location": "Bakgrund + Implementation-skiss",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "400\u2192424-bumpen aktiverades bara inom .preview-canvas-selektorn; i /staff \u00e4r railen 498-995px beroende p\u00e5 layout-state, s\u00e5 motsvarande grid-cols m\u00e5ste hittas separat."
+    },
+    {
+      "id": "docs_handover_orders_ord_25h_staff_vy_424px_bredd_pilot_freeze",
+      "label": "Pilot-frys-l\u00e4ge (P2 f\u00e5r inte landa f\u00f6re pilot-start)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25H-staff-vy-424px-bredd.md",
+      "source_location": "H\u00e4nsyn",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Visuella \u00e4ndringar under p\u00e5g\u00e5ende personalpilot st\u00f6r inl\u00e4rning och g\u00f6r UAT-resultat otolkbara."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_25h_staff_vy_424px_bredd_staff_rail_424px",
+      "target": "docs_handover_orders_ord_25h_staff_vy_424px_bredd_pilot_freeze",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25H-staff-vy-424px-bredd.md",
+      "source_location": "H\u00e4nsyn",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25h_staff_vy_424px_bredd_staff_rail_424px",
+      "target": "docs_handover_orders_ord_28_kundkort_blueprint_blueprint_three_column",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/ORDERS/ORD-25H-staff-vy-424px-bredd.md",
+      "source_location": "grid-template-columns f\u00f6r h\u00f6gerspalt",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

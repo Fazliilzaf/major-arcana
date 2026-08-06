@@ -1,0 +1,100 @@
+{
+  "nodes": [
+    {
+      "id": "docs_session_2026_05_13_14_sigabrt_oom",
+      "label": "SIGABRT 134-crashloop: bootstrap-backfill lookback som rotorsak",
+      "file_type": "concept",
+      "source_file": "docs/SESSION-2026-05-13-14.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_session_2026_05_13_14_bundle_double_load",
+      "label": "Bundle-pipeline dubbel-load av IIFE-moduler (teknisk skuld)",
+      "file_type": "concept",
+      "source_file": "docs/SESSION-2026-05-13-14.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_session_2026_05_13_14_render_consolidation",
+      "label": "Render-tj\u00e4nstkonsolidering (5 \u2192 1 live service, spend-cap upplyft)",
+      "file_type": "concept",
+      "source_file": "docs/SESSION-2026-05-13-14.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_session_2026_05_13_14_sigabrt_oom",
+      "target": "docs_audit_remaining_plan_server_side_cluster_merge",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/SESSION-2026-05-13-14.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_session_2026_05_13_14_bundle_double_load",
+      "target": "docs_adr_0003_vanilla_runtime_modules_iife_module_pattern",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/SESSION-2026-05-13-14.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_session_2026_05_13_14_bundle_double_load",
+      "target": "onboarding_bundle_build_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/SESSION-2026-05-13-14.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_session_2026_05_13_14_sigabrt_oom",
+      "target": "readme_scheduler_jobs",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/SESSION-2026-05-13-14.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_session_2026_05_13_14_render_consolidation",
+      "target": "readme_render_blueprint",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/SESSION-2026-05-13-14.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_audit_remaining_plan_server_side_cluster_merge",
+      "target": "docs_architecture_analyze_inbox_snapshot_contract_v1_analyzeinbox",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/SESSION-2026-05-13-14.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

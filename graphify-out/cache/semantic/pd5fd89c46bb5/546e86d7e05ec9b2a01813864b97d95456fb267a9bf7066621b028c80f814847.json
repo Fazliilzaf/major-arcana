@@ -1,0 +1,152 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_dokument",
+      "label": "Steg 8 \u2014 Journal PRP/PRF/Microneedling (12 f\u00e4lt)",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_behandlingskatalog",
+      "label": "Behandlingskatalog PRP/PRF/Microneedling (16 varianter, h\u00e5r och hud)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_halsodeklaration_gate",
+      "label": "Gate: h\u00e4lsodeklaration granskad inf\u00f6r behandling",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_observationer",
+      "label": "Observationskoder efter behandling (n\u00e5lr\u00e4dd, sv\u00e5rstucken, svaga k\u00e4rl, blodr\u00e4dsla)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_behandlingsordning",
+      "label": "Behandling nummer i serien (l\u00f6pnummer)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_behandlingskatalog",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_halsodeklaration_gate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_halsodeklaration_gate",
+      "target": "public_major_arcana_preview_steg8_friskforsakran_final_dokument",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_observationer",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_behandlingsordning",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_behandlingskatalog",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_prp_microneedling_hud",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_behandlingskatalog",
+      "target": "public_major_arcana_preview_steg7_offert_prf_final_demo_prf_hud",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_behandlingskatalog",
+      "target": "public_major_arcana_preview_steg7_offert_prp_hair_final_demo_prp_har",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_journal_prp_multi_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg8_journal_tp_final_demo_signera_las_journal",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

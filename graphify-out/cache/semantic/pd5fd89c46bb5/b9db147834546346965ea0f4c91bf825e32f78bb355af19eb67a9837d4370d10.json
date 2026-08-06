@@ -1,0 +1,101 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_cco_surface_map_map",
+      "label": "CCO Surface Map (canonical flikkarta)",
+      "file_type": "document",
+      "source_file": "docs/ops/cco-surface-map.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_surface_map_single_production_surface",
+      "label": "admin#cco \u00e4r enda produktionsytan f\u00f6r CCO-arbete",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-surface-map.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_surface_map_file_url_design_reference_only",
+      "label": "file://-l\u00e4nkar endast som designreferens",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-surface-map.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_surface_map_pr_order",
+      "label": "PR-ordning: karta \u2192 Konversationer \u2192 Kalender \u2192 Kunder",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-surface-map.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_cco_surface_map_map",
+      "target": "docs_ops_cco_surface_map_single_production_surface",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-surface-map.md",
+      "source_location": "Enda riktiga CCO-ytan",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_surface_map_map",
+      "target": "docs_ops_cco_surface_map_file_url_design_reference_only",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-surface-map.md",
+      "source_location": "Regler",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_surface_map_map",
+      "target": "docs_ops_cco_surface_map_pr_order",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-surface-map.md",
+      "source_location": "PR-ordning",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_surface_map_single_production_surface",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_worklist_consumer",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-surface-map.md",
+      "source_location": "Flikkarta datak\u00e4lla",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_surface_map_pr_order",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_live_send_lock",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-surface-map.md",
+      "source_location": "ingen live-send",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

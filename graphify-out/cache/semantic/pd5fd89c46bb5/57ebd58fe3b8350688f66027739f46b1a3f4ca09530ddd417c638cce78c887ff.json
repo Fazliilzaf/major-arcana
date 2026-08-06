@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "docs_drive_integration_drivefiles_contract",
+      "label": "driveFiles[]-kontrakt f\u00f6r kundvyn",
+      "file_type": "concept",
+      "source_file": "docs/DRIVE-INTEGRATION.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_drive_integration_drive_pipeline",
+      "label": "Google Drive attach/internalization-pipeline (backend)",
+      "file_type": "concept",
+      "source_file": "docs/DRIVE-INTEGRATION.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_drive_integration_occasion_timeline",
+      "label": "Occasion timeline \u2014 filgruppering per bes\u00f6k",
+      "file_type": "concept",
+      "source_file": "docs/DRIVE-INTEGRATION.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_drive_integration_view_freeze_rule",
+      "label": "R\u00f6r-inte-regel f\u00f6r v11/v12-vyfilerna (konsumerar bara driveFiles)",
+      "file_type": "concept",
+      "source_file": "docs/DRIVE-INTEGRATION.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_drive_integration_drive_pipeline",
+      "target": "docs_drive_integration_drivefiles_contract",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/DRIVE-INTEGRATION.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_drive_integration_drivefiles_contract",
+      "target": "docs_drive_integration_occasion_timeline",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/DRIVE-INTEGRATION.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_drive_integration_view_freeze_rule",
+      "target": "docs_drive_integration_drivefiles_contract",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/DRIVE-INTEGRATION.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_drive_integration_view_freeze_rule",
+      "target": "docs_adr_0003_vanilla_runtime_modules_iife_module_pattern",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/DRIVE-INTEGRATION.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

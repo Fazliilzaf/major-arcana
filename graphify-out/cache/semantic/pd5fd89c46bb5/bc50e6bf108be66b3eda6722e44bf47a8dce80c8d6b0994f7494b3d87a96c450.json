@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg7_offert_profilo_final_demo_dokument",
+      "label": "Steg 7 \u2014 Avtal \u00b7 Profhilo",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg7-offert-profilo-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_profilo_final_demo_profhilo_injektion",
+      "label": "Injektionsbehandling med Profhilo",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-profilo-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_profilo_final_demo_curatiio_varumarke",
+      "label": "Curatiio \u2014 varum\u00e4rke inom Hair TP Clinic AB",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-profilo-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg7_offert_profilo_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-profilo-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_profilo_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_offert_profilo_final_demo_profhilo_injektion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-profilo-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_profilo_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_offert_profilo_final_demo_curatiio_varumarke",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-profilo-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

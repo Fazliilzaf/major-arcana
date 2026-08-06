@@ -1,0 +1,80 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_p0_photo_review_fas2_staging_pilot_2026_05_30_report",
+      "label": "P0 Photo Review Fas 2 \u2014 Staging Manual Review Pilot",
+      "file_type": "document",
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-STAGING-PILOT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_p0_photo_review_fas2_staging_pilot_2026_05_30_prod_host_write_block",
+      "label": "Write blockeras automatiskt p\u00e5 prod primary hosts",
+      "file_type": "concept",
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-STAGING-PILOT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_p0_photo_review_fas2_staging_pilot_2026_05_30_reviewer_identity",
+      "label": "Reviewer-identitet via localStorage x-cco-user",
+      "file_type": "concept",
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-STAGING-PILOT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_p0_photo_review_fas2_staging_pilot_2026_05_30_report",
+      "target": "docs_strategy_p0_photo_review_fas2_single_decision_pilot_2026_05_30_report",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-STAGING-PILOT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_p0_photo_review_fas2_staging_pilot_2026_05_30_report",
+      "target": "docs_strategy_p0_photo_review_fas2_staging_pilot_2026_05_30_prod_host_write_block",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-STAGING-PILOT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_p0_photo_review_fas2_staging_pilot_2026_05_30_report",
+      "target": "docs_strategy_p0_photo_review_fas2_staging_pilot_2026_05_30_reviewer_identity",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-STAGING-PILOT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_p0_photo_review_fas2_staging_pilot_2026_05_30_prod_host_write_block",
+      "target": "docs_strategy_p0_photo_review_fas2_plan_2026_05_30_write_flag",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-STAGING-PILOT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

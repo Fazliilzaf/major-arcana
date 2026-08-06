@@ -1,0 +1,90 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg4_id_verifiering_final_demo_id_verifiering",
+      "label": "ID-verifiering (processdokument, steg 4 + 8)",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg4-id-verifiering-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg4_id_verifiering_final_demo_statusmaskin",
+      "label": "Verifieringsstatus-maskin unverified \u2192 verified",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg4-id-verifiering-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg4_id_verifiering_final_demo_verifieringsmetoder",
+      "label": "Verifieringsmetoder (BankID, kundportal-uppladdning, selfie-match, EU Digital Identity Wallet, leg vid bes\u00f6k)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg4-id-verifiering-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg4_id_verifiering_final_demo_id_verifiering",
+      "target": "public_major_arcana_preview_staff_anteckningar_kort_final_demo_content_bundle",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg4-id-verifiering-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg4_id_verifiering_final_demo_id_verifiering",
+      "target": "public_major_arcana_preview_staff_anteckningar_kort_final_demo_staff_document_shell",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg4-id-verifiering-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg4_id_verifiering_final_demo_id_verifiering",
+      "target": "public_major_arcana_preview_steg4_id_verifiering_final_demo_statusmaskin",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg4-id-verifiering-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg4_id_verifiering_final_demo_id_verifiering",
+      "target": "public_major_arcana_preview_steg4_id_verifiering_final_demo_verifieringsmetoder",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg4-id-verifiering-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg4_id_verifiering_final_demo_verifieringsmetoder",
+      "target": "public_major_arcana_preview_steg3_halsodeklaration_final_demo_gdpr_patientdatalagen",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/major-arcana-preview/steg4-id-verifiering-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

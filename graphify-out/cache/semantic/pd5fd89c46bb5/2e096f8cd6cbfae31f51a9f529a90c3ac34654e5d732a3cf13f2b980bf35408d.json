@@ -1,0 +1,164 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg8_friskforsakran_final_dokument",
+      "label": "Steg 8 \u2014 Friskf\u00f6rs\u00e4kran (13 fr\u00e5gor)",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_friskforsakran_final_id_verifiering",
+      "label": "ID-verifiering med godk\u00e4nd handling (pass, nationellt ID-kort, k\u00f6rkort, Skatteverkets ID-kort)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_friskforsakran_final_sjukdomschecklista",
+      "label": "Checklista sjukdomstillst\u00e5nd (bl\u00f6dningsrubbning, hj\u00e4rt-/k\u00e4rl, diabetes, hepatit, HIV m.fl.)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_friskforsakran_final_blodfortunnande",
+      "label": "Blodf\u00f6rtunnande l\u00e4kemedel senaste 6 m\u00e5naderna (Warfarin, NOAK, ASA)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_friskforsakran_final_nikotin_ingen_garanti",
+      "label": "Nikotinbruk upph\u00e4ver resultatgaranti",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_friskforsakran_final_alkohol_48h",
+      "label": "48-timmarsregel f\u00f6r alkohol och narkotiska preparat f\u00f6re och efter ingrepp",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_friskforsakran_final_intygande",
+      "label": "Patientintygande om fullst\u00e4ndiga och korrekta uppgifter",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg8_friskforsakran_final_dokument",
+      "target": "public_major_arcana_preview_steg8_friskforsakran_final_id_verifiering",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_friskforsakran_final_dokument",
+      "target": "public_major_arcana_preview_steg8_friskforsakran_final_sjukdomschecklista",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_friskforsakran_final_dokument",
+      "target": "public_major_arcana_preview_steg8_friskforsakran_final_blodfortunnande",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_friskforsakran_final_dokument",
+      "target": "public_major_arcana_preview_steg8_friskforsakran_final_alkohol_48h",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_friskforsakran_final_dokument",
+      "target": "public_major_arcana_preview_steg8_friskforsakran_final_nikotin_ingen_garanti",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_friskforsakran_final_dokument",
+      "target": "public_major_arcana_preview_steg8_friskforsakran_final_intygande",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_friskforsakran_final_intygande",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_informerat_samtycke",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_friskforsakran_final_id_verifiering",
+      "target": "public_major_arcana_preview_steg8_journal_tp_final_demo_dokument",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

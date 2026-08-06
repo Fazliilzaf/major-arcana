@@ -1,0 +1,246 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_meridiq_cco_gap_analysis_doc",
+      "label": "Meridiq \u2192 CCO Gap Analysis",
+      "file_type": "document",
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_cco_gap_analysis_module_matrix",
+      "label": "Modulmatris \u2014 90 moduler klassade EXISTS/PARTIAL/MISSING/UPGRADE",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_cco_gap_analysis_p0_blockers",
+      "label": "Sju P0 compliance-blockers f\u00f6re live-cutover",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_cco_gap_analysis_missing_modules",
+      "label": "Sex refererade men ej byggda moduler",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_cco_gap_analysis_coverage_gate_blocked",
+      "label": "Coverage Gate BLOCKED trots full dokumentt\u00e4ckning",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Gaten h\u00e5lls st\u00e4ngd eftersom saknade behandlingssamtycken inneb\u00e4r att patient kan behandlas utan dokumenterat samtycke, vilket \u00e4r anm\u00e4lningsbart \u00e4ven n\u00e4r f\u00e4ltpariteten \u00e4r hundraprocentig."
+    },
+    {
+      "id": "docs_strategy_meridiq_cco_gap_analysis_four_phase_plan",
+      "label": "Implementationsplan i fyra faser (A\u2013D)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_cco_gap_analysis_pipedrive_pii_history",
+      "label": "CRM-PII kvar i git-historik \u2014 kr\u00e4ver history-purge",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_cco_gap_analysis_missing_treatment_configs",
+      "label": "Saknade treatment-configs kollapsar bokningsgaten",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_doc",
+      "target": "docs_strategy_meridiq_cco_gap_analysis_module_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_doc",
+      "target": "docs_strategy_meridiq_cco_gap_analysis_p0_blockers",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_module_matrix",
+      "target": "docs_strategy_meridiq_cco_gap_analysis_missing_modules",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_p0_blockers",
+      "target": "docs_strategy_meridiq_cco_gap_analysis_coverage_gate_blocked",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_p0_blockers",
+      "target": "docs_strategy_meridiq_cco_gap_analysis_pipedrive_pii_history",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_p0_blockers",
+      "target": "docs_strategy_meridiq_cco_gap_analysis_missing_treatment_configs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_p0_blockers",
+      "target": "docs_strategy_consent_agreement_aftercare_flow_brand_override",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_p0_blockers",
+      "target": "docs_strategy_communication_template_registry_missing_templates",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_doc",
+      "target": "docs_strategy_meridiq_cco_gap_analysis_four_phase_plan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_four_phase_plan",
+      "target": "docs_strategy_meridiq_cco_gap_analysis_p0_blockers",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_doc",
+      "target": "docs_strategy_consent_agreement_aftercare_flow_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_doc",
+      "target": "docs_strategy_communication_template_registry_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_missing_treatment_configs",
+      "target": "docs_strategy_consent_agreement_aftercare_flow_curatiio_per_treatment_agreements",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_coverage_gate_blocked",
+      "target": "docs_strategy_meridiq_dedup_report_2026_05_30_coverage_gate",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_cco_gap_analysis_missing_modules",
+      "target": "docs_strategy_drive_integration_proposal_tier1_inventory",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

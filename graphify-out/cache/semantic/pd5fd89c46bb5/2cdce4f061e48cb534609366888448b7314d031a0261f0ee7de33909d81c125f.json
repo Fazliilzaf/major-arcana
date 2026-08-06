@@ -1,0 +1,139 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_booking_sprint_0_checklist_definition_of_done",
+      "label": "Sprint 0 Definition of Done (webb \u2192 reservation \u2192 confirm)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md",
+      "source_location": "Definition of Done (Sprint 0)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_booking_sprint_0_checklist_publika_endpoints",
+      "label": "Publika booking-engine endpoints (catalog / availability / reservations)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md",
+      "source_location": "\u00a72 Steg 1\u20133 + \u00a78 Snabbreferens \u2014 endpoints",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_booking_sprint_0_checklist_provider_vaxel",
+      "label": "Provider-v\u00e4xel ARCANA_PROVIDER=booking-engine",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md",
+      "source_location": "\u00a71.2 Webb (Vercel) + \u00a73 Steg 5",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Webben ska vara 100% booking-engine; Cliento-env f\u00e5r bara finnas kvar f\u00f6r legacy CCO-telefonfl\u00f6de tills det migrerats."
+    },
+    {
+      "id": "docs_strategy_cco_booking_sprint_0_checklist_rollback_kriterium",
+      "label": "Rollback-kriterium: >2 dubbelbokningar eller dataf\u00f6rlust",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md",
+      "source_location": "\u00a76 Drift & rollback",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Vid rollback st\u00e4ngs publik reservation men read-only availability beh\u00e5lls, s\u00e5 webben inte kraschar f\u00f6r bes\u00f6karen."
+    },
+    {
+      "id": "docs_strategy_cco_booking_sprint_0_checklist_negativa_tester",
+      "label": "Negativa tester (409 dubbel, gdpr_consent_required, invalid_email, Resend-fallback)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md",
+      "source_location": "\u00a74 Steg 9 Negativa tester",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_booking_sprint_0_checklist_definition_of_done",
+      "target": "docs_strategy_cco_booking_sprint_0_checklist_publika_endpoints",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md",
+      "source_location": "\u00a72 Steg 1\u20133",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_booking_sprint_0_checklist_definition_of_done",
+      "target": "docs_strategy_cco_booking_prod_readiness_checklist_store_persistens",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md",
+      "source_location": "\u00a75 Koppling till prod readiness \u2014 \u00a7 Booking store persistence",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_booking_sprint_0_checklist_publika_endpoints",
+      "target": "docs_strategy_cco_booking_mvp_spec_booking_case_statusmodell",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md",
+      "source_location": "\u00a72 Steg 3 \u2014 bookingStore.setCandidateSlots, event web_public_reservation",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_booking_sprint_0_checklist_negativa_tester",
+      "target": "docs_strategy_cco_booking_plan_a_go_live_dubbelbokningsskydd",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md",
+      "source_location": "\u00a74 Steg 9 \u2014 samma slot reserveras igen \u2192 409",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_booking_sprint_0_checklist_rollback_kriterium",
+      "target": "docs_strategy_cco_booking_sprint_0_checklist_provider_vaxel",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md",
+      "source_location": "\u00a76 Drift & rollback",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_booking_sprint_0_checklist_definition_of_done",
+      "target": "docs_strategy_cco_booking_phone_booking_level_1_5_plan_extern_bekraftelse",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md",
+      "source_location": "\u00a75 \u00a7 G. External confirmation \u2014 motsvarar engine confirm (egen motor, ej Cliento)",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "webbokning_till_bekraftad_bokning",
+      "label": "Kedjan webbreservation \u2192 CCO-case \u2192 operat\u00f6rsbekr\u00e4ftelse \u2192 l\u00e5st slot",
+      "nodes": [
+        "docs_strategy_cco_booking_sprint_0_checklist_publika_endpoints",
+        "docs_strategy_cco_booking_mvp_spec_booking_case_statusmodell",
+        "docs_strategy_cco_booking_phone_booking_level_1_5_plan_vald_tid_ar_inte_bokad_tid",
+        "docs_strategy_cco_booking_plan_a_go_live_dubbelbokningsskydd"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-sprint-0-checklist.md"
+    }
+  ]
+}

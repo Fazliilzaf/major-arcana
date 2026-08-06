@@ -1,0 +1,242 @@
+{
+  "nodes": [
+    {
+      "id": "_github_workflows_deploy_cloud_safe_workflow",
+      "label": "arcana-deploy-cloud-safe workflow",
+      "file_type": "code",
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_deploy_cloud_safe_readyz_gate",
+      "label": "/readyz readiness gate",
+      "file_type": "concept",
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_deploy_cloud_safe_public_smoke",
+      "label": "Public smoke (surface + booking bundle)",
+      "file_type": "concept",
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_deploy_cloud_safe_render_deploy_hook",
+      "label": "Render deploy hook trigger",
+      "file_type": "concept",
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_deploy_cloud_safe_readiness_guard",
+      "label": "Readiness guard (required checks)",
+      "file_type": "concept",
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_deploy_cloud_safe_cmo_connector_smoke",
+      "label": "CMO connector smoke (Fas O)",
+      "file_type": "concept",
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_deploy_cloud_safe_mobile_journal_smoke",
+      "label": "Mobile journal smoke (staff photo upload)",
+      "file_type": "concept",
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_deploy_cloud_safe_skip_predeploy_input",
+      "label": "skip_predeploy hotfix escape hatch",
+      "file_type": "concept",
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "_github_workflows_deploy_cloud_safe_workflow",
+      "target": "_github_workflows_deploy_cloud_safe_readyz_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_workflow",
+      "target": "_github_workflows_deploy_cloud_safe_public_smoke",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_workflow",
+      "target": "_github_workflows_deploy_cloud_safe_render_deploy_hook",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_workflow",
+      "target": "_github_workflows_deploy_cloud_safe_readiness_guard",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_workflow",
+      "target": "_github_workflows_deploy_cloud_safe_cmo_connector_smoke",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_workflow",
+      "target": "_github_workflows_deploy_cloud_safe_mobile_journal_smoke",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_workflow",
+      "target": "_github_workflows_deploy_cloud_safe_skip_predeploy_input",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_workflow",
+      "target": "_github_workflows_stability_window_stability_window_report",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_workflow",
+      "target": "_github_workflows_owner_mfa_heal_owner_mfa_auth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_cmo_connector_smoke",
+      "target": "_github_workflows_cco_full_enrichment_backfill_owner_token_extraction",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_mobile_journal_smoke",
+      "target": "_github_workflows_cco_full_enrichment_backfill_owner_token_extraction",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_workflow",
+      "target": "_github_workflows_post_deploy_prod_heal_render_env_restore",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_deploy_cloud_safe_workflow",
+      "target": "_github_workflows_predeploy_cloud_workflow",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "deploy_cloud_safe_gate_chain",
+      "label": "Safe cloud deploy chain: predeploy smoke/guard \u2192 Render hook \u2192 readyz \u2192 post-deploy smokes",
+      "nodes": [
+        "_github_workflows_deploy_cloud_safe_public_smoke",
+        "_github_workflows_deploy_cloud_safe_readiness_guard",
+        "_github_workflows_deploy_cloud_safe_render_deploy_hook",
+        "_github_workflows_deploy_cloud_safe_readyz_gate",
+        "_github_workflows_deploy_cloud_safe_cmo_connector_smoke",
+        "_github_workflows_deploy_cloud_safe_mobile_journal_smoke"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-cloud-safe.yml"
+    }
+  ]
+}

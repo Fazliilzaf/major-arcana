@@ -1,0 +1,41 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_10_kunder_v9_visual_restoration_v9_shell",
+      "label": "ORD-10 v9-shell visual restoration (app-grid 200/1fr/360)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-10-kunder-v9-visual-restoration.md",
+      "source_location": "Levererat",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "v9-designen \u00e5terst\u00e4lls p\u00e5 befintlig preview-route i st\u00e4llet f\u00f6r ny sida, s\u00e5 att real data och mockup-layout m\u00f6ts p\u00e5 samma yta."
+    },
+    {
+      "id": "docs_handover_orders_ord_10_kunder_v9_visual_restoration_no_mock_numbers_rule",
+      "label": "Regel: inga mock-tal i kundvyn (1247/LTV/AI-insikter)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-10-kunder-v9-visual-restoration.md",
+      "source_location": "Levererat",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Mockdata i en klinisk personalvy riskerar att tolkas som verkliga patientsiffror; hellre tomt streck \u00e4n p\u00e5hittat v\u00e4rde."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_10_kunder_v9_visual_restoration_v9_shell",
+      "target": "docs_handover_orders_ord_10_kunder_v9_visual_restoration_no_mock_numbers_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-10-kunder-v9-visual-restoration.md",
+      "source_location": "Levererat",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

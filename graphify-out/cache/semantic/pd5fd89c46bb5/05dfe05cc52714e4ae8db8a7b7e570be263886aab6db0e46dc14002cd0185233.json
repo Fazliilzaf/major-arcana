@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_codex_notes_codex_design_system_notes",
+      "label": "Codex Design System-anteckningar",
+      "file_type": "document",
+      "source_file": "docs/ops/codex-notes/Codex-design-system.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_codex_notes_codex_design_system_stor_kundvy",
+      "label": "Stor kundvy (deep workspace-lager ovanp\u00e5 kunddossi\u00e9r)",
+      "file_type": "concept",
+      "source_file": "docs/ops/codex-notes/Codex-design-system.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_codex_notes_codex_design_system_deep_panel_contract",
+      "label": "data-v9-dossier-deep DOM-kontrakt (delas av blueprint-variant)",
+      "file_type": "concept",
+      "source_file": "docs/ops/codex-notes/Codex-design-system.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_codex_notes_codex_design_system_no_parallel_data_path",
+      "label": "Designprincip: ingen parallell datav\u00e4g f\u00f6r kundinformation",
+      "file_type": "concept",
+      "source_file": "docs/ops/codex-notes/Codex-design-system.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_codex_notes_codex_design_system_notes",
+      "target": "docs_ops_codex_notes_codex_design_system_stor_kundvy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/codex-notes/Codex-design-system.md",
+      "source_location": "Stor kundvy ovanp\u00e5 kunddossi\u00e9r",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_codex_notes_codex_design_system_stor_kundvy",
+      "target": "docs_ops_codex_notes_codex_design_system_deep_panel_contract",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/codex-notes/Codex-design-system.md",
+      "source_location": "Koddelarna \u00a72\u20134",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_codex_notes_codex_design_system_no_parallel_data_path",
+      "target": "docs_ops_codex_notes_codex_design_system_stor_kundvy",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/codex-notes/Codex-design-system.md",
+      "source_location": "Viktig implementationston",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_codex_notes_codex_design_system_no_parallel_data_path",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_legacy_parallel_surfaces",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/ops/codex-notes/Codex-design-system.md",
+      "source_location": "b\u00e5da varnar f\u00f6r parallella dubbelimplementationer",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

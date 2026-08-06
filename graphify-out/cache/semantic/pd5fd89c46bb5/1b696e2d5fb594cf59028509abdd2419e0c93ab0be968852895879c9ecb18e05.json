@@ -1,0 +1,228 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v12_workspace_photos",
+      "label": "V12 Workspace-fixtur \u00b7 Bilder (Block 11)",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fixturen renderar de RIKTIGA komponenterna (cco-v11-rail + cco-v12-workspace) ist\u00e4llet f\u00f6r mock-markup, s\u00e5 att visuella sk\u00e4rmbilder speglar produktionsrendering."
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_photos_two_zone_shell",
+      "label": "V12 tv\u00e5-zon-shell (zone1 rail / zone2 workspace)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Zon 1 h\u00e5ller den scrollande V11-railen, zon 2 h\u00e5ller V12-arbetsytan; shell markeras med data-v12-workspace-shell och flaggorna data-v11-rail/data-v12-workspace."
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_photos_cco_v11_rail",
+      "label": "CcoV11Rail-komponent",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_photos_cco_v12_workspace",
+      "label": "CcoV12Workspace-komponent",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_photos_kkx_stub",
+      "label": "CcoKundkortKkx-stubb (buildCanonicalJourneyLive + resolveReferensBookingExtras)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Stubbas i fixturen eftersom backend saknas; ger deterministisk kundresa-position och bokningsr\u00e4kning s\u00e5 sk\u00e4rmbilder blir reproducerbara."
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_photos_build_photos_adapter",
+      "label": "buildPhotosFromDriveFiles-adapter",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "V11-adaptern \u00e5teranv\u00e4nds rakt av i V12 ist\u00e4llet f\u00f6r en ny bildmodul \u2014 samma datak\u00e4lla, ingen duplicerad transformlogik."
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_photos_lightbox",
+      "label": "data-photo lightbox-handler",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Native l\u00e4nkar med data-photo anv\u00e4nds s\u00e5 den befintliga lightbox-handlern fungerar utan ny bindning i V12."
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_photos_drive_files",
+      "label": "driveFiles media-modell (image/video)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Utan backend laddas inga thumbnails; fallback-tiles visas i st\u00e4llet f\u00f6r fil-URL-baserade miniatyrer."
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_photos_shot_script",
+      "label": "Sk\u00e4rmbildsskript shots:v12workspace:photos",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v12_workspace_photos",
+      "target": "tests_visual_fixtures_v12_workspace_photos_two_zone_shell",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_photos",
+      "target": "tests_visual_fixtures_v12_workspace_photos_cco_v11_rail",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_photos",
+      "target": "tests_visual_fixtures_v12_workspace_photos_cco_v12_workspace",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_photos",
+      "target": "tests_visual_fixtures_v12_workspace_photos_kkx_stub",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_photos_cco_v11_rail",
+      "target": "tests_visual_fixtures_v12_workspace_photos_two_zone_shell",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_photos_cco_v12_workspace",
+      "target": "tests_visual_fixtures_v12_workspace_photos_two_zone_shell",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_photos",
+      "target": "tests_visual_fixtures_v12_workspace_photos_build_photos_adapter",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_photos_build_photos_adapter",
+      "target": "tests_visual_fixtures_v12_workspace_photos_drive_files",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_photos_build_photos_adapter",
+      "target": "tests_visual_fixtures_v12_workspace_photos_lightbox",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_photos_shot_script",
+      "target": "tests_visual_fixtures_v12_workspace_photos",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "v12_workspace_two_zone_fixture_family",
+      "label": "V12 tv\u00e5-zon-fixturfamiljen (Block 3/9/11) delar shell, rail och workspace",
+      "nodes": [
+        "tests_visual_fixtures_v12_workspace_photos",
+        "tests_visual_fixtures_v12_workspace_sticky",
+        "tests_visual_fixtures_v12_workspace_warnings",
+        "tests_visual_fixtures_v12_workspace_photos_two_zone_shell",
+        "tests_visual_fixtures_v12_workspace_photos_kkx_stub"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-photos.html"
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+{
+  "nodes": [
+    {
+      "id": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_svg",
+      "label": "Patientvy /uppfoljning/[token] mockup (SVG)",
+      "file_type": "image",
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_upload_screen",
+      "label": "Sk\u00e4rm 1 \u00b7 Ladda upp efter-bilder (dropzone, max 6 bilder)",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_consent_module",
+      "label": "Steg 2 \u00b7 Samtycke och kommentar (anonym marknadsf\u00f6ring, \u00e5terkallning, 365 dagars radering)",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_thankyou_gbp_screen",
+      "label": "Sk\u00e4rm 2 \u00b7 Tack + Google-omd\u00f6me CTA",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_post_op_review_flow",
+      "label": "Fl\u00f6de och logik: CCO \u2192 ExecutionGateway \u2192 M365 Graph \u2192 tokenl\u00e4nk \u2192 bilder/consent/GBP",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_request_post_op_review_capability",
+      "label": "Capability RequestPostOpReview v1.0.0 (input-risk, output-risk, policy-floor)",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_privacy_controls",
+      "label": "Integritetskontroller: EXIF-strippning server-side, GDPR-radering, audit-trail 4 events",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_svg",
+      "target": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_upload_screen",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_svg",
+      "target": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_thankyou_gbp_screen",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_upload_screen",
+      "target": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_consent_module",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_upload_screen",
+      "target": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_thankyou_gbp_screen",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_post_op_review_flow",
+      "target": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_request_post_op_review_capability",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_post_op_review_flow",
+      "target": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_privacy_controls",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_post_op_review_flow",
+      "target": "docs_design_specs_post_op_review_mockups_cco_mark_followup_completed_button_mark_followup_completed_action",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "post_op_review_end_to_end_flow",
+      "label": "Post-op review: CCO-knapp \u2192 capability/gateway \u2192 patientuppladdning \u2192 tack + Google-omd\u00f6me",
+      "nodes": [
+        "docs_design_specs_post_op_review_mockups_cco_mark_followup_completed_button_mark_followup_completed_action",
+        "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_post_op_review_flow",
+        "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_upload_screen",
+        "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_thankyou_gbp_screen"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/post-op-review-mockups/patient-uppfoljning-page.svg"
+    }
+  ]
+}

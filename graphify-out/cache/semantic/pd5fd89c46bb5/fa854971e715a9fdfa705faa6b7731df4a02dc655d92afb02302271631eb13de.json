@@ -1,0 +1,167 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_zon",
+      "label": "Aktivt bes\u00f6k \u2014 konditionell bes\u00f6kszon (LOCKED)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fj\u00e4rde lagret ovanp\u00e5 kundkort v11, inte ers\u00e4ttning. Zonen kollapsar helt n\u00e4r inget bes\u00f6k \u00e4r aktivt s\u00e5 v11-baseline aldrig bryts. Placeras mellan hero och stat-row \u2014 inte \u00f6verst, inte i sticky \u2014 och har EN prim\u00e4r CTA (Starta journal) med tre assistenter."
+    },
+    {
+      "id": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_preflight",
+      "label": "Pre-flight checklist (3-kol grid, OK- och varnings-kort)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fryst som 3-kolumnsgrid, inte lista och inte checklist-modal, s\u00e5 blockers syns direkt i kortet i st\u00e4llet f\u00f6r bakom ett extra klick."
+    },
+    {
+      "id": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_encounter_timeline",
+      "label": "Encounter-timeline (incheckad \u2192 p\u00e5g\u00e5r \u2192 klart)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fryst horisontellt, inte vertikalt och inte som progress-bar; gradienten mellan noderna speglar progress."
+    },
+    {
+      "id": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_states",
+      "label": "Bes\u00f6ks-states (v\u00e4ntar incheckning / p\u00e5g\u00e5r / avslutat idag / inget bes\u00f6k)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_pulse_token",
+      "label": "--v11-pulse-amber (enda nya designtoken)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Pulsande amber-dot \u00e4r det visuella l\u00f6ftet att zonen \u00e4r live. Endast en ny token tillf\u00f6rs \u2014 inga nya f\u00e4rger \u2014 f\u00f6r att h\u00e5lla palett-disciplinen lila/gr\u00f6n/amber."
+    },
+    {
+      "id": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_journal_per_encounter",
+      "label": "Journal per bes\u00f6k (encounter), inte l\u00f6s text i kortet",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_zon",
+      "target": "docs_handover_mockups_kundkort_v11_locked_2026_06_05_kundkort_v11",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_zon",
+      "target": "docs_handover_mockups_kundkort_v11_locked_2026_06_05_designtokens",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_pulse_token",
+      "target": "docs_handover_mockups_kundkort_v11_locked_2026_06_05_designtokens",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_preflight",
+      "target": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_zon",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_encounter_timeline",
+      "target": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_zon",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_states",
+      "target": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_zon",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_journal_per_encounter",
+      "target": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_zon",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_preflight",
+      "target": "docs_handover_mockups_kundkort_v11_locked_2026_06_05_zon2_dokument_segment",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_zon",
+      "target": "docs_handover_mockups_v11_facit_mockup_2026_06_18_sektionskatalog",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/AKTIVT-BESOK-LOCKED-2026-06-17.md",
+      "source_location": null,
+      "weight": 0.95
+    }
+  ],
+  "hyperedges": []
+}

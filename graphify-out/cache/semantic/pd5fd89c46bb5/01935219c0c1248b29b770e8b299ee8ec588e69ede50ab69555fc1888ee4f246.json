@@ -1,0 +1,156 @@
+{
+  "nodes": [
+    {
+      "id": "docs_adr_0002_cmo_publish_and_spend_boundary_adr",
+      "label": "ADR 0002: CMO publish and spend boundary",
+      "file_type": "document",
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_adr_0002_cmo_publish_and_spend_boundary_compliance_gate",
+      "label": "Obligatorisk marketing compliance-gate (ValidateMarketingClaims, ReviewMarketingCompliance, CLINICAL_GUARD)",
+      "file_type": "concept",
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_adr_0002_cmo_publish_and_spend_boundary_pilot_publish_queue",
+      "label": "Pilot auto-queue per kanal (cmo_pilot_publish_due, publish_queued)",
+      "file_type": "concept",
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_adr_0002_cmo_publish_and_spend_boundary_live_publish_flag",
+      "label": "Live extern publish bakom ARCANA_MARKETING_PUBLISH_LIVE_ENABLED",
+      "file_type": "concept",
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_adr_0002_cmo_publish_and_spend_boundary_adr",
+      "target": "docs_adr_0001_cao_orchestrator_execute_boundary_adr",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_adr_0002_cmo_publish_and_spend_boundary_adr",
+      "target": "docs_adr_0002_cmo_publish_and_spend_boundary_compliance_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_adr_0002_cmo_publish_and_spend_boundary_pilot_publish_queue",
+      "target": "docs_adr_0002_cmo_publish_and_spend_boundary_compliance_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_adr_0002_cmo_publish_and_spend_boundary_live_publish_flag",
+      "target": "docs_adr_0002_cmo_publish_and_spend_boundary_pilot_publish_queue",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_adr_0002_cmo_publish_and_spend_boundary_compliance_gate",
+      "target": "docs_architecture_capability_framework_contract_v1_executiongateway",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_adr_0002_cmo_publish_and_spend_boundary_live_publish_flag",
+      "target": "readme_correlation_id",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_adr_0002_cmo_publish_and_spend_boundary_adr",
+      "target": "docs_adr_0004_cao_admin_operator_adr",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_adr_0002_cmo_publish_and_spend_boundary_adr",
+      "target": "docs_adr_0004_cao_admin_operator_risk_level_model",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_adr_0002_cmo_publish_and_spend_boundary_compliance_gate",
+      "target": "docs_pilot_1_slutrapport_policy_floor",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "cmo_publish_approval_chain",
+      "label": "CMO publiceringskedja: compliance-gate \u2192 OWNER-godk\u00e4nnande \u2192 pilot-queue \u2192 live-flagga",
+      "nodes": [
+        "docs_adr_0002_cmo_publish_and_spend_boundary_compliance_gate",
+        "docs_adr_0002_cmo_publish_and_spend_boundary_pilot_publish_queue",
+        "docs_adr_0002_cmo_publish_and_spend_boundary_live_publish_flag",
+        "docs_architecture_capability_framework_contract_v1_executiongateway"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/adr/0002-cmo-publish-and-spend-boundary.md"
+    }
+  ]
+}

@@ -1,0 +1,304 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_spec",
+      "label": "ORD-48 spec \u2014 steg 7 bundle (write) + ops-dags gates",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_steg7_bundle_sign",
+      "label": "Steg 7 bundle-signering \u2014 ett signeringsmoment (avtal + behandlingssamtycke)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_fc_operation_day_gate",
+      "label": "Friskf\u00f6rs\u00e4kran ops-dags gate \u2014 409 p\u00e5 journal/encounter-start",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_ready_for_treatment_composite",
+      "label": "ready_for_treatment \u2014 komposit av alla delgates",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_treatment_booking_gate",
+      "label": "Behandlingsbokningsgate \u2014 409 treatment_agreement_not_bookable",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_g1_sign_provider_default",
+      "label": "G1 \u2014 demo-sign + persist i store som prod-default",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_g2_fc_block_scope",
+      "label": "G2 \u2014 minimal FC-blocklista (encounter/journal-start p\u00e5 ops-dag)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_no_t48_fc_reminder",
+      "label": "Ingen T-48 pre-op FC-p\u00e5minnelse i scheduler/registry",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_legal_review_template_gate",
+      "label": "legal_review mall-versionsgate f\u00f6re utskick/signering",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_signal_to_write_gate",
+      "label": "Designintent: g\u00e5 fr\u00e5n signal till write-gate som verkligen stoppar",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_spec",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_steg7_bundle_sign",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_spec",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_fc_operation_day_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_spec",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_ready_for_treatment_composite",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_spec",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_treatment_booking_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_steg7_bundle_sign",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_ready_for_treatment_composite",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_fc_operation_day_gate",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_ready_for_treatment_composite",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_treatment_booking_gate",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_steg7_bundle_sign",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_g1_sign_provider_default",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_steg7_bundle_sign",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_g2_fc_block_scope",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_fc_operation_day_gate",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_no_t48_fc_reminder",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_fc_operation_day_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_legal_review_template_gate",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_steg7_bundle_sign",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_legal_review_template_gate",
+      "target": "docs_handover_orders_ord_6_29_linear_close_comment_template_version_approval",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_signal_to_write_gate",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_spec",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_signal_to_write_gate",
+      "target": "docs_handover_orders_ord_5_fas_a1_readiness_gate_v1_automation_signals",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_ready_for_treatment_composite",
+      "target": "docs_handover_orders_ord_5_fas_a1_readiness_gate_fas_a_readout",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_spec",
+      "target": "docs_handover_orders_ord_48_cloud_staff_uat_checklist",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_spec",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_nine_section_cards",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "steg7_bundle_to_calendar_gate_chain",
+      "label": "Kedjan bundle-sign \u2192 FC ops-gate \u2192 ready_for_treatment \u2192 kalender-CTA/bokning",
+      "nodes": [
+        "docs_handover_orders_ord_48_steg7_bundle_ops_gates_steg7_bundle_sign",
+        "docs_handover_orders_ord_48_steg7_bundle_ops_gates_fc_operation_day_gate",
+        "docs_handover_orders_ord_48_steg7_bundle_ops_gates_ready_for_treatment_composite",
+        "docs_handover_orders_ord_48_steg7_bundle_ops_gates_treatment_booking_gate",
+        "docs_handover_orders_ord_48_cloud_agent_complete_d3_calendar_cta",
+        "docs_handover_orders_ord_49_id_verifiering_ready_gate_hard_gate_env"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-steg7-bundle-ops-gates.md"
+    }
+  ]
+}

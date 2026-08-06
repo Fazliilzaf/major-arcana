@@ -1,0 +1,174 @@
+{
+  "nodes": [
+    {
+      "id": "public_cco_kunder_mockup_v9_desktop_doc",
+      "label": "CCO Kunder \u2014 v9 desktop-mockup",
+      "file_type": "code",
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_kunder_mockup_v9_desktop_kunddossier",
+      "label": "Kunddossi\u00e9r i h\u00f6gerkolumn (rad-klick \u2192 full kundvy)",
+      "file_type": "concept",
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "openCustomerDossier / getDossier",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_kunder_mockup_v9_desktop_global_search",
+      "label": "Global s\u00f6k-overlay (\u2318K) \u00f6ver kunder och bokningar",
+      "file_type": "concept",
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "searchOverlay / renderSearch",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_kunder_mockup_v9_desktop_klinisk_kamera",
+      "label": "Klinisk kamera med annotation \u2192 spara i journal",
+      "file_type": "concept",
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "buildCameraOverlay / savePhoto",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_kunder_mockup_v9_desktop_rostbokning",
+      "label": "R\u00f6ststyrd bokning med bekr\u00e4ftelse-sheet",
+      "file_type": "concept",
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "startVoice / voiceSheet",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_kunder_mockup_v9_desktop_bokningskonflikt",
+      "label": "Konfliktdetektering och drag-and-drop av bokningar i veckokalender",
+      "file_type": "concept",
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "drawConflicts / bookingDragMove",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_kunder_mockup_v9_desktop_calm_timemachine",
+      "label": "Calm mode + Time machine-reglage (\u00b17 dagar)",
+      "file_type": "concept",
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "calmToggle / tmSlider",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_cco_kunder_mockup_v9_desktop_doc",
+      "target": "docs_uiux_cco_operator_language_ordlista",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": null,
+      "weight": 0.75
+    },
+    {
+      "source": "public_cco_kunder_mockup_v9_desktop_doc",
+      "target": "public_cco_kunder_mockup_v9_desktop_kunddossier",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "caption + openCustomerDossier",
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kunder_mockup_v9_desktop_doc",
+      "target": "public_cco_kunder_mockup_v9_desktop_global_search",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "searchOverlay",
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kunder_mockup_v9_desktop_doc",
+      "target": "public_cco_kunder_mockup_v9_desktop_klinisk_kamera",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "buildCameraOverlay",
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kunder_mockup_v9_desktop_doc",
+      "target": "public_cco_kunder_mockup_v9_desktop_rostbokning",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "startVoice",
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kunder_mockup_v9_desktop_doc",
+      "target": "public_cco_kunder_mockup_v9_desktop_bokningskonflikt",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "drawConflicts",
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kunder_mockup_v9_desktop_doc",
+      "target": "public_cco_kunder_mockup_v9_desktop_calm_timemachine",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": "calmToggle / timemachine",
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kunder_mockup_v9_desktop_klinisk_kamera",
+      "target": "docs_strategy_u4_post_op_decisions_foto_retention_gate",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": null,
+      "weight": 0.75
+    },
+    {
+      "source": "public_cco_kunder_mockup_v9_desktop_global_search",
+      "target": "docs_uiux_sitemap_tvaklicksregel",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+      "source_location": null,
+      "weight": 0.65
+    }
+  ],
+  "hyperedges": []
+}

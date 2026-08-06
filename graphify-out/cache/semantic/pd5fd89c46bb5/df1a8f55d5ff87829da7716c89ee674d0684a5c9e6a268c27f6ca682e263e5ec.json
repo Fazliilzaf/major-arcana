@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_66_cfo_cm_route_flytt_doc",
+      "label": "ORD-66 Flytta /cco-cf/* ur server.js till src/routes/cfo.js",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-66-cfo-cm-route-flytt.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_66_cfo_cm_route_flytt_monolit_frozen",
+      "label": "ORGANISATION \u00a74 \u2014 monoliten server.js \u00e4r fryst, ny kod i src/routes/",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-66-cfo-cm-route-flytt.md",
+      "source_location": "Bakgrund",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_66_cfo_cm_route_flytt_karakteriseringstest",
+      "label": "Karakt\u00e4riseringstest f\u00f6re routeflytt (route-lista snapshot + smoke)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-66-cfo-cm-route-flytt.md",
+      "source_location": "Scope \u00a74",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_66_cfo_cm_route_flytt_doc",
+      "target": "docs_handover_orders_ord_66_cfo_cm_route_flytt_monolit_frozen",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-66-cfo-cm-route-flytt.md",
+      "source_location": "Bakgrund",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_66_cfo_cm_route_flytt_monolit_frozen",
+      "target": "docs_handover_orders_ord_66_cfo_cm_route_flytt_doc",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-66-cfo-cm-route-flytt.md",
+      "source_location": "Bakgrund",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_66_cfo_cm_route_flytt_karakteriseringstest",
+      "target": "docs_handover_orders_ord_66_cfo_cm_route_flytt_doc",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-66-cfo-cm-route-flytt.md",
+      "source_location": "Scope \u00a74",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,158 @@
+{
+  "nodes": [
+    {
+      "id": "public_journal_build_demo_page",
+      "label": "Journalbygge \u00b7 \u00f6versikt \u00f6ver byggd journalfunktionalitet",
+      "file_type": "document",
+      "source_file": "public/journal-build-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_journal_build_demo_no_drive_links_no_external_ai",
+      "label": "Inga Drive-l\u00e4nkar i UI \u00b7 ingen extern AI p\u00e5 journalinneh\u00e5ll",
+      "file_type": "concept",
+      "source_file": "public/journal-build-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_journal_build_demo_audit_chain",
+      "label": "Audit-kedja form_submitted \u2192 form_signed \u2192 pdf_archived \u2192 asset_imported \u2192 asset_status_transition",
+      "file_type": "concept",
+      "source_file": "public/journal-build-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_journal_build_demo_asset_statuses",
+      "label": "Sex asset-statusar (VISIBLE / VERIFIED / NEEDS_REVIEW / LINK_ONLY / FAILED / DUPLICATE)",
+      "file_type": "concept",
+      "source_file": "public/journal-build-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_journal_build_demo_ready_for_treatment",
+      "label": "Ready-for-treatment blocker-status per behandling",
+      "file_type": "concept",
+      "source_file": "public/journal-build-demo.html",
+      "source_location": "/api/v1/cco-forms/patient/:id/missing",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_journal_build_demo_page",
+      "target": "public_journal_build_demo_no_drive_links_no_external_ai",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-build-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_build_demo_page",
+      "target": "public_journal_build_demo_audit_chain",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-build-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_build_demo_page",
+      "target": "public_journal_build_demo_asset_statuses",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-build-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_build_demo_page",
+      "target": "public_journal_build_demo_ready_for_treatment",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-build-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_build_demo_page",
+      "target": "public_friskforsakran_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-build-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_build_demo_page",
+      "target": "public_journal_feed_demo_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-build-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_build_demo_ready_for_treatment",
+      "target": "public_friskforsakran_legal_requirement",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-build-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_build_demo_asset_statuses",
+      "target": "public_journal_pilot_guide_review_material_not_clinical_truth",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/journal-build-demo.html",
+      "source_location": "NEEDS_REVIEW-status",
+      "weight": 0.85
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "journal_signering_och_sparbarhetskedja",
+      "label": "Signerings- och sp\u00e5rbarhetskedja: formul\u00e4rsignering \u2192 l\u00e5st post \u2192 r\u00e4ttelse som ny post \u2192 asset-status \u2192 audit",
+      "nodes": [
+        "public_friskforsakran_draft_then_sign_flow",
+        "public_journal_pilot_guide_correction_as_new_entry",
+        "public_journal_build_demo_audit_chain",
+        "public_journal_build_demo_asset_statuses",
+        "public_journal_feed_demo_asset_download_proxy"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-build-demo.html"
+    }
+  ]
+}

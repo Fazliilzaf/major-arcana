@@ -1,0 +1,102 @@
+{
+  "nodes": [
+    {
+      "id": "docs_implementation_patient_documents_live_implementation_checklist_checklist",
+      "label": "Implementationschecklista \u2014 final-demo + SharePoint + Meridiq + CCO live",
+      "file_type": "document",
+      "source_file": "docs/implementation/patient-documents-live/IMPLEMENTATION-CHECKLIST.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_implementation_checklist_status_codes",
+      "label": "Statuskoder DESIGN-OK/MS-OK/MS-LOKAL/MQ-OK/CCO-OK/CCO-PARTIAL",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/IMPLEMENTATION-CHECKLIST.md",
+      "source_location": "Statusnycklar",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_implementation_checklist_phase_plan",
+      "label": "Fas 0\u20135 implementationsplan (underlag \u2192 shell \u2192 kund \u2192 personal \u2192 live \u2192 info)",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/IMPLEMENTATION-CHECKLIST.md",
+      "source_location": "Sektion D",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_implementation_checklist_design_gap",
+      "label": "Design-gapet \u2014 inneh\u00e5ll och Word-underlag finns, HTML-shell saknas",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/IMPLEMENTATION-CHECKLIST.md",
+      "source_location": "Sektion E",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Bara tre HTML-demoer fanns mot 36 katalogtyper \u2014 resten m\u00e5ste f\u00e5 samma shell med Word/Meridiq som textfacit i st\u00e4llet f\u00f6r nyskriven text."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_implementation_patient_documents_live_implementation_checklist_checklist",
+      "target": "docs_implementation_patient_documents_live_bookoff_checklist_bookoff",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/IMPLEMENTATION-CHECKLIST.md",
+      "source_location": "Header",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_implementation_checklist_checklist",
+      "target": "docs_implementation_patient_documents_live_implementation_checklist_status_codes",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/IMPLEMENTATION-CHECKLIST.md",
+      "source_location": "Statusnycklar",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_implementation_checklist_status_codes",
+      "target": "docs_implementation_patient_documents_live_bookoff_checklist_utdlv_columns",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "docs/implementation/patient-documents-live/IMPLEMENTATION-CHECKLIST.md",
+      "source_location": "Statusnycklar",
+      "weight": 0.8
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_implementation_checklist_design_gap",
+      "target": "docs_implementation_patient_documents_live_design_spec_patient_document_shell",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/IMPLEMENTATION-CHECKLIST.md",
+      "source_location": "Sektion E slutsats",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_implementation_checklist_phase_plan",
+      "target": "docs_implementation_patient_documents_live_implementation_checklist_design_gap",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/implementation/patient-documents-live/IMPLEMENTATION-CHECKLIST.md",
+      "source_location": "Sektion D",
+      "weight": 0.85
+    }
+  ],
+  "hyperedges": []
+}

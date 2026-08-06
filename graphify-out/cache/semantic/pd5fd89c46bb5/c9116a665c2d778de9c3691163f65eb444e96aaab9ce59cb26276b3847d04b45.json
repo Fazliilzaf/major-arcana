@@ -1,0 +1,266 @@
+{
+  "nodes": [
+    {
+      "id": "_agents_skills_figma_implement_strict_skill_figma_implement_strict",
+      "label": "figma-implement-strict skill",
+      "file_type": "document",
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_agents_skills_figma_implement_strict_skill_make_only_mode",
+      "label": "MAKE_ONLY mode",
+      "file_type": "concept",
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_agents_skills_figma_implement_strict_skill_design_only_mode",
+      "label": "DESIGN_ONLY mode",
+      "file_type": "concept",
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_agents_skills_figma_implement_strict_skill_combined_mode",
+      "label": "COMBINED mode (Design wins visuals, Make informs behavior)",
+      "file_type": "concept",
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_agents_skills_figma_implement_strict_skill_ask_mode",
+      "label": "Ask Mode (plan before code)",
+      "file_type": "concept",
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_agents_skills_figma_implement_strict_skill_code_mode",
+      "label": "Code Mode (minimal diff, reuse first)",
+      "file_type": "concept",
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_agents_skills_figma_implement_strict_skill_fidelity_blocked",
+      "label": "FIDELITY_BLOCKED status",
+      "file_type": "concept",
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_agents_skills_figma_implement_strict_skill_repo_reuse_rule",
+      "label": "Repo reuse before new code rule",
+      "file_type": "concept",
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_agents_skills_figma_implement_strict_skill_token_first_styling_rule",
+      "label": "Token-first styling rule (no hardcoded hex/spacing)",
+      "file_type": "concept",
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_figma_implement_strict",
+      "target": "_agents_skills_figma_implement_strict_skill_make_only_mode",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_figma_implement_strict",
+      "target": "_agents_skills_figma_implement_strict_skill_design_only_mode",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_figma_implement_strict",
+      "target": "_agents_skills_figma_implement_strict_skill_combined_mode",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_figma_implement_strict",
+      "target": "_agents_skills_figma_implement_strict_skill_ask_mode",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_figma_implement_strict",
+      "target": "_agents_skills_figma_implement_strict_skill_code_mode",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_figma_implement_strict",
+      "target": "_agents_skills_figma_implement_strict_skill_repo_reuse_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_figma_implement_strict",
+      "target": "_agents_skills_figma_implement_strict_skill_token_first_styling_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_combined_mode",
+      "target": "_agents_skills_figma_implement_strict_skill_design_only_mode",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_combined_mode",
+      "target": "_agents_skills_figma_implement_strict_skill_make_only_mode",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_make_only_mode",
+      "target": "_agents_skills_figma_implement_strict_skill_fidelity_blocked",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_code_mode",
+      "target": "_agents_skills_figma_implement_strict_skill_ask_mode",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_ask_mode",
+      "target": "agents_ask_mode",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_code_mode",
+      "target": "agents_code_mode",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_repo_reuse_rule",
+      "target": "agents_inventory_before_new_build",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_token_first_styling_rule",
+      "target": "agents_major_arcana_tokens",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_agents_skills_figma_implement_strict_skill_figma_implement_strict",
+      "target": "agents_validation_commands",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": ".agents/skills/figma-implement-strict/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

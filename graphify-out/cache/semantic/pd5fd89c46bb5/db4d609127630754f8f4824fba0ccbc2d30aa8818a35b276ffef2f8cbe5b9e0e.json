@@ -1,0 +1,152 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v11_rail_block20_fixture",
+      "label": "V11 Rail Block 20 \u00b7 \u2026 + Q Ekonomi + R Insikter + S",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block20_insights_section",
+      "label": "R Insikter (display-only insiktskort ur automationssignaler)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Insikterna byggs p\u00e5 kundens riktiga signaler via sortSignals och \u00e4r medvetet display-only utan handler, f\u00f6r att undvika dubbla \u00e5tg\u00e4rdsv\u00e4gar mot Smart Next Step."
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block20_insights_empty_state",
+      "label": "Explicit empty-state n\u00e4r inga aktiva signaler finns",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block20_economy_section",
+      "label": "Q Ekonomi-sektion i railen",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v11_rail_block20_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block20_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_adapters",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block20_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block20_insights_section",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block20_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block20_economy_section",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block20_insights_section",
+      "target": "tests_visual_fixtures_v11_rail_block20_insights_empty_state",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block20_insights_section",
+      "target": "tests_visual_fixtures_v11_rail_block2_smart_next_step_engine",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block20_insights_section",
+      "target": "tests_visual_fixtures_v11_rail_block2_automation_signals",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block20_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block9_booking_extras",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block20_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block7_canonical_journey_nine_steps",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block20_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block4_active_visit_section",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block20.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,96 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_drive_history_import_full_2026_05_31_doc",
+      "label": "CCO Drive History \u2014 Full Customer Import",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-DRIVE-HISTORY-IMPORT-FULL-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_drive_history_import_full_2026_05_31_alias_sweep",
+      "label": "Drive alias-sweep (samma checksum, annat fileId)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-DRIVE-HISTORY-IMPORT-FULL-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Kvarvarande kandidater \u00e4r dubbletter av redan importerade bin\u00e4rer \u2014 sweepen indexerar provenance utan att skriva ny bin\u00e4r."
+    },
+    {
+      "id": "docs_strategy_cco_drive_history_import_full_2026_05_31_import_guardrails",
+      "label": "Import-guardrails (0 Drive-l\u00e4nkar \u00b7 0 nya kunder \u00b7 0 VISIBLE)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-DRIVE-HISTORY-IMPORT-FULL-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_drive_history_import_full_2026_05_31_doc",
+      "target": "docs_strategy_cco_drive_history_import_full_2026_05_31_alias_sweep",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-DRIVE-HISTORY-IMPORT-FULL-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_drive_history_import_full_2026_05_31_doc",
+      "target": "docs_strategy_cco_drive_history_import_full_2026_05_31_import_guardrails",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-DRIVE-HISTORY-IMPORT-FULL-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_drive_history_import_full_2026_05_31_doc",
+      "target": "docs_strategy_cco_drive_history_journal_import_batch1_2026_05_31_batch1_journal_canary",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-DRIVE-HISTORY-IMPORT-FULL-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_drive_history_import_full_2026_05_31_import_guardrails",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_link_only_blocker",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CCO-DRIVE-HISTORY-IMPORT-FULL-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "drive_history_import_chain",
+      "label": "Drive-historik: dry-run \u2192 batch 1 \u2192 alias-sweep \u2192 review queue",
+      "nodes": [
+        "docs_strategy_cco_drive_history_import_dry_run_2026_05_31_import_batch_plan",
+        "docs_strategy_cco_drive_history_journal_import_batch1_2026_05_31_batch1_journal_canary",
+        "docs_strategy_cco_drive_history_import_full_2026_05_31_alias_sweep",
+        "docs_strategy_cco_daily_readiness_2026_06_04_import_review_queue"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-DRIVE-HISTORY-IMPORT-FULL-2026-05-31.md"
+    }
+  ]
+}

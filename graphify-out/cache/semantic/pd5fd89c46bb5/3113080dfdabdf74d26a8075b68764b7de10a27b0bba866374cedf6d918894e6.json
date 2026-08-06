@@ -1,0 +1,154 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_prep",
+      "label": "Microsoft Graph Read-Only Prep (2026-02-26)",
+      "file_type": "document",
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_readonly_app_registration",
+      "label": "Read-only Entra app registration (Mail.Read, no write scopes)",
+      "file_type": "concept",
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "App Registration Checklist",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_graph_read_connector",
+      "label": "microsoftGraphReadConnector (fetchInboxSnapshot)",
+      "file_type": "concept",
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "Connector Implementation",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_pii_masking",
+      "label": "PII masking before persist (inboxMasking)",
+      "file_type": "concept",
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "PII Masking Before Persist",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_mailbox_read_audit_events",
+      "label": "mailbox.read.start/complete/error audit events",
+      "file_type": "concept",
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "Audit Requirements (runtime)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_graph_guardrails",
+      "label": "Graph fetch guardrails (nextLink, 429, timeout, error budget)",
+      "file_type": "concept",
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "Guardrails",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_inbox_snapshot_envelope",
+      "label": "graph.inbox.snapshot.v1 systemStateSnapshot envelope",
+      "file_type": "concept",
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "Output",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_prep",
+      "target": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_readonly_app_registration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "App Registration Checklist",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_graph_read_connector",
+      "target": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_readonly_app_registration",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "Request flow \u2014 OAuth2 client credentials",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_graph_read_connector",
+      "target": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_pii_masking",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "Applied during Graph message normalization before snapshot output",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_graph_read_connector",
+      "target": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_inbox_snapshot_envelope",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "Output",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_graph_guardrails",
+      "target": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_graph_read_connector",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "Guardrails",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_mailbox_read_audit_events",
+      "target": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_graph_read_connector",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": "Audit Requirements (runtime)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_microsoft_graph_readonly_prep_2026_02_26_pii_masking",
+      "target": "docs_ops_hairtp_document_flow_contract_2026_06_28_patient_link_access_control",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "docs/ops/microsoft-graph-readonly-prep-2026-02-26.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

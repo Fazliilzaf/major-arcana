@@ -1,0 +1,142 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_plan",
+      "label": "ORD-16 SPA v9-port \u2014 Steg 1-plan",
+      "file_type": "document",
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_v9_feature_flag",
+      "label": "v9 feature-flag (?v9=on / arcana.v9.enabled)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_scoped_design_tokens",
+      "label": "Scoped v9 design tokens under [data-v9-enabled=on]",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_step_roadmap",
+      "label": "Roadmap steg 1\u201310 f\u00f6r v9-porteringen",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_bundle_build_rule",
+      "label": "Bundle-regel: build:bundle endast f\u00f6r manifest-filer",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_plan",
+      "target": "docs_strategy_ord_15_spa_v9_port_audit_2026_06_04_audit",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_plan",
+      "target": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_v9_feature_flag",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_plan",
+      "target": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_scoped_design_tokens",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_v9_feature_flag",
+      "target": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_scoped_design_tokens",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_plan",
+      "target": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_step_roadmap",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_plan",
+      "target": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_bundle_build_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_15_spa_v9_port_audit_2026_06_04_owner_decisions",
+      "target": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_v9_feature_flag",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_step_roadmap",
+      "target": "docs_strategy_ord_15_spa_v9_port_audit_2026_06_04_three_column_layout_gap",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,101 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_drive_historik_v3_page",
+      "label": "CCO Drive-historik v3 \u2014 8 \u00e5r av behandlingar",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-drive-historik-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_drive_historik_v3_deeplink_builder",
+      "label": "Drive-deeplink-builder (year_folder / year_search / brand_root-niv\u00e5er)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-drive-historik-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_drive_historik_v3_no_drive_links_rule",
+      "label": "Regel: Drive endast k\u00e4lla + provenance, final-UI = importerade assets",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-drive-historik-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_drive_historik_v3_service_account_readonly",
+      "label": "Read-only Drive-\u00e5tkomst via service-account",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-drive-historik-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_drive_historik_v3_page",
+      "target": "public_major_arcana_preview_cco_drive_historik_v3_deeplink_builder",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-drive-historik-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_drive_historik_v3_page",
+      "target": "public_major_arcana_preview_cco_drive_historik_v3_no_drive_links_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-drive-historik-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_drive_historik_v3_deeplink_builder",
+      "target": "public_major_arcana_preview_cco_drive_historik_v3_service_account_readonly",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-drive-historik-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_drive_historik_v3_no_drive_links_rule",
+      "target": "public_major_arcana_preview_cco_journal_qa_v3_cutover_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-drive-historik-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_drive_historik_v3_no_drive_links_rule",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_security_properties",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/major-arcana-preview/cco-drive-historik-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

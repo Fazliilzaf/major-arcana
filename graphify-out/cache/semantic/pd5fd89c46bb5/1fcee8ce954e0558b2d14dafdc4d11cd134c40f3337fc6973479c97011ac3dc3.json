@@ -1,0 +1,38 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_v11_rail_block14_l_autodocs_viewport_preview_block_l_autodocs",
+      "label": "Block 14 \u00b7 L Auto-dokument (KEEP)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block14-L-autodocs/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_v11_rail_block14_l_autodocs_viewport_preview_block_l_autodocs",
+      "target": "docs_handover_mockups_v11_rail_block1_a_profile_viewport_preview_harness",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block14-L-autodocs/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block14_l_autodocs_viewport_preview_block_l_autodocs",
+      "target": "docs_handover_mockups_kundkort_v11_locked_2026_06_05_zon2_dokument_segment",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block14-L-autodocs/viewport-preview.html",
+      "source_location": null,
+      "weight": 0.85
+    }
+  ],
+  "hyperedges": []
+}

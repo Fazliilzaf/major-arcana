@@ -1,0 +1,74 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_ord_10_06_agg_shell",
+      "label": "Sk\u00e4rmdump: laddningsl\u00e4ge f\u00f6r \u00f6versikt",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/ord-10/06-agg-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_ord_10_oversikt_laddningslage",
+      "label": "Laddningsl\u00e4ge f\u00f6r aggregerad \u00f6versikt",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/ord-10/06-agg-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_ord_10_06_agg_shell",
+      "target": "docs_ops_screenshots_ord_10_oversikt_laddningslage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/06-agg-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_oversikt_laddningslage",
+      "target": "docs_ops_screenshots_ord_10_patient_master_datakalla",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/06-agg-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_06_agg_shell",
+      "target": "docs_ops_screenshots_ord_10_03_story_cards",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/ops/screenshots/ord-10/06-agg-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "ord_10_patient_master_laddflode",
+      "label": "Inloggningsgrindad datah\u00e4mtning fr\u00e5n patient-master",
+      "nodes": [
+        "docs_ops_screenshots_ord_10_inloggningsgrindat_tomt_lage",
+        "docs_ops_screenshots_ord_10_oversikt_laddningslage",
+        "docs_ops_screenshots_ord_10_patient_master_datakalla",
+        "docs_ops_screenshots_ord_10_kundtabell"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/ord-10/06-agg-shell.png"
+    }
+  ]
+}

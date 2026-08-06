@@ -1,0 +1,143 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_installningar_v3_2_page",
+      "label": "CCO Inst\u00e4llningar v3.2",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_installningar_v3_2_appearance_density",
+      "label": "Utseende & t\u00e4thet (tema ljust/m\u00f6rkt/auto, kompakt/bekv\u00e4m/rymlig)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_installningar_v3_2_autopilot_settings",
+      "label": "Autopilot-inst\u00e4llningar (smart svar-f\u00f6rslag, auto-prioritering, churn-f\u00f6ruts\u00e4gelse)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_installningar_v3_2_notification_rules",
+      "label": "Aviseringsregler (SLA-varningar, team-omn\u00e4mnanden, desktop, ljud)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_installningar_v3_2_privacy_security",
+      "label": "Integritet & s\u00e4kerhet \u2014 tv\u00e5faktors-autentisering och aktivitetsloggning f\u00f6r revisionssp\u00e5r",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_installningar_v3_2_sidebar_sections",
+      "label": "Konfigurerbara sidof\u00e4lt-sektioner i kundvyn",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_installningar_v3_2_page",
+      "target": "public_major_arcana_preview_cco_installningar_v3_2_appearance_density",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_installningar_v3_2_page",
+      "target": "public_major_arcana_preview_cco_installningar_v3_2_autopilot_settings",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_installningar_v3_2_page",
+      "target": "public_major_arcana_preview_cco_installningar_v3_2_notification_rules",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_installningar_v3_2_page",
+      "target": "public_major_arcana_preview_cco_installningar_v3_2_privacy_security",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_installningar_v3_2_page",
+      "target": "public_major_arcana_preview_cco_installningar_v3_2_sidebar_sections",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_installningar_v3_2_sidebar_sections",
+      "target": "public_major_arcana_preview_cco_kunder_v11_dossier",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_installningar_v3_2_autopilot_settings",
+      "target": "public_major_arcana_preview_cco_no_show_ai_v3_suggest_not_send",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/major-arcana-preview/cco-installningar-v3-2.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

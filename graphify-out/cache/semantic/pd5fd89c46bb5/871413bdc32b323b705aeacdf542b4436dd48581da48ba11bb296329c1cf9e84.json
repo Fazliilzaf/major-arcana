@@ -1,0 +1,82 @@
+{
+  "nodes": [
+    {
+      "id": "docs_implementation_patient_documents_live_a10_owner_decision_2026_06_25_decision",
+      "label": "A10 owner-beslut \u2014 samtycke vid bokning inom 14 dagar",
+      "file_type": "document",
+      "source_file": "docs/implementation/patient-documents-live/A10-OWNER-DECISION-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Meridiq-texten och befintlig CCO-text s\u00e4ger 14 dagar; katalogtiteln 2 dagar var en gammal ben\u00e4mning. Beslutet g\u00f6r Meridiq till word-facit f\u00f6r samtycken och tar bort VERSION_CONFLICT-blockeraren."
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_a10_owner_decision_2026_06_25_stable_registry_id",
+      "label": "Stabilt registryId beh\u00e5lls trots titel\u00e4ndring",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/A10-OWNER-DECISION-2026-06-25.md",
+      "source_location": "Owner-beslut 2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Suffixet markerar steg 6 / undantag bet\u00e4nketid, inte titelns siffror \u2014 att byta ID skulle bryta bundle-, demo- och signregistry-referenser."
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_a10_owner_decision_2026_06_25_cooling_off_separation",
+      "label": "2 dagars bet\u00e4nketid \u00e4r ett separat juridiskt/processuellt sp\u00e5r fr\u00e5n samtyckesdokumentet",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/A10-OWNER-DECISION-2026-06-25.md",
+      "source_location": "Owner-beslut 3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_implementation_patient_documents_live_a10_owner_decision_2026_06_25_decision",
+      "target": "docs_implementation_patient_documents_live_a10_owner_decision_2026_06_25_stable_registry_id",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/A10-OWNER-DECISION-2026-06-25.md",
+      "source_location": "Owner-beslut 2",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_a10_owner_decision_2026_06_25_decision",
+      "target": "docs_implementation_patient_documents_live_a10_owner_decision_2026_06_25_cooling_off_separation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/A10-OWNER-DECISION-2026-06-25.md",
+      "source_location": "Owner-beslut 3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_a10_owner_decision_2026_06_25_decision",
+      "target": "docs_implementation_patient_documents_live_e6_legal_diff_template_status_values",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/A10-OWNER-DECISION-2026-06-25.md",
+      "source_location": "Owner-beslut 5",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_a10_owner_decision_2026_06_25_cooling_off_separation",
+      "target": "docs_implementation_patient_documents_live_ord_24_foto_samtycke_facit_2026_06_25_publish_separation",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "docs/implementation/patient-documents-live/A10-OWNER-DECISION-2026-06-25.md",
+      "source_location": "Owner-beslut 3",
+      "weight": 0.8
+    }
+  ],
+  "hyperedges": []
+}

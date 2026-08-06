@@ -1,0 +1,162 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell",
+      "label": "Sk\u00e4rmdump: Konversationer-skal (CCO)",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_cco_app_shell",
+      "label": "CCO app-skal med toppnavigering",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_inkorg",
+      "label": "Konversationsinkorg (Alla, Ol\u00e4sta, Bokning, VIP)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_kofalt",
+      "label": "K\u00f6f\u00e4lt och v\u00e5rd-fas-navigering",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_operatorsstod",
+      "label": "Kundkontext-panel: Operat\u00f6rsst\u00f6d",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_sla_filter",
+      "label": "SLA-filterrad (Alla, Obesvarade, SLA-risk, Mina)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_cco_app_shell",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_inkorg",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_kofalt",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_operatorsstod",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_sla_filter",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_cco_app_shell",
+      "target": "docs_major_arcana_color_palette_design_tokens",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "cco_operator_screen_family",
+      "label": "CCO operat\u00f6rsvyer (Kunder, Konversationer, Svarstudio)",
+      "nodes": [
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_01_customers_main",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_cco_app_shell"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png"
+    },
+    {
+      "id": "konversationshantering_flode",
+      "label": "Fl\u00f6de f\u00f6r konversationshantering: k\u00f6f\u00e4lt, inkorg, kundkontext, Svarstudio",
+      "nodes": [
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_kofalt",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_inkorg",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_operatorsstod",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3_svarstudio"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/02-conversations-shell.png"
+    }
+  ]
+}

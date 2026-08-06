@@ -1,0 +1,424 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_system_scope_innehallslista",
+      "label": "CCO - vad systemet ska innehalla (innehallslista)",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_kundmaster",
+      "label": "Kundmaster - unikt patientregister, merge, GDPR-export, journalsparr",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_bokning",
+      "label": "Bokning - publik, intern, regler och resurser",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_behandlingstillfalle",
+      "label": "Behandlingstillfalle (encounter) som navet i tidslinjen",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_journal_och_formular",
+      "label": "Journal och formular - patient- och personalformular",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_samtycken_behandlingsavtal",
+      "label": "Samtycken och behandlingsavtal inkl. angerfrist",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_offerter_commercial",
+      "label": "Offerter och commercial-flode",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_kommunikation",
+      "label": "Kommunikation - transaktionellt, mallar, marknadsforing",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_kassa_pos",
+      "label": "Kassa/POS - betalning, kvitto, faktura, presentkort",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_personal_arbetsyta",
+      "label": "Personal och arbetsyta - CCO workspace, roller, MFA",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_compliance_kvalitet",
+      "label": "Compliance och kvalitet - audit, EU-lagring, 10 ars retention",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_migration_historik",
+      "label": "Migration och historik - Cliento, Drive, Meridiq read-only",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_varumarkesseparation",
+      "label": "Varumarkesseparation Hair TP / Curatiio",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Tjanster brand-taggas och filtreras via host sa att patientflodena for de tva varumarkena aldrig blandas i publik bokning."
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_medvetet_utanfor_scope",
+      "label": "Medvetet utanfor scope",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Meridiq och Cliento ska fasas ut som malbild, GetAccept ersatts av Arcana-avtal, och journalinnehall skickas aldrig till tredjelands-AI."
+    },
+    {
+      "id": "docs_strategy_cco_system_scope_prioriterad_leveransordning",
+      "label": "Prioriterad leveransordning P0/P1/P2",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_kundmaster",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_bokning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_behandlingstillfalle",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_journal_och_formular",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_samtycken_behandlingsavtal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_offerter_commercial",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_kommunikation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_kassa_pos",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_personal_arbetsyta",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_compliance_kvalitet",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_migration_historik",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_varumarkesseparation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_medvetet_utanfor_scope",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_system_scope_prioriterad_leveransordning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_bokning",
+      "target": "docs_strategy_cco_system_scope_behandlingstillfalle",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_behandlingstillfalle",
+      "target": "docs_strategy_cco_system_scope_journal_och_formular",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_behandlingstillfalle",
+      "target": "docs_strategy_cco_system_scope_kassa_pos",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_offerter_commercial",
+      "target": "docs_strategy_cco_system_scope_samtycken_behandlingsavtal",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_journal_och_formular",
+      "target": "docs_strategy_cco_system_scope_compliance_kvalitet",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_kundmaster",
+      "target": "docs_strategy_cco_system_scope_migration_historik",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_varumarkesseparation",
+      "target": "docs_strategy_cco_system_scope_bokning",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_prioriterad_leveransordning",
+      "target": "docs_strategy_cco_system_scope_journal_och_formular",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_innehallslista",
+      "target": "docs_strategy_cco_unified_system_plan_unified_system_plan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_medvetet_utanfor_scope",
+      "target": "docs_strategy_channel_document_inventory_kanal_getaccept",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_system_scope_compliance_kvalitet",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_extern_ai_forbud",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-SYSTEM-SCOPE.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

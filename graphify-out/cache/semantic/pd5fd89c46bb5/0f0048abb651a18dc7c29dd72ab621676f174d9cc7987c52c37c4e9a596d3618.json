@@ -1,0 +1,143 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v11_rail_block10_fixture",
+      "label": "V11 Rail fixture block 10 \u2014 H Bookings",
+      "file_type": "code",
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block10_renderer",
+      "label": "CcoV11Rail-renderare med adapters och cco-v11-rail.css",
+      "file_type": "code",
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block10_deterministiska_stubbar",
+      "label": "Deterministiska stubbar f\u00f6r journey- och bokningslagret",
+      "file_type": "code",
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fixturen stubbar CcoKundkortKkx s\u00e5 screenshotten blir bit-identisk mellan k\u00f6rningar oberoende av backend-data."
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block10_kumulativ_sektionsordning",
+      "label": "Kumulativ sektionsordning D\u2192A\u2192V\u2192B\u2192C\u2192E\u2192F\u2192G\u2192\u2026\u2192S",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje block l\u00e4gger till exakt en ny sektion ovanp\u00e5 f\u00f6reg\u00e5ende block, s\u00e5 en visuell regression kan h\u00e4rledas till den sektion som just tillkom."
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block10_keep_inga_nya_handlers",
+      "label": "KEEP-princip: inga nya handlers, \u00e5teranv\u00e4nd data-v9-*-attribut",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Raderna b\u00e4r befintliga data-v9-section-link/data-v9-quick-attribut som degraderar tyst i fixturen, s\u00e5 r\u00e4lsen kan bytas ut utan att befintliga interaktioner skrivs om."
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block10_sektion_h_bookings",
+      "label": "Sektion H \u2014 kommande bokningar",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v11_rail_block10_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block10_renderer",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block10_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block10_deterministiska_stubbar",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block10_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block10_kumulativ_sektionsordning",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block10_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block10_sektion_h_bookings",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block10_sektion_h_bookings",
+      "target": "tests_visual_fixtures_v11_rail_block10_keep_inga_nya_handlers",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "v11_rail_visuell_regressionskedja",
+      "label": "V11 Rail visuell regressionskedja: samma renderare + stubbar, en ny sektion per block",
+      "nodes": [
+        "tests_visual_fixtures_v11_rail_block10_renderer",
+        "tests_visual_fixtures_v11_rail_block10_deterministiska_stubbar",
+        "tests_visual_fixtures_v11_rail_block10_kumulativ_sektionsordning",
+        "tests_visual_fixtures_v11_rail_block10_keep_inga_nya_handlers",
+        "tests_visual_fixtures_v11_rail_block10_fixture",
+        "tests_visual_fixtures_v11_rail_block19_fixture"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block10.html"
+    }
+  ]
+}

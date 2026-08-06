@@ -1,0 +1,102 @@
+{
+  "nodes": [
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_halsodeklaration_16414",
+      "label": "H\u00e4lsodeklaration (Meridiq 16414) \u2014 14 fr\u00e5gor, operativt facit",
+      "file_type": "document",
+      "source_file": "docs/implementation/patient-documents-live/diffs/HD-16414-diff-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_cco_schema_health_declaration",
+      "label": "CCO schema health_declaration:hair_tp (14/14 match)",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/HD-16414-diff-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_word_tva_lager",
+      "label": "SharePoint-Word tv\u00e5lagersproblem (\u00e4ldre print-mall + Meridiq-bilaga)",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/HD-16414-diff-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_meridiq_operativt_facit",
+      "label": "Beslut: Meridiq-formul\u00e4r \u00e4r operativt textfacit, inte Word/demo",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/HD-16414-diff-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_final_demo_steg3_blocker",
+      "label": "BLOCKER: final-demo steg3 f\u00e5r ej anv\u00e4ndas som textfacit",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/HD-16414-diff-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_cco_schema_health_declaration",
+      "target": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_halsodeklaration_16414",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/HD-16414-diff-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_meridiq_operativt_facit",
+      "target": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_word_tva_lager",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/HD-16414-diff-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_final_demo_steg3_blocker",
+      "target": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_meridiq_operativt_facit",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/HD-16414-diff-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_hd_16414_diff_2026_06_04_halsodeklaration_16414",
+      "target": "docs_legal_gdpr_dpa_template_dpa_mall",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/implementation/patient-documents-live/diffs/HD-16414-diff-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,113 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_p0_reality_audit_rerun_2026_02_25_audit",
+      "label": "P0 Reality Audit Re-Run (2026-02-25)",
+      "file_type": "document",
+      "source_file": "docs/ops/p0-reality-audit-rerun-2026-02-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_p0_reality_audit_rerun_2026_02_25_execution_gateway_lock",
+      "label": "ExecutionGateway architecture lock (P0)",
+      "file_type": "concept",
+      "source_file": "docs/ops/p0-reality-audit-rerun-2026-02-25.md",
+      "source_location": "Evidence \u00a72",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_p0_reality_audit_rerun_2026_02_25_eval_before_persist",
+      "label": "Eval-f\u00f6re-persist f\u00f6r template/mail-fl\u00f6den",
+      "file_type": "concept",
+      "source_file": "docs/ops/p0-reality-audit-rerun-2026-02-25.md",
+      "source_location": "Evidence \u00a74",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_p0_reality_audit_rerun_2026_02_25_no_bypass_lint",
+      "label": "No-bypass route lint i CI",
+      "file_type": "concept",
+      "source_file": "docs/ops/p0-reality-audit-rerun-2026-02-25.md",
+      "source_location": "Evidence \u00a75",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_p0_reality_audit_rerun_2026_02_25_audit_append_only",
+      "label": "Append-only audit hardening (repairMissing off i runtime)",
+      "file_type": "concept",
+      "source_file": "docs/ops/p0-reality-audit-rerun-2026-02-25.md",
+      "source_location": "Evidence \u00a76",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_p0_reality_audit_rerun_2026_02_25_cross_tenant_isolation_tests",
+      "label": "Cross-tenant isolation testsuite (403 + auditsp\u00e5r)",
+      "file_type": "concept",
+      "source_file": "docs/ops/p0-reality-audit-rerun-2026-02-25.md",
+      "source_location": "Evidence \u00a77",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_p0_reality_audit_rerun_2026_02_25_audit",
+      "target": "docs_ops_p0_reality_audit_rerun_2026_02_25_execution_gateway_lock",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/p0-reality-audit-rerun-2026-02-25.md",
+      "source_location": "Evidence \u00a72",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_p0_reality_audit_rerun_2026_02_25_eval_before_persist",
+      "target": "docs_ops_p0_reality_audit_rerun_2026_02_25_execution_gateway_lock",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/p0-reality-audit-rerun-2026-02-25.md",
+      "source_location": "Evidence \u00a74",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_p0_reality_audit_rerun_2026_02_25_no_bypass_lint",
+      "target": "docs_ops_p0_reality_audit_rerun_2026_02_25_execution_gateway_lock",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/p0-reality-audit-rerun-2026-02-25.md",
+      "source_location": "Evidence \u00a75",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_p0_reality_audit_rerun_2026_02_25_audit_append_only",
+      "target": "docs_ops_p0_reality_audit_rerun_2026_02_25_cross_tenant_isolation_tests",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/ops/p0-reality-audit-rerun-2026-02-25.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

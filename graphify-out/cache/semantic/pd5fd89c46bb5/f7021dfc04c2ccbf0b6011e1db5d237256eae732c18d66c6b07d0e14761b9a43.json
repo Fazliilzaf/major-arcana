@@ -1,0 +1,153 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_55_studio_video_wiring_order",
+      "label": "ORD-55 \u2014 Wira befintlig Veo-video in i Studions kampanjfl\u00f6de",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_55_studio_video_wiring_veo_adapter_reuse",
+      "label": "\u00c5teranv\u00e4nd befintlig Veo-videoadapter + persist-store (ingen ny videokod)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_55_studio_video_wiring_campaign_video_card",
+      "label": "Videokort i kampanjpaketet \u2014 syskonkopia av bildkortet",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_55_studio_video_wiring_explicit_generation_cost_control",
+      "label": "Kostnadskontroll \u2014 rendering endast vid explicit generering, inga retry-loopar",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_55_studio_video_wiring_honest_failure_state",
+      "label": "\u00c4rligt fell\u00e4ge / 'ej live'-l\u00e4ge vid saknad motor eller leverant\u00f6rsfel",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_55_studio_video_wiring_fail_closed_provider",
+      "label": "Fail-closed provider-validering (409 n\u00e4r motor ej live)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_55_studio_video_wiring_order",
+      "target": "docs_handover_orders_ord_55_studio_video_wiring_veo_adapter_reuse",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_55_studio_video_wiring_order",
+      "target": "docs_handover_orders_ord_55_studio_video_wiring_campaign_video_card",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_55_studio_video_wiring_order",
+      "target": "docs_handover_orders_ord_55_studio_video_wiring_explicit_generation_cost_control",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_55_studio_video_wiring_order",
+      "target": "docs_handover_orders_ord_55_studio_video_wiring_honest_failure_state",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_55_studio_video_wiring_honest_failure_state",
+      "target": "docs_handover_orders_ord_57_ceo_designparitet_v8_facit_honesty_principle",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_55_studio_video_wiring_fail_closed_provider",
+      "target": "docs_handover_orders_ord_55_studio_video_wiring_honest_failure_state",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_55_studio_video_wiring_campaign_video_card",
+      "target": "docs_handover_orders_ord_57_ceo_designparitet_v8_facit_design_facit",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_55_studio_video_wiring_veo_adapter_reuse",
+      "target": "docs_handover_orders_ord_48_parallel_svep_3_agents_additive_rule",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/ORDERS/ORD-55-studio-video-wiring.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

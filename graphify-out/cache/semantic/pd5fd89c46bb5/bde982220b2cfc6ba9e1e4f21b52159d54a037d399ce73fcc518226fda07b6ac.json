@@ -1,0 +1,96 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_v11_facit_mockup_2026_06_18_hogerspalt_facit",
+      "label": "H\u00d6GERSPALT v11 komplett \u2014 22 sektioner + Aktivt bes\u00f6k (facit)",
+      "file_type": "document",
+      "source_file": "docs/handover/MOCKUPS/V11-FACIT-MOCKUP-2026-06-18.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v11_facit_mockup_2026_06_18_sektionskatalog",
+      "label": "Sektionskatalog A\u2013S + V (bokstavsindexerade h\u00f6gerspalts-sektioner)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/V11-FACIT-MOCKUP-2026-06-18.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje sektion f\u00e5r en fast bokstav (A Profilhuvud \u2026 S Sticky footer, V Aktivt bes\u00f6k) s\u00e5 facit, rail-block, ORD-uppdrag och canon-paragrafer kan referera samma identitet utan namnkrock."
+    },
+    {
+      "id": "docs_handover_mockups_v11_facit_mockup_2026_06_18_kundresa_9_steg",
+      "label": "F \u00b7 Kundresa 9 steg (journeyStep-modell)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/V11-FACIT-MOCKUP-2026-06-18.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_v11_facit_mockup_2026_06_18_sektionskatalog",
+      "target": "docs_handover_mockups_v11_facit_mockup_2026_06_18_hogerspalt_facit",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/V11-FACIT-MOCKUP-2026-06-18.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_facit_mockup_2026_06_18_kundresa_9_steg",
+      "target": "docs_handover_mockups_v11_facit_mockup_2026_06_18_sektionskatalog",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/V11-FACIT-MOCKUP-2026-06-18.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_facit_mockup_2026_06_18_hogerspalt_facit",
+      "target": "docs_handover_mockups_kundkort_v11_locked_2026_06_05_kundkort_v11",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/V11-FACIT-MOCKUP-2026-06-18.html",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "docs_handover_mockups_v11_facit_mockup_2026_06_18_sektionskatalog",
+      "target": "docs_handover_mockups_aktivt_besok_locked_2026_06_17_zon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/V11-FACIT-MOCKUP-2026-06-18.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "v11_facit_till_rail_implementation",
+      "label": "v11 facit-kedja: l\u00e5st kundkort \u2192 sektionskatalog \u2192 rail-block med viewport-bevis",
+      "nodes": [
+        "docs_handover_mockups_kundkort_v11_locked_2026_06_05_kundkort_v11",
+        "docs_handover_mockups_v11_facit_mockup_2026_06_18_sektionskatalog",
+        "docs_handover_mockups_v11_rail_block1_a_profile_viewport_preview_harness",
+        "docs_handover_mockups_v11_rail_block1_a_profile_viewport_preview_responsiv_canon"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "docs/handover/MOCKUPS/V11-FACIT-MOCKUP-2026-06-18.html"
+    }
+  ]
+}

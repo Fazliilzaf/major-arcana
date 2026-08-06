@@ -1,0 +1,236 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_inventory",
+      "label": "C0 \u2014 Konversationer x Kunder inventering",
+      "file_type": "document",
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_customer_binding_contract",
+      "label": "Kundbindningskontrakt (customerMatch: confirmed/suggested/none/conflict)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_integration_plan_c1_c7",
+      "label": "Integrationsplan C1\u2013C7 (read-only inkorg \u2192 live send sist)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_lane_taxonomy_separation",
+      "label": "\u00c5tskild filter-/lane-taxonomi (v3-segment, inbox-tabs, AnalyzeInbox lanes, thread filters)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_live_send_lock",
+      "label": "Live-send lock (Graph-utskick l\u00e5st tills owner-GO)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_worklist_consumer",
+      "label": "worklist/consumer som operativ read-only inkorg",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_ownership_model",
+      "label": "\u00c4garmodell: Codex kartl\u00e4gger, Cursor Drive-review, Cloud bygger fr\u00e5n spec",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_legacy_parallel_surfaces",
+      "label": "Parallella legacy-ytor (konversationer.html, komm-panel, /cco/* actions)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_no_ai_journal_write",
+      "label": "Regel: AI f\u00e5r aldrig autoskriva journal eller kundkort",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_inventory",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_customer_binding_contract",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "Datakontrakt som saknas",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_inventory",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_integration_plan_c1_c7",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "Integrationsplan",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_customer_binding_contract",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_integration_plan_c1_c7",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "Beslut: datakontraktet mellan mailtr\u00e5d och patientkort m\u00e5ste bli r\u00e4tt f\u00f6rst",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_inventory",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_lane_taxonomy_separation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "C0.1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_lane_taxonomy_separation",
+      "target": "docs_ops_cco_analyze_inbox_draft_prep_2026_02_26_analyze_inbox",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "AnalyzeInbox lanes",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_inventory",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_worklist_consumer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "Blockerande f\u00f6rtydliganden",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_inventory",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_ownership_model",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "Rekommenderad \u00e4garmodell",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_inventory",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_legacy_parallel_surfaces",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "Legacy-yta",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_inventory",
+      "target": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_contract",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "Cross-references",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_no_ai_journal_write",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_customer_binding_contract",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "Regel + Risker",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_live_send_lock",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_integration_plan_c1_c7",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "C7 - Live send senare",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_worklist_consumer",
+      "target": "docs_ops_cco_konversationer_backfill_runbook_mailbox_truth_store",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": "ccoMailboxTruthStore",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_legacy_parallel_surfaces",
+      "target": "docs_ops_cco_surface_map_single_production_surface",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/cco-conversations-customers-c0-inventory-2026-07-01.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

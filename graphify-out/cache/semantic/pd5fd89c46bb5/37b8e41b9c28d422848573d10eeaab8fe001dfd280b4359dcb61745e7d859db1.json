@@ -1,0 +1,69 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v11_rail_block12_fixture",
+      "label": "V11 Rail fixture block 12 \u2014 J Journals",
+      "file_type": "code",
+      "source_file": "tests/visual/fixtures/v11-rail-block12.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block12_sektion_j_journals",
+      "label": "Sektion J \u2014 journalposter med signed/draft h\u00e4rlett ur locked/signedAt",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block12.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v11_rail_block12_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block10_renderer",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block12.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block12_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block12_sektion_j_journals",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block12.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block12_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block11_fixture",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block12.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block12_sektion_j_journals",
+      "target": "public_personal_demo_signering_rattelse",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "tests/visual/fixtures/v11-rail-block12.html",
+      "source_location": null,
+      "weight": 0.75
+    }
+  ],
+  "hyperedges": []
+}

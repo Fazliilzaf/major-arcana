@@ -1,0 +1,127 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_post_deploy_prod_heal_sh",
+      "label": "post-deploy-prod-heal.sh",
+      "file_type": "code",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_post_deploy_prod_heal_sh__entry",
+      "label": "post-deploy-prod-heal.sh script",
+      "file_type": "code",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    },
+    {
+      "id": "$graphify-root$_scripts_post_deploy_prod_heal_wait_for_prod",
+      "label": "wait_for_prod()",
+      "file_type": "code",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L13",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_post_deploy_prod_heal_sh",
+      "target": "$graphify-root$_scripts_post_deploy_prod_heal_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_post_deploy_prod_heal_sh",
+      "target": "$graphify-root$_scripts_render_prod_defaults_sh",
+      "relation": "imports_from",
+      "confidence": "INFERRED",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "import",
+      "target_file": "$graphify-root$/scripts/render-prod-defaults.sh"
+    },
+    {
+      "source": "$graphify-root$_scripts_post_deploy_prod_heal_sh",
+      "target": "$graphify-root$_scripts_post_deploy_prod_heal_wait_for_prod",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_post_deploy_prod_heal_sh__entry",
+      "target": "$graphify-root$_scripts_post_deploy_prod_heal_wait_for_prod",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L43",
+      "weight": 1.0,
+      "context": "call"
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_scripts_post_deploy_prod_heal_sh__entry",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L3"
+    },
+    {
+      "language": "bash",
+      "callee": "cd",
+      "caller_nid": "$graphify-root$_scripts_post_deploy_prod_heal_sh__entry",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L6"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_post_deploy_prod_heal_sh__entry",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L36"
+    },
+    {
+      "language": "bash",
+      "callee": "node",
+      "caller_nid": "$graphify-root$_scripts_post_deploy_prod_heal_sh__entry",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L49"
+    },
+    {
+      "language": "bash",
+      "callee": "return",
+      "caller_nid": "$graphify-root$_scripts_post_deploy_prod_heal_wait_for_prod",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L21"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_post_deploy_prod_heal_wait_for_prod",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L25"
+    },
+    {
+      "language": "bash",
+      "callee": "sleep",
+      "caller_nid": "$graphify-root$_scripts_post_deploy_prod_heal_wait_for_prod",
+      "source_file": "scripts/post-deploy-prod-heal.sh",
+      "source_location": "L26"
+    }
+  ],
+  "bash_sources": [
+    {
+      "target_path": "$graphify-root$/scripts/render-prod-defaults.sh",
+      "source_file": "$graphify-root$/scripts/post-deploy-prod-heal.sh",
+      "source_location": "L8"
+    }
+  ]
+}

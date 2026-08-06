@@ -1,0 +1,49 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_icon_192_image",
+      "label": "HCCO app-ikon 192x192 (PWA preview)",
+      "file_type": "image",
+      "source_file": "public/major-arcana-preview/icon-192.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_icon_192_app_icon",
+      "label": "HCCO varumarkesikon (serif H pa gradient)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/icon-192.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_icon_192_image",
+      "target": "public_major_arcana_preview_icon_192_app_icon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/icon-192.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_icon_192_app_icon",
+      "target": "public_htp_logo_email_brandmark",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.55,
+      "source_file": "public/major-arcana-preview/icon-192.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

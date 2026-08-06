@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_drive_import_review_canary_runbook_runbook",
+      "label": "Drive Import Review \u2014 canary runbook (R2)",
+      "file_type": "document",
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_import_review_canary_runbook_canary_decision_quota",
+      "label": "Canary decision quota (DRIVE_IMPORT_REVIEW_CANARY_MAX_DECISIONS)",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": "Config (prod) / Historik",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_import_review_canary_runbook_storage_key_changed_guard",
+      "label": "storageKeyChanged=0 stop-condition",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": "Efter merge (canary 300)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_import_review_canary_runbook_prod_auth_token_resolution",
+      "label": "Prod auth token resolution with STAFF fallback",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": "Prod-auth (pilot + verify)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_import_review_canary_runbook_batch_hard_cap",
+      "label": "Batch hard cap (max 3 filer, ingen batch-UI)",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": "Gr\u00e4nser (of\u00f6r\u00e4ndrat)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_drive_import_review_canary_runbook_runbook",
+      "target": "docs_ops_drive_import_review_canary_runbook_canary_decision_quota",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": "Config (prod)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_import_review_canary_runbook_canary_decision_quota",
+      "target": "docs_ops_drive_import_review_canary_runbook_storage_key_changed_guard",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": "Historik \u2014 h\u00f6jning kr\u00e4ver skc=0",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_import_review_canary_runbook_runbook",
+      "target": "docs_ops_drive_import_review_canary_runbook_prod_auth_token_resolution",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": "Prod-auth",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_import_review_canary_runbook_runbook",
+      "target": "docs_ops_drive_import_review_canary_runbook_batch_hard_cap",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": "Gr\u00e4nser",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_import_review_canary_runbook_batch_hard_cap",
+      "target": "docs_ops_drive_internalize_verify_gate_gate2_owner_go",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_import_review_canary_runbook_storage_key_changed_guard",
+      "target": "docs_ops_drive_internalize_verify_gate_auto_repair_ghost_visible",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_import_review_canary_runbook_prod_auth_token_resolution",
+      "target": "docs_ops_migration_drive_sharepoint_runbook_runbook",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/ops/drive-import-review-canary-runbook.md",
+      "source_location": "OWNER vs STAFF-token f\u00f6r migrations-/review-endpoints",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

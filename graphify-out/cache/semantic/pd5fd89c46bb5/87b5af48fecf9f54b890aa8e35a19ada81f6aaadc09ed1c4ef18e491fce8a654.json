@@ -1,0 +1,266 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v12_workspace_warnings",
+      "label": "V12 Workspace-fixtur \u00b7 Kritiska varningar (Block 3)",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_warnings_build_critical_warnings",
+      "label": "buildCriticalWarnings-adapter (display-only)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Medvetet display-only utan handlers \u2014 varningar ska informera och blockera visuellt, inte utf\u00f6ra \u00e5tg\u00e4rder fr\u00e5n varningsytan."
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_warnings_automation_signals",
+      "label": "automationSignals regelmodell (ruleId/status/what/why/risk)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_warnings_risk_klassning",
+      "label": "Riskklassning legal_blocker / legal / needs_review",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Endast legal_blocker och legal lyfts som kritiska varningar; needs_review \u00e4r en info-signal och ska EJ visas som kritisk, f\u00f6r att undvika varningstr\u00f6tthet."
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_warnings_missing_agreement_consent",
+      "label": "Regel: customer.missing_agreement_consent_bundle",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Avtal + samtycke \u00e4r Steg 7 och kr\u00e4vs f\u00f6re behandling i samma transaktion \u2014 d\u00e4rf\u00f6r en legal_blocker, inte en p\u00e5minnelse."
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_warnings_missing_photo_consent",
+      "label": "Regel: customer.missing_photo_consent",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Foto-samtycke kr\u00e4vs innan foton tas vid bes\u00f6ket; grindar bildmodulens insamling."
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_warnings_retention_followup",
+      "label": "Regel: customer.retention_followup (info-signal)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_warnings_shot_script",
+      "label": "Sk\u00e4rmbildsskript shots:v12workspace:warnings",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_warnings_health_declaration",
+      "label": "H\u00e4lsodeklaration i kundkortsdata (signedAt + k\u00e4lla)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings",
+      "target": "tests_visual_fixtures_v12_workspace_photos_two_zone_shell",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings",
+      "target": "tests_visual_fixtures_v12_workspace_photos_cco_v11_rail",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings",
+      "target": "tests_visual_fixtures_v12_workspace_photos_cco_v12_workspace",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings",
+      "target": "tests_visual_fixtures_v12_workspace_photos_kkx_stub",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings",
+      "target": "tests_visual_fixtures_v12_workspace_warnings_build_critical_warnings",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings_build_critical_warnings",
+      "target": "tests_visual_fixtures_v12_workspace_warnings_automation_signals",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings_automation_signals",
+      "target": "tests_visual_fixtures_v12_workspace_warnings_risk_klassning",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings_automation_signals",
+      "target": "tests_visual_fixtures_v12_workspace_warnings_missing_agreement_consent",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings_automation_signals",
+      "target": "tests_visual_fixtures_v12_workspace_warnings_missing_photo_consent",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings_automation_signals",
+      "target": "tests_visual_fixtures_v12_workspace_warnings_retention_followup",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings",
+      "target": "tests_visual_fixtures_v12_workspace_warnings_health_declaration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings_shot_script",
+      "target": "tests_visual_fixtures_v12_workspace_warnings",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings_missing_agreement_consent",
+      "target": "tests_visual_fixtures_v12_workspace_sticky_boka_nasta",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_warnings_missing_photo_consent",
+      "target": "tests_visual_fixtures_v12_workspace_photos_build_photos_adapter",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "kritiska_varningar_signalkedja",
+      "label": "Signalkedja: automationSignals \u2192 riskklassning \u2192 kritiska varningar",
+      "nodes": [
+        "tests_visual_fixtures_v12_workspace_warnings_automation_signals",
+        "tests_visual_fixtures_v12_workspace_warnings_risk_klassning",
+        "tests_visual_fixtures_v12_workspace_warnings_build_critical_warnings",
+        "tests_visual_fixtures_v12_workspace_warnings_missing_agreement_consent",
+        "tests_visual_fixtures_v12_workspace_warnings_missing_photo_consent"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-warnings.html"
+    }
+  ]
+}

@@ -1,0 +1,212 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_staff_portal_plan_2026_06_29_doc",
+      "label": "Personalportal \u2014 Teknisk plan & informationsarkitektur",
+      "file_type": "document",
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_staff_portal_plan_2026_06_29_hitl_ordination_gate",
+      "label": "HITL-gate: ordination f\u00e5r aldrig auto-godk\u00e4nnas",
+      "file_type": "concept",
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a75 S\u00e4kerhetsarkitektur",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_staff_portal_plan_2026_06_29_rbac_rollmodell",
+      "label": "Rollmodell personalportal (sjuksk\u00f6terska/l\u00e4kare/\u00e4gare)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a72 Rollmodell",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_staff_portal_plan_2026_06_29_staff_tasks_tabell",
+      "label": "staff_tasks \u2014 uppgiftsk\u00f6 per personal",
+      "file_type": "concept",
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a73 Nya datamodeller",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_staff_portal_plan_2026_06_29_ordination_reviews_tabell",
+      "label": "ordination_reviews \u2014 ordinationsunderlag med signatur",
+      "file_type": "concept",
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a73 Nya datamodeller",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_staff_portal_plan_2026_06_29_qms_immutable_audit",
+      "label": "QMS append-only audit (checklistor + OLS-3 avvikelser)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a75 + \u00a78",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_staff_portal_plan_2026_06_29_staff_delegations_tabell",
+      "label": "staff_delegations \u2014 delegeringsdokument med giltighetstid",
+      "file_type": "concept",
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a73 Nya datamodeller",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_staff_portal_plan_2026_06_29_kundanonymitet",
+      "label": "Kund-anonymitet mot personal (assigned_to d\u00f6ljs i patient-API)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a75 Kund-anonymitet",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_staff_portal_plan_2026_06_29_fasplan",
+      "label": "Personalportal 5-fasplan (prototyp \u2192 QA)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a79 Fas-plan",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_staff_portal_plan_2026_06_29_doc",
+      "target": "docs_strategy_staff_portal_plan_2026_06_29_hitl_ordination_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a75",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_staff_portal_plan_2026_06_29_hitl_ordination_gate",
+      "target": "docs_strategy_staff_portal_plan_2026_06_29_ordination_reviews_tabell",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a73 + \u00a75",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_staff_portal_plan_2026_06_29_rbac_rollmodell",
+      "target": "docs_strategy_staff_portal_plan_2026_06_29_hitl_ordination_gate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a72 ordination.approve ges aldrig till personal",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_staff_portal_plan_2026_06_29_staff_tasks_tabell",
+      "target": "docs_strategy_staff_portal_plan_2026_06_29_kundanonymitet",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a75",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_staff_portal_plan_2026_06_29_qms_immutable_audit",
+      "target": "docs_strategy_staff_portal_plan_2026_06_29_hitl_ordination_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a75 Audit trail",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_staff_portal_plan_2026_06_29_doc",
+      "target": "docs_strategy_staff_portal_plan_2026_06_29_staff_delegations_tabell",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a73",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_staff_portal_plan_2026_06_29_doc",
+      "target": "docs_strategy_staff_portal_plan_2026_06_29_fasplan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": "\u00a79",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_staff_portal_plan_2026_06_29_rbac_rollmodell",
+      "target": "docs_uiux_component_library_override_motivering",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": null,
+      "weight": 0.65
+    },
+    {
+      "source": "docs_strategy_staff_portal_plan_2026_06_29_fasplan",
+      "target": "docs_strategy_web_to_arcana_bridge_fas_a_b_c_migration",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md",
+      "source_location": null,
+      "weight": 0.65
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "ordination_hitl_beslutskedja",
+      "label": "Ordinationskedja: admin skapar \u2192 l\u00e4kare godk\u00e4nner \u2192 audit \u2192 sjuksk\u00f6terska ser status",
+      "nodes": [
+        "docs_strategy_staff_portal_plan_2026_06_29_rbac_rollmodell",
+        "docs_strategy_staff_portal_plan_2026_06_29_ordination_reviews_tabell",
+        "docs_strategy_staff_portal_plan_2026_06_29_hitl_ordination_gate",
+        "docs_strategy_staff_portal_plan_2026_06_29_qms_immutable_audit",
+        "docs_strategy_staff_portal_plan_2026_06_29_staff_tasks_tabell"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/staff-portal-plan-2026-06-29.md"
+    }
+  ]
+}

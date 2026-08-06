@@ -1,0 +1,360 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_kalender_master_doc",
+      "label": "CCO Kalender \u2014 Master-dokument",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_booking_engine_store",
+      "label": "ccoBookingEngineStore",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_public_web_booking_flag",
+      "label": "ARCANA_PUBLIC_WEB_BOOKING_ENABLED",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Flaggan h\u00e5lls av p\u00e5 prod tills \u00e4garen uttryckligen godk\u00e4nner \u2014 publik webbokning f\u00e5r inte flippas som sidoeffekt av en deploy."
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_warm_row",
+      "label": "warm-row komponentm\u00f6nster",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Bokningar och mejl ska se ut som syskon i hela CCO; egna booking-block-klasser r\u00e4knades som designspr\u00e5ksbrott."
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_mailbox_rail",
+      "label": "Mailbox-rail (f\u00e4rgad v\u00e4nsterkant per brevl\u00e5da)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Visar i ett \u00f6gonkast varifr\u00e5n ett \u00e4rende kom \u2014 samma f\u00e4rgsystem som mejlkorten i k\u00f6-vyn."
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_focus_pane",
+      "label": "focus-pane / Kundintelligens-panel",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_design_tokens",
+      "label": "CCO design-tokens",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_feature_matrix",
+      "label": "Kalender feature-matris P0-P3",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_refactor_r1_r4",
+      "label": "Refaktor-v\u00e4gkarta R1-R4",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Refaktorera ist\u00e4llet f\u00f6r att riva Cursors kalenderkod \u2014 designbridge f\u00f6rst ger snabbast synlig effekt."
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_fas2_blocks",
+      "label": "Fas 2 Block 1-4 (bekr\u00e4fta \u00b7 p\u00e5minn \u00b7 avboka \u00b7 omboka)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Ombokning byggs sist eftersom den \u00e4r mest samtidighetsk\u00e4nslig \u2014 ny slot l\u00e5ses f\u00f6re den gamla frig\u00f6rs."
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_lane_architecture",
+      "label": "Lane-arkitektur (12 lanes + dispatcher)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Ingen NLP i preview-lagret \u2014 lane-predikat h\u00e4rleder intent via keyword-matchning i prioritetsordning."
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_patient360",
+      "label": "Patient360-journeymotor (10 moduler)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "L\u00e5g confidence flaggar \u00abM\u00e4nniska validerar\u00bb ist\u00e4llet f\u00f6r att presentera h\u00e4rledningen som fakta."
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_ios_design_specs",
+      "label": "iOS Design Specs (glass + spring physics)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Additivt lager ovanp\u00e5 CCO-tokens med obligatoriska gates: prefers-reduced-motion, backdrop-filter-fallback och a11y-tr\u00f6skel."
+    },
+    {
+      "id": "docs_strategy_cco_kalender_master_cliento_canonical",
+      "label": "Cliento f\u00f6rblir canonical patientbokning",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "\u00c4garveto: Cliento r\u00f6rs inte f\u00f6rr\u00e4n CCO-kalendern \u00e4r 100% klar och godk\u00e4nd, och ingen \u00e4ndring i bokningsstacken sker utan per-\u00e4ndring-OK."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_booking_engine_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_public_web_booking_flag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_warm_row",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_mailbox_rail",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_focus_pane",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_design_tokens",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_feature_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_refactor_r1_r4",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_fas2_blocks",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_lane_architecture",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_patient360",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_ios_design_specs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_doc",
+      "target": "docs_strategy_cco_kalender_master_cliento_canonical",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_refactor_r1_r4",
+      "target": "docs_strategy_cco_kalender_master_warm_row",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_warm_row",
+      "target": "docs_strategy_cco_kalender_master_design_tokens",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_mailbox_rail",
+      "target": "docs_strategy_cco_kalender_master_design_tokens",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_cliento_canonical",
+      "target": "docs_strategy_cco_kalender_master_public_web_booking_flag",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_focus_pane",
+      "target": "docs_strategy_cco_kunder_col3_no_loss_matrix_v9_dossier_tabs",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kalender_master_mailbox_rail",
+      "target": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_multi_mailbox_consolidation",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CCO-KALENDER-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

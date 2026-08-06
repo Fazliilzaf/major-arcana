@@ -1,0 +1,184 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_v12_workspace_journal_viewport_preview_v12_customer_workspace",
+      "label": "V12 Customer Workspace (Zon 2 arbetsyta)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Rent .v12-workspace__*-namespace, laddas additivt sa att V11-railen kan leva kvar parallellt under utvarderingen."
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_journal_viewport_preview_v12workspace_feature_flag",
+      "label": "Feature flag ?v12workspace=on (default OFF, additiv laddning)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Default OFF gor V12 riskfritt att deploya; ingen befintlig yta paverkas forran flaggan s\u00e4tts."
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_journal_viewport_preview_canon_d3_zone_layout",
+      "label": "Canon D3 zonlayout \u2014 mobil: V12 \u00e4ger ytan (Zon 1 dold); iPad/webb: Zon 1-rail bredvid Zon 2",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Pa mobil finns inte plats for bade rail och arbetsyta, sa V12 tar over hela ytan i stallet for att stapla tva scrollytor."
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_journal_viewport_preview_journal_module",
+      "label": "V12 Journal-modul (Block 0)",
+      "file_type": "document",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_journal_viewport_preview_v11_adapter_layer",
+      "label": "V11-adapterlager (build*From*-adaptrar \u00e5teranv\u00e4nds av V12)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "V12 ar ett rent presentationslager \u2014 all datahamtning ateranvander V11-adaptrarna sa att bada versionerna visar identisk data."
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_journal_viewport_preview_handler_reuse_principle",
+      "label": "Handler-\u00e5teranv\u00e4ndning \u2014 ingen ny handler i V12",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Genom att aterbinda befintliga data-attribut-handlers undviks dubbla kodvagar och beteendedrift mellan V11 och V12."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_v12_workspace_journal_viewport_preview_journal_module",
+      "target": "docs_handover_mockups_v12_workspace_journal_viewport_preview_v12_customer_workspace",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_journal_viewport_preview_journal_module",
+      "target": "docs_handover_mockups_v12_workspace_journal_viewport_preview_v12workspace_feature_flag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_journal_viewport_preview_journal_module",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_viewport_preview_pattern",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_journal_viewport_preview_journal_module",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_raster_png_pipeline",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_journal_viewport_preview_v12_customer_workspace",
+      "target": "docs_handover_mockups_v12_workspace_journal_viewport_preview_canon_d3_zone_layout",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_journal_viewport_preview_journal_module",
+      "target": "docs_handover_mockups_v12_workspace_journal_viewport_preview_canon_d3_zone_layout",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_journal_viewport_preview_canon_d3_zone_layout",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_v11_rail",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_journal_viewport_preview_v11_adapter_layer",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_v11_rail",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_journal_viewport_preview_v12workspace_feature_flag",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_canon_5_namespace",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "v12_additive_rollout_chain",
+      "label": "V12 additiv utrullning: feature flag \u2192 zonlayout \u2192 V11-adaptrar \u2192 handler-\u00e5teranv\u00e4ndning",
+      "nodes": [
+        "docs_handover_mockups_v12_workspace_journal_viewport_preview_v12workspace_feature_flag",
+        "docs_handover_mockups_v12_workspace_journal_viewport_preview_canon_d3_zone_layout",
+        "docs_handover_mockups_v12_workspace_journal_viewport_preview_v11_adapter_layer",
+        "docs_handover_mockups_v12_workspace_journal_viewport_preview_handler_reuse_principle",
+        "docs_handover_mockups_v12_workspace_journal_viewport_preview_v12_customer_workspace"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace-journal/viewport-preview.html"
+    }
+  ]
+}

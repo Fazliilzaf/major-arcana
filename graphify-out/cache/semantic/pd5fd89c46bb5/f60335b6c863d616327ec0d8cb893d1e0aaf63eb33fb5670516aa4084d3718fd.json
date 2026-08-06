@@ -1,0 +1,48 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg3_auto_instruktion_formular_final_demo_instruktion_hd_fc",
+      "label": "Instruktion formul\u00e4r HD och FC (steg 3 + steg 8)",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg3-auto-instruktion-formular-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg3_auto_instruktion_formular_final_demo_instruktion_hd_fc",
+      "target": "public_major_arcana_preview_staff_anteckningar_kort_final_demo_content_bundle",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg3-auto-instruktion-formular-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg3_auto_instruktion_formular_final_demo_instruktion_hd_fc",
+      "target": "public_major_arcana_preview_steg2_auto_bokningsbekraftelse_final_demo_info_document_shell",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg3-auto-instruktion-formular-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg3_auto_instruktion_formular_final_demo_instruktion_hd_fc",
+      "target": "public_major_arcana_preview_steg3_halsodeklaration_final_demo_halsodeklaration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg3-auto-instruktion-formular-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

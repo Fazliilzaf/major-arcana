@@ -1,0 +1,120 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_doc",
+      "label": "Smart n\u00e4sta steg \u2014 UX-spec v2 (9 steg)",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-SMART-NEXT-STEP-UX-SPEC-V2-9-STEG-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_signal_matrix",
+      "label": "Signalmatris \u2014 10 automationssignaler med gate och disabled reason",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SMART-NEXT-STEP-UX-SPEC-V2-9-STEG-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_forbidden_copy",
+      "label": "F\u00f6rbjuden copy v2 (T-48, 14 dagar, missing_form, auto-skickat)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-SMART-NEXT-STEP-UX-SPEC-V2-9-STEG-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_doc",
+      "target": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_signal_matrix",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SMART-NEXT-STEP-UX-SPEC-V2-9-STEG-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_doc",
+      "target": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_forbidden_copy",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SMART-NEXT-STEP-UX-SPEC-V2-9-STEG-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_signal_matrix",
+      "target": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_nine_step_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SMART-NEXT-STEP-UX-SPEC-V2-9-STEG-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_signal_matrix",
+      "target": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_cooling_off_2d",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SMART-NEXT-STEP-UX-SPEC-V2-9-STEG-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_signal_matrix",
+      "target": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_photo_consent_hairline_crown",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SMART-NEXT-STEP-UX-SPEC-V2-9-STEG-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_forbidden_copy",
+      "target": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_invalid_assumptions",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/strategy/CCO-SMART-NEXT-STEP-UX-SPEC-V2-9-STEG-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_signal_matrix",
+      "target": "docs_strategy_cco_smart_functions_product_plan_2026_06_03_what_why_next",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SMART-NEXT-STEP-UX-SPEC-V2-9-STEG-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_signal_matrix",
+      "target": "docs_strategy_cco_scope_status_refresh_2026_05_31_photo_review_pending",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-SMART-NEXT-STEP-UX-SPEC-V2-9-STEG-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,347 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "label": "Kalender \u2014 Component Plan (14-punkts spec)",
+      "file_type": "document",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_calendar_design_tokens",
+      "label": "CCO kalender-designtokens (accent, timh\u00f6jd, resurs-rails)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_status_pill_dna",
+      "label": "Status-pill-DNA f\u00f6r bokningsstatus (success/warning/danger/info/conflict)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_status_pills_aggregator_endpoint",
+      "label": "Ny aggregator GET /api/v1/calendar/booking/:id/status-pills",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Statusar aggregeras i backend s\u00e5 att UI bara visar pills och aldrig r\u00e5 journaltext."
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_ready_for_treatment_master_pill",
+      "label": "Ready-for-treatment master-pill per bokning",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_quick_actions_toolbar",
+      "label": "Snabbactions: ankommen, no-show, \u00e5terbes\u00f6k, starta journal, skicka formul\u00e4r",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_booking_detail_drawer",
+      "label": "Booking-detail-drawer med patient-snapshot och journal-feed-preview",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_responsive_breakpoints",
+      "label": "Responsiv layout: mobil bottom-sheet, iPad split, desktop 3-kolumn",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_calendar_rbac_gap",
+      "label": "RBAC saknas p\u00e5 /api/v1/calendar/* \u2014 kr\u00e4ver bookings.read",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_no_drive_link_rule",
+      "label": "Regel: inga Drive-l\u00e4nkar, nedladdning via /api/v1/cco/assets/:id/download",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_fourteen_point_component_spec",
+      "label": "14-punkts komponentspec f\u00f6r kalendern",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_booking_action_audit_chain",
+      "label": "Audit-kedja per bokningsaction (booking.checked_in, booking.no_show, form.invited)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_calendar_component_plan_2026_05_30_calendar_day_endpoint_stub",
+      "label": "GET /api/v1/calendar/day \u00e4r stubbad \u2014 m\u00e5ste wiras mot bokningsmotorn",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_calendar_design_tokens",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_status_pill_dna",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_status_pills_aggregator_endpoint",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_ready_for_treatment_master_pill",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_quick_actions_toolbar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_booking_detail_drawer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_responsive_breakpoints",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_calendar_rbac_gap",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_no_drive_link_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_fourteen_point_component_spec",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_booking_action_audit_chain",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_doc",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_calendar_day_endpoint_stub",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_status_pills_aggregator_endpoint",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_status_pill_dna",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_ready_for_treatment_master_pill",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_status_pills_aggregator_endpoint",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_booking_detail_drawer",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_quick_actions_toolbar",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_quick_actions_toolbar",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_booking_action_audit_chain",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_fourteen_point_component_spec",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_responsive_breakpoints",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_calendar_component_plan_2026_05_30_no_drive_link_rule",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_external_ai_prohibition",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "calendar_readiness_pill_flow",
+      "label": "Kalender-readiness: aggregator \u2192 pills \u2192 drawer \u2192 migration",
+      "nodes": [
+        "docs_strategy_calendar_component_plan_2026_05_30_status_pills_aggregator_endpoint",
+        "docs_strategy_calendar_component_plan_2026_05_30_status_pill_dna",
+        "docs_strategy_calendar_component_plan_2026_05_30_ready_for_treatment_master_pill",
+        "docs_strategy_calendar_component_plan_2026_05_30_booking_detail_drawer",
+        "docs_strategy_calendar_migration_matrix_2026_05_30_fourteen_function_migration"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CALENDAR-COMPONENT-PLAN-2026-05-30.md"
+    }
+  ]
+}

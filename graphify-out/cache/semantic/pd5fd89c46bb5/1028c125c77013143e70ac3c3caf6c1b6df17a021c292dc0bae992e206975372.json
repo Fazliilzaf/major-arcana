@@ -1,0 +1,304 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "label": "CCO Automation OS \u2014 Gemensam plan och arkitektur",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_architecture_2026_06_03_automation_os_vision",
+      "label": "Automation OS-vision \u2014 CCO som operationssystem, inte bara journalsystem",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_architecture_2026_06_03_eleven_automation_layers",
+      "label": "11 automationslager (data \u2192 journey \u2192 NBA \u2192 worklists \u2192 \u2026 \u2192 AI-copilots)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_architecture_2026_06_03_human_approval_principle",
+      "label": "Human approval f\u00f6r v\u00e5rd, journal, avtal, foto, mail, merge, import och finansexport",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Automation f\u00e5r f\u00f6rbereda och f\u00f6resl\u00e5, men kritiska v\u00e5rd- och legalbeslut m\u00e5ste ha en m\u00e4nsklig signatur \u2014 d\u00e4rf\u00f6r ingen autoapproval eller massapproval."
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_architecture_2026_06_03_no_external_ai_on_journal",
+      "label": "Ingen extern AI eller tredjelands-AI p\u00e5 journaltext/patientdata utan explicit GO",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_architecture_2026_06_03_ten_smart_functions",
+      "label": "10 smart functions (journey, NBA, worklists, comms, avtal, safety, kalender, foto, mail, CF)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_architecture_2026_06_03_automation_rules_engine",
+      "label": "Automation Rules Engine \u2014 ccoAutomationRegistry + ccoAutomationRunner, dry-run default",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_architecture_2026_06_03_automation_readiness_35pct",
+      "label": "Readiness: Kunder ~97/98 %, Automation OS ~35 %",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_architecture_2026_06_03_first_build_registry_dry_run",
+      "label": "F\u00f6rsta build: Registry + dry-run runner + Kunder-dossierpanel",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_architecture_2026_06_03_superseded_v1_assumptions",
+      "label": "Ogiltiga v1-antaganden (T-48 friskf\u00f6rs\u00e4kran, separat samtycke vid offert, missing_form, ready_for_visit)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_automation_os_vision",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_eleven_automation_layers",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_human_approval_principle",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_no_external_ai_on_journal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_ten_smart_functions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_automation_rules_engine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_automation_readiness_35pct",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_first_build_registry_dry_run",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_superseded_v1_assumptions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_automation_rules_engine",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_human_approval_principle",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_first_build_registry_dry_run",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_automation_rules_engine",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_no_external_ai_on_journal",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_external_ai_prohibition",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_ten_smart_functions",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_journey_orchestrator",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_architecture_2026_06_03_ten_smart_functions",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_next_best_action",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "automation_registry_first_build",
+      "label": "F\u00f6rsta build-kedja f\u00f6r Automation Registry",
+      "nodes": [
+        "docs_strategy_cco_automation_os_architecture_2026_06_03_automation_rules_engine",
+        "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_dry_run_evaluate_api",
+        "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+        "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_what_why_next_pattern",
+        "docs_strategy_cco_automation_os_architecture_2026_06_03_first_build_registry_dry_run"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md"
+    }
+  ]
+}

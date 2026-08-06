@@ -1,0 +1,112 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_kunder_v11_page",
+      "label": "CCO Kunder v11 \u2014 responsiv arbetsyta",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-kunder-v11.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_kunder_v11_segments",
+      "label": "Kundsegment: aktiva, VIP, risk, nya, dormant + sparade segment",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-kunder-v11.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_kunder_v11_ai_insights",
+      "label": "AI-insiktsrutor: idag, m\u00f6jlighet, risk, trend",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-kunder-v11.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_kunder_v11_bulk_actions",
+      "label": "Bulk-\u00e5tg\u00e4rder \u2014 tagga, exportera, kampanj",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-kunder-v11.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_kunder_v11_dossier",
+      "label": "Kunddossier med formul\u00e4r-blockers och behandlingscykel",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-kunder-v11.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_kunder_v11_page",
+      "target": "public_major_arcana_preview_cco_kunder_v11_segments",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-kunder-v11.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_kunder_v11_page",
+      "target": "public_major_arcana_preview_cco_kunder_v11_ai_insights",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-kunder-v11.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_kunder_v11_page",
+      "target": "public_major_arcana_preview_cco_kunder_v11_bulk_actions",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-kunder-v11.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_kunder_v11_page",
+      "target": "public_major_arcana_preview_cco_kunder_v11_dossier",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-kunder-v11.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_kunder_v11_ai_insights",
+      "target": "public_major_arcana_preview_cco_calendar_v6_risk_opportunity_triage",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-kunder-v11.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

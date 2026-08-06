@@ -1,0 +1,120 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_aisia_staff_quick_reference_2026_05_30_doc",
+      "label": "Aisia DS-3 \u2014 Snabbreferens (personal)",
+      "file_type": "document",
+      "source_file": "docs/strategy/AISIA-STAFF-QUICK-REFERENCE-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_staff_quick_reference_2026_05_30_three_core_rules",
+      "label": "Tre grundregler: capture i DS-3, manuell export/import, behandlare verifierar",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-STAFF-QUICK-REFERENCE-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_staff_quick_reference_2026_05_30_baseline_p0_zone_sequence",
+      "label": "P0-zonsekvens f\u00f6r baseline (global \u2192 donor \u2192 recipient \u2192 mikro \u2192 export)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-STAFF-QUICK-REFERENCE-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_aisia_staff_quick_reference_2026_05_30_doc",
+      "target": "docs_strategy_aisia_staff_quick_reference_2026_05_30_three_core_rules",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-STAFF-QUICK-REFERENCE-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_staff_quick_reference_2026_05_30_doc",
+      "target": "docs_strategy_aisia_staff_quick_reference_2026_05_30_baseline_p0_zone_sequence",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-STAFF-QUICK-REFERENCE-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_staff_quick_reference_2026_05_30_three_core_rules",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_clinician_verification_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-STAFF-QUICK-REFERENCE-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_staff_quick_reference_2026_05_30_three_core_rules",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_external_ai_prohibition",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-STAFF-QUICK-REFERENCE-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_staff_quick_reference_2026_05_30_baseline_p0_zone_sequence",
+      "target": "docs_strategy_aisia_room_test_flow_2026_05_30_capture_zone_taxonomy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-STAFF-QUICK-REFERENCE-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_staff_quick_reference_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_apply_aisia_to_cco_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-STAFF-QUICK-REFERENCE-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_staff_quick_reference_2026_05_30_doc",
+      "target": "docs_strategy_aisia_pilot_package_index_2026_05_30_start_aisia_fas_2_command",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-STAFF-QUICK-REFERENCE-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_staff_quick_reference_2026_05_30_doc",
+      "target": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-STAFF-QUICK-REFERENCE-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,137 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_25_kundkort_v11_port_v11_design_tokens",
+      "label": "V11 design-tokens + 5-typstorleksdisciplin + hairstrand",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Fas A",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fas A \u00e4r avsiktligt additiv och visuellt neutral \u2014 tokens g\u00f6rs tillg\u00e4ngliga innan n\u00e5gon yta byter utseende, vilket g\u00f6r senare faser rullbara var f\u00f6r sig."
+    },
+    {
+      "id": "docs_handover_orders_ord_25_kundkort_v11_port_three_zone_composition",
+      "label": "V11 trezons-komposition (Hero \u2192 Dokument \u2192 Insikter + sticky)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Komposition (live SPA)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Journey, bokningar, veckom\u00f6nster och kontextpaneler togs bort ur default-pathen eftersom de l\u00e5g felplacerade f\u00f6re dokumentzonen."
+    },
+    {
+      "id": "docs_handover_orders_ord_25_kundkort_v11_port_v11_cutover_flag",
+      "label": "usesV11DossierCutover() + __ARCANA_V11_KUNDKORT rollback",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Closeout + Rollback",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "En enda cutover-rad i patient-master-ui.js styr default; s\u00e4tts flaggan false faller kortet tillbaka till referens/v10-facit utan deploy."
+    },
+    {
+      "id": "docs_handover_orders_ord_25_kundkort_v11_port_phased_delivery_discipline",
+      "label": "Fasad leverans med Fas 0-audit och \u00e4garf\u00f6rdelning Cursor/Codex",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Cursor vs Codex + Byggordning",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Audit f\u00f6re cutover och strikt fil\u00e4garskap hindrar att tv\u00e5 agenter porterar allt i ett svep och skriver \u00f6ver varandras renderpath."
+    },
+    {
+      "id": "docs_handover_orders_ord_25_kundkort_v11_port_empty_state_when_backend_missing",
+      "label": "Tom-state-strategi n\u00e4r backend-payload saknas",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Fas C + Risker",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fas C shippas med tom-state om ORD-24 inte \u00e4r klar, s\u00e5 frontendleveransen inte blockeras av backendberoende."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_25_kundkort_v11_port_three_zone_composition",
+      "target": "docs_handover_orders_ord_25_kundkort_v11_port_v11_design_tokens",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Fas A + Komposition",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25_kundkort_v11_port_v11_cutover_flag",
+      "target": "docs_handover_orders_ord_25_kundkort_v11_port_three_zone_composition",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Cutover CLOSED",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25_kundkort_v11_port_v11_cutover_flag",
+      "target": "docs_handover_ord_25e_p0_referens_facit_ord47_referens_facit",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Rollback till referens/v10 facit",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25_kundkort_v11_port_three_zone_composition",
+      "target": "docs_handover_orders_ord_24_dokument_segment_backend_patient_document_aggregator",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Fas C beroende av ORD-24 backend",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25_kundkort_v11_port_empty_state_when_backend_missing",
+      "target": "docs_handover_orders_ord_24_dokument_segment_backend_document_type_registry",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Fas C tom-state om ORD-24 inte klar",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25_kundkort_v11_port_three_zone_composition",
+      "target": "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_smart_next_step_module",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Fas D insikter fr\u00e5n smartNextStep + capabilityMatrix",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25_kundkort_v11_port_phased_delivery_discipline",
+      "target": "docs_handover_order_template_order_protocol",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/ORDERS/ORD-25-kundkort-v11-port.md",
+      "source_location": "Cursor vs Codex uppgiftsf\u00f6rdelning",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,675 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_json",
+      "label": "JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_schema",
+      "label": "$schema",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_schemaversion",
+      "label": "schemaVersion",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_generatedat",
+      "label": "generatedAt",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_generatedby",
+      "label": "generatedBy",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_mode",
+      "label": "mode",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_ownermandate",
+      "label": "ownerMandate",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L7"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_scanroots",
+      "label": "scanRoots",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_scanroots_primary",
+      "label": "primary",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L9"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_scanroots_archive",
+      "label": "archive",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L10"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "label": "summary",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L12"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_primaryzipcount",
+      "label": "primaryZipCount",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_archiveentrycount",
+      "label": "archiveEntryCount",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L14"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_archivesymlinkcount",
+      "label": "archiveSymlinkCount",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L15"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_archivevalidcount",
+      "label": "archiveValidCount",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L16"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_archivebrokencount",
+      "label": "archiveBrokenCount",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L17"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_identicalduplicatecount",
+      "label": "identicalDuplicateCount",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L18"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_samenamedifferentchecksumcount",
+      "label": "sameNameDifferentChecksumCount",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L19"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_onlyinprimarycount",
+      "label": "onlyInPrimaryCount",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L20"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_onlyinarchivecount",
+      "label": "onlyInArchiveCount",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L21"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_brokenarchivesymlinkcount",
+      "label": "brokenArchiveSymlinkCount",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L22"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_missingchecksumcount",
+      "label": "missingChecksumCount",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L23"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_physicaldatabytes",
+      "label": "physicalDataBytes",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L24"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_physicaldatahuman",
+      "label": "physicalDataHuman",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L25"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_archivesymlinkbytes",
+      "label": "archiveSymlinkBytes",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L26"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_totaldiskbytes",
+      "label": "totalDiskBytes",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L27"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_totaldiskhuman",
+      "label": "totalDiskHuman",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L28"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_note",
+      "label": "note",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L29"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories",
+      "label": "categories",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L31"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_identical_duplicates",
+      "label": "identical_duplicates",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L32"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_same_name_different_checksum",
+      "label": "same_name_different_checksum",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L244"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_only_in_primary",
+      "label": "only_in_primary",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L245"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_only_in_archive",
+      "label": "only_in_archive",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L246"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_broken_archive_symlinks",
+      "label": "broken_archive_symlinks",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L247"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_missing_checksum",
+      "label": "missing_checksum",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L648"
+    },
+    {
+      "id": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_recommendations",
+      "label": "recommendations",
+      "file_type": "code",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650"
+    },
+    {
+      "id": "ref_ingenting_raderas_i_denna_k\u00f6rning_owner_mandat",
+      "label": "INGENTING raderas i denna k\u00f6rning \u2014 owner-mandat.",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650"
+    },
+    {
+      "id": "ref_identical_duplicates_symlinks_inte_fysiska_dubbletter_beh\u00e5ll_b\u00e5da_disk_fotavtryck_0_ut\u00f6ver_primary",
+      "label": "identical_duplicates: symlinks, INTE fysiska dubbletter. Beh\u00e5ll b\u00e5da. Disk-fotavtryck = 0 ut\u00f6ver Primary.",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650"
+    },
+    {
+      "id": "ref_broken_archive_symlinks_57_historiska_zip_referenser_2020_2025_vars_original_saknas_i_primary_kan_ha_raderats_efter_export_unders\u00f6k_google_drive_takeout_k\u00e4llan",
+      "label": "broken_archive_symlinks: 57 historiska zip-referenser (2020-2025) vars original saknas i Primary. Kan ha raderats efter export. Unders\u00f6k Google Drive Takeout-k\u00e4llan.",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650"
+    },
+    {
+      "id": "ref_only_in_primary_2_st_csv_export_command_fil_inte_zip_data_ej_dubblett_relevant",
+      "label": "only_in_primary (2 st): CSV-export + .command-fil \u2014 inte zip-data, ej dubblett-relevant.",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650"
+    },
+    {
+      "id": "ref_inga_same_name_different_checksum_fall_symlinks_garanterar_bit_exakt_match",
+      "label": "Inga same_name_different_checksum-fall \u2014 symlinks garanterar bit-exakt match.",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650"
+    },
+    {
+      "id": "ref_permanent_radering_av_brutna_symlinks_kr\u00e4ver_explicit_owner_bekr\u00e4ftelse_i_separat_k\u00f6rning",
+      "label": "Permanent radering av brutna symlinks kr\u00e4ver explicit owner-bekr\u00e4ftelse i separat k\u00f6rning.",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650"
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_json",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_schema",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_json",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_schemaversion",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_json",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_generatedat",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_json",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_generatedby",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_json",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_mode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_json",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_ownermandate",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_json",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_scanroots",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_scanroots",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_scanroots_primary",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_scanroots",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_scanroots_archive",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_json",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_primaryzipcount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_archiveentrycount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_archivesymlinkcount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_archivevalidcount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_archivebrokencount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_identicalduplicatecount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_samenamedifferentchecksumcount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_onlyinprimarycount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_onlyinarchivecount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_brokenarchivesymlinkcount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_missingchecksumcount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_physicaldatabytes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_physicaldatahuman",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_archivesymlinkbytes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_totaldiskbytes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_totaldiskhuman",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_summary_note",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_json",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_identical_duplicates",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_same_name_different_checksum",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L244",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_only_in_primary",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L245",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_only_in_archive",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L246",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_broken_archive_symlinks",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L247",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_categories_missing_checksum",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L648",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_json",
+      "target": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_recommendations",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_recommendations",
+      "target": "ref_ingenting_raderas_i_denna_k\u00f6rning_owner_mandat",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_recommendations",
+      "target": "ref_identical_duplicates_symlinks_inte_fysiska_dubbletter_beh\u00e5ll_b\u00e5da_disk_fotavtryck_0_ut\u00f6ver_primary",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_recommendations",
+      "target": "ref_broken_archive_symlinks_57_historiska_zip_referenser_2020_2025_vars_original_saknas_i_primary_kan_ha_raderats_efter_export_unders\u00f6k_google_drive_takeout_k\u00e4llan",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_recommendations",
+      "target": "ref_only_in_primary_2_st_csv_export_command_fil_inte_zip_data_ej_dubblett_relevant",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_recommendations",
+      "target": "ref_inga_same_name_different_checksum_fall_symlinks_garanterar_bit_exakt_match",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_docs_strategy_journal_zip_duplicate_verification_2026_05_30_recommendations",
+      "target": "ref_permanent_radering_av_brutna_symlinks_kr\u00e4ver_explicit_owner_bekr\u00e4ftelse_i_separat_k\u00f6rning",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/strategy/JOURNAL-ZIP-DUPLICATE-VERIFICATION-2026-05-30.json",
+      "source_location": "L650",
+      "weight": 1.0,
+      "context": "import"
+    }
+  ]
+}

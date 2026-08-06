@@ -1,0 +1,112 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_calendar_v6_page",
+      "label": "CCO Kalender v6 \u2014 operat\u00f6rsarbetsyta",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-calendar-v6.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_calendar_v6_risk_opportunity_triage",
+      "label": "Hantera f\u00f6rst / Fyll luckor \u2014 risk- och m\u00f6jlighetstriage",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-calendar-v6.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_calendar_v6_voice_booking_overlay",
+      "label": "R\u00f6ststyrd bokningsbekr\u00e4ftelse (voiceOverlay)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-calendar-v6.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_calendar_v6_schedule_forecast",
+      "label": "Schema-s\u00e4kerhet & tidsmaskin-prognos",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-calendar-v6.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_calendar_v6_calm_mode",
+      "label": "Lugnt l\u00e4ge (calm mode / vibe-strip)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-calendar-v6.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_calendar_v6_page",
+      "target": "public_major_arcana_preview_cco_calendar_v6_risk_opportunity_triage",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-calendar-v6.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_calendar_v6_page",
+      "target": "public_major_arcana_preview_cco_calendar_v6_voice_booking_overlay",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-calendar-v6.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_calendar_v6_page",
+      "target": "public_major_arcana_preview_cco_calendar_v6_schedule_forecast",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-calendar-v6.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_calendar_v6_page",
+      "target": "public_major_arcana_preview_cco_calendar_v6_calm_mode",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-calendar-v6.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_calendar_v6_risk_opportunity_triage",
+      "target": "public_major_arcana_preview_cco_calendar_v6_schedule_forecast",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-calendar-v6.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

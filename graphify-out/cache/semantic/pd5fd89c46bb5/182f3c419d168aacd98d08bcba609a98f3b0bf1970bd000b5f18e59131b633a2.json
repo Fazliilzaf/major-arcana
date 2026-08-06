@@ -1,0 +1,145 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_v11_rail_canon_decision_2026_06_21_doc",
+      "label": "V11 Rail Canon Decision (2026-06-21)",
+      "file_type": "document",
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v11_rail_canon_decision_2026_06_21_hybrid_canon",
+      "label": "Option C \u00b7 Hybrid Canon (valt av \u00e4garen)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a73 / \u00a78",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v11_rail_canon_decision_2026_06_21_canon_matrix",
+      "label": "Canon-sektionsmatris A\u2013S + V (facit / LOCKED / merge per sektion)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a76",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v11_rail_canon_decision_2026_06_21_responsive_contract",
+      "label": "Responsive contract 320/768/1024 (mobil/iPad/webb fr\u00e5n f\u00f6rsta komponent)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a74",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v11_rail_canon_decision_2026_06_21_feature_flag",
+      "label": "Feature flag ?v11rail=on + ren .v11-rail__* namespace",
+      "file_type": "concept",
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a75",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v11_rail_canon_decision_2026_06_21_zon2_rule",
+      "label": "Zon 2-regeln \u2014 dokumentworkflows f\u00f6rblir n\u00e5bara p\u00e5 alla ytor",
+      "file_type": "concept",
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a76 Zon 2 rule",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v11_rail_canon_decision_2026_06_21_empty_state_rule",
+      "label": "Empty-state-regeln \u2014 saknad data ger explicit tomt l\u00e4ge, aldrig fejkat inneh\u00e5ll",
+      "file_type": "concept",
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a73/\u00a75/\u00a76",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v11_rail_canon_decision_2026_06_21_acceptance_tests",
+      "label": "Acceptanstest 3 viewporter \u00d7 3 patientstates f\u00f6re cutover",
+      "file_type": "concept",
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a77",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_v11_rail_canon_decision_2026_06_21_doc",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_hybrid_canon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a78",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v11_rail_canon_decision_2026_06_21_hybrid_canon",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_canon_matrix",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a73 / \u00a76",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v11_rail_canon_decision_2026_06_21_canon_matrix",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_zon2_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a76",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v11_rail_canon_decision_2026_06_21_responsive_contract",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_canon_matrix",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a74 / \u00a76",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v11_rail_canon_decision_2026_06_21_acceptance_tests",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_responsive_contract",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V11-RAIL-CANON-DECISION-2026-06-21.md",
+      "source_location": "\u00a77",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

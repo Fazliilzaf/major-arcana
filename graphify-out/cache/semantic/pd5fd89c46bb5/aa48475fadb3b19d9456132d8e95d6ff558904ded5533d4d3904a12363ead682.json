@@ -1,0 +1,135 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_46_cloud_agent_complete_cloud_agent_steg_3_9",
+      "label": "Cloud Agent \u2014 kundresa steg 3\u20139 wiring i CCO v9",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Ingen ny patienttext skrivs \u2014 all copy l\u00e4ses ur content-bundles och migration-facit, styrt av CCO-STEG789-CONTENT-SOURCE-MATRIX."
+    },
+    {
+      "id": "docs_handover_orders_ord_46_cloud_agent_complete_document_content_bundle",
+      "label": "Hair TP document content bundle (byggd artefakt, versionerad v6/v7)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_46_cloud_agent_complete_partial_status_model",
+      "label": "FULL / PARTIAL / MISSING statusmodell med PARTIAL-banner",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Wiring kan levereras klar \u00e4ven n\u00e4r juridisk text saknas \u2014 bannern g\u00f6r luckan synlig f\u00f6r personal i st\u00e4llet f\u00f6r att blockera hela fl\u00f6det."
+    },
+    {
+      "id": "docs_handover_orders_ord_46_cloud_agent_complete_persistent_document_registry",
+      "label": "Persistent dokument-registry i kundkortet (filter + blocker-markering)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_46_cloud_agent_complete_foto_samtycke_partial_blocker",
+      "label": "K\u00e4nd blocker: foto_samtycke PARTIAL tills SharePoint/ORD-24-text",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_46_cloud_agent_complete_brand_isolation",
+      "label": "Brand-isolation Hair TP vs Curatiio via flowApplies / brand hooks",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_46_cloud_agent_complete_cloud_agent_steg_3_9",
+      "target": "docs_handover_orders_ord_46_cloud_agent_complete_document_content_bundle",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_46_cloud_agent_complete_partial_status_model",
+      "target": "docs_handover_orders_ord_46_cloud_agent_complete_foto_samtycke_partial_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_46_cloud_agent_complete_persistent_document_registry",
+      "target": "docs_handover_orders_ord_46_cloud_agent_complete_cloud_agent_steg_3_9",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_46_cloud_agent_complete_brand_isolation",
+      "target": "docs_handover_orders_ord_46_cloud_agent_complete_document_content_bundle",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_46_cloud_agent_complete_persistent_document_registry",
+      "target": "docs_handover_orders_ord_39_dossier_header_pills_enrichment_header_pills",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_46_cloud_agent_complete_document_content_bundle",
+      "target": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_questionary_catalog_mapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

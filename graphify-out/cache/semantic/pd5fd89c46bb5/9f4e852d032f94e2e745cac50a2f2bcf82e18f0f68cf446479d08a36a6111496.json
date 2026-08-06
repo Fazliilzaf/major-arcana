@@ -1,0 +1,121 @@
+{
+  "nodes": [
+    {
+      "id": "cco_status_handover",
+      "label": "CCO Status handover",
+      "file_type": "document",
+      "source_file": "CCO-STATUS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cco_status_history_card_color_scope_fix",
+      "label": "Scopad textf\u00e4rg i historik-kort (wildcard-regel borttagen)",
+      "file_type": "concept",
+      "source_file": "CCO-STATUS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cco_status_empty_queue_card_bug",
+      "label": "Tomma k\u00f6-kort i v\u00e4nsterkolumnen (staging-bugg)",
+      "file_type": "concept",
+      "source_file": "CCO-STATUS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cco_status_mailbody_wrap_bug",
+      "label": "Mailbody bryts per tecken (overflow-wrap: anywhere)",
+      "file_type": "concept",
+      "source_file": "CCO-STATUS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "cco_status_handover",
+      "target": "cco_status_history_card_color_scope_fix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CCO-STATUS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cco_status_handover",
+      "target": "cco_status_empty_queue_card_bug",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CCO-STATUS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cco_status_handover",
+      "target": "cco_status_mailbody_wrap_bug",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CCO-STATUS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cco_status_history_card_color_scope_fix",
+      "target": "cco_status_empty_queue_card_bug",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CCO-STATUS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cco_status_handover",
+      "target": "agents_agents_guide",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "CCO-STATUS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cco_status_handover",
+      "target": "_claude_ui_queue_ui_deploy_queue",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "CCO-STATUS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cco_status_empty_queue_card_bug",
+      "target": "_github_workflows_visual_regression_visual_drift_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.55,
+      "source_file": "CCO-STATUS.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

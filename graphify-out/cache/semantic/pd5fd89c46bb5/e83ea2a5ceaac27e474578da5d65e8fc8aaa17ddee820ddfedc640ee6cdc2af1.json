@@ -1,0 +1,142 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_image",
+      "label": "Sk\u00e4rmbild: kunddossier i rail (enskild kund)",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_kunddossier",
+      "label": "Kunddossier-panel (rail-detaljvy f\u00f6r enskild kund)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_kommande_bokningar",
+      "label": "Sektion Kommande bokningar (skeleton/laddande rader)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_dossier_atgarder",
+      "label": "Dossier-\u00e5tg\u00e4rder: Ta bild \u00b7 spara i journal, Boka n\u00e4sta tid, Anteckna, Svarstudio, Bekr\u00e4fta kommande tider",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_halsodeklaration_tp",
+      "label": "Klinikkoppling HAIR TP CLINIC med H\u00e4lsodekl TP-genv\u00e4g",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_image",
+      "target": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_kunddossier",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_kunddossier",
+      "target": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_kommande_bokningar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_kunddossier",
+      "target": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_dossier_atgarder",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_kunddossier",
+      "target": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_halsodeklaration_tp",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_kunddossier",
+      "target": "docs_ops_screenshots_v10_facit_rail_01_rail_aggregate_kundpopulation_panel",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_kunddossier",
+      "target": "docs_ops_screenshots_v10_facit_rail_03_customers_desktop_aggregate_kundlista",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_halsodeklaration_tp",
+      "target": "docs_ops_screenshots_v10_facit_rail_03_customers_desktop_aggregate_formular_saknas_fore_besok",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_04_rail_dossier_kommande_bokningar",
+      "target": "docs_ops_screenshots_ord_10_07_dossier_patient_master_laddning",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/04-rail-dossier.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

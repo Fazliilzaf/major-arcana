@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_block9_mockup",
+      "label": "V11 Rail Block 9 mockup \u2014 \u2026 + S Sticky Footer",
+      "file_type": "document",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_s_sticky_footer",
+      "label": "S \u00b7 Sticky footer (persistent \u00e5tg\u00e4rdsrad)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Sticky langst ner pa mobil/tablet men rail-lokal pa desktop \u2014 atgardsraden ska alltid vara nabar utan att stjala desktopyta."
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_ord48_calendar_handler",
+      "label": "Boka n\u00e4sta \u2014 \u00e5teranv\u00e4nd ord48-kalenderhandler (aktiv f\u00f6rst n\u00e4r kunden \u00e4r redo)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_confirm_upcoming_bookings_action",
+      "label": "Bekr\u00e4fta kommande tider (N) \u2014 N fr\u00e5n riktig booking-data",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_block9_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_v11_rail",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_block9_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_viewport_preview_pattern",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_block9_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_raster_png_pipeline",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_block9_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_canon_4_responsive",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_block9_mockup",
+      "target": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_s_sticky_footer",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_s_sticky_footer",
+      "target": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_ord48_calendar_handler",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_s_sticky_footer",
+      "target": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_confirm_upcoming_bookings_action",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_block9_mockup",
+      "target": "docs_handover_mockups_v11_rail_block8_g_smartnext_viewport_preview_g_smart_next_step",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block9-S-sticky/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

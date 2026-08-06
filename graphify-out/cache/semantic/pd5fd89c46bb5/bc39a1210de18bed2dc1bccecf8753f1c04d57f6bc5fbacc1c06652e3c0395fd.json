@@ -1,0 +1,95 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_23_kundkort_magic_backend_structured_allergies",
+      "label": "Strukturerat allergi-f\u00e4lt p\u00e5 patient (severity/source/noteAt)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-23-kundkort-magic-backend.md",
+      "source_location": "Scope 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Allergier \u00e4r s\u00e4kerhetskritiska och m\u00e5ste alltid ligga \u00f6verst; fritextparse av importantNote \u00e4r fallback, med manuell override-endpoint n\u00e4r parsen misstolkar."
+    },
+    {
+      "id": "docs_handover_orders_ord_23_kundkort_magic_backend_journey_aggregator",
+      "label": "ccoCustomerJourneyAggregator \u00b7 computeJourneyState (9 steg)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-23-kundkort-magic-backend.md",
+      "source_location": "Scope 2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Default-state pending \u00e4r medvetet valt: tom state \u00e4r s\u00e4krare \u00e4n fel state n\u00e4r underliggande data saknas."
+    },
+    {
+      "id": "docs_handover_orders_ord_23_kundkort_magic_backend_journal_fill_audit_store",
+      "label": "ccoJournalFillAuditStore (vem fyllde/signerade journalpost)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-23-kundkort-magic-backend.md",
+      "source_location": "Scope 3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Unik nyckel patientId+entryId+signedAt f\u00f6rhindrar dubbelloggning vid upprepade updateEntry-anrop."
+    },
+    {
+      "id": "docs_handover_orders_ord_23_kundkort_magic_backend_dossier_bundle_endpoint",
+      "label": "dossier-bundle endpoint (one-call kundkortspayload)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-23-kundkort-magic-backend.md",
+      "source_location": "Scope 4",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Allt kundkortet beh\u00f6ver i ett anrop med RBAC customers.read; djupa sektioner lazy-loadas om payloaden v\u00e4xer \u00f6ver ~200 KB per patient."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_23_kundkort_magic_backend_dossier_bundle_endpoint",
+      "target": "docs_handover_orders_ord_23_kundkort_magic_backend_structured_allergies",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-23-kundkort-magic-backend.md",
+      "source_location": "Scope 4 payload",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_23_kundkort_magic_backend_dossier_bundle_endpoint",
+      "target": "docs_handover_orders_ord_23_kundkort_magic_backend_journey_aggregator",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-23-kundkort-magic-backend.md",
+      "source_location": "Scope 4 payload",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_23_kundkort_magic_backend_dossier_bundle_endpoint",
+      "target": "docs_handover_orders_ord_23_kundkort_magic_backend_journal_fill_audit_store",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-23-kundkort-magic-backend.md",
+      "source_location": "journalStatus i payload",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_23_kundkort_magic_backend_journey_aggregator",
+      "target": "docs_handover_orders_ord_1_coolingoff_14_to_2_cooling_off_policy",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/ORDERS/ORD-23-kundkort-magic-backend.md",
+      "source_location": "steg Avtal via ccoTreatmentAgreementStore",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

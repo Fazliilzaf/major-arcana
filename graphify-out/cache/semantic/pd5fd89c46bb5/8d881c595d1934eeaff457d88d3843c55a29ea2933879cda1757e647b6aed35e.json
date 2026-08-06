@@ -1,0 +1,133 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_saknade_moduler_2026_06_24_doc",
+      "label": "Saknade moduler i repot \u2014 inventering & byggspec (2026-06-24)",
+      "file_type": "document",
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_saknade_moduler_2026_06_24_saknade_ops_stores",
+      "label": "23 saknade src/ops-stores (require:ade men aldrig skrivna)",
+      "file_type": "concept",
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": "Byggspec",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_saknade_moduler_2026_06_24_tyst_montering",
+      "label": "Tyst mount-fail \u2014 IIFE-block med console.warn ger d\u00f6da routes (tysta 404)",
+      "file_type": "concept",
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": "P\u00e5verkan",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_saknade_moduler_2026_06_24_arlig_stub",
+      "label": "Beslut: \u00e4rlig stub \u2014 501 not_implemented i st\u00e4llet f\u00f6r fabricerad kund/PHI-data",
+      "file_type": "concept",
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": "Uppf\u00f6ljning",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_saknade_moduler_2026_06_24_gdpr_stores",
+      "label": "GDPR/compliance-storegrupp (DSR, datafl\u00f6deskarta, incidentlogg, leverant\u00f6rsregister, samtycken)",
+      "file_type": "concept",
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": "GDPR / compliance",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_saknade_moduler_2026_06_24_bygga_eller_stada",
+      "label": "V\u00e4gvalet bygga vs st\u00e4da bort d\u00f6da block",
+      "file_type": "concept",
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": "Beslut: bygga eller st\u00e4da",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_saknade_moduler_2026_06_24_doc",
+      "target": "docs_handover_saknade_moduler_2026_06_24_saknade_ops_stores",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": "Byggspec",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_saknade_moduler_2026_06_24_tyst_montering",
+      "target": "docs_handover_saknade_moduler_2026_06_24_saknade_ops_stores",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": "P\u00e5verkan",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_saknade_moduler_2026_06_24_gdpr_stores",
+      "target": "docs_handover_saknade_moduler_2026_06_24_saknade_ops_stores",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": "GDPR / compliance",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_saknade_moduler_2026_06_24_bygga_eller_stada",
+      "target": "docs_handover_saknade_moduler_2026_06_24_arlig_stub",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": "Beslut / Uppf\u00f6ljning",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_saknade_moduler_2026_06_24_arlig_stub",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_empty_state_rule",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": "Uppf\u00f6ljning",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_saknade_moduler_2026_06_24_doc",
+      "target": "docs_handover_orders_ord_66_cfo_cm_route_flytt_monolit_frozen",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/SAKNADE-MODULER-2026-06-24.md",
+      "source_location": "Konsekvens f\u00f6r server.js-refaktorn",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

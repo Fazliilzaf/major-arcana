@@ -1,0 +1,81 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_patient_portal_v3_page",
+      "label": "CCO Patientportal v3 (formul\u00e4r & samtycken)",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-patient-portal-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_patient_portal_v3_consent_forms",
+      "label": "Formul\u00e4rpaket: h\u00e4lsodeklaration, friskf\u00f6rs\u00e4kran, samtycken",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-patient-portal-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Behandlingssamtycke, publiceringssamtycke och marknadssamtycke h\u00e5lls separata; klinikens interna journalfoton kr\u00e4vs av journallagen och p\u00e5verkas d\u00e4rf\u00f6r inte av publiceringsvalet, och marknadssamtycket \u00e4r frivilligt med avregistrering i varje meddelande."
+    },
+    {
+      "id": "public_major_arcana_preview_cco_patient_portal_v3_journallagen_retention",
+      "label": "10 \u00e5rs journalretention (journallagen 2008:355) och GDPR-utdrag",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-patient-portal-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_patient_portal_v3_page",
+      "target": "public_major_arcana_preview_cco_patient_portal_v3_consent_forms",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-patient-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_patient_portal_v3_page",
+      "target": "public_major_arcana_preview_cco_patient_portal_v3_journallagen_retention",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-patient-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_patient_portal_v3_consent_forms",
+      "target": "public_major_arcana_preview_cco_signaturer_v3_bankid_signature_requests",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-patient-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_patient_portal_v3_journallagen_retention",
+      "target": "public_major_arcana_preview_cco_patient_offer_portal_v1_audit_trail",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/major-arcana-preview/cco-patient-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

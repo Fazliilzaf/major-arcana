@@ -1,0 +1,121 @@
+{
+  "nodes": [
+    {
+      "id": "docs_schema_cco_asset_import_runs_schema_doc",
+      "label": "cco-asset-import-runs \u2014 kanoniskt schema v1.0.0",
+      "file_type": "document",
+      "source_file": "docs/schema/cco-asset-import-runs.schema.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_schema_cco_asset_import_runs_schema_run_modes",
+      "label": "Run-modes: full \u00b7 incremental \u00b7 review_resolve",
+      "file_type": "concept",
+      "source_file": "docs/schema/cco-asset-import-runs.schema.md",
+      "source_location": "## 2. Enums",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_schema_cco_asset_import_runs_schema_counter_semantics",
+      "label": "Monotona counters med frysning vid finishRun (409 vid vidare increment)",
+      "file_type": "concept",
+      "source_file": "docs/schema/cco-asset-import-runs.schema.md",
+      "source_location": "## 3. Counter-semantik",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_schema_cco_asset_import_runs_schema_source_systems",
+      "label": "K\u00e4llsystem: drive \u00b7 meridiq \u00b7 old_cco",
+      "file_type": "concept",
+      "source_file": "docs/schema/cco-asset-import-runs.schema.md",
+      "source_location": "### sourceSystem",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_schema_cco_asset_import_runs_schema_doc",
+      "target": "docs_schema_cco_asset_import_runs_schema_counter_semantics",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-asset-import-runs.schema.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_asset_import_runs_schema_doc",
+      "target": "docs_schema_cco_asset_import_runs_schema_run_modes",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-asset-import-runs.schema.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_asset_import_runs_schema_doc",
+      "target": "docs_schema_cco_asset_import_runs_schema_source_systems",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-asset-import-runs.schema.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_asset_import_runs_schema_doc",
+      "target": "docs_schema_cco_patient_assets_schema_doc",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-asset-import-runs.schema.md",
+      "source_location": "ccoPatientAssetStore refererar run via importRunId (foreign key)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_asset_import_runs_schema_counter_semantics",
+      "target": "docs_schema_cco_patient_assets_schema_link_only_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-asset-import-runs.schema.md",
+      "source_location": "totalLinkOnlyBlockers \u2014 P0-blocker-r\u00e4knare",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_asset_import_runs_schema_run_modes",
+      "target": "docs_schema_cco_asset_review_queue_schema_doc",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-asset-import-runs.schema.md",
+      "source_location": "review_resolve \u00e5terk\u00f6r records i review-queue",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_asset_import_runs_schema_doc",
+      "target": "docs_schema_cco_patient_assets_schema_pii_free_audit",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-asset-import-runs.schema.md",
+      "source_location": "Ingen PII i payloads \u2014 bara counts, IDs och enum-v\u00e4rden",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

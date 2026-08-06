@@ -1,0 +1,126 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_leverans_customer_mockup_v10_mirror_spegling",
+      "label": "Kundvy-spegling mot kunder-mockup-v10 (live-data, ingen ny datav\u00e4g)",
+      "file_type": "document",
+      "source_file": "docs/handover/LEVERANS-customer-mockup-v10-mirror.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "M\u00e5let var visuell paritet mot mockupen med befintliga datafl\u00f6den; mockupfilen l\u00e4mnas or\u00f6rd och endast facit-renderingen \u00e4ndras."
+    },
+    {
+      "id": "docs_handover_leverans_customer_mockup_v10_mirror_ready_event",
+      "label": "arcana:v10-kundkort-ready \u2014 facit-p\u00e5litlighet utan design-flash",
+      "file_type": "concept",
+      "source_file": "docs/handover/LEVERANS-customer-mockup-v10-mirror.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Rotorsak till 'fel design ibland': hann facit-scriptet inte ladda vid f\u00f6rsta detail-render f\u00f6ll panelen tillbaka till en \u00e4ldre synthesis-render. Facit dispatchar nu ett ready-event som triggar om-render, s\u00e5 fallbacken ers\u00e4tts utan flash av gammal design."
+    },
+    {
+      "id": "docs_handover_leverans_customer_mockup_v10_mirror_localhost_bypass",
+      "label": "isStaffJournalOpenAccess \u2014 localhost-only QA-bypass",
+      "file_type": "concept",
+      "source_file": "docs/handover/LEVERANS-customer-mockup-v10-mirror.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Beh\u00f6vs f\u00f6r att kunna ta lokal /staff-screenshot f\u00f6r QA-j\u00e4mf\u00f6relse mot mockup; begr\u00e4nsas till localhost s\u00e5 prod inte p\u00e5verkas."
+    },
+    {
+      "id": "docs_handover_leverans_customer_mockup_v10_mirror_avsiktliga_deltan",
+      "label": "Avsiktliga deltan mot mockup (LANES, borttagen \u2605/AI-m\u00e4rkning)",
+      "file_type": "concept",
+      "source_file": "docs/handover/LEVERANS-customer-mockup-v10-mirror.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Sidebar-LANES \u00e4r v\u00e5rt till\u00e4gg ut\u00f6ver mockupen; \u2605/AI-rubriker togs bort medvetet efter feedback om neutrala rubriker. Skillnaderna dokumenteras som beslut, inte buggar. Tom this_week-vy \u00e4r data, inte design."
+    },
+    {
+      "id": "docs_handover_leverans_customer_mockup_v10_mirror_pipe_normalisering",
+      "label": "Pipe\u2192middot-normalisering i journaltitlar",
+      "file_type": "concept",
+      "source_file": "docs/handover/LEVERANS-customer-mockup-v10-mirror.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_leverans_customer_mockup_v10_mirror_ready_event",
+      "target": "docs_handover_leverans_customer_mockup_v10_mirror_spegling",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/LEVERANS-customer-mockup-v10-mirror.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_leverans_customer_mockup_v10_mirror_localhost_bypass",
+      "target": "docs_handover_leverans_customer_mockup_v10_mirror_spegling",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/LEVERANS-customer-mockup-v10-mirror.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_leverans_customer_mockup_v10_mirror_pipe_normalisering",
+      "target": "docs_handover_leverans_customer_mockup_v10_mirror_spegling",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/LEVERANS-customer-mockup-v10-mirror.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_leverans_customer_mockup_v10_mirror_avsiktliga_deltan",
+      "target": "docs_handover_leverans_customer_mockup_v10_mirror_spegling",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/LEVERANS-customer-mockup-v10-mirror.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_leverans_customer_mockup_v10_mirror_spegling",
+      "target": "docs_handover_mockups_kundkort_v11_locked_2026_06_05_kundkort_v11",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/LEVERANS-customer-mockup-v10-mirror.md",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "docs_handover_leverans_customer_mockup_v10_mirror_ready_event",
+      "target": "docs_handover_cco_calendar_v8_live_smoke_dossier_accessor",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/LEVERANS-customer-mockup-v10-mirror.md",
+      "source_location": null,
+      "weight": 0.75
+    }
+  ],
+  "hyperedges": []
+}

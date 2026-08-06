@@ -1,0 +1,164 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_cco_konversationer_backfill_runbook_runbook",
+      "label": "CCO Konversationer \u2014 backfill-runbook (Fas 1)",
+      "file_type": "document",
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_konversationer_backfill_runbook_prod_safe_carveout",
+      "label": "Smal prod-safe carveout f\u00f6r mail-ingestion (read_only)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_konversationer_backfill_runbook_never_auto_bind",
+      "label": "Aldrig auto-bind: conflict/suggested g\u00e5r till review-k\u00f6",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_konversationer_backfill_runbook_safe_stop_idempotency",
+      "label": "S\u00e4kert stopp + idempotent omk\u00f6rning (dedupe p\u00e5 internetMessageId)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_konversationer_backfill_runbook_graph_channel_vs_resend",
+      "label": "Kanalval: Graph fr\u00e5n kons@ f\u00f6r kundmail, Resend endast f\u00f6r no-reply",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_konversationer_backfill_runbook_pipeline_evidence_pass_rule",
+      "label": "PASS kr\u00e4ver nytt pipeline-bevis, inte bara icke-tom worklist",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_konversationer_backfill_runbook_mailbox_truth_store",
+      "label": "Mailbox truth store (Graph READ \u2192 truth \u2192 read model)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_cco_konversationer_backfill_runbook_runbook",
+      "target": "docs_ops_cco_konversationer_backfill_runbook_prod_safe_carveout",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": "K\u00f6rning",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_konversationer_backfill_runbook_prod_safe_carveout",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_live_send_lock",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": "Detta sl\u00e5r inte av global prod-safe och \u00f6ppnar inte live-send",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_konversationer_backfill_runbook_runbook",
+      "target": "docs_ops_cco_konversationer_backfill_runbook_never_auto_bind",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": "Kedjan (Graph \u2192 UI)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_konversationer_backfill_runbook_never_auto_bind",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_customer_binding_contract",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": "conflict/suggested \u2192 review, patientId: null",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_konversationer_backfill_runbook_runbook",
+      "target": "docs_ops_cco_konversationer_backfill_runbook_safe_stop_idempotency",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": "S\u00e4kert stopp",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_konversationer_backfill_runbook_pipeline_evidence_pass_rule",
+      "target": "docs_ops_cco_konversationer_backfill_runbook_safe_stop_idempotency",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": "PASS/STOP",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_konversationer_backfill_runbook_graph_channel_vs_resend",
+      "target": "docs_ops_cco_completion_evidence_2026_02_28_manual_graph_send",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_konversationer_backfill_runbook_mailbox_truth_store",
+      "target": "docs_ops_cco_konversationer_backfill_runbook_runbook",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-konversationer-backfill-runbook.md",
+      "source_location": "Kedjan",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

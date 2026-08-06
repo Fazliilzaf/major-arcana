@@ -1,0 +1,253 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "label": "Aisia/Kamera \u2014 Kliniskt pilotsp\u00e5r (index)",
+      "file_type": "document",
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_pilot_package_index_2026_05_30_pilot_phases_a_to_d",
+      "label": "Pilotfaser A\u2013D (rumstest \u2192 torrk\u00f6rning \u2192 klinikpilot \u2192 owner-utv\u00e4rdering)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_pilot_package_index_2026_05_30_fas_a_three_room_test_gate",
+      "label": "Gate: \u22653 genomf\u00f6rda rumstest innan APPLY diskuteras",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_pilot_package_index_2026_05_30_start_aisia_fas_2_command",
+      "label": "\u00c4garkommando START AISIA FAS 2",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_pilot_package_index_2026_05_30_agent_track_separation",
+      "label": "Sp\u00e5rseparation: pilotsp\u00e5r, migrationssp\u00e5r, UI-sp\u00e5r h\u00e5lls is\u00e4r",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_pilot_package_index_2026_05_30_allowed_vs_forbidden_matrix",
+      "label": "Till\u00e5tet/f\u00f6rbjudet-matris f\u00f6r pilotsp\u00e5ret",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_pilot_package_index_2026_05_30_pilot_phases_a_to_d",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_pilot_package_index_2026_05_30_fas_a_three_room_test_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_pilot_package_index_2026_05_30_start_aisia_fas_2_command",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_pilot_package_index_2026_05_30_agent_track_separation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_pilot_package_index_2026_05_30_allowed_vs_forbidden_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_pilot_phases_a_to_d",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_apply_aisia_to_cco_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_fas_a_three_room_test_gate",
+      "target": "docs_strategy_aisia_pilot_package_index_2026_05_30_pilot_phases_a_to_d",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_start_aisia_fas_2_command",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_phase_2_3_4_block",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_allowed_vs_forbidden_matrix",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_external_ai_prohibition",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_allowed_vs_forbidden_matrix",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_vendor_endpoint_prohibition",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_fas_a_room_test_results_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_follow_up_capture_guide_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_pilot_session_log_template_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_room_test_flow_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_staff_quick_reference_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_staff_routines_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_pilot_package_index_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

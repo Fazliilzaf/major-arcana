@@ -1,0 +1,255 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_save_pilot_report_sh",
+      "label": "save-pilot-report.sh",
+      "file_type": "code",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_save_pilot_report_sh__entry",
+      "label": "save-pilot-report.sh script",
+      "file_type": "code",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    },
+    {
+      "id": "$graphify-root$_scripts_save_pilot_report_dotenv_get",
+      "label": "dotenv_get()",
+      "file_type": "code",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L70",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    },
+    {
+      "id": "$graphify-root$_scripts_save_pilot_report_json_get",
+      "label": "json_get()",
+      "file_type": "code",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L122",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    },
+    {
+      "id": "$graphify-root$_scripts_save_pilot_report_read_mfa_secret_from_store",
+      "label": "read_mfa_secret_from_store()",
+      "file_type": "code",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L142",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    },
+    {
+      "id": "$graphify-root$_scripts_save_pilot_report_generate_totp_code",
+      "label": "generate_totp_code()",
+      "file_type": "code",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L163",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    },
+    {
+      "id": "$graphify-root$_scripts_save_pilot_report_complete_login_with_optional_mfa",
+      "label": "complete_login_with_optional_mfa()",
+      "file_type": "code",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L197",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    },
+    {
+      "id": "$graphify-root$_scripts_save_pilot_report_cleanup_tmp",
+      "label": "cleanup_tmp()",
+      "file_type": "code",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L365",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_save_pilot_report_sh",
+      "target": "$graphify-root$_scripts_save_pilot_report_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_save_pilot_report_sh",
+      "target": "$graphify-root$_scripts_save_pilot_report_dotenv_get",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L70",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_save_pilot_report_sh",
+      "target": "$graphify-root$_scripts_save_pilot_report_json_get",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_save_pilot_report_sh",
+      "target": "$graphify-root$_scripts_save_pilot_report_read_mfa_secret_from_store",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L142",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_save_pilot_report_sh",
+      "target": "$graphify-root$_scripts_save_pilot_report_generate_totp_code",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L163",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_save_pilot_report_sh",
+      "target": "$graphify-root$_scripts_save_pilot_report_complete_login_with_optional_mfa",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L197",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_save_pilot_report_sh",
+      "target": "$graphify-root$_scripts_save_pilot_report_cleanup_tmp",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L365",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_sh__entry",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L2"
+    },
+    {
+      "language": "bash",
+      "callee": "cd",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_sh__entry",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L5"
+    },
+    {
+      "language": "bash",
+      "callee": "shift",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_sh__entry",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L22"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_sh__entry",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L61"
+    },
+    {
+      "language": "bash",
+      "callee": "exit",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_sh__entry",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L63"
+    },
+    {
+      "language": "bash",
+      "callee": "mkdir",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_sh__entry",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L326"
+    },
+    {
+      "language": "bash",
+      "callee": "printf",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_sh__entry",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L338"
+    },
+    {
+      "language": "bash",
+      "callee": "trap",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_sh__entry",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L368"
+    },
+    {
+      "language": "bash",
+      "callee": "return",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_dotenv_get",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L73"
+    },
+    {
+      "language": "bash",
+      "callee": "node",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_dotenv_get",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L75"
+    },
+    {
+      "language": "bash",
+      "callee": "true",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_dotenv_get",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L97"
+    },
+    {
+      "language": "bash",
+      "callee": "node",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_json_get",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L124"
+    },
+    {
+      "language": "bash",
+      "callee": "node",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_read_mfa_secret_from_store",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L145"
+    },
+    {
+      "language": "bash",
+      "callee": "node",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_generate_totp_code",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L165"
+    },
+    {
+      "language": "bash",
+      "callee": "printf",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_complete_login_with_optional_mfa",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L208"
+    },
+    {
+      "language": "bash",
+      "callee": "return",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_complete_login_with_optional_mfa",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L209"
+    },
+    {
+      "language": "bash",
+      "callee": "rm",
+      "caller_nid": "$graphify-root$_scripts_save_pilot_report_cleanup_tmp",
+      "source_file": "scripts/save-pilot-report.sh",
+      "source_location": "L366"
+    }
+  ],
+  "bash_sources": []
+}

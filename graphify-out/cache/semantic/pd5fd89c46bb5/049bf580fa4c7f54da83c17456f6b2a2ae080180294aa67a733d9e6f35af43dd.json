@@ -1,0 +1,60 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_personal_start_v3_page",
+      "label": "CCO Personal-start v3",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-personal-start-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_personal_start_v3_feature_roadmap_tiles",
+      "label": "Funktions- och roadmap-brickor i personalstarten",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-personal-start-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Startsidan blandar levererade ytor (kalender, kunder, konversationer, anteckningar) med kommande sp\u00e5r som watchOS, risk-prediction, multi-tenant och workflow-byggare, s\u00e5 personalen ser b\u00e5de nul\u00e4ge och riktning p\u00e5 samma yta."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_personal_start_v3_page",
+      "target": "public_major_arcana_preview_cco_personal_start_v3_feature_roadmap_tiles",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-personal-start-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_personal_start_v3_page",
+      "target": "public_major_arcana_preview_cco_smart_anteckning_v3_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-personal-start-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_personal_start_v3_page",
+      "target": "public_major_arcana_preview_cco_ops_workbench_v3_journalpilot_go_gate",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/major-arcana-preview/cco-personal-start-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

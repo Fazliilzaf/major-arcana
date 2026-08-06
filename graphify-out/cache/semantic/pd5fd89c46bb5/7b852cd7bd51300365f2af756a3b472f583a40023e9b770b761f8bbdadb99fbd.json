@@ -1,0 +1,111 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_aisia_compliance_security_checklist_doc",
+      "label": "Aisia / Scalp Analysis \u2014 Compliance & Security Checklist",
+      "file_type": "document",
+      "source_file": "docs/strategy/AISIA-COMPLIANCE-SECURITY-CHECKLIST.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_compliance_security_checklist_clinician_verify",
+      "label": "Behandlarverifiering kr\u00e4vs \u2014 Aisia AI \u00e4r beslutsst\u00f6d, inte kliniskt beslut",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-COMPLIANCE-SECURITY-CHECKLIST.md",
+      "source_location": "## AI & kliniska beslut",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_compliance_security_checklist_pdl_retention",
+      "label": "10-\u00e5rs retention enligt PDL f\u00f6r scalp-assets",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-COMPLIANCE-SECURITY-CHECKLIST.md",
+      "source_location": "## Data storage",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_compliance_security_checklist_imy_rbac",
+      "label": "IMY-krav: RBAC per arbetsuppgift + audit p\u00e5 all l\u00e4s/skriv",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-COMPLIANCE-SECURITY-CHECKLIST.md",
+      "source_location": "## Access control",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_aisia_compliance_security_checklist_doc",
+      "target": "docs_strategy_aisia_compliance_security_checklist_clinician_verify",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-COMPLIANCE-SECURITY-CHECKLIST.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_compliance_security_checklist_doc",
+      "target": "docs_schema_cco_patient_assets_schema_no_drive_links",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-COMPLIANCE-SECURITY-CHECKLIST.md",
+      "source_location": "cco-no-drive-links-import-only.mdc",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_compliance_security_checklist_imy_rbac",
+      "target": "docs_strategy_aisia_cco_integration_plan_scalp_rbac",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-COMPLIANCE-SECURITY-CHECKLIST.md",
+      "source_location": "## Access control",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_compliance_security_checklist_pdl_retention",
+      "target": "docs_schema_cco_patient_assets_schema_soft_vs_hard_delete",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/AISIA-COMPLIANCE-SECURITY-CHECKLIST.md",
+      "source_location": "10-\u00e5rs retention (PDL) \u2014 same as journal assets",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_compliance_security_checklist_doc",
+      "target": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_no_patient_data_to_external_ai",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-COMPLIANCE-SECURITY-CHECKLIST.md",
+      "source_location": "Ingen extern AI p\u00e5 bilder/journal",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_compliance_security_checklist_doc",
+      "target": "docs_schema_cco_patient_assets_schema_checksum_provenance",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-COMPLIANCE-SECURITY-CHECKLIST.md",
+      "source_location": "SHA-256 checksum via secure storage; same checksum \u2192 DUPLICATE asset",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

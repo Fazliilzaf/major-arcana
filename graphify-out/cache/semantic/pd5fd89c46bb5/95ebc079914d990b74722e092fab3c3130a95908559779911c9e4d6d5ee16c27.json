@@ -1,0 +1,133 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_7_bundle_sign_consent_doc",
+      "label": "ORD-7 Bundle-signering (avtal + behandlingssamtycke)",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_7_bundle_sign_consent_bundle_status",
+      "label": "bundleStatus (missing_consent_template \u2192 ready_to_send \u2192 sent \u2192 signed)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": "Levererat",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_7_bundle_sign_consent_consent_ack",
+      "label": "Obligatorisk consent_ack p\u00e5 publik sign-sida",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": "Levererat",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_7_bundle_sign_consent_assert_ready",
+      "label": "assertBundleReadyToSend \u2014 blockerar saknad consent-mall",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": "Levererat",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_7_bundle_sign_consent_ingen_extern_sign",
+      "label": "Scope-l\u00e5s: ingen GetAccept/BankID/extern sign-provider",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": "Scope / Ej i scope",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_7_bundle_sign_consent_consent_catalog_runtime",
+      "label": "meridiqConsentCatalogRuntime.resolveTemplate + service-bindings-catalog",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": "Levererat",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_7_bundle_sign_consent_doc",
+      "target": "docs_handover_orders_ord_6_cloud_staff_uat_uat",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": "UAT-kontext",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_7_bundle_sign_consent_assert_ready",
+      "target": "docs_handover_orders_ord_6_fas_a2_template_version_legal_review_send_for_sign_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": "Levererat (plus befintlig mall-version-gate)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_7_bundle_sign_consent_assert_ready",
+      "target": "docs_handover_orders_ord_7_bundle_sign_consent_bundle_status",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": "Levererat",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_7_bundle_sign_consent_consent_ack",
+      "target": "docs_handover_orders_ord_7_bundle_sign_consent_consent_catalog_runtime",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": "Sign-sida / Runtime",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_7_bundle_sign_consent_consent_ack",
+      "target": "docs_handover_orders_ord_6_fas_a2_template_version_legal_review_bookable",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": "Publik sign",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_7_bundle_sign_consent_ingen_extern_sign",
+      "target": "docs_handover_orders_ord_7_bundle_sign_consent_doc",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-7-bundle-sign-consent.md",
+      "source_location": "Scope",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

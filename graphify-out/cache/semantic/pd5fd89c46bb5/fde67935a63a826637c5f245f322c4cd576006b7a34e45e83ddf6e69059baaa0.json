@@ -1,0 +1,60 @@
+{
+  "nodes": [
+    {
+      "id": "docs_audit_remaining_plan_lazy_load_conversation_detail",
+      "label": "Lazy-load conversation-detail (audit-action)",
+      "file_type": "concept",
+      "source_file": "docs/AUDIT-REMAINING-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_audit_remaining_plan_server_side_cluster_merge",
+      "label": "Server-side cross-customer thread-cluster merge",
+      "file_type": "concept",
+      "source_file": "docs/AUDIT-REMAINING-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_audit_remaining_plan_identity_key_derivation",
+      "label": "Kund-identity-key-derivering (email \u2192 namn \u2192 reply-header-fingerprint)",
+      "file_type": "concept",
+      "source_file": "docs/AUDIT-REMAINING-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_audit_remaining_plan_server_side_cluster_merge",
+      "target": "docs_audit_remaining_plan_identity_key_derivation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/AUDIT-REMAINING-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_audit_remaining_plan_lazy_load_conversation_detail",
+      "target": "local_preview_iteration_loop",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/AUDIT-REMAINING-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

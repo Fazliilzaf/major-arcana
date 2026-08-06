@@ -1,0 +1,80 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_runbooks_rollback_runbook",
+      "label": "Rollback Runbook (Arcana)",
+      "file_type": "document",
+      "source_file": "docs/ops/runbooks/rollback-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_rollback_runbook_state_restore",
+      "label": "State-restore med dry-run och confirmText-bekr\u00e4ftelse",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/rollback-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_rollback_runbook_release_governance_halt",
+      "label": "Release cycle markeras halted i release-governance",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/rollback-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_runbooks_rollback_runbook",
+      "target": "docs_ops_runbooks_rollback_runbook_state_restore",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/rollback-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_rollback_runbook_release_governance_halt",
+      "target": "docs_ops_runbooks_rollback_runbook_state_restore",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/rollback-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_rollback_runbook",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook_policy_floor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/rollback-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_rollback_runbook",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook_kill_switch",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/rollback-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

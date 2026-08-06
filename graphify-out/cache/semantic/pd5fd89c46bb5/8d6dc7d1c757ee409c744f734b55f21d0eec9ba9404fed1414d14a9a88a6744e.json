@@ -1,0 +1,165 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_25e_aktivt_besok_v2_active_visit_payload",
+      "label": "activeVisit-payload (minsta s\u00e4kra kontrakt i dossier-bundle)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "Minsta s\u00e4kra payload / M\u00e5lpayload",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Sanningen bor i booking + encounter + dossier-bundle readout, aldrig i parallell UI-state; adaptern rapporterar hellre null \u00e4n gissad state."
+    },
+    {
+      "id": "docs_handover_orders_ord_25e_aktivt_besok_v2_encounter_state_mapping",
+      "label": "Encounter-state mapping (scheduled_today \u2192 checked_in \u2192 in_progress \u2192 completed_today)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "Fas 3a State mapping (facit)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Encounter-storen hade bara reserved/confirmed/cancelled; de operativa dagsstaterna l\u00e4ggs till s\u00e5 UI:t kan visa amber-puls endast n\u00e4r payload s\u00e4ger in_progress."
+    },
+    {
+      "id": "docs_handover_orders_ord_25e_aktivt_besok_v2_persistent_checkin",
+      "label": "Persistent check-in (watch-checkin \u2192 checkedInAt i payload)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "Fas 3 Beh\u00f6ver 2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "watch-checkin returnerade bara en transient timestamp och matade aldrig tillbaka en persistent 'p\u00e5g\u00e5r idag'-zon till kundkortet."
+    },
+    {
+      "id": "docs_handover_orders_ord_25e_aktivt_besok_v2_active_visit_segment",
+      "label": "Aktivt bes\u00f6k-segment (konditionell operativ zon med self-hide)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "M\u00e5l + Placering + UI-states",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Personalen ska direkt f\u00f6rst\u00e5 'kunden \u00e4r h\u00e4r nu'; zonen renderas inte alls utan relevant bes\u00f6k s\u00e5 kortet inte belastas resten av tiden."
+    },
+    {
+      "id": "docs_handover_orders_ord_25e_aktivt_besok_v2_no_faked_ui_state_rule",
+      "label": "Regel: ingen fejkad UI-state \u2014 allt fr\u00e5n payload",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "Render-villkor + Fas 3 m\u00e5l",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Saknas f\u00e4lt ska det markeras som gap f\u00f6r backend i st\u00e4llet f\u00f6r att UI:t h\u00e4rleder state \u2014 i en klinisk yta blir gissad bes\u00f6ksstatus direkt farlig."
+    },
+    {
+      "id": "docs_handover_orders_ord_25e_aktivt_besok_v2_testdata_blocker",
+      "label": "Prod-UAT blockerad av testdata (0 patienter med dagens bes\u00f6k)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "Prod UAT closeout",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Blockeraren klassas som datablock, inte kod-FAIL \u2014 teamet v\u00e4grar fejka en patient med dagens bokning bara f\u00f6r att kunna gr\u00f6na UAT:n."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_25e_aktivt_besok_v2_active_visit_segment",
+      "target": "docs_handover_orders_ord_25e_aktivt_besok_v2_active_visit_payload",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "Fas 2 Cursor brief",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25e_aktivt_besok_v2_active_visit_payload",
+      "target": "docs_handover_orders_ord_25e_aktivt_besok_v2_encounter_state_mapping",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "Fas 3a state mapping",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25e_aktivt_besok_v2_persistent_checkin",
+      "target": "docs_handover_orders_ord_25e_aktivt_besok_v2_encounter_state_mapping",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "checked_in via metadata.checkedInAt",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25e_aktivt_besok_v2_no_faked_ui_state_rule",
+      "target": "docs_handover_orders_ord_25e_aktivt_besok_v2_active_visit_payload",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "Render-villkor",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25e_aktivt_besok_v2_testdata_blocker",
+      "target": "docs_handover_orders_ord_25e_aktivt_besok_v2_active_visit_segment",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "Prod UAT closeout B/C",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25e_aktivt_besok_v2_active_visit_segment",
+      "target": "docs_handover_orders_ord_25_kundkort_v11_port_three_zone_composition",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "Placering under hero f\u00f6re dokument",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_25e_aktivt_besok_v2_active_visit_payload",
+      "target": "docs_handover_orders_ord_23_kundkort_magic_backend_dossier_bundle_endpoint",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md",
+      "source_location": "activeVisit exponeras i dossier-bundle",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "aktivt_besok_state_truth_chain",
+      "label": "Aktivt bes\u00f6k: encounter-states + persistent check-in \u2192 activeVisit-payload \u2192 konditionellt segment utan fejkad UI-state",
+      "nodes": [
+        "docs_handover_orders_ord_25e_aktivt_besok_v2_encounter_state_mapping",
+        "docs_handover_orders_ord_25e_aktivt_besok_v2_persistent_checkin",
+        "docs_handover_orders_ord_25e_aktivt_besok_v2_active_visit_payload",
+        "docs_handover_orders_ord_25e_aktivt_besok_v2_active_visit_segment",
+        "docs_handover_orders_ord_25e_aktivt_besok_v2_no_faked_ui_state_rule"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-25E-AKTIVT-BESOK-V2.md"
+    }
+  ]
+}

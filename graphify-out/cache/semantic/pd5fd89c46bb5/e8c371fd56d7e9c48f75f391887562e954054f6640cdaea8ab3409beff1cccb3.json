@@ -1,0 +1,344 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_mvp3_roadmap",
+      "label": "Chief of Finance MVP 3 (CF.4+) - roadmap",
+      "file_type": "document",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": "Claude",
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_beslutsprinciper_roadmap",
+      "label": "Beslutsprinciper for hela roadmappen",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "label": "Sprintoversikt CF.4 till CF.12 med blockers",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf9_voucher_sync_plan",
+      "label": "CF.9 - planerad Fortnox voucher-sync",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf10_ocr_blocker",
+      "label": "CF.10 - OCR blockerad av krav pa explicit AI-GO",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Lokal Tesseract undviker externa anrop medan moln-OCR kraver DPA och artikel 28-bedomning; darfor kravs explicit val av vag fran owner."
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf11_bank_csv_blocker",
+      "label": "CF.11 - bank-CSV-import blockerad av owner-GO",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf12_payroll_blocker",
+      "label": "CF.12 - payroll utanfor CF-scope",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Loner har egna krav pa AGI, lonebesked och semesterhantering och hor darfor hemma i en separat modul med separat beslut."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_mvp3_roadmap",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_beslutsprinciper_roadmap",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_mvp3_roadmap",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_mvp3_roadmap",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf9_voucher_sync_plan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_mvp3_roadmap",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf10_ocr_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_mvp3_roadmap",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf11_bank_csv_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_mvp3_roadmap",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf12_payroll_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf9_voucher_sync_plan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf10_ocr_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf11_bank_csv_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf12_payroll_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_beslutsprinciper_roadmap",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf10_ocr_blocker",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_beslutsprinciper_roadmap",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf11_bank_csv_blocker",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_beslutsprinciper_roadmap",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf12_payroll_blocker",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf9_voucher_sync_plan",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_hookfalt",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf9_voucher_sync_plan",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_blocked_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_mvp3_roadmap",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_mvp3_roadmap",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_p2c_audit_kind_action_mismatch",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_mvp3_rule_engine_rapport",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_mvp4_suppliers_rapport",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "target": "docs_strategy_chief_of_finance_mvp5_vat_rules_2026_06_01_mvp5_vat_rapport",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_mvp6_recurring_rapport",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "target": "docs_strategy_chief_of_finance_mvp7_accountant_portal_2026_06_01_mvp7_revisorportal_rapport",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_cf10_ocr_blocker",
+      "target": "docs_strategy_cem_corporate_expense_management_cm_pipeline",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_beslutsprinciper_roadmap",
+      "target": "docs_strategy_chief_of_finance_inventory_2026_06_01_cf_sakerhetskrav",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "cf_expense_livscykel_kedja",
+      "label": "CF-kedjan: intag, regelmotor, leverantor, moms, aterkommande, revisorgranskning",
+      "nodes": [
+        "docs_strategy_chief_of_finance_mvp1_2026_06_01_cco_receipt_store",
+        "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_store",
+        "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_cco_expense_rule_store",
+        "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_cco_finance_vendor_store",
+        "docs_strategy_chief_of_finance_mvp5_vat_rules_2026_06_01_cco_expense_vat_rules",
+        "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_cco_recurring_expense_store",
+        "docs_strategy_chief_of_finance_mvp7_accountant_portal_2026_06_01_cco_finance_review_store"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-ROADMAP-2026-06-01.md"
+    }
+  ]
+}

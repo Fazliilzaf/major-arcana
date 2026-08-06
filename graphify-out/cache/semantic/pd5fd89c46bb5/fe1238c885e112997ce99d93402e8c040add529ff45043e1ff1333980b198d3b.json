@@ -1,0 +1,146 @@
+{
+  "nodes": [
+    {
+      "id": "docs_design_specs_cursor_prompt_historik_kort_redesign",
+      "label": "Historik-kort redesign (CCO arbetsk\u00f6)",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Befintliga historik-kort hade inkonsekvent layout mot Alla-vyns kort och saknade kontaktformul\u00e4r-information samt gruppering via mailboxsp\u00e5r. Designen l\u00e5ses i referens-HTML (historik_kort_fix_v3.html) som enda sanning f\u00f6r spacing, f\u00e4rg och animation; Cursor ska integrera, inte uppfinna interaktioner."
+    },
+    {
+      "id": "docs_design_specs_cursor_prompt_kort_fyra_zoner",
+      "label": "Kort-struktur: fyra zoner (top / footer-chips / mailboxsp\u00e5r)",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_design_specs_cursor_prompt_mailbox_trail",
+      "label": "mailboxTrail (postl\u00e5desp\u00e5r per kund/tr\u00e5d)",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "M\u00e5lbild: backend levererar explicit mailboxTrail som source of truth s\u00e5 rapporter och andra klienter delar f\u00e4lt. Tills dess h\u00e4rleds/mockas sp\u00e5ret i klienten och m\u00e4rks tydligt som tillf\u00e4lligt. Server\u00e4ndring ska vara minimal payload-ut\u00f6kning d\u00e4r tr\u00e5den redan materialiseras, inte duplicerad logik i flera endpoints."
+    },
+    {
+      "id": "docs_design_specs_cursor_prompt_trunkering_regel",
+      "label": "Trunkeringsregel f\u00f6r mailboxsp\u00e5r (>3 \u2192 +N till)",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_design_specs_cursor_prompt_lucide_ikonmappning",
+      "label": "Lucide-ikonmappning f\u00f6r kort-chips",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_design_specs_cursor_prompt_scope_lock",
+      "label": "Scope-l\u00e5s: ingen passa-p\u00e5-refaktorering",
+      "file_type": "concept",
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Uppdraget begr\u00e4nsas till en komponent med en f\u00f6rutbest\u00e4md commit-text f\u00f6r att h\u00e5lla diffen granskningsbar och undvika att andra komponenter regreras."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_design_specs_cursor_prompt_kort_fyra_zoner",
+      "target": "docs_design_specs_cursor_prompt_historik_kort_redesign",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_design_specs_cursor_prompt_kort_fyra_zoner",
+      "target": "docs_design_specs_cursor_prompt_mailbox_trail",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_design_specs_cursor_prompt_trunkering_regel",
+      "target": "docs_design_specs_cursor_prompt_mailbox_trail",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_design_specs_cursor_prompt_lucide_ikonmappning",
+      "target": "docs_design_specs_cursor_prompt_kort_fyra_zoner",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_design_specs_cursor_prompt_scope_lock",
+      "target": "docs_design_specs_cursor_prompt_historik_kort_redesign",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_design_specs_cursor_prompt_mailbox_trail",
+      "target": "docs_handover_cco_calendar_v8_handoff_ingen_fejkdata",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "weight": 0.75
+    },
+    {
+      "source": "docs_design_specs_cursor_prompt_scope_lock",
+      "target": "docs_handover_cco_calendar_v8_handoff_fasordning_p1_p3",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "docs/design-specs/CURSOR_PROMPT.md",
+      "source_location": null,
+      "weight": 0.7
+    }
+  ],
+  "hyperedges": []
+}

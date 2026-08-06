@@ -1,0 +1,194 @@
+{
+  "nodes": [
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2",
+      "label": "Figma planner node 3-2 \u2014 framed master",
+      "file_type": "image",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_art_of_layering_planner",
+      "label": "The Art of Layering \u2014 Personal Olfactory Stratification planner",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_zone_head",
+      "label": "Head zone (neck, hair, shoulders, chest)",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_zone_heart",
+      "label": "Heart zone (abdomen, arms/elbows, hips)",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_zone_base",
+      "label": "Base zone (laps, behind knees, calfs)",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_product_columns",
+      "label": "Produktkolumner: Perfume, Body Oil, Body Cream",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_fragrance_titles",
+      "label": "Doftval: Tiglio Blu, Te Mi De, Labdanum Gold",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_art_of_layering_planner",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_inner_frame",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_art_of_layering_planner",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_zone_head",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_art_of_layering_planner",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_zone_heart",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_art_of_layering_planner",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_zone_base",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_art_of_layering_planner",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_product_columns",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_fragrance_titles",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_zone_head",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_fragrance_titles",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_zone_heart",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "art_of_layering_planner_variants",
+      "label": "Art of Layering planner \u2014 fyra rendervarianter av samma design",
+      "nodes": [
+        "public_torti_ritual_assets_figma_planner_node_3_2",
+        "public_torti_ritual_assets_figma_planner_node_3_2_inner_frame",
+        "public_torti_ritual_assets_figma_planner_node_3_2_white_sheet",
+        "public_torti_ritual_assets_figma_planner_node_3_2_no_middle_text",
+        "public_torti_ritual_assets_figma_planner_node_3_2_art_of_layering_planner"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png"
+    },
+    {
+      "id": "olfactory_stratification_zones",
+      "label": "Head/Heart/Base-zoner med produktkolumner i layering-planeraren",
+      "nodes": [
+        "public_torti_ritual_assets_figma_planner_node_3_2_zone_head",
+        "public_torti_ritual_assets_figma_planner_node_3_2_zone_heart",
+        "public_torti_ritual_assets_figma_planner_node_3_2_zone_base",
+        "public_torti_ritual_assets_figma_planner_node_3_2_product_columns"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2.png"
+    }
+  ]
+}

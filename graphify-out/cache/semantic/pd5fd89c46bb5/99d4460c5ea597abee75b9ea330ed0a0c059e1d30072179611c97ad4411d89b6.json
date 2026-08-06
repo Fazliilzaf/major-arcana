@@ -1,0 +1,90 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_personal_demo_manifest_2026_06_04_doc",
+      "label": "CCO Personal Demo Manifest",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-PERSONAL-DEMO-MANIFEST-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_personal_demo_manifest_2026_06_04_pilot_test_ids",
+      "label": "Tre anonyma pilot-test-ID f\u00f6r demo",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-PERSONAL-DEMO-MANIFEST-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_personal_demo_manifest_2026_06_04_journaling_e2e",
+      "label": "E2E journalf\u00f6ring: skapa \u2192 signera/l\u00e5s \u2192 409 vid \u00e4ndring \u2192 r\u00e4ttelse",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-PERSONAL-DEMO-MANIFEST-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_personal_demo_manifest_2026_06_04_doc",
+      "target": "docs_strategy_cco_personal_demo_manifest_2026_06_04_pilot_test_ids",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-PERSONAL-DEMO-MANIFEST-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_personal_demo_manifest_2026_06_04_doc",
+      "target": "docs_strategy_cco_personal_demo_manifest_2026_06_04_journaling_e2e",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-PERSONAL-DEMO-MANIFEST-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_personal_demo_manifest_2026_06_04_journaling_e2e",
+      "target": "docs_strategy_cco_staff_journal_pilot_one_pager_2026_06_04_sign_and_lock",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-PERSONAL-DEMO-MANIFEST-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_personal_demo_manifest_2026_06_04_journaling_e2e",
+      "target": "docs_strategy_cco_staff_journal_pilot_one_pager_2026_06_04_correction_flow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-PERSONAL-DEMO-MANIFEST-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_personal_demo_manifest_2026_06_04_doc",
+      "target": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_ready_for_work_threshold",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-PERSONAL-DEMO-MANIFEST-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

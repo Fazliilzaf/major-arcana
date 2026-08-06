@@ -1,0 +1,58 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_arcana_sync_common_sh",
+      "label": "arcana-sync-common.sh",
+      "file_type": "code",
+      "source_file": "scripts/arcana-sync-common.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_arcana_sync_common_sh__entry",
+      "label": "arcana-sync-common.sh script",
+      "file_type": "code",
+      "source_file": "scripts/arcana-sync-common.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    },
+    {
+      "id": "$graphify-root$_scripts_arcana_sync_common_build_arcana_sync_args",
+      "label": "build_arcana_sync_args()",
+      "file_type": "code",
+      "source_file": "scripts/arcana-sync-common.sh",
+      "source_location": "L25",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_arcana_sync_common_sh",
+      "target": "$graphify-root$_scripts_arcana_sync_common_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/arcana-sync-common.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_arcana_sync_common_sh",
+      "target": "$graphify-root$_scripts_arcana_sync_common_build_arcana_sync_args",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/arcana-sync-common.sh",
+      "source_location": "L25",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_scripts_arcana_sync_common_sh__entry",
+      "source_file": "scripts/arcana-sync-common.sh",
+      "source_location": "L2"
+    }
+  ],
+  "bash_sources": []
+}

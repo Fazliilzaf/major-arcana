@@ -1,0 +1,142 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_doc",
+      "label": "V12 Fas 4 \u2014 Layout-canon-beslut (2026-06-24)",
+      "file_type": "document",
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_alternativ_c",
+      "label": "Alternativ C \u00b7 Hybrid layout (full-sida vid kundklick + kollapsad jump-rail)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "\u00a73-\u00a74",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_jump_rail",
+      "label": "320px jump-rail (ankarnavigering i st\u00e4llet f\u00f6r inneh\u00e5llsrail)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "\u00a71 / \u00a75",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_overlay_modell",
+      "label": "Nuvarande overlay-modell (.v9-dossier-deep--v12-workspace, \u00f6ppnas vid sektionsklick)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "\u00a72",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_konkurrerande_sanningar",
+      "label": "Konkurrerande sanningar \u2014 CSS-polish ger regressioner tills en canon valts",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "\u00a71",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_doc",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "Relaterat",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_doc",
+      "target": "docs_handover_v12_facit_parity_backlog_2026_06_23_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "Relaterat",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_alternativ_c",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_hybrid_canon",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "\u00a74 (konsekvent med rail-canon-beslutet)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_konkurrerande_sanningar",
+      "target": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_alternativ_c",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "\u00a71 / \u00a74",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_alternativ_c",
+      "target": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_jump_rail",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "\u00a73 Alternativ C",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_jump_rail",
+      "target": "docs_handover_v12_customer_workspace_canon_2026_06_22_deep_link_mappning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "\u00a73 (\u00e5teranv\u00e4nder data-kk-jump/section-link)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_overlay_modell",
+      "target": "docs_handover_v12_customer_workspace_canon_2026_06_22_feature_flag",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "\u00a72",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_fas4_layout_canon_decision_2026_06_24_konkurrerande_sanningar",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_hybrid_canon",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/V12-FAS4-LAYOUT-CANON-DECISION-2026-06-24.md",
+      "source_location": "\u00a71",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

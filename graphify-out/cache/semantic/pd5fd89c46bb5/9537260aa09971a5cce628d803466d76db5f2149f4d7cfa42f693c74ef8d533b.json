@@ -1,0 +1,387 @@
+{
+  "nodes": [
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "label": "Patientinformation \u00f6gonlocksplastik (Curatiio)",
+      "file_type": "document",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_tokens_css",
+      "label": "Delade patientinformation-designtokens (CSS)",
+      "file_type": "code",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_blefaroplastik",
+      "label": "Blefaroplastik \u2014 dagkirurgiskt ingrepp i lokalbed\u00f6vning",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_konsultation_samtycke",
+      "label": "Konsultation, offert giltig 3 m\u00e5nader och skriftligt samtycke",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_betanketid_2021_363",
+      "label": "Lagstadgad bet\u00e4nketid enligt lag 2021:363 (7 dagar kirurgi, 2 dagar injektion)",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Bet\u00e4nketiden \u00e4r en sp\u00e4rr mot impulsbeslut: patienten kan ta tillbaka samtycket fram till behandlingsdagen, och kliniken behandlar endast personer \u00f6ver 18 \u00e5r."
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_risker",
+      "label": "Riskregister: vanliga besv\u00e4r, ovanliga risker och s\u00e4llsynta komplikationer",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_kontraindikationer",
+      "label": "Kontraindikationer \u2014 n\u00e4r behandlingen inte \u00e4r l\u00e4mplig",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_akut_eskalering",
+      "label": "Eskaleringsregler: kontakta kliniken vs s\u00f6k akut v\u00e5rd",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_eftervard_uppfoljning",
+      "label": "Efterv\u00e5rd, suturtagning dag 7 och uppf\u00f6ljning 3 m\u00e5nader",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_ordination_delegering",
+      "label": "Ordination och delegering \u2014 endast legitimerad l\u00e4kare ordinerar",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_journalforing_gdpr",
+      "label": "Journalf\u00f6ring enligt Patientdatalagen och GDPR-hantering",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_fotosamtycke",
+      "label": "Fotodokumentation i journal \u2014 separat samtycke f\u00f6r utbildning/marknadsf\u00f6ring",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Foton sparas i patientjournalen och anv\u00e4nds enbart medicinskt; all annan anv\u00e4ndning kr\u00e4ver ett separat skriftligt samtycke som kan \u00e5terkallas."
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_patientsakerhet_ivo",
+      "label": "Patients\u00e4kerhetslagen, IVO-anm\u00e4lan och Lex Maria",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_forsakring_kvalitetssystem",
+      "label": "Patient- och ansvarsf\u00f6rs\u00e4kring samt kvalitetssystem SOSFS 2011:9",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_betalningsvillkor",
+      "label": "Betalningsvillkor: 20 % deposition, \u00e5terbetalning vid avbokning 14 dagar, delbetalning",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_tvist_arn",
+      "label": "Tvistl\u00f6sning via allm\u00e4n domstol eller ARN",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patientinformation_ogonlocksplastik_curatiio_pdf_export",
+      "label": "PDF-export av patientinformation i samma designl\u00e4ge som webben",
+      "file_type": "concept",
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "A4-PDF genereras direkt fr\u00e5n sidan f\u00f6r att undvika webbl\u00e4sarens egna sidhuvuden/sidf\u00f6tter och f\u00f6r att patienten ska kunna ta med underlaget till konsultationen."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_tokens_css",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_blefaroplastik",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_konsultation_samtycke",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_konsultation_samtycke",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_betanketid_2021_363",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_risker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_risker",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_kontraindikationer",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_risker",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_akut_eskalering",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_eftervard_uppfoljning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_ordination_delegering",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_journalforing_gdpr",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_journalforing_gdpr",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_fotosamtycke",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_patientsakerhet_ivo",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_forsakring_kvalitetssystem",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_betalningsvillkor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_tvist_arn",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_page",
+      "target": "public_patientinformation_ogonlocksplastik_curatiio_pdf_export",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_fotosamtycke",
+      "target": "public_uppfoljning_index_marknadsforingssamtycke",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_ordination_delegering",
+      "target": "public_staff_portal_human_in_the_loop_ordination",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "public_patientinformation_ogonlocksplastik_curatiio_pdf_export",
+      "target": "public_torti_ritual_index_pdf_export",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/patientinformation-ogonlocksplastik-curatiio.html",
+      "source_location": null,
+      "weight": 0.65
+    }
+  ],
+  "hyperedges": []
+}

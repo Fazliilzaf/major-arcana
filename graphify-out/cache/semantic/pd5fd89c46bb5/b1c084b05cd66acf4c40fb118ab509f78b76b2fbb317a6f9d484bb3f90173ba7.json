@@ -1,0 +1,71 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_12_kunder_v9_real_data_wiring_customers_shell_wiring",
+      "label": "customers-shell real-data wiring (toolbar/statusbar/agg/lista/intel)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-12-kunder-v9-real-data-wiring.md",
+      "source_location": "Data-ytor",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Layout och CSS fr\u00e5n mockupen beh\u00e5lls of\u00f6r\u00e4ndrade; bara databindningen byts, vilket g\u00f6r visuell regression l\u00e4tt att uppt\u00e4cka."
+    },
+    {
+      "id": "docs_handover_orders_ord_12_kunder_v9_real_data_wiring_calendar_demo_guard",
+      "label": "Kalender-demo inline-script guard (customerList-check)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-12-kunder-v9-real-data-wiring.md",
+      "source_location": "Scope",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Demo-scriptet m\u00e5ste avbryta n\u00e4r riktig kundlista finns, annars skriver det \u00f6ver real data."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_12_kunder_v9_real_data_wiring_customers_shell_wiring",
+      "target": "docs_handover_orders_ord_10_kunder_v9_visual_restoration_v9_shell",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-12-kunder-v9-real-data-wiring.md",
+      "source_location": "F\u00f6ruts\u00e4ttning ORD-11 / beh\u00e5ll v9-mockup layout",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_12_kunder_v9_real_data_wiring_customers_shell_wiring",
+      "target": "docs_handover_orders_ord_10_kunder_v9_visual_restoration_no_mock_numbers_rule",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-12-kunder-v9-real-data-wiring.md",
+      "source_location": "Inga mock-tal i customers-shell",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_12_kunder_v9_real_data_wiring_calendar_demo_guard",
+      "target": "docs_handover_orders_ord_12_kunder_v9_real_data_wiring_customers_shell_wiring",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-12-kunder-v9-real-data-wiring.md",
+      "source_location": "Scope",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_12_kunder_v9_real_data_wiring_customers_shell_wiring",
+      "target": "docs_handover_orders_ord_22_strikta_segment_definitioner_segment_definitions",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-12-kunder-v9-real-data-wiring.md",
+      "source_location": "Side + filter chips \u2192 segmentStats",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

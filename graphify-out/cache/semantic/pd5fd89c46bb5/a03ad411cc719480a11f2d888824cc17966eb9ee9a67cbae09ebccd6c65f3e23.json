@@ -1,0 +1,69 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_mobil_kunder_readiness_2026_06_03_doc",
+      "label": "CCO Mobil Kunder \u2014 Readiness",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-MOBIL-KUNDER-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mobil_kunder_readiness_2026_06_03_mobile_customers_workspace",
+      "label": "Mobil Kunder P1.2 \u2014 REAL/partial/disabled capability-map",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-MOBIL-KUNDER-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_mobil_kunder_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_mobil_kunder_readiness_2026_06_03_mobile_customers_workspace",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MOBIL-KUNDER-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobil_kunder_readiness_2026_06_03_mobile_customers_workspace",
+      "target": "docs_strategy_cco_mobile_qa_matrix_2026_05_30_cco_mobile_css",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CCO-MOBIL-KUNDER-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobil_kunder_readiness_2026_06_03_mobile_customers_workspace",
+      "target": "docs_strategy_cco_smart_functions_product_plan_2026_06_03_what_why_next",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MOBIL-KUNDER-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobil_kunder_readiness_2026_06_03_mobile_customers_workspace",
+      "target": "docs_strategy_cco_smart_next_step_ux_spec_v2_9_steg_2026_06_03_signal_matrix",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-MOBIL-KUNDER-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

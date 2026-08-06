@@ -1,0 +1,142 @@
+{
+  "nodes": [
+    {
+      "id": "docs_legal_art_30_register_maj_arcana_registerforteckning",
+      "label": "Registerf\u00f6rteckning GDPR Art. 30 (Major Arcana / klinik)",
+      "file_type": "document",
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_art_30_register_maj_arcana_cco_journal_kundmaster",
+      "label": "Behandlingsaktivitet A1 \u2014 CCO journal & kundmaster (PDL, 10 \u00e5r)",
+      "file_type": "concept",
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_art_30_register_maj_arcana_post_op_samtycke",
+      "label": "Behandlingsaktivitet A3 \u2014 post-op foton med publiceringssamtycke (365 d utan samtycke)",
+      "file_type": "concept",
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_art_30_register_maj_arcana_personuppgiftsbitraden",
+      "label": "Personuppgiftsbitr\u00e4den (Render EU, Microsoft Graph, Resend, OpenAI, Google Drive)",
+      "file_type": "concept",
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_art_30_register_maj_arcana_tekniska_atgarder",
+      "label": "Tekniska \u00e5tg\u00e4rder (RBAC, audit, mailDeliveryGuard, EXIF-strip, token-hash)",
+      "file_type": "concept",
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_legal_art_30_register_maj_arcana_registerforteckning",
+      "target": "docs_legal_data_retention_policy_retentionspolicy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_art_30_register_maj_arcana_registerforteckning",
+      "target": "docs_legal_personuppgiftspolicy_pub_maj_arcana_integritetspolicy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_art_30_register_maj_arcana_registerforteckning",
+      "target": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_dokumentindex",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_art_30_register_maj_arcana_cco_journal_kundmaster",
+      "target": "docs_legal_art_30_register_maj_arcana_registerforteckning",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_art_30_register_maj_arcana_post_op_samtycke",
+      "target": "docs_legal_art_30_register_maj_arcana_registerforteckning",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_art_30_register_maj_arcana_personuppgiftsbitraden",
+      "target": "docs_legal_gdpr_dpa_template_underbitraden_30_dagar",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_art_30_register_maj_arcana_tekniska_atgarder",
+      "target": "docs_legal_iso27001_soc2_readiness_annex_a_mappning",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_art_30_register_maj_arcana_cco_journal_kundmaster",
+      "target": "docs_legal_data_retention_policy_journalretention_10_ar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/art-30-register-maj-arcana.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

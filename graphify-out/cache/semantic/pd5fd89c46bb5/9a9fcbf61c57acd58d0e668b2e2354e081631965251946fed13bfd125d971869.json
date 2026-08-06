@@ -1,0 +1,106 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_icon",
+      "label": "App-ikon SVG (HCCO)",
+      "file_type": "image",
+      "source_file": "public/major-arcana-preview/icon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_icon_hcco_brandmark",
+      "label": "HCCO varumarkesmarke: serif-H over versalt CCO",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/icon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_icon_warm_palette",
+      "label": "Varm gradientpalett (kram #fef8f0 till #f3e6cf, terrakotta #c97548)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/icon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_icon_squircle_pwa_icon",
+      "label": "Squircle app-ikon for PWA/preview (rx 112 pa 512)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/icon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_icon",
+      "target": "public_major_arcana_preview_icon_hcco_brandmark",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/icon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_icon",
+      "target": "public_major_arcana_preview_icon_warm_palette",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/icon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_icon",
+      "target": "public_major_arcana_preview_icon_squircle_pwa_icon",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/icon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_icon_hcco_brandmark",
+      "target": "public_major_arcana_preview_icon_warm_palette",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/icon.svg",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "hcco_app_icon_set",
+      "label": "HCCO app-ikonset (SVG-kalla + 512px PNG)",
+      "nodes": [
+        "public_major_arcana_preview_icon",
+        "public_major_arcana_preview_icon_512",
+        "public_major_arcana_preview_icon_hcco_brandmark",
+        "public_major_arcana_preview_icon_squircle_pwa_icon"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/major-arcana-preview/icon.svg"
+    }
+  ]
+}

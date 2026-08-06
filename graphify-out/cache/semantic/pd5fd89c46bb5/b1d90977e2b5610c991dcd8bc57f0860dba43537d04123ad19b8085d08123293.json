@@ -1,0 +1,219 @@
+{
+  "nodes": [
+    {
+      "id": "public_cco_staff_go_live_control_page",
+      "label": "Personal Go-Live Control \u00b7 dag-1 styrning",
+      "file_type": "document",
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_staff_go_live_control_startstatus_gate",
+      "label": "Startstatus-gate GO / WARNING / STOP",
+      "file_type": "concept",
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": "loadStatus()",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_staff_go_live_control_rollfordelning",
+      "label": "Dag-1 rollf\u00f6rdelning (personal / operator / owner / revisor)",
+      "file_type": "concept",
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_staff_go_live_control_stoppregler",
+      "label": "Stoppregler \u00b7 pilot stoppas direkt",
+      "file_type": "concept",
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_staff_go_live_control_eskaleringsmatris",
+      "label": "Eskaleringsmatris \u00b7 problem \u2192 mottagare \u2192 dokumentation \u2192 patientformulering",
+      "file_type": "concept",
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_staff_go_live_control_driftkort",
+      "label": "Drift-kort \u00b7 f\u00f6rsta riktiga patienten efter pilotkunderna",
+      "file_type": "concept",
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_cco_staff_go_live_control_page",
+      "target": "public_cco_staff_go_live_control_startstatus_gate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_page",
+      "target": "public_cco_staff_go_live_control_stoppregler",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_page",
+      "target": "public_cco_staff_go_live_control_eskaleringsmatris",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_page",
+      "target": "public_cco_staff_go_live_control_rollfordelning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_page",
+      "target": "public_cco_staff_go_live_control_driftkort",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_driftkort",
+      "target": "public_cco_staff_training_mode_pilot_customers",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_stoppregler",
+      "target": "public_journal_pilot_guide_identity_triple_check",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_stoppregler",
+      "target": "public_journal_build_demo_no_drive_links_no_external_ai",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_stoppregler",
+      "target": "public_journal_pilot_guide_review_material_not_clinical_truth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_page",
+      "target": "public_cco_staff_training_mode_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_page",
+      "target": "public_cco_staff_training_completion_sheet",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_page",
+      "target": "public_journal_pilot_guide_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_go_live_control_eskaleringsmatris",
+      "target": "public_finance_fortnox_blocked_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-go-live-control.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "journalpilot_dag1_personalberedskap",
+      "label": "Dag-1 personalberedskap f\u00f6r journalpiloten (tr\u00e4ning \u2192 bekr\u00e4ftelse \u2192 drift \u2192 styrning)",
+      "nodes": [
+        "public_cco_staff_training_mode_five_step_flow",
+        "public_cco_staff_training_completion_competency_checklist",
+        "public_journal_pilot_print_pack_day1_rules",
+        "public_journal_pilot_guide_decision_support_scenarios",
+        "public_cco_staff_go_live_control_startstatus_gate"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/cco-staff-go-live-control.html"
+    }
+  ]
+}

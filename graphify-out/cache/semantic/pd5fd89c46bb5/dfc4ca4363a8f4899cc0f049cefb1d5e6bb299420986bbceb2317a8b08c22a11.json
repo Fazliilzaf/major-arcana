@@ -1,0 +1,185 @@
+{
+  "nodes": [
+    {
+      "id": "public_svarstudio_v2_page",
+      "label": "Svarstudio v2 \u2014 svarskomponist f\u00f6r kundmejl",
+      "file_type": "code",
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_svarstudio_v2_ai_varianter",
+      "label": "Tre AI-svarsf\u00f6rslag med ton- och sp\u00e5rfilter",
+      "file_type": "concept",
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_svarstudio_v2_sandstege",
+      "label": "Fyrstegs s\u00e4ndstege: utkast \u2192 granskad \u2192 godk\u00e4nd \u2192 skickad via Graph",
+      "file_type": "concept",
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Stegen g\u00f6r ansvaret synligt (du \u2192 operat\u00f6r \u2192 owner \u2192 Graph) s\u00e5 att inget svar g\u00e5r ut utan att n\u00e5gon tagit beslutet."
+    },
+    {
+      "id": "public_svarstudio_v2_mailbox_signatur",
+      "label": "L\u00e5st k\u00e4llmailbox med val av avs\u00e4ndare och signatur",
+      "file_type": "concept",
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_svarstudio_v2_policykontroll",
+      "label": "Policykontroll av svarstext f\u00f6re s\u00e4ndning",
+      "file_type": "concept",
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_svarstudio_v2_sla_prioritet",
+      "label": "SLA-ring, prioritet och VIP-/v\u00e4rdesignaler i arbetsytan",
+      "file_type": "concept",
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_svarstudio_v2_live_preview",
+      "label": "Live-f\u00f6rhandsvisning av det f\u00e4rdiga mejlet med renderad signatur",
+      "file_type": "concept",
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_svarstudio_v2_page",
+      "target": "public_svarstudio_v2_ai_varianter",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_svarstudio_v2_page",
+      "target": "public_svarstudio_v2_sandstege",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_svarstudio_v2_page",
+      "target": "public_svarstudio_v2_mailbox_signatur",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_svarstudio_v2_ai_varianter",
+      "target": "public_svarstudio_v2_policykontroll",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_svarstudio_v2_page",
+      "target": "public_svarstudio_v2_sla_prioritet",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_svarstudio_v2_page",
+      "target": "public_svarstudio_v2_live_preview",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_svarstudio_v2_live_preview",
+      "target": "src_ops_signatures_signaturev9template_signature",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "public_svarstudio_v2_mailbox_signatur",
+      "target": "src_ops_signatures_signaturev9template_signature",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "public_svarstudio_v2_sandstege",
+      "target": "render_graph_allowlist",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "weight": 0.75
+    },
+    {
+      "source": "public_svarstudio_v2_policykontroll",
+      "target": "public_personal_demo_ingen_extern_ai",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/svarstudio-v2.html",
+      "source_location": null,
+      "weight": 0.65
+    }
+  ],
+  "hyperedges": []
+}

@@ -62,6 +62,37 @@
   -webkit-backdrop-filter: blur(8px);
 }
 
+.v12-canon__back {
+  display: none;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid rgba(56, 40, 28, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.v12-canon__back:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(200, 130, 30, 0.35);
+  color: var(--amber);
+}
+
+.v12-canon__back:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
 .v12-canon__header-main {
   display: flex;
   flex-direction: column;
@@ -172,6 +203,12 @@
   .v12-canon__tab {
     padding: 6px 10px;
     font-size: 11px;
+  }
+}
+
+@media (min-width: 1180px) {
+  .v12-canon__back {
+    display: inline-flex;
   }
 }
 .v12-canon *,

@@ -1,0 +1,360 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "label": "Chief of Finance MVP 2 - expense categorization och manuellt flode",
+      "file_type": "document",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": "Claude",
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_store",
+      "label": "ccoExpenseStore - utgiftsstore med fail-closed validering",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_expense_livscykel",
+      "label": "Expense-livscykel new till exported med rejected-utgang",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_exporter",
+      "label": "ccoExpenseExporter - CSV- och JSON-exportpaket",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_blocked_integration",
+      "label": "Fortnox BLOCKED_INTEGRATION med tre backend-felkoder",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Utvecklarportalen felar direkt efter licensaktivering, sa CF levereras CCO-native i manual mode tills owner far Fortnox support att lasa upp OAuth."
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_hookfalt",
+      "label": "Fortnox-hookfalt per expense forberedda for framtida sync",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Tre falt per expense gor att voucher-sync kan slutas in senare utan datamigration."
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_intern_testchecklista_tio_steg",
+      "label": "Intern testchecklista i tio steg pa finance-vyn",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_p1_securestorage_fixar",
+      "label": "P1-fixar: eager mount, putObject-shim, getObject buffer-extraktion",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_p2c_audit_kind_action_mismatch",
+      "label": "P2-C - audit-loggen laser action medan stores skickar kind",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Alla events skrivs som unknown; fixen ar tvarfunktionell och bor gora append bakatkompatibel i stallet for att andra atta anropssites."
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_frysta_granser_cf_sparet",
+      "label": "Frysta granser for CF-sparet utan owner-GO",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_expense_livscykel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_exporter",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_blocked_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_hookfalt",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_intern_testchecklista_tio_steg",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_p1_securestorage_fixar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_p2c_audit_kind_action_mismatch",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_frysta_granser_cf_sparet",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_store",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_expense_livscykel",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_store",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_hookfalt",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_exporter",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_store",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_exporter",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_expense_livscykel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_hookfalt",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_blocked_integration",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_intern_testchecklista_tio_steg",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_exporter",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_p1_securestorage_fixar",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_exporter",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_frysta_granser_cf_sparet",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_blocked_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_store",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_cco_receipt_store",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_expense_livscykel",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_cco_receipt_store",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_exporter",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_secure_storage_kvitton",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_p1_securestorage_fixar",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_secure_storage_kvitton",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_p2c_audit_kind_action_mismatch",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_cf_receipt_auditkinds",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_mvp2_rapport",
+      "target": "docs_strategy_chief_of_finance_inventory_2026_06_01_cf_roadmap_fem_mvp",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_intern_testchecklista_tio_steg",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_cf_rbac_owner_finance_revisor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP2-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

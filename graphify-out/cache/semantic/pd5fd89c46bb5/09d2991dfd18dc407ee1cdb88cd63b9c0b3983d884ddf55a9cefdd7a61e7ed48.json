@@ -1,0 +1,163 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_ai_triage_v3_triage",
+      "label": "CCO AI Triage v3 (sju mailboxes)",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_ai_triage_v3_routing_regler",
+      "label": "Auto-routing-regler (redigerbara av personal)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_ai_triage_v3_intentklassificering",
+      "label": "Intent-klassificering med konfidens och LTV",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_ai_triage_v3_dry_run_send",
+      "label": "Dry-run-l\u00e4ge f\u00f6r send-actions",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_ai_triage_v3_medicinsk_eskalering",
+      "label": "Medicinsk komplikation eskaleras till kirurg, inte AI-utkast",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_ai_triage_v3_sla_svarstid",
+      "label": "SLA-f\u00f6nster f\u00f6r svarstid (akut under 2h)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_ai_triage_v3_triage",
+      "target": "public_major_arcana_preview_cco_ai_triage_v3_routing_regler",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_ai_triage_v3_triage",
+      "target": "public_major_arcana_preview_cco_ai_triage_v3_intentklassificering",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_ai_triage_v3_triage",
+      "target": "public_major_arcana_preview_cco_ai_triage_v3_dry_run_send",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_ai_triage_v3_triage",
+      "target": "public_major_arcana_preview_cco_ai_triage_v3_medicinsk_eskalering",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_ai_triage_v3_triage",
+      "target": "public_major_arcana_preview_cco_ai_triage_v3_sla_svarstid",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_ai_triage_v3_intentklassificering",
+      "target": "public_major_arcana_preview_cco_ai_triage_v3_routing_regler",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_ai_triage_v3_routing_regler",
+      "target": "public_konversationer_lanes",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_ai_triage_v3_medicinsk_eskalering",
+      "target": "public_journal_pilot_signoff_sheet_eskaleringsroller",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_ai_triage_v3_dry_run_send",
+      "target": "public_major_arcana_preview_cco_automatisering_v3_testkorning",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-ai-triage-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,79 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg4_konsultationsmall_final_demo_konsultationsmall",
+      "label": "Steg 4 \u2014 Konsultationsmall (personalens anteckning)",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg4-konsultationsmall-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg4_konsultationsmall_final_demo_metodval",
+      "label": "Metodval FUE / DHI / Kombination / PRP / Avvakta",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg4-konsultationsmall-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg4_konsultationsmall_final_demo_konsultationsmall",
+      "target": "public_major_arcana_preview_staff_anteckningar_kort_final_demo_content_bundle",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg4-konsultationsmall-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg4_konsultationsmall_final_demo_konsultationsmall",
+      "target": "public_major_arcana_preview_staff_anteckningar_kort_final_demo_staff_document_shell",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg4-konsultationsmall-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg4_konsultationsmall_final_demo_konsultationsmall",
+      "target": "public_major_arcana_preview_steg4_konsultationsmall_final_demo_metodval",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg4-konsultationsmall-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg4_konsultationsmall_final_demo_konsultationsmall",
+      "target": "public_major_arcana_preview_steg2_auto_bokningsbekraftelse_final_demo_nio_stegs_patientresa",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg4-konsultationsmall-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg4_konsultationsmall_final_demo_metodval",
+      "target": "public_major_arcana_preview_steg5_behandlingsplan_staff_final_demo_behandlingsplan",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/steg4-konsultationsmall-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

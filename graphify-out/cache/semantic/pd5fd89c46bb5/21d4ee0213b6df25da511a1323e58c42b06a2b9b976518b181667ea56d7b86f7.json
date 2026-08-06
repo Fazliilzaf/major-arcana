@@ -1,0 +1,185 @@
+{
+  "nodes": [
+    {
+      "id": "docs_cco_kundportal_inloggning_kontrakt_hybrid_access_model",
+      "label": "Hybrid \u00e5tkomstmodell f\u00f6r kundportalen (niv\u00e5 1 magisk l\u00e4nk + niv\u00e5 2 BankID)",
+      "file_type": "concept",
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Tv\u00e5 \u00e5tkomstniv\u00e5er",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_kundportal_inloggning_kontrakt_magic_link_level1",
+      "label": "Niv\u00e5 1 \u2014 magisk l\u00e4nk (opak token, endast \u00f6versikt och meddelande)",
+      "file_type": "concept",
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Wiring-steg 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_kundportal_inloggning_kontrakt_bankid_level2_stepup",
+      "label": "Niv\u00e5 2 \u2014 BankID step-up-session (medicinskt inneh\u00e5ll och signering)",
+      "file_type": "concept",
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Wiring-steg 2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_kundportal_inloggning_kontrakt_owner_match_rule",
+      "label": "Owner-match-regel: BankID-identitetens patientId m\u00e5ste vara token\u00e4garen",
+      "file_type": "concept",
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Fl\u00f6de steg 4",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_kundportal_inloggning_kontrakt_bankid_provider_decision",
+      "label": "Leverant\u00f6rsbeslut f\u00f6r BankID (OIDC-broker; Criipto rekommenderas)",
+      "file_type": "concept",
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "BankID-leverant\u00f6r \u2014 NUL\u00c4GE",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_kundportal_inloggning_kontrakt_level2_payload",
+      "label": "Niv\u00e5-2-payload (/me): offert, journal endast som referens, bokningar",
+      "file_type": "document",
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Wiring-steg 3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_kundportal_inloggning_kontrakt_identity_verification_fallback",
+      "label": "Fallback-identitetsverifiering utan BankID (in_person, manual_id_upload, selfie_match)",
+      "file_type": "concept",
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Fallback f\u00f6r kunder utan BankID",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_kundportal_inloggning_kontrakt_two_portals",
+      "label": "Tv\u00e5 portaler med skilda auth-modeller, sammanbundna av canonical patientId",
+      "file_type": "concept",
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Tv\u00e5 portaler",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_cco_kundportal_inloggning_kontrakt_hybrid_access_model",
+      "target": "docs_cco_kundportal_inloggning_kontrakt_magic_link_level1",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Tv\u00e5 \u00e5tkomstniv\u00e5er",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_kundportal_inloggning_kontrakt_hybrid_access_model",
+      "target": "docs_cco_kundportal_inloggning_kontrakt_bankid_level2_stepup",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Tv\u00e5 \u00e5tkomstniv\u00e5er",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_kundportal_inloggning_kontrakt_bankid_level2_stepup",
+      "target": "docs_cco_kundportal_inloggning_kontrakt_owner_match_rule",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Fl\u00f6de steg 4",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_kundportal_inloggning_kontrakt_owner_match_rule",
+      "target": "docs_cco_konversation_kund_koppling_canonical_patient_id",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Canonical identitet",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_kundportal_inloggning_kontrakt_owner_match_rule",
+      "target": "docs_cco_konversation_kund_koppling_conversation_patient_resolver",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Befintlig infra som \u00e5teranv\u00e4nds",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_kundportal_inloggning_kontrakt_level2_payload",
+      "target": "docs_cco_kundportal_inloggning_kontrakt_bankid_level2_stepup",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Wiring-steg 3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_kundportal_inloggning_kontrakt_identity_verification_fallback",
+      "target": "docs_cco_kundportal_inloggning_kontrakt_magic_link_level1",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Fallback",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_kundportal_inloggning_kontrakt_two_portals",
+      "target": "docs_cco_konversation_kund_koppling_canonical_patient_id",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "Tv\u00e5 portaler",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_kundportal_inloggning_kontrakt_level2_payload",
+      "target": "docs_architecture_execution_gateway_contract_patient_safety_requirements",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/cco-kundportal-inloggning-kontrakt.md",
+      "source_location": "journal som referens",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

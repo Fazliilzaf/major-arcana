@@ -1,0 +1,138 @@
+{
+  "nodes": [
+    {
+      "id": "public_cco_staff_day1_checklist_page",
+      "label": "Staff Day-1 Checklist (10 sektioner, utskriftsv\u00e4nlig)",
+      "file_type": "document",
+      "source_file": "public/cco-staff-day1-checklist.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_staff_day1_checklist_identitetsverifiering",
+      "label": "Identitetsverifiering: namn + telefon + Cliento-id",
+      "file_type": "concept",
+      "source_file": "public/cco-staff-day1-checklist.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Tre oberoende signaler m\u00e5ste matcha kortets header och patienten s\u00e4ger namnet sj\u00e4lv \u2014 personalen f\u00e5r inte l\u00e4sa upp namnet, eftersom det g\u00f6r bekr\u00e4ftelsen v\u00e4rdel\u00f6s."
+    },
+    {
+      "id": "public_cco_staff_day1_checklist_no_new_customer_on_doubt",
+      "label": "Skapa aldrig ny kund vid os\u00e4kerhet \u2014 eskalera i st\u00e4llet",
+      "file_type": "concept",
+      "source_file": "public/cco-staff-day1-checklist.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "En dubblett \u00e4r dyrare att laga \u00e4n en v\u00e4ntan: dubbla kundkort splittrar journalhistoriken permanent, medan en eskalering bara kostar minuter."
+    },
+    {
+      "id": "public_cco_staff_day1_checklist_end_of_shift",
+      "label": "End-of-shift-rutin (inga h\u00e4ngande drafts eller \u00f6ppna kundkort)",
+      "file_type": "concept",
+      "source_file": "public/cco-staff-day1-checklist.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_cco_staff_day1_checklist_page",
+      "target": "public_cco_staff_day1_checklist_identitetsverifiering",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-day1-checklist.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_day1_checklist_page",
+      "target": "public_cco_staff_day1_checklist_no_new_customer_on_doubt",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-day1-checklist.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_day1_checklist_page",
+      "target": "public_cco_staff_day1_checklist_end_of_shift",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-day1-checklist.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_day1_checklist_page",
+      "target": "public_cco_journalpilot_faq_rattelse_som_ny_post",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-day1-checklist.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_day1_checklist_page",
+      "target": "public_cco_review_material_warning_use_as_reference",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-day1-checklist.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_day1_checklist_page",
+      "target": "public_cco_morning_checklist_backup_failover",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-day1-checklist.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_day1_checklist_end_of_shift",
+      "target": "public_admin_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-day1-checklist.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "journalpilot_signing_chain",
+      "label": "Signeringskedjan: identitet \u2192 f\u00f6rhandskontroll \u2192 permanent l\u00e5s \u2192 r\u00e4ttelse",
+      "nodes": [
+        "public_cco_staff_day1_checklist_identitetsverifiering",
+        "public_cco_pre_signering_check_five_step",
+        "public_cco_journalpilot_faq_signeringslas",
+        "public_cco_journalpilot_faq_rattelse_som_ny_post"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-day1-checklist.html"
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_block6_mockup",
+      "label": "V11 Rail Block 6 mockup \u2014 D + A + V + B + C + E",
+      "file_type": "document",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block6-E-health/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_e_health_declaration_preview",
+      "label": "E \u00b7 H\u00e4lsodeklaration-preview (HD-status + allergier)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block6-E-health/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_health_deeplink_zon2",
+      "label": "Deep-link till H\u00c4LSA i Zon 2 (workflow dupliceras ej)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block6-E-health/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Railen sammanfattar bara; sjalva halsoworkflowet bor kvar i Zon 2 sa att det finns en enda sanningskalla."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_block6_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_v11_rail",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block6-E-health/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_block6_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_viewport_preview_pattern",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block6-E-health/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_block6_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_raster_png_pipeline",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block6-E-health/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_block6_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_canon_4_responsive",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block6-E-health/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_block6_mockup",
+      "target": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_e_health_declaration_preview",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block6-E-health/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_e_health_declaration_preview",
+      "target": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_health_deeplink_zon2",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block6-E-health/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_block6_mockup",
+      "target": "docs_handover_mockups_v11_rail_block5_d_warnings_viewport_preview_d_critical_warnings",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block6-E-health/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

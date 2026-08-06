@@ -1,0 +1,118 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_render_prod_defaults_sh",
+      "label": "render-prod-defaults.sh",
+      "file_type": "code",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_render_prod_defaults_sh__entry",
+      "label": "render-prod-defaults.sh script",
+      "file_type": "code",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    },
+    {
+      "id": "$graphify-root$_scripts_render_prod_defaults_render_prod_service_id",
+      "label": "RENDER_PROD_SERVICE_ID",
+      "file_type": "code",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L3",
+      "metadata": { "language": "bash", "kind": "code" }
+    },
+    {
+      "id": "$graphify-root$_scripts_render_prod_defaults_render_prod_service_name",
+      "label": "RENDER_PROD_SERVICE_NAME",
+      "file_type": "code",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L4",
+      "metadata": { "language": "bash", "kind": "code" }
+    },
+    {
+      "id": "$graphify-root$_scripts_render_prod_defaults_render_prod_url",
+      "label": "RENDER_PROD_URL",
+      "file_type": "code",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L5",
+      "metadata": { "language": "bash", "kind": "code" }
+    },
+    {
+      "id": "$graphify-root$_scripts_render_prod_defaults_render_prod_onrender_url",
+      "label": "RENDER_PROD_ONRENDER_URL",
+      "file_type": "code",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L6",
+      "metadata": { "language": "bash", "kind": "code" }
+    },
+    {
+      "id": "$graphify-root$_scripts_render_prod_defaults_render_service_id",
+      "label": "RENDER_SERVICE_ID",
+      "file_type": "code",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L8",
+      "metadata": { "language": "bash", "kind": "code" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_render_prod_defaults_sh",
+      "target": "$graphify-root$_scripts_render_prod_defaults_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_render_prod_defaults_sh",
+      "target": "$graphify-root$_scripts_render_prod_defaults_render_prod_service_id",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_render_prod_defaults_sh",
+      "target": "$graphify-root$_scripts_render_prod_defaults_render_prod_service_name",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_render_prod_defaults_sh",
+      "target": "$graphify-root$_scripts_render_prod_defaults_render_prod_url",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_render_prod_defaults_sh",
+      "target": "$graphify-root$_scripts_render_prod_defaults_render_prod_onrender_url",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_render_prod_defaults_sh",
+      "target": "$graphify-root$_scripts_render_prod_defaults_render_service_id",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/render-prod-defaults.sh",
+      "source_location": "L8",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [],
+  "bash_sources": []
+}

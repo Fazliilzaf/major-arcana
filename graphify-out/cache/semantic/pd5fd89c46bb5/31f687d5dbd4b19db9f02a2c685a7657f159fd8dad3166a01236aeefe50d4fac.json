@@ -1,0 +1,123 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_doc",
+      "label": "CCO Mail Enrichment Gap Analysis",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-MAIL-ENRICHMENT-GAP-ANALYSIS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_enrichment_coverage_gap",
+      "label": "Enrichment coverage gap (truth-konversationer utan berikning)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-MAIL-ENRICHMENT-GAP-ANALYSIS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_capability_baseline_reset",
+      "label": "In-memory capability-baseline nollst\u00e4lls vid deploy/restart",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-MAIL-ENRICHMENT-GAP-ANALYSIS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_denominator_exclusion",
+      "label": "Denominator-exkludering (dup + system/scrap)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-MAIL-ENRICHMENT-GAP-ANALYSIS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_ready_for_work_threshold",
+      "label": "readyForWork-tr\u00f6skel 99,5%",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-MAIL-ENRICHMENT-GAP-ANALYSIS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_truth_only_rule",
+      "label": "Truth-only regel (ingen Graph-fetch, ingen ny import, inga blinda pass)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-MAIL-ENRICHMENT-GAP-ANALYSIS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_doc",
+      "target": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_enrichment_coverage_gap",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MAIL-ENRICHMENT-GAP-ANALYSIS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_doc",
+      "target": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_capability_baseline_reset",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MAIL-ENRICHMENT-GAP-ANALYSIS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_capability_baseline_reset",
+      "target": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_enrichment_coverage_gap",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MAIL-ENRICHMENT-GAP-ANALYSIS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_denominator_exclusion",
+      "target": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_ready_for_work_threshold",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MAIL-ENRICHMENT-GAP-ANALYSIS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_truth_only_rule",
+      "target": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_enrichment_coverage_gap",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-MAIL-ENRICHMENT-GAP-ANALYSIS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

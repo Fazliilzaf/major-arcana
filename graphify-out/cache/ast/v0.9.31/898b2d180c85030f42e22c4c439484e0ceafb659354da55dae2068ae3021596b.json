@@ -1,0 +1,204 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_start_arcana_local_sh",
+      "label": "start-arcana-local.sh",
+      "file_type": "code",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "label": "start-arcana-local.sh script",
+      "file_type": "code",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    },
+    {
+      "id": "$graphify-root$_scripts_start_arcana_local_open_browser_when_ready",
+      "label": "open_browser_when_ready()",
+      "file_type": "code",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L23",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    },
+    {
+      "id": "$graphify-root$_scripts_start_arcana_local_cleanup",
+      "label": "cleanup()",
+      "file_type": "code",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L42",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_start_arcana_local_sh",
+      "target": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_start_arcana_local_sh",
+      "target": "$graphify-root$_scripts_start_arcana_local_open_browser_when_ready",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_start_arcana_local_sh",
+      "target": "$graphify-root$_scripts_start_arcana_local_cleanup",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "target": "$graphify-root$_scripts_start_arcana_local_open_browser_when_ready",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L39",
+      "weight": 1.0,
+      "context": "call"
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L3"
+    },
+    {
+      "language": "bash",
+      "callee": "cd",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L9"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L12"
+    },
+    {
+      "language": "bash",
+      "callee": "exit",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L13"
+    },
+    {
+      "language": "bash",
+      "callee": "kill",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L19"
+    },
+    {
+      "language": "bash",
+      "callee": "true",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L19"
+    },
+    {
+      "language": "bash",
+      "callee": "sleep",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L20"
+    },
+    {
+      "language": "bash",
+      "callee": "trap",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L45"
+    },
+    {
+      "language": "bash",
+      "callee": "exec",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_sh__entry",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L48"
+    },
+    {
+      "language": "bash",
+      "callee": "curl",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_open_browser_when_ready",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L25"
+    },
+    {
+      "language": "bash",
+      "callee": "grep",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_open_browser_when_ready",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L25"
+    },
+    {
+      "language": "bash",
+      "callee": "command",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_open_browser_when_ready",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L26"
+    },
+    {
+      "language": "bash",
+      "callee": "open",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_open_browser_when_ready",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L27"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_open_browser_when_ready",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L29"
+    },
+    {
+      "language": "bash",
+      "callee": "return",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_open_browser_when_ready",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L31"
+    },
+    {
+      "language": "bash",
+      "callee": "sleep",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_open_browser_when_ready",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L33"
+    },
+    {
+      "language": "bash",
+      "callee": "kill",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_cleanup",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L43"
+    },
+    {
+      "language": "bash",
+      "callee": "true",
+      "caller_nid": "$graphify-root$_scripts_start_arcana_local_cleanup",
+      "source_file": "scripts/start-arcana-local.sh",
+      "source_location": "L43"
+    }
+  ],
+  "bash_sources": []
+}

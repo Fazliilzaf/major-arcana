@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_automatisering_v3_workflow_builder",
+      "label": "CCO Automatisering v3 \u00b7 fl\u00f6desbyggare",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_automatisering_v3_autopilot",
+      "label": "Autopilot \u00b7 intelligent sj\u00e4lvoptimering",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_automatisering_v3_komponentbibliotek",
+      "label": "Nodbibliotek (utl\u00f6sare, \u00e5tg\u00e4rder, logik, avancerat)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_automatisering_v3_testkorning",
+      "label": "Testk\u00f6rning med simulerad data",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_automatisering_v3_versionshantering",
+      "label": "Versionshantering med \u00e5terst\u00e4llning",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_automatisering_v3_workflow_builder",
+      "target": "public_major_arcana_preview_cco_automatisering_v3_komponentbibliotek",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_automatisering_v3_workflow_builder",
+      "target": "public_major_arcana_preview_cco_automatisering_v3_autopilot",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_automatisering_v3_workflow_builder",
+      "target": "public_major_arcana_preview_cco_automatisering_v3_testkorning",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_automatisering_v3_workflow_builder",
+      "target": "public_major_arcana_preview_cco_automatisering_v3_versionshantering",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_automatisering_v3_autopilot",
+      "target": "public_major_arcana_preview_cco_automatisering_v3_versionshantering",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_automatisering_v3_workflow_builder",
+      "target": "public_kundkort_mockup_gemensamt_flikar",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_automatisering_v3_versionshantering",
+      "target": "public_major_arcana_preview_cco_admin_v3_mall_quality_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/major-arcana-preview/cco-automatisering-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

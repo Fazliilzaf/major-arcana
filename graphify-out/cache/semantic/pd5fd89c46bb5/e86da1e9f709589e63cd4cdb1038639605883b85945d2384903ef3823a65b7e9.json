@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "_claude_skills_human_skill_human_skill",
+      "label": "/human \u2014 skriv som en m\u00e4nniska",
+      "file_type": "document",
+      "source_file": ".claude/skills/human/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_claude_skills_human_skill_ai_writing_tells",
+      "label": "Signs of AI writing (24 m\u00f6nster, 4 kategorier)",
+      "file_type": "concept",
+      "source_file": ".claude/skills/human/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_claude_skills_human_skill_estetik_marketing_guardrail",
+      "label": "Guardrail f\u00f6r v\u00e5rd-/estetikp\u00e5st\u00e5enden (marknadsf\u00f6ringslagen, lag 2021:363)",
+      "file_type": "concept",
+      "source_file": ".claude/skills/human/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_claude_skills_human_skill_svenska_default",
+      "label": "Svenska som standardspr\u00e5k",
+      "file_type": "concept",
+      "source_file": ".claude/skills/human/SKILL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "_claude_skills_human_skill_human_skill",
+      "target": "_claude_skills_human_skill_ai_writing_tells",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".claude/skills/human/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_claude_skills_human_skill_human_skill",
+      "target": "_claude_skills_human_skill_estetik_marketing_guardrail",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".claude/skills/human/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_claude_skills_human_skill_human_skill",
+      "target": "_claude_skills_human_skill_svenska_default",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".claude/skills/human/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_claude_skills_human_skill_estetik_marketing_guardrail",
+      "target": "agents_legal_compliance_rule",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": ".claude/skills/human/SKILL.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

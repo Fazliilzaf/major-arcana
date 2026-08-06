@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero",
+      "label": "Screenshot: Kunddossier hero (v10 facit-rail)",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/v10-facit-rail/05-dossier-hero.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero_kunddossier_panel",
+      "label": "Kunddossi\u00e9r-panel",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/v10-facit-rail/05-dossier-hero.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero_kpi_strip",
+      "label": "KPI-rad: Bes\u00f6k / Int\u00e4kt / No-shows",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/v10-facit-rail/05-dossier-hero.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero_saknar_formular_badge",
+      "label": "Statusm\u00e4rke \"Saknar formul\u00e4r\"",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/v10-facit-rail/05-dossier-hero.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero",
+      "target": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero_kunddossier_panel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/05-dossier-hero.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero",
+      "target": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero_kpi_strip",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/05-dossier-hero.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero",
+      "target": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero_saknar_formular_badge",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/05-dossier-hero.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero_kpi_strip",
+      "target": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero_kunddossier_panel",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/05-dossier-hero.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

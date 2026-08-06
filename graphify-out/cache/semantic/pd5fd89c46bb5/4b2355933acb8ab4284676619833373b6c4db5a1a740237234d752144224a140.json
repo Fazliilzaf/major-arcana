@@ -1,0 +1,270 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_doc",
+      "label": "CCO Import Engine \u2014 Readiness audit (v1)",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_patient_asset_store",
+      "label": "ccoPatientAssetStore",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Generisk asset-store byggd f\u00f6r alla filtyper (inte bara foton) med ccoPhotoStore som strukturmall."
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_import_pipeline",
+      "label": "ccoAssetImportPipeline (13-stegs orkestrering)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_secure_storage_provider",
+      "label": "ccoSecureStorageProvider (SHA-256 + dedup)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_review_queue_store",
+      "label": "ccoAssetReviewQueueStore",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_import_run_store",
+      "label": "ccoAssetImportRunStore",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_link_only_blocker",
+      "label": "LINK_ONLY_BLOCKER",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Slutmandat link_only_files = 0: en patientfil r\u00e4knas aldrig som klar utan storageKey + checksum, s\u00e5 l\u00e4nk-utan-bin\u00e4r \u00e4r alltid en blocker."
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_state_machine",
+      "label": "Asset state-machine (STATUS_TRANSITIONS)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_pii_scan",
+      "label": "scan-for-pii.sh (PCRE PII-scan)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_old_cco_inventory",
+      "label": "Gamla CCO fil-/foto-moduler (inventering)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_drive_folder_coupling",
+      "label": "Drive folder-coupling (patient \u2192 folder-mapping)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_patient_asset_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_import_pipeline",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_secure_storage_provider",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_review_queue_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_import_run_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_import_pipeline",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_secure_storage_provider",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_import_pipeline",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_patient_asset_store",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_patient_asset_store",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_state_machine",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_import_pipeline",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_link_only_blocker",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_pii_scan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_old_cco_inventory",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_drive_folder_coupling",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_link_only_blocker",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_no_drive_links",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_pii_scan",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_no_patient_data_in_github",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

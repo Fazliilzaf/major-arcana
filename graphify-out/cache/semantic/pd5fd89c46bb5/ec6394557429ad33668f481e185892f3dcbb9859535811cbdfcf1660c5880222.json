@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_plan",
+      "label": "ORD-17 Post-ORD-16 cleanup + paritet",
+      "file_type": "document",
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": "Claude",
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_experiment_decommission",
+      "label": "Avveckling av v9-experimentsidan via 301-redirect",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_flag_default_on",
+      "label": "Flag default ON + ?v9=off kill-switch i 4 veckor",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_mobile_parity",
+      "label": "Mobil-paritet och touch-targets \u2265 44px",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_bundle_budget",
+      "label": "Bundle-budget: v9-till\u00e4gg < 50 KB",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_plan",
+      "target": "docs_strategy_ord_16_cosmetic_polish_backlog_2026_06_04_display_name_fallback",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_plan",
+      "target": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_experiment_decommission",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_plan",
+      "target": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_flag_default_on",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_flag_default_on",
+      "target": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_v9_feature_flag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_plan",
+      "target": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_mobile_parity",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_plan",
+      "target": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_bundle_budget",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_17_post_v9_port_cleanup_2026_06_04_plan",
+      "target": "docs_strategy_ord_16_spa_v9_step_1_plan_2026_06_04_step_roadmap",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-17-POST-V9-PORT-CLEANUP-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

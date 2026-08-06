@@ -1,0 +1,80 @@
+{
+  "nodes": [
+    {
+      "id": "docs_uiux_user_journeys_doc",
+      "label": "User Journeys (Pilot 0.1)",
+      "file_type": "document",
+      "source_file": "docs/uiux/user-journeys.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_uiux_user_journeys_owner_approval_flow",
+      "label": "Owner-fl\u00f6de: review \u2192 approve/request_revision \u2192 activate \u2192 audit",
+      "file_type": "concept",
+      "source_file": "docs/uiux/user-journeys.md",
+      "source_location": "Journey 2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_uiux_user_journeys_incident_stepup",
+      "label": "Incidenthantering med step-up och obligatorisk motivering vid override",
+      "file_type": "concept",
+      "source_file": "docs/uiux/user-journeys.md",
+      "source_location": "Journey 3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_uiux_component_library_override_motivering",
+      "target": "docs_uiux_user_journeys_incident_stepup",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/uiux/user-journeys.md",
+      "source_location": "Journey 3 override",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_uiux_user_journeys_doc",
+      "target": "docs_uiux_user_journeys_owner_approval_flow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/uiux/user-journeys.md",
+      "source_location": "Journey 2",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_uiux_user_journeys_doc",
+      "target": "docs_uiux_user_journeys_incident_stepup",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/uiux/user-journeys.md",
+      "source_location": "Journey 3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_uiux_user_journeys_owner_approval_flow",
+      "target": "docs_strategy_staff_portal_plan_2026_06_29_hitl_ordination_gate",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/uiux/user-journeys.md",
+      "source_location": null,
+      "weight": 0.85
+    }
+  ],
+  "hyperedges": []
+}

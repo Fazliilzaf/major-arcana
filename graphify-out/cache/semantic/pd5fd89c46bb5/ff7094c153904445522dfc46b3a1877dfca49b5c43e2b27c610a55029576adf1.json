@@ -1,0 +1,80 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_offline_happy_workflow_sv_guide",
+      "label": "Arcana utan WiFi (Happy-fl\u00f6de)",
+      "file_type": "document",
+      "source_file": "docs/ops/offline-happy-workflow-sv.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_offline_happy_workflow_sv_offline_mode",
+      "label": "dev:offline mode (no OpenAI, no Microsoft Graph)",
+      "file_type": "concept",
+      "source_file": "docs/ops/offline-happy-workflow-sv.md",
+      "source_location": "A) Jobba p\u00e5 dator utan internet",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_offline_happy_workflow_sv_port_separation",
+      "label": "Port-separation 3100 offline vs 3000 live/Comms",
+      "file_type": "concept",
+      "source_file": "docs/ops/offline-happy-workflow-sv.md",
+      "source_location": "A) Viktigt",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_offline_happy_workflow_sv_guide",
+      "target": "docs_ops_mobile_cloud_workflow_sv_deploy_cloud_safe_workflow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/offline-happy-workflow-sv.md",
+      "source_location": "D) Jobba fr\u00e5n mobil (Happy)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_offline_happy_workflow_sv_offline_mode",
+      "target": "docs_ops_offline_happy_workflow_sv_port_separation",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/offline-happy-workflow-sv.md",
+      "source_location": "A) Viktigt",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_offline_happy_workflow_sv_offline_mode",
+      "target": "docs_ops_m365_activation_evidence_2026_02_27_graph_fail_fast_credentials",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/ops/offline-happy-workflow-sv.md",
+      "source_location": "offline-l\u00e4get st\u00e4nger av Microsoft Graph",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_offline_happy_workflow_sv_guide",
+      "target": "docs_ops_pre_deploy_quickstart_sv_predeploy_quick_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/offline-happy-workflow-sv.md",
+      "source_location": "C) predeploy:quick",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

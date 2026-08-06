@@ -1,0 +1,266 @@
+{
+  "nodes": [
+    {
+      "id": "public_admin_page",
+      "label": "Admin \u00b7 Arcana (admin-konsol)",
+      "file_type": "document",
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_admin_executive_consoles",
+      "label": "Executive-konsoler (COO/CAO/CFO/CMO/CCO/CM)",
+      "file_type": "concept",
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Admin samlar sju flikar (\u00d6versikt, Mallar, Granskningar, Incidenter, Revision, Team, Inst\u00e4llningar, Drift) plus rollspecifika konsoler s\u00e5 att \u00e4garen kan styra hela verksamheten fr\u00e5n en yta i st\u00e4llet f\u00f6r separata verktyg."
+    },
+    {
+      "id": "public_admin_template_lifecycle",
+      "label": "Mall-livscykel: draft \u2192 utv\u00e4rdera \u2192 aktivera \u2192 arkivera \u2192 rollback",
+      "file_type": "concept",
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Versionerad mallhantering med revisionshistorik och diff g\u00f6r att aktivering aldrig skriver \u00f6ver tidigare text; arkivering och rollback \u00e4r OWNER-begr\u00e4nsade f\u00f6r att skydda produktionsutskick."
+    },
+    {
+      "id": "public_admin_risk_calibration",
+      "label": "Riskniv\u00e5er och riskkalibrering (riskSensitivityModifier)",
+      "file_type": "concept",
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Riskk\u00e4nsligheten \u00e4r en klinikinst\u00e4llning (-10 \u2192 10) med f\u00f6rslag som m\u00e5ste appliceras manuellt, s\u00e5 att modellens tr\u00f6skel kan justeras utan kod\u00e4ndring men med sp\u00e5rbar notering."
+    },
+    {
+      "id": "public_admin_l3_review_queue",
+      "label": "L3-utkast review-k\u00f6 och SLA-indikator f\u00f6r incidenter",
+      "file_type": "concept",
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_admin_readiness_no_go",
+      "label": "Beredskap, No-Go-blockeringar och pilotrapport",
+      "file_type": "concept",
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Driftfliken exponerar aktiva No-Go-blockeringar och kritisk v\u00e4g som en explicit gate: pilot f\u00e5r inte g\u00e5 live medan blockeringar \u00e4r \u00f6ppna."
+    },
+    {
+      "id": "public_admin_output_gate_owner_mfa",
+      "label": "Output-gate och owner-MFA-\u00e5tg\u00e4rder (preview f\u00f6re execute)",
+      "file_type": "concept",
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje drifts\u00e5tg\u00e4rd har separat 'f\u00f6rhandsvisa' och 'k\u00f6r' \u2014 irreversibla operationer kr\u00e4ver att operat\u00f6ren f\u00f6rst ser vad som kommer h\u00e4nda."
+    },
+    {
+      "id": "public_admin_writing_profile_per_inbox",
+      "label": "Skrivprofil per inkorg (auto-extraherad tonprofil)",
+      "file_type": "concept",
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Profilen p\u00e5verkar endast drafting och toneConfidence \u2014 medvetet avgr\u00e4nsad s\u00e5 att den inte kan flytta tone-klass, intents eller priorityScore och d\u00e4rmed inte kan st\u00f6ra triage-besluten."
+    },
+    {
+      "id": "public_admin_public_site_config",
+      "label": "publicSite-konfiguration f\u00f6r GET /api/public/clinics/:clinicId",
+      "file_type": "concept",
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_admin_backup_restore",
+      "label": "Driftbackup och \u00e5terst\u00e4llning med RESTORE-bekr\u00e4ftelse",
+      "file_type": "concept",
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "\u00c5terst\u00e4llning kr\u00e4ver att operat\u00f6ren skriver exakt 'RESTORE <filnamn>' \u2014 en avsiktlig friktion mot oavsiktlig \u00f6verskrivning av state manifest."
+    },
+    {
+      "id": "public_admin_mobile_journal_split",
+      "label": "Journalf\u00f6ring h\u00f6r hemma i personalportalen, inte i admin",
+      "file_type": "concept",
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Admin-vyn h\u00e4nvisar aktivt bort bild- och journalarbete till personalportalen s\u00e5 att klinisk dokumentation alltid sker i kundkortet med r\u00e4tt identitetskontext."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_admin_page",
+      "target": "public_admin_executive_consoles",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_page",
+      "target": "public_admin_template_lifecycle",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_page",
+      "target": "public_admin_risk_calibration",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_page",
+      "target": "public_admin_l3_review_queue",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_page",
+      "target": "public_admin_readiness_no_go",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_page",
+      "target": "public_admin_output_gate_owner_mfa",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_page",
+      "target": "public_admin_writing_profile_per_inbox",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_page",
+      "target": "public_admin_public_site_config",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_page",
+      "target": "public_admin_backup_restore",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_page",
+      "target": "public_admin_mobile_journal_split",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_writing_profile_per_inbox",
+      "target": "public_ai_triage_auto_routing_rules",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_readiness_no_go",
+      "target": "public_cco_journalpilot_go_live_pilot",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_admin_l3_review_queue",
+      "target": "public_cco_ops_workbench_blocker_queues",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/admin.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

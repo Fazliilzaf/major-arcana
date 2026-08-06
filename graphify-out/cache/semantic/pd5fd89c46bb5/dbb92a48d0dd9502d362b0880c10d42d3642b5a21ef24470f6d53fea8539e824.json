@@ -1,0 +1,93 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_ceo_design_facit_clinicperformancev8_facit",
+      "label": "Clinic Performance \u2014 CEO design-facit (Arcana Executive OS)",
+      "file_type": "document",
+      "source_file": "docs/handover/MOCKUPS/CEO-DESIGN-FACIT-clinicperformancev8.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_ceo_design_facit_clinicperformancev8_kumulativ_jamforelse",
+      "label": "Kumulativ m\u00e5nadsj\u00e4mf\u00f6relse (innevarande m\u00e5nad hittills vs f\u00f6reg\u00e5ende samma period)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/CEO-DESIGN-FACIT-clinicperformancev8.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "F\u00f6reg\u00e5ende m\u00e5nad ritas som blek helkurva medan innevarande ritas kumulativt fram till dagens datum, s\u00e5 j\u00e4mf\u00f6relsen sker mot samma period i st\u00e4llet f\u00f6r en missvisande helm\u00e5nad."
+    },
+    {
+      "id": "docs_handover_mockups_ceo_design_facit_clinicperformancev8_one_confident_move",
+      "label": "\u00abThe one confident move\u00bb \u2014 dirigerbart uppdrag fr\u00e5n dashboard",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/CEO-DESIGN-FACIT-clinicperformancev8.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Executive-vyn slutar i EN rekommenderad handling som g\u00e5r att dirigera direkt, i st\u00e4llet f\u00f6r en lista av KPI:er utan n\u00e4sta steg."
+    },
+    {
+      "id": "docs_handover_mockups_ceo_design_facit_clinicperformancev8_serif_vellum_palett",
+      "label": "Serif/vellum-palett f\u00f6r executive-vyn (accent-rosa, sage, amber)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/CEO-DESIGN-FACIT-clinicperformancev8.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_ceo_design_facit_clinicperformancev8_kumulativ_jamforelse",
+      "target": "docs_handover_mockups_ceo_design_facit_clinicperformancev8_facit",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/CEO-DESIGN-FACIT-clinicperformancev8.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_ceo_design_facit_clinicperformancev8_one_confident_move",
+      "target": "docs_handover_mockups_ceo_design_facit_clinicperformancev8_facit",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/CEO-DESIGN-FACIT-clinicperformancev8.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_ceo_design_facit_clinicperformancev8_serif_vellum_palett",
+      "target": "docs_handover_mockups_kundkort_v11_locked_2026_06_05_designtokens",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "docs/handover/MOCKUPS/CEO-DESIGN-FACIT-clinicperformancev8.html",
+      "source_location": null,
+      "weight": 0.8
+    },
+    {
+      "source": "docs_handover_mockups_ceo_design_facit_clinicperformancev8_one_confident_move",
+      "target": "docs_handover_mockups_cco_kalender_mockup_v6_utgangslage_morgon_standup",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/MOCKUPS/CEO-DESIGN-FACIT-clinicperformancev8.html",
+      "source_location": null,
+      "weight": 0.75
+    }
+  ],
+  "hyperedges": []
+}

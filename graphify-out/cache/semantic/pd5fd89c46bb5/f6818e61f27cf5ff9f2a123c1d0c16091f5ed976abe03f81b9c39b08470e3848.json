@@ -1,0 +1,212 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_runbooks_patient_safety_incident_runbook",
+      "label": "Patient Safety Incident Runbook",
+      "file_type": "document",
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_patient_safety_incident_runbook_psi_severity",
+      "label": "PSI-1 till PSI-4 severity med \u00e5tg\u00e4rdstider",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_patient_safety_incident_runbook_kill_switch",
+      "label": "Patient chat kill-switch",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_patient_safety_incident_runbook_template_archive",
+      "label": "Arkivering av felaktig mallversion som omedelbar \u00e5tg\u00e4rd",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_patient_safety_incident_runbook_risk_gold_set",
+      "label": "Risk gold set \u2014 incidentfall blir permanent testfall",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_patient_safety_incident_runbook_policy_floor",
+      "label": "Policy floor-kontroll vid PSI-utredning",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_patient_safety_incident_runbook_ivo_reporting",
+      "label": "IVO-rapportering vid PSI-1 med faktisk skada",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_patient_safety_incident_runbook_reactivation_gate",
+      "label": "Grind f\u00f6r att st\u00e4nga av kill-switch igen (gold set + disclaimer + OWNER)",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_runbooks_patient_safety_incident_runbook",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook_psi_severity",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_patient_safety_incident_runbook_psi_severity",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook_kill_switch",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_patient_safety_incident_runbook_psi_severity",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook_template_archive",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_patient_safety_incident_runbook_reactivation_gate",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook_kill_switch",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_patient_safety_incident_runbook_reactivation_gate",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook_risk_gold_set",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_patient_safety_incident_runbook_policy_floor",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook_risk_gold_set",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_patient_safety_incident_runbook_ivo_reporting",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook_psi_severity",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_patient_safety_incident_runbook",
+      "target": "docs_ops_runbooks_cao_admin_operator_runbook_executive_feed",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_patient_safety_incident_runbook",
+      "target": "docs_ops_runbooks_rollback_runbook",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_patient_safety_incident_runbook_reactivation_gate",
+      "target": "docs_ops_runbooks_incident_runbook_ops_suite_strict",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "psi_containment_and_reactivation_chain",
+      "label": "PSI-kedja: severity \u2192 kill-switch + mallarkivering \u2192 gold set/policy floor \u2192 readiness-gate f\u00f6r \u00e5teraktivering",
+      "nodes": [
+        "docs_ops_runbooks_patient_safety_incident_runbook_psi_severity",
+        "docs_ops_runbooks_patient_safety_incident_runbook_kill_switch",
+        "docs_ops_runbooks_patient_safety_incident_runbook_template_archive",
+        "docs_ops_runbooks_patient_safety_incident_runbook_risk_gold_set",
+        "docs_ops_runbooks_patient_safety_incident_runbook_reactivation_gate",
+        "docs_ops_runbooks_incident_runbook_go_no_go_readiness"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/patient-safety-incident-runbook.md"
+    }
+  ]
+}

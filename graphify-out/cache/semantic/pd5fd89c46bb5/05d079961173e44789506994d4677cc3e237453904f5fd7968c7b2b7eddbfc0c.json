@@ -1,0 +1,137 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_ord_10_03_story_cards",
+      "label": "Sk\u00e4rmdump: Kunder-vyn (full sida)",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_ord_10_kunder_skarm",
+      "label": "Kunder-sk\u00e4rmen (CRM-vy)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_ord_10_patient_master_datakalla",
+      "label": "patient-master som datak\u00e4lla",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_ord_10_datakall_badges",
+      "label": "Datak\u00e4llsbadges (kopplade, granska, Cliento, Drive only)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_ord_10_03_story_cards",
+      "target": "docs_ops_screenshots_ord_10_kunder_skarm",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_03_story_cards",
+      "target": "docs_ops_screenshots_ord_10_datakall_badges",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_03_story_cards",
+      "target": "docs_ops_screenshots_ord_10_patient_master_datakalla",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_statusfilterrad",
+      "target": "docs_ops_screenshots_ord_10_kundtabell",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_kunder_skarm",
+      "target": "docs_ops_screenshots_ord_10_kundtabell",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_kunder_skarm",
+      "target": "docs_ops_screenshots_ord_10_statusfilterrad",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_datakall_badges",
+      "target": "docs_ops_screenshots_ord_10_kundstatusar",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "ord_10_kunder_skarmfamilj",
+      "label": "ORD-10 sk\u00e4rmdumpsfamilj f\u00f6r Kunder-vyn",
+      "nodes": [
+        "docs_ops_screenshots_ord_10_02_side_shell",
+        "docs_ops_screenshots_ord_10_03_story_cards",
+        "docs_ops_screenshots_ord_10_04_filters",
+        "docs_ops_screenshots_ord_10_05_customer_list",
+        "docs_ops_screenshots_ord_10_06_agg_shell"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/screenshots/ord-10/03-story-cards.png"
+    }
+  ]
+}

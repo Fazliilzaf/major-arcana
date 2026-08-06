@@ -1,0 +1,80 @@
+{
+  "nodes": [
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_nordinsatt_p1_2026_06_25_agreement_prp",
+      "label": "agreement_hair_tp_prp_nordbro (PRP hud + h\u00e5r, samma Nordbro-avtal)",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P1-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_nordinsatt_p1_2026_06_25_pass_with_drift",
+      "label": "P1_PASS_WITH_DRIFT \u2014 ankarbaserad godk\u00e4nning trots textdrift",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P1-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_nordinsatt_p1_2026_06_25_brand_review",
+      "label": "NEEDS_BRAND_REVIEW \u2014 \u00e5ngerr\u00e4tt pekar p\u00e5 fel varum\u00e4rkeskontakt",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P1-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_nordinsatt_p1_2026_06_25_agreement_prp",
+      "target": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_facit_set_registry",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P1-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_nordinsatt_p1_2026_06_25_agreement_prp",
+      "target": "docs_implementation_patient_documents_live_diffs_nordinsatt_p1_2026_06_25_pass_with_drift",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P1-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_nordinsatt_p1_2026_06_25_brand_review",
+      "target": "docs_implementation_patient_documents_live_diffs_nordinsatt_p1_2026_06_25_agreement_prp",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P1-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_nordinsatt_p1_2026_06_25_pass_with_drift",
+      "target": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_p0_pass",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/implementation/patient-documents-live/diffs/NORDINSATT-P1-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

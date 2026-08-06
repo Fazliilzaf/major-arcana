@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v11_rail_block6_fixture",
+      "label": "V11 Rail Block 6 \u00b7 \u2026 + E H\u00e4lsodeklaration",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v11-rail-block6.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block6_health_preview",
+      "label": "E H\u00e4lsodeklaration-preview (buildHealthPreview)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block6.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block6_zon2_deeplink_noop",
+      "label": "Deep-link till Zon 2 som graceful no-op i frist\u00e5ende fixtur",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block6.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "data-kk-jump=\"kk-card-halsa\" pekar p\u00e5 H\u00c4LSA-workflow i Zon 2 som inte finns i fixturen; klick blir en tyst no-op ist\u00e4llet f\u00f6r fel, s\u00e5 screenshot-fixturen kan k\u00f6ras isolerat."
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v11_rail_block6_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block6.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block6_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_adapters",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block6.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block6_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block6_health_preview",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block6.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block6_health_preview",
+      "target": "tests_visual_fixtures_v11_rail_block6_zon2_deeplink_noop",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block6.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block6_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block5_critical_warnings",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block6.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,102 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_drive_service_account_setup_runbook",
+      "label": "Drive Service Account Setup",
+      "file_type": "document",
+      "source_file": "docs/ops/drive-service-account-setup.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_service_account_setup_readonly_service_account",
+      "label": "Read-only Drive service account (cco-drive-reader)",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-service-account-setup.md",
+      "source_location": "Steg 3-6 / Compliance",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_service_account_setup_drive_env_config",
+      "label": "Drive integration env-config (folder-ID per brand)",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-service-account-setup.md",
+      "source_location": "Steg 7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_service_account_setup_preflight_drive_api",
+      "label": "Drive API preflight verification",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-service-account-setup.md",
+      "source_location": "Steg 8",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_service_account_setup_secrets_outside_repo",
+      "label": "Service-account key stored outside git (iCloud secrets)",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-service-account-setup.md",
+      "source_location": "Steg 4 S\u00c4KERHET / Compliance",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_drive_service_account_setup_runbook",
+      "target": "docs_ops_drive_service_account_setup_readonly_service_account",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-service-account-setup.md",
+      "source_location": "Syfte / Steg 3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_service_account_setup_readonly_service_account",
+      "target": "docs_ops_drive_service_account_setup_secrets_outside_repo",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-service-account-setup.md",
+      "source_location": "Steg 4 S\u00c4KERHET",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_service_account_setup_preflight_drive_api",
+      "target": "docs_ops_drive_service_account_setup_readonly_service_account",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-service-account-setup.md",
+      "source_location": "Steg 8",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_service_account_setup_drive_env_config",
+      "target": "docs_ops_drive_service_account_setup_readonly_service_account",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-service-account-setup.md",
+      "source_location": "Steg 7",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_65_cm_kvitto_ui_tester_doc",
+      "label": "ORD-65 CM kvitto-inbox i finance.html + tests/cm",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-65-cm-kvitto-ui-tester.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_65_cm_kvitto_ui_tester_finance_cm_sektion",
+      "label": "CM \u00b7 Mail- & kvittointag-sektion i finance.html (ingen ny silo-sida)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-65-cm-kvitto-ui-tester.md",
+      "source_location": "Byggt \u00a71",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_65_cm_kvitto_ui_tester_tests_cm",
+      "label": "tests/cm \u2014 fixture-baserad testsvit utan n\u00e4t eller live-AI",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-65-cm-kvitto-ui-tester.md",
+      "source_location": "Byggt \u00a72",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_65_cm_kvitto_ui_tester_finance_cm_sektion",
+      "target": "docs_handover_orders_ord_63_cm_cfo_expense_kontrakt_promote_endpoint",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-65-cm-kvitto-ui-tester.md",
+      "source_location": "Byggt \u00a71",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_65_cm_kvitto_ui_tester_tests_cm",
+      "target": "docs_handover_orders_ord_63_cm_cfo_expense_kontrakt_handoff",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-65-cm-kvitto-ui-tester.md",
+      "source_location": "Byggt \u00a72",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_65_cm_kvitto_ui_tester_tests_cm",
+      "target": "docs_handover_orders_ord_64_cm_pipeline_hardening_delta_sync",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-65-cm-kvitto-ui-tester.md",
+      "source_location": "cmMailSync.test.js",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

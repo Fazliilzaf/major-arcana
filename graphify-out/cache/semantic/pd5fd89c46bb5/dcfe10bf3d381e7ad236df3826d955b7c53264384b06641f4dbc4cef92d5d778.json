@@ -1,0 +1,81 @@
+{
+  "nodes": [
+    {
+      "id": "docs_wordpress_hairtpclinic_patientinformation_wordpress_doc",
+      "label": "Patientinformation i WordPress \u2014 l\u00f6sningsf\u00f6rslag",
+      "file_type": "document",
+      "source_file": "docs/wordpress/hairtpclinic-patientinformation-wordpress.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_wordpress_hairtpclinic_patientinformation_wordpress_acf_cpt_beslut",
+      "label": "Beslut: ACF Pro + CPT tjanstespecifikation ist\u00e4llet f\u00f6r fri Gutenberg",
+      "file_type": "concept",
+      "source_file": "docs/wordpress/hairtpclinic-patientinformation-wordpress.md",
+      "source_location": "Rekommenderad l\u00f6sning + Alternativ A",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_wordpress_hairtpclinic_patientinformation_wordpress_strukturerad_text",
+      "label": "Strukturerad text framf\u00f6r WYSIWYG (designkontroll + PDF-stabilitet)",
+      "file_type": "concept",
+      "source_file": "docs/wordpress/hairtpclinic-patientinformation-wordpress.md",
+      "source_location": "Viktigt beslut",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_wordpress_hairtpclinic_patientinformation_wordpress_print_pdf",
+      "label": "PDF via window.print() ist\u00e4llet f\u00f6r servergenerering",
+      "file_type": "concept",
+      "source_file": "docs/wordpress/hairtpclinic-patientinformation-wordpress.md",
+      "source_location": "PDF i WordPress",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_wordpress_hairtpclinic_patientinformation_wordpress_doc",
+      "target": "docs_wordpress_hairtpclinic_patientinformation_wordpress_acf_cpt_beslut",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/wordpress/hairtpclinic-patientinformation-wordpress.md",
+      "source_location": "Rekommenderad l\u00f6sning",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_wordpress_hairtpclinic_patientinformation_wordpress_strukturerad_text",
+      "target": "docs_wordpress_hairtpclinic_patientinformation_wordpress_acf_cpt_beslut",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/wordpress/hairtpclinic-patientinformation-wordpress.md",
+      "source_location": "Viktigt beslut",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_wordpress_hairtpclinic_patientinformation_wordpress_print_pdf",
+      "target": "docs_wordpress_hairtpclinic_patientinformation_wordpress_strukturerad_text",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/wordpress/hairtpclinic-patientinformation-wordpress.md",
+      "source_location": "PDF i WordPress",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

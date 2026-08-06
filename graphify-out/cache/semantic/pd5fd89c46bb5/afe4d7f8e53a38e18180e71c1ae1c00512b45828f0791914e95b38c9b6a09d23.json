@@ -1,0 +1,80 @@
+{
+  "nodes": [
+    {
+      "id": "public_index_chat_page",
+      "label": "Arcana \u00b7 patientchatt och bokning (Hair TP Clinic)",
+      "file_type": "code",
+      "source_file": "public/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_index_cliento_booking_modal",
+      "label": "Bokningsmodal som monterar Cliento-widget",
+      "file_type": "concept",
+      "source_file": "public/index.html",
+      "source_location": "#bookingModal / #clientoMount",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_index_medical_disclaimer",
+      "label": "Medicinsk ansvarsfriskrivning i chatt-footer (akut \u2192 112)",
+      "file_type": "concept",
+      "source_file": "public/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_index_chat_page",
+      "target": "public_index_cliento_booking_modal",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/index.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_index_chat_page",
+      "target": "public_index_medical_disclaimer",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/index.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_index_medical_disclaimer",
+      "target": "public_journal_pilot_guide_review_material_not_clinical_truth",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/index.html",
+      "source_location": null,
+      "weight": 0.65
+    },
+    {
+      "source": "public_index_cliento_booking_modal",
+      "target": "public_journal_pilot_guide_identity_triple_check",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.55,
+      "source_file": "public/index.html",
+      "source_location": "Cliento som identitetsk\u00e4lla",
+      "weight": 0.55
+    }
+  ],
+  "hyperedges": []
+}

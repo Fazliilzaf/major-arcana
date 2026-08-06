@@ -1,0 +1,69 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v11_rail_block3_fixture",
+      "label": "V11 Rail Block 3 \u00b7 A + B + C Stats",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v11-rail-block3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block3_stats_section",
+      "label": "C Stats-sektion (bes\u00f6k, lifetime value, utest\u00e5ende saldo)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v11_rail_block3_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block3_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_adapters",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block3_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block3_stats_section",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block3_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block2_automation_signals",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,188 @@
+{
+  "nodes": [
+    {
+      "id": "public_finance_reports_page",
+      "label": "Finansrapporter & M\u00e5nadsst\u00e4ngning (CF.9)",
+      "file_type": "code",
+      "source_file": "public/finance-reports.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_finance_reports_period_state_machine",
+      "label": "Period state machine: start-close \u2192 ready-for-review \u2192 approve \u2192 close \u2192 reopen",
+      "file_type": "concept",
+      "source_file": "public/finance-reports.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_finance_reports_close_checklist",
+      "label": "M\u00e5nadsst\u00e4ngningschecklista \u00b7 8 blockerande punkter",
+      "file_type": "concept",
+      "source_file": "public/finance-reports.html",
+      "source_location": "renderChecklist",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_finance_reports_report_kinds",
+      "label": "Tolv rapporttyper (daily \u2192 export_status)",
+      "file_type": "concept",
+      "source_file": "public/finance-reports.html",
+      "source_location": "REPORT_DEFS",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_finance_reports_report_package",
+      "label": "Rapportpaket till secure storage med sha256-checksummor",
+      "file_type": "concept",
+      "source_file": "public/finance-reports.html",
+      "source_location": "buildPackage",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_finance_reports_page",
+      "target": "public_finance_reports_period_state_machine",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance-reports.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_reports_page",
+      "target": "public_finance_reports_close_checklist",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance-reports.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_reports_page",
+      "target": "public_finance_reports_report_kinds",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance-reports.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_reports_page",
+      "target": "public_finance_reports_report_package",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance-reports.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_reports_close_checklist",
+      "target": "public_finance_reports_period_state_machine",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance-reports.html",
+      "source_location": "readyForClose / blockingItems",
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_reports_close_checklist",
+      "target": "public_finance_review_status_machine",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance-reports.html",
+      "source_location": "reviewerAccepted",
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_reports_close_checklist",
+      "target": "public_finance_fortnox_blocked_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance-reports.html",
+      "source_location": "fortnoxStatus",
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_reports_page",
+      "target": "public_finance_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance-reports.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_reports_page",
+      "target": "public_finance_review_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance-reports.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_reports_report_package",
+      "target": "public_journal_build_demo_audit_chain",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/finance-reports.html",
+      "source_location": "sha256-checksummor vs tamper-hash",
+      "weight": 0.75
+    },
+    {
+      "source": "public_finance_reports_period_state_machine",
+      "target": "public_cco_staff_go_live_control_startstatus_gate",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/finance-reports.html",
+      "source_location": null,
+      "weight": 0.65
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "cf_manadsstangningskedja",
+      "label": "CF-m\u00e5nadsst\u00e4ngningskedja: utgift \u2192 export-batch \u2192 revisorgranskning \u2192 periodst\u00e4ngning \u2192 verifikat-dryRun",
+      "nodes": [
+        "public_finance_expense_lifecycle",
+        "public_finance_reports_report_package",
+        "public_finance_review_status_machine",
+        "public_finance_reports_period_state_machine",
+        "public_finance_cf9_voucher_dryrun"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance-reports.html"
+    }
+  ]
+}

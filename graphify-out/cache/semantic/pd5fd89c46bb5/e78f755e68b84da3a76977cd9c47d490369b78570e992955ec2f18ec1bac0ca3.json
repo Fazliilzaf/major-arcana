@@ -1,0 +1,187 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_doc",
+      "label": "CCO Kunder \u2014 Segment Readiness",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_customers_shell_api",
+      "label": "customers-shell staff-API",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Canonical list-API f\u00f6r Kunder \u2014 asset-store lazy-loadas i staff-routen s\u00e5 att ingen server.js-\u00e4ndring kr\u00e4vs."
+    },
+    {
+      "id": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_segment_stats",
+      "label": "segmentStats (riktiga segmentcounts)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_action_matrix",
+      "label": "Action matrix (real \u00b7 partial \u00b7 blocked \u00b7 disabled)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Actions utan backing-API visas som disabled med sk\u00e4l ist\u00e4llet f\u00f6r fejkade toasts, s\u00e5 personal aldrig tror att n\u00e5got h\u00e4nde."
+    },
+    {
+      "id": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_staff_ownership",
+      "label": "staffOwnership auto-resolve (Mina kunder)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_mock_removal",
+      "label": "Mock-borttagning i Kunder-fl\u00f6det",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Mock-population och fiktiva KPI togs bort helt ist\u00e4llet f\u00f6r att d\u00f6ljas \u2014 utan token visas auth-banner och tom lista, aldrig mock-fallback."
+    },
+    {
+      "id": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_booking_enrichment",
+      "label": "ccoKunderBookingEnrichment",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_customers_shell_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_segment_stats",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_action_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_staff_ownership",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_mock_removal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_booking_enrichment",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_customers_shell_api",
+      "target": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_segment_stats",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_mock_removal",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_no_drive_links",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_action_matrix",
+      "target": "docs_strategy_cco_daily_readiness_2026_06_04_photo_review_operator",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kunder_segment_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_patient_asset_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDER-SEGMENT-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "docs_schema_cco_scalp_analysis_schema_doc",
+      "label": "CCO Scalp Analysis \u2014 datamodell v1.0.0",
+      "file_type": "document",
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_schema_cco_scalp_analysis_schema_session_model",
+      "label": "scalp_analysis_sessions \u2014 sessionType och status-livscykel",
+      "file_type": "concept",
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": "## scalp_analysis_sessions",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_schema_cco_scalp_analysis_schema_image_metric_model",
+      "label": "scalp_analysis_images + metrics (zon, f\u00f6rstoring, spektrum, k\u00e4lla)",
+      "file_type": "concept",
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": "## scalp_analysis_images",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_schema_cco_scalp_analysis_schema_comparison_model",
+      "label": "scalp_comparisons \u2014 baseline vs uppf\u00f6ljning (aiSummary f\u00f6rst i FAS 4)",
+      "file_type": "concept",
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": "## scalp_comparisons",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_schema_cco_scalp_analysis_schema_timeline_events",
+      "label": "Scalp timeline-events (imported/image_added/metrics_added/verified/comparison_created)",
+      "file_type": "concept",
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": "## Timeline events",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_schema_cco_scalp_analysis_schema_doc",
+      "target": "docs_schema_cco_scalp_analysis_schema_session_model",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_scalp_analysis_schema_session_model",
+      "target": "docs_schema_cco_scalp_analysis_schema_image_metric_model",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": "sessionId FK",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_scalp_analysis_schema_comparison_model",
+      "target": "docs_schema_cco_scalp_analysis_schema_session_model",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": "baselineSessionId / comparisonSessionId",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_scalp_analysis_schema_image_metric_model",
+      "target": "docs_schema_cco_patient_assets_schema_doc",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": "assetId FK \u2192 patient_assets.id",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_scalp_analysis_schema_image_metric_model",
+      "target": "docs_strategy_aisia_capture_protocol_zone_registry",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": "zone enum \u2014 Se capture protocol",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_scalp_analysis_schema_comparison_model",
+      "target": "docs_strategy_aisia_cco_integration_plan_phase_model",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": "aiSummary \u2014 FAS 4 only, null i MVP",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_schema_cco_scalp_analysis_schema_doc",
+      "target": "docs_schema_cco_scalp_analysis_schema_timeline_events",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/schema/cco-scalp-analysis.schema.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

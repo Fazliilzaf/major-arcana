@@ -1,0 +1,245 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_v12_workspace_v12_structure_map",
+      "label": "V12 Customer Workspace strukturkarta (SVG)",
+      "file_type": "image",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_v12_structure_map_customer_workspace",
+      "label": "V12 Customer Workspace \u2014 hela kundresan (13 sektioner uppifr\u00e5n och ned)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_v12_structure_map_aktivt_besok_hero",
+      "label": "Sektion 2 \u00b7 Aktivt bes\u00f6k (HERO) med bes\u00f6kstimeline",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_v12_structure_map_kritiska_varningar",
+      "label": "Sektion 3 \u00b7 Kritiska varningar (allergier, samtycke, juridik, ekonomisk risk)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_v12_structure_map_journal_section",
+      "label": "Sektion 6 \u00b7 Journal (BYGGD, #148) \u2014 draft/signerad",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_v12_structure_map_bilder_fore_efter",
+      "label": "Sektion 7 \u00b7 Bilder / f\u00f6re\u2013efter med j\u00e4mf\u00f6relsevy",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_v12_structure_map_kundresa_steg",
+      "label": "Sektion 5 \u00b7 Kundresa / steg (f\u00f6rsta kontakt \u2192 uppf\u00f6ljning)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_v12_structure_map_insikter_nasta_atgard",
+      "label": "Sektion 12 \u00b7 Insikter & n\u00e4sta b\u00e4sta \u00e5tg\u00e4rd",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v12_workspace_v12_structure_map_sticky_arbetsbar",
+      "label": "Sektion 13 \u00b7 Sticky arbetsbar (prim\u00e4r \u00e5tg\u00e4rd efter l\u00e4ge, mobil/iPad/webb)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map",
+      "target": "docs_handover_mockups_v12_workspace_v12_structure_map_customer_workspace",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map_customer_workspace",
+      "target": "docs_handover_mockups_v12_workspace_v12_structure_map_aktivt_besok_hero",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map_customer_workspace",
+      "target": "docs_handover_mockups_v12_workspace_v12_structure_map_kritiska_varningar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map_customer_workspace",
+      "target": "docs_handover_mockups_v12_workspace_v12_structure_map_journal_section",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map_customer_workspace",
+      "target": "docs_handover_mockups_v12_workspace_v12_structure_map_bilder_fore_efter",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map_customer_workspace",
+      "target": "docs_handover_mockups_v12_workspace_v12_structure_map_kundresa_steg",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map_customer_workspace",
+      "target": "docs_handover_mockups_v12_workspace_v12_structure_map_insikter_nasta_atgard",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map_customer_workspace",
+      "target": "docs_handover_mockups_v12_workspace_v12_structure_map_sticky_arbetsbar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map_kundresa_steg",
+      "target": "docs_design_specs_post_op_review_mockups_cco_mark_followup_completed_button_uppfoljningstidslinje",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 0.8
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map_bilder_fore_efter",
+      "target": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_upload_screen",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 0.8
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map_insikter_nasta_atgard",
+      "target": "docs_design_specs_post_op_review_mockups_cco_mark_followup_completed_button_case_action_panel",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 0.7
+    },
+    {
+      "source": "docs_handover_mockups_v12_workspace_v12_structure_map_kritiska_varningar",
+      "target": "docs_design_specs_post_op_review_mockups_patient_uppfoljning_page_consent_module",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg",
+      "source_location": null,
+      "weight": 0.7
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "v12_workspace_section_family",
+      "label": "V12 Customer Workspace-sektioner",
+      "nodes": [
+        "docs_handover_mockups_v12_workspace_v12_structure_map_customer_workspace",
+        "docs_handover_mockups_v12_workspace_v12_structure_map_aktivt_besok_hero",
+        "docs_handover_mockups_v12_workspace_v12_structure_map_kritiska_varningar",
+        "docs_handover_mockups_v12_workspace_v12_structure_map_journal_section",
+        "docs_handover_mockups_v12_workspace_v12_structure_map_bilder_fore_efter",
+        "docs_handover_mockups_v12_workspace_v12_structure_map_kundresa_steg",
+        "docs_handover_mockups_v12_workspace_v12_structure_map_insikter_nasta_atgard",
+        "docs_handover_mockups_v12_workspace_v12_structure_map_sticky_arbetsbar"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v12-workspace/v12-structure-map.svg"
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_aisia_ui_placement_doc",
+      "label": "Aisia Scalp Analysis \u2014 UI Placement in CCO",
+      "file_type": "document",
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ui_placement_scalp_tab_placement",
+      "label": "Flik H\u00e5r-/scalpanalys i patientkortet (data-patient-tab=scalpanalys)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ui_placement_tab_section_structure",
+      "label": "Fliksektioner: session\u00f6versikt, baseline, donor, recipient, rapporter, m\u00e4tv\u00e4rden, j\u00e4mf\u00f6relse, verifiering",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ui_placement_staff_vs_patient_view",
+      "label": "Personalvy vs patientvy i patientkortet",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ui_placement_protocol_status_flags",
+      "label": "Protocol-status-flaggor (baselineImagingRequired, donorRecipientImagesRequired, analysisVerifiedRequired)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_ui_placement_mobile_layout_rules",
+      "label": "Mobil layout: en kolumn, bottom sheet, kompakta status-chips",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_aisia_ui_placement_doc",
+      "target": "docs_strategy_aisia_ui_placement_scalp_tab_placement",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ui_placement_doc",
+      "target": "docs_strategy_aisia_ui_placement_tab_section_structure",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ui_placement_doc",
+      "target": "docs_strategy_aisia_ui_placement_staff_vs_patient_view",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ui_placement_doc",
+      "target": "docs_strategy_aisia_ui_placement_protocol_status_flags",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ui_placement_doc",
+      "target": "docs_strategy_aisia_ui_placement_mobile_layout_rules",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ui_placement_scalp_tab_placement",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_enable_aisia_scalp_analysis_flag",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ui_placement_tab_section_structure",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_scalp_timeline_events",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ui_placement_protocol_status_flags",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_pre_op_readiness_gate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ui_placement_staff_vs_patient_view",
+      "target": "docs_strategy_aisia_swedish_terminology_patient_disclaimer_text",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_ui_placement_tab_section_structure",
+      "target": "docs_strategy_aisia_swedish_terminology_metric_translation_map",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-UI-PLACEMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

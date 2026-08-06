@@ -1,0 +1,80 @@
+{
+  "nodes": [
+    {
+      "id": "public_cco_journal_safety_helper_page",
+      "label": "Journal Safety Helper (6 checkpoints)",
+      "file_type": "document",
+      "source_file": "public/cco-journal-safety-helper.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_journal_safety_helper_six_checkpoints",
+      "label": "Sex checkpoints innan n\u00e5got permanent g\u00f6rs",
+      "file_type": "concept",
+      "source_file": "public/cco-journal-safety-helper.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Checkpoint 3 \u00e4r en h\u00e5rd STOPPA-regel: har review-material anv\u00e4nts som klinisk sanning m\u00e5ste journalen skrivas om fr\u00e5n patientens muntliga uppgifter innan signering."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_cco_journal_safety_helper_page",
+      "target": "public_cco_journal_safety_helper_six_checkpoints",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journal-safety-helper.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journal_safety_helper_six_checkpoints",
+      "target": "public_cco_review_material_warning_use_as_reference",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journal-safety-helper.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journal_safety_helper_six_checkpoints",
+      "target": "public_cco_journalpilot_faq_rattelse_som_ny_post",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journal-safety-helper.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journal_safety_helper_six_checkpoints",
+      "target": "public_cco_pre_signering_check_five_step",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/cco-journal-safety-helper.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journal_safety_helper_page",
+      "target": "public_cco_journalpilot_faq_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journal-safety-helper.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

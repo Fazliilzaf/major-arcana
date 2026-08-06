@@ -1,0 +1,101 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_morning_checklist_v3_page",
+      "label": "CCO Morgon-checklist v3 \u2014 personalm\u00f6te journalpilot",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-morning-checklist-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_morning_checklist_v3_t10_to_t0_runbook",
+      "label": "T-10 \u2192 T-0 runbook med 6 tidsblock och 20 steg",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-morning-checklist-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_morning_checklist_v3_failover_check",
+      "label": "Failover-check mot backup-URL innan demo",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-morning-checklist-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_morning_checklist_v3_smoke_test",
+      "label": "Smoke-test av pilotkund \u2192 journal-feed \u2192 signerad post + r\u00e4ttelse",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-morning-checklist-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_morning_checklist_v3_page",
+      "target": "public_major_arcana_preview_cco_morning_checklist_v3_t10_to_t0_runbook",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-morning-checklist-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_morning_checklist_v3_t10_to_t0_runbook",
+      "target": "public_major_arcana_preview_cco_morning_checklist_v3_failover_check",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-morning-checklist-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_morning_checklist_v3_t10_to_t0_runbook",
+      "target": "public_major_arcana_preview_cco_morning_checklist_v3_smoke_test",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-morning-checklist-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_morning_checklist_v3_smoke_test",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_correction_never_edit",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-morning-checklist-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_morning_checklist_v3_t10_to_t0_runbook",
+      "target": "public_major_arcana_preview_cco_journal_safety_v3_page",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-morning-checklist-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

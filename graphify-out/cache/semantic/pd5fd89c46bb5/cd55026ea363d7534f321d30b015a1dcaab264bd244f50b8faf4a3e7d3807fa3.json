@@ -1,0 +1,170 @@
+{
+  "nodes": [
+    {
+      "id": "docs_legal_juridik_gdpr_jurist_flode_juristprocess_nordbro",
+      "label": "Juristfl\u00f6de med extern juristbyr\u00e5 (Nordbro) \u2014 avtalsversionering",
+      "file_type": "document",
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_juridik_gdpr_jurist_flode_processordning_patientflode",
+      "label": "Processordning patientfl\u00f6de (patientinfo \u2192 konsultation \u2192 offert+avtal \u2192 bet\u00e4nketid \u2192 bokning)",
+      "file_type": "concept",
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_juridik_gdpr_jurist_flode_distansavtalslagen",
+      "label": "Distansavtalslagen (2005:59) \u2014 14 dagars \u00e5ngerr\u00e4tt endast vid distansavtal",
+      "file_type": "concept",
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_juridik_gdpr_jurist_flode_estetiklagen_2021_363",
+      "label": "Lagen (2021:363) om estetiska kirurgiska ingrepp \u2014 DHI ej omfattad enligt IVO",
+      "file_type": "concept",
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_juridik_gdpr_jurist_flode_bilaga_1_patientinformation",
+      "label": "Bilaga 1 \u2014 Patientinformation & tj\u00e4nstespecifikation (klarspr\u00e5ksversion)",
+      "file_type": "concept",
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_juridik_gdpr_jurist_flode_bilaga_3_angerblankett",
+      "label": "Bilaga 3 \u2014 Konsumentverkets standard\u00e5ngerblankett (extern k\u00e4lla)",
+      "file_type": "concept",
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_juridik_gdpr_jurist_flode_sarskilt_samtycke",
+      "label": "S\u00e4rskilt samtycke vid behandlingsstart f\u00f6re \u00e5ngerfristens utg\u00e5ng",
+      "file_type": "concept",
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_legal_juridik_gdpr_jurist_flode_processordning_patientflode",
+      "target": "docs_legal_juridik_gdpr_jurist_flode_juristprocess_nordbro",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_jurist_flode_distansavtalslagen",
+      "target": "docs_legal_juridik_gdpr_jurist_flode_processordning_patientflode",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_jurist_flode_estetiklagen_2021_363",
+      "target": "docs_legal_juridik_gdpr_jurist_flode_processordning_patientflode",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_jurist_flode_bilaga_1_patientinformation",
+      "target": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_agreement_dhi_2day",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_jurist_flode_bilaga_3_angerblankett",
+      "target": "docs_legal_juridik_gdpr_jurist_flode_distansavtalslagen",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_jurist_flode_sarskilt_samtycke",
+      "target": "docs_legal_juridik_gdpr_jurist_flode_distansavtalslagen",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_jurist_flode_juristprocess_nordbro",
+      "target": "docs_implementation_patient_documents_live_diffs_sharepoint_nordinsatt_resync_2026_06_25_precedensregel",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "patientflode_avtalskedja",
+      "label": "Patientfl\u00f6dets avtalskedja: patientinformation (bilaga 1) \u2192 offert \u2192 behandlingsavtal \u2192 bet\u00e4nketid/\u00e5ngerr\u00e4tt \u2192 bokningsgate",
+      "nodes": [
+        "docs_legal_juridik_gdpr_jurist_flode_bilaga_1_patientinformation",
+        "docs_implementation_patient_documents_live_diffs_e6_offert_samtycke_2026_06_25_offert_mallfamilj",
+        "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_agreement_dhi_2day",
+        "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_angerfrist_post",
+        "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_ma_modulstatus"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md"
+    }
+  ]
+}

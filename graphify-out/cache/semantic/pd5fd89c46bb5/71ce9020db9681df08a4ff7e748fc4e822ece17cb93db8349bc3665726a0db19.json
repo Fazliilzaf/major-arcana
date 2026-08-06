@@ -1,0 +1,284 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_doc",
+      "label": "CCO Go-Live Hardening \u2014 Sprint 14",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_go_live_checklist",
+      "label": "12-punkts go-live-checklista",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_security_headers",
+      "label": "S\u00e4kerhetsheaders (portal + staff-vyer)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_csp_gap_staff_views",
+      "label": "CSP-gap p\u00e5 staff-vyer",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Staff-vyerna har tiotusentals rader inline styles/JS \u2014 CSP kr\u00e4ver kontrollerad inline-audit och nonce-strategi, d\u00e4rf\u00f6r uppskjuten."
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_rate_limits",
+      "label": "Rate-limits per k\u00e4nslig endpoint",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_form_spec_validation",
+      "label": "Server-side form-spec-validering",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Skyddar mot prototype pollution, f\u00f6r stora payloads och replay av redan inskickade formul\u00e4r."
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_token_auth",
+      "label": "Token-baserad patient-auth (192-bit, 7d expiry)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_audit_coverage",
+      "label": "Audit coverage-matris (22 event-typer, PII-mask)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_rbac_coverage",
+      "label": "RBAC coverage-matris",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_no_external_ai_on_journal",
+      "label": "Ingen extern AI p\u00e5 journaltext",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "GDPR-policy: journalinneh\u00e5ll f\u00e5r aldrig l\u00e4mna CCO till extern modell; verifieras med grep mot externa AI-endpoints i ops-modulerna."
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_no_drive_links",
+      "label": "Inga Drive-l\u00e4nkar \u2014 import only",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "CCO ska vara system of record; Drive \u00e4r importk\u00e4lla/arkiv, s\u00e5 deepl\u00e4nkar avvecklas i takt med cutover."
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_no_patient_data_in_github",
+      "label": "Ingen patientdata i GitHub",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_go_live_hardening_2026_05_30_ready_for_treatment",
+      "label": "ccoReadyForTreatmentBuilder (8-check aggregator)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_doc",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_go_live_checklist",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_go_live_checklist",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_no_external_ai_on_journal",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_go_live_checklist",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_no_drive_links",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_go_live_checklist",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_no_patient_data_in_github",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_doc",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_security_headers",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_doc",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_rate_limits",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_doc",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_form_spec_validation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_doc",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_token_auth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_doc",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_audit_coverage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_doc",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_rbac_coverage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_doc",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_ready_for_treatment",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_security_headers",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_csp_gap_staff_views",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_go_live_hardening_2026_05_30_ready_for_treatment",
+      "target": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_kundkontext_badges",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

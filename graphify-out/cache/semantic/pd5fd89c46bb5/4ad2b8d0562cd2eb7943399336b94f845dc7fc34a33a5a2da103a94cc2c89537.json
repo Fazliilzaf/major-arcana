@@ -1,0 +1,100 @@
+{
+  "nodes": [
+    {
+      "id": "public_cco_staff_training_mode_page",
+      "label": "Personal Training Mode \u00b7 sj\u00e4lvtr\u00e4ning journalfl\u00f6de",
+      "file_type": "document",
+      "source_file": "public/cco-staff-training-mode.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_staff_training_mode_five_step_flow",
+      "label": "5-stegs tr\u00e4ningsfl\u00f6de: hitta kund \u2192 verifiera \u2192 skapa \u2192 signera \u2192 r\u00e4ttelse",
+      "file_type": "concept",
+      "source_file": "public/cco-staff-training-mode.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_staff_training_mode_pilot_customers",
+      "label": "Pilotkund A/B/C som s\u00e4kra testpatienter",
+      "file_type": "concept",
+      "source_file": "public/cco-staff-training-mode.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_cco_staff_training_mode_page",
+      "target": "public_cco_staff_training_mode_five_step_flow",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-training-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_training_mode_page",
+      "target": "public_cco_staff_training_mode_pilot_customers",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-training-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_training_mode_pilot_customers",
+      "target": "public_journal_feed_demo_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-training-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_training_mode_five_step_flow",
+      "target": "public_journal_pilot_guide_identity_triple_check",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-training-mode.html",
+      "source_location": "Steg 2",
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_training_mode_five_step_flow",
+      "target": "public_journal_pilot_guide_correction_as_new_entry",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-training-mode.html",
+      "source_location": "Steg 5",
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_training_mode_page",
+      "target": "public_journal_pilot_print_pack_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-training-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

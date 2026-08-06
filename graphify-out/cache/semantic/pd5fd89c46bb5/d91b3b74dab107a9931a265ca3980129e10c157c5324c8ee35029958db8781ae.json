@@ -1,0 +1,309 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_order",
+      "label": "ORD-47 Parallellt svep \u2014 Cursor + Codex Cloud + Cloud Agent",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_nine_section_cards",
+      "label": "\u00a71\u2013\u00a79 kundkort-kort (dokumentplacering per kundresesteg)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_journey_doc_resolver",
+      "label": "CcoJourneyDocResolver \u2014 kundresesteg- och fl\u00f6desuppl\u00f6sning",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_rail_status_layer_a",
+      "label": "Layer A \u2014 rail-statusrad driven av aktivt steg",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_mallbibliotek_layer_c",
+      "label": "Layer C \u2014 Mallbibliotek (registry bakom medvetet klick)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_registry_not_default",
+      "label": "Beslut: flat dokumentregistry f\u00e5r inte vara default-vy",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_active_flow_offer_filter",
+      "label": "Aktivt fl\u00f6de-filter \u2014 visa endast relevant offert (TP/PRP)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_file_ownership_rule",
+      "label": "Fil\u00e4garskap per agent \u2014 krockskydd mot merge-konflikter",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_merge_order",
+      "label": "Merge-ordning: data/resolver \u2192 UI \u2192 UAT/prod-verify",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_journey_doc_placement_verify",
+      "label": "verify:journey-doc-placement \u2014 36/36 dokumenttyper mappade, inga orphans",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_out_of_scope_matrix",
+      "label": "Medveten out-of-scope-matris \u2192 n\u00e4sta ORD",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_47_parallel_svep_3_agents_resolver_stub_contract",
+      "label": "Stub-mot-samma-API n\u00e4r beroende agents PR ej mergad",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_order",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_nine_section_cards",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_order",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_journey_doc_resolver",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_order",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_rail_status_layer_a",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_order",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_mallbibliotek_layer_c",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_order",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_registry_not_default",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_mallbibliotek_layer_c",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_registry_not_default",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_journey_doc_resolver",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_nine_section_cards",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_journey_doc_resolver",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_rail_status_layer_a",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_journey_doc_resolver",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_active_flow_offer_filter",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_journey_doc_placement_verify",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_nine_section_cards",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_order",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_file_ownership_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_order",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_merge_order",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_resolver_stub_contract",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_merge_order",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_order",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_out_of_scope_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_out_of_scope_matrix",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_spec",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_order",
+      "target": "docs_handover_orders_ord_47_cloud_staff_uat_checklist",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_47_parallel_svep_3_agents_order",
+      "target": "docs_handover_orders_ord_48_parallel_svep_3_agents_order",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-47-PARALLEL-SVEP-3-AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

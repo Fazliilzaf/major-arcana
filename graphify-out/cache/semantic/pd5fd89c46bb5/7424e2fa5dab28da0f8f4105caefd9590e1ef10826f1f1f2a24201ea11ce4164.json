@@ -1,0 +1,120 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v12_workspace_insights_fixture",
+      "label": "V12 Workspace Block 6 \u00b7 Insikter & n\u00e4sta \u00e5tg\u00e4rd",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v12-workspace-insights.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_insights_module",
+      "label": "V12 Insikter & n\u00e4sta \u00e5tg\u00e4rd-modul",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-insights.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_insights_cta_attributes",
+      "label": "CTA-attribut data-kk-sig / data-kk-sig-label / data-kk-patient-id",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-insights.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v12_workspace_insights_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_journal_workspace_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-insights.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_insights_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_journal_workspace_adapters",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-insights.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_insights_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-insights.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_insights_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_insights_module",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-insights.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_insights_module",
+      "target": "tests_visual_fixtures_v12_workspace_insights_cta_attributes",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-insights.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_insights_module",
+      "target": "tests_visual_fixtures_v11_rail_block2_automation_signals",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-insights.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_insights_module",
+      "target": "tests_visual_fixtures_v11_rail_block8_smart_next_step_section",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-insights.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_insights_module",
+      "target": "tests_visual_fixtures_v11_rail_block20_insights_section",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "tests/visual/fixtures/v12-workspace-insights.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,183 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_v11_rail_full_viewport_preview_v11_rail",
+      "label": "V11 Rail (Zon 1 kunddossi\u00e9-rail)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Zon 1 samlar hela kunddossi\u00e9en i en vertikal rail; egen .v11-rail__*-namespace h\u00e5lls fri fran legacy-override-klasser sa att cutover kan ske utan att rora v9/v10-CSS."
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_full_viewport_preview_rail_section_order",
+      "label": "Rail-sektionsordning D \u2192 A \u2192 V \u2192 B \u2192 C \u2192 E \u2192 F \u2192 G \u2026 R \u2192 S",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Kritiska varningar f\u00f6rst, sedan identitet och pagaende besok, darefter kontext och avslutande atgardsrad; ordningen speglar akut-till-planerad prioritet."
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_full_viewport_preview_canon_4_responsive",
+      "label": "Canon \u00a74 responsiva brytpunkter (mobil 320\u2013767 / iPad 768\u20131023 / webb 1024+)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje preview-iframe far egen viewport-bredd sa att @media faktiskt resolvar per brytpunkt i stallet for att skalas ned."
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_full_viewport_preview_canon_5_namespace",
+      "label": "Canon \u00a75 rent .v11-rail__*-namespace utan legacy-overrides",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Inga .kkref/.cr-v10/v9/v10-override-klasser \u2014 isolerad namespace gor rollback trivial."
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_full_viewport_preview_viewport_preview_pattern",
+      "label": "Browserl\u00f6s viewport-preview (tre iframes med srcdoc per brytpunkt)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Later granskning ske utan browser i CI-miljo; riktiga komponenter (CSS + logiklager + adapter + renderer) bakas in i srcdoc."
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_full_viewport_preview_raster_png_pipeline",
+      "label": "Raster-PNG-pipeline (npm run shots:*)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_full_viewport_preview_css_load_order",
+      "label": "cco-v11-rail.css laddas sist i index.html (efter cco-v11-polish.css)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Sist-laddning ger rail-CSS sista ordet utan att behova !important eller override-klasser."
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_full_viewport_preview_slutpass_cutover_review",
+      "label": "V11 Rail SLUTPASS \u2014 hela railen som cutover-granskning / beslutsunderlag",
+      "file_type": "document",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_v11_rail_full_viewport_preview_slutpass_cutover_review",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_v11_rail",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_full_viewport_preview_slutpass_cutover_review",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_viewport_preview_pattern",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_full_viewport_preview_slutpass_cutover_review",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_raster_png_pipeline",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_full_viewport_preview_v11_rail",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_canon_5_namespace",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_full_viewport_preview_v11_rail",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_css_load_order",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_full_viewport_preview_slutpass_cutover_review",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_rail_section_order",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "v11_rail_section_composition_order",
+      "label": "V11 rail-sektionskomposition D \u2192 A \u2192 V \u2192 B \u2192 C \u2192 E \u2192 F \u2192 G \u2026 R \u2192 S",
+      "nodes": [
+        "docs_handover_mockups_v11_rail_full_viewport_preview_rail_section_order",
+        "docs_handover_mockups_v11_rail_block5_d_warnings_viewport_preview_d_critical_warnings",
+        "docs_handover_mockups_v11_rail_block2_b_smart_info_viewport_preview_a_profile",
+        "docs_handover_mockups_v11_rail_block4_v_active_visit_viewport_preview_v_active_visit",
+        "docs_handover_mockups_v11_rail_block2_b_smart_info_viewport_preview_b_smart_information",
+        "docs_handover_mockups_v11_rail_block3_c_stats_viewport_preview_c_stats",
+        "docs_handover_mockups_v11_rail_block6_e_health_viewport_preview_e_health_declaration_preview",
+        "docs_handover_mockups_v11_rail_block7_f_journey_viewport_preview_f_customer_journey",
+        "docs_handover_mockups_v11_rail_block8_g_smartnext_viewport_preview_g_smart_next_step",
+        "docs_handover_mockups_v11_rail_block20_r_insights_viewport_preview_r_insights",
+        "docs_handover_mockups_v11_rail_block9_s_sticky_viewport_preview_s_sticky_footer"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-full/viewport-preview.html"
+    }
+  ]
+}

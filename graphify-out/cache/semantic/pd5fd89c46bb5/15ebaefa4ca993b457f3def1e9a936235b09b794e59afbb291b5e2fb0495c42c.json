@@ -1,0 +1,169 @@
+{
+  "nodes": [
+    {
+      "id": "_github_workflows_halso_health_declarations_import_workflow",
+      "label": "cco-halso-health-declarations-import workflow",
+      "file_type": "code",
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_halso_health_declarations_import_dry_run_commit_gate",
+      "label": "Dry-run f\u00f6re commit-gate (putFailed = 0 krav)",
+      "file_type": "concept",
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_halso_health_declarations_import_halsodeklaration_corpus",
+      "label": "H\u00e4lsodeklaration (health declaration) mailbox corpus",
+      "file_type": "concept",
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_halso_health_declarations_import_needs_review_stub",
+      "label": "needs_review-kundstub f\u00f6r omatchad deklaration",
+      "file_type": "concept",
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_halso_health_declarations_import_cliento_patient_master",
+      "label": "Cliento patient-master sync",
+      "file_type": "concept",
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_halso_health_declarations_import_render_graph_env_loader",
+      "label": "Microsoft Graph env loaded from Render at runtime",
+      "file_type": "concept",
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "_github_workflows_halso_health_declarations_import_workflow",
+      "target": "_github_workflows_halso_health_declarations_import_halsodeklaration_corpus",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_halso_health_declarations_import_workflow",
+      "target": "_github_workflows_halso_health_declarations_import_dry_run_commit_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_halso_health_declarations_import_workflow",
+      "target": "_github_workflows_halso_health_declarations_import_needs_review_stub",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_halso_health_declarations_import_workflow",
+      "target": "_github_workflows_halso_health_declarations_import_cliento_patient_master",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_halso_health_declarations_import_workflow",
+      "target": "_github_workflows_halso_health_declarations_import_render_graph_env_loader",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_halso_health_declarations_import_workflow",
+      "target": "_github_workflows_owner_mfa_heal_owner_mfa_auth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_halso_health_declarations_import_halsodeklaration_corpus",
+      "target": "_github_workflows_halso_health_declarations_import_cliento_patient_master",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_halso_health_declarations_import_render_graph_env_loader",
+      "target": "_github_workflows_post_deploy_prod_heal_render_env_restore",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": ".github/workflows/halso-health-declarations-import.yml",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "halso_health_declaration_import_pipeline",
+      "label": "H\u00e4lsodeklaration import pipeline: Graph env \u2192 mailbox corpus \u2192 patient-master match \u2192 dry-run \u2192 commit/needs_review",
+      "nodes": [
+        "_github_workflows_halso_health_declarations_import_render_graph_env_loader",
+        "_github_workflows_halso_health_declarations_import_halsodeklaration_corpus",
+        "_github_workflows_halso_health_declarations_import_cliento_patient_master",
+        "_github_workflows_halso_health_declarations_import_dry_run_commit_gate",
+        "_github_workflows_halso_health_declarations_import_needs_review_stub"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/halso-health-declarations-import.yml"
+    }
+  ]
+}

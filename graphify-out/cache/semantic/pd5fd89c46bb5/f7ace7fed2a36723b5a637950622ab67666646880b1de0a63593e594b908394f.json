@@ -1,0 +1,287 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_presentation_readiness",
+      "label": "Valkommen till CCO - presentation readiness",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_ny_huvudstart_cco_demo",
+      "label": "Ny huvudstart: Valkommen till CCO",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Personalstart-sidan var byggd som hjalpsida; presentationen behovde ett nav som visar hela systemets erbjudande med Kunder som forsta steg."
+    },
+    {
+      "id": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_mock_claims_borttagna",
+      "label": "Mock-claims borttagna fran presentationssidan",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Simulerade kundantal och intaktssiffror skulle framstalla pausade integrationer som live och underminera fortroendet vid skarp pilot."
+    },
+    {
+      "id": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_dag1_regler",
+      "label": "Dag-1-regler (5 punkter)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_demoflode_15_steg",
+      "label": "Demoflode 4 juni - 15 steg",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_legacy_banner_personalstart",
+      "label": "Legacy-banner pa personalstart for preflight-kompatibilitet",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_statusmarkning_kort",
+      "label": "Statusmarkning av kort: live, imported, pending, paused, blocked",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_lankgate_200",
+      "label": "Lankgate - alla presentationslankar verifierade 200",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_presentation_readiness",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_ny_huvudstart_cco_demo",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_presentation_readiness",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_mock_claims_borttagna",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_presentation_readiness",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_dag1_regler",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_presentation_readiness",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_demoflode_15_steg",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_presentation_readiness",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_legacy_banner_personalstart",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_presentation_readiness",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_statusmarkning_kort",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_presentation_readiness",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_lankgate_200",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_ny_huvudstart_cco_demo",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_mock_claims_borttagna",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_ny_huvudstart_cco_demo",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_statusmarkning_kort",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_ny_huvudstart_cco_demo",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_legacy_banner_personalstart",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_demoflode_15_steg",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_ny_huvudstart_cco_demo",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_demoflode_15_steg",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_dag1_regler",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_lankgate_200",
+      "target": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_ny_huvudstart_cco_demo",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_dag1_regler",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_rollkort_dokument",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_dag1_regler",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_review_material_ej_klinisk_sanning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_dag1_regler",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_extern_ai_forbud",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_legacy_banner_personalstart",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sjutton_staff_sidor",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_statusmarkning_kort",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_fortnox_blocked_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_welcome_presentation_readiness_2026_06_04_ny_huvudstart_cco_demo",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_finance_html",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

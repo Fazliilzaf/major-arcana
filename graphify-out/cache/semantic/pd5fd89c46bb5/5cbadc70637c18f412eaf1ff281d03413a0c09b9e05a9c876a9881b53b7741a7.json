@@ -1,0 +1,101 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_staff_training_v3_page",
+      "label": "Personal Training Mode \u00b7 Journalpilot",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-staff-training-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_staff_training_v3_journal_flow_five_steps",
+      "label": "5-stegs journalfl\u00f6de: hitta kund \u2192 verifiera \u2192 skapa \u2192 signera \u2192 r\u00e4ttelse",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-staff-training-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje steg beskriver vad som ska g\u00f6ras, var man klickar, r\u00e4tt resultat, vanligt misstag och n\u00e4r man ska stoppa och eskalera; tr\u00e4ningssidan beskriver bara fl\u00f6det medan klicken sker i demomilj\u00f6n, s\u00e5 \u00f6vning aldrig kan skapa verkliga poster."
+    },
+    {
+      "id": "public_major_arcana_preview_cco_staff_training_v3_pilot_customers",
+      "label": "Tre pilotkunder som s\u00e4kra testpatienter",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-staff-training-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_staff_training_v3_page",
+      "target": "public_major_arcana_preview_cco_staff_training_v3_journal_flow_five_steps",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-staff-training-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_staff_training_v3_page",
+      "target": "public_major_arcana_preview_cco_staff_training_v3_pilot_customers",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-staff-training-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_staff_training_v3_page",
+      "target": "public_major_arcana_preview_cco_presenter_mode_v3_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-staff-training-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_staff_training_v3_journal_flow_five_steps",
+      "target": "public_major_arcana_preview_cco_smart_anteckning_v3_sign_and_lock",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-staff-training-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_staff_training_v3_journal_flow_five_steps",
+      "target": "public_major_arcana_preview_cco_staff_go_live_v3_external_ai_ban",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-staff-training-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_staff_training_v3_journal_flow_five_steps",
+      "target": "public_major_arcana_preview_cco_pre_signering_v3_five_step_identity_check",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-staff-training-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

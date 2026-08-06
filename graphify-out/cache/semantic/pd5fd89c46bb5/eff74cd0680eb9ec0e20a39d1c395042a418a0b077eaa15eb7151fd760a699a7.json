@@ -1,0 +1,100 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_mail_pipeline_activation_2026_06_01_doc",
+      "label": "CCO Mail Pipeline Activation",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-MAIL-PIPELINE-ACTIVATION-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mail_pipeline_activation_2026_06_01_truth_hydration",
+      "label": "Truth hydration fr\u00e5n ingestion-ledger (customerIdentity-overlay)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-MAIL-PIPELINE-ACTIVATION-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mail_pipeline_activation_2026_06_01_truth_first_read_model",
+      "label": "Truth-first read model f\u00f6r kundkort-tr\u00e5dar",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-MAIL-PIPELINE-ACTIVATION-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_mail_pipeline_activation_2026_06_01_doc",
+      "target": "docs_strategy_cco_mail_pipeline_activation_2026_06_01_truth_hydration",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MAIL-PIPELINE-ACTIVATION-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mail_pipeline_activation_2026_06_01_doc",
+      "target": "docs_strategy_cco_mail_pipeline_activation_2026_06_01_truth_first_read_model",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MAIL-PIPELINE-ACTIVATION-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mail_pipeline_activation_2026_06_01_doc",
+      "target": "docs_strategy_cco_mail_pipeline_coverage_2026_06_01_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MAIL-PIPELINE-ACTIVATION-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mail_pipeline_activation_2026_06_01_truth_hydration",
+      "target": "docs_strategy_cco_mail_pipeline_coverage_2026_06_01_ingestion_truth_split",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MAIL-PIPELINE-ACTIVATION-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mail_pipeline_activation_2026_06_01_doc",
+      "target": "docs_strategy_cco_mail_enrichment_gap_analysis_2026_06_01_enrichment_coverage_gap",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MAIL-PIPELINE-ACTIVATION-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mail_pipeline_activation_2026_06_01_truth_first_read_model",
+      "target": "docs_strategy_cco_mobil_kunder_readiness_2026_06_03_mobile_customers_workspace",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/strategy/CCO-MAIL-PIPELINE-ACTIVATION-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

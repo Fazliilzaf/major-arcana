@@ -1,0 +1,112 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_end_to_end_uat_2026_05_31_doc",
+      "label": "CCO End-to-End UAT \u2014 Statusrefresh",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_end_to_end_uat_2026_05_31_journal_e2e_smoke",
+      "label": "Journal E2E smoke (create \u2192 sign \u2192 409 \u2192 correction \u2192 feed \u2192 timeline)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_end_to_end_uat_2026_05_31_cf_mount_regression",
+      "label": "CF-route mount-regression (8 saknade moduler)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "En IIFE-catch svalde exceptionen fr\u00e5n saknade moduler s\u00e5 CF-routes aldrig monterades; fix var 8 stub-moduler med read=tomt och write=503, utan att r\u00f6ra server.js."
+    },
+    {
+      "id": "docs_strategy_cco_end_to_end_uat_2026_05_31_pilot_customers",
+      "label": "3 pilotkunder (feed \u00b7 timeline \u00b7 forms verifierade)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_end_to_end_uat_2026_05_31_doc",
+      "target": "docs_strategy_cco_end_to_end_uat_2026_05_31_journal_e2e_smoke",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_end_to_end_uat_2026_05_31_doc",
+      "target": "docs_strategy_cco_end_to_end_uat_2026_05_31_cf_mount_regression",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_end_to_end_uat_2026_05_31_doc",
+      "target": "docs_strategy_cco_end_to_end_uat_2026_05_31_pilot_customers",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_end_to_end_uat_2026_05_31_cf_mount_regression",
+      "target": "docs_strategy_cco_journaling_readiness_2026_06_02_journal_route_regression",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_end_to_end_uat_2026_05_31_journal_e2e_smoke",
+      "target": "docs_strategy_cco_journaling_readiness_2026_06_02_journal_quick_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_end_to_end_uat_2026_05_31_doc",
+      "target": "docs_strategy_cco_cycle_45_prod_uat_ord3_2026_05_20_doc",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

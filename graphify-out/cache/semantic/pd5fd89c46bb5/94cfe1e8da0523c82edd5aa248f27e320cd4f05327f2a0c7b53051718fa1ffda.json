@@ -1,0 +1,271 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_staff_role_cards_2026_06_04_rollkort_dokument",
+      "label": "Staff Role Cards - Journalpilot dag 1",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_staff_role_cards_2026_06_04_personal_rollkort",
+      "label": "Rollkort: personal (behandlare/skoterska/reception)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_staff_role_cards_2026_06_04_operator_admin_rollkort",
+      "label": "Rollkort: operator/admin",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_staff_role_cards_2026_06_04_owner_rollkort",
+      "label": "Rollkort: owner (systemansvarig)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_staff_role_cards_2026_06_04_revisor_observator_rollkort",
+      "label": "Rollkort: revisor/observator",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_staff_role_cards_2026_06_04_eskaleringsmatris",
+      "label": "Eskaleringsmatris (snabbreferens)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje problemtyp far en forutbestamd mottagare sa personalen aldrig improviserar vid osaker identitet, dubblett eller fel patient."
+    },
+    {
+      "id": "docs_strategy_cco_staff_role_cards_2026_06_04_pre_signering_check",
+      "label": "Pre-Signering Check (5 punkter)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Identitet maste verifieras innan en journalpost lases, eftersom signerade poster bara kan rattas via ny post - aldrig andras."
+    },
+    {
+      "id": "docs_strategy_cco_staff_role_cards_2026_06_04_extern_ai_forbud",
+      "label": "Forbud mot extern AI pa journaltext",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Journalinnehall far inte lamna systemet till ChatGPT/Claude/Copilot; policy-gate plus middleware haller tredjelands-AI utanfor patientdata."
+    },
+    {
+      "id": "docs_strategy_cco_staff_role_cards_2026_06_04_review_material_ej_klinisk_sanning",
+      "label": "Review-material ar inte klinisk sanning",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Migrerat och osakert material har ofullstandig metadata; att behandla det som klinisk sanning riskerar felbeslut, darfor markeras det 'Behover granskning'."
+    },
+    {
+      "id": "docs_strategy_cco_staff_role_cards_2026_06_04_rattelse_som_ny_post",
+      "label": "Rattelse skapas som ny post lankad till originalet",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_rollkort_dokument",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_personal_rollkort",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_rollkort_dokument",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_operator_admin_rollkort",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_rollkort_dokument",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_owner_rollkort",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_rollkort_dokument",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_revisor_observator_rollkort",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_rollkort_dokument",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_eskaleringsmatris",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_personal_rollkort",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_pre_signering_check",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_personal_rollkort",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_extern_ai_forbud",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_personal_rollkort",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_review_material_ej_klinisk_sanning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_personal_rollkort",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_rattelse_som_ny_post",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_personal_rollkort",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_eskaleringsmatris",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_operator_admin_rollkort",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_eskaleringsmatris",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_operator_admin_rollkort",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_extern_ai_forbud",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_revisor_observator_rollkort",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_review_material_ej_klinisk_sanning",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_owner_rollkort",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_eskaleringsmatris",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_role_cards_2026_06_04_pre_signering_check",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_rattelse_som_ny_post",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

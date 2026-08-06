@@ -1,0 +1,59 @@
+{
+  "nodes": [
+    {
+      "id": "docs_archives_2026_02_25_reality_audit_baseline_context_snapshot_pre_p0_baseline",
+      "label": "Pre-P0 reality baseline (2026-02-25)",
+      "file_type": "document",
+      "source_file": "docs/archives/2026-02-25-reality-audit-baseline/context-snapshot.md",
+      "source_location": "Current project reality",
+      "source_url": null,
+      "captured_at": "2026-02-25",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_archives_2026_02_25_reality_audit_baseline_context_snapshot_integrity_fingerprint",
+      "label": "SHA256 integritetsfingeravtryck f\u00f6r arkiverade k\u00e4llfiler",
+      "file_type": "concept",
+      "source_file": "docs/archives/2026-02-25-reality-audit-baseline/context-snapshot.md",
+      "source_location": "Integrity fingerprints",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_archives_2026_02_25_reality_audit_baseline_context_snapshot_pre_p0_baseline",
+      "target": "docs_architecture_execution_gateway_contract_executiongateway",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/archives/2026-02-25-reality-audit-baseline/context-snapshot.md",
+      "source_location": "P0 target lock",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_archives_2026_02_25_reality_audit_baseline_context_snapshot_pre_p0_baseline",
+      "target": "docs_architecture_p0_checklist_eval_before_persist",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/archives/2026-02-25-reality-audit-baseline/context-snapshot.md",
+      "source_location": "Current project reality",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_archives_2026_02_25_reality_audit_baseline_context_snapshot_integrity_fingerprint",
+      "target": "docs_archives_2026_02_25_reality_audit_baseline_arcana_mal_original_architecture_lock_order",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/archives/2026-02-25-reality-audit-baseline/context-snapshot.md",
+      "source_location": "Source file preserved",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

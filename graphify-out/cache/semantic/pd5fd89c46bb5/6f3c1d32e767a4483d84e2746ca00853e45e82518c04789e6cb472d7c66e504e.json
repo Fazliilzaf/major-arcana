@@ -1,0 +1,80 @@
+{
+  "nodes": [
+    {
+      "id": "docs_uiux_cco_operator_language_doc",
+      "label": "CCO Operator Language",
+      "file_type": "document",
+      "source_file": "docs/uiux/cco-operator-language.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_uiux_cco_operator_language_ordlista",
+      "label": "Operat\u00f6rsordlista: teknisk term \u2192 arbetsfl\u00f6desterm",
+      "file_type": "concept",
+      "source_file": "docs/uiux/cco-operator-language.md",
+      "source_location": "Godk\u00e4nda operat\u00f6rstermer",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_uiux_cco_operator_language_forbjudna_ord",
+      "label": "F\u00f6rbjudna UI-ord i operat\u00f6rsytan (Cliento, audit, handoff, slots)",
+      "file_type": "concept",
+      "source_file": "docs/uiux/cco-operator-language.md",
+      "source_location": "Ord som inte ska synas",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_web_to_arcana_bridge_cliento_exit_beslut",
+      "target": "docs_uiux_cco_operator_language_forbjudna_ord",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/uiux/cco-operator-language.md",
+      "source_location": null,
+      "weight": 0.65
+    },
+    {
+      "source": "docs_uiux_cco_operator_language_doc",
+      "target": "docs_uiux_cco_operator_language_ordlista",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/uiux/cco-operator-language.md",
+      "source_location": "Godk\u00e4nda operat\u00f6rstermer",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_uiux_cco_operator_language_ordlista",
+      "target": "docs_uiux_cco_operator_language_forbjudna_ord",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/uiux/cco-operator-language.md",
+      "source_location": "Ord som inte ska synas",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_uiux_cco_operator_language_ordlista",
+      "target": "docs_strategy_web_to_arcana_bridge_web_events_audit_ingest",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/uiux/cco-operator-language.md",
+      "source_location": "Web booking \u2192 Webb-bokning",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

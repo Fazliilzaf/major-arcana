@@ -1,0 +1,60 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_pre_signering_v3_page",
+      "label": "Pre-Signering Check \u00b7 identitetsverifiering",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-pre-signering-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_pre_signering_v3_five_step_identity_check",
+      "label": "5-stegs identitetskontroll f\u00f6re signering",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-pre-signering-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "R\u00e4tt kund \u00f6ppen, patienten s\u00e4ger sj\u00e4lv sitt namn, telefon/klient-id verifierat, texten g\u00e4ller dagens bes\u00f6k och inget review-material anv\u00e4nds som klinisk sanning \u2014 15 sekunders check v\u00e4ljs framf\u00f6r systemtv\u00e5ng eftersom sidan k\u00f6rs som read-only sido-flik bredvid journalvyn."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_pre_signering_v3_page",
+      "target": "public_major_arcana_preview_cco_pre_signering_v3_five_step_identity_check",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-pre-signering-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_pre_signering_v3_five_step_identity_check",
+      "target": "public_major_arcana_preview_cco_review_warning_v3_review_material_not_clinical_truth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-pre-signering-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_pre_signering_v3_five_step_identity_check",
+      "target": "public_major_arcana_preview_cco_smart_anteckning_v3_sign_and_lock",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-pre-signering-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

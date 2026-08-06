@@ -1,0 +1,283 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_journalbygge_v3_page",
+      "label": "CCO Journalbygge \u2014 \u00f6versikt",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journalbygge_v3_journal_api_endpoints",
+      "label": "Journal-API: journal-feed, journal-timeline, entry/correction, forms/submit, forms/sign, missing",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journalbygge_v3_correction_never_edit",
+      "label": "R\u00e4ttelse ist\u00e4llet f\u00f6r edit \u2014 signerad journal kan aldrig \u00e4ndras tyst (locked-guard)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journalbygge_v3_asset_status_model",
+      "label": "Sex asset-statusar: VISIBLE, VERIFIED, NEEDS_REVIEW, LINK_ONLY, FAILED, DUPLICATE",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journalbygge_v3_timeline_events",
+      "label": "Journal-tidslinje med 7+ event-typer och thread-gruppering",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journalbygge_v3_security_properties",
+      "label": "S\u00e4kerhetsegenskaper i journalkedjan \u2014 inga Drive-l\u00e4nkar i UI, ingen extern AI, SHA-256 + tamper-hash, RBAC per endpoint",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journalbygge_v3_form_autosign_pdf",
+      "label": "Formul\u00e4rfl\u00f6de: submit \u2192 journal-entry \u2192 autoSign \u2192 PDF i secure storage \u2192 asset",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journalbygge_v3_ready_for_treatment",
+      "label": "Ready-for-treatment blocker-status (/missing?treatment=fue)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journalbygge_v3_field_parity_matrix",
+      "label": "Field Parity Matrix \u2014 52/52 TP-f\u00e4lt verifierade mot Meridiq",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journalbygge_v3_audit_chain",
+      "label": "Audit-kedja: form_submitted \u2192 form_signed \u2192 pdf_archived \u2192 asset_imported \u2192 asset_status_transition",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_friskforsakran_demo_overlay_step8_attestation",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_form_autosign_pdf",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_page",
+      "target": "public_major_arcana_preview_cco_journal_qa_v3_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_page",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_journal_api_endpoints",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_page",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_correction_never_edit",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_page",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_asset_status_model",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_page",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_timeline_events",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_page",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_security_properties",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_page",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_field_parity_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_journal_api_endpoints",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_form_autosign_pdf",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_journal_api_endpoints",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_ready_for_treatment",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_form_autosign_pdf",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_audit_chain",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_audit_chain",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_timeline_events",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_correction_never_edit",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_security_properties",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_field_parity_matrix",
+      "target": "public_major_arcana_preview_cco_dokument_v1_content_provenance",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journalbygge_v3_ready_for_treatment",
+      "target": "public_major_arcana_preview_cco_kunder_v11_dossier",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "journal_signing_audit_chain",
+      "label": "Signeringskedja: formul\u00e4r \u2192 signering \u2192 PDF i secure storage \u2192 asset \u2192 tidslinje",
+      "nodes": [
+        "public_major_arcana_preview_cco_journalbygge_v3_form_autosign_pdf",
+        "public_major_arcana_preview_cco_journalbygge_v3_audit_chain",
+        "public_major_arcana_preview_cco_journalbygge_v3_asset_status_model",
+        "public_major_arcana_preview_cco_journalbygge_v3_timeline_events",
+        "public_major_arcana_preview_cco_journalbygge_v3_correction_never_edit"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journalbygge-v3.html"
+    }
+  ]
+}

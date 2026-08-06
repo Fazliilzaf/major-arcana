@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_senare_v3_page",
+      "label": "CCO Senare v3 (snooze)",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-senare-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_senare_v3_snooze_queue",
+      "label": "Snooze-k\u00f6 med \u00e5terkomsttider och orsak",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-senare-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje snooze b\u00e4r en explicit orsak och en \u00e5terkomsttid (1 h, 4 h, imorgon 09:00, 48 h, 1 vecka) tillsammans med SLA-risk-vy, s\u00e5 att uppskjutna tr\u00e5dar inte tappas bort."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_senare_v3_page",
+      "target": "public_major_arcana_preview_cco_senare_v3_snooze_queue",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-senare-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_senare_v3_page",
+      "target": "public_major_arcana_preview_cco_svarstudio_v3_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-senare-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_senare_v3_page",
+      "target": "public_major_arcana_preview_cco_skickat_v3_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-senare-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_senare_v3_page",
+      "target": "public_major_arcana_preview_cco_smart_anteckning_v3_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-senare-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

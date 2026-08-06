@@ -1,0 +1,163 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_dokument",
+      "label": "Steg 7 \u2014 Behandlingsavtal h\u00e5rtransplantation (DHI) v6 kundkort",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_forskottsbetalning_20",
+      "label": "F\u00f6rskottsbetalning 20 % vid bokning",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_ombokning_14_dagar",
+      "label": "Ombokningsfrist 14 kalenderdagar (TP)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_graftoverlevnad_95",
+      "label": "F\u00f6rv\u00e4ntad h\u00e5rs\u00e4cks\u00f6verlevnad 95 % \u2014 villkorad av 4 PRP och nikotinfrihet",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_mallvariabler",
+      "label": "Mustache-mallvariabler f\u00f6r kunduppgifter i avtalsmall",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_dhi_hartransplantation",
+      "label": "H\u00e5rtransplantation med DHI-metoden",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_dhi_hartransplantation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_forskottsbetalning_20",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_forskottsbetalning_20",
+      "target": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_ombokning_14_dagar",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_ombokning_14_dagar",
+      "target": "public_major_arcana_preview_steg6_betanketid_samtycke_final_demo_avbokningsvillkor",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_graftoverlevnad_95",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_mallvariabler",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_graftoverlevnad_95",
+      "target": "public_major_arcana_preview_steg8_friskforsakran_final_nikotin_ingen_garanti",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_offert_profilo_final_demo_curatiio_varumarke",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

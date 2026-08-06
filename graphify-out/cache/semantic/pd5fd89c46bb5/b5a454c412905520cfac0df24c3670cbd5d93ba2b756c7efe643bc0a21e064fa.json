@@ -1,0 +1,111 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3",
+      "label": "Sk\u00e4rmdump: Svarstudio v3 inkorgslista",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/03-svarstudio-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3_svarstudio",
+      "label": "Svarstudio (mallar, ton, policykontroll, Smart anteckning)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/03-svarstudio-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3_demo_lage",
+      "label": "DEMO-l\u00e4ge: fetch() fakas lokalt, live-utskick h\u00e5rdblockerat",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/03-svarstudio-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3_tradklassificering",
+      "label": "Tr\u00e5dklassificering (boka konsultation, pris, medicinsk fr\u00e5ga efterv\u00e5rd)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/03-svarstudio-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3_svarstudio",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/03-svarstudio-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3_demo_lage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/03-svarstudio-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3_tradklassificering",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/03-svarstudio-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/03-svarstudio-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3_svarstudio",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_inkorg",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/03-svarstudio-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_03_svarstudio_v3_tradklassificering",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_02_conversations_shell_kofalt",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/03-svarstudio-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

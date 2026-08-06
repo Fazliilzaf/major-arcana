@@ -1,0 +1,279 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_report",
+      "label": "Meridiq Document Coverage Report",
+      "file_type": "document",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_coverage_gate",
+      "label": "Coverage Gate (>= 95 %)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_letter_text_hashing",
+      "label": "letterText SHA-256[:8] hashning",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_empty_consent_letters",
+      "label": "19 tomma letterText-samtycken",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_duplicate_plasma_pen_consent",
+      "label": "Duplikat-samtycke Plasma Pen SWE (153000/153001)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_template_classification",
+      "label": "Template-klassificering enligt user-spec",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_legal_review_status",
+      "label": "legalReviewStatus (nordbro/insatt/meridiq_clinical)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_questionary_catalog",
+      "label": "questionary-catalog.json (16 formul\u00e4r)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_consent_catalog",
+      "label": "consent-catalog.json (39 samtycken)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_journal_schema_catalog",
+      "label": "journal-schema-catalog.json (14 scheman, 217 f\u00e4lt)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_service_bindings_catalog",
+      "label": "service-bindings-catalog.json (82 services)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_document_coverage_report_cco_templates_seed",
+      "label": "data/cco-templates.json (77 templates)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_report",
+      "target": "docs_strategy_meridiq_document_coverage_report_coverage_gate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_report",
+      "target": "docs_strategy_meridiq_document_coverage_report_letter_text_hashing",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_letter_text_hashing",
+      "target": "docs_strategy_meridiq_source_of_truth_matrix_pii_github_rule",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_report",
+      "target": "docs_strategy_meridiq_document_coverage_report_empty_consent_letters",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_empty_consent_letters",
+      "target": "docs_strategy_meridiq_source_of_truth_matrix_gap_external_templates",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_report",
+      "target": "docs_strategy_meridiq_document_coverage_report_duplicate_plasma_pen_consent",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_report",
+      "target": "docs_strategy_meridiq_document_coverage_report_template_classification",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_report",
+      "target": "docs_strategy_meridiq_document_coverage_report_legal_review_status",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_report",
+      "target": "docs_strategy_meridiq_document_coverage_report_questionary_catalog",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_report",
+      "target": "docs_strategy_meridiq_document_coverage_report_consent_catalog",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_report",
+      "target": "docs_strategy_meridiq_document_coverage_report_journal_schema_catalog",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_report",
+      "target": "docs_strategy_meridiq_document_coverage_report_service_bindings_catalog",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_report",
+      "target": "docs_strategy_meridiq_document_coverage_report_cco_templates_seed",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_document_coverage_report_coverage_gate",
+      "target": "docs_strategy_meridiq_document_coverage_report_journal_schema_catalog",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

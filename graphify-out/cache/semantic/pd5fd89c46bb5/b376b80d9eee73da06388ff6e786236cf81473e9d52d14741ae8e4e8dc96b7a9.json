@@ -1,0 +1,123 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v11_rail_block7_fixture",
+      "label": "V11 Rail Block 7 \u00b7 \u2026 + F Kundresa",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v11-rail-block7.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block7_kundkort_kkx",
+      "label": "CcoKundkortKkx (legacy logiklager f\u00f6r kundkort)",
+      "file_type": "code",
+      "source_file": "tests/visual/fixtures/v11-rail-block7.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block7_canonical_journey_nine_steps",
+      "label": "Kanonisk kundresa i 9 steg (buildCanonicalJourneyLive)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block7.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Sekvensen bokning \u2192 bekr\u00e4ftelse \u2192 h\u00e4lsodeklaration \u2192 konsultation \u2192 offert \u2192 bet\u00e4nketid 2 dagar \u2192 avtal+samtycke \u2192 friskf\u00f6rs\u00e4kran \u2192 foto-samtycke kodar det legala fl\u00f6det inf\u00f6r behandling."
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block7_deterministic_stub",
+      "label": "Deterministisk stub av journey- och booking-logik",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block7.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Endast logiklagret stubbas; adapterns mappning och jump/med-form-slugs k\u00f6rs p\u00e5 riktigt s\u00e5 screenshots blir stabila utan att testa mockad rendering."
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v11_rail_block7_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block7.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block7_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_adapters",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block7.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block7_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block7_kundkort_kkx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block7.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block7_kundkort_kkx",
+      "target": "tests_visual_fixtures_v11_rail_block7_canonical_journey_nine_steps",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block7.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block7_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block7_deterministic_stub",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block7.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block7_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block6_zon2_deeplink_noop",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block7.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block7_deterministic_stub",
+      "target": "tests_visual_fixtures_v11_rail_profile_real_component_fixtures",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "tests/visual/fixtures/v11-rail-block7.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

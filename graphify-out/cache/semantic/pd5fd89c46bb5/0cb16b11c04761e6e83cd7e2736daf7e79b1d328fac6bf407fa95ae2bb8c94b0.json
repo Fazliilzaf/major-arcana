@@ -1,0 +1,90 @@
+{
+  "nodes": [
+    {
+      "id": "public_kunder_mockup_v10_vy",
+      "label": "Kunder v9 desktop-mockup (v10-fil)",
+      "file_type": "code",
+      "source_file": "public/kunder-mockup-v10.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_kunder_mockup_v10_kunddossier",
+      "label": "Kunddossi\u00e9r i h\u00f6gerkolumn",
+      "file_type": "concept",
+      "source_file": "public/kunder-mockup-v10.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_kunder_mockup_v10_customers_state_api",
+      "label": "customers/state-endpoint",
+      "file_type": "code",
+      "source_file": "public/kunder-mockup-v10.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_kunder_mockup_v10_vy",
+      "target": "public_kunder_mockup_v10_kunddossier",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/kunder-mockup-v10.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_kunder_mockup_v10_vy",
+      "target": "public_kunder_mockup_v10_customers_state_api",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/kunder-mockup-v10.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_kunder_mockup_v10_vy",
+      "target": "public_kalender_vylagen",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/kunder-mockup-v10.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_kunder_mockup_v10_vy",
+      "target": "public_kalender_morgonbrief",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/kunder-mockup-v10.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_kunder_mockup_v10_kunddossier",
+      "target": "public_kundkort_mockup_gemensamt_kundkort",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/kunder-mockup-v10.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

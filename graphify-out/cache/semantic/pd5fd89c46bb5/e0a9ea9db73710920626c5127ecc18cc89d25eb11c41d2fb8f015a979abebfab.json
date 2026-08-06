@@ -1,0 +1,112 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_29_pnr_enrichment_pnr_enrichment_track",
+      "label": "PNR-enrichment fr\u00e5n Cliento Dataexport (separat enrichment-steg)",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "PNR m\u00e5ste plockas i ett separat upsert-steg (endast PNR-f\u00e4ltet + pnrSource/pnrEnrichedAt) eftersom full customer-sync p\u00e5 bokningsgrain skulle skriva fel dom\u00e4nmodell \u00f6ver patient master."
+    },
+    {
+      "id": "docs_handover_orders_ord_29_pnr_enrichment_kundexport_missing_pnr_column",
+      "label": "Kundexport saknar Personnummer-kolumn",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Kundexport-synken fungerar som customer delta (+50 net) men kan aldrig fylla patient.identifiers.personnummer, vilket \u00e4r sj\u00e4lva nyckeln HD-mailbox-matchningen bygger p\u00e5."
+    },
+    {
+      "id": "docs_handover_orders_ord_29_pnr_enrichment_dataexport_booking_grain_mismatch",
+      "label": "Dataexport har bokningsgrain \u2014 fel grain f\u00f6r customer sync",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "En rad per bokning, inte per kund; befintlig Cliento CSV-parser \u00e4r byggd f\u00f6r kundexport-grain och ignorerar dessutom Personnummer-kolumnen."
+    },
+    {
+      "id": "docs_handover_orders_ord_29_pnr_enrichment_sparse_source_conclusion",
+      "label": "Slutsats: PNR-k\u00e4llan \u00e4r f\u00f6r gles f\u00f6r bulk-matchning",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Endast 10 unika Kund-id med giltigt PNR i exporten och 1 s\u00e4ker prod-enrich; reprocess-metrics of\u00f6r\u00e4ndrade \u2014 Fas 2 \u00e4r blockerad p\u00e5 data, inte p\u00e5 kod."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_29_pnr_enrichment_kundexport_missing_pnr_column",
+      "target": "docs_handover_orders_ord_29_pnr_enrichment_pnr_enrichment_track",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_29_pnr_enrichment_dataexport_booking_grain_mismatch",
+      "target": "docs_handover_orders_ord_29_pnr_enrichment_pnr_enrichment_track",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_29_pnr_enrichment_sparse_source_conclusion",
+      "target": "docs_handover_orders_ord_29_fas2_go_runbook_batch_2_hold_gate",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_29_pnr_enrichment_sparse_source_conclusion",
+      "target": "docs_handover_orders_ord_29_manual_review_triage_manual_queue_triage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "ord29_fas2_pnr_blocker_chain",
+      "label": "ORD-29 Fas 2 blockerkedja: PNR-k\u00e4lla, inte implementation",
+      "nodes": [
+        "docs_handover_orders_ord_29_import_halso_health_declarations_phase2_mailbox_ingest",
+        "docs_handover_orders_ord_29_pnr_enrichment_kundexport_missing_pnr_column",
+        "docs_handover_orders_ord_29_pnr_enrichment_pnr_enrichment_track",
+        "docs_handover_orders_ord_29_pnr_enrichment_sparse_source_conclusion",
+        "docs_handover_orders_ord_29_fas2_go_runbook_batch_2_hold_gate",
+        "docs_handover_orders_ord_29_manual_review_triage_manual_queue_triage"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-PNR-ENRICHMENT.md"
+    }
+  ]
+}

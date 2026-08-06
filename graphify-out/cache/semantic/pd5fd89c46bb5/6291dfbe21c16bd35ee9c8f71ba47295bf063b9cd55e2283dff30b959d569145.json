@@ -1,0 +1,201 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_web_to_arcana_bridge_doc",
+      "label": "Web-to-Arcana Bridge",
+      "file_type": "document",
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_web_to_arcana_bridge_cliento_exit_beslut",
+      "label": "Strategiskt beslut: Cliento ut, egen CCO booking-engine in",
+      "file_type": "concept",
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a71",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_web_to_arcana_bridge_fas_a_b_c_migration",
+      "label": "Bokningsmigration Fas A\u2192B\u2192C (provider-v\u00e4xel via env)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a71.2 + \u00a76",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_web_to_arcana_bridge_public_booking_killswitch",
+      "label": "Killswitch publik webb-bokning (503 tills sign-off)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a70.0",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_web_to_arcana_bridge_web_events_audit_ingest",
+      "label": "POST /api/public/web-events \u2014 audit-ingest via ExecutionGateway",
+      "file_type": "concept",
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a73.4",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_web_to_arcana_bridge_abuse_guard",
+      "label": "Publik reservations-abuse guard (rate-limit, origin-allowlist, honeypot, Turnstile)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a73.3 S\u00e4kerhet",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_web_to_arcana_bridge_failover_mockfallback",
+      "label": "Failover: mock-fallback och demo-banner n\u00e4r Arcana \u00e4r nere",
+      "file_type": "concept",
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a75",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_web_to_arcana_bridge_publik_katalog_plan_a",
+      "label": "Publik katalog E4 \u2014 endast Plan A-resurser, publicBookable-flagga",
+      "file_type": "concept",
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a73.4 Publik katalog",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_web_to_arcana_bridge_doc",
+      "target": "docs_strategy_web_hairtpclinic_com_masterplan_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "Relaterat",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_web_to_arcana_bridge_doc",
+      "target": "docs_strategy_web_to_arcana_bridge_cliento_exit_beslut",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a71",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_web_to_arcana_bridge_cliento_exit_beslut",
+      "target": "docs_strategy_web_to_arcana_bridge_fas_a_b_c_migration",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a71.2",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_web_to_arcana_bridge_public_booking_killswitch",
+      "target": "docs_strategy_web_to_arcana_bridge_fas_a_b_c_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a70.0",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_web_to_arcana_bridge_abuse_guard",
+      "target": "docs_strategy_web_to_arcana_bridge_web_events_audit_ingest",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "Status Pass 4",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_web_to_arcana_bridge_failover_mockfallback",
+      "target": "docs_strategy_web_to_arcana_bridge_fas_a_b_c_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a75 + \u00a78.2",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_web_to_arcana_bridge_web_events_audit_ingest",
+      "target": "docs_strategy_web_hairtpclinic_com_masterplan_konverteringspelare",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": "\u00a73.4 exit-intent, analyzer, pdf-guide",
+      "weight": 0.85
+    },
+    {
+      "source": "docs_strategy_web_to_arcana_bridge_cliento_exit_beslut",
+      "target": "prompts_hair_tp_clinic_system_cliento_widget_bokning",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": null,
+      "weight": 0.75
+    },
+    {
+      "source": "docs_strategy_web_to_arcana_bridge_public_booking_killswitch",
+      "target": "docs_strategy_web_hairtpclinic_com_masterplan_go_no_go_deploy",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/web-to-arcana-bridge.md",
+      "source_location": null,
+      "weight": 0.75
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "webb_lead_till_cco_audit_kedja",
+      "label": "Webb-lead \u2192 publik endpoint \u2192 ExecutionGateway \u2192 CCO-inbox med audit",
+      "nodes": [
+        "docs_strategy_web_hairtpclinic_com_masterplan_konverteringspelare",
+        "docs_strategy_web_to_arcana_bridge_abuse_guard",
+        "docs_strategy_web_to_arcana_bridge_web_events_audit_ingest",
+        "docs_strategy_web_to_arcana_bridge_publik_katalog_plan_a",
+        "docs_strategy_web_hairtpclinic_com_masterplan_tenant_isolation"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/web-to-arcana-bridge.md"
+    }
+  ]
+}

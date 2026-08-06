@@ -1,0 +1,72 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_44_admin_overview_autoload_monitor_kpi_autoload",
+      "label": "Auto-ladda monitor-KPI:er vid admin overview-render",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-44-admin-overview-autoload-monitor.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Backend svarar 200 p\u00e5 alla monitor-endpoints; problemet \u00e4r att loadMonitorStatus() bara k\u00f6rs n\u00e4r Drift-fliken \u00f6ppnas manuellt, s\u00e5 \u00f6versikten visar 'V\u00e4ntar p\u00e5 monitor-data'."
+    },
+    {
+      "id": "docs_handover_orders_ord_44_admin_overview_autoload_monitor_promise_allsettled",
+      "label": "Promise.all \u2192 Promise.allSettled i loadMonitorStatus",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-44-admin-overview-autoload-monitor.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Ett transient delfel (t.ex. under deploy) f\u00e5r catch:en att rendera alla KPI:er som null och blanka hela beredskapsvyn; per-kort-fel \u00e4r r\u00e4tt felisolering."
+    },
+    {
+      "id": "docs_handover_orders_ord_44_admin_overview_autoload_monitor_pilot_freeze_rule",
+      "label": "Pilot-frys: bygg p\u00e5 branch, ingen prod-deploy/merge utan \u00e4gar-GO",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-44-admin-overview-autoload-monitor.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_44_admin_overview_autoload_monitor_promise_allsettled",
+      "target": "docs_handover_orders_ord_44_admin_overview_autoload_monitor_kpi_autoload",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-44-admin-overview-autoload-monitor.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_44_admin_overview_autoload_monitor_pilot_freeze_rule",
+      "target": "docs_handover_orders_ord_44_admin_overview_autoload_monitor_kpi_autoload",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-44-admin-overview-autoload-monitor.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_30_git_branch_aldrig_mapp_kopia_working_copy_rule",
+      "target": "docs_handover_orders_ord_44_admin_overview_autoload_monitor_pilot_freeze_rule",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/handover/ORDERS/ORD-44-admin-overview-autoload-monitor.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

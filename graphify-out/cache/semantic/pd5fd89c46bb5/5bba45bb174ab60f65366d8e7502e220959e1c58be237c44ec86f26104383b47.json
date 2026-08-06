@@ -1,0 +1,143 @@
+{
+  "nodes": [
+    {
+      "id": "docs_portal_staff_guide_doc",
+      "label": "Personalguide: portalen (fri kund\u2194klinik-kanal)",
+      "file_type": "document",
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_portal_staff_guide_magic_link_lifecycle",
+      "label": "Portal-l\u00e4nk: mynta, rotera, \u00e5terkalla",
+      "file_type": "concept",
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": "## S\u00e5 h\u00e4r jobbar du i Svarstudion",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_portal_staff_guide_sms_last_resort",
+      "label": "SMS som sista utv\u00e4g (idempotent nudge)",
+      "file_type": "concept",
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": "## SMS \u2014 sista utv\u00e4g",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_portal_staff_guide_customer_card",
+      "label": "Kundkortet i Svarstudion (journalmetadata, aldrig journaltext)",
+      "file_type": "concept",
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_portal_staff_guide_live_send_approval_gate",
+      "label": "Live-utskick sp\u00e4rrat bakom godk\u00e4nnande",
+      "file_type": "concept",
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": "## Tumregler",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_portal_staff_guide_portal_scope_limit",
+      "label": "Portalens inneh\u00e5llsgr\u00e4ns: inga medicinska beslut, h\u00e4nvisa 1177/112",
+      "file_type": "concept",
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": "## Tumregler",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_portal_staff_guide_doc",
+      "target": "docs_portal_staff_guide_magic_link_lifecycle",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_staff_guide_doc",
+      "target": "docs_portal_staff_guide_sms_last_resort",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_staff_guide_doc",
+      "target": "docs_portal_staff_guide_customer_card",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_staff_guide_magic_link_lifecycle",
+      "target": "docs_portal_staff_guide_live_send_approval_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": "L\u00e4nken g\u00e5r ut i det vanliga, godk\u00e4nda mailet (kontrollerad s\u00e4ndkedja)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_staff_guide_magic_link_lifecycle",
+      "target": "docs_portal_staff_guide_sms_last_resort",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": "Skapa portal-l\u00e4nk tidigt i dialogen \u2014 ju f\u00f6rr kunden har l\u00e4nken, desto mindre SMS",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_staff_guide_portal_scope_limit",
+      "target": "docs_portal_staff_guide_customer_card",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_staff_guide_live_send_approval_gate",
+      "target": "docs_strategy_aisia_compliance_security_checklist_clinician_verify",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/portal-staff-guide.md",
+      "source_location": "m\u00e4nsklig godk\u00e4nnandegrind f\u00f6re utg\u00e5ende/publicerad effekt",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

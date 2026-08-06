@@ -1,0 +1,189 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_mobile_ux_sweep_plan_mobil_sweep",
+      "label": "CCO mobil UX-sweep (Fas 0\u2013F i ett svep)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "M\u00e5l + Sweep-ordning",
+      "source_url": null,
+      "captured_at": "2026-05-24",
+      "author": null,
+      "contributor": null,
+      "rationale": "CCO ska k\u00e4nnas som en modern mobilapp, inte desktop inskalerad; sweepen k\u00f6rs i fast ordning foundation \u2192 shell \u2192 kundvy \u2192 overlays \u2192 density \u2192 QA."
+    },
+    {
+      "id": "docs_strategy_cco_mobile_ux_sweep_plan_kanoniska_breakpoints",
+      "label": "Kanoniska breakpoints 767 / 768 / 1024",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Fas A2 Breakpoints \u2014 en definition",
+      "source_url": null,
+      "captured_at": "2026-05-24",
+      "author": null,
+      "contributor": null,
+      "rationale": "isMobileViewport() flyttas 820 \u2192 768 s\u00e5 att JS och CSS delar en enda breakpoint-definition."
+    },
+    {
+      "id": "docs_strategy_cco_mobile_ux_sweep_plan_touchmal_44px",
+      "label": "Touch-m\u00e5l minst 44\u00d744px (40px sekund\u00e4rt)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Principer + Prioriterad fixlista",
+      "source_url": null,
+      "captured_at": "2026-05-24",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mobile_ux_sweep_plan_app_shell_tabbar",
+      "label": "App shell \u2014 kompakt topbar 56px + bottom tab bar",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Fas B \u2014 App shell & navigation",
+      "source_url": null,
+      "captured_at": "2026-05-24",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mobile_ux_sweep_plan_bottom_sheets",
+      "label": "Modaler och bokning som bottom sheets med safe-area",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Fas D \u2014 Overlays & modaler",
+      "source_url": null,
+      "captured_at": "2026-05-24",
+      "author": null,
+      "contributor": null,
+      "rationale": "Knappar m\u00e5ste vara n\u00e5bara med tummen, d\u00e4rf\u00f6r fullbredd sheet med padding-bottom mot env(safe-area-inset-bottom)."
+    },
+    {
+      "id": "docs_strategy_cco_mobile_ux_sweep_plan_en_sticky_rad",
+      "label": "Max en sticky header-rad per vy",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Fas C3 Sticky stack \u2014 rensa",
+      "source_url": null,
+      "captured_at": "2026-05-24",
+      "author": null,
+      "contributor": null,
+      "rationale": "Staplad chrome (toolbar + hero + tabs) \u00e5t upp sk\u00e4rmytan p\u00e5 telefon; tabs f\u00e5r vara sticky medan hero blir statisk."
+    },
+    {
+      "id": "docs_strategy_cco_mobile_ux_sweep_plan_bokning_tre_stegs_wizard",
+      "label": "Mobil bokning som 3-stegs wizard med tidschips",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Fas D2 Booking shell",
+      "source_url": null,
+      "captured_at": "2026-05-24",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mobile_ux_sweep_plan_desktop_regression",
+      "label": "Desktop \u22651024px of\u00f6r\u00e4ndrat (regressionskrav)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Definition of done + Fas F3.3",
+      "source_url": null,
+      "captured_at": "2026-05-24",
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_mobile_ux_sweep_plan_mobil_sweep",
+      "target": "docs_strategy_cco_mobile_ux_sweep_plan_kanoniska_breakpoints",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Fas A2",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobile_ux_sweep_plan_mobil_sweep",
+      "target": "docs_strategy_cco_mobile_ux_sweep_plan_app_shell_tabbar",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Fas B",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobile_ux_sweep_plan_mobil_sweep",
+      "target": "docs_strategy_cco_mobile_ux_sweep_plan_bottom_sheets",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Fas D",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobile_ux_sweep_plan_mobil_sweep",
+      "target": "docs_strategy_cco_mobile_ux_sweep_plan_en_sticky_rad",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Fas C3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobile_ux_sweep_plan_bottom_sheets",
+      "target": "docs_strategy_cco_mobile_ux_sweep_plan_bokning_tre_stegs_wizard",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Fas D2 Booking shell",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobile_ux_sweep_plan_bokning_tre_stegs_wizard",
+      "target": "docs_strategy_cco_booking_plan_a_go_live_plan_a",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Fas D2.3 3-steg wizard: Tj\u00e4nst \u2192 Tid \u2192 Bekr\u00e4fta",
+      "weight": 0.75
+    },
+    {
+      "source": "docs_strategy_cco_mobile_ux_sweep_plan_touchmal_44px",
+      "target": "docs_strategy_cco_mobile_ux_sweep_plan_kanoniska_breakpoints",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Principer (g\u00e4ller alla faser)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobile_ux_sweep_plan_desktop_regression",
+      "target": "docs_strategy_cco_mobile_ux_sweep_plan_mobil_sweep",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Definition of done + Fas F3.3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobile_ux_sweep_plan_mobil_sweep",
+      "target": "docs_strategy_cco_mobile_staff_journal_plan_mobil_fotoflode",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-ux-sweep-plan.md",
+      "source_location": "Bygger p\u00e5: cco-mobile-staff-journal-plan.md",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

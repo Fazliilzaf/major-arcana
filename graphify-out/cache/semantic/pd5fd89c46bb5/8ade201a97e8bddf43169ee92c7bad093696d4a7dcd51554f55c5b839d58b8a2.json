@@ -1,0 +1,74 @@
+{
+  "nodes": [
+    {
+      "id": "public_patient_hub_sida",
+      "label": "Minimal patienthub (U6D)",
+      "file_type": "code",
+      "source_file": "public/patient-hub.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_patient_hub_rollout_u6d",
+      "label": "Rollout-plan U6D \u2014 full patientkanal senare",
+      "file_type": "concept",
+      "source_file": "public/patient-hub.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_patient_hub_sida",
+      "target": "public_patient_hub_rollout_u6d",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patient-hub.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patient_hub_sida",
+      "target": "public_patient_portal_chat_sida",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patient-hub.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_patient_hub_sida",
+      "target": "public_major_arcana_preview_steg7_v6_kundkort_final_demo_dhi_hartransplantation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/patient-hub.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "digital_patientkanal",
+      "label": "Digital patientkanal: hub, portal med BankID, s\u00e4ker chatt och Min Sida",
+      "nodes": [
+        "public_patient_hub_sida",
+        "public_patient_portal_sida",
+        "public_patient_portal_chat_sida",
+        "public_patient_curatiio_min_sida"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/patient-hub.html"
+    }
+  ]
+}

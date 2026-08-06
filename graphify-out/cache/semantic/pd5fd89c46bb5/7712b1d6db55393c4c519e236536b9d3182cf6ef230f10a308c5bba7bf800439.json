@@ -1,0 +1,159 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_marketing_copilot",
+      "label": "Arcana Marketing Copilot (agent CMO)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "\u00d6versikt",
+      "source_url": null,
+      "captured_at": "2026-05-21",
+      "author": null,
+      "contributor": null,
+      "rationale": "Produktnamn i UI \u00e4r Arcana Marketing Copilot medan API/registry beh\u00e5ller agent-id CMO, s\u00e5 namnbytet inte bryter kontrakt."
+    },
+    {
+      "id": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_sex_lagen",
+      "label": "Sex l\u00e4gen: strategi, produktion, compliance, schema, analys, kontroll",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Sex l\u00e4gen (produktmodell)",
+      "source_url": null,
+      "captured_at": "2026-05-21",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_compliance_gate",
+      "label": "Obligatorisk compliance-gate f\u00f6re schemal\u00e4ggning",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Fas B \u2014 Compliance-gate",
+      "source_url": null,
+      "captured_at": "2026-05-21",
+      "author": null,
+      "contributor": null,
+      "rationale": "Compliance \u00e4r gate mellan produktion och schemal\u00e4ggning, inte ett efterhandscheck \u2014 inget draft blir 'ready' utan ComplianceReview.passed och CLINICAL_GUARD."
+    },
+    {
+      "id": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_ingen_auto_publish",
+      "label": "Ingen autonom publicering eller spend i v1 (ADR 0002)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Grundregel + Gr\u00e4nser (policy som kod)",
+      "source_url": null,
+      "captured_at": "2026-05-21",
+      "author": null,
+      "contributor": null,
+      "rationale": "Auto-publicering bed\u00f6ms som h\u00f6g risk f\u00f6r varum\u00e4rke och patienttrust; d\u00e4rf\u00f6r autoPublish:false som default och OWNER-gate f\u00f6r allt externt."
+    },
+    {
+      "id": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_metric_datakontrakt",
+      "label": "Metric-datakontrakt och insufficient_data",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Fas E \u2014 Analys & rapportering",
+      "source_url": null,
+      "captured_at": "2026-05-21",
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje metric kr\u00e4ver source/window/fetchedAt/fresh; saknas data returneras insufficient_data i st\u00e4llet f\u00f6r hallucinerade KPI:er."
+    },
+    {
+      "id": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_campaign_draft_workspace",
+      "label": "CampaignDraft-store och OWNER-godk\u00e4nnande i workspace",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Fas C \u2014 Godk\u00e4nnande & workspace",
+      "source_url": null,
+      "captured_at": "2026-05-21",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_orchestrering",
+      "label": "Orchestrator-intent marketing_campaign (cross-agent gates)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Fas F \u2014 Agent-orkestrering",
+      "source_url": null,
+      "captured_at": "2026-05-21",
+      "author": null,
+      "contributor": null,
+      "rationale": "CAO launch-gate, COO incident-paus och CFO budget-tak v\u00e4vs in s\u00e5 CMO inte kan f\u00f6resl\u00e5 go-live eller spend som bryter andra agenters gr\u00e4nser."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_marketing_copilot",
+      "target": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_sex_lagen",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Sex l\u00e4gen (produktmodell)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_sex_lagen",
+      "target": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_compliance_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Compliance \u00e4r obligatoriskt gate mellan Produktion och Schemal\u00e4ggning",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_ingen_auto_publish",
+      "target": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_compliance_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Grundregel + Gr\u00e4nser (policy som kod)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_campaign_draft_workspace",
+      "target": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_compliance_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Acceptanskriterier punkt 2",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_marketing_copilot",
+      "target": "docs_strategy_cmo_capability_risk_matrix_22_kapacitetsomraden",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Fas 0 \u2014 Riskklassificera alla 22 kapacitetsomr\u00e5den",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_orchestrering",
+      "target": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_campaign_draft_workspace",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Fas F + Acceptanskriterier punkt 7",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cmo_arcana_marketing_copilot_implementation_plan_compliance_gate",
+      "target": "docs_strategy_ma_document_placement_plan_avtalsgate_bokning",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md",
+      "source_location": "Fas B compliance-gate vs Fas 6 avtalsgate",
+      "weight": 0.75
+    }
+  ],
+  "hyperedges": []
+}

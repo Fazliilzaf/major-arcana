@@ -1,0 +1,159 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_meridiq_source_of_truth_matrix_matrix",
+      "label": "Meridiq Source of Truth Matrix",
+      "file_type": "document",
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_source_of_truth_matrix_domain_ownership",
+      "label": "\u00c5tta dataomr\u00e5den med prim\u00e4r/sekund\u00e4r k\u00e4lla",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_source_of_truth_matrix_pii_github_rule",
+      "label": "PII f\u00e5r aldrig committas till GitHub",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_source_of_truth_matrix_gap_signed_consents",
+      "label": "Gap 1 \u2014 signerade samtycken osynliga",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_source_of_truth_matrix_gap_external_templates",
+      "label": "Gap 2 \u2014 externa r\u00e5mallar (Nordbro/Insatt) saknas",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_source_of_truth_matrix_gap_workflow_state_machine",
+      "label": "Gap 3 \u2014 workflow-state-machine.json saknas",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_meridiq_source_of_truth_matrix_matrix",
+      "target": "docs_strategy_meridiq_document_coverage_report_report",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_source_of_truth_matrix_matrix",
+      "target": "docs_strategy_meridiq_source_of_truth_matrix_domain_ownership",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_source_of_truth_matrix_domain_ownership",
+      "target": "docs_strategy_meridiq_source_of_truth_matrix_pii_github_rule",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_source_of_truth_matrix_matrix",
+      "target": "docs_strategy_meridiq_source_of_truth_matrix_gap_signed_consents",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_source_of_truth_matrix_matrix",
+      "target": "docs_strategy_meridiq_source_of_truth_matrix_gap_external_templates",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_source_of_truth_matrix_matrix",
+      "target": "docs_strategy_meridiq_source_of_truth_matrix_gap_workflow_state_machine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_source_of_truth_matrix_gap_external_templates",
+      "target": "docs_strategy_meridiq_document_coverage_report_legal_review_status",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "meridiq_document_truth_chain",
+      "label": "Meridiq dokument-sanningskedja: inventering \u2192 coverage \u2192 dokumentkrav \u2192 k\u00e4ll\u00e4garskap \u2192 kundresa",
+      "nodes": [
+        "docs_strategy_meridiq_inventory_doc",
+        "docs_strategy_meridiq_document_coverage_report_report",
+        "docs_strategy_meridiq_document_requirement_matrix_matrix",
+        "docs_strategy_meridiq_source_of_truth_matrix_matrix",
+        "docs_strategy_meridiq_journey_blueprint_blueprint"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-SOURCE-OF-TRUTH-MATRIX.md"
+    }
+  ]
+}

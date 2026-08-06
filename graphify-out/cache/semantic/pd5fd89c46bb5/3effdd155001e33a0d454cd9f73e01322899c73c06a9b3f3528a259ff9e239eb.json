@@ -1,0 +1,237 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_contract",
+      "label": "Svarstudio + Smart anteckning build contract",
+      "file_type": "document",
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_svarstudio",
+      "label": "Svarstudio (besluts- och svarsyta i konversation)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_smart_anteckning",
+      "label": "Smart anteckning (strukturerad dokumentationsyta)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_draft_state_machine",
+      "label": "Draft state machine: draft \u2192 needs_approval \u2192 approved \u2192 queued \u2192 sent",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_note_destinations",
+      "label": "Note-destinationer och synlighetsmodell (kundprofil\u2026intern)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_track_destination_mapping",
+      "label": "Mappning responssp\u00e5r \u2192 rekommenderad note-destination",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_reply_policy_checks",
+      "label": "Svarspolicy (tomt svar block, bokning utan tid varning, >120 ord, h\u00e4lsodata-review)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_pre_v12_visual_source",
+      "label": "Pre-V12-arkiv som visuellt facit",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_customer_journey",
+      "label": "CCO-kundresa (f\u00f6rfr\u00e5gan \u2192 h\u00e4lsodeklaration \u2192 konsultation \u2192 offert \u2192 bet\u00e4nketid \u2192 avtal \u2192 behandling \u2192 efterv\u00e5rd)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_note_upsert_rule",
+      "label": "Note-upsert per tenant+workspace+conversation+customer+destination",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_contract",
+      "target": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_svarstudio",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": "Syfte",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_contract",
+      "target": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_smart_anteckning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": "Syfte",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_smart_anteckning",
+      "target": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_svarstudio",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": "Smart anteckning \u00e4r ett verktyg i Svarstudio",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_svarstudio",
+      "target": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_draft_state_machine",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": "Spara och godk\u00e4nnande",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_svarstudio",
+      "target": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_reply_policy_checks",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": "Policy",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_smart_anteckning",
+      "target": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_note_destinations",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": "destinationer och betydelse",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_track_destination_mapping",
+      "target": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_note_destinations",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": "Koppling mellan Svarstudio och Smart anteckning",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_note_upsert_rule",
+      "target": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_note_destinations",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": "Store-regel",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_contract",
+      "target": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_pre_v12_visual_source",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": "Pre-V12 k\u00e4lla",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_customer_journey",
+      "target": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_svarstudio",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": "Kundresa/logik f\u00f6r Hair TP Clinic",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_draft_state_machine",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_live_send_lock",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": "'sent' kr\u00e4ver mail.live_send men \u00e4r h\u00e5rt blockerat",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_conversations_svarstudio_smart_note_build_contract_2026_06_26_reply_policy_checks",
+      "target": "docs_ops_cco_analyze_inbox_draft_prep_2026_02_26_medical_safety_disclaimer",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/cco-conversations-svarstudio-smart-note-build-contract-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

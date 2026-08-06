@@ -1,0 +1,112 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_aisia_capture_protocol_doc",
+      "label": "Hair TP \u2014 Aisia Capture Protocol",
+      "file_type": "document",
+      "source_file": "docs/strategy/AISIA-CAPTURE-PROTOCOL.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_capture_protocol_zone_registry",
+      "label": "Zonregister: 11 obligatoriska baseline-zoner (global/donor/recipient)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-CAPTURE-PROTOCOL.md",
+      "source_location": "## Baseline consultation",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_capture_protocol_tri_spectral_micro",
+      "label": "Tri-spektral mikroskopi 10\u00d7\u2013200\u00d7 (vit / korspolariserat / UV)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-CAPTURE-PROTOCOL.md",
+      "source_location": "## Mikroskopbilder",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_capture_protocol_preop_gates",
+      "label": "Pre-op readiness gates (verifierad baseline + donor + recipient)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-CAPTURE-PROTOCOL.md",
+      "source_location": "## Pre-op readiness gates",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_capture_protocol_followup_timepoints",
+      "label": "Uppf\u00f6ljningstidpunkter: dag 14, m\u00e5n 1/3/6/12 mot baseline",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-CAPTURE-PROTOCOL.md",
+      "source_location": "## Follow-up protocol",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_aisia_capture_protocol_doc",
+      "target": "docs_strategy_aisia_capture_protocol_zone_registry",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-CAPTURE-PROTOCOL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_capture_protocol_doc",
+      "target": "docs_strategy_aisia_capture_protocol_tri_spectral_micro",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-CAPTURE-PROTOCOL.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_capture_protocol_preop_gates",
+      "target": "docs_strategy_aisia_capture_protocol_zone_registry",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-CAPTURE-PROTOCOL.md",
+      "source_location": "Donor zoner + recipient zoner kr\u00e4vs",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_capture_protocol_preop_gates",
+      "target": "docs_strategy_aisia_compliance_security_checklist_clinician_verify",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-CAPTURE-PROTOCOL.md",
+      "source_location": "Analysis verified av behandlare",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_capture_protocol_followup_timepoints",
+      "target": "docs_schema_cco_scalp_analysis_schema_comparison_model",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-CAPTURE-PROTOCOL.md",
+      "source_location": "J\u00e4mf\u00f6r mot baseline",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

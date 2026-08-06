@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v11_rail_block13_fixture",
+      "label": "V11 Rail fixture block 13 \u2014 K Offers",
+      "file_type": "code",
+      "source_file": "tests/visual/fixtures/v11-rail-block13.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block13_sektion_k_offers",
+      "label": "Sektion K \u2014 offerter med dokumentregistry-attribut",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block13.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Adaptern faller tillbaka p\u00e5 dossierBundle.documents.offers n\u00e4r CcoV9CustomersParity.resolveV11DocumentPayload saknas, s\u00e5 fixturen kan renderas frist\u00e5ende."
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v11_rail_block13_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block10_renderer",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block13.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block13_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block13_sektion_k_offers",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block13.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block13_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block12_fixture",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block13.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block13_sektion_k_offers",
+      "target": "public_staff_portal_owner_offert_dashboard",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "tests/visual/fixtures/v11-rail-block13.html",
+      "source_location": null,
+      "weight": 0.75
+    }
+  ],
+  "hyperedges": []
+}

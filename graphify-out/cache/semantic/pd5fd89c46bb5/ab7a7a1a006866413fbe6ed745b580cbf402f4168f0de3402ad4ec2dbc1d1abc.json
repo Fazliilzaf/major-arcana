@@ -1,0 +1,245 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_mvp3_rule_engine_rapport",
+      "label": "Chief of Finance MVP 3 (CF.4) - auto-categorization rule engine",
+      "file_type": "document",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": "Claude",
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_cco_expense_rule_store",
+      "label": "ccoExpenseRuleStore - regelmotor i ren JavaScript",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_condition_typer",
+      "label": "Nio condition-typer med vikter",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_confidence_berakning",
+      "label": "Confidence-berakning och trosklar for hog och lag traff",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_recurring_heuristik",
+      "label": "Heuristik for aterkommande kostnader utan AI",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_human_approval_suggestion",
+      "label": "Human approval - motorn satter aldrig falt direkt",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Regelmotorn sparar bara ett suggestion-objekt; enda vagen till applicerade falt gar via explicit godkannande, vilket haller felkategorisering sparbar."
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_category_source_sparbarhet",
+      "label": "categorySource sparar manuell override kontra regelmotor",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_mvp3_rule_engine_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_cco_expense_rule_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_mvp3_rule_engine_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_condition_typer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_mvp3_rule_engine_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_confidence_berakning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_mvp3_rule_engine_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_recurring_heuristik",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_mvp3_rule_engine_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_human_approval_suggestion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_mvp3_rule_engine_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_category_source_sparbarhet",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_cco_expense_rule_store",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_condition_typer",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_cco_expense_rule_store",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_confidence_berakning",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_cco_expense_rule_store",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_recurring_heuristik",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_cco_expense_rule_store",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_human_approval_suggestion",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_human_approval_suggestion",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_category_source_sparbarhet",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_confidence_berakning",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_condition_typer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_cco_expense_rule_store",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_store",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_mvp3_rule_engine_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_recurring_heuristik",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_detect_recurring_from_history",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_human_approval_suggestion",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_journal_skydd_ai_aldrig_autoskriv",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP3-RULE-ENGINE-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

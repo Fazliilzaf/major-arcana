@@ -1,0 +1,133 @@
+{
+  "nodes": [
+    {
+      "id": "docs_cco_mailbox_valjare_spec_mailbox_selector",
+      "label": "Brevl\u00e5de-v\u00e4ljare (operat\u00f6rsstyrt mailbox-scope i Konversationer)",
+      "file_type": "document",
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Placering",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_mailbox_valjare_spec_mailbox_runtime_contract",
+      "label": "Mailbox runtime-datakontrakt (counts, lastSyncAt, error per brevl\u00e5da)",
+      "file_type": "document",
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Datakontrakt (Codex)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_mailbox_valjare_spec_worklist_query_params",
+      "label": "Nya worklist-query-params: folder och days",
+      "file_type": "document",
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Nya query-params",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_mailbox_valjare_spec_sticky_operator_selection",
+      "label": "Sticky operat\u00f6rsval av brevl\u00e5dor, folder-scope och l\u00e4sf\u00f6nster",
+      "file_type": "concept",
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Beteende & regler",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_mailbox_valjare_spec_auto_sync_rule",
+      "label": "Schemalagd auto-sync utan manuell h\u00e4mtknapp",
+      "file_type": "concept",
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Ramar",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_cco_mailbox_valjare_spec_no_redesign_constraint",
+      "label": "Ingen omdesign: \u00e5teranv\u00e4nd befintliga tokens, klasser och palett",
+      "file_type": "concept",
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Ramar (icke f\u00f6rhandlingsbara)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_cco_mailbox_valjare_spec_mailbox_selector",
+      "target": "docs_cco_mailbox_valjare_spec_mailbox_runtime_contract",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Datakontrakt",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_mailbox_valjare_spec_mailbox_selector",
+      "target": "docs_cco_mailbox_valjare_spec_worklist_query_params",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Nya query-params",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_mailbox_valjare_spec_mailbox_selector",
+      "target": "docs_cco_mailbox_valjare_spec_sticky_operator_selection",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Beteende & regler",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_mailbox_valjare_spec_auto_sync_rule",
+      "target": "docs_cco_mail_foundation_status_local_mail_mirror_rule",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Ramar",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_mailbox_valjare_spec_mailbox_runtime_contract",
+      "target": "docs_cco_mail_foundation_status_mailbox_settings_document",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Datakontrakt",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_mailbox_valjare_spec_no_redesign_constraint",
+      "target": "docs_cco_unified_shell_integration_plan_visual_baseline",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/cco-mailbox-valjare-spec.md",
+      "source_location": "Ramar",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

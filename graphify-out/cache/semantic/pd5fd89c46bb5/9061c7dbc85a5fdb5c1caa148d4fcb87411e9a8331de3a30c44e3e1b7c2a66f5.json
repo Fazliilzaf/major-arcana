@@ -1,0 +1,152 @@
+{
+  "nodes": [
+    {
+      "id": "docs_portal_go_live",
+      "label": "Go-live: patientportalens fria kanal",
+      "file_type": "document",
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_portal_go_live_fine_grained_send_gates",
+      "label": "Finkorniga s\u00e4ndgrindar per kanal (portal-notis, SMS, kompose, Graph)",
+      "file_type": "concept",
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_portal_go_live_phased_rollout",
+      "label": "Fasad utrullning: DNS \u2192 isolerat skarptest \u2192 kontrollerad bredd",
+      "file_type": "concept",
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_portal_go_live_idempotent_sms_nudge",
+      "label": "Idempotent SMS-nudge (en kund nudgas bara en g\u00e5ng)",
+      "file_type": "concept",
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_portal_go_live_portal_readiness_row",
+      "label": "Aktiveringsraden i portal-fliken som live/off-readout",
+      "file_type": "concept",
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_portal_go_live",
+      "target": "docs_portal_go_live_fine_grained_send_gates",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_go_live_phased_rollout",
+      "target": "docs_portal_go_live_fine_grained_send_gates",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_go_live_idempotent_sms_nudge",
+      "target": "docs_portal_go_live_fine_grained_send_gates",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_go_live_portal_readiness_row",
+      "target": "docs_portal_go_live_fine_grained_send_gates",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_go_live_fine_grained_send_gates",
+      "target": "docs_ops_resend_domain_go_live_separate_sender_domain",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_go_live_fine_grained_send_gates",
+      "target": "docs_ops_runbooks_post_op_review_runbook_graph_auto_send",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_go_live_fine_grained_send_gates",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook_kill_switch",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_go_live_phased_rollout",
+      "target": "docs_ops_runbooks_public_booking_go_live_runbook_prereq_checklist",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_portal_go_live_idempotent_sms_nudge",
+      "target": "docs_ops_runbooks_public_booking_go_live_runbook_prereq_checklist",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/portal-go-live.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

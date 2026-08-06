@@ -1,0 +1,51 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_20_v9_flag_default_on_v9_flag_default_on",
+      "label": "V9 feature-flag default ON + ?v9=off kill-switch",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-20-v9-flag-default-on.md",
+      "source_location": "Scope C.1/C.2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Kill-switchen beh\u00e5lls i fyra extra veckor s\u00e5 personal kan tv\u00e5ngs-avst\u00e4nga utan att teamet beh\u00f6ver rulla tillbaka deployen."
+    },
+    {
+      "id": "docs_handover_orders_ord_20_v9_flag_default_on_stability_window_gate",
+      "label": "Stabilitetsgate: 14 dagar prod utan rollback + pilot-frys",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-20-v9-flag-default-on.md",
+      "source_location": "STABILITETSGATE + F\u00f6ruts\u00e4ttningar",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Default-ON exponerar hela personalen f\u00f6r dolda buggar; tv\u00e5 veckors rollback-fri drift plus pilot-frys-kontroll \u00e4r h\u00e5rda villkor."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_20_v9_flag_default_on_v9_flag_default_on",
+      "target": "docs_handover_orders_ord_20_v9_flag_default_on_stability_window_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-20-v9-flag-default-on.md",
+      "source_location": "STABILITETSGATE",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_20_v9_flag_default_on_stability_window_gate",
+      "target": "docs_handover_orders_ord_25h_staff_vy_424px_bredd_pilot_freeze",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "docs/handover/ORDERS/ORD-20-v9-flag-default-on.md",
+      "source_location": "pilot-frys-status m\u00e5ste vara no pilot active",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

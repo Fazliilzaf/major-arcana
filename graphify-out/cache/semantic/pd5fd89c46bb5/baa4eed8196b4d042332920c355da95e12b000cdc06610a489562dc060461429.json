@@ -1,0 +1,234 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_mvp6_recurring_rapport",
+      "label": "Chief of Finance MVP 6 (CF.7) - aterkommande kostnader",
+      "file_type": "document",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": "Claude",
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_cco_recurring_expense_store",
+      "label": "ccoRecurringExpenseStore - mallar for aterkommande kostnader",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_recurring_statusmaskin",
+      "label": "Statusmaskin proposed till active till paused till ended",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_match_expense_to_recurring",
+      "label": "matchExpenseToRecurring - token-match med belopps- och datumtolerans",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_detect_recurring_from_history",
+      "label": "detectRecurringFromHistory - forslag ur historiken",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Auto-detektering sparar forslag som proposed och kraver explicit godkannande, sa att ett falskt monster aldrig blir en aktiv mall."
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_recurring_anomaly_detection",
+      "label": "Anomaly-detektion: belopp andrat, sen betalning, saknad period, dubblett",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_mvp6_recurring_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_cco_recurring_expense_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_mvp6_recurring_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_recurring_statusmaskin",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_mvp6_recurring_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_match_expense_to_recurring",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_mvp6_recurring_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_detect_recurring_from_history",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_mvp6_recurring_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_recurring_anomaly_detection",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_cco_recurring_expense_store",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_recurring_statusmaskin",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_cco_recurring_expense_store",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_match_expense_to_recurring",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_cco_recurring_expense_store",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_detect_recurring_from_history",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_cco_recurring_expense_store",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_recurring_anomaly_detection",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_detect_recurring_from_history",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_recurring_statusmaskin",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_match_expense_to_recurring",
+      "target": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_recurring_anomaly_detection",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_cco_recurring_expense_store",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_store",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_cco_recurring_expense_store",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_cco_finance_vendor_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_cco_recurring_expense_store",
+      "target": "docs_strategy_chief_of_finance_mvp5_vat_rules_2026_06_01_tio_vatmodes",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_mvp6_recurring_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp6_recurring_expenses_2026_06_01_detect_recurring_from_history",
+      "target": "docs_strategy_cem_corporate_expense_management_cm_flaggor",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP6-RECURRING-EXPENSES-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

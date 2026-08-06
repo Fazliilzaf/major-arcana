@@ -1,0 +1,71 @@
+{
+  "nodes": [
+    {
+      "id": "docs_implementation_patient_documents_live_d_section_owner_decision_2026_06_25_decision",
+      "label": "Sektion D \u2014 owner-beslut f\u00f6r 6 grupper ut\u00f6kade Meridiq-samtycken",
+      "file_type": "document",
+      "source_file": "docs/implementation/patient-documents-live/D-SECTION-OWNER-DECISION-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_d_section_owner_decision_2026_06_25_curatiio_brand_gate",
+      "label": "Curatiio brand-gate \u2014 brand-isolation innan separata registryId",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/D-SECTION-OWNER-DECISION-2026-06-25.md",
+      "source_location": "Beslut per grupp",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Inga Hair TP-routes f\u00e5r exponera Curatiio-only-dokument; registry-promotion sker f\u00f6rst n\u00e4r varum\u00e4rket \u00e4r isolerat och legal facit finns."
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_d_section_owner_decision_2026_06_25_cutover_unblocked",
+      "label": "Sektion D blockerar inte Hair TP steg 3\u20139 cutover",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/D-SECTION-OWNER-DECISION-2026-06-25.md",
+      "source_location": "TL;DR",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_implementation_patient_documents_live_d_section_owner_decision_2026_06_25_decision",
+      "target": "docs_implementation_patient_documents_live_d_section_owner_workshop_record_2026_06_25_record",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/D-SECTION-OWNER-DECISION-2026-06-25.md",
+      "source_location": "Referenser",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_d_section_owner_decision_2026_06_25_decision",
+      "target": "docs_implementation_patient_documents_live_d_section_owner_workshop_agenda_2026_06_25_agenda",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/D-SECTION-OWNER-DECISION-2026-06-25.md",
+      "source_location": "Referenser",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_d_section_owner_decision_2026_06_25_cutover_unblocked",
+      "target": "docs_implementation_patient_documents_live_bookoff_checklist_section_d_extended_consents",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/D-SECTION-OWNER-DECISION-2026-06-25.md",
+      "source_location": "TL;DR + Efter beslut",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v11_rail_block5_fixture",
+      "label": "V11 Rail Block 5 \u00b7 D + A + V + B + C",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block5_critical_warnings",
+      "label": "D Kritiska varningar (renderCriticalWarnings)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block5_legal_blocker_risk",
+      "label": "Riskniv\u00e5er f\u00f6r signaler (blocker / legal_blocker / info)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_block5_adapter_signal_fallback",
+      "label": "Adapter-fallback till card.automationSignals",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "N\u00e4r CcoKundkortKkx inte \u00e4r laddad faller adaptern tillbaka p\u00e5 card.automationSignals och ger identisk renderCriticalWarnings-utdata \u2014 fixturen kan d\u00e4rf\u00f6r k\u00f6ras frist\u00e5ende."
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v11_rail_block5_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block5_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_adapters",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block5_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block5_critical_warnings",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block5_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block5_adapter_signal_fallback",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block5_critical_warnings",
+      "target": "tests_visual_fixtures_v11_rail_block5_legal_blocker_risk",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block5_critical_warnings",
+      "target": "tests_visual_fixtures_v11_rail_block2_automation_signals",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block5_adapter_signal_fallback",
+      "target": "tests_visual_fixtures_v11_rail_block7_kundkort_kkx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block5_fixture",
+      "target": "tests_visual_fixtures_v11_rail_block4_active_visit_section",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-block5.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,215 @@
+{
+  "nodes": [
+    {
+      "id": "public_finance_page",
+      "label": "Chief of Finance \u00b7 CCO-dashboard",
+      "file_type": "code",
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_finance_bearer_token_wrapper",
+      "label": "fetch-wrapper som injicerar ARCANA_ADMIN_TOKEN p\u00e5 /api/v1",
+      "file_type": "concept",
+      "source_file": "public/finance.html",
+      "source_location": "ORD-67b wrapper",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_finance_download_interception",
+      "label": "Klick-interception f\u00f6r /api/v1-nedladdningar (blob + user-activation)",
+      "file_type": "concept",
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_finance_fortnox_blocked_integration",
+      "label": "Fortnox BLOCKED_INTEGRATION \u00b7 manuell expense-export ist\u00e4llet",
+      "file_type": "concept",
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_finance_cm_intake",
+      "label": "CM \u00b7 mail- och kvittointag med schemalagt auto-intag",
+      "file_type": "concept",
+      "source_file": "public/finance.html",
+      "source_location": "cmIntakeSection",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_finance_cf9_voucher_dryrun",
+      "label": "CF.9 Fortnox verifikat-dryRun (BAS-konton, balanskontroll, ingen write)",
+      "file_type": "concept",
+      "source_file": "public/finance.html",
+      "source_location": "cf9DryRunSection",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_finance_expense_lifecycle",
+      "label": "Utgifts-livscykel: new \u2192 needs_review \u2192 categorized \u2192 approved \u2192 ready_for_export \u2192 exported",
+      "file_type": "concept",
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_finance_vat_and_rules_engine",
+      "label": "Moms-l\u00e4gen och auto-kategoriseringsregler med f\u00f6rslag-confidence",
+      "file_type": "concept",
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_finance_page",
+      "target": "public_finance_bearer_token_wrapper",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_bearer_token_wrapper",
+      "target": "public_finance_download_interception",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": "Bugbot PR #840",
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_page",
+      "target": "public_finance_download_interception",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_page",
+      "target": "public_finance_fortnox_blocked_integration",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_page",
+      "target": "public_finance_cm_intake",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": "ORD-65 / ORD-70",
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_page",
+      "target": "public_finance_cf9_voucher_dryrun",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": "ORD-67",
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_cf9_voucher_dryrun",
+      "target": "public_finance_fortnox_blocked_integration",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_cm_intake",
+      "target": "public_finance_expense_lifecycle",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": "cfoExpenseId / handedOff",
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_page",
+      "target": "public_finance_expense_lifecycle",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_page",
+      "target": "public_finance_vat_and_rules_engine",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_expense_lifecycle",
+      "target": "public_finance_reports_report_kinds",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_finance_page",
+      "target": "public_finance_reports_period_state_machine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/finance.html",
+      "source_location": "monthlyClose KPI + corrections_needed banner",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

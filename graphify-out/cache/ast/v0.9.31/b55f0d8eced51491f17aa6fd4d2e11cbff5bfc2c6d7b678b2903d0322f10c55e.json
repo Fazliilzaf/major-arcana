@@ -1,0 +1,69 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_bin_check_cache_busters_sh",
+      "label": "check-cache-busters.sh",
+      "file_type": "code",
+      "source_file": "bin/check-cache-busters.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_bin_check_cache_busters_sh__entry",
+      "label": "check-cache-busters.sh script",
+      "file_type": "code",
+      "source_file": "bin/check-cache-busters.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_bin_check_cache_busters_sh",
+      "target": "$graphify-root$_bin_check_cache_busters_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "bin/check-cache-busters.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_bin_check_cache_busters_sh__entry",
+      "source_file": "bin/check-cache-busters.sh",
+      "source_location": "L9"
+    },
+    {
+      "language": "bash",
+      "callee": "cd",
+      "caller_nid": "$graphify-root$_bin_check_cache_busters_sh__entry",
+      "source_file": "bin/check-cache-busters.sh",
+      "source_location": "L11"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_bin_check_cache_busters_sh__entry",
+      "source_file": "bin/check-cache-busters.sh",
+      "source_location": "L16"
+    },
+    {
+      "language": "bash",
+      "callee": "exit",
+      "caller_nid": "$graphify-root$_bin_check_cache_busters_sh__entry",
+      "source_file": "bin/check-cache-busters.sh",
+      "source_location": "L17"
+    },
+    {
+      "language": "bash",
+      "callee": "sed",
+      "caller_nid": "$graphify-root$_bin_check_cache_busters_sh__entry",
+      "source_file": "bin/check-cache-busters.sh",
+      "source_location": "L29"
+    }
+  ],
+  "bash_sources": []
+}

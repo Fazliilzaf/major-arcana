@@ -1,0 +1,93 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_29_import_halso_health_declarations_phase1_signal_logic",
+      "label": "Fas 1 HD-signallogik (asset-kategori avg\u00f6r HD-status)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "journal/agreement/consent fr\u00e5n halso@ r\u00e4knas medvetet INTE som h\u00e4lsodeklaration \u2014 m\u00e5let \u00e4r noll falska 'har HD'-clears, hellre kvarst\u00e5ende blocker \u00e4n felaktigt rensad varning."
+    },
+    {
+      "id": "docs_handover_orders_ord_29_import_halso_health_declarations_missing_hd_signal",
+      "label": "Signal missingHealthDeclaration",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_29_import_halso_health_declarations_phase2_mailbox_ingest",
+      "label": "Fas 2 mailbox struktur-ingest \u2192 patient.healthDeclaration",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Pipeline och deploy \u00e4r klara; matchningen v\u00e4ntar p\u00e5 PNR i master eller manuell l\u00e4nkning \u2014 statusen \u00e4r 'operativt blockerad av PNR-k\u00e4lla, inte implementation'."
+    },
+    {
+      "id": "docs_handover_orders_ord_29_import_halso_health_declarations_hd_ingest_module_set",
+      "label": "HD-ingest modulset (parser, ingest, mail-pipelinegren, batch-script)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_29_import_halso_health_declarations_phase1_signal_logic",
+      "target": "docs_handover_orders_ord_29_import_halso_health_declarations_missing_hd_signal",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_29_import_halso_health_declarations_hd_ingest_module_set",
+      "target": "docs_handover_orders_ord_29_import_halso_health_declarations_phase2_mailbox_ingest",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_29_import_halso_health_declarations_phase2_mailbox_ingest",
+      "target": "docs_handover_orders_ord_29_import_halso_health_declarations_missing_hd_signal",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_3_b_sprint_kickoff_smart_nasta_steg_ui",
+      "target": "docs_handover_orders_ord_29_import_halso_health_declarations_missing_hd_signal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-29-import-halso-health-declarations.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,39 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_mobile_qa_matrix_2026_05_30_doc",
+      "label": "CCO Mobile QA Matrix \u2014 Sprint 8",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-MOBILE-QA-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mobile_qa_matrix_2026_05_30_cco_mobile_css",
+      "label": "cco-mobile.css \u2014 samlad mobil-CSS med 3 breakpoints",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-MOBILE-QA-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_mobile_qa_matrix_2026_05_30_doc",
+      "target": "docs_strategy_cco_mobile_qa_matrix_2026_05_30_cco_mobile_css",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-MOBILE-QA-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

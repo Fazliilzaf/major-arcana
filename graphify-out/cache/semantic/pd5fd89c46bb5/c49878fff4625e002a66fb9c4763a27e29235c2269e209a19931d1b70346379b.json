@@ -1,0 +1,139 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_doc",
+      "label": "CCO Import Engine Readiness v3 (path-safe)",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_owner_hardening_6",
+      "label": "OWNER-SK\u00c4RPNING #6 (master-validering + folder-guard)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Cementerar \u00abno Drive links \u2014 import only\u00bb som arkitektur: predicted folder kan aldrig bli VERIFIED och patient utan master-validering kan aldrig bli VERIFIED."
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_path_safe_placeholders",
+      "label": "Path-safe placeholders i rapporter",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Absoluta paths ers\u00e4tts med placeholders s\u00e5 att rapporten kan PR-granskas utan att l\u00e4cka host-specifik metadata."
+    },
+    {
+      "id": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_patient_id_translation_failed",
+      "label": "review-reason patient_id_translation_failed",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_v2_doc",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_owner_hardening_6",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_doc",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_path_safe_placeholders",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_owner_hardening_6",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_patient_id_translation_failed",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_owner_hardening_6",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_v2_old_cco_asset_adapter",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_owner_hardening_6",
+      "target": "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_import_pipeline",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_path_safe_placeholders",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_no_patient_data_in_github",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "asset_cutover_guard_chain",
+      "label": "Asset-cutover: pipeline-guards \u2192 blocker-r\u00e4kning \u2192 readiness",
+      "nodes": [
+        "docs_strategy_cco_import_engine_readiness_2026_05_30_asset_import_pipeline",
+        "docs_strategy_cco_import_engine_readiness_2026_05_30_link_only_blocker",
+        "docs_strategy_cco_import_engine_readiness_2026_05_30_patient_asset_store",
+        "docs_strategy_cco_import_engine_readiness_2026_05_30_v2_cutover_readiness",
+        "docs_strategy_cco_import_engine_readiness_2026_05_30_v3_owner_hardening_6"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-IMPORT-ENGINE-READINESS-2026-05-30-v3.md"
+    }
+  ]
+}

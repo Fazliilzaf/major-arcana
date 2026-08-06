@@ -1,0 +1,49 @@
+{
+  "nodes": [
+    {
+      "id": "local_preview_offline_preview",
+      "label": "Lokal offline-preview (start-cco-local.sh, port 3100)",
+      "file_type": "document",
+      "source_file": "LOCAL-PREVIEW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "local_preview_iteration_loop",
+      "label": "Iterationsfl\u00f6de utan Render-deploy (0.2s vs 90s)",
+      "file_type": "concept",
+      "source_file": "LOCAL-PREVIEW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "local_preview_offline_preview",
+      "target": "local_preview_iteration_loop",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "LOCAL-PREVIEW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "local_preview_offline_preview",
+      "target": "readme_arcana_platform",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "LOCAL-PREVIEW.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

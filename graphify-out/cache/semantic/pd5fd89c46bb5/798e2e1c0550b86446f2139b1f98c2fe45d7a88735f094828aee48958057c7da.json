@@ -1,0 +1,102 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_tp_journal_field_parity_matrix_2026_05_30_matrix",
+      "label": "TP-Journal Field Parity Matrix \u2014 14-kolumns expansion",
+      "file_type": "document",
+      "source_file": "docs/strategy/TP-JOURNAL-FIELD-PARITY-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_tp_journal_field_parity_matrix_2026_05_30_security_controls",
+      "label": "S\u00e4kerhetskontroller f\u00f6r TP-journalf\u00e4lt",
+      "file_type": "concept",
+      "source_file": "docs/strategy/TP-JOURNAL-FIELD-PARITY-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Alla 52 f\u00e4lt ing\u00e5r i signeringssnapshot, PDF och audit-log; inga f\u00e4lt \u00e4r patientfyllda eftersom TP-journalen \u00e4r klinisk dokumentation och inte ett formul\u00e4r; ingen Drive-l\u00e4nk och ingen extern AI r\u00f6r f\u00e4ltv\u00e4rdena."
+    },
+    {
+      "id": "docs_strategy_tp_journal_field_parity_matrix_2026_05_30_remaining_ui_work",
+      "label": "\u00c5terst\u00e5ende arbete efter parity: UI-polish, patientkort, mobilvalidering",
+      "file_type": "concept",
+      "source_file": "docs/strategy/TP-JOURNAL-FIELD-PARITY-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Eftersom field-mapping \u00e4r 100 % klar finns noll P0-f\u00e4lt kvar; kvarvarande risk ligger i rendering under 720px, dossier-sektion p\u00e5 patientkortet och att audit idag \u00e4r entry-level snarare \u00e4n per f\u00e4lt."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_tp_journal_field_parity_matrix_2026_05_30_matrix",
+      "target": "docs_strategy_tp_journal_parity_matrix_tp_treatment_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/TP-JOURNAL-FIELD-PARITY-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_tp_journal_field_parity_matrix_2026_05_30_matrix",
+      "target": "docs_strategy_tp_journal_field_parity_matrix_2026_05_30_security_controls",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/TP-JOURNAL-FIELD-PARITY-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_tp_journal_field_parity_matrix_2026_05_30_matrix",
+      "target": "docs_strategy_tp_journal_field_parity_matrix_2026_05_30_remaining_ui_work",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/TP-JOURNAL-FIELD-PARITY-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_tp_journal_field_parity_matrix_2026_05_30_matrix",
+      "target": "docs_strategy_tp_journal_parity_matrix_p0_4_matrix",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/strategy/TP-JOURNAL-FIELD-PARITY-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_tp_journal_field_parity_matrix_2026_05_30_remaining_ui_work",
+      "target": "docs_strategy_cco_adaptive_layout_rules_five_viewport_qa_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/TP-JOURNAL-FIELD-PARITY-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_tp_journal_field_parity_matrix_2026_05_30_security_controls",
+      "target": "docs_strategy_arcana_master_plan_punktvis_policy_floor",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/strategy/TP-JOURNAL-FIELD-PARITY-MATRIX-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,113 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_structured_hd_answers",
+      "label": "Strukturerad healthDeclaration (answers[] Ja/Nej + riskFlags[])",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-38-halso-hd-strukturerade-svar.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "HD-sektionen renderar redan facit-designen men datan saknar parsade f\u00e4lt, s\u00e5 kortet visar 'Att fylla i' i st\u00e4llet f\u00f6r de 8 raderna."
+    },
+    {
+      "id": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_questionary_catalog_mapping",
+      "label": "Fr\u00e5geupps\u00e4ttning + ordning ur Meridiq questionary-catalog",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-38-halso-hd-strukturerade-svar.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_risk_flag_derivation",
+      "label": "Riskflaggor h\u00e4rledda ur HD-svar (t.ex. R\u00f6kning=Ja \u2192 verifiera f\u00f6re ingrepp)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-38-halso-hd-strukturerade-svar.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_no_external_ai_rule",
+      "label": "Regel: medicinsk data parsas lokalt/regelbaserat \u2014 ingen extern AI, inga gissade svar",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-38-halso-hd-strukturerade-svar.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Saknas en fr\u00e5ga utel\u00e4mnas raden helt i st\u00e4llet f\u00f6r att gissa 'Nej' \u2014 ett falskt Nej p\u00e5 t.ex. blodf\u00f6rtunnande vore kliniskt farligt."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_structured_hd_answers",
+      "target": "docs_handover_orders_ord_36_meridiq_journal_metadata_journal_metadata_fields",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-38-halso-hd-strukturerade-svar.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_questionary_catalog_mapping",
+      "target": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_structured_hd_answers",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-38-halso-hd-strukturerade-svar.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_risk_flag_derivation",
+      "target": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_structured_hd_answers",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-38-halso-hd-strukturerade-svar.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_no_external_ai_rule",
+      "target": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_structured_hd_answers",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-38-halso-hd-strukturerade-svar.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_structured_hd_answers",
+      "target": "docs_handover_orders_ord_29_import_halso_health_declarations_phase2_mailbox_ingest",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "docs/handover/ORDERS/ORD-38-halso-hd-strukturerade-svar.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_38_halso_hd_strukturerade_svar_no_external_ai_rule",
+      "target": "docs_handover_orders_ord_36_meridiq_journal_metadata_booking_fallback_derivation",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/ORDERS/ORD-38-halso-hd-strukturerade-svar.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,214 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_mvp4_suppliers_rapport",
+      "label": "Chief of Finance MVP 4 (CF.5) - leverantorsregister",
+      "file_type": "document",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": "Claude",
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_cco_finance_vendor_store",
+      "label": "ccoFinanceVendorStore - CCO-native leverantorsregister",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_match_vendor_funktion",
+      "label": "matchVendor - exakt, contains och reverse contains",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_vendor_defaults_som_forslag",
+      "label": "Vendor-defaults levereras som forslag, inte som fakta",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_ny_leverantor_detektion",
+      "label": "Detektion och flaggning av ny leverantor",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_distinkt_fran_pub_vendorregister",
+      "label": "Distinkt fran PUB-vendorregistret",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Det befintliga vendorregistret spar personuppgiftsbitraden enligt GDPR artikel 28 och 30 och far inte blandas ihop med ekonomins leverantorsregister."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_mvp4_suppliers_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_cco_finance_vendor_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_mvp4_suppliers_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_match_vendor_funktion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_mvp4_suppliers_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_vendor_defaults_som_forslag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_mvp4_suppliers_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_ny_leverantor_detektion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_mvp4_suppliers_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_distinkt_fran_pub_vendorregister",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_cco_finance_vendor_store",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_match_vendor_funktion",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_cco_finance_vendor_store",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_vendor_defaults_som_forslag",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_match_vendor_funktion",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_ny_leverantor_detektion",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_cco_finance_vendor_store",
+      "target": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_distinkt_fran_pub_vendorregister",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_cco_finance_vendor_store",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_cco_expense_store",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_vendor_defaults_som_forslag",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_human_approval_suggestion",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_vendor_defaults_som_forslag",
+      "target": "docs_strategy_chief_of_finance_mvp3_rule_engine_2026_06_01_cco_expense_rule_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_mvp4_suppliers_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp3_roadmap_2026_06_01_sprintoversikt_cf4_cf12",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp4_suppliers_2026_06_01_cco_finance_vendor_store",
+      "target": "docs_strategy_cem_corporate_expense_management_cm_dedupe",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP4-SUPPLIERS-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

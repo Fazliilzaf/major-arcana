@@ -1,0 +1,82 @@
+{
+  "nodes": [
+    {
+      "id": "public_torti_ritual_index_scent_sheet",
+      "label": "Torti Massimiliano \u2014 digitalt layering scent sheet",
+      "file_type": "code",
+      "source_file": "public/torti-ritual/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_index_layer_placement",
+      "label": "Placering i Head/Heart/Base med produkttyps-slots",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_index_body_map",
+      "label": "Kroppszonskarta f\u00f6r applicering",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_index_pdf_export",
+      "label": "PDF-export via html2canvas och jsPDF med data-pdf-exclude",
+      "file_type": "code",
+      "source_file": "public/torti-ritual/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Interaktiva paneler markeras data-pdf-exclude s\u00e5 exporten bara inneh\u00e5ller sj\u00e4lva arket, inte verktygsytan."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_torti_ritual_index_scent_sheet",
+      "target": "public_torti_ritual_index_layer_placement",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/index.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_index_scent_sheet",
+      "target": "public_torti_ritual_index_body_map",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/index.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_index_scent_sheet",
+      "target": "public_torti_ritual_index_pdf_export",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/index.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

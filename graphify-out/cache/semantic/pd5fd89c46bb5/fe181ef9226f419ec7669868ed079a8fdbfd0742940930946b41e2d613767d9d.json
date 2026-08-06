@@ -1,0 +1,194 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_meridiq_inventory_doc",
+      "label": "Meridiq \u2014 Fullst\u00e4ndig inventering",
+      "file_type": "document",
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_inventory_api_reference",
+      "label": "Meridiq API-referens f\u00f6r migration",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_inventory_api_id_vs_ui_id",
+      "label": "API-id vs UI-id (anv\u00e4nd API-id f\u00f6r integration)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_inventory_patient_card_structure",
+      "label": "Meridiq patientkort \u2014 flikstruktur",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_inventory_sms_email_templates",
+      "label": "Meridiq SMS-/e-postmallar med merge-f\u00e4lt",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_inventory_arcana_takeover_priority",
+      "label": "Arcana-\u00f6vertagandeprioritet (P0\u2013P3) per omr\u00e5de",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_inventory_immutable_pdf_archive",
+      "label": "Of\u00f6r\u00e4nderligt PDF-arkiv via S3 signed URLs",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_meridiq_inventory_doc",
+      "target": "docs_strategy_meridiq_inventory_api_reference",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_inventory_doc",
+      "target": "docs_strategy_meridiq_inventory_api_id_vs_ui_id",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_inventory_doc",
+      "target": "docs_strategy_meridiq_inventory_patient_card_structure",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_inventory_doc",
+      "target": "docs_strategy_meridiq_inventory_sms_email_templates",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_inventory_doc",
+      "target": "docs_strategy_meridiq_inventory_arcana_takeover_priority",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_inventory_doc",
+      "target": "docs_strategy_meridiq_inventory_immutable_pdf_archive",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_inventory_doc",
+      "target": "docs_strategy_meridiq_document_coverage_report_questionary_catalog",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_inventory_doc",
+      "target": "docs_strategy_meridiq_document_coverage_report_consent_catalog",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_inventory_doc",
+      "target": "docs_strategy_meridiq_document_coverage_report_journal_schema_catalog",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_inventory_doc",
+      "target": "docs_strategy_meridiq_document_coverage_report_service_bindings_catalog",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_inventory_immutable_pdf_archive",
+      "target": "docs_strategy_meridiq_journey_blueprint_cco_native_additions",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/MERIDIQ-INVENTORY.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

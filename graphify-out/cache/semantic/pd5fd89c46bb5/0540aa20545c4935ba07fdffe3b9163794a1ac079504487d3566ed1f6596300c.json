@@ -1,0 +1,170 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_doc",
+      "label": "CCO Kundresa \u2014 9 steg Hair TP (kanonisk)",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_nine_step_journey",
+      "label": "9-stegs kundresa (konsultation \u2192 operationsdag)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_cooling_off_2d",
+      "label": "Bet\u00e4nketid 2 dagar (steg 6)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_agreement_consent_bundle",
+      "label": "Avtal + behandlingssamtycke som en signering (steg 7)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_operation_day_fitness_certificate",
+      "label": "Friskf\u00f6rs\u00e4kran p\u00e5 operationsdagen (steg 8)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_photo_consent_hairline_crown",
+      "label": "Foto-samtycke h\u00e5rlinje/krona (steg 9)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_invalid_assumptions",
+      "label": "Ogiltiga antaganden (T-48, separata utskick, pre-info som eget steg)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_doc",
+      "target": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_nine_step_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_nine_step_journey",
+      "target": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_cooling_off_2d",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_nine_step_journey",
+      "target": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_agreement_consent_bundle",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_nine_step_journey",
+      "target": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_operation_day_fitness_certificate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_nine_step_journey",
+      "target": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_photo_consent_hairline_crown",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_invalid_assumptions",
+      "target": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_operation_day_fitness_certificate",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_invalid_assumptions",
+      "target": "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_agreement_consent_bundle",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "hair_tp_nine_step_gate_chain",
+      "label": "9-stegs kundresa \u2014 gate-kedja fr\u00e5n bokningsbekr\u00e4ftelse till behandlingsklar",
+      "nodes": [
+        "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_nine_step_journey",
+        "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_cooling_off_2d",
+        "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_agreement_consent_bundle",
+        "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_operation_day_fitness_certificate",
+        "docs_strategy_cco_kundresa_9_steg_hair_tp_2026_06_03_photo_consent_hairline_crown"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md"
+    }
+  ]
+}

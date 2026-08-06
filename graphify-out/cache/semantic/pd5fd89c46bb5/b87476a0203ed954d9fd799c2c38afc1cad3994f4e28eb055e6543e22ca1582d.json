@@ -1,0 +1,147 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_after_meeting_v3_startguide",
+      "label": "Efter m\u00f6tet \u2014 startguide i \u00e5tta steg",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_after_meeting_v3_pre_signering_check",
+      "label": "Pre-signering check (fem bekr\u00e4ftelser)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_after_meeting_v3_progress_checklista",
+      "label": "Avbockningsbar progress-checklista (0/8)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_after_meeting_v3_startguide",
+      "target": "public_major_arcana_preview_cco_after_meeting_v3_pre_signering_check",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_after_meeting_v3_startguide",
+      "target": "public_major_arcana_preview_cco_after_meeting_v3_progress_checklista",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_after_meeting_v3_startguide",
+      "target": "public_journal_pilot_signoff_sheet_identitetsverifiering",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_after_meeting_v3_startguide",
+      "target": "public_journal_pilot_signoff_sheet_permanent_signering",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_after_meeting_v3_startguide",
+      "target": "public_journal_pilot_signoff_sheet_rattelse_ny_post",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_after_meeting_v3_startguide",
+      "target": "public_journal_pilot_signoff_sheet_extern_ai_forbud",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_after_meeting_v3_startguide",
+      "target": "public_journal_pilot_signoff_sheet_eskaleringsroller",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_after_meeting_v3_pre_signering_check",
+      "target": "public_journal_pilot_signoff_sheet_identitetsverifiering",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_after_meeting_v3_startguide",
+      "target": "public_journal_pilot_signoff_sheet_signoff",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "journalpilot_dag1_flode",
+      "label": "Journalpilot dag 1 \u2014 fl\u00f6de fr\u00e5n identitet till signerad post",
+      "nodes": [
+        "public_journal_pilot_signoff_sheet_signoff",
+        "public_major_arcana_preview_cco_after_meeting_v3_startguide",
+        "public_journal_pilot_signoff_sheet_identitetsverifiering",
+        "public_major_arcana_preview_cco_after_meeting_v3_pre_signering_check",
+        "public_journal_pilot_signoff_sheet_permanent_signering",
+        "public_journal_pilot_signoff_sheet_rattelse_ny_post"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-after-meeting-v3.html"
+    }
+  ]
+}

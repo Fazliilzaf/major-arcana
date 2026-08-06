@@ -1,0 +1,175 @@
+{
+  "nodes": [
+    {
+      "id": "public_journal_pilot_signoff_sheet_signoff",
+      "label": "Journalpilot Sign-off Sheet (personalbekr\u00e4ftelse)",
+      "file_type": "document",
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_journal_pilot_signoff_sheet_identitetsverifiering",
+      "label": "Identitetsverifiering (namn + telefon + Cliento-id)",
+      "file_type": "concept",
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_journal_pilot_signoff_sheet_permanent_signering",
+      "label": "Permanent signering och l\u00e5sning av journalpost",
+      "file_type": "concept",
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_journal_pilot_signoff_sheet_rattelse_ny_post",
+      "label": "R\u00e4ttelse blir alltid en ny l\u00e4nkad post",
+      "file_type": "concept",
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_journal_pilot_signoff_sheet_extern_ai_forbud",
+      "label": "F\u00f6rbud mot extern AI f\u00f6r journaltext",
+      "file_type": "concept",
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_journal_pilot_signoff_sheet_review_material_ej_klinisk",
+      "label": "Review-material \u00e4r inte klinisk sanning",
+      "file_type": "concept",
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_journal_pilot_signoff_sheet_photo_review_gate",
+      "label": "Photo Review-gate f\u00f6r migrerade bilder",
+      "file_type": "concept",
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_journal_pilot_signoff_sheet_eskaleringsroller",
+      "label": "Eskaleringsroller (admin/ops vs teknik)",
+      "file_type": "concept",
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_journal_pilot_signoff_sheet_signoff",
+      "target": "public_journal_pilot_signoff_sheet_identitetsverifiering",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_pilot_signoff_sheet_signoff",
+      "target": "public_journal_pilot_signoff_sheet_permanent_signering",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_pilot_signoff_sheet_signoff",
+      "target": "public_journal_pilot_signoff_sheet_rattelse_ny_post",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_pilot_signoff_sheet_signoff",
+      "target": "public_journal_pilot_signoff_sheet_extern_ai_forbud",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_pilot_signoff_sheet_signoff",
+      "target": "public_journal_pilot_signoff_sheet_review_material_ej_klinisk",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_pilot_signoff_sheet_signoff",
+      "target": "public_journal_pilot_signoff_sheet_photo_review_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_pilot_signoff_sheet_signoff",
+      "target": "public_journal_pilot_signoff_sheet_eskaleringsroller",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_journal_pilot_signoff_sheet_rattelse_ny_post",
+      "target": "public_journal_pilot_signoff_sheet_permanent_signering",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/journal-pilot-signoff-sheet.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

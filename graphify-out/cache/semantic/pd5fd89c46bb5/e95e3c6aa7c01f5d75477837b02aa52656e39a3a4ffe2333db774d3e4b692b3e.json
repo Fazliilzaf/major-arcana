@@ -1,0 +1,133 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_communication_template_registry_doc",
+      "label": "Communication Template Registry",
+      "file_type": "document",
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_communication_template_registry_send_kinds",
+      "label": "Fyra send-kinds (form, consent, file, encounter) med audit",
+      "file_type": "concept",
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_communication_template_registry_dry_run",
+      "label": "Dry-run-utskick n\u00e4r API-nyckel saknas (audit skrivs \u00e4nd\u00e5)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_communication_template_registry_missing_templates",
+      "label": "20+ saknade mallar och 19 tomma letterText",
+      "file_type": "concept",
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_communication_template_registry_journey_order_correction",
+      "label": "Korrigering av utskicksordning mot 9-stegs kundresan",
+      "file_type": "concept",
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Rader med T-48h friskf\u00f6rs\u00e4kran eller pre-info som eget utskick \u00e4r ogiltiga: friskf\u00f6rs\u00e4kran h\u00f6r till operationsdagen och pre-info ing\u00e5r i bokningsbekr\u00e4ftelsen."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_communication_template_registry_doc",
+      "target": "docs_strategy_communication_template_registry_send_kinds",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_communication_template_registry_send_kinds",
+      "target": "docs_strategy_communication_template_registry_dry_run",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_communication_template_registry_doc",
+      "target": "docs_strategy_communication_template_registry_missing_templates",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_communication_template_registry_doc",
+      "target": "docs_strategy_communication_template_registry_journey_order_correction",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_communication_template_registry_journey_order_correction",
+      "target": "docs_strategy_kundkort_dokument_placering_facit_kundresa_9_steg",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_communication_template_registry_doc",
+      "target": "docs_strategy_cliento_inventory_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_communication_template_registry_missing_templates",
+      "target": "docs_strategy_consent_agreement_aftercare_flow_followup_matrix",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/COMMUNICATION-TEMPLATE-REGISTRY.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,134 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_business_model_model",
+      "label": "Arcana Executive OS \u2014 aff\u00e4rsmodell & billing",
+      "file_type": "document",
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_business_model_plan_tiers",
+      "label": "Plan-tiers och quotas (Free/Starter/Pro/Enterprise)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Prispunkten s\u00e4tts under typiska SaaS-konkurrenter med m\u00e5nad-till-m\u00e5nad och noll setup-kostnad, eftersom differentiatorn \u00e4r AI-agenter med risk gate och medicinsk compliance snarare \u00e4n generell automatisering."
+    },
+    {
+      "id": "docs_strategy_business_model_break_even",
+      "label": "Break-even vid 2 Starter-tenants",
+      "file_type": "concept",
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_business_model_llm_cost_allocation",
+      "label": "LLM-kostnadsallokering per tenant med token-tak",
+      "file_type": "concept",
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "CFO-agenten kan redan rapportera uppskattad kostnad och varna vid tr\u00f6skel, men saknar faktisk token-counting \u2014 d\u00e4rf\u00f6r m\u00e5ste tokens r\u00e4knas i gateway-runs innan fakturering kan bli usage-based."
+    },
+    {
+      "id": "docs_strategy_business_model_billing_roadmap",
+      "label": "Billing-roadmap: usage tracking \u2192 token counting \u2192 Stripe \u2192 self-service",
+      "file_type": "concept",
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_business_model_model",
+      "target": "docs_strategy_business_model_plan_tiers",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_business_model_model",
+      "target": "docs_strategy_business_model_llm_cost_allocation",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_business_model_model",
+      "target": "docs_strategy_business_model_billing_roadmap",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_business_model_plan_tiers",
+      "target": "docs_strategy_business_model_break_even",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_business_model_llm_cost_allocation",
+      "target": "docs_strategy_arcana_master_plan_punktvis_execution_gateway_lock",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_business_model_billing_roadmap",
+      "target": "docs_strategy_business_model_llm_cost_allocation",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_business_model_plan_tiers",
+      "target": "docs_strategy_arcana_master_plan_punktvis_multi_tenant_white_label",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/business-model.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

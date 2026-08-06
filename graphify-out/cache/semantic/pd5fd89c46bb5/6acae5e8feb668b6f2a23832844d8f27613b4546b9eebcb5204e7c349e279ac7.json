@@ -1,0 +1,28 @@
+{
+  "nodes": [
+    {
+      "id": "public_cco_index_redirect",
+      "label": "Operat\u00f6rsvy-redirect till /major-arcana-preview/",
+      "file_type": "code",
+      "source_file": "public/cco/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_cco_index_redirect",
+      "target": "public_journal_feed_demo_page",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.55,
+      "source_file": "public/cco/index.html",
+      "source_location": null,
+      "weight": 0.55
+    }
+  ],
+  "hyperedges": []
+}

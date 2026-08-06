@@ -1,0 +1,138 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_mobile_staff_journal_plan_mobil_fotoflode",
+      "label": "Mobilt fotofl\u00f6de \u2014 kund \u2192 Journal \u2192 Ta bild",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "M\u00e5l + Fas 1",
+      "source_url": null,
+      "captured_at": "2026-05-22",
+      "author": null,
+      "contributor": null,
+      "rationale": "Bilden ska hamna direkt i behandlingsplanen p\u00e5 kundkortet inom 10 sekunder, utan Drive-import eller manuella mellansteg; HTTPS kr\u00e4vs f\u00f6r kamera p\u00e5 iOS."
+    },
+    {
+      "id": "docs_strategy_cco_mobile_staff_journal_plan_heic_pipeline",
+      "label": "HEIC/HEIF-pipeline med EXIF-strip och rotation",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "Fas 2 \u2014 iPhone & HEIC",
+      "source_url": null,
+      "captured_at": "2026-05-22",
+      "author": null,
+      "contributor": null,
+      "rationale": "iPhone-foton m\u00e5ste konverteras till JPEG f\u00f6r att undvika \"Endast JPEG och PNG\"-fel, samtidigt som EXIF strippas f\u00f6r integritet men orientering bevaras via sharp().rotate()."
+    },
+    {
+      "id": "docs_strategy_cco_mobile_staff_journal_plan_auto_behandlingsplan",
+      "label": "Auto-skapad behandlingsplan vid f\u00f6rsta bilden",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "Fas 1.3 Auto-behandlingsplan vid upload",
+      "source_url": null,
+      "captured_at": "2026-05-22",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mobile_staff_journal_plan_signerad_plan_blockering",
+      "label": "Signerad behandlingsplan blockerar ny uppladdning (409)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "Fas 1.5 Blockering vid signerad plan",
+      "source_url": null,
+      "captured_at": "2026-05-22",
+      "author": null,
+      "contributor": null,
+      "rationale": "L\u00e5st/signerad journalpost f\u00e5r inte muteras; personalen leds i st\u00e4llet till att skapa ny behandlingsplan."
+    },
+    {
+      "id": "docs_strategy_cco_mobile_staff_journal_plan_pwa_genvag",
+      "label": "PWA \u2014 manifest, service worker och start_url mot Kundregister",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "Fas 3.7 PWA f\u00f6rb\u00e4ttring",
+      "source_url": null,
+      "captured_at": "2026-05-22",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mobile_staff_journal_plan_deep_link_qr",
+      "label": "Deep link + QR till kundkort",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "Fas 4.5\u20134.6",
+      "source_url": null,
+      "captured_at": "2026-05-22",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_mobile_staff_journal_plan_journalbild_gdpr",
+      "label": "Journalbilder som personuppgift \u2014 audit, retention, Art. 30",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "Fas 5.2\u20135.4 Audit, GDPR/PDL, rollkontroll",
+      "source_url": null,
+      "captured_at": "2026-05-22",
+      "author": null,
+      "contributor": null,
+      "rationale": "photoId loggas som targetId i audit i st\u00e4llet f\u00f6r EXIF/GPS, s\u00e5 sp\u00e5rbarheten inte i sig l\u00e4cker platsdata."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_mobile_staff_journal_plan_mobil_fotoflode",
+      "target": "docs_strategy_cco_mobile_staff_journal_plan_heic_pipeline",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "Fas 2 \u2014 iPhone & HEIC",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobile_staff_journal_plan_mobil_fotoflode",
+      "target": "docs_strategy_cco_mobile_staff_journal_plan_auto_behandlingsplan",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "Fas 1.3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobile_staff_journal_plan_signerad_plan_blockering",
+      "target": "docs_strategy_cco_patient_journal_build_plan_journal_signering",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "Fas 1.5 + Relaterad: cco-patient-journal-build-plan.md",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobile_staff_journal_plan_journalbild_gdpr",
+      "target": "docs_strategy_cco_patient_journal_build_plan_compliance_retention",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "Fas 5.3 GDPR / PDL \u2014 huvudbyggplanen Fas 9",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_mobile_staff_journal_plan_journalbild_gdpr",
+      "target": "docs_strategy_cco_mobile_staff_journal_plan_heic_pipeline",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-mobile-staff-journal-plan.md",
+      "source_location": "Fas 2.2 EXIF & orientering + Fas 5.3",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

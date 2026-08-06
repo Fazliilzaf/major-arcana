@@ -1,0 +1,69 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_personal_pilot_resource_index_2026_06_04_doc",
+      "label": "Personal-Pilot Resource Index",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-PERSONAL-PILOT-RESOURCE-INDEX-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_personal_pilot_resource_index_2026_06_04_no_new_pages_directive",
+      "label": "Owner-direktiv: inga fler st\u00f6d-sidor, konsolidera i 4 grupper",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-PERSONAL-PILOT-RESOURCE-INDEX-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_personal_pilot_resource_index_2026_06_04_doc",
+      "target": "docs_strategy_cco_personal_pilot_resource_index_2026_06_04_no_new_pages_directive",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-PERSONAL-PILOT-RESOURCE-INDEX-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_personal_pilot_resource_index_2026_06_04_doc",
+      "target": "docs_strategy_cco_personal_demo_runbook_2026_06_04_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-PERSONAL-PILOT-RESOURCE-INDEX-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_personal_pilot_resource_index_2026_06_04_doc",
+      "target": "docs_strategy_cco_scope_status_refresh_2026_05_31_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-PERSONAL-PILOT-RESOURCE-INDEX-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_personal_pilot_resource_index_2026_06_04_no_new_pages_directive",
+      "target": "docs_strategy_cco_personal_presentation_readiness_2026_06_04_freeze_rules",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-PERSONAL-PILOT-RESOURCE-INDEX-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

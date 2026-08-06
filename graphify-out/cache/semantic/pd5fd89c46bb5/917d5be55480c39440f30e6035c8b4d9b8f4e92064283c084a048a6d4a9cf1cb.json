@@ -1,0 +1,28 @@
+{
+  "nodes": [
+    {
+      "id": "docs_adr_0003_vanilla_runtime_modules_adr",
+      "label": "ADR-0003: Vanilla JS runtime-moduler (ej React/Vue)",
+      "file_type": "document",
+      "source_file": "docs/adr/0003-vanilla-runtime-modules.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_adr_0003_vanilla_runtime_modules_iife_module_pattern",
+      "label": "IIFE-runtimemodul p\u00e5 window.MajorArcanaPreview*",
+      "file_type": "concept",
+      "source_file": "docs/adr/0003-vanilla-runtime-modules.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [],
+  "hyperedges": []
+}

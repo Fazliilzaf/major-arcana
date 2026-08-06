@@ -1,0 +1,676 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "label": "CCO Automation Registry \u2014 Implementation readiness v2",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "label": "Kanonisk 9-stegs kundresa f\u00f6r Hair TP",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_migration_v1_to_v2",
+      "label": "Regelmigration v1 \u2192 v2 (gammal regel \u2192 ny regel \u2192 kundresesteg)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_health_declaration",
+      "label": "Regel customer.missing_health_declaration (steg 3 \u2014 h\u00e4lsodeklaration \u2260 friskf\u00f6rs\u00e4kran)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_journal",
+      "label": "Regel customer.missing_journal (steg 4 \u2014 konsultation/encounter)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_treatment_plan",
+      "label": "Regel customer.missing_treatment_plan (steg 5 \u2014 offert = behandlingsplan)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_cooling_off",
+      "label": "Regel cooling_off_active/passed (steg 6 \u2014 2 dagars bet\u00e4nketid)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_agreement_consent_bundle",
+      "label": "Regel customer.missing_agreement_consent_bundle (steg 7 \u2014 avtal + samtycke i en signering)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Separata utskick av avtal och samtycke \u00e4r ogiltiga; bundlen kr\u00e4ver godk\u00e4nd legal_review innan behandling blir bokningsbar."
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_operation_day_insurance",
+      "label": "Regel customer.missing_operation_day_insurance (steg 8 \u2014 friskf\u00f6rs\u00e4kran p\u00e5 operationsdagen)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "T-48h-p\u00e5minnelse f\u00f6rkastas: friskf\u00f6rs\u00e4kran ska signeras p\u00e5 plats samma dag och blockerar operationsstart."
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_photo_consent",
+      "label": "Regel customer.missing_photo_consent (steg 9 \u2014 h\u00e5rlinje/krona, aldrig ansikte)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_has_photo_review",
+      "label": "Regel customer.has_photo_review (operat\u00f6rsk\u00f6, ingen autoapprove)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_ready_for_treatment",
+      "label": "Regel customer.ready_for_treatment (komposit efter steg 6\u20139)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_booking_missing_encounter",
+      "label": "Regel customer.booking_missing_encounter (ops, ej kundresesteg)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_build_blocker_matrix",
+      "label": "Byggbarhet och build-blockers per regel (v1 dry-run vs v1.1-data)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_locked_build_order",
+      "label": "L\u00e5st byggordning: riktig data \u2192 dry-run \u2192 What/Why/Next \u2192 human approval \u2192 reminders \u2192 AI sist",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_go_gates",
+      "label": "GO-gates f\u00f6r registry dry-run, v1.1-data och reminders",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "label": "Mappning regel \u2192 store/readout-f\u00e4lt med confidence",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_migration_v1_to_v2",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_build_blocker_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_locked_build_order",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_go_gates",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_health_declaration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_journal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_treatment_plan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_cooling_off",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_agreement_consent_bundle",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_operation_day_insurance",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_photo_consent",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_has_photo_review",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_ready_for_treatment",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_booking_missing_encounter",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_health_declaration",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_health_declaration",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_journal",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_journal",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_treatment_plan",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_treatment_plan",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_cooling_off",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_cooling_off",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_agreement_consent_bundle",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_agreement_consent_bundle",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_operation_day_insurance",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_operation_day_insurance",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_photo_consent",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_photo_consent",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_has_photo_review",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_has_photo_review",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_ready_for_treatment",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_ready_for_treatment",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_booking_missing_encounter",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_nine_step_customer_journey",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_booking_missing_encounter",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_to_store_mapping",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_migration_v1_to_v2",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_superseded_v1_assumptions",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_ready_for_treatment",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_cooling_off",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_ready_for_treatment",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_agreement_consent_bundle",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_ready_for_treatment",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_operation_day_insurance",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_ready_for_treatment",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_photo_consent",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_locked_build_order",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_first_build_registry_dry_run",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_build_blocker_matrix",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_automation_catalog_v1",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_go_gates",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_human_approval_principle",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_ready_for_treatment",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_ready_for_treatment_master_pill",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_missing_health_declaration",
+      "target": "docs_strategy_calendar_component_plan_2026_05_30_status_pills_aggregator_endpoint",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_has_photo_review",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_photo_review_automation",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

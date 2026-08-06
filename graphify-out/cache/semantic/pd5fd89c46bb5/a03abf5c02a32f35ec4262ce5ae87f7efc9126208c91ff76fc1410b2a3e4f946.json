@@ -1,0 +1,54 @@
+{
+  "nodes": [
+    {
+      "id": "public_assets_hair_tp_clinic_hairtpclinic_mark_light",
+      "label": "Hair TP Clinic m\u00e4rke, ljus variant (b\u00e5gformad emblem)",
+      "file_type": "image",
+      "source_file": "public/assets/hair-tp-clinic/hairtpclinic-mark-light.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_assets_hair_tp_clinic_brand_identity",
+      "label": "Hair TP Clinic varum\u00e4rkesidentitet (beige #D7C7BA / taupe #B9A89D)",
+      "file_type": "concept",
+      "source_file": "public/assets/hair-tp-clinic/hairtpclinic-mark-light.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_assets_hair_tp_clinic_hairtpclinic_mark_light",
+      "target": "public_assets_hair_tp_clinic_brand_identity",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/assets/hair-tp-clinic/hairtpclinic-mark-light.svg",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "hair_tp_clinic_brand_assets",
+      "label": "Hair TP Clinic varum\u00e4rkesresurser (m\u00e4rke, signaturikon, identitet)",
+      "nodes": [
+        "public_assets_hair_tp_clinic_hairtpclinic_mark_light",
+        "public_assets_hair_tp_clinic_signature_facebook_icon",
+        "public_assets_hair_tp_clinic_email_signature",
+        "public_assets_hair_tp_clinic_brand_identity"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/assets/hair-tp-clinic/hairtpclinic-mark-light.svg"
+    }
+  ]
+}

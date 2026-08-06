@@ -1,0 +1,153 @@
+{
+  "nodes": [
+    {
+      "id": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_dokumentindex",
+      "label": "Juridik & GDPR \u2014 dokumentindex och nyckelpunkter",
+      "file_type": "document",
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_nulagesanalys_kravspec",
+      "label": "Nul\u00e4gesanalys och \u00e5tg\u00e4rdsf\u00f6rslag (extern GDPR-gapanalys) \u2014 kravspec",
+      "file_type": "document",
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_journalmodulkrav",
+      "label": "Tio krav p\u00e5 journalmodulen (beh\u00f6righetsstyrning, loggkontroll, EU/EES, 10 \u00e5r, PUB-avtal)",
+      "file_type": "concept",
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_migration_fran_drive",
+      "label": "Beslut: flytta journalf\u00f6ring fr\u00e5n Google Drive till EU-hostad \u00e5tkomststyrd modul",
+      "file_type": "concept",
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_legacy_systemkarta",
+      "label": "Legacy-systemkarta (Pipedrive, Cliento, GetAccept, Mailchimp, Fortnox, Drive/M365)",
+      "file_type": "concept",
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_ma_modulstatus",
+      "label": "MA-modulstatus (ccoCommercial, ccoTreatmentAgreement, ccoTreatmentBookingGate, journal-pre-treatment-forms)",
+      "file_type": "concept",
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_nulagesanalys_kravspec",
+      "target": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_journalmodulkrav",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_journalmodulkrav",
+      "target": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_migration_fran_drive",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_migration_fran_drive",
+      "target": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_legacy_systemkarta",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_ma_modulstatus",
+      "target": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_legacy_systemkarta",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_dokumentindex",
+      "target": "docs_legal_juridik_gdpr_jurist_flode_juristprocess_nordbro",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_dokumentindex",
+      "target": "docs_legal_art_30_register_maj_arcana_registerforteckning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_journalmodulkrav",
+      "target": "docs_legal_data_retention_policy_journalretention_10_ar",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_legal_juridik_gdpr_innehall_och_nyckelpunkter_ma_modulstatus",
+      "target": "docs_implementation_patient_documents_live_diffs_nordinsatt_p0_2026_06_25_agreement_dhi_2day",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

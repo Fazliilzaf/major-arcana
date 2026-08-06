@@ -1,0 +1,105 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_drive_sunset",
+      "label": "Drive sunset \u2014 internalisera all patientdokumentation i Arcana",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-34-internalisera-drive-dokumentation.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Google Drive ska bort helt; korrekta UTF-8-filnamn f\u00e5s p\u00e5 k\u00f6pet vid internaliseringen, vilket g\u00f6r ORD-33:s separata namn-refetch \u00f6verfl\u00f6dig."
+    },
+    {
+      "id": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_asset_pipeline_scale",
+      "label": "Skala asset-import-pipeline fr\u00e5n pilot till alla patienter",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-34-internalisera-drive-dokumentation.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Bygg vidare p\u00e5 befintlig infrastruktur (assetStore, importPipeline, secureStorageProvider, reviewQueue, runStore) i st\u00e4llet f\u00f6r ny lagring."
+    },
+    {
+      "id": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_document_date_from_drive_metadata",
+      "label": "documentDate ur Drive modifiedTime/createdTime n\u00e4r filnamn saknar datum",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-34-internalisera-drive-dokumentation.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Utan Drive-tidsst\u00e4mplar f\u00e5r datuml\u00f6sa journaler importst\u00e4mpeln (2026-05-24) i st\u00e4llet f\u00f6r sitt riktiga datum."
+    },
+    {
+      "id": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_never_delete_originals",
+      "label": "Regel: radera aldrig Drive-originalen (kopiera in, kapa Drive sist)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-34-internalisera-drive-dokumentation.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Drive-proxy beh\u00e5lls som fallback tills 100 % \u00e4r internt och verifierat; cutover blir en egen sub-task efter verifiering."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_drive_sunset",
+      "target": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_repair_filenames_endpoint",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-34-internalisera-drive-dokumentation.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_drive_sunset",
+      "target": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_mojibake_corruption",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-34-internalisera-drive-dokumentation.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_asset_pipeline_scale",
+      "target": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_drive_sunset",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-34-internalisera-drive-dokumentation.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_document_date_from_drive_metadata",
+      "target": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_get_drive_file_name",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-34-internalisera-drive-dokumentation.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_never_delete_originals",
+      "target": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_drive_sunset",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-34-internalisera-drive-dokumentation.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

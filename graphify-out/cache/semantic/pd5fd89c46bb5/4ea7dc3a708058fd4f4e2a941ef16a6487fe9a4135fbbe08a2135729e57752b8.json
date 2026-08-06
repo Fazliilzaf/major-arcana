@@ -1,0 +1,148 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_doc",
+      "label": "QA \u2014 N\u00e4r owner s\u00e4ger APPLY AISIA TO CCO",
+      "file_type": "document",
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_apply_trigger",
+      "label": "Owner-trigger APPLY AISIA TO CCO (skild fr\u00e5n START AISIA FAS 2)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": "**Trigger:**",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_enable_flag",
+      "label": "ENABLE_AISIA_SCALP_ANALYSIS \u2014 feature flag med 404-rollback",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": "## Steg 0 \u2014 Aktivering",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_staging_before_prod",
+      "label": "Staging-PASS + owner-sign-off innan prod-aktivering",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": "## Steg 6 \u2014 Prod",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_anonymized_testdata",
+      "label": "Anonymiserad testdata i QA \u2014 inga riktiga patientbilder",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": "## Steg 3 \u2014 UI QA",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_doc",
+      "target": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_apply_trigger",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_apply_trigger",
+      "target": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_enable_flag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": "## Steg 0 \u2014 Aktivering",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_staging_before_prod",
+      "target": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_enable_flag",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": "prod endast efter steg 1\u20135 gr\u00f6na p\u00e5 staging",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_anonymized_testdata",
+      "target": "docs_schema_cco_patient_assets_schema_pii_free_audit",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_doc",
+      "target": "docs_strategy_aisia_cco_integration_verification_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": "## Referenser",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_doc",
+      "target": "docs_strategy_aisia_compliance_security_checklist_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": "## Referenser",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_doc",
+      "target": "docs_strategy_aisia_cco_integration_plan_scalp_rbac",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md",
+      "source_location": "Steg 2 \u2014 API-sp\u00e4rr sanity; Steg 4 \u2014 verify kr\u00e4ver scalp.verify",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "aisia_activation_gate_chain",
+      "label": "Aktiveringskedja f\u00f6r Aisia-modulen: pilotfas \u2192 owner-trigger \u2192 feature flag \u2192 QA \u2192 villkorad GO",
+      "nodes": [
+        "docs_strategy_aisia_clinical_pilot_test_plan_2026_05_30_pilot_phases",
+        "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_apply_trigger",
+        "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_enable_flag",
+        "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_staging_before_prod",
+        "docs_strategy_aisia_cco_integration_verification_2026_05_30_conditional_go"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-APPLY-TO-CCO-QA-2026-05-30.md"
+    }
+  ]
+}

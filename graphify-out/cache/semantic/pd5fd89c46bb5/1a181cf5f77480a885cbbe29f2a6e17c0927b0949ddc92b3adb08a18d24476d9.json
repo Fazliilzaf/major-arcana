@@ -1,0 +1,167 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v11_rail_profile_fixture",
+      "label": "V11 Rail Block 1 \u00b7 A Profile screenshot-fixtur",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "label": "CcoV11Rail.render (V11 Rail-renderer)",
+      "file_type": "code",
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_profile_rail_adapters",
+      "label": "cco-v11-rail-adapters.js (V11 adapterlager)",
+      "file_type": "code",
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_profile_rail_css",
+      "label": "cco-v11-rail.css (V11 Rail-stilmall)",
+      "file_type": "code",
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_profile_rail_width_canon",
+      "label": "Rail-bredd: full p\u00e5 mobil, 424px p\u00e5 desktop (canon \u00a74)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fixturen emulerar den l\u00e5sta rail-bredden s\u00e5 screenshots p\u00e5 390/820/1440 speglar appens verkliga layout utan att hela appen startas."
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_profile_real_component_fixtures",
+      "label": "Fixturprincip: rendera de RIKTIGA komponenterna",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fixturerna laddar produktionens CSS + adapter + renderer ist\u00e4llet f\u00f6r mockad markup, s\u00e5 visuella regressioner f\u00e5ngas i den riktiga koden; kostnaden \u00e4r att hela appen inte beh\u00f6ver startas f\u00f6r att ta screenshots."
+    },
+    {
+      "id": "tests_visual_fixtures_v11_rail_profile_ready_flag",
+      "label": "data-v11-rail-ready-flagga f\u00f6r screenshot-synk",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "S\u00e4tts p\u00e5 documentElement efter render s\u00e5 shot-scriptet deterministiskt vet n\u00e4r DOM:en \u00e4r komplett."
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v11_rail_profile_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_profile_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_adapters",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_profile_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_css",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_profile_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_width_canon",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_profile_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_real_component_fixtures",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_profile_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_ready_flag",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_adapters",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_css",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "tests/visual/fixtures/v11-rail-profile.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

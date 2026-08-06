@@ -1,0 +1,157 @@
+{
+  "nodes": [
+    {
+      "id": "public_concepts_cco_concept_2c_soft_glass_mail_image",
+      "label": "CCO Concept 2C - Soft Glass Mail (SVG mockup)",
+      "file_type": "image",
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_concepts_cco_concept_2c_soft_glass_mail_cco_mail_workspace",
+      "label": "CCO Mail Control-arbetsyta (tre kolumner: filter, inbox stream, kunddialog)",
+      "file_type": "concept",
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_concepts_cco_concept_2c_soft_glass_mail_soft_glass_direction",
+      "label": "Soft glass visuell riktning (ljus palett, transparens, rundade kort)",
+      "file_type": "concept",
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_concepts_cco_concept_2c_soft_glass_mail_compose_tone_selector",
+      "label": "Compose-tonval: Short / Warm / Professional",
+      "file_type": "concept",
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_concepts_cco_concept_2c_soft_glass_mail_recommended_next_step",
+      "label": "Rekommenderat nasta steg (svara personligt i denna trad idag)",
+      "file_type": "concept",
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_concepts_cco_concept_2c_soft_glass_mail_image",
+      "target": "public_concepts_cco_concept_2c_soft_glass_mail_cco_mail_workspace",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_concepts_cco_concept_2c_soft_glass_mail_image",
+      "target": "public_concepts_cco_concept_2d_minimal_mail_image",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "public_concepts_cco_concept_2c_soft_glass_mail_image",
+      "target": "public_concepts_cco_concept_2c_soft_glass_mail_soft_glass_direction",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_concepts_cco_concept_2c_soft_glass_mail_soft_glass_direction",
+      "target": "public_concepts_cco_concept_2d_minimal_mail_minimal_direction",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "public_concepts_cco_concept_2c_soft_glass_mail_image",
+      "target": "public_concepts_cco_concept_2d_minimal_mail_sla_urgency_triage",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "public_concepts_cco_concept_2c_soft_glass_mail_image",
+      "target": "public_concepts_cco_concept_2c_soft_glass_mail_compose_tone_selector",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_concepts_cco_concept_2c_soft_glass_mail_image",
+      "target": "public_concepts_cco_concept_3_journey_timeline_fragmented_communication_risk",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_concepts_cco_concept_2c_soft_glass_mail_image",
+      "target": "public_concepts_cco_concept_2c_soft_glass_mail_recommended_next_step",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "cco_mail_concept_family",
+      "label": "CCO mail-koncept: soft glass, minimal och journey timeline mot samma arbetsyta",
+      "nodes": [
+        "public_concepts_cco_concept_2c_soft_glass_mail_image",
+        "public_concepts_cco_concept_2d_minimal_mail_image",
+        "public_concepts_cco_concept_3_journey_timeline_image",
+        "public_concepts_cco_concept_2c_soft_glass_mail_cco_mail_workspace"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/concepts/cco-concept-2c-soft-glass-mail.svg"
+    }
+  ]
+}

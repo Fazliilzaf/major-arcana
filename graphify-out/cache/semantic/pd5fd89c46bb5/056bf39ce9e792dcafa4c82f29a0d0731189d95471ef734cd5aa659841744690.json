@@ -1,0 +1,154 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_56_nano_banana_modellrevision_order",
+      "label": "ORD-56 \u2014 Imagen\u2192Gemini Image-migration + modellregisterrevision",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_56_nano_banana_modellrevision_imagen_migration",
+      "label": "Imagen 4 \u2192 Gemini Image ('Nano Banana') \u2014 generateContent, ej predict",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_56_nano_banana_modellrevision_model_registry_revision",
+      "label": "Modellregister-revision mot leverant\u00f6rernas aktuella rekommendationer",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_56_nano_banana_modellrevision_best_not_cheapest",
+      "label": "\u00c4gardirektiv: v\u00e4lj b\u00e4sta stabila modellen, inte billigaste",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_56_nano_banana_modellrevision_env_model_override",
+      "label": "ARCANA_*_MODEL env-\u00f6verstyrning \u2014 modellbyte \u00e4r config, inte kod",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_56_nano_banana_modellrevision_no_silent_fallbacks",
+      "label": "Inga tysta fallbacks mellan modeller",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_56_nano_banana_modellrevision_documented_fields_only",
+      "label": "Skicka endast dokumenterade payload-f\u00e4lt (l\u00e4rdom: iterera inte 400-fel)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_56_nano_banana_modellrevision_order",
+      "target": "docs_handover_orders_ord_56_nano_banana_modellrevision_imagen_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_56_nano_banana_modellrevision_order",
+      "target": "docs_handover_orders_ord_56_nano_banana_modellrevision_model_registry_revision",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_56_nano_banana_modellrevision_best_not_cheapest",
+      "target": "docs_handover_orders_ord_56_nano_banana_modellrevision_model_registry_revision",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_56_nano_banana_modellrevision_env_model_override",
+      "target": "docs_handover_orders_ord_56_nano_banana_modellrevision_model_registry_revision",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_56_nano_banana_modellrevision_no_silent_fallbacks",
+      "target": "docs_handover_orders_ord_55_studio_video_wiring_honest_failure_state",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_56_nano_banana_modellrevision_documented_fields_only",
+      "target": "docs_handover_orders_ord_56_nano_banana_modellrevision_imagen_migration",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_56_nano_banana_modellrevision_documented_fields_only",
+      "target": "docs_handover_orders_ord_55_studio_video_wiring_veo_adapter_reuse",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-56-nano-banana-modellrevision.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

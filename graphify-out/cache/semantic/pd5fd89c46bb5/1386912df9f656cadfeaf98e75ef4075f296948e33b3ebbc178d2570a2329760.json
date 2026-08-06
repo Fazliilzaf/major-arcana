@@ -1,0 +1,100 @@
+{
+  "nodes": [
+    {
+      "id": "docs_architecture_capability_base_class_contract_v1_basecapability",
+      "label": "BaseCapability-basklass (statisk metadata + execute)",
+      "file_type": "concept",
+      "source_file": "docs/architecture/capability-base-class-contract-v1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_architecture_capability_base_class_contract_v1_audit_contract",
+      "label": "capability.run.* audit-kontrakt (gateway \u00e4ger audit)",
+      "file_type": "concept",
+      "source_file": "docs/architecture/capability-base-class-contract-v1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_architecture_capability_base_class_contract_v1_scope_lock",
+      "label": "Scope lock under capability-fasen (ingen \u00e4ndring i gateway/risk/policy-core)",
+      "file_type": "concept",
+      "source_file": "docs/architecture/capability-base-class-contract-v1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_architecture_capability_framework_contract_v1_generatetaskplan",
+      "target": "docs_architecture_capability_base_class_contract_v1_basecapability",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture/capability-base-class-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_architecture_capability_base_class_contract_v1_basecapability",
+      "target": "docs_architecture_capability_framework_contract_v1_executiongateway",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture/capability-base-class-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_architecture_capability_base_class_contract_v1_basecapability",
+      "target": "docs_architecture_capability_base_class_contract_v1_audit_contract",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture/capability-base-class-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_architecture_capability_base_class_contract_v1_basecapability",
+      "target": "docs_architecture_capability_framework_contract_v1_agent_bundle",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture/capability-base-class-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_architecture_capability_base_class_contract_v1_scope_lock",
+      "target": "docs_architecture_capability_framework_contract_v1_executiongateway",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture/capability-base-class-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_architecture_capability_base_class_contract_v1_audit_contract",
+      "target": "readme_correlation_id",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/architecture/capability-base-class-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

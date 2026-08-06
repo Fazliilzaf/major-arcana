@@ -1,0 +1,258 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_dokument",
+      "label": "Steg 7 \u2014 Avtal \u00b7 Microneedling och PRP",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "label": "Behandlingsavtal (gemensam avtalsmall)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_avtalsunderlag_bilagas_ej",
+      "label": "Tj\u00e4nstespecifikation, offert och behandlingsplan utg\u00f6r avtalsunderlag men bifogas ej",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_betalningsvillkor",
+      "label": "Betalningsvillkor (faktura, kort, Swish, Medical Finance) f\u00f6re behandling",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_ansvarsbegransning",
+      "label": "Ansvarsbegr\u00e4nsning \u2014 endast direkt skada vid v\u00e5rdsl\u00f6shet",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_force_majeure",
+      "label": "Force majeure och avtalsbrott \u2014 r\u00e4tt till omedelbar upps\u00e4gning",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_tvistordning",
+      "label": "Tvistordning \u2014 Patientskaden\u00e4mnden, ARN, G\u00f6teborgs tingsr\u00e4tt",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_patientskadelagen",
+      "label": "Patientskadelagen (1996:799) och patientf\u00f6rs\u00e4kring",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_ingen_resultatgaranti",
+      "label": "Ingen resultatgaranti \u2014 resultat beror p\u00e5 individuella f\u00f6ruts\u00e4ttningar och efterv\u00e5rd",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_informerat_samtycke",
+      "label": "Informerat samtycke \u2014 muntlig och skriftlig information f\u00f6re behandling",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_prp_microneedling_hud",
+      "label": "PRP-behandling f\u00f6r huden med microneedling",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_prp_microneedling_hud",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_betalningsvillkor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_ansvarsbegransning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_force_majeure",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_tvistordning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_tvistordning",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_patientskadelagen",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_ingen_resultatgaranti",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_informerat_samtycke",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_avtalsunderlag_bilagas_ej",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "target": "public_major_arcana_preview_steg6_betanketid_samtycke_final_demo_betanketid_2d",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "target": "public_major_arcana_preview_steg6_betanketid_samtycke_final_demo_distansavtalslagen",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg6_betanketid_samtycke_final_demo_samtycke_angerratt",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

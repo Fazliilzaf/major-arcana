@@ -1,0 +1,258 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "label": "Aisia MVP \u2014 Handoff (pausad/isolerad)",
+      "file_type": "document",
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_handoff_2026_05_30_enable_aisia_scalp_analysis_flag",
+      "label": "Feature flag ENABLE_AISIA_SCALP_ANALYSIS (default false)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Modulen byggdes klar men d\u00f6ljs bakom flagga i st\u00e4llet f\u00f6r att raderas, s\u00e5 prod \u00e4r or\u00f6rd tills owner ger GO."
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_handoff_2026_05_30_apply_aisia_to_cco_gate",
+      "label": "\u00c4garkommando APPLY AISIA TO CCO",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_handoff_2026_05_30_phase_2_3_4_block",
+      "label": "Sp\u00e4rr f\u00f6r FAS 2/3/4 (exportfolder, kamera/USB/SDK, egen klinisk AI)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_handoff_2026_05_30_scalp_rbac_permissions",
+      "label": "RBAC scalp.read / scalp.write / scalp.verify",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_handoff_2026_05_30_scalp_analysis_rest_api",
+      "label": "REST API /api/v1/cco/scalp-analysis/*",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_handoff_2026_05_30_cco_scalp_analysis_store",
+      "label": "ccoScalpAnalysisStore \u2014 sessioner, metrics, bilder, j\u00e4mf\u00f6relser",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_handoff_2026_05_30_external_ai_prohibition",
+      "label": "F\u00f6rbud: extern AI p\u00e5 patientdata",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_handoff_2026_05_30_vendor_endpoint_prohibition",
+      "label": "F\u00f6rbud mot integration mot leverant\u00f6rens moln-webapp",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_handoff_2026_05_30_cco_never_replaces_ds3",
+      "label": "CCO ers\u00e4tter aldrig Aisia DS-3 \u2014 CCO \u00e4r importlager",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_enable_aisia_scalp_analysis_flag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_apply_aisia_to_cco_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_phase_2_3_4_block",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_scalp_rbac_permissions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_scalp_analysis_rest_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_cco_scalp_analysis_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_external_ai_prohibition",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_vendor_endpoint_prohibition",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_cco_never_replaces_ds3",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_apply_aisia_to_cco_gate",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_enable_aisia_scalp_analysis_flag",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_scalp_analysis_rest_api",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_scalp_rbac_permissions",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_scalp_analysis_rest_api",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_cco_scalp_analysis_store",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_handoff_2026_05_30_enable_aisia_scalp_analysis_flag",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_feature_flag_canary_pattern",
+      "relation": "conceptually_related_to",
+      "confidence": "AMBIGUOUS",
+      "confidence_score": 0.3,
+      "source_file": "docs/strategy/AISIA-MVP-HANDOFF-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

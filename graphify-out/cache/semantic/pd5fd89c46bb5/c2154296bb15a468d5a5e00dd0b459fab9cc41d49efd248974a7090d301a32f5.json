@@ -1,0 +1,59 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_v10_facit_rail_07_dossier_actions",
+      "label": "Screenshot: Dossierns \u00e5tg\u00e4rdsrad",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/v10-facit-rail/07-dossier-actions.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_v10_facit_rail_07_dossier_actions_action_rail",
+      "label": "\u00c5tg\u00e4rdsrad: Ta bild \u00b7 spara i journal, Boka n\u00e4sta tid, Anteckna, Svarstudio, Bekr\u00e4fta kommande tider",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/v10-facit-rail/07-dossier-actions.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_07_dossier_actions",
+      "target": "docs_ops_screenshots_v10_facit_rail_07_dossier_actions_action_rail",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/07-dossier-actions.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_07_dossier_actions",
+      "target": "docs_ops_screenshots_v10_facit_rail_06_dossier_scroll",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/07-dossier-actions.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_v10_facit_rail_07_dossier_actions_action_rail",
+      "target": "docs_ops_screenshots_v10_facit_rail_05_dossier_hero_kunddossier_panel",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/screenshots/v10-facit-rail/07-dossier-actions.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,87 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_19_kunder_html_decommission_kunder_html_decommission",
+      "label": "Avveckling av /kunder.html (301 redirect + filradering)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-19-kunder-html-decommission.md",
+      "source_location": "Scope B.2/B.3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "301 l\u00e4ggs f\u00f6re static-routes s\u00e5 bokm\u00e4rken och externa l\u00e4nkar \u00f6verlever radering utan 404."
+    },
+    {
+      "id": "docs_handover_orders_ord_19_kunder_html_decommission_inventory_safe_to_delete_gate",
+      "label": "Hard gate: inventory-kunder-html-features 'Safe to delete YES'",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-19-kunder-html-decommission.md",
+      "source_location": "Pre-flight check",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Feature-inventory \u00e4r den enda maskinella garantin att inget av de 10 features g\u00e5r f\u00f6rlorat vid radering; failar den stoppas git rm."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_19_kunder_html_decommission_kunder_html_decommission",
+      "target": "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_smart_next_step_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-19-kunder-html-decommission.md",
+      "source_location": "Blockerad av ORD-18",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_19_kunder_html_decommission_kunder_html_decommission",
+      "target": "docs_handover_orders_ord_19_kunder_html_decommission_inventory_safe_to_delete_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-19-kunder-html-decommission.md",
+      "source_location": "Pre-flight check",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_19_kunder_html_decommission_inventory_safe_to_delete_gate",
+      "target": "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_capability_matrix_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-19-kunder-html-decommission.md",
+      "source_location": "BEVARA-tabell",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_19_kunder_html_decommission_inventory_safe_to_delete_gate",
+      "target": "docs_handover_orders_ord_20_v9_flag_default_on_stability_window_gate",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "docs/handover/ORDERS/ORD-19-kunder-html-decommission.md",
+      "source_location": "hard gate stoppar irreversibel \u00e5tg\u00e4rd",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "kunder_html_decommission_gate_chain",
+      "label": "Avvecklingskedja /kunder.html: modulport \u2192 inventory-gate \u2192 301 + radering \u2192 flagg-default ON efter stabilitetsf\u00f6nster",
+      "nodes": [
+        "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_smart_next_step_module",
+        "docs_handover_orders_ord_18_smart_next_step_capability_matrix_spa_port_capability_matrix_module",
+        "docs_handover_orders_ord_19_kunder_html_decommission_inventory_safe_to_delete_gate",
+        "docs_handover_orders_ord_19_kunder_html_decommission_kunder_html_decommission",
+        "docs_handover_orders_ord_20_v9_flag_default_on_v9_flag_default_on"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-19-kunder-html-decommission.md"
+    }
+  ]
+}

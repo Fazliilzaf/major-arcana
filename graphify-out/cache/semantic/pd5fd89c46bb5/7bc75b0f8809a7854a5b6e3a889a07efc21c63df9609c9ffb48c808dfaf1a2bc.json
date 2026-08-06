@@ -1,0 +1,168 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_rollout_plan_six_phase_rollout",
+      "label": "Utrullningsplan i 6 faser",
+      "file_type": "document",
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje fas har m\u00e5l, uppgifter, GO-kriterier och verifiering; n\u00e4sta fas startar f\u00f6rst n\u00e4r f\u00f6reg\u00e5ende \u00e4r GO, s\u00e5 att risk inte staplas \u00f6ver faser."
+    },
+    {
+      "id": "docs_strategy_rollout_plan_auth_go_live_gate",
+      "label": "Fas 2 \u2014 Auth/MFA go-live gate",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Skarp drift kr\u00e4ver ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false, ARCANA_AUTH_OWNER_MFA_REQUIRED=true och preflight cors_strict,owner_mfa_enforced; env-PUT f\u00f6ljs inte av direkt restart eftersom CI-heal redan k\u00f6r env-restore."
+    },
+    {
+      "id": "docs_strategy_rollout_plan_post_op_photo_flow",
+      "label": "Fas 3 \u2014 Post-op foto-/omd\u00f6mesfl\u00f6de",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Patientkanal begr\u00e4nsas medvetet till e-post via Graph (ej SMS) och r\u00e4knas som transactional touch; foto-retention 365 d utan consent / obegr\u00e4nsat med consent; Fas 2 auto-trigger utel\u00e4mnad till Q4 2026."
+    },
+    {
+      "id": "docs_strategy_rollout_plan_compliance_fas_9",
+      "label": "Fas 4 \u2014 Compliance Fas 9 (retention, GDPR, Art. 30)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_rollout_plan_booking_plan_a",
+      "label": "Plan A bokning \u2014 3 m\u00f6testyper med operat\u00f6rsbekr\u00e4ftelse",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Reservation skiljs fr\u00e5n confirm s\u00e5 att operat\u00f6r alltid bekr\u00e4ftar; avtalsgate m\u00e5ste fortsatt respekteras f\u00f6r behandlingsbokning och p\u00e5minnelser kr\u00e4ver idempotency mot dubletter."
+    },
+    {
+      "id": "docs_strategy_rollout_plan_blueprint_gates",
+      "label": "Infra deploy- och blueprint-gates",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Blueprint-sync-lag \u00e4r soft gate (varning + forts\u00e4tt) medan env-restore och readyz \u00e4r hard gate; CI checkar ut utan submoduler f\u00f6r att undvika exit 128 n\u00e4r .gitmodules saknas."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_rollout_plan_six_phase_rollout",
+      "target": "docs_strategy_rollout_plan_auth_go_live_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_rollout_plan_six_phase_rollout",
+      "target": "docs_strategy_rollout_plan_post_op_photo_flow",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_rollout_plan_six_phase_rollout",
+      "target": "docs_strategy_rollout_plan_compliance_fas_9",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_rollout_plan_six_phase_rollout",
+      "target": "docs_strategy_rollout_plan_booking_plan_a",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_rollout_plan_six_phase_rollout",
+      "target": "docs_strategy_rollout_plan_blueprint_gates",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_rollout_plan_post_op_photo_flow",
+      "target": "docs_strategy_rollout_plan_auth_go_live_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_rollout_plan_six_phase_rollout",
+      "target": "docs_strategy_arcana_master_plan_punktvis_go_no_go_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_rollout_plan_compliance_fas_9",
+      "target": "docs_strategy_arcana_master_plan_punktvis_gap_analysis",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_rollout_plan_booking_plan_a",
+      "target": "docs_strategy_arcana_five_track_parallel_plan_track_b_booking_plan_a",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ROLLOUT-PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

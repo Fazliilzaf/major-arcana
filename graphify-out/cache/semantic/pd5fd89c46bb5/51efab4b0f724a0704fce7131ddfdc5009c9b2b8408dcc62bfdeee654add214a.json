@@ -1,0 +1,80 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_runbooks_cco_booking_operator_runbook",
+      "label": "CCO Bokningsoperat\u00f6r \u2014 Runbook",
+      "file_type": "document",
+      "source_file": "docs/ops/runbooks/cco-booking-operator-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_cco_booking_operator_runbook_web_booking_filter",
+      "label": "Webb-bokningar-vyn \u2014 separat fr\u00e5n mejlk\u00f6ns Bokning-filter",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/cco-booking-operator-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_cco_booking_operator_runbook_operator_language",
+      "label": "Operat\u00f6rsordlista f\u00f6r bokningsytan (boknings\u00e4rende, handoff, svarstudio)",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/cco-booking-operator-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_runbooks_cco_booking_operator_runbook",
+      "target": "docs_ops_runbooks_cco_booking_operator_runbook_web_booking_filter",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/cco-booking-operator-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_cco_booking_operator_runbook_operator_language",
+      "target": "docs_ops_runbooks_cco_booking_operator_runbook_web_booking_filter",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/cco-booking-operator-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_cco_booking_operator_runbook_web_booking_filter",
+      "target": "docs_ops_status_web_2026_05_19_reservation_endpoint",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/runbooks/cco-booking-operator-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_cco_booking_operator_runbook_operator_language",
+      "target": "docs_ops_status_2026_05_12_operator_language_lock",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/runbooks/cco-booking-operator-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

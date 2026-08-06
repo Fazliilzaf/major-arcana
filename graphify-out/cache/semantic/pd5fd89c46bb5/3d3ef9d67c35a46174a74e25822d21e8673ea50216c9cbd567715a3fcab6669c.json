@@ -1,0 +1,284 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_mvp1_uat_rapport",
+      "label": "Chief of Finance MVP 1 - intern UAT-rapport",
+      "file_type": "document",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": "Claude",
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_uat_atta_verifikationssteg",
+      "label": "Atta verifikationssteg for MVP 1",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug1_finance_saknas_i_all_roles",
+      "label": "BUG-1 P1 - finance saknas i ALL_ROLES",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug2_audit_actor_getactor",
+      "label": "BUG-2 P2 - audit-actor last fran fel objekt, ny getActor-helper",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug3_kopplings_chips_saknas",
+      "label": "BUG-3 P2 - encounter/treatment/offer-ID renderas inte",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_regresstest_33_assertions",
+      "label": "Regresstest med 33 assertions efter fixar",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_cf_api_mountfix_prod",
+      "label": "CF API mount-fix pa prod - 404 till 403 via stub-moduler",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_mvp1_uat_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_uat_atta_verifikationssteg",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_mvp1_uat_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug1_finance_saknas_i_all_roles",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_mvp1_uat_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug2_audit_actor_getactor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_mvp1_uat_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug3_kopplings_chips_saknas",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_mvp1_uat_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_regresstest_33_assertions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_mvp1_uat_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_cf_api_mountfix_prod",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_uat_atta_verifikationssteg",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug1_finance_saknas_i_all_roles",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_uat_atta_verifikationssteg",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug2_audit_actor_getactor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_uat_atta_verifikationssteg",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug3_kopplings_chips_saknas",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_regresstest_33_assertions",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug1_finance_saknas_i_all_roles",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_regresstest_33_assertions",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug2_audit_actor_getactor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_regresstest_33_assertions",
+      "target": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug3_kopplings_chips_saknas",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_mvp1_uat_rapport",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_mvp1_rapport",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_uat_atta_verifikationssteg",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_cco_receipt_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_uat_atta_verifikationssteg",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_partialflagga_gissar_aldrig",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug1_finance_saknas_i_all_roles",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_cf_rbac_owner_finance_revisor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug2_audit_actor_getactor",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_cf_receipt_auditkinds",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug2_audit_actor_getactor",
+      "target": "docs_strategy_chief_of_finance_mvp2_expenses_2026_06_01_p2c_audit_kind_action_mismatch",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_bug3_kopplings_chips_saknas",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_finance_html",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_chief_of_finance_mvp1_uat_2026_06_01_cf_api_mountfix_prod",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_cf_receipt_routes",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CHIEF-OF-FINANCE-MVP1-UAT-2026-06-01.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

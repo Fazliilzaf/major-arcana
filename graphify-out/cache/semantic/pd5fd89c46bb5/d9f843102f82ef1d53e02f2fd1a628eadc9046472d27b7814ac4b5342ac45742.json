@@ -1,0 +1,93 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_order_template_order_protocol",
+      "label": "Arcana ORDER-mall (uppdrag \u00b7 scope \u00b7 f\u00f6rbjudet \u00b7 gates \u00b7 rapport)",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDER-TEMPLATE.md",
+      "source_location": "hela filen",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje order tvingar fram explicit scope och f\u00f6rbudslista s\u00e5 att agenter inte breddar sig utanf\u00f6r best\u00e4llningen."
+    },
+    {
+      "id": "docs_handover_order_template_kundkort_ux_gate",
+      "label": "Kundkort-UX-gate: tre fr\u00e5gor + PR-checklista",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDER-TEMPLATE.md",
+      "source_location": "Kundkort UX (obligatoriskt)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Visuell f\u00f6rebild, vy-niv\u00e5 och CTA-landning m\u00e5ste fyllas i innan kod skrivs, s\u00e5 nytt kundkorts-UI inte driver is\u00e4r fr\u00e5n facit."
+    },
+    {
+      "id": "docs_handover_order_template_gates_pipeline",
+      "label": "Standard gate-pipeline (check:syntax \u00b7 lint:no-bypass \u00b7 test:unit \u00b7 verify-v11-paritet)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDER-TEMPLATE.md",
+      "source_location": "Gates",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Samma gate-upps\u00e4ttning i alla orders ger j\u00e4mf\u00f6rbar PASS/FAIL-rapportering \u00f6ver tid."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_order_template_order_protocol",
+      "target": "docs_handover_order_template_kundkort_ux_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDER-TEMPLATE.md",
+      "source_location": "Kundkort UX",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_order_template_order_protocol",
+      "target": "docs_handover_order_template_gates_pipeline",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDER-TEMPLATE.md",
+      "source_location": "Gates",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_order_template_kundkort_ux_gate",
+      "target": "docs_handover_ord_25e_p0_referens_facit_ord47_referens_facit",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDER-TEMPLATE.md",
+      "source_location": "Facit: ORD-47 referens",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_order_template_order_protocol",
+      "target": "docs_handover_ord_25e_p0_referens_facit_switchdetailtab_forbud",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDER-TEMPLATE.md",
+      "source_location": "F\u00f6rbjudet (r\u00f6rs ej)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_order_template_gates_pipeline",
+      "target": "docs_handover_orders_ord_25_kundkort_v11_port_v11_cutover_flag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDER-TEMPLATE.md",
+      "source_location": "verify-v11-paritet.js i gates",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,102 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_audit",
+      "label": "ORD-15 Claude-audit \u2014 Preview-SPA \u2192 V9-portering",
+      "file_type": "document",
+      "source_file": "docs/strategy/ORD-15-CLAUDE-AUDIT-SPA-V9-PORT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": "Claude",
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_render_stack_lit_html_claim",
+      "label": "P\u00e5st\u00e5ende: kundvyn renderas med lit-html",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-15-CLAUDE-AUDIT-SPA-V9-PORT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_porting_principle",
+      "label": "Porteringsprincip: beh\u00e5ll logik, skriv om templates",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-15-CLAUDE-AUDIT-SPA-V9-PORT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_open_questions",
+      "label": "Sex \u00f6ppna owner-fr\u00e5gor f\u00f6re kod",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-15-CLAUDE-AUDIT-SPA-V9-PORT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_patient_master_ui",
+      "label": "patient-master-ui.js som render-k\u00e4rna",
+      "file_type": "concept",
+      "source_file": "docs/strategy/ORD-15-CLAUDE-AUDIT-SPA-V9-PORT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_audit",
+      "target": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_render_stack_lit_html_claim",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-15-CLAUDE-AUDIT-SPA-V9-PORT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_audit",
+      "target": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_porting_principle",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-15-CLAUDE-AUDIT-SPA-V9-PORT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_audit",
+      "target": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_open_questions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-15-CLAUDE-AUDIT-SPA-V9-PORT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_audit",
+      "target": "docs_strategy_ord_15_claude_audit_spa_v9_port_2026_06_04_patient_master_ui",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/ORD-15-CLAUDE-AUDIT-SPA-V9-PORT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

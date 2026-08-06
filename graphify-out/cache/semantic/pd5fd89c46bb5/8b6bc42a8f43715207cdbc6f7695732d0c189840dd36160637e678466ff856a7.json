@@ -1,0 +1,174 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_no_show_ai_v3_page",
+      "label": "CCO No-show prediction (AI Coach)",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_no_show_ai_v3_model_spec",
+      "label": "Modell-spec: logistisk regression med L2, 12 features, AUC 0.84, veckovis \u00e5tertr\u00e4ning",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_no_show_ai_v3_shap_explainability",
+      "label": "SHAP-baserad f\u00f6rklarbarhet per prediktion",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_no_show_ai_v3_synthetic_data_warning",
+      "label": "Varning: demonstrationsdata \u2014 kr\u00e4ver tr\u00e4ning p\u00e5 18 m\u00e5n faktisk bokningshistorik f\u00f6re skarp anv\u00e4ndning",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_no_show_ai_v3_suggest_not_send",
+      "label": "Modellen f\u00f6resl\u00e5r \u00e5tg\u00e4rder men skickar inget automatiskt",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_no_show_ai_v3_rescue_economics",
+      "label": "R\u00e4ddningsekonomi \u2014 sparad int\u00e4kt per r\u00e4ddad h\u00f6griskbokning",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_no_show_ai_v3_context_handoff",
+      "label": "Kontext-\u00f6verl\u00e4mning fr\u00e5n konversationsvy via URL-parametrar",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_konversationer_v3_thread_context_panel",
+      "target": "public_major_arcana_preview_cco_no_show_ai_v3_context_handoff",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_no_show_ai_v3_page",
+      "target": "public_major_arcana_preview_cco_no_show_ai_v3_model_spec",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_no_show_ai_v3_model_spec",
+      "target": "public_major_arcana_preview_cco_no_show_ai_v3_shap_explainability",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_no_show_ai_v3_synthetic_data_warning",
+      "target": "public_major_arcana_preview_cco_no_show_ai_v3_model_spec",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_no_show_ai_v3_page",
+      "target": "public_major_arcana_preview_cco_no_show_ai_v3_suggest_not_send",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_no_show_ai_v3_page",
+      "target": "public_major_arcana_preview_cco_no_show_ai_v3_rescue_economics",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_no_show_ai_v3_page",
+      "target": "public_major_arcana_preview_cco_no_show_ai_v3_context_handoff",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_no_show_ai_v3_model_spec",
+      "target": "public_major_arcana_preview_cco_no_show_v3_risk_threshold",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_no_show_ai_v3_rescue_economics",
+      "target": "public_major_arcana_preview_cco_no_show_v3_lost_revenue_tracking",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,48 @@
+{
+  "nodes": [
+    {
+      "id": "docs_archives_input_manifest_2026_02_26_input_manifest",
+      "label": "Input-manifest med k\u00e4llv\u00e4g och checksumma f\u00f6r sp\u00e5rbarhet",
+      "file_type": "document",
+      "source_file": "docs/archives/input/manifest-2026-02-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-02-26T02:49:00Z",
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_archives_input_arcana_mal_original_2026_02_25_archived_copy",
+      "target": "docs_archives_2026_02_25_reality_audit_baseline_arcana_mal_original_raw_filename_archived_copy",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/archives/input/manifest-2026-02-26.md",
+      "source_location": "SHA256 identisk",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_archives_input_manifest_2026_02_26_input_manifest",
+      "target": "docs_archives_input_arcana_mal_original_2026_02_25_archived_copy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/archives/input/manifest-2026-02-26.md",
+      "source_location": "Archived copy",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_archives_input_manifest_2026_02_26_input_manifest",
+      "target": "docs_archives_2026_02_25_reality_audit_baseline_context_snapshot_integrity_fingerprint",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/archives/input/manifest-2026-02-26.md",
+      "source_location": "SHA256",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

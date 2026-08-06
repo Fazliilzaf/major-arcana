@@ -1,0 +1,101 @@
+{
+  "nodes": [
+    {
+      "id": "organisation_single_source_of_truth",
+      "label": "Git-repot som enda gemensamma sanningsk\u00e4lla",
+      "file_type": "concept",
+      "source_file": "ORGANISATION.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "organisation_no_icloud_build_rule",
+      "label": "Bygg-regel: aldrig fr\u00e5n iCloud, endast fr\u00e5n GitHub-repot",
+      "file_type": "concept",
+      "source_file": "ORGANISATION.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "organisation_agent_roles",
+      "label": "Agent-rollmodell (Codex leder \u00b7 Cloud Code bygger \u00b7 Cursor kontrollerar)",
+      "file_type": "concept",
+      "source_file": "ORGANISATION.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "organisation_server_js_refactor_plan",
+      "label": "server.js monolit-refaktorplan (frys \u2192 karakt\u00e4risera \u2192 dom\u00e4n f\u00f6r dom\u00e4n)",
+      "file_type": "concept",
+      "source_file": "ORGANISATION.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "organisation_single_source_of_truth",
+      "target": "organisation_no_icloud_build_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ORGANISATION.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "organisation_single_source_of_truth",
+      "target": "organisation_agent_roles",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ORGANISATION.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "organisation_single_source_of_truth",
+      "target": "local_preview_offline_preview",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "ORGANISATION.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "organisation_server_js_refactor_plan",
+      "target": "docs_agent_koordinering_hot_shared_files",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "ORGANISATION.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "organisation_agent_roles",
+      "target": "docs_agent_koordinering_multi_agent_protocol",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "ORGANISATION.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

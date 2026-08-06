@@ -1,0 +1,161 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_patient_offer_portal_v3_page",
+      "label": "Patientportal \u00b7 Din plan (v3)",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_patient_offer_portal_v3_staff_preview_mode",
+      "label": "Personal-f\u00f6rhandsgranskning av kundportal",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Preview registrerar ingen kund\u00f6ppning och l\u00e4nken f\u00e5r inte skickas till kund, s\u00e5 att audit-sp\u00e5ret f\u00f6r 'kunden har l\u00e4st' inte f\u00f6rorenas av intern granskning."
+    },
+    {
+      "id": "public_major_arcana_preview_cco_patient_offer_portal_v3_bankid_signing",
+      "label": "Signering med Mobilt BankID i patientportal",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_patient_offer_portal_v3_stage_unlocking",
+      "label": "Stegvis uppl\u00e5sning av portalinneh\u00e5ll",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "F\u00f6rberedelseguide, efterv\u00e5rd och bilduppf\u00f6ljning l\u00e5ses upp f\u00f6rst efter signering respektive efter behandling; portalen guidar men personal granskar alltid uppf\u00f6ljningar innan journal eller beslut uppdateras, och inget journalinneh\u00e5ll skapas automatiskt fr\u00e5n portalen."
+    },
+    {
+      "id": "public_major_arcana_preview_cco_patient_offer_portal_v3_growth_timeline",
+      "label": "F\u00f6rv\u00e4ntad h\u00e5rv\u00e4xt m\u00e5nad 1\u201312",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Chockfall, vilofas och synlig tillv\u00e4xt visualiseras i f\u00f6rv\u00e4g f\u00f6r att normalisera m\u00e5nad 1\u20132 och minska oros-kontakter till kliniken."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_patient_offer_portal_v2_page",
+      "target": "public_major_arcana_preview_cco_patient_offer_portal_v3_page",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_patient_offer_portal_v3_page",
+      "target": "public_major_arcana_preview_cco_patient_offer_portal_v3_staff_preview_mode",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_patient_offer_portal_v3_page",
+      "target": "public_major_arcana_preview_cco_patient_offer_portal_v3_bankid_signing",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_patient_offer_portal_v3_page",
+      "target": "public_major_arcana_preview_cco_patient_offer_portal_v3_stage_unlocking",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_patient_offer_portal_v3_page",
+      "target": "public_major_arcana_preview_cco_patient_offer_portal_v3_growth_timeline",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_patient_offer_portal_v3_page",
+      "target": "public_major_arcana_preview_cco_patient_offer_portal_v2_betanketid_distansavtalslagen",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_patient_offer_portal_v3_stage_unlocking",
+      "target": "public_major_arcana_preview_cco_patient_offer_portal_v1_journey_gates",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_patient_offer_portal_v3_bankid_signing",
+      "target": "public_major_arcana_preview_cco_signaturer_v3_bankid_signature_requests",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "patient_offer_consent_journey",
+      "label": "Patientens offert- och samtyckesresa med sp\u00e4rrar",
+      "nodes": [
+        "public_major_arcana_preview_cco_patient_offer_portal_v1_journey_gates",
+        "public_major_arcana_preview_cco_patient_offer_portal_v2_betanketid_distansavtalslagen",
+        "public_major_arcana_preview_cco_patient_offer_portal_v3_stage_unlocking",
+        "public_major_arcana_preview_cco_patient_offer_portal_v3_bankid_signing",
+        "public_major_arcana_preview_cco_patient_portal_v3_consent_forms"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v3.html"
+    }
+  ]
+}

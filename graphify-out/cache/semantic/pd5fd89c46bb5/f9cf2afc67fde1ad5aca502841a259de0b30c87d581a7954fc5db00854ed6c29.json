@@ -1,0 +1,99 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v12_workspace_active_visit_fixture",
+      "label": "V12 Workspace Block 2 \u00b7 Aktivt bes\u00f6k",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v12-workspace-active-visit.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_active_visit_hero_module",
+      "label": "V12 Aktivt bes\u00f6k-hero-modul",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-active-visit.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v12_workspace_active_visit_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_journal_workspace_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-active-visit.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_active_visit_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_journal_workspace_adapters",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-active-visit.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_active_visit_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-active-visit.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_active_visit_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_active_visit_hero_module",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-active-visit.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_active_visit_hero_module",
+      "target": "tests_visual_fixtures_v11_rail_block4_active_visit_section",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-active-visit.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_active_visit_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_journal_two_zone_shell",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-active-visit.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_active_visit_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_journal_journal_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-active-visit.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

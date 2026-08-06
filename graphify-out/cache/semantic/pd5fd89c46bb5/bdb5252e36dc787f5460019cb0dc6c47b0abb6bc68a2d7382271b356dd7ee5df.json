@@ -1,0 +1,158 @@
+{
+  "nodes": [
+    {
+      "id": "uploads_v9_intel_bubbles_verify",
+      "label": "v9 intel bubbles \u2014 verifieringssk\u00e4rmdump",
+      "file_type": "image",
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "uploads_v9_intel_bubbles_verify_intel_bubbles",
+      "label": "Intel bubbles \u2014 dokumentgenv\u00e4gar i konsultationen",
+      "file_type": "concept",
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "uploads_v9_intel_bubbles_verify_oversikt_tab",
+      "label": "\u00d6versikt-flik i klientvyn",
+      "file_type": "concept",
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "uploads_v9_intel_bubbles_verify_client_tab_bar",
+      "label": "Flikrad: \u00d6versikt, Profil, Journal, Bokningar, Filer, Ekonomi, Anteckningar",
+      "file_type": "concept",
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "uploads_v9_intel_bubbles_verify_halsodeklaration_gate",
+      "label": "H\u00e4lsodeklaration m\u00e5ste signeras f\u00f6re behandlingsplan",
+      "file_type": "concept",
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "uploads_v9_intel_bubbles_verify_pipedrive_link",
+      "label": "Pipedrive-kopplad status p\u00e5 klientkortet",
+      "file_type": "concept",
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "uploads_v9_intel_bubbles_verify",
+      "target": "uploads_v9_intel_bubbles_verify_intel_bubbles",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_v9_intel_bubbles_verify",
+      "target": "uploads_v9_intel_bubbles_verify_oversikt_tab",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_v9_intel_bubbles_verify_oversikt_tab",
+      "target": "uploads_v9_intel_bubbles_verify_client_tab_bar",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_v9_intel_bubbles_verify_intel_bubbles",
+      "target": "uploads_v9_intel_bubbles_verify_halsodeklaration_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_v9_intel_bubbles_verify_intel_bubbles",
+      "target": "uploads_v9_intel_bubbles_verify_oversikt_tab",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_v9_intel_bubbles_verify",
+      "target": "uploads_v9_intel_bubbles_verify_pipedrive_link",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_v9_intel_bubbles_verify_pipedrive_link",
+      "target": "uploads_v9_intel_bubbles_verify_client_tab_bar",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "uploads/v9-intel-bubbles-verify.png",
+      "source_location": null,
+      "weight": 0.6
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "klientoversikt_dokumentflode",
+      "label": "Klient\u00f6versikt: flikrad, intel bubbles och h\u00e4lsodeklarations-sp\u00e4rr",
+      "nodes": [
+        "uploads_v9_intel_bubbles_verify_client_tab_bar",
+        "uploads_v9_intel_bubbles_verify_oversikt_tab",
+        "uploads_v9_intel_bubbles_verify_intel_bubbles",
+        "uploads_v9_intel_bubbles_verify_halsodeklaration_gate"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/v9-intel-bubbles-verify.png"
+    }
+  ]
+}

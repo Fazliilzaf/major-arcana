@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_wiring_backlog_doc",
+      "label": "Wiring-backlog \u2014 scaffolds som v\u00e4ntar p\u00e5 inkoppling",
+      "file_type": "document",
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_wiring_backlog_ko1_kommersiella_mail",
+      "label": "K\u00f6 1 \u2014 kommersiella mail (bokningsbekr\u00e4ftelse/offert/behandlingsplan)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": "K\u00f6 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_wiring_backlog_ko2_curatiio_brandseparation",
+      "label": "K\u00f6 2 \u2014 Curatiio brand-separation i booking-engine",
+      "file_type": "concept",
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": "K\u00f6 2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_wiring_backlog_ko3_drive_backfill",
+      "label": "K\u00f6 3 \u2014 Drive close: audit + backfill av driveFileId",
+      "file_type": "concept",
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": "K\u00f6 3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_wiring_backlog_processgate",
+      "label": "Wiring-process: en k\u00f6 \u00e5t g\u00e5ngen + syntax/lint/unit-gate",
+      "file_type": "concept",
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": "Process",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_wiring_backlog_doc",
+      "target": "docs_strategy_wiring_backlog_ko1_kommersiella_mail",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": "K\u00f6 1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_wiring_backlog_doc",
+      "target": "docs_strategy_wiring_backlog_ko2_curatiio_brandseparation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": "K\u00f6 2",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_wiring_backlog_doc",
+      "target": "docs_strategy_wiring_backlog_ko3_drive_backfill",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": "K\u00f6 3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_wiring_backlog_processgate",
+      "target": "docs_strategy_wiring_backlog_ko1_kommersiella_mail",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": "Process",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_wiring_backlog_ko2_curatiio_brandseparation",
+      "target": "docs_strategy_web_to_arcana_bridge_publik_katalog_plan_a",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": "publicBookingEngine brand-filter",
+      "weight": 0.85
+    },
+    {
+      "source": "docs_strategy_wiring_backlog_ko2_curatiio_brandseparation",
+      "target": "prompts_curatiio_system_doc",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": null,
+      "weight": 0.75
+    },
+    {
+      "source": "docs_strategy_wiring_backlog_ko1_kommersiella_mail",
+      "target": "docs_strategy_u4_post_op_decisions_graph_email_kanal",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/wiring-backlog.md",
+      "source_location": "Resend \u2192 Graph fallback",
+      "weight": 0.75
+    }
+  ],
+  "hyperedges": []
+}

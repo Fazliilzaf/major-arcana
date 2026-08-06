@@ -1,0 +1,50 @@
+{
+  "nodes": [
+    {
+      "id": "docs_implementation_patient_documents_live_d_section_owner_workshop_registry_mapping_2026_06_25_mapping",
+      "label": "Sektion D \u2014 registry-mapping med alternativ A/B/C per grupp",
+      "file_type": "document",
+      "source_file": "docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-REGISTRY-MAPPING-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_implementation_patient_documents_live_d_section_owner_workshop_registry_mapping_2026_06_25_empty_lettertext_blocker",
+      "label": "Tom letterText i 19/39 Meridiq-avtal blockerar Curatiio-cutover",
+      "file_type": "concept",
+      "source_file": "docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-REGISTRY-MAPPING-2026-06-25.md",
+      "source_location": "Hair TP cutover",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Inget dokument f\u00e5r g\u00e5 LIVE i CCO med tom juridisk kropp \u2014 Nordbro/Insatt-PDF m\u00e5ste importeras f\u00f6rst."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_implementation_patient_documents_live_d_section_owner_workshop_registry_mapping_2026_06_25_empty_lettertext_blocker",
+      "target": "docs_implementation_patient_documents_live_d_section_owner_decision_2026_06_25_curatiio_brand_gate",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-REGISTRY-MAPPING-2026-06-25.md",
+      "source_location": "Hair TP cutover",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_d_section_owner_workshop_registry_mapping_2026_06_25_empty_lettertext_blocker",
+      "target": "docs_implementation_patient_documents_live_readme_no_invented_text",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "docs/implementation/patient-documents-live/D-SECTION-OWNER-WORKSHOP-REGISTRY-MAPPING-2026-06-25.md",
+      "source_location": "Beslutsregler",
+      "weight": 0.8
+    }
+  ],
+  "hyperedges": []
+}

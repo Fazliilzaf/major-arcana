@@ -1,0 +1,403 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_v3_ytstrategi",
+      "label": "CCO v3 - ytstrategi, logik och funktion",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_informationsarkitektur",
+      "label": "Informationsarkitektur - sju funktionsomraden A-G",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_navigationsstrategi",
+      "label": "Navigationsstrategi - bottom-nav, kommandopalett, console-ytor",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Bara de fem mest anvanda destinationerna far plats i bottom-naven; ovriga operativa ytor nas via kommandopalett sa arbetsflodet inte bryts."
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_yta_inventering_42",
+      "label": "Inventering av 42 byggda v3-ytor",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_gap_macros_text_expansion",
+      "label": "Gap: Macros (text-expansion) i svarstudio",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_gap_later_sent_utskicksko",
+      "label": "Gap: Later & Sent - schemalagd utskicksk\u043e",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_konsolidering_och_stadning",
+      "label": "Konsolidering och stadning av superseded dubbletter",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_data_kopplingsplan",
+      "label": "Data-kopplingsplan per omrade mot riktiga endpoints",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_journal_skydd_ai_aldrig_autoskriv",
+      "label": "Journal-skydd: AI far aldrig auto-skriva",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Allt AI-genererat forblir draft tills en manniska signerar, sa att ingen maskin kan skapa en last klinisk sanning."
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_send_gate_dry_run",
+      "label": "Send-gate: dry-run tills compliance-bekraftelse",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje utskick audit-loggas och korsi dry-run tills flaggan slas av, sa att felkonfigurerad automation inte kan na patienter."
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_rbac_rollgating_ytor",
+      "label": "RBAC-rollgating av finans-, admin- och patientytor",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_faseplan_0_till_4",
+      "label": "Faseplan fas 0-4 (stadning, design, index, datakoppling, cutover)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_v3_surface_strategy_2026_06_26_beslutspunkter_owner",
+      "label": "Beslutspunkter som kraver owner-beslut",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_v3_ytstrategi",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_informationsarkitektur",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_v3_ytstrategi",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_yta_inventering_42",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_v3_ytstrategi",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_gap_macros_text_expansion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_v3_ytstrategi",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_gap_later_sent_utskicksko",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_v3_ytstrategi",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_konsolidering_och_stadning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_v3_ytstrategi",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_data_kopplingsplan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_v3_ytstrategi",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_faseplan_0_till_4",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_v3_ytstrategi",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_beslutspunkter_owner",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_informationsarkitektur",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_navigationsstrategi",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_yta_inventering_42",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_informationsarkitektur",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_data_kopplingsplan",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_journal_skydd_ai_aldrig_autoskriv",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_data_kopplingsplan",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_send_gate_dry_run",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_data_kopplingsplan",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_rbac_rollgating_ytor",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_faseplan_0_till_4",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_konsolidering_och_stadning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_faseplan_0_till_4",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_data_kopplingsplan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_beslutspunkter_owner",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_gap_macros_text_expansion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_beslutspunkter_owner",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_gap_later_sent_utskicksko",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_beslutspunkter_owner",
+      "target": "docs_strategy_cco_v3_surface_strategy_2026_06_26_konsolidering_och_stadning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_journal_skydd_ai_aldrig_autoskriv",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_extern_ai_forbud",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_journal_skydd_ai_aldrig_autoskriv",
+      "target": "docs_strategy_cco_unified_system_plan_signeringskedja",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_yta_inventering_42",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sjutton_staff_sidor",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_yta_inventering_42",
+      "target": "docs_strategy_chief_of_finance_mvp7_accountant_portal_2026_06_01_finance_review_html",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_yta_inventering_42",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_finance_html",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_yta_inventering_42",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_pre_signering_check",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_v3_surface_strategy_2026_06_26_rbac_rollgating_ytor",
+      "target": "docs_strategy_chief_of_finance_mvp1_2026_06_01_cf_rbac_owner_finance_revisor",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-V3-SURFACE-STRATEGY-2026-06-26.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

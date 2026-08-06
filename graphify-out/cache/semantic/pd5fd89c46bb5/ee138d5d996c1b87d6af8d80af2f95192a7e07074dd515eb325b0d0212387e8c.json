@@ -1,0 +1,59 @@
+{
+  "nodes": [
+    {
+      "id": "public_assets_major_arcana_mark_fallback_file",
+      "label": "major-arcana-mark-fallback.png",
+      "file_type": "image",
+      "source_file": "public/assets/major-arcana-mark-fallback.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_assets_major_arcana_mark_fallback_ma_monogram",
+      "label": "MA-monogram i serif-versaler",
+      "file_type": "concept",
+      "source_file": "public/assets/major-arcana-mark-fallback.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_assets_major_arcana_mark_fallback_file",
+      "target": "public_assets_major_arcana_mark_final_brand_mark",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/assets/major-arcana-mark-fallback.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_assets_major_arcana_mark_final_brand_mark",
+      "target": "public_assets_major_arcana_mark_fallback_ma_monogram",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/assets/major-arcana-mark-fallback.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_assets_major_arcana_mark_fallback_file",
+      "target": "public_assets_major_arcana_mark_img0182_file",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/assets/major-arcana-mark-fallback.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

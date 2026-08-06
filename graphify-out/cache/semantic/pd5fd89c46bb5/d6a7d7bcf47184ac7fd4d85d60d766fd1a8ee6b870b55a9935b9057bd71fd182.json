@@ -1,0 +1,264 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_journal_cutover_audit_2026_05_30_doc",
+      "label": "Journal Cutover Audit (P0.1, read-only)",
+      "file_type": "document",
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_journal_cutover_audit_2026_05_30_blocker_catalog",
+      "label": "Blockerkatalog \u2014 16 hinder f\u00f6re utfasning",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_journal_cutover_audit_2026_05_30_p0_sequence",
+      "label": "Rekommenderad cutover-ordning P0.2 \u2192 P0.10",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_journal_cutover_audit_2026_05_30_identity_uncertainty",
+      "label": "1 103 os\u00e4kra identiteter till Migration Review Queue",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_journal_cutover_audit_2026_05_30_no_auto_merge",
+      "label": "Ingen auto-merge av patientidentiteter",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Felaktig sammanslagning av tv\u00e5 patienter \u00e4r en patients\u00e4kerhetsrisk och bryter tio\u00e5rsretentionen p\u00e5 fel journal, d\u00e4rf\u00f6r m\u00e5ste varje os\u00e4ker match granskas manuellt."
+    },
+    {
+      "id": "docs_strategy_journal_cutover_audit_2026_05_30_pnr_coverage_risk",
+      "label": "Personnummer-t\u00e4ckning n\u00e4ra noll \u2014 PDL-identifieringsrisk",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_journal_cutover_audit_2026_05_30_legacy_tenant_quarantine",
+      "label": "Legacy-tenant med syntetisk demodata satt i karant\u00e4n",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Tenanten visade sig vara 100 % demodata utan \u00f6verlapp mot skarp tenant; den bevaras med drainedAt-flagga i st\u00e4llet f\u00f6r att raderas s\u00e5 att historiken g\u00e5r att sp\u00e5ra."
+    },
+    {
+      "id": "docs_strategy_journal_cutover_audit_2026_05_30_tp_parity_false_positive",
+      "label": "TP-journalparitet 52/52 \u2014 tidigare gap var false positive",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Differensen mot det uppfattade 59-f\u00e4ltskravet f\u00f6rklaras av sektionsseparatorer i k\u00e4llsystemet plus interna bekv\u00e4mlighetsf\u00e4lt, inte av saknade journalf\u00e4lt."
+    },
+    {
+      "id": "docs_strategy_journal_cutover_audit_2026_05_30_auto_pdf_at_signing",
+      "label": "Auto-PDF och tamper-hash m\u00e5ste triggas i sign-fl\u00f6det",
+      "file_type": "concept",
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_doc",
+      "target": "docs_strategy_journal_cutover_audit_2026_05_30_blocker_catalog",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_doc",
+      "target": "docs_strategy_journal_cutover_audit_2026_05_30_p0_sequence",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_blocker_catalog",
+      "target": "docs_strategy_journal_cutover_audit_2026_05_30_identity_uncertainty",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_identity_uncertainty",
+      "target": "docs_strategy_journal_cutover_audit_2026_05_30_no_auto_merge",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_blocker_catalog",
+      "target": "docs_strategy_journal_cutover_audit_2026_05_30_pnr_coverage_risk",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_blocker_catalog",
+      "target": "docs_strategy_journal_cutover_audit_2026_05_30_legacy_tenant_quarantine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_blocker_catalog",
+      "target": "docs_strategy_journal_cutover_audit_2026_05_30_tp_parity_false_positive",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_blocker_catalog",
+      "target": "docs_strategy_journal_cutover_audit_2026_05_30_auto_pdf_at_signing",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_auto_pdf_at_signing",
+      "target": "docs_strategy_journal_datamodell_immutability_signing",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_doc",
+      "target": "docs_strategy_meridiq_dedup_report_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_doc",
+      "target": "docs_strategy_drive_inventory_report_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_doc",
+      "target": "docs_strategy_meridiq_cco_gap_analysis_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_p0_sequence",
+      "target": "docs_strategy_cutover_readiness_report_2026_05_30_dod_10",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_journal_cutover_audit_2026_05_30_pnr_coverage_risk",
+      "target": "docs_strategy_meridiq_dedup_report_2026_05_30_pnr_gap_finding",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "identity_review_chain",
+      "label": "Identitetskedja: dedup-matchning \u2192 os\u00e4kra identiteter \u2192 ingen auto-merge \u2192 manuell review-k\u00f6",
+      "nodes": [
+        "docs_strategy_meridiq_dedup_report_2026_05_30_match_results",
+        "docs_strategy_journal_cutover_audit_2026_05_30_identity_uncertainty",
+        "docs_strategy_journal_cutover_audit_2026_05_30_no_auto_merge",
+        "docs_strategy_journal_cutover_status_2026_06_25_import_review_queue"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md"
+    }
+  ]
+}

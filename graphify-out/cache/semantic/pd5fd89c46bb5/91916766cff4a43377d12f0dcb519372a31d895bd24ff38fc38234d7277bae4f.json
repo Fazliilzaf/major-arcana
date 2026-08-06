@@ -1,0 +1,404 @@
+{
+  "nodes": [
+    {
+      "id": "agents_agents_guide",
+      "label": "AGENTS.md \u2014 arbetsregler f\u00f6r Arcana/CCO",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_ask_mode",
+      "label": "ASK MODE output contract (Scope/Plan/Files/Risks/GO-NO_GO)",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_code_mode",
+      "label": "CODE MODE output contract",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_inventory_before_new_build",
+      "label": "Inventory before new build (obligatorisk gap-only rule)",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_preservation_rule",
+      "label": "Preservation rule (/cco-next baseline is additive-only)",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_working_copy_no_folder_forks",
+      "label": "Working-copy rule: no folder forks, use git worktree",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_completion_rule",
+      "label": "Completion rule (no partial progress on first-page work)",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_major_arcana_overlay_spec",
+      "label": "CCO Major Arcana Overlay Spec",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_major_arcana_tokens",
+      "label": "Major Arcana design tokens (spacing, typografi, radius, surface, shadow)",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_cco_mail_client_skeleton_lock",
+      "label": "CCO Mail-Client Skeleton Lock",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_cco_shell_delivery_addendum",
+      "label": "CCO Shell Delivery Addendum",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_validation_commands",
+      "label": "Validation commands (check:syntax, lint:no-bypass, test:unit, smoke:local)",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_prod_verify_before_user",
+      "label": "Prod-verify before user test (mandatory)",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_legal_compliance_rule",
+      "label": "Legal & compliance rule (docs/legal \u00e4r godk\u00e4nt, inte utkast)",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_arcana_runtime_env",
+      "label": "Arcana runtime (Node >=20 <23 + Express 5 monolit, JSON-state i ./data)",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_mobile_shell_breakpoint",
+      "label": "Mobile shell breakpoint (max-width 1023px, MQ-konstant i sync)",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_model_reasoning_budget",
+      "label": "Model and reasoning budget policy",
+      "file_type": "concept",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_ask_mode",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_code_mode",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_inventory_before_new_build",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_preservation_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_working_copy_no_folder_forks",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_completion_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_major_arcana_overlay_spec",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_cco_mail_client_skeleton_lock",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_validation_commands",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_prod_verify_before_user",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_legal_compliance_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_arcana_runtime_env",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_mobile_shell_breakpoint",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents_guide",
+      "target": "agents_model_reasoning_budget",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_major_arcana_overlay_spec",
+      "target": "agents_major_arcana_tokens",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_cco_shell_delivery_addendum",
+      "target": "agents_cco_mail_client_skeleton_lock",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_cco_shell_delivery_addendum",
+      "target": "agents_major_arcana_tokens",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_arcana_runtime_env",
+      "target": "_github_workflows_deploy_cloud_safe_readyz_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_prod_verify_before_user",
+      "target": "_github_workflows_post_deploy_prod_heal_workflow",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_validation_commands",
+      "target": "_github_workflows_ci_no_bypass_lint",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_mobile_shell_breakpoint",
+      "target": "_github_workflows_deploy_cloud_safe_mobile_journal_smoke",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.55,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

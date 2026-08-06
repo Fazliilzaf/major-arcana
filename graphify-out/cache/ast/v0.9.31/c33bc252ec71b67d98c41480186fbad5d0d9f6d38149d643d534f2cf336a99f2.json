@@ -1,0 +1,96 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_verify_render_blueprint_link_sh",
+      "label": "verify-render-blueprint-link.sh",
+      "file_type": "code",
+      "source_file": "scripts/verify-render-blueprint-link.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_verify_render_blueprint_link_sh__entry",
+      "label": "verify-render-blueprint-link.sh script",
+      "file_type": "code",
+      "source_file": "scripts/verify-render-blueprint-link.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    },
+    {
+      "id": "$graphify-root$_scripts_verify_render_blueprint_link_fail",
+      "label": "fail()",
+      "file_type": "code",
+      "source_file": "scripts/verify-render-blueprint-link.sh",
+      "source_location": "L11",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_verify_render_blueprint_link_sh",
+      "target": "$graphify-root$_scripts_verify_render_blueprint_link_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/verify-render-blueprint-link.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_verify_render_blueprint_link_sh",
+      "target": "$graphify-root$_scripts_verify_render_blueprint_link_fail",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/verify-render-blueprint-link.sh",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_verify_render_blueprint_link_sh__entry",
+      "target": "$graphify-root$_scripts_verify_render_blueprint_link_fail",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/verify-render-blueprint-link.sh",
+      "source_location": "L16",
+      "weight": 1.0,
+      "context": "call"
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_scripts_verify_render_blueprint_link_sh__entry",
+      "source_file": "scripts/verify-render-blueprint-link.sh",
+      "source_location": "L3"
+    },
+    {
+      "language": "bash",
+      "callee": "read",
+      "caller_nid": "$graphify-root$_scripts_verify_render_blueprint_link_sh__entry",
+      "source_file": "scripts/verify-render-blueprint-link.sh",
+      "source_location": "L43"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_verify_render_blueprint_link_sh__entry",
+      "source_file": "scripts/verify-render-blueprint-link.sh",
+      "source_location": "L46"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_verify_render_blueprint_link_fail",
+      "source_file": "scripts/verify-render-blueprint-link.sh",
+      "source_location": "L11"
+    },
+    {
+      "language": "bash",
+      "callee": "exit",
+      "caller_nid": "$graphify-root$_scripts_verify_render_blueprint_link_fail",
+      "source_file": "scripts/verify-render-blueprint-link.sh",
+      "source_location": "L11"
+    }
+  ],
+  "bash_sources": []
+}

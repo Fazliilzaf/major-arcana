@@ -1,0 +1,79 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg6_auto_betanketid_final_demo_betanketid",
+      "label": "Steg 6 \u2014 Bet\u00e4nketid enligt lag (minst tv\u00e5 dagar)",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg6-auto-betanketid-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg6_auto_betanketid_final_demo_angerfrist",
+      "label": "\u00c5ngerfrist 14 dagar och samtycke till p\u00e5b\u00f6rjad behandling (lag 2005:59)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg6-auto-betanketid-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg6_auto_betanketid_final_demo_betanketid",
+      "target": "public_major_arcana_preview_staff_anteckningar_kort_final_demo_content_bundle",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg6-auto-betanketid-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg6_auto_betanketid_final_demo_betanketid",
+      "target": "public_major_arcana_preview_steg2_auto_bokningsbekraftelse_final_demo_info_document_shell",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg6-auto-betanketid-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg6_auto_betanketid_final_demo_betanketid",
+      "target": "public_major_arcana_preview_steg6_auto_betanketid_final_demo_angerfrist",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg6-auto-betanketid-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg6_auto_betanketid_final_demo_betanketid",
+      "target": "public_major_arcana_preview_steg2_auto_bokningsbekraftelse_final_demo_nio_stegs_patientresa",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg6-auto-betanketid-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg6_auto_betanketid_final_demo_angerfrist",
+      "target": "public_major_arcana_preview_steg5_offert_tp_final_demo_offertklausul",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/major-arcana-preview/steg6-auto-betanketid-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

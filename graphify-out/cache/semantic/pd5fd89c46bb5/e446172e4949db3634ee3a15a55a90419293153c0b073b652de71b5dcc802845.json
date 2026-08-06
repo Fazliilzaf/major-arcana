@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": "public_gouraloto_proposal_current_based_v1_proposal",
+      "label": "Goura Loto \u00b7 production-style evolution av nuvarande sajt",
+      "file_type": "document",
+      "source_file": "public/gouraloto-proposal/current-based-v1.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_gouraloto_proposal_current_based_v1_color_option_a",
+      "label": "F\u00e4rgsystem Option A \u00b7 beh\u00e5ll varum\u00e4rkesigenk\u00e4nning, addera st\u00f6df\u00e4rg",
+      "file_type": "concept",
+      "source_file": "public/gouraloto-proposal/current-based-v1.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_gouraloto_proposal_current_based_v1_six_week_roadmap",
+      "label": "6-veckors execution roadmap (quick fixes \u2192 system \u2192 optimering)",
+      "file_type": "concept",
+      "source_file": "public/gouraloto-proposal/current-based-v1.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_gouraloto_proposal_current_based_v1_proposal",
+      "target": "public_gouraloto_proposal_current_based_v1_color_option_a",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/gouraloto-proposal/current-based-v1.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_current_based_v1_proposal",
+      "target": "public_gouraloto_proposal_current_based_v1_six_week_roadmap",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/gouraloto-proposal/current-based-v1.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_current_based_v1_proposal",
+      "target": "public_gouraloto_proposal_pathways_three_path_contact",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/gouraloto-proposal/current-based-v1.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

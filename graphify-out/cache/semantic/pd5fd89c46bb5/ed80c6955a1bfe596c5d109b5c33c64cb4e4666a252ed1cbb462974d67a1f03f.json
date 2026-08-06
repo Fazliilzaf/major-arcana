@@ -1,0 +1,200 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3",
+      "label": "Skarmbild: Ambiguous Mail Enrichment Review v3",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_ambiguous_mail_review",
+      "label": "Ambiguous Mail Enrichment Review (mail-berikning gap-recovery)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_deterministiska_falt",
+      "label": "Regel: approve kraver >=3 deterministiska falt",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_operatorsregler_phase2",
+      "label": "Operatorsregler Phase 2 (ingen auto-write, ingen fuzzy merge)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_graph_thread_kandidat",
+      "label": "Graph thread-kandidater med faltmatchning",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_sessionsbeslut",
+      "label": "Sessionsbeslut: approve/unresolved/exclude/reject",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_mailbox_ko",
+      "label": "Mailbox-ko per delad brevlada (contact/egzona/fazli/marknad)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_ambiguous_mail_review",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_deterministiska_falt",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_operatorsregler_phase2",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_graph_thread_kandidat",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_sessionsbeslut",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_mailbox_ko",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_operatorsregler_phase2",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_deterministiska_falt",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_graph_thread_kandidat",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_deterministiska_falt",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_sessionsbeslut",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_ambiguous_mail_review",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_mailbox_ko",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_ambiguous_mail_review",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "mail_gap_recovery_granskningsflode",
+      "label": "Mail gap-recovery granskningsflode med manuellt beslut",
+      "nodes": [
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_ambiguous_mail_review",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_mailbox_ko",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_graph_thread_kandidat",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_deterministiska_falt",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_05_mail_review_v3_sessionsbeslut"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/05-mail-review-v3.png"
+    }
+  ]
+}

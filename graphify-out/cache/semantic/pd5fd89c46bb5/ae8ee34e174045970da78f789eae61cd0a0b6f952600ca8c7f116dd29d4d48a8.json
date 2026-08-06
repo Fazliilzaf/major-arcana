@@ -1,0 +1,195 @@
+{
+  "nodes": [
+    {
+      "id": "docs_reference_hairtp_document_inventory_2026_06_05_doc",
+      "label": "Hair TP Clinic \u2014 Document Inventory + Segment Schema (36 dokument)",
+      "file_type": "document",
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_reference_hairtp_document_inventory_2026_06_05_segment_schema",
+      "label": "Segment-schema: 6 axlar (clinic, filler, category, journeyStep, flow, language)",
+      "file_type": "concept",
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "## Segment-axlar",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_reference_hairtp_document_inventory_2026_06_05_required_for_blockers",
+      "label": "requiredFor \u2192 blockers-engine (n\u00e4sta steg sp\u00e4rras tills dokument klart)",
+      "file_type": "concept",
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "## N\u00e4sta steg",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_reference_hairtp_document_inventory_2026_06_05_clinic_axis_curatiio",
+      "label": "Clinic-axel: Curatiio som systerklinik (Profhilo)",
+      "file_type": "concept",
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "## Owner-svar 2026-06-05 (locked)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_reference_hairtp_document_inventory_2026_06_05_legally_sensitive_esign",
+      "label": "legallySensitive \u2192 e-signatur + audit-log (20 dokument)",
+      "file_type": "concept",
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "### D. Legal-segment",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_reference_hairtp_document_inventory_2026_06_05_ord_24_gate",
+      "label": "ORD-24 gate: owner-approval innan backend-implementation",
+      "file_type": "concept",
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "Status: DRAFT",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_reference_hairtp_document_inventory_2026_06_05_journey_steps",
+      "label": "Patientresa steg 1\u20139 (bokning \u2192 foto-samtycke) + post-8 follow-up",
+      "file_type": "concept",
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "### A. Status-segment per journeyStep",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_reference_hairtp_document_inventory_2026_06_05_meridiq_g4_provider",
+      "label": "Meridiq G4 som formul\u00e4rprovider (21 dokument)",
+      "file_type": "concept",
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "### E. Provider-segment",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_reference_hairtp_document_inventory_2026_06_05_doc",
+      "target": "docs_reference_hairtp_document_inventory_2026_06_05_segment_schema",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_reference_hairtp_document_inventory_2026_06_05_segment_schema",
+      "target": "docs_reference_hairtp_document_inventory_2026_06_05_journey_steps",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_reference_hairtp_document_inventory_2026_06_05_segment_schema",
+      "target": "docs_reference_hairtp_document_inventory_2026_06_05_clinic_axis_curatiio",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "Owner-svar 2026-06-05 punkt 1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_reference_hairtp_document_inventory_2026_06_05_required_for_blockers",
+      "target": "docs_reference_hairtp_document_inventory_2026_06_05_journey_steps",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_reference_hairtp_document_inventory_2026_06_05_ord_24_gate",
+      "target": "docs_reference_hairtp_document_inventory_2026_06_05_segment_schema",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "v\u00e4ntar owner-approval innan ORD-24 backend-implementation",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_reference_hairtp_document_inventory_2026_06_05_legally_sensitive_esign",
+      "target": "docs_reference_hairtp_document_inventory_2026_06_05_segment_schema",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_reference_hairtp_document_inventory_2026_06_05_meridiq_g4_provider",
+      "target": "docs_schema_cco_asset_import_runs_schema_source_systems",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "meridiq som formul\u00e4rprovider vs meridiq som importk\u00e4lla",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_reference_hairtp_document_inventory_2026_06_05_legally_sensitive_esign",
+      "target": "docs_schema_cco_patient_assets_schema_doc",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "signerade avtal/samtycken lagras som patient-assets",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_reference_hairtp_document_inventory_2026_06_05_journey_steps",
+      "target": "docs_strategy_aisia_consultation_capture_guide_2026_05_30_capture_placement",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "steg 4 Konsult i patientresan vs Aisia-capture i konsultationsfl\u00f6det",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_reference_hairtp_document_inventory_2026_06_05_required_for_blockers",
+      "target": "docs_strategy_aisia_capture_protocol_preop_gates",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/reference/HAIRTP-DOCUMENT-INVENTORY-2026-06-05.md",
+      "source_location": "b\u00e5da sp\u00e4rrar n\u00e4sta steg tills f\u00f6ruts\u00e4ttning uppfylld, i olika dom\u00e4ner",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,184 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_order",
+      "label": "ORD-58 \u2014 Clinic Performance-f\u00f6rdjupning: int\u00e4kt/AOV \u2192 bel\u00e4ggning",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_period_sliced_revenue",
+      "label": "Periodskuren int\u00e4kt \u2014 same-day-j\u00e4mf\u00f6relse mot f\u00f6reg\u00e5ende m\u00e5nad",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_aov_proxy_method",
+      "label": "AOV-metod: avgOrderValueSek = revenueSek / bookings (deklarerad proxy)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_utilization_phase2_blocked",
+      "label": "Bel\u00e4ggning (utilizationRate) blockerad av saknad kapacitetsmodell",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_freeze_exception",
+      "label": "Frys-undantag \u2014 g\u00e4ller exakt denna deploy-kedja",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_scheduler_env_deploy",
+      "label": "Scheduler-env kr\u00e4ver deploy, inte restart (incident-l\u00e4rdom)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_check_before_code",
+      "label": "Check-before-code-inventering (finns/gap per del)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_order",
+      "target": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_period_sliced_revenue",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_order",
+      "target": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_aov_proxy_method",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_aov_proxy_method",
+      "target": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_period_sliced_revenue",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_aov_proxy_method",
+      "target": "docs_handover_orders_ord_57_ceo_designparitet_v8_facit_honesty_principle",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_order",
+      "target": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_utilization_phase2_blocked",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_order",
+      "target": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_freeze_exception",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_scheduler_env_deploy",
+      "target": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_freeze_exception",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_check_before_code",
+      "target": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_order",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_check_before_code",
+      "target": "docs_handover_orders_ord_48_parallel_svep_3_agents_additive_rule",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_58_cp_fordjupning_intakt_aov_order",
+      "target": "docs_handover_orders_ord_58_cursor_complete_report",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-58-cp-fordjupning-intakt-aov.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

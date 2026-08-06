@@ -1,0 +1,49 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_friskforsakran_demo_overlay_page",
+      "label": "Steg 8 \u00b7 Friskf\u00f6rs\u00e4kran \u2014 demo-overlay",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-friskforsakran-demo-overlay.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_friskforsakran_demo_overlay_step8_attestation",
+      "label": "Steg 8 \u2014 friskf\u00f6rs\u00e4kran inf\u00f6r TP-behandling",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-friskforsakran-demo-overlay.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_friskforsakran_demo_overlay_page",
+      "target": "public_major_arcana_preview_cco_foto_samtycke_demo_overlay_step_modal_shell",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-friskforsakran-demo-overlay.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_friskforsakran_demo_overlay_page",
+      "target": "public_major_arcana_preview_cco_friskforsakran_demo_overlay_step8_attestation",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-friskforsakran-demo-overlay.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

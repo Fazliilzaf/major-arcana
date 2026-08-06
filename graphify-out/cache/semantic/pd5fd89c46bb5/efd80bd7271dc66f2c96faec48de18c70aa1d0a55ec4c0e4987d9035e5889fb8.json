@@ -1,0 +1,226 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_old_cco_file_work_inventory_2026_05_30_inventory",
+      "label": "OLD-CCO File-Work Inventory (P0.C)",
+      "file_type": "document",
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_old_cco_file_work_inventory_2026_05_30_link_only_zero_mandate",
+      "label": "Mandat: link_only_files = 0 (Drive \u00e4r k\u00e4lla, ej destination)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_old_cco_file_work_inventory_2026_05_30_asset_pipeline_13_steps",
+      "label": "Asset-import-pipeline i 13 steg",
+      "file_type": "concept",
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_old_cco_file_work_inventory_2026_05_30_patient_asset_store",
+      "label": "ccoPatientAssetStore + import-run + review-queue",
+      "file_type": "concept",
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_old_cco_file_work_inventory_2026_05_30_asset_status_state_machine",
+      "label": "Asset-status state machine (DISCOVERED \u2192 VISIBLE_ON_PATIENT_CARD)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_old_cco_file_work_inventory_2026_05_30_reuse_strategy",
+      "label": "\u00c5teranv\u00e4ndningsstrategi framf\u00f6r duplicering",
+      "file_type": "concept",
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_old_cco_file_work_inventory_2026_05_30_sha256_checksum_gap",
+      "label": "Saknad SHA-256 checksum-pipeline",
+      "file_type": "concept",
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_old_cco_file_work_inventory_2026_05_30_drive_link_builder_deprecation",
+      "label": "ccoDriveLinkBuilder avvecklas till provenance-only",
+      "file_type": "concept",
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_old_cco_file_work_inventory_2026_05_30_json_to_sqlite_threshold",
+      "label": "JSON-store med sqlite-migrering vid > 50 MB",
+      "file_type": "concept",
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_inventory",
+      "target": "docs_strategy_old_cco_file_work_inventory_2026_05_30_link_only_zero_mandate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_inventory",
+      "target": "docs_strategy_old_cco_file_work_inventory_2026_05_30_asset_pipeline_13_steps",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_inventory",
+      "target": "docs_strategy_old_cco_file_work_inventory_2026_05_30_patient_asset_store",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_inventory",
+      "target": "docs_strategy_old_cco_file_work_inventory_2026_05_30_asset_status_state_machine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_inventory",
+      "target": "docs_strategy_old_cco_file_work_inventory_2026_05_30_reuse_strategy",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_asset_pipeline_13_steps",
+      "target": "docs_strategy_old_cco_file_work_inventory_2026_05_30_sha256_checksum_gap",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_link_only_zero_mandate",
+      "target": "docs_strategy_old_cco_file_work_inventory_2026_05_30_drive_link_builder_deprecation",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_patient_asset_store",
+      "target": "docs_strategy_old_cco_file_work_inventory_2026_05_30_json_to_sqlite_threshold",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_patient_asset_store",
+      "target": "docs_strategy_old_cco_file_work_inventory_2026_05_30_asset_status_state_machine",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_link_only_zero_mandate",
+      "target": "docs_strategy_p0j_real_old_cco_import_dry_run_2026_05_30_link_only_blocker",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_link_only_zero_mandate",
+      "target": "docs_strategy_p0_photo_review_ui_fas1_readonly_2026_05_30_cco_storage_preview",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_old_cco_file_work_inventory_2026_05_30_asset_status_state_machine",
+      "target": "docs_strategy_p0_photo_review_workflow_plan_2026_05_30_photo_review_queue",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/OLD-CCO-FILE-WORK-INVENTORY-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

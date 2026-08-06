@@ -1,0 +1,216 @@
+{
+  "nodes": [
+    {
+      "id": "uploads_cco_kundkort_referens",
+      "label": "ORD-27 REF \u2014 Kundkort slide-over v2 (referensmockup)",
+      "file_type": "document",
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "uploads_cco_kundkort_referens_slide_over",
+      "label": "renderKundkortSlideOverHtml (slide-over-skal)",
+      "file_type": "concept",
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fast lyftpanel \u00f6verst plus scrollande dossi\u00e9-yta under, s\u00e5 nyckelfakta aldrig scrollar bort."
+    },
+    {
+      "id": "uploads_cco_kundkort_referens_lift_panel",
+      "label": "renderKundkortLiftPanel (kontakt \u00b7 h\u00e4lsodekl \u00b7 foton \u00b7 kundresa)",
+      "file_type": "concept",
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "uploads_cco_kundkort_referens_halsodeklaration_meridiq",
+      "label": "H\u00e4lsodeklaration via Meridiq-formul\u00e4r 16414 (dossier-bundle)",
+      "file_type": "concept",
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "H\u00e4lsodeklarationen h\u00e4mtas som en del av dossier-bundle i st\u00e4llet f\u00f6r ett separat anrop, och signeringsstatus visas som pill i lyftpanelen."
+    },
+    {
+      "id": "uploads_cco_kundkort_referens_kundresa_steg",
+      "label": "Kundresa som 6-stegs indikator (done/active/pending)",
+      "file_type": "concept",
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "uploads_cco_kundkort_referens_dossier_accordion",
+      "label": "Dossier-accordionsektioner enligt ORD-26 (bokningar/historik/filer/formul\u00e4r)",
+      "file_type": "concept",
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "uploads_cco_kundkort_referens_no_ai_section",
+      "label": "Begr\u00e4nsning: ingen AI-sektion i kundkortet",
+      "file_type": "concept",
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "uploads_cco_kundkort_referens",
+      "target": "uploads_cco_kundkort_referens_slide_over",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens_slide_over",
+      "target": "uploads_cco_kundkort_referens_lift_panel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens_lift_panel",
+      "target": "uploads_cco_kundkort_referens_halsodeklaration_meridiq",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens_lift_panel",
+      "target": "uploads_cco_kundkort_referens_kundresa_steg",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens_slide_over",
+      "target": "uploads_cco_kundkort_referens_dossier_accordion",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens",
+      "target": "uploads_cco_kundkort_referens_no_ai_section",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens_no_ai_section",
+      "target": "uploads_cco_kunder_v9_egen_no_ai_constraint",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens_lift_panel",
+      "target": "uploads_cco_kunder_mockup_v9_desktop_kunddossier",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens_dossier_accordion",
+      "target": "uploads_cco_kunder_mockup_v9_desktop_kunddossier",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens_kundresa_steg",
+      "target": "tests_visual_fixtures_v12_workspace_photos_kkx_stub",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens_halsodeklaration_meridiq",
+      "target": "tests_visual_fixtures_v12_workspace_warnings_health_declaration",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens_dossier_accordion",
+      "target": "tests_visual_fixtures_v12_workspace_sticky_bekrafta_tider",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "uploads_cco_kundkort_referens_lift_panel",
+      "target": "tests_visual_fixtures_v12_workspace_photos_build_photos_adapter",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "uploads/cco-kundkort-REFERENS.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,83 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_36_meridiq_journal_metadata_journal_metadata_fields",
+      "label": "Journal-metadata: treater, treatmentType, journalStep, journalDateReal",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-36-meridiq-journal-metadata.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Importerade PDF:er b\u00e4r bara fil + datum; k\u00e4llan Meridiq har strukturen (f\u00f6rfattare, typ, ev. steg) som journal-sektionen beh\u00f6ver f\u00f6r att matcha facit."
+    },
+    {
+      "id": "docs_handover_orders_ord_36_meridiq_journal_metadata_drive_import_signedby_gap",
+      "label": "Datafynd: signedByName = 'Drive-import' och treatmentEncounterId tom",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-36-meridiq-journal-metadata.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Frontend filtrerar bort 'Drive-import' som behandlarnamn s\u00e5 riktiga in-app-journaler visar kliniker medan importerade visar tomt i st\u00e4llet f\u00f6r fel namn."
+    },
+    {
+      "id": "docs_handover_orders_ord_36_meridiq_journal_metadata_booking_fallback_derivation",
+      "label": "Fallback: h\u00e4rled behandlare ur Cliento-bokning och steg ur kanoniska kundresan",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-36-meridiq-journal-metadata.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Om Meridiq-metadata inte n\u00e5s f\u00e5r inget hittas p\u00e5 \u2014 endast verklig data ur bokning/journey-matchning, annars l\u00e4mnas f\u00e4ltet tomt."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_36_meridiq_journal_metadata_journal_metadata_fields",
+      "target": "docs_handover_orders_ord_34_internalisera_drive_dokumentation_document_date_from_drive_metadata",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-36-meridiq-journal-metadata.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_36_meridiq_journal_metadata_drive_import_signedby_gap",
+      "target": "docs_handover_orders_ord_36_meridiq_journal_metadata_journal_metadata_fields",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-36-meridiq-journal-metadata.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_36_meridiq_journal_metadata_booking_fallback_derivation",
+      "target": "docs_handover_orders_ord_36_meridiq_journal_metadata_journal_metadata_fields",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-36-meridiq-journal-metadata.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_36_meridiq_journal_metadata_booking_fallback_derivation",
+      "target": "docs_handover_orders_ord_37_egen_bokning_kundkort_own_booking_engine_source",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/ORDERS/ORD-36-meridiq-journal-metadata.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

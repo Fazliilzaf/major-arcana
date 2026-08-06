@@ -1,0 +1,222 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v12_workspace_deeplink_fixture",
+      "label": "V12 Workspace GAP-1 \u00b7 Deep-link \u2192 V12-sektion",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_deeplink_parity_module",
+      "label": "cco-v9-customers-parity.js (V9-paritetslager)",
+      "file_type": "code",
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_deeplink_scroll_dossier_section",
+      "label": "CcoV9CustomersParity.scrollDossierSection",
+      "file_type": "code",
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_deeplink_section_link_attribute",
+      "label": "data-v9-section-link deep-link-attribut i railen",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_deeplink_v12_guard",
+      "label": "V12-guard: kr\u00e4ver data-v12-module innan scroll",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Deep-linken scrollar bara n\u00e4r detaljroten faktiskt inneh\u00e5ller en V12-modul, annars faller den tillbaka till legacy-beteendet \u2014 samma guard som i bindV9MockupDossierHandlers (GAP-1)."
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_deeplink_nav_target_flash",
+      "label": "is-nav-target flash p\u00e5 navigationsm\u00e5l",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_deeplink_scroll_container",
+      "label": "Panelen som scroll-container f\u00f6r scrollIntoView",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Fixturen ger panelen height:100vh + overflow:auto s\u00e5 V12-sektionerna har en scrollbar f\u00f6r\u00e4lder, precis som slide-over/detaljpanelen i appen."
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v12_workspace_deeplink_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_journal_workspace_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_deeplink_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_deeplink_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_deeplink_parity_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_deeplink_parity_module",
+      "target": "tests_visual_fixtures_v12_workspace_deeplink_scroll_dossier_section",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_deeplink_section_link_attribute",
+      "target": "tests_visual_fixtures_v12_workspace_deeplink_scroll_dossier_section",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_deeplink_v12_guard",
+      "target": "tests_visual_fixtures_v12_workspace_deeplink_scroll_dossier_section",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_deeplink_scroll_dossier_section",
+      "target": "tests_visual_fixtures_v12_workspace_deeplink_nav_target_flash",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_deeplink_scroll_dossier_section",
+      "target": "tests_visual_fixtures_v12_workspace_deeplink_scroll_container",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_deeplink_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_deeplink_v12_guard",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_deeplink_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_deeplink_section_link_attribute",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_deeplink_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_journal_two_zone_shell",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v11_rail_block6_zon2_deeplink_noop",
+      "target": "tests_visual_fixtures_v12_workspace_deeplink_scroll_dossier_section",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "v12_deeplink_navigation_chain",
+      "label": "Deep-link-kedja: rail-l\u00e4nk \u2192 V12-guard \u2192 scrollDossierSection \u2192 flash",
+      "nodes": [
+        "tests_visual_fixtures_v12_workspace_deeplink_section_link_attribute",
+        "tests_visual_fixtures_v12_workspace_deeplink_v12_guard",
+        "tests_visual_fixtures_v12_workspace_deeplink_scroll_dossier_section",
+        "tests_visual_fixtures_v12_workspace_deeplink_nav_target_flash",
+        "tests_visual_fixtures_v12_workspace_deeplink_scroll_container"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-deeplink.html"
+    }
+  ]
+}

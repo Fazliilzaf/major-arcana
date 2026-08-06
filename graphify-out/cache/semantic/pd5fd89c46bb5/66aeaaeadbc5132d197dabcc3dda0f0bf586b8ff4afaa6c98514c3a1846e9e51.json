@@ -1,0 +1,156 @@
+{
+  "nodes": [
+    {
+      "id": "public_cco_journalpilot_faq_page",
+      "label": "Journalpilot Quick FAQ (9 fr\u00e5gor)",
+      "file_type": "document",
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_journalpilot_faq_risk_color_coding",
+      "label": "F\u00e4rgkodad risktaxonomi: gr\u00f6n / orange / r\u00f6d / bl\u00e5",
+      "file_type": "concept",
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Svaren kodas efter handlingsrisk (g\u00f6r det / f\u00f6rsiktigt / STOPPA / info) i st\u00e4llet f\u00f6r \u00e4mne, s\u00e5 att personal under tidspress ser konsekvensen f\u00f6re f\u00f6rklaringen."
+    },
+    {
+      "id": "public_cco_journalpilot_faq_signeringslas",
+      "label": "Signerad journalpost \u00e4r permanent l\u00e5st",
+      "file_type": "concept",
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Originalet f\u00e5r aldrig \u00e4ndras \u2014 det \u00e4r journalkravet. L\u00e5sningen \u00e4r avsiktligt o\u00e5terkallelig s\u00e5 att sp\u00e5rbarheten inte kan f\u00f6rhandlas bort i stunden."
+    },
+    {
+      "id": "public_cco_journalpilot_faq_rattelse_som_ny_post",
+      "label": "R\u00e4ttelse skapas som ny post l\u00e4nkad till originalet",
+      "file_type": "concept",
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Det korrigerade skrivs i sin helhet, inte som 'stryk allt ovan', med angiven anledning (typo / ny info / felaktig dos). B\u00e5da posterna syns i timeline s\u00e5 att historiken f\u00f6rblir l\u00e4sbar utan att originalet r\u00f6rs."
+    },
+    {
+      "id": "public_cco_journalpilot_faq_extern_ai_forbud",
+      "label": "F\u00f6rbud mot extern AI p\u00e5 patientdata (GDPR-policy)",
+      "file_type": "concept",
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Ingen copy-paste av journaltext till ChatGPT, Claude eller Copilot. Patientdata f\u00e5r inte l\u00e4mna systemet; personal skriver sj\u00e4lv eller anv\u00e4nder CCO:s egna mallar."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_cco_journalpilot_faq_page",
+      "target": "public_cco_journalpilot_faq_risk_color_coding",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journalpilot_faq_page",
+      "target": "public_cco_journalpilot_faq_signeringslas",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journalpilot_faq_page",
+      "target": "public_cco_journalpilot_faq_rattelse_som_ny_post",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journalpilot_faq_page",
+      "target": "public_cco_journalpilot_faq_extern_ai_forbud",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journalpilot_faq_rattelse_som_ny_post",
+      "target": "public_cco_journalpilot_faq_signeringslas",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journalpilot_faq_page",
+      "target": "public_cco_review_material_warning_needs_review_badge",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journalpilot_faq_page",
+      "target": "public_cco_review_material_warning_photo_review_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journalpilot_faq_page",
+      "target": "public_cco_morning_checklist_backup_failover",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_journalpilot_faq_page",
+      "target": "public_cco_staff_day1_checklist_no_new_customer_on_doubt",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-journalpilot-faq.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

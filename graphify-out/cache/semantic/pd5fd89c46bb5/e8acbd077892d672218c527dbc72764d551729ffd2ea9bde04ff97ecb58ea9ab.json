@@ -1,0 +1,165 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_drive_inventory_report_2026_05_30_doc",
+      "label": "Google Drive Inventory Report",
+      "file_type": "document",
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_drive_inventory_report_2026_05_30_six_level_structure",
+      "label": "Sex-niv\u00e5ers kalenderbaserad mappstruktur (\u00e5r\u2192m\u00e5nad\u2192dag\u2192patient)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Strukturen \u00e4r samma ISO-tidskedja som kalendervyn, vilket g\u00f6r att behandlingsdatum kan parsas direkt ur pathen och historiska encounters kan backfillas."
+    },
+    {
+      "id": "docs_strategy_drive_inventory_report_2026_05_30_shared_drives",
+      "label": "Sju delade enheter \u2014 tv\u00e5 med patientdata",
+      "file_type": "concept",
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_drive_inventory_report_2026_05_30_folder_ids",
+      "label": "Folder-ID-katalog f\u00f6r service-account-konfiguration",
+      "file_type": "concept",
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_drive_inventory_report_2026_05_30_case_inconsistency",
+      "label": "Case-inconsistens i historiska \u00e5rsmappar kr\u00e4ver case-insensitiv parser",
+      "file_type": "concept",
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_drive_inventory_report_2026_05_30_bokade_vs_prospect",
+      "label": "Bokade vs Prospect i Drive speglar journal vs lead i CCO",
+      "file_type": "concept",
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_drive_inventory_report_2026_05_30_drive_member_rbac",
+      "label": "Drive-medlemmar utanf\u00f6r CCO-RBAC kr\u00e4ver separat access-audit",
+      "file_type": "concept",
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_drive_inventory_report_2026_05_30_doc",
+      "target": "docs_strategy_drive_inventory_report_2026_05_30_six_level_structure",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_inventory_report_2026_05_30_doc",
+      "target": "docs_strategy_drive_inventory_report_2026_05_30_shared_drives",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_inventory_report_2026_05_30_doc",
+      "target": "docs_strategy_drive_inventory_report_2026_05_30_folder_ids",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_inventory_report_2026_05_30_six_level_structure",
+      "target": "docs_strategy_drive_inventory_report_2026_05_30_case_inconsistency",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_inventory_report_2026_05_30_bokade_vs_prospect",
+      "target": "docs_strategy_meridiq_dedup_report_2026_05_30_leads_without_journal",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_inventory_report_2026_05_30_doc",
+      "target": "docs_strategy_drive_inventory_report_2026_05_30_drive_member_rbac",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_inventory_report_2026_05_30_doc",
+      "target": "docs_strategy_drive_integration_proposal_doc",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_inventory_report_2026_05_30_six_level_structure",
+      "target": "docs_strategy_drive_coupling_gap_2026_05_30_drive_path_predictor",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,143 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_cao_admin_operator_ia_ia",
+      "label": "Arcana Admin Operator \u2014 Adminpanel IA",
+      "file_type": "document",
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cao_admin_operator_ia_cao_agent",
+      "label": "CAO \u2014 Arcana Admin Operator (analysis-only agent)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cao_admin_operator_ia_readiness_parity",
+      "label": "Readiness-paritet: shared operational core vs auktoritativ monitor Go/No-Go",
+      "file_type": "concept",
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cao_admin_operator_ia_executive_decision_feed",
+      "label": "Executive decision feed (persistent OWNER-beslutsk\u00f6)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cao_admin_operator_ia_cao_scheduler_jobs",
+      "label": "CAO scheduler-jobb (quality gate, SLA-risk, missing DoD)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cao_admin_operator_ia_admin_workspace_api",
+      "label": "Admin Workspace API (tasks/incidents/docs/audit/readiness)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_cao_admin_operator_ia_ia",
+      "target": "docs_ops_cao_admin_operator_ia_cao_agent",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": "Sektioner",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cao_admin_operator_ia_ia",
+      "target": "docs_ops_cao_admin_operator_ia_admin_workspace_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": "\u00a713",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cao_admin_operator_ia_ia",
+      "target": "docs_ops_cao_admin_operator_ia_readiness_parity",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": "Readiness-paritet (Fas C)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cao_admin_operator_ia_cao_agent",
+      "target": "docs_ops_cao_admin_operator_ia_executive_decision_feed",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": "Notify-regler",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cao_admin_operator_ia_cao_agent",
+      "target": "docs_ops_cao_admin_operator_ia_cao_scheduler_jobs",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": "Automation",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cao_admin_operator_ia_readiness_parity",
+      "target": "docs_ops_arcana_finalization_runbook_release_governance_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": "auktoritativ Go/No-Go anv\u00e4nds f\u00f6r release-beslut",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cao_admin_operator_ia_cao_agent",
+      "target": "docs_ops_capability_framework_v1_implementation_2026_02_26_capability_framework",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/cao-admin-operator-ia.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

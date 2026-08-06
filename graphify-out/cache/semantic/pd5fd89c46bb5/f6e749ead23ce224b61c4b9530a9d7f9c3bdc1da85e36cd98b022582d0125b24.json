@@ -1,0 +1,165 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_cco_performance_architecture_plan_plan",
+      "label": "CCO prestanda-arkitektur Fas 1\u201312",
+      "file_type": "document",
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_performance_architecture_plan_cco_request_cache",
+      "label": "CcoRequestCache (central data layer, in-flight dedupe)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_performance_architecture_plan_stale_time_policy",
+      "label": "staleTime-klasser (cache-policy per datatyp)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_performance_architecture_plan_consolidated_endpoints",
+      "label": "Konsoliderade bundle-endpoints (customers-shell, calendar-bundle)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_performance_architecture_plan_journal_no_shared_cache",
+      "label": "Journalinneh\u00e5ll aldrig i delad Redis-cache (GDPR)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_performance_architecture_plan_snapshot_precompute",
+      "label": "Snapshot-precompute (dashboard + worklist via scheduler)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_performance_architecture_plan_store_json_indexing",
+      "label": "Store-level JSON-indexering (patientByEmail, casesByDate m.fl.)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_performance_architecture_plan_lazy_journal_virtualization",
+      "label": "Lazy journal + virtualiserade listor",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_cco_performance_architecture_plan_plan",
+      "target": "docs_ops_cco_performance_architecture_plan_cco_request_cache",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": "Fas 2",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_performance_architecture_plan_stale_time_policy",
+      "target": "docs_ops_cco_performance_architecture_plan_cco_request_cache",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": "Fas 3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_performance_architecture_plan_consolidated_endpoints",
+      "target": "docs_ops_cco_performance_architecture_plan_cco_request_cache",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": "Fas 4",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_performance_architecture_plan_journal_no_shared_cache",
+      "target": "docs_ops_cco_performance_architecture_plan_plan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": "Fas 7",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_performance_architecture_plan_snapshot_precompute",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_worklist_consumer",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": "Fas 9 worklist consumer",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_performance_architecture_plan_store_json_indexing",
+      "target": "docs_ops_developer_handover_json_state_stores",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": "Fas 6",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_performance_architecture_plan_lazy_journal_virtualization",
+      "target": "docs_ops_cco_performance_architecture_plan_journal_no_shared_cache",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/ops/cco-performance-architecture-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

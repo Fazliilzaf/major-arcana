@@ -1,0 +1,90 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_mockups_v11_rail_block5_d_warnings_viewport_preview_block5_mockup",
+      "label": "V11 Rail Block 5 mockup \u2014 D + A + V + B + C",
+      "file_type": "document",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block5-D-warnings/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_mockups_v11_rail_block5_d_warnings_viewport_preview_d_critical_warnings",
+      "label": "D \u00b7 Kritiska varningar (r\u00f6da top-banners)",
+      "file_type": "concept",
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block5-D-warnings/viewport-preview.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Endast akta blockerare visas rott; betanketid klassas som info och exkluderas medvetet for att inte devalvera rodmarkeringen."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_mockups_v11_rail_block5_d_warnings_viewport_preview_block5_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_v11_rail",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block5-D-warnings/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block5_d_warnings_viewport_preview_block5_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_viewport_preview_pattern",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block5-D-warnings/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block5_d_warnings_viewport_preview_block5_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_raster_png_pipeline",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block5-D-warnings/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block5_d_warnings_viewport_preview_block5_mockup",
+      "target": "docs_handover_mockups_v11_rail_full_viewport_preview_canon_4_responsive",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block5-D-warnings/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block5_d_warnings_viewport_preview_block5_mockup",
+      "target": "docs_handover_mockups_v11_rail_block5_d_warnings_viewport_preview_d_critical_warnings",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block5-D-warnings/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_mockups_v11_rail_block5_d_warnings_viewport_preview_block5_mockup",
+      "target": "docs_handover_mockups_v11_rail_block4_v_active_visit_viewport_preview_v_active_visit",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/MOCKUPS/v11-rail-block5-D-warnings/viewport-preview.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

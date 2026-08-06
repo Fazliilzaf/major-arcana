@@ -1,0 +1,101 @@
+{
+  "nodes": [
+    {
+      "id": "_github_workflows_post_deploy_prod_heal_workflow",
+      "label": "arcana-post-deploy-heal workflow",
+      "file_type": "code",
+      "source_file": ".github/workflows/post-deploy-prod-heal.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_post_deploy_prod_heal_commit_match_verification",
+      "label": "Prod commit-match verification via /api/v1/_diag/version",
+      "file_type": "concept",
+      "source_file": ".github/workflows/post-deploy-prod-heal.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_post_deploy_prod_heal_render_env_restore",
+      "label": "Render env restore from blueprint (manual safety lock)",
+      "file_type": "concept",
+      "source_file": ".github/workflows/post-deploy-prod-heal.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "_github_workflows_post_deploy_prod_heal_u2_4_field_prep",
+      "label": "U2.4 field prep verification (prod, Playwright)",
+      "file_type": "concept",
+      "source_file": ".github/workflows/post-deploy-prod-heal.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "_github_workflows_post_deploy_prod_heal_workflow",
+      "target": "_github_workflows_post_deploy_prod_heal_commit_match_verification",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/post-deploy-prod-heal.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_post_deploy_prod_heal_workflow",
+      "target": "_github_workflows_post_deploy_prod_heal_render_env_restore",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/post-deploy-prod-heal.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_post_deploy_prod_heal_workflow",
+      "target": "_github_workflows_post_deploy_prod_heal_u2_4_field_prep",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/post-deploy-prod-heal.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_post_deploy_prod_heal_workflow",
+      "target": "_github_workflows_deploy_cloud_safe_readyz_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/post-deploy-prod-heal.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_post_deploy_prod_heal_workflow",
+      "target": "_github_workflows_deploy_cloud_safe_render_deploy_hook",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/post-deploy-prod-heal.yml",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

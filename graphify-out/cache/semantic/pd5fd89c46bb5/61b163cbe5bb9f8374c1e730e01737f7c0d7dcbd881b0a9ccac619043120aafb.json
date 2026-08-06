@@ -1,0 +1,60 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_arcana_five_track_sweep_plan_sweep",
+      "label": "Arcana fem-sp\u00e5rssvep \u2014 k\u00f6rbar checklista",
+      "file_type": "document",
+      "source_file": "docs/strategy/arcana-five-track-sweep-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_arcana_five_track_sweep_plan_sweep_phases",
+      "label": "Svep-faser 1\u20134 (auto kod, auto test, auto prod-verify, manuell ops)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-five-track-sweep-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Automatiserbara steg separeras fr\u00e5n de som kr\u00e4ver m\u00e4nniska eller Render-konsol, s\u00e5 att ett svep kan k\u00f6ras i ett svep utan att blockeras av manuella moment."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_arcana_five_track_sweep_plan_sweep",
+      "target": "docs_strategy_arcana_five_track_parallel_plan_plan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-five-track-sweep-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_five_track_sweep_plan_sweep",
+      "target": "docs_strategy_arcana_five_track_sweep_plan_sweep_phases",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-five-track-sweep-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_five_track_sweep_plan_sweep_phases",
+      "target": "docs_strategy_arcana_five_track_parallel_plan_shared_dependencies",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/arcana-five-track-sweep-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

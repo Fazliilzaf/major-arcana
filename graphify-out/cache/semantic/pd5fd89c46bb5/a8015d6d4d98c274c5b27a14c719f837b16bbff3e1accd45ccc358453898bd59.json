@@ -1,0 +1,50 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_patient_offer_portal_v2_page",
+      "label": "Patientportal \u00b7 Din plan (v2)",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_patient_offer_portal_v2_betanketid_distansavtalslagen",
+      "label": "Bet\u00e4nketid \u00b7 14 dagars \u00e5ngerr\u00e4tt (distansavtalslagen)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v2.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "\u00c5ngerfristen r\u00e4knas fr\u00e5n att planen mottogs och signeringen bekr\u00e4ftar aktivt val att starta inom fristen; nedr\u00e4kningen visas i portalen s\u00e5 att samtycket blir dokumenterat."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_patient_offer_portal_v1_page",
+      "target": "public_major_arcana_preview_cco_patient_offer_portal_v2_page",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v2.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_patient_offer_portal_v2_page",
+      "target": "public_major_arcana_preview_cco_patient_offer_portal_v2_betanketid_distansavtalslagen",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-patient-offer-portal-v2.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

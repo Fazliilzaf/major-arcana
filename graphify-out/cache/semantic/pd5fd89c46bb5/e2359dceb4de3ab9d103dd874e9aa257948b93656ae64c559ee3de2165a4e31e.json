@@ -1,0 +1,48 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_booking_wizard_v3_bokningsguide",
+      "label": "Bokningsguide i fyra steg",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-booking-wizard-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_booking_wizard_v3_bokningsguide",
+      "target": "public_kalender_shell",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-booking-wizard-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_booking_wizard_v3_bokningsguide",
+      "target": "public_major_arcana_preview_auto_avbokningsbekraftelse_final_demo_dokument",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/major-arcana-preview/cco-booking-wizard-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_booking_wizard_v3_bokningsguide",
+      "target": "public_kundkort_mockup_gemensamt_kundresa_9_steg",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/major-arcana-preview/cco-booking-wizard-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

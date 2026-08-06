@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_ticket",
+      "label": "Owner-ticket \u2014 Brand review: Curatiio-kontakt i Hair TP-avtal",
+      "file_type": "document",
+      "source_file": "docs/ops/owner-ticket-brand-review-curatiio-email-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_brand_separation_rule",
+      "label": "CCO-regel: blanda aldrig varum\u00e4rken i samma patient-facing mall",
+      "file_type": "concept",
+      "source_file": "docs/ops/owner-ticket-brand-review-curatiio-email-2026-06-25.md",
+      "source_location": "Problem",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_needs_brand_review_flag",
+      "label": "NEEDS_BRAND_REVIEW diff-flagga",
+      "file_type": "concept",
+      "source_file": "docs/ops/owner-ticket-brand-review-curatiio-email-2026-06-25.md",
+      "source_location": "Status i repo / Acceptanskriterier",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_nordbro_word_source_of_truth",
+      "label": "Nordbro Word-version som facit-k\u00e4lla (ingen ad hoc-\u00e4ndring i CCO)",
+      "file_type": "concept",
+      "source_file": "docs/ops/owner-ticket-brand-review-curatiio-email-2026-06-25.md",
+      "source_location": "Beslut som beh\u00f6vs \u00a73",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_ticket",
+      "target": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_brand_separation_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/owner-ticket-brand-review-curatiio-email-2026-06-25.md",
+      "source_location": "Problem",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_needs_brand_review_flag",
+      "target": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_brand_separation_rule",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/owner-ticket-brand-review-curatiio-email-2026-06-25.md",
+      "source_location": "Status i repo / Acceptanskriterier",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_nordbro_word_source_of_truth",
+      "target": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_ticket",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/owner-ticket-brand-review-curatiio-email-2026-06-25.md",
+      "source_location": "Beslut som beh\u00f6vs \u00a73",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_owner_ticket_brand_review_curatiio_email_2026_06_25_ticket",
+      "target": "docs_ops_hairtp_document_flow_contract_2026_06_28_source_verification_requirement",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/owner-ticket-brand-review-curatiio-email-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

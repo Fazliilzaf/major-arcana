@@ -1,0 +1,185 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_push_pilot_prod_sh",
+      "label": "push-pilot-prod.sh",
+      "file_type": "code",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_push_pilot_prod_sh__entry",
+      "label": "push-pilot-prod.sh script",
+      "file_type": "code",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    },
+    {
+      "id": "$graphify-root$_scripts_push_pilot_prod_fail",
+      "label": "fail()",
+      "file_type": "code",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L16",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    },
+    {
+      "id": "$graphify-root$_scripts_push_pilot_prod_pass",
+      "label": "pass()",
+      "file_type": "code",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L17",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    },
+    {
+      "id": "$graphify-root$_scripts_push_pilot_prod_curl_auth",
+      "label": "curl_auth()",
+      "file_type": "code",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L47",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_push_pilot_prod_sh",
+      "target": "$graphify-root$_scripts_push_pilot_prod_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_push_pilot_prod_sh",
+      "target": "$graphify-root$_scripts_push_pilot_prod_fail",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_push_pilot_prod_sh",
+      "target": "$graphify-root$_scripts_push_pilot_prod_pass",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_push_pilot_prod_sh",
+      "target": "$graphify-root$_scripts_push_pilot_prod_curl_auth",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_push_pilot_prod_sh__entry",
+      "target": "$graphify-root$_scripts_push_pilot_prod_fail",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L19",
+      "weight": 1.0,
+      "context": "call"
+    },
+    {
+      "source": "$graphify-root$_scripts_push_pilot_prod_sh__entry",
+      "target": "$graphify-root$_scripts_push_pilot_prod_pass",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L42",
+      "weight": 1.0,
+      "context": "call"
+    },
+    {
+      "source": "$graphify-root$_scripts_push_pilot_prod_sh__entry",
+      "target": "$graphify-root$_scripts_push_pilot_prod_curl_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L70",
+      "weight": 1.0,
+      "context": "call"
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_scripts_push_pilot_prod_sh__entry",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L4"
+    },
+    {
+      "language": "bash",
+      "callee": "cd",
+      "caller_nid": "$graphify-root$_scripts_push_pilot_prod_sh__entry",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L7"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_push_pilot_prod_sh__entry",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L44"
+    },
+    {
+      "language": "bash",
+      "callee": "read",
+      "caller_nid": "$graphify-root$_scripts_push_pilot_prod_sh__entry",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L60"
+    },
+    {
+      "language": "bash",
+      "callee": "command",
+      "caller_nid": "$graphify-root$_scripts_push_pilot_prod_sh__entry",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L89"
+    },
+    {
+      "language": "bash",
+      "callee": "curl",
+      "caller_nid": "$graphify-root$_scripts_push_pilot_prod_sh__entry",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L102"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_push_pilot_prod_fail",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L16"
+    },
+    {
+      "language": "bash",
+      "callee": "exit",
+      "caller_nid": "$graphify-root$_scripts_push_pilot_prod_fail",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L16"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_push_pilot_prod_pass",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L17"
+    },
+    {
+      "language": "bash",
+      "callee": "curl",
+      "caller_nid": "$graphify-root$_scripts_push_pilot_prod_curl_auth",
+      "source_file": "scripts/push-pilot-prod.sh",
+      "source_location": "L49"
+    }
+  ],
+  "bash_sources": []
+}

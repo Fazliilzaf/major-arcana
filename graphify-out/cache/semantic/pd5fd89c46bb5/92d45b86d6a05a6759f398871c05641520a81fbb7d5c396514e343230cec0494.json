@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": "public_cco_pre_signering_check_page",
+      "label": "Pre-Signering Check (5-stegs identitetsverifiering)",
+      "file_type": "document",
+      "source_file": "public/cco-pre-signering-check.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_pre_signering_check_five_step",
+      "label": "Femstegscheck som k\u00f6rs i sido-flik f\u00f6re varje signering",
+      "file_type": "concept",
+      "source_file": "public/cco-pre-signering-check.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Checken tar 15 sekunder och \u00e4r designad som en separat flik bredvid journalvyn \u2014 friktionen \u00e4r avsiktlig eftersom signering \u00e4r irreversibel och fel-signering inte kan r\u00e4ttas, bara kompletteras."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_cco_pre_signering_check_page",
+      "target": "public_cco_pre_signering_check_five_step",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-pre-signering-check.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_pre_signering_check_five_step",
+      "target": "public_cco_staff_day1_checklist_identitetsverifiering",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-pre-signering-check.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_pre_signering_check_five_step",
+      "target": "public_cco_review_material_warning_use_as_reference",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-pre-signering-check.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_pre_signering_check_five_step",
+      "target": "public_cco_journalpilot_faq_signeringslas",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-pre-signering-check.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

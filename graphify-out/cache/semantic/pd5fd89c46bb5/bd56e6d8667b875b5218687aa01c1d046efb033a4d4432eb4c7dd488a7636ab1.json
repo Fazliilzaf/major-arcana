@@ -1,0 +1,72 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_46_cloud_agent_staff_uat_uat_checklist",
+      "label": "ORD-46 Staff UAT-checklista (sektion A\u2013F, PASS/FAIL/N/A)",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_46_cloud_agent_staff_uat_canonical_uat_url",
+      "label": "Canonical UAT-URL med demo-flaggor (v9/demo/demoOpDay/demoSkipSteg7)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Utan exakt URL landar testaren i Konversationer eller saknar Op-dag-panelen; en enda kanonisk startl\u00e4nk g\u00f6r felrapporter j\u00e4mf\u00f6rbara."
+    },
+    {
+      "id": "docs_handover_orders_ord_46_cloud_agent_staff_uat_acceptance_criteria",
+      "label": "UAT-godk\u00e4nnandekriterier (PARTIAL r\u00e4knas inte som FAIL)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Skiljer k\u00e4nda textluckor (v\u00e4ntar p\u00e5 ORD-24) fr\u00e5n verkliga wiring-buggar s\u00e5 UAT inte underk\u00e4nns av f\u00f6rv\u00e4ntat beteende."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_46_cloud_agent_staff_uat_uat_checklist",
+      "target": "docs_handover_orders_ord_46_cloud_agent_complete_cloud_agent_steg_3_9",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_46_cloud_agent_staff_uat_canonical_uat_url",
+      "target": "docs_handover_orders_ord_46_cloud_agent_staff_uat_uat_checklist",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_46_cloud_agent_staff_uat_acceptance_criteria",
+      "target": "docs_handover_orders_ord_46_cloud_agent_complete_foto_samtycke_partial_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-46-CLOUD-AGENT-STAFF-UAT.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

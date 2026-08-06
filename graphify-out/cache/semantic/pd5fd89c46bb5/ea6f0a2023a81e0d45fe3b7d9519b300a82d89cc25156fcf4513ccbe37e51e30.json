@@ -1,0 +1,128 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_report",
+      "label": "P0 Photo Review Fas 2 \u2014 Full Manual Review",
+      "file_type": "document",
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-FULL-MANUAL-REVIEW-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_full_cohort_flag",
+      "label": "PHOTO_REVIEW_FULL_COHORT \u2014 hela high-confidence-k\u00f6n",
+      "file_type": "concept",
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-FULL-MANUAL-REVIEW-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_stop_conditions",
+      "label": "STOPP-villkor f\u00f6r review-k\u00f6n",
+      "file_type": "concept",
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-FULL-MANUAL-REVIEW-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_keyboard_focus_ui",
+      "label": "Fokusvy med tangentbordsgenv\u00e4gar (1/2/3, R, C, N/P)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-FULL-MANUAL-REVIEW-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_report",
+      "target": "docs_strategy_p0_photo_review_fas2_staging_pilot_2026_05_30_report",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-FULL-MANUAL-REVIEW-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_report",
+      "target": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_full_cohort_flag",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-FULL-MANUAL-REVIEW-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_report",
+      "target": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_stop_conditions",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-FULL-MANUAL-REVIEW-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_report",
+      "target": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_keyboard_focus_ui",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-FULL-MANUAL-REVIEW-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_full_cohort_flag",
+      "target": "docs_strategy_p0_photo_review_fas2_single_decision_pilot_2026_05_30_pilot_caps",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-FULL-MANUAL-REVIEW-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_stop_conditions",
+      "target": "docs_strategy_meridiq_source_of_truth_matrix_pii_github_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-FULL-MANUAL-REVIEW-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "photo_review_phase_gate_chain",
+      "label": "Photo Review fasgrind: plan \u2192 Fas 1 read-only \u2192 Fas 2 plan \u2192 sandbox-pilot \u2192 staging-pilot \u2192 full manuell review",
+      "nodes": [
+        "docs_strategy_p0_photo_review_workflow_plan_2026_05_30_plan",
+        "docs_strategy_p0_photo_review_ui_fas1_readonly_2026_05_30_report",
+        "docs_strategy_p0_photo_review_fas2_plan_2026_05_30_plan",
+        "docs_strategy_p0_photo_review_fas2_single_decision_pilot_2026_05_30_report",
+        "docs_strategy_p0_photo_review_fas2_staging_pilot_2026_05_30_report",
+        "docs_strategy_p0_photo_review_fas2_full_manual_review_2026_05_30_report"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/P0-PHOTO-REVIEW-FAS2-FULL-MANUAL-REVIEW-2026-05-30.md"
+    }
+  ]
+}

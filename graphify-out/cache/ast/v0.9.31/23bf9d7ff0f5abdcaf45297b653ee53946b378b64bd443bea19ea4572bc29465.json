@@ -1,0 +1,83 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_sync_cco_next_release_sh",
+      "label": "sync-cco-next-release.sh",
+      "file_type": "code",
+      "source_file": "scripts/sync-cco-next-release.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_sync_cco_next_release_sh__entry",
+      "label": "sync-cco-next-release.sh script",
+      "file_type": "code",
+      "source_file": "scripts/sync-cco-next-release.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_sync_cco_next_release_sh",
+      "target": "$graphify-root$_scripts_sync_cco_next_release_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/sync-cco-next-release.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_scripts_sync_cco_next_release_sh__entry",
+      "source_file": "scripts/sync-cco-next-release.sh",
+      "source_location": "L2"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_sync_cco_next_release_sh__entry",
+      "source_file": "scripts/sync-cco-next-release.sh",
+      "source_location": "L9"
+    },
+    {
+      "language": "bash",
+      "callee": "exit",
+      "caller_nid": "$graphify-root$_scripts_sync_cco_next_release_sh__entry",
+      "source_file": "scripts/sync-cco-next-release.sh",
+      "source_location": "L10"
+    },
+    {
+      "language": "bash",
+      "callee": "rm",
+      "caller_nid": "$graphify-root$_scripts_sync_cco_next_release_sh__entry",
+      "source_file": "scripts/sync-cco-next-release.sh",
+      "source_location": "L13"
+    },
+    {
+      "language": "bash",
+      "callee": "mkdir",
+      "caller_nid": "$graphify-root$_scripts_sync_cco_next_release_sh__entry",
+      "source_file": "scripts/sync-cco-next-release.sh",
+      "source_location": "L14"
+    },
+    {
+      "language": "bash",
+      "callee": "cp",
+      "caller_nid": "$graphify-root$_scripts_sync_cco_next_release_sh__entry",
+      "source_file": "scripts/sync-cco-next-release.sh",
+      "source_location": "L15"
+    },
+    {
+      "language": "bash",
+      "callee": "find",
+      "caller_nid": "$graphify-root$_scripts_sync_cco_next_release_sh__entry",
+      "source_file": "scripts/sync-cco-next-release.sh",
+      "source_location": "L16"
+    }
+  ],
+  "bash_sources": []
+}

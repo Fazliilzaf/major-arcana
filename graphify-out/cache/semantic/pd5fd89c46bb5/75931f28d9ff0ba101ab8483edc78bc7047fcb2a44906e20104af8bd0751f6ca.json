@@ -1,0 +1,111 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_72_reextract_saknade_belopp_doc",
+      "label": "ORD-72 Om-extraktion: h\u00e4mta saknade belopp ur sparade k\u00e4llmail",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-72-reextract-saknade-belopp.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_72_reextract_saknade_belopp_reextract",
+      "label": "cmMailSync.reextractMissingAmounts + POST /api/v1/cm/reextract-missing",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-72-reextract-saknade-belopp.md",
+      "source_location": "Byggt \u00a71/\u00a74",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_72_reextract_saknade_belopp_fyll_tomrum",
+      "label": "Design-l\u00e5s: om-extraktion fyller endast tomrum, skriver aldrig \u00f6ver satt v\u00e4rde",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-72-reextract-saknade-belopp.md",
+      "source_location": "Design-l\u00e5s",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_72_reextract_saknade_belopp_cfo_backfill",
+      "label": "CFO-backfill av redan promotade utgifter (actor cm-reextract, aldrig \u00f6verskrivning)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-72-reextract-saknade-belopp.md",
+      "source_location": "Byggt \u00a73",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_72_reextract_saknade_belopp_reextract",
+      "target": "docs_handover_orders_ord_68_cm_kombinerad_extraktion_reprocess_rawitemid",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-72-reextract-saknade-belopp.md",
+      "source_location": "Byggt \u00a71",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_72_reextract_saknade_belopp_reextract",
+      "target": "docs_handover_orders_ord_64_cm_pipeline_hardening_original_bfn",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-72-reextract-saknade-belopp.md",
+      "source_location": "Byggt \u00a71 (sparade k\u00e4llmailet)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_72_reextract_saknade_belopp_fyll_tomrum",
+      "target": "docs_handover_orders_ord_72_reextract_saknade_belopp_cfo_backfill",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-72-reextract-saknade-belopp.md",
+      "source_location": "Design-l\u00e5s",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_72_reextract_saknade_belopp_cfo_backfill",
+      "target": "docs_handover_orders_ord_63_cm_cfo_expense_kontrakt_cfo_expense_store",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-72-reextract-saknade-belopp.md",
+      "source_location": "Byggt \u00a73",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_72_reextract_saknade_belopp_reextract",
+      "target": "docs_handover_orders_ord_69_cm_mail_sync_scheduler_job",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-72-reextract-saknade-belopp.md",
+      "source_location": "Byggt \u00a76",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_72_reextract_saknade_belopp_fyll_tomrum",
+      "target": "docs_handover_orders_ord_63_cm_cfo_expense_kontrakt_cem_principen",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-72-reextract-saknade-belopp.md",
+      "source_location": "Design-l\u00e5s (beslut f\u00f6rblir m\u00e4nskliga)",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

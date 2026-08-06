@@ -1,0 +1,110 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_verify_all_pilot_journey_prod_sh",
+      "label": "verify-all-pilot-journey-prod.sh",
+      "file_type": "code",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_verify_all_pilot_journey_prod_sh__entry",
+      "label": "verify-all-pilot-journey-prod.sh script",
+      "file_type": "code",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    },
+    {
+      "id": "$graphify-root$_scripts_verify_all_pilot_journey_prod_fail",
+      "label": "fail()",
+      "file_type": "code",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L12",
+      "metadata": { "language": "bash", "kind": "bash_function" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_verify_all_pilot_journey_prod_sh",
+      "target": "$graphify-root$_scripts_verify_all_pilot_journey_prod_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_verify_all_pilot_journey_prod_sh",
+      "target": "$graphify-root$_scripts_verify_all_pilot_journey_prod_fail",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_verify_all_pilot_journey_prod_sh__entry",
+      "target": "$graphify-root$_scripts_verify_all_pilot_journey_prod_fail",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "call"
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_scripts_verify_all_pilot_journey_prod_sh__entry",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L3"
+    },
+    {
+      "language": "bash",
+      "callee": "cd",
+      "caller_nid": "$graphify-root$_scripts_verify_all_pilot_journey_prod_sh__entry",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L6"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_verify_all_pilot_journey_prod_sh__entry",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L16"
+    },
+    {
+      "language": "bash",
+      "callee": "node",
+      "caller_nid": "$graphify-root$_scripts_verify_all_pilot_journey_prod_sh__entry",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L29"
+    },
+    {
+      "language": "bash",
+      "callee": "exit",
+      "caller_nid": "$graphify-root$_scripts_verify_all_pilot_journey_prod_sh__entry",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L92"
+    },
+    {
+      "language": "bash",
+      "callee": "echo",
+      "caller_nid": "$graphify-root$_scripts_verify_all_pilot_journey_prod_fail",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L12"
+    },
+    {
+      "language": "bash",
+      "callee": "exit",
+      "caller_nid": "$graphify-root$_scripts_verify_all_pilot_journey_prod_fail",
+      "source_file": "scripts/verify-all-pilot-journey-prod.sh",
+      "source_location": "L12"
+    }
+  ],
+  "bash_sources": []
+}

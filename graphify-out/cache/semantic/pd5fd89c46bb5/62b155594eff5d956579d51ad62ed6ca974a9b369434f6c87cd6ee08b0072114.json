@@ -1,0 +1,128 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_drive_coupling_gap_2026_05_30_doc",
+      "label": "Drive-Coupling Gap (P0.3)",
+      "file_type": "document",
+      "source_file": "docs/strategy/DRIVE-COUPLING-GAP-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_drive_coupling_gap_2026_05_30_service_account_blocker",
+      "label": "Service-account-blocker f\u00f6r Drive-\u00e5tkomst",
+      "file_type": "concept",
+      "source_file": "docs/strategy/DRIVE-COUPLING-GAP-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Utan dedikerat service-account med delning p\u00e5 den delade enheten kan systemet varken verifiera mappar, lista filer eller skriva tillbaka journal-PDF, vilket blockerar flera cutover-kriterier samtidigt."
+    },
+    {
+      "id": "docs_strategy_drive_coupling_gap_2026_05_30_drive_path_predictor",
+      "label": "Drive-path-prediktion med confidence-niv\u00e5er",
+      "file_type": "concept",
+      "source_file": "docs/strategy/DRIVE-COUPLING-GAP-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Predikterad path plus deeplink ger anv\u00e4ndbar Drive-navigering redan innan service-account finns; statusf\u00e4ltet pending_service_account_auth g\u00f6r os\u00e4kerheten explicit i UI."
+    },
+    {
+      "id": "docs_strategy_drive_coupling_gap_2026_05_30_master_patient_card",
+      "label": "Master patient-card som read-only Drive-aggregator",
+      "file_type": "concept",
+      "source_file": "docs/strategy/DRIVE-COUPLING-GAP-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_drive_coupling_gap_2026_05_30_doc",
+      "target": "docs_strategy_drive_coupling_gap_2026_05_30_service_account_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-COUPLING-GAP-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_coupling_gap_2026_05_30_doc",
+      "target": "docs_strategy_drive_coupling_gap_2026_05_30_drive_path_predictor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-COUPLING-GAP-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_coupling_gap_2026_05_30_master_patient_card",
+      "target": "docs_strategy_drive_coupling_gap_2026_05_30_drive_path_predictor",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-COUPLING-GAP-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_coupling_gap_2026_05_30_drive_path_predictor",
+      "target": "docs_strategy_drive_inventory_report_2026_05_30_folder_ids",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-COUPLING-GAP-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_coupling_gap_2026_05_30_doc",
+      "target": "docs_strategy_drive_inventory_report_2026_05_30_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-COUPLING-GAP-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_drive_coupling_gap_2026_05_30_service_account_blocker",
+      "target": "docs_strategy_journal_cutover_audit_2026_05_30_blocker_catalog",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-COUPLING-GAP-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "drive_coupling_activation_chain",
+      "label": "Drive-koppling: folder-ID-inventering \u2192 service-account \u2192 path-prediktion \u2192 master patient-card",
+      "nodes": [
+        "docs_strategy_drive_inventory_report_2026_05_30_folder_ids",
+        "docs_strategy_drive_coupling_gap_2026_05_30_service_account_blocker",
+        "docs_strategy_drive_coupling_gap_2026_05_30_drive_path_predictor",
+        "docs_strategy_drive_coupling_gap_2026_05_30_master_patient_card"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/DRIVE-COUPLING-GAP-2026-05-30.md"
+    }
+  ]
+}

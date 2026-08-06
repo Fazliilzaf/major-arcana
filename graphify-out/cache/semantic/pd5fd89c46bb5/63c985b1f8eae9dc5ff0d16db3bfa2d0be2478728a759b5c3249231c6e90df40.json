@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "docs_risk_readme_doc",
+      "label": "Risk Precision Assets \u2014 benchmarkbibliotek",
+      "file_type": "document",
+      "source_file": "docs/risk/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_risk_readme_gold_set",
+      "label": "Gold set v1 \u2014 150 riskfall (safe/borderline/critical)",
+      "file_type": "concept",
+      "source_file": "docs/risk/README.md",
+      "source_location": "## Gold set",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_risk_readme_version_metadata",
+      "label": "Versionsmetadata i riskevaluering (ruleSet/threshold/semanticModel/fusion/build)",
+      "file_type": "concept",
+      "source_file": "docs/risk/README.md",
+      "source_location": "## Versionssp\u00e5rning i evalueringar",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_risk_readme_precision_report_api",
+      "label": "GET /api/v1/risk/precision/report \u2014 confusion-matrix med overrides",
+      "file_type": "concept",
+      "source_file": "docs/risk/README.md",
+      "source_location": "## K\u00f6rning",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_risk_readme_doc",
+      "target": "docs_risk_readme_gold_set",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/risk/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_risk_readme_precision_report_api",
+      "target": "docs_risk_readme_gold_set",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/risk/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_risk_readme_version_metadata",
+      "target": "docs_risk_readme_precision_report_api",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/risk/README.md",
+      "source_location": "thresholdVersion override f\u00f6r reproducerbar j\u00e4mf\u00f6relse",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_risk_readme_version_metadata",
+      "target": "docs_schema_cco_patient_assets_schema_checksum_provenance",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/risk/README.md",
+      "source_location": "b\u00e5da g\u00f6r resultat reproducerbart/sp\u00e5rbart mot en fixerad version av inneh\u00e5llet",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

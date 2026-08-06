@@ -1,0 +1,80 @@
+{
+  "nodes": [
+    {
+      "id": "public_m_kunder_mobil",
+      "label": "Kunder mobil-yta",
+      "file_type": "code",
+      "source_file": "public/m-kunder.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_m_kunder_dossier",
+      "label": "Fullsk\u00e4rms-dossi\u00e9r p\u00e5 mobil",
+      "file_type": "concept",
+      "source_file": "public/m-kunder.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_m_kunder_touchmal",
+      "label": "44px touch-m\u00e5l och safe-area-budget",
+      "file_type": "concept",
+      "source_file": "public/m-kunder.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_m_kunder_mobil",
+      "target": "public_m_kunder_dossier",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/m-kunder.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_m_kunder_mobil",
+      "target": "public_m_kunder_touchmal",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/m-kunder.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_m_kunder_mobil",
+      "target": "public_kunder_facit_vy",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/m-kunder.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_m_kunder_dossier",
+      "target": "public_kundkort_mockup_gemensamt_flikar",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/m-kunder.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

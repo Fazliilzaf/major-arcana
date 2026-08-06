@@ -1,0 +1,287 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "label": "CCO Automation OS \u2014 Cursor teknisk analys",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_existing_automation_inventory",
+      "label": "Inventering av befintliga automationer i repo (DONE/PARTIAL/MISSING)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_domain_gap_analysis",
+      "label": "Gap-analys per dom\u00e4n (Kunder, kalender, journal, formul\u00e4r, avtal, comms, ops)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_automation_catalog_v1",
+      "label": "Automation catalog v1 med risk- och approval-klassning",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_dry_run_evaluate_api",
+      "label": "GET-only automation-API: catalog / evaluate / worklists",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_feature_flag_canary_pattern",
+      "label": "ENABLE_AUTOMATION_RUNNER + per-regel canary och rollback",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_verify_automation_registry_script",
+      "label": "verify-automation-registry.js \u2014 FAIL om aktiv regel saknar reason eller write utan humanApprovalRequired",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_no_writes_step_one",
+      "label": "Inga writes i steg 1 \u2014 dry-run only",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_ccostaff_router_pattern",
+      "label": "Montera routes via ccoStaff-m\u00f6nster i st\u00e4llet f\u00f6r server.js-monolit",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_automation_signals_in_customers_shell",
+      "label": "customers-shell + includeAutomation=1 \u2192 automationSignals[] per kort",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_existing_automation_inventory",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_domain_gap_analysis",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_automation_catalog_v1",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_dry_run_evaluate_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_feature_flag_canary_pattern",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_verify_automation_registry_script",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_no_writes_step_one",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_ccostaff_router_pattern",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_automation_signals_in_customers_shell",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_dry_run_evaluate_api",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_automation_rules_engine",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_no_writes_step_one",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_human_approval_principle",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_verify_automation_registry_script",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_human_approval_principle",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_automation_signals_in_customers_shell",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_what_why_next_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_domain_gap_analysis",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_automation_readiness_35pct",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_feature_flag_canary_pattern",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_enable_aisia_scalp_analysis_flag",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_doc",
+      "target": "docs_strategy_cco_automation_os_chatgpt_brief_2026_06_03_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_automation_os_cursor_technical_2026_06_03_automation_catalog_v1",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_migration_v1_to_v2",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-AUTOMATION-OS-CURSOR-TECHNICAL-2026-06-03.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

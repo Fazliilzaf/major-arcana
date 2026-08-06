@@ -1,0 +1,174 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_cmo_marketing_copilot_ia_ia",
+      "label": "Arcana Marketing Copilot \u2014 Adminpanel IA",
+      "file_type": "document",
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cmo_marketing_copilot_ia_cmo_copilot",
+      "label": "CMO \u2014 Arcana Marketing Copilot",
+      "file_type": "concept",
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cmo_marketing_copilot_ia_compliance_gate",
+      "label": "Marketing compliance-gate (claims \u2192 compliance review \u2192 policy floor)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cmo_marketing_copilot_ia_clinical_guard",
+      "label": "CLINICAL_GUARD (policy floor f\u00f6r extern/patientn\u00e4ra copy)",
+      "file_type": "concept",
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cmo_marketing_copilot_ia_metric_freshness_rule",
+      "label": "Metric-k\u00e4lla/f\u00e4rskhetsregel \u2192 insufficient_data utan rekommendation",
+      "file_type": "concept",
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cmo_marketing_copilot_ia_no_auto_publish_boundary",
+      "label": "Gr\u00e4ns v1: ingen auto-publicering, ingen auto-spend",
+      "file_type": "concept",
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cmo_marketing_copilot_ia_agent_orchestration",
+      "label": "Agent-orkestrering CMO \u2194 CAO/COO/CCO/CFO/CLINICAL_GUARD",
+      "file_type": "concept",
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_cmo_marketing_copilot_ia_ia",
+      "target": "docs_ops_cmo_marketing_copilot_ia_cmo_copilot",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": "Produktpositionering",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cmo_marketing_copilot_ia_cmo_copilot",
+      "target": "docs_ops_cmo_marketing_copilot_ia_compliance_gate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": "Compliance-gate (Fas B)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cmo_marketing_copilot_ia_compliance_gate",
+      "target": "docs_ops_cmo_marketing_copilot_ia_clinical_guard",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": "Compliance-gate steg 3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cmo_marketing_copilot_ia_no_auto_publish_boundary",
+      "target": "docs_ops_cmo_marketing_copilot_ia_cmo_copilot",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": "Gr\u00e4nser (v1)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cmo_marketing_copilot_ia_cmo_copilot",
+      "target": "docs_ops_cao_admin_operator_ia_executive_decision_feed",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": "Feed persist: samma store som CAO",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cmo_marketing_copilot_ia_agent_orchestration",
+      "target": "docs_ops_cao_admin_operator_ia_cao_agent",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": "Agent-orkestrering (Fas F)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cmo_marketing_copilot_ia_metric_freshness_rule",
+      "target": "docs_ops_cmo_marketing_copilot_ia_cmo_copilot",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": "Datak\u00e4llor (analys, Fas E)",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cmo_marketing_copilot_ia_no_auto_publish_boundary",
+      "target": "docs_ops_cco_conversations_customers_c0_inventory_2026_07_01_live_send_lock",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": "b\u00e5da: AI skapar utkast, m\u00e4nniska sl\u00e4pper ut externt",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cmo_marketing_copilot_ia_no_auto_publish_boundary",
+      "target": "docs_major_arcana_index_canon",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/cmo-marketing-copilot-ia.md",
+      "source_location": "AI f\u00e5r generera utkast men inte publicera sj\u00e4lv",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

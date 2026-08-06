@@ -1,0 +1,255 @@
+{
+  "nodes": [
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_clean_image",
+      "label": "Figma planner node 3-2 (clean) \u2013 layering planner with visible row labels",
+      "file_type": "image",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_clean_art_of_layering_planner",
+      "label": "The Art of Layering \u2013 Personal Olfactory Stratification (planner sheet)",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_head",
+      "label": "Head zone (neck, hair, shoulders, chest)",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_heart",
+      "label": "Heart zone (chest, arms, abdomen)",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_base",
+      "label": "Base zone (hips, behind knees, calves)",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_clean_product_columns",
+      "label": "Product columns: Perfume / Body Oil / Body Cream",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_clean_application_checklist",
+      "label": "Application step rows with checkbox grid (Spray Behind Neck \u2026 Spray Behind your Calfs)",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_clean_fragrance_names",
+      "label": "Fragrance names: Tiglio Blu, Labdanum Gold, Te Mi De",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_torti_ritual_assets_figma_planner_node_3_2_clean_gradient_pyramid",
+      "label": "Layered gradient pyramid backdrop (yellow head, rose heart, mauve base)",
+      "file_type": "concept",
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_image",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean_art_of_layering_planner",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_image",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean2_image",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_art_of_layering_planner",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_head",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_art_of_layering_planner",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_heart",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_art_of_layering_planner",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_base",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_art_of_layering_planner",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean_product_columns",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_art_of_layering_planner",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean_gradient_pyramid",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_application_checklist",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean_product_columns",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_application_checklist",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean_fragrance_names",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_head",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_heart",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_heart",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_base",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_torti_ritual_assets_figma_planner_node_3_2_clean_image",
+      "target": "public_torti_ritual_assets_figma_planner_node_3_2_clean_application_checklist",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "art_of_layering_planner_variants",
+      "label": "Art of Layering planner \u2013 progressive label-cleanup variants",
+      "nodes": [
+        "public_torti_ritual_assets_figma_planner_node_3_2_clean_image",
+        "public_torti_ritual_assets_figma_planner_node_3_2_clean2_image",
+        "public_torti_ritual_assets_figma_planner_node_3_2_clean3_image",
+        "public_torti_ritual_assets_figma_planner_node_3_2_clean_art_of_layering_planner"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png"
+    },
+    {
+      "id": "olfactory_stratification_zones",
+      "label": "Head / Heart / Base olfactory stratification",
+      "nodes": [
+        "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_head",
+        "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_heart",
+        "public_torti_ritual_assets_figma_planner_node_3_2_clean_zone_base",
+        "public_torti_ritual_assets_figma_planner_node_3_2_clean_gradient_pyramid"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/torti-ritual/assets/figma-planner-node-3-2-clean.png"
+    }
+  ]
+}

@@ -1,0 +1,439 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_stryker_cao_conf_json",
+      "label": "stryker.cao.conf.json",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_schema",
+      "label": "$schema",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_comment",
+      "label": "_comment",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_testrunner",
+      "label": "testRunner",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_commandrunner",
+      "label": "commandRunner",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_commandrunner_command",
+      "label": "command",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_mutate",
+      "label": "mutate",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "ref_src_ops_readinessevaluator_js",
+      "label": "src/ops/readinessEvaluator.js",
+      "file_type": "concept",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "ref_src_ops_caoschedulerjobs_js",
+      "label": "src/ops/caoSchedulerJobs.js",
+      "file_type": "concept",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "ref_src_orchestrator_adminorchestrator_js",
+      "label": "src/orchestrator/adminOrchestrator.js",
+      "file_type": "concept",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "ref_src_test_js",
+      "label": "!src/**/*.test.js",
+      "file_type": "concept",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_thresholds",
+      "label": "thresholds",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L14"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_thresholds_high",
+      "label": "high",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L15"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_thresholds_low",
+      "label": "low",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L16"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_thresholds_break",
+      "label": "break",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L17"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_concurrency",
+      "label": "concurrency",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L19"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_timeoutms",
+      "label": "timeoutMS",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L20"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_ignorepatterns",
+      "label": "ignorePatterns",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L21"
+    },
+    {
+      "id": "ref_data",
+      "label": "data/",
+      "file_type": "concept",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L21"
+    },
+    {
+      "id": "ref_public",
+      "label": "public/",
+      "file_type": "concept",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L21"
+    },
+    {
+      "id": "ref_github",
+      "label": ".github/",
+      "file_type": "concept",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L21"
+    },
+    {
+      "id": "ref_tests",
+      "label": "tests/",
+      "file_type": "concept",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L21"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_reporters",
+      "label": "reporters",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L22"
+    },
+    {
+      "id": "ref_progress",
+      "label": "progress",
+      "file_type": "concept",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L22"
+    },
+    {
+      "id": "ref_clear_text",
+      "label": "clear-text",
+      "file_type": "concept",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L22"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_htmlreporter",
+      "label": "htmlReporter",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L23"
+    },
+    {
+      "id": "$graphify-root$_stryker_cao_conf_htmlreporter_filename",
+      "label": "fileName",
+      "file_type": "code",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L24"
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_stryker_cao_conf_json",
+      "target": "$graphify-root$_stryker_cao_conf_schema",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_json",
+      "target": "$graphify-root$_stryker_cao_conf_comment",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_json",
+      "target": "$graphify-root$_stryker_cao_conf_testrunner",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_json",
+      "target": "$graphify-root$_stryker_cao_conf_commandrunner",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_commandrunner",
+      "target": "$graphify-root$_stryker_cao_conf_commandrunner_command",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_json",
+      "target": "$graphify-root$_stryker_cao_conf_mutate",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_mutate",
+      "target": "ref_src_ops_readinessevaluator_js",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_mutate",
+      "target": "ref_src_ops_caoschedulerjobs_js",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_mutate",
+      "target": "ref_src_orchestrator_adminorchestrator_js",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_mutate",
+      "target": "ref_src_test_js",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_json",
+      "target": "$graphify-root$_stryker_cao_conf_thresholds",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_thresholds",
+      "target": "$graphify-root$_stryker_cao_conf_thresholds_high",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_thresholds",
+      "target": "$graphify-root$_stryker_cao_conf_thresholds_low",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_thresholds",
+      "target": "$graphify-root$_stryker_cao_conf_thresholds_break",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_json",
+      "target": "$graphify-root$_stryker_cao_conf_concurrency",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_json",
+      "target": "$graphify-root$_stryker_cao_conf_timeoutms",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_json",
+      "target": "$graphify-root$_stryker_cao_conf_ignorepatterns",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_ignorepatterns",
+      "target": "ref_data",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_ignorepatterns",
+      "target": "ref_public",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_ignorepatterns",
+      "target": "ref_github",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_ignorepatterns",
+      "target": "ref_tests",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_json",
+      "target": "$graphify-root$_stryker_cao_conf_reporters",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_reporters",
+      "target": "ref_progress",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L22",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_reporters",
+      "target": "ref_clear_text",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L22",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_json",
+      "target": "$graphify-root$_stryker_cao_conf_htmlreporter",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_stryker_cao_conf_htmlreporter",
+      "target": "$graphify-root$_stryker_cao_conf_htmlreporter_filename",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stryker.cao.conf.json",
+      "source_location": "L24",
+      "weight": 1.0
+    }
+  ]
+}

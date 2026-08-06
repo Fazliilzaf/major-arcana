@@ -1,0 +1,154 @@
+{
+  "nodes": [
+    {
+      "id": "public_cco_presenter_mode_page",
+      "label": "Presenter Mode \u00b7 Personalm\u00f6te 4 juni 2026",
+      "file_type": "document",
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_presenter_mode_fourteen_step_flow",
+      "label": "14-stegs demoflow i fyra faser med 15-minuterstimer",
+      "file_type": "concept",
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Varje steg b\u00e4r fyra f\u00e4lt \u2014 S\u00e4g, Klicka, Om fail, Backup \u2014 s\u00e5 att presentat\u00f6ren har ett f\u00f6rskrivet \u00e5terh\u00e4mtningsdrag f\u00f6r varje moment i st\u00e4llet f\u00f6r att improvisera inf\u00f6r personalen."
+    },
+    {
+      "id": "public_cco_presenter_mode_pilotkunder",
+      "label": "Verifierade pilotkunder (A/B/C) som s\u00e4kra live-demoobjekt",
+      "file_type": "concept",
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Tre f\u00f6rberedda testpatienter g\u00f6r att demon kan k\u00f6ras i live-milj\u00f6n utan att r\u00f6ra riktiga journaler; pilotkund C har redan en signerad r\u00e4ttelse s\u00e5 att steget kan visas \u00e4ven om create-correction failar."
+    },
+    {
+      "id": "public_cco_presenter_mode_fem_regler_dag1",
+      "label": "De fem dag-1-reglerna (uppl\u00e4sning i fas 4)",
+      "file_type": "concept",
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Reglerna l\u00e4ses h\u00f6gt i st\u00e4llet f\u00f6r att bara visas: identitet f\u00f6re signering, ingen ny kund vid os\u00e4ker match, review-material ej klinisk sanning, migrerade bilder ej kliniska f\u00f6re Photo Review, ingen extern AI."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_cco_presenter_mode_page",
+      "target": "public_cco_presenter_mode_fourteen_step_flow",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_presenter_mode_page",
+      "target": "public_cco_presenter_mode_pilotkunder",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_presenter_mode_page",
+      "target": "public_cco_presenter_mode_fem_regler_dag1",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_presenter_mode_fem_regler_dag1",
+      "target": "public_cco_staff_day1_checklist_identitetsverifiering",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_presenter_mode_fem_regler_dag1",
+      "target": "public_cco_review_material_warning_use_as_reference",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_presenter_mode_fem_regler_dag1",
+      "target": "public_cco_review_material_warning_photo_review_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_presenter_mode_fem_regler_dag1",
+      "target": "public_cco_journalpilot_faq_extern_ai_forbud",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_presenter_mode_fourteen_step_flow",
+      "target": "public_cco_journalpilot_faq_rattelse_som_ny_post",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_presenter_mode_fourteen_step_flow",
+      "target": "public_cco_morning_checklist_backup_failover",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_presenter_mode_fourteen_step_flow",
+      "target": "public_cco_review_material_warning_needs_review_badge",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-presenter-mode.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

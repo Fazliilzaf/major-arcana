@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "docs_architecture_analyze_inbox_snapshot_contract_v1_analyzeinbox",
+      "label": "AnalyzeInbox capability",
+      "file_type": "concept",
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_architecture_analyze_inbox_snapshot_contract_v1_snapshot",
+      "label": "systemStateSnapshot-kontrakt inbox.snapshot.v1",
+      "file_type": "concept",
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_architecture_analyze_inbox_snapshot_contract_v1_masking",
+      "label": "Normalisering och maskering av inbox-inneh\u00e5ll (l\u00e4nk/e-post/telefon/id-platsh\u00e5llare)",
+      "file_type": "concept",
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_architecture_analyze_inbox_snapshot_contract_v1_sla_classification",
+      "label": "H\u00e4rledd SLA-klassificering (slaBreaches, needsReplyToday, urgentConversations)",
+      "file_type": "concept",
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_architecture_analyze_inbox_snapshot_contract_v1_write_boundary",
+      "label": "Write-boundary: inga mailbox-skrivningar fr\u00e5n AnalyzeInbox",
+      "file_type": "concept",
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_architecture_analyze_inbox_snapshot_contract_v1_analyzeinbox",
+      "target": "docs_architecture_capability_base_class_contract_v1_basecapability",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_architecture_analyze_inbox_snapshot_contract_v1_analyzeinbox",
+      "target": "docs_architecture_capability_framework_contract_v1_executiongateway",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_architecture_analyze_inbox_snapshot_contract_v1_analyzeinbox",
+      "target": "docs_architecture_analyze_inbox_snapshot_contract_v1_snapshot",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_architecture_analyze_inbox_snapshot_contract_v1_analyzeinbox",
+      "target": "docs_architecture_analyze_inbox_snapshot_contract_v1_masking",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_architecture_analyze_inbox_snapshot_contract_v1_analyzeinbox",
+      "target": "docs_architecture_analyze_inbox_snapshot_contract_v1_sla_classification",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_architecture_analyze_inbox_snapshot_contract_v1_write_boundary",
+      "target": "docs_architecture_capability_framework_contract_v1_persist_strategy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_architecture_analyze_inbox_snapshot_contract_v1_sla_classification",
+      "target": "docs_architecture_analyze_inbox_snapshot_contract_v1_snapshot",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture/analyze-inbox-snapshot-contract-v1.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_journal_safety_v3_page",
+      "label": "Journal Safety Helper v3",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journal_safety_v3_six_checkpoint_gate",
+      "label": "Sex checkpoints innan signering eller r\u00e4ttelse",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journal_safety_v3_review_material_stop_rule",
+      "label": "STOPPA-regel: review-material \u00e4r inte klinisk sanning",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journal_safety_v3_escalation_rule",
+      "label": "Eskaleringsregel vid os\u00e4kerhet (identitet/dubbletter till ops, tekniska fel till system\u00e4gare)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_journal_safety_v3_no_quick_signing",
+      "label": "Aldrig snabb-signering \u2014 kontroll f\u00f6re signering, ingen extern AI",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_journal_safety_v3_page",
+      "target": "public_major_arcana_preview_cco_journal_safety_v3_six_checkpoint_gate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journal_safety_v3_six_checkpoint_gate",
+      "target": "public_major_arcana_preview_cco_journal_safety_v3_review_material_stop_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journal_safety_v3_six_checkpoint_gate",
+      "target": "public_major_arcana_preview_cco_journal_safety_v3_no_quick_signing",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journal_safety_v3_six_checkpoint_gate",
+      "target": "public_major_arcana_preview_cco_journal_safety_v3_escalation_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journal_safety_v3_six_checkpoint_gate",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_correction_never_edit",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journal_safety_v3_review_material_stop_rule",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_asset_status_model",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_journal_safety_v3_no_quick_signing",
+      "target": "public_major_arcana_preview_cco_journalbygge_v3_security_properties",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/major-arcana-preview/cco-journal-safety-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

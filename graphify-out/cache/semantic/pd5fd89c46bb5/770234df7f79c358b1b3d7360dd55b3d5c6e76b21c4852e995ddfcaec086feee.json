@@ -1,0 +1,187 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_v12_workspace_cutover_audit_2026_06_23_audit",
+      "label": "V12 Workspace \u2014 slutpass/cutover-audit (read-only helhetsgranskning)",
+      "file_type": "document",
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_workspace_cutover_audit_2026_06_23_gap_1_anchor_router",
+      "label": "GAP-1 \u00b7 Anchor-scroll-router saknas f\u00f6r V11\u2192V12 deep-links",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a76, \u00a712",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "V12-moduler exponerar data-v12-module medan scrollDossierSection s\u00f6ker data-kundkort-section/data-v9-section \u2192 graceful no-op. P\u00e5verkar navigation, inte datakorrekthet, d\u00e4rf\u00f6r medel allvar men blockerar default ON tills \u00e5tg\u00e4rdad eller uttryckligen accepterad."
+    },
+    {
+      "id": "docs_handover_v12_workspace_cutover_audit_2026_06_23_gap_2_pixel_verification",
+      "label": "GAP-2 \u00b7 Pixel-/browser-console-verifiering endast via CI-artefakter",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a712",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_workspace_cutover_audit_2026_06_23_cutover_recommendation",
+      "label": "Cutover-rekommendation \u2014 minimal separat PR, owner/Codex-godk\u00e4nnande kr\u00e4vs",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a713",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Cutover ska (per V11-m\u00f6nstret) enbart flippa flagg-default OFF\u2192ON plus versionsbump \u2014 ingen render.yaml, ingen modulkod \u2014 s\u00e5 att backout \u00e4r en ren revert."
+    },
+    {
+      "id": "docs_handover_v12_workspace_cutover_audit_2026_06_23_namespace_isolation",
+      "label": "Namespace-/CSS-isolering `.v12-workspace__` utan legacy-override",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a711",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_workspace_cutover_audit_2026_06_23_no_new_write_handlers",
+      "label": "Additiv princip \u2014 inga nya handlers eller write-fl\u00f6den i V12",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a78",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "V12 producerar rena HTML-str\u00e4ngar med befintliga data-attribut; skriv-\u00e5tg\u00e4rder ligger kvar i legacy-moduler s\u00e5 att opt-in aldrig kan orsaka dataregression."
+    },
+    {
+      "id": "docs_handover_v12_workspace_cutover_audit_2026_06_23_screenshot_workflow",
+      "label": "v12-workspace-screenshots.yml \u2014 pixelbevis 390/820/1440",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a75, \u00a710",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_v12_workspace_cutover_audit_2026_06_23_audit",
+      "target": "docs_handover_v12_workspace_inventory_2026_06_21_inventory",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "Header",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_workspace_cutover_audit_2026_06_23_audit",
+      "target": "docs_handover_v12_workspace_cutover_audit_2026_06_23_gap_1_anchor_router",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a76",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_workspace_cutover_audit_2026_06_23_gap_1_anchor_router",
+      "target": "docs_handover_v12_workspace_inventory_2026_06_21_inventory",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a76 Status",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_workspace_cutover_audit_2026_06_23_gap_1_anchor_router",
+      "target": "docs_handover_v12_spec_2_journey_spine_navigation_contract",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a76",
+      "weight": 0.85
+    },
+    {
+      "source": "docs_handover_v12_workspace_cutover_audit_2026_06_23_gap_1_anchor_router",
+      "target": "docs_handover_v12_workspace_cutover_audit_2026_06_23_cutover_recommendation",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a712\u201313",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_workspace_cutover_audit_2026_06_23_gap_2_pixel_verification",
+      "target": "docs_handover_v12_workspace_cutover_audit_2026_06_23_screenshot_workflow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a712",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_workspace_cutover_audit_2026_06_23_audit",
+      "target": "docs_handover_v12_workspace_cutover_audit_2026_06_23_namespace_isolation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a711",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_workspace_cutover_audit_2026_06_23_no_new_write_handlers",
+      "target": "docs_handover_v12_workspace_inventory_2026_06_21_adapter_reuse",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a78",
+      "weight": 0.95
+    },
+    {
+      "source": "docs_handover_v12_workspace_cutover_audit_2026_06_23_audit",
+      "target": "docs_handover_v12_workspace_inventory_2026_06_21_feature_flag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a74",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_workspace_cutover_audit_2026_06_23_audit",
+      "target": "docs_handover_v12_spec_1_content_canon_thirteen_sections",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-WORKSPACE-CUTOVER-AUDIT-2026-06-23.md",
+      "source_location": "\u00a73",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

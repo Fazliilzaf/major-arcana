@@ -1,0 +1,123 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_mac_studio_sync_sh",
+      "label": "mac-studio-sync.sh",
+      "file_type": "code",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "file" }
+    },
+    {
+      "id": "$graphify-root$_scripts_mac_studio_sync_sh__entry",
+      "label": "mac-studio-sync.sh script",
+      "file_type": "code",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L1",
+      "metadata": { "language": "bash", "kind": "bash_entrypoint" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_mac_studio_sync_sh",
+      "target": "$graphify-root$_scripts_mac_studio_sync_sh__entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_mac_studio_sync_sh",
+      "target": "$graphify-root$_scripts_mac_studio_common_sh",
+      "relation": "imports_from",
+      "confidence": "INFERRED",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L6",
+      "weight": 1.0,
+      "context": "import",
+      "target_file": "$graphify-root$/scripts/mac-studio-common.sh"
+    },
+    {
+      "source": "$graphify-root$_scripts_mac_studio_sync_sh",
+      "target": "$graphify-root$_scripts_arcana_sync_common_sh",
+      "relation": "imports_from",
+      "confidence": "INFERRED",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "import",
+      "target_file": "$graphify-root$/scripts/arcana-sync-common.sh"
+    }
+  ],
+  "raw_calls": [
+    {
+      "language": "bash",
+      "callee": "set",
+      "caller_nid": "$graphify-root$_scripts_mac_studio_sync_sh__entry",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L2"
+    },
+    {
+      "language": "bash",
+      "callee": "is_running_on_mac_studio",
+      "caller_nid": "$graphify-root$_scripts_mac_studio_sync_sh__entry",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L10"
+    },
+    {
+      "language": "bash",
+      "callee": "printf",
+      "caller_nid": "$graphify-root$_scripts_mac_studio_sync_sh__entry",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L11"
+    },
+    {
+      "language": "bash",
+      "callee": "exit",
+      "caller_nid": "$graphify-root$_scripts_mac_studio_sync_sh__entry",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L12"
+    },
+    {
+      "language": "bash",
+      "callee": "print_mac_studio_unreachable",
+      "caller_nid": "$graphify-root$_scripts_mac_studio_sync_sh__entry",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L18"
+    },
+    {
+      "language": "bash",
+      "callee": "ssh",
+      "caller_nid": "$graphify-root$_scripts_mac_studio_sync_sh__entry",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L22"
+    },
+    {
+      "language": "bash",
+      "callee": "build_arcana_sync_args",
+      "caller_nid": "$graphify-root$_scripts_mac_studio_sync_sh__entry",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L24"
+    },
+    {
+      "language": "bash",
+      "callee": "rsync",
+      "caller_nid": "$graphify-root$_scripts_mac_studio_sync_sh__entry",
+      "source_file": "scripts/mac-studio-sync.sh",
+      "source_location": "L26"
+    }
+  ],
+  "bash_sources": [
+    {
+      "target_path": "$graphify-root$/scripts/mac-studio-common.sh",
+      "source_file": "$graphify-root$/scripts/mac-studio-sync.sh",
+      "source_location": "L6"
+    },
+    {
+      "target_path": "$graphify-root$/scripts/arcana-sync-common.sh",
+      "source_file": "$graphify-root$/scripts/mac-studio-sync.sh",
+      "source_location": "L8"
+    }
+  ]
+}

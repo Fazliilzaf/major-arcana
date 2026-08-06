@@ -1,0 +1,101 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_cco_activation_evidence_2026_02_27_evidence",
+      "label": "CCO Activation Evidence (2026-02-27)",
+      "file_type": "document",
+      "source_file": "docs/ops/cco-activation-evidence-2026-02-27.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_activation_evidence_2026_02_27_mfa_disabled_build_phase",
+      "label": "Beslut: AUTH_MFA_ENABLED=false under byggfas",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-activation-evidence-2026-02-27.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_activation_evidence_2026_02_27_graph_mail_send_blocker",
+      "label": "Extern blocker: Graph-app saknar Mail.Send + admin consent",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-activation-evidence-2026-02-27.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_cco_activation_evidence_2026_02_27_mailbox_allowlist_wildcard",
+      "label": "Wildcard mailbox-allowlist f\u00f6r CCO send",
+      "file_type": "concept",
+      "source_file": "docs/ops/cco-activation-evidence-2026-02-27.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_cco_activation_evidence_2026_02_27_evidence",
+      "target": "docs_ops_cco_activation_evidence_2026_02_27_mfa_disabled_build_phase",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-activation-evidence-2026-02-27.md",
+      "source_location": "Scope",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_activation_evidence_2026_02_27_evidence",
+      "target": "docs_ops_cco_activation_evidence_2026_02_27_graph_mail_send_blocker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-activation-evidence-2026-02-27.md",
+      "source_location": "Remaining external blocker",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_activation_evidence_2026_02_27_mailbox_allowlist_wildcard",
+      "target": "docs_ops_capability_framework_v1_implementation_2026_02_26_execution_gateway",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/cco-activation-evidence-2026-02-27.md",
+      "source_location": "src/capabilities/executionService.js",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_activation_evidence_2026_02_27_graph_mail_send_blocker",
+      "target": "docs_ops_cco_completion_evidence_2026_02_28_manual_graph_send",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/cco-activation-evidence-2026-02-27.md",
+      "source_location": "blocker resolved by 2026-02-28 evidence",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_cco_activation_evidence_2026_02_27_mfa_disabled_build_phase",
+      "target": "docs_ops_arcana_finalization_runbook_mfa_secret_preflight",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/ops/cco-activation-evidence-2026-02-27.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

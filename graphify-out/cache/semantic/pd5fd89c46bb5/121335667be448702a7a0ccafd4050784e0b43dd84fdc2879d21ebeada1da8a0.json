@@ -1,0 +1,116 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_ord_10_02_side_shell",
+      "label": "Sk\u00e4rmdump: sidopanel Kundgrupper",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/ord-10/02-side-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_ord_10_kundgrupper_sidopanel",
+      "label": "Sidopanel Kundgrupper (segment-navigering)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/ord-10/02-side-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_ord_10_behandlingstyper",
+      "label": "Behandlingstyper (FUE, DHI, PRP, Microneedling, Konsultation, Uppf\u00f6ljning)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/ord-10/02-side-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_ord_10_kundstatusar",
+      "label": "Kundstatusar (VIP, Risk, Nya, Dormant, Saknar journal, Granska, Drive-filer, Drive only, Cliento only, Dubblett e-post, Saknar h\u00e4lsodeklaration)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/ord-10/02-side-shell.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_ord_10_02_side_shell",
+      "target": "docs_ops_screenshots_ord_10_kundgrupper_sidopanel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/02-side-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_02_side_shell",
+      "target": "docs_ops_screenshots_ord_10_behandlingstyper",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/02-side-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_02_side_shell",
+      "target": "docs_ops_screenshots_ord_10_kundstatusar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/ord-10/02-side-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_kundgrupper_sidopanel",
+      "target": "docs_ops_screenshots_ord_10_kunder_skarm",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/ord-10/02-side-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_ord_10_02_side_shell",
+      "target": "docs_ops_screenshots_ord_10_03_story_cards",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/ord-10/02-side-shell.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "ord_10_kundsegmentering",
+      "label": "Kundsegmentering: sidopanel, behandlingstyper, statusar och filterchips",
+      "nodes": [
+        "docs_ops_screenshots_ord_10_kundgrupper_sidopanel",
+        "docs_ops_screenshots_ord_10_behandlingstyper",
+        "docs_ops_screenshots_ord_10_kundstatusar",
+        "docs_ops_screenshots_ord_10_statusfilterrad"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/ord-10/02-side-shell.png"
+    }
+  ]
+}

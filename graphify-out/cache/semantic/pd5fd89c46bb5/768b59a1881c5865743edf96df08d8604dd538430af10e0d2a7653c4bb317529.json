@@ -1,0 +1,164 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_v12_customer_workspace_canon_2026_06_22_doc",
+      "label": "V12 Customer Workspace \u2014 CANON / scope (2026-06-22)",
+      "file_type": "document",
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_customer_workspace_canon_2026_06_22_zon_modell",
+      "label": "Zon-modellen: Zon 1 V11 Rail (glanceable) vs Zon 2 V12 Workspace (djuparbete)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a71",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_customer_workspace_canon_2026_06_22_13_moduler",
+      "label": "13 V12-moduler i l\u00e5st ordning (nul\u00e4ge \u2192 sticky arbetsbar)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a72 / D1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_customer_workspace_canon_2026_06_22_deep_link_mappning",
+      "label": "Deep-link-mappning V11-attribut \u2192 V12-modul",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a73",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_customer_workspace_canon_2026_06_22_feature_flag",
+      "label": "Feature flag ?v12workspace=on (default OFF, additiv guardad mount)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a75 / D2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_customer_workspace_canon_2026_06_22_handler_policy",
+      "label": "Handler-policy: inga nya handlers om befintliga kan \u00e5teranv\u00e4ndas (D5)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a76",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_customer_workspace_canon_2026_06_22_byggprocess",
+      "label": "Byggprocess per modul (modul-canon \u2192 flaggat bygge \u2192 screenshots \u2192 granskning \u2192 en PR)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a77",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_v12_customer_workspace_canon_2026_06_22_doc",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a79 Relaterat",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_customer_workspace_canon_2026_06_22_zon_modell",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_zon2_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a71",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_customer_workspace_canon_2026_06_22_13_moduler",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_canon_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a72 V11-k\u00e4lla-kolumnen",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_customer_workspace_canon_2026_06_22_deep_link_mappning",
+      "target": "docs_handover_v11_rail_cutover_audit_2026_06_22_keep_deep_links",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a73",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_customer_workspace_canon_2026_06_22_feature_flag",
+      "target": "docs_handover_v11_rail_canon_decision_2026_06_21_feature_flag",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a75",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_customer_workspace_canon_2026_06_22_handler_policy",
+      "target": "docs_handover_v11_rail_cutover_audit_2026_06_22_inga_nya_handlers",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a76",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_customer_workspace_canon_2026_06_22_handler_policy",
+      "target": "docs_handover_v11_rail_cutover_audit_2026_06_22_adapter_paritet",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a76 D5",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_customer_workspace_canon_2026_06_22_byggprocess",
+      "target": "docs_handover_v12_customer_workspace_canon_2026_06_22_13_moduler",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-CUSTOMER-WORKSPACE-CANON-2026-06-22.md",
+      "source_location": "\u00a77",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

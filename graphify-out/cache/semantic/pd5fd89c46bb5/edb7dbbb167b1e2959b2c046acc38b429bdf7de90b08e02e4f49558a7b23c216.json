@@ -1,0 +1,122 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_runbooks_cao_admin_operator_runbook",
+      "label": "CAO Admin Operator Runbook",
+      "file_type": "document",
+      "source_file": "docs/ops/runbooks/cao-admin-operator-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_cao_admin_operator_runbook_executive_feed",
+      "label": "Executive decision feed (OWNER beslutsfeed)",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/cao-admin-operator-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_cao_admin_operator_runbook_scheduler_jobs",
+      "label": "CAO scheduler-jobb (quality gate, SLA-risk, missing DoD)",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/cao-admin-operator-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_cao_admin_operator_runbook_orchestrator_execute",
+      "label": "Orchestrator admin-run: plan vs execute med L3+ OWNER-bekr\u00e4ftelse",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/cao-admin-operator-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_runbooks_cao_admin_operator_runbook_go_no_go_brief",
+      "label": "CAO Go/No-Go brief mot auktoritativ readiness",
+      "file_type": "concept",
+      "source_file": "docs/ops/runbooks/cao-admin-operator-runbook.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_runbooks_cao_admin_operator_runbook",
+      "target": "docs_ops_runbooks_cao_admin_operator_runbook_executive_feed",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/cao-admin-operator-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_cao_admin_operator_runbook_scheduler_jobs",
+      "target": "docs_ops_runbooks_cao_admin_operator_runbook_executive_feed",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/cao-admin-operator-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_cao_admin_operator_runbook_go_no_go_brief",
+      "target": "docs_ops_runbooks_incident_runbook_go_no_go_readiness",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/cao-admin-operator-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_cao_admin_operator_runbook_go_no_go_brief",
+      "target": "docs_ops_runbooks_incident_runbook_ops_suite_strict",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/cao-admin-operator-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_cao_admin_operator_runbook_orchestrator_execute",
+      "target": "docs_ops_runbooks_cao_admin_operator_runbook_executive_feed",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/cao-admin-operator-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_runbooks_cao_admin_operator_runbook",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/runbooks/cao-admin-operator-runbook.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

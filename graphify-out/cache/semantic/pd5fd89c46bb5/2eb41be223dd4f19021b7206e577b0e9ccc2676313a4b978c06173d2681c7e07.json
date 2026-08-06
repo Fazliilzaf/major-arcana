@@ -1,0 +1,38 @@
+{
+  "nodes": [
+    {
+      "id": "docs_implementation_patient_documents_live_diffs_u_pass_mail_patientinfo_2026_06_25_batch1_mail_patientinfo",
+      "label": "U-pass batch 1 \u2014 mail C27\u2013C30 + patientinfo A12\u2013A14",
+      "file_type": "document",
+      "source_file": "docs/implementation/patient-documents-live/diffs/U-PASS-MAIL-PATIENTINFO-2026-06-25.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_u_pass_mail_patientinfo_2026_06_25_batch1_mail_patientinfo",
+      "target": "docs_implementation_patient_documents_live_diffs_u_pass_2026_06_25_kallklassificering",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/implementation/patient-documents-live/diffs/U-PASS-MAIL-PATIENTINFO-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_implementation_patient_documents_live_diffs_u_pass_mail_patientinfo_2026_06_25_batch1_mail_patientinfo",
+      "target": "docs_legal_juridik_gdpr_jurist_flode_bilaga_1_patientinformation",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/implementation/patient-documents-live/diffs/U-PASS-MAIL-PATIENTINFO-2026-06-25.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

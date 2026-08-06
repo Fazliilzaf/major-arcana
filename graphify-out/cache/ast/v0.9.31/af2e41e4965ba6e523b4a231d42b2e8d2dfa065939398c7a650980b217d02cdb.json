@@ -1,0 +1,93 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_config_cco_comm_templates_journey_json",
+      "label": "cco-comm-templates-journey.json",
+      "file_type": "code",
+      "source_file": "config/cco-comm-templates-journey.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "$graphify-root$_config_cco_comm_templates_journey_schema",
+      "label": "$schema",
+      "file_type": "code",
+      "source_file": "config/cco-comm-templates-journey.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "$graphify-root$_config_cco_comm_templates_journey_version",
+      "label": "version",
+      "file_type": "code",
+      "source_file": "config/cco-comm-templates-journey.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "$graphify-root$_config_cco_comm_templates_journey_generatedat",
+      "label": "generatedAt",
+      "file_type": "code",
+      "source_file": "config/cco-comm-templates-journey.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "$graphify-root$_config_cco_comm_templates_journey_description",
+      "label": "description",
+      "file_type": "code",
+      "source_file": "config/cco-comm-templates-journey.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "$graphify-root$_config_cco_comm_templates_journey_templates",
+      "label": "templates",
+      "file_type": "code",
+      "source_file": "config/cco-comm-templates-journey.json",
+      "source_location": "L6"
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_config_cco_comm_templates_journey_json",
+      "target": "$graphify-root$_config_cco_comm_templates_journey_schema",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config/cco-comm-templates-journey.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_config_cco_comm_templates_journey_json",
+      "target": "$graphify-root$_config_cco_comm_templates_journey_version",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config/cco-comm-templates-journey.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_config_cco_comm_templates_journey_json",
+      "target": "$graphify-root$_config_cco_comm_templates_journey_generatedat",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config/cco-comm-templates-journey.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_config_cco_comm_templates_journey_json",
+      "target": "$graphify-root$_config_cco_comm_templates_journey_description",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config/cco-comm-templates-journey.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_config_cco_comm_templates_journey_json",
+      "target": "$graphify-root$_config_cco_comm_templates_journey_templates",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config/cco-comm-templates-journey.json",
+      "source_location": "L6",
+      "weight": 1.0
+    }
+  ]
+}

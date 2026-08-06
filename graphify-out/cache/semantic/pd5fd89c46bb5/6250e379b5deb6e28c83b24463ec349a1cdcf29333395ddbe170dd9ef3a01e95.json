@@ -1,0 +1,112 @@
+{
+  "nodes": [
+    {
+      "id": "docs_runbook_besvarad_kategori_doc",
+      "label": "Runbook \u2014 Besvarad i CCO-kategori p\u00e5 delad kons@-brevl\u00e5da",
+      "file_type": "document",
+      "source_file": "docs/runbook-besvarad-kategori.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_runbook_besvarad_kategori_feature_flag",
+      "label": "ARCANA_CCO_MARK_ANSWERED_CATEGORY \u2014 flagga med ren rollback",
+      "file_type": "concept",
+      "source_file": "docs/runbook-besvarad-kategori.md",
+      "source_location": "## 1. Sl\u00e5 p\u00e5 flaggan",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_runbook_besvarad_kategori_graph_permissions",
+      "label": "Graph application permissions: Mail.ReadWrite + MailboxSettings.ReadWrite",
+      "file_type": "concept",
+      "source_file": "docs/runbook-besvarad-kategori.md",
+      "source_location": "## 0. F\u00f6ruts\u00e4ttningar",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_runbook_besvarad_kategori_best_effort_tagging",
+      "label": "Best-effort-taggning med replacePrefix (degraderad f\u00e4rg utan beh\u00f6righet)",
+      "file_type": "concept",
+      "source_file": "docs/runbook-besvarad-kategori.md",
+      "source_location": "## 3. Fels\u00f6kning",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_runbook_besvarad_kategori_prod_agent_execution",
+      "label": "Prod-agent k\u00f6r runbook (sandbox n\u00e5r inte Graph)",
+      "file_type": "concept",
+      "source_file": "docs/runbook-besvarad-kategori.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_runbook_besvarad_kategori_doc",
+      "target": "docs_runbook_besvarad_kategori_feature_flag",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/runbook-besvarad-kategori.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_runbook_besvarad_kategori_feature_flag",
+      "target": "docs_runbook_besvarad_kategori_graph_permissions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/runbook-besvarad-kategori.md",
+      "source_location": "## 0. F\u00f6ruts\u00e4ttningar",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_runbook_besvarad_kategori_best_effort_tagging",
+      "target": "docs_runbook_besvarad_kategori_graph_permissions",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/runbook-besvarad-kategori.md",
+      "source_location": "taggen s\u00e4tts \u00e4nd\u00e5 (best-effort), men utan garanterad f\u00e4rg",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_runbook_besvarad_kategori_prod_agent_execution",
+      "target": "docs_runbook_besvarad_kategori_doc",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/runbook-besvarad-kategori.md",
+      "source_location": "Sandboxen n\u00e5r inte Graph",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_runbook_besvarad_kategori_feature_flag",
+      "target": "docs_strategy_aisia_apply_to_cco_qa_2026_05_30_enable_flag",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/runbook-besvarad-kategori.md",
+      "source_location": "b\u00e5da \u00e4r env-flaggor med default off och ren rollback",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

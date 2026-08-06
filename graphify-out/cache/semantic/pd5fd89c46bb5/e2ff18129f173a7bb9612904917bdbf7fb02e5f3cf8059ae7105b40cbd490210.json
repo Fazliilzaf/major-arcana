@@ -1,0 +1,144 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_aisia_follow_up_workflow_doc",
+      "label": "Aisia Follow-up Workflow",
+      "file_type": "document",
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_follow_up_workflow_timepoint_schedule",
+      "label": "Uppf\u00f6ljningstidpunkter D14 / M1 / M3 / M6 / M12",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_follow_up_workflow_metric_delta_rule",
+      "label": "Metric delta-regel: current \u2212 baseline, positiv h\u00e5rantalsdelta = f\u00f6rb\u00e4ttring",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_follow_up_workflow_needs_extra_follow_up_flag",
+      "label": "Flagga needs_extra_follow_up p\u00e5 j\u00e4mf\u00f6relse",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_follow_up_workflow_no_auto_journal_text",
+      "label": "Ingen auto-skriven journaltext fr\u00e5n Aisia AI",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Journaltext m\u00e5ste komma fr\u00e5n behandlarens egen bed\u00f6mning; verifierad analys refereras manuellt."
+    },
+    {
+      "id": "docs_strategy_aisia_follow_up_workflow_per_timepoint_actor_steps",
+      "label": "Akt\u00f6rssteg per timepoint (boka \u2192 capture \u2192 import \u2192 j\u00e4mf\u00f6relse \u2192 bed\u00f6mning)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_aisia_follow_up_workflow_doc",
+      "target": "docs_strategy_aisia_follow_up_workflow_timepoint_schedule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_follow_up_workflow_doc",
+      "target": "docs_strategy_aisia_follow_up_workflow_metric_delta_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_follow_up_workflow_doc",
+      "target": "docs_strategy_aisia_follow_up_workflow_needs_extra_follow_up_flag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_follow_up_workflow_doc",
+      "target": "docs_strategy_aisia_follow_up_workflow_no_auto_journal_text",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_follow_up_workflow_doc",
+      "target": "docs_strategy_aisia_follow_up_workflow_per_timepoint_actor_steps",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_follow_up_workflow_metric_delta_rule",
+      "target": "docs_strategy_aisia_follow_up_workflow_needs_extra_follow_up_flag",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_follow_up_workflow_per_timepoint_actor_steps",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_clinician_verification_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-FOLLOW-UP-WORKFLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

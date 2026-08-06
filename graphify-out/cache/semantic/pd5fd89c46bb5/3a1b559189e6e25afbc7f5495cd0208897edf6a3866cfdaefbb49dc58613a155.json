@@ -1,0 +1,60 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_booking_plan_a_todos_en_punkt_ett_svep",
+      "label": "Arbetsregel: en punkt = ett svep",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-plan-a-todos.md",
+      "source_location": "Rubrik/Status",
+      "source_url": null,
+      "captured_at": "2026-05-24",
+      "author": null,
+      "contributor": null,
+      "rationale": "N\u00e4sta punkt startar f\u00f6rst n\u00e4r f\u00f6reg\u00e5ende \u00e4r gr\u00f6n, vilket h\u00e5ller varje leverans verifierbar innan n\u00e4sta p\u00e5b\u00f6rjas."
+    },
+    {
+      "id": "docs_strategy_cco_booking_plan_a_todos_pa_faser",
+      "label": "PA-todo faser: KOD \u2192 DRIFT \u2192 VERIFY",
+      "file_type": "document",
+      "source_file": "docs/strategy/cco-booking-plan-a-todos.md",
+      "source_location": "Fas KOD / Fas DRIFT / Fas VERIFY",
+      "source_url": null,
+      "captured_at": "2026-05-24",
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_booking_plan_a_todos_pa_faser",
+      "target": "docs_strategy_cco_booking_plan_a_go_live_plan_a",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-plan-a-todos.md",
+      "source_location": "Relaterat: cco-booking-plan-a-go-live.md",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_booking_plan_a_todos_en_punkt_ett_svep",
+      "target": "docs_strategy_cco_booking_plan_a_todos_pa_faser",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-plan-a-todos.md",
+      "source_location": "Regel: En punkt = ett svep",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_booking_plan_a_todos_pa_faser",
+      "target": "docs_strategy_cco_booking_plan_a_go_live_signoff",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-plan-a-todos.md",
+      "source_location": "PA-30 Sign-off Plan A go-live",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

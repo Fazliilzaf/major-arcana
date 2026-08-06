@@ -1,0 +1,95 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_27_kundkort_design_v2_kunder_design_v2",
+      "label": "Kunder-vy design v2 (gloss-rader + slide-over lift-panel)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-27-kundkort-design-v2.md",
+      "source_location": "Uppdrag + Prod-implementation",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": null
+    },
+    {
+      "id": "docs_handover_orders_ord_27_kundkort_design_v2_no_ai_branding_rule",
+      "label": "H\u00e5rd regel: ingen AI-branding och ingen extern AI p\u00e5 medicinsk data",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-27-kundkort-design-v2.md",
+      "source_location": "H\u00e5rda regler",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Patientdata f\u00e5r inte l\u00e4mna systemet till extern modell, och AI-symbolik i kundvyn skulle antyda automatiserad medicinsk bed\u00f6mning."
+    },
+    {
+      "id": "docs_handover_orders_ord_27_kundkort_design_v2_v9polish_flag",
+      "label": "?v9polish=on \u2014 mikro-effekter bakom egen flagga",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-27-kundkort-design-v2.md",
+      "source_location": "Polish",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Hover-gloss och pulse separeras fr\u00e5n baslayouten s\u00e5 polish kan sl\u00e5s av utan att r\u00f6ra strukturen."
+    },
+    {
+      "id": "docs_handover_orders_ord_27_kundkort_design_v2_health_declaration_from_bundle",
+      "label": "resolveHealthDeclarationFromBundle (Meridiq-formul\u00e4rkoppling)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-27-kundkort-design-v2.md",
+      "source_location": "Prod-implementation",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_27_kundkort_design_v2_kunder_design_v2",
+      "target": "docs_handover_orders_ord_27_kundkort_design_v2_no_ai_branding_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-27-kundkort-design-v2.md",
+      "source_location": "H\u00e5rda regler",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_27_kundkort_design_v2_kunder_design_v2",
+      "target": "docs_handover_orders_ord_27_kundkort_design_v2_v9polish_flag",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-27-kundkort-design-v2.md",
+      "source_location": "Polish",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_27_kundkort_design_v2_health_declaration_from_bundle",
+      "target": "docs_handover_orders_ord_23_kundkort_magic_backend_dossier_bundle_endpoint",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-27-kundkort-design-v2.md",
+      "source_location": "Data: dossier-bundle?includeJournal=0",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_27_kundkort_design_v2_v9polish_flag",
+      "target": "docs_handover_orders_ord_20_v9_flag_default_on_v9_flag_default_on",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "docs/handover/ORDERS/ORD-27-kundkort-design-v2.md",
+      "source_location": "cco-v9-flag.js hanterar b\u00e5da flaggorna",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

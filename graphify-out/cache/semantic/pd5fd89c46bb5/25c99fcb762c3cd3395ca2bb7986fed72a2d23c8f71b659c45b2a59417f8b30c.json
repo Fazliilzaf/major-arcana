@@ -1,0 +1,63 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_22_strikta_segment_definitioner_segment_definitions",
+      "label": "Strikta segment-definitioner (active/risk/new/dormant)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-22-strikta-segment-definitioner.md",
+      "source_location": "Scope 1-4",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Gamla definitionen gjorde ~100 % av kunderna 'aktiva' och d\u00e4rmed pillen meningsl\u00f6s; nya definitionen \u00e4r booking-driven med fallback n\u00e4r bookingCoverage saknas."
+    },
+    {
+      "id": "docs_handover_orders_ord_22_strikta_segment_definitioner_risk_vs_needs_review_split",
+      "label": "Separation risk vs needs_review/import_review",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-22-strikta-segment-definitioner.md",
+      "source_location": "Scope 2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "needs_review \u00e4r en dataimport-status, inte aff\u00e4rsrisk; att aliasa dem gav 0 riskkunder trots verkliga no-shows."
+    },
+    {
+      "id": "docs_handover_orders_ord_22_strikta_segment_definitioner_segment_tuning_constants",
+      "label": "Namngivna segment-tr\u00f6sklar (ACTIVE_BOOKING_DAYS m.fl.)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-22-strikta-segment-definitioner.md",
+      "source_location": "Konstanter",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Tr\u00f6sklarna l\u00e4ggs som named consts \u00f6verst i filen s\u00e5 andelarna kan tunas utan att r\u00f6ra segmentlogiken."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_22_strikta_segment_definitioner_segment_definitions",
+      "target": "docs_handover_orders_ord_22_strikta_segment_definitioner_risk_vs_needs_review_split",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-22-strikta-segment-definitioner.md",
+      "source_location": "Scope 2",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_22_strikta_segment_definitioner_segment_definitions",
+      "target": "docs_handover_orders_ord_22_strikta_segment_definitioner_segment_tuning_constants",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-22-strikta-segment-definitioner.md",
+      "source_location": "Konstanter",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

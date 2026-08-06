@@ -1,0 +1,176 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_meridiq_dedup_report_2026_05_30_doc",
+      "label": "Meridiq Patient De-dup Report",
+      "file_type": "document",
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_dedup_report_2026_05_30_dedup_strategy",
+      "label": "Matchningsprioritet: personnummer \u2192 e-post \u2192 telefon \u2192 namn",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Namnmatchning anv\u00e4nds bara som sista utv\u00e4g och med l\u00e4ngdtr\u00f6skel eftersom namnkollisioner annars riskerar att sl\u00e5 ihop tv\u00e5 olika patienter."
+    },
+    {
+      "id": "docs_strategy_meridiq_dedup_report_2026_05_30_match_results",
+      "label": "Matchresultat \u2014 99,9 % t\u00e4ckning, 64 k\u00e4llduplikat",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_dedup_report_2026_05_30_leads_without_journal",
+      "label": "989 leads utan v\u00e5rdjournal",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_dedup_report_2026_05_30_pnr_gap_finding",
+      "label": "Personnummer-gap i k\u00e4llsystemet (P0-fynd)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_dedup_report_2026_05_30_coverage_gate",
+      "label": "Coverage Gate PASS f\u00f6r import men BLOCKED f\u00f6r PDL-compliance",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_meridiq_dedup_report_2026_05_30_source_data_outside_repo",
+      "label": "K\u00e4llexport h\u00e5lls utanf\u00f6r repo och gitignoreras",
+      "file_type": "concept",
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Patientexporten ligger i en separat s\u00e4kerhetsperimeter s\u00e5 att inga personuppgifter kan hamna i versionshanteringen; rapporten \u00e5terger endast aggregerade siffror."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_meridiq_dedup_report_2026_05_30_doc",
+      "target": "docs_strategy_meridiq_dedup_report_2026_05_30_dedup_strategy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_dedup_report_2026_05_30_dedup_strategy",
+      "target": "docs_strategy_meridiq_dedup_report_2026_05_30_match_results",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_dedup_report_2026_05_30_match_results",
+      "target": "docs_strategy_meridiq_dedup_report_2026_05_30_leads_without_journal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_dedup_report_2026_05_30_doc",
+      "target": "docs_strategy_meridiq_dedup_report_2026_05_30_pnr_gap_finding",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_dedup_report_2026_05_30_pnr_gap_finding",
+      "target": "docs_strategy_meridiq_dedup_report_2026_05_30_coverage_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_dedup_report_2026_05_30_doc",
+      "target": "docs_strategy_meridiq_dedup_report_2026_05_30_source_data_outside_repo",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_dedup_report_2026_05_30_source_data_outside_repo",
+      "target": "docs_strategy_cutover_readiness_report_2026_05_30_counts_only_compliance",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_dedup_report_2026_05_30_match_results",
+      "target": "docs_strategy_journal_cutover_audit_2026_05_30_identity_uncertainty",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_meridiq_dedup_report_2026_05_30_leads_without_journal",
+      "target": "docs_strategy_communication_journey_matrix_2026_05_30_journey_matrix",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

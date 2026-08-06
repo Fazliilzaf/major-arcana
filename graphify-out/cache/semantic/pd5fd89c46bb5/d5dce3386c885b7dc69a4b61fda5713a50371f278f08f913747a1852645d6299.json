@@ -1,0 +1,112 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_doc",
+      "label": "AI/OCR-policy \u2014 \u00e4garbeslut 2026-07-13",
+      "file_type": "document",
+      "source_file": "docs/strategy/AI-OCR-POLICY-BESLUT-2026-07-13.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_external_ai_supplier_only",
+      "label": "Extern AI godk\u00e4nd endast f\u00f6r leverant\u00f6rsunderlag (CF.10 \u00f6ppnad)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AI-OCR-POLICY-BESLUT-2026-07-13.md",
+      "source_location": "## Beslut",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_no_patient_data_to_external_ai",
+      "label": "H\u00e5rdregel: patientdata g\u00e5r ALDRIG till extern AI",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AI-OCR-POLICY-BESLUT-2026-07-13.md",
+      "source_location": "## Villkor",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_archive_before_ai",
+      "label": "Original arkiveras i secure storage F\u00d6RE AI-anrop (BFN 7 \u00e5r)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AI-OCR-POLICY-BESLUT-2026-07-13.md",
+      "source_location": "## Villkor",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_cem_human_approval",
+      "label": "CEM-principen: AI f\u00f6resl\u00e5r, m\u00e4nniskan godk\u00e4nner (ingen auto-bokf\u00f6ring)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AI-OCR-POLICY-BESLUT-2026-07-13.md",
+      "source_location": "## Villkor",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_doc",
+      "target": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_external_ai_supplier_only",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AI-OCR-POLICY-BESLUT-2026-07-13.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_no_patient_data_to_external_ai",
+      "target": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_external_ai_supplier_only",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AI-OCR-POLICY-BESLUT-2026-07-13.md",
+      "source_location": "Villkor 1\u20132: endast f\u00f6retagsekonomiska underlag omfattas",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_archive_before_ai",
+      "target": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_external_ai_supplier_only",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AI-OCR-POLICY-BESLUT-2026-07-13.md",
+      "source_location": "AI:n f\u00e5r en kopia, aldrig k\u00e4llan",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_cem_human_approval",
+      "target": "docs_strategy_aisia_compliance_security_checklist_clinician_verify",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/AI-OCR-POLICY-BESLUT-2026-07-13.md",
+      "source_location": "AI f\u00f6resl\u00e5r, m\u00e4nniskan godk\u00e4nner \u2014 samma princip i kliniskt sp\u00e5r",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_ai_ocr_policy_beslut_2026_07_13_archive_before_ai",
+      "target": "docs_schema_cco_patient_assets_schema_no_drive_links",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/strategy/AI-OCR-POLICY-BESLUT-2026-07-13.md",
+      "source_location": "secure storage som kanonisk lagringsplats",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

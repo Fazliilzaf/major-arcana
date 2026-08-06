@@ -1,0 +1,228 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_design_alignment_rapport",
+      "label": "CCO Staff UI Design Alignment (P0 sprint)",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_staff_shell_css",
+      "label": "cco-staff-shell.css - central CCO-tokenstyleguide",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_staff_shell_js",
+      "label": "cco-staff-shell.js - topnav-injektion",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_designtokens",
+      "label": "CCO designtokens (vellum bg, rose-pill, glass cards)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sjutton_staff_sidor",
+      "label": "17 harmoniserade staff-sidor",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Ops Workbench lamnas orord for att undvika konflikt med pagaende canary-arbete i ett annat spar."
+    },
+    {
+      "id": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sprakbyten_demoportal",
+      "label": "Sprakbyten: demoportal till personalstart",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Demo-terminologi undergraver fortroendet for ett skarpt kliniksystem; sprak och form ska signalera kontrollerad pilot, inte prototyp."
+    },
+    {
+      "id": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_design_gate_resultat",
+      "label": "Gate: preflight-lankar + E2E readiness PASS",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_non_destructive_override",
+      "label": "Non-destruktiva page-shell-overrides",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Lokala layouter (timer, progress, checklist) far inte brytas, sa shell:en overrider bara tokens, topnav och body-bakgrund."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_design_alignment_rapport",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_staff_shell_css",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_design_alignment_rapport",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_staff_shell_js",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_design_alignment_rapport",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sjutton_staff_sidor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_design_alignment_rapport",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sprakbyten_demoportal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_design_alignment_rapport",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_design_gate_resultat",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_staff_shell_css",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_designtokens",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_staff_shell_js",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_designtokens",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sjutton_staff_sidor",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_staff_shell_css",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sjutton_staff_sidor",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_staff_shell_js",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_cco_staff_shell_css",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_non_destructive_override",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sprakbyten_demoportal",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sjutton_staff_sidor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_design_gate_resultat",
+      "target": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sjutton_staff_sidor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_staff_ui_design_alignment_2026_06_04_sjutton_staff_sidor",
+      "target": "docs_strategy_cco_staff_role_cards_2026_06_04_rollkort_dokument",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CCO-STAFF-UI-DESIGN-ALIGNMENT-2026-06-04.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

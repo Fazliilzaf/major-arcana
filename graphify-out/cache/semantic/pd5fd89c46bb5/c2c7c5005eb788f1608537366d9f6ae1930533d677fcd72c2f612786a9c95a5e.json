@@ -1,0 +1,155 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_v12_spec_2_journey_spine_spec",
+      "label": "V12 Spec 2 \u2014 JOURNEY-SPINE (HUR kundvyn organiseras)",
+      "file_type": "document",
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_spec_2_journey_spine_step_states",
+      "label": "Fyra steg-l\u00e4gen: klart / aktiv / kommande / blockerad",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a73",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Aktivt steg alltid expanderat med operativ data inline; klart expanderar historik; blockerat expanderar gate-list \u2014 visuellt l\u00e4ge = arbetsl\u00e4ge."
+    },
+    {
+      "id": "docs_handover_v12_spec_2_journey_spine_gate_list",
+      "label": "Gate-list \u2014 \"kr\u00e4vs f\u00f6r att l\u00e5sa upp\" p\u00e5 blockerat steg",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a74",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_spec_2_journey_spine_navigation_contract",
+      "label": "Navigationskontrakt: steg N i V11-rail \u2192 steg N expanderat i V12",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a71",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_spec_2_journey_spine_responsive_model",
+      "label": "Responsiv modell webb \u22651280 / iPad 768\u20131023 / mobil 320\u2013767",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a77",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_v12_spec_2_journey_spine_layout_decision",
+      "label": "V12 layout-beslutet \u2014 spine vs 13 sektioner (canon-niv\u00e5 omkomponering)",
+      "file_type": "concept",
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a79",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "JOURNEY-SPINE \u00e4r en omkomponering, inte en stil-tweak: Kundresa-modulen m\u00e5ste bli v\u00e4rd f\u00f6r \u00f6vrig moduldata. D\u00e4rf\u00f6r kr\u00e4vs owner/Codex-beslut innan bygge."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_v12_spec_2_journey_spine_spec",
+      "target": "docs_handover_v12_spec_1_content_canon_spec",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a79\u201310",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_spec_2_journey_spine_spec",
+      "target": "docs_handover_v12_spec_2_journey_spine_step_states",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a73",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_spec_2_journey_spine_step_states",
+      "target": "docs_handover_v12_spec_2_journey_spine_gate_list",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a73\u20134",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_spec_2_journey_spine_gate_list",
+      "target": "docs_handover_v12_spec_1_content_canon_critical_warning_gate",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a79 j\u00e4mf\u00f6relsetabell",
+      "weight": 0.85
+    },
+    {
+      "source": "docs_handover_v12_spec_2_journey_spine_layout_decision",
+      "target": "docs_handover_v12_spec_2_journey_spine_spec",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a79",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_spec_2_journey_spine_spec",
+      "target": "docs_handover_v12_spec_2_journey_spine_navigation_contract",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a71",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_spec_2_journey_spine_spec",
+      "target": "docs_handover_v12_spec_2_journey_spine_responsive_model",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a77",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_v12_spec_2_journey_spine_spec",
+      "target": "docs_handover_v12_spec_1_content_canon_loud_palette",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/V12-SPEC-2-JOURNEY-SPINE.md",
+      "source_location": "\u00a78",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

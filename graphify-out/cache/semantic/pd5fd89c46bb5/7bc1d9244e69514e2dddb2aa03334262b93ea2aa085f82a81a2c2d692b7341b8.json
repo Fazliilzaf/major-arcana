@@ -1,0 +1,28 @@
+{
+  "nodes": [
+    {
+      "id": "docs_presentations_gouraloto_visual_roadmap_en_reviewer_variant_backup",
+      "label": "Gouraloto Visual Roadmap (EN) \u2014 arkiverad backup av granskarvariant (tom platsh\u00e5llarfil)",
+      "file_type": "document",
+      "source_file": "docs/presentations/gouraloto-visual-roadmap-en-katia.backup.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_presentations_gouraloto_visual_roadmap_en_reviewer_variant_backup",
+      "target": "docs_presentations_gouraloto_visual_roadmap_en_reviewer_variant_deck",
+      "relation": "references",
+      "confidence": "AMBIGUOUS",
+      "confidence_score": 0.3,
+      "source_file": "docs/presentations/gouraloto-visual-roadmap-en-katia.backup.html",
+      "source_location": "arkiverad kopia, tom fil",
+      "weight": 0.5
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,207 @@
+{
+  "nodes": [
+    {
+      "id": "public_cco_kundkort_blueprint_page",
+      "label": "CCO Kundkort \u00b7 Blueprint (responsiv 3-kolumn)",
+      "file_type": "document",
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_kundkort_blueprint_kundresa_nio_steg",
+      "label": "Kundresa i 9 steg (JourneyAggregator)",
+      "file_type": "concept",
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Bokning \u2192 bekr\u00e4ftelse \u2192 h\u00e4lsodeklaration \u2192 konsultation \u2192 offert/behandlingsplan \u2192 bet\u00e4nketid \u2192 avtal+samtycke \u2192 friskf\u00f6rs\u00e4kran \u2192 foto-samtycke. Aggregatet ger ett enda stegv\u00e4rde som b\u00e5de kundlista och kundkort kan visa."
+    },
+    {
+      "id": "public_cco_kundkort_blueprint_betanketid_gate",
+      "label": "Bet\u00e4nketid-gate (cooling_off_active, bookable=false)",
+      "file_type": "concept",
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "K\u00e4rngate: avtal f\u00e5r inte skickas under aktiv bet\u00e4nketid p\u00e5 2 dagar, och bokning sp\u00e4rras (bookable=false). Systemet har inget att g\u00f6ra \u2014 det inv\u00e4ntar tid."
+    },
+    {
+      "id": "public_cco_kundkort_blueprint_agreement_consent_bundle",
+      "label": "missing_agreement_consent_bundle (avtal + behandlingssamtycke)",
+      "file_type": "concept",
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Bundlen kr\u00e4ver b\u00e5de passerad bet\u00e4nketid och legal_review p\u00e5 mallversionen; knappen 'Skicka bundle' \u00e4r l\u00e5st tills b\u00e5da villkoren \u00e4r uppfyllda och triggas av owner/legal, inte av behandlare."
+    },
+    {
+      "id": "public_cco_kundkort_blueprint_friskforsakran_day_of",
+      "label": "missing_operation_day_insurance (friskf\u00f6rs\u00e4kran via tablet/QR p\u00e5 operationsdagen)",
+      "file_type": "concept",
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Medicinsk gate som blockerar operationsstart. L\u00e4nken genereras f\u00f6rst p\u00e5 operationsdagen eftersom f\u00f6rs\u00e4kran m\u00e5ste spegla patientens status just d\u00e5, inte vid bokningstillf\u00e4llet."
+    },
+    {
+      "id": "public_cco_kundkort_blueprint_photo_consent",
+      "label": "missing_photo_consent (scope h\u00e5rlinje/krona, aldrig ansikte)",
+      "file_type": "concept",
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Samtycket \u00e4r scope-begr\u00e4nsat till h\u00e5rlinje och krona och utesluter uttryckligen ansikte; prompten visas p\u00e5 tablet vid f\u00f6rsta journal-foto s\u00e5 att samtycket inh\u00e4mtas i samma \u00f6gonblick som bilden tas."
+    },
+    {
+      "id": "public_cco_kundkort_blueprint_smart_nasta_steg",
+      "label": "Smart n\u00e4sta steg \u2014 read-only signalmotor (vad/varf\u00f6r/n\u00e4sta)",
+      "file_type": "concept",
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Signalerna \u00e4r read-only och f\u00f6rklarar sig sj\u00e4lva i tre rader (vad, varf\u00f6r, n\u00e4sta) i st\u00e4llet f\u00f6r att agera \u2014 komposit-signalen ready_for_treatment r\u00e4knar gates i st\u00e4llet f\u00f6r att \u00f6ppna dem."
+    },
+    {
+      "id": "public_cco_kundkort_blueprint_dossier_bundle",
+      "label": "dossier-bundle endpoint (samlad dokumentdossier)",
+      "file_type": "concept",
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_cco_kundkort_blueprint_page",
+      "target": "public_cco_kundkort_blueprint_kundresa_nio_steg",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kundkort_blueprint_page",
+      "target": "public_cco_kundkort_blueprint_betanketid_gate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kundkort_blueprint_page",
+      "target": "public_cco_kundkort_blueprint_agreement_consent_bundle",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kundkort_blueprint_page",
+      "target": "public_cco_kundkort_blueprint_friskforsakran_day_of",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kundkort_blueprint_page",
+      "target": "public_cco_kundkort_blueprint_photo_consent",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kundkort_blueprint_page",
+      "target": "public_cco_kundkort_blueprint_smart_nasta_steg",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kundkort_blueprint_page",
+      "target": "public_cco_kundkort_blueprint_dossier_bundle",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kundkort_blueprint_betanketid_gate",
+      "target": "public_cco_kundkort_blueprint_agreement_consent_bundle",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_kundkort_blueprint_smart_nasta_steg",
+      "target": "public_cco_kundkort_blueprint_kundresa_nio_steg",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-kundkort-blueprint.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "kundkort_behandlingsgates",
+      "label": "Behandlingsgates i kundresan: bet\u00e4nketid \u2192 avtalsbundle \u2192 friskf\u00f6rs\u00e4kran \u2192 fotosamtycke \u2192 ready_for_treatment",
+      "nodes": [
+        "public_cco_kundkort_blueprint_betanketid_gate",
+        "public_cco_kundkort_blueprint_agreement_consent_bundle",
+        "public_cco_kundkort_blueprint_friskforsakran_day_of",
+        "public_cco_kundkort_blueprint_photo_consent",
+        "public_cco_kundkort_blueprint_smart_nasta_steg"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-kundkort-blueprint.html"
+    }
+  ]
+}

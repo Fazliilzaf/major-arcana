@@ -1,0 +1,202 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_drive_internalize_verify_gate_runbook",
+      "label": "Drive internalize \u2014 QA-gate efter #693",
+      "file_type": "document",
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_internalize_verify_gate_authority_layers",
+      "label": "Auktoritetslager f\u00f6r import/storage-bevis",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Auktoritetslager",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_internalize_verify_gate_gate1_full_verify",
+      "label": "Gate 1 \u2014 Full verify (standard)",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Gate 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_internalize_verify_gate_gate2_owner_go",
+      "label": "Gate 2 \u2014 Explicit owner-GO med riktad read-only kontroll",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Gate 2",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_internalize_verify_gate_scan_reliability_unreliable",
+      "label": "scanReliability UNRELIABLE \u00e4r inte import-fail",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Vad scriptet inte f\u00e5r betyda",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_internalize_verify_gate_async_commit_202",
+      "label": "Async internalize commit (202 + job-poll)",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "502 / orphan-runs (2026-07-08)",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_internalize_verify_gate_orphan_run_reconcile",
+      "label": "Orphan-run reconcile endpoint",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Orphan-reconcile",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_internalize_verify_gate_auto_repair_ghost_visible",
+      "label": "Auto-repair ghost-VISIBLE efter duplicate-run",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Auto-repair ghost-VISIBLE",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_drive_internalize_verify_gate_zero_drive_links_requirement",
+      "label": "Zero Drive-l\u00e4nkar krav (CCO storage som prim\u00e4rv\u00e4g)",
+      "file_type": "concept",
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Riktad kontroll-procedur steg 4-6",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_drive_internalize_verify_gate_runbook",
+      "target": "docs_ops_drive_internalize_verify_gate_authority_layers",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Auktoritetslager",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_internalize_verify_gate_gate1_full_verify",
+      "target": "docs_ops_drive_internalize_verify_gate_authority_layers",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Gate 1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_internalize_verify_gate_gate2_owner_go",
+      "target": "docs_ops_drive_internalize_verify_gate_scan_reliability_unreliable",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Gate 2 \u2014 anv\u00e4nds n\u00e4r full verify \u00e4r UNRELIABLE",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_internalize_verify_gate_gate2_owner_go",
+      "target": "docs_ops_drive_internalize_verify_gate_zero_drive_links_requirement",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Riktad kontroll-procedur steg 6",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_internalize_verify_gate_async_commit_202",
+      "target": "docs_ops_drive_internalize_verify_gate_orphan_run_reconcile",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "502 / orphan-runs",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_internalize_verify_gate_async_commit_202",
+      "target": "docs_ops_drive_internalize_verify_gate_scan_reliability_unreliable",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "502 orsakar b\u00e5de orphan-runs och scan-artefakter",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_internalize_verify_gate_auto_repair_ghost_visible",
+      "target": "docs_ops_drive_internalize_verify_gate_runbook",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": "Auto-repair ghost-VISIBLE",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_drive_internalize_verify_gate_zero_drive_links_requirement",
+      "target": "docs_ops_migration_drive_sharepoint_runbook_prod_disk_constraint",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "docs/ops/drive-internalize-verify-gate.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "drive_internalize_evidence_gate_chain",
+      "label": "Drive internalize evidence gate chain (run-level \u2192 verify \u2192 owner-GO \u2192 repair)",
+      "nodes": [
+        "docs_ops_drive_internalize_verify_gate_authority_layers",
+        "docs_ops_drive_internalize_verify_gate_gate1_full_verify",
+        "docs_ops_drive_internalize_verify_gate_gate2_owner_go",
+        "docs_ops_drive_internalize_verify_gate_scan_reliability_unreliable",
+        "docs_ops_drive_internalize_verify_gate_auto_repair_ghost_visible"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.95,
+      "source_file": "docs/ops/drive-internalize-verify-gate.md"
+    }
+  ]
+}

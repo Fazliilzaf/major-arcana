@@ -1,0 +1,220 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_doc",
+      "label": "CCO Conversation \u2014 Legacy Action Parity Matrix",
+      "file_type": "document",
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_svarstudio",
+      "label": "Svarstudio-modal",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "User-mandat: bygg INTE ny Svarstudio \u2014 \u00e5teranv\u00e4nd gamla preview-SPA-markup och l\u00e4gg nya backend (draft-state-machine, templates, audit, RBAC) under huven."
+    },
+    {
+      "id": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_bottom_action_bar",
+      "label": "Bottom action bar (4 knappar)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_smart_anteckning",
+      "label": "Smart anteckning (4 l\u00e4gen \u00b7 7 sparningsm\u00e5l)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "AI-l\u00e4gena arbetar p\u00e5 thread-content, aldrig journaltext; \u00abMedicinsk\u00bb sparningsm\u00e5l kr\u00e4ver journal.write."
+    },
+    {
+      "id": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_bokningsyta_drawer",
+      "label": "Bokningsyta-drawer",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_kundkontext_badges",
+      "label": "Kundkontext-badges (16 signaler)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_multi_mailbox_consolidation",
+      "label": "Multi-mailbox-konsolidering per patientId",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Tr\u00e5dar grupperas p\u00e5 patientId oavsett mailbox s\u00e5 att en konversation inte splittas mellan brevl\u00e5dor."
+    },
+    {
+      "id": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_live_send_blocked",
+      "label": "Live-send blockerad (owner-GO kr\u00e4vs)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Risk f\u00f6r massutskick \u2014 Skicka-knappen visas bara n\u00e4r draft.status=approved och owner-flagga \u00e4r satt."
+    },
+    {
+      "id": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_action_security_model",
+      "label": "S\u00e4kerhetsmodell per action (permission + audit-event)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_doc",
+      "target": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_svarstudio",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_doc",
+      "target": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_bottom_action_bar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_doc",
+      "target": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_smart_anteckning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_doc",
+      "target": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_bokningsyta_drawer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_doc",
+      "target": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_kundkontext_badges",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_doc",
+      "target": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_multi_mailbox_consolidation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_svarstudio",
+      "target": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_live_send_blocked",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_doc",
+      "target": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_action_security_model",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_action_security_model",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_rbac_coverage",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_smart_anteckning",
+      "target": "docs_strategy_cco_go_live_hardening_2026_05_30_no_external_ai_on_journal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_bottom_action_bar",
+      "target": "docs_strategy_cco_conversation_legacy_action_parity_2026_05_31_svarstudio",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/strategy/CCO-CONVERSATION-LEGACY-ACTION-PARITY-2026-05-31.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,180 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3",
+      "label": "Skarmbild: Kundportal offert v3 (Arcana)",
+      "file_type": "image",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_kundportal_offert",
+      "label": "Kundportal for behandlingsoffert och signering",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_bankid_signering",
+      "label": "Signering med Mobilt BankID + samtyckesrutor",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_behandlingsplan_zoner",
+      "label": "Behandlingsplan zoner: harlinje, mittparti, krona (grafts)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_prisspecifikation",
+      "label": "Prisspecifikation med forskott och finansiering",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_stegvis_upplasning",
+      "label": "Stegvis upplasning av portalinnehall (lases upp vid signering/efter operation)",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_ai_personlig_analys",
+      "label": "AI-analys: kandidatbedomning, operationstiming, tackningsgrad",
+      "file_type": "concept",
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_kundportal_offert",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_bankid_signering",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_behandlingsplan_zoner",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_prisspecifikation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_stegvis_upplasning",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_ai_personlig_analys",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_bankid_signering",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_stegvis_upplasning",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_prisspecifikation",
+      "target": "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_behandlingsplan_zoner",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "kundoffert_signeringsflode",
+      "label": "Kundoffert- och signeringsflode (zoner, pris, betanketid, BankID)",
+      "nodes": [
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_kundportal_offert",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_behandlingsplan_zoner",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_prisspecifikation",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_07_customer_quote_demo_betanketid",
+        "docs_ops_screenshots_c0_conversations_customers_2026_07_01_06_customer_offer_portal_v3_bankid_signering"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/screenshots/c0-conversations-customers-2026-07-01/06-customer-offer-portal-v3.png"
+    }
+  ]
+}

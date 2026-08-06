@@ -1,0 +1,84 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_mojibake_corruption",
+      "label": "Mojibake i Drive-importerade filnamn (lossy ASCII, ej U+FFFD)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-33-drive-refetch-filnamn-repair.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Char-code-analys visade literal '?' (63) och '+?' ist\u00e4llet f\u00f6r Unicode-ers\u00e4ttningstecken \u2014 bokst\u00e4verna \u00e4r borta och kan inte avkodas fram, d\u00e4rf\u00f6r \u00e4r re-fetch fr\u00e5n Drive enda riktiga fixen."
+    },
+    {
+      "id": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_get_drive_file_name",
+      "label": "getDriveFileName / getDriveFileMetadata i googleDriveClient",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-33-drive-refetch-filnamn-repair.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_repair_filenames_endpoint",
+      "label": "POST /cco-patient-master/repair-filenames (ROLE_OWNER, dryRun default)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-33-drive-refetch-filnamn-repair.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Reparation av indexet fixar mojibaken \u00f6verallt i CCO eftersom alla vyer (Filer, Foton, Bes\u00f6k-tidslinje, journallista, GDPR-export) l\u00e4ser fileName fr\u00e5n samma index."
+    },
+    {
+      "id": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_dry_run_batch_throttle_rule",
+      "label": "Regel: dryRun default + batchning max 50/anrop + 429-backoff",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-33-drive-refetch-filnamn-repair.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "~7000 patienter / ~18000 filer f\u00e5r aldrig tr\u00e4ffa Drive i ett enda request; confirmText kr\u00e4vs f\u00f6r skrivning s\u00e5 inget r\u00e5kar mass-appliceras."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_mojibake_corruption",
+      "target": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_repair_filenames_endpoint",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-33-drive-refetch-filnamn-repair.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_repair_filenames_endpoint",
+      "target": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_get_drive_file_name",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-33-drive-refetch-filnamn-repair.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_dry_run_batch_throttle_rule",
+      "target": "docs_handover_orders_ord_33_drive_refetch_filnamn_repair_repair_filenames_endpoint",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-33-drive-refetch-filnamn-repair.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

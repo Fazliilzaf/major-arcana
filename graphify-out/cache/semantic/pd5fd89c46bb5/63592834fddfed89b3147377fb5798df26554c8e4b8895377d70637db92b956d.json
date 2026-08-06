@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_48_cursor_complete_report",
+      "label": "ORD-48 Cursor COMPLETE (Fas B + C/D UI)",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_cursor_complete_atomic_bundle_update",
+      "label": "buildSignedBundleAgreementUpdate \u2014 atomisk avtal+consent+bookable",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_cursor_complete_consent_ack_staff_accept",
+      "label": "consent_ack kr\u00e4vs p\u00e5 staff-accept (paritet med accept-public)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_cursor_complete_op_day_disabled_tooltip",
+      "label": "Op-dag-knappar disabled + tooltip n\u00e4r FC saknas (steg 8 alltid \u00f6ppen)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_cursor_complete_agreement_readout",
+      "label": "agreementReadout \u2192 \u00a74 Juridik bundle-status i kundkort",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_48_cursor_complete_report",
+      "target": "docs_handover_orders_ord_48_cursor_complete_atomic_bundle_update",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cursor_complete_atomic_bundle_update",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_steg7_bundle_sign",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cursor_complete_consent_ack_staff_accept",
+      "target": "docs_handover_orders_ord_48_cursor_complete_atomic_bundle_update",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cursor_complete_op_day_disabled_tooltip",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_fc_operation_day_gate",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cursor_complete_op_day_disabled_tooltip",
+      "target": "docs_handover_orders_ord_46_staff_uat_kickoff_op_dag_five_buttons",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cursor_complete_agreement_readout",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_nine_section_cards",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cursor_complete_report",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_spec",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CURSOR-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

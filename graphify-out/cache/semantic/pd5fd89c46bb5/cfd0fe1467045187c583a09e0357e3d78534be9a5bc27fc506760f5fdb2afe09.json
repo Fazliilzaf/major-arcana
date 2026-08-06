@@ -1,0 +1,304 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "label": "Aisia MVP \u2014 Pilot-runbook f\u00f6r klinikpersonal",
+      "file_type": "document",
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_ten_step_import_checklist",
+      "label": "PILOT-READY-checklista i 10 steg",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_clinician_verification_gate",
+      "label": "Behandlarverifiering som gate (scalp.verify)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Verifiering betyder att behandlare tagit st\u00e4llning till materialet \u2014 CCO ska aldrig ge diagnos eller behandlingsbeslut automatiskt."
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_image_category_mapping",
+      "label": "Automatisk bildkategori per sessionstyp (photo_before/after/during)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_scalp_timeline_events",
+      "label": "Tidslinjeevents scalp_analysis_imported/_verified, scalp_image_added, scalp_metrics_added, scalp_comparison_created",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_pre_op_readiness_gate",
+      "label": "Pre-op readiness \u2014 protocol-status visar underlag, inte go/no-go",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "CCO visar bara om capture-protokollet \u00e4r komplett; operationsbeslut ligger kvar hos behandlare enligt klinikens medicinska rutin."
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_patient_view_simplified_swedish",
+      "label": "Patientvy \u2014 f\u00f6renklad svensk sammanfattning f\u00f6r verifierade sessioner",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_staff_prohibitions",
+      "label": "F\u00f6rbjudna \u00e5tg\u00e4rder f\u00f6r personal i pilot",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_troubleshooting_table",
+      "label": "Fels\u00f6kningstabell f\u00f6r pilot",
+      "file_type": "concept",
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_ten_step_import_checklist",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_clinician_verification_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_image_category_mapping",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_scalp_timeline_events",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_pre_op_readiness_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_patient_view_simplified_swedish",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_staff_prohibitions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_troubleshooting_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_ten_step_import_checklist",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_manual_report_import",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_clinician_verification_gate",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_scalp_rbac_permissions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_staff_prohibitions",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_external_ai_prohibition",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_staff_prohibitions",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_phase_2_3_4_block",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_staff_prohibitions",
+      "target": "docs_strategy_aisia_mvp_handoff_2026_05_30_cco_never_replaces_ds3",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_pre_op_readiness_gate",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_clinician_verification_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_patient_view_simplified_swedish",
+      "target": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_clinician_verification_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_doc",
+      "target": "docs_strategy_aisia_ds3_feature_extraction_matrix_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_pre_op_readiness_gate",
+      "target": "docs_strategy_cco_automation_registry_readiness_2026_06_03_rule_ready_for_treatment",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_clinician_verification_gate",
+      "target": "docs_strategy_cco_automation_os_architecture_2026_06_03_human_approval_principle",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "aisia_manual_import_chain",
+      "label": "Aisia manuell import- och verifieringskedja",
+      "nodes": [
+        "docs_strategy_aisia_room_test_flow_2026_05_30_room_workflow_six_steps",
+        "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_ten_step_import_checklist",
+        "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_clinician_verification_gate",
+        "docs_strategy_aisia_mvp_pilot_runbook_2026_05_30_scalp_timeline_events",
+        "docs_strategy_aisia_mvp_handoff_2026_05_30_enable_aisia_scalp_analysis_flag"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/AISIA-MVP-PILOT-RUNBOOK-2026-05-30.md"
+    }
+  ]
+}

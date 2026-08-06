@@ -1,0 +1,89 @@
+{
+  "nodes": [
+    {
+      "id": "tests_visual_fixtures_v12_workspace_bookings_fixture",
+      "label": "V12 Workspace Block 4 \u00b7 Bokningar",
+      "file_type": "document",
+      "source_file": "tests/visual/fixtures/v12-workspace-bookings.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_visual_fixtures_v12_workspace_bookings_module",
+      "label": "V12 Bokningar-modul (kommande + historik)",
+      "file_type": "concept",
+      "source_file": "tests/visual/fixtures/v12-workspace-bookings.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "tests_visual_fixtures_v12_workspace_bookings_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_journal_workspace_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-bookings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_bookings_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_journal_workspace_adapters",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-bookings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_bookings_fixture",
+      "target": "tests_visual_fixtures_v11_rail_profile_rail_renderer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-bookings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_bookings_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_bookings_module",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-bookings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_bookings_module",
+      "target": "tests_visual_fixtures_v11_rail_block9_booking_extras",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-bookings.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tests_visual_fixtures_v12_workspace_bookings_fixture",
+      "target": "tests_visual_fixtures_v12_workspace_journal_adapter_reuse",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "tests/visual/fixtures/v12-workspace-bookings.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,104 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_review_warning_v3_page",
+      "label": "Review-Material Warning",
+      "file_type": "code",
+      "source_file": "public/major-arcana-preview/cco-review-warning-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_review_warning_v3_review_material_not_clinical_truth",
+      "label": "Review-material \u00e4r referens, inte klinisk sanning",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-review-warning-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Importerat material f\u00e5r anv\u00e4ndas som bakgrund och som underlag f\u00f6r uppf\u00f6ljningsfr\u00e5gor, men aldrig som k\u00e4lla till diagnos, dosering eller journalfaktum; den nya posten skriven fr\u00e5n dagens konsultation blir den verifierade k\u00e4llan."
+    },
+    {
+      "id": "public_major_arcana_preview_cco_review_warning_v3_badge_taxonomy",
+      "label": "Badge-taxonomi f\u00f6r importerat material",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-review-warning-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Badges pending, needs review, needsClassification, encounter review, IMPORTED_SAFE_MATCH och NEEDS_REVIEW ger personalen en snabb signal om verifieringsgrad utan att kr\u00e4va att de k\u00e4nner till importpipelinen."
+    },
+    {
+      "id": "public_major_arcana_preview_cco_review_warning_v3_imported_safe_match",
+      "label": "IMPORTED_SAFE_MATCH f\u00f6r h\u00e4lsodeklarationer",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-review-warning-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Kundmatchningen \u00e4r h\u00f6g-confidence men inneh\u00e5llet \u00e4r inte kliniskt verifierat \u2014 statusen skiljer s\u00e4ker koppling fr\u00e5n s\u00e4kert inneh\u00e5ll."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_photo_review_v3_visible_gate",
+      "target": "public_major_arcana_preview_cco_review_warning_v3_review_material_not_clinical_truth",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-review-warning-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_review_warning_v3_page",
+      "target": "public_major_arcana_preview_cco_review_warning_v3_review_material_not_clinical_truth",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-review-warning-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_review_warning_v3_page",
+      "target": "public_major_arcana_preview_cco_review_warning_v3_badge_taxonomy",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-review-warning-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_review_warning_v3_badge_taxonomy",
+      "target": "public_major_arcana_preview_cco_review_warning_v3_imported_safe_match",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-review-warning-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_review_warning_v3_badge_taxonomy",
+      "target": "public_major_arcana_preview_cco_photo_review_v3_visible_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-review-warning-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

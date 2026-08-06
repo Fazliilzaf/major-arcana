@@ -1,0 +1,74 @@
+{
+  "nodes": [
+    {
+      "id": "public_assets_cco_next_demo_avatar_female_jpg",
+      "label": "Demoavatar: portr\u00e4tt av kvinna i r\u00f6d tr\u00f6ja (JPG)",
+      "file_type": "image",
+      "source_file": "public/assets/cco-next/anna-karlsson.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_assets_cco_next_demo_avatar_set",
+      "label": "Demopersona-avatarer f\u00f6r CCO Next-gr\u00e4nssnittet",
+      "file_type": "concept",
+      "source_file": "public/assets/cco-next/anna-karlsson.jpg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_assets_cco_next_demo_avatar_female_jpg",
+      "target": "public_assets_cco_next_demo_avatar_female_png",
+      "relation": "semantically_similar_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/assets/cco-next/anna-karlsson.jpg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_assets_cco_next_demo_avatar_female_jpg",
+      "target": "public_assets_cco_next_demo_avatar_set",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/assets/cco-next/anna-karlsson.jpg",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "public_assets_cco_next_demo_avatar_set",
+      "target": "docs_screenshots_v9_kunddossier_design_kundvy",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/assets/cco-next/anna-karlsson.jpg",
+      "source_location": null,
+      "weight": 0.65
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "cco_next_demoavatarer",
+      "label": "CCO Next demoavatar-upps\u00e4ttning",
+      "nodes": [
+        "public_assets_cco_next_demo_avatar_female_jpg",
+        "public_assets_cco_next_demo_avatar_female_png",
+        "public_assets_cco_next_demo_avatar_male_jpg",
+        "public_assets_cco_next_demo_avatar_set"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/assets/cco-next/anna-karlsson.jpg"
+    }
+  ]
+}

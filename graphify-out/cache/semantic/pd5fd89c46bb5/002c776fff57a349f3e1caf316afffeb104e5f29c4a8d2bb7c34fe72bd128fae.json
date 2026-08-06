@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_6_cloud_staff_uat_uat",
+      "label": "ORD-6 Cloud Staff UAT (legal review \u00b7 mall-versionsgodk\u00e4nnande)",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-6-CLOUD-STAFF-UAT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_6_cloud_staff_uat_kontrollera_gate",
+      "label": "Kontrollera gate (skickar inte) \u2014 icke-s\u00e4ndande gate-preview",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-6-CLOUD-STAFF-UAT.md",
+      "source_location": "U6.4",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_6_cloud_staff_uat_prod_sticks",
+      "label": "verify:ord6-prod-sticks (automatiserad prod-f\u00f6rcheck 14/14)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-6-CLOUD-STAFF-UAT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_6_cloud_staff_uat_needs_from_offer",
+      "label": "needsFromOffer \u2014 sp\u00e4rr utan behandlingsavtal",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-6-CLOUD-STAFF-UAT.md",
+      "source_location": "U6.1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_6_cloud_staff_uat_uat",
+      "target": "docs_handover_orders_ord_6_fas_a2_template_version_legal_review_vag_a",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-6-CLOUD-STAFF-UAT.md",
+      "source_location": "U6.6",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_6_cloud_staff_uat_kontrollera_gate",
+      "target": "docs_handover_orders_ord_6_fas_a2_template_version_legal_review_send_for_sign_gate",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-6-CLOUD-STAFF-UAT.md",
+      "source_location": "U6.4c send-for-sign/preview",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_6_cloud_staff_uat_prod_sticks",
+      "target": "docs_handover_orders_ord_6_cloud_staff_uat_uat",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-6-CLOUD-STAFF-UAT.md",
+      "source_location": "Automatiserad prod-check",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_6_cloud_staff_uat_needs_from_offer",
+      "target": "docs_handover_orders_ord_6_fas_a2_template_version_legal_review_send_for_sign_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/handover/ORDERS/ORD-6-CLOUD-STAFF-UAT.md",
+      "source_location": "U6.1",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

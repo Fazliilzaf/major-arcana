@@ -1,0 +1,101 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg8_ordination_tp_final_demo_dokument",
+      "label": "Steg 8 \u2014 Ordination lokalbed\u00f6vning TP",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_ordination_tp_final_demo_lokalbedovning_ordination",
+      "label": "Ordination lokalbed\u00f6vning (Carbocain 20 mg/ml, Marcain 5 mg/ml, Adrenalin 1 mg/ml, Tribonat)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_ordination_tp_final_demo_sharepoint_wordmall",
+      "label": "SharePoint Word-mall som ursprungsk\u00e4lla f\u00f6r ordinationen",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg8_ordination_tp_final_demo_signera_arkivera",
+      "label": "Gate: Signera & arkivera ordination",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg8_ordination_tp_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg8_ordination_tp_final_demo_lokalbedovning_ordination",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_ordination_tp_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg8_ordination_tp_final_demo_sharepoint_wordmall",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_ordination_tp_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg8_ordination_tp_final_demo_signera_arkivera",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_ordination_tp_final_demo_signera_arkivera",
+      "target": "public_major_arcana_preview_steg8_journal_tp_final_demo_signera_las_journal",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg8_ordination_tp_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg8_journal_tp_final_demo_dokument",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

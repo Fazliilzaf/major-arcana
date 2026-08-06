@@ -1,0 +1,183 @@
+{
+  "nodes": [
+    {
+      "id": "public_gouraloto_proposal_future_home_v2_full_image",
+      "label": "Gouraloto future home v2 - full page screenshot",
+      "file_type": "image",
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_gouraloto_proposal_future_home_v2_full_home_screen",
+      "label": "Gouraloto startsida v2 (foreslagen design)",
+      "file_type": "concept",
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_gouraloto_proposal_future_home_v2_full_hero_start_here",
+      "label": "Hero med Start here-pathvaljare (Path 1-3)",
+      "file_type": "concept",
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_gouraloto_proposal_future_home_v2_full_pathway_cards",
+      "label": "Choose your pathway - tre programkort",
+      "file_type": "concept",
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_gouraloto_proposal_future_home_v2_full_program_status_system",
+      "label": "Programstatus: Open / Waitlist / Request info",
+      "file_type": "concept",
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_gouraloto_proposal_future_home_v2_full_stone_spiral_section",
+      "label": "Stone spiral creation - signaturerbjudande",
+      "file_type": "concept",
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_gouraloto_proposal_future_home_v2_full_contact_three_paths",
+      "label": "Kontakt i tre vagar + snabbforfragan-formular",
+      "file_type": "concept",
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_full_image",
+      "target": "public_gouraloto_proposal_future_home_v2_full_home_screen",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_full_image",
+      "target": "public_gouraloto_proposal_future_home_v2_mid_image",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_full_image",
+      "target": "public_gouraloto_proposal_future_home_v2_shot_image",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_full_image",
+      "target": "public_gouraloto_proposal_future_home_v2_full_contact_three_paths",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_full_hero_start_here",
+      "target": "public_gouraloto_proposal_future_home_v2_full_pathway_cards",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_full_pathway_cards",
+      "target": "public_gouraloto_proposal_future_home_v2_full_program_status_system",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_gouraloto_proposal_future_home_v2_full_contact_three_paths",
+      "target": "public_gouraloto_proposal_future_home_v2_full_hero_start_here",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "gouraloto_home_v2_screenshot_family",
+      "label": "Gouraloto startsida v2 - skarmdumpsfamilj (full/mid/hero)",
+      "nodes": [
+        "public_gouraloto_proposal_future_home_v2_full_image",
+        "public_gouraloto_proposal_future_home_v2_mid_image",
+        "public_gouraloto_proposal_future_home_v2_shot_image",
+        "public_gouraloto_proposal_future_home_v2_full_home_screen"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png"
+    },
+    {
+      "id": "gouraloto_visitor_decision_flow",
+      "label": "Besokarens beslutsflode: hero-path, programkort, status, kontakt",
+      "nodes": [
+        "public_gouraloto_proposal_future_home_v2_full_hero_start_here",
+        "public_gouraloto_proposal_future_home_v2_full_pathway_cards",
+        "public_gouraloto_proposal_future_home_v2_full_program_status_system",
+        "public_gouraloto_proposal_future_home_v2_full_contact_three_paths"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/gouraloto-proposal/future-home-v2-full.png"
+    }
+  ]
+}

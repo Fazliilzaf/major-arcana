@@ -1,0 +1,79 @@
+{
+  "nodes": [
+    {
+      "id": "public_cco_staff_training_completion_sheet",
+      "label": "Staff Training Completion Sheet (printbar bekr\u00e4ftelse)",
+      "file_type": "document",
+      "source_file": "public/cco-staff-training-completion.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_cco_staff_training_completion_competency_checklist",
+      "label": "Elva kompetensmoment personalen m\u00e5ste bekr\u00e4fta",
+      "file_type": "concept",
+      "source_file": "public/cco-staff-training-completion.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_cco_staff_training_completion_sheet",
+      "target": "public_cco_staff_training_completion_competency_checklist",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-training-completion.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_training_completion_competency_checklist",
+      "target": "public_cco_staff_training_mode_five_step_flow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-training-completion.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_training_completion_competency_checklist",
+      "target": "public_journal_pilot_guide_identity_triple_check",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-training-completion.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_training_completion_competency_checklist",
+      "target": "public_journal_pilot_guide_correction_as_new_entry",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-training-completion.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_cco_staff_training_completion_sheet",
+      "target": "public_cco_staff_go_live_control_eskaleringsmatris",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/cco-staff-training-completion.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,173 @@
+{
+  "nodes": [
+    {
+      "id": "docs_ops_support_sla_framework",
+      "label": "Arcana Support & SLA Framework",
+      "file_type": "document",
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_support_sla_framework_severity_matrix",
+      "label": "P0\u2013P3 severity med respons- och l\u00f6sningstider per plan",
+      "file_type": "concept",
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_support_sla_framework_escalation_chain",
+      "label": "Eskaleringskedja L1\u2013L5 (self-service till krisl\u00e4ge)",
+      "file_type": "concept",
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_support_sla_framework_internal_external_mapping",
+      "label": "Mappning intern monitor-metrik till extern SLA-metrik",
+      "file_type": "concept",
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_support_sla_framework_public_status_endpoint",
+      "label": "Publik status-endpoint som minsta statussida",
+      "file_type": "concept",
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_ops_support_sla_framework_availability_credits",
+      "label": "Availability-SLA med credits vid breach",
+      "file_type": "concept",
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_ops_support_sla_framework",
+      "target": "docs_ops_support_sla_framework_severity_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_support_sla_framework_escalation_chain",
+      "target": "docs_ops_support_sla_framework_severity_matrix",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_support_sla_framework_internal_external_mapping",
+      "target": "docs_ops_runbooks_incident_runbook_slo_breach_ticket",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_support_sla_framework_internal_external_mapping",
+      "target": "docs_ops_runbooks_incident_runbook_go_no_go_readiness",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_support_sla_framework_availability_credits",
+      "target": "docs_ops_support_sla_framework_severity_matrix",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_support_sla_framework_public_status_endpoint",
+      "target": "docs_ops_support_sla_framework_availability_credits",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_support_sla_framework",
+      "target": "docs_ops_tenant_onboarding_playbook_tenant_onboard_flow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_support_sla_framework",
+      "target": "docs_ops_runbooks_incident_runbook",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_support_sla_framework",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_ops_support_sla_framework_escalation_chain",
+      "target": "docs_ops_runbooks_patient_safety_incident_runbook_ivo_reporting",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ops/support-sla-framework.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

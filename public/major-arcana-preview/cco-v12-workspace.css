@@ -195,6 +195,96 @@ html[data-cco-mobile-shell="on"]
   box-sizing: border-box;
 }
 
+/* ===== App-shell global navigation (desktop full-page) ===== */
+.v12-workspace__app-nav {
+  display: none;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 14px;
+  background: #f5eee5;
+  border-right: 1px solid rgba(56, 40, 28, 0.1);
+  min-width: 220px;
+  max-width: 220px;
+}
+
+.v12-app-nav__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(56, 40, 28, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--v12-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.v12-app-nav__back:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(200, 130, 30, 0.35);
+  color: var(--v12-amber);
+}
+
+.v12-app-nav__links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.v12-app-nav__links a {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: var(--v12-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.v12-app-nav__links a:hover,
+.v12-app-nav__links a.is-active {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--v12-ink);
+}
+
+.v12-app-nav__links a.is-active {
+  box-shadow: inset 0 0 0 1px rgba(200, 130, 30, 0.25);
+}
+
+@media (min-width: 1180px) {
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace {
+    flex-direction: row;
+  }
+
+  html[data-v12-workspace="on"] .v9-dossier-deep--v12-workspace .v12-workspace__app-nav {
+    display: flex;
+  }
+
+  html[data-v12-workspace="on"]
+    .v9-dossier-deep--v12-workspace
+    .v12-workspace[data-v12-workspace-shell="1"]
+    .v12-workspace__zones[data-v9-dossier-scroll] {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  html[data-v12-workspace="on"] .v12-canon__back {
+    display: none !important;
+  }
+}
+
 /* ===== Journal-modul ===== */
 .v12-workspace__inner {
   display: block;

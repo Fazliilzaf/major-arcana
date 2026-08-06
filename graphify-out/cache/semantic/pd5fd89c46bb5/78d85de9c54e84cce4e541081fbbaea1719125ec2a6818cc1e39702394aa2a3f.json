@@ -1,0 +1,178 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_arcana_five_track_parallel_plan_plan",
+      "label": "Arcana \u2014 fem parallella sp\u00e5r (A\u2013E)",
+      "file_type": "document",
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_arcana_five_track_parallel_plan_track_a_mail_like",
+      "label": "Sp\u00e5r A \u2014 CCO Mail-lik Fas 2",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "M\u00e5let \u00e4r Mac Mail-k\u00e4nsla vid varje \u00f6ppning \u2014 cache-first boot, samma tr\u00e5d, ingen scroll-hop; legacy cache-v\u00e4gar dedupliceras och mailbox-widen g\u00f6rs explicit i st\u00e4llet f\u00f6r automatisk f\u00f6r att undvika ov\u00e4ntad scope-\u00e4ndring."
+    },
+    {
+      "id": "docs_strategy_arcana_five_track_parallel_plan_track_b_booking_plan_a",
+      "label": "Sp\u00e5r B \u2014 CCO Bokning Plan A go-live",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_arcana_five_track_parallel_plan_track_c_journal_migration",
+      "label": "Sp\u00e5r C \u2014 Journal / CODE-migration",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "SharePoint ers\u00e4tts av repo-spec plus kod och historiken flyttas in i Arcana, s\u00e5 att skalning bortom pilotkunderna inte \u00e4r beroende av manuella arkivmappar."
+    },
+    {
+      "id": "docs_strategy_arcana_five_track_parallel_plan_track_d_cmo_v3",
+      "label": "Sp\u00e5r D \u2014 CMO Marketing Copilot v3",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Prod h\u00e5lls medvetet i fixture-l\u00e4ge med publish av; connectors g\u00e5r staging f\u00f6rst och prod-l\u00e4ge kr\u00e4ver att staging varit stabil i minst en vecka samt maintenance window."
+    },
+    {
+      "id": "docs_strategy_arcana_five_track_parallel_plan_track_e_web_bridge",
+      "label": "Sp\u00e5r E \u2014 Web \u2194 Arcana bridge",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_arcana_five_track_parallel_plan_shared_dependencies",
+      "label": "Delade beroenden mellan sp\u00e5ren (env, deploy, auth)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Sp\u00e5ren delar prod, Render-env och STAFF/OWNER-auth; d\u00e4rf\u00f6r samordnas deploy-f\u00f6nster och en enda env-\u00e4ndring (t.ex. mailnyckeln) r\u00e4knas som leverans i tv\u00e5 sp\u00e5r samtidigt."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_arcana_five_track_parallel_plan_plan",
+      "target": "docs_strategy_arcana_five_track_parallel_plan_track_a_mail_like",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_five_track_parallel_plan_plan",
+      "target": "docs_strategy_arcana_five_track_parallel_plan_track_b_booking_plan_a",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_five_track_parallel_plan_plan",
+      "target": "docs_strategy_arcana_five_track_parallel_plan_track_c_journal_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_five_track_parallel_plan_plan",
+      "target": "docs_strategy_arcana_five_track_parallel_plan_track_d_cmo_v3",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_five_track_parallel_plan_plan",
+      "target": "docs_strategy_arcana_five_track_parallel_plan_track_e_web_bridge",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_five_track_parallel_plan_plan",
+      "target": "docs_strategy_arcana_five_track_parallel_plan_shared_dependencies",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_five_track_parallel_plan_track_e_web_bridge",
+      "target": "docs_strategy_arcana_master_plan_punktvis_execution_gateway_lock",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_five_track_parallel_plan_track_c_journal_migration",
+      "target": "docs_strategy_sharepoint_template_inventory_inventory",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_arcana_five_track_parallel_plan_track_d_cmo_v3",
+      "target": "docs_strategy_arcana_master_plan_punktvis_ai_never_publishes",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/arcana-five-track-parallel-plan.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

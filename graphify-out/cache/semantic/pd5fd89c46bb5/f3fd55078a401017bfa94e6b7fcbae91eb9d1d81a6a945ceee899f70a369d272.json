@@ -1,0 +1,174 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cutover_plan_cco_master_doc",
+      "label": "Cutover Plan \u2014 CCO som enda systemet",
+      "file_type": "document",
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cutover_plan_cco_master_five_phase_plan",
+      "label": "5-fasplan \u00f6ver 24 veckor (kundmaster\u2192journal\u2192bokning\u2192POS\u2192sunset)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cutover_plan_cco_master_booking_build_decision",
+      "label": "Beslut: bygg bokningsmotorn helt i CCO",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Owner valde egenbygge trots h\u00f6gst risk eftersom det ger h\u00f6gst l\u00e5ngsiktigt v\u00e4rde och g\u00f6r det m\u00f6jligt att s\u00e4ga upp Cliento helt; risken mitigeras med parallell drift och retreat-plan."
+    },
+    {
+      "id": "docs_strategy_cutover_plan_cco_master_pos_vendor_decision",
+      "label": "\u00d6ppet vendor-beslut f\u00f6r POS/kassa",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cutover_plan_cco_master_risk_matrix",
+      "label": "Cutover-riskmatris med mitigeringar",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cutover_plan_cco_master_sunset",
+      "label": "Sunset \u2014 upps\u00e4gning av externa journal- och bokningssystem",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cutover_plan_cco_master_pos_vendor_decision",
+      "target": "docs_strategy_cliento_inventory_pos_gap",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cutover_plan_cco_master_doc",
+      "target": "docs_strategy_cutover_plan_cco_master_five_phase_plan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cutover_plan_cco_master_five_phase_plan",
+      "target": "docs_strategy_cutover_plan_cco_master_booking_build_decision",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cutover_plan_cco_master_five_phase_plan",
+      "target": "docs_strategy_cutover_plan_cco_master_pos_vendor_decision",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cutover_plan_cco_master_five_phase_plan",
+      "target": "docs_strategy_cutover_plan_cco_master_sunset",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cutover_plan_cco_master_doc",
+      "target": "docs_strategy_cutover_plan_cco_master_risk_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cutover_plan_cco_master_five_phase_plan",
+      "target": "docs_strategy_meridiq_dedup_report_2026_05_30_match_results",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cutover_plan_cco_master_doc",
+      "target": "docs_strategy_journal_datamodell_pdl_retention_10y",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cutover_plan_cco_master_risk_matrix",
+      "target": "docs_strategy_journal_cutover_audit_2026_05_30_pnr_coverage_risk",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cutover_plan_cco_master_booking_build_decision",
+      "target": "docs_strategy_cliento_inventory_plan_a_bridge",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/CUTOVER-PLAN-CCO-MASTER.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

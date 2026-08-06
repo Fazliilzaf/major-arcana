@@ -1,0 +1,146 @@
+{
+  "nodes": [
+    {
+      "id": "public_uppfoljning_index_page",
+      "label": "Uppf\u00f6ljningsformul\u00e4r f\u00f6r patient (post-op review)",
+      "file_type": "code",
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_uppfoljning_index_token_flode",
+      "label": "Tokenbaserad \u00e5tkomst mot /api/v1/post-op-review/:token",
+      "file_type": "code",
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Token l\u00e4ses ur URL-pathen och sidan g\u00e5r direkt till ogiltigt-l\u00e4ge om den \u00e4r f\u00f6r kort \u2014 ingen inloggning kr\u00e4vs av patienten."
+    },
+    {
+      "id": "public_uppfoljning_index_i18n",
+      "label": "Inbyggd SV/EN-lokalisering med ?lang-override",
+      "file_type": "code",
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_uppfoljning_index_bilduppladdning",
+      "label": "Efter-bilder: max 6 filer, 8 MB per fil, plats- och kameradata tas bort",
+      "file_type": "concept",
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_uppfoljning_index_heic_konvertering",
+      "label": "HEIC-detektering via magic bytes och lazy heic2any-konvertering",
+      "file_type": "code",
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "iPhone-foton kan vara omd\u00f6pta till .jpg men fortfarande vara HEIC-inneh\u00e5ll, s\u00e5 fil\u00e4ndelse och MIME r\u00e4cker inte; libheif-WASM \u00e4r ~600 KB och laddas d\u00e4rf\u00f6r f\u00f6rst n\u00e4r en HEIC faktiskt valts."
+    },
+    {
+      "id": "public_uppfoljning_index_marknadsforingssamtycke",
+      "label": "Samtycke till anonym marknadsf\u00f6ringsanv\u00e4ndning \u2014 endast bild fr\u00e5n \u00f6gonbryn och upp\u00e5t",
+      "file_type": "concept",
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Beskuret utsnitt g\u00f6r att inga identifierande drag publiceras, och samtycket kan \u00e5terkallas n\u00e4r som helst."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_uppfoljning_index_page",
+      "target": "public_uppfoljning_index_token_flode",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_uppfoljning_index_page",
+      "target": "public_uppfoljning_index_i18n",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_uppfoljning_index_page",
+      "target": "public_uppfoljning_index_bilduppladdning",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_uppfoljning_index_bilduppladdning",
+      "target": "public_uppfoljning_index_heic_konvertering",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_uppfoljning_index_page",
+      "target": "public_uppfoljning_index_marknadsforingssamtycke",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_uppfoljning_index_page",
+      "target": "public_uppfoljning_omdome_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_uppfoljning_index_bilduppladdning",
+      "target": "public_photo_review_app",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "public/uppfoljning/index.html",
+      "source_location": null,
+      "weight": 0.65
+    }
+  ],
+  "hyperedges": []
+}

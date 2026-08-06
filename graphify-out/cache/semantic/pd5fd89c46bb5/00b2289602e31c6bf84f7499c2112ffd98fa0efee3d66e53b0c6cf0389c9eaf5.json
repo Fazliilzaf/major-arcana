@@ -1,0 +1,48 @@
+{
+  "nodes": [
+    {
+      "id": "_github_workflows_predeploy_cloud_workflow",
+      "label": "arcana-predeploy-cloud workflow",
+      "file_type": "code",
+      "source_file": ".github/workflows/predeploy-cloud.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "_github_workflows_predeploy_cloud_workflow",
+      "target": "_github_workflows_drift_gate_preflight_pilot_report",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/predeploy-cloud.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_predeploy_cloud_workflow",
+      "target": "_github_workflows_stability_window_stability_window_report",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/predeploy-cloud.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "_github_workflows_predeploy_cloud_workflow",
+      "target": "_github_workflows_owner_mfa_heal_owner_mfa_auth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/predeploy-cloud.yml",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

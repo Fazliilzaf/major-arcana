@@ -1791,6 +1791,9 @@
     }).join('');
     return (
       '<header class="v12-canon__header">' +
+      '<button type="button" class="v12-canon__back" data-v12-canon-back aria-label="Stäng kundvy">' +
+      '<span aria-hidden="true">‹</span> Tillbaka' +
+      '</button>' +
       '<div class="v12-canon__header-main">' +
       '<h1 class="v12-canon__header-title">' +
       esc(name) +

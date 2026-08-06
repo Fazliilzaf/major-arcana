@@ -1,0 +1,727 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "label": "buildLegacyCatalogs.py",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_load_json",
+      "label": "load_json()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L16",
+      "_callable": true
+    },
+    {
+      "id": "path",
+      "label": "Path",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "origin_file": "$graphify-root$/scripts/migration/buildLegacyCatalogs.py"
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_save_json",
+      "label": "save_json()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L20",
+      "_callable": true
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_enrich_cliento_resources",
+      "label": "enrich_cliento_resources()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L25",
+      "_callable": true
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_addon_catalog",
+      "label": "build_addon_catalog()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L62",
+      "_callable": true
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_meridiq_by_category",
+      "label": "meridiq_by_category()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L74",
+      "_callable": true
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_cliento_by_group",
+      "label": "cliento_by_group()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L82",
+      "_callable": true
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_ids_from_meridiq",
+      "label": "ids_from_meridiq()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L90",
+      "_callable": true
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_ids_from_cliento",
+      "label": "ids_from_cliento()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L94",
+      "_callable": true
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_normalize_cat",
+      "label": "normalize_cat()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L337",
+      "_callable": true
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "label": "pick_meridiq_services()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L341",
+      "_callable": true
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "label": "build_triple_map()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L361",
+      "_callable": true
+    },
+    {
+      "id": "$graphify-root$_scripts_migration_buildlegacycatalogs_main",
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L439",
+      "_callable": true
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "json",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "re",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "pathlib",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_load_json",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_load_json",
+      "target": "path",
+      "relation": "references",
+      "context": "parameter_type",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_save_json",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_save_json",
+      "target": "path",
+      "relation": "references",
+      "context": "parameter_type",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_enrich_cliento_resources",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_addon_catalog",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L62",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_meridiq_by_category",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_cliento_by_group",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L82",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_ids_from_meridiq",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L90",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_ids_from_cliento",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L94",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_normalize_cat",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L337",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L341",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L361",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_py",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L439",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_normalize_cat",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L344",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_meridiq_by_category",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L362",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L369",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_ids_from_meridiq",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L370",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_main",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_load_json",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L444",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_main",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_save_json",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L448",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_main",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_enrich_cliento_resources",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L448",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_main",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_addon_catalog",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L449",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_scripts_migration_buildlegacycatalogs_main",
+      "target": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L450",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_load_json",
+      "callee": "loads",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L17",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_load_json",
+      "callee": "read_text",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L17",
+      "receiver": "path"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_save_json",
+      "callee": "mkdir",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L21",
+      "receiver": null
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_save_json",
+      "callee": "write_text",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L22",
+      "receiver": "path"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_save_json",
+      "callee": "dumps",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L22",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_enrich_cliento_resources",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L31",
+      "receiver": null
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_enrich_cliento_resources",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L33",
+      "receiver": "svc_by_id"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_enrich_cliento_resources",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L34",
+      "receiver": "linked"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_enrich_cliento_resources",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L37",
+      "receiver": "meta"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_enrich_cliento_resources",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L38",
+      "receiver": "meta"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_enrich_cliento_resources",
+      "callee": "sort",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L43",
+      "receiver": "linked"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_enrich_cliento_resources",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L44",
+      "receiver": "resources"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_meridiq_by_category",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L78",
+      "receiver": null
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_meridiq_by_category",
+      "callee": "setdefault",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L78",
+      "receiver": "out"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_cliento_by_group",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L85",
+      "receiver": "svc"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_cliento_by_group",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L85",
+      "receiver": "svc"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_cliento_by_group",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L86",
+      "receiver": null
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_cliento_by_group",
+      "callee": "setdefault",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L86",
+      "receiver": "out"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_normalize_cat",
+      "callee": "strip",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L338",
+      "receiver": null
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_normalize_cat",
+      "callee": "sub",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L338",
+      "receiver": "re"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_normalize_cat",
+      "callee": "replace",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L338",
+      "receiver": "name"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L343",
+      "receiver": "rule"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "callee": "items",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L345",
+      "receiver": "by_cat"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "callee": "extend",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L347",
+      "receiver": "picked"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L348",
+      "receiver": "rule"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "callee": "lower",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L350",
+      "receiver": "inc"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "callee": "lower",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L350",
+      "receiver": null
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L353",
+      "receiver": "rule"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_pick_meridiq_services",
+      "callee": "values",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L354",
+      "receiver": "by_cat"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L370",
+      "receiver": "rule"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "update",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L371",
+      "receiver": "mapped_meridiq"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L373",
+      "receiver": "rule"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "add",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L376",
+      "receiver": "mapped_cliento"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L378",
+      "receiver": "entries"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L384",
+      "receiver": "rule"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L385",
+      "receiver": "rule"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L389",
+      "receiver": "rule"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L390",
+      "receiver": null
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L390",
+      "receiver": "cliento_services"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L393",
+      "receiver": "rule"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L396",
+      "receiver": "rule"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L419",
+      "receiver": "s"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_build_triple_map",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L420",
+      "receiver": "s"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_main",
+      "callee": "exists",
+      "is_member_call": true,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L441",
+      "receiver": "compact_path"
+    },
+    {
+      "caller_nid": "$graphify-root$_scripts_migration_buildlegacycatalogs_main",
+      "callee": "SystemExit",
+      "is_member_call": false,
+      "source_file": "scripts/migration/buildLegacyCatalogs.py",
+      "source_location": "L442",
+      "receiver": null
+    }
+  ]
+}

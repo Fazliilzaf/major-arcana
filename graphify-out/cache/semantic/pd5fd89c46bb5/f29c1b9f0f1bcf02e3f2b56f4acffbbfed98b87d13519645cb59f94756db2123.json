@@ -1,0 +1,105 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_customer_portal_offer_flow_k1_k2_2026_07_01_offer_plan_kontrakt",
+      "label": "offerPlan-datakontrakt (offer-plan.v1)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/customer-portal-offer-flow-k1-k2-2026-07-01.md",
+      "source_location": "K2 \u2014 OfferPlan datakontrakt",
+      "source_url": null,
+      "captured_at": "2026-07-01",
+      "author": null,
+      "contributor": null,
+      "rationale": "En normaliserad brygga mellan konsultationsplan, offertdokument, signeringssida och kundportal s\u00e5 att UI och PDF inte driver is\u00e4r."
+    },
+    {
+      "id": "docs_strategy_customer_portal_offer_flow_k1_k2_2026_07_01_token_skyddad_bildpanel",
+      "label": "Token-skyddad konsultationsbildpanel i offert/signering",
+      "file_type": "concept",
+      "source_file": "docs/strategy/customer-portal-offer-flow-k1-k2-2026-07-01.md",
+      "source_location": "K3 \u2014 Token-skyddad bildpanel",
+      "source_url": null,
+      "captured_at": "2026-07-01",
+      "author": null,
+      "contributor": null,
+      "rationale": "Token f\u00e5r bara l\u00e4sa photoId som faktiskt ing\u00e5r i samma offert; inget nytt lagringslager byggdes utan befintlig route \u00e5teranv\u00e4ndes."
+    },
+    {
+      "id": "docs_strategy_customer_portal_offer_flow_k1_k2_2026_07_01_information_delivered_at",
+      "label": "informationDeliveredAt som startpunkt f\u00f6r mottagen patientinformation",
+      "file_type": "concept",
+      "source_file": "docs/strategy/customer-portal-offer-flow-k1-k2-2026-07-01.md",
+      "source_location": "Beslut",
+      "source_url": null,
+      "captured_at": "2026-07-01",
+      "author": null,
+      "contributor": null,
+      "rationale": "S\u00e4tts n\u00e4r offerten skickas f\u00f6r signering och blir d\u00e4rmed den tidsst\u00e4mpel som bet\u00e4nketid och juridisk informationsplikt kan r\u00e4knas fr\u00e5n."
+    },
+    {
+      "id": "docs_strategy_customer_portal_offer_flow_k1_k2_2026_07_01_kundportal_v3",
+      "label": "Kundportal v3 renderar samma offerPlan",
+      "file_type": "concept",
+      "source_file": "docs/strategy/customer-portal-offer-flow-k1-k2-2026-07-01.md",
+      "source_location": "K4 \u2014 OfferPlan i kundportalen",
+      "source_url": null,
+      "captured_at": "2026-07-01",
+      "author": null,
+      "contributor": null,
+      "rationale": "DEMO_OFFER_PLAN beh\u00e5lls f\u00f6r trygg preview utan backend, och dynamiska v\u00e4rden escapas innan de skrivs till HTML."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_customer_portal_offer_flow_k1_k2_2026_07_01_offer_plan_kontrakt",
+      "target": "docs_strategy_customer_portal_offer_flow_k1_k2_2026_07_01_kundportal_v3",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/customer-portal-offer-flow-k1-k2-2026-07-01.md",
+      "source_location": "K4 \u2014 OfferPlan i kundportalen",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_customer_portal_offer_flow_k1_k2_2026_07_01_token_skyddad_bildpanel",
+      "target": "docs_strategy_customer_portal_offer_flow_k1_k2_2026_07_01_offer_plan_kontrakt",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/customer-portal-offer-flow-k1-k2-2026-07-01.md",
+      "source_location": "K3 \u2014 bildk\u00e4lla offerPlan.attachments",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_customer_portal_offer_flow_k1_k2_2026_07_01_information_delivered_at",
+      "target": "docs_strategy_cco_treatment_agreement_spec_betankeetid_distans",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/customer-portal-offer-flow-k1-k2-2026-07-01.md",
+      "source_location": "Beslut \u2014 informationDeliveredAt s\u00e4tts n\u00e4r offerten skickas f\u00f6r signering",
+      "weight": 0.85
+    },
+    {
+      "source": "docs_strategy_customer_portal_offer_flow_k1_k2_2026_07_01_offer_plan_kontrakt",
+      "target": "docs_strategy_cco_mobile_staff_journal_plan_auto_behandlingsplan",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/customer-portal-offer-flow-k1-k2-2026-07-01.md",
+      "source_location": "K2 zones source: consultation_plan + K3 konsultationsfoto-attachments",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_customer_portal_offer_flow_k1_k2_2026_07_01_token_skyddad_bildpanel",
+      "target": "docs_strategy_post_op_review_photo_flow_token_sakerhet",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/strategy/customer-portal-offer-flow-k1-k2-2026-07-01.md",
+      "source_location": "K3 S\u00e4kerhet vs post-op \u00a72.3 S\u00e4kerhet",
+      "weight": 0.85
+    }
+  ],
+  "hyperedges": []
+}

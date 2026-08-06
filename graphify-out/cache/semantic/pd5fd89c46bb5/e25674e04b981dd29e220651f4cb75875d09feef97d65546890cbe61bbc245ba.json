@@ -1,0 +1,114 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_status_oversikt_map",
+      "label": "Status & Backlog \u2014 \u00f6versiktskarta",
+      "file_type": "document",
+      "source_file": "docs/strategy/STATUS-OVERSIKT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Filen \u00e4ger medvetet inget inneh\u00e5ll utan bara pekare, s\u00e5 att status inte dupliceras \u00f6ver 183 strategifiler."
+    },
+    {
+      "id": "docs_strategy_status_oversikt_precedence_rule",
+      "label": "Precedensregel f\u00f6r kanoniska drivrutiner",
+      "file_type": "concept",
+      "source_file": "docs/strategy/STATUS-OVERSIKT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "PROJECT-CHECKLIST sl\u00e5r MASTER-TODO som sl\u00e5r ROLLOUT-PLAN; vid konflikt g\u00e4ller den h\u00f6gre och avvikelsen ska r\u00e4ttas i st\u00e4llet f\u00f6r att leva vidare parallellt. Daterade filer l\u00e4ses som historik, inte arbetslistor."
+    },
+    {
+      "id": "docs_strategy_status_oversikt_domain_discrepancy",
+      "label": "Oklar kanonisk prod-dom\u00e4n (.se vs .com)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/STATUS-OVERSIKT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_status_oversikt_generated_status_json",
+      "label": "Genererade driftstatus-JSON (redigeras aldrig f\u00f6r hand)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/STATUS-OVERSIKT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Filerna i public/ skrivs om av sina skript med generatedAt-st\u00e4mpel; handredigering skulle tyst skrivas \u00f6ver och ge falsk driftbild."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_status_oversikt_map",
+      "target": "docs_strategy_status_oversikt_precedence_rule",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/STATUS-OVERSIKT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_status_oversikt_map",
+      "target": "docs_strategy_status_oversikt_generated_status_json",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/STATUS-OVERSIKT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_status_oversikt_map",
+      "target": "docs_strategy_status_oversikt_domain_discrepancy",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/STATUS-OVERSIKT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_status_oversikt_precedence_rule",
+      "target": "docs_strategy_project_checklist_checklist",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/STATUS-OVERSIKT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_status_oversikt_precedence_rule",
+      "target": "docs_strategy_rollout_plan_six_phase_rollout",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/STATUS-OVERSIKT.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_status_oversikt_domain_discrepancy",
+      "target": "docs_strategy_project_checklist_checklist",
+      "relation": "references",
+      "confidence": "AMBIGUOUS",
+      "confidence_score": 0.3,
+      "source_file": "docs/strategy/STATUS-OVERSIKT.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

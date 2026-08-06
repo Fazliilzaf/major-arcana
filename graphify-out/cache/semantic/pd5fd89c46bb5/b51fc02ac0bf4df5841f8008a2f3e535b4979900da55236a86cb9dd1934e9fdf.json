@@ -1,0 +1,50 @@
+{
+  "nodes": [
+    {
+      "id": "public_photo_review_app",
+      "label": "CCO Bildgranskning (Photo Review) \u2014 klientskal",
+      "file_type": "code",
+      "source_file": "public/photo-review.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_photo_review_klinisk_paus",
+      "label": "Migrerade f\u00f6re/efter-bilder f\u00e5r inte anv\u00e4ndas kliniskt f\u00f6re Photo Review",
+      "file_type": "concept",
+      "source_file": "public/photo-review.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Importerade bilder saknar verifierad koppling till r\u00e4tt patient och behandlingstillf\u00e4lle tills granskningen \u00e4r klar, d\u00e4rf\u00f6r \u00e4r klinisk anv\u00e4ndning pausad."
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_photo_review_app",
+      "target": "public_photo_review_klinisk_paus",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/photo-review.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_photo_review_app",
+      "target": "render_photo_review_canary",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/photo-review.html",
+      "source_location": null,
+      "weight": 0.95
+    }
+  ],
+  "hyperedges": []
+}

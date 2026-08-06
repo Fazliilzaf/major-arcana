@@ -1,0 +1,127 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_cco_booking_prod_readiness_checklist_acceptance_gate",
+      "label": "Acceptansgate f\u00f6r produktionskonfidens (CCO Booking)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-prod-readiness-checklist.md",
+      "source_location": "Acceptance gate for production confidence",
+      "source_url": null,
+      "captured_at": "2026-05-16",
+      "author": null,
+      "contributor": null,
+      "rationale": "Riktigt operat\u00f6rskonto m\u00e5ste kunna k\u00f6ra hela fl\u00f6det med verklig referensdata; state ska \u00f6verleva refresh och omstart och bokningsytan ska vara begriplig utan utvecklarkontext."
+    },
+    {
+      "id": "docs_strategy_cco_booking_prod_readiness_checklist_operating_stance",
+      "label": "Operativ h\u00e5llning: operat\u00f6rsst\u00f6d, inte autonom bokningsmotor",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-prod-readiness-checklist.md",
+      "source_location": "Recommended operating stance",
+      "source_url": null,
+      "captured_at": "2026-05-16",
+      "author": null,
+      "contributor": null,
+      "rationale": "Att inte beskriva CCO Booking som en sj\u00e4lvst\u00e4ndig bokningssanning skyddar b\u00e5de operat\u00f6rstillit och rollout-s\u00e4kerhet."
+    },
+    {
+      "id": "docs_strategy_cco_booking_prod_readiness_checklist_failure_modes",
+      "label": "Fem failure modes f\u00f6r bokningsytan",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-prod-readiness-checklist.md",
+      "source_location": "Failure modes to watch closely",
+      "source_url": null,
+      "captured_at": "2026-05-16",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_booking_prod_readiness_checklist_store_persistens",
+      "label": "Persistent booking store path (ej ephemeral disk)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-prod-readiness-checklist.md",
+      "source_location": "Required environment configuration \u2014 Booking store persistence",
+      "source_url": null,
+      "captured_at": "2026-05-16",
+      "author": null,
+      "contributor": null,
+      "rationale": "Utan persistent Render-disk fungerar bokningscase tillf\u00e4lligt och f\u00f6rsvinner sedan vid omstart \u2014 ett tyst dataf\u00f6rlust-l\u00e4ge."
+    },
+    {
+      "id": "docs_strategy_cco_booking_prod_readiness_checklist_cliento_atkomst",
+      "label": "Cliento identitet och \u00e5tkomst (legacy referensdata)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-prod-readiness-checklist.md",
+      "source_location": "Required environment configuration \u2014 Cliento identity and access",
+      "source_url": null,
+      "captured_at": "2026-05-16",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_cco_booking_prod_readiness_checklist_offer_draft_sprakkvalitet",
+      "label": "Offer-draft: svensk operat\u00f6rstext utan r\u00e5a ISO-tider och utan Cliento-omn\u00e4mnande",
+      "file_type": "concept",
+      "source_file": "docs/strategy/cco-booking-prod-readiness-checklist.md",
+      "source_location": "Functional prod checklist \u2014 E. Offer draft and Svarstudio",
+      "source_url": null,
+      "captured_at": "2026-05-16",
+      "author": null,
+      "contributor": null,
+      "rationale": "Kunden ska aldrig exponeras f\u00f6r interna systemnamn eller maskinformaterade tidsst\u00e4mplar i utkastet."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_cco_booking_prod_readiness_checklist_operating_stance",
+      "target": "docs_strategy_cco_booking_phone_booking_level_1_5_plan_level_1_5",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-prod-readiness-checklist.md",
+      "source_location": "Builds on: cco-booking-phone-booking-level-1_5-plan.md + Recommended operating stance",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_booking_prod_readiness_checklist_acceptance_gate",
+      "target": "docs_strategy_cco_booking_prod_readiness_checklist_store_persistens",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-prod-readiness-checklist.md",
+      "source_location": "Acceptance gate \u2014 state persists across refresh and restart",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_booking_prod_readiness_checklist_failure_modes",
+      "target": "docs_strategy_cco_booking_prod_readiness_checklist_store_persistens",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-prod-readiness-checklist.md",
+      "source_location": "Failure mode 4 \u2014 Booking disappeared after restart",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_booking_prod_readiness_checklist_failure_modes",
+      "target": "docs_strategy_cco_booking_prod_readiness_checklist_cliento_atkomst",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-prod-readiness-checklist.md",
+      "source_location": "Failure mode 2 \u2014 Slots do not load",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_cco_booking_prod_readiness_checklist_offer_draft_sprakkvalitet",
+      "target": "docs_strategy_cco_booking_prod_readiness_checklist_acceptance_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/cco-booking-prod-readiness-checklist.md",
+      "source_location": "Acceptance gate \u2014 offer draft quality is acceptable in Swedish",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,69 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_steg7_offert_prf_final_demo_dokument",
+      "label": "Steg 7 \u2014 Avtal \u00b7 PRF hud",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/steg7-offert-prf-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_steg7_offert_prf_final_demo_prf_hud",
+      "label": "PRF-behandling f\u00f6r huden",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/steg7-offert-prf-final-demo.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_steg7_offert_prf_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_behandlingsavtal_mall",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-prf-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_prf_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg7_offert_prf_final_demo_prf_hud",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-prf-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_prf_final_demo_dokument",
+      "target": "public_major_arcana_preview_steg6_betanketid_samtycke_final_demo_samtycke_angerratt",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/steg7-offert-prf-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_steg7_offert_prf_final_demo_prf_hud",
+      "target": "public_major_arcana_preview_steg7_offert_microneedling_final_demo_prp_microneedling_hud",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/steg7-offert-prf-final-demo.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

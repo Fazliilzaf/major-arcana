@@ -1,0 +1,173 @@
+{
+  "nodes": [
+    {
+      "id": "docs_handover_orders_ord_48_cloud_agent_complete_report",
+      "label": "ORD-48 Cloud Agent COMPLETE (Fas 2 rapport)",
+      "file_type": "document",
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_cloud_agent_complete_d3_calendar_cta",
+      "label": "D3 kalender-CTA \u2014 '\u00d6ppna kalender' endast n\u00e4r komposit OK",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_cloud_agent_complete_ready_row_pills",
+      "label": "Ready-row pills (H\u00e4lsodekl \u00b7 Samtycke \u00b7 Avtal \u00b7 Friskf\u00f6rs \u00b7 Foto)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_cloud_agent_complete_browser_uat_capture",
+      "label": "Browser UAT-capture (Playwright, \u00e4gar-credentials i env)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_cloud_agent_complete_bundle_classification",
+      "label": "Bundle-klassning: id_verifiering FULL i dokument-bundle (ej lucka)",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_handover_orders_ord_48_cloud_agent_complete_deploy_cloud_safe",
+      "label": "deploy-cloud-safe CI + smoke-public HTTPS-gate",
+      "file_type": "concept",
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_handover_orders_ord_48_cloud_agent_complete_report",
+      "target": "docs_handover_orders_ord_48_cloud_agent_complete_d3_calendar_cta",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cloud_agent_complete_d3_calendar_cta",
+      "target": "docs_handover_orders_ord_48_steg7_bundle_ops_gates_ready_for_treatment_composite",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cloud_agent_complete_ready_row_pills",
+      "target": "docs_handover_orders_ord_48_cloud_agent_complete_d3_calendar_cta",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cloud_agent_complete_ready_row_pills",
+      "target": "docs_handover_orders_ord_47_parallel_svep_3_agents_rail_status_layer_a",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cloud_agent_complete_report",
+      "target": "docs_handover_orders_ord_48_cloud_agent_complete_browser_uat_capture",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cloud_agent_complete_browser_uat_capture",
+      "target": "docs_handover_orders_ord_48_cloud_staff_uat_u1_u5_scenarios",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cloud_agent_complete_report",
+      "target": "docs_handover_orders_ord_48_cloud_agent_complete_bundle_classification",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cloud_agent_complete_bundle_classification",
+      "target": "docs_handover_orders_ord_49_id_verifiering_ready_gate_bundle_full_vs_treatment_gate",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cloud_agent_complete_report",
+      "target": "docs_handover_orders_ord_48_cloud_agent_complete_deploy_cloud_safe",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_handover_orders_ord_48_cloud_agent_complete_report",
+      "target": "docs_handover_orders_ord_49_id_verifiering_ready_gate_order",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/handover/ORDERS/ORD-48-CLOUD-AGENT-COMPLETE.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

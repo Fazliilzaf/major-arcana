@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_konversationer_v3_page",
+      "label": "CCO Konversationer v3",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-konversationer-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_konversationer_v3_inbox_views",
+      "label": "Brevl\u00e5dor och vyer \u2014 SLA-risk, mina, otilldelade",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-konversationer-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_konversationer_v3_thread_context_panel",
+      "label": "Tr\u00e5dkontext med LTV, bes\u00f6k, status och AI-f\u00f6rslag",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-konversationer-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_konversationer_v3_page",
+      "target": "public_major_arcana_preview_cco_konversationer_v3_inbox_views",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-konversationer-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_konversationer_v3_page",
+      "target": "public_major_arcana_preview_cco_konversationer_v3_thread_context_panel",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-konversationer-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_konversationer_v3_inbox_views",
+      "target": "public_major_arcana_preview_cco_installningar_v3_2_notification_rules",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/major-arcana-preview/cco-konversationer-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,234 @@
+{
+  "nodes": [
+    {
+      "id": "docs_strategy_consent_agreement_aftercare_flow_doc",
+      "label": "Consent, Agreement & Aftercare Flow",
+      "file_type": "document",
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_consent_agreement_aftercare_flow_hair_tp_unified_agreement",
+      "label": "Hair TP \u2014 ett unified behandlingsavtal f\u00f6r alla TP-metoder",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_consent_agreement_aftercare_flow_curatiio_per_treatment_agreements",
+      "label": "Curatiio \u2014 separat behandlingsavtal per behandling",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_consent_agreement_aftercare_flow_brand_override",
+      "label": "Brand-override-tabell f\u00f6r 17 felm\u00e4rkta mallar",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Mallar taggade som Hair TP men s\u00e5lda som Curatiio m\u00e5ste mappas om vid import, annars bryts brand-isoleringen och kunden ser fel klinikrubrik p\u00e5 sitt samtycke."
+    },
+    {
+      "id": "docs_strategy_consent_agreement_aftercare_flow_cooling_off",
+      "label": "Bet\u00e4nketid \u2014 14 dagar distans / 7 dagar in-clinic estetisk",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_consent_agreement_aftercare_flow_aftercare_matrix",
+      "label": "Aftercare-matris T+1h / T+1d / T+7d per behandling",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_consent_agreement_aftercare_flow_followup_matrix",
+      "label": "Follow-up-matris per cadence (1w\u201312m) \u2014 ~20 % t\u00e4ckning",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_consent_agreement_aftercare_flow_aftercare_job_dedup",
+      "label": "Idempotent aftercare-job-id (SHA256 av kund+encounter+mall+offset)",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_strategy_consent_agreement_aftercare_flow_revocation",
+      "label": "Revocation-fl\u00f6de: vad kan \u00e5terkallas och vad l\u00e5ses av PDL",
+      "file_type": "concept",
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Journaldata behandlas p\u00e5 r\u00e4ttslig skyldighet (inte samtycke), d\u00e4rf\u00f6r p\u00e5verkar \u00e5terkallat samtycke bara marknadsf\u00f6ring och publik fotopublicering medan journalen m\u00e5ste bevaras i tio \u00e5r."
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_strategy_consent_agreement_aftercare_flow_doc",
+      "target": "docs_strategy_consent_agreement_aftercare_flow_hair_tp_unified_agreement",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_consent_agreement_aftercare_flow_doc",
+      "target": "docs_strategy_consent_agreement_aftercare_flow_curatiio_per_treatment_agreements",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_consent_agreement_aftercare_flow_hair_tp_unified_agreement",
+      "target": "docs_strategy_consent_agreement_aftercare_flow_cooling_off",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_consent_agreement_aftercare_flow_curatiio_per_treatment_agreements",
+      "target": "docs_strategy_consent_agreement_aftercare_flow_brand_override",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_consent_agreement_aftercare_flow_doc",
+      "target": "docs_strategy_consent_agreement_aftercare_flow_aftercare_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_consent_agreement_aftercare_flow_doc",
+      "target": "docs_strategy_consent_agreement_aftercare_flow_followup_matrix",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_consent_agreement_aftercare_flow_aftercare_matrix",
+      "target": "docs_strategy_consent_agreement_aftercare_flow_aftercare_job_dedup",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_consent_agreement_aftercare_flow_revocation",
+      "target": "docs_strategy_journal_datamodell_pdl_retention_10y",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_consent_agreement_aftercare_flow_revocation",
+      "target": "docs_strategy_journal_datamodell_immutability_signing",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_consent_agreement_aftercare_flow_doc",
+      "target": "docs_strategy_communication_template_registry_doc",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_strategy_consent_agreement_aftercare_flow_cooling_off",
+      "target": "docs_strategy_kundkort_dokument_placering_facit_kundresa_9_steg",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "consent_to_booking_gate_chain",
+      "label": "Samtyckeskedja: h\u00e4lsodeklaration \u2192 friskf\u00f6rs\u00e4kran \u2192 bet\u00e4nketid \u2192 avtal \u2192 bokningsgate",
+      "nodes": [
+        "docs_strategy_journal_datamodell_health_declaration_fields",
+        "docs_strategy_journal_datamodell_fitness_certificate_fields",
+        "docs_strategy_consent_agreement_aftercare_flow_cooling_off",
+        "docs_strategy_consent_agreement_aftercare_flow_hair_tp_unified_agreement",
+        "docs_strategy_kundkort_dokument_placering_facit_kundresa_9_steg"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md"
+    }
+  ]
+}

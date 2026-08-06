@@ -1,0 +1,78 @@
+{
+  "nodes": [
+    {
+      "id": "docs_cco_active_index_active_doc_set",
+      "label": "CCO Active Index (aktiv planerings- och foundation-dokumentupps\u00e4ttning)",
+      "file_type": "document",
+      "source_file": "docs/cco-active-index.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_cco_active_index_active_doc_set",
+      "target": "docs_cco_ny_project_lock_locked_decisions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-active-index.md",
+      "source_location": "Current baseline",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_active_index_active_doc_set",
+      "target": "docs_cco_mail_foundation_status_foundation_first_chain",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-active-index.md",
+      "source_location": "Current baseline",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_active_index_active_doc_set",
+      "target": "docs_cco_unified_shell_integration_plan_unified_shell",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-active-index.md",
+      "source_location": "Shell integration",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_active_index_active_doc_set",
+      "target": "docs_cco_mail_foundation_gap_blueprint_gap_matris",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-active-index.md",
+      "source_location": "Working sequence",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_active_index_active_doc_set",
+      "target": "docs_cco_new_salvage_matrix_thirteen_migration_areas",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-active-index.md",
+      "source_location": "Migration and salvage",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_cco_active_index_active_doc_set",
+      "target": "docs_cco_next_migration_prep_staging_modularization",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/cco-active-index.md",
+      "source_location": "Migration and salvage",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

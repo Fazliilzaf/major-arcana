@@ -1,0 +1,122 @@
+{
+  "nodes": [
+    {
+      "id": "public_major_arcana_preview_cco_import_review_v3_page",
+      "label": "CCO Import Review Queue v3",
+      "file_type": "document",
+      "source_file": "public/major-arcana-preview/cco-import-review-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_import_review_v3_review_queue",
+      "label": "K\u00f6 f\u00f6r os\u00e4kra kundmatchningar (halso@-inkorg + GetAccept)",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-import-review-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_import_review_v3_write_feature_flags",
+      "label": "Write-gate: ENABLE_CCO_OPERATOR_CANARY + ENABLE_IMPORT_REVIEW_WRITE",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-import-review-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_import_review_v3_manual_match_requirements",
+      "label": "Godk\u00e4nnandekrav: verifierad patientmatch, owner-beslut med reviewer + reason, ingen auto-import, ingen ny kund",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-import-review-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_major_arcana_preview_cco_import_review_v3_match_reasons",
+      "label": "Matchningsorsaker: no_patient_match, ambiguous_patient, low_confidence, missing_customer",
+      "file_type": "concept",
+      "source_file": "public/major-arcana-preview/cco-import-review-v3.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "public_major_arcana_preview_cco_import_review_v3_page",
+      "target": "public_major_arcana_preview_cco_import_review_v3_review_queue",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-import-review-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_import_review_v3_review_queue",
+      "target": "public_major_arcana_preview_cco_import_review_v3_match_reasons",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-import-review-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_import_review_v3_review_queue",
+      "target": "public_major_arcana_preview_cco_import_review_v3_manual_match_requirements",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-import-review-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_import_review_v3_manual_match_requirements",
+      "target": "public_major_arcana_preview_cco_import_review_v3_write_feature_flags",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/major-arcana-preview/cco-import-review-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_import_review_v3_review_queue",
+      "target": "public_major_arcana_preview_cco_mail_review_v3_ambiguous_queue",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/major-arcana-preview/cco-import-review-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_major_arcana_preview_cco_import_review_v3_write_feature_flags",
+      "target": "public_major_arcana_preview_cco_mail_review_v3_phase2_operator_rules",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/major-arcana-preview/cco-import-review-v3.html",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}
