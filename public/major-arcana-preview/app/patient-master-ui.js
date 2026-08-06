@@ -1290,22 +1290,6 @@
     window.requestAnimationFrame(refreshFullCustomerProductWhenReady);
   });
 
-  // JOURNEY-SPINE (Fas 5) opt-in. ?v13spine=on slår på (sticky via localStorage),
-  // ?v13spine=off stänger av. Default OFF tills facit-paritet är godkänd.
-  function usesV13Spine() {
-    try {
-      const params = new URLSearchParams(window.location.search || '');
-      const q = String(params.get('v13spine') || '')
-        .trim()
-        .toLowerCase();
-      if (q === 'on') localStorage.setItem('arcana.v13spine.enabled', '1');
-      else if (q === 'off') localStorage.setItem('arcana.v13spine.enabled', '0');
-      return localStorage.getItem('arcana.v13spine.enabled') === '1';
-    } catch (_error) {
-      return false;
-    }
-  }
-
   /** ORD-28 — desktop 3-kolumn; av när v10-facit (mockupens enkolumn-dossier). */
   function usesBlueprintDesktopLayout() {
     if (usesV10KundkortFacit()) return false;
@@ -6943,53 +6927,10 @@
   }
 
   /**
-   * V12 Customer Workspace · Block 0 — två-zon-shell (canon D3).
-   * Zon 1 = befintliga V11-railen (återanvänd CcoV11Rail.render), Zon 2 = V12
-   * arbetsyta (CcoV12Workspace.render, Journal-modul). Återanvänder enbart
-   * befintliga close-/scroll-/section-link-hooks → inga nya handlers. CSS döljer
-   * Zon 1 på mobil (V12 äger ytan) och visar den bredvid på iPad/webb.
+   * V12 Customer Workspace · Block 0 — single-zone CONTENT-CANON shell.
+   * Delegates entirely to window.CcoV12Canon.render. Returns empty string when
+   * canon is unavailable so renderV9MockupDetailShell falls back to V11 rail.
    */
-  // Fas 4 · Hybrid-canon: jump-rail-moduler (ankarnav). Ordning speglar Zon 2:s
-  // primära modulordning; sticky-snabbåtgärderna saknar egen rail-länk. Varje rad
-  // scrollar till matchande data-v12-module via den befintliga
-  // scrollV12WorkspaceModule-hooken (ingen ny navigerings-infra).
-  const V12_JUMPRAIL_MODULES = [
-    ['current-state', 'Nuläge'],
-    ['active-visit', 'Aktivt besök'],
-    ['warnings', 'Varningar'],
-    ['health', 'Hälsa'],
-    ['journey', 'Kundresa'],
-    ['journal', 'Journal'],
-    ['photos', 'Bilder'],
-    ['bookings', 'Bokningar'],
-    ['documents', 'Dokument'],
-    ['communication', 'Kommunikation'],
-    ['economy', 'Ekonomi'],
-    ['insights', 'Insikter'],
-  ];
-
-  function renderV12JumpRail() {
-    const items = V12_JUMPRAIL_MODULES.map(
-      ([mod, label]) =>
-        '<li><button type="button" class="v12-jumprail__link" data-v12-jump="' +
-        mod +
-        '">' +
-        '<span class="v12-jumprail__dot" aria-hidden="true"></span>' +
-        '<span class="v12-jumprail__label">' +
-        escapeHtml(label) +
-        '</span></button></li>'
-    ).join('');
-    return (
-      '<nav class="v12-jumprail" data-v12-jumprail aria-label="Snabbnavigering (moduler)">' +
-      '<button type="button" class="v12-jumprail__toggle" data-v12-jumprail-toggle aria-expanded="true" title="Fäll ihop">' +
-      '<span class="v12-jumprail__toggle-icon" aria-hidden="true">‹</span>' +
-      '<span class="v12-jumprail__toggle-label">Moduler</span></button>' +
-      '<ul class="v12-jumprail__list">' +
-      items +
-      '</ul></nav>'
-    );
-  }
-
   function renderV12WorkspaceDetailShell(
     card,
     journalEntries,

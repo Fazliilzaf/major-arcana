@@ -93,11 +93,12 @@ test('ett tomt ärende syntetiserar ingen rad', () => {
   assert.equal(adapters.buildOfferRowFromCommercialCase(null), null);
 });
 
-test('v12-arbetsytan skickar vidare ctx.commercialCase till adaptern', () => {
+test('v12-canon skickar vidare ctx.commercialCase till adaptern', () => {
+  // V12-renderaren är nu CONTENT-CANON (CcoV12Workspace är arkiverad).
   // Utan tredje argumentet är hela grenen ovan död i praktiken.
-  const source = fs.readFileSync(path.join(PREVIEW_APP, 'cco-v12-workspace.js'), 'utf8');
-  const callStart = source.indexOf('buildOffersFromPayload(');
-  assert.notEqual(callStart, -1, 'anropet till buildOffersFromPayload ska finnas');
+  const source = fs.readFileSync(path.join(PREVIEW_APP, 'cco-v12-canon.js'), 'utf8');
+  const callStart = source.indexOf("call('buildOffersFromPayload'");
+  assert.notEqual(callStart, -1, 'indirekta anropet till buildOffersFromPayload ska finnas');
   const callBlock = source.slice(callStart, callStart + 260);
   assert.match(
     callBlock,
@@ -107,8 +108,9 @@ test('v12-arbetsytan skickar vidare ctx.commercialCase till adaptern', () => {
 });
 
 test('patient-master-ui lägger commercialCase på v12:s ctx', () => {
-  // Wiring-ledet. railCtx (:6880) fick det i #1285; v12:s ctx (:6993) saknade
-  // det fortfarande.
+  // Wiring-ledet. railCtx fick det i #1285; v12:s ctx (närmast före
+  // CcoV12Canon.render) skickar det vidare så buildOffersFromPayload kan
+  // syntetisera en offertrad.
   const source = fs.readFileSync(path.join(PREVIEW_APP, 'patient-master-ui.js'), 'utf8');
   // Ankra på den ctx som faktiskt går till v12: den närmast FÖRE
   // CcoV12Canon-renderingen. Att bara räkna förekomster i hela filen guardar
