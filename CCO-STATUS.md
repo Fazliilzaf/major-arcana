@@ -10,10 +10,43 @@
   filens rad om att merga stub-poster som dubbletter ar motbevisad och farlig.
   Merga ingenting i encounter-link-kon utan att ha last fyndfilen forst.
 - Kor Sonnet 5 som standard. Opus bara for hårda arkitekturbeslut. Se `[[cco-model-val-sonnet-standard]]` i minnessystemet — finns bade pa Mac och pa VPS:en (skapad dar 2026-08-06). Minnesfiler ar per maskin och synkas INTE automatiskt: skapas de pa en maskin maste de skapas om pa den andra.
-- Prioritet just nu: manuell disambiguering av 12 grupper i encounter-link-kon (kraver Cliento-atkomst, ingen kod). Se detaljfil.
+- **Encounter-link: AVFORD 2026-08-06** efter Fazlis beslut. Merga ingenting — se
+  `docs/ops/encounter-link-findings-2026-08-06.md`. Cliento-genomgangen motbevisade
+  disambiguerings-filens merge-hypotes.
+- **ORDERS/ speglar INTE koden.** 2026-08-06 kontrollerades alla tre ordrar markta
+  "GO vantar Fazli" mot koden: ORD-86 levererad, ORD-87 levererad i sin helhet,
+  ORD-93 uppgift 1 levererad. **Tre av tre.** Las aldrig en statusrad i `ORDERS/`
+  som sanning — kor inventory-steget (`AGENTS.md:21-29`) mot koden forst. Notion
+  Order Inbox bar den riktiga statusen och ar inte nabar for repo-lokala agenter.
 - CCO 9-stegs kundresa: KLAR. Steg 2 och 9 kartlagda 2026-08-06 — se steg-sektionen nedan.
   Enda kvarvarande fragan dar ar operativ: gar bokningsbekraftelsen (steg 2) ut fran
   Cliento med Meridiq-lanken? Det avgors i Cliento, inte i koden.
+
+## Sann backlog 2026-08-06 (efter avstamning mot koden)
+
+Detta ar allt som faktiskt aterstar av de tre "oppna" ordrarna:
+
+| Vad                                                   | Vem       | Var                                   |
+| ----------------------------------------------------- | --------- | ------------------------------------- |
+| `ARCANA_PUBLIC_BASE_URL` → `.com` (ORD-86 steg 1)     | **Fazli** | Render Dashboard                      |
+| Konsument for `cidWithoutAttachmentMetadata` (ORD-93) | agent     | blockerad, se nedan                   |
+| ORD-93 uppgift 2 — gar bilagorna att hamta om?        | agent     | **Mac:en**, kraver `graphReadEnabled` |
+| Matgrinden — deepScan over nio brevlador              | agent     | Mac:en                                |
+
+Raknar-konsumenten ar medvetet INTE byggd. Ordern sager "Mat innan nagot byggs",
+och konsumentens form beror pa uppgift 2:s svar — en backfill som ska sjunka mot
+noll ar nagot annat an ett permanent arlighetsmatt. Raknaren ar redan exponerad
+via `GET /cco/runtime/history/fidelity` (OWNER/STAFF), men ingenting laser den.
+
+## Valideringsnivan ar 0 fel — inte 61
+
+`AGENTS.md:342` pastar "61 pre-existing failures". Den raden ar fran 19 juli och
+ar **foraldrad**. Korning 2026-08-06 pa `cbe6a059`: `check:syntax` PASS,
+`lint:no-bypass` PASS, `test:unit` **6539 pass / 0 fail**, `smoke:local` PASS
+(ett SKIP: template-seeds saknas, miljoberoende).
+
+Ga aldrig in i en validering med "61 ar normalt" som utgangspunkt — det filtret
+doljer upp till 61 akta regressioner.
 
 ## Sessionslogg 2026-08-06 — vad som gjorts och verifierats
 
