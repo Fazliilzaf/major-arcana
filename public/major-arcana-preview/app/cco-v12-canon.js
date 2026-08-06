@@ -1774,6 +1774,39 @@
     ['s11', 'Ekonomi', '11'],
     ['s12', 'Insikter', '12'],
   ];
+
+  /* ---------- HEADER + TABBAR (scroll-ankare) ---------- */
+  function header(profile, patientId) {
+    profile = profile || {};
+    var name = txt(profile.name || 'Kund');
+    var initials = txt(profile.initials) || '?';
+    var tabs = JUMP.map(function (j) {
+      return (
+        '<button type="button" class="v12-canon__tab" data-v12-canon-jump="' +
+        j[0] +
+        '">' +
+        esc(j[1]) +
+        '</button>'
+      );
+    }).join('');
+    return (
+      '<header class="v12-canon__header">' +
+      '<div class="v12-canon__header-main">' +
+      '<h1 class="v12-canon__header-title">' +
+      esc(name) +
+      '</h1>' +
+      '<div class="v12-canon__header-meta">' +
+      (patientId ? '<span>#' + esc(patientId) + '</span>' : '') +
+      '<span class="v12-canon__header-pill">V12</span>' +
+      '</div>' +
+      '</div>' +
+      '<nav class="v12-canon__tabbar" aria-label="Sektioner">' +
+      tabs +
+      '</nav>' +
+      '</header>'
+    );
+  }
+
   function rail(events, nextStep, bundle, card) {
     var evs = arr(events);
     var rows = evs.length
@@ -2164,6 +2197,8 @@
 
     var patientId = card.id || card.patientId || (ctx.patient && ctx.patient.id);
 
+    var profile = call('buildProfileFromBcard', [card], null);
+
     var main =
       '<div class="v12-canon__main">' +
       s1(card, journey) +
@@ -2202,6 +2237,7 @@
 
     return (
       '<div class="v12-canon" data-v12-canon="1">' +
+      header(profile, patientId) +
       '<div class="v12-canon__grid">' +
       main +
       rail(recentEvents, nextStep, bundle, card) +
