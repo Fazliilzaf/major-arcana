@@ -1,25 +1,57 @@
 # ORD-93 — 1 407 `cid:`-bilder som aldrig blir bilder
 
-| | |
-|---|---|
-| **Bas-commit** | `main` efter #1270/#1271 (2026-07-30) |
-| **Ägare** | Cursor (implementation) · Cowork (mätning, verifiering) |
-| **GO** | väntar Fazli |
-| **Allvarlighetsgrad** | **Visningsfel, inte leveransfel.** Kunden fick sitt mejl komplett — verifierat mot Mac Mail. Det är CCO:s läsyta som inte kan visa bilderna. |
-| **Föregångare** | ORD-97 gjorde fidelity-instrumenten seende igen (#1269). Före det rapporterade manifestet noll — inte för att allt var rätt, utan för att det läste ett tomt fält. |
+|                       |                                                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Bas-commit**        | `main` efter #1270/#1271 (2026-07-30)                                                                                                                              |
+| **Ägare**             | Cursor (implementation) · Cowork (mätning, verifiering)                                                                                                            |
+| **GO**                | väntar Fazli                                                                                                                                                       |
+| **Allvarlighetsgrad** | **Visningsfel, inte leveransfel.** Kunden fick sitt mejl komplett — verifierat mot Mac Mail. Det är CCO:s läsyta som inte kan visa bilderna.                       |
+| **Föregångare**       | ORD-97 gjorde fidelity-instrumenten seende igen (#1269). Före det rapporterade manifestet noll — inte för att allt var rätt, utan för att det läste ett tomt fält. |
+
+## Verifiering 2026-08-06 — uppgift 1 ar byggd, raknaren ar inte
+
+Kontrollerat mot `e8e7dd41`. Koden ser inte ut som ordern beskriver langre.
+
+**Den tysta bailen finns inte kvar.** `rewriteMailCidImageSources`
+(`src/routes/ccoConversation.js:590`) delegerar numera till en delad
+`rewriteCidImageReferences` (`src/ops/ccoCidImageRewrite.js:96`), vars docblock
+sager exakt det ordern kraver: _"Ingen early-return pa tom karta … Ett olost cid
+ersatts alltid — en riktig URL eller en synlig markering, aldrig lamnat som
+`cid:` och aldrig lamnat orort."_
+
+**Markeringen finns.** Olost `src="cid:X"` ersatts med `toCidMissingImageMarkup`,
+`url(cid:X)` med `CID_MISSING_IMAGE_PLACEHOLDER` — en inline-SVG med titeln
+_"Bilden kunde inte visas — bilagemetadata saknas i truth-lagret"_. Aven
+`about:blank` hanteras, med fallback till tradens enda inline-bild nar den ar
+entydig.
+
+**Testat.** `tests/ops/ccoCidImageRewrite.test.js` och
+`tests/ops/ord93CidImageMarkerContract.test.js`.
+
+### Vad som faktiskt aterstar
+
+1. **Raknaren har fortfarande ingen konsument.** `cidWithoutAttachmentMetadata`
+   skrivs pa fem stallen (`ccoMailboxTruthStore.js:1330`,
+   `ccoMailboxTruthReadAdapter.js:548`, `ccoMailboxTruthShardedStore.js`) och
+   lases av ingen. Ordern kraver uttryckligen en konsument.
+2. **Uppgift 2 ar obesvarad** — gar bilagorna att hamta om via
+   `/cco/runtime/history/fidelity/probe`? Kraver `graphReadEnabled` mot prod.
+   Ej korbar fran VPS:en; kors fran Mac:en.
+3. **Matgrinden ar inte kord** — deepScan-svepet over de nio brevladorna, och
+   fore/efter i operatorsvyn.
 
 ## Observation
 
 Mätt 2026-07-30 mot prod med `deepScan=true`, efter att #1269 gjort instrumentet
 läsbart.
 
-| brevlåda | meddelanden | `cid:`-referenser utan bilagemetadata |
-|---|---|---|
-| `fazli@` | 495 | 938 |
-| `egzona@` | 175 | 469 |
-| `contact@` | 106 | — |
-| `kvitto@` | 18 | — |
-| **totalt** | **794** | **1 407** (fazli@ + egzona@) |
+| brevlåda   | meddelanden | `cid:`-referenser utan bilagemetadata |
+| ---------- | ----------- | ------------------------------------- |
+| `fazli@`   | 495         | 938                                   |
+| `egzona@`  | 175         | 469                                   |
+| `contact@` | 106         | —                                     |
+| `kvitto@`  | 18          | —                                     |
+| **totalt** | **794**     | **1 407** (fazli@ + egzona@)          |
 
 **Fördelning per mapp** — och det är den som är intressant:
 
@@ -126,11 +158,11 @@ om är rätt åtgärd en backfill; går de inte det är rätt åtgärd att marke
 
 Från `info@`-provet 2026-07-30, alla riktig patientkorrespondens:
 
-| datum | mapp | motpart | ämne |
-|---|---|---|---|
-| 2026-02-16 | inbox | Ali Selim | Uppföljning |
-| 2026-02-28 | **sent** | ali.selim@jisek.se | RE: Uppföljning |
-| 2025-12-29 | inbox | Jens Berg | Re: Boka tid för påfyllning |
-| 2026-03-05 | deleted | Johan Lagerström | Avbokning PrP |
+| datum      | mapp     | motpart            | ämne                        |
+| ---------- | -------- | ------------------ | --------------------------- |
+| 2026-02-16 | inbox    | Ali Selim          | Uppföljning                 |
+| 2026-02-28 | **sent** | ali.selim@jisek.se | RE: Uppföljning             |
+| 2025-12-29 | inbox    | Jens Berg          | Re: Boka tid för påfyllning |
+| 2026-03-05 | deleted  | Johan Lagerström   | Avbokning PrP               |
 
 De två första är samma tråd — felet följde med genom hela utväxlingen.
