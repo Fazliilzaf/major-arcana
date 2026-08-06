@@ -1333,6 +1333,37 @@
   }
 
   /**
+   * Z · V12 launcher — prominent CTA that opens the full customer dossier (V12).
+   * Uses the existing data-v12-open-module contract handled by
+   * patient-master-ui.js bindV12WorkspaceRailLauncher.
+   * @param {object} profile - output från buildProfileFromBcard (used for name/patientId)
+   * @returns {string} HTML i .v11-rail__*-namespace
+   */
+  function renderV12Launcher(profile) {
+    if (!profile) return '';
+
+    var label = 'Öppna fullständig kundvy';
+    var hint = 'V12 — allt om kunden på en vy.';
+
+    return (
+      '<section class="v11-rail__v12-launcher" aria-label="V12-kundvy">' +
+      '<button type="button" class="v11-rail__v12-launcher-btn" data-v12-open-module="current-state" aria-label="' +
+      esc(label) +
+      '">' +
+      '<span class="v11-rail__v12-launcher-icon" aria-hidden="true">⇄</span>' +
+      '<span class="v11-rail__v12-launcher-text">' +
+      esc(label) +
+      '</span>' +
+      '<span class="v11-rail__v12-launcher-chevron" aria-hidden="true">›</span>' +
+      '</button>' +
+      '<p class="v11-rail__v12-launcher-hint">' +
+      esc(hint) +
+      '</p>' +
+      '</section>'
+    );
+  }
+
+  /**
    * Renderar V11-rail-innehåll för en kund. Ordning: D (top-banners) → A → V → B → C → E → F → G → H → I → J → K → L → M → N → O → P → Q → R → S.
    * @param {object} [ctx] - { card, bcard, dossierBundle, journalEntries, ... }
    * @returns {string} inner-HTML i .v11-rail__*-namespace
@@ -1354,7 +1385,9 @@
 
     // A · Profile
     if (typeof adapters.buildProfileFromBcard === 'function') {
-      out += renderProfile(adapters.buildProfileFromBcard(bcard));
+      var profile = adapters.buildProfileFromBcard(bcard);
+      out += renderProfile(profile);
+      out += renderV12Launcher(profile);
     }
 
     // V · Active Visit (hero) — endast när synligt aktivt besök finns
@@ -1483,6 +1516,7 @@
     BLOCK: 20,
     esc: esc,
     renderProfile: renderProfile,
+    renderV12Launcher: renderV12Launcher,
     renderSmartInfo: renderSmartInfo,
     renderStats: renderStats,
     renderActiveVisit: renderActiveVisit,
