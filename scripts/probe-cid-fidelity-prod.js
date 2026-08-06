@@ -88,7 +88,11 @@ async function main() {
     fail('hittade inga brevlador — ange dem med --mailbox <id> (kan upprepas)');
   }
 
-  const report = { base: BASE, mailboxes: [], probe: { attempted: 0, recoverable: 0, lost: 0 } };
+  const report = {
+    base: BASE,
+    mailboxes: [],
+    probe: { attempted: 0, recoverable: 0, lost: 0, notFound: [] },
+  };
   let probeUnavailableReason = '';
 
   for (const mailboxId of mailboxIds) {
@@ -125,10 +129,27 @@ async function main() {
         `&messageId=${encodeURIComponent(entry.messageId)}` +
         `&cid=${encodeURIComponent(entry.cid)}`;
       const probe = await getJson(token, `/api/v1/cco/runtime/history/fidelity/probe${probeQuery}`);
+
+      // 503 = graphReadEnabled ar av. Det ar ett infrastrukturfel och gor hela
+      // uppgift 2 omatbar — sluta proba, men fortsatt svepet.
+      //
+      // Allt annat (typiskt Graph 404 "not found in the store") ar ett SVAR:
+      // just det meddelandet gar inte att hamta om. Ett stickprov som misslyckas
+      // ar data, inte ett avbrott. Forsta versionen av skriptet brot loopen har
+      // och rapporterade hela koringen som obesvarad pa ett enda 404.
       if (!probe.ok) {
-        probeUnavailableReason = probe.body?.error || `HTTP ${probe.status}`;
-        report.probe.attempted -= 1;
-        break;
+        if (probe.status === 503) {
+          probeUnavailableReason = probe.body?.error || `HTTP ${probe.status}`;
+          report.probe.attempted -= 1;
+          break;
+        }
+        report.probe.lost += 1;
+        report.probe.notFound.push({
+          mailboxId,
+          status: probe.status,
+          error: String(probe.body?.error || '').slice(0, 160),
+        });
+        continue;
       }
       const found = probe.body?.probe?.graphAttachmentFound ?? probe.body?.graphAttachmentFound;
       if (found === true) report.probe.recoverable += 1;
@@ -174,6 +195,9 @@ async function main() {
     console.log(
       `  ${report.probe.attempted} stickprov · ${report.probe.recoverable} atkomliga i Graph · ${report.probe.lost} borta`
     );
+    for (const miss of report.probe.notFound.slice(0, 5)) {
+      console.log(`    · ${miss.mailboxId} HTTP ${miss.status}: ${miss.error}`);
+    }
     if (report.probe.recoverable > 0 && report.probe.lost === 0) {
       console.log('  → Backfill ar ratt atgard: metadatan finns kvar i Graph.');
     } else if (report.probe.recoverable === 0) {
