@@ -845,7 +845,7 @@
         url.searchParams.set('demo', 'off');
         url.searchParams.set('embed', 'admin');
         url.searchParams.set('v11rail', 'on');
-        url.searchParams.set('v12workspace', 'on');
+        // v12workspace följer admin-embed-kontraktets URL-flagga, inte hårdkodat här.
       }
       if (patientId) {
         url.searchParams.set('patientId', patientId);

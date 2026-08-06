@@ -102,8 +102,7 @@ function runSubnavHarness({ saved = '', src = 'about:blank', liveUrl = 'about:bl
   const moreMenu = createElement({ 'data-cco-more-menu': '' });
   moreMenu.hidden = true;
   const v2PreviewItem = createElement({ 'data-cco-more': 'konversationer_v2_preview' });
-  v2PreviewItem.closest = (selector) =>
-    selector === '[data-cco-more]' ? v2PreviewItem : null;
+  v2PreviewItem.closest = (selector) => (selector === '[data-cco-more]' ? v2PreviewItem : null);
   nav.querySelectorAll = (selector) => (selector === '[data-cco-section]' ? buttons : []);
   nav.querySelector = (selector) => {
     if (selector === '[data-cco-more-toggle]') return moreToggle;
@@ -222,7 +221,7 @@ test('admin#cco kundlänk pekar på live customers-vyn utan demo/UAT-flaggor', (
   );
   assert.match(
     subnav,
-    /var CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on';/,
+    /var CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=off';/,
     'customers-vyn ska nollställa sticky demo-state och använda admin embed'
   );
   assert.doesNotMatch(subnav, /demoOpDay/);
@@ -305,8 +304,7 @@ test('sparad Kunder eller Automatisering återställer både flik och redan star
   const cases = [
     {
       key: 'kunder',
-      expected:
-        /\/staff\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on/,
+      expected: /\/staff\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=off/,
     },
     {
       key: 'automatisering',
@@ -332,10 +330,7 @@ test('sparad Kunder eller Automatisering återställer både flik och redan star
 test('ny CCO-session startar på live-Konversationer och alla huvudkategorier är klickbara', () => {
   const harness = runSubnavHarness();
   assert.equal(activeSection(harness), 'konversationer');
-  assert.equal(
-    harness.frame.getAttribute('data-src'),
-    '/konversationer.html?v=test&embed=admin'
-  );
+  assert.equal(harness.frame.getAttribute('data-src'), '/konversationer.html?v=test&embed=admin');
 
   const expectedRoutes = {
     konversationer: /\/konversationer\.html\?v=test&embed=admin$/,
@@ -458,7 +453,7 @@ test('CCO-skalet behåller canonical patientId när Konversationer öppnar Kundd
   });
 
   const expected =
-    /\/staff\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on&patientId=f0086a8f-2133-4a5e-aa64-44bdbb3bf0a6/;
+    /\/staff\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=off&patientId=f0086a8f-2133-4a5e-aa64-44bdbb3bf0a6/;
   assert.match(harness.frame.getAttribute('src'), expected);
   assert.match(harness.frame.getAttribute('data-src'), expected);
   assert.equal(activeSection(harness), 'kunder');
@@ -509,7 +504,7 @@ test('Kalenderklick stannar i admin#cco och öppnar samma canonical patient i V1
   assert.equal(activeSection(harness), 'kunder');
   assert.match(
     harness.frame.getAttribute('src'),
-    /\/staff\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on&patientId=patient-canonical-42/
+    /\/staff\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=off&patientId=patient-canonical-42/
   );
   assert.equal(harness.frame.getAttribute('data-src'), harness.frame.getAttribute('src'));
 });
@@ -530,12 +525,15 @@ test('same-origin Kalender fallback öppnar canonical patient utan att ge okoppl
   assert.equal(activeSection(harness), 'kunder');
   assert.match(
     harness.frame.getAttribute('src'),
-    /\/staff\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on&patientId=patient-canonical-42/
+    /\/staff\?view=customers&v9=on&demo=off&embed=admin&v11rail=on&v12workspace=off&patientId=patient-canonical-42/
   );
 
   const before = harness.frame.getAttribute('src');
   assert.equal(harness.window.ArcanaCcoOpenCustomerDossier({ patientId: '' }), false);
-  assert.equal(harness.window.ArcanaCcoOpenCustomerDossier({ patientId: '../not-canonical' }), false);
+  assert.equal(
+    harness.window.ArcanaCcoOpenCustomerDossier({ patientId: '../not-canonical' }),
+    false
+  );
   assert.equal(harness.frame.getAttribute('src'), before);
 });
 
@@ -571,10 +569,7 @@ test('admin embed markeras i customers-sidan så demo-chrome kan gömmas', () =>
     /cco-v9-shell-overrides\.css\?v=admin-content-contract-v1/,
     'admin-embed CSS måste cache-bustas så den nya toppbar-gömningen laddas om'
   );
-  assert.match(
-    html,
-    /cco-admin-embed-contract\.js\?v=customer-full-product-contract-v1/
-  );
+  assert.match(html, /cco-admin-embed-contract\.js\?v=customer-full-product-contract-v1/);
 });
 
 test('customers admin embed har ett hårt content-only-kontrakt före app-boot', () => {
@@ -609,7 +604,7 @@ test('customers content-lock döljer legacy Conversations och visar bara kundreg
   assert.equal(harness.documentElement.getAttribute('data-v9-enabled'), 'on');
   assert.equal(harness.documentElement.getAttribute('data-v9-demo'), 'off');
   assert.equal(harness.documentElement.getAttribute('data-v11-rail'), 'on');
-  assert.equal(harness.documentElement.getAttribute('data-v12-workspace'), 'on');
+  assert.equal(harness.documentElement.getAttribute('data-v12-workspace'), '');
   assert.equal(harness.canvas.getAttribute('data-app-shell-view'), 'customers');
   assert.equal(harness.canvas.getAttribute('data-app-view'), 'customers');
   assert.equal(harness.sections.customers.hidden, false);
@@ -619,7 +614,7 @@ test('customers content-lock döljer legacy Conversations och visar bara kundreg
   assert.equal(harness.window.CcoAdminEmbedContract.view, 'customers');
   assert.equal(harness.window.__ARCANA_V9_ENABLED__, true);
   assert.equal(harness.window.__ARCANA_V11_RAIL_ENABLED__, true);
-  assert.equal(harness.window.__ARCANA_V12_WORKSPACE_ENABLED__, true);
+  assert.equal(harness.window.__ARCANA_V12_WORKSPACE_ENABLED__, undefined);
 });
 
 test('conversations v2 admin embed låser endast vyn och behåller v2:s egna legacy-overlayvägar', () => {

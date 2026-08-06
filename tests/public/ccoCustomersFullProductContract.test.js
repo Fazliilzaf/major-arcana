@@ -29,7 +29,7 @@ const subnav = fs.readFileSync(SUBNAV, 'utf8');
 const deepLinkBoot = fs.readFileSync(DEEP_LINK_BOOT, 'utf8');
 
 test('admin#cco Kunder monterar hela skarpa kundprodukten', () => {
-  assert.match(subnav, /CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=on'/);
+  assert.match(subnav, /CUSTOMER_FLAGS = 'v9=on&demo=off&embed=admin&v11rail=on&v12workspace=off'/);
   assert.doesNotMatch(subnav, /demoOpDay|demo=on/);
   assert.match(html, /data-shell-view="customers"/);
   assert.match(html, /data-customer-list/);
@@ -89,10 +89,7 @@ test('V12 sticky följer aktivt besöks state och primäråtgärd', () => {
   assert.match(v12Canon, /visitState === 'completed_today'/);
   assert.match(v12Canon, /var primaryAction = txt\(av && av\.primary && av\.primary\.action\)/);
   assert.match(v12Canon, /var primaryLabel = txt\(av && av\.primary && av\.primary\.label\)/);
-  assert.doesNotMatch(
-    v12Canon,
-    /ctxParts\.push\(txt\(av\.title\) \+ ' pågår'\)/
-  );
+  assert.doesNotMatch(v12Canon, /ctxParts\.push\(txt\(av\.title\) \+ ' pågår'\)/);
 });
 
 test('sena V11/V12-renderare ersätter laddningsläget utan legacy-fallback', () => {
