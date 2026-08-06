@@ -8,7 +8,15 @@ function createDiagRouter({ config, runtimeState }) {
 
   // Publik diag-endpoint — visar vilka ARCANA_*-env är satta + bootstrap-status.
   router.get('/_diag/env', (req, res) => {
+    // ORD-86: bada namnen, med flit. `src/config.js` laser BARA PUBLIC_BASE_URL
+    // (rad 169, plus Fortnox- och Swish-callbackarna), medan staffPortal.js:708
+    // foredrar ARCANA_PUBLIC_BASE_URL. Ar de satta till olika varden bygger
+    // olika delar av appen olika lankar, och inget syns utifran. Det var precis
+    // den blindheten som lat ARCANA_PUBLIC_BASE_URL peka pa legacy .se tills
+    // drift-gaten gav sex falsklarm. Bada matas ut sa avvikelsen gar att se.
     const flags = [
+      'PUBLIC_BASE_URL',
+      'ARCANA_PUBLIC_BASE_URL',
       'ARCANA_STATE_ROOT',
       'ARCANA_BOOTSTRAP_MAILBOX_BACKFILL',
       'ARCANA_BOOTSTRAP_TENANT_ID',
@@ -28,6 +36,10 @@ function createDiagRouter({ config, runtimeState }) {
       ok: true,
       env,
       resolved: {
+        // Det EFFEKTIVA vardet efter config.js fallback-kedja — inte bara vilka
+        // env som rakar vara satta. Ar detta `http://localhost:<port>` i prod
+        // betyder det att PUBLIC_BASE_URL saknas helt.
+        publicBaseUrl: config.publicBaseUrl ?? null,
         stateRoot: config.stateRoot,
         aiProvider: config.aiProvider,
         staffJournalOpenAccess: Boolean(config.staffJournalOpenAccess),
