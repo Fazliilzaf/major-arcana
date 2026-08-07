@@ -1290,22 +1290,6 @@
     window.requestAnimationFrame(refreshFullCustomerProductWhenReady);
   });
 
-  // JOURNEY-SPINE (Fas 5) opt-in. ?v13spine=on slår på (sticky via localStorage),
-  // ?v13spine=off stänger av. Default OFF tills facit-paritet är godkänd.
-  function usesV13Spine() {
-    try {
-      const params = new URLSearchParams(window.location.search || '');
-      const q = String(params.get('v13spine') || '')
-        .trim()
-        .toLowerCase();
-      if (q === 'on') localStorage.setItem('arcana.v13spine.enabled', '1');
-      else if (q === 'off') localStorage.setItem('arcana.v13spine.enabled', '0');
-      return localStorage.getItem('arcana.v13spine.enabled') === '1';
-    } catch (_error) {
-      return false;
-    }
-  }
-
   /** ORD-28 — desktop 3-kolumn; av när v10-facit (mockupens enkolumn-dossier). */
   function usesBlueprintDesktopLayout() {
     if (usesV10KundkortFacit()) return false;
@@ -1466,10 +1450,25 @@
         '[class*="v11-rail__file-"]',
       ],
     ],
-    ['communication', ['.v11-rail__comm', '[class*="v11-rail__comm-"]']],
-    ['economy', ['.v11-rail__econ', '[class*="v11-rail__econ-"]', '.v11-rail__stats']],
-    ['insights', ['.v11-rail__smart-info', '.v11-rail__next', '.v11-rail__insights']],
   ];
+
+  const V12_MODULE_TO_SECTION = {
+    'current-state': 's1',
+    'active-visit': 's2',
+    warnings: 's3',
+    health: 's4',
+    journey: 's5',
+    journal: 's6',
+    photos: 's7',
+    bookings: 's8',
+    documents: 's9',
+    communication: 's10',
+    economy: 's11',
+    insights: 's12',
+  };
+  const V12_SECTION_TO_MODULE = Object.fromEntries(
+    Object.entries(V12_MODULE_TO_SECTION).map(([m, s]) => [s, m])
+  );
 
   function inferV12ModuleFromRailClick(target) {
     if (!target) return '';
@@ -1506,6 +1505,28 @@
     module.scrollIntoView({ behavior: 'smooth', block: 'start' });
     module.setAttribute('data-v12-focus-pulse', '1');
     window.setTimeout(() => module.removeAttribute('data-v12-focus-pulse'), 1200);
+  }
+
+  function updateV12FocusUrl(focus) {
+    try {
+      const url = new URL(window.location.href);
+      if (!focus) {
+        url.searchParams.delete('v12focus');
+      } else {
+        url.searchParams.set('v12focus', focus);
+      }
+      window.history.replaceState({}, '', url.toString());
+    } catch (_e) {
+      /* best-effort URL sync */
+    }
+  }
+
+  function getV12FocusFromUrl() {
+    try {
+      return new URL(window.location.href).searchParams.get('v12focus') || '';
+    } catch (_e) {
+      return '';
+    }
   }
 
   function expandV12CanonSection(scope, targetSection) {
@@ -1928,7 +1949,17 @@
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
           target.setAttribute('data-v12-focus-pulse', '1');
           window.setTimeout(() => target.removeAttribute('data-v12-focus-pulse'), 1200);
+          updateV12FocusUrl(secId);
         }
+        return;
+      }
+      // CONTENT-CANON: tillbaka-knapp stänger workspace (samma som data-v9-dossier-close).
+      const canonBack = event.target.closest('[data-v12-canon-back]');
+      if (canonBack && body.contains(canonBack)) {
+        event.preventDefault();
+        const shell = body.closest('[data-v12-workspace-shell="1"]');
+        const closeBtn = shell && shell.querySelector('[data-v9-dossier-close]');
+        if (closeBtn) closeBtn.click();
         return;
       }
       const activeVisitAction = event.target.closest('[data-v11-active-visit-action]');
@@ -2212,18 +2243,6 @@
         });
         jump.classList.add('is-active');
         scrollV12WorkspaceModule(body, jumpModule);
-        return;
-      }
-      // Jump-rail kollaps/expandera.
-      const jrToggle = event.target.closest('[data-v12-jumprail-toggle]');
-      if (jrToggle && body.contains(jrToggle)) {
-        event.preventDefault();
-        const rail = jrToggle.closest('[data-v12-jumprail]');
-        if (rail) {
-          const collapsed = rail.classList.toggle('is-collapsed');
-          jrToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-          jrToggle.setAttribute('title', collapsed ? 'Fäll ut' : 'Fäll ihop');
-        }
         return;
       }
       // "Förbered besök" / Åtgärder-meny → scrolla till V12-modul.
@@ -2510,6 +2529,8 @@
           deep.__v12OriginalParent = null;
           deep.__v12OriginalNext = null;
         }
+        // Rensa V12-fokus från URL när arbetsytan stängs.
+        updateV12FocusUrl('');
       };
       deep.__v12WorkspaceClose = close;
       const closeBtn = deep.querySelector('[data-v9-deep-close]');
@@ -2530,7 +2551,11 @@
       // Scroll-till-sektion vid öppning. Innehåll (foton/hydrering) växer höjden
       // asynkront EFTER första rendern, så vi scrollar dels direkt (dubbel-rAF)
       // dels igen när höjden hunnit sätta sig (300/700 ms) så modulen hamnar rätt.
-      const targetModule = moduleName || 'current-state';
+      // URL-fokus (?v12focus=sN) har företräde framför passed moduleName — det gör
+      // att deep-links/back-knappar landar rätt, samtidigt som rail-launchern
+      // uppdaterar URL till den klickade sektionen innan den öppnas.
+      const urlFocus = getV12FocusFromUrl();
+      const targetModule = V12_SECTION_TO_MODULE[urlFocus] || moduleName || 'current-state';
       if (targetModule && targetModule !== 'current-state') {
         const doScroll = () => scrollV12WorkspaceModule(body, targetModule);
         window.requestAnimationFrame(() => window.requestAnimationFrame(doScroll));
@@ -2555,6 +2580,8 @@
           ? 'current-state'
           : inferV12ModuleFromRailClick(event.target);
         if (!moduleName) return;
+        const sectionId = V12_MODULE_TO_SECTION[moduleName];
+        if (sectionId) updateV12FocusUrl(sectionId);
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
@@ -6943,53 +6970,10 @@
   }
 
   /**
-   * V12 Customer Workspace · Block 0 — två-zon-shell (canon D3).
-   * Zon 1 = befintliga V11-railen (återanvänd CcoV11Rail.render), Zon 2 = V12
-   * arbetsyta (CcoV12Workspace.render, Journal-modul). Återanvänder enbart
-   * befintliga close-/scroll-/section-link-hooks → inga nya handlers. CSS döljer
-   * Zon 1 på mobil (V12 äger ytan) och visar den bredvid på iPad/webb.
+   * V12 Customer Workspace · Block 0 — single-zone CONTENT-CANON shell.
+   * Delegates entirely to window.CcoV12Canon.render. Returns empty string when
+   * canon is unavailable so renderV9MockupDetailShell falls back to V11 rail.
    */
-  // Fas 4 · Hybrid-canon: jump-rail-moduler (ankarnav). Ordning speglar Zon 2:s
-  // primära modulordning; sticky-snabbåtgärderna saknar egen rail-länk. Varje rad
-  // scrollar till matchande data-v12-module via den befintliga
-  // scrollV12WorkspaceModule-hooken (ingen ny navigerings-infra).
-  const V12_JUMPRAIL_MODULES = [
-    ['current-state', 'Nuläge'],
-    ['active-visit', 'Aktivt besök'],
-    ['warnings', 'Varningar'],
-    ['health', 'Hälsa'],
-    ['journey', 'Kundresa'],
-    ['journal', 'Journal'],
-    ['photos', 'Bilder'],
-    ['bookings', 'Bokningar'],
-    ['documents', 'Dokument'],
-    ['communication', 'Kommunikation'],
-    ['economy', 'Ekonomi'],
-    ['insights', 'Insikter'],
-  ];
-
-  function renderV12JumpRail() {
-    const items = V12_JUMPRAIL_MODULES.map(
-      ([mod, label]) =>
-        '<li><button type="button" class="v12-jumprail__link" data-v12-jump="' +
-        mod +
-        '">' +
-        '<span class="v12-jumprail__dot" aria-hidden="true"></span>' +
-        '<span class="v12-jumprail__label">' +
-        escapeHtml(label) +
-        '</span></button></li>'
-    ).join('');
-    return (
-      '<nav class="v12-jumprail" data-v12-jumprail aria-label="Snabbnavigering (moduler)">' +
-      '<button type="button" class="v12-jumprail__toggle" data-v12-jumprail-toggle aria-expanded="true" title="Fäll ihop">' +
-      '<span class="v12-jumprail__toggle-icon" aria-hidden="true">‹</span>' +
-      '<span class="v12-jumprail__toggle-label">Moduler</span></button>' +
-      '<ul class="v12-jumprail__list">' +
-      items +
-      '</ul></nav>'
-    );
-  }
-
   function renderV12WorkspaceDetailShell(
     card,
     journalEntries,
@@ -7014,35 +6998,15 @@
       patient,
       tab,
       lite,
-      // Samma wiring-glapp som railCtx hade på :6880. Den här ctx:en går till
-      // CcoV12Canon och CcoV12Workspace, och utan commercialCase kan deras
-      // offert-block aldrig visa något annat än "Inga offerter ännu".
+      // Ett enda V12-renderer: CONTENT-CANON. CcoV12Workspace och CcoV12Spine
+      // är arkiverade (ingår inte längre i renderingsvägen). commercialCase
+      // behövs fortfarande så buildOffersFromPayload kan syntetisera en rad
+      // när ingen äkta offertlista finns.
       commercialCase: runtime.commercialCase || null,
     };
-    // Stora kundvyn = JOURNEY-SPINE (Fas 5) opt-in via ?v13spine=on. Tar
-    // precedens över content-canon när flaggan är satt, men är default OFF
-    // tills facit-paritet är godkänd.
-    if (usesV13Spine() && window.CcoV12Spine && typeof window.CcoV12Spine.render === 'function') {
-      let spineInner = '';
-      try {
-        spineInner = window.CcoV12Spine.render(ctx) || '';
-      } catch (_spineError) {
-        spineInner = '';
-      }
-      if (spineInner && spineInner.indexOf('data-v12-spine="1"') !== -1) {
-        return `
-      <section class="patient-master-card v12-workspace v12-workspace--spine" data-patient-detail data-v12-workspace-shell="1">
-        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
-        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (JOURNEY-SPINE)">
-          ${spineInner}
-        </div>
-      </section>`;
-      }
-    }
-    // Stora kundvyn = CONTENT-CANON (13 sektioner, identisk med facit
-    // V12-WORKSPACE-CONTENT-CANON). Sektionsklick i lilla railen → scrollar till
-    // rätt sektion (data-v12-module på varje canon-sektion). Defensiv fallback
-    // till 13-modul-stacken om canon-render kastar/är tom (aldrig blank).
+    // V12 Customer Workspace = CONTENT-CANON (enda aktiva renderer). Om canon
+    // saknas eller kraschar returneras tomt så att renderV9MockupDetailShell
+    // faller tillbaka på V11-rail istället (aldrig en trasig/blank vy).
     if (window.CcoV12Canon && typeof window.CcoV12Canon.render === 'function') {
       let canonInner = '';
       try {
@@ -7054,49 +7018,22 @@
         return `
       <section class="patient-master-card v12-workspace v12-workspace--canon" data-patient-detail data-v12-workspace-shell="1">
         <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
+        <aside class="v12-workspace__app-nav" aria-label="Global navigering">
+          <button type="button" class="v12-app-nav__back" data-v12-canon-back aria-label="Tillbaka till kundlistan">← Kunder</button>
+          <nav class="v12-app-nav__links" aria-label="Huvudnavigering">
+            <a href="/admin#cco" class="is-active" aria-current="page">Kundvy</a>
+            <a href="/admin#bookings">Bokningar</a>
+            <a href="/admin#economy">Ekonomi</a>
+            <a href="/admin#cco-portal">Portal</a>
+          </nav>
+        </aside>
         <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (CONTENT-CANON)">
           ${canonInner}
         </div>
       </section>`;
       }
     }
-    // Fallback: 13-modul-stacken (om canon ej tillgänglig).
-    let railInner = '';
-    try {
-      if (window.CcoV11Rail && typeof window.CcoV11Rail.render === 'function') {
-        railInner = window.CcoV11Rail.render(ctx) || '';
-      }
-    } catch (_error) {
-      railInner = '';
-    }
-    let wsInner = '';
-    try {
-      if (window.CcoV12Workspace && typeof window.CcoV12Workspace.render === 'function') {
-        wsInner = window.CcoV12Workspace.render(ctx) || '';
-      }
-    } catch (_error) {
-      wsInner = '';
-    }
-    // Fas 4 · Hybrid-canon: Zon 1 är en minimal jump-rail (ankarnav till de
-    // primära modulerna) istället för full V11-rail. Modulerna bor i Zon 2; railen
-    // navigerar bara dit via den befintliga scrollV12WorkspaceModule-hooken.
-    // Full V11-rail (railInner) behålls som data-attribut-fritt fallback om
-    // jump-railen någonsin stängs av. Kollapsbar; dold på mobil (V12 äger ytan).
-    const zone1 = renderV12JumpRail();
-    void railInner;
-    const zone2 =
-      wsInner ||
-      '<div class="v12-workspace__inner"><div class="v12-workspace__empty" role="status">' +
-        '<div class="v12-workspace__empty-title">V12 Workspace</div>' +
-        '<div class="v12-workspace__empty-hint">Inga moduler renderade.</div></div></div>';
-    return `
-      <section class="patient-master-card v12-workspace" data-patient-detail data-v12-workspace-shell="1">
-        <button type="button" class="dossier-close v12-workspace__close" data-v9-dossier-close title="Stäng" aria-label="Stäng">×</button>
-        <div class="v12-workspace__zones" data-v9-dossier-scroll aria-label="Kundarbetsyta (V12)">
-          <div class="v12-workspace__zone1">${zone1}</div>
-          <div class="v12-workspace__zone2">${zone2}</div>
-        </div>
-      </section>`;
+    return '';
   }
 
   function renderV9MockupDetailShell(

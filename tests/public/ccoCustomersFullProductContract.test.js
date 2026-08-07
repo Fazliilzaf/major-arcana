@@ -311,9 +311,9 @@ test('V12 visar befintliga visit-segments med bilder och dokument per tillfälle
   );
   assert.match(canon, /function s7\(photos, visitSegments, patientId\)/);
   assert.match(canon, /Foto- och besöksdokumentation/);
-  assert.match(canon, /function s8\(bundle, patientId\)/);
+  assert.match(canon, /function s8\(bookings, history, patientId\)/);
   assert.match(canon, /'Besök · tillfällen'/);
-  assert.match(canon, /b\.durationLabel \|\| b\.duration/);
+  assert.match(canon, /b\.whenShort/);
   assert.match(canon, /bookingMeta\.join\(' · '\)/);
   assert.doesNotMatch(canon, /function s8\(bundle, visitSegments/);
   assert.doesNotMatch(canon, /fotoDok\(photos\) \+/);

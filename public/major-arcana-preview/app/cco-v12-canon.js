@@ -805,8 +805,8 @@
   }
 
   /* ---------- 6 · JOURNAL ---------- */
-  function s6(entries) {
-    var list = arr(entries);
+  function s6(journals) {
+    var list = arr(journals && journals.items ? journals.items : journals);
     var dagens = list.filter(function (e) {
       return /utkast|draft/i.test(txt(e && e.status));
     }).length;
@@ -835,7 +835,18 @@
         .map(function (e) {
           var signed = /signed|signerad|locked/i.test(txt(e.status));
           var today = /utkast|draft/i.test(txt(e.status));
-          var md = monDay(e.dateLabel || e.date || e.signedAt);
+          var metaParts = txt(e.meta || '')
+            .split('·')
+            .map(function (p) {
+              return p.trim();
+            });
+          var md =
+            metaParts.length >= 2
+              ? {
+                  mon: cap(metaParts[1].slice(0, 3).toLowerCase()),
+                  day: metaParts[0],
+                }
+              : monDay(e.dateLabel || e.date || e.signedAt);
           return (
             '<div class="journal-row' +
             (today ? ' today' : '') +
@@ -846,10 +857,10 @@
             esc(md.day || '—') +
             '</span></div>' +
             '<div><div class="journal-title">' +
-            esc(txt(e.title || e.journalType || 'Journal')) +
+            esc(txt(e.title || 'Journal')) +
             '</div>' +
             '<div class="journal-meta">' +
-            esc(txt(e.author || e.practitioner || '')) +
+            esc(txt(e.snippet || e.meta || '')) +
             '</div></div>' +
             chip(signed ? 'ok' : 'warn', signed ? 'Signerad' : 'Utkast') +
             // Själva sparandet sker i journaleditorn. Översikten öppnar rätt
@@ -1333,9 +1344,9 @@
   }
 
   /* ---------- 8 · BOKNINGAR ---------- */
-  function s8(bundle, patientId) {
-    var up = arr(bundle && bundle.upcomingBookings);
-    var hist = arr(bundle && bundle.historyBookings);
+  function s8(bookings, history, patientId) {
+    var up = arr(bookings && bookings.items ? bookings.items : bookings);
+    var hist = arr(history && history.items ? history.items : history);
     var head = secHead(
       '08',
       'Besök · tillfällen',
@@ -1364,7 +1375,7 @@
       rows
         .map(function (b, i) {
           var done = i >= up.length;
-          var md = monDay(b.dateLabel || b.monthLabel || b.month, b.dayLabel || b.day);
+          var md = monDay(b.whenLong);
           var sourceRecords = arr(b.sourceRecords);
           var shadowMeta =
             b.shadowReadmodel === true && sourceRecords.length
@@ -1376,27 +1387,15 @@
                   .filter(Boolean)
                   .join(' + ')
               : '';
-          var shadowNotes = sourceRecords
-            .map(function (record) {
-              var tenant = txt(record && record.tenantId);
-              var segments = (record && record.noteSegments) || {};
-              return ['bookingNotes', 'customerMessage', 'internalNotes', 'treatmentNotes', 'notes']
-                .map(function (field) {
-                  var value = txt(segments[field]);
-                  return value ? (tenant ? tenant + ' · ' : '') + value : '';
-                })
-                .filter(Boolean)
-                .join(' · ');
+          var notes = arr(b.notes)
+            .map(function (n) {
+              return txt(n && n.label) + ' · ' + txt(n && n.text);
             })
             .filter(Boolean)
             .join(' · ');
-          var bookingMeta = [
-            txt(b.timeLabel || b.time),
-            txt(b.durationLabel || b.duration),
-            txt(b.practitioner || b.staffName || b.providerName || b.resourceName),
-            txt(b.locationLabel),
-            shadowMeta,
-          ].filter(Boolean);
+          var bookingMeta = [txt(b.whenShort), txt(b.staff), txt(b.sub), shadowMeta].filter(
+            Boolean
+          );
           return (
             '<div class="booking-row"><div class="b-date">' +
             esc(md.mon) +
@@ -1404,14 +1403,13 @@
             esc(md.day || '—') +
             '</span></div>' +
             '<div><div class="b-title">' +
-            esc(txt(b.title || b.serviceLabel || 'Bokning')) +
+            esc(txt(b.title || 'Besök')) +
             '</div>' +
             '<div class="b-meta">' +
             esc(bookingMeta.join(' · ')) +
-            (txt(b.notes) ? '<br>Anteckning · ' + esc(txt(b.notes)) : '') +
-            (shadowNotes ? '<br>Källnoter · ' + esc(shadowNotes) : '') +
+            (notes ? '<br>' + esc(notes) : '') +
             '</div></div>' +
-            chip(done ? 'ok' : 'info', done ? 'Genomförd' : 'Bokad') +
+            chip(done ? 'ok' : 'info', done ? 'Genomförd' : txt(b.stateLabel) || 'Bokad') +
             '<button class="j-btn" data-kk-ord48-open-calendar data-patient-id="' +
             esc(patientId) +
             '">' +
@@ -1431,8 +1429,39 @@
   }
 
   /* ---------- 9 · DOKUMENT ---------- */
-  function s9(files, patientId) {
-    var items = arr(files && files.items ? files.items : files);
+  function s9(files, offers, autoDocs, patientId) {
+    var fileItems = arr(files && files.items ? files.items : files);
+    var offerItems = arr(offers && offers.items ? offers.items : offers).map(function (o) {
+      return {
+        id: o.registryId || o.id || '',
+        name: o.title || 'Offert',
+        title: o.title || 'Offert',
+        href: o.viewUrl || '',
+        badge: o.amount || '',
+        status: o.statusLabel || o.status || '',
+        statusLabel: o.statusLabel || o.status || '',
+        dateLabel: o.journeyStep || '',
+        category: 'offer',
+        previewable: o.previewable === true,
+      };
+    });
+    var autoDocItems = arr(autoDocs && autoDocs.items ? autoDocs.items : autoDocs).map(
+      function (d) {
+        return {
+          id: d.registryId || d.id || '',
+          name: d.title || 'Auto-dokument',
+          title: d.title || 'Auto-dokument',
+          href: '',
+          badge: '',
+          status: d.statusLabel || d.status || '',
+          statusLabel: d.statusLabel || d.status || '',
+          dateLabel: d.journeyStep || '',
+          category: 'auto-doc',
+          previewable: d.previewable === true,
+        };
+      }
+    );
+    var items = offerItems.concat(autoDocItems, fileItems);
     var pending = items.filter(function (f) {
       return /vänt|vant|utkast|pending|sign/i.test(txt(f && (f.status || f.statusLabel)));
     }).length;
@@ -1474,7 +1503,11 @@
             ? 'pdf'
             : /xls/i.test(rawName)
               ? 'xlsx'
-              : 'docx';
+              : cat === 'offer' || cat === 'quote'
+                ? 'off'
+                : cat === 'auto-doc' || cat === 'auto'
+                  ? 'auto'
+                  : 'docx';
           // Vänligt namn: facit visar korta kategori-namn ("Avtal + samtycke"),
           // inte råa filnamn (getaccept-5kk3vb…pdf). Härleds ur kategori/filnamn.
           // Tål mojibake (å/ä/ö → "??"/"-") i filnamn: matcha luckor mellan h…sodekl.
@@ -1490,13 +1523,15 @@
                     ? 'Journal'
                     : cat === 'offer' || cat === 'quote' || /offert/.test(lname)
                       ? 'Offert'
-                      : cat === 'form' || /formul[aä]r/.test(lname)
-                        ? 'Formulär'
-                        : rawName
-                            .replace(/\.[a-z0-9]+$/i, '')
-                            .replace(/[-_]+/g, ' ')
-                            .replace(/\s+/g, ' ')
-                            .trim() || 'Dokument';
+                      : cat === 'auto-doc' || cat === 'auto' || /auto/.test(lname)
+                        ? 'Auto-dokument'
+                        : cat === 'form' || /formul[aä]r/.test(lname)
+                          ? 'Formulär'
+                          : rawName
+                              .replace(/\.[a-z0-9]+$/i, '')
+                              .replace(/[-_]+/g, ' ')
+                              .replace(/\s+/g, ' ')
+                              .trim() || 'Dokument';
           // Vänlig källa i meta-raden (facit: "12 maj · GetAccept · arkiverad").
           var src = txt(f.sourceSystem).toLowerCase();
           var srcLabel = /getaccept/.test(src)
@@ -1507,21 +1542,27 @@
                 ? 'Signerad i CCO'
                 : /drive/.test(src)
                   ? 'Drive'
-                  : '';
-          var meta = [txt(f.dateLabel || f.documentDate), srcLabel].filter(Boolean).join(' · ');
+                  : cat === 'offer'
+                    ? 'Offert'
+                    : cat === 'auto-doc' || cat === 'auto'
+                      ? 'Auto'
+                      : '';
+          var meta = [txt(f.dateLabel || f.documentDate), srcLabel, txt(f.badge)]
+            .filter(Boolean)
+            .join(' · ');
           // Vänlig status-chip — mappa rå status (t.ex. VISIBLE_ON_PATIENT_CARD)
           // till facit-etiketter (Klar/Vänta sign/Auto/Intern/Signerat).
           var st = txt(f.status || f.statusLabel).toLowerCase();
           var tone = /v[aä]nt|utkast|pending|await/.test(st)
             ? 'warn'
-            : /auto/.test(st)
+            : /auto|planerad/.test(st)
               ? 'info'
               : /intern|internal/.test(st)
                 ? 'neutral'
                 : 'ok';
           var clabel = /v[aä]nt|utkast|pending|await/.test(st)
             ? 'Vänta sign'
-            : /auto/.test(st)
+            : /auto|planerad/.test(st)
               ? 'Auto'
               : /intern|internal/.test(st)
                 ? 'Intern'
@@ -1529,9 +1570,11 @@
                   ? 'Signerat'
                   : /accept/.test(st)
                     ? 'Accepterad'
-                    : 'Klar';
+                    : cat === 'offer' || cat === 'quote'
+                      ? 'Skickad'
+                      : 'Klar';
           var send = tone === 'warn';
-          var btn = send ? 'Skicka' : tone === 'info' ? 'Förhandsgranska' : 'Öppna';
+          var btn = f.previewable ? 'Förhandsgranska' : send ? 'Skicka' : 'Öppna';
           var href = txt(f.href);
           var openable = !send && href;
           return (
@@ -1731,6 +1774,42 @@
     ['s11', 'Ekonomi', '11'],
     ['s12', 'Insikter', '12'],
   ];
+
+  /* ---------- HEADER + TABBAR (scroll-ankare) ---------- */
+  function header(profile, patientId) {
+    profile = profile || {};
+    var name = txt(profile.name || 'Kund');
+    var initials = txt(profile.initials) || '?';
+    var tabs = JUMP.map(function (j) {
+      return (
+        '<button type="button" class="v12-canon__tab" data-v12-canon-jump="' +
+        j[0] +
+        '">' +
+        esc(j[1]) +
+        '</button>'
+      );
+    }).join('');
+    return (
+      '<header class="v12-canon__header">' +
+      '<button type="button" class="v12-canon__back" data-v12-canon-back aria-label="Stäng kundvy">' +
+      '<span aria-hidden="true">‹</span> Tillbaka' +
+      '</button>' +
+      '<div class="v12-canon__header-main">' +
+      '<h1 class="v12-canon__header-title">' +
+      esc(name) +
+      '</h1>' +
+      '<div class="v12-canon__header-meta">' +
+      (patientId ? '<span>#' + esc(patientId) + '</span>' : '') +
+      '<span class="v12-canon__header-pill">V12</span>' +
+      '</div>' +
+      '</div>' +
+      '<nav class="v12-canon__tabbar" aria-label="Sektioner">' +
+      tabs +
+      '</nav>' +
+      '</header>'
+    );
+  }
+
   function rail(events, nextStep, bundle, card) {
     var evs = arr(events);
     var rows = evs.length
@@ -2099,6 +2178,15 @@
     var health = call('buildHealthPreview', [card, bundle], null);
     var photos = call('buildPhotosFromDriveFiles', [ctx.driveFiles], null);
     var files = call('buildFilesFromDriveFiles', [ctx.driveFiles], null);
+    var offers = call('buildOffersFromPayload', [card, bundle, ctx.commercialCase], null);
+    var autoDocs = call('buildAutoDocsFromPayload', [card, bundle], null);
+    var bookings = call(
+      'buildBookingsFromExtras',
+      [card, card, bundle, ctx.occasionTimeline],
+      null
+    );
+    var history = call('buildHistoryFromExtras', [card, card, bundle, ctx.occasionTimeline], null);
+    var journals = call('buildJournalsFromEntries', [ctx.journalEntries], null);
     var comm = call('buildCommunicationFromState', [card, ctx.occasionTimeline, bundle], null);
     var econ = call('buildEconomyFromCard', [card], null);
     var invoices = call('buildEconomyInvoices', [bundle && bundle.paymentHistory], null);
@@ -2110,6 +2198,10 @@
     var stepAssets =
       ctx.stepAssets || call('buildStepAssets', [journey, ctx.driveFiles, ctx.journalEntries], {});
 
+    var patientId = card.id || card.patientId || (ctx.patient && ctx.patient.id);
+
+    var profile = call('buildProfileFromBcard', [card], null);
+
     var main =
       '<div class="v12-canon__main">' +
       s1(card, journey) +
@@ -2118,13 +2210,13 @@
       s3(warnings) +
       s4(health) +
       s5(journey, av, nextStep, photos, health, stepAssets) +
-      s6(ctx.journalEntries) +
-      s7(photos, ctx.visitSegments, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
-      s8(bundle, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
-      s9(files, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
+      s6(journals) +
+      s7(photos, ctx.visitSegments, patientId) +
+      s8(bookings, history, patientId) +
+      s9(files, offers, autoDocs, patientId) +
       s10(comm, card) +
-      s11(econ, invoices, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
-      s12(nextStep, insights, card.id || card.patientId || (ctx.patient && ctx.patient.id)) +
+      s11(econ, invoices, patientId) +
+      s12(nextStep, insights, patientId) +
       '</div>';
     // Lägg data-v12-module på varje sektion så befintlig scrollV12WorkspaceModule
     // + jump-rail-launcher (inferV12ModuleFromRailClick) landar rätt vid sektionsklick.
@@ -2148,6 +2240,7 @@
 
     return (
       '<div class="v12-canon" data-v12-canon="1">' +
+      header(profile, patientId) +
       '<div class="v12-canon__grid">' +
       main +
       rail(recentEvents, nextStep, bundle, card) +
