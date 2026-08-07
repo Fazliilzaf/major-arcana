@@ -138,10 +138,41 @@ Ej utrett. Kan vara samma ASCII-vikning som ger `?` i Drive-filnamn (PR #1300,
 - **Om detta galler alla brevlador eller bara vissa.** Bada exemplen kommer
   fran `info@`.
 
-## Rekommenderat nasta steg
+## UPPDATERING 2026-08-07 — matt, en fix byggd, en oppen fraga kvar
 
-Mat innan nagot byggs — samma princip som ORD-93. Ett svep som per brevlada
-raknar hur manga lagrade kroppar som ar exakt 255 tecken eller identiska med
-`bodyPreview`. Det ger storleken pa problemet innan nagon bestammer atgard.
+Fick ORD-99 och ett GO. Byggde matning innan kod, samma princip som ordern
+sjalv efterfragar — se `window.__ccoOpenFlowDiagnostics.lastHydration.directFetch.bodyMetrics`
+(#1319 exponerar diagnostiken, #1322 lagger till kroppslangder + bilageantal
+per meddelande, aldrig innehall).
 
-Ingen kodandring foreslas har. Fyndet behover ett ordernummer och ett GO forst.
+**Matt i prod, Ali Selim-traden:**
+
+| Meddelande | bodyHtmlLength | bodyTextLength | bodyPreviewLength | attachmentCount |
+| ---------- | -------------- | -------------- | ----------------- | --------------- |
+| Inkommande | 0              | 159            | 230               | 5               |
+| Utgaende   | 0              | 255            | 255               | 5               |
+
+`bodyTextLength` (159, 255) matchar EXAKT den avkapade texten operatoren sag —
+inte `bodyPreview`. Den riktiga lagrade textkroppen ar kort, punkt. Men
+`bodyHtml` ar tom pa bada, och `attachmentCount: 5` pa bada — bilagorna finns,
+kroppen som skulle badda in dem gor det inte.
+
+**Fixat (#1323):** servern beraknar redan `isInline` + `inlineUrl` per bilaga,
+oberoende av `bodyHtml`. Klientens `renderMessageAttachments`
+(`cco-conversations-v2-shell.js`) filtrerade anda bort varje `isInline`-flaggad
+bilaga — i tron att den skulle baddas in i html som inte fanns. Fem bilagor
+forsvann tyst per meddelande. Fix: nar `html` ar tomt raknas ingen bilaga som
+"redan inbaddad", allt renderas som chip. Tva tester, extraherar de riktiga
+funktionerna ur kallan, inget stubbat.
+
+**INTE byggt:** rikedomssparr i `applyV2DirectThreadPayload` (se
+"SLUTGILTIGT 2026-08-07 → Vad som ar RATT atgard" ovan). Skulle inte ha
+hjalpt just den har traden — fallbacken hade sannolikt gett samma tomma
+`bodyHtml` fran samma kalla — men kan dolja rikare data pa ANDRA tradar.
+
+**Fortfarande oppet:** varfor `bodyText` bara ar 159/255 tecken for de har
+tva meddelandena. `/messages` beriker redan via `mailIngestionStore`
+(`enrichConversationMessagesWithIngestion`) innan svaret byggs — om aven den
+vagen ger kort text pekar det mot ett dataspar i hur `info@` importerades,
+inte ett kodfel. Obekraftat. Kraver att nagon utreder importhistoriken for
+`info@`, inte ett svep i klienten.
