@@ -39,6 +39,7 @@ const { createCcoAssetReviewQueueStore } = require('../src/ops/ccoAssetReviewQue
 const { createCcoJournalStore } = require('../src/ops/ccoJournalStore');
 const { createSecureStorageProvider } = require('../src/ops/ccoSecureStorageProvider');
 const { createCcoAuditLog } = require('../src/security/ccoAuditLog');
+const { buildAssetNamingMetadata } = require('../src/ops/ccoAssetNaming');
 const {
   _internal: { validatePatientIdAgainstCcoMaster },
 } = require('../src/ops/ccoOldCcoAssetAdapter');
@@ -343,6 +344,23 @@ async function runDriveJournalImport({
       }
 
       stats.checksumOk += 1;
+
+      // Bygg ett läsbart displayName så UI inte behöver visa råa Drive-filnamn.
+      // Felet får aldrig bryta import-flödet — loggas och fortsätter.
+      try {
+        const namingPatch = buildAssetNamingMetadata(asset, { siblingAssets: [] });
+        await store.patchAssetNamingMetadata(
+          asset.id,
+          namingPatch,
+          { actor, reason: 'drive_journal_build_display_name' }
+        );
+      } catch (namingErr) {
+        stats.errors.push({
+          fileId: file.id,
+          code: 'naming_build_failed',
+          message: namingErr.message,
+        });
+      }
 
       if (result.status === 'VISIBLE_ON_PATIENT_CARD') {
         stats.visible += 1;
