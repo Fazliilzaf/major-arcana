@@ -947,3 +947,73 @@ test('ensureRuntimeOpenFlowDiagnostics exponerar diagnostiken pa window for lasn
   // testmiljo utan riktig window.
   assert.match(fnSource, /if\s*\(\s*windowObject\s*&&/, 'window-vakten maste finnas kvar');
 });
+
+// ORD-99: hydrate_v2_direct_fetch-eventet mätte tidigare bara messageCount,
+// vilket inte skiljer "servern gav en kort förhandsvisning" (dataproblem)
+// från "servern gav full text men klienten kollade aldrig". bodyMetrics ger
+// längder och bilageantal — aldrig innehåll, patientdata hör inte i konsolen.
+test('summarizeV2DirectPayloadBodyMetrics mäter längder och bilagor utan att bära innehåll', () => {
+  const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
+  const fnSource = extractFunctionSource(source, 'summarizeV2DirectPayloadBodyMetrics');
+
+  const asArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (value === undefined || value === null) return [];
+    return [value];
+  };
+  const asText = (value, fallback = '') => {
+    if (typeof value === 'string') return value;
+    if (value === undefined || value === null) return fallback;
+    return String(value);
+  };
+
+  const summarizeV2DirectPayloadBodyMetrics = new Function(
+    'asArray',
+    'asText',
+    `${fnSource}; return summarizeV2DirectPayloadBodyMetrics;`
+  )(asArray, asText);
+
+  const truncated = summarizeV2DirectPayloadBodyMetrics({
+    messages: [
+      { bodyHtml: '', bodyText: '', bodyPreview: 'x'.repeat(255), hasAttachments: false },
+      {
+        bodyHtml: '<p>' + 'y'.repeat(2000) + '</p>',
+        bodyText: 'z'.repeat(2000),
+        bodyPreview: 'z'.repeat(255),
+        hasAttachments: true,
+        attachments: [{ id: 'a1' }, { id: 'a2' }],
+      },
+    ],
+  });
+
+  assert.equal(truncated.messageCount, 2);
+  assert.equal(truncated.messages[0].bodyHtmlLength, 0);
+  assert.equal(truncated.messages[0].bodyTextLength, 0);
+  assert.equal(truncated.messages[0].bodyPreviewLength, 255);
+  assert.equal(truncated.messages[0].hasAttachments, false);
+  assert.equal(truncated.messages[0].attachmentCount, 0);
+  assert.equal(truncated.messages[1].bodyHtmlLength, 2007);
+  assert.equal(truncated.messages[1].bodyTextLength, 2000);
+  assert.equal(truncated.messages[1].attachmentCount, 2);
+
+  // Ingen faktisk brödtext får läcka ut ur mätaren — bara siffror och booleans.
+  const serialized = JSON.stringify(truncated);
+  assert.doesNotMatch(serialized, /[xyz]{20,}/, 'mätaren ska aldrig bära rå meddelandetext');
+
+  const empty = summarizeV2DirectPayloadBodyMetrics(null);
+  assert.deepEqual(empty, { messageCount: 0, messages: [] });
+});
+
+test('hydrate_v2_direct_fetch-eventet bär bodyMetrics, inte bara messageCount', () => {
+  const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
+  assert.match(
+    source,
+    /const bodyMetrics = summarizeV2DirectPayloadBodyMetrics\(directPayload\);/,
+    'hydrateRuntimeThreadHistory måste mäta v2-direktpayloadens innehåll'
+  );
+  assert.match(
+    source,
+    /recordRuntimeOpenFlowEvent\("hydrate_v2_direct_fetch",\s*\{[^}]*bodyMetrics/,
+    'hydrate_v2_direct_fetch-eventet måste bära bodyMetrics'
+  );
+});
