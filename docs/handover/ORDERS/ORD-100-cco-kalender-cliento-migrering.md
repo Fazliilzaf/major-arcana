@@ -132,14 +132,12 @@ gatingkoden. Behandla `PROJECT-CHECKLIST.md`s bokningsrader som föråldrade.
 
 ## Föreslagen fasindelning — INTE påbörjad, väntar på Fazlis prioritering
 
-Detta är ett förslag till ordning, inte ett beslut. Migreringens omfattning
-(hur många bokningar, hur mycket anteckningstext) är okänd härifrån —
-Cliento-åtkomst krävs för att ens mäta den, inte bara för att utföra den.
+Detta är ett förslag till ordning, inte ett beslut.
 
-- **Fas 0 — mät omfattningen.** Hur många bokningar/anteckningar finns i
-  Cliento totalt? Finns ett riktigt export/API där, eller bara CSV +
-  mejl-parsning som idag? Avgör om Fas 1 ens är görbar utan manuellt
-  klick-för-klick-arbete.
+- **Fas 0 — KLAR (2026-08-07).** Mätt: 121 782 bokningar totalt i Cliento,
+  55 221 importerade, **66 561 (≈55 %) saknas**. Se facit nedan. Inget
+  API krävdes — Cliento erbjuder ett riktigt CSV-exportverktyg (`Dataexport`)
+  som täcker hela historiken i en fil.
 - **Fas 1 — billiga fixar, oberoende av migreringsbeslutet.** Punkt 3 och 4
   ovan. Litet, säkert, rör inte data.
 - **Fas 2 — konsolidera stackarna** (punkt 5). Minskar underhållsytan
@@ -182,10 +180,46 @@ mappar det, eller att interna anteckningar helt enkelt inte förts i
 Cliento. Skiljer sig åt i allvarlighet — kräver utredning innan Fas 4,
 inte en gissning.
 
-**Fas 0 del 2 — obekräftad:** det verkliga totalantalet bokningar och
-anteckningar i Clientos eget system, för att se om gapet mot de 55 221 är
-litet (nästan allt redan importerat) eller stort (en betydande andel
-saknas). Kräver inloggning i Clientos adminyta, inte kod härifrån.
+## Fas 0 — mätt 2026-08-07, del 2 av 2 — FACIT
+
+Fazli exporterade Clientos eget CSV-underlag direkt (`Dataexport 1 augusti
+2021 - 31 augusti 2026.csv`, `Kundexport_nya`-varianter), sparade på
+iCloud. Radantal räknat med `wc -l` på Mac:en, rubrikrad läst med `head -1`
+— ingen patientdata i den här utredningen, bara struktur och räknetal.
+
+**`Dataexport` är bokningsnivå, inte bokningsrader** — rubrikraden börjar
+`"Boknings-id","Bokningsreferens","Skapad tid","Starttid",...`, en unik
+`Boknings-id` per rad. Det gör radantalet direkt jämförbart med vår egen
+`totalBookingsImporteradeHittills`.
+
+| Mått                                                                   | Värde              |
+| ---------------------------------------------------------------------- | ------------------ |
+| Bokningar totalt i Cliento (`Dataexport`, 121 783 rader − 1 rubrikrad) | **121 782**        |
+| Redan importerade till CCO (del 1 ovan)                                | 55 221             |
+| **Gap — inte importerat**                                              | **66 561 (≈55 %)** |
+
+**Slutsats: mer än hälften av alla bokningar saknas i CCO.** Betydligt
+större gap än vad ordern ursprungligen antog ("manuell CSV-import,
+omfattning okänd"). Det här är inte längre en okänd risk — det är en
+kvantifierad, stor datamigrering.
+
+**Kundexport_nya är INTE customer-källan för bokningarna.** Rubrikrad:
+`"Namn","Telefon","E-post","Skapad"` — fyra fält, ingen `Kund-id`, inget
+personnummer. `Dataexport` har i stället `Kund-id`, `Kundnamn`,
+`Kund e-post`, `Personnummer` per bokningsrad — rikare än kontaktlistan.
+Det förklarar den tidigare skenbara avvikelsen (7 579 distinkta kunder i
+CCO mot 6 745–6 932 rader i Kundexport_nya): fel fil jämfördes mot fel
+mått. Kundantalet bör härledas ur `Dataexport`s `Kund-id`, inte ur
+`Kundexport_nya`, om det behöver mätas exakt igen.
+
+**`internalNotes: 0`-frågan (del 1) är nu delvis förklarad, inte löst.**
+`Dataexport`s rubrikrad har `Bokningsanteckning`, `Meddelande från kund`,
+`Anpassade fält`, `Attribut` — men ingen kolumn som uttryckligen heter
+något i stil med "interna anteckningar". Trolig förklaring: interna
+anteckningar, om de finns, ligger i `Anpassade fält`/`Attribut` och
+CSV-importern (`opsClientoBookingsImport.js`) mappar inte de fälten till
+`internalNotes`. Fortfarande obekräftat mot faktisk radinnehåll — bara
+rubrikraden är läst, aldrig data.
 
 ## Icke-mål för denna order
 
