@@ -26,6 +26,13 @@ function createDiagRouter({ config, runtimeState }) {
       'ARCANA_GRAPH_READ_ENABLED',
       'ARCANA_GRAPH_SEND_ENABLED',
       'ARCANA_DEFAULT_TENANT',
+      // .cursor/rules/website-booking-policy.mdc: icke-forhandlingsbar — ska
+      // vara false pa prod tills CCO-bokning ar 100% redo och godkand. Men
+      // src/config.js:28 defaultar till true, och render.yaml (ORD-74,
+      // 2026-07-17) instruerar att TA BORT en explicit false i Dashboard sa
+      // kod-defaulten (true) tar over. Den motsagelsen gick inte att se
+      // utifran — samma blindhet som ARCANA_PUBLIC_BASE_URL var (#1315).
+      'ARCANA_PUBLIC_WEB_BOOKING_ENABLED',
     ];
     const env = {};
     for (const k of flags) {
@@ -40,6 +47,12 @@ function createDiagRouter({ config, runtimeState }) {
         // env som rakar vara satta. Ar detta `http://localhost:<port>` i prod
         // betyder det att PUBLIC_BASE_URL saknas helt.
         publicBaseUrl: config.publicBaseUrl ?? null,
+        // Effektivt varde efter config.js:s asBool(..., true)-fallback —
+        // se kommentaren vid flaggan ovan for varfor detta maste synas.
+        publicWebBookingEnabled:
+          typeof config.publicWebBookingEnabled === 'boolean'
+            ? config.publicWebBookingEnabled
+            : null,
         stateRoot: config.stateRoot,
         aiProvider: config.aiProvider,
         staffJournalOpenAccess: Boolean(config.staffJournalOpenAccess),
