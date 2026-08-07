@@ -22,20 +22,14 @@
       window.__CCO_BOTTOM_ACTIONS_LIBRARY__ = true;
     </script>
     <script
-      src="/konversationer-bottom-actions.js?v=a500c1165e0c20a36d16c372838a59c9cd74fd1d"
+      src="/konversationer-bottom-actions.js?v=d69cc61501be25a973a410f6dccbf172052f9cac"
       defer
     ></script>
     <!-- /admin#cco owns the global shell. Lock explicit admin embeds to their
          requested content before the asynchronous application bundle boots. -->
     <script src="./app/cco-admin-embed-contract.js?v=customer-full-product-contract-v1"></script>
-    <!-- ARCANA bundle URLs (content-hash: a56df74828) -->
-    <script>
-      window.__ARCANA_BUNDLE_URLS__ = {
-        full: './app.bundle.a56df74828.min.js',
-        staffCore: './app.bundle.staff-core.e97d12da12.min.js',
-        staffDeferred: './app.bundle.staff-deferred.6d4631df1b.min.js',
-      };
-    </script>
+    <!-- ARCANA bundle URLs (content-hash: 01be80033c) -->
+    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.01be80033c.min.js","staffCore":"./app.bundle.staff-core.1fabb8f4eb.min.js","staffDeferred":"./app.bundle.staff-deferred.6d4631df1b.min.js"};</script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
@@ -3767,11 +3761,8 @@
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script
-                    async
-                    src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
-                  ></script>
-                  <div data-patient-identity-rail hidden>
+                  <script async src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"></script>
+<div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
                         <h2>Kundidentitetshantering</h2>
@@ -11663,12 +11654,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="/arcana-page-titles.js"></script>
     <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: a56df74828) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 01be80033c) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.a56df74828.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.e97d12da12.min.js';
+        var fullSrc = urls.full || './app.bundle.01be80033c.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.1fabb8f4eb.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.6d4631df1b.min.js';
 
         function injectScript(src, onload) {
