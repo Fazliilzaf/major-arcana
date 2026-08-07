@@ -91,6 +91,22 @@ Detta öppnar upp för att köra vilket filbaserat skript som helst
 (`scripts/backfill-*`, m.fl.) direkt mot riktig prod-data utan att flytta
 den. Skriv-skript ska ändå alltid köras `--dry-run` först.
 
+**2026-08-07, andra gången:** anslutningen slutade fungera under dagen.
+Orsak: Render hade en **föräldralös** nyckelpost kvar (fingeravtryck
+`SHA256:hr4jFE4P159...`) från den ursprungliga VPS-misstagsnyckeln som
+redan raderats lokalt — den kan aldrig fungera igen. Den faktiska
+`id_render`-nyckeln (`SHA256:4kQpbfBY...`) hade aldrig blivit tillagd i
+Render. Löst genom att lägga till den _utan_ att röra den gamla posten.
+Om SSH nekar med "Permission denied (publickey)" trots att lokal fil ser
+rätt ut: kör `ssh-keygen -lf ~/.ssh/id_render.pub` och jämför fingeravtryck
+mot vad som faktiskt är sparat i Render Dashboard — gissa aldrig.
+
+**Kommandotips:** klistra aldrig flerradiga `cat > fil << 'EOF' ... EOF`-
+block i en interaktiv SSH-session — paste-buffring korrumperar det ofta.
+Använd i stället `node -e "..."` som EN sammanhängande rad, och kör
+`set +H` först om raden innehåller `!` (bash tolkar det annars som
+historik-expansion, ger `event not found`).
+
 ---
 
 ## Stängt och verifierat (kort — detaljer i respektive fil/PR)
