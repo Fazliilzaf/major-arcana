@@ -315,7 +315,9 @@ function buildImageEntry(file) {
     encounterId: normalizeText(file?.encounterId) || null,
     takenAt: takenAt || null,
     timeLabel: formatTimeLabel(takenAt),
-    fileName: normalizeText(file?.fileName || file?.originalFileName || file?.name) || 'Fil',
+    fileName:
+      normalizeText(file?.displayName || file?.fileName || file?.originalFileName || file?.name) ||
+      'Fil',
     thumbnailUrl: normalizeText(file?.thumbnailUrl || file?.thumbnailLink) || null,
     openRef: normalizeText(file?.viewUrl) || null,
     imageStage: normalizeText(file?.imageStage) || null,
@@ -393,7 +395,9 @@ function buildJournalPhotoEntry(attachment, journal) {
     documentDate: journal?.date || (takenAt ? takenAt.slice(0, 10) : null),
     takenAt: takenAt || null,
     timeLabel: formatTimeLabel(takenAt),
-    fileName: normalizeText(attachment?.fileName || attachment?.label) || 'Journalbild',
+    fileName:
+      normalizeText(attachment?.displayName || attachment?.fileName || attachment?.label) ||
+      'Journalbild',
     imageType: normalizeText(attachment?.photoPhase) || 'journal_photo',
     imageStage: normalizeText(attachment?.photoPhase) || null,
     openRef: null,
@@ -435,7 +439,9 @@ function buildDocumentEntry(file) {
   return {
     assetId,
     documentDate: documentDate || null,
-    fileName: normalizeText(file?.fileName || file?.originalFileName || file?.name) || 'Dokument',
+    fileName:
+      normalizeText(file?.displayName || file?.fileName || file?.originalFileName || file?.name) ||
+      'Dokument',
     type: normalizeText(file?.fileType || file?.category) || 'document',
     fileSize: Number.isFinite(Number(file?.fileSize)) ? Number(file.fileSize) : null,
     openRef: normalizeText(file?.viewUrl) || null,

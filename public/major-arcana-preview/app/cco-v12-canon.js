@@ -58,6 +58,64 @@
     return '<span class="chip ' + (CHIP[tone] || 'neutral') + '">' + esc(label) + '</span>';
   }
 
+  /* ---------- journal helpers (shared by s6 and visitSegmentsBlock) ---------- */
+  function journalStateForSegment(segment) {
+    var journals = arr(segment && segment.journals);
+    if (!journals.length) return 'Journal saknas';
+    if (
+      journals.every(function (journal) {
+        return Boolean(journal && journal.locked);
+      })
+    ) {
+      return 'Journal signerad och låst';
+    }
+    if (
+      journals.every(function (journal) {
+        return txt(journal && journal.status) === 'signed';
+      })
+    ) {
+      return 'Journal signerad';
+    }
+    return 'Journalutkast';
+  }
+  function journalBlock(segment, opts) {
+    opts = opts || {};
+    var journals = arr(segment && segment.journals);
+    var encounterId = txt(segment && segment.encounterId);
+    var rows = journals.length
+      ? journals
+          .map(function (journal) {
+            var status = txt(journal && journal.status) || 'draft';
+            var locked = Boolean(journal && journal.locked);
+            return (
+              '<div class="visit-segment-journal__row"><span><b>' +
+              esc(txt(journal && journal.title) || 'Journalanteckning') +
+              '</b><small>' +
+              esc(txt(journal && journal.date)) +
+              '</small></span>' +
+              chip(
+                locked || status === 'signed' ? 'ok' : 'warn',
+                locked ? 'Signerad · låst' : status === 'signed' ? 'Signerad' : 'Utkast'
+              ) +
+              '</div>'
+            );
+          })
+          .join('')
+      : '<div class="visit-segment-empty">Ingen journalanteckning för detta tillfälle.</div>';
+    return (
+      '<div class="visit-segment-journal"><div class="visit-segment-journal__head"><span>' +
+      esc(opts.title || 'Journal') +
+      '</span>' +
+      '<button type="button" class="warn-action" data-v12-visit-journal data-encounter-id="' +
+      esc(encounterId) +
+      '">' +
+      (journals.length ? 'Fortsätt journal' : 'Starta journal') +
+      '</button></div>' +
+      rows +
+      '</div>'
+    );
+  }
+
   function telHref(phone) {
     return String(phone == null ? '' : phone).replace(/[^\d+]/g, '');
   }
@@ -805,7 +863,41 @@
   }
 
   /* ---------- 6 · JOURNAL ---------- */
-  function s6(journals) {
+  function journalSegmentsBlock(segments) {
+    var list = arr(segments).filter(function (segment) {
+      return Boolean(segment && segment.date);
+    });
+    if (!list.length) return '';
+    list.sort(function (a, b) {
+      return txt(b.date || '').localeCompare(txt(a.date || ''));
+    });
+    return list
+      .map(function (segment) {
+        var visitDate = txt(segment.date);
+        var label = txt(segment.label || visitDate);
+        var visitType = txt(segment.visitType);
+        var timeRange = txt(segment.timeRange);
+        var meta = [visitType, timeRange, journalStateForSegment(segment)]
+          .filter(Boolean)
+          .join(' · ');
+        return (
+          '<details class="card v12-canon-visit-segment v12-canon-journal-segment"' +
+          (arr(segment.journals).length ? ' open' : '') +
+          ' data-visit-room-date="' +
+          esc(visitDate) +
+          '">' +
+          '<summary><span class="what">' +
+          esc(label) +
+          '</span><span class="when">' +
+          esc(meta) +
+          '</span></summary>' +
+          journalBlock(segment, { title: 'Journalanteckningar' }) +
+          '</details>'
+        );
+      })
+      .join('');
+  }
+  function s6(journals, visitSegments) {
     var list = arr(journals && journals.items ? journals.items : journals);
     var dagens = list.filter(function (e) {
       return /utkast|draft/i.test(txt(e && e.status));
@@ -827,6 +919,9 @@
         head +
         '<div class="card" style="color:var(--ink-mute)">Inga journalanteckningar ännu.</div></section>'
       );
+    var segmentBlock = journalSegmentsBlock(visitSegments);
+    if (segmentBlock) return '<section class="sec" id="s6">' + head + segmentBlock + '</section>';
+    // Fallback: flat lista om besökssegment saknas (t.ex. legacy-data).
     return (
       '<section class="sec" id="s6">' +
       head +
@@ -863,8 +958,6 @@
             esc(txt(e.snippet || e.meta || '')) +
             '</div></div>' +
             chip(signed ? 'ok' : 'warn', signed ? 'Signerad' : 'Utkast') +
-            // Själva sparandet sker i journaleditorn. Översikten öppnar rätt
-            // befintligt journalflöde och bär med encounter-kopplingen.
             '<div class="journal-actions">' +
             (signed
               ? '<button type="button" class="j-btn" data-v12-visit-journal data-encounter-id="' +
@@ -1105,59 +1198,6 @@
             '">Arkivera</button>'
           : '') +
         '</div></div>'
-      );
-    }
-    function journalStateForSegment(segment) {
-      var journals = arr(segment && segment.journals);
-      if (!journals.length) return 'Journal saknas';
-      if (
-        journals.every(function (journal) {
-          return Boolean(journal && journal.locked);
-        })
-      ) {
-        return 'Journal signerad och låst';
-      }
-      if (
-        journals.every(function (journal) {
-          return txt(journal && journal.status) === 'signed';
-        })
-      ) {
-        return 'Journal signerad';
-      }
-      return 'Journalutkast';
-    }
-    function journalBlock(segment) {
-      var journals = arr(segment && segment.journals);
-      var encounterId = txt(segment && segment.encounterId);
-      var rows = journals.length
-        ? journals
-            .map(function (journal) {
-              var status = txt(journal && journal.status) || 'draft';
-              var locked = Boolean(journal && journal.locked);
-              return (
-                '<div class="visit-segment-journal__row"><span><b>' +
-                esc(txt(journal && journal.title) || 'Journalanteckning') +
-                '</b><small>' +
-                esc(txt(journal && journal.date)) +
-                '</small></span>' +
-                chip(
-                  locked || status === 'signed' ? 'ok' : 'warn',
-                  locked ? 'Signerad · låst' : status === 'signed' ? 'Signerad' : 'Utkast'
-                ) +
-                '</div>'
-              );
-            })
-            .join('')
-        : '<div class="visit-segment-empty">Ingen journalanteckning för detta tillfälle.</div>';
-      return (
-        '<div class="visit-segment-journal"><div class="visit-segment-journal__head"><span>Journal</span>' +
-        '<button type="button" class="warn-action" data-v12-visit-journal data-encounter-id="' +
-        esc(encounterId) +
-        '">' +
-        (journals.length ? 'Fortsätt journal' : 'Starta journal') +
-        '</button></div>' +
-        rows +
-        '</div>'
       );
     }
     function visitRoomStatus(segment) {
@@ -2210,7 +2250,7 @@
       s3(warnings) +
       s4(health) +
       s5(journey, av, nextStep, photos, health, stepAssets) +
-      s6(journals) +
+      s6(journals, ctx.visitSegments, patientId) +
       s7(photos, ctx.visitSegments, patientId) +
       s8(bookings, history, patientId) +
       s9(files, offers, autoDocs, patientId) +
