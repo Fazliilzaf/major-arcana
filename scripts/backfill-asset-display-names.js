@@ -9,6 +9,10 @@
  *   node scripts/backfill-asset-display-names.js --commit --limit 1000
  *   node scripts/backfill-asset-display-names.js --commit --patient-ids P1,P2
  *   node scripts/backfill-asset-display-names.js --commit --categories journal,consent
+ *
+ * Skriver ALDRIG lågkonfidenta gissningar (namingStatus: needs_review_for_naming,
+ * härlett av namingConfidence === 'low'). De hamnar i stats.skippedNeedsReview
+ * och needsReviewSamples i rapporten, oskrivna, för manuell granskning.
  */
 
 require('dotenv').config({ quiet: true });
@@ -102,6 +106,22 @@ function needsBackfill(asset, { force = false }) {
   return false;
 }
 
+/**
+ * Fyra foton, samma patient, samma dag, kategori photo_during — fick
+ * "FUE Operation 23/25/26/30" i en dry-run 2026-08-07. sessionNumber ska
+ * räkna DISTINKTA operationstillfällen (encounterMapper.js), inte foton;
+ * grupperingen hade inte deduplicerat korrekt för den patienten. Roten är
+ * inte fixad än.
+ *
+ * namingStatus härleds deterministiskt av namingConfidence === 'low'
+ * (ccoAssetNaming/index.js) — samma sak, olika fält. En låg-konfidens-
+ * gissning som "Operation 30" ska aldrig skriva över ett existerande
+ * displayName utan att en människa sett den först.
+ */
+function isAutoSafeNamingPatch(namingPatch) {
+  return namingPatch?.namingStatus !== 'needs_review_for_naming';
+}
+
 function groupByPatientId(assets) {
   const map = new Map();
   for (const asset of assets) {
@@ -128,6 +148,7 @@ async function backfillAssetDisplayNames({ assetStore, args }) {
     skippedPatientFilter: 0,
     skippedCategoryFilter: 0,
     patched: 0,
+    skippedNeedsReview: 0,
     failed: 0,
     dryRun: args.dryRun,
     limit: args.limit,
@@ -136,6 +157,7 @@ async function backfillAssetDisplayNames({ assetStore, args }) {
   };
   const errors = [];
   const samples = [];
+  const needsReviewSamples = [];
 
   const candidates = [];
   for (const [patientId, patientAssets] of byPatient) {
@@ -173,25 +195,40 @@ async function backfillAssetDisplayNames({ assetStore, args }) {
         const namingPatch = buildAssetNamingMetadata(asset, {
           siblingAssets: patientAssets,
         });
-        stats.patched += 1;
-        if (samples.length < 10) {
-          samples.push({
-            assetId: asset.id,
-            patientId: asset.patientId,
-            category: asset.category,
-            originalFileName: asset.originalFileName,
-            oldDisplayName: asset.displayName,
-            newDisplayName: namingPatch.displayName,
-            namingStatus: namingPatch.namingStatus,
-            namingConfidence: namingPatch.namingConfidence,
-          });
+        const row = {
+          assetId: asset.id,
+          patientId: asset.patientId,
+          category: asset.category,
+          originalFileName: asset.originalFileName,
+          oldDisplayName: asset.displayName,
+          newDisplayName: namingPatch.displayName,
+          namingStatus: namingPatch.namingStatus,
+          namingConfidence: namingPatch.namingConfidence,
+        };
+        // Dry-run ska förhandsvisa vad --commit FAKTISKT gör, inklusive vad
+        // den håller tillbaka — annars ser en granskning ren ut trots att
+        // skarp körning senare skulle ha skrivit lika mycket lågkonfident
+        // gissningsarbete som den gör här.
+        if (isAutoSafeNamingPatch(namingPatch)) {
+          stats.patched += 1;
+          if (samples.length < 10) samples.push(row);
+        } else {
+          stats.skippedNeedsReview += 1;
+          if (needsReviewSamples.length < 10) needsReviewSamples.push(row);
         }
       } catch (error) {
         stats.failed += 1;
         errors.push({ assetId: asset.id, reason: error.message });
       }
     }
-    return { ok: true, generatedAt: new Date().toISOString(), stats, samples, errors };
+    return {
+      ok: true,
+      generatedAt: new Date().toISOString(),
+      stats,
+      samples,
+      needsReviewSamples,
+      errors,
+    };
   }
 
   assetStore.beginBatch();
@@ -203,22 +240,28 @@ async function backfillAssetDisplayNames({ assetStore, args }) {
         const namingPatch = buildAssetNamingMetadata(asset, {
           siblingAssets: patientAssets,
         });
-        await assetStore.patchAssetNamingMetadata(asset.id, namingPatch, {
-          actor: ACTOR,
-          reason: 'backfill_asset_display_name',
-        });
-        stats.patched += 1;
-        if (samples.length < 10) {
-          samples.push({
-            assetId: asset.id,
-            patientId: asset.patientId,
-            category: asset.category,
-            originalFileName: asset.originalFileName,
-            oldDisplayName: asset.displayName,
-            newDisplayName: namingPatch.displayName,
-            namingStatus: namingPatch.namingStatus,
-            namingConfidence: namingPatch.namingConfidence,
+        const row = {
+          assetId: asset.id,
+          patientId: asset.patientId,
+          category: asset.category,
+          originalFileName: asset.originalFileName,
+          oldDisplayName: asset.displayName,
+          newDisplayName: namingPatch.displayName,
+          namingStatus: namingPatch.namingStatus,
+          namingConfidence: namingPatch.namingConfidence,
+        };
+        // Skriv ALDRIG en lågkonfident gissning över ett existerande
+        // displayName utan mänsklig granskning — se isAutoSafeNamingPatch.
+        if (isAutoSafeNamingPatch(namingPatch)) {
+          await assetStore.patchAssetNamingMetadata(asset.id, namingPatch, {
+            actor: ACTOR,
+            reason: 'backfill_asset_display_name',
           });
+          stats.patched += 1;
+          if (samples.length < 10) samples.push(row);
+        } else {
+          stats.skippedNeedsReview += 1;
+          if (needsReviewSamples.length < 10) needsReviewSamples.push(row);
         }
       } catch (error) {
         stats.failed += 1;
@@ -240,7 +283,14 @@ async function backfillAssetDisplayNames({ assetStore, args }) {
     throw error;
   }
 
-  return { ok: true, generatedAt: new Date().toISOString(), stats, samples, errors };
+  return {
+    ok: true,
+    generatedAt: new Date().toISOString(),
+    stats,
+    samples,
+    needsReviewSamples,
+    errors,
+  };
 }
 
 async function main() {
@@ -277,4 +327,5 @@ module.exports = {
   backfillAssetDisplayNames,
   needsBackfill,
   looksTechnical,
+  isAutoSafeNamingPatch,
 };
