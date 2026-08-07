@@ -75,3 +75,28 @@ test('GET /_diag/env exponerar bada bas-URL-namnen och det effektiva vardet', as
     else process.env.ARCANA_PUBLIC_BASE_URL = previous.prefixed;
   }
 });
+
+// .cursor/rules/website-booking-policy.mdc kräver ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false
+// på prod tills CCO-bokning är godkänd, men src/config.js defaultar till true —
+// en motsägelse som inte gick att se utifrån. Exponera både den satta env-strängen
+// och det effektiva booleska värdet så avvikelsen syns utan SSH.
+test('GET /_diag/env exponerar ARCANA_PUBLIC_WEB_BOOKING_ENABLED och dess effektiva varde', async () => {
+  const config = {
+    stateRoot: '/tmp/state',
+    aiProvider: 'fallback',
+    publicWebBookingEnabled: true,
+  };
+  const previous = process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED;
+  delete process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED;
+  try {
+    await withServer({ config, runtimeState: {} }, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/_diag/env`);
+      const body = await res.json();
+      assert.equal(body.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED, null);
+      assert.equal(body.resolved.publicWebBookingEnabled, true);
+    });
+  } finally {
+    if (previous === undefined) delete process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED;
+    else process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED = previous;
+  }
+});
