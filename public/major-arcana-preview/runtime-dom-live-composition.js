@@ -1350,6 +1350,32 @@
       };
     }
 
+    // ORD-99: mätning, inte innehåll. Diagnostiken (#1319) visade att V2:s
+    // direktfetch träffar rätt endpoint och "lyckas" (applied: true), men
+    // sa ingenting om VAD den fick tillbaka — så det gick inte att skilja
+    // "servern hade bara en kort förhandsvisning att ge" (dataproblem, ingen
+    // klientfix hjälper) från "servern hade fullständig text men klienten
+    // godkände en tunn payload utan att kolla" (kodfel). Bara längder och
+    // antal, aldrig text — patientdata ska inte i konsolen.
+    function summarizeV2DirectPayloadBodyMetrics(directPayload = null) {
+      const messages = asArray(directPayload?.messages);
+      if (!messages.length) return { messageCount: 0, messages: [] };
+      return {
+        messageCount: messages.length,
+        messages: messages.map((message) => {
+          const safe = message && typeof message === "object" ? message : {};
+          return {
+            bodyHtmlLength: asText(safe.bodyHtml || safe.body_html || safe.html).length,
+            bodyTextLength: asText(safe.bodyText || safe.body_text || safe.body || safe.text)
+              .length,
+            bodyPreviewLength: asText(safe.bodyPreview || safe.preview).length,
+            hasAttachments: safe.hasAttachments === true,
+            attachmentCount: asArray(safe.attachments).length,
+          };
+        }),
+      };
+    }
+
     function summarizeSelectedRuntimeThreadTruthForDiagnostics(resolvedTruth = null) {
       const truth =
         resolvedTruth && typeof resolvedTruth === "object"
@@ -2720,10 +2746,12 @@
           );
           if (hydrationSequence !== liveThreadHydrationSequence) return;
           updated = applyV2DirectThreadPayload(targetConversationId, directPayload);
+          const bodyMetrics = summarizeV2DirectPayloadBodyMetrics(directPayload);
           hydrationDiagnostics.directFetch = {
             conversationId: targetConversationId,
             messageCount: asArray(directPayload?.messages).length,
             source: "v2_direct_thread",
+            bodyMetrics,
           };
           hydrationDiagnostics.directApplied = updated;
           recordRuntimeOpenFlowEvent("hydrate_v2_direct_fetch", {
@@ -2731,6 +2759,7 @@
             targetConversationId,
             messageCount: asArray(directPayload?.messages).length,
             applied: updated,
+            bodyMetrics,
           });
         }
         if (!updated) {
