@@ -58,15 +58,24 @@ _"detta är mitt och ditt projekt att se till att hela CCO verkställs."_
   är uttryckligen döpt "controlled UI is default-off and orders preflight
   before explicit confirm".
 
-### Två döda anrop i den levande UI:n
+### Två döda anrop — RÄTTAT 2026-08-07, de var overkliga, inte bara döda på servern
 
-- `onBookingClick()` (`cco-kalender-shell.js:483-508`) hämtar
-  `/api/v1/calendar/booking/:id/status-pills` — **existerar inte som route**
-  någonstans i `src/routes/*.js` eller `server.js`. Misslyckas tyst
-  (`catch (_) {}`), visar alltid tomma statuspills.
-- `loadIntelligence()` (`cco-kalender-shell.js:1392-1410`) hämtar
-  `/api/v1/calendar/booking/:id/intelligence` — samma sak, visar alltid
+- `onBookingClick()` (`cco-kalender-shell.js:483-508`) hämtade
+  `/api/v1/calendar/booking/:id/status-pills` — **existerade inte som route**
+  någonstans i `src/routes/*.js` eller `server.js`. Misslyckades tyst
+  (`catch (_) {}`), visade alltid tomma statuspills.
+- `loadIntelligence()` (`cco-kalender-shell.js:1392-1410`) hämtade
+  `/api/v1/calendar/booking/:id/intelligence` — samma sak, visade alltid
   "Insikter ej tillgängliga (404)".
+- **Denna ordens ursprungsversion påstod att dessa "ARE reachable/live"
+  (till skillnad från create-modal-koden nedan). Det var fel.** Läsning av
+  koden visar att `onBookingClick` kollar `isReadOnlyMode()` FÖRST och
+  kortsluter till `renderReadonlyDrawer` innan de döda anropen nås —
+  och `CCO_CALENDAR_READ_ONLY` är hårdkodat `true` i den enda HTML-filen
+  som laddar skriptet. Samma overkliga situation som create-modal-koden,
+  bara i en annan gren av samma flagga. Åtgärdat genom att ta bort de
+  dömda nätverksanropen — identiskt fallback-beteende kvar, en dömd
+  nätverksrundtrip mindre om flaggan någonsin flippas.
 
 ### En föräldralös kodväg
 
@@ -118,17 +127,19 @@ gatingkoden. Behandla `PROJECT-CHECKLIST.md`s bokningsrader som föråldrade.
 ## Vad som saknas — konkret, i prioritetsordning
 
 1. **Datamigrering från Cliento** — bokningar, patientanteckningar,
-   historik. **Inte påbörjad.** Sannolikt större än alla andra punkter
-   tillsammans. Ingen mekanism finns idag utöver manuell CSV/mejl-parsning.
+   historik. **Inte påbörjad. Kvantifierad 2026-08-07: 66 561 bokningar
+   (≈55 %) saknas**, se Fas 0-facit nedan. Sannolikt större än alla andra
+   punkter tillsammans. Ingen mekanism finns idag utöver manuell CSV-import.
 2. Slå på personalens skriv-UI (`CCO_CALENDAR_CREATE_BOOKING_ENABLED`) när
-   redo — flaggan finns redan, bara av.
-3. Fixa eller ta bort de två döda endpoint-anropen (`status-pills`,
-   `intelligence`).
-4. Städa den föräldralösa create-modal-koden — bestäm om den ska bli den
-   riktiga vägen eller tas bort.
-5. Konsolidera de två parallella bokningsstackarna.
-6. Bekräfta `ARCANA_PUBLIC_WEB_BOOKING_ENABLED`s verkliga läge på Render
-   Dashboard — går inte att se från repot.
+   redo — flaggan finns redan, bara av. **Ej påbörjad**, kräver Fazlis
+   beslut om tidpunkt.
+3. ~~Fixa eller ta bort de två döda endpoint-anropen~~ — **KLAR
+   2026-08-07.** Borttagna, identiskt fallback-beteende kvar.
+4. ~~Städa den föräldralösa create-modal-koden~~ — **KLAR 2026-08-07.**
+   Borttagen (superseded av den redan testade `openCreateBookingDrawer`).
+5. Konsolidera de två parallella bokningsstackarna. **Ej påbörjad.**
+6. ~~Bekräfta `ARCANA_PUBLIC_WEB_BOOKING_ENABLED`s verkliga läge~~ —
+   **KLAR 2026-08-07.** Bekräftat AV via `/_diag/env` (`#1332`).
 
 ## Föreslagen fasindelning — INTE påbörjad, väntar på Fazlis prioritering
 
