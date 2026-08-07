@@ -497,7 +497,7 @@
     "path-to-regexp": "8.4.2",
     "body-parser": "2.3.0",
     "fast-uri": "3.1.5",
-    "js-yaml": "4.3.0",
+    "js-yaml": "4.3.1",
     "tmp": "0.2.6",
     "qs": "6.15.2",
     "minimatch@10.2.5": {
