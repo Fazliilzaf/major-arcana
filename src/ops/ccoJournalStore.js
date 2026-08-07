@@ -1,5 +1,7 @@
 'use strict';
 
+const { repairMojibakeFilename } = require('./filenameEncoding');
+
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 
@@ -225,6 +227,7 @@ function normalizeJournalEntry(input = {}, existing = {}) {
     status: JOURNAL_STATUSES.includes(status) ? status : 'draft',
     locked,
     title: normalizeText(safe.title || existingSafe.title) || 'Behandlingsjournal',
+    displayName: normalizeText(safe.displayName || existingSafe.displayName) || null,
     source: normalizeText(safe.source || existingSafe.source) || 'cco_journal',
     importMeta,
     fields,
@@ -269,7 +272,10 @@ function buildHistoricalImportEntry({ tenantId, patientId, personnummer, file, a
     patientId,
     personnummer,
     journalType: 'historical_import',
-    title: normalizeText(file.fileName) || 'Importerad journal',
+    title:
+      normalizeText(repairMojibakeFilename(file.displayName || file.fileName)) ||
+      'Importerad journal',
+    displayName: normalizeText(file.displayName) || null,
     source: 'drive_import',
     status: 'signed',
     locked: true,
@@ -292,7 +298,8 @@ function buildHistoricalImportEntry({ tenantId, patientId, personnummer, file, a
         zipName: file.zipName || '',
         relativePath: file.relativePath || '',
         driveFileId: file.driveFileId || '',
-        fileName: file.fileName || '',
+        fileName: normalizeText(repairMojibakeFilename(file.displayName || file.fileName)) || '',
+        displayName: normalizeText(file.displayName) || null,
       },
     ],
     events: [
@@ -489,6 +496,50 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     else state.entries.push(merged);
     await save();
     return cloneEntry(merged);
+  }
+
+  async function patchDisplayName({ tenantId, patientId, entryId, displayName, actor = {} } = {}) {
+    if (!normalizeText(tenantId) || !normalizeText(patientId) || !normalizeText(entryId)) {
+      throw new Error('tenantId, patientId och entryId krävs för patchDisplayName.');
+    }
+    const existing = await getEntry({ tenantId, patientId, entryId });
+    if (!existing) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const normalizedDisplayName = normalizeText(displayName) || null;
+    if (existing.displayName === normalizedDisplayName) {
+      return { patched: false, entry: cloneEntry(existing) };
+    }
+    const merged = normalizeJournalEntry(
+      {
+        ...existing,
+        displayName: normalizedDisplayName,
+        events: [
+          ...asArray(existing.events),
+          normalizeEvent({
+            type: 'journal_display_name_backfilled',
+            label: normalizedDisplayName
+              ? 'Journal-titel uppdaterad från asset'
+              : 'Journal displayName rensad',
+            actorUserId: actor.userId,
+            actorName: actor.displayName || actor.userId,
+            actorRole: actor.role,
+          }),
+        ].filter(Boolean),
+      },
+      existing
+    );
+    const index = state.entries.findIndex((item) => entryKey(item) === entryKey(merged));
+    if (index < 0) {
+      const error = new Error('Journalposten hittades inte vid spara.');
+      error.statusCode = 409;
+      throw error;
+    }
+    state.entries[index] = merged;
+    await save();
+    return { patched: true, entry: cloneEntry(merged) };
   }
 
   async function signEntry({ tenantId, patientId, entryId, actor = {} } = {}) {
@@ -1129,6 +1180,7 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     applyPdfArtifact,
     getStats,
     patchConsultationPhotoEncounter,
+    patchDisplayName,
     buildJournalReadout,
     clearConsultationPhotoAttachments,
     deleteEntry,

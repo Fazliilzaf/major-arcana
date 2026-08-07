@@ -757,3 +757,53 @@ test('resolveTakenAt returns captureDateTime when present', () => {
     '2024-04-22T09:14:00'
   );
 });
+
+test('buildVisitSegments repairs mojibake in journal titles', () => {
+  const result = buildVisitSegments({
+    driveFiles: [],
+    journalEntries: [
+      {
+        entryId: 'j1',
+        journalType: 'historical_import',
+        title: 'FriskfÃ¶rsÃ¤kran-TP-AbdirahmanHussein.pdf',
+        signedAt: '2024-04-22T10:00:00',
+        status: 'signed',
+        locked: true,
+      },
+      {
+        entryId: 'j2',
+        journalType: 'historical_import',
+        title: 'Halsodeklaration-Abdirahman-Hussein.pdf',
+        signedAt: '2024-04-22T10:00:00',
+        status: 'signed',
+        locked: true,
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments.length, 1);
+  const segment = result.visitSegments[0];
+  assert.equal(segment.journals.length, 2);
+  assert.equal(segment.journals[0].title, 'Friskförsäkran-TP-AbdirahmanHussein.pdf');
+  assert.equal(segment.journals[1].title, 'Halsodeklaration-Abdirahman-Hussein.pdf');
+});
+
+test('buildVisitSegments prefers journal displayName over mojibake title', () => {
+  const result = buildVisitSegments({
+    driveFiles: [],
+    journalEntries: [
+      {
+        entryId: 'j3',
+        journalType: 'historical_import',
+        title: 'Friskfo??rsa??kran.pdf',
+        displayName: 'Friskförsäkran.pdf',
+        signedAt: '2024-04-23T10:00:00',
+        status: 'signed',
+        locked: true,
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments.length, 1);
+  assert.equal(result.visitSegments[0].journals[0].title, 'Friskförsäkran.pdf');
+});

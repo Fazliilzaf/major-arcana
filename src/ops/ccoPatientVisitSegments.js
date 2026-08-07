@@ -3,6 +3,7 @@
 const { extractFileOccasionContext } = require('../../scripts/migration/lib/migrationUtils');
 const { normalizeTimelineDateTime, resolveTimelineSort } = require('./ccoAssetTimelineSort');
 const { inferEncounterTypeFromAsset } = require('./ccoAssetNaming/encounterMapper');
+const { repairMojibakeFilename } = require('./filenameEncoding');
 
 const SWEDISH_MONTHS = [
   'januari',
@@ -373,8 +374,9 @@ function buildJournalEntry(entry) {
     encounterId: normalizeText(entry?.treatmentEncounterId || entry?.encounterId) || null,
     date: resolveJournalDate(entry) || null,
     title:
-      normalizeText(entry?.displayName || entry?.title || entry?.journalType) ||
-      'Journalanteckning',
+      normalizeText(
+        repairMojibakeFilename(entry?.displayName || entry?.title || entry?.journalType)
+      ) || 'Journalanteckning',
     journalType: normalizeText(entry?.journalType) || null,
     status: normalizeText(entry?.status) || 'draft',
     locked: Boolean(entry?.locked),
