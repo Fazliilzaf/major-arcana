@@ -372,7 +372,9 @@ function buildJournalEntry(entry) {
     entryId: normalizeText(entry?.entryId) || null,
     encounterId: normalizeText(entry?.treatmentEncounterId || entry?.encounterId) || null,
     date: resolveJournalDate(entry) || null,
-    title: normalizeText(entry?.title || entry?.journalType) || 'Journalanteckning',
+    title:
+      normalizeText(entry?.displayName || entry?.title || entry?.journalType) ||
+      'Journalanteckning',
     journalType: normalizeText(entry?.journalType) || null,
     status: normalizeText(entry?.status) || 'draft',
     locked: Boolean(entry?.locked),
