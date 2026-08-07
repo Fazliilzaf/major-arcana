@@ -8,8 +8,15 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+// Monoton — tva anrop i samma millisekund (vanligt i snabba CI-korningar,
+// t.ex. skapa+patcha samma rapport direkt efter varandra) far annars
+// identisk updatedAt, vilket bryter "patchReport ska andra updatedAt".
+let lastIssuedMs = 0;
 function nowIso() {
-  return new Date().toISOString();
+  let ms = Date.now();
+  if (ms <= lastIssuedMs) ms = lastIssuedMs + 1;
+  lastIssuedMs = ms;
+  return new Date(ms).toISOString();
 }
 
 function asArray(value) {
