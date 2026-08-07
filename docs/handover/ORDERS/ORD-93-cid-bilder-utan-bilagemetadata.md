@@ -46,11 +46,55 @@ entydig.
    Att bygga en konsument for den skulle ge en tredje rapportvag till samma
    faktum. **Bygg den inte.**
 
-2. **Uppgift 2 ar obesvarad** — gar bilagorna att hamta om via
-   `/cco/runtime/history/fidelity/probe`? Kraver `graphReadEnabled` mot prod.
-   Ej korbar fran VPS:en; kors fran Mac:en.
-3. **Matgrinden ar inte kord** — deepScan-svepet over de nio brevladorna, och
-   fore/efter i operatorsvyn.
+2. **Uppgift 2 ar BESVARAD 2026-08-06** — se nedan.
+3. **Matgrind steg 3 ar kord 2026-08-06** — se nedan. Steg 2 (fore/efter i
+   operatorsvyn) aterstar.
+
+## Uppgift 2 besvarad — matt 2026-08-06 fran Mac:en
+
+Kort med `scripts/probe-cid-fidelity-prod.js --samples 5` mot prod, read-only,
+`graphReadEnabled` pa.
+
+**15 stickprov:**
+
+| Utfall                                   | Antal | Andel |
+| ---------------------------------------- | ----- | ----- |
+| Bilagan hittad i Graph                   | 0     | 0 %   |
+| Bilagor finns men `contentId` matchar ej | 3     | 20 %  |
+| Graph hade inga bilagor alls             | 10    | 67 %  |
+| Meddelandet fanns inte i Graph (404)     | 2     | 13 %  |
+
+**Svaret ar blandat, och det avgor atgarden per kategori:**
+
+De **3 (20 %)** dar Graph returnerar bilagor men `contentId` inte matchar ar
+aterstallbara — bytesen finns kvar, det ar var normalisering som missar. Ratt
+atgard for dem ar **rattad cid-matchning, inte backfill**. Det ar precis den
+tvetydighet `capabilities.js` sjalv kommenterar vid `matchCount`.
+
+De **12 (80 %)** dar Graph inte hade nagra bilagor eller inte kande igen
+meddelandet ar inte atkomliga. For dem ar den befintliga synliga markeringen
+ratt slutgiltig atgard — ordern formulerar just det alternativet.
+
+**Ingen ren backfill ar alltsa motiverad.** Noll av femton lag atkomliga pa det
+satt en backfill forutsatter.
+
+## Matgrind steg 3 — deepScan-svep 2026-08-06
+
+| Brevlada   | Meddelanden | cid-referenser | Per mapp                         |
+| ---------- | ----------- | -------------- | -------------------------------- |
+| `fazli@`   | 496         | 939            | inbox 804 · sent 130 · drafts 5  |
+| `contact@` | 107         | 249            | inbox 114 · sent 134 · deleted 1 |
+| `info@`    | 0           | 0              | —                                |
+| **Totalt** | **778**     | **1 657**      |                                  |
+
+`bodySource: bodies_sidecar` overallt — svepet lasta ratt kalla, sa en nolla
+betyder noll och inte blindhet.
+
+**Jamfort med ordens tabell (2026-07-30):** `fazli@` gick fran 938 till 939
+referenser, alltsa oforandrat. Totalen ser ut att ha vuxit fran 1 407 till
+1 657, men ordens 1 407 var uttryckligen bara `fazli@ + egzona@`, medan 1 657
+tacker samtliga brevlador — `contact@` var omatt da. Datan ar stabil, inte
+forvarrad.
 
 ## Observation
 

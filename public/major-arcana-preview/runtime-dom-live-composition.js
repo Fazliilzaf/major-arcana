@@ -1388,6 +1388,19 @@
           events: [],
         };
       }
+      // ORD-99: diagnostiken fanns men gick inte att läsa utifrån. När
+      // trådhydreringen hoppas över registreras skälet här och INGENSTANS
+      // annars — ingen console-rad, inget i svaret. Följden blev att en
+      // avkapad meddelandekropp i operatörsvyn såg identisk ut oavsett om
+      // orsaken var not_live, no_mailbox_scope eller thread_not_found, och
+      // de kräver helt olika åtgärd.
+      //
+      // Enbart läsning. Objektet är samma referens som state redan bär, så
+      // inget kopieras och inget beteende ändras — det blir bara synligt via
+      // window.__ccoOpenFlowDiagnostics i devtools-konsolen.
+      if (windowObject && typeof windowObject === "object") {
+        windowObject.__ccoOpenFlowDiagnostics = state.runtime.openFlowDiagnostics;
+      }
       return state.runtime.openFlowDiagnostics;
     }
 

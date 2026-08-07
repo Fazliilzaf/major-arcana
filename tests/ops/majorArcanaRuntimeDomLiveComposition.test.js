@@ -286,9 +286,8 @@ test('loadLiveRuntime chunkar brett mailbox-urval i par i stället för att blan
   );
 
   // Alla tre anropsvägar (snabb, uppskjuten, delta) går via den chunkade hämtaren.
-  const chunkedCallCount = (
-    source.match(/fetchTruthPrimaryWorklistConsumerChunked\(/g) || []
-  ).length;
+  const chunkedCallCount = (source.match(/fetchTruthPrimaryWorklistConsumerChunked\(/g) || [])
+    .length;
   assert.ok(
     chunkedCallCount >= 4,
     'Snabb-, uppskjuten- och delta-vägen ska alla hämta via den chunkade hämtaren.'
@@ -919,4 +918,32 @@ test('runtime-dom-live-composition bär selectedThreadTruth genom open-flow-diag
     /selectedThreadTruthBefore,[\s\S]*selectedThreadTruthAfter:\s*summarizeSelectedRuntimeThreadTruthForDiagnostics\(\)/,
     'Selection-eventet ska få before/after-provenance så att vi kan se om open-flowet skiftar källa mellan runtime-, offline- och focus-spår.'
   );
+});
+
+// ORD-99: nar tradhydreringen hoppas over registreras skalet bara i
+// state.runtime.openFlowDiagnostics. Utan en exponering ser en avkapad
+// meddelandekropp likadan ut oavsett om orsaken var not_live,
+// no_mailbox_scope eller thread_not_found — och de kraver olika atgard.
+test('ensureRuntimeOpenFlowDiagnostics exponerar diagnostiken pa window for lasning', () => {
+  const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
+  const fnSource = extractFunctionSource(source, 'ensureRuntimeOpenFlowDiagnostics');
+
+  assert.match(
+    fnSource,
+    /windowObject\.__ccoOpenFlowDiagnostics\s*=\s*state\.runtime\.openFlowDiagnostics/,
+    'diagnostiken maste exponeras pa window.__ccoOpenFlowDiagnostics'
+  );
+
+  // Samma referens, inte en kopia. En kopia hade fryst innehallet vid forsta
+  // anropet och gjort exponeringen vardelos — den skulle visa ett tomt
+  // events-falt oavsett vad som hant sedan.
+  assert.doesNotMatch(
+    fnSource,
+    /__ccoOpenFlowDiagnostics\s*=\s*(JSON\.parse|\{\s*\.\.\.|Object\.assign)/,
+    'exponeringen maste dela referens med state, inte kopiera'
+  );
+
+  // Vakten mot att window saknas ska finnas kvar — filen kors aven i
+  // testmiljo utan riktig window.
+  assert.match(fnSource, /if\s*\(\s*windowObject\s*&&/, 'window-vakten maste finnas kvar');
 });
