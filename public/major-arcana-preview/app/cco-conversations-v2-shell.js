@@ -633,6 +633,14 @@
   function renderMessageAttachments(message) {
     var html = messageBodyHtml(message);
     var attachments = attachmentCandidates(message).filter(function (attachment) {
+      // ORD-99: en bilaga flaggad isInline hör hemma inbäddad i html-kroppen.
+      // Mätning i prod (2026-08-07) visade meddelanden med attachmentCount: 5
+      // men bodyHtmlLength: 0 — attachments finns, kroppen gör det inte.
+      // Filtrerade vi bort inline-flaggade bilagor även då försvann alla
+      // fem tyst: inte inbäddade (ingen html), inte listade som chip
+      // (filtrerade som "inline"). En signaturbild som inte kan bäddas in
+      // ska synas som chip, aldrig försvinna.
+      if (!html) return true;
       return !attachmentIsInline(attachment, message, html);
     });
     if (!attachments.length) return '';
