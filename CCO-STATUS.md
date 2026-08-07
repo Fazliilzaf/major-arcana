@@ -4,7 +4,7 @@
 
 - Repo: `~/Code/major-arcana` (Mac) / `/home/fazli/major-arcana-legacy` (VPS
   134.209.232.101). INTE iCloud-mappen.
-- Kör `git pull` först — `main` ska vara vid commit `dfd8d8b3` eller senare.
+- Kör `git pull` först — `main` ska vara vid commit `4e415443` eller senare.
 - Kör Sonnet 5 som standard. Opus bara för hårda arkitekturbeslut. Minnesfiler
   är per maskin, synkas INTE automatiskt — se `[[cco-model-val-sonnet-standard]]`.
 - **Läs alltid ORDERS/-statusrader mot koden, aldrig som sanning.** Tre av tre
@@ -73,6 +73,15 @@ Alla verifieringar denna session skedde mot Ali Selim-tråden, som har
 är därför inte bekräftat mot ett meddelande som faktiskt HAR en olöst
 `cid:`-referens. Litet, snabbt, men ogjort.
 
+### 5. `ARCANA_PUBLIC_WEB_BOOKING_ENABLED` — sätt explicit `false` i Render
+
+Bekräftat via `/_diag/env` (`#1332`) 2026-08-07: värdet är **tomt** i Render
+Dashboard, inte satt till `"false"`. Effekten är samma — koden defaultar till
+av — men för en så känslig flagga (publik bokning) är tomt-råkar-vara-falskt
+skörare än ett explicit värde; om `config.js`s default någonsin ändras
+tystnar skyddet utan att någon märker det. Inte brådskande, ändrar inget
+idag. Görs enklast av Kimi/den som ändå är inne i Render Dashboard.
+
 ---
 
 ## Render SSH — nu uppsatt och fungerande
@@ -123,6 +132,17 @@ den. Skriv-skript ska ändå alltid köras `--dry-run` först.
   via squash-merge) städade bort 2026-08-07 — jämför aldrig en gammal gren
   mot `main` med `git diff --stat` som sanning; kolla om innehållet redan
   finns istället.
+- **ORD-100** (`#1331`, mergad `4e415443`) — kalender/bokningsmodulens
+  faktiska byggstatus kartlagd mot koden: backend byggt/testat, personal-UI
+  avsiktligt read-only, två döda endpoints, en föräldralös kodväg, två
+  oparallella bokningsstackar. Största gapet: ingen live Cliento-synk av
+  bokningar/anteckningar, bara manuell CSV/mejl — **inte påbörjad**. Se
+  `docs/handover/ORDERS/ORD-100-cco-kalender-cliento-migrering.md` för
+  föreslagen fasindelning (mät omfattning → billiga fixar → konsolidera →
+  pilot → migrering) — inget kodat, väntar på Fazlis GO för Fas 0.
+- **`ARCANA_PUBLIC_WEB_BOOKING_ENABLED`** — bekräftat AV i Render Dashboard
+  (`#1332` la till `/_diag/env`-exponering). Ingen policyöverträdelse. Se
+  öppen punkt 5 ovan för robusthetsförbättringen (sätt explicit `false`).
 
 ---
 
