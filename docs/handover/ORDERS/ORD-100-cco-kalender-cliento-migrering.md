@@ -77,14 +77,15 @@ _"detta är mitt och ditt projekt att se till att hela CCO verkställs."_
   dömda nätverksanropen — identiskt fallback-beteende kvar, en dömd
   nätverksrundtrip mindre om flaggan någonsin flippas.
 
-### En föräldralös kodväg
+### En föräldralös kodväg — BORTTAGEN 2026-08-07
 
-- `openCreateBookingModal()`/`submitCreate()` (`cco-kalender-shell.js:1691-1904`)
-  postar mot `/api/v1/calendar/booking`, `/calendar/booking/conflict-check`
-  — routes som inte finns. Utlösaren (`ccoCalCreateBtn`,
-  `cco-kalender-shell.js:2754`) binder till ett knapp-ID som inte finns
-  någonstans i `kalender.html`. Onåbar idag, men oklart om den är tänkt att
-  bli den riktiga vägen eller ska tas bort helt.
+- `openCreateBookingModal()`/`submitCreate()` postade mot
+  `/api/v1/calendar/booking`, `/calendar/booking/conflict-check` — routes
+  som inte fanns. Utlösaren (`ccoCalCreateBtn`) band till ett knapp-ID som
+  aldrig fanns i `kalender.html`. Bekräftat helt onåbar (ingen annan HTML
+  laddar `cco-kalender-shell.js`, ingen test refererade funktionen) —
+  borttagen i sin helhet, superseded av den redan riktiga, testade
+  `openCreateBookingDrawer()`.
 
 ### Två parallella bokningsstackar
 
