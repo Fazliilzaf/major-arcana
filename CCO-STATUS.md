@@ -22,16 +22,41 @@
   Enda kvarvarande fragan dar ar operativ: gar bokningsbekraftelsen (steg 2) ut fran
   Cliento med Meridiq-lanken? Det avgors i Cliento, inte i koden.
 
+## ORD-99 — nasta konkreta arbete (diagnos klar, fix inte byggd)
+
+**Las `docs/ops/fynd-bodypreview-avkapning-2026-08-06.md` forst.**
+
+v2-tradvyn i operatorsvyn anropar aldrig
+`/cco/runtime/conversation/:key/messages`. Den renderar worklistens forkortade
+text som om den vore meddelandekroppen — darfor slutar meddelanden mitt i ett
+ord vid 255 tecken och signaturen saknas.
+
+Verifierat i Network med Fetch/XHR filtrerat, i inkognito, med traden oppen:
+inget sadant anrop finns. Enda svaren med meddelandedata ar
+`worklist/consumer`. Anropet finns i bundlen (`app.bundle.js:19890`) men
+avfyras inte i v2.
+
+**Bygg INTE hydrering i worklisten.** `ccoMailboxTruthWorklistReadModel.js:1174-1176`
+forklarar varfor den ar forkortad med flit — hydrering dar aterger
+allokeringsmonstret bakom produktionskrascherna (`#1302`, `#1304`).
+
+**Forsta uppgiften ar att lokalisera v2-vyns kallfil.** Tradrenderingen ligger
+INTE i `cco-conversations-v2-flag.js` (82 rader, bara en flagga).
+
+Fyra andra hypoteser ar redan uteslutna med test — CSS-klippning, stale
+IndexedDB, Graph-avkapning vid inmatning, och en sjatte ohydrerad kodvag.
+Testa inte om dem; de star i fyndfilen med metod och utfall.
+
 ## Sann backlog 2026-08-06 (efter avstamning mot koden)
 
 Detta ar allt som faktiskt aterstar av de tre "oppna" ordrarna:
 
-| Vad                                                      | Vem       | Var                                   |
-| -------------------------------------------------------- | --------- | ------------------------------------- |
-| `ARCANA_PUBLIC_BASE_URL` → `.com` (ORD-86 steg 1)        | **Fazli** | Render Dashboard                      |
-| ~~Konsument for `cidWithoutAttachmentMetadata`~~ — utgar | —         | redan uppfyllt av manifestet          |
-| ORD-93 uppgift 2 — gar bilagorna att hamta om?           | agent     | **Mac:en**, kraver `graphReadEnabled` |
-| Matgrinden — deepScan over nio brevlador                 | agent     | Mac:en                                |
+| Vad                                                      | Vem   | Var                                   |
+| -------------------------------------------------------- | ----- | ------------------------------------- |
+| ~~Bas-URL → `.com` (ORD-86 steg 1)~~ **KLAR**            | —     | verifierat via `/_diag/env`           |
+| ~~Konsument for `cidWithoutAttachmentMetadata`~~ — utgar | —     | redan uppfyllt av manifestet          |
+| ORD-93 uppgift 2 — gar bilagorna att hamta om?           | agent | **Mac:en**, kraver `graphReadEnabled` |
+| Matgrinden — deepScan over nio brevlador                 | agent | Mac:en                                |
 
 **Rattelse samma dag:** raknar-konsumenten ska INTE byggas alls. Kravet ar redan
 uppfyllt av `GET /cco/runtime/history/fidelity/manifest`, som rapporterar samma
@@ -41,6 +66,16 @@ fenomen rikare (per meddelande OCH per referens, med `byFolderType`,
 den vore en tredje rapportvag till samma faktum.
 
 Kvar av ORD-93 ar darmed enbart uppgift 2 och matgrinden, och bada kraver Mac:en.
+
+**ORD-86 helt stangd 2026-08-06.** Bas-URL:en verifierad utlast fran prod
+(`aad22ef7`): `PUBLIC_BASE_URL`, `ARCANA_PUBLIC_BASE_URL` och
+`resolved.publicBaseUrl` pekar alla pa `https://arcana.hairtpclinic.com`.
+
+Notering for framtiden: det finns **tva** variabelnamn med olika foretrade.
+`src/config.js` laser BARA `PUBLIC_BASE_URL` — inklusive Fortnox- och
+Swish-callbackarna. `staffPortal.js:708` foredrar `ARCANA_PUBLIC_BASE_URL`.
+Satter du bara det ena far sex av sju konsumenter fel varde. Bada gar nu att
+lasa av via `GET /api/v1/_diag/env` (#1315).
 
 ## Valideringsnivan ar 0 fel — inte 61
 

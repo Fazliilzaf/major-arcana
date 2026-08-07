@@ -29,8 +29,40 @@ med `arcana.hairtpclinic.se`, och varje enskild är redovisad:
 Steg 4 ar ocksa klart: `extract-owner-token.sh:4` defaultar till `.com`, och
 raderna 98, 115 och 173 har `-L --max-redirs 5 --post301 --post302 --post303`.
 
-**Kvar:** steg 1 — `ARCANA_PUBLIC_BASE_URL` = `https://arcana.hairtpclinic.com`
-i Render Dashboard. Ingen agent skriver hemligheter.
+### Steg 1 stangt 2026-08-06 — utlast fran prod
+
+Fazli satte variablerna i Render och deployade. Verifierat mot
+`GET /api/v1/_diag/env` pa `aad22ef7`:
+
+```
+PUBLIC_BASE_URL         : "https://arcana.hairtpclinic.com"
+ARCANA_PUBLIC_BASE_URL  : "https://arcana.hairtpclinic.com"
+resolved.publicBaseUrl  : "https://arcana.hairtpclinic.com"
+```
+
+**Fynd under verifieringen: det finns TVA variabelnamn, inte ett.** Ordern
+namnger bara `ARCANA_PUBLIC_BASE_URL`, men `src/config.js` laser den aldrig:
+
+| Konsument                                                | Vilken vinner                           |
+| -------------------------------------------------------- | --------------------------------------- |
+| `src/config.js:169` (appens `publicBaseUrl`)             | **bara** `PUBLIC_BASE_URL`              |
+| `src/config.js:1296` (Fortnox OAuth-callback)            | **bara** `PUBLIC_BASE_URL`              |
+| `src/config.js:1315` (Swish-callback)                    | **bara** `PUBLIC_BASE_URL`              |
+| `src/config.js:1327` (foto-review-sparrens vardkontroll) | **bara** `PUBLIC_BASE_URL`              |
+| `ccoMailboxSettingsDocument.js:51`                       | `PUBLIC_BASE_URL`, `ARCANA_` som reserv |
+| `capabilities/executionService.js:400`                   | `PUBLIC_BASE_URL`, `ARCANA_` som reserv |
+| `routes/staffPortal.js:708`                              | `ARCANA_PUBLIC_BASE_URL` forst          |
+
+Hade bara `ARCANA_`-varianten rattats hade sex av sju konsumenter — inklusive
+bada betalcallbackarna — fortsatt bygga pa det gamla vardet.
+
+Bada ar nu satta till `.com`, sa fragan ar akademisk i dag. Men divergensen
+gick inte att se utifran: `/_diag/env` exponerade nio nycklar och ingen av dem
+var en bas-URL. Det ar den blindheten som lat variabeln peka fel i manader.
+Atgardat i `fix/diag-exponera-public-base-url` (#1315) — bada namnen plus det
+effektiva vardet rapporteras nu, med test som laser dem.
+
+**ORD-86 ar darmed helt stangd.**
 
 ## Bas och observation
 
