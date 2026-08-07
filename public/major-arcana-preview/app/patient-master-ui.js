@@ -7052,12 +7052,16 @@
     // V12 Customer Workspace · Block 0 — mount/switch (opt-in, default OFF). Tar
     // precedens när ?v12workspace=on; annars körs V11/legacy oförändrat nedan.
     if (usesV12Workspace()) {
+      // V12 workspace ska öppnas som modal overlay från V11-railen (se
+      // bindV12WorkspaceRailLauncher / openV12WorkspaceFromRail), inte renderas
+      // direkt i rail-panelen där den blir ihoptryckt. V11-railen är därför
+      // första vyn; V12 är fallback om railen av någon anledning misslyckas.
       return (
-        renderV12WorkspaceDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+        renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
           tab: normalizedTab,
           lite,
         }) ||
-        renderV11RailDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
+        renderV12WorkspaceDetailShell(card, journalEntries, occasionTimeline, driveFiles, patient, {
           tab: normalizedTab,
           lite,
         })
