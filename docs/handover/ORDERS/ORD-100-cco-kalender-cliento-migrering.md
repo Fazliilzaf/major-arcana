@@ -127,9 +127,12 @@ gatingkoden. Behandla `PROJECT-CHECKLIST.md`s bokningsrader som föråldrade.
 ## Vad som saknas — konkret, i prioritetsordning
 
 1. **Datamigrering från Cliento** — bokningar, patientanteckningar,
-   historik. **Inte påbörjad. Kvantifierad 2026-08-07: 66 561 bokningar
-   (≈55 %) saknas**, se Fas 0-facit nedan. Sannolikt större än alla andra
-   punkter tillsammans. Ingen mekanism finns idag utöver manuell CSV-import.
+   historik. **Inte påbörjad. Omfattningen är INTE tillförlitligt mätt
+   än** — ett första försök (2026-08-07) drog fel slutsats pga en
+   `wc -l`-räknemetod som inte hanterade flerradiga CSV-fält korrekt; se
+   Fas 0-facit nedan för den rättade, öppna versionen. Sannolikt större än
+   alla andra punkter tillsammans oavsett exakt tal. Ingen mekanism finns
+   idag utöver manuell CSV-import.
 2. Slå på personalens skriv-UI (`CCO_CALENDAR_CREATE_BOOKING_ENABLED`) när
    redo — flaggan finns redan, bara av. **Ej påbörjad**, kräver Fazlis
    beslut om tidpunkt.
@@ -145,10 +148,13 @@ gatingkoden. Behandla `PROJECT-CHECKLIST.md`s bokningsrader som föråldrade.
 
 Detta är ett förslag till ordning, inte ett beslut.
 
-- **Fas 0 — KLAR (2026-08-07).** Mätt: 121 782 bokningar totalt i Cliento,
-  55 221 importerade, **66 561 (≈55 %) saknas**. Se facit nedan. Inget
-  API krävdes — Cliento erbjuder ett riktigt CSV-exportverktyg (`Dataexport`)
-  som täcker hela historiken i en fil.
+- **Fas 0 — DELVIS KLAR, gap-talet återöppnat (2026-08-07).** Ett första
+  räkneförsök gav fel resultat (metodfel, se facit nedan) och drogs
+  tillbaka samma dag. Rättad räkning: senaste Cliento-export har 26 887
+  unika bokningar — **färre** än de 55 221 vi redan importerat, en ny
+  oförklarad avvikelse. Nästa steg är en `Boknings-id`-mängddiff, inte
+  gjord än. Inget API krävdes — Cliento erbjuder ett CSV-exportverktyg
+  (`Dataexport`) som täcker hela historiken i en fil.
 - **Fas 1 — billiga fixar, oberoende av migreringsbeslutet.** Punkt 3 och 4
   ovan. Litet, säkert, rör inte data.
 - **Fas 2 — konsolidera stackarna** (punkt 5). Minskar underhållsytan
@@ -191,46 +197,70 @@ mappar det, eller att interna anteckningar helt enkelt inte förts i
 Cliento. Skiljer sig åt i allvarlighet — kräver utredning innan Fas 4,
 inte en gissning.
 
-## Fas 0 — mätt 2026-08-07, del 2 av 2 — FACIT
+## Fas 0 — mätt 2026-08-07, del 2 av 2 — RÄTTAD, gap-frågan ÅTERÖPPNAD
 
 Fazli exporterade Clientos eget CSV-underlag direkt (`Dataexport 1 augusti
 2021 - 31 augusti 2026.csv`, `Kundexport_nya`-varianter), sparade på
-iCloud. Radantal räknat med `wc -l` på Mac:en, rubrikrad läst med `head -1`
-— ingen patientdata i den här utredningen, bara struktur och räknetal.
+iCloud. Ingen patientdata i den här utredningen, bara struktur och
+räknetal — men metoden ändrades mitt i, se nedan.
 
-**`Dataexport` är bokningsnivå, inte bokningsrader** — rubrikraden börjar
-`"Boknings-id","Bokningsreferens","Skapad tid","Starttid",...`, en unik
-`Boknings-id` per rad. Det gör radantalet direkt jämförbart med vår egen
-`totalBookingsImporteradeHittills`.
+### Metodfel, hittat och rättat samma dag
 
-| Mått                                                                   | Värde              |
-| ---------------------------------------------------------------------- | ------------------ |
-| Bokningar totalt i Cliento (`Dataexport`, 121 783 rader − 1 rubrikrad) | **121 782**        |
-| Redan importerade till CCO (del 1 ovan)                                | 55 221             |
-| **Gap — inte importerat**                                              | **66 561 (≈55 %)** |
+Första passet räknade rader med `wc -l` (121 783 − 1 rubrikrad = 121 782)
+och drog slutsatsen "66 561 bokningar (≈55 %) saknas". **Det var fel
+metod.** `Bokningsanteckning`-fältet är fritext och kan innehålla
+radbrytningar inuti citerade CSV-fält — `wc -l` räknar då en enda
+bokningspost som flera rader. Omräknat med `csv.DictReader` (Python,
+citattecken-medveten parsning): **28 656 faktiska poster**, inte 121 782.
+Av dessa är **26 887 unika `Boknings-id`** (1 769 dubbletter, troligen
+flera tjänsterader per bokning som delar samma boknings-ID).
 
-**Slutsats: mer än hälften av alla bokningar saknas i CCO.** Betydligt
-större gap än vad ordern ursprungligen antog ("manuell CSV-import,
-omfattning okänd"). Det här är inte längre en okänd risk — det är en
-kvantifierad, stor datamigrering.
+Statusfördelning (summerar exakt till 28 656, konsekvenskontrollerad):
+`Show` 22 703, `Cancelled` 3 168, `NoShow` 1 413, `Booked` 1 125, tom 54,
+`Done` 193.
 
-**Kundexport_nya är INTE customer-källan för bokningarna.** Rubrikrad:
-`"Namn","Telefon","E-post","Skapad"` — fyra fält, ingen `Kund-id`, inget
-personnummer. `Dataexport` har i stället `Kund-id`, `Kundnamn`,
-`Kund e-post`, `Personnummer` per bokningsrad — rikare än kontaktlistan.
-Det förklarar den tidigare skenbara avvikelsen (7 579 distinkta kunder i
-CCO mot 6 745–6 932 rader i Kundexport_nya): fel fil jämfördes mot fel
-mått. Kundantalet bör härledas ur `Dataexport`s `Kund-id`, inte ur
-`Kundexport_nya`, om det behöver mätas exakt igen.
+### Nytt facit — och en ny, oförklarad avvikelse
 
-**`internalNotes: 0`-frågan (del 1) är nu delvis förklarad, inte löst.**
-`Dataexport`s rubrikrad har `Bokningsanteckning`, `Meddelande från kund`,
-`Anpassade fält`, `Attribut` — men ingen kolumn som uttryckligen heter
-något i stil med "interna anteckningar". Trolig förklaring: interna
-anteckningar, om de finns, ligger i `Anpassade fält`/`Attribut` och
-CSV-importern (`opsClientoBookingsImport.js`) mappar inte de fälten till
-`internalNotes`. Fortfarande obekräftat mot faktisk radinnehåll — bara
-rubrikraden är läst, aldrig data.
+| Mått                                               | Värde       |
+| -------------------------------------------------- | ----------- |
+| Unika bokningar i senaste Cliento-export           | **26 887**  |
+| Redan importerade till CCO (del 1)                 | 55 221      |
+| **CCO har fler bokningar än den senaste exporten** | **+28 334** |
+
+Detta är **inte** "gapet är stängt" — det är en ny olöst fråga. Rimlig
+hypotes: CCO:s 55 221 är ackumulerade från **flera** historiska
+CSV-importer med olika/överlappande datumfönster över tid (den här
+exporten, 2021–2026, är bara den senaste), inte en enda körning. Men det
+är obekräftat — det kan lika gärna dölja dubbelimporterade eller
+felaktiga poster i vårt system. **Den tidigare slutsatsen "66 561 saknas
+(≈55 %)" är formellt tillbakadragen.**
+
+**Enda pålitliga vägen framåt:** jämför de faktiska `Boknings-id`-mängderna
+(inte totalsummor) — vilka ID finns i CCO men inte i senaste exporten,
+och tvärtom. Boknings-ID är referensnummer, inte patientinnehåll, säkert
+att extrahera och diffa. Inte gjort än — kräver ett skript på vardera
+sidan (Render SSH mot vår store, lokalt mot CSV:n) och en mängddiff.
+Föreslås som nästa steg, inte utfört utan Fazlis GO.
+
+### `internalNotes`-frågan (del 1) — stärkt misstanke, fortfarande obekräftad mot innehåll
+
+Innehålls-blind räkning (Python, `csv.DictReader`) över alla 28 656 rader,
+utan att någonsin skriva ut fältvärden:
+
+| Fält                 | Ifyllt (av 28 656) |
+| -------------------- | ------------------ |
+| `Attribut`           | 28 602 (99,8 %)    |
+| `Bokningsanteckning` | 23 622 (82,4 %)    |
+| `Anpassade fält`     | 8 526 (29,8 %)     |
+
+`Attribut` är ifyllt i så gott som **varje** rad i källan, men
+`internalNotes` är **alltid 0** i det vi importerat (del 1). Det är
+starkare stöd för importer-bugg-hypotesen än tidigare — men fortfarande
+inte bekräftat mot faktiskt innehåll (bara närvaro/frånvaro räknat, aldrig
+värden lästa). Kan lika gärna vara ett systemfält (kategori-tagg) som
+råkar vara nästan alltid satt, inte fritext-anteckningar. Kräver att någon
+med Cliento-åtkomst tittar på vad `Attribut` faktiskt innehåller för en
+handfull bokningar, i Clientos eget gränssnitt — inte via CSV-dump hit.
 
 ## Icke-mål för denna order
 
