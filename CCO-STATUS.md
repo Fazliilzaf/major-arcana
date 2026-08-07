@@ -22,30 +22,63 @@
   Enda kvarvarande fragan dar ar operativ: gar bokningsbekraftelsen (steg 2) ut fran
   Cliento med Meridiq-lanken? Det avgors i Cliento, inte i koden.
 
-## ORD-99 — nasta konkreta arbete (diagnos klar, fix inte byggd)
+## ORD-99 — status 2026-08-07: rotorsak bevisad, en fix mergad, en fraga oppen
 
-**Las `docs/ops/fynd-bodypreview-avkapning-2026-08-06.md` forst.**
+**Las `docs/ops/fynd-bodypreview-avkapning-2026-08-06.md` forst — sektionen
+"SLUTGILTIGT 2026-08-07" ar den som galler.** Allt fore den (CSS-klippning,
+stale IndexedDB, Graph-avkapning vid inmatning, sjatte ohydrerad kodvag) ar
+uteslutna hypoteser, kvar bara som historik.
 
-v2-tradvyn i operatorsvyn anropar aldrig
-`/cco/runtime/conversation/:key/messages`. Den renderar worklistens forkortade
-text som om den vore meddelandekroppen — darfor slutar meddelanden mitt i ett
-ord vid 255 tecken och signaturen saknas.
+**Kallfilen ar hittad:** `public/major-arcana-preview/app/cco-conversations-v2-shell.js`.
+Inte `cco-conversations-v2-flag.js` (82 rader, bara en flagga).
 
-Verifierat i Network med Fetch/XHR filtrerat, i inkognito, med traden oppen:
-inget sadant anrop finns. Enda svaren med meddelandedata ar
-`worklist/consumer`. Anropet finns i bundlen (`app.bundle.js:19890`) men
-avfyras inte i v2.
+**`/messages` ANROPAS.** Det ar samma endpoint V2:s direktvag och den aldre
+fallbacken bada anvander (`fetchV2DirectThreadPayload` →
+`/cco/runtime/conversation/:key/messages`, samma som
+`ccoConversation.js:1828`). Skillnaden mot vad en tidigare version av det har
+dokumentet sa: anropet uteblir inte — det kortsluts av en 60-sekunders cache
+OCH av att `applyV2DirectThreadPayload` aldrig kollar om svaret faktiskt har
+riktigt innehall innan den markerar `updated: true`.
+
+**Matt i prod 2026-08-07** (`window.__ccoOpenFlowDiagnostics`, #1319 + #1322):
+Ali Selim-tradens tva meddelanden hade `bodyHtmlLength: 0` pa BADA — ingen
+HTML-kropp alls, darfor 0 cid-referenser i ORD-93:s svep. `bodyTextLength`
+(159 / 255) matchade exakt den avkapade texten operatoren sag — inte en
+forhandsvisning, den riktiga lagrade textkroppen, som helt enkelt ar kort.
+`attachmentCount: 5` pa BADA — bilagorna finns registrerade oberoende av
+kroppen.
+
+**FIXAT och mergat (#1323):** bilagor/signaturbilder forsvann tyst nar
+`bodyHtml` var tomt. Servern skickar redan `isInline` + fardig `inlineUrl`
+per bilaga, oberoende av kroppen — men klientens
+`renderMessageAttachments` filtrerade bort varje `isInline`-flaggad bilaga i
+tron att den skulle baddas in i html, och den baddades aldrig in nagonstans.
+Nu renderas den som chip i stallet nar html saknas.
+
+**INTE byggt:** en rikedomssparr i `applyV2DirectThreadPayload` som gor att
+`updated` bara blir `true` nar svaret faktiskt har innehall. For Ali
+Selim-tradens tva meddelanden hade sparren troligen inte hjalpt — fallbacken
+hade sannolikt gett samma tomma `bodyHtml` fran samma kalla. Men for TRADAR
+DAR DATAN AR RIKARE kan cachen/den saknade sparren fortfarande dolja den.
+
+**Oppen fraga, ej utredd:** varfor `bodyText` bara ar 159/255 tecken for de
+har tva meddelandena. `/messages` beriker redan truth-data via
+`mailIngestionStore` (`enrichConversationMessagesWithIngestion`) — sa om aven
+den vagen ger kort text pekar det pa ett dataspar vid inmatning av `info@`,
+inte ett kodfel. Inte bekraftat.
 
 **Bygg INTE hydrering i worklisten.** `ccoMailboxTruthWorklistReadModel.js:1174-1176`
 forklarar varfor den ar forkortad med flit — hydrering dar aterger
 allokeringsmonstret bakom produktionskrascherna (`#1302`, `#1304`).
 
-**Forsta uppgiften ar att lokalisera v2-vyns kallfil.** Tradrenderingen ligger
-INTE i `cco-conversations-v2-flag.js` (82 rader, bara en flagga).
-
-Fyra andra hypoteser ar redan uteslutna med test — CSS-klippning, stale
-IndexedDB, Graph-avkapning vid inmatning, och en sjatte ohydrerad kodvag.
-Testa inte om dem; de star i fyndfilen med metod och utfall.
+**Process-larm om denna session:** grenarna `docs/fynd-bodypreview-avkapning`
+och `docs/ord-86-stangd` lag kvar pa gammal `main` i timmar medan kod
+mergades separat (#1319/#1322/#1323). Deras fulla diff mot aktuell HEAD hade
+aterstallt redan mergad produktionskod. Fazli extraherade bara doc-delarna
+for hand i stallet for att merga grenarna rakt av — ingen kod gick forlorad,
+men lardomen star: en langlivad dokumentationsgren maste rebasas mot main
+innan den skickas, annars bar den en implicit "aterstall allt som hant
+sedan dess"-diff.
 
 ## Sann backlog 2026-08-06 (efter avstamning mot koden)
 
