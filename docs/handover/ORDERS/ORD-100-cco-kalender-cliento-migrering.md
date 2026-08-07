@@ -152,6 +152,41 @@ Cliento-åtkomst krävs för att ens mäta den, inte bara för att utföra den.
   pensionera den. Kräver ett uttryckligt beslut av Fazli om tidpunkt —
   detta är inte reversibelt på samma sätt som en kodändring.
 
+## Fas 0 — mätt 2026-08-07, del 1 av 2
+
+Läs-endast mätning via Render SSH mot `clientoBookingStore`s persisterade
+data (`state/cco/cliento-bookings.json` på prod, se `src/config.js`s
+`clientoBookingStorePath`). Ingen skrivning, inga namn/mejl/anteckningstext
+lämnade servern — bara räknetal.
+
+| Mått                        | Värde                                                            |
+| --------------------------- | ---------------------------------------------------------------- |
+| Bokningar redan importerade | **55 221**                                                       |
+| Distinkta kunder            | **7 579**                                                        |
+| Källa                       | `cliento_csv`: 55 220, `cliento_uat`: 1 (testkörning)            |
+| Datumspann                  | 2021-06-30 → 2027-05-15 (framåtblickande, bokade framtida tider) |
+| `notes`-fält ifyllda        | 44 695                                                           |
+| `bookingNotes` ifyllda      | 21 524                                                           |
+| `customerMessage` ifyllda   | 3 573                                                            |
+| `treatmentNotes` ifyllda    | 30                                                               |
+| `internalNotes` ifyllda     | **0**                                                            |
+
+**Detta är inte samma sak som Clientos totala omfattning.** Det är bara vad
+som redan importerats hit via CSV, historiskt. Volymen är betydligt större
+än vad "manuell CSV-import" antydde — 55 000+ bokningar är inte ett litet
+efterarbete, det är i sig ett dataförvaltningsproblem.
+
+**`internalNotes: 0` är oförklarat, inte bekräftat ofarligt.** Kan betyda
+att fältet aldrig exporteras av Cliento till CSV, att CSV-parsern inte
+mappar det, eller att interna anteckningar helt enkelt inte förts i
+Cliento. Skiljer sig åt i allvarlighet — kräver utredning innan Fas 4,
+inte en gissning.
+
+**Fas 0 del 2 — obekräftad:** det verkliga totalantalet bokningar och
+anteckningar i Clientos eget system, för att se om gapet mot de 55 221 är
+litet (nästan allt redan importerat) eller stort (en betydande andel
+saknas). Kräver inloggning i Clientos adminyta, inte kod härifrån.
+
 ## Icke-mål för denna order
 
 - **Ingen kod skrivs eller data flyttas förrän Fazli godkänt fasordningen.**
