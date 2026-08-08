@@ -1,12 +1,12 @@
 # ORD-100 — CCO:s egen kalender/bokning: vad som återstår innan Cliento kan lämnas
 
-|                       |                                                                                                                                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Bas-commit**        | `ec5f00bd` (`main`, 2026-08-07)                                                                                                                                                |
-| **Ägare**             | Cowork (kartläggning, denna order)                                                                                                                                             |
-| **GO**                | väntar Fazli                                                                                                                                                                   |
-| **Allvarlighetsgrad** | **Strategiskt, inte ett buggfynd.** Det här är det största återstående steget för att verkställa hela CCO — betydligt större än något annat i backloggen.                      |
-| **Föregångare**       | ORD-99 (avkapade meddelandekroppar), som ledde till frågan "vad blockerar CCO i sin helhet" — svaret visade sig vara det här, inte den ursprungligen misstänkta steg 2-frågan. |
+|                       |                                                                                                                                                                                                                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Bas-commit**        | `ec5f00bd` (`main`, 2026-08-07)                                                                                                                                                                                                                                                  |
+| **Ägare**             | Cowork (kartläggning, denna order)                                                                                                                                                                                                                                               |
+| **GO**                | väntar Fazli                                                                                                                                                                                                                                                                     |
+| **Allvarlighetsgrad** | **Strategiskt, inte ett buggfynd.** Kalenderrullningen (skriv-UI, stackkonsolidering) är fortfarande det som återstår för att verkställa CCO — men datamigreringens omfattning, som ursprungligen antogs vara störst, mättes 2026-08-08 till bara 384 bokningar. Se Fas 0 del 3. |
+| **Föregångare**       | ORD-99 (avkapade meddelandekroppar), som ledde till frågan "vad blockerar CCO i sin helhet" — svaret visade sig vara det här, inte den ursprungligen misstänkta steg 2-frågan.                                                                                                   |
 
 ## Bakgrund — hur den här ordern uppstod
 
@@ -128,12 +128,14 @@ gatingkoden. Behandla `PROJECT-CHECKLIST.md`s bokningsrader som föråldrade.
 ## Vad som saknas — konkret, i prioritetsordning
 
 1. **Datamigrering från Cliento** — bokningar, patientanteckningar,
-   historik. **Inte påbörjad. Omfattningen är INTE tillförlitligt mätt
-   än** — ett första försök (2026-08-07) drog fel slutsats pga en
-   `wc -l`-räknemetod som inte hanterade flerradiga CSV-fält korrekt; se
-   Fas 0-facit nedan för den rättade, öppna versionen. Sannolikt större än
-   alla andra punkter tillsammans oavsett exakt tal. Ingen mekanism finns
-   idag utöver manuell CSV-import.
+   historik. **Omfattningen är nu tillförlitligt mätt (2026-08-08, Fas 0
+   del 3): 384 bokningar saknas genuint i CCO**, inte tiotusentals. Två
+   tidigare felaktiga försök (`wc -l`-metodfel, sedan en ofullständig
+   totalsummejämförelse) står dokumenterade som historik i Fas 0-facit
+   nedan. **Mindre brådskande än ordens tidigare versioner antog** — men
+   patientanteckningarnas omfattning (utöver bokningsraderna) är
+   fortfarande inte mätt separat. Ingen mekanism finns idag utöver manuell
+   CSV-import.
 2. Slå på personalens skriv-UI (`CCO_CALENDAR_CREATE_BOOKING_ENABLED`) när
    redo — flaggan finns redan, bara av. **Ej påbörjad**, kräver Fazlis
    beslut om tidpunkt.
@@ -149,12 +151,11 @@ gatingkoden. Behandla `PROJECT-CHECKLIST.md`s bokningsrader som föråldrade.
 
 Detta är ett förslag till ordning, inte ett beslut.
 
-- **Fas 0 — DELVIS KLAR, gap-talet återöppnat (2026-08-07).** Ett första
-  räkneförsök gav fel resultat (metodfel, se facit nedan) och drogs
-  tillbaka samma dag. Rättad räkning: senaste Cliento-export har 26 887
-  unika bokningar — **färre** än de 55 221 vi redan importerat, en ny
-  oförklarad avvikelse. Nästa steg är en `Boknings-id`-mängddiff, inte
-  gjord än. Inget API krävdes — Cliento erbjuder ett CSV-exportverktyg
+- **Fas 0 — KLAR (2026-08-08).** Tre räkneförsök, de två första felaktiga
+  (metodfel, sedan ofullständig totalsummejämförelse) och tillbakadragna
+  — se facit nedan för hela vägen dit. Slutgiltigt facit via
+  `Boknings-id`-mängddiff: **384 bokningar saknas genuint i CCO**, inte
+  tiotusentals. Inget API krävdes — Cliento erbjuder ett CSV-exportverktyg
   (`Dataexport`) som täcker hela historiken i en fil.
 - **Fas 1 — billiga fixar, oberoende av migreringsbeslutet.** Punkt 3 och 4
   ovan. Litet, säkert, rör inte data.
@@ -239,9 +240,46 @@ felaktiga poster i vårt system. **Den tidigare slutsatsen "66 561 saknas
 **Enda pålitliga vägen framåt:** jämför de faktiska `Boknings-id`-mängderna
 (inte totalsummor) — vilka ID finns i CCO men inte i senaste exporten,
 och tvärtom. Boknings-ID är referensnummer, inte patientinnehåll, säkert
-att extrahera och diffa. Inte gjort än — kräver ett skript på vardera
-sidan (Render SSH mot vår store, lokalt mot CSV:n) och en mängddiff.
-Föreslås som nästa steg, inte utfört utan Fazlis GO.
+att extrahera och diffa.
+
+## Fas 0 — mätt 2026-08-08, del 3 av 3 — SLUTGILTIGT FACIT
+
+`Boknings-id`-mängddiff körd: unika ID:n extraherade lokalt ur senaste
+Cliento-exporten (Python `csv.DictReader`) och ur CCO:s `clientoBookingStore`
+(Render SSH, `bookings.map(b => b.bookingId)`), jämförda som mängder.
+Ingen lista med ID:n har någonsin synts i en agent-konversation — bara
+antal, skickade via SSH:ns stdin-vidarebefordran, aldrig `scp` (blockerad
+av Renders SSH-proxy, testat och bekräftat).
+
+| Mått                                     | Värde      |
+| ---------------------------------------- | ---------- |
+| Unika bokningar i CCO                    | 37 494     |
+| Unika bokningar i senaste Cliento-export | 26 887     |
+| **Överlapp**                             | **26 503** |
+| Finns bara i CCO                         | 10 991     |
+| **Saknas genuint i CCO**                 | **384**    |
+
+**Det verkliga migreringsgapet är 384 bokningar — inte 66 561 (första,
+felaktiga försöket) och inte "CCO har dubbelt så många utan förklaring"
+(andra, ofullständiga försöket).** 98,6 % av senaste exporten är redan
+representerad i CCO. Detta är den tredje och sista siffran för den här
+frågan — de två tidigare felaktiga slutsatserna står kvar ovan som
+historik, inte borttagna, i linje med hur resten av dagens arbete
+dokumenterat självrättelser.
+
+**Två mindre, obekräftade följdfrågor, inte blockerande för prioritering:**
+
+- **10 991 bokningar finns bara i CCO, inte i senaste exporten.** Trolig
+  förklaring: äldre bokningar från före exportens startdatum (augusti 2021) importerade i en tidigare, bredare körning, eller bokningar
+  borttagna i Cliento men kvar hos oss historiskt. Obekräftat.
+- **CCO:s råa lager har 55 221 poster men bara 37 494 unika
+  `Boknings-id`** (del 1) — 17 727 dubbletter eller poster utan ID.
+  Separat fråga från migreringsgapet, inte utredd.
+
+**Datamigreringens verkliga omfattning är alltså litet** (384 bokningar),
+inte det stora arbete ordens tidigare versioner antog. Det ändrar
+prioriteringen av punkt 1 i listan nedan — sannolikt inte längre "störst
+i backloggen".
 
 ### `internalNotes`-frågan (del 1) — stärkt misstanke, fortfarande obekräftad mot innehåll
 
