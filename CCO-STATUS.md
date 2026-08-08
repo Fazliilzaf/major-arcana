@@ -104,17 +104,44 @@ defensivt vid läsning. `clientoBookingStore` gör INTE det än — varje
 fråga mot en specifik tenant (t.ex. kalender-UI:t som frågar `hair_tp`)
 ser i praktiken bara hälften av bokningarna.
 
-**Ej åtgärdat.** Föreslaget nästa steg: applicera samma
-flerspelnings-tåliga läsmönster på `clientoBookingStore`s läsfunktioner
-(`listAllBookings`, `getBookingsForCustomer`, `summarize`) — normalisera
-vid läsning, ingen datamigrering av lagrade poster. Lägre risk än att
-flytta/slå ihop lagrade hinkar. Kräver Fazlis GO innan kodning.
+**RÄTTAT IGEN 2026-08-08 — mitt föreslagna "nästa steg" ovan var FEL och
+har dragits tillbaka (PR stängd utan merge).** Jag byggde en generell
+läs-tolerans (samma mönster som `ccoPatientAssetIdentity.js`) som slår
+ihop `hair_tp`/`hair-tp-clinic` transparent vid varje fråga. Det bröt
+sönder befintlig, redan existerande säkerhetsinfrastruktur jag inte
+kände till:
 
-**`#1342`/`#1343` (global bookingId-dedup + saneringsskript) är
-fortfarande korrekta och användbara** — skyddar mot en genuint annan,
-verklig risk (samma bookingId inom EN tenant med varierande
-identitetsfält mellan importer) — bara inte orsaken till den här
-specifika siffran.
+- **`src/ops/clientoCrossTenantCoverage.js` + `scripts/report-cliento-cross-tenant-coverage.js`**
+  och **`src/ops/clientoLinkCandidateManifest.js` + `scripts/report-cliento-link-candidates.js`**
+  (daterade **31 juli**, alltså byggda långt före dagens session) — ett
+  redan färdigt, noggrant konstruerat system som avsiktligt jämför
+  `hair_tp` och `hair-tp-clinic` som **två strikt separata populationer**
+  via `store.listAllBookings({ tenantId: leftTenant })` respektive
+  `rightTenant`. Checksummor, maskerad rapportering, `review_required`-
+  och `blocked_data_invariant`-grindar, noll skrivningar — en medveten,
+  säker rekonciliationsprocess.
+- Min läs-tolerans gjorde att `listAllBookings({tenantId:'hair_tp'})`
+  plötsligt returnerade BÅDA tenants poster, vilket fick de här
+  skriptens vänster/höger-jämförelse att se dubbelt (4 poster i stället
+  för 2 i ett CI-test) — `Unit tests + coverage gate` och `smoke`
+  failade i PR:en.
+- **Lärdom:** sök alltid efter befintlig hantering av ett specifikt
+  problem (inte bara det generella mönstret) innan en fix byggs. Det
+  fanns redan rätt verktyg — jag borde ha hittat det innan jag byggde
+  ett eget.
+
+**Rätt nästa steg, om/när Fazli vill gå vidare:** kör
+`scripts/report-cliento-link-candidates.js` (läs-endast, `zeroWrites:
+true`) mot prod via Render SSH för att se hur många bokningar som är
+säkra att länka ihop mellan de två tenant-namnrymderna, och låt dess
+egna `gate`-status (`review_required`/`blocked_data_invariant`) styra om
+något mer görs. Ingen egen kod behöver skrivas — verktyget finns redan.
+
+**`#1342`/`#1343` (global bookingId-dedup + saneringsskript) förblir
+korrekta och oberörda** — de skyddar mot en genuint annan, verklig risk
+(samma bookingId inom EN tenant med varierande identitetsfält mellan
+importer), och rör aldrig cross-tenant-jämförelsen. Inte påverkade av
+reverten.
 
 ### 7. 10 991 bokningar finns bara i CCO, inte i senaste Cliento-exporten
 
