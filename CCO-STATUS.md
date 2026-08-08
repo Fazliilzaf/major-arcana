@@ -1,10 +1,10 @@
 # CCO Status - Handover
 
-## Starta här i ny chatt (uppdaterad 2026-08-07)
+## Starta här i ny chatt (uppdaterad 2026-08-08)
 
 - Repo: `~/Code/major-arcana` (Mac) / `/home/fazli/major-arcana-legacy` (VPS
   134.209.232.101). INTE iCloud-mappen.
-- Kör `git pull` först — `main` ska vara vid commit `dfd8d8b3` eller senare.
+- Kör `git pull` först — `main` ska vara vid commit `43121f9e` eller senare.
 - Kör Sonnet 5 som standard. Opus bara för hårda arkitekturbeslut. Minnesfiler
   är per maskin, synkas INTE automatiskt — se `[[cco-model-val-sonnet-standard]]`.
 - **Läs alltid ORDERS/-statusrader mot koden, aldrig som sanning.** Tre av tre
@@ -73,6 +73,42 @@ Alla verifieringar denna session skedde mot Ali Selim-tråden, som har
 är därför inte bekräftat mot ett meddelande som faktiskt HAR en olöst
 `cid:`-referens. Litet, snabbt, men ogjort.
 
+### 5. `ARCANA_PUBLIC_WEB_BOOKING_ENABLED` — sätt explicit `false` i Render
+
+Bekräftat AV via `/_diag/env` (`#1332`) — men värdet är **tomt** i Render
+Dashboard, inte satt till `"false"` explicit. Effekten är samma (koden
+defaultar av), men för en känslig publik bokningsflagga är explicit
+säkrare än tomt-råkar-vara-falskt. Inte brådskande.
+
+### 6. CCO:s egen `clientoBookingStore` — 17 727 dubbletter/tomma `Boknings-id`
+
+Upptäckt under ORD-100 Fas 0 (2026-08-08): 55 221 importerade
+bokningsposter, men bara 37 494 unika `bookingId`. Antingen skriver
+importern (`opsClientoBookingsImport.js`) samma bokning flera gånger
+under olika ID, eller saknar en delmängd `bookingId` helt och filtreras
+bort av `.filter(Boolean)` vid räkning. Ren intern datafråga, kräver
+ingen Cliento-åtkomst — nästa steg är att gräva i `clientoBookingStore.js`
+och/eller köra en `--dry-run`-liknande diagnostik mot prod-datan.
+
+### 7. 10 991 bokningar finns bara i CCO, inte i senaste Cliento-exporten
+
+Från samma Fas 0-mätning. Trolig men obekräftad hypotes: äldre bokningar
+från före exportens startdatum (augusti 2021), eller bokningar som tagits
+bort i Cliento men finns kvar hos oss historiskt. Kräver antingen en äldre
+Cliento-export för jämförelse, eller en datumfördelning av de 10 991 för
+att se om de klustrar före augusti 2021 (stödjer hypotesen) eller är
+spridda (stödjer inte).
+
+### 8. Patientanteckningarnas omfattning — inte mätt separat från bokningsraderna
+
+ORD-100 Fas 0 mätte bokningar, inte anteckningar isolerat.
+`internalNotes` är alltid `0` i CCO:s importerade data trots att
+`Attribut`-fältet är ifyllt i 99,8 % av källraderna (Cliento-export) —
+stärkt misstanke om en importer-mappningsbugg, men obekräftat mot
+faktiskt innehåll. Kräver att någon med Cliento-åtkomst tittar på vad
+`Attribut` faktiskt innehåller för en handfull bokningar, i Clientos eget
+gränssnitt.
+
 ---
 
 ## Render SSH — nu uppsatt och fungerande
@@ -107,6 +143,16 @@ Använd i stället `node -e "..."` som EN sammanhängande rad, och kör
 `set +H` först om raden innehåller `!` (bash tolkar det annars som
 historik-expansion, ger `event not found`).
 
+**`scp` fungerar INTE mot Render** (2026-08-08, bekräftat) — anslutningen
+stängs direkt av Renders SSH-proxy. Använd i stället icke-interaktiv
+körning med SSH:ns inbyggda stdin/stdout-vidarebefordran, t.ex.
+`cat lokal-fil.txt | ssh -i ~/.ssh/id_render srv-...@ssh.frankfurt.render.com "cd ~/project/src && node -e '...'"`
+— fungerar för att både skicka och hämta data utan filöverföring. Kör
+alltid `ssh -i ~/.ssh/id_render srv-...@ssh.frankfurt.render.com "pwd"`
+i ett **nytt** terminalfönster (inte inuti en redan öppen interaktiv
+session — nästlad SSH letar efter nyckeln på fel sökväg och stör allt)
+för att verifiera att icke-interaktiv körning funkar innan något större.
+
 ---
 
 ## Stängt och verifierat (kort — detaljer i respektive fil/PR)
@@ -139,6 +185,16 @@ historik-expansion, ger `event not found`).
   via squash-merge) städade bort 2026-08-07 — jämför aldrig en gammal gren
   mot `main` med `git diff --stat` som sanning; kolla om innehållet redan
   finns istället.
+- **ORD-100** (`#1331`, `#1332`, `#1337`, `#1336`→`#1338`→`#1339`) —
+  kalender/bokningsmodulens status kartlagd och delvis åtgärdad:
+  backend byggt/testat, personal-UI avsiktligt read-only, två döda
+  endpoint-anrop och en föräldralös kodväg borttagna (`#1337`, 55/55
+  tester gröna). Fas 0 (datamigreringens omfattning) mättes om **tre**
+  gånger innan rätt metod hittades — de två första felaktiga försöken
+  (`wc -l`-metodfel, sedan en ofullständig totalsummejämförelse) står
+  dokumenterade som historik i `ORD-100-cco-kalender-cliento-migrering.md`,
+  inte gömda. **Slutgiltigt facit: 384 bokningar saknas genuint i CCO**,
+  inte 66 561. Se öppna punkt 5–8 ovan för vad som återstår.
 
 ---
 
