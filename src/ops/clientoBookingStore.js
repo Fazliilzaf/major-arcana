@@ -180,12 +180,36 @@ async function writeJsonAtomic(filePath, data) {
   await fs.rename(tmp, filePath);
 }
 
+function bookingIdIndexKey(tenantId, bookingId) {
+  const t = normalizeText(tenantId);
+  const id = normalizeText(bookingId);
+  return t && id ? `${t}::${id}` : null;
+}
+
+function buildBookingIdIndex(bookings) {
+  const index = new Map();
+  for (const [bucketKey, list] of Object.entries(bookings)) {
+    const tenantId = tenantIdFromBucketKey(bucketKey);
+    for (const b of asArray(list)) {
+      const indexKey = bookingIdIndexKey(tenantId, b?.bookingId);
+      if (indexKey && !index.has(indexKey)) index.set(indexKey, bucketKey);
+    }
+  }
+  return index;
+}
+
 async function createClientoBookingStore({ filePath = '' } = {}) {
   const resolvedPath = path.resolve(String(filePath || '').trim());
   if (!resolvedPath) throw new Error('clientoBookingStore filePath saknas.');
   const state = await readJson(resolvedPath, emptyState());
   if (!state.bookings || typeof state.bookings !== 'object') state.bookings = {};
   if (!state.imports || typeof state.imports !== 'object') state.imports = {};
+  // Global bookingId → hink-index. Löst i minnet, aldrig persisterat separat —
+  // härleds alltid ur state.bookings vid start så det aldrig kan bli inaktuellt.
+  // Utan det här deduplicerar upsertBooking bara inom sin egen hink, och samma
+  // bokning kan hamna i två hinkar om identitetsfälten skiljer mellan importer
+  // (se ORD-100 Fas 0, 2026-08-08 — 17 727 dubbletter hittade i prod).
+  const bookingIdIndex = buildBookingIdIndex(state.bookings);
 
   let saveTimer = null;
   let savePending = false;
@@ -224,14 +248,25 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
   async function upsertBooking({ tenantId, booking }) {
     const normalized = normalizeBooking(booking);
     if (!normalized) return null;
-    const key = toBookingBucketKey(tenantId, normalized);
-    if (!key) return null;
+    const naturalKey = toBookingBucketKey(tenantId, normalized);
+    if (!naturalKey) return null;
+    // Om samma bookingId redan finns i en ANNAN hink (identitetsfälten skiljde
+    // sig mellan importer), uppdatera den befintliga posten där den ligger i
+    // stället för att lägga till en ny kopia i den naturliga hinken — annars
+    // uppstår en dubblett som listAllBookings sedan exponerar två gånger.
+    const indexKey = bookingIdIndexKey(tenantId, normalized.bookingId);
+    const existingBucketKey = indexKey ? bookingIdIndex.get(indexKey) : null;
+    const key =
+      existingBucketKey && asArray(state.bookings[existingBucketKey]).length
+        ? existingBucketKey
+        : naturalKey;
     const list = asArray(state.bookings[key]);
     const existingIdx = list.findIndex((b) => b.bookingId === normalized.bookingId);
     if (existingIdx >= 0) {
       const existing = list[existingIdx];
       const preserveWhenBlank = [
         'customerName',
+        'customerEmail',
         'customerPhone',
         'clientoCustomerId',
         'patientId',
@@ -267,6 +302,7 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
       list.push(normalized);
     }
     state.bookings[key] = list;
+    if (indexKey) bookingIdIndex.set(indexKey, key);
     scheduleSave();
     return normalized;
   }

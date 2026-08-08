@@ -442,3 +442,86 @@ test('importBatch tom bookings-array ger noll accept och reject', async () => {
   assert.equal(r.rejected, 0);
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+// 2026-08-08: ORD-100 Fas 0 hittade 17 727 dubbletter/tomma bookingId i prod.
+// Rotorsak: samma bookingId importerad med olika identitetsfält ifyllda
+// mellan körningar hamnade i olika hinkar (toBookingBucketKey), och dedupen
+// var scoped per hink — inte global. De här testerna reproducerar buggen och
+// bekräftar den globala bookingId-uppslagningen fixar den.
+test('samma bookingId med olika identitetsfält mellan importer skapar INTE en dubblett', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-dedupe-'));
+  const filePath = path.join(dir, 'bookings.json');
+  const store = await createClientoBookingStore({ filePath });
+
+  // Körning 1: raden har bara e-post — hamnar i e-posthinken.
+  await store.importBatch({
+    tenantId: 'hair_tp',
+    bookings: [
+      {
+        bookingId: 'dup-1',
+        customerEmail: 'anna@example.com',
+        status: 'Booked',
+        source: 'cliento_csv',
+      },
+    ],
+  });
+
+  // Körning 2: samma bookingId, men raden saknar e-post och har i stället
+  // telefon och clientoCustomerId — skulle naturligt hamna i en annan hink.
+  await store.importBatch({
+    tenantId: 'hair_tp',
+    bookings: [
+      {
+        bookingId: 'dup-1',
+        customerPhone: '+46701234567',
+        clientoCustomerId: 'cliento-123',
+        status: 'Show',
+        source: 'cliento_csv',
+      },
+    ],
+  });
+
+  const rows = store.listAllBookings({ tenantId: 'hair_tp' });
+  assert.equal(rows.length, 1, 'samma bookingId ska ge EN rad, inte två');
+  assert.equal(rows[0].status, 'Show', 'andra körningens fält ska ha uppdaterat posten');
+  assert.equal(rows[0].customerEmail, 'anna@example.com', 'e-posten från körning 1 ska bevaras');
+  assert.equal(rows[0].customerPhone, '+46701234567');
+
+  // Kundlookupen via ursprungsmejlet ska fortfarande hitta bokningen —
+  // fixen flyttar aldrig posten till en ny hink.
+  const forCustomer = store.getBookingsForCustomer({
+    tenantId: 'hair_tp',
+    customerEmail: 'anna@example.com',
+  });
+  assert.equal(forCustomer.length, 1);
+  assert.equal(forCustomer[0].bookingId, 'dup-1');
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('global bookingId-index återuppbyggs korrekt vid omstart (nytt store-objekt, samma fil)', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-reload-'));
+  const filePath = path.join(dir, 'bookings.json');
+
+  const store1 = await createClientoBookingStore({ filePath });
+  await store1.importBatch({
+    tenantId: 'hair_tp',
+    bookings: [{ bookingId: 'reload-1', customerEmail: 'bob@example.com', source: 'cliento_csv' }],
+  });
+  await store1.flush();
+
+  // Ny store-instans läser samma fil — index måste byggas om ur state.bookings,
+  // inte bara finnas kvar i minnet från förra instansen.
+  const store2 = await createClientoBookingStore({ filePath });
+  await store2.importBatch({
+    tenantId: 'hair_tp',
+    bookings: [{ bookingId: 'reload-1', customerPhone: '+46709999999', source: 'cliento_csv' }],
+  });
+
+  const rows = store2.listAllBookings({ tenantId: 'hair_tp' });
+  assert.equal(rows.length, 1, 'index efter omstart ska fortfarande förhindra dubblett');
+  assert.equal(rows[0].customerEmail, 'bob@example.com');
+  assert.equal(rows[0].customerPhone, '+46709999999');
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
