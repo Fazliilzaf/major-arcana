@@ -80,29 +80,41 @@ Dashboard, inte satt till `"false"` explicit. Effekten är samma (koden
 defaultar av), men för en känslig publik bokningsflagga är explicit
 säkrare än tomt-råkar-vara-falskt. Inte brådskande.
 
-### 6. CCO:s egen `clientoBookingStore` — 17 727 dubbletter, ROTORSAK FUNNEN
+### 6. CCO:s egen `clientoBookingStore` — INTE dubbletter, TVÅ TENANT-ID FÖR SAMMA KLINIK
 
-Upptäckt under ORD-100 Fas 0 (2026-08-08): 55 221 importerade
-bokningsposter, men bara 37 494 unika `bookingId`.
+**Ursprunglig felaktig diagnos (2026-08-07):** 55 221 bokningsposter, bara
+37 494 "unika" `bookingId` — tolkat som 17 727 dubbletter.
 
-**Rotorsak (2026-08-08, kodläsning, inget kört mot prod):**
-`upsertBooking` (`clientoBookingStore.js:224-266`) deduplicerar bara
-**inom en enskild hink** (`state.bookings[key]`), inte globalt. Vilken
-hink en bokning hamnar i avgörs av `toBookingBucketKey()`
-(rad 74-85) — prioritetsordning `customerEmail` → `clientoCustomerId` →
-telefon → `unlinked:bookingId`. Importeras samma `bookingId` två gånger
-med **olika identitetsfält ifyllda** mellan körningarna (t.ex. mejl
-saknas i en CSV-rad men finns i en annan), hamnar bokningen i olika
-hinkar. `findIndex((b) => b.bookingId === ...)` (rad 230) ser bara sin
-egen hinks array — nya kopian blir en tillagd post, inte en uppdatering.
-`listAllBookings` (rad 302-311) flattenar alla hinkar och exponerar båda.
+**Rättad 2026-08-08, verifierat via `dry-run` mot prod:** det var mitt
+eget metodfel i gårdagens engångsdiagnostik — jag grupperade på
+`bookingId` **utan tenantId**. `#1342`s globala dedup (scopad korrekt på
+`tenantId::bookingId` från start) körd som `--dry-run` mot prod fann
+**noll** riktiga dubbletter. Verklig orsak: `clientoBookingStore`
+innehåller data under **två olika tenant-ID:n för samma klinik**:
+`hair-tp-clinic` (27 811 poster, systemets `ARCANA_BOOTSTRAP_TENANT_ID`
+i `src/config.js:26`) och `hair_tp` (27 410 poster, används i
+kalender-UI:t: `global.__ccoCalTenantId || 'hair_tp'`). Samma boknings-ID
+återanvänds oberoende i de två namnrymderna, vilket såg ut som
+dubbletter när de räknades ihop utan tenant-scoping.
 
-**Ej åtgärdat.** En riktig fix (global `bookingId`-uppslagning över alla
-hinkar innan platsval, eller omnyckling av hela lagret primärt på
-`bookingId`) är en beteendeändring av en persisterad store med riktig
-produktionsdata — inte en enrads-patch. Kräver Fazlis GO innan kodning,
-och en plan för att sanera redan skrivna dubbletter i prod (data-
-migrering i sig, samma försiktighet som gäller Cliento-migreringen).
+**Detta är ett KÄNT, systemomfattande mönster** — `ccoPatientAssetIdentity.js:82`
+och `ccoDriveImportReviewReadService.js:91` kollar redan flera
+tenant-ID-varianter (`'hair-tp-clinic', 'hair_tp', 'hairtpclinic'`)
+defensivt vid läsning. `clientoBookingStore` gör INTE det än — varje
+fråga mot en specifik tenant (t.ex. kalender-UI:t som frågar `hair_tp`)
+ser i praktiken bara hälften av bokningarna.
+
+**Ej åtgärdat.** Föreslaget nästa steg: applicera samma
+flerspelnings-tåliga läsmönster på `clientoBookingStore`s läsfunktioner
+(`listAllBookings`, `getBookingsForCustomer`, `summarize`) — normalisera
+vid läsning, ingen datamigrering av lagrade poster. Lägre risk än att
+flytta/slå ihop lagrade hinkar. Kräver Fazlis GO innan kodning.
+
+**`#1342`/`#1343` (global bookingId-dedup + saneringsskript) är
+fortfarande korrekta och användbara** — skyddar mot en genuint annan,
+verklig risk (samma bookingId inom EN tenant med varierande
+identitetsfält mellan importer) — bara inte orsaken till den här
+specifika siffran.
 
 ### 7. 10 991 bokningar finns bara i CCO, inte i senaste Cliento-exporten
 
