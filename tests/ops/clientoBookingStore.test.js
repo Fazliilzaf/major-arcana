@@ -525,3 +525,130 @@ test('global bookingId-index återuppbyggs korrekt vid omstart (nytt store-objek
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+// dedupeBookings sanerar dubbletter som redan finns i lagret (skrivna INNAN
+// den globala dedupen fanns). Injicerar en dubblett direkt via _state, sa
+// samma sorts spridda kopior som prod-datan hade kan reproduceras utan att
+// forlita sig pa import-ordning.
+test('findDuplicateBookingGroups hittar en bookingId spridd over tva hinkar', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-finddupe-'));
+  const filePath = path.join(dir, 'bookings.json');
+  const store = await createClientoBookingStore({ filePath });
+
+  store._state.bookings['t1::carla@example.com'] = [
+    {
+      bookingId: 'legacy-dup-1',
+      customerEmail: 'carla@example.com',
+      status: 'Booked',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    },
+  ];
+  store._state.bookings['t1::cliento:cust-77'] = [
+    {
+      bookingId: 'legacy-dup-1',
+      clientoCustomerId: 'cust-77',
+      status: 'Show',
+      updatedAt: '2024-06-01T00:00:00.000Z',
+    },
+  ];
+
+  const groups = store.findDuplicateBookingGroups({ tenantId: 't1' });
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].length, 2);
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('dedupeBookings dry-run rapporterar men skriver ingenting', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-dedry-'));
+  const filePath = path.join(dir, 'bookings.json');
+  const store = await createClientoBookingStore({ filePath });
+
+  store._state.bookings['t1::carla@example.com'] = [
+    {
+      bookingId: 'legacy-dup-2',
+      customerEmail: 'carla@example.com',
+      status: 'Booked',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    },
+  ];
+  store._state.bookings['t1::cliento:cust-88'] = [
+    {
+      bookingId: 'legacy-dup-2',
+      clientoCustomerId: 'cust-88',
+      status: 'Show',
+      updatedAt: '2024-06-01T00:00:00.000Z',
+    },
+  ];
+
+  const report = await store.dedupeBookings({ tenantId: 't1', commit: false });
+  assert.equal(report.duplicateGroups, 1);
+  assert.equal(report.recordsThatWouldBeRemoved, 1);
+  assert.equal(report.samples[0].bookingId, 'legacy-dup-2');
+  assert.equal(report.samples[0].bucketsFound, 2);
+  // Rapporten läcker aldrig e-post/telefon — bara identitetstyp.
+  assert.deepEqual(
+    new Set(report.samples[0].identityTypesFound),
+    new Set(['email', 'clientoCustomerId'])
+  );
+
+  // Dry-run ska inte ha ändrat något i lagret.
+  assert.equal(store.listAllBookings({ tenantId: 't1' }).length, 2);
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('dedupeBookings commit slår ihop dubbletten till en post och bevarar fält', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-decommit-'));
+  const filePath = path.join(dir, 'bookings.json');
+  const store = await createClientoBookingStore({ filePath });
+
+  store._state.bookings['t1::carla@example.com'] = [
+    {
+      bookingId: 'legacy-dup-3',
+      customerEmail: 'carla@example.com',
+      bookingNotes: 'Första bokningen, ingen notis i den senare',
+      status: 'Booked',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    },
+  ];
+  store._state.bookings['t1::cliento:cust-99'] = [
+    {
+      bookingId: 'legacy-dup-3',
+      clientoCustomerId: 'cust-99',
+      status: 'Show',
+      updatedAt: '2024-06-01T00:00:00.000Z',
+    },
+  ];
+
+  const report = await store.dedupeBookings({ tenantId: 't1', commit: true });
+  assert.equal(report.recordsThatWouldBeRemoved, 1);
+
+  const rows = store.listAllBookings({ tenantId: 't1' });
+  assert.equal(rows.length, 1, 'dubbletten ska vara sammanslagen till en rad');
+  assert.equal(rows[0].status, 'Show', 'senaste updatedAt ska vinna för status');
+  assert.equal(
+    rows[0].customerEmail,
+    'carla@example.com',
+    'e-post från den äldre posten ska bevaras'
+  );
+  assert.equal(
+    rows[0].clientoCustomerId,
+    'cust-99',
+    'clientoCustomerId från den nyare posten ska bevaras'
+  );
+  assert.equal(
+    rows[0].bookingNotes,
+    'Första bokningen, ingen notis i den senare',
+    'anteckning från den äldre posten ska inte skrivas över av ett tomt fält'
+  );
+
+  // Global-index-fixen ska förhindra att en NY import återskapar dubbletten.
+  await store.upsertBooking({
+    tenantId: 't1',
+    booking: { bookingId: 'legacy-dup-3', customerPhone: '+46700000000', source: 'cliento_csv' },
+  });
+  assert.equal(store.listAllBookings({ tenantId: 't1' }).length, 1);
+
+  await fs.rm(dir, { recursive: true, force: true });
+});

@@ -186,6 +186,62 @@ function bookingIdIndexKey(tenantId, bookingId) {
   return t && id ? `${t}::${id}` : null;
 }
 
+const PRESERVE_WHEN_BLANK_FIELDS = Object.freeze([
+  'customerName',
+  'customerEmail',
+  'customerPhone',
+  'clientoCustomerId',
+  'patientId',
+  'encounterId',
+  'serviceLabel',
+  'staffName',
+  'locationName',
+  'rawStatus',
+  'bookingNotes',
+  'customerMessage',
+  'internalNotes',
+  'treatmentNotes',
+  'notes',
+  'sourceMessageId',
+]);
+
+// Slår ihop två poster för samma bookingId: incoming vinner fält för fält,
+// utom att ett tomt incoming-fält aldrig får radera ett redan känt värde i
+// existing (se PRESERVE_WHEN_BLANK_FIELDS). Används både av upsertBooking
+// (löpande import) och dedupeBookings (sanering av redan skrivna dubbletter).
+function mergeBookingRecords(existing, incoming) {
+  const merged = {
+    ...existing,
+    ...incoming,
+    createdAt: existing.createdAt,
+    updatedAt: nowIso(),
+  };
+  for (const field of PRESERVE_WHEN_BLANK_FIELDS) {
+    if (!normalizeText(incoming[field]) && normalizeText(existing[field])) {
+      merged[field] = existing[field];
+    }
+  }
+  // priceSek is numeric — preserve existing when the update omits/clears it.
+  if (incoming.priceSek === null && Number.isFinite(existing.priceSek)) {
+    merged.priceSek = existing.priceSek;
+  }
+  return merged;
+}
+
+// Bucket-nyckeln kan innehålla e-post/telefon — aldrig lämpligt att skriva
+// ut rått i en rapport. Klassificerar bara TYPEN av identitet, för
+// diagnostik utan att exponera patientdata.
+function bucketKeyIdentityType(bucketKey) {
+  const rest = String(bucketKey || '')
+    .split('::')
+    .slice(1)
+    .join('::');
+  if (rest.startsWith('cliento:')) return 'clientoCustomerId';
+  if (rest.startsWith('phone:')) return 'phone';
+  if (rest.startsWith('unlinked:')) return 'unlinked';
+  return rest ? 'email' : 'okänd';
+}
+
 function buildBookingIdIndex(bookings) {
   const index = new Map();
   for (const [bucketKey, list] of Object.entries(bookings)) {
@@ -263,41 +319,7 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     const list = asArray(state.bookings[key]);
     const existingIdx = list.findIndex((b) => b.bookingId === normalized.bookingId);
     if (existingIdx >= 0) {
-      const existing = list[existingIdx];
-      const preserveWhenBlank = [
-        'customerName',
-        'customerEmail',
-        'customerPhone',
-        'clientoCustomerId',
-        'patientId',
-        'encounterId',
-        'serviceLabel',
-        'staffName',
-        'locationName',
-        'rawStatus',
-        'bookingNotes',
-        'customerMessage',
-        'internalNotes',
-        'treatmentNotes',
-        'notes',
-        'sourceMessageId',
-      ];
-      const merged = {
-        ...existing,
-        ...normalized,
-        createdAt: existing.createdAt,
-        updatedAt: nowIso(),
-      };
-      for (const field of preserveWhenBlank) {
-        if (!normalizeText(normalized[field]) && normalizeText(existing[field])) {
-          merged[field] = existing[field];
-        }
-      }
-      // priceSek is numeric — preserve existing when the update omits/clears it.
-      if (normalized.priceSek === null && Number.isFinite(existing.priceSek)) {
-        merged.priceSek = existing.priceSek;
-      }
-      list[existingIdx] = merged;
+      list[existingIdx] = mergeBookingRecords(list[existingIdx], normalized);
     } else {
       list.push(normalized);
     }
@@ -305,6 +327,81 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     if (indexKey) bookingIdIndex.set(indexKey, key);
     scheduleSave();
     return normalized;
+  }
+
+  // Sanering av dubbletter skrivna INNAN den globala bookingId-dedupen fanns
+  // (ORD-100 Fas 0, 2026-08-08 — 17 727 poster i prod). Läs-endast: hittar
+  // grupper av samma bookingId spridda över flera hinkar. Skriver ingenting.
+  function findDuplicateBookingGroups({ tenantId } = {}) {
+    const t = normalizeText(tenantId);
+    const groups = new Map();
+    for (const [bucketKey, list] of Object.entries(state.bookings)) {
+      const bucketTenantId = tenantIdFromBucketKey(bucketKey);
+      if (t && bucketTenantId !== t) continue;
+      asArray(list).forEach((record) => {
+        const indexKey = bookingIdIndexKey(bucketTenantId, record?.bookingId);
+        if (!indexKey) return;
+        if (!groups.has(indexKey)) groups.set(indexKey, []);
+        groups.get(indexKey).push({ bucketKey, tenantId: bucketTenantId, record });
+      });
+    }
+    const duplicates = [];
+    for (const entries of groups.values()) {
+      if (entries.length > 1) duplicates.push(entries);
+    }
+    return duplicates;
+  }
+
+  // commit: false (default) — bara rapport, ingen skrivning. commit: true —
+  // slår ihop varje dubblettgrupp (samma fältregler som upsertBooking),
+  // väljer en kanonisk hink utifrån den sammanslagna postens egna
+  // identitetsfält, tar bort övriga kopior, sparar atomiskt en gång på slutet.
+  async function dedupeBookings({ tenantId, commit = false } = {}) {
+    const groups = findDuplicateBookingGroups({ tenantId });
+    const report = {
+      duplicateGroups: groups.length,
+      recordsThatWouldBeRemoved: 0,
+      samples: [],
+    };
+    for (const entries of groups) {
+      const sorted = [...entries].sort((a, b) =>
+        String(a.record.updatedAt || '').localeCompare(String(b.record.updatedAt || ''))
+      );
+      let merged = sorted[0].record;
+      for (let i = 1; i < sorted.length; i += 1) {
+        merged = mergeBookingRecords(merged, sorted[i].record);
+      }
+      const groupTenantId = sorted[0].tenantId;
+      const canonicalKey =
+        toBookingBucketKey(groupTenantId, merged) || sorted[sorted.length - 1].bucketKey;
+
+      if (report.samples.length < 10) {
+        report.samples.push({
+          bookingId: merged.bookingId,
+          tenantId: groupTenantId,
+          bucketsFound: entries.length,
+          identityTypesFound: entries.map((e) => bucketKeyIdentityType(e.bucketKey)),
+          canonicalIdentityType: bucketKeyIdentityType(canonicalKey),
+        });
+      }
+      report.recordsThatWouldBeRemoved += entries.length - 1;
+
+      if (commit) {
+        for (const entry of entries) {
+          const list = asArray(state.bookings[entry.bucketKey]).filter(
+            (b) => b.bookingId !== merged.bookingId
+          );
+          state.bookings[entry.bucketKey] = list;
+        }
+        const canonicalList = asArray(state.bookings[canonicalKey]);
+        canonicalList.push(merged);
+        state.bookings[canonicalKey] = canonicalList;
+        const indexKey = bookingIdIndexKey(groupTenantId, merged.bookingId);
+        if (indexKey) bookingIdIndex.set(indexKey, canonicalKey);
+      }
+    }
+    if (commit && groups.length) await save();
+    return report;
   }
 
   async function importBatch({ tenantId, bookings, source = 'cliento' }) {
@@ -418,6 +515,8 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     listBookingsInRange,
     summarize,
     clearTenant,
+    findDuplicateBookingGroups,
+    dedupeBookings,
     flush,
     _state: state,
   };
@@ -427,4 +526,6 @@ module.exports = {
   createClientoBookingStore,
   normalizeBooking,
   normalizePriceSek,
+  mergeBookingRecords,
+  bucketKeyIdentityType,
 };
