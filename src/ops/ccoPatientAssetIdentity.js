@@ -585,4 +585,9 @@ module.exports = {
   resolveCanonicalPatientsForAssetAliases,
   resolveCanonicalPatientsForAssets,
   resolvePatientAssetIds,
+  // 2026-08-08: samma tenant-ID-stavningstolerans behövs i clientoBookingStore
+  // (hair-tp-clinic/hair_tp splittrade samma kliniks bokningar i två
+  // namnrymder). Exporterad härifrån i stället för omimplementerad — se
+  // CCO-STATUS.md punkt 6.
+  tenantCandidates,
 };

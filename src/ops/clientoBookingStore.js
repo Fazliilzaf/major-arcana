@@ -22,6 +22,11 @@
 
 const fs = require('node:fs/promises');
 const path = require('node:path');
+// 2026-08-08: hair-tp-clinic/hair_tp splittrade samma kliniks bokningar i
+// två tenant-namnrymder (CCO-STATUS.md punkt 6). Återanvänder den redan
+// existerande stavningstoleransen från ccoPatientAssetIdentity.js i stället
+// för att skriva en tredje kopia av samma logik.
+const { tenantCandidates } = require('./ccoPatientAssetIdentity');
 
 function nowIso() {
   return new Date().toISOString();
@@ -426,17 +431,37 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     return { accepted, rejected };
   }
 
+  // Matchar en hink-nyckel mot en tenant, tolerant mot kända stavningsvarianter
+  // (hair-tp-clinic/hair_tp m.fl. — se tenantCandidates). Tomt tenantId matchar
+  // allt, precis som innan — ändrar INTE beteendet för anrop utan tenantId.
+  function bucketKeyMatchesTenant(key, tenantId) {
+    const t = normalizeText(tenantId);
+    if (!t) return true;
+    return tenantCandidates(t).some((candidate) => key.startsWith(candidate + '::'));
+  }
+
   function getBookingsForCustomer({ tenantId, customerEmail }) {
-    const key = toBucketKey(tenantId, customerEmail);
-    if (!key) return [];
-    return asArray(state.bookings[key]).slice();
+    const t = normalizeText(tenantId);
+    if (!t) return [];
+    const email = normalizeEmail(customerEmail);
+    if (!email) return [];
+    // Samma kund kan ha bokningar under BÅDA tenant-stavningarna — slå ihop
+    // i stället för att bara läsa en hink, annars missas hälften igen.
+    const merged = new Map();
+    for (const candidate of tenantCandidates(t)) {
+      const key = toBucketKey(candidate, email);
+      if (!key) continue;
+      for (const b of asArray(state.bookings[key])) {
+        if (b?.bookingId) merged.set(b.bookingId, b);
+      }
+    }
+    return [...merged.values()];
   }
 
   function listAllBookings({ tenantId, limit = 0 }) {
-    const t = normalizeText(tenantId);
     const out = [];
     for (const [key, list] of Object.entries(state.bookings)) {
-      if (t && !key.startsWith(t + '::')) continue;
+      if (!bucketKeyMatchesTenant(key, tenantId)) continue;
       for (const b of asArray(list)) out.push(withTenantFromBucket(b, key));
       if (limit > 0 && out.length >= limit) break;
     }
@@ -449,10 +474,9 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) {
       return [];
     }
-    const t = normalizeText(tenantId);
     const out = [];
     for (const [key, list] of Object.entries(state.bookings)) {
-      if (t && !key.startsWith(t + '::')) continue;
+      if (!bucketKeyMatchesTenant(key, tenantId)) continue;
       for (const booking of asArray(list)) {
         const date = normalizeText(booking?.startsAt).slice(0, 10);
         if (!date || date < from || date > to) continue;
@@ -470,7 +494,7 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     let upcoming = 0;
     const nowMs = Date.now();
     for (const [key, list] of Object.entries(state.bookings)) {
-      if (t && !key.startsWith(t + '::')) continue;
+      if (!bucketKeyMatchesTenant(key, tenantId)) continue;
       totalCustomers += 1;
       for (const b of asArray(list)) {
         totalBookings += 1;
@@ -482,12 +506,24 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
         }
       }
     }
+    // state.imports är keyad exakt (inte hinkar) — leta bland samma
+    // stavningsvarianter, ta den senaste om flera tenant-stavningar har
+    // importerat var för sig.
+    let lastImport = null;
+    if (t) {
+      for (const candidate of tenantCandidates(t)) {
+        const entry = state.imports[candidate];
+        if (entry && (!lastImport || entry.lastImportAt > lastImport.lastImportAt)) {
+          lastImport = entry;
+        }
+      }
+    }
     return {
       tenantId: t || null,
       totalCustomers,
       totalBookings,
       upcomingBookings: upcoming,
-      lastImport: t ? state.imports[t] || null : null,
+      lastImport,
     };
   }
 

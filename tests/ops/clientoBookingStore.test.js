@@ -652,3 +652,111 @@ test('dedupeBookings commit slår ihop dubbletten till en post och bevarar fält
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+// 2026-08-08: hair-tp-clinic/hair_tp visade sig vara samma klinik under två
+// tenant-ID, inte riktiga dubbletter (se CCO-STATUS.md punkt 6). Läsfunktionerna
+// ska nu vara toleranta mot båda stavningarna, oavsett vilken anroparen frågar
+// med — samma mönster som redan finns i ccoPatientAssetIdentity.js.
+test('listAllBookings hittar bokningar under båda tenant-stavningarna', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-tenanttol-list-'));
+  const filePath = path.join(dir, 'bookings.json');
+  const store = await createClientoBookingStore({ filePath });
+
+  await store.importBatch({
+    tenantId: 'hair-tp-clinic',
+    bookings: [{ bookingId: 'a1', customerEmail: 'hyphen@example.com', source: 'cliento_csv' }],
+  });
+  await store.importBatch({
+    tenantId: 'hair_tp',
+    bookings: [{ bookingId: 'b1', customerEmail: 'underscore@example.com', source: 'cliento_csv' }],
+  });
+
+  const viaHyphen = store.listAllBookings({ tenantId: 'hair-tp-clinic' });
+  const viaUnderscore = store.listAllBookings({ tenantId: 'hair_tp' });
+  assert.equal(viaHyphen.length, 2, 'fråga med bindestreck ska se båda bokningarna');
+  assert.equal(viaUnderscore.length, 2, 'fråga med understreck ska se båda bokningarna');
+  assert.deepEqual(new Set(viaHyphen.map((b) => b.bookingId)), new Set(['a1', 'b1']));
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('getBookingsForCustomer slår ihop en kunds bokningar över båda tenant-stavningarna', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-tenanttol-cust-'));
+  const filePath = path.join(dir, 'bookings.json');
+  const store = await createClientoBookingStore({ filePath });
+
+  await store.importBatch({
+    tenantId: 'hair-tp-clinic',
+    bookings: [{ bookingId: 'c1', customerEmail: 'delad@example.com', source: 'cliento_csv' }],
+  });
+  await store.importBatch({
+    tenantId: 'hair_tp',
+    bookings: [{ bookingId: 'c2', customerEmail: 'delad@example.com', source: 'cliento_csv' }],
+  });
+
+  const forCustomer = store.getBookingsForCustomer({
+    tenantId: 'hair_tp',
+    customerEmail: 'delad@example.com',
+  });
+  assert.equal(forCustomer.length, 2);
+  assert.deepEqual(new Set(forCustomer.map((b) => b.bookingId)), new Set(['c1', 'c2']));
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('summarize räknar ihop båda tenant-stavningarna och tar senaste lastImport', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-tenanttol-sum-'));
+  const filePath = path.join(dir, 'bookings.json');
+  const store = await createClientoBookingStore({ filePath });
+
+  await store.importBatch({
+    tenantId: 'hair-tp-clinic',
+    bookings: [{ bookingId: 'd1', customerEmail: 'x1@example.com' }],
+    source: 'cliento_csv_run1',
+  });
+  // Garantera en annan lastImportAt-tidsstämpel än run1 — utan detta kan
+  // ISO-strängarna bli identiska (samma millisekund) och göra testet flakigt,
+  // eftersom "senaste" avgörs av en > -jämförelse på lastImportAt.
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await store.importBatch({
+    tenantId: 'hair_tp',
+    bookings: [{ bookingId: 'd2', customerEmail: 'x2@example.com' }],
+    source: 'cliento_csv_run2',
+  });
+
+  const summary = store.summarize({ tenantId: 'hair-tp-clinic' });
+  assert.equal(summary.totalBookings, 2);
+  assert.ok(
+    summary.lastImport,
+    'lastImport ska hittas trots att den senaste importen skedde under hair_tp'
+  );
+  assert.equal(
+    summary.lastImport.lastSource,
+    'cliento_csv_run2',
+    'senaste importen (hair_tp) ska vinna, oavsett vilken tenant-stavning man frågar via'
+  );
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('tomt tenantId ger fortfarande tomt resultat — tenant-toleransen gäller inte "matcha allt"', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cliento-tenanttol-blank-'));
+  const filePath = path.join(dir, 'bookings.json');
+  const store = await createClientoBookingStore({ filePath });
+
+  await store.importBatch({
+    tenantId: 'hair_tp',
+    bookings: [{ bookingId: 'e1', customerEmail: 'blank@example.com', source: 'cliento_csv' }],
+  });
+
+  assert.deepEqual(
+    store.getBookingsForCustomer({ tenantId: '', customerEmail: 'blank@example.com' }),
+    []
+  );
+  // listAllBookings med tomt tenantId matchar fortfarande ALLT (oförändrat
+  // beteende sedan innan) — det är bara EN specifik, felaktig tenant-sträng
+  // som nu expanderas till kandidater, inte "inget tenantId alls".
+  assert.equal(store.listAllBookings({ tenantId: '' }).length, 1);
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
