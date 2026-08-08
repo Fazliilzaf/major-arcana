@@ -80,15 +80,29 @@ Dashboard, inte satt till `"false"` explicit. Effekten är samma (koden
 defaultar av), men för en känslig publik bokningsflagga är explicit
 säkrare än tomt-råkar-vara-falskt. Inte brådskande.
 
-### 6. CCO:s egen `clientoBookingStore` — 17 727 dubbletter/tomma `Boknings-id`
+### 6. CCO:s egen `clientoBookingStore` — 17 727 dubbletter, ROTORSAK FUNNEN
 
 Upptäckt under ORD-100 Fas 0 (2026-08-08): 55 221 importerade
-bokningsposter, men bara 37 494 unika `bookingId`. Antingen skriver
-importern (`opsClientoBookingsImport.js`) samma bokning flera gånger
-under olika ID, eller saknar en delmängd `bookingId` helt och filtreras
-bort av `.filter(Boolean)` vid räkning. Ren intern datafråga, kräver
-ingen Cliento-åtkomst — nästa steg är att gräva i `clientoBookingStore.js`
-och/eller köra en `--dry-run`-liknande diagnostik mot prod-datan.
+bokningsposter, men bara 37 494 unika `bookingId`.
+
+**Rotorsak (2026-08-08, kodläsning, inget kört mot prod):**
+`upsertBooking` (`clientoBookingStore.js:224-266`) deduplicerar bara
+**inom en enskild hink** (`state.bookings[key]`), inte globalt. Vilken
+hink en bokning hamnar i avgörs av `toBookingBucketKey()`
+(rad 74-85) — prioritetsordning `customerEmail` → `clientoCustomerId` →
+telefon → `unlinked:bookingId`. Importeras samma `bookingId` två gånger
+med **olika identitetsfält ifyllda** mellan körningarna (t.ex. mejl
+saknas i en CSV-rad men finns i en annan), hamnar bokningen i olika
+hinkar. `findIndex((b) => b.bookingId === ...)` (rad 230) ser bara sin
+egen hinks array — nya kopian blir en tillagd post, inte en uppdatering.
+`listAllBookings` (rad 302-311) flattenar alla hinkar och exponerar båda.
+
+**Ej åtgärdat.** En riktig fix (global `bookingId`-uppslagning över alla
+hinkar innan platsval, eller omnyckling av hela lagret primärt på
+`bookingId`) är en beteendeändring av en persisterad store med riktig
+produktionsdata — inte en enrads-patch. Kräver Fazlis GO innan kodning,
+och en plan för att sanera redan skrivna dubbletter i prod (data-
+migrering i sig, samma försiktighet som gäller Cliento-migreringen).
 
 ### 7. 10 991 bokningar finns bara i CCO, inte i senaste Cliento-exporten
 
