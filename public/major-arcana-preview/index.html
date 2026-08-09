@@ -29,7 +29,13 @@
          requested content before the asynchronous application bundle boots. -->
     <script src="./app/cco-admin-embed-contract.js?v=customer-full-product-contract-v1"></script>
     <!-- ARCANA bundle URLs (content-hash: 37ed0dfdd7) -->
-    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.37ed0dfdd7.min.js","staffCore":"./app.bundle.staff-core.87ec090eb1.min.js","staffDeferred":"./app.bundle.staff-deferred.6d4631df1b.min.js"};</script>
+    <script>
+      window.__ARCANA_BUNDLE_URLS__ = {
+        full: './app.bundle.37ed0dfdd7.min.js',
+        staffCore: './app.bundle.staff-core.87ec090eb1.min.js',
+        staffDeferred: './app.bundle.staff-deferred.6d4631df1b.min.js',
+      };
+    </script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
@@ -3761,8 +3767,11 @@
                   <script defer src="./app/cco-kundkort-slide-over.js?v=build-ord26"></script>
                   <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"></script>
-<div data-patient-identity-rail hidden>
+                  <script
+                    async
+                    src="./app/patient-master-ui.js?v=v12-real-customer-surface-v1"
+                  ></script>
+                  <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
                         <h2>Kundidentitetshantering</h2>
