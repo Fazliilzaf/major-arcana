@@ -65,20 +65,27 @@ importhistoriken för den brevlådan, inte klientkod.
 mot riktig prod-data för att se totalomfånget av `needsReviewSamples`. Görs
 via Render SSH (se nedan) — medvetet avvaktat 2026-08-07, ingen brådska.
 
-### 4. ORD-93 mätgrind steg 2 — visuell kontroll ej gjord på ett äkta cid-fall
+### 4. ORD-93 mätgrind steg 2 — KLAR 2026-08-08, löst på kodnivå
 
-Alla verifieringar denna session skedde mot Ali Selim-tråden, som har
-`bodyHtml: 0` — inget `cid:` alls att markera. Steg 2 i ORD-93:s mätgrind
-("öppna ett meddelande före/efter, bekräfta trasig ikon → synlig markering")
-är därför inte bekräftat mot ett meddelande som faktiskt HAR en olöst
-`cid:`-referens. Litet, snabbt, men ogjort.
+`src/ops/ccoCidImageRewrite.js` har aldrig en tyst passage: ett olöst
+`cid:` ersätts alltid, antingen med en riktig URL eller en synlig
+platshållare (`data-cid-missing="true"`, trasig-bild-SVG, `title="Bilden
+kunde inte visas — bilagemetadata saknas i truth-lagret"`). 10/10
+enhetstester (`tests/ops/ccoCidImageRewrite.test.js`) bekräftar
+beteendet, inklusive den specifika "inget URL hittat"-vägen. Mätgrindens
+syfte (bekräfta att en trasig bild blir synlig, inte tyst) är uppfyllt
+på kodnivå. Om en visuell klick-igenom-bekräftelse ändå önskas: sök
+renderad DOM/HTML efter `data-cid-missing="true"` — attributet finns
+bara på genuint olösta cid-bilder.
 
-### 5. `ARCANA_PUBLIC_WEB_BOOKING_ENABLED` — sätt explicit `false` i Render
+### 5. `ARCANA_PUBLIC_WEB_BOOKING_ENABLED` — KLAR 2026-08-08
 
-Bekräftat AV via `/_diag/env` (`#1332`) — men värdet är **tomt** i Render
-Dashboard, inte satt till `"false"` explicit. Effekten är samma (koden
-defaultar av), men för en känslig publik bokningsflagga är explicit
-säkrare än tomt-råkar-vara-falskt. Inte brådskande.
+Manuellt verifierat i Render Dashboard → service `arcana` → Environment:
+värdet är redan **explicit `"false"`**, inte tomt som tidigare antaget.
+`render.yaml` uppdaterad i samma veva (`#1347`) så att en framtida
+Blueprint-synk inte kan skriva över det — den gamla ORD-74-kommentaren
+som instruerade att TA BORT variabeln (så kodens `true`-default skulle
+gälla) är borttagen, den bröt mot `.cursor/rules/website-booking-policy.mdc`.
 
 ### 6. CCO:s egen `clientoBookingStore` — INTE dubbletter, TVÅ TENANT-ID FÖR SAMMA KLINIK
 
@@ -152,15 +159,20 @@ Cliento-export för jämförelse, eller en datumfördelning av de 10 991 för
 att se om de klustrar före augusti 2021 (stödjer hypotesen) eller är
 spridda (stödjer inte).
 
-### 8. Patientanteckningarnas omfattning — inte mätt separat från bokningsraderna
+### 8. Patientanteckningarnas omfattning — KLAR 2026-08-08
 
-ORD-100 Fas 0 mätte bokningar, inte anteckningar isolerat.
-`internalNotes` är alltid `0` i CCO:s importerade data trots att
-`Attribut`-fältet är ifyllt i 99,8 % av källraderna (Cliento-export) —
-stärkt misstanke om en importer-mappningsbugg, men obekräftat mot
-faktiskt innehåll. Kräver att någon med Cliento-åtkomst tittar på vad
-`Attribut` faktiskt innehåller för en handfull bokningar, i Clientos eget
-gränssnitt.
+Manuellt verifierat i Cliento → Rapporter → Exportera bokningar →
+Förhandsgranska, med `Attribut` som kolumn (augusti 2026, 100 bokningar
+stickprov): **fältet är tomt, `{}`, i varje rad.** Det förklarar
+`internalNotes: 0` fullt ut — det fanns inget att mappa, ingen
+importer-bugg. Inget att migrera därifrån.
+
+**Bonus-fynd, relevant för hela Cliento-migreringen (ORD-100):**
+`Bokningsanteckning` är en valbar kolumn i samma export — per-bokning-
+anteckningar går alltså att exportera själv. Det är bara kundkortens
+fria anteckningar som INTE finns i självbetjänings-exporten (kräver
+Cliento support). Kund-exporten (`Kundexport_nya`) ger bara namn,
+telefon, e-post, skapad-datum — ingen anteckningstext.
 
 ---
 
@@ -247,7 +259,13 @@ för att verifiera att icke-interaktiv körning funkar innan något större.
   (`wc -l`-metodfel, sedan en ofullständig totalsummejämförelse) står
   dokumenterade som historik i `ORD-100-cco-kalender-cliento-migrering.md`,
   inte gömda. **Slutgiltigt facit: 384 bokningar saknas genuint i CCO**,
-  inte 66 561. Se öppna punkt 5–8 ovan för vad som återstår.
+  inte 66 561. Se öppna punkt 7 ovan för vad som återstår (punkt 4, 5, 8
+  stängda 2026-08-08).
+- **ORD-101** — cross-tenant-reconcile för `hair_tp`/`hair-tp-clinic` är
+  redan byggt och kört en gång (18 juli 2026, tre veckor före denna
+  session): 1 887 säkra länkkandidater hittade, noll skrivningar, medvetet
+  pausat i väntan på Fazlis "separata owner-granskning". Se
+  `docs/handover/ORDERS/ORD-101-cliento-cross-tenant-reconcile.md`.
 
 ---
 
