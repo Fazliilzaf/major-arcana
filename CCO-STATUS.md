@@ -150,14 +150,31 @@ korrekta och oberörda** — de skyddar mot en genuint annan, verklig risk
 importer), och rör aldrig cross-tenant-jämförelsen. Inte påverkade av
 reverten.
 
-### 7. 10 991 bokningar finns bara i CCO, inte i senaste Cliento-exporten
+### 7. 10 991 bokningar finns bara i CCO — hypotesen om "äldre än exporten" MOTBEVISAD
 
-Från samma Fas 0-mätning. Trolig men obekräftad hypotes: äldre bokningar
-från före exportens startdatum (augusti 2021), eller bokningar som tagits
-bort i Cliento men finns kvar hos oss historiskt. Kräver antingen en äldre
-Cliento-export för jämförelse, eller en datumfördelning av de 10 991 för
-att se om de klustrar före augusti 2021 (stödjer hypotesen) eller är
-spridda (stödjer inte).
+Datumfördelning körd 2026-08-08 (läs-endast, Render SSH):
+
+| År   |     Antal |
+| ---- | --------: |
+| 2021 |       182 |
+| 2022 |       388 |
+| 2023 |       312 |
+| 2024 |     2 475 |
+| 2025 | **4 577** |
+| 2026 |     3 038 |
+| 2027 |        19 |
+
+Om de vore äldre bokningar från före exportens startdatum (augusti 2021)
+hade de klustrat i 2021 eller tidigare. I stället klustrar de i
+**2024–2026**, mitt i exportens täckta period, med några ända i 2027
+(framtida bokningar). **Hypotesen är motbevisad.**
+
+**Ny, obekräftad hypotes:** dessa är bokningar skapade **i CCO självt**
+(t.ex. via `source` skilt från `cliento_csv`, eller CCO:s egen
+bokningsmotor som skriver till samma store) — inte en Cliento-
+migreringslucka alls. Mönstret (växande mot nutid/framtid) pekar dit.
+Kräver en fördelning över `source`-fältet för den här delmängden för
+att bekräftas — inte gjort än.
 
 ### 8. Patientanteckningarnas omfattning — KLAR 2026-08-08
 
