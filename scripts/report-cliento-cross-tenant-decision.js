@@ -271,8 +271,12 @@ async function main() {
   const args = parseArgs(process.argv);
   const store = await createClientoBookingStore({ filePath: args.storePath });
   const report = buildClientoCrossTenantDecisionReport({
-    leftBookings: store.listAllBookings({ tenantId: 'hair_tp', limit: 0 }),
-    rightBookings: store.listAllBookings({ tenantId: 'hair-tp-clinic', limit: 0 }),
+    leftBookings: store.listAllBookings({ tenantId: 'hair_tp', limit: 0, exactTenant: true }),
+    rightBookings: store.listAllBookings({
+      tenantId: 'hair-tp-clinic',
+      limit: 0,
+      exactTenant: true,
+    }),
     expectedTotal: args.expectedTotal,
     expectedConflicts: args.expectedConflicts,
     expectedComplementaryNotes: args.expectedComplementaryNotes,
