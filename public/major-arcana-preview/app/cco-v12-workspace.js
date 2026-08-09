@@ -366,9 +366,21 @@
       );
     }
 
+    var lastGroup = '';
     var rows = journal.items
       .map(function (it) {
+        var groupHeader = '';
+        if (it.group && it.group !== lastGroup) {
+          lastGroup = it.group;
+          groupHeader =
+            '<li class="v12-workspace__journal-group" role="separator" aria-label="' +
+            esc(it.group) +
+            '"><span>' +
+            esc(it.group) +
+            '</span></li>';
+        }
         return (
+          groupHeader +
           '<li class="v12-workspace__journal-item">' +
           '<button type="button" class="v12-workspace__journal-card" data-v9-section-link="journal" data-journal-state="' +
           esc(it.state) +
