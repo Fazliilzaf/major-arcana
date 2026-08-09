@@ -79,7 +79,13 @@ function tenantCandidates(tenantId) {
   const rows = [base];
   if (base.includes('-')) rows.push(base.replace(/-/g, '_'));
   if (base.includes('_')) rows.push(base.replace(/_/g, '-'));
-  rows.push('hair-tp-clinic', 'hair_tp', 'hairtp-clinic');
+  // Kända stavningsvarianter för Hair TP Clinic ska slås ihop, men lägg aldrig
+  // till dem för en helt annan tenant — då skulle cross-tenant-rapporter
+  // läsa samma bokningar som både vänster och höger sida och dubbelräkna.
+  const hairTpVariants = Object.freeze(['hair-tp-clinic', 'hair_tp', 'hairtp-clinic']);
+  if (hairTpVariants.includes(base)) {
+    rows.push(...hairTpVariants);
+  }
   return [...new Set(rows.filter(Boolean))];
 }
 

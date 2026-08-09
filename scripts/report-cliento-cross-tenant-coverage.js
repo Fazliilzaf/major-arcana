@@ -47,8 +47,16 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv);
   const store = await createClientoBookingStore({ filePath: args.storePath });
-  const leftBookings = store.listAllBookings({ tenantId: args.leftTenant, limit: 0 });
-  const rightBookings = store.listAllBookings({ tenantId: args.rightTenant, limit: 0 });
+  const leftBookings = store.listAllBookings({
+    tenantId: args.leftTenant,
+    limit: 0,
+    exactTenant: true,
+  });
+  const rightBookings = store.listAllBookings({
+    tenantId: args.rightTenant,
+    limit: 0,
+    exactTenant: true,
+  });
   const report = buildClientoCrossTenantCoverageReport({
     leftTenant: args.leftTenant,
     rightTenant: args.rightTenant,
