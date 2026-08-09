@@ -40,6 +40,23 @@
     }
   }
 
+  function fmtDateGroup(iso) {
+    if (!iso) return 'Okänt datum';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return 'Okänt datum';
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var entryDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    var diff = Math.round((today - entryDay) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return 'Idag';
+    if (diff === 1) return 'Igår';
+    try {
+      return entryDay.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
+    } catch (_error) {
+      return entryDay.toISOString().slice(0, 10);
+    }
+  }
+
   function buildJournalModule(journalEntries) {
     var list = Array.isArray(journalEntries) ? journalEntries : [];
     var items = list.map(function (entry) {
@@ -48,15 +65,22 @@
       var author = str(entry.authorName).trim() || str(entry.signedByName).trim() || 'Okänd';
       var when = entry.signedAt || entry.updatedAt || entry.createdAt || '';
       return {
-        title: str(entry.title).trim() || str(entry.journalType).trim() || 'Journalanteckning',
+        title: str(entry.displayName).trim() || str(entry.title).trim() || str(entry.journalType).trim() || 'Journalanteckning',
         type: str(entry.journalType).trim(),
         body: fullBody(entry),
         author: author,
         date: fmtDateTime(when),
+        group: fmtDateGroup(when),
+        isoDate: when,
         state: signed ? 'signed' : 'draft',
         badge: signed ? 'Signerad' : 'Utkast',
         locked: !!entry.locked,
       };
+    });
+    items.sort(function (a, b) {
+      var ta = Date.parse(a.isoDate || 0) || 0;
+      var tb = Date.parse(b.isoDate || 0) || 0;
+      return tb - ta;
     });
     return { items: items, count: items.length };
   }
