@@ -65,63 +65,131 @@ importhistoriken för den brevlådan, inte klientkod.
 mot riktig prod-data för att se totalomfånget av `needsReviewSamples`. Görs
 via Render SSH (se nedan) — medvetet avvaktat 2026-08-07, ingen brådska.
 
-### 4. ORD-93 mätgrind steg 2 — visuell kontroll ej gjord på ett äkta cid-fall
+### 4. ORD-93 mätgrind steg 2 — KLAR 2026-08-08, löst på kodnivå
 
-Alla verifieringar denna session skedde mot Ali Selim-tråden, som har
-`bodyHtml: 0` — inget `cid:` alls att markera. Steg 2 i ORD-93:s mätgrind
-("öppna ett meddelande före/efter, bekräfta trasig ikon → synlig markering")
-är därför inte bekräftat mot ett meddelande som faktiskt HAR en olöst
-`cid:`-referens. Litet, snabbt, men ogjort.
+`src/ops/ccoCidImageRewrite.js` har aldrig en tyst passage: ett olöst
+`cid:` ersätts alltid, antingen med en riktig URL eller en synlig
+platshållare (`data-cid-missing="true"`, trasig-bild-SVG, `title="Bilden
+kunde inte visas — bilagemetadata saknas i truth-lagret"`). 10/10
+enhetstester (`tests/ops/ccoCidImageRewrite.test.js`) bekräftar
+beteendet, inklusive den specifika "inget URL hittat"-vägen. Mätgrindens
+syfte (bekräfta att en trasig bild blir synlig, inte tyst) är uppfyllt
+på kodnivå. Om en visuell klick-igenom-bekräftelse ändå önskas: sök
+renderad DOM/HTML efter `data-cid-missing="true"` — attributet finns
+bara på genuint olösta cid-bilder.
 
-### 5. `ARCANA_PUBLIC_WEB_BOOKING_ENABLED` — sätt explicit `false` i Render
+### 5. `ARCANA_PUBLIC_WEB_BOOKING_ENABLED` — KLAR 2026-08-08
 
-Bekräftat AV via `/_diag/env` (`#1332`) — men värdet är **tomt** i Render
-Dashboard, inte satt till `"false"` explicit. Effekten är samma (koden
-defaultar av), men för en känslig publik bokningsflagga är explicit
-säkrare än tomt-råkar-vara-falskt. Inte brådskande.
+Manuellt verifierat i Render Dashboard → service `arcana` → Environment:
+värdet är redan **explicit `"false"`**, inte tomt som tidigare antaget.
+`render.yaml` uppdaterad i samma veva (`#1347`) så att en framtida
+Blueprint-synk inte kan skriva över det — den gamla ORD-74-kommentaren
+som instruerade att TA BORT variabeln (så kodens `true`-default skulle
+gälla) är borttagen, den bröt mot `.cursor/rules/website-booking-policy.mdc`.
 
-### 6. CCO:s egen `clientoBookingStore` — 17 727 dubbletter, ROTORSAK FUNNEN
+### 6. CCO:s egen `clientoBookingStore` — INTE dubbletter, TVÅ TENANT-ID FÖR SAMMA KLINIK
 
-Upptäckt under ORD-100 Fas 0 (2026-08-08): 55 221 importerade
-bokningsposter, men bara 37 494 unika `bookingId`.
+**Ursprunglig felaktig diagnos (2026-08-07):** 55 221 bokningsposter, bara
+37 494 "unika" `bookingId` — tolkat som 17 727 dubbletter.
 
-**Rotorsak (2026-08-08, kodläsning, inget kört mot prod):**
-`upsertBooking` (`clientoBookingStore.js:224-266`) deduplicerar bara
-**inom en enskild hink** (`state.bookings[key]`), inte globalt. Vilken
-hink en bokning hamnar i avgörs av `toBookingBucketKey()`
-(rad 74-85) — prioritetsordning `customerEmail` → `clientoCustomerId` →
-telefon → `unlinked:bookingId`. Importeras samma `bookingId` två gånger
-med **olika identitetsfält ifyllda** mellan körningarna (t.ex. mejl
-saknas i en CSV-rad men finns i en annan), hamnar bokningen i olika
-hinkar. `findIndex((b) => b.bookingId === ...)` (rad 230) ser bara sin
-egen hinks array — nya kopian blir en tillagd post, inte en uppdatering.
-`listAllBookings` (rad 302-311) flattenar alla hinkar och exponerar båda.
+**Rättad 2026-08-08, verifierat via `dry-run` mot prod:** det var mitt
+eget metodfel i gårdagens engångsdiagnostik — jag grupperade på
+`bookingId` **utan tenantId**. `#1342`s globala dedup (scopad korrekt på
+`tenantId::bookingId` från start) körd som `--dry-run` mot prod fann
+**noll** riktiga dubbletter. Verklig orsak: `clientoBookingStore`
+innehåller data under **två olika tenant-ID:n för samma klinik**:
+`hair-tp-clinic` (27 811 poster, systemets `ARCANA_BOOTSTRAP_TENANT_ID`
+i `src/config.js:26`) och `hair_tp` (27 410 poster, används i
+kalender-UI:t: `global.__ccoCalTenantId || 'hair_tp'`). Samma boknings-ID
+återanvänds oberoende i de två namnrymderna, vilket såg ut som
+dubbletter när de räknades ihop utan tenant-scoping.
 
-**Ej åtgärdat.** En riktig fix (global `bookingId`-uppslagning över alla
-hinkar innan platsval, eller omnyckling av hela lagret primärt på
-`bookingId`) är en beteendeändring av en persisterad store med riktig
-produktionsdata — inte en enrads-patch. Kräver Fazlis GO innan kodning,
-och en plan för att sanera redan skrivna dubbletter i prod (data-
-migrering i sig, samma försiktighet som gäller Cliento-migreringen).
+**Detta är ett KÄNT, systemomfattande mönster** — `ccoPatientAssetIdentity.js:82`
+och `ccoDriveImportReviewReadService.js:91` kollar redan flera
+tenant-ID-varianter (`'hair-tp-clinic', 'hair_tp', 'hairtpclinic'`)
+defensivt vid läsning. `clientoBookingStore` gör INTE det än — varje
+fråga mot en specifik tenant (t.ex. kalender-UI:t som frågar `hair_tp`)
+ser i praktiken bara hälften av bokningarna.
 
-### 7. 10 991 bokningar finns bara i CCO, inte i senaste Cliento-exporten
+**RÄTTAT IGEN 2026-08-08 — mitt föreslagna "nästa steg" ovan var FEL och
+har dragits tillbaka (PR stängd utan merge).** Jag byggde en generell
+läs-tolerans (samma mönster som `ccoPatientAssetIdentity.js`) som slår
+ihop `hair_tp`/`hair-tp-clinic` transparent vid varje fråga. Det bröt
+sönder befintlig, redan existerande säkerhetsinfrastruktur jag inte
+kände till:
 
-Från samma Fas 0-mätning. Trolig men obekräftad hypotes: äldre bokningar
-från före exportens startdatum (augusti 2021), eller bokningar som tagits
-bort i Cliento men finns kvar hos oss historiskt. Kräver antingen en äldre
-Cliento-export för jämförelse, eller en datumfördelning av de 10 991 för
-att se om de klustrar före augusti 2021 (stödjer hypotesen) eller är
-spridda (stödjer inte).
+- **`src/ops/clientoCrossTenantCoverage.js` + `scripts/report-cliento-cross-tenant-coverage.js`**
+  och **`src/ops/clientoLinkCandidateManifest.js` + `scripts/report-cliento-link-candidates.js`**
+  (daterade **31 juli**, alltså byggda långt före dagens session) — ett
+  redan färdigt, noggrant konstruerat system som avsiktligt jämför
+  `hair_tp` och `hair-tp-clinic` som **två strikt separata populationer**
+  via `store.listAllBookings({ tenantId: leftTenant })` respektive
+  `rightTenant`. Checksummor, maskerad rapportering, `review_required`-
+  och `blocked_data_invariant`-grindar, noll skrivningar — en medveten,
+  säker rekonciliationsprocess.
+- Min läs-tolerans gjorde att `listAllBookings({tenantId:'hair_tp'})`
+  plötsligt returnerade BÅDA tenants poster, vilket fick de här
+  skriptens vänster/höger-jämförelse att se dubbelt (4 poster i stället
+  för 2 i ett CI-test) — `Unit tests + coverage gate` och `smoke`
+  failade i PR:en.
+- **Lärdom:** sök alltid efter befintlig hantering av ett specifikt
+  problem (inte bara det generella mönstret) innan en fix byggs. Det
+  fanns redan rätt verktyg — jag borde ha hittat det innan jag byggde
+  ett eget.
 
-### 8. Patientanteckningarnas omfattning — inte mätt separat från bokningsraderna
+**Rätt nästa steg, om/när Fazli vill gå vidare:** kör
+`scripts/report-cliento-link-candidates.js` (läs-endast, `zeroWrites:
+true`) mot prod via Render SSH för att se hur många bokningar som är
+säkra att länka ihop mellan de två tenant-namnrymderna, och låt dess
+egna `gate`-status (`review_required`/`blocked_data_invariant`) styra om
+något mer görs. Ingen egen kod behöver skrivas — verktyget finns redan.
 
-ORD-100 Fas 0 mätte bokningar, inte anteckningar isolerat.
-`internalNotes` är alltid `0` i CCO:s importerade data trots att
-`Attribut`-fältet är ifyllt i 99,8 % av källraderna (Cliento-export) —
-stärkt misstanke om en importer-mappningsbugg, men obekräftat mot
-faktiskt innehåll. Kräver att någon med Cliento-åtkomst tittar på vad
-`Attribut` faktiskt innehåller för en handfull bokningar, i Clientos eget
-gränssnitt.
+**`#1342`/`#1343` (global bookingId-dedup + saneringsskript) förblir
+korrekta och oberörda** — de skyddar mot en genuint annan, verklig risk
+(samma bookingId inom EN tenant med varierande identitetsfält mellan
+importer), och rör aldrig cross-tenant-jämförelsen. Inte påverkade av
+reverten.
+
+### 7. 10 991 bokningar finns bara i CCO — hypotesen om "äldre än exporten" MOTBEVISAD
+
+Datumfördelning körd 2026-08-08 (läs-endast, Render SSH):
+
+| År   |     Antal |
+| ---- | --------: |
+| 2021 |       182 |
+| 2022 |       388 |
+| 2023 |       312 |
+| 2024 |     2 475 |
+| 2025 | **4 577** |
+| 2026 |     3 038 |
+| 2027 |        19 |
+
+Om de vore äldre bokningar från före exportens startdatum (augusti 2021)
+hade de klustrat i 2021 eller tidigare. I stället klustrar de i
+**2024–2026**, mitt i exportens täckta period, med några ända i 2027
+(framtida bokningar). **Hypotesen är motbevisad.**
+
+**Ny, obekräftad hypotes:** dessa är bokningar skapade **i CCO självt**
+(t.ex. via `source` skilt från `cliento_csv`, eller CCO:s egen
+bokningsmotor som skriver till samma store) — inte en Cliento-
+migreringslucka alls. Mönstret (växande mot nutid/framtid) pekar dit.
+Kräver en fördelning över `source`-fältet för den här delmängden för
+att bekräftas — inte gjort än.
+
+### 8. Patientanteckningarnas omfattning — KLAR 2026-08-08
+
+Manuellt verifierat i Cliento → Rapporter → Exportera bokningar →
+Förhandsgranska, med `Attribut` som kolumn (augusti 2026, 100 bokningar
+stickprov): **fältet är tomt, `{}`, i varje rad.** Det förklarar
+`internalNotes: 0` fullt ut — det fanns inget att mappa, ingen
+importer-bugg. Inget att migrera därifrån.
+
+**Bonus-fynd, relevant för hela Cliento-migreringen (ORD-100):**
+`Bokningsanteckning` är en valbar kolumn i samma export — per-bokning-
+anteckningar går alltså att exportera själv. Det är bara kundkortens
+fria anteckningar som INTE finns i självbetjänings-exporten (kräver
+Cliento support). Kund-exporten (`Kundexport_nya`) ger bara namn,
+telefon, e-post, skapad-datum — ingen anteckningstext.
 
 ---
 
@@ -208,7 +276,13 @@ för att verifiera att icke-interaktiv körning funkar innan något större.
   (`wc -l`-metodfel, sedan en ofullständig totalsummejämförelse) står
   dokumenterade som historik i `ORD-100-cco-kalender-cliento-migrering.md`,
   inte gömda. **Slutgiltigt facit: 384 bokningar saknas genuint i CCO**,
-  inte 66 561. Se öppna punkt 5–8 ovan för vad som återstår.
+  inte 66 561. Se öppna punkt 7 ovan för vad som återstår (punkt 4, 5, 8
+  stängda 2026-08-08).
+- **ORD-101** — cross-tenant-reconcile för `hair_tp`/`hair-tp-clinic` är
+  redan byggt och kört en gång (18 juli 2026, tre veckor före denna
+  session): 1 887 säkra länkkandidater hittade, noll skrivningar, medvetet
+  pausat i väntan på Fazlis "separata owner-granskning". Se
+  `docs/handover/ORDERS/ORD-101-cliento-cross-tenant-reconcile.md`.
 
 ---
 
