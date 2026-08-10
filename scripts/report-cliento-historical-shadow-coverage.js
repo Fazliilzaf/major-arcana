@@ -95,8 +95,8 @@ async function main() {
   });
   const report = buildClientoHistoricalShadowCoverageReport({
     bookings: [
-      ...store.listAllBookings({ tenantId: args.leftTenant, limit: 0 }),
-      ...store.listAllBookings({ tenantId: args.rightTenant, limit: 0 }),
+      ...store.listAllBookings({ tenantId: args.leftTenant, limit: 0, exactTenant: true }),
+      ...store.listAllBookings({ tenantId: args.rightTenant, limit: 0, exactTenant: true }),
     ],
     ledgerEvents: ledger.listEvents(),
     bookingsChecksum,

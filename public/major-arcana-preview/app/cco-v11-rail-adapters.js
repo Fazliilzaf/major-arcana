@@ -1159,7 +1159,7 @@
     var items = sorted.slice(0, 5).map(function (e) {
       var state = e.locked || e.signedAt ? 'signed' : 'draft';
       return {
-        title: text(e.title) || text(e.journalType) || text(e.formKey) || 'Journalpost',
+        title: text(e.displayName) || text(e.title) || text(e.journalType) || text(e.formKey) || 'Journalpost',
         snippet: journalNoteText(e),
         meta: journalMeta(e),
         state: state,

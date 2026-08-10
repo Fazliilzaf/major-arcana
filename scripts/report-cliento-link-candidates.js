@@ -5,9 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { createClientoBookingStore } = require('../src/ops/clientoBookingStore');
-const {
-  buildClientoLinkCandidateManifest,
-} = require('../src/ops/clientoLinkCandidateManifest');
+const { buildClientoLinkCandidateManifest } = require('../src/ops/clientoLinkCandidateManifest');
 
 function requireFile(value, label) {
   const resolved = value ? path.resolve(value) : '';
@@ -65,8 +63,12 @@ async function main() {
   const manifest = buildClientoLinkCandidateManifest({
     leftTenant: args.leftTenant,
     rightTenant: args.rightTenant,
-    leftBookings: store.listAllBookings({ tenantId: args.leftTenant, limit: 0 }),
-    rightBookings: store.listAllBookings({ tenantId: args.rightTenant, limit: 0 }),
+    leftBookings: store.listAllBookings({ tenantId: args.leftTenant, limit: 0, exactTenant: true }),
+    rightBookings: store.listAllBookings({
+      tenantId: args.rightTenant,
+      limit: 0,
+      exactTenant: true,
+    }),
     unlinkedReview,
     expectedTotal: args.expectedTotal,
     expectedUnlinkedReviewCount: args.expectedUnlinkedReviewCount,

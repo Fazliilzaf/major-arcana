@@ -458,10 +458,15 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     return [...merged.values()];
   }
 
-  function listAllBookings({ tenantId, limit = 0 }) {
+  function listAllBookings({ tenantId, limit = 0, exactTenant = false }) {
     const out = [];
+    const t = normalizeText(tenantId);
     for (const [key, list] of Object.entries(state.bookings)) {
-      if (!bucketKeyMatchesTenant(key, tenantId)) continue;
+      if (exactTenant) {
+        if (!t || !key.startsWith(`${t}::`)) continue;
+      } else if (!bucketKeyMatchesTenant(key, tenantId)) {
+        continue;
+      }
       for (const b of asArray(list)) out.push(withTenantFromBucket(b, key));
       if (limit > 0 && out.length >= limit) break;
     }

@@ -348,6 +348,21 @@ html[data-cco-mobile-shell="on"]
   gap: 10px;
 }
 
+.v12-workspace__journal-group {
+  list-style: none;
+  margin: 8px 0 4px;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--v12-muted);
+}
+
+.v12-workspace__journal-group:first-child {
+  margin-top: 0;
+}
+
 .v12-workspace__journal-card {
   display: flex;
   flex-direction: column;

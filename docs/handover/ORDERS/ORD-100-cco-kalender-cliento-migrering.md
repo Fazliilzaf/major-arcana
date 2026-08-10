@@ -272,9 +272,15 @@ dokumenterat självrättelser.
 - **10 991 bokningar finns bara i CCO, inte i senaste exporten.** Trolig
   förklaring: äldre bokningar från före exportens startdatum (augusti 2021) importerade i en tidigare, bredare körning, eller bokningar
   borttagna i Cliento men kvar hos oss historiskt. Obekräftat.
-- **CCO:s råa lager har 55 221 poster men bara 37 494 unika
-  `Boknings-id`** (del 1) — 17 727 dubbletter eller poster utan ID.
-  Separat fråga från migreringsgapet, inte utredd.
+- **CCO:s råa lager har 55 221 poster men bara 37 494 unika `Boknings-id`
+  UTAN tenant-scoping** (del 1) — **UPPDATERAT 2026-08-08, se `CCO-STATUS.md`
+  punkt 6:** det här var mitt eget metodfel i mätningen, inte en
+  databugg. Verklig orsak: två tenant-ID:n (`hair-tp-clinic`/`hair_tp`)
+  för samma klinik, aldrig konsoliderade. Bekräftat via `--dry-run` mot
+  prod: noll riktiga dubbletter inom en tenant. **Påverkar inte
+  384-siffran** nedan — den mäter existens av ett `bookingId` någonstans
+  i CCO, oavsett tenant, vilket förblir en giltig fråga trots
+  tenant-splittringen.
 
 **Datamigreringens verkliga omfattning är alltså litet** (384 bokningar),
 inte det stora arbete ordens tidigare versioner antog. Det ändrar
