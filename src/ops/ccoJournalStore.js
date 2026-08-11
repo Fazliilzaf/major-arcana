@@ -72,17 +72,18 @@ function buildJournalDisplayName(entry = {}) {
   const date = parseJournalEntryDate(safe) || 'okänt datum';
 
   const typeKey = normalizeKey(safe.journalType);
-  const typeLabel = {
-    tp_treatment: 'TP',
-    prp_treatment: 'PRP',
-    bleph_treatment: 'Curatiio',
-    follow_up: 'Uppföljning',
-    consultation_plan: 'Konsultation',
-    consent_bundle: 'Avtal + samtycke',
-    health_declaration: 'Hälsodeklaration',
-    fitness_certificate: 'Friskförsäkran',
-    historical_import: 'Historisk import',
-  }[typeKey] || 'Journal';
+  const typeLabel =
+    {
+      tp_treatment: 'TP',
+      prp_treatment: 'PRP',
+      bleph_treatment: 'Curatiio',
+      follow_up: 'Uppföljning',
+      consultation_plan: 'Konsultation',
+      consent_bundle: 'Avtal + samtycke',
+      health_declaration: 'Hälsodeklaration',
+      fitness_certificate: 'Friskförsäkran',
+      historical_import: 'Historisk import',
+    }[typeKey] || 'Journal';
   const treatment = normalizeText(safe.treatmentType) || typeLabel;
 
   const statusKey = normalizeKey(safe.status);
@@ -395,6 +396,7 @@ function buildJournalReadout(entry) {
     locked: Boolean(safe.locked),
     title: safe.title,
     displayName: normalizeText(safe.displayName) || buildJournalDisplayName(safe),
+    journalDateReal: safe.journalDateReal || null,
     source: safe.source,
     personnummer: safe.personnummer,
     treatmentEncounterId: safe.treatmentEncounterId,

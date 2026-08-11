@@ -55,6 +55,7 @@ function resolveJournalDate(entry = {}) {
   if (fromExplicit) return fromExplicit;
 
   const haystack = [
+    safe.displayName,
     safe.title,
     meta.importKey,
     meta.relativePath,
