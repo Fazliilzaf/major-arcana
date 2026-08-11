@@ -343,7 +343,35 @@ function buildVideoEntry(file) {
 }
 
 function resolveJournalDate(entry) {
-  for (const value of [entry?.signedAt, entry?.updatedAt, entry?.createdAt]) {
+  const safe = entry || {};
+  const meta = safe.importMeta || {};
+
+  const candidates = [
+    safe.journalDateReal,
+    safe.documentDate,
+    meta.journalDateReal,
+    meta.documentDate,
+    meta.modifiedTime,
+    meta.createdTime,
+  ];
+  for (const value of candidates) {
+    const date = normalizeText(value).slice(0, 10);
+    if (isIsoDate(date)) return date;
+  }
+
+  const haystack = [
+    safe.displayName,
+    safe.title,
+    meta.importKey,
+    meta.relativePath,
+    meta.fileName,
+  ].join(' ');
+  const isoInPath = normalizeText(haystack).match(
+    /\b(20\d{2}|19\d{2})[-_/. ](\d{2})[-_/. ](\d{2})\b/
+  );
+  if (isoInPath) return `${isoInPath[1]}-${isoInPath[2]}-${isoInPath[3]}`;
+
+  for (const value of [safe.signedAt, safe.updatedAt, safe.createdAt]) {
     const date = normalizeText(value).slice(0, 10);
     if (isIsoDate(date)) return date;
   }
@@ -377,9 +405,8 @@ function buildJournalEntry(entry) {
     date: resolveJournalDate(entry) || null,
     displayName,
     title:
-      normalizeText(
-        repairMojibakeFilename(displayName || entry?.title || entry?.journalType)
-      ) || 'Journalanteckning',
+      normalizeText(repairMojibakeFilename(displayName || entry?.title || entry?.journalType)) ||
+      'Journalanteckning',
     journalType: normalizeText(entry?.journalType) || null,
     status: normalizeText(entry?.status) || 'draft',
     locked: Boolean(entry?.locked),

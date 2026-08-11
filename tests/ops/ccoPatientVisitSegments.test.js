@@ -811,3 +811,69 @@ test('buildVisitSegments prefers journal displayName over mojibake title', () =>
   assert.equal(result.visitSegments.length, 1);
   assert.equal(result.visitSegments[0].journals[0].title, 'Friskförsäkran.pdf');
 });
+
+test('buildVisitSegments places journal with journalDateReal into the matching image segment', () => {
+  const result = buildVisitSegments({
+    driveFiles: [
+      {
+        id: 'photo-1',
+        fileType: 'image',
+        fileName: 'Front.jpg',
+        captureDateTime: '2025-01-06T09:14:00',
+        documentDate: '2025-01-06',
+      },
+    ],
+    journalEntries: [
+      {
+        entryId: 'journal-real-date',
+        journalType: 'historical_import',
+        source: 'drive_import',
+        title: 'Friskförsäkran-TP-AbdirahmanHussein isse-1767693899-7061.pdf',
+        displayName: '2025-01-06 · FUE Operation 1 · Journal · signerad',
+        status: 'signed',
+        locked: true,
+        signedAt: '2026-05-24T11:06:42.559Z',
+        updatedAt: '2026-08-07T21:23:34.240Z',
+        journalDateReal: '2025-01-06',
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments.length, 1);
+  assert.equal(result.visitSegments[0].date, '2025-01-06');
+  assert.equal(result.visitSegments[0].images.length, 1);
+  assert.equal(result.visitSegments[0].journals.length, 1);
+  assert.equal(result.visitSegments[0].journals[0].entryId, 'journal-real-date');
+  assert.equal(result.visitSegments[0].journals[0].date, '2025-01-06');
+});
+
+test('buildVisitSegments falls back to displayName date when journalDateReal is missing', () => {
+  const result = buildVisitSegments({
+    driveFiles: [
+      {
+        id: 'photo-2',
+        fileType: 'image',
+        fileName: 'Front.jpg',
+        captureDateTime: '2025-01-06T09:14:00',
+        documentDate: '2025-01-06',
+      },
+    ],
+    journalEntries: [
+      {
+        entryId: 'journal-display-date',
+        journalType: 'historical_import',
+        source: 'drive_import',
+        title: 'Journal utan datum.pdf',
+        displayName: '2025-01-06 · FUE Operation 1 · Journal · signerad',
+        status: 'signed',
+        locked: true,
+        signedAt: '2026-05-24T11:06:42.559Z',
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments.length, 1);
+  assert.equal(result.visitSegments[0].date, '2025-01-06');
+  assert.equal(result.visitSegments[0].journals.length, 1);
+  assert.equal(result.visitSegments[0].journals[0].date, '2025-01-06');
+});
