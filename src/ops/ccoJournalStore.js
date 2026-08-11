@@ -58,6 +58,43 @@ function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+function parseJournalEntryDate(entry = {}) {
+  const iso = normalizeText(
+    entry.journalDateReal || entry.signedAt || entry.updatedAt || entry.createdAt
+  );
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+}
+
+function buildJournalDisplayName(entry = {}) {
+  const safe = asObject(entry);
+  const date = parseJournalEntryDate(safe) || 'okänt datum';
+
+  const typeKey = normalizeKey(safe.journalType);
+  const typeLabel = {
+    tp_treatment: 'TP',
+    prp_treatment: 'PRP',
+    bleph_treatment: 'Curatiio',
+    follow_up: 'Uppföljning',
+    consultation_plan: 'Konsultation',
+    consent_bundle: 'Avtal + samtycke',
+    health_declaration: 'Hälsodeklaration',
+    fitness_certificate: 'Friskförsäkran',
+    historical_import: 'Historisk import',
+  }[typeKey] || 'Journal';
+  const treatment = normalizeText(safe.treatmentType) || typeLabel;
+
+  const statusKey = normalizeKey(safe.status);
+  const statusLabel =
+    {
+      signed: 'signerad',
+      corrected: 'korrigerad',
+    }[statusKey] || 'utkast';
+
+  return `${date} · ${treatment} · Journal · ${statusLabel}`;
+}
+
 function emptyConsultationPlanFields() {
   return {
     consultationDate: '',
@@ -357,6 +394,7 @@ function buildJournalReadout(entry) {
     status: safe.status,
     locked: Boolean(safe.locked),
     title: safe.title,
+    displayName: normalizeText(safe.displayName) || buildJournalDisplayName(safe),
     source: safe.source,
     personnummer: safe.personnummer,
     treatmentEncounterId: safe.treatmentEncounterId,
@@ -1209,6 +1247,7 @@ module.exports = {
   JOURNAL_STATUSES,
   JOURNAL_TYPES,
   JOURNAL_VISIBILITY,
+  buildJournalDisplayName,
   buildJournalReadout,
   createCcoJournalStore,
   emptyConsultationPlanFields,

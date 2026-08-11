@@ -135,7 +135,8 @@ test('buildVisitSegments attaches journal to matching encounter and exposes jour
     entryId: 'journal-1',
     encounterId: 'encounter-1',
     date: '2024-04-22',
-    title: 'PRP-journal',
+    displayName: '2024-04-22 · PRP · Journal · signerad',
+    title: '2024-04-22 · PRP · Journal · signerad',
     journalType: 'prp_treatment',
     status: 'signed',
     locked: true,
@@ -758,7 +759,7 @@ test('resolveTakenAt returns captureDateTime when present', () => {
   );
 });
 
-test('buildVisitSegments repairs mojibake in journal titles', () => {
+test('buildVisitSegments uses displayName fallback instead of raw mojibake titles', () => {
   const result = buildVisitSegments({
     driveFiles: [],
     journalEntries: [
@@ -784,8 +785,11 @@ test('buildVisitSegments repairs mojibake in journal titles', () => {
   assert.equal(result.visitSegments.length, 1);
   const segment = result.visitSegments[0];
   assert.equal(segment.journals.length, 2);
-  assert.equal(segment.journals[0].title, 'Friskförsäkran-TP-AbdirahmanHussein.pdf');
-  assert.equal(segment.journals[1].title, 'Halsodeklaration-Abdirahman-Hussein.pdf');
+  const expectedFallback = '2024-04-22 · Historisk import · Journal · signerad';
+  assert.equal(segment.journals[0].title, expectedFallback);
+  assert.equal(segment.journals[0].displayName, expectedFallback);
+  assert.equal(segment.journals[1].title, expectedFallback);
+  assert.equal(segment.journals[1].displayName, expectedFallback);
 });
 
 test('buildVisitSegments prefers journal displayName over mojibake title', () => {

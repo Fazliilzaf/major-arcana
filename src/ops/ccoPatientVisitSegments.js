@@ -4,6 +4,7 @@ const { extractFileOccasionContext } = require('../../scripts/migration/lib/migr
 const { normalizeTimelineDateTime, resolveTimelineSort } = require('./ccoAssetTimelineSort');
 const { inferEncounterTypeFromAsset } = require('./ccoAssetNaming/encounterMapper');
 const { repairMojibakeFilename } = require('./filenameEncoding');
+const { buildJournalDisplayName } = require('./ccoJournalStore');
 
 const SWEDISH_MONTHS = [
   'januari',
@@ -369,13 +370,15 @@ function collectJournalNoteLines(fields, prefix = '', lines = []) {
 }
 
 function buildJournalEntry(entry) {
+  const displayName = normalizeText(entry?.displayName) || buildJournalDisplayName(entry);
   return {
     entryId: normalizeText(entry?.entryId) || null,
     encounterId: normalizeText(entry?.treatmentEncounterId || entry?.encounterId) || null,
     date: resolveJournalDate(entry) || null,
+    displayName,
     title:
       normalizeText(
-        repairMojibakeFilename(entry?.displayName || entry?.title || entry?.journalType)
+        repairMojibakeFilename(displayName || entry?.title || entry?.journalType)
       ) || 'Journalanteckning',
     journalType: normalizeText(entry?.journalType) || null,
     status: normalizeText(entry?.status) || 'draft',
