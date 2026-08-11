@@ -4,7 +4,7 @@
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Bas-commit**        | `main` (2026-08-08)                                                                                                                                                                                                                            |
 | **Ägare**             | Cowork (kartläggning, denna order)                                                                                                                                                                                                             |
-| **GO**                | väntar Fazli                                                                                                                                                                                                                                   |
+| **GO**                | Fas 0 (steg 1) GO given och genomförd 2026-08-11 — se facit nedan. Steg 2–3 väntar fortfarande Fazlis egen genomläsning av P0-dokumenten.                                                                                                      |
 | **Allvarlighetsgrad** | **Ingen ny risk, ingen kod att skriva.** Det här är en existerande, redan säkerhetsgranskad process som stannat vid ett medvetet pausläge i tre veckor. Ordern finns för att göra pausen synlig och begriplig, inte för att flagga något akut. |
 | **Föregångare**       | ORD-100 punkt 6 (CCO-STATUS.md) — jag byggde av misstag en egen, för generell fix för samma problem 2026-08-08 (PR #1345, stängd utan merge) innan jag hittade det här redan färdiga systemet.                                                 |
 
@@ -86,6 +86,47 @@ Git-historiken bekräftar: sista relevanta commit är **19 juli 2026**
 läsmodeller). Ingenting rört det här området igen förrän min egen,
 felaktiga fix idag (nu återkallad).
 
+## Fas 0, steg 1 — OMKÖRD OCH BEKRÄFTAD 2026-08-11
+
+Fazli körde `scripts/report-cliento-cross-tenant-coverage.js --sample-limit 0`
+läs-endast mot dagens prod-data via Render Web Shell (`--store
+/var/data/cco/cliento-bookings.json`, `exactTenant: true` sedan `#1349`s
+fix — samma korrekta strikta separation som skriptet alltid krävt).
+Headern bekräftar `readOnly: true`, `zeroWrites: true`,
+`generatedAt: "2026-08-11T01:19:10Z"`.
+
+**Allt matchar 18 juli exakt — noll drift på tre och en halv vecka:**
+
+| Mått                      | 18 juli |                  11 aug |     |
+| ------------------------- | ------: | ----------------------: | :-: |
+| Total population          |  55 221 |                  55 221 | ✅  |
+| `hair_tp` (left)          |  27 410 |                  27 410 | ✅  |
+| `hair-tp-clinic` (right)  |  27 811 |                  27 811 | ✅  |
+| Unika `bookingId` (union) |  37 494 |                  37 494 | ✅  |
+| Olänkad reviewmängd       |  11 472 |                  11 472 | ✅  |
+| Ensidiga poster           |  19 767 | 19 767 (9 683 + 10 084) | ✅  |
+| Intra-tenant-dubbletter   |       0 |                       0 | ✅  |
+
+Klassificeringar (11 aug): `exact_match: 2229`, `complementary_notes: 15190`,
+`conflict: 308`, ensidiga 19 767 — summerar till hela unionen (37 494),
+konsekvenskontrollerat. Säkerhetsblocket oförändrat:
+`dataMutations: 0`, `patientIdWrites: 0`, `encounterIdWrites: 0`,
+`linkProposals: 0`, `gate.status: "review_required"`,
+`persistentLinkPlanAllowed: false`, `mergePlanAllowed: false`.
+
+**Om 1 887-kandidatsiffran:** inte omräknad bokstavligt (kräver ett extra
+steg — en genererad "unlinked review"-fil — inte byggt än). Men eftersom
+kandidatfiltret är en ren, deterministisk funktion av exakt de värden
+som just bekräftades identiska (population, tenant-split, union,
+klassificeringar, olänkad mängd), håller slutsatsen logiskt utan att
+behöva köras om: **1 887 står fast.** Ingen ny körning av
+`report-cliento-link-candidates.js` bedömdes nödvändig — hade bara
+bekräftat samma sak på ett dyrare sätt.
+
+**Slutsats:** steg 1 i det föreslagna nästa steget (nedan) är klart.
+Steg 2 (Fazlis egen genomläsning av de två P0-dokumenten) och steg 3
+(det begränsade första paketet) återstår, i Fazlis eget tempo.
+
 ## Vad ORD-101 INTE är
 
 - **Ingen ny kod föreslås.** Verktygen finns redan, byggda med betydligt
@@ -100,10 +141,8 @@ felaktiga fix idag (nu återkallad).
 
 Ett förslag, inte ett beslut:
 
-1. **Kör om steg 1–4 mot dagens prod-snapshot** (läs-endast, `zeroWrites`)
-   för att bekräfta att 1 887-siffran fortfarande stämmer — populationen
-   verkar oförändrad (55 221 då och nu) så resultatet bör vara identiskt,
-   men outdaterad bekräftelse är inte bekräftelse.
+1. ~~Kör om steg 1–4 mot dagens prod-snapshot~~ — **KLAR 2026-08-11.**
+   Steg 1 (coverage) omkört, allt matchar 18 juli exakt. Se facit ovan.
 2. **Fazli läser `CLIENTO-UNLINKED-RECONCILE-P0-2026-07-18.md` och
    `CLIENTO-LINK-CANDIDATE-MANIFEST-P0-READONLY.md`** själv (eller ber
    om en muntlig genomgång) — det är den "separata owner-granskning"
