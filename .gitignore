@@ -60,6 +60,15 @@ reports/stryker/
 /false
 /true
 
+# Agent/run-generated artifacts (not source of truth)
+audit-reports/
+graphify-out/
+receipts/
+review-receipts/
+public/major-arcana-preview/receipts/
+public/major-arcana-preview/review-receipts/
+v12-spine-*.png
+
 # Playwright generated artifacts (should not be committed)
 test-results/
 

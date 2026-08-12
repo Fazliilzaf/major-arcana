@@ -601,7 +601,7 @@ test('buildVisitSegments: all medium/low segments include at least one reason', 
   }
 });
 
-test('buildVisitSegments keeps capture/document date mismatches on resolved visit date', () => {
+test('buildVisitSegments prefers documentDate over captureDate when captureDateMismatch is true', () => {
   const result = buildVisitSegments({
     driveFiles: [
       {
@@ -617,8 +617,8 @@ test('buildVisitSegments keeps capture/document date mismatches on resolved visi
   });
 
   assert.equal(result.visitSegments.length, 1);
-  assert.equal(result.visitSegments[0].date, '2024-04-22');
-  assert.equal(result.visitSegments[0].label, '22 april 2024');
+  assert.equal(result.visitSegments[0].date, '2024-04-21');
+  assert.equal(result.visitSegments[0].label, '21 april 2024');
   assert.equal(result.visitSegments[0].confidence, 'medium');
   assert.ok(result.visitSegments[0].reasons.includes('capture_document_date_mismatch'));
 });
@@ -810,6 +810,38 @@ test('buildVisitSegments prefers journal displayName over mojibake title', () =>
 
   assert.equal(result.visitSegments.length, 1);
   assert.equal(result.visitSegments[0].journals[0].title, 'Friskförsäkran.pdf');
+});
+
+test('buildVisitSegments groups mismatched image with journal on documentDate', () => {
+  const result = buildVisitSegments({
+    driveFiles: [
+      {
+        id: 'photo-mismatch',
+        fileType: 'image',
+        fileName: 'Front.jpg',
+        captureDateTime: '2024-04-22T09:14:00',
+        documentDate: '2024-04-21',
+        captureDateMismatch: true,
+      },
+    ],
+    journalEntries: [
+      {
+        entryId: 'journal-same-visit',
+        journalType: 'prp_treatment',
+        status: 'signed',
+        locked: true,
+        signedAt: '2024-04-21T10:00:00.000Z',
+        journalDateReal: '2024-04-21',
+      },
+    ],
+  });
+
+  assert.equal(result.visitSegments.length, 1);
+  assert.equal(result.visitSegments[0].date, '2024-04-21');
+  assert.equal(result.visitSegments[0].images.length, 1);
+  assert.equal(result.visitSegments[0].journals.length, 1);
+  assert.equal(result.visitSegments[0].images[0].assetId, 'photo-mismatch');
+  assert.equal(result.visitSegments[0].journals[0].entryId, 'journal-same-visit');
 });
 
 test('buildVisitSegments places journal with journalDateReal into the matching image segment', () => {

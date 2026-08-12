@@ -1,7 +1,11 @@
 'use strict';
 
 const { extractFileOccasionContext } = require('../../scripts/migration/lib/migrationUtils');
-const { normalizeTimelineDateTime, resolveTimelineSort } = require('./ccoAssetTimelineSort');
+const {
+  normalizeTimelineDateTime,
+  resolveTimelineSort,
+  resolveTimelineSortExcludingCapture,
+} = require('./ccoAssetTimelineSort');
 const { inferEncounterTypeFromAsset } = require('./ccoAssetNaming/encounterMapper');
 const { repairMojibakeFilename } = require('./filenameEncoding');
 const { buildJournalDisplayName } = require('./ccoJournalStore');
@@ -63,7 +67,12 @@ function isVideoLikeFile(file) {
 function resolveSortKey(file) {
   const direct = normalizeTimelineDateTime(file?.timelineSortKey || file?.timelineDate);
   if (direct) return direct;
-  const timeline = resolveTimelineSort(file || {});
+  // When captureDateMismatch is flagged, trust the administratively assigned date
+  // (documentDate / visitDate / photoDate / importedAt / ...) over EXIF so that
+  // images land in the same visit segment as the corresponding journal.
+  const timeline = file?.captureDateMismatch
+    ? resolveTimelineSortExcludingCapture(file || {})
+    : resolveTimelineSort(file || {});
   if (timeline.sortKey) return timeline.sortKey;
   const occasion =
     file?.occasionContext && typeof file.occasionContext === 'object'

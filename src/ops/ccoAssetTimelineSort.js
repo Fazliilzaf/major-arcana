@@ -65,6 +65,27 @@ function resolveTimelineSort(record = {}) {
   return { field: '', sortKey: '', date: '' };
 }
 
+/**
+ * Same priority as resolveTimelineSort, but skips captureDateTime/captureDate.
+ * Used when captureDateMismatch is true so we prefer the administratively
+ * assigned date (documentDate / visitDate / photoDate / importedAt / ...)
+ * over EXIF for visit-segment grouping.
+ */
+function resolveTimelineSortExcludingCapture(record = {}) {
+  for (const field of TIMELINE_FIELDS) {
+    if (field === 'captureDateTime' || field === 'captureDate') continue;
+    const key = normalizeTimelineDateTime(record[field]);
+    if (key) {
+      return {
+        field,
+        sortKey: key,
+        date: key.slice(0, 10),
+      };
+    }
+  }
+  return { field: '', sortKey: '', date: '' };
+}
+
 function resolveTimelineTs(record = {}) {
   const key = resolveTimelineSortKey(record);
   const ts = Date.parse(key);
@@ -97,6 +118,7 @@ module.exports = {
   TIMELINE_FIELDS,
   normalizeTimelineDateTime,
   resolveTimelineSort,
+  resolveTimelineSortExcludingCapture,
   resolveTimelineSortKey,
   resolveTimelineTs,
   compareTimelineNewestFirst,

@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const {
   resolveTimelineSortKey,
   resolveTimelineSort,
+  resolveTimelineSortExcludingCapture,
   resolveTimelineTs,
   compareTimelineNewestFirst,
   pickNewestRecord,
@@ -64,5 +65,31 @@ describe('ccoAssetTimelineSort', () => {
     );
     assert.equal(picked.id, '1');
     assert.ok(resolveTimelineTs(picked) > resolveTimelineTs({ documentDate: '2024-01-01' }) - 1);
+  });
+
+  it('resolveTimelineSortExcludingCapture skips captureDateTime and captureDate', () => {
+    assert.deepEqual(
+      resolveTimelineSortExcludingCapture({
+        captureDateTime: '2024:03:15 14:30:00',
+        captureDate: '2024-03-10',
+        documentDate: '2020-01-01',
+      }),
+      {
+        field: 'documentDate',
+        sortKey: '2020-01-01T00:00:00',
+        date: '2020-01-01',
+      }
+    );
+    assert.deepEqual(
+      resolveTimelineSortExcludingCapture({
+        captureDate: '2024-03-10',
+        importedAt: '2022-05-01T12:00:00Z',
+      }),
+      {
+        field: 'importedAt',
+        sortKey: '2022-05-01T12:00:00Z',
+        date: '2022-05-01',
+      }
+    );
   });
 });
