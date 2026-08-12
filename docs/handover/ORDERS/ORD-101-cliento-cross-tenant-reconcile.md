@@ -195,3 +195,79 @@ Ett förslag, inte ett beslut:
 
 Ingen tidspress. Processen har redan väntat i tre veckor utan att något
 gått sönder av det.
+
+## Aktivering är TVÅ olika operationer, inte en — utrett 2026-08-12 (läs-endast)
+
+Fazli bad om full aktivering av alla 1 985 kandidater. Innan något
+`active`-steg kodades granskades ledger-kontraktet
+(`docs/strategy/cliento-link-sidecar-ledger-contract.v1.json`) mot vad
+kandidatdatan faktiskt kan leverera. Slutsats: kontraktet buntar ihop två
+orelaterade operationer, och bara den ena är körbar idag.
+
+### Vad kontraktet kräver
+
+Kedjan är `proposed → approved → active`, inte ett steg. `approved` kräver
+`"explicit_staff_review"`; `active` kräver dessutom
+`"separate_owner_go_and_staff_link_write_permission"`. Från och med
+`approved` är `canonicalPatientId`/`canonicalEncounterId` **obligatoriska**
+fält (`nullableUntilApproved`). Varje kandidat i det redan genererade
+paketet har dem satta till `null` — `clientoLinkProposedPack.js` sätter
+uttryckligen `canonicalPatientId: null, canonicalEncounterId: null,
+identityGuessingAllowed: false`. Gissning är förbjuden i kontraktet.
+
+### Mätt i produktion, läs-endast, inga patientvärden loggade
+
+**Bokningssidan** (`clientoBookingStore`):
+
+```
+55 221 bokningsposter · clientoCustomerId ifyllt på 45 845 (83 %)
+7 786 distinkta värden · 100 % rena 7-siffriga numeriska Cliento-kund-ID
+patientId ifyllt: 0 av 55 221 · encounterId ifyllt: 0 av 55 221
+```
+
+`clientoCustomerId` är redan bucket-nyckel #2 i `toBookingBucketKey`
+(`src/ops/clientoBookingStore.js` rad 84–85) — en riktig, väl ifylld
+identitetsnyckel. `patientId`/`encounterId` på bokningen är genuint tomma
+överallt; ingen förberäknad länk att läsa av där.
+
+**Patientsidan** (`ccoPatientMasterStore` + `clientoCustomerDeltaSync`):
+
+```
+7 521 patienter · 6 796 har ett cliento-snapshot
+cliento.sourceId: fältet finns, men non-empty på 0 av 7 521
+Deterministisk join booking.clientoCustomerId → patient: 1 av 7 786 (~0 %)
+```
+
+Rotorsaken är inte en importlucka i meningen "glömde fylla i ett fält" —
+den är strukturell. `src/ops/clientoCustomerDeltaSync.js` rad 229–242
+(`buildCsvClientoFingerprint`) sätter patientens `cliento.clientoId` till
+en **syntetisk fingeravtrycks-hash** (`csv:sha256(email|telefon|namn|
+createdAt)`), inte Clientos råa numeriska kund-ID. Bokningarnas
+`clientoCustomerId` och patienternas `cliento.clientoId` är alltså två
+helt olika ID-format som aldrig var designade att matcha varandra — inte
+en lucka i en annars kompatibel import.
+
+### De två operationerna
+
+1. **Tenant-dedup** (1 985 kandidater) — slå ihop byte-identiska
+   `hair_tp`/`hair-tp-clinic`-bokningsrader till en kanonisk post. Behöver
+   **inget** patient-ID, ingen review-UI. Oberoende, säker, körbar nu.
+2. **Boknings→patient-länkning** (`canonicalPatientId` i ledgern) —
+   blockerad. Kräver antingen att Cliento-källan (CSV-export eller API)
+   bär det råa numeriska kund-ID:t och att `clientoCustomerDeltaSync.js`
+   utökas att fånga det i ett fält kompatibelt med bokningarnas
+   `clientoCustomerId` — **utan** att röra den befintliga
+   fingeravtrycks-logiken, som andra delar av systemet kan bero på — eller
+   manuell granskning per kandidat om Cliento-källan inte bär ID:t.
+   **Öppen fråga, inte avgjord här:** bär Clientos kundexport det råa
+   numeriska ID:t överhuvudtaget? Det avgör om detta är en avgränsad
+   kodändring eller ett större datakälls-problem.
+
+### Rekommendation
+
+Bygg tenant-dedupen som egen, oberoende operation nu — den lånar inte
+ledgerns `canonicalPatientId`-grind och kräver ingen patientidentitet.
+Bygg **inte** `active`-steget för boknings→patient-länkning förrän frågan
+ovan (bär Cliento-källan det numeriska ID:t?) är besvarad. Att koda
+`active` mot dagens data skulle antingen kräva gissning (förbjudet av
+kontraktet) eller stå stilla på 0 % täckning.
