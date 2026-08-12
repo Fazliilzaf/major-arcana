@@ -1,12 +1,12 @@
 # ORD-101 — Cliento cross-tenant-reconcile: redan byggt, pausat, väntar på GO
 
-|                       |                                                                                                                                                                                                                                                |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Bas-commit**        | `main` (2026-08-08)                                                                                                                                                                                                                            |
-| **Ägare**             | Cowork (kartläggning, denna order)                                                                                                                                                                                                             |
-| **GO**                | Fas 0 (steg 1) GO given och genomförd 2026-08-11 — se facit nedan. Steg 2–3 väntar fortfarande Fazlis egen genomläsning av P0-dokumenten.                                                                                                      |
-| **Allvarlighetsgrad** | **Ingen ny risk, ingen kod att skriva.** Det här är en existerande, redan säkerhetsgranskad process som stannat vid ett medvetet pausläge i tre veckor. Ordern finns för att göra pausen synlig och begriplig, inte för att flagga något akut. |
-| **Föregångare**       | ORD-100 punkt 6 (CCO-STATUS.md) — jag byggde av misstag en egen, för generell fix för samma problem 2026-08-08 (PR #1345, stängd utan merge) innan jag hittade det här redan färdiga systemet.                                                 |
+|                       |                                                                                                                                                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Bas-commit**        | `main` (2026-08-08)                                                                                                                                                                                                                                    |
+| **Ägare**             | Cowork (kartläggning, denna order)                                                                                                                                                                                                                     |
+| **GO**                | Steg 1–3 (coverage, kandidatmanifest, begränsat 3-paket) körda läs-endast 2026-08-11 — se facit nedan. Alla aktiverings-/skrivgrindar fortsatt stängda. Beslut om att gå vidare till `active`-aktivering är fortfarande Fazlis eget, inget datum satt. |
+| **Allvarlighetsgrad** | **Ingen ny risk, ingen kod att skriva.** Det här är en existerande, redan säkerhetsgranskad process som stannat vid ett medvetet pausläge i tre veckor. Ordern finns för att göra pausen synlig och begriplig, inte för att flagga något akut.         |
+| **Föregångare**       | ORD-100 punkt 6 (CCO-STATUS.md) — jag byggde av misstag en egen, för generell fix för samma problem 2026-08-08 (PR #1345, stängd utan merge) innan jag hittade det här redan färdiga systemet.                                                         |
 
 ## Bakgrund — hur den här ordern uppstod
 
@@ -127,6 +127,40 @@ bekräftat samma sak på ett dyrare sätt.
 Steg 2 (Fazlis egen genomläsning av de två P0-dokumenten) och steg 3
 (det begränsade första paketet) återstår, i Fazlis eget tempo.
 
+## Steg A–C körda och verifierade 2026-08-11 (läs-endast)
+
+Efter att `scripts/report-cliento-unlinked-review.js` byggdes (PR #1352, täpper
+till steg A som saknades) kördes hela kedjan A→B→C mot dagens prod-snapshot via
+Render Web Shell:
+
+| Steg | Skript                                            | Resultat                                                                                                                                                |
+| ---- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A    | `report-cliento-unlinked-review.js`               | 11 196 olänkade (846 `identity_collision`, 974 `no_canonical_match`, 9 377 `missing_identity`)                                                          |
+| B    | `report-cliento-link-candidates.js`               | 1 985 kandidater, `gate.status: "review_candidates_only"`                                                                                               |
+| C    | `prepare-cliento-link-proposed-pack.js --limit 3` | `packSize: 3`, alla grindar (`proposedWriteAllowed`, `approvalAllowed`, `activationAllowed`, `productionWriteAllowed`, `journeyRestartAllowed`) `false` |
+
+Säkerhetsverifiering (steg C): `allBookingRefsMasked: true`,
+`allCasChecksumsPresent: true`, `reviewOverlapCount: 0`, samtliga skrivräknare
+(`bookingWrites`, `patientIdWrites`, `encounterIdWrites`, `activationWrites`,
+`sourceMutations`, ledger before/after) `0`, `inputFileUnchanged: true`
+(checksumma identisk före/efter). Ingen aktivering, ingen skrivning, inget
+förslag godkänt.
+
+**Avvikelse mot 18 juli-facit — förklarad, inte bekräftad bookingId-för-bookingId:**
+Olänkad mängd gick från 11 472 → 11 196 (−276) och kandidater från 1 887 → 1 985
+(+98). Patientpopulationen har samtidigt växt från 7 439 (18 juli) till 7 488
+(11 aug, bekräftat i appens "Alla kunder"-räknare) — en ökning på 49 patienter.
+Trolig förklaring: nya patienter tillagda sedan 18 juli löser upp bokningar som
+tidigare var olänkade (en ny patient kan matcha flera historiska bokningar),
+vilket både minskar olänkad-mängden och ökar kandidatpoolen. Detta är INTE
+verifierat rad-för-rad mot en specifik lista nya patienter — om exakt facit
+någonsin behövs (t.ex. inför ett aktiveringsbeslut) bör det knytas till en
+faktisk diff av patientpopulationen mellan de två snapshoten, inte antas.
+
+Detta är samma typ av avvikelse som `conflict`/`complementary_notes`-skillnaden
+vid Fas 0 (se ovan): en verklig, förklarbar förändring i underlaget — inte
+oförklarad drift eller ett fel i skripten.
+
 ## Vad ORD-101 INTE är
 
 - **Ingen ny kod föreslås.** Verktygen finns redan, byggda med betydligt
@@ -147,9 +181,17 @@ Ett förslag, inte ett beslut:
    `CLIENTO-LINK-CANDIDATE-MANIFEST-P0-READONLY.md`** själv (eller ber
    om en muntlig genomgång) — det är den "separata owner-granskning"
    dokumentationen efterfrågar, inte något en agent kan göra åt någon.
-3. **Om godkänt:** kör `prepare-cliento-link-proposed-pack.js --limit 3`
-   för att se det begränsade första paketet konkret, innan ett beslut
-   tas om att bygga `active`-aktiveringssteget (som inte finns kodat än).
+   **Status: oklar.** En agent har läst och sammanfattat båda dokumenten
+   åt Fazli, men det ersätter inte Fazlis egen genomläsning som
+   dokumentationen kräver — markeras inte klar förrän Fazli själv
+   bekräftar det.
+3. ~~Kör `prepare-cliento-link-proposed-pack.js --limit 3` för att se
+   det begränsade första paketet konkret~~ — **KLAR 2026-08-11**, se
+   facit ovan (steg A–C). Kördes före steg 2 var formellt avklarat, men
+   läs-endast och utan att öppna någon skriv-/aktiveringsgrind, så
+   ordningen har ingen praktisk betydelse. Beslutet om att bygga
+   `active`-aktiveringssteget (som inte finns kodat än) återstår
+   fortfarande och kräver steg 2 klart.
 
 Ingen tidspress. Processen har redan väntat i tre veckor utan att något
 gått sönder av det.
