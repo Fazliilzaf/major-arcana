@@ -27,6 +27,12 @@ const path = require('node:path');
 // existerande stavningstoleransen från ccoPatientAssetIdentity.js i stället
 // för att skriva en tredje kopia av samma logik.
 const { tenantCandidates } = require('./ccoPatientAssetIdentity');
+const {
+  groupBookings: groupBookingsByBookingId,
+  selectQualifyingBookingIdPairs,
+  validateUnlinkedReview,
+  maskedBookingRef,
+} = require('./clientoLinkCandidateManifest');
 
 function nowIso() {
   return new Date().toISOString();
@@ -409,6 +415,140 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     return report;
   }
 
+  // ORD-101 — tenant-stavnings-dedup (INTE boknings->patient-länkning; se
+  // docs/handover/ORDERS/ORD-101-cliento-cross-tenant-reconcile.md).
+  // Slår ihop bokningar som ligger dubbelt under två tenant-ID-stavningar
+  // (t.ex. hair_tp / hair-tp-clinic) till en kanonisk post under
+  // `canonicalTenant`. Rör aldrig patientId/encounterId (de är tomma
+  // överallt i källan — se ORD-101, 2026-08-12).
+  //
+  // Återanvänder EXAKT samma urvalslogik som det maskerade, redan
+  // säkerhetsgranskade kandidatmanifestet
+  // (selectQualifyingBookingIdPairs i clientoLinkCandidateManifest.js) —
+  // så att skrivoperationen aldrig kan slå ihop ett par manifestet inte
+  // själv skulle godkänt. commit: false (default) — bara rapport, ingen
+  // skrivning.
+  async function mergeCrossTenantDuplicateBookings({
+    leftTenant,
+    rightTenant,
+    canonicalTenant,
+    unlinkedReview,
+    expectedTotal,
+    expectedUnlinkedReviewCount,
+    commit = false,
+  } = {}) {
+    const leftId = normalizeText(leftTenant);
+    const rightId = normalizeText(rightTenant);
+    const canonicalId = normalizeText(canonicalTenant);
+    if (!leftId || !rightId || leftId === rightId) {
+      throw new Error('mergeCrossTenantDuplicateBookings: två olika tenant-id krävs.');
+    }
+    if (canonicalId !== leftId && canonicalId !== rightId) {
+      throw new Error(
+        'mergeCrossTenantDuplicateBookings: canonicalTenant måste vara samma sträng som leftTenant eller rightTenant.'
+      );
+    }
+    if (!Number.isInteger(expectedTotal) || expectedTotal < 0) {
+      throw new Error('mergeCrossTenantDuplicateBookings: expectedTotal krävs.');
+    }
+    if (!Number.isInteger(expectedUnlinkedReviewCount) || expectedUnlinkedReviewCount < 0) {
+      throw new Error('mergeCrossTenantDuplicateBookings: expectedUnlinkedReviewCount krävs.');
+    }
+
+    const leftBookings = listAllBookings({ tenantId: leftId, limit: 0, exactTenant: true });
+    const rightBookings = listAllBookings({ tenantId: rightId, limit: 0, exactTenant: true });
+    const left = groupBookingsByBookingId(leftBookings);
+    const right = groupBookingsByBookingId(rightBookings);
+    const unlinked = validateUnlinkedReview(unlinkedReview, expectedUnlinkedReviewCount);
+
+    const totalOccurrences = leftBookings.length + rightBookings.length;
+    const invariantFailures = [...unlinked.reasons];
+    if (totalOccurrences !== expectedTotal) invariantFailures.push('population_total_mismatch');
+    if (left.missingBookingId || right.missingBookingId) {
+      invariantFailures.push('population_booking_id_missing');
+    }
+    const blocked = invariantFailures.length > 0;
+
+    const report = {
+      readOnly: !commit,
+      zeroWrites: !commit,
+      leftTenant: leftId,
+      rightTenant: rightId,
+      canonicalTenant: canonicalId,
+      population: {
+        totalOccurrences,
+        leftOccurrences: leftBookings.length,
+        rightOccurrences: rightBookings.length,
+      },
+      gate: {
+        status: blocked ? 'blocked_data_invariant' : commit ? 'merged' : 'dry_run_ready',
+        invariantFailures: [...new Set(invariantFailures)].sort(),
+      },
+      exclusions: {
+        oneSided: 0,
+        intraTenantDuplicate: 0,
+        coreChecksumMismatch: 0,
+        noteSegmentMismatch: 0,
+        unlinkedReview: 0,
+      },
+      candidateCount: 0,
+      mergedCount: 0,
+      samples: [],
+    };
+    if (blocked) return report;
+
+    const { pairs, exclusions } = selectQualifyingBookingIdPairs({
+      leftGroups: left.groups,
+      rightGroups: right.groups,
+      unlinkedBookingIds: unlinked.bookingIds,
+    });
+    report.exclusions = exclusions;
+    report.candidateCount = pairs.length;
+
+    for (const { bookingId, leftEntry, rightEntry } of pairs) {
+      const survivorEntry = canonicalId === leftId ? leftEntry : rightEntry;
+      const otherEntry = canonicalId === leftId ? rightEntry : leftEntry;
+      const otherTenantId = canonicalId === leftId ? rightId : leftId;
+      const survivorIndexKey = bookingIdIndexKey(canonicalId, bookingId);
+      const otherIndexKey = bookingIdIndexKey(otherTenantId, bookingId);
+      const survivorBucketKey = survivorIndexKey ? bookingIdIndex.get(survivorIndexKey) : null;
+      const otherBucketKey = otherIndexKey ? bookingIdIndex.get(otherIndexKey) : null;
+      if (!survivorBucketKey || !otherBucketKey) {
+        // Index och listAllBookings gick isär mellan raden ovan och nu —
+        // hoppa fail-closed hellre än att gissa var posten ligger.
+        report.exclusions.oneSided += 1;
+        report.candidateCount -= 1;
+        continue;
+      }
+
+      if (report.samples.length < 10) {
+        report.samples.push({
+          bookingRef: maskedBookingRef(bookingId),
+          mergedInto: canonicalId,
+        });
+      }
+
+      if (commit) {
+        const merged = mergeBookingRecords(survivorEntry.booking, otherEntry.booking);
+        const survivorList = asArray(state.bookings[survivorBucketKey]).map((b) =>
+          b.bookingId === bookingId ? merged : b
+        );
+        state.bookings[survivorBucketKey] = survivorList;
+        const otherList = asArray(state.bookings[otherBucketKey]).filter(
+          (b) => b.bookingId !== bookingId
+        );
+        state.bookings[otherBucketKey] = otherList;
+        bookingIdIndex.delete(otherIndexKey);
+        report.mergedCount += 1;
+      } else {
+        report.mergedCount += 1;
+      }
+    }
+
+    if (commit && report.mergedCount) await save();
+    return report;
+  }
+
   async function importBatch({ tenantId, bookings, source = 'cliento' }) {
     const t = normalizeText(tenantId);
     if (!t) return { accepted: 0, rejected: 0 };
@@ -558,6 +698,7 @@ async function createClientoBookingStore({ filePath = '' } = {}) {
     clearTenant,
     findDuplicateBookingGroups,
     dedupeBookings,
+    mergeCrossTenantDuplicateBookings,
     flush,
     _state: state,
   };

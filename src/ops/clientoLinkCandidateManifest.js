@@ -2,10 +2,7 @@
 
 const crypto = require('node:crypto');
 
-const {
-  NOTE_FIELDS,
-  payloadChecksums,
-} = require('./clientoCrossTenantCoverage');
+const { NOTE_FIELDS, payloadChecksums } = require('./clientoCrossTenantCoverage');
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -16,7 +13,9 @@ function normalizeText(value) {
 }
 
 function normalizeEmail(value) {
-  return normalizeText(value).toLowerCase().replace(/^mailto:/, '');
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/^mailto:/, '');
 }
 
 function normalizePhone(value) {
@@ -142,6 +141,55 @@ function buildCandidateEntry({ bookingId, leftTenant, rightTenant, leftEntry, ri
   };
 }
 
+// Delad urvalslogik. Samma villkor används av det maskerade manifestet
+// (nedan) OCH av den skrivande tenant-dedup-operationen
+// (clientoBookingStore.js: mergeCrossTenantDuplicateBookings) — så att
+// skrivoperationen ALDRIG kan råka slå ihop ett par som manifestet inte
+// själv skulle godkänt. Returnerar riktiga (omaskerade) bookingId — bara
+// avsett för internt bruk inom skriv-stigen, aldrig för utskrift/rapport.
+function selectQualifyingBookingIdPairs({ leftGroups, rightGroups, unlinkedBookingIds }) {
+  const exclusions = {
+    oneSided: 0,
+    intraTenantDuplicate: 0,
+    coreChecksumMismatch: 0,
+    noteSegmentMismatch: 0,
+    unlinkedReview: 0,
+  };
+  const pairs = [];
+  const bookingIds = new Set([...leftGroups.keys(), ...rightGroups.keys()]);
+
+  for (const bookingId of [...bookingIds].sort()) {
+    const leftEntries = leftGroups.get(bookingId) || [];
+    const rightEntries = rightGroups.get(bookingId) || [];
+    if (!leftEntries.length || !rightEntries.length) {
+      exclusions.oneSided += 1;
+      continue;
+    }
+    if (leftEntries.length !== 1 || rightEntries.length !== 1) {
+      exclusions.intraTenantDuplicate += 1;
+      continue;
+    }
+    if (unlinkedBookingIds.has(bookingId)) {
+      exclusions.unlinkedReview += 1;
+      continue;
+    }
+
+    const leftEntry = leftEntries[0];
+    const rightEntry = rightEntries[0];
+    if (leftEntry.checksums.coreChecksum !== rightEntry.checksums.coreChecksum) {
+      exclusions.coreChecksumMismatch += 1;
+      continue;
+    }
+    if (leftEntry.checksums.notesChecksum !== rightEntry.checksums.notesChecksum) {
+      exclusions.noteSegmentMismatch += 1;
+      continue;
+    }
+    pairs.push({ bookingId, leftEntry, rightEntry });
+  }
+
+  return { pairs, exclusions };
+}
+
 function buildClientoLinkCandidateManifest({
   leftTenant = 'hair_tp',
   rightTenant = 'hair-tp-clinic',
@@ -174,7 +222,7 @@ function buildClientoLinkCandidateManifest({
   }
 
   const blocked = invariantFailures.length > 0;
-  const exclusions = {
+  let exclusions = {
     oneSided: 0,
     intraTenantDuplicate: 0,
     coreChecksumMismatch: 0,
@@ -186,32 +234,13 @@ function buildClientoLinkCandidateManifest({
   const bookingIds = new Set([...left.groups.keys(), ...right.groups.keys()]);
 
   if (!blocked) {
-    for (const bookingId of [...bookingIds].sort()) {
-      const leftEntries = left.groups.get(bookingId) || [];
-      const rightEntries = right.groups.get(bookingId) || [];
-      if (!leftEntries.length || !rightEntries.length) {
-        exclusions.oneSided += 1;
-        continue;
-      }
-      if (leftEntries.length !== 1 || rightEntries.length !== 1) {
-        exclusions.intraTenantDuplicate += 1;
-        continue;
-      }
-      if (unlinked.bookingIds.has(bookingId)) {
-        exclusions.unlinkedReview += 1;
-        continue;
-      }
-
-      const leftEntry = leftEntries[0];
-      const rightEntry = rightEntries[0];
-      if (leftEntry.checksums.coreChecksum !== rightEntry.checksums.coreChecksum) {
-        exclusions.coreChecksumMismatch += 1;
-        continue;
-      }
-      if (leftEntry.checksums.notesChecksum !== rightEntry.checksums.notesChecksum) {
-        exclusions.noteSegmentMismatch += 1;
-        continue;
-      }
+    const selected = selectQualifyingBookingIdPairs({
+      leftGroups: left.groups,
+      rightGroups: right.groups,
+      unlinkedBookingIds: unlinked.bookingIds,
+    });
+    exclusions = selected.exclusions;
+    for (const { bookingId, leftEntry, rightEntry } of selected.pairs) {
       candidateBookingIds.add(bookingId);
       entries.push(
         buildCandidateEntry({
@@ -299,4 +328,6 @@ module.exports = {
   maskedBookingRef,
   sourceSnapshotChecksum,
   validateUnlinkedReview,
+  selectQualifyingBookingIdPairs,
+  groupBookings,
 };
