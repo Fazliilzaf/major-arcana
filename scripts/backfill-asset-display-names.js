@@ -4,15 +4,25 @@
 /**
  * Backfill befintliga patient-assets med läsbara displayName.
  *
- *   node scripts/backfill-asset-display-names.js --dry-run
- *   node scripts/backfill-asset-display-names.js --dry-run --limit 50 --offset 0
- *   node scripts/backfill-asset-display-names.js --commit --limit 1000
- *   node scripts/backfill-asset-display-names.js --commit --patient-ids P1,P2
- *   node scripts/backfill-asset-display-names.js --commit --categories journal,consent
+ *   node scripts/backfill-asset-display-names.js --dry-run \
+ *     --patients-store /var/data/cco-patient-master.json --tenant hair-tp-clinic
+ *   node scripts/backfill-asset-display-names.js --commit --limit 1000 \
+ *     --patients-store /var/data/cco-patient-master.json --tenant hair-tp-clinic
+ *   node scripts/backfill-asset-display-names.js --commit --patient-ids P1,P2 \
+ *     --patients-store /var/data/cco-patient-master.json --tenant hair-tp-clinic
+ *
+ * --patients-store + --tenant krävs (fixar CCO-STATUS.md punkt 1, 519
+ * verifierade kors-patient-alias-kollisioner, PR #1364-#1371) — utan dem
+ * grupperas syskon-assets på rå, ofta icke-unik asset.patientId, och olika
+ * patienters dokument kan blandas ihop till ETT sessionNumber. Sätt
+ * --i-understand-the-collision-risk-skip-alias-resolution för att medvetet
+ * köra utan skyddet (t.ex. mot en lokal fixture utan patient-master-data).
  *
  * Skriver ALDRIG lågkonfidenta gissningar (namingStatus: needs_review_for_naming,
- * härlett av namingConfidence === 'low'). De hamnar i stats.skippedNeedsReview
- * och needsReviewSamples i rapporten, oskrivna, för manuell granskning.
+ * härlett av namingConfidence === 'low' ELLER ett sessionNumber som byggts på
+ * ett saknat documentDate — importedAt-fallback, samma bugg, se
+ * encounterNameResolver.js). De hamnar i stats.skippedNeedsReview och
+ * needsReviewSamples i rapporten, oskrivna, för manuell granskning.
  */
 
 require('dotenv').config({ quiet: true });
@@ -20,8 +30,10 @@ require('dotenv').config({ quiet: true });
 const path = require('node:path');
 
 const { createCcoPatientAssetStore } = require('../src/ops/ccoPatientAssetStore');
+const { createCcoPatientMasterStore } = require('../src/ops/ccoPatientMasterStore');
 const { createCcoAuditLog } = require('../src/security/ccoAuditLog');
 const { buildAssetNamingMetadata } = require('../src/ops/ccoAssetNaming');
+const { resolveCanonicalPatientsForAssets } = require('../src/ops/ccoPatientAssetIdentity');
 
 const REPO = path.resolve(__dirname, '..');
 const DATA = path.join(REPO, 'data');
@@ -46,6 +58,9 @@ function parseArgs(argv = process.argv.slice(2)) {
     patientIds: null,
     categories: null,
     force: false,
+    patientsStorePath: '',
+    tenant: '',
+    skipAliasResolution: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
@@ -69,9 +84,29 @@ function parseArgs(argv = process.argv.slice(2)) {
           .filter(Boolean)
           .map((s) => s.trim())
       );
+    else if (flag === '--patients-store') args.patientsStorePath = String(argv[++i] || '').trim();
+    else if (flag === '--tenant') args.tenant = String(argv[++i] || '').trim();
+    else if (flag === '--i-understand-the-collision-risk-skip-alias-resolution') {
+      args.skipAliasResolution = true;
+    }
   }
   if (args.commit) args.dryRun = false;
   if (!args.commit && !args.dryRun) args.dryRun = true;
+  // CCO-STATUS.md punkt 1 (bekräftad 2026-08-13, PR #1364-#1371): utan
+  // alias-upplösning grupperas syskon-assets på RÅ, ofta icke-unik
+  // asset.patientId — 519 verifierade kollisionsgrupper i prod där
+  // OLIKA patienters dokument blandas ihop och sessionNumber räknas
+  // över flera personers behandlingar. Kräver därför --patients-store +
+  // --tenant explicit (inget tyst default) om inte flaggan nedan
+  // medvetet slår av skyddet.
+  if (!args.skipAliasResolution && (!args.patientsStorePath || !args.tenant)) {
+    throw new Error(
+      '--patients-store <path> och --tenant <id> krävs (fixar 519 verifierade ' +
+        'kors-patient-kollisioner, se CCO-STATUS.md punkt 1). Sätt ' +
+        '--i-understand-the-collision-risk-skip-alias-resolution för att medvetet ' +
+        'köra utan skyddet.'
+    );
+  }
   return args;
 }
 
@@ -109,23 +144,43 @@ function needsBackfill(asset, { force = false }) {
 /**
  * Fyra foton, samma patient, samma dag, kategori photo_during — fick
  * "FUE Operation 23/25/26/30" i en dry-run 2026-08-07. sessionNumber ska
- * räkna DISTINKTA operationstillfällen (encounterMapper.js), inte foton;
- * grupperingen hade inte deduplicerat korrekt för den patienten. Roten är
- * inte fixad än.
+ * räkna DISTINKTA operationstillfällen, inte foton.
  *
- * namingStatus härleds deterministiskt av namingConfidence === 'low'
- * (ccoAssetNaming/index.js) — samma sak, olika fält. En låg-konfidens-
- * gissning som "Operation 30" ska aldrig skriva över ett existerande
- * displayName utan att en människa sett den först.
+ * ROTORSAK BEKRÄFTAD 2026-08-13 (PR #1364-#1371, läs-endast mot prod):
+ * TVÅ oberoende buggar, båda i groupByPatientId ovan.
+ *   1. Kors-patient alias-kollision (519 grupper) — asset.patientId är
+ *      ofta ett alias, inte en kanonisk patient-ID; olika patienters
+ *      dokument blandas ihop i EN syskon-grupp. Fixad genom
+ *      resolveAliasKeyFn (kräver --patients-store + --tenant).
+ *   2. Intra-patient datumfallback (fallbackShare upp till 1.0,
+ *      sessionNumber upp till 16) — countTreatmentSession
+ *      (encounterNameResolver.js) sorterar på documentDate || importedAt;
+ *      saknas documentDate blir sessionNumret en import-ordning, inte en
+ *      behandlingsordning. Fixad genom usedFallbackDate ->
+ *      namingStatus: needs_review_for_naming (nedan).
+ *
+ * namingStatus härleds av namingConfidence === 'low' ELLER
+ * usedFallbackDate (ccoAssetNaming/index.js). En osäker gissning som
+ * "Operation 30" ska aldrig skriva över ett existerande displayName utan
+ * att en människa sett den först.
  */
 function isAutoSafeNamingPatch(namingPatch) {
   return namingPatch?.namingStatus !== 'needs_review_for_naming';
 }
 
-function groupByPatientId(assets) {
+/**
+ * @param {object[]} assets
+ * @param {(asset: object) => string} [keyFn] — patientId-nyckel att
+ *   gruppera på. Default: rå asset.patientId (den historiskt buggiga
+ *   grupperingen). Skickas en resolverad kanonisk-ID-uppslagning in
+ *   (se resolveAliasKeyFn) fixas 519 verifierade kors-patient-
+ *   kollisioner (CCO-STATUS.md punkt 1) — grupperingsnyckeln ändras,
+ *   asset.patientId-fältet på den lagrade posten rörs aldrig.
+ */
+function groupByPatientId(assets, keyFn = (asset) => asset.patientId) {
   const map = new Map();
   for (const asset of assets) {
-    const pid = normalizeText(asset.patientId);
+    const pid = normalizeText(keyFn(asset));
     if (!pid) continue;
     if (!map.has(pid)) map.set(pid, []);
     map.get(pid).push(asset);
@@ -133,9 +188,26 @@ function groupByPatientId(assets) {
   return map;
 }
 
-async function backfillAssetDisplayNames({ assetStore, args }) {
+// ORD-85 (resolveCanonicalPatientsForAssets, ccoPatientAssetIdentity.js)
+// ordagrant — samma funktion #1368 verifierade mot prod (91 222 av
+// 126 642 assets bar ett alias-ID). Bygger en groupByPatientId-keyFn som
+// grupperar på kanonisk patient när den kan härledas, annars faller
+// tillbaka till rå asset.patientId (aldrig sämre än tidigare beteende).
+function resolveAliasKeyFn(assets, patients) {
+  const resolutions = resolveCanonicalPatientsForAssets({ patients, assets });
+  const canonicalByAssetId = new Map();
+  for (const resolution of resolutions) {
+    if (resolution.canonicalPatientId) {
+      canonicalByAssetId.set(resolution.assetId, resolution.canonicalPatientId);
+    }
+  }
+  return (asset) => canonicalByAssetId.get(asset.id) || asset.patientId;
+}
+
+async function backfillAssetDisplayNames({ assetStore, patients = null, args }) {
   const all = assetStore.listItemsForEnrichment();
-  const byPatient = groupByPatientId(all);
+  const keyFn = patients ? resolveAliasKeyFn(all, patients) : undefined;
+  const byPatient = groupByPatientId(all, keyFn);
 
   const stats = {
     scanned: all.length,
@@ -307,7 +379,27 @@ async function main() {
     auditLog,
   });
 
-  const report = await backfillAssetDisplayNames({ assetStore, args });
+  let patients = null;
+  if (args.patientsStorePath && args.tenant) {
+    const patientStore = await createCcoPatientMasterStore({
+      filePath: path.resolve(args.patientsStorePath),
+    });
+    const patientsPage = await patientStore.listPatients({
+      tenantId: args.tenant,
+      limit: 20000,
+      offset: 0,
+    });
+    patients = patientsPage.patients || [];
+  } else {
+    process.stderr.write(
+      '[backfill-asset-display-names] VARNING: kör utan alias-upplösning ' +
+        '(--i-understand-the-collision-risk-skip-alias-resolution) — kors-patient-' +
+        'kollisioner (CCO-STATUS.md punkt 1, 519 verifierade grupper) kan fortfarande ' +
+        'skriva ett sessionNumber som blandar ihop olika patienters behandlingar.\n'
+    );
+  }
+
+  const report = await backfillAssetDisplayNames({ assetStore, patients, args });
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 
   if (report.errors.length > 0) {
@@ -328,4 +420,6 @@ module.exports = {
   needsBackfill,
   looksTechnical,
   isAutoSafeNamingPatch,
+  groupByPatientId,
+  resolveAliasKeyFn,
 };

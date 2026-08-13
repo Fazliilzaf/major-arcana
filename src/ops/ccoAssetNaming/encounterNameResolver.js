@@ -28,12 +28,21 @@ function treatmentSessionLabel(treatmentType, sessionNumber) {
 
 /**
  * Räkna session-nummer per behandling baserat på journal-assets sorterade på datum.
+ *
+ * CCO-STATUS.md punkt 1 (bekräftad 2026-08-13, PR #1364-#1371): saknas
+ * `documentDate` faller sorteringen tillbaka på `importedAt`
+ * (import-tidpunkt, inte behandlingsdatum) — verifierat mot prod att
+ * detta ger uppräknade sessionNumber (upp till 16) för assets utan
+ * riktigt datum. `usedFallbackDate` i returvärdet flaggar just detta,
+ * så anroparen kan hålla tillbaka en osäker session-siffra i stället
+ * för att skriva den som fakta (samma mönster som
+ * `namingStatus: needs_review_for_naming`).
  */
 function countTreatmentSession(asset, siblingAssets = []) {
   const treatment =
     normalizeText(asset.treatmentType) ||
     detectTreatment(`${asset.originalFileName || ''} ${asset.originalDrivePath || ''}`);
-  if (!treatment) return { sessionNumber: null, visitLabel: null };
+  if (!treatment) return { sessionNumber: null, visitLabel: null, usedFallbackDate: false };
 
   const sameTreatment = siblingAssets
     .filter((a) => {
@@ -50,11 +59,14 @@ function countTreatmentSession(asset, siblingAssets = []) {
 
   const idx = sameTreatment.findIndex((a) => a.id === asset.id);
   const sessionNumber = idx >= 0 ? idx + 1 : sameTreatment.length + 1;
+  const isSessionType = /^prp$/i.test(treatment) || /fue|dhi/i.test(treatment);
+  const usedFallbackDate = isSessionType && !parseIsoDate(asset.documentDate);
 
   return {
-    sessionNumber: /^prp$/i.test(treatment) || /fue|dhi/i.test(treatment) ? sessionNumber : null,
+    sessionNumber: isSessionType ? sessionNumber : null,
     visitLabel: treatmentSessionLabel(treatment, sessionNumber),
     treatmentType: treatment,
+    usedFallbackDate,
   };
 }
 
@@ -90,6 +102,7 @@ function resolveEncounterNaming(asset = {}, ctx = {}) {
     encounterId: normalizeText(asset.encounterId) || null,
     visitLabel: visitLabel || null,
     sessionNumber: sessionInfo.sessionNumber,
+    usedFallbackDate: sessionInfo.usedFallbackDate || false,
   };
 }
 
