@@ -16,16 +16,30 @@
  * originalbuggen upptäcktes i (CCO-STATUS.md: "Upptäckt via
  * backfill-dry-run... 2026-08-07").
  *
- * Hypotes som testas: `backfill-asset-display-names.js`s
- * `groupByPatientId()` grupperar syskon-assets på RÅ `asset.patientId`
- * utan alias-upplösning — samma brist #1368 fixade i diagnostikverktyget
- * (91 222 av 126 642 assets bar ett alias-ID, inte en kanonisk
- * patient-master-ID; se PR #1368). Om flera olika riktiga patienters
- * dokument delar samma rå-alias-platshållare, blandas deras dokument
- * ihop i EN syskon-grupp, och sessionNumber räknas upp över flera
- * patienters behandlingar som om det vore en enda persons.
+ * TVÅ separata, oberoende hypoteser testas (upptäckt 2026-08-13 att
+ * själva bugg-kommentaren i backfill-asset-display-names.js rad
+ * 109-114 beskriver den andra, inte bara den första):
  *
- * Detta skript verifierar hypotesen LÄS-ENDAST: återanvänder
+ * 1. Kollision: `backfill-asset-display-names.js`s `groupByPatientId()`
+ *    grupperar syskon-assets på RÅ `asset.patientId` utan
+ *    alias-upplösning — samma brist #1368 fixade i diagnostikverktyget
+ *    (91 222 av 126 642 assets bar ett alias-ID, inte en kanonisk
+ *    patient-master-ID; se PR #1368). Om flera OLIKA riktiga patienters
+ *    dokument delar samma rå-alias-platshållare, blandas deras dokument
+ *    ihop i EN syskon-grupp, och sessionNumber räknas upp över flera
+ *    patienters behandlingar som om det vore en enda persons.
+ *    (Verifierad mot prod 2026-08-13: 519 kollisionsgrupper.)
+ *
+ * 2. Fragmentering INOM en och samma, korrekt identifierad patient —
+ *    exakt vad bugg-kommentaren i backfill-skriptet själv beskriver:
+ *    "Fyra foton, SAMMA patient, samma dag... fick FUE Operation
+ *    23/25/26/30." Ingen alias-kollision krävs för detta —
+ *    countTreatmentSession() sorterar syskon på
+ *    documentDate || importedAt och ger idx+1, så saknade riktiga
+ *    datum inom EN patients egen grupp räcker för att fragmentera.
+ *    Inte verifierad mot prod än — det gör den här utökade körningen.
+ *
+ * Detta skript verifierar båda hypoteserna LÄS-ENDAST: återanvänder
  * `countTreatmentSession` (encounterNameResolver.js) och
  * `resolveCanonicalPatientsForAssets` (ccoPatientAssetIdentity.js,
  * ORD-85) ordagrant — samma exakta funktioner som backfill-skriptet och
@@ -136,7 +150,19 @@ async function main() {
   // grupperingen som countTreatmentSession() körs mot i produktion.
   const rawGroups = groupByPatientId(allAssets);
 
+  // Två separata, oberoende hypoteser testas i samma pass:
+  //  1. Kollision: flera OLIKA kanoniska patienter delar samma rå
+  //     alias-patientId (verifierad 2026-08-13, 519 grupper i prod).
+  //  2. Fragmentering INOM en och samma, korrekt identifierad patient —
+  //     den ursprungliga bugg-kommentaren i backfill-asset-display-
+  //     names.js (rad 109-114) beskriver just detta: "Fyra foton, SAMMA
+  //     patient, samma dag... fick FUE Operation 23/25/26/30." Ingen
+  //     alias-kollision behövs för detta — countTreatmentSension()
+  //     sorterar syskon på documentDate || importedAt och ger idx+1,
+  //     så saknade riktiga datum (eller genuint många historiska
+  //     dokument) inom EN patients egen grupp räcker.
   const collisionGroups = [];
+  const singlePatientHighSessionGroups = [];
   for (const [rawPatientId, siblingAssets] of rawGroups) {
     const canonicalIds = new Set(
       siblingAssets
@@ -146,20 +172,21 @@ async function main() {
         )
         .filter(Boolean)
     );
-    if (canonicalIds.size <= 1) continue; // Ingen kollision — en grupp, en patient.
 
     // Reproducera EXAKT vad backfill-skriptet skulle beräkna idag för
-    // varje asset i den här (kolliderande) syskon-gruppen.
+    // varje asset i den här syskon-gruppen (kollision eller ej).
     const bySessionResult = [];
     for (const asset of siblingAssets) {
       const result = countTreatmentSession(asset, siblingAssets);
       if (!result.sessionNumber) continue;
+      const hasRealDate = Boolean(asset.documentDate);
       bySessionResult.push({
         assetId: asset.id,
         canonicalPatientId:
           canonicalByAssetId.get(normalizeText(asset.id)) || normalizeText(asset.patientId),
         treatmentType: result.treatmentType,
         sessionNumber: result.sessionNumber,
+        usedImportedAtFallback: !hasRealDate && Boolean(asset.importedAt),
       });
     }
     const maxSession = bySessionResult.reduce(
@@ -168,32 +195,45 @@ async function main() {
     );
     if (maxSession < args.minSession) continue;
 
-    const byCanonicalPatient = new Map();
-    for (const row of bySessionResult) {
-      if (!byCanonicalPatient.has(row.canonicalPatientId)) {
-        byCanonicalPatient.set(row.canonicalPatientId, { maxSession: 0, count: 0 });
+    if (canonicalIds.size > 1) {
+      const byCanonicalPatient = new Map();
+      for (const row of bySessionResult) {
+        if (!byCanonicalPatient.has(row.canonicalPatientId)) {
+          byCanonicalPatient.set(row.canonicalPatientId, { maxSession: 0, count: 0 });
+        }
+        const entry = byCanonicalPatient.get(row.canonicalPatientId);
+        entry.maxSession = Math.max(entry.maxSession, row.sessionNumber);
+        entry.count += 1;
       }
-      const entry = byCanonicalPatient.get(row.canonicalPatientId);
-      entry.maxSession = Math.max(entry.maxSession, row.sessionNumber);
-      entry.count += 1;
+      collisionGroups.push({
+        rawPatientIdRef: maskId(rawPatientId),
+        groupSize: siblingAssets.length,
+        distinctCanonicalPatients: canonicalIds.size,
+        maxSessionInGroup: maxSession,
+        affectedPatients: [...byCanonicalPatient.entries()]
+          .map(([canonicalId, entry]) => ({
+            patientId: maskId(canonicalId),
+            maxSessionNumber: entry.maxSession,
+            assetsInGroup: entry.count,
+          }))
+          .sort((a, b) => b.maxSessionNumber - a.maxSessionNumber),
+      });
+    } else {
+      const fallbackCount = bySessionResult.filter((row) => row.usedImportedAtFallback).length;
+      singlePatientHighSessionGroups.push({
+        patientId: maskId([...canonicalIds][0] || rawPatientId),
+        groupSize: siblingAssets.length,
+        maxSessionNumber: maxSession,
+        fallbackCount,
+        fallbackShare: bySessionResult.length
+          ? Number((fallbackCount / bySessionResult.length).toFixed(2))
+          : 0,
+      });
     }
-
-    collisionGroups.push({
-      rawPatientIdRef: maskId(rawPatientId),
-      groupSize: siblingAssets.length,
-      distinctCanonicalPatients: canonicalIds.size,
-      maxSessionInGroup: maxSession,
-      affectedPatients: [...byCanonicalPatient.entries()]
-        .map(([canonicalId, entry]) => ({
-          patientId: maskId(canonicalId),
-          maxSessionNumber: entry.maxSession,
-          assetsInGroup: entry.count,
-        }))
-        .sort((a, b) => b.maxSessionNumber - a.maxSessionNumber),
-    });
   }
 
   collisionGroups.sort((a, b) => b.maxSessionInGroup - a.maxSessionInGroup);
+  singlePatientHighSessionGroups.sort((a, b) => b.maxSessionNumber - a.maxSessionNumber);
 
   const report = {
     readOnly: true,
@@ -205,6 +245,8 @@ async function main() {
     minSession: args.minSession,
     collisionGroupsFound: collisionGroups.length,
     topCollisionGroups: collisionGroups.slice(0, args.top),
+    singlePatientHighSessionGroupsFound: singlePatientHighSessionGroups.length,
+    topSinglePatientHighSessionGroups: singlePatientHighSessionGroups.slice(0, args.top),
   };
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 }
