@@ -169,12 +169,27 @@ hade de klustrat i 2021 eller tidigare. I stället klustrar de i
 **2024–2026**, mitt i exportens täckta period, med några ända i 2027
 (framtida bokningar). **Hypotesen är motbevisad.**
 
-**Ny, obekräftad hypotes:** dessa är bokningar skapade **i CCO självt**
-(t.ex. via `source` skilt från `cliento_csv`, eller CCO:s egen
-bokningsmotor som skriver till samma store) — inte en Cliento-
-migreringslucka alls. Mönstret (växande mot nutid/framtid) pekar dit.
-Kräver en fördelning över `source`-fältet för den här delmängden för
-att bekräftas — inte gjort än.
+**"CCO-egna bokningar"-hypotesen MOTBEVISAD 2026-08-13.** Körde
+`scripts/report-cco-only-bookings-source-distribution.js` (#1362) mot
+prod-storen och den faktiska senaste Cliento-exporten (via Render SSH,
+läs-endast). Facit matchar tidigare mätning byte-exakt (28 656
+totalrader/26 887 unika i exporten, 10 991 bara i CCO, samma
+årsfördelning som ovan) — bekräftar rätt delmängd.
+
+Källfördelningen är entydig: **10 990 av 10 991 (99,99 %) har
+`source: "cliento_csv"`** — exakt samma ursprung som resten av
+bokningarna, importerade via samma pipeline. Bara 1 post har
+`cliento_uat` (ett testfrö, försumbart). **De är alltså INTE CCO-egna
+bokningar från ett annat system.**
+
+**Ny, mest sannolika förklaring (obekräftad, men enda återstående som
+går ihop med källfördelningen):** bokningarna importerades från en
+**tidigare** Cliento-export, men har sedan tagits bort/avbokats i
+Cliento och saknas därför i den senaste exporten — CCO raderar aldrig
+historiskt importerade bokningar vid ny import. Skulle kräva en äldre
+Cliento-export att jämföra mot, eller en kontroll direkt i Cliento av
+ett stickprov `bookingId`, för att slutgiltigt bekräftas. Inte
+brådskande — påverkar ingen aktiv funktion.
 
 ### 8. Patientanteckningarnas omfattning — KLAR 2026-08-08
 
