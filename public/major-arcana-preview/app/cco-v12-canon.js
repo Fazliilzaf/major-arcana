@@ -862,125 +862,13 @@
     );
   }
 
-  /* ---------- 6 · JOURNAL ---------- */
-  function journalSegmentsBlock(segments) {
-    var list = arr(segments).filter(function (segment) {
-      return Boolean(segment && segment.date);
-    });
-    if (!list.length) return '';
-    list.sort(function (a, b) {
-      return txt(b.date || '').localeCompare(txt(a.date || ''));
-    });
-    return list
-      .map(function (segment) {
-        var visitDate = txt(segment.date);
-        var label = txt(segment.label || visitDate);
-        var visitType = txt(segment.visitType);
-        var timeRange = txt(segment.timeRange);
-        var meta = [visitType, timeRange, journalStateForSegment(segment)]
-          .filter(Boolean)
-          .join(' · ');
-        return (
-          '<details class="card v12-canon-visit-segment v12-canon-journal-segment"' +
-          (arr(segment.journals).length ? ' open' : '') +
-          ' data-visit-room-date="' +
-          esc(visitDate) +
-          '">' +
-          '<summary><span class="what">' +
-          esc(label) +
-          '</span><span class="when">' +
-          esc(meta) +
-          '</span></summary>' +
-          journalBlock(segment, { title: 'Journalanteckningar' }) +
-          '</details>'
-        );
-      })
-      .join('');
-  }
-  function s6(journals, visitSegments) {
-    var list = arr(journals && journals.items ? journals.items : journals);
-    var dagens = list.filter(function (e) {
-      return /utkast|draft/i.test(txt(e && e.status));
-    }).length;
-    var sub = list.length
-      ? dagens
-        ? dagens + ' dagens · ' + (list.length - dagens) + ' tidigare'
-        : list.length + ' anteckningar'
-      : null;
-    var head = secHead(
-      '06',
-      'Journal',
-      sub,
-      '<button class="sec-link" data-v12-visit-journal>+ Ny anteckning</button>'
-    );
-    if (!list.length)
-      return (
-        '<section class="sec" id="s6">' +
-        head +
-        '<div class="card" style="color:var(--ink-mute)">Inga journalanteckningar ännu.</div></section>'
-      );
-    var segmentBlock = journalSegmentsBlock(visitSegments);
-    if (segmentBlock) return '<section class="sec" id="s6">' + head + segmentBlock + '</section>';
-    // Fallback: flat lista om besökssegment saknas (t.ex. legacy-data).
-    return (
-      '<section class="sec" id="s6">' +
-      head +
-      list
-        .slice(0, 8)
-        .map(function (e) {
-          var signed = /signed|signerad|locked/i.test(txt(e.status));
-          var today = /utkast|draft/i.test(txt(e.status));
-          var metaParts = txt(e.meta || '')
-            .split('·')
-            .map(function (p) {
-              return p.trim();
-            });
-          var md =
-            metaParts.length >= 2
-              ? {
-                  mon: cap(metaParts[1].slice(0, 3).toLowerCase()),
-                  day: metaParts[0],
-                }
-              : monDay(e.dateLabel || e.date || e.signedAt);
-          return (
-            '<div class="journal-row' +
-            (today ? ' today' : '') +
-            '">' +
-            '<div class="journal-date">' +
-            esc(today ? 'Idag' : md.mon) +
-            '<span class="d">' +
-            esc(md.day || '—') +
-            '</span></div>' +
-            '<div><div class="journal-title">' +
-            esc(txt(e.title || 'Journal')) +
-            '</div>' +
-            '<div class="journal-meta">' +
-            esc(txt(e.snippet || e.meta || '')) +
-            '</div></div>' +
-            chip(signed ? 'ok' : 'warn', signed ? 'Signerad' : 'Utkast') +
-            '<div class="journal-actions">' +
-            (signed
-              ? '<button type="button" class="j-btn" data-v12-visit-journal data-encounter-id="' +
-                esc(txt(e.encounterId)) +
-                '">Öppna</button>'
-              : '<button type="button" class="j-btn primary" data-v12-visit-journal data-encounter-id="' +
-                esc(txt(e.encounterId)) +
-                '">Fortsätt</button>') +
-            '</div></div>'
-          );
-        })
-        .join('') +
-      '</section>'
-    );
-  }
-
-  /* ---------- 7 · BILDER ---------- */
+  /* ---------- 7 · BESÖK · TILLFÄLLEN ---------- */
   function s7(photos, visitSegments, patientId) {
     var items = arr(photos && photos.items ? photos.items : photos);
     var visitBlock = visitSegmentsBlock(visitSegments, patientId);
     var head = secHead(
       '07',
-      'Bilder',
+      'Besök · tillfällen',
       items.length ? items.length + ' bilder' : null,
       '<button class="sec-link" data-v11-active-visit-action="photo">📷 Ta bild</button>' +
         (items.length >= 2
@@ -991,16 +879,9 @@
       return (
         '<section class="sec" id="s7">' +
         head +
-        '<div class="card" style="color:var(--ink-mute)">Inga bilder uppladdade ännu.</div></section>'
+        '<div class="card" style="color:var(--ink-mute)">Inga besök registrerade ännu.</div></section>'
       );
-    if (!items.length)
-      return (
-        '<section class="sec" id="s7">' +
-        head +
-        '<div class="card" style="color:var(--ink-mute)">Inga fristående bilder uppladdade.</div>' +
-        visitBlock +
-        '</section>'
-      );
+    if (!items.length) return '<section class="sec" id="s7">' + head + visitBlock + '</section>';
     var tiles = items
       .slice(0, 12)
       .map(function (p) {
@@ -1389,7 +1270,7 @@
     var hist = arr(history && history.items ? history.items : history);
     var head = secHead(
       '08',
-      'Besök · tillfällen',
+      'Bokningar',
       up.length + ' kommande · ' + hist.length + ' historik',
       '<button class="sec-link" data-kk-ord48-open-calendar data-patient-id="' +
         esc(patientId) +
@@ -1806,13 +1687,12 @@
     ['s3', 'Varningar', '03'],
     ['s4', 'Hälsa', '04'],
     ['s5', 'Kundresa', '05'],
-    ['s6', 'Journal', '06'],
-    ['s7', 'Bilder', '07'],
-    ['s8', 'Bokningar', '08'],
-    ['s9', 'Dokument', '09'],
-    ['s10', 'Kommunikation', '10'],
-    ['s11', 'Ekonomi', '11'],
-    ['s12', 'Insikter', '12'],
+    ['s7', 'Besök · tillfällen', '06'],
+    ['s8', 'Bokningar', '07'],
+    ['s9', 'Dokument', '08'],
+    ['s10', 'Kommunikation', '09'],
+    ['s11', 'Ekonomi', '10'],
+    ['s12', 'Insikter', '11'],
   ];
 
   /* ---------- HEADER + TABBAR (scroll-ankare) ---------- */
@@ -2250,7 +2130,6 @@
       s3(warnings) +
       s4(health) +
       s5(journey, av, nextStep, photos, health, stepAssets) +
-      s6(journals, ctx.visitSegments, patientId) +
       s7(photos, ctx.visitSegments, patientId) +
       s8(bookings, history, patientId) +
       s9(files, offers, autoDocs, patientId) +
@@ -2266,8 +2145,7 @@
       s3: 'warnings',
       s4: 'health',
       s5: 'journey',
-      s6: 'journal',
-      s7: 'photos',
+      s7: 'visits',
       s8: 'bookings',
       s9: 'documents',
       s10: 'communication',
