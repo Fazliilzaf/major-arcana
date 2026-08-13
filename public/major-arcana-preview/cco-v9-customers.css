@@ -4846,7 +4846,7 @@ html[data-v9-enabled="on"]
   .customers-v9-header
   .calendar-status-bar
   .v9-snitt-ltv-trend:not(:empty)::before {
-  content: '·';
+  content: "·";
   margin-right: 6px;
   opacity: 0.6;
 }
@@ -5507,6 +5507,11 @@ html[data-v9-enabled="on"] [data-search-dropdown-panel] {
   background: var(--v9-bg-panel-shell, rgba(250, 246, 242, 0.98));
   box-shadow: var(--v9-panel-shell-shadow-strong, 0 18px 48px rgba(56, 40, 28, 0.18));
   overflow: hidden;
+}
+
+html[data-v9-enabled="on"] [data-search-dropdown-backdrop][hidden],
+html[data-v9-enabled="on"] [data-search-dropdown-panel][hidden] {
+  display: none !important;
 }
 
 html[data-v9-enabled="on"] .cr-search-dropdown-kicker {
@@ -8346,7 +8351,9 @@ html[data-v9-enabled="on"] .customer-row-head.cr-ref-head,
     margin-left: 0 !important;
   }
 
-  html[data-v9-enabled="on"][data-cco-mobile-shell="on"] .customer-row.cr-v10 > div:has(.cr-status) {
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"]
+    .customer-row.cr-v10
+    > div:has(.cr-status) {
     grid-area: status !important;
     min-width: 0 !important;
     justify-self: start !important;
@@ -8368,7 +8375,8 @@ html[data-v9-enabled="on"] .customer-row-head.cr-ref-head,
     display: none !important;
   }
 
-  html[data-v9-enabled="on"][data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-list,
+  html[data-v9-enabled="on"][data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+    .customers-list,
   html[data-v9-enabled="on"][data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
     .customers-list-panel {
     display: none !important;
