@@ -260,3 +260,72 @@ test('end-to-end: hypotes 2 — the exact bug-comment scenario: "fyra foton, sam
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('topByFallbackShare surfaces a fallback-heavy group even when its sessionNumber stays below --min-session (the gap flagged after #1370)', async () => {
+  const dir = await makeDir();
+  const patientStore = await createCcoPatientMasterStore({
+    filePath: path.join(dir, 'cco-patient-master.json'),
+  });
+  const hidden = await patientStore.upsertPatient({
+    tenantId: 'test-tenant',
+    displayName: 'Hidden Below Threshold',
+    primaryEmail: 'hidden@example.test',
+  });
+  const loud = await patientStore.upsertPatient({
+    tenantId: 'test-tenant',
+    displayName: 'Loud Real History',
+    primaryEmail: 'loud@example.test',
+  });
+
+  const assetStore = await createCcoPatientAssetStore({
+    filePath: path.join(dir, 'cco-patient-assets.json'),
+  });
+  // "hidden": only 4 assets, all importedAt-fallback (fallbackShare 1)
+  // but sessionNumber tops out at 4 -- below a --min-session of 5, so
+  // it would never appear in topSinglePatientHighSessionGroups.
+  for (let i = 0; i < 4; i += 1) {
+    await assetStore.addAsset({
+      patientId: hidden.id,
+      sourceSystem: 'pipedrive_import',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      category: 'photo_during',
+      mimeType: 'image/jpeg',
+      patientCardSection: 'behandling',
+      treatmentType: 'FUE',
+      importedAt: `2026-0${i + 1}-15T10:00:00.000Z`,
+    });
+  }
+  // "loud": 6 assets, all real documentDate (fallbackShare 0) -- passes
+  // --min-session but must NOT dominate the fallback-share ranking.
+  for (let i = 0; i < 6; i += 1) {
+    await assetStore.addAsset({
+      patientId: loud.id,
+      sourceSystem: 'pipedrive_import',
+      status: 'VERIFIED_IN_CCO',
+      mimeType: 'application/pdf',
+      patientCardSection: 'behandling',
+      treatmentType: 'PRP',
+      documentDate: `2026-0${i + 1}-01`,
+    });
+  }
+
+  const report = runScript(dir, ['--min-session', '5', '--min-assets-for-fallback-ranking', '3']);
+
+  // Confirms the gap: "hidden" never shows up in the session-gated view.
+  assert.equal(
+    report.topSinglePatientHighSessionGroups.some((g) => g.patientId === maskId(hidden.id)),
+    false
+  );
+
+  // But it IS the top entry in the independent fallback-share ranking.
+  assert.equal(report.fallbackRankingCandidatesScanned, 2);
+  const [top] = report.topByFallbackShare;
+  assert.equal(top.patientId, maskId(hidden.id));
+  assert.equal(top.fallbackShare, 1);
+  assert.equal(top.maxSessionNumber, 4);
+
+  const loudRow = report.topByFallbackShare.find((g) => g.patientId === maskId(loud.id));
+  assert.equal(loudRow.fallbackShare, 0);
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
