@@ -143,6 +143,15 @@ async function main() {
     offset: 0,
   });
   const patients = patientsPage.patients || [];
+  // Enda faktiska tenant-gränsen tillgänglig: patientMasterStore är
+  // tenant-bucketad, men cco-patient-assets.json har INGEN tenantId-fält
+  // alls på asset-nivå (normalizeAsset lagrar den aldrig) — så
+  // listItemsForEnrichment(tenantId) är ett no-op-filter oavsett vad som
+  // skickas in. Skyddet måste därför ske genom att skära mot den redan
+  // tenant-scopade patient-ID-mängden, både på asset-input och på
+  // registrets slutgiltiga per-patient-rader (bookings/journalEntries
+  // kan i teorin också innehålla poster för patientId utanför tenanten).
+  const patientIdScope = new Set(patients.map((patient) => normalizeText(patient.id)));
 
   const bookingIndex = await loadKunderBookingIndex(
     { clientoBookingStorePath: path.resolve(args.clientoBookingsStorePath) },
@@ -163,12 +172,15 @@ async function main() {
     bookings.push(...(signals.upcomingBookings || []), ...(signals.historyBookings || []));
   }
 
-  const assets = assetStore.listItemsForEnrichment();
+  const assets = assetStore
+    .listItemsForEnrichment()
+    .filter((asset) => patientIdScope.has(normalizeText(asset.patientId)));
 
   const registry = buildEncounterRegistry({ journalEntries, bookings, assets });
 
   const rows = [];
   for (const [patientId, encMap] of registry) {
+    if (!patientIdScope.has(normalizeText(patientId))) continue;
     for (const type of SESSION_TYPES) {
       const typed = [...encMap.values()].filter((enc) => enc.encounterType === type);
       if (!typed.length) continue;

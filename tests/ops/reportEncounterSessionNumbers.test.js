@@ -189,3 +189,78 @@ test('end-to-end: a patient below --min-sessions is excluded from the report', a
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('a fragmenting patient in a DIFFERENT tenant bucket is excluded — cco-patient-assets.json has no tenantId field, so the scoping must happen via the patientId set, not via listItemsForEnrichment', async () => {
+  const dir = await makeDir();
+  const patientStore = await createCcoPatientMasterStore({
+    filePath: path.join(dir, 'cco-patient-master.json'),
+  });
+  const inScope = await patientStore.upsertPatient({
+    tenantId: 'test-tenant',
+    displayName: 'In Scope',
+    primaryEmail: 'inscope@example.test',
+  });
+  const otherTenant = await patientStore.upsertPatient({
+    tenantId: 'other-tenant',
+    displayName: 'Other Tenant',
+    primaryEmail: 'other@example.test',
+  });
+
+  const assetStore = await createCcoPatientAssetStore({
+    filePath: path.join(dir, 'cco-patient-assets.json'),
+  });
+  // Fragmenting asset set for the OTHER tenant's patient — must never
+  // surface when querying --tenant test-tenant.
+  for (let i = 0; i < 6; i += 1) {
+    await assetStore.addAsset({
+      patientId: otherTenant.id,
+      sourceSystem: 'pipedrive_import',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      mimeType: 'application/pdf',
+      patientCardSection: 'behandling',
+      treatmentType: 'FUE',
+      importedAt: `2026-0${(i % 6) + 1}-15T10:00:00.000Z`,
+    });
+  }
+  // in-scope patient stays below --min-sessions so the report is
+  // unambiguous: any row present would have to be the leaked one.
+  await assetStore.addAsset({
+    patientId: inScope.id,
+    sourceSystem: 'pipedrive_import',
+    status: 'VISIBLE_ON_PATIENT_CARD',
+    mimeType: 'application/pdf',
+    patientCardSection: 'behandling',
+    treatmentType: 'FUE',
+    importedAt: '2026-01-15T10:00:00.000Z',
+  });
+
+  await createCcoJournalStore({ filePath: path.join(dir, 'cco-journal.json') });
+  await createClientoBookingStore({ filePath: path.join(dir, 'cliento-bookings.json') });
+
+  const { execFileSync } = require('node:child_process');
+  const scriptPath = path.join(__dirname, '../../scripts/report-encounter-session-numbers.js');
+  const out = execFileSync(
+    'node',
+    [
+      scriptPath,
+      '--patients-store',
+      path.join(dir, 'cco-patient-master.json'),
+      '--journal-store',
+      path.join(dir, 'cco-journal.json'),
+      '--patient-assets-store',
+      path.join(dir, 'cco-patient-assets.json'),
+      '--cliento-bookings-store',
+      path.join(dir, 'cliento-bookings.json'),
+      '--tenant',
+      'test-tenant',
+      '--min-sessions',
+      '3',
+    ],
+    { encoding: 'utf8' }
+  );
+  const report = JSON.parse(out);
+  assert.equal(report.groupsAboveThreshold, 0, 'other-tenant fragmentation must not leak in');
+  assert.deepEqual(report.topBySessionNumber, []);
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
