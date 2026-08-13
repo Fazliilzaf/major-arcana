@@ -37,7 +37,15 @@
  *    countTreatmentSession() sorterar syskon på
  *    documentDate || importedAt och ger idx+1, så saknade riktiga
  *    datum inom EN patients egen grupp räcker för att fragmentera.
- *    Inte verifierad mot prod än — det gör den här utökade körningen.
+ *
+ *    FÖRSTA KÖRNINGEN (2026-08-13, #1370 deployad) gav en ofullständig
+ *    bild: `topSinglePatientHighSessionGroups` var sorterad på
+ *    `maxSessionNumber`, gated av `--min-session` — så en grupp med hög
+ *    `fallbackShare` men lågt sessionNumber (under tröskeln) kunde
+ *    gömma sig helt utanför top-listan. `topByFallbackShare` (nytt
+ *    fält nedan) är en OBEROENDE rankning, inte gated av
+ *    `--min-session`, för ett vattentätt svar på om hypotes 2
+ *    materialiseras i praktiken.
  *
  * Detta skript verifierar båda hypoteserna LÄS-ENDAST: återanvänder
  * `countTreatmentSession` (encounterNameResolver.js) och
@@ -52,7 +60,8 @@
  *   node scripts/report-backfill-sibling-collision.js \
  *     --patient-assets-store /var/data/cco-patient-assets.json \
  *     --patients-store /var/data/cco-patient-master.json \
- *     --tenant hair-tp-clinic --min-session 5 --top 30
+ *     --tenant hair-tp-clinic --min-session 5 --top 30 \
+ *     --min-assets-for-fallback-ranking 4
  */
 
 const path = require('node:path');
@@ -80,6 +89,7 @@ function parseArgs(argv = process.argv) {
     minSession: 5,
     top: 30,
     patientLimit: 20000,
+    minAssetsForFallbackRanking: 4,
   };
   for (let index = 2; index < argv.length; index += 1) {
     const value = argv[index];
@@ -89,7 +99,9 @@ function parseArgs(argv = process.argv) {
     else if (value === '--min-session') args.minSession = Number(argv[++index]);
     else if (value === '--top') args.top = Number(argv[++index]);
     else if (value === '--patient-limit') args.patientLimit = Number(argv[++index]);
-    else throw new Error(`Okänt argument: ${value}`);
+    else if (value === '--min-assets-for-fallback-ranking') {
+      args.minAssetsForFallbackRanking = Number(argv[++index]);
+    } else throw new Error(`Okänt argument: ${value}`);
   }
   if (!args.patientAssetsStorePath) {
     throw new Error('--patient-assets-store <explicit path> krävs.');
@@ -101,6 +113,9 @@ function parseArgs(argv = process.argv) {
   }
   if (!Number.isInteger(args.top) || args.top < 1) {
     throw new Error('--top måste vara ett positivt heltal.');
+  }
+  if (!Number.isInteger(args.minAssetsForFallbackRanking) || args.minAssetsForFallbackRanking < 1) {
+    throw new Error('--min-assets-for-fallback-ranking måste vara ett positivt heltal.');
   }
   return args;
 }
@@ -157,12 +172,17 @@ async function main() {
   //     den ursprungliga bugg-kommentaren i backfill-asset-display-
   //     names.js (rad 109-114) beskriver just detta: "Fyra foton, SAMMA
   //     patient, samma dag... fick FUE Operation 23/25/26/30." Ingen
-  //     alias-kollision behövs för detta — countTreatmentSension()
+  //     alias-kollision behövs för detta — countTreatmentSession()
   //     sorterar syskon på documentDate || importedAt och ger idx+1,
   //     så saknade riktiga datum (eller genuint många historiska
   //     dokument) inom EN patients egen grupp räcker.
   const collisionGroups = [];
   const singlePatientHighSessionGroups = [];
+  // Oberoende av --min-session — annars kan en grupp med hög
+  // fallbackShare men lågt sessionNumber gömma sig helt (se
+  // kommentaren i filhuvudet, "FÖRSTA KÖRNINGEN gav en ofullständig
+  // bild").
+  const fallbackRankingCandidates = [];
   for (const [rawPatientId, siblingAssets] of rawGroups) {
     const canonicalIds = new Set(
       siblingAssets
@@ -193,6 +213,22 @@ async function main() {
       (max, row) => Math.max(max, row.sessionNumber || 0),
       0
     );
+
+    if (
+      canonicalIds.size === 1 &&
+      bySessionResult.length &&
+      siblingAssets.length >= args.minAssetsForFallbackRanking
+    ) {
+      const fallbackCount = bySessionResult.filter((row) => row.usedImportedAtFallback).length;
+      fallbackRankingCandidates.push({
+        patientId: maskId([...canonicalIds][0] || rawPatientId),
+        groupSize: siblingAssets.length,
+        maxSessionNumber: maxSession,
+        fallbackCount,
+        fallbackShare: Number((fallbackCount / bySessionResult.length).toFixed(2)),
+      });
+    }
+
     if (maxSession < args.minSession) continue;
 
     if (canonicalIds.size > 1) {
@@ -234,6 +270,9 @@ async function main() {
 
   collisionGroups.sort((a, b) => b.maxSessionInGroup - a.maxSessionInGroup);
   singlePatientHighSessionGroups.sort((a, b) => b.maxSessionNumber - a.maxSessionNumber);
+  fallbackRankingCandidates.sort(
+    (a, b) => b.fallbackShare - a.fallbackShare || b.groupSize - a.groupSize
+  );
 
   const report = {
     readOnly: true,
@@ -243,10 +282,16 @@ async function main() {
     totalAssetsScanned: allAssets.length,
     totalRawPatientIdGroups: rawGroups.size,
     minSession: args.minSession,
+    minAssetsForFallbackRanking: args.minAssetsForFallbackRanking,
     collisionGroupsFound: collisionGroups.length,
     topCollisionGroups: collisionGroups.slice(0, args.top),
     singlePatientHighSessionGroupsFound: singlePatientHighSessionGroups.length,
     topSinglePatientHighSessionGroups: singlePatientHighSessionGroups.slice(0, args.top),
+    // Oberoende rankning på fallbackShare, INTE gated av --min-session
+    // — svarar direkt på "materialiseras hypotes 2 någonstans, även
+    // vid lågt sessionNumber?" utan att en tröskel kan gömma signalen.
+    fallbackRankingCandidatesScanned: fallbackRankingCandidates.length,
+    topByFallbackShare: fallbackRankingCandidates.slice(0, args.top),
   };
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 }
