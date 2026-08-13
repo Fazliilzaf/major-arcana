@@ -78,6 +78,20 @@ test('classifyAsset: pipedrive smartdoc asset outside the qualifying status/sect
   assert.equal(classified, null);
 });
 
+test('classifyAsset: pipedrive smartdoc without a pdf/other mimeType+category is still classified — matches buildEncounterRegistrys inline filter, not the stricter isPipedriveSmartdocAsset from ccoEncounterLinkRepair.js', () => {
+  const classified = classifyAsset({
+    sourceSystem: 'pipedrive_import',
+    status: 'VISIBLE_ON_PATIENT_CARD',
+    patientCardSection: 'journal',
+    mimeType: 'image/jpeg',
+    category: 'photo_during',
+    treatmentType: 'FUE',
+    importedAt: '2026-02-20T10:00:00.000Z',
+  });
+  assert.equal(classified?.branch, 'pipedrive_smartdoc');
+  assert.equal(classified.usedImportedAtFallback, true);
+});
+
 test('end-to-end: 6 pipedrive smartdocs sharing one visit but importedAt-only fragment into 6 distinct dates', async () => {
   const { store, dir } = await makeStore();
   const importDates = [

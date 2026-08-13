@@ -15,10 +15,17 @@
  *
  * Återanvänder EXAKT samma funktioner som produktionskoden
  * (assetEncounterDate, inferEncounterTypeFromAsset från
- * encounterMapper.js; isPipedriveSmartdocAsset från
- * ccoEncounterLinkRepair.js) — bygger inte en egen, parallell
- * tolkning. Läs-endast. Maskerar alltid patientId i utdata (samma
- * mönster som ccoEncounterLinkRepair.js: behåll bara start/slut).
+ * encounterMapper.js) — bygger inte en egen, parallell tolkning av
+ * datum/typ. Pipedrive-smartdoc-filtret speglar den INLINE-logiken i
+ * buildEncounterRegistry (encounterMapper.js) rad för rad, snarare än
+ * att återanvända `isPipedriveSmartdocAsset` från
+ * ccoEncounterLinkRepair.js — den funktionen har ett extra
+ * mimeType/category-villkor (för ett annat verktygs syfte) som
+ * produktionens registerbyggare inte har, vilket skulle fått det här
+ * skriptet att i onödan undanta assets som faktiskt fragmenterar
+ * registret (upptäckt av granskning 2026-08-13). Läs-endast. Maskerar
+ * alltid patientId i utdata (samma mönster som
+ * ccoEncounterLinkRepair.js: behåll bara start/slut).
  *
  *   node scripts/report-encounter-registry-date-fallback.js \
  *     --patient-assets-store /var/data/cco-patient-assets.json \
@@ -33,7 +40,6 @@ const {
   assetEncounterDate,
   inferEncounterTypeFromAsset,
 } = require('../src/ops/ccoAssetNaming/encounterMapper');
-const { isPipedriveSmartdocAsset } = require('../src/ops/ccoEncounterLinkRepair');
 const { createCcoPatientAssetStore } = require('../src/ops/ccoPatientAssetStore');
 
 function normalizeText(value) {
@@ -71,6 +77,20 @@ function parseArgs(argv = process.argv) {
   return args;
 }
 
+// Ordagrant samma villkor som buildEncounterRegistrys inline
+// pipedrive_smartdoc-gren (encounterMapper.js) — INTE
+// ccoEncounterLinkRepair.js's isPipedriveSmartdocAsset, som lägger till
+// ett mimeType/category-villkor produktionens registerbyggare saknar.
+function isRegistryPipedriveSmartdoc(asset) {
+  if (normalizeText(asset.sourceSystem) !== 'pipedrive_import') return false;
+  if (!['VISIBLE_ON_PATIENT_CARD', 'VERIFIED_IN_CCO'].includes(normalizeText(asset.status))) {
+    return false;
+  }
+  const section = normalizeText(asset.patientCardSection).toLowerCase();
+  if (section === 'offert' || section === 'samtycken_avtal') return false;
+  return true;
+}
+
 // Speglar buildEncounterRegistry (encounterMapper.js) rad-för-rad: vilka
 // asset-baserade grenar bidrar till registret, vilket datum de faktiskt
 // använder, och vilken encounterType de kokar ner till.
@@ -86,7 +106,7 @@ function classifyAsset(asset) {
       usedImportedAtFallback: !hasRealDate && Boolean(asset.importedAt),
     };
   }
-  if (isPipedriveSmartdocAsset(asset)) {
+  if (isRegistryPipedriveSmartdoc(asset)) {
     const hasRealDate = Boolean(
       asset.captureDateTime ||
       asset.captureDate ||
