@@ -184,3 +184,79 @@ test('end-to-end: patients under their own distinct patientId are never flagged 
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('end-to-end: hypotes 2 — one correctly-identified patient with real, distinct sessions is flagged as high-session but with zero fallback share (not a bug)', async () => {
+  const dir = await makeDir();
+  const patientStore = await createCcoPatientMasterStore({
+    filePath: path.join(dir, 'cco-patient-master.json'),
+  });
+  const patient = await patientStore.upsertPatient({
+    tenantId: 'test-tenant',
+    displayName: 'Real Sessions',
+    primaryEmail: 'real@example.test',
+  });
+
+  const assetStore = await createCcoPatientAssetStore({
+    filePath: path.join(dir, 'cco-patient-assets.json'),
+  });
+  for (let i = 0; i < 5; i += 1) {
+    await assetStore.addAsset({
+      patientId: patient.id,
+      sourceSystem: 'pipedrive_import',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      mimeType: 'application/pdf',
+      patientCardSection: 'behandling',
+      treatmentType: 'PRP',
+      documentDate: `2026-0${i + 1}-01`,
+    });
+  }
+
+  const report = runScript(dir);
+  assert.equal(report.collisionGroupsFound, 0);
+  assert.equal(report.singlePatientHighSessionGroupsFound, 1);
+  const [group] = report.topSinglePatientHighSessionGroups;
+  assert.equal(group.maxSessionNumber, 5);
+  assert.equal(group.fallbackShare, 0, 'real documentDate on every asset -> no fallback used');
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('end-to-end: hypotes 2 — the exact bug-comment scenario: "fyra foton, samma patient, samma dag" without real dates fragments via importedAt fallback', async () => {
+  const dir = await makeDir();
+  const patientStore = await createCcoPatientMasterStore({
+    filePath: path.join(dir, 'cco-patient-master.json'),
+  });
+  const patient = await patientStore.upsertPatient({
+    tenantId: 'test-tenant',
+    displayName: 'Same Day Patient',
+    primaryEmail: 'sameday@example.test',
+  });
+
+  const assetStore = await createCcoPatientAssetStore({
+    filePath: path.join(dir, 'cco-patient-assets.json'),
+  });
+  // Four photos captured the same real day, but with no documentDate —
+  // only scattered importedAt timestamps, exactly the bug comment's
+  // description.
+  for (let i = 0; i < 4; i += 1) {
+    await assetStore.addAsset({
+      patientId: patient.id,
+      sourceSystem: 'pipedrive_import',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      category: 'photo_during',
+      mimeType: 'image/jpeg',
+      patientCardSection: 'behandling',
+      treatmentType: 'FUE',
+      importedAt: `2026-0${i + 1}-15T10:00:00.000Z`,
+    });
+  }
+
+  const report = runScript(dir, ['--min-session', '2']);
+  assert.equal(report.collisionGroupsFound, 0);
+  assert.equal(report.singlePatientHighSessionGroupsFound, 1);
+  const [group] = report.topSinglePatientHighSessionGroups;
+  assert.equal(group.maxSessionNumber, 4);
+  assert.equal(group.fallbackShare, 1, 'no real documentDate anywhere -> full fallback');
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
