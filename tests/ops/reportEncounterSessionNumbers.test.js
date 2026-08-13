@@ -14,6 +14,7 @@ const {
   parseArgs,
   maskPatientId,
   SESSION_TYPES,
+  loadFullTenantPatientIdScope,
 } = require('../../scripts/report-encounter-session-numbers');
 
 async function makeDir() {
@@ -261,6 +262,120 @@ test('a fragmenting patient in a DIFFERENT tenant bucket is excluded — cco-pat
   const report = JSON.parse(out);
   assert.equal(report.groupsAboveThreshold, 0, 'other-tenant fragmentation must not leak in');
   assert.deepEqual(report.topBySessionNumber, []);
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('loadFullTenantPatientIdScope includes merged (archived) patient IDs, not just active ones — measured on prod 2026-08-13: scoping against listPatients() alone excluded 77% of all assets (97,735 of 126,642)', async () => {
+  const dir = await makeDir();
+  const patientStore = await createCcoPatientMasterStore({
+    filePath: path.join(dir, 'cco-patient-master.json'),
+  });
+  const primary = await patientStore.upsertPatient({
+    tenantId: 'test-tenant',
+    displayName: 'Primary',
+    primaryEmail: 'primary@example.test',
+  });
+  const secondary = await patientStore.upsertPatient({
+    tenantId: 'test-tenant',
+    displayName: 'Secondary Dup',
+    primaryEmail: 'secondary@example.test',
+  });
+  await patientStore.mergePatients({
+    tenantId: 'test-tenant',
+    primaryPatientId: primary.id,
+    secondaryPatientIds: [secondary.id],
+  });
+
+  // The merged secondary must no longer appear in the active list...
+  const activePage = await patientStore.listPatients({ tenantId: 'test-tenant', limit: 100 });
+  assert.equal(
+    activePage.patients.some((p) => p.id === secondary.id),
+    false,
+    'sanity check: listPatients() hides merged patients, this is the gap being fixed'
+  );
+
+  // ...but must still be present in the full tenant scope used for
+  // asset/registry filtering.
+  const scope = loadFullTenantPatientIdScope(
+    path.join(dir, 'cco-patient-master.json'),
+    'test-tenant'
+  );
+  assert.equal(scope.has(primary.id), true);
+  assert.equal(scope.has(secondary.id), true, 'merged patient IDs must not be silently dropped');
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('end-to-end: assets on a merged-away patient ID still surface in the report (the 77% data-loss bug)', async () => {
+  const dir = await makeDir();
+  const patientStore = await createCcoPatientMasterStore({
+    filePath: path.join(dir, 'cco-patient-master.json'),
+  });
+  const primary = await patientStore.upsertPatient({
+    tenantId: 'test-tenant',
+    displayName: 'Primary',
+    primaryEmail: 'primary@example.test',
+  });
+  const secondary = await patientStore.upsertPatient({
+    tenantId: 'test-tenant',
+    displayName: 'Secondary Dup',
+    primaryEmail: 'secondary@example.test',
+  });
+  await patientStore.mergePatients({
+    tenantId: 'test-tenant',
+    primaryPatientId: primary.id,
+    secondaryPatientIds: [secondary.id],
+  });
+
+  const assetStore = await createCcoPatientAssetStore({
+    filePath: path.join(dir, 'cco-patient-assets.json'),
+  });
+  // Historical assets imported before the merge still reference the
+  // now-archived secondary patientId.
+  for (let i = 0; i < 6; i += 1) {
+    await assetStore.addAsset({
+      patientId: secondary.id,
+      sourceSystem: 'pipedrive_import',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      mimeType: 'application/pdf',
+      patientCardSection: 'behandling',
+      treatmentType: 'FUE',
+      importedAt: `2026-0${(i % 6) + 1}-15T10:00:00.000Z`,
+    });
+  }
+
+  await createCcoJournalStore({ filePath: path.join(dir, 'cco-journal.json') });
+  await createClientoBookingStore({ filePath: path.join(dir, 'cliento-bookings.json') });
+
+  const { execFileSync } = require('node:child_process');
+  const scriptPath = path.join(__dirname, '../../scripts/report-encounter-session-numbers.js');
+  const out = execFileSync(
+    'node',
+    [
+      scriptPath,
+      '--patients-store',
+      path.join(dir, 'cco-patient-master.json'),
+      '--journal-store',
+      path.join(dir, 'cco-journal.json'),
+      '--patient-assets-store',
+      path.join(dir, 'cco-patient-assets.json'),
+      '--cliento-bookings-store',
+      path.join(dir, 'cliento-bookings.json'),
+      '--tenant',
+      'test-tenant',
+      '--min-sessions',
+      '3',
+    ],
+    { encoding: 'utf8' }
+  );
+  const report = JSON.parse(out);
+  assert.equal(
+    report.groupsAboveThreshold,
+    1,
+    'assets on a merged-away patient ID must not be silently dropped from the diagnostic'
+  );
+  assert.equal(report.topBySessionNumber[0].maxSessionNumber, 6);
 
   await fs.rm(dir, { recursive: true, force: true });
 });

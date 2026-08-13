@@ -49,6 +49,7 @@
  * kör via Render SSH i ~/project/src, inte lokalt.
  */
 
+const fs = require('node:fs');
 const path = require('node:path');
 const { buildEncounterRegistry } = require('../src/ops/ccoAssetNaming/encounterMapper');
 const {
@@ -68,6 +69,28 @@ function maskPatientId(value) {
   if (!text) return '';
   if (text.length <= 8) return `${text.slice(0, 2)}***`;
   return `${text.slice(0, 4)}***${text.slice(-4)}`;
+}
+
+// listPatients() döljer matchStatus:'merged'-poster (arkiverade
+// dubbletter, aldrig raderade — se ccoPatientMasterStore.js's
+// mergePatients-kommentar "ARCHIVE (do not delete) secondaries").
+// Historiska assets/bokningar/journalposter kan fortfarande referera de
+// bortmergade ID:na. Att bara skopa mot listPatients()s aktiva mängd
+// visade sig i praktiken utesluta 77 % av alla assets (97 735 av
+// 126 642, uppmätt 2026-08-13) — inte en liten kantfall, utan den
+// dominerande orsaken till att ett tidigare körning gav
+// groupsAboveThreshold: 0. Läser därför rå-filen direkt för att fånga
+// ALLA patient-ID:n (aktiva + bortmergade) i tenanten, inte bara de
+// listPatients() råkar visa just nu.
+function loadFullTenantPatientIdScope(patientsStorePath, tenantId) {
+  const raw = JSON.parse(fs.readFileSync(patientsStorePath, 'utf8'));
+  const bucket = raw?.tenants?.[tenantId];
+  const ids = new Set();
+  for (const patient of bucket?.patients || []) {
+    const id = normalizeText(patient?.id);
+    if (id) ids.add(id);
+  }
+  return ids;
 }
 
 function parseArgs(argv = process.argv) {
@@ -147,11 +170,17 @@ async function main() {
   // tenant-bucketad, men cco-patient-assets.json har INGEN tenantId-fält
   // alls på asset-nivå (normalizeAsset lagrar den aldrig) — så
   // listItemsForEnrichment(tenantId) är ett no-op-filter oavsett vad som
-  // skickas in. Skyddet måste därför ske genom att skära mot den redan
+  // skickas in. Skyddet måste därför ske genom att skära mot den
   // tenant-scopade patient-ID-mängden, både på asset-input och på
   // registrets slutgiltiga per-patient-rader (bookings/journalEntries
   // kan i teorin också innehålla poster för patientId utanför tenanten).
-  const patientIdScope = new Set(patients.map((patient) => normalizeText(patient.id)));
+  // Mängden hämtas från RÅ-filen (inte listPatients()) så att
+  // bortmergade patienters ID:n räknas med — se
+  // loadFullTenantPatientIdScope.
+  const patientIdScope = loadFullTenantPatientIdScope(
+    path.resolve(args.patientsStorePath),
+    args.tenant
+  );
 
   const bookingIndex = await loadKunderBookingIndex(
     { clientoBookingStorePath: path.resolve(args.clientoBookingsStorePath) },
@@ -225,4 +254,4 @@ if (require.main === module || process.argv[1] === '-') {
   });
 }
 
-module.exports = { parseArgs, maskPatientId, SESSION_TYPES };
+module.exports = { parseArgs, maskPatientId, SESSION_TYPES, loadFullTenantPatientIdScope };
