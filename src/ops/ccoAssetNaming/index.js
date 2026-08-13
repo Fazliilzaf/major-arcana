@@ -66,8 +66,16 @@ function buildAssetNamingMetadata(asset = {}, ctx = {}) {
   }
 
   const namingConfidence = namingResult.namingConfidence || classification.confidence || 'low';
+  // CCO-STATUS.md punkt 1 (bekräftad 2026-08-13): ett sessionNumber
+  // beräknat från ett saknat documentDate (importedAt-fallback) är inte
+  // en pålitlig behandlingssiffra — bara en import-ordning. Skriv den
+  // aldrig som fakta. Detta är en separat osäkerhet från
+  // namingConfidence (displayName kan vara helt korrekt även när
+  // sessionNumret inte är det) — namingConfidence rapporteras därför
+  // oförändrad, bara namingStatus hålls tillbaka till review.
+  const sessionNumberIsUnreliable = Boolean(encounter.sessionNumber) && encounter.usedFallbackDate;
   const namingStatus =
-    namingConfidence === 'low'
+    namingConfidence === 'low' || sessionNumberIsUnreliable
       ? 'needs_review_for_naming'
       : asset.namingStatus === 'manual'
         ? 'manual'
