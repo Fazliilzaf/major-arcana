@@ -974,13 +974,13 @@
     );
   }
 
-  /* ---------- 7 · BILDER ---------- */
+  /* ---------- 7 · BESÖK · TILLFÄLLEN ---------- */
   function s7(photos, visitSegments, patientId) {
     var items = arr(photos && photos.items ? photos.items : photos);
     var visitBlock = visitSegmentsBlock(visitSegments, patientId);
     var head = secHead(
       '07',
-      'Bilder',
+      'Besök · tillfällen',
       items.length ? items.length + ' bilder' : null,
       '<button class="sec-link" data-v11-active-visit-action="photo">📷 Ta bild</button>' +
         (items.length >= 2
@@ -991,16 +991,9 @@
       return (
         '<section class="sec" id="s7">' +
         head +
-        '<div class="card" style="color:var(--ink-mute)">Inga bilder uppladdade ännu.</div></section>'
+        '<div class="card" style="color:var(--ink-mute)">Inga besök registrerade ännu.</div></section>'
       );
-    if (!items.length)
-      return (
-        '<section class="sec" id="s7">' +
-        head +
-        '<div class="card" style="color:var(--ink-mute)">Inga fristående bilder uppladdade.</div>' +
-        visitBlock +
-        '</section>'
-      );
+    if (!items.length) return '<section class="sec" id="s7">' + head + visitBlock + '</section>';
     var tiles = items
       .slice(0, 12)
       .map(function (p) {
@@ -1389,7 +1382,7 @@
     var hist = arr(history && history.items ? history.items : history);
     var head = secHead(
       '08',
-      'Besök · tillfällen',
+      'Bokningar',
       up.length + ' kommande · ' + hist.length + ' historik',
       '<button class="sec-link" data-kk-ord48-open-calendar data-patient-id="' +
         esc(patientId) +
@@ -1806,13 +1799,12 @@
     ['s3', 'Varningar', '03'],
     ['s4', 'Hälsa', '04'],
     ['s5', 'Kundresa', '05'],
-    ['s6', 'Journal', '06'],
-    ['s7', 'Bilder', '07'],
-    ['s8', 'Bokningar', '08'],
-    ['s9', 'Dokument', '09'],
-    ['s10', 'Kommunikation', '10'],
-    ['s11', 'Ekonomi', '11'],
-    ['s12', 'Insikter', '12'],
+    ['s7', 'Besök · tillfällen', '06'],
+    ['s8', 'Bokningar', '07'],
+    ['s9', 'Dokument', '08'],
+    ['s10', 'Kommunikation', '09'],
+    ['s11', 'Ekonomi', '10'],
+    ['s12', 'Insikter', '11'],
   ];
 
   /* ---------- HEADER + TABBAR (scroll-ankare) ---------- */
@@ -2250,7 +2242,6 @@
       s3(warnings) +
       s4(health) +
       s5(journey, av, nextStep, photos, health, stepAssets) +
-      s6(journals, ctx.visitSegments, patientId) +
       s7(photos, ctx.visitSegments, patientId) +
       s8(bookings, history, patientId) +
       s9(files, offers, autoDocs, patientId) +
@@ -2266,8 +2257,7 @@
       s3: 'warnings',
       s4: 'health',
       s5: 'journey',
-      s6: 'journal',
-      s7: 'photos',
+      s7: 'visits',
       s8: 'bookings',
       s9: 'documents',
       s10: 'communication',

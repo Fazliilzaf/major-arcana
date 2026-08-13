@@ -2173,7 +2173,6 @@
       chip('Medicinskt läge', '', medMiss ? 'orange' : '') +
       chip('Besök', '', A2(ctx.hist).length || visitMedia.length ? 'orange' : '') +
       chip('Bokningar', A2(ctx.up).length) +
-      chip('Journal', A2(ctx.jItems).length) +
       (offerPhotoN ? chip('Foto', offerPhotoN) : chip('Foto', 0)) +
       chip('Historik', A2(ctx.hist).length) +
       (persNames.length ? chip('Personal', persNames.length) : '') +
@@ -2632,12 +2631,7 @@
         '</div>'
     );
 
-    var journalSectionHtml = sek(
-      'Journal',
-      '<span class="gk-pill gk-tag-info">' + A2(ctx.jItems).length + ' anteckningar</span>',
-      visitRender.journalRows,
-      'Inga journaler ännu.'
-    );
+    // Journaler visas per besökstillfälle i den unifyade "Besök"-sektionen.
 
     // Offert
     var off = A2(ctx.offers)
@@ -3040,11 +3034,11 @@
       fotoBody,
       'Inga markerade offertbilder ännu.'
     );
-    body += journalSectionHtml;
     body += fotoSectionHtml;
     body += historikSectionHtml;
     body += offertSectionHtml;
     body += ekonomiSectionHtml;
+    // Journaler visas per besök i "Besök"-sektionen ovan.
 
     // Personal (behandlare ur journalerna)
     var persRows = persNames
@@ -4605,7 +4599,6 @@
         'halso',
         'besok',
         'bokningar',
-        'journal',
         'foto',
         'historik',
         'offert',
@@ -5207,33 +5200,7 @@
       }
       it.viewUrl = resolveJournalItemViewUrl(it, raw, driveFiles);
     });
-    var jDone = 0,
-      jAct = 0,
-      jTodo = 0;
-    jAll.forEach(function (it) {
-      if (it.planned) {
-        jTodo++;
-        return;
-      }
-      if (it.st === 'done') jDone++;
-      else if (it.st === 'act') jAct++;
-      else jTodo++;
-    });
-    var jHtml = buildJournalDocRows(jItems, jrs, driveFiles, jPlanned);
-    var jCount = jAll.length
-      ? '<span style="color:#4a8268">' +
-        jDone +
-        '</span>·<span style="color:#c8821e">' +
-        jAct +
-        '</span>·<span style="color:#94897b">' +
-        jTodo +
-        '</span>'
-      : '0';
-    h += sec(
-      'Journaler · personal',
-      jCount,
-      jHtml ? '<div class="gk-med-forms">' + jHtml + '</div>' : empty('Inga journaler ännu.')
-    );
+    // Journaler visas per besökstillfälle i den unifyade "Besök"-sektionen.
 
     if (offers.length) {
       // Färgkodad typ-pill: TP/transplant guld, PRP grön, övrigt neutral
@@ -6181,7 +6148,6 @@
     ['halso', 'Medicinskt'],
     ['besok', 'Besök'],
     ['bokningar', 'Bokningar'],
-    ['journal', 'Journal'],
     ['foto', 'Foto'],
     ['historik', 'Historik'],
     ['offert', 'Offert'],
