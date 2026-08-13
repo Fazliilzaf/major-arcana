@@ -29,24 +29,57 @@
 Allt nedan är genuint olöst. Inget är brådskande, men inget ska heller antas
 vara någon annans problem bara för att det inte är i den här listan.
 
-### 1. `encounterMapper.js` — sessionNumber räknar fel för minst en patient
+### 1. Backfill sessionNumber — ROTORSAK BEKRÄFTAD 2026-08-13 (två oberoende buggar)
 
 Upptäckt via backfill-dry-run mot **riktig prod-data** 2026-08-07 (Render
-SSH nu uppsatt och fungerande, `srv-d8b3i3tckfvc73clgeng`). Fyra foton, en
-patient, en dag, kategori `photo_during` — fick "FUE Operation 23/25/26/30".
-`sessionNumber` (`encounterMapper.js:284`) ska räkna distinkta
-operationstillfällen, inte foton. Grupperingslogiken hade inte deduplicerat
-korrekt för den patienten.
+SSH, `srv-d8b3i3tckfvc73clgeng`). Fyra foton, en patient, en dag, kategori
+`photo_during` — fick "FUE Operation 23/25/26/30".
+
+**Riktningskorrigering 2026-08-13:** `sessionNumber` beräknas INTE av
+`encounterMapper.js`s `buildEncounterRegistry` (den används bara av
+encounter-länk-reparationsverktyget, `ccoEncounterLinkRepair.js` — ingen
+live-route anropar den för patientkortet). Den faktiska mekanismen är
+`countTreatmentSession()` (`src/ops/ccoAssetNaming/encounterNameResolver.js`),
+anropad från `scripts/backfill-asset-display-names.js`s `groupByPatientId()`
+— exakt det skript buggen upptäcktes i.
+
+Fyra läs-endast diagnostikskript byggda och körda mot prod (PR #1364–#1371,
+`report-encounter-registry-date-fallback.js`,
+`report-encounter-session-numbers.js`,
+`report-backfill-sibling-collision.js`) bekräftade **två separata, oberoende
+rotorsaker**, båda i `groupByPatientId()`:
+
+1. **Kors-patient alias-kollision — 519 grupper.** `asset.patientId` är ofta
+   ett alias (t.ex. från äldre Drive-importer), inte en kanonisk
+   patient-master-ID (91 222 av 126 642 assets i hela storen, ORD-85-
+   identitetsupplösning krävs — se `resolveCanonicalPatientsForAssets`,
+   `ccoPatientAssetIdentity.js`). Om flera OLIKA riktiga patienters dokument
+   delar samma rå alias-`patientId`, blandas deras dokument ihop i EN
+   syskon-grupp och `sessionNumber` räknas över flera patienters
+   behandlingar som om det vore en enda persons. Störst magnitud.
+2. **Intra-patient datumfallback-fragmentering.** Exakt kod-kommentarens
+   ursprungliga beskrivning ("samma patient, samma dag"). När `documentDate`
+   saknas faller `countTreatmentSession()` tillbaka på `importedAt`
+   (import-tidpunkt, inte behandlingsdatum) för sorteringen. Verifierad mot
+   prod: patienter med `fallbackShare: 1.0` (100 % av dokumenten saknar
+   `documentDate`) och `sessionNumber` upp till 16. Mindre skala än
+   kollisionen men reell — bekräftades först efter att en tidigare,
+   sessionsnummer-sorterad topplista (utan oberoende fallback-rankning)
+   dolde den; självrättat i samma utredning.
 
 **Redan skyddat** (`#1327`, mergad): `--commit` i
 `scripts/backfill-asset-display-names.js` skriver aldrig
 `namingStatus: needs_review_for_naming` längre — se `stats.skippedNeedsReview`
-och `needsReviewSamples` i rapporten. Inget destruktivt kan hända medan detta
-väntar.
+och `needsReviewSamples` i rapporten. Inget destruktivt kan hända medan
+en eventuell fix väntar.
 
-**Ej utrett:** varför `encMap` för den patienten innehöll 30+ möten i stället
-för ett fåtal. Data-import-fel eller grupperingsnyckel-bugg — okänt tills
-någon gräver.
+**Kvarstår:** ingen fix skriven eller körd. `--commit` mot riktig
+patientdata är fortsatt medvetet oberört — det kräver Fazlis eget beslut
+och egen körning, inte en agents. Åtgärderna som skulle behövas:
+(1) applicera samma alias-upplösning (`resolveCanonicalPatientsForAssets`)
+i `groupByPatientId()` innan gruppering, (2) en stabilare sorteringsnyckel
+än `documentDate || importedAt` för `countTreatmentSession()`, eller ett
+sätt att flagga/exkludera fallback-daterade dokument från sessionräkningen.
 
 ### 2. ORD-99 — varför är `bodyText` bara 159/255 tecken för `info@`?
 
