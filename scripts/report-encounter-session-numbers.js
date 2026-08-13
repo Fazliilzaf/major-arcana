@@ -59,6 +59,7 @@ const {
 const { createCcoPatientMasterStore } = require('../src/ops/ccoPatientMasterStore');
 const { createCcoJournalStore } = require('../src/ops/ccoJournalStore');
 const { createCcoPatientAssetStore } = require('../src/ops/ccoPatientAssetStore');
+const { resolveCanonicalPatientsForAssets } = require('../src/ops/ccoPatientAssetIdentity');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -201,8 +202,34 @@ async function main() {
     bookings.push(...(signals.upcomingBookings || []), ...(signals.historyBookings || []));
   }
 
-  const assets = assetStore
-    .listItemsForEnrichment()
+  // asset.patientId är INTE tillförlitligt en kanonisk patient-master-ID.
+  // Mätt i produktion 2026-08-13: 97 735 av 126 642 assets (77 %) matchade
+  // varken aktiva eller bortmergade patienter direkt. Grävt vidare: en
+  // stor andel assets bär i stället ett alias-ID som kräver samma
+  // pnr/namn-baserade identitetsupplösning som resten av kodbasen redan
+  // använder (ORD-85, src/ops/ccoPatientAssetIdentity.js — "identitets-
+  // projektionens ENDA sanning"). Återanvänder den funktionen ordagrant
+  // (resolveCanonicalPatientsForAssets) i stället för att bygga en egen,
+  // parallell matchning — exakt samma resonemang som resten av den här
+  // utredningen.
+  const rawAssets = assetStore.listItemsForEnrichment();
+  const resolutions = resolveCanonicalPatientsForAssets({ patients, assets: rawAssets });
+  const canonicalByAssetId = new Map();
+  for (const resolution of resolutions) {
+    if (resolution.canonicalPatientId) {
+      canonicalByAssetId.set(resolution.assetId, resolution.canonicalPatientId);
+    }
+  }
+  let assetsResolvedViaAlias = 0;
+  const assets = rawAssets
+    .map((asset) => {
+      const canonical = canonicalByAssetId.get(normalizeText(asset.id));
+      if (canonical && canonical !== normalizeText(asset.patientId)) {
+        assetsResolvedViaAlias += 1;
+        return { ...asset, patientId: canonical };
+      }
+      return asset;
+    })
     .filter((asset) => patientIdScope.has(normalizeText(asset.patientId)));
 
   const registry = buildEncounterRegistry({ journalEntries, bookings, assets });
@@ -236,7 +263,10 @@ async function main() {
       patients: patients.length,
       journalEntries: journalEntries.length,
       bookings: bookings.length,
-      assets: assets.length,
+      assetsRaw: rawAssets.length,
+      assetsResolvedViaAlias,
+      assetsInScope: assets.length,
+      assetsOutOfScope: rawAssets.length - assets.length,
     },
     bookingIndexSources: bookingIndex.sources,
     registryPatientCount: registry.size,

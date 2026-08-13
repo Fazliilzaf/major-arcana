@@ -379,3 +379,70 @@ test('end-to-end: assets on a merged-away patient ID still surface in the report
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('end-to-end: assets carrying a non-canonical alias patientId resolve to the real patient via personnummer matching (ORD-85 identity resolution) — measured on prod 2026-08-13: 97,735 of 126,642 assets (77%) needed exactly this', async () => {
+  const dir = await makeDir();
+  const patientStore = await createCcoPatientMasterStore({
+    filePath: path.join(dir, 'cco-patient-master.json'),
+  });
+  const patient = await patientStore.upsertPatient({
+    tenantId: 'test-tenant',
+    displayName: 'Alias Patient',
+    primaryEmail: 'alias@example.test',
+    personnummer: '199001011234',
+  });
+
+  const assetStore = await createCcoPatientAssetStore({
+    filePath: path.join(dir, 'cco-patient-assets.json'),
+  });
+  // patientId is a legacy alias, NOT patient.id — only the personnummer
+  // embedded in the filename can resolve it to the real patient.
+  for (let i = 0; i < 6; i += 1) {
+    await assetStore.addAsset({
+      patientId: `legacy-drive-alias-${i}`,
+      sourceSystem: 'pipedrive_import',
+      status: 'VISIBLE_ON_PATIENT_CARD',
+      mimeType: 'application/pdf',
+      patientCardSection: 'behandling',
+      treatmentType: 'FUE',
+      originalFileName: `199001011234_FUE_avtal_${i}.pdf`,
+      importedAt: `2026-0${(i % 6) + 1}-15T10:00:00.000Z`,
+    });
+  }
+
+  await createCcoJournalStore({ filePath: path.join(dir, 'cco-journal.json') });
+  await createClientoBookingStore({ filePath: path.join(dir, 'cliento-bookings.json') });
+
+  const { execFileSync } = require('node:child_process');
+  const scriptPath = path.join(__dirname, '../../scripts/report-encounter-session-numbers.js');
+  const out = execFileSync(
+    'node',
+    [
+      scriptPath,
+      '--patients-store',
+      path.join(dir, 'cco-patient-master.json'),
+      '--journal-store',
+      path.join(dir, 'cco-journal.json'),
+      '--patient-assets-store',
+      path.join(dir, 'cco-patient-assets.json'),
+      '--cliento-bookings-store',
+      path.join(dir, 'cliento-bookings.json'),
+      '--tenant',
+      'test-tenant',
+      '--min-sessions',
+      '3',
+    ],
+    { encoding: 'utf8' }
+  );
+  const report = JSON.parse(out);
+  assert.equal(
+    report.inputCounts.assetsResolvedViaAlias,
+    6,
+    'all 6 alias-keyed assets must resolve via personnummer matching'
+  );
+  assert.equal(report.groupsAboveThreshold, 1);
+  assert.equal(report.topBySessionNumber[0].maxSessionNumber, 6);
+  assert.equal(report.topBySessionNumber[0].patientId, maskPatientId(patient.id));
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
