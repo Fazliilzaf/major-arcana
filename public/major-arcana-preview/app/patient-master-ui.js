@@ -12861,6 +12861,7 @@
         e.preventDefault();
         rows[dropdownSelectedIndex].click();
       } else if (e.key === 'Escape') {
+        e.preventDefault();
         closeSearchDropdown(inputElement);
       }
     });
@@ -12888,6 +12889,9 @@
       renderDetailEmpty();
     }
     await loadPatientList({ force: force === true });
+    // If the user closed the dropdown while the network request was in flight,
+    // don't re-render it open again.
+    if (!dropdownOpen) return runtime.patients.slice();
     renderSearchDropdown(
       dropdownActiveInput ||
         els.search ||
