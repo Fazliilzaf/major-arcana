@@ -1,12 +1,12 @@
 # ORD-101 — Cliento cross-tenant-reconcile: redan byggt, pausat, väntar på GO
 
-|                       |                                                                                                                                                                                                                                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Bas-commit**        | `main` (2026-08-08)                                                                                                                                                                                                                                    |
-| **Ägare**             | Cowork (kartläggning, denna order)                                                                                                                                                                                                                     |
-| **GO**                | Steg 1–3 (coverage, kandidatmanifest, begränsat 3-paket) körda läs-endast 2026-08-11 — se facit nedan. Alla aktiverings-/skrivgrindar fortsatt stängda. Beslut om att gå vidare till `active`-aktivering är fortfarande Fazlis eget, inget datum satt. |
-| **Allvarlighetsgrad** | **Ingen ny risk, ingen kod att skriva.** Det här är en existerande, redan säkerhetsgranskad process som stannat vid ett medvetet pausläge i tre veckor. Ordern finns för att göra pausen synlig och begriplig, inte för att flagga något akut.         |
-| **Föregångare**       | ORD-100 punkt 6 (CCO-STATUS.md) — jag byggde av misstag en egen, för generell fix för samma problem 2026-08-08 (PR #1345, stängd utan merge) innan jag hittade det här redan färdiga systemet.                                                         |
+|                       |                                                                                                                                                                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Bas-commit**        | `main` (2026-08-08)                                                                                                                                                                                                                                            |
+| **Ägare**             | Cowork (kartläggning, denna order)                                                                                                                                                                                                                             |
+| **GO**                | Tenant-dedupen (1 905 dubbletter) körd skarpt, verifierad och stängd 2026-08-12/13 — noll dataförlust, se facit nedan. Boknings→patient-länkningen (`canonicalPatientId`) förblir blockerad och kräver ett separat beslut, se avsnittet om Cliento-källans ID. |
+| **Allvarlighetsgrad** | **Ingen ny risk, ingen kod att skriva.** Det här är en existerande, redan säkerhetsgranskad process som stannat vid ett medvetet pausläge i tre veckor. Ordern finns för att göra pausen synlig och begriplig, inte för att flagga något akut.                 |
+| **Föregångare**       | ORD-100 punkt 6 (CCO-STATUS.md) — jag byggde av misstag en egen, för generell fix för samma problem 2026-08-08 (PR #1345, stängd utan merge) innan jag hittade det här redan färdiga systemet.                                                                 |
 
 ## Bakgrund — hur den här ordern uppstod
 
@@ -271,3 +271,47 @@ Bygg **inte** `active`-steget för boknings→patient-länkning förrän frågan
 ovan (bär Cliento-källan det numeriska ID:t?) är besvarad. Att koda
 `active` mot dagens data skulle antingen kräva gissning (förbjudet av
 kontraktet) eller stå stilla på 0 % täckning.
+
+## Tenant-dedupen körd, verifierad och stängd — 2026-08-12/13
+
+`scripts/dedupe-cliento-cross-tenant-bookings.js` (PR #1356) kördes skarpt
+mot `/var/data/cco/cliento-bookings.json` av Fazli 2026-08-12, `--commit`.
+Efteråt uppstod en skenbar avvikelse — nuvarande store visade 22 109 mot
+en dubbelt bekräftad baslinje på 55 221 — som visade sig vara ett
+mätfel: 22 109 var antalet **buckets**, inte enskilda bokningar. Rätt
+räknat (summan av alla arrayer i varje bucket) gav ett helt annat facit:
+
+|                                       |      Total |  `hair_tp` | `hair-tp-clinic` |
+| ------------------------------------- | ---------: | ---------: | ---------------: |
+| Fas 0-facit (18 juli / 11 aug)        |     55 221 |     27 410 |           27 811 |
+| Säkerhetskopia (precommit, byte-läst) | **55 221** | **27 410** |       **27 811** |
+| Efter commit                          |     53 316 |     25 505 |           27 811 |
+| Skillnad                              |     −1 905 |     −1 905 |                0 |
+
+Säkerhetskopian matchade Fas 0-facit byte-exakt innan committet kördes
+— bevisar att rätt, fullständig fil användes, inte en felmonterad eller
+delvis synkad kopia. Efter committet: den kanoniska tenanten
+(`hair-tp-clinic`) helt oförändrad (27 811 → 27 811, endast
+in-place-berikning av befintliga poster), den icke-kanoniska
+(`hair_tp`) minskad med exakt antalet borttagna dubbletter. En separat
+kontroll bekräftade att samtliga 1 905 borttagna `hair_tp`-poster
+fortfarande finns kvar i storen under `hair-tp-clinic`
+(`completely_gone: 0`) — **ingen bokning gick förlorad**.
+
+En mindre öppen fråga kvarstod: committet rapporterade `mergedCount:
+1985` men bara 1 905 poster togs faktiskt bort — en gap på 80,
+sannolikt en redovisningsartefakt från en avbruten första körning plus
+en oavsiktlig återställning innan den slutgiltiga, lyckade körningen.
+Stängd 2026-08-13: en fristående, läs-endast dry-run-omkörning
+(`--expected-total 53316`, review-filen återskapad via
+`report-cliento-unlinked-review.js`, `--patients-store
+/var/data/cco-patient-master.json` härlett deterministiskt ur
+`src/config.js`s default eftersom `ARCANA_CCO_PATIENT_MASTER_STORE_PATH`
+var tom) gav `candidateCount: 0, mergedCount: 0, gate.status:
+"dry_run_ready"`. Noll kvarvarande dubbletter — de 80 var redan
+inräknade i det ursprungliga committet, inte oavslutat arbete.
+
+**Status: tenant-dedupen är komplett och stängd.** Ingen ytterligare
+körning behövs för den operationen. Boknings→patient-länkningen
+(`canonicalPatientId`) förblir öppen och blockerad enligt ovan — separat
+fråga, separat beslut.
