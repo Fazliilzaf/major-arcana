@@ -252,9 +252,11 @@ för att verifiera att icke-interaktiv körning funkar innan något större.
   Se öppna punkt 2 ovan för vad som återstår.
 - **`#1324`/`#1327`** — backfill-skript mergat och skyddat mot att skriva
   lågkonfidenta gissningar.
-- **CCO 9-stegs kundresa** — klar. Steg 2 och 9 kartlagda. Enda kvarvarande
-  fråga är operativ, inte teknisk: går bokningsbekräftelsen (steg 2) ut från
-  Cliento med Meridiq-länken?
+- **CCO 9-stegs kundresa** — klar. Steg 2 och 9 kartlagda. Steg 2 besvarat
+  av Fazli 2026-08-13: alla kunder hanteras via Cliento, inte Meridiq.
+  Bokningsbekräftelsen går från Cliento tills CCO:s egen kalender är
+  färdig (snart) — sedan tar den över. Bekräftelsemejlet skickas idag
+  från `contact@hairtpclinic.com` via Microsoft.
 - **Encounter-link** — avförd efter beslut, se ovan.
 - **Valideringsnivån är 0 fel.** `AGENTS.md:342`s "61 pre-existing failures"
   är daterad 19 juli, föråldrad. `test:unit` gav 6547 pass / 0 fail senast
