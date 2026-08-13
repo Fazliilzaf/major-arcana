@@ -278,10 +278,13 @@ för att verifiera att icke-interaktiv körning funkar innan något större.
   inte gömda. **Slutgiltigt facit: 384 bokningar saknas genuint i CCO**,
   inte 66 561. Se öppna punkt 7 ovan för vad som återstår (punkt 4, 5, 8
   stängda 2026-08-08).
-- **ORD-101** — cross-tenant-reconcile för `hair_tp`/`hair-tp-clinic` är
-  redan byggt och kört en gång (18 juli 2026, tre veckor före denna
-  session): 1 887 säkra länkkandidater hittade, noll skrivningar, medvetet
-  pausat i väntan på Fazlis "separata owner-granskning". Se
+- **ORD-101** — tenant-stavnings-dedupen (`hair_tp`/`hair-tp-clinic`) är
+  körd skarpt, verifierad och stängd (2026-08-12/13): 1 905 dubbletter
+  borttagna, kanonisk tenant `hair-tp-clinic` oförändrad i antal, noll
+  bokningsförlust bekräftat individuellt. Boknings→patient-länkningen
+  (`canonicalPatientId`) är en SEPARAT, medvetet blockerad operation —
+  kräver att det klargörs om Cliento-källan (CSV/API) bär det råa
+  numeriska kund-ID:t innan den kan byggas; se
   `docs/handover/ORDERS/ORD-101-cliento-cross-tenant-reconcile.md`.
 
 ---
