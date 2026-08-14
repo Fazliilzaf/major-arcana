@@ -646,6 +646,25 @@ function parseConversationMailboxHintQuery(query = {}) {
   ).slice(0, 10);
 }
 
+const DEFAULT_MESSAGES_LIMIT = 100;
+const MAX_MESSAGES_LIMIT = 500;
+
+function parsePagination(query = {}) {
+  const safeQuery = asObject(query);
+  const wantsAll = /^(true|1|yes)$/.test(String(safeQuery.all || '').trim().toLowerCase());
+  if (wantsAll) return { limit: null, offset: 0 };
+
+  let limit = Number.isFinite(Number(safeQuery.limit)) ? Number(safeQuery.limit) : DEFAULT_MESSAGES_LIMIT;
+  if (!Number.isFinite(limit) || Number.isNaN(limit)) limit = DEFAULT_MESSAGES_LIMIT;
+  limit = Math.max(1, Math.min(MAX_MESSAGES_LIMIT, Math.floor(limit)));
+
+  let offset = Number.isFinite(Number(safeQuery.offset)) ? Number(safeQuery.offset) : 0;
+  if (!Number.isFinite(offset) || Number.isNaN(offset)) offset = 0;
+  offset = Math.max(0, Math.floor(offset));
+
+  return { limit, offset };
+}
+
 function parseConversationContactScopeQuery(query = {}) {
   const email = normalizeEmail(
     query.customerEmail ||
@@ -1936,13 +1955,27 @@ function createCcoConversationRouter({
         // så klienten kan markera "mottogs N ggr" med när/var. Äkta separata mail
         // (olika Message-ID/innehåll) rörs inte.
         const collapsedMessages = collapseDuplicateMessages(messages);
+        const totalCount = collapsedMessages.length;
+        const { limit, offset } = parsePagination(req.query);
+        const paginatedMessages =
+          limit === null
+            ? collapsedMessages
+            : collapsedMessages.slice(offset, offset + limit);
         const tMap = process.hrtime.bigint();
         const toMs = (a, b) => Math.round((Number(b - a) / 1e6) * 10) / 10;
         return res.json({
           ok: true,
           conversationKey: key,
-          messageCount: collapsedMessages.length,
-          messages: collapsedMessages,
+          messageCount: paginatedMessages.length,
+          totalMessageCount: totalCount,
+          messages: paginatedMessages,
+          pagination: {
+            limit,
+            offset,
+            totalCount,
+            returnedCount: paginatedMessages.length,
+            hasMore: limit !== null && offset + paginatedMessages.length < totalCount,
+          },
           timings: {
             truthMs: toMs(tStart, tTruth),
             enrichMs: toMs(tTruth, tEnrich),
