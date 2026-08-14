@@ -2081,12 +2081,22 @@
       if (visitJournal && body.contains(visitJournal)) {
         event.preventDefault();
         runtime.pendingVisitEncounterId = visitJournal.getAttribute('data-encounter-id') || '';
-        closeV12WorkspaceOverlayIfOpen();
-        switchDetailTab('journal');
+        const rail = document.querySelector('[data-patient-master-rail]');
+        if (
+          rail &&
+          typeof window.CcoKundkortKkx?.openBig === 'function' &&
+          typeof mountKkxJournalBig === 'function'
+        ) {
+          closeV12WorkspaceOverlayIfOpen();
+          openReferensJournalWorkspace(rail, { forceKkx: true, fromActiveVisit: true });
+        } else {
+          closeV12WorkspaceOverlayIfOpen();
+          switchDetailTab('journal');
+        }
         setStatus(
           visitJournal.getAttribute('data-encounter-id')
-            ? 'Journal öppnad för valt besök.'
-            : 'Journal öppnad. Besökskoppling väljs i journalen.',
+            ? 'Journalarbetsytan öppnas för valt besök.'
+            : 'Journalarbetsytan öppnas. Besökskoppling väljs i journalen.',
           'info'
         );
         return;
@@ -3146,6 +3156,30 @@
   }
 
   function resolveActiveVisitJournalHints(dossierBundle) {
+    const entries = asArray(runtime.detail?.journalEntries);
+    const pendingEncounterId = normalizeText(runtime.pendingVisitEncounterId);
+
+    // Om användaren kommer från ett specifikt besök (t.ex. V12-besökskortets
+    // "Starta journal"), försök öppna just den journalen innan activeVisit
+    // används som fallback.
+    if (pendingEncounterId) {
+      const byPending = entries.find((entry) => {
+        if (entry.locked) return false;
+        return (
+          normalizeText(entry.encounterId) === pendingEncounterId ||
+          normalizeText(entry.visitId) === pendingEncounterId ||
+          normalizeText(entry.treatmentEncounterId) === pendingEncounterId
+        );
+      });
+      if (byPending?.entryId) {
+        return {
+          entryId: normalizeText(byPending.entryId),
+          journalType: normalizeText(byPending.journalType),
+          templateId: normalizeText(byPending.templateId),
+        };
+      }
+    }
+
     const visit = dossierBundle?.activeVisit;
     if (!visit) return {};
     const service = normalizeText(
@@ -3157,7 +3191,6 @@
       else if (/tp|transplant|fue|dhi|behandling/.test(service)) journalType = 'tp_treatment';
       else if (/uppfölj|follow/.test(service)) journalType = 'follow_up';
     }
-    const entries = asArray(runtime.detail?.journalEntries);
     let entryId = normalizeText(visit.journalEntryId || visit.entryId);
     if (!entryId && visit.encounterId) {
       const encounterId = normalizeText(visit.encounterId);

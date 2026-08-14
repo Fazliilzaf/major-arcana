@@ -135,8 +135,6 @@
     var comm = call('buildCommunicationFromState', [card, ctx.occasionTimeline, bundle], null);
     var econ = call('buildEconomyFromCard', [card], null);
     var insights = call('buildInsightsFromSignals', [card], null);
-    var entries = arr(ctx.journalEntries);
-
     var name = txt(card.displayName || card.fullName || card.name) || 'Kund';
     var out = '';
 
@@ -561,36 +559,7 @@
         '"></div></div>';
     }
 
-    /* J · JOURNALER */
-    if (entries.length) {
-      out += secOpen(
-        'journal',
-        'sec',
-        label('Journaler · personal') +
-          entries
-            .slice(0, 5)
-            .map(function (e) {
-              var signed = /sign|locked/i.test(txt(e.status));
-              var mk = signed ? 'done' : 'active';
-              return (
-                '<div class="j-row"><span class="j-mark ' +
-                mk +
-                '">' +
-                (signed ? '✓' : '·') +
-                '</span>' +
-                '<span class="j-name">' +
-                esc(txt(e.title || e.journalType || 'Journal')) +
-                '</span>' +
-                '<span class="j-status' +
-                (signed ? '' : ' active') +
-                '">' +
-                (signed ? 'Signerad' : 'Utkast') +
-                '</span></div>'
-              );
-            })
-            .join('')
-      );
-    }
+    // Journaler visas per besökstillfälle i den unifyade "Besök"-sektionen ovan.
 
     /* K · OFFERTOR */
     var offers = arr(

@@ -368,7 +368,7 @@ test('V11/V12 visar journal och film inom samma besökstillfälle', () => {
   );
   assert.match(ui, /video\[data-patient-file-id\]/);
   assert.match(canon, /data-journal-photo-id/);
-  assert.match(ui, /Journal öppnad för valt besök/);
+  assert.match(ui, /Journalarbetsytan öppnas för valt besök/);
   assert.match(canon, /data-v12-visit-document/);
   assert.match(canon, /data-v12-visit-video/);
   assert.match(ui, /formData\.append\('encounterId', encounterId\)/);
