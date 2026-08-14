@@ -160,3 +160,69 @@ test('countTreatmentSession: regression — encounterId-grupperade tillfällen o
   assert.equal(countTreatmentSession(siblings[3], siblings).sessionNumber, 2);
   assert.equal(countTreatmentSession(siblings[4], siblings).sessionNumber, 3);
 });
+
+// Bugbot-fynd på PR #1379 (2026-08-14), Medium #1: gles encounterId-täckning
+// är normalfallet, inte ett kantfall — några foton från ett besök länkade,
+// andra bara samma riktiga datum, fick tidigare FEL, två sessionsnummer för
+// samma tillfälle.
+test('countTreatmentSession: delvis länkat tillfälle — några syskon har encounterId, andra bara samma riktiga datum, slås ihop till ETT sessionsnummer', () => {
+  const siblings = [
+    { id: 'a1', treatmentType: 'FUE', documentDate: '2026-01-15', encounterId: 'enc-1' },
+    { id: 'a2', treatmentType: 'FUE', documentDate: '2026-01-15', encounterId: 'enc-1' },
+    { id: 'a3', treatmentType: 'FUE', documentDate: '2026-01-15' },
+    { id: 'a4', treatmentType: 'FUE', documentDate: '2026-01-15' },
+  ];
+  for (const sibling of siblings) {
+    const result = countTreatmentSession(sibling, siblings);
+    assert.equal(result.sessionNumber, 1, `${sibling.id} ska ingå i samma tillfälle`);
+  }
+});
+
+test('countTreatmentSession: tvetydig dag (två olika encounterId samma datum) gissar INTE var en olänkad syster hör hemma', () => {
+  const siblings = [
+    { id: 'a1', treatmentType: 'PRP', documentDate: '2026-05-01', encounterId: 'morgon' },
+    { id: 'b1', treatmentType: 'PRP', documentDate: '2026-05-01', encounterId: 'eftermiddag' },
+    { id: 'c1', treatmentType: 'PRP', documentDate: '2026-05-01' },
+  ];
+  const rA = countTreatmentSession(siblings[0], siblings);
+  const rB = countTreatmentSession(siblings[1], siblings);
+  const rC = countTreatmentSession(siblings[2], siblings);
+  assert.notEqual(rC.sessionNumber, rA.sessionNumber);
+  assert.notEqual(rC.sessionNumber, rB.sessionNumber);
+});
+
+// Bugbot-fynd, Medium #2: usedFallbackDate slogs av så fort encounterId
+// fanns, även om ordningen i praktiken byggde på importedAt.
+test('countTreatmentSession: encounterId utan NÅGOT riktigt datum i gruppen — usedFallbackDate ska vara true (ordningen bygger på importedAt, inte fakta)', () => {
+  const siblings = [
+    { id: 'a1', treatmentType: 'PRP', encounterId: 'enc-1', importedAt: '2026-01-01T10:00:00Z' },
+    { id: 'a2', treatmentType: 'PRP', encounterId: 'enc-1', importedAt: '2026-01-01T11:00:00Z' },
+  ];
+  const result = countTreatmentSession(siblings[0], siblings);
+  assert.equal(result.usedFallbackDate, true);
+});
+
+test('countTreatmentSession: encounterId utan eget documentDate men en SYSKON i samma encounter har riktigt datum — usedFallbackDate false (gruppen är förankrad)', () => {
+  const siblings = [
+    { id: 'a1', treatmentType: 'PRP', encounterId: 'enc-1', documentDate: '2026-01-15' },
+    { id: 'a2', treatmentType: 'PRP', encounterId: 'enc-1', importedAt: '2026-01-01T11:00:00Z' },
+  ];
+  const result = countTreatmentSession(siblings[1], siblings);
+  assert.equal(result.usedFallbackDate, false);
+});
+
+// Bugbot-fynd, Low #3: en enda odaterad syskon-asset kunde dra en annars
+// korrekt daterad grupp till fel plats i den kronologiska ordningen.
+test('countTreatmentSession: en enstaka odaterad syskon-asset (bara importedAt) drar INTE hela gruppens sorteringsordning fel', () => {
+  const siblings = [
+    { id: 'a1', treatmentType: 'FUE', documentDate: '2026-03-01', encounterId: 'enc-a' },
+    { id: 'a2', treatmentType: 'FUE', encounterId: 'enc-a', importedAt: '2020-01-01T00:00:00Z' },
+    { id: 'b1', treatmentType: 'FUE', documentDate: '2026-01-01', encounterId: 'enc-b' },
+  ];
+  const rA = countTreatmentSession(siblings[0], siblings);
+  const rB = countTreatmentSession(siblings[2], siblings);
+  assert.ok(
+    rB.sessionNumber < rA.sessionNumber,
+    'grupp B (verkligt datum januari) ska rankas före grupp A (verkligt datum mars), oavsett en syskon-assets gamla importedAt'
+  );
+});
