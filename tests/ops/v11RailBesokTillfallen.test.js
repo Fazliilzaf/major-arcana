@@ -26,7 +26,7 @@ test('Besök tillfällen byggs från bokningshistorik enligt facit', () => {
   assert.match(source, /b\.staffName \|\| b\.providerName \|\| b\.resourceName/);
 });
 
-test('V11 behåller facits separata Journaler, Foton och Filer', () => {
+test('V11 visar besök, foton och filer i unifyade kort utan separat journalsektion', () => {
   const html = RailKomplett.render({
     card: { id: 'pat-42' },
     dossierBundle: {
@@ -47,7 +47,7 @@ test('V11 behåller facits separata Journaler, Foton och Filer', () => {
   assert.match(html, /Besök · tillfällen/);
   assert.match(html, /PRP 1\/3/);
   assert.match(html, /11:15 · 45 min · Erik Holm/);
-  assert.match(html, /Journaler · personal/);
+  assert.doesNotMatch(html, /Journaler · personal/);
   assert.match(html, /data-v11-rk-besok="pat-42"/);
 });
 
