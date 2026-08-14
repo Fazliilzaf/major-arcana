@@ -99,6 +99,11 @@ function buildAssetNamingMetadata(asset = {}, ctx = {}) {
     captureDate: merged.captureDate || null,
     version: merged.version,
     namingConfidence,
+    // Transparens för granskningskö-rapportering (scripts/report-naming-
+    // review-queue.js): skiljer "namingConfidence var redan low" från
+    // "sessionNumber byggdes på importedAt-fallback" som ORSAK till
+    // needs_review_for_naming — utan att ändra själva namingStatus-logiken.
+    sessionNumberIsUnreliable,
     namingStatus,
     uiStatus: mapUiStatus(asset.status, namingStatus),
     namingSignals: classification.signals || [],
