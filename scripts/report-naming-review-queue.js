@@ -32,24 +32,7 @@
 const path = require('node:path');
 const { createCcoPatientAssetStore } = require('../src/ops/ccoPatientAssetStore');
 const { createCcoPatientMasterStore } = require('../src/ops/ccoPatientMasterStore');
-const { buildAssetNamingMetadata } = require('../src/ops/ccoAssetNaming');
-const {
-  needsBackfill,
-  resolveAliasKeyFn,
-  groupByPatientId,
-  assertPatientsResolved,
-} = require('./backfill-asset-display-names');
-
-function normalizeText(value) {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function maskId(value) {
-  const text = normalizeText(value);
-  if (!text) return '(tomt)';
-  if (text.length <= 8) return `${text.slice(0, 2)}***`;
-  return `${text.slice(0, 4)}***${text.slice(-4)}`;
-}
+const { buildNamingReviewQueue } = require('../src/ops/ccoAssetNaming/buildNamingReviewQueue');
 
 function parseArgs(argv = process.argv) {
   const args = {
@@ -79,14 +62,6 @@ function parseArgs(argv = process.argv) {
   return args;
 }
 
-function classifyReason({ namingConfidence, sessionNumberIsUnreliable }) {
-  const lowConfidence = namingConfidence === 'low';
-  if (lowConfidence && sessionNumberIsUnreliable) return 'both';
-  if (sessionNumberIsUnreliable) return 'fallback_session_number';
-  if (lowConfidence) return 'low_confidence';
-  return 'other';
-}
-
 async function main() {
   const args = parseArgs();
 
@@ -97,100 +72,13 @@ async function main() {
     filePath: path.resolve(args.patientAssetsStorePath),
   });
 
-  const patientsPage = await patientStore.listPatients({
+  const report = await buildNamingReviewQueue(patientStore, assetStore, {
     tenantId: args.tenant,
-    limit: args.patientLimit,
-    offset: 0,
+    top: args.top,
+    patientLimit: args.patientLimit,
+    maskIds: true,
   });
-  const patients = patientsPage.patients || [];
-  assertPatientsResolved(patients, args);
 
-  const all = assetStore.listItemsForEnrichment();
-  const keyFn = resolveAliasKeyFn(all, patients);
-  const byPatient = groupByPatientId(all, keyFn);
-
-  const reasonTotals = {
-    low_confidence: 0,
-    fallback_session_number: 0,
-    both: 0,
-    other: 0,
-  };
-  const byCategoryTotals = {};
-  const perPatient = new Map();
-
-  for (const [patientId, siblingAssets] of byPatient) {
-    for (const asset of siblingAssets) {
-      if (!needsBackfill(asset, { force: false })) continue;
-      let namingPatch;
-      try {
-        namingPatch = buildAssetNamingMetadata(asset, { siblingAssets });
-      } catch {
-        continue;
-      }
-      if (namingPatch.namingStatus !== 'needs_review_for_naming') continue;
-
-      const reason = classifyReason(namingPatch);
-      reasonTotals[reason] += 1;
-      const category = normalizeText(asset.category) || '(okategoriserad)';
-      byCategoryTotals[category] = (byCategoryTotals[category] || 0) + 1;
-
-      if (!perPatient.has(patientId)) {
-        perPatient.set(patientId, {
-          low_confidence: 0,
-          fallback_session_number: 0,
-          both: 0,
-          other: 0,
-          total: 0,
-        });
-      }
-      const entry = perPatient.get(patientId);
-      entry[reason] += 1;
-      entry.total += 1;
-    }
-  }
-
-  const totalReview = Object.values(reasonTotals).reduce((sum, n) => sum + n, 0);
-
-  // "Lättast att åtgärda" = patienter vars hela kö bara beror på
-  // fallback_session_number (inga low_confidence-poster). De skulle
-  // kunna klaras helt av en riktig documentDate-backfill (t.ex. från
-  // Pipedrive-källdata) utan mänsklig ögonblick per post — till skillnad
-  // från low_confidence, som kräver en faktisk bedömning av dokumentet.
-  const rows = [...perPatient.entries()]
-    .map(([patientId, entry]) => ({
-      patientId: maskId(patientId),
-      total: entry.total,
-      lowConfidence: entry.low_confidence,
-      fallbackSessionNumber: entry.fallback_session_number,
-      both: entry.both,
-      other: entry.other,
-      likelyBulkFixable: entry.low_confidence === 0 && entry.both === 0 && entry.other === 0,
-    }))
-    .sort((a, b) => b.total - a.total);
-
-  const bulkFixableCount = rows.filter((r) => r.likelyBulkFixable).length;
-  const bulkFixableAssetCount = rows
-    .filter((r) => r.likelyBulkFixable)
-    .reduce((sum, r) => sum + r.total, 0);
-
-  const report = {
-    readOnly: true,
-    zeroWrites: true,
-    generatedAt: new Date().toISOString(),
-    tenant: args.tenant,
-    totalAssetsScanned: all.length,
-    totalReviewQueueSize: totalReview,
-    reasonTotals,
-    byCategoryTotals,
-    patientsAffected: perPatient.size,
-    patientsLikelyBulkFixable: bulkFixableCount,
-    assetsLikelyBulkFixable: bulkFixableAssetCount,
-    note:
-      'likelyBulkFixable = patientens hela kö beror bara på fallback-daterat ' +
-      'sessionNumber (inget low_confidence) — kandidat för en riktig documentDate-' +
-      'backfill snarare än manuell granskning per post.',
-    topPatientsByQueueSize: rows.slice(0, args.top),
-  };
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 }
 
@@ -201,4 +89,4 @@ if (require.main === module || process.argv[1] === '-') {
   });
 }
 
-module.exports = { parseArgs, maskId, classifyReason };
+module.exports = { parseArgs };
