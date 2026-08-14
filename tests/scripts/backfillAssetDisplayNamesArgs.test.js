@@ -82,6 +82,36 @@ test('needsBackfill respects manual naming', () => {
   );
 });
 
+// Läs-endast-analys mot prod (2026-08-14, efter bug #3/#1379): 166 assets
+// bar namingStatus 'manual_resolved'/'approved' — kurerade av en människa
+// men OSKYDDADE av det gamla villkoret (matchade bara exakt 'manual'), och
+// alla tre statusar var dessutom oskyddade så fort --force sattes. 19 av
+// de 166 hade fått sitt sessionsnummer skrivet över av en --force-körning.
+test('needsBackfill skyddar alla kurerade statusar (manual/manual_resolved/approved), oavsett --force', () => {
+  for (const namingStatus of ['manual', 'manual_resolved', 'approved']) {
+    assert.equal(
+      needsBackfill({ displayName: 'X', namingStatus, patientId: 'p1' }, { force: false }),
+      false,
+      `${namingStatus} ska vara skyddat utan --force`
+    );
+    assert.equal(
+      needsBackfill({ displayName: 'X', namingStatus, patientId: 'p1' }, { force: true }),
+      false,
+      `${namingStatus} ska vara skyddat MED --force — det är hela poängen med fixen`
+    );
+  }
+});
+
+test('needsBackfill: --force gör fortfarande allt annat (ickekurerat) till kandidat', () => {
+  assert.equal(
+    needsBackfill(
+      { displayName: '2024-01-01 · PRP 1 · Under', namingStatus: 'resolved', patientId: 'p1' },
+      { force: true }
+    ),
+    true
+  );
+});
+
 test('isAutoSafeNamingPatch haller tillbaka lagkonfidenta gissningar', () => {
   assert.equal(isAutoSafeNamingPatch({ namingStatus: 'needs_review_for_naming' }), false);
   assert.equal(isAutoSafeNamingPatch({ namingStatus: 'resolved' }), true);
