@@ -275,6 +275,16 @@
         return res.json();
       }
 
+      function escapeHtml(raw) {
+        if (raw == null) return '';
+        return String(raw)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
       function toast(message, type = 'success') {
         const el = document.getElementById('toast');
         el.textContent = message;
@@ -292,12 +302,12 @@
         root.innerHTML = `
         <h2>Sammanfattning</h2>
         <div class="summary">
-          <div class="stat"><div class="value">${q.totalReviewQueueSize || 0}</div><div class="label">Assets i kö</div></div>
-          <div class="stat"><div class="value">${q.patientsAffected || 0}</div><div class="label">Patienter berörda</div></div>
-          <div class="stat"><div class="value">${q.patientsLikelyBulkFixable || 0}</div><div class="label">Bulk-fixbara patienter</div></div>
-          <div class="stat"><div class="value">${q.reasonTotals?.fallback_session_number || 0}</div><div class="label">Fallback-datum</div></div>
-          <div class="stat"><div class="value">${q.reasonTotals?.low_confidence || 0}</div><div class="label">Låg konfidens</div></div>
-          <div class="stat"><div class="value">${q.reasonTotals?.both || 0}</div><div class="label">Båda</div></div>
+          <div class="stat"><div class="value">${escapeHtml(q.totalReviewQueueSize || 0)}</div><div class="label">Assets i kö</div></div>
+          <div class="stat"><div class="value">${escapeHtml(q.patientsAffected || 0)}</div><div class="label">Patienter berörda</div></div>
+          <div class="stat"><div class="value">${escapeHtml(q.patientsLikelyBulkFixable || 0)}</div><div class="label">Bulk-fixbara patienter</div></div>
+          <div class="stat"><div class="value">${escapeHtml(q.reasonTotals?.fallback_session_number || 0)}</div><div class="label">Fallback-datum</div></div>
+          <div class="stat"><div class="value">${escapeHtml(q.reasonTotals?.low_confidence || 0)}</div><div class="label">Låg konfidens</div></div>
+          <div class="stat"><div class="value">${escapeHtml(q.reasonTotals?.both || 0)}</div><div class="label">Båda</div></div>
         </div>
       `;
       }
@@ -312,17 +322,17 @@
         root.innerHTML = rows
           .map(
             (p) => `
-        <div class="patient-row ${p.patientId === state.selectedPatientId ? 'active' : ''}" data-id="${p.patientId}">
+        <div class="patient-row ${p.patientId === state.selectedPatientId ? 'active' : ''}" data-id="${escapeHtml(p.patientId)}">
           <div>
-            <div>${p.patientName || p.patientId}</div>
+            <div>${escapeHtml(p.patientName || p.patientId)}</div>
             <div class="badges">
-              ${p.fallbackSessionNumber ? `<span class="badge fallback">F ${p.fallbackSessionNumber}</span>` : ''}
-              ${p.lowConfidence ? `<span class="badge low">L ${p.lowConfidence}</span>` : ''}
-              ${p.both ? `<span class="badge low">B ${p.both}</span>` : ''}
-              ${p.other ? `<span class="badge">O ${p.other}</span>` : ''}
+              ${p.fallbackSessionNumber ? `<span class="badge fallback">F ${escapeHtml(p.fallbackSessionNumber)}</span>` : ''}
+              ${p.lowConfidence ? `<span class="badge low">L ${escapeHtml(p.lowConfidence)}</span>` : ''}
+              ${p.both ? `<span class="badge low">B ${escapeHtml(p.both)}</span>` : ''}
+              ${p.other ? `<span class="badge">O ${escapeHtml(p.other)}</span>` : ''}
             </div>
           </div>
-          <div class="total">${p.total}</div>
+          <div class="total">${escapeHtml(p.total)}</div>
         </div>
       `
           )
@@ -345,23 +355,23 @@
         }
 
         const title = state.assets[0]?.patientName
-          ? `${state.assets[0].patientName} <span style="color:var(--muted);font-weight:400">(${state.assets[0].patientId})</span>`
-          : state.assets[0].patientId;
+          ? `${escapeHtml(state.assets[0].patientName)} <span style="color:var(--muted);font-weight:400">(${escapeHtml(state.assets[0].patientId)})</span>`
+          : escapeHtml(state.assets[0].patientId);
 
         root.innerHTML = `
         <h2>${title}</h2>
         ${state.assets
           .map(
             (a) => `
-          <div class="asset-item" id="asset-${a.assetId}" data-id="${a.assetId}">
-            <div class="asset-meta">${a.currentCategory || 'okategoriserad'} · ${a.assetId}</div>
-            <div class="asset-name">${a.currentDisplayName || '(inget displayName)'}</div>
-            ${a.computed ? `<div class="asset-proposed">→ ${a.computed.displayName}</div>` : ''}
-            <div class="asset-path">${a.originalFileName || ''}${a.originalDrivePath ? '<br>' + a.originalDrivePath : ''}</div>
-            <form class="inline" onsubmit="event.preventDefault(); resolveAsset('${a.assetId}');">
+          <div class="asset-item" id="asset-${escapeHtml(a.assetId)}" data-asset-id="${escapeHtml(a.assetId)}">
+            <div class="asset-meta">${escapeHtml(a.currentCategory || 'okategoriserad')} · ${escapeHtml(a.assetId)}</div>
+            <div class="asset-name">${escapeHtml(a.currentDisplayName || '(inget displayName)')}</div>
+            ${a.computed ? `<div class="asset-proposed">→ ${escapeHtml(a.computed.displayName)}</div>` : ''}
+            <div class="asset-path">${escapeHtml(a.originalFileName || '')}${a.originalDrivePath ? '<br>' + escapeHtml(a.originalDrivePath) : ''}</div>
+            <form class="inline" data-asset-id="${escapeHtml(a.assetId)}">
               <div>
                 <label>Datum (valfritt)</label>
-                <input type="date" name="documentDate" value="${a.documentDate || ''}">
+                <input type="date" name="documentDate" value="${escapeHtml(a.documentDate || '')}">
               </div>
               <div>
                 <label>Anledning</label>
@@ -377,6 +387,13 @@
           )
           .join('')}
       `;
+
+        root.querySelectorAll('form[data-asset-id]').forEach((form) => {
+          form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            resolveAsset(form.dataset.assetId);
+          });
+        });
       }
 
       async function loadQueue() {
@@ -386,7 +403,7 @@
           renderPatients();
         } catch (err) {
           document.getElementById('summary').innerHTML =
-            `<div class="error">Kunde inte ladda kö: ${err.message}</div>`;
+            `<div class="error">Kunde inte ladda kö: ${escapeHtml(err.message)}</div>`;
         }
       }
 
@@ -404,7 +421,7 @@
           }));
           renderAssets();
         } catch (err) {
-          root.innerHTML = `<div class="error">Kunde inte ladda assets: ${err.message}</div>`;
+          root.innerHTML = `<div class="error">Kunde inte ladda assets: ${escapeHtml(err.message)}</div>`;
         }
       }
 

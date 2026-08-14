@@ -223,6 +223,63 @@ test('naming-review resolve rejects non-review asset', async () => {
   });
 });
 
+test('naming-review patient assets resolves alias patientId', async () => {
+  const patients = [
+    {
+      id: 'canonical-p1',
+      tenantId: 't1',
+      displayName: 'Anna Andersson',
+      name: 'Anna Andersson',
+    },
+  ];
+  const assets = {
+    a1: {
+      id: 'a1',
+      patientId: 'alias-p1',
+      category: 'journal',
+      originalFileName: 'FUE-avtal.pdf',
+      originalDrivePath: '/Anna Andersson/FUE-avtal.pdf',
+      treatmentType: 'FUE',
+      importedAt: '2026-01-15T10:00:00.000Z',
+      namingStatus: 'needs_review_for_naming',
+      tenantId: 't1',
+    },
+  };
+
+  const app = express();
+  app.use(
+    '/api/v1/cco',
+    createCcoNamingReviewRouter({
+      resolvePatientMasterStore: async () => createMockPatientStore(patients),
+      resolveAssetStore: async () => createMockAssetStore(assets),
+      requireCcoAuthenticated: passAuth,
+      attachRole,
+      requirePermission: () => (_req, _res, next) => next(),
+      auditLog: null,
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const resCanonical = await fetch(
+      `${baseUrl}/naming-review/patients/canonical-p1/assets?tenant=t1`
+    );
+    assert.equal(resCanonical.status, 200);
+    const bodyCanonical = await resCanonical.json();
+    assert.equal(bodyCanonical.count, 1);
+    assert.equal(bodyCanonical.items[0].assetId, 'a1');
+    assert.equal(bodyCanonical.patientId, 'canonical-p1');
+
+    const resAlias = await fetch(
+      `${baseUrl}/naming-review/patients/alias-p1/assets?tenant=t1`
+    );
+    assert.equal(resAlias.status, 200);
+    const bodyAlias = await resAlias.json();
+    assert.equal(bodyAlias.count, 1);
+    assert.equal(bodyAlias.items[0].assetId, 'a1');
+    assert.equal(bodyAlias.patientId, 'canonical-p1');
+  });
+});
+
 test('naming-review patient assets lists needs_review_for_naming items', async () => {
   const patients = [{ id: 'p1', tenantId: 't1', displayName: 'Anna' }];
   const assets = {

@@ -88,7 +88,7 @@ async function buildNamingReviewQueue(patientStore, assetStore, options = {}) {
   }
   assertPatientsResolved(patients, { tenant: tenantId });
 
-  const all = assetStore.listItemsForEnrichment();
+  const all = assetStore.listItemsForEnrichment(tenantId);
   const keyFn = resolveAliasKeyFn(all, patients);
   const byPatient = groupByPatientId(all, keyFn);
 

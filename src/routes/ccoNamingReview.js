@@ -13,6 +13,11 @@
 const express = require('express');
 const { buildNamingReviewQueue } = require('../ops/ccoAssetNaming/buildNamingReviewQueue');
 const { buildAssetNamingMetadata } = require('../ops/ccoAssetNaming');
+const {
+  resolveAliasKeyFn,
+  groupByPatientId,
+  assertPatientsResolved,
+} = require('../../scripts/backfill-asset-display-names');
 
 const REASON_MIN_LENGTH = 3;
 const REASON_MAX_LENGTH = 500;
@@ -57,6 +62,42 @@ function requireDocumentDateOptional(body) {
     throw e;
   }
   return iso;
+}
+
+function tenantIdFromReq(req) {
+  return (
+    normalizeText(req.query.tenant) ||
+    normalizeText(req.headers['x-cco-tenant']) ||
+    normalizeText(req.auth?.tenantId)
+  );
+}
+
+async function loadPatientsAndAssets({ patientStore, assetStore, tenantId }) {
+  const patientsPage = await patientStore.listPatients({
+    tenantId,
+    limit: 50000,
+    offset: 0,
+  });
+  const patients = patientsPage.patients || [];
+  assertPatientsResolved(patients, { tenant: tenantId });
+  const allAssets = assetStore.listItemsForEnrichment(tenantId);
+  const keyFn = resolveAliasKeyFn(allAssets, patients);
+  const byPatient = groupByPatientId(allAssets, keyFn);
+  return { patients, allAssets, keyFn, byPatient };
+}
+
+function findCanonicalPatientId({ requestedPatientId, allAssets, keyFn }) {
+  for (const asset of allAssets) {
+    if (normalizeText(asset.patientId) === requestedPatientId) {
+      return normalizeText(keyFn(asset));
+    }
+  }
+  return requestedPatientId;
+}
+
+function filterAssetsByTenant(assets, tenantId) {
+  if (!tenantId) return assets;
+  return assets.filter((a) => !a.tenantId || a.tenantId === tenantId);
 }
 
 function buildReviewItem(asset, siblingAssets) {
@@ -176,19 +217,34 @@ function createCcoNamingReviewRouter({
       try {
         const patientStore = await resolvePatientMasterStore();
         const assetStore = await resolveAssetStore();
-        const patientId = normalizeText(req.params.patientId);
-        if (!patientId) {
+        const requestedPatientId = normalizeText(req.params.patientId);
+        if (!requestedPatientId) {
           return res.status(400).json({ error: 'patient_id_required' });
         }
 
-        const tenantId =
-          normalizeText(req.query.tenant) ||
-          normalizeText(req.headers['x-cco-tenant']) ||
-          normalizeText(req.auth?.tenantId);
+        const tenantId = tenantIdFromReq(req);
+        const { allAssets, keyFn, byPatient } = await loadPatientsAndAssets({
+          patientStore,
+          assetStore,
+          tenantId,
+        });
+
+        const canonicalPatientId = findCanonicalPatientId({
+          requestedPatientId,
+          allAssets,
+          keyFn,
+        });
+        const siblingAssets = filterAssetsByTenant(
+          byPatient.get(canonicalPatientId) || [],
+          tenantId
+        );
+        if (!siblingAssets.length) {
+          return res.status(404).json({ error: 'patient_not_found_or_no_assets' });
+        }
 
         let patientName = null;
         try {
-          const patient = await patientStore.getPatient({ tenantId, patientId });
+          const patient = await patientStore.getPatient({ tenantId, patientId: canonicalPatientId });
           if (patient) {
             patientName = patient.displayName || patient.name || null;
           }
@@ -196,7 +252,6 @@ function createCcoNamingReviewRouter({
           patientName = null;
         }
 
-        const siblingAssets = assetStore.listAssetsForPatient(patientId);
         const items = siblingAssets
           .filter((a) => a.namingStatus === 'needs_review_for_naming')
           .map((a) => buildReviewItem(a, siblingAssets))
@@ -210,14 +265,15 @@ function createCcoNamingReviewRouter({
           auditLog.append({
             action: 'naming_review.patient_assets_read',
             actor: actorFromReq(req),
-            target: { kind: 'patient', id: patientId },
+            target: { kind: 'patient', id: canonicalPatientId },
             result: 'ok',
-            detail: { tenantId, count: items.length },
+            detail: { tenantId, requestedPatientId, count: items.length },
           });
         }
 
         res.json({
-          patientId,
+          patientId: canonicalPatientId,
+          requestedPatientId,
           patientName,
           tenantId,
           count: items.length,
@@ -237,6 +293,7 @@ function createCcoNamingReviewRouter({
     requirePermission('asset.review'),
     async (req, res) => {
       try {
+        const patientStore = await resolvePatientMasterStore();
         const assetStore = await resolveAssetStore();
         const assetId = normalizeText(req.params.assetId);
         if (!assetId) {
@@ -246,6 +303,10 @@ function createCcoNamingReviewRouter({
         const asset = assetStore.getAsset(assetId);
         if (!asset) {
           return res.status(404).json({ error: 'asset_not_found' });
+        }
+        const tenantId = tenantIdFromReq(req);
+        if (tenantId && asset.tenantId && asset.tenantId !== tenantId) {
+          return res.status(403).json({ error: 'asset_tenant_mismatch' });
         }
         if (asset.namingStatus !== 'needs_review_for_naming') {
           return res.status(409).json({ error: 'asset_not_in_review' });
@@ -263,7 +324,20 @@ function createCcoNamingReviewRouter({
           work.documentDateSource = 'manual_review';
         }
 
-        const siblingAssets = assetStore.listAssetsForPatient(asset.patientId);
+        const { allAssets, keyFn, byPatient } = await loadPatientsAndAssets({
+          patientStore,
+          assetStore,
+          tenantId,
+        });
+        const canonicalPatientId = findCanonicalPatientId({
+          requestedPatientId: asset.patientId,
+          allAssets,
+          keyFn,
+        });
+        const siblingAssets = filterAssetsByTenant(
+          byPatient.get(canonicalPatientId) || [],
+          tenantId
+        );
         const computed = buildAssetNamingMetadata(work, { siblingAssets });
 
         const patch = {
