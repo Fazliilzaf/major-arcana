@@ -11,6 +11,7 @@ const {
   backfillAssetDisplayNames,
   groupByPatientId,
   resolveAliasKeyFn,
+  assertPatientsResolved,
 } = require('../../scripts/backfill-asset-display-names');
 
 test('parseArgs defaults to dry-run', () => {
@@ -202,6 +203,27 @@ test('resolveAliasKeyFn löser upp ett delat alias-patientId till varje kanonisk
   // Olöst alias faller tillbaka på den råa asset.patientId — aldrig sämre
   // än det ursprungliga beteendet.
   assert.equal(keyFn(assets[2]), 'never-resolves');
+});
+
+// Cursor Bugbot, granskning av #1374 (2026-08-13): en TOM patients-array
+// är "truthy" i JS — utan denna kontroll skulle fel --patients-store-
+// sökväg eller felstavat --tenant tyst degradera till den oupplösta,
+// buggiga grupperingen, precis det skyddet ska förhindra.
+test('assertPatientsResolved kastar på tom patients-array (fel sökväg/tenant ska krascha, inte tyst degradera)', () => {
+  assert.throws(
+    () =>
+      assertPatientsResolved([], {
+        patientsStorePath: '/var/data/cco-patient-master.json',
+        tenant: 'hair-tp-clinc',
+      }),
+    /0 patienter/
+  );
+  assert.doesNotThrow(() =>
+    assertPatientsResolved([{ id: 'p1' }], {
+      patientsStorePath: '/var/data/cco-patient-master.json',
+      tenant: 'hair-tp-clinic',
+    })
+  );
 });
 
 test('backfillAssetDisplayNames + patients: tre patienter som delar ett alias-patientId grupperas nu korrekt, sessionNumber 1/2/3 i stället för 7/8/9 (bug 1)', async () => {

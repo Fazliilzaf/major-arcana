@@ -204,6 +204,25 @@ function resolveAliasKeyFn(assets, patients) {
   return (asset) => canonicalByAssetId.get(asset.id) || asset.patientId;
 }
 
+// Fail-closed på riktigt: en TOM array är "truthy" i JS, så utan den här
+// kontrollen skulle resolveAliasKeyFn köra, lösa upp ingenting, och
+// grupperingen falla TYST tillbaka på rå patientId — exakt det
+// --patients-store/--tenant är till för att förhindra. Fel sökväg eller
+// felstavat tenant-namn ska krascha högljutt, inte degradera tyst till
+// den buggiga grupperingen. Hittad av Cursor Bugbot vid granskning av
+// #1374, 2026-08-13.
+function assertPatientsResolved(patients, { patientsStorePath, tenant } = {}) {
+  if (patients.length === 0) {
+    throw new Error(
+      `--patients-store/--tenant gav 0 patienter (tenant "${tenant}", ` +
+        `${path.resolve(patientsStorePath)}) — fel sökväg eller felstavad tenant? ` +
+        'Vägrar falla tillbaka tyst till oupplöst gruppering (kors-patient-' +
+        'kollisionsrisk). Verifiera --patients-store/--tenant, eller sätt ' +
+        '--i-understand-the-collision-risk-skip-alias-resolution om det är avsiktligt.'
+    );
+  }
+}
+
 async function backfillAssetDisplayNames({ assetStore, patients = null, args }) {
   const all = assetStore.listItemsForEnrichment();
   const keyFn = patients ? resolveAliasKeyFn(all, patients) : undefined;
@@ -390,6 +409,7 @@ async function main() {
       offset: 0,
     });
     patients = patientsPage.patients || [];
+    assertPatientsResolved(patients, args);
   } else {
     process.stderr.write(
       '[backfill-asset-display-names] VARNING: kör utan alias-upplösning ' +
@@ -422,4 +442,5 @@ module.exports = {
   isAutoSafeNamingPatch,
   groupByPatientId,
   resolveAliasKeyFn,
+  assertPatientsResolved,
 };
