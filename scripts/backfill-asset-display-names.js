@@ -130,9 +130,18 @@ function looksTechnical(displayName, originalFileName) {
   return false;
 }
 
+// Läs-endast-analys mot prod (2026-08-14, efter bug #3/#1379): --force
+// skulle tidigare skriva över människo-kurerade namn, eftersom skyddet
+// bara matchade EXAKT namingStatus === 'manual', och bara UTAN --force.
+// 166 assets bar en kurerad status (manual_resolved/approved) som därför
+// inte skyddades alls — 19 av dem hade fått sitt sessionsnummer
+// överskrivet av en --force-körning. Skyddet gäller nu alla tre kurerade
+// statusar, oavsett --force.
+const CURATED_NAMING_STATUSES = ['manual', 'manual_resolved', 'approved'];
+
 function needsBackfill(asset, { force = false }) {
   if (asset.deletedAt) return false;
-  if (asset.namingStatus === 'manual' && !force) return false;
+  if (CURATED_NAMING_STATUSES.includes(asset.namingStatus)) return false;
   if (force) return true;
   const displayName = normalizeText(asset.displayName);
   if (!displayName) return true;
