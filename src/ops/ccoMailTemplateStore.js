@@ -21,6 +21,25 @@ function normalizeText(v) { return typeof v === 'string' ? v.trim() : ''; }
 function asArray(v) { return Array.isArray(v) ? v : []; }
 function cloneJson(v) { return v && typeof v === 'object' ? JSON.parse(JSON.stringify(v)) : v; }
 
+/**
+ * Lightweight template sanitiser. Removes obvious active content vectors while
+ * preserving harmless formatting. This is defense-in-depth: the CCO composer
+ * treats templates as plain text, so this mainly protects future consumers.
+ */
+function sanitizeTemplateBody(value = '') {
+  return String(value)
+    // Drop <script> blocks entirely.
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '')
+    // Drop inline event handlers: onerror, onclick, etc.
+    .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    // Neutralise javascript: URLs on link/src/action attributes.
+    .replace(/\s+(href|src|action|formaction)\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*'|javascript:[^\s>]+)/gi, ' $1="#"')
+    // Neutralise CSS expression() and javascript: URLs in style attributes.
+    .replace(/\s+style\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, (match) =>
+      match.replace(/expression\s*\(/gi, 'expression_block(').replace(/javascript:[^;"']*/gi, '')
+    );
+}
+
 async function readJson(filePath, fallbackValue) {
   try {
     const raw = await fs.readFile(filePath, 'utf8');
@@ -72,8 +91,8 @@ function emptyState() {
 }
 
 function normalizeTemplate(input = {}) {
-  const label = normalizeText(input.label).slice(0, 80);
-  const body = normalizeText(input.body).slice(0, 4000);
+  const label = sanitizeTemplateBody(normalizeText(input.label)).trim().slice(0, 80);
+  const body = sanitizeTemplateBody(normalizeText(input.body)).trim().slice(0, 4000);
   if (!label || !body) return null;
   return {
     templateId: normalizeText(input.templateId) || crypto.randomUUID(),
