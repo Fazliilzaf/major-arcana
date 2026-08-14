@@ -689,3 +689,79 @@ test('RBAC: operator nekas live-send reply (mail.live_send är owner-only)', asy
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
+
+function makeManyMessages(count) {
+  return Array.from({ length: count }, (_, i) => ({
+    mailboxConversationId: CONV_KEY,
+    graphMessageId: `msg-${count - i}`,
+    senderEmail: `kund${count - i}@test.se`,
+    mailboxId: 'kons@hairtpclinic.com',
+    mailboxAddress: 'kons@hairtpclinic.com',
+    folderType: 'inbox',
+    sentAt: `2025-01-01T${String(count - i).padStart(2, '0')}:00:00.000Z`,
+    bodyPreview: `Meddelande ${count - i}`,
+  }));
+}
+
+test('messages: default pagination returns up to 100 messages and metadata', async () => {
+  const fixture = await createFixture({ messages: makeManyMessages(150) });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const read = await readReqByKey(baseUrl, CONV_KEY, 'operator');
+      assert.equal(read.status, 200);
+      const body = await read.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.messageCount, 100);
+      assert.equal(body.totalMessageCount, 150);
+      assert.ok(body.pagination, 'pagination ska finnas');
+      assert.equal(body.pagination.limit, 100);
+      assert.equal(body.pagination.offset, 0);
+      assert.equal(body.pagination.totalCount, 150);
+      assert.equal(body.pagination.returnedCount, 100);
+      assert.equal(body.pagination.hasMore, true);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('messages: limit and offset pagination works', async () => {
+  const fixture = await createFixture({ messages: makeManyMessages(10) });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const read = await readReqByKey(baseUrl, CONV_KEY, 'operator', '?limit=3&offset=4');
+      assert.equal(read.status, 200);
+      const body = await read.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.messageCount, 3);
+      assert.equal(body.totalMessageCount, 10);
+      assert.equal(body.pagination.limit, 3);
+      assert.equal(body.pagination.offset, 4);
+      assert.equal(body.pagination.returnedCount, 3);
+      assert.equal(body.pagination.hasMore, true);
+      // Pagination ska returnera unika meddelanden i rätt slice
+      assert.equal(new Set(body.messages.map((m) => m.senderEmail)).size, 3);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('messages: all=true returns every message', async () => {
+  const fixture = await createFixture({ messages: makeManyMessages(150) });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const read = await readReqByKey(baseUrl, CONV_KEY, 'operator', '?all=true');
+      assert.equal(read.status, 200);
+      const body = await read.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.messageCount, 150);
+      assert.equal(body.totalMessageCount, 150);
+      assert.equal(body.pagination.limit, null);
+      assert.equal(body.pagination.offset, 0);
+      assert.equal(body.pagination.hasMore, false);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
