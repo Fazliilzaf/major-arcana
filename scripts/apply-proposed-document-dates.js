@@ -18,6 +18,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { createCcoPatientAssetStore } = require('../src/ops/ccoPatientAssetStore');
+const { createCcoAuditLog } = require('../src/security/ccoAuditLog');
+
+const REPO = path.resolve(__dirname, '..');
+const DATA = path.join(REPO, 'data');
 
 function parseArgs(argv = process.argv) {
   const args = {
@@ -50,8 +54,15 @@ async function main() {
   const args = parseArgs();
   const proposalsData = JSON.parse(fs.readFileSync(args.proposalsPath, 'utf8'));
 
+  // Bugbot-fynd (2026-08-14, PR #1381), Medium: skrivningar mot
+  // patientdata gick utan audit-logg — samma mönster som
+  // backfill-asset-display-names.js redan använder
+  // (ARCANA_CCO_AUDIT_PATH-env, default data/cco-audit.jsonl).
+  const auditPath = process.env.ARCANA_CCO_AUDIT_PATH || path.join(DATA, 'cco-audit.jsonl');
+  const auditLog = createCcoAuditLog({ filePath: auditPath });
   const assetStore = await createCcoPatientAssetStore({
     filePath: path.resolve(args.patientAssetsStorePath),
+    auditLog,
   });
 
   const minLevel = CONFIDENCE_ORDER[args.minConfidence] || 3;
@@ -103,7 +114,11 @@ async function main() {
   console.log(JSON.stringify(result, null, 2));
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
+
+module.exports = { parseArgs, CONFIDENCE_ORDER };
