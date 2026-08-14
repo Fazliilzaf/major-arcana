@@ -154,3 +154,36 @@ test('saveTemplate upserts; deleteTemplate removes; persists on disk', async () 
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('saveTemplate sanitizes active HTML content in body and label', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-mailtpl-xss-'));
+  const filePath = path.join(dir, 'templates.json');
+  const store = await createCcoMailTemplateStore({ filePath });
+
+  const saved = await store.saveTemplate({
+    label: 'Mall <script>alert(1)</script>',
+    body: 'Hej! <script>alert(2)</script><img src=x onerror="alert(3)"><a href="javascript:alert(4)">klick</a>',
+  });
+
+  assert.equal(saved.label, 'Mall');
+  assert.equal(saved.body, 'Hej! <img src=x><a href="#">klick</a>');
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('saveTemplate rejects empty label or body after sanitization', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-mailtpl-empty-xss-'));
+  const filePath = path.join(dir, 'templates.json');
+  const store = await createCcoMailTemplateStore({ filePath });
+
+  await assert.rejects(
+    () => store.saveTemplate({ label: '<script>alert(1)</script>', body: 'text' }),
+    /label och body/i,
+  );
+  await assert.rejects(
+    () => store.saveTemplate({ label: 'text', body: '<script>alert(1)</script>' }),
+    /label och body/i,
+  );
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
