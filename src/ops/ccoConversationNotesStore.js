@@ -24,6 +24,15 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -103,11 +112,12 @@ async function createCcoConversationNotesStore({ filePath } = {}) {
     if (text.length > 2000) {
       throw new Error('Anteckning är för lång (max 2000 tecken).');
     }
+    const authorNameClean = escapeHtml(normalizeText(authorName));
     const note = {
       noteId: crypto.randomUUID(),
-      body: text,
+      body: escapeHtml(text),
       authorEmail: normalizeText(authorEmail).toLowerCase() || null,
-      authorName: normalizeText(authorName) || null,
+      authorName: authorNameClean || null,
       createdAt: nowIso(),
     };
     if (!Array.isArray(state.notesByConversation[key])) {
