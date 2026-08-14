@@ -57,9 +57,19 @@ function classifyImage(asset = {}) {
   else if (/side|profil/i.test(hay)) angle = 'profil';
   else if (/back|bak/i.test(hay)) angle = 'bak';
 
-  const genericCamera = /^img[_-]\d+/i.test(fileName);
+  // CCO-STATUS.md punkt 1, uppföljning (2026-08-14): mätt mot prod att
+  // 86 892 av 90 069 lågkonfidenta poster (96 %) var just photo_during
+  // med den här regeln som orsak. `imageType` (före/under/efter) är
+  // redan tillförlitligt känt via asset.category (satt vid import,
+  // aldrig en gissning) — ett generiskt kamerafilnamn gör INTE fasen
+  // osäker, bara att en kroppszon inte kan gissas. buildImageDisplayName
+  // utesluter redan zonen helt ur namnet när den saknas (aldrig ett
+  // "zon okänd"-platshållarnamn) — så det byggda namnet är tryggt att
+  // skriva. `low` reserveras nu för när fasen själv är okänd (borde
+  // aldrig hända för en riktig photo_before/during/after-tillgång, men
+  // skyddar andra anropare av classifyImage).
   const confidence =
-    bodyArea && imageType !== 'unknown' ? 'high' : genericCamera ? 'low' : 'medium';
+    bodyArea && imageType !== 'unknown' ? 'high' : imageType !== 'unknown' ? 'medium' : 'low';
 
   return {
     imageType,
