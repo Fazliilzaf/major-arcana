@@ -32,7 +32,11 @@
 const path = require('node:path');
 const { createCcoPatientAssetStore } = require('../src/ops/ccoPatientAssetStore');
 const { createCcoPatientMasterStore } = require('../src/ops/ccoPatientMasterStore');
-const { buildNamingReviewQueue } = require('../src/ops/ccoAssetNaming/buildNamingReviewQueue');
+const {
+  buildNamingReviewQueue,
+  maskId,
+  classifyReason,
+} = require('../src/ops/ccoAssetNaming/buildNamingReviewQueue');
 
 function parseArgs(argv = process.argv) {
   const args = {
@@ -89,4 +93,4 @@ if (require.main === module || process.argv[1] === '-') {
   });
 }
 
-module.exports = { parseArgs };
+module.exports = { parseArgs, maskId, classifyReason };
