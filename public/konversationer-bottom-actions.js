@@ -1298,7 +1298,7 @@
           say('Inget att köa — välj eller skriv ett svar');
           return;
         }
-        if (canOfferLiveSend()) {
+        if (canOfferLiveSend() && currentRole() === 'owner') {
           await sendDraftV2Now();
           return;
         }
