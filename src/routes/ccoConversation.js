@@ -171,6 +171,103 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+/**
+ * Sanerar HTML som skickas iväg som svarsmejl. Tillåter enbart ett begränsat
+ * tagg-vitlistat och tar bort event handlers, farliga URL-scheman och
+ * inbäddade script/iframe/object etc. Används i /reply innan bodyHtml når
+ * Graph-connector.
+ */
+function sanitizeReplyHtml(html) {
+  const input = normalizeText(html);
+  if (!input) return '';
+
+  let safe = input;
+
+  // 1. Ta bort HTML-kommentarer.
+  safe = safe.replace(/<!--[\s\S]*?-->/g, '');
+
+  // 2. Ta bort farliga taggar och allt deras innehåll.
+  const dangerousTags = [
+    'script',
+    'style',
+    'iframe',
+    'object',
+    'embed',
+    'form',
+    'meta',
+    'link',
+    'base',
+    'head',
+    'body',
+    'html',
+    'svg',
+    'math',
+    'canvas',
+    'video',
+    'audio',
+  ];
+  for (const tag of dangerousTags) {
+    safe = safe.replace(new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?</${tag}>`, 'gi'), '');
+    safe = safe.replace(new RegExp(`<${tag}\\b[^>]*\\/?>`, 'gi'), '');
+  }
+
+  // 3. Ta bort event handlers och style-attribut globalt.
+  safe = safe.replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  safe = safe.replace(/\s+style\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+
+  // 4. Tillåt bara säkra URL-scheman i href/src.
+  const allowedUrlScheme = /^(https?:|mailto:|tel:|#|cid:)/i;
+  safe = safe.replace(
+    /\s+(href|src|xlink:href)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,
+    (match, attr, value) => {
+      const raw = value.replace(/^["']|["']$/g, '');
+      if (!raw || allowedUrlScheme.test(raw)) return ` ${attr}=${value}`;
+      return '';
+    }
+  );
+
+  // 5. Ta bort övriga data-/xml-attribut som kan bära payload.
+  safe = safe.replace(/\s+(data-[a-zA-Z0-9-]+|jsaction|xmlns(:[a-zA-Z0-9-]+)?)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+
+  // 6. Vitlista taggar — ta bort otillåtna taggar men behåll innehållet.
+  const allowed = new Set([
+    'a',
+    'b',
+    'blockquote',
+    'br',
+    'code',
+    'div',
+    'em',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'i',
+    'li',
+    'ol',
+    'p',
+    'pre',
+    'span',
+    'strong',
+    'table',
+    'tbody',
+    'td',
+    'th',
+    'thead',
+    'tr',
+    'u',
+    'ul',
+  ]);
+  safe = safe.replace(/<\/?([a-zA-Z][a-zA-Z0-9-]*)\b[^>]*>/g, (match, tag) => {
+    if (allowed.has(tag.toLowerCase())) return match;
+    return '';
+  });
+
+  return safe.trim();
+}
+
 function deriveDir(folderType) {
   const ft = String(folderType || '').toLowerCase();
   if (ft === 'sent' || ft.includes('sent')) return 'outbound';
@@ -2352,7 +2449,8 @@ function createCcoConversationRouter({
           return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
         }
         const body = normalizeText(asObject(req.body).body);
-        const bodyHtml = normalizeText(asObject(req.body).bodyHtml);
+        const rawBodyHtml = normalizeText(asObject(req.body).bodyHtml);
+        const bodyHtml = sanitizeReplyHtml(rawBodyHtml);
         if (!body) {
           return res.status(400).json({ ok: false, error: 'missing_body' });
         }
@@ -3701,4 +3799,6 @@ module.exports = {
   collapseDuplicateMessages,
   // Exponerad för D1-tester (bulk preview-utvärdering, ren/ingen mutation).
   evaluateConversationBulkItem,
+  // Exponerad för tester: sanering av svarsmejl-HTML innan Graph-sändning.
+  sanitizeReplyHtml,
 };
