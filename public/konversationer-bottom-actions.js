@@ -5,23 +5,60 @@
 (function () {
   'use strict';
 
-  const ROLE = 'owner';
-  const TENANT = 'hair_tp';
+  // ─── Sessionskontext (tidigare hårdkodad demo-data) ──────────────────
+  // ROLE/TENANT var konstanter ('owner', 'hair_tp'). Det gjorde att alla
+  // användare såg owner-UI (t.ex. "Skicka live") och alla audit-headers
+  // loggades felaktigt. Nu läses de dynamiskt från sidans kontext, med
+  // fail-soft-fallbacks som matchar produktion tills en ren sessions-API finns.
+
+  function currentTenant() {
+    try {
+      const fromContext =
+        window.CCOAppContext?.getContext?.().tenantId ||
+        window.CCOConversationAuth?.tenantId ||
+        window.__CCO_TENANT_ID__;
+      if (fromContext) return String(fromContext).trim();
+    } catch (_error) {
+      /* ignore */
+    }
+    // Hostname-avledning är tillräckligt säker för att inte läcka demo-tenant.
+    const host = String(window.location?.hostname || '').toLowerCase();
+    if (host.includes('hairtpclinic') || host.includes('hair-tp')) return 'hair_tp';
+    // Lokala tester får en explicit tenant så filen fortfarande går att öppna
+    // standalone; aldrig i prod.
+    if (host === 'localhost' || host === '' || host === '127.0.0.1') return 'hair_tp';
+    return '';
+  }
+
+  function currentRole() {
+    try {
+      const fromContext =
+        window.CCOAppContext?.getContext?.().role ||
+        window.CCOConversationAuth?.role ||
+        window.__CCO_ROLE__;
+      if (fromContext) return String(fromContext).trim();
+    } catch (_error) {
+      /* ignore */
+    }
+    // Så länge backend inte exponerar rollen i konversationskontexten behåller
+    // vi 'owner' som fallback — det är oförändrat beteende, och backend stoppar
+    // fortfarande otillåtna 403:or. Målet med ändringen är att alla ställen
+    // går via samma funktion så vi kan byta källa på ett ställe senare.
+    return 'owner';
+  }
 
   /**
    * Får live-send erbjudas i UI:t just nu?
    *
-   * ROLE ovan är en KONSTANT, inte en sessionsroll. Grinden `ROLE === 'owner'`
-   * var därför alltid sann, och en icke-owner fick en Skicka-knapp som gav 403
-   * från backend. Backend har alltid varit korrekt grindad (mail.live_send +
-   * ARCANA_GRAPH_SEND_ENABLED + adapter + approved + allowlist + audit) — det
-   * här är en ärlighetsfix i UI:t, inte en säkerhetsfix.
+   * Rollen ovan läses nu dynamiskt, men kapacitetsbeslutet kommer från
+   * CCOSendCapability (app.js). Backend har alltid varit korrekt grindad
+   * (mail.live_send + ARCANA_GRAPH_SEND_ENABLED + adapter + approved +
+   * allowlist + audit) — det här är en ärlighetsfix i UI:t.
    *
-   * OKÄNT ⇒ OFÖRÄNDRAT BETEENDE. Kapaciteten publiceras av app.js
-   * (window.CCOSendCapability). Saknas den — launchern körs fristående, eller
-   * rollen är inte hämtad än — behåller vi dagens beteende. Att fail-closed:a
-   * på saknad information vore att ta bort en fungerande knapp från ägaren för
-   * att en fetch inte hunnit klart, och backend stoppar 403:an ändå.
+   * OKÄNT ⇒ OFÖRÄNDRAT BETEENDE. Saknas capabilityen — launchern körs
+   * fristående — behåller vi dagens beteende. Att fail-closed:a på saknad
+   * information vore att ta bort en fungerande knapp från ägaren för att en
+   * fetch inte hunnit klart, och backend stoppar 403:an ändå.
    *
    * Fallbacken när send INTE är tillåten är inte "ingen knapp" utan
    * `saveDraftV2('needs_approval')` — utkastet går till godkännande i stället.
@@ -185,7 +222,13 @@
   }
 
   function activeCustomerId() {
-    return document.body.dataset.activeCustomerId || window.__activeCustomerId || 'CUST-DEMO-002';
+    const id = document.body.dataset.activeCustomerId || window.__activeCustomerId || null;
+    // Demo-fallbacken CUST-DEMO-002 har använts för att alltid ha ett kund-ID
+    // när inget var valt. Det ledde till att riktiga trådar öppnade demo-
+    // patientens dossier/bokning. Nu returnerar vi null när ingen aktiv kund
+    // finns, så panelerna kan visa ett tomt/tillstånd i stället för fel kund.
+    if (!id || id === 'CUST-DEMO-002') return null;
+    return id;
   }
 
   function getLiveConversationContext() {
@@ -414,12 +457,12 @@
         method: 'POST',
         headers: adminAuthHeaders({
           'Content-Type': 'application/json',
-          'x-cco-role': ROLE,
-          'x-cco-tenant': TENANT,
+          'x-cco-role': currentRole(),
+          'x-cco-tenant': currentTenant(),
         }),
         body: JSON.stringify({
           kind: eventKind,
-          tenantId: TENANT,
+          tenantId: currentTenant(),
           actor: 'staff',
           entityKind: 'svarstudio',
           detail: detail || {},
@@ -1119,8 +1162,8 @@
             method: 'POST',
             headers: adminAuthHeaders({
               'Content-Type': 'application/json',
-              'x-cco-role': ROLE,
-              'x-cco-tenant': TENANT,
+              'x-cco-role': currentRole(),
+              'x-cco-tenant': currentTenant(),
             }),
             body: JSON.stringify({
               customerId,
@@ -1150,8 +1193,8 @@
             method: 'PATCH',
             headers: adminAuthHeaders({
               'Content-Type': 'application/json',
-              'x-cco-role': ROLE,
-              'x-cco-tenant': TENANT,
+              'x-cco-role': currentRole(),
+              'x-cco-tenant': currentTenant(),
             }),
             body: JSON.stringify({
               subject: state.subject,
@@ -1168,8 +1211,8 @@
               method: 'POST',
               headers: adminAuthHeaders({
                 'Content-Type': 'application/json',
-                'x-cco-role': ROLE,
-                'x-cco-tenant': TENANT,
+                'x-cco-role': currentRole(),
+                'x-cco-tenant': currentTenant(),
               }),
               body: JSON.stringify({ status: targetStatus, reason: 'via Svarstudio v2' }),
             }
@@ -1197,8 +1240,8 @@
           method: 'POST',
           headers: adminAuthHeaders({
             'Content-Type': 'application/json',
-            'x-cco-role': ROLE,
-            'x-cco-tenant': TENANT,
+            'x-cco-role': currentRole(),
+            'x-cco-tenant': currentTenant(),
           }),
           body: JSON.stringify({ status, reason: 'owner direct send via Svarstudio v2' }),
         }
@@ -1224,8 +1267,8 @@
             method: 'POST',
             headers: adminAuthHeaders({
               'Content-Type': 'application/json',
-              'x-cco-role': ROLE,
-              'x-cco-tenant': TENANT,
+              'x-cco-role': currentRole(),
+              'x-cco-tenant': currentTenant(),
             }),
             body: JSON.stringify({
               to: (toInput?.value || '').trim(),
@@ -1255,7 +1298,7 @@
           say('Inget att köa — välj eller skriv ett svar');
           return;
         }
-        if (canOfferLiveSend()) {
+        if (canOfferLiveSend() && currentRole() === 'owner') {
           await sendDraftV2Now();
           return;
         }
@@ -1430,7 +1473,7 @@
             (qs ? '?' + qs : ''),
           {
             cache: 'no-store',
-            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+            headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
           }
         );
         const j = await r.json().catch(() => ({}));
@@ -1518,8 +1561,8 @@
                 method: 'POST',
                 headers: adminAuthHeaders({
                   'Content-Type': 'application/json',
-                  'x-cco-role': ROLE,
-                  'x-cco-tenant': TENANT,
+                  'x-cco-role': currentRole(),
+                  'x-cco-tenant': currentTenant(),
                 }),
               }
             );
@@ -1572,8 +1615,8 @@
             method: 'POST',
             headers: adminAuthHeaders({
               'Content-Type': 'application/json',
-              'x-cco-role': ROLE,
-              'x-cco-tenant': TENANT,
+              'x-cco-role': currentRole(),
+              'x-cco-tenant': currentTenant(),
             }),
           }
         );
@@ -1639,8 +1682,8 @@
                 method: 'POST',
                 headers: adminAuthHeaders({
                   'Content-Type': 'application/json',
-                  'x-cco-role': ROLE,
-                  'x-cco-tenant': TENANT,
+                  'x-cco-role': currentRole(),
+                  'x-cco-tenant': currentTenant(),
                 }),
                 body: JSON.stringify({ body }),
               }
@@ -1665,7 +1708,7 @@
           '/api/v1/cco/runtime/customer/' + encodeURIComponent(id) + '/portal-messages',
           {
             cache: 'no-store',
-            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+            headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
           }
         );
         const j = await r.json().catch(() => ({}));
@@ -2477,8 +2520,8 @@
             method: 'POST',
             headers: adminAuthHeaders({
               'Content-Type': 'application/json',
-              'x-cco-role': ROLE,
-              'x-cco-tenant': TENANT,
+              'x-cco-role': currentRole(),
+              'x-cco-tenant': currentTenant(),
             }),
             body: JSON.stringify({
               customerId,
@@ -2507,8 +2550,8 @@
             method: 'PATCH',
             headers: adminAuthHeaders({
               'Content-Type': 'application/json',
-              'x-cco-role': ROLE,
-              'x-cco-tenant': TENANT,
+              'x-cco-role': currentRole(),
+              'x-cco-tenant': currentTenant(),
             }),
             body: JSON.stringify({
               subject: state.subject,
@@ -2525,8 +2568,8 @@
               method: 'POST',
               headers: adminAuthHeaders({
                 'Content-Type': 'application/json',
-                'x-cco-role': ROLE,
-                'x-cco-tenant': TENANT,
+                'x-cco-role': currentRole(),
+                'x-cco-tenant': currentTenant(),
               }),
               body: JSON.stringify({ status: targetStatus, reason: 'via Svarstudio' }),
             }
@@ -2926,8 +2969,8 @@
           headers: adminAuthHeaders({
             'Content-Type': 'application/json',
             Accept: 'application/json',
-            'x-cco-role': ROLE,
-            'x-cco-tenant': TENANT,
+            'x-cco-role': currentRole(),
+            'x-cco-tenant': currentTenant(),
           }),
           body: JSON.stringify({ action, customerId }),
         }
@@ -3105,7 +3148,7 @@
           '/api/v1/cco/runtime/contact-lookup?email=' + encodeURIComponent(email),
           {
             cache: 'no-store',
-            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+            headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
           }
         );
         const j = await r.json().catch(() => ({}));
@@ -3295,8 +3338,8 @@
           method: 'POST',
           headers: adminAuthHeaders({
             'Content-Type': 'application/json',
-            'x-cco-role': ROLE,
-            'x-cco-tenant': TENANT,
+            'x-cco-role': currentRole(),
+            'x-cco-tenant': currentTenant(),
           }),
           body: JSON.stringify(payload),
         });
@@ -3348,7 +3391,7 @@
             '/api/v1/cco/runtime/compose-new-mail/' + encodeURIComponent(draftId) + '/send',
             {
               method: 'POST',
-              headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+              headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
             }
           );
           const j = await r.json().catch(() => ({}));
@@ -3450,7 +3493,7 @@
       try {
         const r = await fetch('/api/v1/cco/runtime/portal-metrics', {
           cache: 'no-store',
-          headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+          headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.metrics) throw new Error(j.error || 'kunde inte läsa statistik');
@@ -3490,7 +3533,7 @@
         try {
           const rr = await fetch('/api/v1/cco/runtime/portal-readiness', {
             cache: 'no-store',
-            headers: adminAuthHeaders({ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT }),
+            headers: adminAuthHeaders({ 'x-cco-role': currentRole(), 'x-cco-tenant': currentTenant() }),
           });
           const rj = await rr.json().catch(() => ({}));
           if (rr.ok && rj.readiness) {
@@ -3584,8 +3627,8 @@
           method: 'POST',
           headers: adminAuthHeaders({
             'Content-Type': 'application/json',
-            'x-cco-role': ROLE,
-            'x-cco-tenant': TENANT,
+            'x-cco-role': currentRole(),
+            'x-cco-tenant': currentTenant(),
           }),
           body: JSON.stringify({ email: emailEl.value.trim(), live: liveEl.checked }),
         });

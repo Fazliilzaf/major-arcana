@@ -20,7 +20,7 @@ test('Portal-fliken finns i panelraden och öppnar metrics-panelen', () => {
 
 test('panelen läser /portal-metrics med admin-auth (RBAC-grindad)', () => {
   assert.match(source, /'\/api\/v1\/cco\/runtime\/portal-metrics'/);
-  assert.match(source, /adminAuthHeaders\(\{ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT \}\)/);
+  assert.match(source, /adminAuthHeaders\(\{ 'x-cco-role': currentRole\(\), 'x-cco-tenant': currentTenant\(\) \}\)/);
   assert.match(source, /cache: 'no-store'/);
 });
 

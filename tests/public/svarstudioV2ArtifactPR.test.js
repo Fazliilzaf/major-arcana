@@ -67,7 +67,7 @@ test('v2 återanvänder sändkedjans endpoints och skickar owner direkt', () => 
   assert.match(source, /saveDraftV2\('needs_approval'\)/);
   assert.match(source, /transitionDraftV2\('approved'\)/);
   assert.match(source, /encodeURIComponent\(state\.draftId\) \+ '\/send'/);
-  assert.match(source, /ROLE === 'owner'/);
+  assert.match(source, /currentRole\(\) === 'owner'/);
   assert.match(source, /saveDraftV2\('draft'\)/);
 });
 
@@ -122,7 +122,7 @@ test('kundkort/dossier: hämtas + renderas i fast kontext-yta, journal låst', (
   assert.match(source, /cache: 'no-store'/);
   assert.match(
     source,
-    /headers: adminAuthHeaders\(\{ 'x-cco-role': ROLE, 'x-cco-tenant': TENANT \}\)/
+    /headers: adminAuthHeaders\(\{ 'x-cco-role': currentRole\(\), 'x-cco-tenant': currentTenant\(\) \}\)/
   );
   assert.match(htmlAsset, /id="customerDossier"/);
   assert.match(cssAsset, /\.dossier-mini\s*\{/);
