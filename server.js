@@ -10765,6 +10765,20 @@ try {
     `[cco-photo-review] monterad write=${photoWriteEnabled ? 'CANARY' : 'READ-ONLY'}: GET/POST photo-review/*`
   );
 
+  const { createCcoNamingReviewRouter } = require('./src/routes/ccoNamingReview');
+  app.use(
+    '/api/v1/cco',
+    createCcoNamingReviewRouter({
+      resolvePatientMasterStore: async () => app.locals.ccoPatientMasterStore,
+      resolveAssetStore: async () => (await ensureAssetStores()).assetStore,
+      requireCcoAuthenticated,
+      attachRole,
+      requirePermission,
+      auditLog: ccoAuditLog,
+    })
+  );
+  console.log('[cco-naming-review] monterad: GET/POST naming-review/*');
+
   const { createCcoImportReviewReadRouter } = require('./src/routes/ccoImportReviewRead');
   app.use(
     '/api/v1/ops',

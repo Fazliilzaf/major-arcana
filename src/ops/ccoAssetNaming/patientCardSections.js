@@ -91,8 +91,16 @@ function resolvePatientCardSection(asset = {}, ctx = {}) {
     };
   }
 
-  if (asset.namingStatus === 'needs_review_for_naming' && PHOTO_CATEGORIES.has(cat)) {
+  if (asset.namingStatus === 'needs_review_for_naming') {
     signals.push('naming_needs_review');
+    const meta = SECTION_META.needs_review;
+    return {
+      section: 'needs_review',
+      sectionLabel: meta.label,
+      tabId: meta.tabId,
+      confidence: 'medium',
+      signals,
+    };
   }
 
   if (isDrawingAsset(asset, classification)) {

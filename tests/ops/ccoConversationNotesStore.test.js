@@ -153,3 +153,23 @@ test('addNote trims conversationKey so listNotes finds the same thread', async (
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('addNote escapes HTML in body and authorName before storage', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-notes-xss-'));
+  const filePath = path.join(dir, 'notes.json');
+  const store = await createCcoConversationNotesStore({ filePath });
+
+  const note = await store.addNote({
+    conversationKey: 'k-xss',
+    body: '<script>alert(1)</script>',
+    authorName: '<b>Evil</b>',
+  });
+
+  assert.equal(note.body, '&lt;script&gt;alert(1)&lt;/script&gt;');
+  assert.equal(note.authorName, '&lt;b&gt;Evil&lt;/b&gt;');
+
+  const listed = store.listNotes({ conversationKey: 'k-xss' });
+  assert.equal(listed[0].body, '&lt;script&gt;alert(1)&lt;/script&gt;');
+
+  await fs.rm(dir, { recursive: true, force: true });
+});

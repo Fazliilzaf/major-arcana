@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CCO — Granska namngivning</title>
+    <style>
+      :root {
+        --bg: #f5f6f8;
+        --surface: #ffffff;
+        --text: #1a1a1a;
+        --muted: #5a5a5a;
+        --border: #d5d8dd;
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --success: #16a34a;
+        --warning: #d97706;
+        --danger: #dc2626;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.45;
+      }
+      header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 1.5rem;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.25rem;
+      }
+      header p {
+        margin: 0.25rem 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1.5rem;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1.25rem;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.75rem;
+      }
+      .summary .stat {
+        background: #f8f9fb;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.75rem;
+      }
+      .summary .stat .value {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+      .summary .stat .label {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .patient-list {
+        max-height: 70vh;
+        overflow-y: auto;
+      }
+      .patient-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.6rem 0.75rem;
+        border-radius: 6px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .patient-row:hover,
+      .patient-row.active {
+        background: #eff6ff;
+      }
+      .patient-row .total {
+        font-weight: 600;
+      }
+      .patient-row .badges {
+        display: flex;
+        gap: 0.35rem;
+        font-size: 0.75rem;
+      }
+      .badge {
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        background: #e5e7eb;
+        color: var(--muted);
+      }
+      .badge.fallback {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .badge.low {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .asset-item {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: #fff;
+      }
+      .asset-item.resolved {
+        opacity: 0.6;
+        background: #f0fdf4;
+      }
+      .asset-meta {
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-bottom: 0.5rem;
+      }
+      .asset-name {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+      }
+      .asset-proposed {
+        color: var(--primary-dark);
+        margin-bottom: 0.75rem;
+      }
+      .asset-path {
+        font-size: 0.8rem;
+        color: var(--muted);
+        word-break: break-all;
+      }
+      form.inline {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: flex-end;
+      }
+      label {
+        font-size: 0.8rem;
+        color: var(--muted);
+        display: block;
+        margin-bottom: 0.2rem;
+      }
+      input[type='date'],
+      input[type='text'],
+      textarea {
+        padding: 0.45rem 0.6rem;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font: inherit;
+      }
+      input[type='date'] {
+        width: 150px;
+      }
+      input[name='reason'] {
+        width: 260px;
+      }
+      button {
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      button:hover {
+        background: var(--primary-dark);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .toast {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        background: var(--text);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+      }
+      .toast.show {
+        opacity: 1;
+      }
+      .toast.error {
+        background: var(--danger);
+      }
+      .toast.success {
+        background: var(--success);
+      }
+      .empty {
+        color: var(--muted);
+        padding: 2rem;
+        text-align: center;
+      }
+      .loading {
+        color: var(--muted);
+        padding: 1rem;
+      }
+      .error {
+        color: var(--danger);
+        padding: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>CCO — Granska namngivning</h1>
+      <p>
+        Genomgångskö för osäkra patient-asset-namn. Endast inloggad CCO-personal med rättighet
+        <code>asset.review</code>.
+      </p>
+    </header>
+
+    <div class="container">
+      <div id="summary" class="card"></div>
+      <div class="grid">
+        <div id="patients" class="card patient-list"></div>
+        <div id="assets" class="card"></div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+      const API_BASE = '/api/v1/cco/naming-review';
+      const state = { queue: null, selectedPatientId: null, assets: [] };
+
+      async function api(path, options = {}) {
+        const res = await fetch(`${API_BASE}${path}`, {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...options.headers },
+          ...options,
+        });
+        if (!res.ok) {
+          let text = res.statusText;
+          try {
+            const body = await res.json();
+            text = body.error || JSON.stringify(body);
+          } catch {}
+          throw new Error(text);
+        }
+        if (res.status === 204) return null;
+        return res.json();
+      }
+
+      function escapeHtml(raw) {
+        if (raw == null) return '';
+        return String(raw)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function toast(message, type = 'success') {
+        const el = document.getElementById('toast');
+        el.textContent = message;
+        el.className = `toast ${type} show`;
+        setTimeout(() => el.classList.remove('show'), 3000);
+      }
+
+      function renderSummary() {
+        const q = state.queue;
+        const root = document.getElementById('summary');
+        if (!q) {
+          root.innerHTML = '<div class="loading">Laddar sammanfattning…</div>';
+          return;
+        }
+        root.innerHTML = `
+        <h2>Sammanfattning</h2>
+        <div class="summary">
+          <div class="stat"><div class="value">${escapeHtml(q.totalReviewQueueSize || 0)}</div><div class="label">Assets i kö</div></div>
+          <div class="stat"><div class="value">${escapeHtml(q.patientsAffected || 0)}</div><div class="label">Patienter berörda</div></div>
+          <div class="stat"><div class="value">${escapeHtml(q.patientsLikelyBulkFixable || 0)}</div><div class="label">Bulk-fixbara patienter</div></div>
+          <div class="stat"><div class="value">${escapeHtml(q.reasonTotals?.fallback_session_number || 0)}</div><div class="label">Fallback-datum</div></div>
+          <div class="stat"><div class="value">${escapeHtml(q.reasonTotals?.low_confidence || 0)}</div><div class="label">Låg konfidens</div></div>
+          <div class="stat"><div class="value">${escapeHtml(q.reasonTotals?.both || 0)}</div><div class="label">Båda</div></div>
+        </div>
+      `;
+      }
+
+      function renderPatients() {
+        const root = document.getElementById('patients');
+        const rows = state.queue?.topPatientsByQueueSize || [];
+        if (!rows.length) {
+          root.innerHTML = '<div class="empty">Inga patienter i kö.</div>';
+          return;
+        }
+        root.innerHTML = rows
+          .map(
+            (p) => `
+        <div class="patient-row ${p.patientId === state.selectedPatientId ? 'active' : ''}" data-id="${escapeHtml(p.patientId)}">
+          <div>
+            <div>${escapeHtml(p.patientName || p.patientId)}</div>
+            <div class="badges">
+              ${p.fallbackSessionNumber ? `<span class="badge fallback">F ${escapeHtml(p.fallbackSessionNumber)}</span>` : ''}
+              ${p.lowConfidence ? `<span class="badge low">L ${escapeHtml(p.lowConfidence)}</span>` : ''}
+              ${p.both ? `<span class="badge low">B ${escapeHtml(p.both)}</span>` : ''}
+              ${p.other ? `<span class="badge">O ${escapeHtml(p.other)}</span>` : ''}
+            </div>
+          </div>
+          <div class="total">${escapeHtml(p.total)}</div>
+        </div>
+      `
+          )
+          .join('');
+        root.querySelectorAll('.patient-row').forEach((row) => {
+          row.addEventListener('click', () => loadPatientAssets(row.dataset.id));
+        });
+      }
+
+      function renderAssets() {
+        const root = document.getElementById('assets');
+        if (!state.selectedPatientId) {
+          root.innerHTML = '<div class="empty">Välj en patient till vänster.</div>';
+          return;
+        }
+        if (!state.assets.length) {
+          root.innerHTML =
+            '<div class="empty">Inga granskningsbara assets för denna patient.</div>';
+          return;
+        }
+
+        const title = state.assets[0]?.patientName
+          ? `${escapeHtml(state.assets[0].patientName)} <span style="color:var(--muted);font-weight:400">(${escapeHtml(state.assets[0].patientId)})</span>`
+          : escapeHtml(state.assets[0].patientId);
+
+        root.innerHTML = `
+        <h2>${title}</h2>
+        ${state.assets
+          .map(
+            (a) => `
+          <div class="asset-item" id="asset-${escapeHtml(a.assetId)}" data-asset-id="${escapeHtml(a.assetId)}">
+            <div class="asset-meta">${escapeHtml(a.currentCategory || 'okategoriserad')} · ${escapeHtml(a.assetId)}</div>
+            <div class="asset-name">${escapeHtml(a.currentDisplayName || '(inget displayName)')}</div>
+            ${a.computed ? `<div class="asset-proposed">→ ${escapeHtml(a.computed.displayName)}</div>` : ''}
+            <div class="asset-path">${escapeHtml(a.originalFileName || '')}${a.originalDrivePath ? '<br>' + escapeHtml(a.originalDrivePath) : ''}</div>
+            <form class="inline" data-asset-id="${escapeHtml(a.assetId)}">
+              <div>
+                <label>Datum (valfritt)</label>
+                <input type="date" name="documentDate" value="${escapeHtml(a.documentDate || '')}">
+              </div>
+              <div>
+                <label>Anledning</label>
+                <input type="text" name="reason" placeholder="Varför godkänns namnet?" required minlength="3">
+              </div>
+              <div>
+                <label>&nbsp;</label>
+                <button type="submit">Godkänn</button>
+              </div>
+            </form>
+          </div>
+        `
+          )
+          .join('')}
+      `;
+
+        root.querySelectorAll('form[data-asset-id]').forEach((form) => {
+          form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            resolveAsset(form.dataset.assetId);
+          });
+        });
+      }
+
+      async function loadQueue() {
+        try {
+          state.queue = await api('/queue?maskIds=false');
+          renderSummary();
+          renderPatients();
+        } catch (err) {
+          document.getElementById('summary').innerHTML =
+            `<div class="error">Kunde inte ladda kö: ${escapeHtml(err.message)}</div>`;
+        }
+      }
+
+      async function loadPatientAssets(patientId) {
+        state.selectedPatientId = patientId;
+        renderPatients();
+        const root = document.getElementById('assets');
+        root.innerHTML = '<div class="loading">Laddar assets…</div>';
+        try {
+          const data = await api(`/patients/${encodeURIComponent(patientId)}/assets`);
+          state.assets = data.items.map((a) => ({
+            ...a,
+            patientName: data.patientName,
+            patientId: data.patientId,
+          }));
+          renderAssets();
+        } catch (err) {
+          root.innerHTML = `<div class="error">Kunde inte ladda assets: ${escapeHtml(err.message)}</div>`;
+        }
+      }
+
+      async function resolveAsset(assetId) {
+        const row = document.getElementById(`asset-${assetId}`);
+        const documentDate = row.querySelector('[name="documentDate"]').value;
+        const reason = row.querySelector('[name="reason"]').value;
+        const btn = row.querySelector('button');
+        btn.disabled = true;
+        try {
+          await api(`/assets/${encodeURIComponent(assetId)}/resolve`, {
+            method: 'POST',
+            body: JSON.stringify({ documentDate, reason }),
+          });
+          row.classList.add('resolved');
+          toast(`Asset ${assetId} markerat som löst.`);
+        } catch (err) {
+          toast(err.message, 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      loadQueue();
+    </script>
+  </body>
+</html>
