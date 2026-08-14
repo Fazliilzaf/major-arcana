@@ -494,3 +494,67 @@ test('resolveCanonicalPatientsForAssetAliases still falls back to prefix when no
   assert.equal(mappings[0].canonicalPatientId, 'simon-stub');
   assert.equal(mappings[0].reason, 'name_prefix_path');
 });
+
+// Läs-endast-sampling mot prod (2026-08-14, kollisionsgrupp
+// cliento_117a24b7…, 600 assets): sökvägar bär ofta riktig PII, men en
+// del är dubbelkodade från Drive ("Grillsj+?" i stället för "Grillsjö")
+// — samma mojibake documentClassifier.js redan löste för
+// hälsodeklarationer/friskförsäkringar. Utan reparation missar
+// PNR/namn-matchningen nedan dem helt.
+test('resolveCanonicalPatientsForAssets reparerar dubbelkodat namn i sökvägen innan matchning', () => {
+  const mappings = resolveCanonicalPatientsForAssets({
+    patients: [{ id: 'p1', displayName: 'Anna Grillsjö' }],
+    assets: [
+      {
+        id: 'a1',
+        patientId: 'cliento_abc',
+        // "Ã¶" = UTF-8-byten för "ö" feltolkade som Latin-1.
+        originalDrivePath: 'Kunder/Anna GrillsjÃ¶/journal.pdf',
+      },
+    ],
+  });
+
+  assert.equal(mappings[0].canonicalPatientId, 'p1');
+  assert.equal(mappings[0].reason, 'exact_name_path');
+});
+
+test('resolveCanonicalPatientsForAssets matchar fortfarande rent, icke-mojibake namn (regression)', () => {
+  const mappings = resolveCanonicalPatientsForAssets({
+    patients: [{ id: 'p1', displayName: 'Anna Grillsjö' }],
+    assets: [
+      { id: 'a1', patientId: 'cliento_abc', originalDrivePath: 'Kunder/Anna Grillsjö/journal.pdf' },
+    ],
+  });
+
+  assert.equal(mappings[0].canonicalPatientId, 'p1');
+  assert.equal(mappings[0].reason, 'exact_name_path');
+});
+
+test('resolveCanonicalPatientsForAssetAliases reparerar dubbelkodat namn i sökvägen innan matchning', () => {
+  const mappings = resolveCanonicalPatientsForAssetAliases({
+    patients: [{ id: 'daniel-full', displayName: 'Daniel Grillsjö' }],
+    assets: [
+      {
+        patientId: 'cliento_daniel',
+        originalDrivePath: 'Hair TP Clinic 2024/Daniel GrillsjÃ¶/journal.pdf',
+      },
+    ],
+  });
+
+  assert.equal(mappings[0].canonicalPatientId, 'daniel-full');
+  assert.equal(mappings[0].reason, 'exact_name_path');
+});
+
+test('resolveCanonicalPatientsForAssets: en text som inte ser dubbelkodad ut lämnas orörd (mojibake-signaturen gissar inte i onödan)', () => {
+  const mappings = resolveCanonicalPatientsForAssets({
+    patients: [{ id: 'p1', displayName: 'Erik Ö' }],
+    assets: [
+      // Inget mojibake-mönster (Â/Ã följt av en specialtecken) i den här
+      // sökvägen — ska varken repareras eller av misstag matcha fel patient.
+      { id: 'a1', patientId: 'cliento_xyz', originalDrivePath: 'Kunder/Okänd Person/foto.jpg' },
+    ],
+  });
+
+  assert.equal(mappings[0].canonicalPatientId, null);
+  assert.equal(mappings[0].reason, 'unresolved_path_identity');
+});

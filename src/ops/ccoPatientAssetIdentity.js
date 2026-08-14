@@ -1,7 +1,23 @@
 const { resolveTimelineSort } = require('./ccoAssetTimelineSort');
+const { repairMojibake } = require('./ccoAssetNaming/documentClassifier');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+// Läs-endast-sampling mot prod (2026-08-14, kollisionsgrupp
+// cliento_117a24b7…, 600 assets): sökvägarna bär ofta riktig PII
+// (namn + personnummer), men en del är dubbelkodade från Drive precis
+// som dokumentClassifier.js redan löste för hälsodeklarationer/
+// friskförsäkringar ("Grillsj+?" i stället för "Grillsjö"). Utan
+// reparation missar PNR/namn-matchningen nedan dem helt.
+// buildIdentityHaystack återanvänder samma repairMojibake() — en
+// sanning, ett ställe, inte en ny parallell implementation.
+function buildIdentityHaystack(fields) {
+  return fields
+    .filter(Boolean)
+    .map((value) => repairMojibake(normalizeText(value)))
+    .join(' / ');
 }
 
 function normalizeEmail(value) {
@@ -214,14 +230,13 @@ function collectAssetStoreAliases({ patient, patientPopulation, tenantId, assetS
     Boolean(name) && population.filter((row) => patientIdentityName(row) === name).length === 1;
 
   for (const row of renderableRows) {
-    const fields = [
+    const haystack = buildIdentityHaystack([
       row.originalDrivePath,
       row.relativePath,
       row.originalFileName,
       row.displayName,
       row.documentTitle,
-    ].filter(Boolean);
-    const haystack = fields.join(' / ');
+    ]);
     const haystackDigits = normalizeDigits(haystack);
     if (
       pnr &&
@@ -289,16 +304,15 @@ function resolveCanonicalPatientsForAssetAliases({ patients, assets }) {
         candidatePatientIds: [assetPatientId],
       };
     }
-    const fields = aliasAssets.flatMap((asset) =>
-      [
+    const haystack = buildIdentityHaystack(
+      aliasAssets.flatMap((asset) => [
         asset?.originalDrivePath,
         asset?.relativePath,
         asset?.originalFileName,
         asset?.displayName,
         asset?.documentTitle,
-      ].filter(Boolean)
+      ])
     );
-    const haystack = fields.join(' / ');
     const haystackDigits = normalizeDigits(haystack);
     const segments = haystack.split(/[\\/]/).map(normalizeName).filter(Boolean);
     const pnrMatches = patientRows.filter(
@@ -384,14 +398,13 @@ function resolveCanonicalPatientsForAssets({ patients, assets }) {
       };
     }
 
-    const fields = [
+    const haystack = buildIdentityHaystack([
       asset?.originalDrivePath,
       asset?.relativePath,
       asset?.originalFileName,
       asset?.displayName,
       asset?.documentTitle,
-    ].filter(Boolean);
-    const haystack = fields.join(' / ');
+    ]);
     const haystackDigits = normalizeDigits(haystack);
     const segments = haystack.split(/[\\/]/).map(normalizeName).filter(Boolean);
     const pnrPatientIds = new Set();
