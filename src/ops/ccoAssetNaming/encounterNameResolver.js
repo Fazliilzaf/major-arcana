@@ -26,8 +26,32 @@ function treatmentSessionLabel(treatmentType, sessionNumber) {
   return t;
 }
 
+function sortDateForAsset(a) {
+  return parseIsoDate(a.documentDate) || parseIsoDate(a.importedAt) || '';
+}
+
+// Bug #3 (upptäckt 2026-08-14 vid UI-spotcheck mot prod efter --commit, den
+// ursprungliga "FUE Operation 23/25/26/30 för fyra foton, samma dag"-buggen
+// från 2026-08-07): en grupperingsnyckel per VERKLIGT tillfälle, inte per
+// asset. `encounterId` sätts bara via explicit länkning (linkAssetToEncounter)
+// och är därför tillförlitlig men GLES täckning — de flesta bulk-importerade
+// foton saknar den. Utan encounterId används riktigt documentDate som
+// proxy-tillfälle (flera foton/dokument samma dag = ett besök — en rimlig
+// klinisk verklighet, inte en gissning om det är ett RIKTIGT datum). Saknas
+// BÅDA hålls asseten som sin egen grupp — ingen tillförlitlig signal att
+// gruppera på, så den förblir individuellt numrerad och `usedFallbackDate`
+// håller kvar det befintliga review-skyddet nedan.
+function encounterGroupKey(asset) {
+  const encId = normalizeText(asset.encounterId);
+  if (encId) return `enc:${encId}`;
+  const realDate = parseIsoDate(asset.documentDate);
+  if (realDate) return `date:${realDate}`;
+  return `asset:${normalizeText(asset.id)}`;
+}
+
 /**
- * Räkna session-nummer per behandling baserat på journal-assets sorterade på datum.
+ * Räkna session-nummer per behandling baserat på VERKLIGA tillfällen
+ * (encounterId eller samma riktiga documentDate), inte per enskild asset.
  *
  * CCO-STATUS.md punkt 1 (bekräftad 2026-08-13, PR #1364-#1371): saknas
  * `documentDate` faller sorteringen tillbaka på `importedAt`
@@ -44,23 +68,38 @@ function countTreatmentSession(asset, siblingAssets = []) {
     detectTreatment(`${asset.originalFileName || ''} ${asset.originalDrivePath || ''}`);
   if (!treatment) return { sessionNumber: null, visitLabel: null, usedFallbackDate: false };
 
-  const sameTreatment = siblingAssets
-    .filter((a) => {
-      const t2 =
-        normalizeText(a.treatmentType) ||
-        detectTreatment(`${a.originalFileName || ''} ${a.originalDrivePath || ''}`);
-      return t2 && t2.toLowerCase() === treatment.toLowerCase();
-    })
-    .sort((a, b) => {
-      const da = parseIsoDate(a.documentDate) || parseIsoDate(a.importedAt) || '';
-      const db = parseIsoDate(b.documentDate) || parseIsoDate(b.importedAt) || '';
-      return da.localeCompare(db) || String(a.id).localeCompare(String(b.id));
+  const sameTreatment = siblingAssets.filter((a) => {
+    const t2 =
+      normalizeText(a.treatmentType) ||
+      detectTreatment(`${a.originalFileName || ''} ${a.originalDrivePath || ''}`);
+    return t2 && t2.toLowerCase() === treatment.toLowerCase();
+  });
+
+  const groupOrder = [];
+  const groupsByKey = new Map();
+  for (const a of sameTreatment) {
+    const key = encounterGroupKey(a);
+    if (!groupsByKey.has(key)) {
+      groupsByKey.set(key, []);
+      groupOrder.push(key);
+    }
+    groupsByKey.get(key).push(a);
+  }
+
+  const groups = groupOrder
+    .map((key) => ({ key, assets: groupsByKey.get(key) }))
+    .sort((ga, gb) => {
+      const da = ga.assets.map(sortDateForAsset).sort()[0] || '';
+      const db = gb.assets.map(sortDateForAsset).sort()[0] || '';
+      return da.localeCompare(db) || ga.key.localeCompare(gb.key);
     });
 
-  const idx = sameTreatment.findIndex((a) => a.id === asset.id);
-  const sessionNumber = idx >= 0 ? idx + 1 : sameTreatment.length + 1;
+  const myKey = encounterGroupKey(asset);
+  const idx = groups.findIndex((g) => g.key === myKey);
+  const sessionNumber = idx >= 0 ? idx + 1 : groups.length + 1;
   const isSessionType = /^prp$/i.test(treatment) || /fue|dhi/i.test(treatment);
-  const usedFallbackDate = isSessionType && !parseIsoDate(asset.documentDate);
+  const usedFallbackDate =
+    isSessionType && !parseIsoDate(asset.documentDate) && !normalizeText(asset.encounterId);
 
   return {
     sessionNumber: isSessionType ? sessionNumber : null,
