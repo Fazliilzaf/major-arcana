@@ -283,7 +283,7 @@ korrekta och oberörda** — de skyddar mot en genuint annan, verklig risk
 importer), och rör aldrig cross-tenant-jämförelsen. Inte påverkade av
 reverten.
 
-### 7. 10 991 bokningar finns bara i CCO — hypotesen om "äldre än exporten" MOTBEVISAD
+### 7. 10 991 bokningar finns bara i CCO — hypotesen om radering MOTBEVISAD, exportfilen ofullständig
 
 Datumfördelning körd 2026-08-08 (läs-endast, Render SSH):
 
@@ -300,7 +300,7 @@ Datumfördelning körd 2026-08-08 (läs-endast, Render SSH):
 Om de vore äldre bokningar från före exportens startdatum (augusti 2021)
 hade de klustrat i 2021 eller tidigare. I stället klustrar de i
 **2024–2026**, mitt i exportens täckta period, med några ända i 2027
-(framtida bokningar). **Hypotesen är motbevisad.**
+(framtida bokningar). **Hypotesen "äldre än exporten" är motbevisad.**
 
 **"CCO-egna bokningar"-hypotesen MOTBEVISAD 2026-08-13.** Körde
 `scripts/report-cco-only-bookings-source-distribution.js` (#1362) mot
@@ -315,14 +315,36 @@ bokningarna, importerade via samma pipeline. Bara 1 post har
 `cliento_uat` (ett testfrö, försumbart). **De är alltså INTE CCO-egna
 bokningar från ett annat system.**
 
-**Ny, mest sannolika förklaring (obekräftad, men enda återstående som
-går ihop med källfördelningen):** bokningarna importerades från en
-**tidigare** Cliento-export, men har sedan tagits bort/avbokats i
-Cliento och saknas därför i den senaste exporten — CCO raderar aldrig
-historiskt importerade bokningar vid ny import. Skulle kräva en äldre
-Cliento-export att jämföra mot, eller en kontroll direkt i Cliento av
-ett stickprov `bookingId`, för att slutgiltigt bekräftas. Inte
-brådskande — påverkar ingen aktiv funktion.
+**Hypotesen "raderade i Cliento efter import" MOTBEVISAD 2026-08-15.**
+Den senaste Cliento-exporten (`Dataexport 1 augusti 2021 - 31 augusti
+2026.csv`) och den äldre exporten (`cliento-bookings-2019-2026.csv`)
+lokaliserades på användarens Mac/iCloud och överfördes till Render.
+Jämförelse mot CCO-storen:
+
+| Mängd | Antal |
+|---|---|
+| Senaste export, unika `bookingId` | 26 887 |
+| Äldre export, unika `bookingId` | 25 454 |
+| CCO store (union båda tenants) | 37 494 |
+| CCO-only (inte i senaste exporten) | **10 991** |
+| CCO-only, också i äldre exporten | 151 |
+| CCO-only, i **ingen** av de två exporterarna | **10 840** |
+
+**Stickprovskontroll direkt i live Cliento:** 10 slumpmässiga ID ur den
+faktiska CCO-only-mängden söktes upp manuellt i Cliento-gränssnittet.
+**Alla 10 av 10 hittades i Cliento**, med datum/tid som matchade CCO.
+Detta motbevisar att bokningarna skulle ha tagits bort i Cliento.
+
+**Slutsats:** skillnaden ligger i **exportfilen**, inte i Clientos
+underliggande data. Den/de Cliento-exporter som använts för jämförelse
+är antingen ofullständiga eller skapade med ett aktivt filter (t.ex.
+status, resurs, tjänsttyp, bokningskälla) som exkluderar drygt 10 000
+bokningar. CCO-importerna har uppenbarligen använt en mer komplett
+källa (troligen filen `bookings.csv` med 28 974 rader som noterades i
+import-historiken men som inte återfinns i arkiven). Detta påverkar
+ingen aktiv funktion — CCO har rätt data — men förklarar varför
+rekoncilieringen mot exportfiler aldrig blir 1:1. Punkt 7 betraktas
+som utredd och avslutad.
 
 ### 8. Patientanteckningarnas omfattning — KLAR 2026-08-08
 
