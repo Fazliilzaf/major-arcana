@@ -333,6 +333,18 @@ function createCfoRouter({
     }
   });
 
+  // GET /api/v1/cco-cf/expenses/anomalies — ORD-CM-25: poster som väntar på ägaren
+  router.get('/cco-cf/expenses/anomalies', attachRole, requireAnyRole(cfRBAC), (req, res) => {
+    try {
+      const store = expenseStore;
+      if (!store) return res.status(503).json({ error: 'expense store not ready' });
+      const anomalies = store.findAnomalies ? store.findAnomalies() : [];
+      res.json({ ok: true, count: anomalies.length, anomalies });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // GET /api/v1/cco-cf/expenses/:id
   router.get('/cco-cf/expenses/:id', attachRole, requireAnyRole(cfRBAC), (req, res) => {
     try {
@@ -1163,6 +1175,58 @@ function createCfoRouter({
     }
   });
 
+  // GET /api/v1/cco-cf/meta — alla CFO-enum-konstanter för UI
+  router.get('/cco-cf/meta', attachRole, requireAnyRole(cfRBAC), (req, res) => {
+    try {
+      const {
+        VALID_STATUSES,
+        VALID_CATEGORIES,
+        VALID_PAYMENT_METHODS,
+        VALID_VAT_RATES,
+        VALID_FORTNOX_SYNC_STATUSES,
+      } = require('../cfo/cfoExpenseStore');
+      const {
+        VALID_VAT_MODES,
+        VAT_MODE_LABELS,
+        CATEGORY_DEFAULT_VAT_MODE,
+        VALID_REVIEW_STATUSES,
+      } = require('../cfo/cfoExpenseVatRules');
+      const {
+        VALID_REVIEW_STATUSES: VALID_EXPORT_REVIEW_STATUSES,
+      } = require('../cfo/cfoFinanceReviewStore');
+      res.json({
+        ok: true,
+        statuses: VALID_STATUSES,
+        categories: VALID_CATEGORIES,
+        paymentMethods: VALID_PAYMENT_METHODS,
+        vatRates: VALID_VAT_RATES,
+        fortnoxSyncStatuses: VALID_FORTNOX_SYNC_STATUSES,
+        vatModes: VALID_VAT_MODES,
+        vatLabels: VAT_MODE_LABELS,
+        categoryDefaults: CATEGORY_DEFAULT_VAT_MODE,
+        reviewStatuses: VALID_REVIEW_STATUSES,
+        exportReviewStatuses: VALID_EXPORT_REVIEW_STATUSES,
+        months: {
+          '01': 'Januari',
+          '02': 'Februari',
+          '03': 'Mars',
+          '04': 'April',
+          '05': 'Maj',
+          '06': 'Juni',
+          '07': 'Juli',
+          '08': 'Augusti',
+          '09': 'September',
+          10: 'Oktober',
+          11: 'November',
+          12: 'December',
+          '??': 'Okänt datum',
+        },
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // POST /api/v1/cco-cf/expenses/:id/vat — sätt vatMode (godkänner samtidigt)
   router.post(
     '/cco-cf/expenses/:id/vat',
@@ -1629,10 +1693,11 @@ function createCfoRouter({
   // GET /api/v1/cco-cf/reports — lista tillgängliga rapport-typer + meta
   router.get('/cco-cf/reports', attachRole, requireAnyRole(cfRBAC), (req, res) => {
     try {
-      const { VALID_REPORT_KINDS } = require('../cfo/cfoFinanceReportEngine');
+      const { VALID_REPORT_KINDS, REPORT_DEFS } = require('../cfo/cfoFinanceReportEngine');
       return res.json({
         ok: true,
         availableKinds: VALID_REPORT_KINDS,
+        reports: REPORT_DEFS,
         fortnoxStatus: 'BLOCKED_INTEGRATION',
       });
     } catch (err) {

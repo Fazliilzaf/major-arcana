@@ -645,6 +645,40 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     };
   }
 
+  // ORD-CM-25 · Hitta poster som ägaren/revisorn måste titta på.
+  // Flyttad från UI (hårdkodad regex) till backend så samma logik gäller
+  // dashboard, API och framtida automation.
+  function findAnomalies() {
+    const rader = [];
+    const notesPattern = /VALUTA|VERIFIERA|GRANSKAD|revisorns kontering/i;
+    const notesExtractPattern = /(KÄLL[A-ZÄÖ]*GRANSKAD[^·]*|ÄGARBESLUT[^·]*|VALUTAFEL[^·]*)/;
+    for (const e of data.expenses) {
+      if (e.status === 'rejected') continue;
+      let varfor = null;
+      const pill = 'needs_review';
+      if (e.fortnoxSyncStatus === 'error') {
+        varfor = 'Fortnox-fel: ' + (e.fortnoxSyncError || 'okänt');
+      } else if (e.fortnoxSyncStatus === 'syncing') {
+        varfor = 'Avbruten sync — verifiera i Fortnox och stäm av';
+      } else if (notesPattern.test(e.notes || '')) {
+        varfor =
+          ((e.notes || '').match(notesExtractPattern) || [null, null])[0] || 'Granskningsnoterad';
+      } else if (e.vatMode === 'representation_limited' && e.deductibleVatSek == null) {
+        varfor = 'Moms: representation utan beräknat avdrag';
+      } else if (['new', 'categorized'].includes(e.status) && !(Number(e.amountSek) > 0)) {
+        varfor = 'Belopp saknas';
+      }
+      if (varfor) {
+        rader.push({
+          expense: { ...e },
+          reason: varfor,
+          pill,
+        });
+      }
+    }
+    return rader;
+  }
+
   // ─── CF.4: Suggestion-management ──────────────────────────────
   /**
    * Spara en suggestion på en expense. Skriver INTE förslagna fält —
@@ -964,7 +998,12 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     e.fortnoxSyncStatus = 'pending';
     e.fortnoxSyncError = null;
     e.updatedAt = nowIso();
-    e.history.push({ status: e.status, at: nowIso(), by: actor, reason: 'fortnox-syncing-resolved' });
+    e.history.push({
+      status: e.status,
+      at: nowIso(),
+      by: actor,
+      reason: 'fortnox-syncing-resolved',
+    });
     await persist();
     audit('cf.expense.fortnox_syncing_resolved', { expenseId: id, to: 'pending', actor });
     return e;
@@ -1004,6 +1043,7 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     listExportBatches,
     getById,
     summary,
+    findAnomalies,
     buildAttachmentKey,
     // CF.4
     setSuggestion,

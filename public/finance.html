@@ -1233,7 +1233,110 @@
         });
       })();
 
+      // Global CFO-meta cache: laddas en gång, används av alla sektioner
+      // så enum-listor (kategorier, betalsätt, moms, månader) inte behöver
+      // hårdkodas på flera ställen i UI.
       (() => {
+        let metaPromise = null;
+        const fallback = {
+          categories: [
+            'utrustning',
+            'forbrukning',
+            'lokal',
+            'personal',
+            'utbildning',
+            'resor',
+            'mat_representation',
+            'marknadsforing',
+            'administrativ',
+            'it_telefoni',
+            'forsakring',
+            'juridik_konsult',
+            'bank_finansiell',
+            'skatter_avgifter',
+            'annat',
+          ],
+          paymentMethods: [
+            'card',
+            'swish',
+            'bank_transfer',
+            'invoice',
+            'cash',
+            'autogiro',
+            'direct_debit',
+            'other',
+          ],
+          vatRates: [0, 6, 12, 25, 'reverse_charge'],
+          vatModes: [
+            'standard_25',
+            'standard_12',
+            'standard_6',
+            'standard_0',
+            'mixed',
+            'reverse_charge_eu',
+            'reverse_charge_non_eu',
+            'non_deductible',
+            'representation_limited',
+            'needs_review',
+          ],
+          vatLabels: {
+            standard_25: '25%',
+            standard_12: '12%',
+            standard_6: '6%',
+            standard_0: '0%',
+            mixed: 'Blandad',
+            reverse_charge_eu: 'EU reverse charge',
+            reverse_charge_non_eu: 'Non-EU reverse charge',
+            non_deductible: 'Ej avdragsgill',
+            representation_limited: 'Representation 50%',
+            needs_review: 'Behöver granskas',
+          },
+          months: {
+            '01': 'Januari',
+            '02': 'Februari',
+            '03': 'Mars',
+            '04': 'April',
+            '05': 'Maj',
+            '06': 'Juni',
+            '07': 'Juli',
+            '08': 'Augusti',
+            '09': 'September',
+            10: 'Oktober',
+            11: 'November',
+            12: 'December',
+            '??': 'Okänt datum',
+          },
+          reviewStatuses: ['pending', 'reviewed', 'flagged'],
+          exportReviewStatuses: [
+            'pending',
+            'reviewed',
+            'needs_correction',
+            'accepted_for_bookkeeping',
+            'rejected_with_reason',
+          ],
+        };
+        window.arcanaCfLoadMeta = async () => {
+          if (window.arcanaCfMeta) return window.arcanaCfMeta;
+          if (metaPromise) return metaPromise;
+          metaPromise = (async () => {
+            try {
+              const r = await fetch('/api/v1/cco-cf/meta', { credentials: 'same-origin' });
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              const d = await r.json();
+              if (!d.ok) throw new Error(d.error || 'meta ok=false');
+              window.arcanaCfMeta = d;
+              return d;
+            } catch (err) {
+              console.error('[cf-meta] misslyckades, använder fallback:', err);
+              window.arcanaCfMeta = fallback;
+              return fallback;
+            }
+          })();
+          return metaPromise;
+        };
+      })();
+
+      (async () => {
         const $ = (id) => document.getElementById(id);
         const esc = (s) =>
           String(s == null ? '' : s).replace(
@@ -1256,6 +1359,7 @@
             return iso;
           }
         };
+        const meta = await window.arcanaCfLoadMeta();
 
         let allReceipts = [];
         let currentFilter = 'all';
@@ -1645,59 +1749,12 @@
         });
 
         // ── CF.3: Expense Inbox ─────────────────────────────────────
-        const EXP_CATEGORIES = [
-          'utrustning',
-          'forbrukning',
-          'lokal',
-          'personal',
-          'utbildning',
-          'resor',
-          'mat_representation',
-          'marknadsforing',
-          'administrativ',
-          'it_telefoni',
-          'forsakring',
-          'juridik_konsult',
-          'bank_finansiell',
-          'skatter_avgifter',
-          'annat',
-        ];
-        const EXP_PAYMENTS = [
-          'card',
-          'swish',
-          'bank_transfer',
-          'invoice',
-          'cash',
-          'autogiro',
-          'direct_debit',
-          'other',
-        ];
-        const EXP_VATS = [0, 6, 12, 25, 'reverse_charge'];
+        const EXP_CATEGORIES = meta.categories;
+        const EXP_PAYMENTS = meta.paymentMethods;
+        const EXP_VATS = meta.vatRates;
         // CF.6: vat-modes
-        const VAT_MODES = [
-          'standard_25',
-          'standard_12',
-          'standard_6',
-          'standard_0',
-          'mixed',
-          'reverse_charge_eu',
-          'reverse_charge_non_eu',
-          'non_deductible',
-          'representation_limited',
-          'needs_review',
-        ];
-        const VAT_LABELS = {
-          standard_25: '25%',
-          standard_12: '12%',
-          standard_6: '6%',
-          standard_0: '0%',
-          mixed: 'Blandad',
-          reverse_charge_eu: 'EU reverse charge',
-          reverse_charge_non_eu: 'Non-EU reverse charge',
-          non_deductible: 'Ej avdragsgill',
-          representation_limited: 'Representation 50%',
-          needs_review: 'Behöver granskas',
-        };
+        const VAT_MODES = meta.vatModes;
+        const VAT_LABELS = meta.vatLabels;
 
         let allExpenses = [];
         let expFilter = 'all';
@@ -1706,21 +1763,7 @@
         // auto: hoppa direkt in i enda året/månaden (ORD-CM-12) — stängs av vid upp-navigering
         const expVy = { year: null, month: null, auto: true };
         let expTräd = null;
-        const EXP_MÅN = {
-          '01': 'Januari',
-          '02': 'Februari',
-          '03': 'Mars',
-          '04': 'April',
-          '05': 'Maj',
-          '06': 'Juni',
-          '07': 'Juli',
-          '08': 'Augusti',
-          '09': 'September',
-          10: 'Oktober',
-          11: 'November',
-          12: 'December',
-          '??': 'Okänt datum',
-        };
+        const EXP_MÅN = meta.months;
 
         async function loadExpenses() {
           try {
@@ -2816,9 +2859,7 @@
           if (!name) return;
           const supplier = prompt('Leverantör att matcha (substring, case-insensitive):');
           if (!supplier) return;
-          const category = prompt(
-            'Föreslå kategori (utrustning/forbrukning/lokal/personal/utbildning/resor/mat_representation/marknadsforing/administrativ/it_telefoni/forsakring/juridik_konsult/bank_finansiell/skatter_avgifter/annat):'
-          );
+          const category = prompt('Föreslå kategori (' + meta.categories.join('/') + '):');
           if (!category) return;
           try {
             const r = await fetch('/api/v1/cco-cf/rules', {
@@ -2916,6 +2957,7 @@
 
         // Init (CF.5+CF.7: vendors + recurring laddas före expenses så index finns när rader renderas)
         (async () => {
+          await window.arcanaCfLoadMeta();
           await loadVendors();
           await loadRecurrings();
           await loadDashboard();
@@ -2946,30 +2988,9 @@
         async function ladda() {
           try {
             const d = await (
-              await fetch('/api/v1/cco-cf/expenses?limit=1000', { credentials: 'same-origin' })
+              await fetch('/api/v1/cco-cf/expenses/anomalies', { credentials: 'same-origin' })
             ).json();
-            const alla = d.expenses || [];
-            const rader = [];
-            for (const e of alla) {
-              if (e.status === 'rejected') continue;
-              let varfor = null;
-              let pill = 'needs_review';
-              if (e.fortnoxSyncStatus === 'error') {
-                varfor = 'Fortnox-fel: ' + (e.fortnoxSyncError || 'okänt');
-              } else if (e.fortnoxSyncStatus === 'syncing') {
-                varfor = 'Avbruten sync — verifiera i Fortnox och stäm av';
-              } else if (/VALUTA|VERIFIERA|GRANSKAD|revisorns kontering/i.test(e.notes || '')) {
-                varfor =
-                  ((e.notes || '').match(
-                    /(KÄLL[A-ZÄÖ]*GRANSKAD[^·]*|ÄGARBESLUT[^·]*|VALUTAFEL[^·]*)/
-                  ) || [null, null])[0] || 'Granskningsnoterad';
-              } else if (e.vatMode === 'representation_limited' && e.deductibleVatSek == null) {
-                varfor = 'Moms: representation utan beräknat avdrag';
-              } else if (['new', 'categorized'].includes(e.status) && !(Number(e.amountSek) > 0)) {
-                varfor = 'Belopp saknas';
-              }
-              if (varfor) rader.push({ e, varfor, pill });
-            }
+            const rader = d.anomalies || [];
             countEl.textContent = rader.length;
             if (!rader.length) {
               list.innerHTML = '<div class="empty">Inga undantag — allt flyter.</div>';
@@ -2980,18 +3001,18 @@
                 (r) =>
                   '<div class="receipt"><div class="receipt-thumb">⚠️</div>' +
                   '<div class="receipt-main"><div class="receipt-name">' +
-                  esc(r.e.supplier || 'Okänd') +
+                  esc(r.expense?.supplier || 'Okänd') +
                   '</div>' +
                   '<div class="receipt-meta"><span>' +
-                  esc(r.e.date || 'datum saknas') +
+                  esc(r.expense?.date || 'datum saknas') +
                   '</span><span>' +
-                  esc(r.varfor).slice(0, 110) +
+                  esc(r.reason).slice(0, 110) +
                   '</span></div></div>' +
                   '<div class="receipt-amount">' +
-                  (Number(r.e.amountSek) || 0).toLocaleString('sv-SE') +
+                  (Number(r.expense?.amountSek) || 0).toLocaleString('sv-SE') +
                   ' kr</div>' +
                   '<span class="receipt-status receipt-status--' +
-                  r.pill +
+                  (r.pill || 'needs_review') +
                   '">Väntar dig</span></div>'
               )
               .join('');
@@ -3014,6 +3035,13 @@
             /[&<>"']/g,
             (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
           );
+        function rejectReason(e) {
+          if (!Array.isArray(e.history)) return null;
+          for (let i = e.history.length - 1; i >= 0; i--) {
+            if (e.history[i].status === 'rejected') return e.history[i].reason || '';
+          }
+          return e.notes || '';
+        }
         async function ladda() {
           try {
             const d = await (
@@ -3021,19 +3049,20 @@
             ).json();
             const alla = d.expenses || [];
             const rader = alla.filter(
-              (e) => e.status === 'rejected' && /PRIVAT KÖP/i.test(e.notes || '')
+              (e) => e.status === 'rejected' && /PRIVAT KÖP/i.test(rejectReason(e) || '')
             );
             countEl.textContent = rader.length;
             const summa = rader.reduce((s, e) => s + (Number(e.amountSek) || 0), 0);
-            if (sumEl) sumEl.textContent = summa ? summa.toLocaleString('sv-SE') + ' kr totalt' : '';
+            if (sumEl)
+              sumEl.textContent = summa ? summa.toLocaleString('sv-SE') + ' kr totalt' : '';
             if (!rader.length) {
               list.innerHTML = '<div class="empty">Inga privata köp markerade.</div>';
               return;
             }
             list.innerHTML = rader
               .map((e) => {
-                const skal =
-                  ((e.notes || '').match(/PRIVAT KÖP[^·]*/i) || ['Privat köp'])[0];
+                const reason = rejectReason(e) || '';
+                const skal = (reason.match(/PRIVAT KÖP[^·]*/i) || ['Privat köp'])[0];
                 return (
                   '<div class="receipt"><div class="receipt-thumb">👤</div>' +
                   '<div class="receipt-main"><div class="receipt-name">' +
@@ -3060,7 +3089,8 @@
       })();
 
       // ORD-65 · CM-intag: kandidatlista + promote → CFO (cfoExpenseStore äger livscykeln)
-      (function cmIntakeSection() {
+      (async function cmIntakeSection() {
+        const meta = await window.arcanaCfLoadMeta();
         const list = document.getElementById('cm-list');
         const kpis = document.getElementById('cm-kpis');
         const countEl = document.getElementById('cm-count');
@@ -3071,21 +3101,7 @@
         const vy = { status: 'all', year: null, month: null, auto: true };
         let träd = null;
         const kr = (n) => (Math.round(n) || 0).toLocaleString('sv-SE') + ' kr';
-        const MÅN = {
-          '01': 'Januari',
-          '02': 'Februari',
-          '03': 'Mars',
-          '04': 'April',
-          '05': 'Maj',
-          '06': 'Juni',
-          '07': 'Juli',
-          '08': 'Augusti',
-          '09': 'September',
-          10: 'Oktober',
-          11: 'November',
-          12: 'December',
-          '??': 'Okänt datum',
-        };
+        const MÅN = meta.months;
         function esc(s) {
           return String(s == null ? '' : s).replace(
             /[&<>"']/g,
@@ -3535,40 +3551,15 @@
       })();
 
       // ORD-CM-6b · Pyramiden i CFO:s designspråk: kort → kort → rader
-      (function cmBulkPyramid() {
+      (async function cmBulkPyramid() {
+        const meta = await window.arcanaCfLoadMeta();
         const cards = document.getElementById('cmb-cards');
         const list = document.getElementById('cmb-list');
         const crumb = document.getElementById('cmb-crumb');
         const countEl = document.getElementById('cmb-count');
         if (!cards || !list || !countEl) return;
-        const MÅN = {
-          '01': 'Januari',
-          '02': 'Februari',
-          '03': 'Mars',
-          '04': 'April',
-          '05': 'Maj',
-          '06': 'Juni',
-          '07': 'Juli',
-          '08': 'Augusti',
-          '09': 'September',
-          10: 'Oktober',
-          11: 'November',
-          12: 'December',
-          '??': 'Okänt datum',
-        };
-        const KATEGORIER = [
-          '',
-          'marknadsforing',
-          'forbrukning',
-          'it_telefoni',
-          'utrustning',
-          'lokal',
-          'resor',
-          'mat_representation',
-          'utbildning',
-          'personal',
-          'ovrigt',
-        ];
+        const MÅN = meta.months;
+        const KATEGORIER = ['', ...meta.categories];
         let träd = null;
         const vy = { year: null, month: null, auto: true };
         function esc(x) {
