@@ -62,6 +62,23 @@ produktionsklart.
 Eftersom review-kön är tom visas inga granskningsposter just nu, men hela
 ytan finns på plats.
 
+### Fas 5 — Kvalitet och dokumentation (åtgärdad 2026-08-15)
+
+- **Tester tillagda:**
+  - `tests/ops/ccoAssetNaming/assetDisplayLabel.test.js` — 9 tester.
+  - `tests/ops/ccoAssetNaming/photoReviewNaming.test.js` — 19 tester.
+  - `tests/ops/ccoAssetNaming/patientCardSections.test.js` fanns redan med 6
+    tester.
+- **`CCO-STATUS.md` uppdaterad** för att spegla aktuellt läge.
+- **Duplicerade nycklar städade** i `patchAssetNamingMetadata`
+  (`src/ops/ccoPatientAssetStore.js:1370-1409`): `imageType`,
+  `sessionNumber`, `encounterType` och `approvedCategory` fanns listade två
+  gånger vardera; dubletterna är borttagna.
+- **Dokumentation av de två encounter-systemen** finns i
+  `docs/handover/CCO-NAMNGIVNING-OBEROENDE-GENOMGANG-2026-08-14.md`
+  (skillnaden mellan `encounterMapper.js`/`buildEncounterRegistry` och
+  `encounterNameResolver.js`/`countTreatmentSession()`).
+
 CCO namngivning betraktas därmed som färdigställd. Eventuella nya
 namngivningsproblem ska hanteras som vanliga inkommande ärenden, inte som
 pågående CCO-projekt.
