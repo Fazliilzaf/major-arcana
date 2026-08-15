@@ -204,22 +204,30 @@ hämtade kropparna och uppdaterade meddelandena i truth-sharden. Ett
 stickprov visar nu inline `bodyHtml` (~16 kB) och `bodyText` (~1,4 kB)
 i sharden — kropparna finns där.
 
-**Body-migrering körd 2026-08-15:** `migrateMailboxBodies()` körde
-framgångsrikt för `info@hairtpclinic.com` på prod (via
-`/tmp/body-migration-info.js` resp. `-apply.js` på Render SSH).
+**Body-migrering körd 2026-08-15 för samtliga brevlådor:**
 
-- Torrkörning (`apply: false`): `written=420`,
-  `expectedDecodedChars=754752`, `verifiedDecodedChars=754752` —
-  sidofilerna skrevs och verifierades.
-- Skarp körning (`apply: true`): sharden krympte från 1 721 707 byte
-  till 929 152 byte, `stoppedBecause` är tom, och sharden innehåller
-  nu **0 meddelanden med inline `bodyText`/`bodyHtml`**.
-- Efter migreringen har `info@hairtpclinic.com` 420 sidofiler med
-  brödtext (av 481 meddelanden). 57 av dessa bär verkligt innehåll
-  (`avgText=1109`, `avgHtml=12132`), resterande är meddelanden som
-  aldrig hade någon rik kropp.
+| Brevlåda | Väg | Sharden före/efter | Sidofiler |
+|---|---|---|---|
+| `info@hairtpclinic.com` | Graph-backfill + migration | 1 721 707 → 929 152 byte | 420 |
+| `halso@hairtpclinic.com` | Graph-backfill + migration | 881 497 → 334 414 byte | 154 |
+| `marknad@hairtpclinic.com` | Graph-backfill + migration | 3 048 076 → 545 616 byte | 272 |
+| `info@fazli.se` | `mailIngestionStore` + migration | 1 601 421 → 1 231 923 byte | 643 |
+| `kvitto@hairtpclinic.com` | Migration av befintlig inline-body | 6 726 647 → 6 380 992 byte | 2 839 |
+| `fazli@hairtpclinic.com` | Migration av befintlig inline-body | 22 412 439 → 21 158 604 byte | 8 872 |
+| `egzona@hairtpclinic.com` | Migration av befintlig inline-body | 25 427 596 → 21 090 163 byte | 9 475 |
+| `contact@hairtpclinic.com` | Migration av befintlig inline-body | 27 117 912 → 22 712 330 byte | 10 801 |
 
-ORD-99 betraktas som åtgärdad för `info@hairtpclinic.com`.
+Alla körningar rapporterade `expectedDecodedChars` ===
+`verifiedDecodedChars` och `stoppedBecause` tom efter apply.
+
+Hydrering verifierad med `createCcoMailboxTruthStore.hydrateMessageBody()`
+— sidofilerna läses korrekt och kropparna syns i stickprov för alla
+brevlådor.
+
+**Backup-städning:** samtliga `.pre-body-migration.bak`-filer (40 st)
+togs bort efter att alla migrationer verifierats. Kvar: **0**.
+
+ORD-99 betraktas som åtgärdad för samtliga brevlådor.
 
 ### 3. Backfill — full dry-run mot prod — KLAR 2026-08-15
 
