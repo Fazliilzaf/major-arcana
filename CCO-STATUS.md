@@ -204,22 +204,29 @@ hämtade kropparna och uppdaterade meddelandena i truth-sharden. Ett
 stickprov visar nu inline `bodyHtml` (~16 kB) och `bodyText` (~1,4 kB)
 i sharden — kropparna finns där.
 
-**Body-migrering körd 2026-08-15:** `migrateMailboxBodies()` körde
-framgångsrikt för `info@hairtpclinic.com` på prod (via
-`/tmp/body-migration-info.js` resp. `-apply.js` på Render SSH).
+**Body-migrering körd 2026-08-15 för samtliga berörda brevlådor:**
 
-- Torrkörning (`apply: false`): `written=420`,
-  `expectedDecodedChars=754752`, `verifiedDecodedChars=754752` —
-  sidofilerna skrevs och verifierades.
-- Skarp körning (`apply: true`): sharden krympte från 1 721 707 byte
-  till 929 152 byte, `stoppedBecause` är tom, och sharden innehåller
-  nu **0 meddelanden med inline `bodyText`/`bodyHtml`**.
-- Efter migreringen har `info@hairtpclinic.com` 420 sidofiler med
-  brödtext (av 481 meddelanden). 57 av dessa bär verkligt innehåll
-  (`avgText=1109`, `avgHtml=12132`), resterande är meddelanden som
-  aldrig hade någon rik kropp.
+- `info@hairtpclinic.com`: backfill + `migrateMailboxBodies(apply=true)`.
+  Sharden krympte 1 721 707 → 929 152 byte, 420 sidofiler skrivna,
+  `expectedDecodedChars=754752` matchade `verifiedDecodedChars`.
+- `halso@hairtpclinic.com`: backfill + migration. Sharden 881 497 →
+  334 414 byte, 154 sidofiler, `expectedDecodedChars=529813` matchade.
+- `marknad@hairtpclinic.com`: backfill + migration. Sharden 3 048 076 →
+  545 616 byte, 272 sidofiler, `expectedDecodedChars=2 421 791` matchade.
+- `info@fazli.se`: Graph ger 404, så kropparna hämtades istället från
+  `mailIngestionStore` (`/tmp/hydrate-info-fazli-se.js`). 643 sidofiler
+  skrevs med `bodyText` från rådatan, sedan body-migration. Sharden
+  1 601 421 → 1 231 923 byte, `expectedDecodedChars=357398` matchade.
 
-ORD-99 betraktas som åtgärdad för `info@hairtpclinic.com`.
+Hydrering verifierad med `createCcoMailboxTruthStore.hydrateMessageBody()`
+för alla fyra brevlådor — sidofilerna läses korrekt och kropparna
+syns i stickprov.
+
+**Backup-städning:** dagens `.pre-body-migration.bak`-filer (8 st,
+tidsstämplar `178681*`) togs bort. Äldre backups från 2026-07-29
+lämnades kvar.
+
+ORD-99 betraktas som åtgärdad för alla berörda brevlådor.
 
 ### 3. Backfill — full dry-run mot prod — KLAR 2026-08-15
 
