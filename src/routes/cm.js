@@ -114,57 +114,6 @@ function createCmRouter({
     }
   );
 
-  // Approve
-  router.post(
-    '/cm/expense-records/:id/approve',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      const record = cmStore.approve(req.params.id, {
-        approvedBy: req.user?.id || req.body?.approvedBy,
-      });
-      if (!record) return res.status(404).json({ ok: false, error: 'not_found' });
-      await cmStore.persist();
-      return res.json({ ok: true, record });
-    }
-  );
-
-  // Reject
-  router.post(
-    '/cm/expense-records/:id/reject',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      const record = cmStore.reject(req.params.id, {
-        rejectedBy: req.user?.id,
-        reason: req.body?.reason,
-      });
-      if (!record) return res.status(404).json({ ok: false, error: 'not_found' });
-      await cmStore.persist();
-      return res.json({ ok: true, record });
-    }
-  );
-
-  // Mark exported — DEPRECATED (ORD-63): CFO äger export-livscykeln.
-  // Behålls tills UI:t enbart använder promote-vägen; tas bort därefter.
-  router.post(
-    '/cm/expense-records/:id/export',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      const record = cmStore.markExported(req.params.id, {
-        externalAccountingId: req.body?.externalAccountingId,
-      });
-      if (!record) return res.status(404).json({ ok: false, error: 'not_found' });
-      await cmStore.persist();
-      return res.json({
-        ok: true,
-        record,
-        deprecated: 'Använd /promote — CFO (cfoExpenseStore) äger export-livscykeln (ORD-63)',
-      });
-    }
-  );
-
   // ORD-63 · Promota CM-kandidat till CFO — cfoExpenseStore äger livscykeln därefter.
   router.post(
     '/cm/expense-records/:id/promote',

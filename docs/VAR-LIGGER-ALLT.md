@@ -10,11 +10,30 @@
 - Lokalt: `~/Code/major-arcana` (delad arbetskopia — kolla `git status -sb`
   före commit; parallellt arbete i `git worktree`, aldrig mappkopior).
 - Nyckelytor: `server.js` (monolit, FRYST — nya routes i `src/routes/`),
-  `src/cm/` (mail-/kvittointag), `src/cfo/` (utgifter, Fortnox),
+  `src/routes/cfo.js` (CFO/utgifts-API: dashboard, receipts, expenses, rules,
+  suppliers, VAT, recurring, review exports, reports, periods),
+  `src/routes/cm.js` (mail-/kvittointag: dashboard, inbox, promote → CFO),
+  `src/cm/` (mail-sync, AI-extraktion, handoff till CFO),
+  `src/cfo/` (utgiftslivscykel, regler, Fortnox, rapporter),
   `src/security/` (auth/RBAC), `src/ops/` (scheduler, diskguard, stores),
   `public/finance.html` (CFO-ytan), `public/admin` (ägar-UI).
 - Regler och arbetssätt: `AGENTS.md`, `ORGANISATION.md`,
   `docs/agent-koordinering.md`, `.cursor/rules/`.
+
+## 1b. CM ↔ CFO gränssnitt (viktigt att inte duplicera)
+
+- CM (`src/routes/cm.js`) äger **intag**: mail-sync, OCR, AI-extraktion,
+  klassificering, dubblettdetektion. CM kan **promota** en kandidat till CFO
+  via `POST /api/v1/cm/expense-records/:id/promote`.
+- CFO (`src/routes/cfo.js`) äger **livscykeln därefter**: godkännande,
+  avvisande, kategorisering, leverantörslänkning, momsregler, export,
+  bokföringsperioder, revisorgranskning, Fortnox-voucher-sync.
+- CM har **inte** längre egna approve/reject/export-endpoints för
+  expense-records — det finns nu enbart i CFO. CM kan fortfarande bulk-rejecta
+  icke-promoterade kandidater (`POST /api/v1/cm/bulk` med `action: 'reject'`)
+  och markerar för-bokförda mail (`markExported`) internt.
+- UI: `public/finance.html` pratar med både `/api/v1/cm/*` (intag/promote) och
+  `/api/v1/cco-cf/*` (CFO-arbetsyta).
 
 ## 2. Ordersystemet (vad som beställts, byggts, återstår)
 

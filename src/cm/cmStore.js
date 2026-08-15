@@ -337,16 +337,7 @@ function createCmStore({ filePath }) {
 
   // ─── APPROVAL ───
 
-  function approve(recordId, { approvedBy }) {
-    const record = state.expenseRecords.find((r) => r.id === recordId);
-    if (!record) return null;
-    record.approvalStatus = 'approved';
-    record.bookkeepingStatus = 'ready';
-    record.updatedAt = nowIso();
-    audit('cm.expense_record.approved', { recordId, approvedBy });
-    return record;
-  }
-
+  // ORD-63 · CM lämnar över till CFO — cfoExpenseStore äger livscykeln därefter.
   function reject(recordId, { rejectedBy, reason }) {
     const record = state.expenseRecords.find((r) => r.id === recordId);
     if (!record) return null;
@@ -639,7 +630,6 @@ function createCmStore({ filePath }) {
     computeDedupeKey,
     createDocument,
     createExpenseRecord,
-    approve,
     reject,
     markExported,
     markHandedOff,
