@@ -375,6 +375,33 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
   }
 
   /**
+   * Permanent radering av en expense. Endast avvisade (rejected) expenses får
+   * raderas för att skydda bokföringsunderlag. Auditloggen sparar en snapshot
+   * före borttagning.
+   */
+  async function deleteExpense({ id, actor } = {}) {
+    const idx = data.expenses.findIndex((x) => x.id === id);
+    if (idx === -1) throw new Error('expense finns ej');
+    const e = data.expenses[idx];
+    if (e.status !== 'rejected') {
+      throw new Error('endast avvisade expenses får raderas');
+    }
+    const snapshot = { ...e };
+    data.expenses.splice(idx, 1);
+    await persist();
+    audit('cf.expense.deleted', {
+      expenseId: id,
+      deletedStatus: snapshot.status,
+      deletedAmountSek: snapshot.amountSek,
+      deletedSupplier: snapshot.supplier,
+      deletedDate: snapshot.date,
+      reason: snapshot.history?.[snapshot.history.length - 1]?.reason || null,
+      actor,
+    });
+    return { id, deleted: true, snapshot };
+  }
+
+  /**
    * Markera en uppsättning expenses som exporterade (sätter exportBatchId + status).
    * Anropas av cfoExpenseExporter efter att export-paketet skrivits.
    */
@@ -1030,6 +1057,7 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     createExpense,
     updateExpense,
     transitionStatus,
+    deleteExpense,
     markExported,
     markFortnoxSyncing,
     markFortnoxSynced,

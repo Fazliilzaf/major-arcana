@@ -170,3 +170,52 @@ test('ORD-75: originalmailet följer med som underlag vid promote', async () => 
   });
   assert.deepEqual(utanRaw.attachmentKeys, ['cm/receipts/2026-07/x.pdf']);
 });
+
+test('deleteExpense: raderar endast avvisade expenses med audit-snapshot', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'cm-handoff-delete-'));
+  const store = await createCfoExpenseStore({
+    filePath: path.join(dir, 'expenses.json'),
+  });
+  const actor = { userId: 'test-owner', role: 'owner' };
+
+  const created = await store.createExpense({
+    actor,
+    fields: {
+      supplier: 'Dublett AB',
+      amountSek: 1234,
+      date: '2026-08-15',
+      category: 'it_telefoni',
+    },
+  });
+  await store.transitionStatus({
+    id: created.id,
+    newStatus: 'rejected',
+    reason: 'Duplicate test',
+    actor,
+  });
+
+  const before = await store.listExpenses({ status: 'rejected' });
+  assert.equal(before.length, 1);
+
+  const deleted = await store.deleteExpense({ id: created.id, actor });
+  assert.equal(deleted.id, created.id);
+  assert.equal(deleted.deleted, true);
+  assert.equal(deleted.snapshot.amountSek, 1234);
+
+  const after = await store.listExpenses({ status: 'rejected' });
+  assert.equal(after.length, 0);
+  assert.equal(store.getById(created.id), null);
+
+  // Ej avvisad får inte raderas
+  const active = await store.createExpense({
+    actor,
+    fields: { supplier: 'Aktiv AB', amountSek: 500, date: '2026-08-15', category: 'it_telefoni' },
+  });
+  await assert.rejects(
+    store.deleteExpense({ id: active.id, actor }),
+    /endast avvisade expenses får raderas/
+  );
+
+  // Saknad expense
+  await assert.rejects(store.deleteExpense({ id: 'exp_finns_inte', actor }), /expense finns ej/);
+});

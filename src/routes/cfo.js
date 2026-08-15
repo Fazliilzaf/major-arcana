@@ -358,6 +358,19 @@ function createCfoRouter({
     }
   });
 
+  // DELETE /api/v1/cco-cf/expenses/:id — permanent radering av avvisad expense
+  router.delete('/cco-cf/expenses/:id', attachRole, requireAnyRole(['owner']), async (req, res) => {
+    try {
+      const store = expenseStore;
+      if (!store) return res.status(503).json({ error: 'expense store not ready' });
+      const actor = getActor(req);
+      const result = await store.deleteExpense({ id: req.params.id, actor });
+      res.json({ ok: true, deleted: result });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   // POST /api/v1/cco-cf/expenses — skapa (från receipt eller fristående)
   router.post(
     '/cco-cf/expenses',
