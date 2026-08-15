@@ -162,11 +162,46 @@ patientdata körde i kontrollerade batchar med backup och verifiering.
 
 Roten till den avkapade texten är hittad och fixad på klientsidan (`#1319`,
 `#1322`, `#1323` — se `docs/ops/fynd-bodypreview-avkapning-2026-08-06.md`,
-sektion "SLUTGILTIGT 2026-08-07"). Men **varför den lagrade textkroppen
-själv är kort** för `info@`-meddelanden är obekräftat. `/messages` berikar
-redan via `mailIngestionStore` — ger även den vägen kort text pekar det mot
-ett dataspår vid `info@`:s import, inte ett kodfel. Kräver att någon utreder
-importhistoriken för den brevlådan, inte klientkod.
+sektion "SLUTGILTIGT 2026-08-07").
+
+**Fortsatt utredning 2026-08-15:** texten har aldrig varit längre. Den är
+kort redan i källan, inte trunkerad efteråt.
+
+- `info@hairtpclinic.com` har 467 meddelanden i truth-sharden. 369
+  sidofiler för brödtext finns, men **alla är tomma (`{}`)** — ingen
+  lagrad `bodyText` eller `bodyHtml` alls.
+- De äldsta `pre-body-migration.bak`-kopiorna (17 MB, 2026-07-29) visar
+  samma sak: inline `bodyText`/`bodyHtml` är tomma för de meddelanden som
+  fanns då. Kropparna saknades redan innan ORD-89-migreringen flyttade ut
+  dem till sidofiler.
+- `mailIngestionStore` (`/var/data/cco-mail-ingestion.json`) innehåller
+  **noll** `info@hairtpclinic.com`-poster. Brevlådan har alltså inte
+  passerat CCO:s mail-ingestionspipeline, som annars kan bära rikare kropp.
+- Jämförelse med `contact@hairtpclinic.com` (10 864 meddelanden, där
+  ~96 % har både `bodyText` och `bodyHtml`) och `kons@hairtpclinic.com`
+  (nästan alla har kroppar) visar att mekanismen fungerar generellt.
+  Problemet är specifikt för `info@hairtpclinic.com`.
+- Samma mönster gäller ytterligare tre brevlådor:
+  `info@fazli.se` (658 meddelanden), `halso@hairtpclinic.com` (137) och
+  `marknad@hairtpclinic.com` (262). Även där är sidofilerna tomma.
+  Notera att `info@fazli.se` finns i `mailIngestionStore` (644 poster) med
+  rik kropp i rådatan, men truth-sharden är ändå tom — så källan till
+  truth-sharden för de här brevlådorna är inte ingestion utan något annat
+  (sannolikt direkt Graph-sync) som inte hämtade kroppen.
+
+**Sannolik rotorsak:** Microsoft Graph-synkningen för de här brevlådorna
+har returnerat meddelanden utan `body`-innehåll. Antingen har synkningen
+gjorts med en fråga som inte begärde `body`/`bodyPreview`-vidden, eller
+så har app-/tenant-behörigheten för just dessa brevlådor inte tillåtit
+läsning av full kropp. Det är inte ett kodfel i lagring eller visning,
+och det är inte en avkapning efter lagring.
+
+**Kvarstår:** bekräfta exakt varför Graph inte levererade kropp för dessa
+brevlådor. Trolig väg: kontrollera tenant-konsenten/app-behörigheten för
+`info@hairtpclinic.com` jämfört med `contact@`, alternativt tvinga en ny
+initial backfill med `body` explicit valt och mäta om kropparna kommer med.
+Ingen klientsidans åtgärd kommer att hjälpa så länge sharden bara bär
+`bodyPreview`.
 
 ### 3. Backfill — full dry-run mot prod — KLAR 2026-08-15
 
