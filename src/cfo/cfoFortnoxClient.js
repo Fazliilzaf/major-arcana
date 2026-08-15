@@ -26,7 +26,7 @@ function buildFortnoxAuthUrl({ clientId, redirectUri, scope, state, accountType 
   const url = new URL(FORTNOX_AUTH_URL);
   url.searchParams.set('client_id', normalizeText(clientId));
   url.searchParams.set('redirect_uri', normalizeText(redirectUri));
-  url.searchParams.set('scope', normalizeText(scope) || 'customer invoice');
+  url.searchParams.set('scope', normalizeText(scope) || 'customer invoice payment bookkeeping');
   url.searchParams.set('state', normalizeText(state));
   url.searchParams.set('access_type', 'offline');
   url.searchParams.set('response_type', 'code');
@@ -277,7 +277,7 @@ function createFortnoxClient({
     },
     // CF.9 (ORD-67, ägar-GO 2026-07-13 "GO + dryRun först"): verifikat-write.
     // OBS: kräver bookkeeping-scope i OAuth-anslutningen — dagens scope är
-    // "customer invoice payment" → om-anslutning krävs innan skarp körning.
+    // "customer invoice payment bookkeeping" → om-anslutning krävs innan skarp körning.
     // Anropas ENDAST via cfoFortnoxVoucherSync (env-gate + OAuth-gate + dryRun).
     createVoucher(voucherPayload) {
       return request('/vouchers', { method: 'POST', body: { Voucher: voucherPayload } });

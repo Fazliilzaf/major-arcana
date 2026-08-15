@@ -8,7 +8,7 @@ test('buildFortnoxAuthUrl includes oauth parameters', () => {
     buildFortnoxAuthUrl({
       clientId: 'client-id',
       redirectUri: 'https://arcana.example/api/v1/cco-fortnox/oauth/callback',
-      scope: 'customer invoice',
+      scope: 'customer invoice payment bookkeeping',
       state: 'state-token',
     })
   );
@@ -20,7 +20,7 @@ test('buildFortnoxAuthUrl includes oauth parameters', () => {
     url.searchParams.get('redirect_uri'),
     'https://arcana.example/api/v1/cco-fortnox/oauth/callback'
   );
-  assert.equal(url.searchParams.get('scope'), 'customer invoice');
+  assert.equal(url.searchParams.get('scope'), 'customer invoice payment bookkeeping');
   assert.equal(url.searchParams.get('state'), 'state-token');
   assert.equal(url.searchParams.get('response_type'), 'code');
   assert.equal(url.searchParams.get('access_type'), 'offline');

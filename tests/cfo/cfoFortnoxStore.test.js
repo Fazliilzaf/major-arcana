@@ -25,13 +25,13 @@ test('fortnox store saves connection and exposes public status', async () => {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
       expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
-      scope: 'customer invoice',
+      scope: 'customer invoice payment bookkeeping',
     },
   });
 
   const connected = await store.getPublicStatus({ tenantId: 'tenant-a' });
   assert.equal(connected.connected, true);
-  assert.equal(connected.scope, 'customer invoice');
+  assert.equal(connected.scope, 'customer invoice payment bookkeeping');
 
   await store.clearConnection({ tenantId: 'tenant-a' });
   const cleared = await store.getPublicStatus({ tenantId: 'tenant-a' });

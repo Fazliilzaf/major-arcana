@@ -9,7 +9,7 @@
  * Skarp körning kräver ALLA tre:
  *  1. ARCANA_CFO_FORTNOX_VOUCHER_SYNC_ENABLED=true (Render-env, default AV)
  *  2. Fortnox-OAuth ansluten — och med **bookkeeping-scope** (dagens anslutning
- *     har "customer invoice payment" → om-anslutning krävs, se ORD-67-ordern)
+ *     har "customer invoice payment bookkeeping" → om-anslutning krävs, se ORD-67-ordern)
  *  3. Denna POST /run körs manuellt av OWNER (ingen scheduler)
  *
  * dryRun (GET /dry-run) fungerar utan allt ovan — bygger payloads, skriver inget.
