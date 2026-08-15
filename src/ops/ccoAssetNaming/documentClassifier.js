@@ -7,6 +7,24 @@
 
 const path = require('node:path');
 
+// De toppnivå-kategorier som patient-asset-store validerar. När ett
+// FORM_PATTERN producerar en subCategory som INTE är en giltig toppnivå
+// (t.ex. "medication_timing"), faller vi tillbaka på "form" eller
+// "journal" beroende på innehåll i stället för att skapa en ogiltig
+// category.
+const VALID_TOP_CATEGORIES = new Set([
+  'journal',
+  'photo_before',
+  'photo_during',
+  'photo_after',
+  'consent',
+  'agreement',
+  'form',
+  'aisia_report',
+  'offer',
+  'other',
+]);
+
 const FORM_PATTERNS = [
   {
     re: /friskf[oö]rs[aä]kran|fitness/i,
@@ -14,9 +32,31 @@ const FORM_PATTERNS = [
     title: 'Friskförsäkran',
   },
   {
-    re: /h[aä]lsodekl|health[\W_]?decl/i,
+    // Tolerera flera importerade korruptionsformer av "hälsodeklaration":
+    //   Hälsodeklaration (korrekt)
+    //   Halsodeklaration (ä → a)
+    //   H-lsodeklaration (ä → -)
+    //   H+?lsodeklaration (ä → +?)
+    //   Ha??lsodeklaration (ä → a??)
+    re: /h[aä+?\-][\+\?a-zäöå]*lso?dekl|health[\W_]?decl/i,
     subCategory: 'health_declaration',
     title: 'Hälsodeklaration',
+  },
+  {
+    // CF7-* (consent form) som dyker upp både från drive_import och
+    // pipedrive_import. Behandlas som samtycke tills vi har ett tydligare
+    // ursprungssystemssignal.
+    re: /\bcf7?\d/i,
+    subCategory: 'consent',
+    title: 'Samtycke',
+  },
+  {
+    // Medication timing / ordination — läkemedelsinstruktioner som
+    // importerats som generiska PDF:er. Sätts som journal eftersom det är
+    // klinisk information.
+    re: /medication timing|ordination/i,
+    subCategory: 'medication_timing',
+    title: 'Läkemedelsinstruktion',
   },
   { re: /samtycke|consent/i, subCategory: 'consent', title: 'Samtycke' },
   { re: /behandlingssamtycke/i, subCategory: 'treatment_consent', title: 'Behandlingssamtycke' },
@@ -169,13 +209,18 @@ function classifyDocument(asset = {}) {
   const formMatch = detectFormTitle(fileName);
   if (formMatch) {
     signals.push('form_filename_pattern');
+    const derivedCategory =
+      formMatch.subCategory === 'offer'
+        ? 'offer'
+        : existingCategory === 'form'
+          ? 'form'
+          : formMatch.subCategory === 'medication_timing'
+            ? 'journal'
+            : VALID_TOP_CATEGORIES.has(formMatch.subCategory)
+              ? formMatch.subCategory
+              : 'form';
     return {
-      category:
-        formMatch.subCategory === 'offer'
-          ? 'offer'
-          : existingCategory === 'form'
-            ? 'form'
-            : formMatch.subCategory,
+      category: derivedCategory,
       subCategory: formMatch.subCategory,
       documentTitle: formMatch.title,
       treatmentType: detectTreatment(haystack),
