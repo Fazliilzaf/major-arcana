@@ -7,11 +7,12 @@
 
 const path = require('node:path');
 
-// De toppnivå-kategorier som patient-asset-store validerar. När ett
-// FORM_PATTERN producerar en subCategory som INTE är en giltig toppnivå
-// (t.ex. "medication_timing"), faller vi tillbaka på "form" eller
-// "journal" beroende på innehåll i stället för att skapa en ogiltig
-// category.
+// Toppnivå-kategorier som är tillåtna att exponera som `category`. De
+// flesta FORM_PATTERN-subCategories (t.ex. "health_declaration") har
+// traditionellt använts både som subCategory och som category i UI-et,
+// så de listas här för att bevara det beteendet. När ett FORM_PATTERN
+// producerar en subCategory som INTE finns med (t.ex. "medication_timing"),
+// faller vi tillbaka på "form" eller "journal" beroende på innehåll.
 const VALID_TOP_CATEGORIES = new Set([
   'journal',
   'photo_before',
@@ -23,6 +24,12 @@ const VALID_TOP_CATEGORIES = new Set([
   'aisia_report',
   'offer',
   'other',
+  'fitness_certificate',
+  'health_declaration',
+  'treatment_consent',
+  'treatment_plan',
+  'aftercare',
+  'follow_up',
 ]);
 
 const FORM_PATTERNS = [
