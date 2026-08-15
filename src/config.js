@@ -1036,6 +1036,12 @@ const config = {
     process.env.ARCANA_SCHEDULER_CCO_TRUTH_DELTA_INTERVAL_MINUTES,
     3
   ),
+  // ORD-99: övervaka att bodyText/bodyHtml inte återkommer inline i
+  // mailbox-truth-shardarna efter body-migreringen. 0 = av.
+  schedulerCcoMailboxBodyMonitorIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_MAILBOX_BODY_MONITOR_INTERVAL_HOURS,
+    24
+  ),
   schedulerCcoInboxBootstrapOnStart: asBool(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_ON_START,
     true

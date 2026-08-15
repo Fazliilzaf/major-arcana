@@ -345,3 +345,10 @@ See `## Validation` section above. The four commands are:
 - `lint:no-bypass` checks for forbidden store imports in routes/capabilities and ensures no staged changes in the legacy CCO-next base.
 - The mobile shell breakpoint is `max-width: 1023px` (covering phones + tablets). Desktop layout starts at `≥1024px`. The `MQ` constant in both `cco-mobile-shell.js` and `cco-mobile-core.js` must stay in sync.
 - Frontend files under `public/major-arcana-preview/cco-mobile-*.js` have a dedicated eslint config entry with `globals.browser`.
+
+## ORD-99 learnings (mailbox body migration)
+
+- After ORD-89 body-migration, mailbox truth shards should contain **no inline `bodyText`/`bodyHtml`**. Use `measureMailboxTruthBodyShare` (`src/ops/mailboxTruthBodyShareScan.js`) for streaming, memory-safe scans of the shard files.
+- If inline bodies reappear, it is a regression in delta-sync / ingestion, not a client-side display bug. Remigrate before investigating UI truncation.
+- Monitoring: `scripts/monitor-mailbox-bodies.js` exits with code 2 on regression. Scheduler job `cco_mailbox_body_monitor` runs it automatically (config key `schedulerCcoMailboxBodyMonitorIntervalHours`, env `ARCANA_SCHEDULER_CCO_MAILBOX_BODY_MONITOR_INTERVAL_HOURS`).
+- ORD-99 root cause for `info@`, `halso@`, `marknad@` and `info@fazli.se`: the original sync never saved bodies. Live Graph fetches bodies for `@hairtpclinic.com` mailboxes today; `info@fazli.se` is not a tenant user and cannot be backfilled from Graph.
