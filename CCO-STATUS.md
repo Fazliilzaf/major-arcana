@@ -42,6 +42,26 @@ produktionsklart.
   `documentDate` 2025-02-18. Övriga kort matchade förväntat.
 - **Inga skrivningar gjordes mot prod utan verifierad backup först**.
 
+### Fas 4 — Granskningsyta och UI (verifierad 2026-08-15)
+
+- **Gransknings-UI finns byggt och är monterat**:
+  `src/routes/ccoNamingReview.js` exponerar
+  `GET /api/v1/cco/naming-review/queue`,
+  `GET /api/v1/cco/naming-review/patients/:patientId/assets` och
+  `POST /api/v1/cco/naming-review/assets/:assetId/resolve`. Router monterad i
+  `server.js:8879-8891`.
+- **`needs_review_for_naming` kopplad till UI-synlighet**:
+  `src/ops/ccoAssetNaming/patientCardSections.js:94-104` routar assets med
+  `namingStatus === 'needs_review_for_naming'` till sektionen `needs_review`.
+- **Feature-flaggor för foto-granskning inventerade**:
+  `ENABLE_PHOTO_REVIEW_WRITE=false` per default i `src/config.js:1320`. På
+  prod-hosts (`arcana.hairtpclinic.com` m.fl.) krävs även
+  `ENABLE_PHOTO_REVIEW_CANARY_ON_PROD=true` för att skrivning ska aktiveras.
+  Det är en medveten säkerhetsgrind, inte en ofullständighet.
+
+Eftersom review-kön är tom visas inga granskningsposter just nu, men hela
+ytan finns på plats.
+
 CCO namngivning betraktas därmed som färdigställd. Eventuella nya
 namngivningsproblem ska hanteras som vanliga inkommande ärenden, inte som
 pågående CCO-projekt.
