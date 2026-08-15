@@ -198,12 +198,17 @@ function classifyDocument(asset = {}) {
 
   if (existingCategory === 'form') {
     signals.push('existing_form_category');
+    // m365_halso är ett dedikerat hälsodeklarations-/formulärsystem. När
+    // kategorin redan är markerad som 'form' därifrån, men filnamnet inte
+    // räcker för att avgöra exakt formulärtyp, är det fortfarande säkrare än
+    // ett generiskt 'form'-fall — dokumentet är ett verifierat formulär.
+    const isM365Halso = normalizeText(asset.sourceSystem) === 'm365_halso';
     return {
       category: 'form',
       subCategory: 'form',
       documentTitle: 'Formulär',
       treatmentType: detectTreatment(haystack),
-      confidence: 'low',
+      confidence: isM365Halso ? 'medium' : 'low',
       signals,
     };
   }

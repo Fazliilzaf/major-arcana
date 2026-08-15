@@ -115,3 +115,30 @@ test('ett namn utan mojibake-signatur rörs inte ens vid försök', () => {
     'health_declaration'
   );
 });
+
+test('m365_halso-formulär utan känd titel får medium confidence', () => {
+  // Kategorin 'form' är satt av importören för m365_halso; även när
+  // filnamnet är så korrupt att vi inte kan avgöra exakt formulärtyp
+  // (t.ex. "H-lsodeklaration-...") är det säkrare än ett generiskt
+  // form-fall eftersom källsystemet enbart hanterar hälsorelaterade
+  // formulär.
+  const result = classifyDocument({
+    originalFileName: 'H-lsodeklaration-Patient-1234567890-1234.pdf',
+    category: 'form',
+    sourceSystem: 'm365_halso',
+    mimeType: 'application/pdf',
+  });
+  assert.equal(result.category, 'form');
+  assert.equal(result.subCategory, 'form');
+  assert.equal(result.confidence, 'medium');
+});
+
+test('ospecificerat formulär från annat system förblir low confidence', () => {
+  const result = classifyDocument({
+    originalFileName: 'form-123.pdf',
+    category: 'form',
+    sourceSystem: 'upload',
+    mimeType: 'application/pdf',
+  });
+  assert.equal(result.confidence, 'low');
+});
