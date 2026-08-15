@@ -12,6 +12,7 @@ const {
   phoneMatchKey,
   nameOverlapScore,
 } = require('../../scripts/migration/lib/migrationUtils');
+const { createClientoBookingLookup } = require('../../scripts/lib/clientoBookingLookup');
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -27,15 +28,18 @@ function nowIso() {
 
 function buildClientoPatientLookup(patients = []) {
   const byClientoId = new Map();
+  const bySourceId = new Map();
   const byPersonnummer = new Map();
   const byEmail = new Map();
   const byPhone = new Map();
 
   for (const patient of asArray(patients)) {
-    const clientoId = normalizeText(
-      asObject(patient.cliento).clientoId || asObject(patient.cliento).sourceId
-    );
+    const cliento = asObject(patient.cliento);
+    const clientoId = normalizeText(cliento.clientoId || cliento.sourceId);
     if (clientoId && !byClientoId.has(clientoId)) byClientoId.set(clientoId, patient);
+
+    const sourceId = normalizeText(cliento.sourceId);
+    if (sourceId && !bySourceId.has(sourceId)) bySourceId.set(sourceId, patient);
 
     const pnr = normalizePersonnummer(patient.personnummer);
     if (pnr && !byPersonnummer.has(pnr)) byPersonnummer.set(pnr, patient);
@@ -57,7 +61,14 @@ function buildClientoPatientLookup(patients = []) {
     });
   }
 
-  return { byClientoId, byPersonnummer, byEmail, byPhone, allPatients: asArray(patients) };
+  return {
+    byClientoId,
+    bySourceId,
+    byPersonnummer,
+    byEmail,
+    byPhone,
+    allPatients: asArray(patients),
+  };
 }
 
 function findClientoDeltaCandidates(lookup, record) {
@@ -73,6 +84,11 @@ function findClientoDeltaCandidates(lookup, record) {
   if (record.clientoId) {
     const linked = lookup.byClientoId.get(record.clientoId);
     if (linked) add(linked, 'cliento_id', 1);
+  }
+
+  if (record.sourceId) {
+    const linked = lookup.bySourceId.get(record.sourceId);
+    if (linked) add(linked, 'cliento_source_id', 1);
   }
 
   const pnr = normalizePersonnummer(record.personnummer);
@@ -261,6 +277,7 @@ async function runClientoCustomerCsvDeltaSync({
   patientMasterStore,
   tenantId,
   csvPath,
+  bookingExportCsvPath,
   dryRun = true,
   sampleSize = 5,
 } = {}) {
@@ -275,6 +292,25 @@ async function runClientoCustomerCsvDeltaSync({
   }
 
   const parsed = readClientoExportCsv(resolvedCsvPath);
+
+  let bookingLookup = null;
+  const resolvedBookingPath = normalizeText(bookingExportCsvPath);
+  if (resolvedBookingPath && fs.existsSync(resolvedBookingPath)) {
+    const bookingText = fs.readFileSync(resolvedBookingPath, 'utf8');
+    bookingLookup = createClientoBookingLookup(bookingText, { includeNameMatch: true });
+  }
+
+  let enrichedSourceId = 0;
+  if (bookingLookup) {
+    for (const record of parsed.rows) {
+      const resolved = bookingLookup.resolveCustomerId(record);
+      if (resolved && !record.sourceId) {
+        record.sourceId = resolved.customerId;
+        enrichedSourceId += 1;
+      }
+    }
+  }
+
   const duplicateEmailsInCsv = buildDuplicateEmailSet(parsed.rows);
   const existing = await patientMasterStore.listPatients({
     tenantId: normalizedTenantId,
@@ -304,6 +340,7 @@ async function runClientoCustomerCsvDeltaSync({
       withoutEmailAndPhone: parsed.rows.filter((row) => !row.primaryEmail && !row.primaryPhone)
         .length,
       duplicateEmailsInCsv: duplicateEmailsInCsv.size,
+      enrichedSourceId,
     },
     reviewQueue: [],
     sample: [],
@@ -329,7 +366,7 @@ async function runClientoCustomerCsvDeltaSync({
 }
 
 function buildClientoMeta(record) {
-  return {
+  const meta = {
     source: 'cliento',
     clientoId: record.clientoId,
     accountId: record.accountId,
@@ -342,6 +379,8 @@ function buildClientoMeta(record) {
     updatedAt: record.updatedAt || null,
     syncedAt: nowIso(),
   };
+  if (record.sourceId) meta.sourceId = record.sourceId;
+  return meta;
 }
 
 function recordsEquivalent(existing, record) {
@@ -360,7 +399,11 @@ function recordsEquivalent(existing, record) {
     !record.clientoId ||
     !cliento.clientoId ||
     normalizeText(cliento.clientoId) === normalizeText(record.clientoId);
-  return sameEmail && samePhone && sameName && sameCreatedAt && sameClientoId;
+  const sameSourceId =
+    !record.sourceId ||
+    !cliento.sourceId ||
+    normalizeText(cliento.sourceId) === normalizeText(record.sourceId);
+  return sameEmail && samePhone && sameName && sameCreatedAt && sameClientoId && sameSourceId;
 }
 
 function maskSample(record, action, candidateCount) {
@@ -560,6 +603,7 @@ async function applyClientoDeltaRecord({
           matchConfidence: 1,
         });
         if (record.clientoId) lookup.byClientoId.set(record.clientoId, created);
+        if (record.sourceId) lookup.bySourceId.set(record.sourceId, created);
       }
       return;
     }
@@ -632,6 +676,7 @@ async function applyClientoDeltaRecord({
         matchConfidence: 0.7,
       });
       if (record.clientoId) lookup.byClientoId.set(record.clientoId, created);
+      if (record.sourceId) lookup.bySourceId.set(record.sourceId, created);
       if (record.primaryEmail) {
         const email = normalizeEmail(record.primaryEmail);
         if (!lookup.byEmail.has(email)) lookup.byEmail.set(email, []);
