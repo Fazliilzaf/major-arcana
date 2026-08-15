@@ -248,12 +248,34 @@ kände till:
   fanns redan rätt verktyg — jag borde ha hittat det innan jag byggde
   ett eget.
 
-**Rätt nästa steg, om/när Fazli vill gå vidare:** kör
-`scripts/report-cliento-link-candidates.js` (läs-endast, `zeroWrites:
-true`) mot prod via Render SSH för att se hur många bokningar som är
-säkra att länka ihop mellan de två tenant-namnrymderna, och låt dess
-egna `gate`-status (`review_required`/`blocked_data_invariant`) styra om
-något mer görs. Ingen egen kod behöver skrivas — verktyget finns redan.
+**Utfört 2026-08-15:**
+`scripts/report-cliento-link-candidates.js` körd läs-endast mot prod.
+Resultat:
+
+| Mått | Värde |
+|---|---|
+| Total förekomster | 53 316 |
+| `hair_tp` (left) | 25 505 |
+| `hair-tp-clinic` (right) | 27 811 |
+| Unika `bookingId` (union) | 37 494 |
+| Unlinked review | 11 196 |
+| **Säkra länkningskandidater** | **0** |
+| Gate-status | `review_candidates_only` |
+
+**Uteslutningsorsaker:**
+
+| Orsak | Antal |
+|---|---|
+| Finns bara i en tenant (`oneSided`) | 21 672 |
+| Anteckningsfält matchar inte (`noteSegmentMismatch`) | 14 820 |
+| I unlinked review | 829 |
+| Kärn-checksumma matchar inte (`coreChecksumMismatch`) | 173 |
+
+**Slutsats:** de två tenant-namnrymderna har divergerat för mycket för
+att någon automatisk länkning ska vara säker. **Inget vidare åtgärdsteg**
+krävs — de bör fortsättningsvis behandlas som strikt separata
+populationer, vilket befintlig kod och säkerhetsinfrastruktur redan
+gör. Punkt 6 betraktas därmed som utredd och avslutad.
 
 **`#1342`/`#1343` (global bookingId-dedup + saneringsskript) förblir
 korrekta och oberörda** — de skyddar mot en genuint annan, verklig risk
