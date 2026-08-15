@@ -108,6 +108,19 @@ hanterades via manuella korrigeringar och säker `--commit`, och
 patientdata körde i kontrollerade batchar med backup och verifiering.
 Åtgärderna ovan är slutförda.
 
+**Efterverifiering 2026-08-15:**
+- `report-naming-review-queue.js`: `needs_review_for_naming` = **0**.
+- `report-backfill-sibling-collision.js`: **591** råa patientId-grupper
+  innehåller fortfarande alias-kollisioner (flera kanoniska patienter delar
+  samma råa `patientId`). Största gruppen: `cliento_117a24b7b1c8d8af4c985bf1`
+  med 600 assets fördelade på 26 kanoniska patienter.
+- Riktad spot-check bekräftade att backfill-skriptet **inte** grupperar på
+  råt patientId. I den största gruppen matchade endast **3 av 600**
+  assets det buggiga rå-grupperade sessionsnumret — resten använder
+  kanonisk upplösning eller annan korrekt beräkning.
+- Slutsats: alias-kollisionerna är en kvarstående rådata-egenskap, men de
+  påverkar inte längre displaynamn eller sessionsnummer.
+
 ### 2. ORD-99 — varför är `bodyText` bara 159/255 tecken för `info@`?
 
 Roten till den avkapade texten är hittad och fixad på klientsidan (`#1319`,
