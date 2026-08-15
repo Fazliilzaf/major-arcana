@@ -131,9 +131,17 @@ function createCfoVoucherSyncRouter({
     );
   }
   function auditGate(action, req, extra = {}) {
-    if (auditLog && typeof auditLog.record === 'function') {
+    if (auditLog && typeof auditLog.append === 'function') {
       try {
-        auditLog.record(action, { actor: req.ccoUser?.email || 'okänd', ...extra });
+        auditLog.append({
+          action,
+          actor: {
+            role: req.ccoUser?.role || req.auth?.role || 'owner',
+            userId: req.ccoUser?.userId || req.auth?.userId || null,
+            email: req.ccoUser?.email || null,
+          },
+          detail: { actorEmail: req.ccoUser?.email || 'okänd', ...extra },
+        });
       } catch {
         /* audit är best-effort */
       }
@@ -186,6 +194,35 @@ function createCfoVoucherSyncRouter({
       }
       auditGate('cf.fortnox.voucher_gate_override_set', req, { path: p });
       return res.json({ ok: true, voucherSyncEnabled: true, path: p });
+    }
+  );
+  router.delete(
+    '/cco-cf/voucher-sync/override',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    (req, res) => {
+      const p = overridePath();
+      try {
+        fs.writeFileSync(
+          p,
+          JSON.stringify(
+            {
+              voucherSyncEnabled: false,
+              clearedBy: req.ccoUser?.email || 'owner',
+              clearedAt: new Date().toISOString(),
+            },
+            null,
+            2
+          ) + '\n',
+          'utf8'
+        );
+      } catch (err) {
+        return res
+          .status(500)
+          .json({ ok: false, error: 'kunde inte skriva override: ' + err.message });
+      }
+      auditGate('cf.fortnox.voucher_gate_override_cleared', req, { path: p });
+      return res.json({ ok: true, voucherSyncEnabled: false, path: p });
     }
   );
   // ORD-CM-19 · Ägar-regeln: auto-godkänn poster med full beviskedja +
