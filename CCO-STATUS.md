@@ -189,19 +189,37 @@ kort redan i källan, inte trunkerad efteråt.
   truth-sharden för de här brevlådorna är inte ingestion utan något annat
   (sannolikt direkt Graph-sync) som inte hämtade kroppen.
 
-**Sannolik rotorsak:** Microsoft Graph-synkningen för de här brevlådorna
-har returnerat meddelanden utan `body`-innehåll. Antingen har synkningen
-gjorts med en fråga som inte begärde `body`/`bodyPreview`-vidden, eller
-så har app-/tenant-behörigheten för just dessa brevlådor inte tillåtit
-läsning av full kropp. Det är inte ett kodfel i lagring eller visning,
-och det är inte en avkapning efter lagring.
+**Rotorsak bekräftad 2026-08-15:** Microsoft Graph returnerar idag full
+`body` för `info@hairtpclinic.com`, `halso@hairtpclinic.com` och
+`marknad@hairtpclinic.com` (kontrollerat live mot Graph API). Problemet
+var inte en behörighetsgräns, utan att den ursprungliga synkningen för
+dessa brevlådor uppenbarligen inte begärde eller sparade kroppen —
+inline `bodyText`/`bodyHtml` har varit tomma ända sedan importen.
+`info@fazli.se` ger fortfarande 404 i Graph (inte en giltig användare i
+tenanten), så den brevlådan kan inte fyllas på samma sätt.
 
-**Kvarstår:** bekräfta exakt varför Graph inte levererade kropp för dessa
-brevlådor. Trolig väg: kontrollera tenant-konsenten/app-behörigheten för
-`info@hairtpclinic.com` jämfört med `contact@`, alternativt tvinga en ny
-initial backfill med `body` explicit valt och mäta om kropparna kommer med.
-Ingen klientsidans åtgärd kommer att hjälpa så länge sharden bara bär
-`bodyPreview`.
+**Åter-backfill körd 2026-08-15:** Ett nytt backfill-pass för
+`info@hairtpclinic.com` (`/tmp/backfill-mailbox-bodies.js` via Render SSH)
+hämtade kropparna och uppdaterade meddelandena i truth-sharden. Ett
+stickprov visar nu inline `bodyHtml` (~16 kB) och `bodyText` (~1,4 kB)
+i sharden — kropparna finns där.
+
+**Body-migrering körd 2026-08-15:** `migrateMailboxBodies()` körde
+framgångsrikt för `info@hairtpclinic.com` på prod (via
+`/tmp/body-migration-info.js` resp. `-apply.js` på Render SSH).
+
+- Torrkörning (`apply: false`): `written=420`,
+  `expectedDecodedChars=754752`, `verifiedDecodedChars=754752` —
+  sidofilerna skrevs och verifierades.
+- Skarp körning (`apply: true`): sharden krympte från 1 721 707 byte
+  till 929 152 byte, `stoppedBecause` är tom, och sharden innehåller
+  nu **0 meddelanden med inline `bodyText`/`bodyHtml`**.
+- Efter migreringen har `info@hairtpclinic.com` 420 sidofiler med
+  brödtext (av 481 meddelanden). 57 av dessa bär verkligt innehåll
+  (`avgText=1109`, `avgHtml=12132`), resterande är meddelanden som
+  aldrig hade någon rik kropp.
+
+ORD-99 betraktas som åtgärdad för `info@hairtpclinic.com`.
 
 ### 3. Backfill — full dry-run mot prod — KLAR 2026-08-15
 
