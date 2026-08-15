@@ -17,13 +17,19 @@ const {
 } = require('../../src/security/ccoRbac');
 
 test('ORD-67b: /api/v1/cco-cf mountar requireCcoAuthenticated före attachRole-routes', () => {
-  const idx = serverSource.indexOf("app.use('/api/v1/cco-cf', requireCcoAuthenticated)");
-  assert.notEqual(idx, -1, 'cco-cf auth-brygga saknas i server.js');
-  const cfBlock = serverSource.slice(idx, idx + 800);
-  assert.match(cfBlock, /app\.get\('\/api\/v1\/cco-cf\/dashboard'/);
+  const cfoRouterSource = fs.readFileSync(path.join(projectRoot, 'src/routes/cfo.js'), 'utf8');
+  assert.match(
+    cfoRouterSource,
+    /createCfoRouter\s*\(/,
+    'createCfoRouter saknas i src/routes/cfo.js'
+  );
+  const idx = cfoRouterSource.indexOf("router.use('/cco-cf', requireAuthenticated)");
+  assert.notEqual(idx, -1, 'cco-cf auth-brygga saknas i src/routes/cfo.js');
+  const cfBlock = cfoRouterSource.slice(idx, idx + 800);
+  assert.match(cfBlock, /router\.get\('\/cco-cf\/dashboard'/);
   assert.ok(
-    cfBlock.indexOf('requireCcoAuthenticated') < cfBlock.indexOf('attachRole'),
-    'requireCcoAuthenticated måste föregå attachRole i CF-blocket'
+    cfBlock.indexOf('requireAuthenticated') < cfBlock.indexOf('attachRole'),
+    'requireAuthenticated måste föregå attachRole i CF-routern'
   );
 });
 

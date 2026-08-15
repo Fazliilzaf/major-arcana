@@ -87,6 +87,7 @@ test('legacy finance module locations are no longer present', () => {
 
 test('finance routes, storage keys, and Fortnox env/config names stay unchanged', () => {
   const server = readProjectFile('server.js');
+  const cfoRoute = readProjectFile('src/routes/cfo.js');
   const config = readProjectFile('src/config.js');
   const ccoFortnoxRoute = readProjectFile('src/routes/ccoFortnox.js');
   const receiptStore = readProjectFile('src/cfo/cfoReceiptStore.js');
@@ -95,14 +96,25 @@ test('finance routes, storage keys, and Fortnox env/config names stay unchanged'
   const reviewPackager = readProjectFile('src/cfo/cfoFinanceReviewPackager.js');
   const reportPackager = readProjectFile('src/cfo/cfoFinanceReportPackager.js');
 
+  assert.match(
+    server,
+    /createCfoRouter\s*\(/,
+    'server.js måste importera och montera createCfoRouter'
+  );
+  assert.match(
+    server,
+    /app\.use\(\s*'\/api\/v1',\s*createCfoRouter\(/,
+    'server.js måste montera CFO-routern under /api/v1'
+  );
+
   for (const route of [
-    '/api/v1/cco-cf/dashboard',
-    '/api/v1/cco-cf/receipts',
-    '/api/v1/cco-cf/expenses',
-    '/api/v1/cco-cf/reports/generate',
-    '/api/v1/cco-cf/periods',
+    '/cco-cf/dashboard',
+    '/cco-cf/receipts',
+    '/cco-cf/expenses',
+    '/cco-cf/reports/generate',
+    '/cco-cf/periods',
   ]) {
-    assert.match(server, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(cfoRoute, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 
   for (const route of [
