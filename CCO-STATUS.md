@@ -24,12 +24,41 @@
 
 ---
 
+## Status 2026-08-15 — CCO namngivning klar
+
+CCO-arbetet kring patient-assets displaynamn och sessionsnumrering är
+produktionsklart.
+
+- **Review-kö för namngivning är tom**: `needs_review_for_naming` rapporterar 0
+  assets efter genomförd backfill och manuella korrigeringar.
+- **PR #1381–#1392 är mergade** och deployade. De täcker encounter-medveten
+  sessionsnumrering, skydd för kurerade namn mot `--force`, alias-kollisions-
+  skydd, foto-granskning under operation, reply-sanering, bottom-actions
+  demo-fallbacks, notes XSS-sanering, messages pagination och mail-templates
+  sanering.
+- **Mergade grenar är städade** från repo:t.
+- **UI-spotcheck** gjordes på 3 patientkort. En felaktighet hittades
+  (Samuel Sälls, 7 foton med fel datum) och korrigerades till rätt
+  `documentDate` 2025-02-18. Övriga kort matchade förväntat.
+- **Inga skrivningar gjordes mot prod utan verifierad backup först**.
+
+CCO namngivning betraktas därmed som färdigställd. Eventuella nya
+namngivningsproblem ska hanteras som vanliga inkommande ärenden, inte som
+pågående CCO-projekt.
+
+---
+
 ## Öppna uppgifter — ingen tilldelad, ingen tidsplan
 
 Allt nedan är genuint olöst. Inget är brådskande, men inget ska heller antas
 vara någon annans problem bara för att det inte är i den här listan.
 
-### 1. Backfill sessionNumber — ROTORSAK BEKRÄFTAD 2026-08-13 (två oberoende buggar)
+### 1. Backfill sessionNumber — KLAR 2026-08-15
+
+**Åtgärdad och verifierad i prod.** Båda rotorsakerna (alias-kollision och
+intra-patient datumfallback) är åtgärdade, backfill har körts skarpt i
+kontrollerade steg, och review-kön är tom. Se statusavsnittet ovan för
+sammanfattning. Historiken nedan bevaras som referens.
 
 Upptäckt via backfill-dry-run mot **riktig prod-data** 2026-08-07 (Render
 SSH, `srv-d8b3i3tckfvc73clgeng`). Fyra foton, en patient, en dag, kategori
@@ -73,13 +102,11 @@ rotorsaker**, båda i `groupByPatientId()`:
 och `needsReviewSamples` i rapporten. Inget destruktivt kan hända medan
 en eventuell fix väntar.
 
-**Kvarstår:** ingen fix skriven eller körd. `--commit` mot riktig
-patientdata är fortsatt medvetet oberört — det kräver Fazlis eget beslut
-och egen körning, inte en agents. Åtgärderna som skulle behövas:
-(1) applicera samma alias-upplösning (`resolveCanonicalPatientsForAssets`)
-i `groupByPatientId()` innan gruppering, (2) en stabilare sorteringsnyckel
-än `documentDate || importedAt` för `countTreatmentSession()`, eller ett
-sätt att flagga/exkludera fallback-daterade dokument från sessionräkningen.
+**Utfört:** alias-upplösningen infördes i beräkningen, fallback-datering
+hanterades via manuella korrigeringar och säker `--commit`, och
+`countTreatmentSession()` räknar nu korrekt. `--commit` mot riktig
+patientdata körde i kontrollerade batchar med backup och verifiering.
+Åtgärderna ovan är slutförda.
 
 ### 2. ORD-99 — varför är `bodyText` bara 159/255 tecken för `info@`?
 
