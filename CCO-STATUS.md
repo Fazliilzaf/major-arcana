@@ -168,12 +168,13 @@ redan via `mailIngestionStore` — ger även den vägen kort text pekar det mot
 ett dataspår vid `info@`:s import, inte ett kodfel. Kräver att någon utreder
 importhistoriken för den brevlådan, inte klientkod.
 
-### 3. Backfill — full dry-run mot prod, ingen körd än
+### 3. Backfill — full dry-run mot prod — KLAR 2026-08-15
 
-`#1324`/`#1327` är mergade och säkra att köra. Ingen har kört
-`node scripts/backfill-asset-display-names.js --dry-run` **utan `--limit`**
-mot riktig prod-data för att se totalomfånget av `needsReviewSamples`. Görs
-via Render SSH (se nedan) — medvetet avvaktat 2026-08-07, ingen brådska.
+`#1324`/`#1327` är mergade. Full `--dry-run` har körts mot prod-data, och
+sedan `--commit` i kontrollerade batchar med backup och verifiering.
+`needs_review_for_naming` är **0** efter genomförd backfill.
+CCO-namngivningen betraktas som färdigställd. Historiken bevaras som
+referens.
 
 ### 4. ORD-93 mätgrind steg 2 — KLAR 2026-08-08, löst på kodnivå
 
