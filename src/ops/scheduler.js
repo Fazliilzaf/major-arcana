@@ -52,6 +52,7 @@ const {
   createMicrosoftGraphMailboxTruthDelta,
 } = require('../infra/microsoftGraphMailboxTruthDelta');
 const { createCcoMailboxTruthStore } = require('./ccoMailboxTruthStore');
+const { measureMailboxTruthBodyShare } = require('./mailboxTruthBodyShareScan');
 const { createConfiguredCcoMailboxTruthStore } = require('./ccoMailboxTruthStoreFactory');
 const { recordTenantAccessCheck } = require('./tenantAccessCheck');
 const {
@@ -4036,6 +4037,48 @@ function createScheduler({
     }
   }
 
+  // ORD-99: övervaka att bodyText/bodyHtml inte återkommer inline i
+  // mailbox-truth-shardarna efter body-migreringen.
+  async function runCcoMailboxBodyMonitor() {
+    const measurement = await measureMailboxTruthBodyShare(config);
+    if (!measurement.mailboxes.length) {
+      logger?.warn?.('[scheduler] cco_mailbox_body_monitor: inga shards hittades');
+      return { skipped: true, reason: 'no_shards_found' };
+    }
+
+    const regressions = measurement.mailboxes.filter(
+      (row) => row.bodyDecodedChars > 0 || row.bodyTextValues > 0 || row.bodyHtmlValues > 0
+    );
+
+    logger?.log?.(
+      `[scheduler] cco_mailbox_body_monitor scanned=${measurement.mailboxes.length} regressions=${regressions.length}`
+    );
+
+    if (regressions.length > 0) {
+      const summary = regressions.map((row) => ({
+        mailbox: row.mailbox,
+        fileMb: Math.round(row.fileBytes / 1024 / 1024),
+        bodyValues: row.bodyTextValues + row.bodyHtmlValues,
+        bodyDecodedChars: row.bodyDecodedChars,
+      }));
+      logger?.error?.(
+        '[scheduler] cco_mailbox_body_monitor regression',
+        JSON.stringify(summary)
+      );
+      throw new Error(
+        `Inline bodyText/bodyHtml återfunna i ${regressions.length} shard(s): ${regressions
+          .map((r) => r.mailbox)
+          .join(', ')}`
+      );
+    }
+
+    return {
+      ok: true,
+      scanned: measurement.mailboxes.length,
+      totalFileMb: Math.round(measurement.totalFileBytes / 1024 / 1024),
+    };
+  }
+
   // DD1: Daily digest — kör KPI-aggregat per tenant + skickar email via
   // Graph sendMail till digestRecipients. Hour-gating + per-day dedupe
   // hanteras inuti runDailyDigestForAllTenants.
@@ -4379,6 +4422,12 @@ function createScheduler({
         ? toMinutesMs(config.schedulerCcoTruthDeltaIntervalMinutes, 5)
         : 0,
       run: runCcoTruthDeltaSync,
+    },
+    {
+      id: 'cco_mailbox_body_monitor',
+      name: 'CCO mailbox truth body regression monitor',
+      intervalMs: toHoursMs(config.schedulerCcoMailboxBodyMonitorIntervalHours, 24),
+      run: runCcoMailboxBodyMonitor,
     },
     {
       id: 'cco_graph_subscription_renewal',
