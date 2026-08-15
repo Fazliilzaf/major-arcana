@@ -182,7 +182,10 @@ function createFortnoxClient({
       throw error;
     }
     const expiresAtMs = Date.parse(connection.expiresAt || '');
-    const needsRefresh = !Number.isFinite(expiresAtMs) || expiresAtMs - Date.now() < 60 * 1000;
+    // Förnya tidigt (50 minuter före utgång) så att långa batcher
+    // (t.ex. voucher-sync) aldrig riskerar att köra med ett access token
+    // som går ut mitt i processen. Fortnox access tokens lever 60 min.
+    const needsRefresh = !Number.isFinite(expiresAtMs) || expiresAtMs - Date.now() < 50 * 60 * 1000;
     if (!needsRefresh) {
       return connection.accessToken;
     }
