@@ -227,6 +227,14 @@ brevlådor.
 **Backup-städning:** samtliga `.pre-body-migration.bak`-filer (40 st)
 togs bort efter att alla migrationer verifierats. Kvar: **0**.
 
+**Övervakning på plats:**
+`scripts/monitor-mailbox-bodies.js` är installerat på Render. Det
+scannar alla shards dagligen och avslutar med exit code 2 om någon
+brevlåda har inline `bodyText`/`bodyHtml` som borde ligga i sidofiler
+(dvs. om delta-synk eller annat skrivspår har regressed). Första
+körningen fångade omedelbart ett nytt meddelande i `fazli@hairtpclinic.com`
+— body-migration kördes om och allt är nu grönt.
+
 ORD-99 betraktas som åtgärdad för samtliga brevlådor.
 
 ### 3. Backfill — full dry-run mot prod — KLAR 2026-08-15
