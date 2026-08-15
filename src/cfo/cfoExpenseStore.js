@@ -375,6 +375,33 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
   }
 
   /**
+   * Permanent radering av en expense. Endast avvisade (rejected) expenses får
+   * raderas för att skydda bokföringsunderlag. Auditloggen sparar en snapshot
+   * före borttagning.
+   */
+  async function deleteExpense({ id, actor } = {}) {
+    const idx = data.expenses.findIndex((x) => x.id === id);
+    if (idx === -1) throw new Error('expense finns ej');
+    const e = data.expenses[idx];
+    if (e.status !== 'rejected') {
+      throw new Error('endast avvisade expenses får raderas');
+    }
+    const snapshot = { ...e };
+    data.expenses.splice(idx, 1);
+    await persist();
+    audit('cf.expense.deleted', {
+      expenseId: id,
+      deletedStatus: snapshot.status,
+      deletedAmountSek: snapshot.amountSek,
+      deletedSupplier: snapshot.supplier,
+      deletedDate: snapshot.date,
+      reason: snapshot.history?.[snapshot.history.length - 1]?.reason || null,
+      actor,
+    });
+    return { id, deleted: true, snapshot };
+  }
+
+  /**
    * Markera en uppsättning expenses som exporterade (sätter exportBatchId + status).
    * Anropas av cfoExpenseExporter efter att export-paketet skrivits.
    */
@@ -643,6 +670,40 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
       needsReviewCount: (byStatus.new || 0) + (byStatus.needs_review || 0),
       fortnoxBlockedCount: byFortnoxSyncStatus.blocked_integration || 0,
     };
+  }
+
+  // ORD-CM-25 · Hitta poster som ägaren/revisorn måste titta på.
+  // Flyttad från UI (hårdkodad regex) till backend så samma logik gäller
+  // dashboard, API och framtida automation.
+  function findAnomalies() {
+    const rader = [];
+    const notesPattern = /VALUTA|VERIFIERA|GRANSKAD|revisorns kontering/i;
+    const notesExtractPattern = /(KÄLL[A-ZÄÖ]*GRANSKAD[^·]*|ÄGARBESLUT[^·]*|VALUTAFEL[^·]*)/;
+    for (const e of data.expenses) {
+      if (e.status === 'rejected') continue;
+      let varfor = null;
+      const pill = 'needs_review';
+      if (e.fortnoxSyncStatus === 'error') {
+        varfor = 'Fortnox-fel: ' + (e.fortnoxSyncError || 'okänt');
+      } else if (e.fortnoxSyncStatus === 'syncing') {
+        varfor = 'Avbruten sync — verifiera i Fortnox och stäm av';
+      } else if (notesPattern.test(e.notes || '')) {
+        varfor =
+          ((e.notes || '').match(notesExtractPattern) || [null, null])[0] || 'Granskningsnoterad';
+      } else if (e.vatMode === 'representation_limited' && e.deductibleVatSek == null) {
+        varfor = 'Moms: representation utan beräknat avdrag';
+      } else if (['new', 'categorized'].includes(e.status) && !(Number(e.amountSek) > 0)) {
+        varfor = 'Belopp saknas';
+      }
+      if (varfor) {
+        rader.push({
+          expense: { ...e },
+          reason: varfor,
+          pill,
+        });
+      }
+    }
+    return rader;
   }
 
   // ─── CF.4: Suggestion-management ──────────────────────────────
@@ -964,7 +1025,12 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     e.fortnoxSyncStatus = 'pending';
     e.fortnoxSyncError = null;
     e.updatedAt = nowIso();
-    e.history.push({ status: e.status, at: nowIso(), by: actor, reason: 'fortnox-syncing-resolved' });
+    e.history.push({
+      status: e.status,
+      at: nowIso(),
+      by: actor,
+      reason: 'fortnox-syncing-resolved',
+    });
     await persist();
     audit('cf.expense.fortnox_syncing_resolved', { expenseId: id, to: 'pending', actor });
     return e;
@@ -991,6 +1057,7 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     createExpense,
     updateExpense,
     transitionStatus,
+    deleteExpense,
     markExported,
     markFortnoxSyncing,
     markFortnoxSynced,
@@ -1004,6 +1071,7 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     listExportBatches,
     getById,
     summary,
+    findAnomalies,
     buildAttachmentKey,
     // CF.4
     setSuggestion,

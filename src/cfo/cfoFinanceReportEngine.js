@@ -43,13 +43,56 @@ const VALID_REPORT_KINDS = Object.freeze([
   'export_status',
 ]);
 
+const REPORT_DEFS = Object.freeze([
+  {
+    kind: 'daily',
+    title: 'Dagrapport',
+    desc: 'Total spend, top kategorier & leverantörer för en dag.',
+  },
+  { kind: 'weekly', title: 'Veckorapport', desc: '7 dagar — daily breakdown + sammanställning.' },
+  { kind: 'monthly', title: 'Månadsrapport', desc: 'Full breakdown per kategori, supplier, VAT.' },
+  {
+    kind: 'quarterly',
+    title: 'Kvartalsrapport',
+    desc: '3 månader — månadsuppdelning + kvartalstotal.',
+  },
+  { kind: 'yearly', title: 'Årsöversikt', desc: '12 månader / 4 kvartal.' },
+  { kind: 'cash', title: 'Kassarapport', desc: 'Cash, swish, kort direkt-debiterat.' },
+  { kind: 'expense_summary', title: 'Expense-summary', desc: 'Status-fördelning per period.' },
+  { kind: 'receipt_summary', title: 'Receipt-summary', desc: 'Receipt-status & källsystem.' },
+  {
+    kind: 'vat_summary',
+    title: 'VAT/moms summary',
+    desc: 'Netto, brutto, avdragbar moms, reverse-charge.',
+  },
+  {
+    kind: 'supplier_summary',
+    title: 'Supplier summary',
+    desc: 'Top-N vendor-spend + risk-flags + PUB.',
+  },
+  {
+    kind: 'recurring_summary',
+    title: 'Recurring expenses',
+    desc: 'Active, due, overdue, anomalies.',
+  },
+  { kind: 'export_status', title: 'Export & revisor', desc: 'Batches + review-status per batch.' },
+]);
+
 const CASH_LIKE_PAYMENT_METHODS = Object.freeze(['cash', 'swish', 'card']);
 
-function isFiniteNumber(v) { return typeof v === 'number' && Number.isFinite(v); }
-function num(v) { return isFiniteNumber(v) ? v : 0; }
-function round2(v) { return Math.round(num(v) * 100) / 100; }
+function isFiniteNumber(v) {
+  return typeof v === 'number' && Number.isFinite(v);
+}
+function num(v) {
+  return isFiniteNumber(v) ? v : 0;
+}
+function round2(v) {
+  return Math.round(num(v) * 100) / 100;
+}
 
-function nowIso() { return new Date().toISOString(); }
+function nowIso() {
+  return new Date().toISOString();
+}
 
 // ---------- period helpers ----------
 
@@ -64,12 +107,12 @@ function weekRange(anchorDate) {
   if (Number.isNaN(d.getTime())) return dayRange(anchorDate);
   const utcDay = d.getUTCDay(); // 0=söndag, 1=måndag ...
   const offsetToMonday = (utcDay + 6) % 7;
-  const monday = new Date(Date.UTC(
-    d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - offsetToMonday
-  ));
-  const sunday = new Date(Date.UTC(
-    monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6
-  ));
+  const monday = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - offsetToMonday)
+  );
+  const sunday = new Date(
+    Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6)
+  );
   return {
     fromDate: monday.toISOString().slice(0, 10),
     toDate: sunday.toISOString().slice(0, 10),
@@ -171,12 +214,14 @@ function aggregateExpensesByCategory(expenses) {
     out[k].totalNetSek += num(e.netAmountSek);
     out[k].totalVatSek += num(e.vatSek);
   }
-  return Object.values(out).map((c) => ({
-    ...c,
-    totalGrossSek: round2(c.totalGrossSek),
-    totalNetSek: round2(c.totalNetSek),
-    totalVatSek: round2(c.totalVatSek),
-  })).sort((a, b) => b.totalGrossSek - a.totalGrossSek);
+  return Object.values(out)
+    .map((c) => ({
+      ...c,
+      totalGrossSek: round2(c.totalGrossSek),
+      totalNetSek: round2(c.totalNetSek),
+      totalVatSek: round2(c.totalVatSek),
+    }))
+    .sort((a, b) => b.totalGrossSek - a.totalGrossSek);
 }
 
 function aggregateExpensesBySupplier(expenses, vendors = []) {
@@ -185,21 +230,26 @@ function aggregateExpensesBySupplier(expenses, vendors = []) {
   const out = {};
   for (const e of expenses) {
     const key = e.supplierId || (e.supplier ? `name:${String(e.supplier).toLowerCase()}` : 'okänd');
-    const display = e.supplierId && vendorMap.get(e.supplierId)?.name || e.supplier || 'Okänd leverantör';
+    const display =
+      (e.supplierId && vendorMap.get(e.supplierId)?.name) || e.supplier || 'Okänd leverantör';
     out[key] = out[key] || {
       supplierId: e.supplierId || null,
       supplierName: display,
       count: 0,
       totalGrossSek: 0,
       totalVatSek: 0,
-      riskFlag: e.supplierId ? (vendorMap.get(e.supplierId)?.riskFlag || null) : null,
+      riskFlag: e.supplierId ? vendorMap.get(e.supplierId)?.riskFlag || null : null,
     };
     out[key].count += 1;
     out[key].totalGrossSek += num(e.amountSek);
     out[key].totalVatSek += num(e.vatSek);
   }
   return Object.values(out)
-    .map((s) => ({ ...s, totalGrossSek: round2(s.totalGrossSek), totalVatSek: round2(s.totalVatSek) }))
+    .map((s) => ({
+      ...s,
+      totalGrossSek: round2(s.totalGrossSek),
+      totalVatSek: round2(s.totalVatSek),
+    }))
     .sort((a, b) => b.totalGrossSek - a.totalGrossSek);
 }
 
@@ -227,7 +277,11 @@ function aggregateExpensesByDay(expenses) {
     out[d].totalVatSek += num(e.vatSek);
   }
   return Object.values(out)
-    .map((d) => ({ ...d, totalGrossSek: round2(d.totalGrossSek), totalVatSek: round2(d.totalVatSek) }))
+    .map((d) => ({
+      ...d,
+      totalGrossSek: round2(d.totalGrossSek),
+      totalVatSek: round2(d.totalVatSek),
+    }))
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
 }
 
@@ -242,7 +296,11 @@ function aggregateExpensesByMonth(expenses) {
     out[m].totalVatSek += num(e.vatSek);
   }
   return Object.values(out)
-    .map((m) => ({ ...m, totalGrossSek: round2(m.totalGrossSek), totalVatSek: round2(m.totalVatSek) }))
+    .map((m) => ({
+      ...m,
+      totalGrossSek: round2(m.totalGrossSek),
+      totalVatSek: round2(m.totalVatSek),
+    }))
     .sort((a, b) => String(a.month).localeCompare(String(b.month)));
 }
 
@@ -269,7 +327,10 @@ function aggregateVat(expenses) {
     }
     const mode = e.vatMode || 'unset';
     byVatMode[mode] = (byVatMode[mode] || 0) + 1;
-    const rate = e.vatRatePercent === null || e.vatRatePercent === undefined ? 'unknown' : String(e.vatRatePercent);
+    const rate =
+      e.vatRatePercent === null || e.vatRatePercent === undefined
+        ? 'unknown'
+        : String(e.vatRatePercent);
     byVatRate[rate] = (byVatRate[rate] || 0) + 1;
   }
 
@@ -325,7 +386,9 @@ function detectAnomalies({ expenses, receipts, recurrings = [] }) {
   }
 
   // Receipts i new/needs_review
-  const receiptsNeedReview = (receipts || []).filter((r) => r && (r.status === 'new' || r.status === 'needs_review'));
+  const receiptsNeedReview = (receipts || []).filter(
+    (r) => r && (r.status === 'new' || r.status === 'needs_review')
+  );
   if (receiptsNeedReview.length > 0) {
     out.push({
       kind: 'receipts_need_review',
@@ -337,7 +400,9 @@ function detectAnomalies({ expenses, receipts, recurrings = [] }) {
 
   // Recurring overdue
   const today = new Date().toISOString().slice(0, 10);
-  const overdue = (recurrings || []).filter((r) => r && r.status === 'active' && r.nextDueDate && r.nextDueDate < today);
+  const overdue = (recurrings || []).filter(
+    (r) => r && r.status === 'active' && r.nextDueDate && r.nextDueDate < today
+  );
   if (overdue.length > 0) {
     out.push({
       kind: 'recurring_overdue',
@@ -457,7 +522,11 @@ function reportQuarterly({ data, range, generatedBy }) {
       bySupplier: aggregateExpensesBySupplier(exp, data.vendors).slice(0, 20),
       vat: aggregateVat(exp),
     },
-    anomalies: detectAnomalies({ expenses: exp, receipts: data.receipts || [], recurrings: data.recurrings }),
+    anomalies: detectAnomalies({
+      expenses: exp,
+      receipts: data.receipts || [],
+      recurrings: data.recurrings,
+    }),
   };
 }
 
@@ -469,7 +538,12 @@ function reportYearly({ data, range, generatedBy }) {
     const month = Number(m.month.slice(5, 7));
     const q = Math.ceil(month / 3);
     const qKey = `${m.month.slice(0, 4)}-Q${q}`;
-    byQuarter[qKey] = byQuarter[qKey] || { quarter: qKey, count: 0, totalGrossSek: 0, totalVatSek: 0 };
+    byQuarter[qKey] = byQuarter[qKey] || {
+      quarter: qKey,
+      count: 0,
+      totalGrossSek: 0,
+      totalVatSek: 0,
+    };
     byQuarter[qKey].count += m.count;
     byQuarter[qKey].totalGrossSek += m.totalGrossSek;
     byQuarter[qKey].totalVatSek += m.totalVatSek;
@@ -484,26 +558,41 @@ function reportYearly({ data, range, generatedBy }) {
     breakdown: {
       byMonth,
       byQuarter: Object.values(byQuarter)
-        .map((q) => ({ ...q, totalGrossSek: round2(q.totalGrossSek), totalVatSek: round2(q.totalVatSek) }))
+        .map((q) => ({
+          ...q,
+          totalGrossSek: round2(q.totalGrossSek),
+          totalVatSek: round2(q.totalVatSek),
+        }))
         .sort((a, b) => String(a.quarter).localeCompare(String(b.quarter))),
       byCategory: aggregateExpensesByCategory(exp),
       vat: aggregateVat(exp),
     },
-    anomalies: detectAnomalies({ expenses: exp, receipts: data.receipts || [], recurrings: data.recurrings }),
+    anomalies: detectAnomalies({
+      expenses: exp,
+      receipts: data.receipts || [],
+      recurrings: data.recurrings,
+    }),
   };
 }
 
 function reportCash({ data, range, generatedBy }) {
-  const exp = filterExpenses(data.expenses, range)
-    .filter((e) => CASH_LIKE_PAYMENT_METHODS.includes(e.paymentMethod));
+  const exp = filterExpenses(data.expenses, range).filter((e) =>
+    CASH_LIKE_PAYMENT_METHODS.includes(e.paymentMethod)
+  );
   return {
     ...buildBaseReport({ kind: 'cash', range, generatedBy }),
     totals: {
       expenseCount: exp.length,
       totalGrossSek: round2(exp.reduce((s, e) => s + num(e.amountSek), 0)),
-      cashTotal: round2(exp.filter((e) => e.paymentMethod === 'cash').reduce((s, e) => s + num(e.amountSek), 0)),
-      swishTotal: round2(exp.filter((e) => e.paymentMethod === 'swish').reduce((s, e) => s + num(e.amountSek), 0)),
-      cardTotal: round2(exp.filter((e) => e.paymentMethod === 'card').reduce((s, e) => s + num(e.amountSek), 0)),
+      cashTotal: round2(
+        exp.filter((e) => e.paymentMethod === 'cash').reduce((s, e) => s + num(e.amountSek), 0)
+      ),
+      swishTotal: round2(
+        exp.filter((e) => e.paymentMethod === 'swish').reduce((s, e) => s + num(e.amountSek), 0)
+      ),
+      cardTotal: round2(
+        exp.filter((e) => e.paymentMethod === 'card').reduce((s, e) => s + num(e.amountSek), 0)
+      ),
     },
     breakdown: {
       byPaymentMethod: aggregateExpensesByPaymentMethod(exp),
@@ -580,8 +669,9 @@ function reportVatSummary({ data, range, generatedBy }) {
       byCategory: aggregateExpensesByCategory(exp),
       bySupplier: aggregateExpensesBySupplier(exp, data.vendors).slice(0, 15),
     },
-    anomalies: detectAnomalies({ expenses: exp, receipts: [], recurrings: [] })
-      .filter((a) => a.kind === 'vat_review_pending' || a.kind === 'expenses_missing_category'),
+    anomalies: detectAnomalies({ expenses: exp, receipts: [], recurrings: [] }).filter(
+      (a) => a.kind === 'vat_review_pending' || a.kind === 'expenses_missing_category'
+    ),
   };
 }
 
@@ -609,11 +699,23 @@ function reportSupplierSummary({ data, range, generatedBy }) {
     breakdown: {
       topSuppliers: supplierBreakdown.slice(0, 20),
       flagged,
-      missingPubAgreement: missingPub.map((v) => ({ vendorId: v.id, name: v.name, source: v.source })),
+      missingPubAgreement: missingPub.map((v) => ({
+        vendorId: v.id,
+        name: v.name,
+        source: v.source,
+      })),
     },
-    anomalies: flagged.length > 0
-      ? [{ kind: 'suppliers_flagged', severity: 'medium', message: `${flagged.length} leverantör(er) med risk-flag.`, count: flagged.length }]
-      : [],
+    anomalies:
+      flagged.length > 0
+        ? [
+            {
+              kind: 'suppliers_flagged',
+              severity: 'medium',
+              message: `${flagged.length} leverantör(er) med risk-flag.`,
+              count: flagged.length,
+            },
+          ]
+        : [],
   };
 }
 
@@ -622,10 +724,15 @@ function reportRecurringSummary({ data, range, generatedBy }) {
   const today = new Date().toISOString().slice(0, 10);
   const today30 = new Date(Date.parse(today) + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
-  let active = 0; let proposed = 0; let paused = 0; let ended = 0;
+  let active = 0;
+  let proposed = 0;
+  let paused = 0;
+  let ended = 0;
   let monthlyLoad = 0;
-  let overdueCount = 0; let overdueAmount = 0;
-  let dueNext30Count = 0; let dueNext30Amount = 0;
+  let overdueCount = 0;
+  let overdueAmount = 0;
+  let dueNext30Count = 0;
+  let dueNext30Amount = 0;
   let unmatchedCount = 0;
   const byFrequency = {};
   const allAnomalies = [];
@@ -638,11 +745,16 @@ function reportRecurringSummary({ data, range, generatedBy }) {
     byFrequency[r.frequency] = (byFrequency[r.frequency] || 0) + 1;
 
     if (r.status !== 'active') continue;
-    const days = ({ monthly: 30, quarterly: 90, yearly: 365, weekly: 7, biweekly: 14 }[r.frequency] || 30);
+    const days =
+      { monthly: 30, quarterly: 90, yearly: 365, weekly: 7, biweekly: 14 }[r.frequency] || 30;
     monthlyLoad += num(r.amountEstimate) * (30 / days);
-    if (r.nextDueDate && r.nextDueDate < today) { overdueCount += 1; overdueAmount += num(r.amountEstimate); }
+    if (r.nextDueDate && r.nextDueDate < today) {
+      overdueCount += 1;
+      overdueAmount += num(r.amountEstimate);
+    }
     if (r.nextDueDate && r.nextDueDate >= today && r.nextDueDate <= today30) {
-      dueNext30Count += 1; dueNext30Amount += num(r.amountEstimate);
+      dueNext30Count += 1;
+      dueNext30Amount += num(r.amountEstimate);
     }
     if (!r.lastMatchedAt) unmatchedCount += 1;
     for (const a of r.anomalies || []) {
@@ -654,18 +766,30 @@ function reportRecurringSummary({ data, range, generatedBy }) {
     ...buildBaseReport({ kind: 'recurring_summary', range, generatedBy }),
     totals: {
       total: recurrings.length,
-      active, proposed, paused, ended,
+      active,
+      proposed,
+      paused,
+      ended,
       estimatedMonthlyLoadSek: round2(monthlyLoad),
-      overdueCount, overdueAmountSek: round2(overdueAmount),
-      dueNext30Count, dueNext30AmountSek: round2(dueNext30Amount),
+      overdueCount,
+      overdueAmountSek: round2(overdueAmount),
+      dueNext30Count,
+      dueNext30AmountSek: round2(dueNext30Amount),
       unmatchedActiveCount: unmatchedCount,
     },
     breakdown: {
       byFrequency,
-      activeList: recurrings.filter((r) => r.status === 'active').slice(0, 50).map((r) => ({
-        id: r.id, label: r.label, supplierId: r.supplierId,
-        amountEstimate: r.amountEstimate, frequency: r.frequency, nextDueDate: r.nextDueDate,
-      })),
+      activeList: recurrings
+        .filter((r) => r.status === 'active')
+        .slice(0, 50)
+        .map((r) => ({
+          id: r.id,
+          label: r.label,
+          supplierId: r.supplierId,
+          amountEstimate: r.amountEstimate,
+          frequency: r.frequency,
+          nextDueDate: r.nextDueDate,
+        })),
       anomalies: allAnomalies.slice(0, 30),
     },
     anomalies: detectAnomalies({ expenses: [], receipts: [], recurrings }),
@@ -700,9 +824,13 @@ function reportExportStatus({ data, range, generatedBy }) {
     ...buildBaseReport({ kind: 'export_status', range, generatedBy }),
     totals: {
       batchCount: enriched.length,
-      acceptedForBookkeepingCount: enriched.filter((b) => b.reviewStatus === 'accepted_for_bookkeeping').length,
+      acceptedForBookkeepingCount: enriched.filter(
+        (b) => b.reviewStatus === 'accepted_for_bookkeeping'
+      ).length,
       needsCorrectionCount: enriched.filter((b) => b.reviewStatus === 'needs_correction').length,
-      pendingReviewCount: enriched.filter((b) => b.reviewStatus === 'pending' || b.reviewStatus === 'no_review').length,
+      pendingReviewCount: enriched.filter(
+        (b) => b.reviewStatus === 'pending' || b.reviewStatus === 'no_review'
+      ).length,
     },
     breakdown: { batches: enriched },
     anomalies: [],
@@ -721,19 +849,32 @@ function generateReport({ kind, period, data = {}, generatedBy = null } = {}) {
   }
   const ctx = { data, range, generatedBy };
   switch (kind) {
-    case 'daily': return reportDaily(ctx);
-    case 'weekly': return reportWeekly(ctx);
-    case 'monthly': return reportMonthly(ctx);
-    case 'quarterly': return reportQuarterly(ctx);
-    case 'yearly': return reportYearly(ctx);
-    case 'cash': return reportCash(ctx);
-    case 'expense_summary': return reportExpenseSummary(ctx);
-    case 'receipt_summary': return reportReceiptSummary(ctx);
-    case 'vat_summary': return reportVatSummary(ctx);
-    case 'supplier_summary': return reportSupplierSummary(ctx);
-    case 'recurring_summary': return reportRecurringSummary(ctx);
-    case 'export_status': return reportExportStatus(ctx);
-    default: throw new Error(`Inte implementerad: ${kind}`);
+    case 'daily':
+      return reportDaily(ctx);
+    case 'weekly':
+      return reportWeekly(ctx);
+    case 'monthly':
+      return reportMonthly(ctx);
+    case 'quarterly':
+      return reportQuarterly(ctx);
+    case 'yearly':
+      return reportYearly(ctx);
+    case 'cash':
+      return reportCash(ctx);
+    case 'expense_summary':
+      return reportExpenseSummary(ctx);
+    case 'receipt_summary':
+      return reportReceiptSummary(ctx);
+    case 'vat_summary':
+      return reportVatSummary(ctx);
+    case 'supplier_summary':
+      return reportSupplierSummary(ctx);
+    case 'recurring_summary':
+      return reportRecurringSummary(ctx);
+    case 'export_status':
+      return reportExportStatus(ctx);
+    default:
+      throw new Error(`Inte implementerad: ${kind}`);
   }
 }
 
@@ -785,6 +926,7 @@ function reportToCsv(report) {
 module.exports = {
   SCHEMA_VERSION,
   VALID_REPORT_KINDS,
+  REPORT_DEFS,
   CASH_LIKE_PAYMENT_METHODS,
   generateReport,
   reportToCsv,
