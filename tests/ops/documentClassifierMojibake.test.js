@@ -119,11 +119,10 @@ test('ett namn utan mojibake-signatur rörs inte ens vid försök', () => {
 test('m365_halso-formulär utan känd titel får medium confidence', () => {
   // Kategorin 'form' är satt av importören för m365_halso; även när
   // filnamnet är så korrupt att vi inte kan avgöra exakt formulärtyp
-  // (t.ex. "H-lsodeklaration-...") är det säkrare än ett generiskt
-  // form-fall eftersom källsystemet enbart hanterar hälsorelaterade
-  // formulär.
+  // (t.ex. "scan-...") är det säkrare än ett generiskt form-fall
+  // eftersom källsystemet enbart hanterar hälsorelaterade formulär.
   const result = classifyDocument({
-    originalFileName: 'H-lsodeklaration-Patient-1234567890-1234.pdf',
+    originalFileName: 'scan-12345.pdf',
     category: 'form',
     sourceSystem: 'm365_halso',
     mimeType: 'application/pdf',
@@ -140,5 +139,54 @@ test('ospecificerat formulär från annat system förblir low confidence', () =>
     sourceSystem: 'upload',
     mimeType: 'application/pdf',
   });
+  assert.equal(result.confidence, 'low');
+});
+
+test('H+?lsodeklaration med category other klassificeras som hälsodeklaration', () => {
+  const result = classifyDocument({
+    originalFileName: 'H+?lsodeklaration ??? Niklas Mattsson.pdf',
+    category: 'other',
+    sourceSystem: 'drive_import',
+    mimeType: 'application/pdf',
+  });
+  assert.equal(result.subCategory, 'health_declaration');
+  assert.equal(result.documentTitle, 'Hälsodeklaration');
+  assert.equal(result.confidence, 'high');
+});
+
+test('CF7-fil klassificeras som samtycke', () => {
+  const result = classifyDocument({
+    originalFileName: 'CF7-1720444624-3526.pdf',
+    category: 'other',
+    sourceSystem: 'drive_import',
+    mimeType: 'application/pdf',
+  });
+  assert.equal(result.category, 'consent');
+  assert.equal(result.subCategory, 'consent');
+  assert.equal(result.documentTitle, 'Samtycke');
+  assert.equal(result.confidence, 'high');
+});
+
+test("Medication timing klassificeras som journal/läkemedelsinstruktion", () => {
+  const result = classifyDocument({
+    originalFileName: 'medication timing – Viktor Björkholm – 2023-10-04.pdf',
+    category: 'other',
+    sourceSystem: 'drive_import',
+    mimeType: 'application/pdf',
+  });
+  assert.equal(result.category, 'journal'); // medication_timing mappas till journal (klinisk info)
+  assert.equal(result.subCategory, 'medication_timing');
+  assert.equal(result.documentTitle, 'Läkemedelsinstruktion');
+  assert.equal(result.confidence, 'high');
+});
+
+test('patientnamn+datum utan annan ledtråd förblir low confidence other', () => {
+  const result = classifyDocument({
+    originalFileName: 'josef aksöz 2024-05-01 10-40-49.pdf',
+    category: 'other',
+    sourceSystem: 'pipedrive_import',
+    mimeType: 'application/pdf',
+  });
+  assert.equal(result.category, 'other');
   assert.equal(result.confidence, 'low');
 });
