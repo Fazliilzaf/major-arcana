@@ -190,3 +190,80 @@ test('patientnamn+datum utan annan ledtråd förblir low confidence other', () =
   assert.equal(result.category, 'other');
   assert.equal(result.confidence, 'low');
 });
+
+test('pipedrive_smartdoc med subCategory får medium confidence', () => {
+  const result = classifyDocument({
+    originalFileName: 'Filip Frank 2026-06-15 19-45-09.pdf',
+    category: 'other',
+    subCategory: 'pipedrive_smartdoc',
+    sourceSystem: 'pipedrive_import',
+    mimeType: 'application/pdf',
+  });
+  assert.equal(result.category, 'other');
+  assert.equal(result.subCategory, 'pipedrive_smartdoc');
+  assert.equal(result.documentTitle, 'Smartdoc');
+  assert.equal(result.confidence, 'medium');
+});
+
+test('korrupt friskförsäkran med +? och ?? klassificeras', () => {
+  const result = classifyDocument({
+    originalFileName: 'Friskf+?rs+?kran H+?rtransplantation ??? Jonathan Woodley.pdf',
+    category: 'form',
+    sourceSystem: 'drive',
+    mimeType: 'application/pdf',
+  });
+  assert.equal(result.subCategory, 'fitness_certificate');
+  assert.equal(result.documentTitle, 'Friskförsäkran');
+});
+
+test('operationstimestamps klassificeras som journal', () => {
+  const result = classifyDocument({
+    originalFileName: 'FUE-Timestamps.pdf',
+    category: 'other',
+    sourceSystem: 'drive_import',
+    mimeType: 'application/pdf',
+  });
+  assert.equal(result.category, 'journal');
+  assert.equal(result.subCategory, 'operation_timestamps');
+  assert.equal(result.documentTitle, 'Operationstimestamps');
+});
+
+test('medicindeligering klassificeras som journal/läkemedelslista', () => {
+  const result = classifyDocument({
+    originalFileName: 'Bernard Bukowski medicindeligering.pdf',
+    category: 'other',
+    sourceSystem: 'drive_import',
+    mimeType: 'application/pdf',
+  });
+  assert.equal(result.category, 'journal');
+  assert.equal(result.subCategory, 'medication_list');
+  assert.equal(result.documentTitle, 'Läkemedelslista');
+});
+
+test('elektroniskt visitkort klassificeras som other/medium', () => {
+  const result = classifyDocument({
+    originalFileName: 'elektroniskt-visitkort.vcf',
+    category: 'other',
+    sourceSystem: 'm365_halso',
+    mimeType: 'text/vcard',
+  });
+  assert.equal(result.category, 'other');
+  assert.equal(result.subCategory, 'contact_card');
+  assert.equal(result.documentTitle, 'Visitkort');
+  assert.equal(result.confidence, 'high');
+});
+
+test('operationsvideo i OP-mapp klassificeras som medium', () => {
+  const result = classifyDocument({
+    originalFileName: 'IMG_5071.MOV',
+    category: 'other',
+    subCategory: 'unknown',
+    sourceSystem: 'drive_import',
+    mimeType: 'video/quicktime',
+    originalDrivePath: 'Hair TP Clinic 2025 /Januari 2025 /Januari 11/Alexander Bergenstav - 19960910-0574 (FUE)/Alexander Bergenstav - 2025-01-11 OP (FUE)/IMG_5071.MOV',
+  });
+  assert.equal(result.category, 'other');
+  assert.equal(result.subCategory, 'operation_video');
+  assert.equal(result.documentTitle, 'Operationsvideo');
+  assert.equal(result.confidence, 'medium');
+});

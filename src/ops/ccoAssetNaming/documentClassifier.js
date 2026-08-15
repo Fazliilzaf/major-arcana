@@ -34,7 +34,12 @@ const VALID_TOP_CATEGORIES = new Set([
 
 const FORM_PATTERNS = [
   {
-    re: /friskf[oö]rs[aä]kran|fitness/i,
+    // Tolerera korrupta former av "friskförsäkran":
+    //   Friskförsäkran (korrekt)
+    //   Friskforsakran (ä → a)
+    //   Friskfo??rsa??kran (? ? )
+    //   Friskf+?rs+?kran (+?)
+    re: /friskf[\+\?a-zäöå\-]*rs[\+\?a-zäöå\-]*kran|fitness/i,
     subCategory: 'fitness_certificate',
     title: 'Friskförsäkran',
   },
@@ -56,6 +61,26 @@ const FORM_PATTERNS = [
     re: /\bcf7?\d/i,
     subCategory: 'consent',
     title: 'Samtycke',
+  },
+  {
+    // Operationstimestamps från video-/fotoinstrumentering, t.ex.
+    // "FUE-Timestamps.pdf" eller "DHI-Timestamps.pdf".
+    re: /\b(fue|dhi)[\s\-]?timestamps/i,
+    subCategory: 'operation_timestamps',
+    title: 'Operationstimestamps',
+  },
+  {
+    // Medicindeligering / läkemedelslista — klinisk info som journal.
+    re: /medicindel|medication list|l[äa]kemedels/i,
+    subCategory: 'medication_list',
+    title: 'Läkemedelslista',
+  },
+  {
+    // Elektroniska visitkort (vcf). Sätts som medium eftersom det är en
+    // kontaktuppgift, inte ett medicinskt dokument.
+    re: /elektroniskt[-\s]?visitkort|\.vcf$/i,
+    subCategory: 'contact_card',
+    title: 'Visitkort',
   },
   {
     // Medication timing / ordination — läkemedelsinstruktioner som
@@ -194,6 +219,7 @@ function classifyDocument(asset = {}) {
   const folder = repairMojibake(normalizeText(asset.originalDrivePath));
   const haystack = `${fileName} ${folder}`;
   const existingCategory = normalizeText(asset.category);
+  const existingSubCategory = normalizeText(asset.subCategory);
   const signals = [];
 
   if (existingCategory.startsWith('photo_')) {
@@ -204,6 +230,25 @@ function classifyDocument(asset = {}) {
       treatmentType: detectTreatment(haystack),
       confidence: 'medium',
       signals: ['existing_photo_category'],
+    };
+  }
+
+  // Operationsvideor från Drive ligger i mappar som innehåller "OP",
+  // "Operation" eller behandlingstyp. MOV/MP4 utan mappkontext vet vi
+  // för lite om, så mönstret kräver både video-mime och operationskontext.
+  const mimeLower = normalizeText(asset.mimeType).toLowerCase();
+  if (
+    mimeLower.startsWith('video/') &&
+    /\b(op|operation|prp|fue|dhi)\b/i.test(folder)
+  ) {
+    signals.push('operation_video');
+    return {
+      category: 'other',
+      subCategory: 'operation_video',
+      documentTitle: 'Operationsvideo',
+      treatmentType: detectTreatment(haystack),
+      confidence: 'medium',
+      signals,
     };
   }
 
@@ -221,11 +266,15 @@ function classifyDocument(asset = {}) {
         ? 'offer'
         : existingCategory === 'form'
           ? 'form'
-          : formMatch.subCategory === 'medication_timing'
+          : formMatch.subCategory === 'medication_timing' ||
+              formMatch.subCategory === 'operation_timestamps' ||
+              formMatch.subCategory === 'medication_list'
             ? 'journal'
-            : VALID_TOP_CATEGORIES.has(formMatch.subCategory)
-              ? formMatch.subCategory
-              : 'form';
+            : formMatch.subCategory === 'contact_card'
+              ? 'other'
+              : VALID_TOP_CATEGORIES.has(formMatch.subCategory)
+                ? formMatch.subCategory
+                : 'form';
     return {
       category: derivedCategory,
       subCategory: formMatch.subCategory,
@@ -261,6 +310,21 @@ function classifyDocument(asset = {}) {
       documentTitle: 'Formulär',
       treatmentType: detectTreatment(haystack),
       confidence: isM365Halso ? 'medium' : 'low',
+      signals,
+    };
+  }
+
+  // Pipedrive Smartdoc: importerade dokument som redan har en etablerad
+  // subCategory från importören. Filnamnet är bara "<namn> <datum> <tid>.pdf",
+  // så vi litar på källsystemets klassificering istället för att gissa.
+  if (existingSubCategory === 'pipedrive_smartdoc') {
+    signals.push('pipedrive_smartdoc');
+    return {
+      category: 'other',
+      subCategory: 'pipedrive_smartdoc',
+      documentTitle: 'Smartdoc',
+      treatmentType: detectTreatment(haystack),
+      confidence: 'medium',
       signals,
     };
   }
