@@ -20,9 +20,9 @@ function normalizeText(value) {
 function fortnoxConfigured(config = {}) {
   return Boolean(
     config.fortnoxEnabled &&
-      normalizeText(config.fortnoxClientId) &&
-      normalizeText(config.fortnoxClientSecret) &&
-      normalizeText(config.fortnoxRedirectUri)
+    normalizeText(config.fortnoxClientId) &&
+    normalizeText(config.fortnoxClientSecret) &&
+    normalizeText(config.fortnoxRedirectUri)
   );
 }
 
@@ -88,7 +88,8 @@ function createCcoFortnoxRouter({
     handle(req, res, async (actor) => {
       if (!fortnoxConfigured(config)) {
         return res.status(503).json({
-          error: 'Fortnox är inte konfigurerat. Sätt FORTNOX_CLIENT_ID, FORTNOX_CLIENT_SECRET och redirect URI.',
+          error:
+            'Fortnox är inte konfigurerat. Sätt FORTNOX_CLIENT_ID, FORTNOX_CLIENT_SECRET och redirect URI.',
         });
       }
       const state = await fortnoxStore.createOAuthState({
@@ -102,7 +103,11 @@ function createCcoFortnoxRouter({
         state,
         accountType: config.fortnoxAccountType, // 'service' om Service Account är aktiverat i Dev Portal
       });
-      return res.json({ ok: true, authorizeUrl: url, accountType: config.fortnoxAccountType || 'user' });
+      return res.json({
+        ok: true,
+        authorizeUrl: url,
+        accountType: config.fortnoxAccountType || 'user',
+      });
     })
   );
 
@@ -194,10 +199,13 @@ function createCcoFortnoxRouter({
         config,
         tenantId: actor.tenantId,
       });
-      const company = await client.getCompanyInformation();
+      // Använd InvoicePayments eftersom den ingår i vårt OAuth-scope
+      // (customer invoice payment bookkeeping). /companyinformation kräver
+      // ett separat scope som vi inte begär.
+      const result = await client.listInvoicePayments({ page: 1 });
       return res.json({
         ok: true,
-        companyName: company?.CompanyInformation?.CompanyName || '',
+        invoicePaymentCount: result?.InvoicePayments?.length ?? 0,
       });
     })
   );
@@ -251,36 +259,42 @@ function createCcoFortnoxRouter({
     })
   );
 
-  router.patch('/cco-fortnox/patient-link', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
-    handle(req, res, async (actor) => {
-      if (!patientMasterStore) {
-        return res.status(503).json({ error: 'Patientmaster saknas.' });
-      }
-      const patientId = normalizeText(req.body?.patientId);
-      const customerNumber = normalizeText(req.body?.customerNumber || req.body?.fortnoxCustomerId);
-      if (!patientId || !customerNumber) {
-        return res.status(400).json({ error: 'patientId och customerNumber krävs.' });
-      }
-      const patient = await linkPatientFortnoxCustomer({
-        patientMasterStore,
-        tenantId: actor.tenantId,
-        patientId,
-        customerNumber,
-      });
-      await authStore.addAuditEvent({
-        tenantId: actor.tenantId,
-        actorUserId: actor.userId,
-        action: 'cco.fortnox.link_patient',
-        outcome: 'success',
-        targetType: 'cco_patient_master',
-        targetId: patientId,
-        metadata: { customerNumber },
-      });
-      return res.json({
-        ok: true,
-        patient: patientMasterStore.buildPatientCardReadout(patient),
-      });
-    })
+  router.patch(
+    '/cco-fortnox/patient-link',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        if (!patientMasterStore) {
+          return res.status(503).json({ error: 'Patientmaster saknas.' });
+        }
+        const patientId = normalizeText(req.body?.patientId);
+        const customerNumber = normalizeText(
+          req.body?.customerNumber || req.body?.fortnoxCustomerId
+        );
+        if (!patientId || !customerNumber) {
+          return res.status(400).json({ error: 'patientId och customerNumber krävs.' });
+        }
+        const patient = await linkPatientFortnoxCustomer({
+          patientMasterStore,
+          tenantId: actor.tenantId,
+          patientId,
+          customerNumber,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.fortnox.link_patient',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+          metadata: { customerNumber },
+        });
+        return res.json({
+          ok: true,
+          patient: patientMasterStore.buildPatientCardReadout(patient),
+        });
+      })
   );
 
   return router;
