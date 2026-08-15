@@ -1290,7 +1290,7 @@ const config = {
   fortnoxEnabled: asBool(process.env.ARCANA_FORTNOX_ENABLED, false),
   fortnoxClientId: asNonEmptyString(process.env.FORTNOX_CLIENT_ID),
   fortnoxClientSecret: asNonEmptyString(process.env.FORTNOX_CLIENT_SECRET),
-  fortnoxScope: asNonEmptyString(process.env.FORTNOX_SCOPE, 'customer invoice'),
+  fortnoxScope: asNonEmptyString(process.env.FORTNOX_SCOPE, 'customer invoice payment bookkeeping'),
   fortnoxRedirectUri: asNonEmptyString(
     process.env.FORTNOX_REDIRECT_URI,
     `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-fortnox/oauth/callback`
