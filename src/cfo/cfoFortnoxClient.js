@@ -288,7 +288,7 @@ function createFortnoxClient({
     // ORD-CM-30 · Läs-endpoint för syncing-avstämning: lista verifikat för det
     // räkenskapsår som innehåller datumet. Används ENDAST för att hitta redan
     // skapade verifikat (Description "CF <id> ...") — skriver ingenting.
-    listVouchers({ financialYearDate, page = 1, limit = 500 } = {}) {
+    listVouchers({ financialYearDate, page = 1, limit = 100 } = {}) {
       const params = new URLSearchParams();
       if (financialYearDate) params.set('financialyeardate', financialYearDate);
       params.set('limit', String(limit));

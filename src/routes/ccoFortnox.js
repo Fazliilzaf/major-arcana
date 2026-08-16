@@ -210,6 +210,28 @@ function createCcoFortnoxRouter({
     })
   );
 
+  router.get('/cco-fortnox/vouchers', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+    handle(req, res, async (actor) => {
+      const client = createFortnoxClientForTenant({
+        fortnoxStore,
+        config,
+        tenantId: actor.tenantId,
+      });
+      const financialYearDate = normalizeText(req.query.financialYearDate);
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 100));
+      const result = await client.listVouchers({ financialYearDate, page, limit });
+      return res.json({
+        ok: true,
+        financialYearDate: financialYearDate || null,
+        page,
+        limit,
+        vouchers: result?.Vouchers || [],
+        meta: result?.MetaInformation || null,
+      });
+    })
+  );
+
   router.get(
     '/cco-fortnox/vouchers/:series/:number',
     requireAuth,

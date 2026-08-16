@@ -79,3 +79,41 @@ test('getVoucher defaults to series A when series is empty', async (t) => {
   await client.getVoucher('', 2056);
   assert.equal(capturedUrl, 'https://api.fortnox.se/3/vouchers/A/2056');
 });
+
+test('listVouchers calls Fortnox with financialyeardate and pagination', async (t) => {
+  let capturedUrl = null;
+  const client = createTestClient(t, async (url, options) => {
+    capturedUrl = url;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        Vouchers: [{ DocumentNumber: '1', VoucherSeries: { Name: 'A' } }],
+        MetaInformation: { TotalResources: 1 },
+      }),
+    };
+  });
+
+  const result = await client.listVouchers({ financialYearDate: '2026-01-01', page: 2, limit: 50 });
+  assert.equal(
+    capturedUrl,
+    'https://api.fortnox.se/3/vouchers?financialyeardate=2026-01-01&limit=50&page=2'
+  );
+  assert.equal(result.Vouchers.length, 1);
+  assert.equal(result.MetaInformation.TotalResources, 1);
+});
+
+test('listVouchers uses sensible defaults', async (t) => {
+  let capturedUrl = null;
+  const client = createTestClient(t, async (url, options) => {
+    capturedUrl = url;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ Vouchers: [], MetaInformation: { TotalResources: 0 } }),
+    };
+  });
+
+  await client.listVouchers();
+  assert.equal(capturedUrl, 'https://api.fortnox.se/3/vouchers?limit=100&page=1');
+});
