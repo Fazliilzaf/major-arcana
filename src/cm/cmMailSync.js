@@ -109,8 +109,10 @@ const NON_ECONOMIC_PATTERNS = [
   },
   {
     regex:
-      /\b(ditt inlämningskvitto|inlämningskvitto|paket\s+(är|har)|leveransbekräftelse|ditt paket|track your package|tracking|paketet har|paketet är|ditt paket har skickats|leverans)\b/i,
+      /\b(ditt inlämningskvitto|inlämningskvitto|paket\s+(är|har)|leveransbekräftelse|ditt paket|track your package|paketet har|paketet är|ditt paket har skickats|leverans|shipment|sändningsavisering|your order .* is on its way|your order .* has been delivered|shipping update|delivery update|paket (på väg|har skickats|är på väg)|fraktsedel|följesedel|versandbenachrichtigung)\b/i,
     reason: 'delivery_receipt_no_amount',
+    requireSubjectSignal:
+      /paket|leverans|sänd|frakt|shipment|shipping|ship notification|track|tracking|DHL|UPS|FedEx|PostNord|inlämningskvitto|skickats|levererats|på väg|on its way|is on the way|delivery|sändnummer|spårningsnummer|följesedel|fraktsedel|versandbenachrichtigung|sendt/i,
   },
   {
     regex:
@@ -124,11 +126,50 @@ const NON_ECONOMIC_PATTERNS = [
   },
 ];
 
-function classifyNonEconomicMail({ subject = '', body = '', expenseType = '' } = {}) {
-  const hay =
-    `${normalizeText(subject)} ${normalizeText(body)} ${normalizeText(expenseType)}`.toLowerCase();
+const NEWSLETTER_DOMAINS = new Set(['mckinsey.com', 'email.mckinsey.com', 'info.mckinsey.com']);
+
+const NEWSLETTER_SUBJECT_TERMS =
+  /newsletter|nyhetsbrev|veckans deals|author talks|executive summary|interview with|how to succeed|want a competitive advantage|latest insights|subscribe|unsubscribe|mckinsey explainers|mckinsey global/i;
+
+function getSenderDomain(email) {
+  const m = normalizeText(email).match(/@([^@]+)$/);
+  return m ? m[1].toLowerCase() : '';
+}
+
+function isReplyOrForward(subject) {
+  return /^(re|sv|fwd|fw|ang):\s*/i.test(normalizeText(subject));
+}
+
+function classifyNonEconomicMail({
+  subject = '',
+  body = '',
+  expenseType = '',
+  fromEmail = '',
+} = {}) {
+  const subjectNorm = normalizeText(subject).toLowerCase();
+  const bodyNorm = normalizeText(body).toLowerCase();
+  const hay = `${subjectNorm} ${bodyNorm} ${normalizeText(expenseType).toLowerCase()}`;
+  const domain = getSenderDomain(fromEmail);
+
+  // Kända nyhetsbrev/marknadsföring ska aldrig klassificeras som icke-ekonomiska.
+  if (NEWSLETTER_DOMAINS.has(domain)) return null;
+  if (NEWSLETTER_SUBJECT_TERMS.test(subjectNorm)) return null;
+
   for (const p of NON_ECONOMIC_PATTERNS) {
-    if (p.regex.test(hay)) return p.reason;
+    if (!p.regex.test(hay)) continue;
+    if (p.requireSubjectSignal && !p.requireSubjectSignal.test(subjectNorm)) continue;
+    // Leveransnotiser som bara är ett svar/fråga utan tydlig spårningsinfo får
+    // inte klassificeras som leveranskvitton.
+    if (
+      p.reason === 'delivery_receipt_no_amount' &&
+      isReplyOrForward(subject) &&
+      !/(DHL|UPS|FedEx|PostNord|track|tracking|spårningsnummer|sändnummer|paket|leverans|frakt|shipment)/i.test(
+        subjectNorm
+      )
+    ) {
+      continue;
+    }
+    return p.reason;
   }
   return null;
 }
@@ -1144,6 +1185,7 @@ function createCmMailSync({
         subject: rawItem?.subject || '',
         body: rawItem?.rawBodyText || rawItem?.bodyPreview || '',
         expenseType: record.expenseType || '',
+        fromEmail: rawItem?.fromEmail || '',
       });
 
       if (!reason) {
