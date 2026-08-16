@@ -1238,99 +1238,16 @@
       // hårdkodas på flera ställen i UI.
       (() => {
         let metaPromise = null;
-        const fallback = {
-          categories: [
-            'utrustning',
-            'forbrukning',
-            'lokal',
-            'personal',
-            'utbildning',
-            'resor',
-            'mat_representation',
-            'marknadsforing',
-            'administrativ',
-            'it_telefoni',
-            'forsakring',
-            'juridik_konsult',
-            'bank_finansiell',
-            'skatter_avgifter',
-            'annat',
-          ],
-          paymentMethods: [
-            'card',
-            'swish',
-            'bank_transfer',
-            'invoice',
-            'cash',
-            'autogiro',
-            'direct_debit',
-            'other',
-          ],
-          vatRates: [0, 6, 12, 25, 'reverse_charge'],
-          vatModes: [
-            'standard_25',
-            'standard_12',
-            'standard_6',
-            'standard_0',
-            'mixed',
-            'reverse_charge_eu',
-            'reverse_charge_non_eu',
-            'non_deductible',
-            'representation_limited',
-            'needs_review',
-          ],
-          vatLabels: {
-            standard_25: '25%',
-            standard_12: '12%',
-            standard_6: '6%',
-            standard_0: '0%',
-            mixed: 'Blandad',
-            reverse_charge_eu: 'EU reverse charge',
-            reverse_charge_non_eu: 'Non-EU reverse charge',
-            non_deductible: 'Ej avdragsgill',
-            representation_limited: 'Representation 50%',
-            needs_review: 'Behöver granskas',
-          },
-          months: {
-            '01': 'Januari',
-            '02': 'Februari',
-            '03': 'Mars',
-            '04': 'April',
-            '05': 'Maj',
-            '06': 'Juni',
-            '07': 'Juli',
-            '08': 'Augusti',
-            '09': 'September',
-            10: 'Oktober',
-            11: 'November',
-            12: 'December',
-            '??': 'Okänt datum',
-          },
-          reviewStatuses: ['pending', 'reviewed', 'flagged'],
-          exportReviewStatuses: [
-            'pending',
-            'reviewed',
-            'needs_correction',
-            'accepted_for_bookkeeping',
-            'rejected_with_reason',
-          ],
-        };
         window.arcanaCfLoadMeta = async () => {
           if (window.arcanaCfMeta) return window.arcanaCfMeta;
           if (metaPromise) return metaPromise;
           metaPromise = (async () => {
-            try {
-              const r = await fetch('/api/v1/cco-cf/meta', { credentials: 'same-origin' });
-              if (!r.ok) throw new Error('HTTP ' + r.status);
-              const d = await r.json();
-              if (!d.ok) throw new Error(d.error || 'meta ok=false');
-              window.arcanaCfMeta = d;
-              return d;
-            } catch (err) {
-              console.error('[cf-meta] misslyckades, använder fallback:', err);
-              window.arcanaCfMeta = fallback;
-              return fallback;
-            }
+            const r = await fetch('/api/v1/cco-cf/meta', { credentials: 'same-origin' });
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const d = await r.json();
+            if (!d.ok) throw new Error(d.error || 'meta ok=false');
+            window.arcanaCfMeta = d;
+            return d;
           })();
           return metaPromise;
         };

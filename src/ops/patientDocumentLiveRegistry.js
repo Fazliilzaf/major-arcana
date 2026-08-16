@@ -30,7 +30,14 @@ const STAFF_LIVE_REGISTRY_IDS = Object.freeze([
   'ordination_recept',
 ]);
 
-/** @type {Record<string, string>} */
+/**
+ * @type {Record<string, string>}
+ *
+ * VIKTIGT: suffixet "-final-demo.html" är HISTORISKT. Dessa filer är INTE
+ * demo/mockups — de är godkända produktionsdokument som används live av
+ * patient- och staff-flöden. Byt inte namn eller radera dem utan en stor
+ * refactor av alla konsumenter (konversationer, journal, admin, mail).
+ */
 const STATIC_HTML_BY_REGISTRY = Object.freeze({
   haelso_tp_sve: 'steg3-halsodeklaration-final-demo.html',
   health_tp_eng: 'steg3-health-questionnaire-eng-final-demo.html',

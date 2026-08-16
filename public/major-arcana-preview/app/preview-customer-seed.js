@@ -1,50 +1,39 @@
 /**
- * app/demo-fixtures-data.js — ren demo-data + customer-name-seed.
+ * app/preview-customer-seed.js — neutral preview/customer-name seed.
  *
- * STATUS 2026-05-09: FIX12 + FIX14 shims ELIMINERADE. Den primära demo-
- * datakällan ligger inbäddad i app.js state-init (huvud-demo + mailbox-demo)
- * som state.runtime.threads med worklistSource: "demo". Mock-worklist-API
- * (app/mock-worklist-api.js) serverar /auth/me + /integrations/status med
- * 200 OK i demo-mode → state.runtime.authRequired = false → focus-pane
- * renderar normalt utan att behöva FIX12-overriden.
+ * Historiskt kallad demo-fixtures-data.js. Filen innehåller ENDAST generiska
+ * placeholders (Kund A, Kund B …) och används för att seeda customer-name-
+ * resolvern i demo-läge samt exponera en datakälla för coverage/verify-skript.
  *
- * Den här filen behålls för:
- *   - Customer-name-seed: P0-2-resolvern (app.js) kan
- *     vid edge-cases behöva extra namn-mappning för demo-trådar
- *   - window.__DemoFixtures.data: konsumerad av tools/coverage/verify-demo-fixtures.js
- *     och kan användas av framtida features som vill ha demo-conversations
- *
- * FIXTURES-data är delvis duplicerad mot app.js state-init — det är medvetet
- * för att hålla data isolerad från bootstrap-pathen och konsumerbar via
- * window.__DemoFixtures.
+ * Inget personligt, företagsspecifikt eller produktionskänsligt får ligga här.
  */
 (() => {
   'use strict';
 
   const FIXTURES = {
     'demo-mb-001': {
-      name: 'Morten Bak Kristoffersen',
-      initials: 'MB',
-      email: 'morten.bak@example.com',
+      name: 'Kund A',
+      initials: 'KA',
+      email: 'kund.a@example.com',
       mailbox: 'egzona@hairtpclinic.com',
       mailboxLabel: 'Egzona',
       lane: 'Agera nu',
       laneTone: 'urgent',
       subject: 'Frågar om uppföljning på offerten — behöver svar före måndag',
       preview:
-        'Hej, jag har inte hört något sedan vårt möte. Behöver kunna lämna besked till frun och vill helst boka inom 2 veckor.',
+        'Hej, jag har inte hört något sedan vårt möte. Behöver kunna lämna besked och vill helst boka inom 2 veckor.',
       conversation: [
         {
-          from: 'Morten Bak Kristoffersen',
+          from: 'Kund A',
           tone: 'inbound',
           time: 'Idag 16:07',
-          text: 'Hej! Jag har inte hört något sedan vårt konsultationsmöte i förra veckan. Min fru och jag försöker planera detta tillsammans och behöver kunna ge henne ett besked.\n\nKan ni återkomma med nästa steg? Helst vill jag boka tid inom 2 veckor.\n\nMvh\nMorten',
+          text: 'Hej! Jag har inte hört något sedan vårt konsultationsmöte i förra veckan. Vi försöker planera detta tillsammans och behöver kunna ge ett besked.\n\nKan ni återkomma med nästa steg? Helst vill jag boka tid inom 2 veckor.\n\nMvh\nKund A',
         },
         {
-          from: 'Egzona Krasniqi (Hair TP Clinic)',
+          from: 'Egzona (Hair TP Clinic)',
           tone: 'outbound',
           time: 'Idag 12:14',
-          text: 'Hej Morten!\n\nTack för ditt mejl och för förra veckans samtal. Jag förstår att tidsfönstret är viktigt för er. Jag stämmer av med klinikteamet idag och återkommer senast imorgon med två tidsförslag inom de närmaste 2 veckorna.\n\nVänligen,\nEgzona',
+          text: 'Hej!\n\nTack för ditt mejl och för förra veckans samtal. Jag förstår att tidsfönstret är viktigt. Jag stämmer av med klinikteamet idag och återkommer senast imorgon med två tidsförslag inom de närmaste 2 veckorna.\n\nVänligen,\nEgzona',
         },
       ],
       timeline: [
@@ -57,21 +46,21 @@
       nextStep: 'Svara inom 2h med två konkreta tidsförslag.',
     },
     'demo-jk-002': {
-      name: 'Johan Karlsson',
-      initials: 'JK',
-      email: 'johan.karlsson@example.com',
+      name: 'Kund B',
+      initials: 'KB',
+      email: 'kund.b@example.com',
       mailbox: 'fazli@hairtpclinic.com',
       mailboxLabel: 'Fazli',
       lane: 'Sprint',
       laneTone: 'sprint',
       subject: 'Vill boka möte nästa måndag om den nya integrationen',
-      preview: 'Hej Fazli, kan vi ses kl 14 på måndag och gå igenom integrationen mot Cliento?',
+      preview: 'Hej, kan vi ses kl 14 på måndag och gå igenom integrationen mot Cliento?',
       conversation: [
         {
-          from: 'Johan Karlsson',
+          from: 'Kund B',
           tone: 'inbound',
           time: 'Idag 14:22',
-          text: 'Hej Fazli!\n\nKan vi ses kl 14:00 på måndag och gå igenom Cliento-integrationen? Jag har förberett några frågor om webhook-flödet.\n\nMvh,\nJohan',
+          text: 'Hej!\n\nKan vi ses kl 14:00 på måndag och gå igenom Cliento-integrationen? Jag har förberett några frågor om webhook-flödet.\n\nMvh,\nKund B',
         },
       ],
       timeline: ['Mötesförslag idag', 'Tidigare diskussion 28 april'],
@@ -79,9 +68,9 @@
       nextStep: 'Bekräfta tiden eller föreslå alternativ.',
     },
     'demo-sh-003': {
-      name: 'Sara Holm',
-      initials: 'SH',
-      email: 'sara.holm@example.com',
+      name: 'Kund C',
+      initials: 'KC',
+      email: 'kund.c@example.com',
       mailbox: 'kons@hairtpclinic.com',
       mailboxLabel: 'Kons',
       lane: 'Bokning',
@@ -91,16 +80,16 @@
         'Hej, jag har bestämt mig för FUE-konsultation och kan komma vilken dag som helst kommande vecka mellan 10–15.',
       conversation: [
         {
-          from: 'Sara Holm',
+          from: 'Kund C',
           tone: 'inbound',
           time: 'Igår 09:48',
-          text: 'Hej!\n\nJag har bestämt mig för FUE-konsultation. Jag kan komma vilken dag som helst kommande vecka mellan 10:00 och 15:00. Tar gärna första lediga tid.\n\nTack på förhand,\nSara',
+          text: 'Hej!\n\nJag har bestämt mig för FUE-konsultation. Jag kan komma vilken dag som helst kommande vecka mellan 10:00 och 15:00. Tar gärna första lediga tid.\n\nTack på förhand,\nKund C',
         },
         {
-          from: 'Egzona Krasniqi (Hair TP Clinic)',
+          from: 'Egzona (Hair TP Clinic)',
           tone: 'outbound',
           time: 'Igår 11:02',
-          text: 'Hej Sara!\n\nVad roligt! Jag återkommer med exakt tid inom dagen — vi har lediga tider tisdag 13:00 och torsdag 11:00.\n\nMvh,\nEgzona',
+          text: 'Hej!\n\nVad roligt! Jag återkommer med exakt tid inom dagen — vi har lediga tider tisdag 13:00 och torsdag 11:00.\n\nMvh,\nEgzona',
         },
       ],
       timeline: ['Första kontakt 22 april', 'Konsultation 28 april', 'Bekräftelse igår'],
@@ -108,9 +97,9 @@
       nextStep: 'Skicka kalender-inbjudan med tisdag eller torsdag.',
     },
     'demo-el-004': {
-      name: 'Erik Lindqvist',
-      initials: 'EL',
-      email: 'erik.lindqvist@example.com',
+      name: 'Kund D',
+      initials: 'KD',
+      email: 'kund.d@example.com',
       mailbox: 'contact@hairtpclinic.com',
       mailboxLabel: 'Kontakt',
       lane: 'Granska',
@@ -120,16 +109,16 @@
         'AI-svaret har angett ett pris (32 000 kr) som inte matchar dagens prislista (38 500 kr för FUE).',
       conversation: [
         {
-          from: 'Erik Lindqvist',
+          from: 'Kund D',
           tone: 'inbound',
           time: 'Idag 11:34',
-          text: 'Hej!\n\nJag undrar vad en FUE-behandling kostar hos er? Har sett olika priser på olika sidor.\n\nMvh,\nErik',
+          text: 'Hej!\n\nJag undrar vad en FUE-behandling kostar hos er? Har sett olika priser på olika sidor.\n\nMvh,\nKund D',
         },
         {
           from: 'AI-utkast (väntar granskning)',
           tone: 'draft',
           time: 'Idag 11:36',
-          text: 'Hej Erik!\n\nEn FUE-behandling kostar från 32 000 kr beroende på antal grafts. Vi kan gärna boka in en gratis konsultation där vi tar fram ett exakt pris för just dig.\n\nMvh,\nHair TP Clinic',
+          text: 'Hej Kund D!\n\nEn FUE-behandling kostar från 32 000 kr beroende på antal grafts. Vi kan gärna boka in en gratis konsultation där vi tar fram ett exakt pris för just dig.\n\nMvh,\nHair TP Clinic',
         },
       ],
       timeline: [
@@ -142,9 +131,9 @@
         'Korrigera till 38 500 kr eller skicka uppdaterad prislista innan utkastet skickas.',
     },
     'demo-as-005': {
-      name: 'Anna Svensson',
-      initials: 'AS',
-      email: 'anna.svensson@example.com',
+      name: 'Kund E',
+      initials: 'KE',
+      email: 'kund.e@example.com',
       mailbox: 'info@hairtpclinic.com',
       mailboxLabel: 'Info',
       lane: 'Oklart',
@@ -153,7 +142,7 @@
       preview: 'Hej, jag undrar bara hur det går?',
       conversation: [
         {
-          from: 'Anna Svensson',
+          from: 'Kund E',
           tone: 'inbound',
           time: 'Tis 16:18',
           text: 'Hej, jag undrar bara hur det går?',
@@ -164,9 +153,9 @@
       nextStep: 'Slå upp tidigare konversation och svara med kontextuell följdfråga.',
     },
     'demo-pn-006': {
-      name: 'Peter Nilsson',
-      initials: 'PN',
-      email: 'peter.nilsson@example.com',
+      name: 'Kund F',
+      initials: 'KF',
+      email: 'kund.f@example.com',
       mailbox: 'fazli@hairtpclinic.com',
       mailboxLabel: 'Fazli',
       lane: 'Senare',
@@ -176,16 +165,16 @@
         'Tack för uppdateringen. Jag väntar på röntgenbilderna och hör av mig så fort jag har dem (förmodligen fredag).',
       conversation: [
         {
-          from: 'Peter Nilsson',
+          from: 'Kund F',
           tone: 'inbound',
           time: 'Mån 09:14',
-          text: 'Tack för uppdateringen! Jag väntar på röntgenbilderna och hör av mig så fort jag har dem, förmodligen på fredag.\n\nHa en bra vecka.\n\nMvh,\nPeter',
+          text: 'Tack för uppdateringen! Jag väntar på röntgenbilderna och hör av mig så fort jag har dem, förmodligen på fredag.\n\nHa en bra vecka.\n\nMvh,\nKund F',
         },
         {
-          from: 'Fazli Krasniqi (Hair TP Clinic)',
+          from: 'Fazli (Hair TP Clinic)',
           tone: 'outbound',
           time: 'Mån 09:32',
-          text: 'Hej Peter!\n\nPerfekt, då pausar jag ditt ärende fram till fredag. Du får automatisk påminnelse 09:00 fredag morgon om jag inte hört från dig.\n\nMvh,\nFazli',
+          text: 'Hej!\n\nPerfekt, då pausar jag ditt ärende fram till fredag. Du får automatisk påminnelse 09:00 fredag morgon om jag inte hört från dig.\n\nMvh,\nFazli',
         },
       ],
       timeline: ['Konsultation 18 april', 'Begäran om röntgen 25 april', 'Snooze till fredag'],
@@ -194,9 +183,9 @@
     },
     // ── Synkade mot app.js: spridd fixture-data per mailbox (demo-*-10x)
     'demo-eg-101': {
-      name: 'Lisa Andersson',
-      initials: 'LA',
-      email: 'lisa.andersson@example.com',
+      name: 'Kund G',
+      initials: 'KG',
+      email: 'kund.g@example.com',
       mailbox: 'egzona@hairtpclinic.com',
       mailboxLabel: 'Egzona',
       lane: 'Agera nu',
@@ -205,7 +194,7 @@
       preview: 'Klagomål om uteblivet svar — kunden vill prata med chefen.',
       conversation: [
         {
-          from: 'Lisa Andersson',
+          from: 'Kund G',
           tone: 'inbound',
           time: '08:42',
           text: 'Klagomål om uteblivet svar — kunden vill prata med chefen.',
@@ -216,9 +205,9 @@
       nextStep: 'Svara nu med tydlig åtgärdsplan.',
     },
     'demo-eg-102': {
-      name: 'Tomas Berg',
-      initials: 'TB',
-      email: 'tomas.berg@example.com',
+      name: 'Kund H',
+      initials: 'KH',
+      email: 'kund.h@example.com',
       mailbox: 'egzona@hairtpclinic.com',
       mailboxLabel: 'Egzona',
       lane: 'Bokning',
@@ -227,7 +216,7 @@
       preview: 'Vill boka konsultation — har redan fyllt i hälsoformulär.',
       conversation: [
         {
-          from: 'Tomas Berg',
+          from: 'Kund H',
           tone: 'inbound',
           time: 'Igår',
           text: 'Vill boka konsultation — har redan fyllt i hälsoformulär.',
@@ -238,9 +227,9 @@
       nextStep: 'Bekräfta bokning.',
     },
     'demo-ko-101': {
-      name: 'Maria Lund',
-      initials: 'ML',
-      email: 'maria.lund@example.com',
+      name: 'Kund I',
+      initials: 'KI',
+      email: 'kund.i@example.com',
       mailbox: 'contact@hairtpclinic.com',
       mailboxLabel: 'Kontakt',
       lane: 'Sprint',
@@ -249,7 +238,7 @@
       preview: 'Frågar om öppettider och adress för första besöket.',
       conversation: [
         {
-          from: 'Maria Lund',
+          from: 'Kund I',
           tone: 'inbound',
           time: '10:15',
           text: 'Frågar om öppettider och adress för första besöket.',
@@ -260,9 +249,9 @@
       nextStep: 'Svara med öppettider och vägbeskrivning.',
     },
     'demo-ko-102': {
-      name: 'Anders Pettersson',
-      initials: 'AP',
-      email: 'anders.pettersson@example.com',
+      name: 'Kund J',
+      initials: 'KJ',
+      email: 'kund.j@example.com',
       mailbox: 'contact@hairtpclinic.com',
       mailboxLabel: 'Kontakt',
       lane: 'Senare',
@@ -271,7 +260,7 @@
       preview: 'Vill ha mer information om olika behandlingar innan beslut.',
       conversation: [
         {
-          from: 'Anders Pettersson',
+          from: 'Kund J',
           tone: 'inbound',
           time: 'Mån',
           text: 'Vill ha mer information om olika behandlingar innan beslut.',
@@ -282,9 +271,9 @@
       nextStep: 'Svara med broschyr eller länk.',
     },
     'demo-fa-101': {
-      name: 'Carolina Holm',
-      initials: 'CH',
-      email: 'carolina.holm@example.com',
+      name: 'Kund K',
+      initials: 'KK',
+      email: 'kund.k@example.com',
       mailbox: 'fazli@hairtpclinic.com',
       mailboxLabel: 'Fazli',
       lane: 'Granska',
@@ -293,7 +282,7 @@
       preview: 'Önskar förtydligande av offert — del av rabatten oklar.',
       conversation: [
         {
-          from: 'Carolina Holm',
+          from: 'Kund K',
           tone: 'inbound',
           time: '12:50',
           text: 'Önskar förtydligande av offert — del av rabatten oklar.',
@@ -304,9 +293,9 @@
       nextStep: 'Granska tråden och förtydliga offert.',
     },
     'demo-fa-102': {
-      name: 'Mikael Engström',
-      initials: 'ME',
-      email: 'mikael.engstrom@example.com',
+      name: 'Kund L',
+      initials: 'KL',
+      email: 'kund.l@example.com',
       mailbox: 'fazli@hairtpclinic.com',
       mailboxLabel: 'Fazli',
       lane: 'Agera nu',
@@ -315,7 +304,7 @@
       preview: 'Akut: behöver flytta operation från fredag — familjehändelse.',
       conversation: [
         {
-          from: 'Mikael Engström',
+          from: 'Kund L',
           tone: 'inbound',
           time: '07:30',
           text: 'Akut: behöver flytta operation från fredag — familjehändelse.',
@@ -326,9 +315,9 @@
       nextStep: 'Svara nu med nya tider.',
     },
     'demo-re-101': {
-      name: 'Sofia Berg',
-      initials: 'SB',
-      email: 'sofia.berg@example.com',
+      name: 'Kund M',
+      initials: 'KM',
+      email: 'kund.m@example.com',
       mailbox: 'kvitto@hairtpclinic.com',
       mailboxLabel: 'Kvitto',
       lane: 'Admin',
@@ -337,7 +326,7 @@
       preview: 'Kvitto saknas — behöver för försäkringsbolaget innan måndag.',
       conversation: [
         {
-          from: 'Sofia Berg',
+          from: 'Kund M',
           tone: 'inbound',
           time: '09:18',
           text: 'Kvitto saknas — behöver för försäkringsbolaget innan måndag.',
@@ -348,9 +337,9 @@
       nextStep: 'Skicka kvitto.',
     },
     'demo-re-102': {
-      name: 'Daniel Ek',
-      initials: 'DE',
-      email: 'daniel.ek@example.com',
+      name: 'Kund N',
+      initials: 'KN',
+      email: 'kund.n@example.com',
       mailbox: 'kvitto@hairtpclinic.com',
       mailboxLabel: 'Kvitto',
       lane: 'Admin',
@@ -359,7 +348,7 @@
       preview: 'Frågor om delbetalning — kan vi dela upp på 6 månader?',
       conversation: [
         {
-          from: 'Daniel Ek',
+          from: 'Kund N',
           tone: 'inbound',
           time: 'Igår',
           text: 'Frågor om delbetalning — kan vi dela upp på 6 månader?',
@@ -370,9 +359,9 @@
       nextStep: 'Svara med villkor.',
     },
     'demo-in-101': {
-      name: 'Helena Nyström',
-      initials: 'HN',
-      email: 'helena.nystrom@example.com',
+      name: 'Kund O',
+      initials: 'KO',
+      email: 'kund.o@example.com',
       mailbox: 'info@hairtpclinic.com',
       mailboxLabel: 'Info',
       lane: 'Oklart',
@@ -381,7 +370,7 @@
       preview: 'Otydlig fråga om processen — kanske vill avboka eller flytta?',
       conversation: [
         {
-          from: 'Helena Nyström',
+          from: 'Kund O',
           tone: 'inbound',
           time: 'Tor',
           text: 'Otydlig fråga om processen — kanske vill avboka eller flytta?',
@@ -392,9 +381,9 @@
       nextStep: 'Granska tråden.',
     },
     'demo-in-102': {
-      name: 'Erik Lindberg',
-      initials: 'EL',
-      email: 'erik.lindberg@example.com',
+      name: 'Kund P',
+      initials: 'KP',
+      email: 'kund.p@example.com',
       mailbox: 'info@hairtpclinic.com',
       mailboxLabel: 'Info',
       lane: 'Sprint',
@@ -403,7 +392,7 @@
       preview: 'Allmän fråga om kliniken — har sett er på Instagram.',
       conversation: [
         {
-          from: 'Erik Lindberg',
+          from: 'Kund P',
           tone: 'inbound',
           time: '13:05',
           text: 'Allmän fråga om kliniken — har sett er på Instagram.',
@@ -414,9 +403,9 @@
       nextStep: 'Svara med välkomstinfo.',
     },
     'demo-kn-101': {
-      name: 'Johanna Wikström',
-      initials: 'JW',
-      email: 'johanna.wikstrom@example.com',
+      name: 'Kund Q',
+      initials: 'KQ',
+      email: 'kund.q@example.com',
       mailbox: 'kons@hairtpclinic.com',
       mailboxLabel: 'Kons',
       lane: 'Bokning',
@@ -425,7 +414,7 @@
       preview: 'Bokningskonsultation begärd — kan komma tisdag eller torsdag.',
       conversation: [
         {
-          from: 'Johanna Wikström',
+          from: 'Kund Q',
           tone: 'inbound',
           time: '11:20',
           text: 'Bokningskonsultation begärd — kan komma tisdag eller torsdag.',
@@ -436,9 +425,9 @@
       nextStep: 'Bekräfta bokning.',
     },
     'demo-kn-102': {
-      name: 'Patrik Sandberg',
-      initials: 'PS',
-      email: 'patrik.sandberg@example.com',
+      name: 'Kund R',
+      initials: 'KR',
+      email: 'kund.r@example.com',
       mailbox: 'kons@hairtpclinic.com',
       mailboxLabel: 'Kons',
       lane: 'Medicinsk',
@@ -447,7 +436,7 @@
       preview: 'Medicinsk fråga — tar blodförtunnande, går operation att göra?',
       conversation: [
         {
-          from: 'Patrik Sandberg',
+          from: 'Kund R',
           tone: 'inbound',
           time: 'Ons',
           text: 'Medicinsk fråga — tar blodförtunnande, går operation att göra?',
@@ -458,9 +447,9 @@
       nextStep: 'Granska tråden.',
     },
     'demo-ma-101': {
-      name: 'Kampanjbyrån AB',
-      initials: 'KA',
-      email: 'kontakt@kampanjbyran.example.com',
+      name: 'Partner A',
+      initials: 'PA',
+      email: 'partner.a@example.com',
       mailbox: 'marknad@hairtpclinic.com',
       mailboxLabel: 'Marknad',
       lane: 'Senare',
@@ -469,7 +458,7 @@
       preview: 'Erbjudande: höstkampanj på Instagram — vill diskutera möte.',
       conversation: [
         {
-          from: 'Kampanjbyrån AB',
+          from: 'Partner A',
           tone: 'inbound',
           time: 'Mån',
           text: 'Erbjudande: höstkampanj på Instagram — vill diskutera möte.',
@@ -480,9 +469,9 @@
       nextStep: 'Svara eller boka möte.',
     },
     'demo-ma-102': {
-      name: 'Therese Falk',
-      initials: 'TF',
-      email: 'therese.falk@example.com',
+      name: 'Kund S',
+      initials: 'KS',
+      email: 'kund.s@example.com',
       mailbox: 'marknad@hairtpclinic.com',
       mailboxLabel: 'Marknad',
       lane: 'Granska',
@@ -491,7 +480,7 @@
       preview: 'Influencer vill samarbeta — har 80k följare i målgruppen.',
       conversation: [
         {
-          from: 'Therese Falk',
+          from: 'Kund S',
           tone: 'inbound',
           time: '15:42',
           text: 'Influencer vill samarbeta — har 80k följare i målgruppen.',
@@ -529,7 +518,7 @@
     bootstrapSeed();
   }
 
-  // Exponera till globalt namespace så shim-filerna kan läsa data.
+  // Exponera till globalt namespace så coverage-skript kan läsa data.
   window.__DemoFixtures = Object.freeze({
     data: FIXTURES,
     seedCustomers: seedDemoCustomers,

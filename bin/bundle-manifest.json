@@ -12,7 +12,7 @@
     "runtime-async-orchestration.js",
     "runtime-dom-live-composition.js",
     "runtime-theme.js",
-    "app/demo-fixtures-data.js",
+    "app/preview-customer-seed.js",
     "app/mock-worklist-api.js",
     "app/cco-fetch-instrumentation.js",
     "app/cco-cache-policy.js",

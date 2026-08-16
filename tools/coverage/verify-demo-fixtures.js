@@ -6,9 +6,10 @@
  * renderar demo-fixtures korrekt via den vanliga rendererpathen.
  *
  * Bakgrund: state.runtime.threads i app.js har 6 demo-fixtures inbäddade
- * (rad 2145-2285) med worklistSource: "demo". Mock-worklist-API serverar
- * /auth/me etc med 200 OK så authRequired = false → focus-pane renderar
- * normalt utan att behöva FIX12-overriden.
+ * (rad 2145-2285) med worklistSource: "demo". Preview-customer-seed
+ * (app/preview-customer-seed.js) exponerar 20 neutrala fixtures för
+ * customer-name-seed. Mock-worklist-API serverar /auth/me etc med 200 OK
+ * så authRequired = false → focus-pane renderar normalt utan FIX12-override.
  */
 const puppeteer = require('puppeteer');
 const PREVIEW_URL = 'http://localhost:3100/major-arcana-preview/';
@@ -32,7 +33,7 @@ async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
     fixturesCount: Object.keys(window.__DemoFixtures?.data || {}).length,
     seedFn: typeof window.__DemoFixtures?.seedCustomers === 'function',
   }));
-  console.log(`Test 1 — __DemoFixtures (data only): module=${r1.hasModule} fixtures=${r1.fixturesCount} seed=${r1.seedFn} ${r1.hasModule && r1.fixturesCount === 6 && r1.seedFn ? '✅' : '❌'}`);
+  console.log(`Test 1 — __DemoFixtures (data only): module=${r1.hasModule} fixtures=${r1.fixturesCount} seed=${r1.seedFn} ${r1.hasModule && r1.fixturesCount === 20 && r1.seedFn ? '✅' : '❌'}`);
 
   // Test 2 — FIX12-shim är BORTA
   const r2 = await p.evaluate(() => ({
