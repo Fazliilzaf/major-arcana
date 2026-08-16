@@ -1361,7 +1361,7 @@
         badge: o.amount || '',
         status: o.statusLabel || o.status || '',
         statusLabel: o.statusLabel || o.status || '',
-        dateLabel: o.journeyStep || '',
+        dateLabel: '',
         category: 'offer',
         previewable: o.previewable === true,
       };
@@ -1376,7 +1376,7 @@
           badge: '',
           status: d.statusLabel || d.status || '',
           statusLabel: d.statusLabel || d.status || '',
-          dateLabel: d.journeyStep || '',
+          dateLabel: '',
           category: 'auto-doc',
           previewable: d.previewable === true,
         };
