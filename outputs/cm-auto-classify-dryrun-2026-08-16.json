@@ -1,0 +1,670 @@
+{
+  "ok": true,
+  "dryRun": true,
+  "scanned": 400,
+  "classified": 110,
+  "skipped": 290,
+  "errors": [],
+  "items": [
+    {
+      "recordId": "f1dd2873-1aa2-4b4b-be6f-ccbf5bd4111c",
+      "supplierName": "SJ",
+      "subject": "Biljetter till bokning WCUEXHRX​",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "aee96170-15b8-4db8-9cd0-88b5a6f37fe1",
+      "supplierName": "SJ AB",
+      "subject": "Bokningsbekräftelse WCUEXHRX",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "cb3b8216-4b41-42d7-967a-d4aa271076fb",
+      "supplierName": "Bravofly",
+      "subject": "Confirmation of new flight details - Booking ID 3090122587",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "ab2a59be-3a00-4772-bfb9-d73257f04ab4",
+      "supplierName": "Opodo",
+      "subject": "Bokningen lyckades: Opodo ref. nr24490624934",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "1d8b04e7-ad30-450c-95f8-801c576ccb39",
+      "supplierName": "Opodo",
+      "subject": "Din bokning har bekräftats! (Nummer: $24490624934)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "d0e1f191-ccf7-46bb-a14f-677d2f64301b",
+      "supplierName": "NoreplySales@ticket.se",
+      "subject": "Tack för din betalning! (Order 17080489)",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "150a7b44-1547-4fca-b38e-dfdbbba7bafa",
+      "supplierName": "PostNord Sverige AB",
+      "subject": "Ditt inlämningskvitto",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "5b0b5a13-ccec-41b4-934f-1ba246749933",
+      "supplierName": "PostNord Sverige AB",
+      "subject": "Ditt inlämningskvitto",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "4228b63c-c2d5-4a81-9b94-d2b31cd0f988",
+      "supplierName": "Västra Götalandsregionen",
+      "subject": "Ny faktura från Västra Götalandsregionen — betala den i Kivra!",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "c5602618-74c6-42a6-8d7f-da8ade3721ea",
+      "supplierName": "Nätkraft Borås AB",
+      "subject": "Fakturan från Nätkraft Borås AB förfaller snart",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "7fd4274d-13d5-46bb-ae5d-012c7ac1a19c",
+      "supplierName": "PS Inkasso",
+      "subject": "Hair TP Clinic gbg AB har fått en ny faktura från PS Inkasso",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "091059e5-c1e0-426e-890a-65457e89d6d5",
+      "supplierName": "Transportstyrelsen",
+      "subject": "Hair TP Clinic gbg AB har fått en ny faktura från Transportstyrelsen",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "481d92ea-7522-4d2a-b58d-ea6b30d1365f",
+      "supplierName": "Västra Götalandsregionen",
+      "subject": "Ny faktura från Västra Götalandsregionen — betala den i Kivra!",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "6849790a-a23b-46cc-bb60-46ba4c38e531",
+      "supplierName": "Tre",
+      "subject": "Hair TP Clinic gbg AB har fått en ny faktura från Tre",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "c06b65ba-8651-4d88-af7d-73bd2d0e5f1d",
+      "supplierName": "Tre",
+      "subject": "Hair TP Clinic gbg AB har fått en ny faktura från Tre",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "29a31440-582d-4057-88cf-6320384cd511",
+      "supplierName": "Mercedes-Benz Finans Sverige AB",
+      "subject": "Hair TP Clinic gbg AB har fått en ny faktura från Mercedes-Benz Finans Sverige AB",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "4f5d2408-f337-49ff-ada7-a7d49627fcfa",
+      "supplierName": "Nätkraft Borås AB",
+      "subject": "Ny faktura från Nätkraft Borås AB — betala den i Kivra!",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "37156be9-5c38-4082-a49a-ae98c1d112eb",
+      "supplierName": "Capio",
+      "subject": "Ny faktura från Capio — betala den i Kivra!",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "eab35d5c-531d-410c-afa7-073fa9249a82",
+      "supplierName": "Västra Götalandsregionen",
+      "subject": "Fakturan från Västra Götalandsregionen förfaller snart",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "b879cbd2-4aab-43e5-9ffc-bb9899c111bb",
+      "supplierName": "Transportstyrelsen",
+      "subject": "Hair TP Clinic gbg AB har fått en ny faktura från Transportstyrelsen",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "7e9f6332-e081-4315-bbf4-409bb2e704dd",
+      "supplierName": "Intrum Sverige",
+      "subject": "Ny faktura från Intrum Sverige — betala den i Kivra!",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "cf2a9c38-9a59-4248-9a8e-1fa59ee3b8c2",
+      "supplierName": "Intrum Sverige",
+      "subject": "Fakturan från Intrum Sverige förfaller snart",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "0866c258-2a2a-4f29-bc22-bd19513e45b5",
+      "supplierName": "Tre Företag",
+      "subject": "Tack för din beställning",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "586abf5c-26e0-4869-80c9-05b5419e5c46",
+      "supplierName": "Transportstyrelsen",
+      "subject": "Hair TP Clinic gbg AB har fått en ny faktura från Transportstyrelsen",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "d9a8341a-5e97-4adb-a34f-f99dd847cf3a",
+      "supplierName": "Tre",
+      "subject": "Hair TP Clinic gbg AB har fått en ny faktura från Tre",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "5f5a1aa5-936a-4873-9ea9-684b1393ced6",
+      "supplierName": "Tre",
+      "subject": "Hair TP Clinic gbg AB har fått en ny faktura från Tre",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "dca80e6d-0d08-4ded-8e0b-d08ef0008e32",
+      "supplierName": "Visma Amili AB",
+      "subject": "Fakturan från Visma Amili AB förfaller snart",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "f00f1cb8-18e7-481d-9135-1d08b48ee4e7",
+      "supplierName": "Transportstyrelsen",
+      "subject": "Fakturan från Transportstyrelsen förfaller snart",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "25b596cc-de51-469b-88fc-decb465edf4a",
+      "supplierName": "Mercedes-Benz Finans Sverige AB",
+      "subject": "Hair TP Clinic gbg AB har fått en ny faktura från Mercedes-Benz Finans Sverige AB",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "adaf96ee-eddd-4839-959a-4c0cebaf55e3",
+      "supplierName": "Observa",
+      "subject": "Fakturan från Observa förfaller snart",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "78ab280f-5f24-466e-ac51-03c6e62eb1c2",
+      "supplierName": "Nätkraft Borås AB",
+      "subject": "Ny faktura från Nätkraft Borås AB — betala den i Kivra!",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "b773ce36-292d-4d04-b0b8-60a72ea8fffd",
+      "supplierName": "Observa",
+      "subject": "Ny faktura från Observa — betala den i Kivra!",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "0e267200-6318-45aa-ae8b-3054aa796703",
+      "supplierName": "Transportstyrelsen",
+      "subject": "Hair TP Clinic gbg AB har fått en ny faktura från Transportstyrelsen",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "16fb46e4-9463-424e-af74-f2c841947c99",
+      "supplierName": "pkginfo@ups.com",
+      "subject": "Ditt paket har skickats",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "421b6dfc-8a4b-41ad-aaee-9ab88c685a0f",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse WSQ7E5LB",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "4c770e2f-a813-40a5-8d82-635b43cf6577",
+      "supplierName": "publishing@email.mckinsey.com",
+      "subject": "Want a competitive advantage? These Author Talks may inspire you",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "525ea624-7cb8-4960-b7a2-699c7096de75",
+      "supplierName": "noreply@earlybird.se",
+      "subject": "Paket levererat",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "fe8d5e6b-8957-4a7b-88d4-7ed6ec27249e",
+      "supplierName": "pkginfo@ups.com",
+      "subject": "UPS-sändningsavisering, Söknummer 1Z4W7009DK41978696",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "ceb7bfb4-7e51-4dd6-bdb8-ea6755dfa103",
+      "supplierName": "Great Lengths Norway A/S",
+      "subject": "Din ordre 1012186 er nå sendt. Ordre nr 1012186, Fazli",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "660847de-b7bb-456e-bc0c-bf0c4ceaa7ab",
+      "supplierName": "sophiejahn1@gmail.com",
+      "subject": "H-orsey AB Terms & conditions - GDPR etc",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "68276877-efbb-48a6-861c-0537eac3040c",
+      "supplierName": "order-update@amazon.se",
+      "subject": "Ditt Amazon-paket har levererats till ditt närmaste ombud",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "3009efe1-5949-4ef2-a584-cb56c132d697",
+      "supplierName": "TrackingUpdates@fedex.com",
+      "subject": "Your shipment is scheduled for delivery tomorrow 771225755029",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "a2f2f327-bfc3-46bc-8bcf-6f723acdd64d",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse WRPUBZVK",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "44e1c992-37e0-4f35-9b3a-60e87654f367",
+      "supplierName": "Nätkraft Borås AB",
+      "subject": "Ny faktura från Nätkraft Borås AB i Kivra",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "77d53eb4-a6dd-4114-a6d1-764872f1769a",
+      "supplierName": "Kiwi.com",
+      "subject": "Bokning 583306394: Din bokning är bekräftad",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "55d8c704-85ea-461c-8b9c-2825f30cd4c7",
+      "supplierName": "do-not-reply@evri.com",
+      "subject": "We've got your Passport Global Inc parcel",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "066a17c6-c0c5-438e-850f-ce9858d84973",
+      "supplierName": "sales@journeyofficial.com",
+      "subject": "A shipment from order #92862-EU is on the way",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "95da77ff-e85f-4fa4-a17a-ae24413c54e7",
+      "supplierName": "info@homezan.com",
+      "subject": "Re: Betalning order 15443",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "01277a7e-badf-490b-bd7f-435daed420d1",
+      "supplierName": "SJ",
+      "subject": "E-biljett - 2024-03-09, Bokningsnr: AKG7625N",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "9af5e8a3-4f06-4644-a51e-1c33e5726391",
+      "supplierName": "tracking@furnituretracking.com",
+      "subject": "Fazli Your order NSE24676 is on its way",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "26d5c13a-f573-4bd7-ada2-c7c46a4a85c6",
+      "supplierName": "TrackingUpdates@fedex.com",
+      "subject": "You're getting a shipment 771225755029",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "927db4d5-f9af-4d97-b9de-a28e2f9512ac",
+      "supplierName": "no-reply@postnord.com",
+      "subject": "Paket till dig!",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "25026cb4-e9f1-4d8f-a743-5f5ef33119aa",
+      "supplierName": "SJ AB",
+      "subject": "Biljetter till bokning WUU66XSU​",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "902be57d-211d-4fe9-b5ef-0abba46743ea",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse WR3SWYMQ",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "a75ba3ee-8258-40c9-b3cf-bbb4201e4170",
+      "supplierName": "SJ AB",
+      "subject": "Biljetter till bokning WR7BXQU8​",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "73b84e82-210a-4629-98b9-e1a8a8345c98",
+      "supplierName": "Kiwi.com",
+      "subject": "Bokning 580083504: Bekräfta dina flygresor med Ryanair för att slutföra din bokning",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "6dc1ef08-82bc-4ffb-9fed-46f876511e83",
+      "supplierName": "admin@cowlings.com",
+      "subject": "HMUMMFFXB - Order Update",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "2eb6ede3-c899-413e-a633-0d4f68e6cb90",
+      "supplierName": "do-not-reply@ikea.com",
+      "subject": "Din beställning är på väg",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "b5347060-9cab-4daf-bf7c-e9f990579918",
+      "supplierName": "pkginfo@ups.com",
+      "subject": "UPS Ship Notification, Invoice Number: 9062053",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "07b8c043-1146-400b-97d5-b2a8d592c2b5",
+      "supplierName": "publishing@email.mckinsey.com",
+      "subject": "How to succeed as a data-driven enterprise",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "cca4bf66-8c44-4ba8-98b7-ad4303edbe63",
+      "supplierName": "Mini Försäkring",
+      "subject": "Ny faktura från Mini Försäkring i Kivra",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "01c46d5d-7b80-45c5-9d05-4b83d6e88fc0",
+      "supplierName": "noreply@earlybird.se",
+      "subject": "Paket levererat",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "b7ecdfe0-3af3-4cfe-a4d6-45a113e306a6",
+      "supplierName": "support@disprseend.com",
+      "subject": "[Important] Your parcel's status has updated",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "dfb21e81-7ba3-41b9-81d0-ac82c4df4aee",
+      "supplierName": "Nätkraft Borås AB",
+      "subject": "Ny faktura från Nätkraft Borås AB i Kivra",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "347826f6-b123-45cc-975a-e492126a2cdc",
+      "supplierName": "do-not-reply@ikea.com",
+      "subject": "Information om din leverans",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "357ba7b2-3df5-40df-8488-d57a2dc9534b",
+      "supplierName": "TrackingUpdates@fedex.com",
+      "subject": "Your shipment is scheduled for delivery tomorrow 771225755029",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "5aea9d6e-e945-43db-ab7c-5d399f6af15e",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse WCQRXMAZ",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "022d4f61-a4da-4214-bf33-7f25af908d5d",
+      "supplierName": "noreply@ticket.sj.se",
+      "subject": "Ändring av biljetter för bokning WMSUQWUZ​",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "d2b7f8f2-f5b6-4522-b9f6-83b7d0d213b2",
+      "supplierName": "American Express Europe S.A.",
+      "subject": "Din faktura",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "cecd8e60-e18a-430f-a48b-f5ae1516a14c",
+      "supplierName": "publishing@email.mckinsey.com",
+      "subject": "Education for all: An interview with Dr. Sven Schütt",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "f13b5adf-dd94-450a-b219-6b6465bed80c",
+      "supplierName": "support@disprseend.com",
+      "subject": "[Important] Your parcel's status has updated",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "07d565eb-7d11-4bf7-8834-69286ef2fa64",
+      "supplierName": "Kiwi.com",
+      "subject": "Bokning 494167982: Din bokning är bekräftad",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "1c942fbe-3081-4ae2-bd14-27e88e925e5b",
+      "supplierName": "no-reply@easypractice.net",
+      "subject": "Bekräftelse på bokning",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "88883fc0-fdb9-4356-86e7-dc4eb92b9b2b",
+      "supplierName": "mirlinda.emporium@gmail.com",
+      "subject": "Fwd: [SIBIONICS] Re: Fw: Request for order and acount",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "8c5d8563-638a-4418-85f0-d3380d2f051c",
+      "supplierName": "SJ AB",
+      "subject": "Biljetter till bokning WKURHW8Q​",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "1cc9dc6d-2783-4a8e-8b36-02d0133dab8d",
+      "supplierName": "contact@info.foodora.se",
+      "subject": "Veckans deals hos foodora market! 🎉",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "01102d3a-5e3c-4f69-ac9f-24e84aa009fb",
+      "supplierName": "kl@jyskmobelfabrik.dk",
+      "subject": "SV: Förfrågan om leverans",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "efa0ba0b-202e-4b62-bf73-210a87fa04d5",
+      "supplierName": "info@interhecs.com",
+      "subject": "RE: Medicine Admission - Inter HECS",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "5e72c8a5-9136-4f66-bc65-ceb68af1c188",
+      "supplierName": "SJ AB",
+      "subject": "Ändring av biljetter för bokning WNWHDRQ9​",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "2d36968d-1a14-48ae-a97e-b57ebc21a819",
+      "supplierName": "no-reply@Skalhuset.se",
+      "subject": "Din följesedel från Skalhuset.se",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "51760ddc-e614-4359-898f-fb7a25bd35b4",
+      "supplierName": "NoReply.ODD@dhl.com",
+      "subject": "Fullmakt bekräftelse",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "a34f4d5a-8171-42b0-b573-2fa0100e5bf9",
+      "supplierName": "SJ AB",
+      "subject": "Biljetter till bokning WNWHDRQ9​",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "05d607a7-f316-4f13-ad07-7ff28759ded2",
+      "supplierName": "publishing@email.mckinsey.com",
+      "subject": "Rewiring for the era of gen AI",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "5e17c722-597e-4102-8017-0399e4525514",
+      "supplierName": "sophiejahn1@gmail.com",
+      "subject": "Kan du ta detta en vända med din jurist",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "7e6fee05-fa86-49b7-9dd2-7d990e0107f8",
+      "supplierName": "TrackingUpdates@fedex.com",
+      "subject": "We’ve updated your estimated delivery 771225755029",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "bd8e041b-0659-406c-aece-3519257ad889",
+      "supplierName": "support@dealproffsen.se",
+      "subject": "[Dealproffsen] Ang: Hej , Tack för din beställning hos oss. Vi beklagar att behöva informera dig om att varan du beställde tyvärr är slut i lager på grund av ett fel i...",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "ba5ea820-34e0-43ed-ac8c-c37990431e9a",
+      "supplierName": "noreply@earlybird.se",
+      "subject": "Paket på väg",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "8a149372-f38d-44f4-afbe-6a2a72ebe237",
+      "supplierName": "NoReply.ODD@dhl.com",
+      "subject": "DHL On Demand Delivery",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "8ec5afe9-5374-42a3-98b4-1ff687ab4b54",
+      "supplierName": "Fora",
+      "subject": "Fazli Hair OP AB har fått en ny faktura från Fora",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "e06487c0-bb39-46ae-bc81-09d99436393e",
+      "supplierName": "Kiwi.com",
+      "subject": "Bokning 580083504: Vi har allt för din resa! ✅",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "e5c80027-f7e3-4da0-8ca7-42a31ca00a71",
+      "supplierName": "store+62227349677@t.shopifyemail.com",
+      "subject": "Shipping update for order #ZMV39912",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "c820fb22-6c45-4840-8603-f833941df414",
+      "supplierName": "enquiries@fruugo.com",
+      "subject": "Du har fått ett nytt meddelande om din Supplementsmegastore.com beställning 128910601",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "ba5c72ab-6b6e-4ef2-9165-859dc9fecff9",
+      "supplierName": "Lululemon Athletica",
+      "subject": "Your lululemon order has been delivered",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "bf125fe9-e34c-494c-bc68-866c4ac2a85e",
+      "supplierName": "hemiacosmetics.sales@gmail.com",
+      "subject": "Tracking [Hemiacosmetics]",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "1afebf89-4b9f-405d-801d-85f6901cb2ae",
+      "supplierName": "info@homezan.com",
+      "subject": "Re: Betalning order 15443",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "6c9888a8-22ff-441a-900d-c0e6c4b0cc20",
+      "supplierName": "enquiries@fruugo.com",
+      "subject": "Du har fått ett nytt meddelande om din Supplementsmegastore.com beställning 128910601",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "fbb327b1-8d24-483a-a1c9-969333d096d3",
+      "supplierName": "support@dynamiccode.com",
+      "subject": "🎁 Sista chansen att beställa Dynamic Codes julklappspaket för leverans innan  jul!",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "8c902e57-c24c-4368-aaec-b8a8dd0e080d",
+      "supplierName": "Norwegian Air Shuttle AOC AS",
+      "subject": "Travel documents Ref. SAZ5BV",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "a008a8f1-a7c5-4810-aca3-49ee3590d82e",
+      "supplierName": "publishing@email.mckinsey.com",
+      "subject": "A wake-up call to tap into digital wealth",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "95a1fbd2-7aed-4270-8aed-5241d47d0c5c",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse WX7S9XJC",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "40326155-57c2-48e7-b4df-3adb12a38ced",
+      "supplierName": "support@hygiene100.de",
+      "subject": "Versandbenachrichtigung von Hygiene 100 GmbH Bestellnummer#339590 - #RE8985",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "6dc72322-f7d1-43a4-8ccb-550ea0373d91",
+      "supplierName": "publishing@email.mckinsey.com",
+      "subject": "Author Talks: The hidden effects of climate on the health of our kids",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "40d3b7b2-2891-41cd-bcc1-5d658fdb2e03",
+      "supplierName": "American Express Europe S.A.",
+      "subject": "Din faktura",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "34688512-ace5-4ca1-9891-451d6e05cb23",
+      "supplierName": "publishing@email.mckinsey.com",
+      "subject": "The next big arenas of competition",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "fc719744-7c1e-4870-ba5f-42519ae83fa2",
+      "supplierName": "TrackingUpdates@fedex.com",
+      "subject": "We have your shipment 771225755029.",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "67d5e5fe-1fb0-4bb3-88de-d94731d524aa",
+      "supplierName": "publishing@email.mckinsey.com",
+      "subject": "Reinventing Rolls-Royce: A conversation with CEO Tufan Erginbilgiç",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "1eda0bf6-5821-47d4-96d3-c7e5628fbdf8",
+      "supplierName": "NoReply.ODD@dhl.com",
+      "subject": "DHL On Demand Delivery",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "946b779f-b2ff-413b-90a2-d31bbe390194",
+      "supplierName": "publishing@email.mckinsey.com",
+      "subject": "Global Economics Intelligence executive summary, September 2024",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "14b9c938-3f66-4fa6-8914-b94431c84e48",
+      "supplierName": "pkginfo@ups.com",
+      "subject": "UPS-sändningsavisering, Söknummer 1Z5720V2DA93276051",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "296382f1-8529-4395-8bc0-2be43314b9f1",
+      "supplierName": "noreply@fedex.com",
+      "subject": "Din försändelse är på väg 771225755029",
+      "reason": "delivery_receipt_no_amount"
+    }
+  ]
+}
