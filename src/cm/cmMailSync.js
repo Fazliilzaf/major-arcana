@@ -99,6 +99,40 @@ function isEconomyCandidate(message) {
   return ECONOMY_KEYWORDS.test(hay);
 }
 
+// ORD-76 · Backlog-städning: mailet ser ekonomiskt ut men innehåller inget
+// belopp (t.ex. bokningsbekräftelser, leveranskvitton, Kivra-aviseringar).
+const NON_ECONOMIC_PATTERNS = [
+  {
+    regex:
+      /\b(bokningsbekräftelse|booking confirmation|bekräftelse\b.*\b(bokning|reservation|order)|confirmation of (new )?flight details|flight confirmation|ticket confirmation|dina biljetter|biljetter till bokning)\b/i,
+    reason: 'booking_confirmation_no_amount',
+  },
+  {
+    regex:
+      /\b(ditt inlämningskvitto|inlämningskvitto|paket\s+(är|har)|leveransbekräftelse|ditt paket|track your package|tracking|paketet har|paketet är|ditt paket har skickats|leverans)\b/i,
+    reason: 'delivery_receipt_no_amount',
+  },
+  {
+    regex:
+      /\b(ny faktura i kivra|ny faktura från|fakturan från .* förfaller|förfaller snart|betala den i kivra|fakturaavisering|fakturapåminnelse)\b/i,
+    reason: 'invoice_notification_portal',
+  },
+  {
+    regex:
+      /\b(bokningen lyckades|din bokning har bekräftats|din bokning är bekräftad|tack för din beställning|tack för ditt köp|tack för din betalning|orderbekräftelse)\b/i,
+    reason: 'purchase_confirmation_no_amount',
+  },
+];
+
+function classifyNonEconomicMail({ subject = '', body = '', expenseType = '' } = {}) {
+  const hay =
+    `${normalizeText(subject)} ${normalizeText(body)} ${normalizeText(expenseType)}`.toLowerCase();
+  for (const p of NON_ECONOMIC_PATTERNS) {
+    if (p.regex.test(hay)) return p.reason;
+  }
+  return null;
+}
+
 function createCmMailSync({
   graphReadConnector,
   cmStore,
@@ -1084,11 +1118,79 @@ function createCmMailSync({
     return results;
   }
 
+  // ORD-76 · Städa bort mail som ser ut som ekonomiska men saknar belopp
+  // (bokningsbekräftelser, leveransnotiser, Kivra-påminnelser etc.).
+  async function classifyNonEconomicRecords({ limit = 100, dryRun = true } = {}) {
+    const results = {
+      ok: true,
+      dryRun,
+      scanned: 0,
+      classified: 0,
+      skipped: 0,
+      errors: [],
+      items: [],
+    };
+
+    const records = cmStore
+      .listRecordsMissingAmount({ limit: Math.max(1, limit * 2) })
+      .filter((r) => r.approvalStatus === 'pending');
+    results.scanned = records.length;
+
+    for (const record of records) {
+      if (results.classified >= limit) break;
+
+      const rawItem = record.rawItemId ? cmStore.getRawItemById(record.rawItemId) : null;
+      const reason = classifyNonEconomicMail({
+        subject: rawItem?.subject || '',
+        body: rawItem?.rawBodyText || rawItem?.bodyPreview || '',
+        expenseType: record.expenseType || '',
+      });
+
+      if (!reason) {
+        results.skipped++;
+        continue;
+      }
+
+      const item = {
+        recordId: record.id,
+        supplierName: record.supplierName || rawItem?.fromEmail || null,
+        subject: String(rawItem?.subject || '').slice(0, 200),
+        reason,
+      };
+
+      if (dryRun) {
+        results.classified++;
+        results.items.push(item);
+        continue;
+      }
+
+      try {
+        const rejected = cmStore.reject(record.id, {
+          rejectedBy: 'system:auto-classifier',
+          reason: `auto_classified_non_economic_mail: ${reason}`,
+        });
+        if (rejected) {
+          cmStore.markReextractAttempt?.(record.id, CM_PROCESSOR_VERSION);
+          results.classified++;
+          results.items.push(item);
+        } else {
+          results.errors.push({ recordId: record.id, error: 'reject returned null' });
+        }
+      } catch (err) {
+        results.errors.push({ recordId: record.id, error: err.message });
+      }
+    }
+
+    if (!dryRun && results.classified > 0) await cmStore.persist();
+    return results;
+  }
+
   return {
     syncFolder,
     syncAll,
     reprocessUnprocessed,
     reextractMissingAmounts,
+    classifyNonEconomicRecords,
     listMessageAttachments,
     buildCombinedText,
     stripHtml,

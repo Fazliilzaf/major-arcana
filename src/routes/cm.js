@@ -228,6 +228,26 @@ function createCmRouter({
     }
   });
 
+  // ORD-76 · Auto-avvisa poster som saknar belopp och är uppenbart icke-ekonomiska
+  // mail (bokningsbekräftelser, leveransnotiser, Kivra-aviseringar etc.).
+  // dryRun=true som standard — kör utan dryRun=false för att faktiskt avvisa.
+  router.post(
+    '/cm/auto-classify-backlog',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      const mailSync = createCmMailSync({ graphReadConnector, cmStore, secureStorage });
+      const limit = Math.min(500, Math.max(1, Number(req.body?.limit) || 100));
+      const dryRun = req.body?.dryRun !== false;
+      try {
+        const result = await mailSync.classifyNonEconomicRecords({ limit, dryRun });
+        return res.json(result);
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   // ORD-73 · IMAP-intag (info@fazli.se hos one.com — utanför M365-tenanten).
   // Fail-closed: kräver CM_IMAP_ENABLED + user/password i env.
   router.post('/cm/imap-sync', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
