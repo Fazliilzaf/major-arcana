@@ -50,6 +50,7 @@ function parseArgs(argv = process.argv.slice(2)) {
   const args = {
     dryRun: true,
     commit: false,
+    force: false,
     limit: 0,
     offset: 0,
     batchSize: 100,
@@ -63,6 +64,7 @@ function parseArgs(argv = process.argv.slice(2)) {
     const flag = argv[i];
     if (flag === '--commit') args.commit = true;
     else if (flag === '--dry-run') args.dryRun = true;
+    else if (flag === '--force') args.force = true;
     else if (flag === '--limit') args.limit = Math.max(0, Number(argv[++i]) || 0);
     else if (flag === '--offset') args.offset = Math.max(0, Number(argv[++i]) || 0);
     else if (flag === '--batch-size') args.batchSize = Math.max(1, Number(argv[++i]) || 100);
@@ -125,7 +127,7 @@ async function markAssetsForNamingReview({ assetStore, patients, args }) {
         stats.skippedCategoryFilter += 1;
         continue;
       }
-      if (!needsBackfill(asset, { force: false })) {
+      if (!needsBackfill(asset, { force: args.force })) {
         stats.skippedNotCandidate += 1;
         continue;
       }
