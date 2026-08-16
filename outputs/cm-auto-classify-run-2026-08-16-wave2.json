@@ -1,0 +1,484 @@
+{
+  "ok": true,
+  "dryRun": false,
+  "scanned": 1000,
+  "classified": 79,
+  "skipped": 921,
+  "errors": [],
+  "items": [
+    {
+      "recordId": "ff92f83e-6183-4b97-9cf2-cf497c5afc73",
+      "supplierName": "Kiwi.com",
+      "subject": "Bokning 494167982: Vi har fått din betalning och påbörjat bokningen!",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "b5f38a53-f169-4230-88cf-5baace57fca2",
+      "supplierName": "ticket.se",
+      "subject": "Tack för din betalning! (Order 16208819)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "8682d3d7-7821-40f3-b16f-b06d03b1bd52",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse WNWHDRQ9",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "96c27ff4-4343-4528-a063-42b4228d5a98",
+      "supplierName": "TrackingUpdates@fedex.com",
+      "subject": "Your shipment is out for delivery today 771225755029",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "95622083-d1af-4fd2-8592-a3abba059c35",
+      "supplierName": "kostaboda-noreply@kostaboda.se",
+      "subject": "Orderbekräftelse KostaBoda",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "c5d0d821-4dbe-4d35-8778-2c407abd0695",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse WQS9B3CD",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "b5be5966-e672-45c6-8c06-ceba0a813abf",
+      "supplierName": "SJ AB",
+      "subject": "Biljetter till bokning WQTK6W27​",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "7aa61294-e7e0-4cc8-bb98-f31c946661e1",
+      "supplierName": "SJ AB",
+      "subject": "Biljetter till bokning WB7A7BST​",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "67e1337a-842f-4734-857c-6347706de7d3",
+      "supplierName": "Kiwi.com",
+      "subject": "Bokning 580083504: Din bokning är bekräftad",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "f83c9e8b-1ea6-4737-827e-c7d64ee17977",
+      "supplierName": "info@flygcity.se",
+      "subject": "Orderbekräftelse 1915400",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "bde6c9af-23da-4599-b405-f30bb656d6fd",
+      "supplierName": "NoreplySales@ticket.se",
+      "subject": "Tack för din betalning! (Order 15796858)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "f94e8386-ec9b-4c27-b43e-f6c5ef198805",
+      "supplierName": "no-reply@postnord.com",
+      "subject": "Paket till dig!",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "6c6d4612-0614-4e68-a68b-cf7f57f504d0",
+      "supplierName": "julia.roth@ticket.se",
+      "subject": "Sv: P2YWVB Biljetter/Bokningsbekräftelse - Mail",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "177c765b-44d8-418b-8697-a7e63c97febc",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse WJ2Q2PRX",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "7d220f7e-0ae8-42b8-8b06-10c47c7ea6ea",
+      "supplierName": "support@trynovahair.com",
+      "subject": "A shipment from order #MH992831 is on the way",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "f23bf305-f9eb-487c-b582-e01cf61a5029",
+      "supplierName": "no-reply@travelstart.se",
+      "subject": "Din bokningsbegäran behandlas MQI9M3",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "f1d05e0b-c440-4d10-802e-8b3c997aa6a4",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse WWWK73ZR",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "c3529596-da11-4164-8276-5c6c9589bae6",
+      "supplierName": "Nätkraft Borås AB",
+      "subject": "Ny faktura från Nätkraft Borås AB i Kivra",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "95b223ad-259e-4b4f-9b17-946eb53e622b",
+      "supplierName": "Transportstyrelsen",
+      "subject": "Ny faktura från Transportstyrelsen i Kivra",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "05d85143-da3c-4c9d-a9b2-212f227e3f7a",
+      "supplierName": "Travellink",
+      "subject": "Bokningen lyckades: Travellink ref. nr17037935943",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "828e0e87-5676-404b-8b9e-ada5e1c7708f",
+      "supplierName": "no-xv7iftt8@formstack.com",
+      "subject": "Åtgärd krävs: Problem med leveransen av ditt paket",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "896a4011-47d9-408d-9dff-c4a63e077d15",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse W75WK2UN",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "5a2fdb50-b2ee-4d35-a567-d4146724190c",
+      "supplierName": "Opodo",
+      "subject": "Bokningen lyckades: Opodo ref. nr15330621576",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "6f1324b3-409e-4c66-98d6-3be4546839eb",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse WPQDLCT6",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "b66135c1-b53a-4edf-8d29-3bf7e78798e0",
+      "supplierName": "ticket.se",
+      "subject": "Tack för din betalning! (Order 15808932)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "60c04fd7-804b-4e08-bf69-52e8a70af3bb",
+      "supplierName": "info@flygcity.se",
+      "subject": "Orderbekräftelse 1915428",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "f856ea6d-9ea6-4805-a45b-8e67498c36d1",
+      "supplierName": "Travellink",
+      "subject": "Bokningen lyckades: Travellink ref. nr14440420257",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "9531f7fb-1632-4046-a39b-f9b1a2104102",
+      "supplierName": "Transportstyrelsen",
+      "subject": "Ny faktura från Transportstyrelsen i Kivra",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "bab103d7-e72b-47f5-9fb5-55d3a9d286a5",
+      "supplierName": "express.shped@gmail.com",
+      "subject": "Re: Shipment from Nappa mobilya san, Turkey to Begum Savran Kosovo",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "f73e082e-fb6d-421a-a8b8-153a05e2ad19",
+      "supplierName": "SJ",
+      "subject": "E-biljett - 2024-01-04, Bokningsnr: JRL3406U",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "882ad20a-7d1f-464c-b7b6-6b9493d0fc15",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse WQTK6W27",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "2c8a7320-b87c-47d9-8066-b926c5c74559",
+      "supplierName": "NoReply.ODD@dhl.com",
+      "subject": "DHL On Demand Delivery",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "12db8117-d71a-4ab4-b0cb-cbab2e43569f",
+      "supplierName": "SJ AB",
+      "subject": "Biljetter till bokning WQS9B3CD​",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "adee6d57-c970-45ba-9a2e-c9deece848e2",
+      "supplierName": "no-reply@support.dyson.se",
+      "subject": "Your order 1792061968 is on its way",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "57816c3b-a292-4b40-804a-8e8221ac6259",
+      "supplierName": "no-reply@unifaun.com",
+      "subject": "En transport från Astomed Klinikutrustning AB är på väg till dig!",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "3d64ef97-625b-49be-b7fc-8737329698b2",
+      "supplierName": "info@jolifill.de",
+      "subject": "Your shipment for order #121447 was dispatched",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "401b5ffc-1b97-4012-ab10-ce1ebcf50206",
+      "supplierName": "no-reply@info.sj.se",
+      "subject": "Bokningsbekräftelse W2KBYBHK",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "7ba2e1b3-de7b-42bb-b843-ead8f9a443f4",
+      "supplierName": "info@bluebirdmedical.se",
+      "subject": "Er leverans har nu skickats (Avs ref:103050)",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "e5a79e81-6c3a-4bbf-8f98-dbf7f95c1727",
+      "supplierName": "kl@jyskmobelfabrik.dk",
+      "subject": "SV: Förfrågan om leverans",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "df4d1260-25ff-429b-8e74-0e00787219f6",
+      "supplierName": "SJ",
+      "subject": "E-biljett - 2024-03-10, Bokningsnr: AKG7625N",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "46427fb0-f619-4313-abe5-b01f0c8fd8a7",
+      "supplierName": "Finnair",
+      "subject": "Bokningsbekräftelse och information för WBNZPW",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "4a2ac4c5-4b3b-4a7d-ab45-99ebf53c6702",
+      "supplierName": "Opodo",
+      "subject": "Din bokning har bekräftats! (Nummer: $17819951630)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "0fda14b1-6ad8-47d3-a715-8285ca218b62",
+      "supplierName": "no-4c7h0s3u@formstack.com",
+      "subject": "Åtgärd krävs: Problem med leveransen av ditt paket",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "c505ec4c-0728-4613-9ea4-581656d3dd71",
+      "supplierName": "kundservice@earlybird.se",
+      "subject": "Re: Early Bird Ärende [439020] - Leveransuppdatering - 72991749",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "9d7c5691-c9e5-4589-b098-9814d206372a",
+      "supplierName": "Transportstyrelsen",
+      "subject": "Ny faktura från Transportstyrelsen i Kivra",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "2000583a-f5b2-4bcd-a6ca-ebc4c9c10a2b",
+      "supplierName": "noreply@axs.com",
+      "subject": "Biljetter har skickats till dig",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "51eb4d53-19ec-413d-b9db-4890eb0901ee",
+      "supplierName": "NoreplySales@ticket.se",
+      "subject": "Tack för din betalning! (Order 16370376)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "8e8cbd2b-9fe3-4582-b34d-b2622ce1c6c9",
+      "supplierName": "NoreplySales@ticket.se",
+      "subject": "Tack för din betalning! (Order 16370395)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "3567b277-9dd0-4fdc-ab1b-20396156088c",
+      "supplierName": "NoreplySales@ticket.se",
+      "subject": "Tack för din betalning! (Order 16401749)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "9776d8c7-fa57-4b08-b5e1-51b4877c5816",
+      "supplierName": "ticket.se",
+      "subject": "Tack för din betalning! (Order 16416107)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "e52adaff-30d1-4e7e-9cf9-49cecdd6806f",
+      "supplierName": "no-reply@wufoo.com",
+      "subject": "Kontaktformulär - Ticket.se",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "5bd088a6-e360-4d7e-b38e-8cfd53070dbd",
+      "supplierName": "Irma.Kadric@ticket.se",
+      "subject": "Sv: 16463875 Biljetter/Bokningsbekräftelse - Mail",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "06fb25e1-5524-46c8-ab79-1f22985ba747",
+      "supplierName": "store+67080257730@t.shopifyemail.com",
+      "subject": "A shipment from order TL1221120 is on the way",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "1a8cce24-1ac4-4e1e-852c-3635d63ed4b5",
+      "supplierName": "Nätkraft Borås AB",
+      "subject": "Ny faktura från Nätkraft Borås AB — betala den i Kivra!",
+      "reason": "invoice_notification_portal"
+    },
+    {
+      "recordId": "e3800121-4f63-4a88-b62c-acf227b1b8d9",
+      "supplierName": "NoreplySales@ticket.se",
+      "subject": "Tack för din betalning! (Order 16604943)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "de758dc5-ad01-4752-881f-5f7c9f154df6",
+      "supplierName": "no-reply@notifications.joom.com",
+      "subject": "Information om paketets resa BCMDP309534302579",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "ac4a58b0-0802-4a68-a302-01451abe11a4",
+      "supplierName": "store+58396377159@t.shopifyemail.com",
+      "subject": "A shipment from order #37523 is on the way",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "bcf01d33-b74f-49f7-afb8-e182e65e502f",
+      "supplierName": "ticket.se",
+      "subject": "Tack för din betalning! (Order 16654742)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "d79517d2-8635-402e-a66a-e55ac9aedfee",
+      "supplierName": "TrackingUpdates@fedex.com",
+      "subject": "We’ve updated your estimated delivery 882394380764",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "e9d1601c-7b24-4ec7-8dfc-7dfb3dc8928e",
+      "supplierName": "TrackingUpdates@fedex.com",
+      "subject": "Your shipment is scheduled for delivery tomorrow 882394380764",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "9ee03c51-b9ec-4f8e-a424-fb4008581816",
+      "supplierName": "frank.dubre@mercedes-benz.com",
+      "subject": "Fw: Din orderförfrågan 011000100269",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "eb1d4dd2-f4ac-41a3-bbce-e46e613da2d0",
+      "supplierName": "frank.dubre@mercedes-benz.com",
+      "subject": "Re: Din orderförfrågan 011000100269",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "75fa4100-dd53-4c77-b788-623ff10c1623",
+      "supplierName": "info@bluebirdmedical.se",
+      "subject": "Er leverans har nu skickats (Avs ref:132110)",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "bf30f8e0-afd8-48e8-a9c0-e2f8dd35d86a",
+      "supplierName": "Körskolan.com",
+      "subject": "Bokningsbekräftelse - Körskolan.com",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "5699b759-2e39-44f0-a7a0-18234542e900",
+      "supplierName": "Körskolan.com",
+      "subject": "Bokningsbekräftelse - Körskolan.com",
+      "reason": "booking_confirmation_no_amount"
+    },
+    {
+      "recordId": "f199b84d-8530-44bd-9ffa-bbe4af9c3fb7",
+      "supplierName": "NoreplySales@ticket.se",
+      "subject": "Tack för din betalning! (Order 16794589)",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "99f97840-e38c-4623-b28b-27e21d226ec2",
+      "supplierName": "store+84100579675@t.shopifyemail.com",
+      "subject": "A shipment from order #1094 is on the way",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "e3511df0-fed6-47c1-b0d3-e79f8ccda331",
+      "supplierName": "informationsforsorjning@bolagsverket.se",
+      "subject": "Leverans av din beställning 100857026",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "f87ec6d9-c0c9-4dde-b744-4483f3489b6a",
+      "supplierName": "pkginfo@ups.com",
+      "subject": "UPS-sändningsavisering, Söknummer 1ZF43E176838007203",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "68b9de13-5abc-44c2-8f0c-50a59fe738a2",
+      "supplierName": "pkginfo@ups.com",
+      "subject": "UPS undantagsavisering, Söknummer 1ZF43E176838007203",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "e7458e2e-4e9f-470e-ac8a-f67bda75bd70",
+      "supplierName": "pkginfo@ups.com",
+      "subject": "UPS undantagsavisering, Söknummer 1ZF43E176838007203",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "61670ce0-734e-4f8f-bea6-3c576c96d187",
+      "supplierName": "pkginfo@ups.com",
+      "subject": "UPS undantagsavisering, Söknummer 1ZY6A1556893798549",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "d2cbf823-c90b-435e-a9f6-7f8f3d08492f",
+      "supplierName": "pkginfo@ups.com",
+      "subject": "UPS-uppdatering: Paketet är planerat för leverans i morgon",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "a3a81f25-0a05-4d34-93aa-93c83265b744",
+      "supplierName": "noreply@tre.se",
+      "subject": "Tack för din beställning",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "6fb371d4-0c6b-4c76-bd29-c86fb426f879",
+      "supplierName": "Tre Företag",
+      "subject": "Tack för din beställning",
+      "reason": "purchase_confirmation_no_amount"
+    },
+    {
+      "recordId": "1e3fe151-8b2e-462b-b7b4-5c60730a26ff",
+      "supplierName": "no-reply@airmee.com",
+      "subject": "Missa inte din Airmee-leverans från Amazon",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "9bba091f-c835-4de5-b270-b48585f8d66f",
+      "supplierName": "hamta@dhl.com",
+      "subject": "Ditt paket från BELLESTORE NORDIC AB kan nu hämtas",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "848ae472-91e8-46fb-ada9-d4fd0ba5b5fe",
+      "supplierName": "hamta@dhl.com",
+      "subject": "Glöm inte att hämta ditt paket från BELLESTORE NORDIC AB",
+      "reason": "delivery_receipt_no_amount"
+    },
+    {
+      "recordId": "7478175c-9d5b-4ff4-9fd5-726a04cb07a6",
+      "supplierName": "hamta@dhl.com",
+      "subject": "Ditt paket från BELLESTORE NORDIC AB kan nu hämtas",
+      "reason": "delivery_receipt_no_amount"
+    }
+  ]
+}
