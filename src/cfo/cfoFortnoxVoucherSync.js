@@ -62,6 +62,7 @@ function buildVoucherPayload(
   const vat = Number(expense.vatSek) || 0;
   const net = Math.round((gross - vat) * 100) / 100;
   const costAccount = accountMap[expense.category] || accountMap.annat;
+  const isCreditNote = gross < 0;
   const notes = [];
   let rows;
   let accountSource = 'default_suggestion';
@@ -69,12 +70,12 @@ function buildVoucherPayload(
   if (expense.vatMode === 'reverse_charge_eu') {
     // Ingen moms i fakturan — hela beloppet är kostnad; fiktiv moms 25 % läggs
     // som 2614 K + 2645 D (netto noll, men deklarationen kräver båda raderna).
-    const fictiveVat = Math.round(gross * REVERSE_CHARGE_RATE * 100) / 100;
+    const fictiveVat = Math.round(Math.abs(gross) * REVERSE_CHARGE_RATE * 100) / 100;
     rows = [
-      { Account: costAccount, Debit: gross, Credit: 0 },
+      { Account: costAccount, Debit: Math.abs(gross), Credit: 0 },
       { Account: REVERSE_CHARGE_IN_ACCOUNT, Debit: fictiveVat, Credit: 0 },
       { Account: REVERSE_CHARGE_OUT_ACCOUNT, Debit: 0, Credit: fictiveVat },
-      { Account: COUNTER_ACCOUNT, Debit: 0, Credit: gross },
+      { Account: COUNTER_ACCOUNT, Debit: 0, Credit: Math.abs(gross) },
     ];
     accountSource = 'vat_mode_reverse_charge_eu';
     notes.push(
@@ -89,33 +90,46 @@ function buildVoucherPayload(
   ) {
     // Representation: endast momsen på underlag ≤300 kr/person är avdragsgill.
     // deductibleVatSek kommer från CF.6-beräkningen; resten ligger kvar i kostnaden.
-    const dedVat = Math.round(Number(expense.deductibleVatSek) * 100) / 100;
-    const cost = Math.round((gross - dedVat) * 100) / 100;
+    const dedVat = Math.round(Math.abs(Number(expense.deductibleVatSek)) * 100) / 100;
+    const cost = Math.round((Math.abs(gross) - dedVat) * 100) / 100;
     rows = [
       { Account: costAccount, Debit: cost, Credit: 0 },
       ...(dedVat > 0 ? [{ Account: VAT_ACCOUNT, Debit: dedVat, Credit: 0 }] : []),
-      { Account: COUNTER_ACCOUNT, Debit: 0, Credit: gross },
+      { Account: COUNTER_ACCOUNT, Debit: 0, Credit: Math.abs(gross) },
     ];
     accountSource = 'vat_mode_representation_limited';
     notes.push(
       `Representation: avdragsgill moms ${dedVat} kr (underlag max 300 kr/person), resten i kostnaden.`
     );
-    balanced = Math.round((cost + dedVat - gross) * 100) === 0;
+    balanced = Math.round((cost + dedVat - Math.abs(gross)) * 100) === 0;
   } else {
-    rows = [{ Account: costAccount, Debit: net, Credit: 0 }];
-    if (vat > 0) rows.push({ Account: VAT_ACCOUNT, Debit: vat, Credit: 0 });
-    rows.push({ Account: COUNTER_ACCOUNT, Debit: 0, Credit: gross });
-    balanced = Math.round((net + vat - gross) * 100) === 0;
+    rows = [{ Account: costAccount, Debit: Math.abs(net), Credit: 0 }];
+    if (Math.abs(vat) > 0) rows.push({ Account: VAT_ACCOUNT, Debit: Math.abs(vat), Credit: 0 });
+    rows.push({ Account: COUNTER_ACCOUNT, Debit: 0, Credit: Math.abs(gross) });
+    balanced = Math.round((Math.abs(net) + Math.abs(vat) - Math.abs(gross)) * 100) === 0;
     if (expense.vatMode === 'representation_limited') {
       notes.push(
         'Representation utan beräknad avdragsgill moms (deductibleVatSek saknas) — granska momsavdraget manuellt.'
       );
     }
   }
+
+  // Kreditnota: vänd debet/kredit på samtliga rader så verifikatet speglas.
+  if (isCreditNote) {
+    rows = rows.map((r) => ({ Account: r.Account, Debit: r.Credit, Credit: r.Debit }));
+    notes.push('Kreditnota: negativt belopp — verifikatraderna har spegelvänts.');
+  }
+
+  // Säkerställ balans oavsett positiv/kreditnota genom att summera båda sidor.
+  const totalDebit = rows.reduce((s, r) => s + Number(r.Debit || 0), 0);
+  const totalCredit = rows.reduce((s, r) => s + Number(r.Credit || 0), 0);
+  balanced = Math.round((totalDebit - totalCredit) * 100) === 0;
+
   // ORD-CM-18: Fortnox validerar Description hårt ("Värdet innehåller ej
   // tillåtna tecken" — prod-verifierat 2026-07-17 för '·' och '_'). Whitelist:
   // bokstäver (inkl åäö), siffror, mellanslag och .,()-/&. Id:t utan exp_-prefix.
-  const beskrivning = `CF ${String(expense.id).replace(/^exp_/, '')}${
+  const prefix = isCreditNote ? 'CF KREDITNOTA' : 'CF';
+  const beskrivning = `${prefix} ${String(expense.id).replace(/^exp_/, '')}${
     expense.supplier ? ` ${expense.supplier}` : ''
   }`
     .replace(/[^a-zA-Z0-9åäöÅÄÖéÉüÜ .,()\-/&]/g, ' ')
@@ -132,6 +146,7 @@ function buildVoucherPayload(
       expenseId: expense.id,
       category: expense.category || null,
       accountSource,
+      isCreditNote,
       balanced,
       ...(notes.length ? { notes } : {}),
     },
@@ -169,9 +184,9 @@ function createCfoFortnoxVoucherSync({
     const rows = Array.isArray(all) ? all : all?.expenses || [];
     return rows.filter(
       (e) =>
-        // ORD-CM-15: aldrig bokföra tomma verifikat — poster utan positivt
-        // belopp lämnas åt ägaren (avvisa eller komplettera).
-        Number(e.amountSek) > 0 &&
+        // ORD-CM-15: aldrig bokföra tomma verifikat — nollbelopp lämnas kvar.
+        // Kreditnotor (negativa belopp) ska med i Fortnox-syncen.
+        Number(e.amountSek) !== 0 &&
         e.status === 'exported' &&
         e.fortnoxExportPending === true &&
         ['pending', 'blocked_integration'].includes(e.fortnoxSyncStatus)
@@ -330,8 +345,7 @@ function createCfoFortnoxVoucherSync({
           });
           const rows = svar?.Vouchers || [];
           totalPages = Number(svar?.MetaInformation?.['@TotalPages'] || 1);
-          found =
-            rows.find((v) => String(v.Description || '').startsWith(cfTag)) || null;
+          found = rows.find((v) => String(v.Description || '').startsWith(cfTag)) || null;
           page += 1;
         } while (!found && page <= totalPages);
       } catch (err) {

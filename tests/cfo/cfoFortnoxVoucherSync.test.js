@@ -247,6 +247,79 @@ test('representation_limited UTAN deductibleVatSek: default-kontering + manuell-
   assert.ok(p.meta.notes.some((n) => n.includes('granska momsavdraget manuellt')));
 });
 
+// ── Kreditnota-stöd ─────────────────────────────────────────────────────────
+test('kreditnota: negativt belopp spegelvänder debet/kredit och märker meta', () => {
+  const {
+    buildVoucherPayload,
+    DEFAULT_ACCOUNT_MAP,
+  } = require('../../src/cfo/cfoFortnoxVoucherSync');
+  const p = buildVoucherPayload({
+    id: 'exp_cn',
+    supplier: 'Foodora AB',
+    amountSek: -588,
+    vatSek: 0,
+    category: 'mat_representation',
+    vatMode: 'representation_limited',
+    deductibleVatSek: 36,
+  });
+  assert.equal(p.meta.isCreditNote, true);
+  assert.ok(p.Voucher.Description.startsWith('CF KREDITNOTA'));
+  assert.equal(p.meta.balanced, true);
+  const rows = p.Voucher.VoucherRows;
+  const costRow = rows.find((r) => r.Account === DEFAULT_ACCOUNT_MAP.mat_representation);
+  const vatRow = rows.find((r) => r.Account === 2641);
+  const counterRow = rows.find((r) => r.Account === 1930);
+  assert.deepEqual(costRow, {
+    Account: DEFAULT_ACCOUNT_MAP.mat_representation,
+    Debit: 0,
+    Credit: 552,
+  });
+  assert.deepEqual(vatRow, { Account: 2641, Debit: 0, Credit: 36 });
+  assert.deepEqual(counterRow, { Account: 1930, Debit: 588, Credit: 0 });
+  const debit = rows.reduce((s, r) => s + r.Debit, 0);
+  const credit = rows.reduce((s, r) => s + r.Credit, 0);
+  assert.equal(debit, credit);
+});
+
+test('listPendingExpenses inkluderar kreditnotor (negativa belopp)', async () => {
+  const sync = createCfoFortnoxVoucherSync({
+    expenseStore: fakeExpenseStore([
+      { ...SAMPLE_EXPENSE, id: 'exp_pos', amountSek: 1000 },
+      {
+        ...SAMPLE_EXPENSE,
+        id: 'exp_cn',
+        amountSek: -25177,
+        category: 'mat_representation',
+        vatMode: 'representation_limited',
+        deductibleVatSek: 1500,
+      },
+    ]),
+    env: {},
+  });
+  const pending = await sync.listPendingExpenses();
+  assert.equal(pending.length, 2);
+  const ids = pending.map((e) => e.id).sort();
+  assert.deepEqual(ids, ['exp_cn', 'exp_pos']);
+});
+
+test('markFortnoxSkip: sätter status skip, exportPending false och audit-loggar', async () => {
+  const os = require('node:os');
+  const path = require('node:path');
+  const fsp = require('node:fs/promises');
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'cf-skip-'));
+  const { createCfoExpenseStore } = require('../../src/cfo/cfoExpenseStore');
+  const store = await createCfoExpenseStore({ filePath: path.join(dir, 'expenses.json') });
+  const e = await store.createExpense({
+    actor: { role: 'test' },
+    fields: { amountSek: 100, category: 'annat' },
+  });
+  await store.transitionStatus({ id: e.id, newStatus: 'exported', actor: { role: 'test' } });
+  const updated = await store.markFortnoxSkip({ id: e.id, reason: 'privat', actor: 'tester' });
+  assert.equal(updated.fortnoxSyncStatus, 'skip');
+  assert.equal(updated.fortnoxExportPending, false);
+  assert.equal(store.getById(e.id).fortnoxSyncStatus, 'skip');
+});
+
 // ── ORD-CM-16 · gate-override från persistenta disken ───────────────────────
 test('gate-override: fil med voucherSyncEnabled=true öppnar gaten utan env', async () => {
   const os = require('node:os');

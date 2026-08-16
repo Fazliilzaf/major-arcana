@@ -279,6 +279,41 @@ function createCfoVoucherSyncRouter({
     }
   );
 
+  // Skip-knapp: ägaren kan flytta privat/avvisad/annan post ur pending-kön.
+  // Sätter fortnoxSyncStatus='skip' + exportPending=false. Återställs ej automatiskt.
+  router.post(
+    '/cco-cf/voucher-sync/skip',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    express.json(),
+    async (req, res) => {
+      if (!cfoExpenseStore)
+        return res.status(503).json({ ok: false, error: 'expense store ej monterad' });
+      const expenseIds = req.body?.expenseIds;
+      if (!Array.isArray(expenseIds) || expenseIds.length === 0) {
+        return res
+          .status(400)
+          .json({ ok: false, error: 'expenseIds måste vara en icke-tom array' });
+      }
+      const results = [];
+      const errors = [];
+      for (const id of expenseIds) {
+        try {
+          const e = await cfoExpenseStore.markFortnoxSkip({
+            id,
+            reason: req.body?.reason || 'owner-skip',
+            actor: req.ccoUser?.email || 'owner',
+          });
+          results.push({ id, status: e.fortnoxSyncStatus });
+        } catch (err) {
+          errors.push({ id, error: err.message });
+        }
+      }
+      auditGate('cf.fortnox.voucher_skip', req, { count: results.length, errors: errors.length });
+      return res.json({ ok: errors.length === 0, skipped: results.length, results, errors });
+    }
+  );
+
   // ORD-CM-30 · Syncing-limbo-avstämning: söker verifikatet i Fortnox
   // (Description "CF <id>") för poster som fastnat i 'syncing'.
   // dryRun (default) = enbart rapport. dryRun=false: träff → synced med

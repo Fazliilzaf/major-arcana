@@ -1047,6 +1047,31 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     return { ...e };
   }
 
+  /**
+   * Ägar-val att hoppa över Fortnox-sync för en expense (t.ex. privat köp).
+   * Sätter fortnoxSyncStatus='skip' och fortnoxExportPending=false. Audit-loggas.
+   */
+  async function markFortnoxSkip({ id, reason = '', actor } = {}) {
+    const e = data.expenses.find((x) => x.id === id);
+    if (!e) throw new Error('expense finns ej');
+    if (e.fortnoxSyncStatus === 'synced') {
+      throw new Error('redan Fortnox-syncad expense kan inte skippas');
+    }
+    e.fortnoxSyncStatus = 'skip';
+    e.fortnoxExportPending = false;
+    e.fortnoxSyncError = null;
+    e.updatedAt = nowIso();
+    e.history.push({
+      status: e.status,
+      at: nowIso(),
+      by: actor,
+      reason: `fortnox-skip${reason ? ': ' + reason : ''}`,
+    });
+    await persist();
+    audit('cf.fortnox.voucher_skipped', { expenseId: id, reason, actor });
+    return { ...e };
+  }
+
   return {
     schemaVersion: SCHEMA_VERSION,
     VALID_STATUSES,
@@ -1064,6 +1089,7 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     markFortnoxError,
     markFortnoxRetry,
     markFortnoxSyncingToPending,
+    markFortnoxSkip,
     attachFile,
     listExpenses,
     aggregateByMonth,
