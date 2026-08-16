@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "dryRun": true,
+  "scanned": 1000,
+  "classified": 0,
+  "skipped": 1000,
+  "errors": [],
+  "items": []
+}
