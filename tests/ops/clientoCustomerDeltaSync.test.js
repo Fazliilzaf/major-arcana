@@ -5,10 +5,14 @@ const {
   normalizeClientoCustomersPayload,
   createClientoApi,
 } = require('../../src/infra/clientoApi');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const {
   buildClientoPatientLookup,
   findClientoDeltaCandidates,
   runClientoCustomerDeltaSync,
+  runClientoCustomerCsvDeltaSync,
 } = require('../../src/ops/clientoCustomerDeltaSync');
 
 test('normalizeClientoCustomersPayload plockar kunder från nested payload', () => {
@@ -135,4 +139,48 @@ test('clientoApi getCustomers anropar /customers/ med paging', async () => {
   const payload = await api.getCustomers({ offset: 0, limit: 50 });
   assert.ok(Array.isArray(payload.customers));
   assert.match(capturedUrl, /\/customers\/\?offset=0&limit=50/);
+});
+
+test('runClientoCustomerCsvDeltaSync berikar sourceId från bokningsexport', async () => {
+  const customerCsv = [
+    '"Namn","E-post","Telefon","Skapad"',
+    '"Anna Test","anna@example.com","0701234567","2024-01-01 10:00"',
+  ].join('\n');
+  const bookingCsv = [
+    '"Boknings-id","Bokningsreferens","Skapad tid","Starttid","Sluttid","Bokningens längd","Pris","Resurs-id","Resursnamn","Beskrivning","Paus efter","Bokningsanteckning","Bokningens pris","Pris från","Kund-id","Kundnamn","Bokad som","Kund (mobilnummer)","Kund (annat telefonnummer)","Kund e-post","Personnummer","Kund borttagen","Meddelande från kund","Kund skapad","Status","Källa","Källa (Avbokning)","Avbokad tid","Typ","Reservationstyp","Tidszon","Tjänste-id","Tjänstens namn","Tjänster (pris)","Tjänsten är pris från","Tjänst (Längd på tjänst)","Betalningsleverantör","Betalningsstatus","Betalt belopp","Betalningsreferens","Betald tid","Återbetalad tid","Anpassade fält","Attribut","Konto","Partner-id"',
+    '1,ref,2024-01-01 10:00,2024-01-02 10:00,2024-01-02 11:00,60,,1,X,,0,,,false,4041234,Anna Test,,+46701234567,,anna@example.com,,false,,2024-01-01 10:00,Booked,,,,SimpleBooking,,Europe/Stockholm,,,,,,,,,,,,,,{},Hair TP Clinic,',
+  ].join('\n');
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cliento-csv-test-'));
+  const customerPath = path.join(dir, 'customers.csv');
+  const bookingPath = path.join(dir, 'bookings.csv');
+  fs.writeFileSync(customerPath, customerCsv);
+  fs.writeFileSync(bookingPath, bookingCsv);
+
+  try {
+    let upserted = null;
+    const patientMasterStore = {
+      async listPatients() {
+        return { patients: [], total: 0 };
+      },
+      async upsertPatient(payload) {
+        upserted = payload;
+        return { id: 'p-new', ...payload };
+      },
+    };
+
+    const report = await runClientoCustomerCsvDeltaSync({
+      patientMasterStore,
+      tenantId: 'hair-tp-clinic',
+      csvPath: customerPath,
+      bookingExportCsvPath: bookingPath,
+      dryRun: false,
+    });
+
+    assert.equal(report.created, 1);
+    assert.equal(report.stats.enrichedSourceId, 1);
+    assert.equal(upserted.cliento.sourceId, '4041234');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
