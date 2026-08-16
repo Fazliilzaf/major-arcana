@@ -722,3 +722,89 @@ test('CM-5: custom-mappar synkas och Klara fortnox-mail märks som redan bokför
     'https://graph/delta-amex'
   );
 });
+
+// ORD-75c · IMAP-källor ska aldrig anropa Graph vid reextract — bilagor och
+// body finns redan sparade lokalt.
+test('reextractMissingAmounts: IMAP-källa läser bilagor lokalt utan Graph-anrop', async () => {
+  const cmStore = await tmpStore();
+  const connector = makeFixtureConnector({ messages: [] });
+  const graphCalls = [];
+  const patchedConnector = {
+    ...connector,
+    async fetchAccessToken() {
+      graphCalls.push('fetchAccessToken');
+      return connector.fetchAccessToken();
+    },
+    async fetchMessageAttachmentContent(...args) {
+      graphCalls.push('fetchMessageAttachmentContent');
+      return connector.fetchMessageAttachmentContent(...args);
+    },
+  };
+
+  const pdfBuffer = Buffer.from('%PDF-1.4 fake invoice text');
+  const secureStorage = {
+    ...makeFakeSecureStorage(),
+    async getObject(key) {
+      if (key === 'cm/receipts/2026-07/abc123-faktura.pdf') {
+        return { buffer: pdfBuffer, mimeType: 'application/pdf' };
+      }
+      throw new Error('unexpected getObject: ' + key);
+    },
+  };
+
+  const { rawItem } = cmStore.importRawItem({
+    sourceType: 'email',
+    sourceId: 'info@fazli.se',
+    mailMessageId: 'imap:127090',
+    internetMessageId: '<imap-127090@one.com>',
+    subject: 'Faktura från Testleverantör',
+    fromEmail: 'faktura@testleverantor.se',
+    receivedAt: '2026-07-12T10:00:00Z',
+    rawBodyText: 'Tack för ditt köp. Summa: 1 995 kr inklusive moms.',
+    hasAttachments: true,
+    hasPdf: true,
+  });
+
+  const doc = cmStore.createDocument({
+    rawItemId: rawItem.id,
+    fileName: 'faktura.pdf',
+    mimeType: 'application/pdf',
+    storagePath: 'cm/receipts/2026-07/abc123-faktura.pdf',
+    source: 'pdf',
+  });
+
+  const record = cmStore.createExpenseRecord({
+    rawItemId: rawItem.id,
+    documentId: doc.id,
+    expenseType: 'unknown',
+    flags: ['NEEDS_MANUAL_REVIEW'],
+  });
+
+  const sync = createCmMailSync({
+    graphReadConnector: patchedConnector,
+    cmStore,
+    secureStorage,
+    extractDocumentImpl: async (inp) => ({
+      ok: true,
+      extraction: {
+        documentType: 'invoice',
+        supplier: 'Testleverantör',
+        amountIncVat: 1995,
+        amountExVat: 1596,
+        vatAmount: 399,
+        confidenceScore: 92,
+      },
+    }),
+  });
+
+  const result = await sync.reextractMissingAmounts({ limit: 5, force: true });
+  assert.equal(result.candidates, 1);
+  assert.equal(result.attempted, 1);
+  assert.equal(result.updatedRecords, 1);
+  assert.equal(result.errors.length, 0);
+  assert.equal(graphCalls.length, 0, 'inget Graph-anrop ska göras för IMAP-källa');
+
+  const updated = cmStore.getExpenseRecordById(record.id);
+  assert.equal(updated.amountIncVat, 1995);
+  assert.equal(updated.vatAmount, 399);
+});

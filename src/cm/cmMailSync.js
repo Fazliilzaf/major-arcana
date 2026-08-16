@@ -212,6 +212,50 @@ function createCmMailSync({
     };
   }
 
+  // ORD-75c · IMAP-källor har redan bilagor sparade i secureStorage vid
+  // import. Vid reextract kan vi läsa dem direkt utan att gå ut mot Graph.
+  function isImapSource(rawItem) {
+    return /^imap:\d+$/i.test(normalizeText(rawItem?.mailMessageId));
+  }
+
+  async function harvestImapAttachments({ rawItem, errors }) {
+    const out = { pdfText: null, imageInput: null, firstDocument: null };
+    if (!secureStorage?.getObject || !rawItem?.id) return out;
+
+    const docs = (cmStore.getDocumentsByRawItemId?.(rawItem.id) || []).filter((d) =>
+      normalizeText(d.storagePath)
+    );
+    const usable = docs.slice(0, MAX_ATTACHMENTS_PER_MESSAGE);
+
+    for (const doc of usable) {
+      try {
+        const obj = await secureStorage.getObject(doc.storagePath);
+        const buffer = obj?.buffer;
+        if (!buffer || buffer.length > MAX_ATTACHMENT_BYTES) continue;
+        if (!out.firstDocument) out.firstDocument = doc;
+
+        const isPdf = /pdf/i.test(doc.mimeType || obj.mimeType || '');
+        const isImage = /^image\//i.test(doc.mimeType || obj.mimeType || '');
+        if (isPdf && !out.pdfText) {
+          const pdfParse = getPdfParse();
+          if (pdfParse) {
+            const parsed = await pdfParse(buffer).catch(() => null);
+            const text = normalizeText(parsed?.text);
+            if (text.length > 40) out.pdfText = text;
+          }
+        } else if (isImage && !out.imageInput) {
+          out.imageInput = {
+            imageBase64: buffer.toString('base64'),
+            mimeType: doc.mimeType || obj.mimeType || 'image/jpeg',
+          };
+        }
+      } catch (err) {
+        errors.push({ rawItemId: rawItem.id, error: `imap-attachment: ${err.message}` });
+      }
+    }
+    return out;
+  }
+
   // ORD-68: gemensam bilage-skörd för sync + reprocess. Returnerar PDF-text,
   // ev. bild-input och första dokumentet. Muterar rawItem-flaggor vid fel.
   async function harvestAttachments({ mailboxId, messageId, rawItem, errors }) {
@@ -832,42 +876,51 @@ function createCmMailSync({
         status: 'reextracting',
       });
       try {
-        // ORD-72d: äldre rawItems saknar mailMessageId — slå upp via
-        // internetMessageId och spara så bilagor + full body kan hämtas.
-        if (!rawItem.mailMessageId && rawItem.internetMessageId && rawItem.sourceId) {
-          try {
-            const foundId = await findMessageIdByInternetMessageId(
-              rawItem.sourceId,
-              rawItem.internetMessageId
-            );
-            if (foundId) rawItem.mailMessageId = foundId;
-          } catch (err) {
-            results.errors.push({ rawItemId: rawItem.id, error: `id-lookup: ${err.message}` });
-          }
-        }
         let harvest = { pdfText: null, imageInput: null, firstDocument: null };
-        if (rawItem.hasAttachments && rawItem.mailMessageId && rawItem.sourceId) {
-          harvest = await harvestAttachments({
-            mailboxId: rawItem.sourceId,
-            messageId: rawItem.mailMessageId,
-            rawItem,
-            errors: results.errors,
-          });
-        }
-        // ORD-72c: kort rawBodyText = delta gav bara preview — hämta hela
-        // mailet och uppgradera rawItem så framtida körningar slipper anropet.
         let bodyText = rawItem.rawBodyText || '';
-        if (bodyText.length < 500 && rawItem.mailMessageId && rawItem.sourceId) {
-          try {
-            const fullBody = await fetchFullMessageBody(rawItem.sourceId, rawItem.mailMessageId);
-            // Fulla kroppen vinner alltid när den finns — strippad HTML kan
-            // vara KORTARE än previewn fast den innehåller beloppet.
-            if (fullBody) {
-              bodyText = fullBody.slice(0, 6000);
-              rawItem.rawBodyText = bodyText;
+
+        if (isImapSource(rawItem)) {
+          // ORD-75c: IMAP-poster har redan bodyText + bilagor sparade lokalt.
+          // Använd dem direkt — ingen Graph-lookup behövs.
+          if (rawItem.hasAttachments) {
+            harvest = await harvestImapAttachments({ rawItem, errors: results.errors });
+          }
+        } else {
+          // ORD-72d: äldre rawItems saknar mailMessageId — slå upp via
+          // internetMessageId och spara så bilagor + full body kan hämtas.
+          if (!rawItem.mailMessageId && rawItem.internetMessageId && rawItem.sourceId) {
+            try {
+              const foundId = await findMessageIdByInternetMessageId(
+                rawItem.sourceId,
+                rawItem.internetMessageId
+              );
+              if (foundId) rawItem.mailMessageId = foundId;
+            } catch (err) {
+              results.errors.push({ rawItemId: rawItem.id, error: `id-lookup: ${err.message}` });
             }
-          } catch (err) {
-            results.errors.push({ recordId: record.id, error: `full-body: ${err.message}` });
+          }
+          if (rawItem.hasAttachments && rawItem.mailMessageId && rawItem.sourceId) {
+            harvest = await harvestAttachments({
+              mailboxId: rawItem.sourceId,
+              messageId: rawItem.mailMessageId,
+              rawItem,
+              errors: results.errors,
+            });
+          }
+          // ORD-72c: kort rawBodyText = delta gav bara preview — hämta hela
+          // mailet och uppgradera rawItem så framtida körningar slipper anropet.
+          if (bodyText.length < 500 && rawItem.mailMessageId && rawItem.sourceId) {
+            try {
+              const fullBody = await fetchFullMessageBody(rawItem.sourceId, rawItem.mailMessageId);
+              // Fulla kroppen vinner alltid när den finns — strippad HTML kan
+              // vara KORTARE än previewn fast den innehåller beloppet.
+              if (fullBody) {
+                bodyText = fullBody.slice(0, 6000);
+                rawItem.rawBodyText = bodyText;
+              }
+            } catch (err) {
+              results.errors.push({ recordId: record.id, error: `full-body: ${err.message}` });
+            }
           }
         }
         budget.remaining -= 1;

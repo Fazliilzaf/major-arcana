@@ -521,6 +521,12 @@ function createCmStore({ filePath }) {
     return state.documents.find((d) => d.id === id) || null;
   }
 
+  // ORD-75c: hämta alla dokument kopplade till en rawItem (t.ex. IMAP-bilagor
+  // som behöver läsas om vid reextract när Graph inte är källan).
+  function getDocumentsByRawItemId(rawItemId) {
+    return state.documents.filter((d) => d.rawItemId === normalizeText(rawItemId));
+  }
+
   // Bugbot PR #831: promotade records (handed_off/cfoExpenseId) ska inte
   // räknas som öppna kandidater i inbox/kö/granskning — CFO äger dem nu.
   function isOpenCandidate(r) {
@@ -639,6 +645,7 @@ function createCmStore({ filePath }) {
     completeLedgerEntry,
     getExpenseRecordById,
     getDocumentById,
+    getDocumentsByRawItemId,
     getRawItemById,
     listRawItems,
     listUnprocessedRawItems,
