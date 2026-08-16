@@ -295,6 +295,12 @@ function createFortnoxClient({
       params.set('page', String(page));
       return request(`/vouchers?${params.toString()}`);
     },
+    // Verifikat-läs för CFO-granskning (t.ex. verifiera kreditnota-rader).
+    getVoucher(voucherSeries, voucherNumber) {
+      const series = normalizeText(voucherSeries) || 'A';
+      const number = encodeURIComponent(String(voucherNumber));
+      return request(`/vouchers/${encodeURIComponent(series)}/${number}`);
+    },
   };
 }
 

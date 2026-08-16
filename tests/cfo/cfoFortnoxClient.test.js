@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildFortnoxAuthUrl } = require('../../src/cfo/cfoFortnoxClient');
+const { buildFortnoxAuthUrl, createFortnoxClient } = require('../../src/cfo/cfoFortnoxClient');
 
 test('buildFortnoxAuthUrl includes oauth parameters', () => {
   const url = new URL(
@@ -24,4 +24,58 @@ test('buildFortnoxAuthUrl includes oauth parameters', () => {
   assert.equal(url.searchParams.get('state'), 'state-token');
   assert.equal(url.searchParams.get('response_type'), 'code');
   assert.equal(url.searchParams.get('access_type'), 'offline');
+});
+
+async function withMockFetch(t, mockImplementation) {
+  const originalFetch = global.fetch;
+  global.fetch = mockImplementation;
+  t.after(() => {
+    global.fetch = originalFetch;
+  });
+}
+
+function createTestClient(t, fetchImpl) {
+  withMockFetch(t, fetchImpl);
+  return createFortnoxClient({
+    clientId: 'client-id',
+    clientSecret: 'client-secret',
+    tenantId: 'tenant-1',
+    getConnection: async () => ({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    }),
+    saveConnection: async () => {},
+  });
+}
+
+test('getVoucher calls Fortnox with series and number', async (t) => {
+  let capturedUrl = null;
+  const client = createTestClient(t, async (url, options) => {
+    capturedUrl = url;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ Voucher: { DocumentNumber: '2056', VoucherSeries: 'A' } }),
+    };
+  });
+
+  const result = await client.getVoucher('A', 2056);
+  assert.equal(capturedUrl, 'https://api.fortnox.se/3/vouchers/A/2056');
+  assert.equal(result.Voucher.DocumentNumber, '2056');
+});
+
+test('getVoucher defaults to series A when series is empty', async (t) => {
+  let capturedUrl = null;
+  const client = createTestClient(t, async (url, options) => {
+    capturedUrl = url;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ Voucher: { DocumentNumber: '2056', VoucherSeries: 'A' } }),
+    };
+  });
+
+  await client.getVoucher('', 2056);
+  assert.equal(capturedUrl, 'https://api.fortnox.se/3/vouchers/A/2056');
 });

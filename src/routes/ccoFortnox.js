@@ -210,6 +210,32 @@ function createCcoFortnoxRouter({
     })
   );
 
+  router.get(
+    '/cco-fortnox/vouchers/:series/:number',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const client = createFortnoxClientForTenant({
+          fortnoxStore,
+          config,
+          tenantId: actor.tenantId,
+        });
+        const series = normalizeText(req.params.series) || 'A';
+        const number = String(req.params.number).trim();
+        if (!number || !/^\d+$/.test(number)) {
+          return res.status(400).json({ error: 'Voucher number måste vara ett positivt heltal.' });
+        }
+        const result = await client.getVoucher(series, number);
+        return res.json({
+          ok: true,
+          series,
+          number,
+          voucher: result?.Voucher || result,
+        });
+      })
+  );
+
   router.post('/cco-fortnox/sync-patient', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
     handle(req, res, async (actor) => {
       if (!patientMasterStore) {
