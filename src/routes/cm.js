@@ -218,8 +218,10 @@ function createCmRouter({
     // force=true (UI-knappen): kör om även poster som redan försökts på
     // denna processorversion. Schemakörningar kör utan force.
     const force = req.body?.force === true;
+    // debug=true: returnera per-post-diagnostik utan att påverka normalt beteende.
+    const debug = req.body?.debug === true;
     try {
-      const result = await mailSync.reextractMissingAmounts({ limit, force });
+      const result = await mailSync.reextractMissingAmounts({ limit, force, debug });
       return res.json(result);
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message });

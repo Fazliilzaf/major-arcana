@@ -823,7 +823,7 @@ function createCmMailSync({
   // (rawBodyText + ev. bilagor) — fyller endast tomma fält, skriver aldrig
   // över befintliga värden. Redan promotade utgifter i CFO backfillas om
   // deras amountSek fortfarande är tomt.
-  async function reextractMissingAmounts({ limit = 10, force = false } = {}) {
+  async function reextractMissingAmounts({ limit = 10, force = false, debug = false } = {}) {
     const results = {
       ok: true,
       candidates: 0,
@@ -835,6 +835,7 @@ function createCmMailSync({
       errors: [],
       syncedAt: nowIso(),
     };
+    if (debug) results.diagnostics = [];
     const budget = { remaining: Math.min(maxExtractPerSync, limit) };
     // ORD-72b: om-försök inte samma record varje schemakörning — attempt-
     // markören på recordet minns processorversionen. force=true (UI-knappen)
@@ -854,6 +855,23 @@ function createCmMailSync({
     for (const record of records) {
       if (budget.remaining <= 0) break;
 
+      const diag = debug
+        ? {
+            recordId: record.id,
+            rawItemId: record.rawItemId || null,
+            documentId: record.documentId || null,
+            current: {
+              amountIncVat: record.amountIncVat || null,
+              amountExVat: record.amountExVat || null,
+              vatAmount: record.vatAmount || null,
+              supplierName: record.supplierName || null,
+              date: record.date || null,
+              expenseType: record.expenseType || null,
+              flags: [...(record.flags || [])],
+            },
+          }
+        : null;
+
       // Källmail: direkt via record.rawItemId, annars via dokumentets koppling
       // (pre-ORD-68-records saknar rawItemId men kan ha dokument).
       let rawItem = record.rawItemId ? cmStore.getRawItemById(record.rawItemId) : null;
@@ -861,8 +879,28 @@ function createCmMailSync({
         const doc = cmStore.getDocumentById(record.documentId);
         if (doc?.rawItemId) rawItem = cmStore.getRawItemById(doc.rawItemId);
       }
+      if (diag && rawItem) {
+        diag.source = {
+          sourceType: rawItem.sourceType,
+          sourceId: rawItem.sourceId,
+          mailMessageId: rawItem.mailMessageId || null,
+          internetMessageId: rawItem.internetMessageId || null,
+          fromEmail: rawItem.fromEmail || null,
+          subject: rawItem.subject || null,
+          isImap: isImapSource(rawItem),
+          hasRawBodyText: Boolean(normalizeText(rawItem.rawBodyText)),
+          rawBodyTextLength: normalizeText(rawItem.rawBodyText).length,
+          hasAttachments: rawItem.hasAttachments,
+          hasPdf: rawItem.hasPdf,
+          hasImage: rawItem.hasImage,
+        };
+      }
       if (!rawItem || (!normalizeText(rawItem.rawBodyText) && !rawItem.hasAttachments)) {
         results.skippedNoSource++;
+        if (diag) {
+          diag.outcome = 'skipped_no_source';
+          results.diagnostics.push(diag);
+        }
         // Inget källmail → kan aldrig lyckas på denna version; markera så
         // posten inte blockerar kön varje körning.
         cmStore.markReextractAttempt?.(record.id, CM_PROCESSOR_VERSION);
@@ -926,15 +964,52 @@ function createCmMailSync({
         budget.remaining -= 1;
         results.attempted++;
         cmStore.markReextractAttempt?.(record.id, CM_PROCESSOR_VERSION);
+
+        if (diag) {
+          const docs = cmStore.getDocumentsByRawItemId(rawItem.id) || [];
+          diag.documents = {
+            count: docs.length,
+            mimeTypes: docs.map((d) => d.mimeType).filter(Boolean),
+            hasPdfText: Boolean(harvest.pdfText),
+            hasImageInput: Boolean(harvest.imageInput),
+            firstDocumentId: harvest.firstDocument?.id || null,
+          };
+          diag.harvest = {
+            isImap: isImapSource(rawItem),
+            bodyTextLength: normalizeText(bodyText).length,
+            pdfTextLength: harvest.pdfText ? harvest.pdfText.length : 0,
+          };
+        }
+
         const ex = await runExtraction({
           subject: rawItem.subject,
           bodyText,
           pdfText: harvest.pdfText,
           imageInput: harvest.imageInput,
         });
+
+        if (diag) {
+          diag.extraction = {
+            ok: ex.ok,
+            error: ex.error || null,
+            documentType: ex.extraction?.documentType || null,
+            confidenceScore: ex.extraction?.confidenceScore || null,
+            amountIncVat: ex.extraction?.amountIncVat || null,
+            amountExVat: ex.extraction?.amountExVat || null,
+            vatAmount: ex.extraction?.vatAmount || null,
+            supplierName: ex.extraction?.supplier || null,
+            date: ex.extraction?.date || null,
+            notes: ex.extraction?.notes || null,
+          };
+        }
+
         if (!ex.ok || !ex.extraction) {
           if (!ex.ok) results.errors.push({ recordId: record.id, error: `extract: ${ex.error}` });
           cmStore.completeLedgerEntry(ledger.id, { status: 'failed', errorMessage: ex.error });
+          if (diag) {
+            diag.outcome = 'extraction_failed';
+            results.diagnostics.push(diag);
+          }
           continue;
         }
 
@@ -948,6 +1023,23 @@ function createCmMailSync({
           invoiceNumber: ex.extraction.invoiceNumber,
           receiptNumber: ex.extraction.receiptNumber,
         });
+
+        if (diag) {
+          diag.applied = applied
+            ? {
+                changed: applied.changed || [],
+                after: applied.record
+                  ? {
+                      amountIncVat: applied.record.amountIncVat,
+                      vatAmount: applied.record.vatAmount,
+                    }
+                  : null,
+              }
+            : null;
+          diag.outcome = applied?.changed?.length ? 'updated' : 'no_change';
+          results.diagnostics.push(diag);
+        }
+
         if (applied?.changed?.length) {
           results.updatedRecords++;
 
@@ -980,6 +1072,11 @@ function createCmMailSync({
       } catch (err) {
         cmStore.completeLedgerEntry(ledger.id, { status: 'failed', errorMessage: err.message });
         results.errors.push({ recordId: record.id, error: err.message });
+        if (diag) {
+          diag.outcome = 'exception';
+          diag.error = err.message;
+          results.diagnostics.push(diag);
+        }
       }
     }
 
