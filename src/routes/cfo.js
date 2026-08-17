@@ -739,8 +739,8 @@ function createCfoRouter({
         const store = expenseStore;
         if (!store) return res.status(503).json({ error: 'expense store not ready' });
         const body = req.body || {};
-        const dryRun = body.dryRun !== false;
         const confirm = body.confirm === true;
+        const dryRun = confirm ? false : body.dryRun !== false;
         if (!confirm && !dryRun) {
           return res.status(400).json({
             ok: false,
