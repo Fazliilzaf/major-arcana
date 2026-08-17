@@ -3,14 +3,38 @@
 /**
  * cmDuplicateMerge — bulk-merge helper for CM duplicate pairs.
  *
- * Each pair is assumed to come from cmStore.getDuplicates(), which already
- * filters out pairs where both records are rejected. This helper focuses on
- * pairs where both records are still pending and both have been handed off
- * to CFO, producing two CFO expenses for the same transaction.
+ * Consumes cmStore.getDuplicates(), which already hides pairs where both
+ * records are rejected. This helper merges the remaining pairs by keeping
+ * the stronger record as canonical and rejecting the weaker one. When the
+ * weaker record has a deletable CFO-expense, that expense is also removed.
  */
 
-function nowIso() {
-  return new Date().toISOString();
+function scoreRecord(r) {
+  let s = 0;
+  // A non-rejected record is always preferred as canonical.
+  if (r.approvalStatus !== 'rejected') s += 1000;
+  // Existing CFO hand-off is the next strongest signal.
+  if (r.cfoExpenseId) s += 500;
+  // Already exported/accounted for is even stronger (but rare as canonical).
+  if (r.externalAccountingId) s += 200;
+  // Tied to a raw mail item.
+  if (r.rawItemId) s += 100;
+  return s;
+}
+
+function chooseCanonical(pair) {
+  const [a, b] = pair;
+  const aScore = scoreRecord(a);
+  const bScore = scoreRecord(b);
+  if (aScore !== bScore) {
+    return aScore > bScore ? { canonical: a, duplicate: b } : { canonical: b, duplicate: a };
+  }
+  if (a.createdAt && b.createdAt && a.createdAt !== b.createdAt) {
+    return a.createdAt < b.createdAt
+      ? { canonical: a, duplicate: b }
+      : { canonical: b, duplicate: a };
+  }
+  return { canonical: a, duplicate: b };
 }
 
 function isDeletableCfo(expense) {
@@ -18,27 +42,6 @@ function isDeletableCfo(expense) {
   if (expense.status === 'exported') return false;
   if (expense.fortnoxSyncStatus === 'synced') return false;
   return true;
-}
-
-function chooseCanonical(pair) {
-  const [a, b] = pair;
-  const score = (r) => {
-    let s = 0;
-    if (r.rawItemId) s += 10;
-    if (r.externalAccountingId) s += 20;
-    if (r.cfoExpenseId) s += 5;
-    return s;
-  };
-  const aScore = score(a);
-  const bScore = score(b);
-  if (aScore !== bScore)
-    return aScore > bScore ? { canonical: a, duplicate: b } : { canonical: b, duplicate: a };
-  if (a.createdAt && b.createdAt && a.createdAt !== b.createdAt) {
-    return a.createdAt < b.createdAt
-      ? { canonical: a, duplicate: b }
-      : { canonical: b, duplicate: a };
-  }
-  return { canonical: a, duplicate: b };
 }
 
 async function bulkMergeDuplicatePairs({ cmStore, cfoExpenseStore, actor, dryRun = true }) {
@@ -52,91 +55,89 @@ async function bulkMergeDuplicatePairs({ cmStore, cfoExpenseStore, actor, dryRun
   for (const pair of pairs) {
     try {
       const { canonical, duplicate } = chooseCanonical(pair);
-      if (canonical.approvalStatus !== 'pending' || duplicate.approvalStatus !== 'pending') {
+
+      const canonicalCfoId = canonical.cfoExpenseId || null;
+      const duplicateCfoId = duplicate.cfoExpenseId || null;
+      const canonicalCfo = canonicalCfoId ? cfoExpenseStore.getById(canonicalCfoId) : null;
+      const duplicateCfo = duplicateCfoId ? cfoExpenseStore.getById(duplicateCfoId) : null;
+
+      // Nothing to do if the weaker record is already rejected.
+      if (duplicate.approvalStatus === 'rejected') {
         skipped.push({
           canonicalId: canonical.id,
           duplicateId: duplicate.id,
-          reason: 'minst en post är inte pending',
-        });
-        continue;
-      }
-      if (!canonical.cfoExpenseId || !duplicate.cfoExpenseId) {
-        skipped.push({
-          canonicalId: canonical.id,
-          duplicateId: duplicate.id,
-          reason: 'saknar CFO-koppling',
+          reason: 'duplicate redan avvisad',
         });
         continue;
       }
 
-      const canonicalCfo = cfoExpenseStore.getById(canonical.cfoExpenseId);
-      const duplicateCfo = cfoExpenseStore.getById(duplicate.cfoExpenseId);
-      if (!canonicalCfo || !duplicateCfo) {
-        skipped.push({
-          canonicalId: canonical.id,
-          duplicateId: duplicate.id,
-          reason: 'CFO-expense saknas',
-        });
-        continue;
+      // Determine the concrete action for reporting / execution.
+      let action;
+      if (duplicateCfo && isDeletableCfo(duplicateCfo)) {
+        action = 'reject_cm_and_delete_cfo';
+      } else if (duplicateCfo) {
+        action = 'reject_cm_keep_cfo';
+      } else {
+        action = 'reject_cm_no_cfo';
       }
 
       if (dryRun) {
         merged.push({
           canonicalId: canonical.id,
           duplicateId: duplicate.id,
-          canonicalCfoId: canonicalCfo.id,
-          duplicateCfoId: duplicateCfo.id,
+          canonicalCfoId: canonicalCfo?.id || null,
+          duplicateCfoId: duplicateCfo?.id || null,
           supplier: canonical.supplierName,
           amount: canonical.amountIncVat,
-          action: isDeletableCfo(duplicateCfo) ? 'reject_cm_and_delete_cfo' : 'reject_cm_keep_cfo',
+          action,
         });
         continue;
       }
 
-      // Reject duplicate CM record
+      // Reject the weaker CM record.
       cmStore.reject(duplicate.id, {
         rejectedBy: actor,
         reason: 'Bulk-merge: dubblett av ' + canonical.id,
       });
 
-      if (isDeletableCfo(duplicateCfo)) {
+      if (duplicateCfo && isDeletableCfo(duplicateCfo)) {
         await cfoExpenseStore.transitionStatus({
           id: duplicateCfo.id,
           newStatus: 'rejected',
-          reason: 'Bulk-merge: dubblett av ' + canonicalCfo.id,
+          reason: 'Bulk-merge: dubblett av ' + (canonicalCfo?.id || canonical.id),
           actor,
         });
         await cfoExpenseStore.deleteExpense({ id: duplicateCfo.id, actor });
 
-        // Om canonical saknar anteckningar och duplicate har några, kopiera över.
-        if (!canonicalCfo.notes && duplicateCfo.notes) {
+        // If the canonical CFO lacks notes and the duplicate had some, copy them over.
+        if (canonicalCfo && !canonicalCfo.notes && duplicateCfo.notes) {
           await cfoExpenseStore.updateExpense({
             id: canonicalCfo.id,
             patch: { notes: duplicateCfo.notes },
             actor: { userId: actor, role: 'owner', via: 'cm-bulk-merge' },
           });
         }
-
-        merged.push({
-          canonicalId: canonical.id,
-          duplicateId: duplicate.id,
-          canonicalCfoId: canonicalCfo.id,
-          duplicateCfoId: duplicateCfo.id,
-          supplier: canonical.supplierName,
-          amount: canonical.amountIncVat,
-          action: 'deleted_duplicate_cfo',
-        });
-      } else {
+      } else if (duplicateCfo) {
         manualReview.push({
           canonicalId: canonical.id,
           duplicateId: duplicate.id,
-          canonicalCfoId: canonicalCfo.id,
+          canonicalCfoId: canonicalCfo?.id || null,
           duplicateCfoId: duplicateCfo.id,
           supplier: canonical.supplierName,
           amount: canonical.amountIncVat,
           reason: 'CFO-expense redan exporterad/synkad',
         });
       }
+
+      merged.push({
+        canonicalId: canonical.id,
+        duplicateId: duplicate.id,
+        canonicalCfoId: canonicalCfo?.id || null,
+        duplicateCfoId: duplicateCfo?.id || null,
+        supplier: canonical.supplierName,
+        amount: canonical.amountIncVat,
+        action,
+      });
     } catch (err) {
       errors.push({ pair: pair.map((r) => r.id), error: err.message });
     }
