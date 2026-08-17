@@ -18,6 +18,7 @@ const {
   notifyStaffBookingConfirmed,
 } = require('../ops/ccoBookingStaffNotify');
 const { dispatchBookingCancellationEmail } = require('../ops/ccoPatientCareOps');
+const { createAutomationConversationBridge } = require('../ops/ccoAutomationConversationBridge');
 const { buildMeridiqConsentReadout } = require('../ops/meridiqConsentCatalogRuntime');
 const {
   assertTreatmentBookingAllowed,
@@ -609,8 +610,18 @@ function createCcoBookingEngineRouter({
   config,
   graphSendConnector = null,
   auditLog = null,
+  ccoMailboxTruthStore = null,
 }) {
   const router = express.Router();
+
+  const automationBridge =
+    ccoMailboxTruthStore && patientMasterStore
+      ? createAutomationConversationBridge({
+          ccoMailboxTruthStore,
+          patientMasterStore,
+          defaultTenantId: config?.defaultTenantId || 'hair-tp-clinic',
+        })
+      : null;
 
   async function syncBookingPatient360(context, bookingCase, options = {}) {
     const latestEvent = Array.isArray(bookingCase?.events) ? bookingCase.events.at(-1) : null;
@@ -1364,6 +1375,7 @@ function createCcoBookingEngineRouter({
             reason: cancelReason,
             tenantId: context.tenantId,
             bookingEngineStore,
+            automationBridge,
           });
         } catch (error) {
           console.warn(
