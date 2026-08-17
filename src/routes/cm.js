@@ -443,6 +443,33 @@ function createCmRouter({
     return res.json({ ok: true, record: rec });
   });
 
+  // ORD-CM-? · Reject a single expense record regardless of which queue it is in.
+  // Needed to clean up dangling records (e.g. receipts that reference a deleted
+  // CFO expense or records without a rawItem) that bulk reject cannot reach.
+  router.post(
+    '/cm/expense-records/:id/reject',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      const record =
+        typeof cmStore.getExpenseRecordById === 'function'
+          ? cmStore.getExpenseRecordById(req.params.id)
+          : null;
+      if (!record) return res.status(404).json({ ok: false, error: 'record finns ej' });
+      if (record.approvalStatus === 'rejected') {
+        return res.json({ ok: true, record, note: 'redan avvisad' });
+      }
+      const rejectedBy = req.user?.id || req.user?.email || req.auth?.userId || 'owner';
+      const reason = String(req.body?.reason || 'manuellt avvisad via cm-reject-route').trim();
+      const rejected = cmStore.reject(record.id, { rejectedBy, reason });
+      if (!rejected) {
+        return res.status(500).json({ ok: false, error: 'kunde inte avvisa record' });
+      }
+      await cmStore.persist();
+      return res.json({ ok: true, record: cmStore.getExpenseRecordById(record.id) });
+    }
+  );
+
   router.get('/cm/raw-items/:id', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
     const raw =
       typeof cmStore.getRawItemById === 'function' ? cmStore.getRawItemById(req.params.id) : null;
