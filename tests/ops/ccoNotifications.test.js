@@ -65,7 +65,7 @@ function buildSources() {
 test('NOTIFICATION_TYPES is exported as an array of expected types', () => {
   assert.ok(Array.isArray(NOTIFICATION_TYPES));
   assert.ok(NOTIFICATION_TYPES.length > 0);
-  for (const t of ['booking', 'compliance', 'mail', 'system']) {
+  for (const t of ['booking', 'compliance', 'mail', 'mail_ingestion', 'system']) {
     assert.ok(NOTIFICATION_TYPES.includes(t), `förväntade typ ${t}`);
   }
 });
@@ -123,6 +123,58 @@ test('getFeed returns a unified, shaped, time-filtered feed', async () => {
     for (let i = 1; i < result.items.length; i += 1) {
       assert.ok(result.items[i - 1].createdAt >= result.items[i].createdAt);
     }
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('getFeed includes mail_ingestion notification from dashboard summary', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-notif-mail-ingestion-'));
+  const filePath = path.join(tempDir, 'reads.json');
+  try {
+    const readStore = await createCcoNotificationReadStore({ filePath });
+    const feedStore = createCcoNotificationFeedStore({
+      readStore,
+      mailIngestionStore: {
+        buildDashboardSummary: () => ({
+          counts: { unmatched: 409, needsReview: 0 },
+          generatedAt: recentIso(1),
+        }),
+      },
+    });
+
+    const result = await feedStore.getFeed({ userId: 'owner', role: 'owner', sinceHours: 72 });
+    const notif = result.items.find((item) => item.type === 'mail_ingestion');
+    assert.ok(notif, 'förväntade en mail_ingestion-notis');
+    assert.match(notif.title, /409/);
+    assert.match(notif.title, /unmatched/);
+    assert.equal(notif.severity, 'warning');
+    assert.equal(notif.actionUrl, '/cco-mail-ingestion-review.html');
+    assert.equal(notif.links.staffPortal, '/staff-portal?role=nurse&panel=tasks');
+    assert.equal(result.byType.mail_ingestion, 1);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('getFeed omits mail_ingestion notification when queue is empty', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-notif-mail-empty-'));
+  const filePath = path.join(tempDir, 'reads.json');
+  try {
+    const readStore = await createCcoNotificationReadStore({ filePath });
+    const feedStore = createCcoNotificationFeedStore({
+      readStore,
+      mailIngestionStore: {
+        buildDashboardSummary: () => ({
+          counts: { unmatched: 0, needsReview: 0 },
+          generatedAt: recentIso(1),
+        }),
+      },
+    });
+
+    const result = await feedStore.getFeed({ userId: 'owner', role: 'owner', sinceHours: 72 });
+    assert.ok(!result.items.some((item) => item.type === 'mail_ingestion'));
+    assert.equal(result.byType.mail_ingestion || 0, 0);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }

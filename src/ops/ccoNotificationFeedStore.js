@@ -76,6 +76,7 @@ function notificationLinks({ type, customerId = null, source = {} }) {
     id_verification: customerCard || staffTask,
     agreement: customerCard || staffTask,
     mail: staffTask,
+    mail_ingestion: '/cco-mail-ingestion-review.html',
     portal_message: customerCard || staffTask,
     system: qms,
   };

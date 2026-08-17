@@ -5503,6 +5503,7 @@ try {
     // GET /api/v1/cco-notifications/feed — unified feed per role
     app.get(
       '/api/v1/cco-notifications/feed',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('notifications.read'),
       async (req, res) => {
@@ -5548,6 +5549,7 @@ try {
     // POST /api/v1/cco-notifications/mark-read — markera notifications lästa
     app.post(
       '/api/v1/cco-notifications/mark-read',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('notifications.mark_read'),
       jsonParserN,
@@ -5574,6 +5576,7 @@ try {
     // GET /api/v1/cco-notifications/types — lista alla notif-typer (för UI-filter)
     app.get(
       '/api/v1/cco-notifications/types',
+      requireCcoAuthenticated,
       attachRole,
       requirePermission('notifications.read'),
       (req, res) => {
