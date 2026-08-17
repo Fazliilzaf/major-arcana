@@ -5,7 +5,11 @@ const {
   resolveCounterpartyIdentity,
 } = require('../ccoCounterpartyTruth');
 const { resolveContactFormIdentity } = require('../ccoContactFormIdentity');
-const { buildPipedrivePatientLookup } = require('../ccoPatientMasterStore');
+const {
+  buildPatientContactLookup,
+  resolvePatientByEmail,
+  resolvePatientByPhone,
+} = require('../ccoIdentityResolution/sharedPatientResolver');
 const { phoneMatchKey } = require('../../../scripts/migration/lib/migrationUtils');
 const { isNonPatientCounterpartyEmail } = require('./nonPatientRules');
 const { FILTER_VERSION, MATCH_VERSION, PROCESSOR_VERSION } = require('./constants');
@@ -128,36 +132,30 @@ function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
     };
   }
 
-  const lookup = buildPipedrivePatientLookup(patientDirectory);
+  const lookup = buildPatientContactLookup(patientDirectory);
 
   // Endast en exakt, normaliserad e-postträff får auto-binda patientId.
   if (counterpartyEmail) {
-    const emailMatches = asArray(lookup.byEmail.get(counterpartyEmail));
-    if (emailMatches.length === 1) {
-      const patient = emailMatches[0];
+    const emailResult = resolvePatientByEmail(lookup, counterpartyEmail);
+    if (emailResult.status === 'matched') {
       return {
         status: 'MATCHED',
         confidence: 0.95,
-        patientId: patient.id || patient.patientId,
+        patientId: emailResult.patientId,
         reason: 'exact_email_match',
         counterpartyEmail,
-        candidate: patient,
-        candidates: [patient],
+        candidate: { id: emailResult.patientId, displayName: emailResult.displayName },
+        candidates: [emailResult],
       };
     }
-    if (emailMatches.length > 1) {
+    if (emailResult.status === 'ambiguous') {
       return {
         status: 'NEEDS_REVIEW',
         confidence: 0.45,
         patientId: null,
         reason: 'multiple_email_matches',
         counterpartyEmail,
-        candidates: emailMatches.map((patient) => ({
-          patientId: patient.id || patient.patientId,
-          method: 'email',
-          confidence: 0.45,
-          email: counterpartyEmail,
-        })),
+        candidates: emailResult.candidates,
       };
     }
   }
@@ -165,10 +163,8 @@ function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
   // Telefon kan ge en review-kandidat men får aldrig auto-binda patientId.
   // Det bevarar befintliga kopplingar och lämnar beslutet till operatören.
   if (counterpartyPhone) {
-    const phoneKey = phoneMatchKey(counterpartyPhone);
-    const phoneMatches = phoneKey ? asArray(lookup.byPhone.get(phoneKey)) : [];
-    if (phoneMatches.length === 1) {
-      const patient = phoneMatches[0];
+    const phoneResult = resolvePatientByPhone(lookup, counterpartyPhone);
+    if (phoneResult.status === 'matched') {
       return {
         status: 'NEEDS_REVIEW',
         confidence: 0.45,
@@ -176,17 +172,19 @@ function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
         reason: 'exact_phone_match_requires_review',
         counterpartyEmail: counterpartyEmail || null,
         counterpartyPhone,
-        candidates: [
-          {
-            patientId: patient.id || patient.patientId,
-            method: 'phone',
-            confidence: 0.45,
-            phone: counterpartyPhone,
-          },
-        ],
+        candidates: phoneResult.candidates.length
+          ? phoneResult.candidates
+          : [
+              {
+                patientId: phoneResult.patientId,
+                method: 'phone',
+                confidence: 0.45,
+                phone: counterpartyPhone,
+              },
+            ],
       };
     }
-    if (phoneMatches.length > 1) {
+    if (phoneResult.status === 'ambiguous') {
       return {
         status: 'NEEDS_REVIEW',
         confidence: 0.45,
@@ -194,12 +192,7 @@ function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
         reason: 'multiple_phone_matches',
         counterpartyEmail: counterpartyEmail || null,
         counterpartyPhone,
-        candidates: phoneMatches.map((patient) => ({
-          patientId: patient.id || patient.patientId,
-          method: 'phone',
-          confidence: 0.45,
-          phone: counterpartyPhone,
-        })),
+        candidates: phoneResult.candidates,
       };
     }
   }

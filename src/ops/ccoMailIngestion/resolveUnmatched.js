@@ -3,6 +3,10 @@ const {
   normalizeCounterpartyDirection,
   resolveCounterpartyIdentity,
 } = require('../ccoCounterpartyTruth');
+const {
+  buildPatientContactLookup,
+  resolvePatientByEmail,
+} = require('../ccoIdentityResolution/sharedPatientResolver');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -120,21 +124,28 @@ async function suggestPatientForEmail({ patientMasterStore, tenantId = '', email
     return { patient: null, method: null, confidence: 0 };
   }
 
-  const direct = await patientMasterStore.findPatientByEmail({
-    tenantId,
-    email: normalizedEmail,
-  });
-  if (direct?.id) {
-    return { patient: direct, method: 'exact_email', confidence: 1 };
+  // Delad resolver: ladda tenant-patienter en gång och slå upp e-posten.
+  const listed = await patientMasterStore.listPatients({ tenantId, limit: 20000 });
+  const patients = asArray(listed?.patients);
+  const lookup = buildPatientContactLookup(patients);
+  const emailResult = resolvePatientByEmail(lookup, normalizedEmail);
+
+  if (emailResult.status === 'matched') {
+    return {
+      patient: { id: emailResult.patientId, displayName: emailResult.displayName },
+      method: 'exact_email',
+      confidence: emailResult.confidence,
+    };
   }
 
+  // Heuristisk namn-gissning från e-postens local part — får aldrig auto-binda.
   const localPart = normalizedEmail.split('@')[0] || '';
-  const listed = await patientMasterStore.listPatients({
+  const query = await patientMasterStore.listPatients({
     tenantId,
     query: localPart,
     limit: 20,
   });
-  const candidates = asArray(listed?.patients).filter(
+  const candidates = asArray(query?.patients).filter(
     (patient) => scorePatientNameAgainstEmail(patient, normalizedEmail) >= 0.75
   );
   if (candidates.length === 1) {
