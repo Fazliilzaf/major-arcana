@@ -2196,6 +2196,54 @@ function createCcoConversationRouter({
     }
   );
 
+  // ----- Trådidentitet (CCO Konversationer Fas 1.2) -----
+  // GET /cco/runtime/conversation/:key/identity
+  // Returnerar persistent kanonisk patientId för tråden, baserat på
+  // mail-ingestion-storen. `identityConflict: true` betyder att olika
+  // meddelanden i samma tråd är länkade till olika patienter.
+  router.get(
+    '/cco/runtime/conversation/:key/identity',
+    authMiddleware,
+    requirePermission('mail.read'),
+    async (req, res) => {
+      try {
+        if (
+          !mailIngestionStore ||
+          typeof mailIngestionStore.getThreadIdentity !== 'function'
+        ) {
+          return res.status(503).json({ ok: false, error: 'mail_ingestion_store_unavailable' });
+        }
+        const key = normalizeText(req.params.key);
+        if (!key) {
+          return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+        }
+        const identity = mailIngestionStore.getThreadIdentity(key);
+        return res.json({
+          ok: true,
+          conversationKey: key,
+          identity: identity
+            ? {
+                canonicalPatientId: identity.canonicalPatientId || null,
+                identityConflict: identity.identityConflict || false,
+                linkedAt: identity.linkedAt || null,
+                linkedBy: identity.linkedBy || null,
+                patientIds: Array.isArray(identity.patientIds) ? identity.patientIds : [],
+                messageCount: Array.isArray(identity.rawMessageIds)
+                  ? identity.rawMessageIds.length
+                  : 0,
+              }
+            : null,
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
+      }
+    }
+  );
+
   // ----- Cliento-bokningar: kund-historik + föreslagna lediga tider -----
   // GET /cco/runtime/conversation/:key/bookings  → { existingBookings, suggestedSlots }
   router.get(
