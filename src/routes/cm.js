@@ -4,6 +4,7 @@ const express = require('express');
 const { extractDocument } = require('../cm/cmAiExtractor');
 const { createCmMailSync, DEFAULT_FOLDER_TYPES } = require('../cm/cmMailSync');
 const { promoteRecordToCfo } = require('../cm/cmCfoHandoff');
+const { bulkMergeDuplicatePairs } = require('../cm/cmDuplicateMerge');
 
 function createCmRouter({
   authStore,
@@ -721,6 +722,51 @@ function createCmRouter({
           skipped,
           errors: errors.slice(0, 20),
         });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  // Bulk-merge av CM-dubbletter där båda posterna är pending och har varsin
+  // CFO-expense. Avvisar duplicate-CM-posten och raderar duplicate-CFO-expense
+  // om den inte redan exporterats/synkats. Kräver explicit confirm=true för skarp körning.
+  router.post(
+    '/cm/expense-records/bulk-merge-duplicates',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    express.json({ limit: '1mb' }),
+    async (req, res) => {
+      try {
+        if (!cfoExpenseStore) {
+          return res
+            .status(503)
+            .json({ ok: false, error: 'cfoExpenseStore ej monterad — bulk-merge otillgänglig' });
+        }
+        const body = req.body || {};
+        const dryRun = body.dryRun !== false;
+        const confirm = body.confirm === true;
+        if (!confirm && !dryRun) {
+          return res.status(400).json({
+            ok: false,
+            error: 'confirm måste vara true för att utföra bulk-merge',
+          });
+        }
+        const actor = req.user?.id || req.user?.email || req.auth?.userId || 'owner';
+
+        const result = await bulkMergeDuplicatePairs({
+          cmStore,
+          cfoExpenseStore,
+          actor,
+          dryRun,
+        });
+
+        if (!dryRun) {
+          await cmStore.persist();
+          await cfoExpenseStore.persist();
+        }
+
+        return res.json(result);
       } catch (err) {
         return res.status(500).json({ ok: false, error: err.message });
       }
