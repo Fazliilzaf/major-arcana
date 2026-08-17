@@ -1550,6 +1550,31 @@
   background: rgba(212, 168, 71, 0.18);
   color: #a07e1f;
 }
+.v12-canon .comm-ic.in {
+  background: var(--info-bg);
+  color: var(--info);
+}
+.v12-canon .comm-ic.out,
+.v12-canon .comm-ic.sent {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.v12-canon .comm-ic.system {
+  background: rgba(212, 168, 71, 0.18);
+  color: #a07e1f;
+}
+.v12-canon .comm-ic.internal {
+  background: rgba(124, 58, 237, 0.12);
+  color: #6d3cc5;
+}
+.v12-canon .comm-ic.draft {
+  background: rgba(70, 60, 50, 0.08);
+  color: var(--ink-soft);
+}
+.v12-canon .comm-ic.needs-approval {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
 .v12-canon .comm-body .who {
   font-size: 12.5px;
   font-weight: 800;
@@ -1564,6 +1589,62 @@
   color: var(--ink-mute);
   font-weight: 700;
   text-align: right;
+}
+.v12-canon .comm-row.is-unread .who {
+  color: var(--brand);
+}
+.v12-canon .comm-kind,
+.v12-canon .comm-status,
+.v12-canon .comm-time {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-left: 4px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.v12-canon .comm-kind.in {
+  background: var(--info-bg);
+  color: var(--info);
+}
+.v12-canon .comm-kind.out,
+.v12-canon .comm-kind.sent {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.v12-canon .comm-kind.system {
+  background: rgba(212, 168, 71, 0.18);
+  color: #a07e1f;
+}
+.v12-canon .comm-kind.internal {
+  background: rgba(124, 58, 237, 0.12);
+  color: #6d3cc5;
+}
+.v12-canon .comm-kind.draft {
+  background: rgba(70, 60, 50, 0.08);
+  color: var(--ink-soft);
+}
+.v12-canon .comm-kind.needs-approval {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.v12-canon .comm-status.unanswered {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.v12-canon .comm-status.snoozed {
+  background: rgba(212, 168, 71, 0.18);
+  color: #a07e1f;
+}
+.v12-canon .comm-status.handled {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.v12-canon .comm-status.unread {
+  background: var(--info-bg);
+  color: var(--info);
 }
 
 /* 11 · EKONOMI */
