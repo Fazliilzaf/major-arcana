@@ -43,7 +43,9 @@ function looksLike100xError(currentAmount, parsedAmount) {
   if (currentAmount < 1000) return false; // vi korrigerar bara uppenbara stora fel
   if (parsedAmount >= currentAmount / 2) return false; // inte rimligt ×100-fel
   const ratio = currentAmount / parsedAmount;
-  return ratio >= 50 && ratio <= 150;
+  // Kräv att förhållandet ligger nära 100, så vi inte råkar välja en momsrad
+  // eller annat delbelopp (t.ex. 1 672 / 32 ≈ 52).
+  return ratio >= 80 && ratio <= 120;
 }
 
 function detectCurrencyInMatch(matchText) {
