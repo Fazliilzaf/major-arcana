@@ -470,6 +470,67 @@ function createCmRouter({
     }
   );
 
+  // Bulk-reject för städ av stora CM-backlogar.
+  // Säkerhetsgate: kräver confirm=true, och som standard dryRun=true.
+  // Filtrerar needs-review-poster som saknar belopp (MISSING_TOTAL_AMOUNT)
+  // och därmed troligen är icke-ekonomiska mail.
+  router.post(
+    '/cm/expense-records/bulk-reject',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    express.json({ limit: '1mb' }),
+    async (req, res) => {
+      const body = req.body || {};
+      if (body.confirm !== true) {
+        return res.status(400).json({
+          ok: false,
+          error: 'confirm måste vara true för att utföra bulk-reject',
+        });
+      }
+      const dryRun = body.dryRun !== false;
+      const reason = String(
+        body.reason || 'Bulk-rejected: saknar belopp, troligen icke-ekonomiskt mail'
+      ).trim();
+      const rejectedBy = req.user?.id || req.user?.email || req.auth?.userId || 'owner';
+      const candidates = (cmStore.getNeedsReview ? cmStore.getNeedsReview() : []).filter(
+        (r) =>
+          (r.amountIncVat == null || r.amountIncVat === 0) &&
+          Array.isArray(r.flags) &&
+          r.flags.includes('MISSING_TOTAL_AMOUNT')
+      );
+      let rejected = 0;
+      let alreadyRejected = 0;
+      const errors = [];
+      for (const r of candidates) {
+        if (r.approvalStatus === 'rejected') {
+          alreadyRejected++;
+          continue;
+        }
+        try {
+          const ok = cmStore.reject(r.id, { rejectedBy, reason });
+          if (ok) {
+            rejected++;
+          } else {
+            errors.push({ id: r.id, error: 'cmStore.reject returnerade falsy' });
+          }
+        } catch (e) {
+          errors.push({ id: r.id, error: e.message });
+        }
+      }
+      if (!dryRun && rejected > 0) {
+        await cmStore.persist();
+      }
+      return res.json({
+        ok: true,
+        dryRun,
+        scanned: candidates.length,
+        rejected,
+        alreadyRejected,
+        errors: errors.slice(0, 20),
+      });
+    }
+  );
+
   router.get('/cm/raw-items/:id', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
     const raw =
       typeof cmStore.getRawItemById === 'function' ? cmStore.getRawItemById(req.params.id) : null;
