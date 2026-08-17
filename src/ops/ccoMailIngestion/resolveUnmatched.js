@@ -42,10 +42,77 @@ function scorePatientNameAgainstEmail(patient = {}, email = '') {
   return matched / tokens.length;
 }
 
+function stripHtmlToText(html = '') {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function looksLikeContactForm(raw = {}) {
+  const bodyText = normalizeText(raw.bodyText);
+  const bodyHtml = normalizeText(raw.bodyHtml);
+  const subject = normalizeText(raw.subject);
+  const fromEmail = normalizeEmail(raw.fromEmail);
+
+  if (/kontaktformulär/i.test(subject)) return true;
+
+  const formSentinel = /E-post-meddelandet skickades från ett kontaktformulär/i;
+  if (formSentinel.test(bodyText) || formSentinel.test(bodyHtml)) return true;
+
+  // Typiska kontaktformulär är avsända från wordpress/no-reply-brevlådor.
+  const knownFormSenders = Object.freeze([
+    'wordpress@hairtpclinic.se',
+    'no-reply@info.hairtpclinic.se',
+  ]);
+  if (knownFormSenders.includes(fromEmail)) return true;
+
+  // WordPress-kontaktformulär i ren text: "Från:" + "E-post:" + "Telefon:".
+  const textProbe = stripHtmlToText(bodyHtml) || bodyText;
+  if (/Från:\s*\n?\s*\S[\s\S]{0,200}?E-post:/i.test(textProbe)) return true;
+  if (/E-post:\s*\n?\s*\S[\s\S]{0,200}?Telefon:/i.test(textProbe)) return true;
+
+  return false;
+}
+
+function extractContactFormPatientEmail(raw = {}) {
+  if (!looksLikeContactForm(raw)) return null;
+
+  const bodyText = normalizeText(raw.bodyText);
+  const bodyHtml = normalizeText(raw.bodyHtml);
+  const textProbe = bodyText || stripHtmlToText(bodyHtml);
+
+  // "E-post:" kan stå ensamt på en rad följt av adressen på nästa rad,
+  // eller på samma rad separerad med kolon.
+  const patterns = [
+    /E-post\s*:?\s*\r?\n\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
+    /E-post\s*:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = textProbe.match(pattern);
+    if (match) {
+      const candidate = normalizeEmail(match[1]);
+      if (candidate && !isNonPatientCounterpartyEmail(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  return null;
+}
+
 function resolveRowCounterpartyEmail(row = {}) {
   const raw = row.rawMessage || {};
   const existing = normalizeEmail(row.patientMatch?.counterpartyEmail);
   if (existing) return existing;
+
+  // Kontaktformulär: patientens e-post står i meddelandetexten, inte hos avsändaren.
+  const formPatientEmail = extractContactFormPatientEmail(raw);
+  if (formPatientEmail) return formPatientEmail;
+
   const folderType = normalizeText(raw.folderType).toLowerCase();
   const direction =
     folderType === 'sent' || folderType === 'drafts'
@@ -348,7 +415,9 @@ module.exports = {
   NON_PATIENT_MAILBOX_IDS,
   dismissRawMessages,
   emailLocalTokens,
+  extractContactFormPatientEmail,
   groupUnmatchedRows,
+  looksLikeContactForm,
   resolveRowCounterpartyEmail,
   runUnmatchedResolutionSweep,
   scorePatientNameAgainstEmail,
