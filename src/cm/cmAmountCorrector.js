@@ -12,6 +12,7 @@ const CURRENCY_HINTS = ['SEK', 'kr', 'EUR', '€'];
 
 function normalizeWhitespace(text) {
   return String(text || '')
+    .replace(/[\u200B-\u200F\uFEFF]/g, '') // zero-width / joiner / BOM
     .replace(/\u00A0/g, ' ') // non-breaking space -> space
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
@@ -46,9 +47,19 @@ function looksLike100xError(currentAmount, parsedAmount) {
 }
 
 function detectCurrency(text, matchIndex) {
-  const beforeAndAfter = text.slice(Math.max(0, matchIndex - 30), matchIndex + 40).toLowerCase();
-  if (beforeAndAfter.includes('zar')) return 'ZAR';
-  if (beforeAndAfter.includes('€') || beforeAndAfter.includes('eur')) return 'EUR';
+  // Use a wider window because some emails have long runs of filler/spacer
+  // characters between the label and the actual currency symbol.
+  const windowSize = 300;
+  const beforeAndAfter = text
+    .slice(Math.max(0, matchIndex - windowSize), matchIndex + windowSize)
+    .toLowerCase();
+  if (beforeAndAfter.includes('zar') || beforeAndAfter.includes('r ')) return 'ZAR';
+  if (
+    beforeAndAfter.includes('€') ||
+    beforeAndAfter.includes('eur') ||
+    beforeAndAfter.includes('&euro;')
+  )
+    return 'EUR';
   if (beforeAndAfter.includes('sek') || beforeAndAfter.includes('kr')) return 'SEK';
   return null;
 }
