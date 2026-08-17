@@ -472,8 +472,8 @@ function createCmRouter({
 
   // Bulk-reject för städ av stora CM-backlogar.
   // Säkerhetsgate: kräver confirm=true, och som standard dryRun=true.
-  // Filtrerar needs-review-poster som saknar belopp (MISSING_TOTAL_AMOUNT)
-  // och därmed troligen är icke-ekonomiska mail.
+  // Filtrerar poster som saknar belopp (MISSING_TOTAL_AMOUNT) från en viss
+  // CM-kö (needs-review, inbox, invoices, receipts, travel) och avvisar dem.
   router.post(
     '/cm/expense-records/bulk-reject',
     requireAuth,
@@ -487,17 +487,36 @@ function createCmRouter({
           error: 'confirm måste vara true för att utföra bulk-reject',
         });
       }
+      const source = String(body.source || 'needs-review').trim();
+      const sourceGetters = {
+        'needs-review': cmStore.getNeedsReview,
+        inbox: cmStore.getInbox,
+        invoices: cmStore.getInvoices,
+        receipts: cmStore.getReceipts,
+        travel: cmStore.getTravel,
+      };
+      const getter = sourceGetters[source];
+      if (!getter || typeof getter !== 'function') {
+        return res.status(400).json({
+          ok: false,
+          error: `okänd source: ${source}. Tillåtna: ${Object.keys(sourceGetters).join(', ')}`,
+        });
+      }
+      const missingAmountOnly = body.missingAmountOnly !== false;
       const dryRun = body.dryRun !== false;
       const reason = String(
         body.reason || 'Bulk-rejected: saknar belopp, troligen icke-ekonomiskt mail'
       ).trim();
       const rejectedBy = req.user?.id || req.user?.email || req.auth?.userId || 'owner';
-      const candidates = (cmStore.getNeedsReview ? cmStore.getNeedsReview() : []).filter(
-        (r) =>
+      const candidates = getter.call(cmStore).filter((r) => {
+        if (r.approvalStatus === 'rejected') return false;
+        if (!missingAmountOnly) return true;
+        return (
           (r.amountIncVat == null || r.amountIncVat === 0) &&
           Array.isArray(r.flags) &&
           r.flags.includes('MISSING_TOTAL_AMOUNT')
-      );
+        );
+      });
       let rejected = 0;
       let alreadyRejected = 0;
       const errors = [];
@@ -522,6 +541,7 @@ function createCmRouter({
       }
       return res.json({
         ok: true,
+        source,
         dryRun,
         scanned: candidates.length,
         rejected,
