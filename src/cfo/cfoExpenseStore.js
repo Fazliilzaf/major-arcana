@@ -66,6 +66,7 @@ const VALID_CATEGORIES = Object.freeze([
   'bank_finansiell',
   'skatter_avgifter',
   'annat',
+  'privat', // Privata uttag / ägartransaktioner (t.ex. 2018)
 ]);
 
 const VALID_PAYMENT_METHODS = Object.freeze([

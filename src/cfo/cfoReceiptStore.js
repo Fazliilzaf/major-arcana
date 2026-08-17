@@ -52,31 +52,41 @@ const VALID_SOURCE_SYSTEMS = Object.freeze([
 ]);
 
 const VALID_CATEGORIES = Object.freeze([
-  'utrustning',           // Equipment
-  'forbrukning',          // Consumables
-  'lokal',                // Rent / facility
-  'personal',             // Staff-related (not salary)
-  'utbildning',           // Training
-  'resor',                // Travel
-  'mat_representation',   // Meals / entertainment
-  'marknadsforing',       // Marketing
-  'administrativ',        // Office / admin
-  'it_telefoni',          // IT / telecom
-  'forsakring',           // Insurance
-  'juridik_konsult',      // Legal / consulting
-  'bank_finansiell',      // Bank fees
-  'skatter_avgifter',     // Taxes / fees
-  'annat',                // Other
+  'utrustning', // Equipment
+  'forbrukning', // Consumables
+  'lokal', // Rent / facility
+  'personal', // Staff-related (not salary)
+  'utbildning', // Training
+  'resor', // Travel
+  'mat_representation', // Meals / entertainment
+  'marknadsforing', // Marketing
+  'administrativ', // Office / admin
+  'it_telefoni', // IT / telecom
+  'forsakring', // Insurance
+  'juridik_konsult', // Legal / consulting
+  'bank_finansiell', // Bank fees
+  'skatter_avgifter', // Taxes / fees
+  'annat', // Other
+  'privat', // Private withdrawals / owner transactions
 ]);
 
-function nowIso() { return new Date().toISOString(); }
-function newId() { return 'rcpt_' + crypto.randomBytes(8).toString('hex'); }
+function nowIso() {
+  return new Date().toISOString();
+}
+function newId() {
+  return 'rcpt_' + crypto.randomBytes(8).toString('hex');
+}
 
 async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage = null } = {}) {
   if (!filePath) throw new Error('filePath krävs');
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
 
-  let data = { schemaVersion: SCHEMA_VERSION, createdAt: nowIso(), updatedAt: nowIso(), receipts: [] };
+  let data = {
+    schemaVersion: SCHEMA_VERSION,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    receipts: [],
+  };
   try {
     if (fs.existsSync(filePath)) {
       data = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
@@ -95,7 +105,8 @@ async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage 
     try {
       auditLog?.append?.({
         // CF.3 P2-C workaround: ccoAuditLog läser action; vi skickar båda.
-        action: kind, kind,
+        action: kind,
+        kind,
         surface: 'cco.cf.receipt',
         ts: nowIso(),
         actor: detail?.actor || { role: 'system' },
@@ -115,16 +126,27 @@ async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage 
    * @param {string} [input.sourceSystem='manual_upload']
    * @param {object} [input.metadata] — { supplier, amountSek, date, vatSek, category, notes, customerId, encounterId, treatmentId }
    */
-  async function uploadReceipt({ buffer, mimeType, originalFileName, actor, sourceSystem = 'manual_upload', metadata = {} } = {}) {
-    if (!buffer || !(Buffer.isBuffer(buffer))) throw new Error('buffer krävs');
+  async function uploadReceipt({
+    buffer,
+    mimeType,
+    originalFileName,
+    actor,
+    sourceSystem = 'manual_upload',
+    metadata = {},
+  } = {}) {
+    if (!buffer || !Buffer.isBuffer(buffer)) throw new Error('buffer krävs');
     if (!secureStorage) throw new Error('secureStorage krävs för uppladdning');
     if (!VALID_SOURCE_SYSTEMS.includes(sourceSystem)) {
       throw new Error(`Okänd sourceSystem: ${sourceSystem}`);
     }
     const sha = crypto.createHash('sha256').update(buffer).digest('hex');
-    const ext = (mimeType || '').toLowerCase().includes('pdf') ? 'pdf'
-      : (mimeType || '').toLowerCase().includes('png') ? 'png'
-      : (mimeType || '').toLowerCase().includes('webp') ? 'webp' : 'jpg';
+    const ext = (mimeType || '').toLowerCase().includes('pdf')
+      ? 'pdf'
+      : (mimeType || '').toLowerCase().includes('png')
+        ? 'png'
+        : (mimeType || '').toLowerCase().includes('webp')
+          ? 'webp'
+          : 'jpg';
     const id = newId();
     const ym = new Date().toISOString().slice(0, 7);
     const storageKey = `receipts/${ym}/${sha.slice(0, 8)}-${id}.${ext}`;
@@ -143,7 +165,10 @@ async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage 
       amountSek: typeof metadata.amountSek === 'number' ? metadata.amountSek : null,
       vatSek: typeof metadata.vatSek === 'number' ? metadata.vatSek : null,
       date: metadata.date || null,
-      category: metadata.category && VALID_CATEGORIES.includes(metadata.category) ? metadata.category : null,
+      category:
+        metadata.category && VALID_CATEGORIES.includes(metadata.category)
+          ? metadata.category
+          : null,
       notes: String(metadata.notes || '').slice(0, 2000),
       customerId: metadata.customerId || null,
       encounterId: metadata.encounterId || null,
@@ -156,19 +181,42 @@ async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage 
     };
     data.receipts.push(receipt);
     await persist();
-    audit('cf.receipt.uploaded', { receiptId: id, sourceSystem, sha256: sha, sizeBytes: buffer.length, actor });
+    audit('cf.receipt.uploaded', {
+      receiptId: id,
+      sourceSystem,
+      sha256: sha,
+      sizeBytes: buffer.length,
+      actor,
+    });
     return { ...receipt };
   }
 
   async function updateReceipt({ id, patch = {}, actor } = {}) {
     const r = data.receipts.find((x) => x.id === id);
     if (!r) throw new Error('receipt finns ej');
-    const allowed = ['supplier', 'amountSek', 'vatSek', 'date', 'category', 'notes', 'customerId', 'encounterId', 'treatmentId', 'offerId'];
+    const allowed = [
+      'supplier',
+      'amountSek',
+      'vatSek',
+      'date',
+      'category',
+      'notes',
+      'customerId',
+      'encounterId',
+      'treatmentId',
+      'offerId',
+    ];
     // CF.2-fix 2026-06-01 (Extra P3): validera category mot VALID_CATEGORIES
     // på samma sätt som uploadReceipt — annars kan UI:t skriva fritext som
     // category vilket skulle bryta byCategory-summary.
-    if ('category' in patch && patch.category !== null && !VALID_CATEGORIES.includes(patch.category)) {
-      throw new Error(`Okänd category: ${patch.category}. Tillåtna: ${VALID_CATEGORIES.join(', ')}`);
+    if (
+      'category' in patch &&
+      patch.category !== null &&
+      !VALID_CATEGORIES.includes(patch.category)
+    ) {
+      throw new Error(
+        `Okänd category: ${patch.category}. Tillåtna: ${VALID_CATEGORIES.join(', ')}`
+      );
     }
     for (const k of allowed) {
       if (k in patch) r[k] = patch[k];
@@ -193,8 +241,10 @@ async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage 
     r.updatedAt = nowIso();
     r.history.push({ status: newStatus, at: nowIso(), by: actor, reason: reason || null });
     await persist();
-    if (newStatus === 'rejected') audit('cf.receipt.rejected', { receiptId: id, oldStatus, reason, actor });
-    else if (newStatus === 'exported') audit('cf.receipt.exported', { receiptId: id, oldStatus, actor });
+    if (newStatus === 'rejected')
+      audit('cf.receipt.rejected', { receiptId: id, oldStatus, reason, actor });
+    else if (newStatus === 'exported')
+      audit('cf.receipt.exported', { receiptId: id, oldStatus, actor });
     else audit('cf.receipt.updated', { receiptId: id, oldStatus, newStatus, actor });
     return { ...r };
   }
@@ -208,7 +258,9 @@ async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage 
     return list.slice(0, Math.max(1, Math.min(1000, limit)));
   }
 
-  function getById(id) { return data.receipts.find((r) => r.id === id) || null; }
+  function getById(id) {
+    return data.receipts.find((r) => r.id === id) || null;
+  }
 
   function summary() {
     const byStatus = {};
@@ -223,7 +275,9 @@ async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage 
     }
     return {
       total: data.receipts.length,
-      byStatus, byCategory, bySource,
+      byStatus,
+      byCategory,
+      bySource,
       totalAmountSek: totalAmount,
       needsReviewCount: (byStatus.new || 0) + (byStatus.needs_review || 0),
     };
@@ -231,9 +285,15 @@ async function createCfoReceiptStore({ filePath, auditLog = null, secureStorage 
 
   return {
     schemaVersion: SCHEMA_VERSION,
-    VALID_STATUSES, VALID_SOURCE_SYSTEMS, VALID_CATEGORIES,
-    uploadReceipt, updateReceipt, transitionStatus,
-    listReceipts, getById, summary,
+    VALID_STATUSES,
+    VALID_SOURCE_SYSTEMS,
+    VALID_CATEGORIES,
+    uploadReceipt,
+    updateReceipt,
+    transitionStatus,
+    listReceipts,
+    getById,
+    summary,
   };
 }
 

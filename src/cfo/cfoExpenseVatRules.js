@@ -32,9 +32,13 @@
 'use strict';
 
 const VALID_VAT_MODES = Object.freeze([
-  'standard_25', 'standard_12', 'standard_6', 'standard_0',
+  'standard_25',
+  'standard_12',
+  'standard_6',
+  'standard_0',
   'mixed',
-  'reverse_charge_eu', 'reverse_charge_non_eu',
+  'reverse_charge_eu',
+  'reverse_charge_non_eu',
   'non_deductible',
   'representation_limited',
   'needs_review',
@@ -54,28 +58,29 @@ const VAT_MODE_LABELS = Object.freeze({
 });
 
 const VALID_REVIEW_STATUSES = Object.freeze([
-  'pending',   // behöver granskas
-  'reviewed',  // owner/finance har bekräftat
-  'flagged',   // owner-flaggad för senare beslut
+  'pending', // behöver granskas
+  'reviewed', // owner/finance har bekräftat
+  'flagged', // owner-flaggad för senare beslut
 ]);
 
 // Mapping från category → default vatMode (svenska standardsatser per Skatteverket)
 const CATEGORY_DEFAULT_VAT_MODE = Object.freeze({
   utrustning: 'standard_25',
   forbrukning: 'standard_25',
-  lokal: 'standard_25',           // hyra med moms (om frivillig skattskyldighet)
+  lokal: 'standard_25', // hyra med moms (om frivillig skattskyldighet)
   personal: 'standard_25',
-  utbildning: 'needs_review',     // 0% kurser vs 25% material
-  resor: 'needs_review',          // 6% transport vs 12% hotell vs 25% bilhyra
+  utbildning: 'needs_review', // 0% kurser vs 25% material
+  resor: 'needs_review', // 6% transport vs 12% hotell vs 25% bilhyra
   mat_representation: 'representation_limited', // 50% avdragsrätt
   marknadsforing: 'standard_25',
   administrativ: 'standard_25',
   it_telefoni: 'standard_25',
-  forsakring: 'standard_0',       // försäkringspremier momsbefriade
+  forsakring: 'standard_0', // försäkringspremier momsbefriade
   juridik_konsult: 'standard_25',
-  bank_finansiell: 'standard_0',  // bankavgifter momsbefriade
+  bank_finansiell: 'standard_0', // bankavgifter momsbefriade
   skatter_avgifter: 'standard_0', // skatter inte moms
   annat: 'needs_review',
+  privat: 'non_deductible', // privata uttag har ingen avdragsgill moms
 });
 
 // Mapping vatMode → vatRatePercent (för auto-fyll när rate saknas)
@@ -84,16 +89,20 @@ const VAT_MODE_TO_RATE = Object.freeze({
   standard_12: 12,
   standard_6: 6,
   standard_0: 0,
-  reverse_charge_eu: 0,         // moms hanteras separat i deklaration
+  reverse_charge_eu: 0, // moms hanteras separat i deklaration
   reverse_charge_non_eu: 0,
-  non_deductible: null,          // okänd — sätts manuellt
-  representation_limited: 12,    // standard svensk representationsmoms
+  non_deductible: null, // okänd — sätts manuellt
+  representation_limited: 12, // standard svensk representationsmoms
   mixed: null,
   needs_review: null,
 });
 
-function isFiniteNumber(v) { return typeof v === 'number' && Number.isFinite(v); }
-function num(v) { return isFiniteNumber(v) ? v : 0; }
+function isFiniteNumber(v) {
+  return typeof v === 'number' && Number.isFinite(v);
+}
+function num(v) {
+  return isFiniteNumber(v) ? v : 0;
+}
 
 /**
  * Beräkna fullständigt VAT-breakdown från expense-fält + vatMode.
@@ -137,10 +146,10 @@ function calculateVatBreakdown({ amountSek, vatSek, vatRatePercent, vatMode } = 
     notes.push('Reverse charge — momsdeklaration hanterar både utgående och ingående');
   } else if (!isFiniteNumber(vat) || vat === null) {
     // Försök härleda från rate
-    let rate = isFiniteNumber(vatRatePercent) ? vatRatePercent : VAT_MODE_TO_RATE[mode];
+    const rate = isFiniteNumber(vatRatePercent) ? vatRatePercent : VAT_MODE_TO_RATE[mode];
     if (isFiniteNumber(rate) && rate > 0) {
       // gross = net * (1 + rate/100) → vat = gross * rate / (100 + rate)
-      vat = gross * rate / (100 + rate);
+      vat = (gross * rate) / (100 + rate);
       calcSource = 'derived_from_rate';
       notes.push(`Härled moms från ${rate}% (gross * ${rate} / (100 + ${rate}))`);
     } else {
@@ -206,12 +215,15 @@ function round2(n) {
  * Föreslå vatMode för en expense baserat på category + reverseCharge-flagga.
  * Returnerar { suggestedVatMode, confidence, reason } eller null.
  */
-function suggestVatMode({ category, supplierCountry = 'SE', vatRatePercent, reverseChargeHint = false } = {}) {
+function suggestVatMode({
+  category,
+  supplierCountry = 'SE',
+  vatRatePercent,
+  reverseChargeHint = false,
+} = {}) {
   // Explicit reverse-charge-hint (från owner eller vendor.notes)
   if (reverseChargeHint || supplierCountry === 'EU' || supplierCountry === 'NON_EU') {
-    const mode = (supplierCountry === 'NON_EU')
-      ? 'reverse_charge_non_eu'
-      : 'reverse_charge_eu';
+    const mode = supplierCountry === 'NON_EU' ? 'reverse_charge_non_eu' : 'reverse_charge_eu';
     return {
       suggestedVatMode: mode,
       confidence: 0.75,
@@ -221,16 +233,20 @@ function suggestVatMode({ category, supplierCountry = 'SE', vatRatePercent, reve
 
   // Om vatRatePercent är satt och passar standardsats
   if (isFiniteNumber(vatRatePercent)) {
-    if (vatRatePercent === 25) return { suggestedVatMode: 'standard_25', confidence: 0.85, reason: 'vatRatePercent=25' };
-    if (vatRatePercent === 12) return { suggestedVatMode: 'standard_12', confidence: 0.85, reason: 'vatRatePercent=12' };
-    if (vatRatePercent === 6) return { suggestedVatMode: 'standard_6', confidence: 0.85, reason: 'vatRatePercent=6' };
-    if (vatRatePercent === 0) return { suggestedVatMode: 'standard_0', confidence: 0.70, reason: 'vatRatePercent=0' };
+    if (vatRatePercent === 25)
+      return { suggestedVatMode: 'standard_25', confidence: 0.85, reason: 'vatRatePercent=25' };
+    if (vatRatePercent === 12)
+      return { suggestedVatMode: 'standard_12', confidence: 0.85, reason: 'vatRatePercent=12' };
+    if (vatRatePercent === 6)
+      return { suggestedVatMode: 'standard_6', confidence: 0.85, reason: 'vatRatePercent=6' };
+    if (vatRatePercent === 0)
+      return { suggestedVatMode: 'standard_0', confidence: 0.7, reason: 'vatRatePercent=0' };
   }
 
   // Härled från category
   if (category && CATEGORY_DEFAULT_VAT_MODE[category]) {
     const mode = CATEGORY_DEFAULT_VAT_MODE[category];
-    const confidence = mode === 'needs_review' ? 0.30 : 0.60;
+    const confidence = mode === 'needs_review' ? 0.3 : 0.6;
     return {
       suggestedVatMode: mode,
       confidence,
@@ -246,17 +262,28 @@ function suggestVatMode({ category, supplierCountry = 'SE', vatRatePercent, reve
  */
 function validateBreakdown(breakdown, tolerance = 0.05) {
   if (!breakdown) return { valid: false, reason: 'no_breakdown' };
-  const diff = Math.abs(breakdown.grossAmountSek - (breakdown.netAmountSek + breakdown.vatAmountSek));
+  const diff = Math.abs(
+    breakdown.grossAmountSek - (breakdown.netAmountSek + breakdown.vatAmountSek)
+  );
   if (diff > tolerance) return { valid: false, reason: 'gross_net_vat_mismatch', diff };
   // Reverse charge: vat ska vara 0
   if (breakdown.reverseCharge && breakdown.vatAmountSek !== 0) {
-    return { valid: false, reason: 'reverse_charge_with_vat', vatAmountSek: breakdown.vatAmountSek };
+    return {
+      valid: false,
+      reason: 'reverse_charge_with_vat',
+      vatAmountSek: breakdown.vatAmountSek,
+    };
   }
   // Deductible + non-deductible ska summa till vat
   const dedSum = breakdown.deductibleVatSek + breakdown.nonDeductibleVatSek;
   if (Math.abs(dedSum - breakdown.vatAmountSek) > tolerance && !breakdown.reverseCharge) {
     if (!['mixed', 'needs_review'].includes(breakdown.vatMode)) {
-      return { valid: false, reason: 'deduction_sum_mismatch', dedSum, vatAmountSek: breakdown.vatAmountSek };
+      return {
+        valid: false,
+        reason: 'deduction_sum_mismatch',
+        dedSum,
+        vatAmountSek: breakdown.vatAmountSek,
+      };
     }
   }
   return { valid: true };

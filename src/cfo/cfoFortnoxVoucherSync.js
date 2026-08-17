@@ -40,6 +40,7 @@ const DEFAULT_ACCOUNT_MAP = Object.freeze({
   bank_finansiell: 6570,
   skatter_avgifter: 6990,
   annat: 6990,
+  privat: 2018, // Privata uttag / ägartransaktioner (BAS 2018)
 });
 const VAT_ACCOUNT = 2641; // Ingående moms
 const COUNTER_ACCOUNT = 1930; // Företagskonto (betalning)
