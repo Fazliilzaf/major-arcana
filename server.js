@@ -10860,6 +10860,7 @@ process.once('SIGTERM', () => {
           filePath: config.ccoMailIngestionStorePath,
         })
   );
+  app.locals.ccoMailIngestionStore = ccoMailIngestionStore;
   const messageIntelligenceStore = await startupStep('messageIntelligenceStore', () =>
     createMessageIntelligenceStore({
       filePath:
