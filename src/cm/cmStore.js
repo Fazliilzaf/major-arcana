@@ -590,8 +590,15 @@ function createCmStore({ filePath }) {
     for (const r of state.expenseRecords) {
       const key = `${r.supplierName}|${r.amountIncVat}|${r.date}`;
       if (seen.has(key)) {
-        dups.push([seen.get(key), r]);
-      } else seen.set(key, r);
+        const first = seen.get(key);
+        // Visa inte redan helt avvisade dubletter — de har ingen åtgärd kvar.
+        if (first.approvalStatus === 'rejected' && r.approvalStatus === 'rejected') {
+          continue;
+        }
+        dups.push([first, r]);
+      } else {
+        seen.set(key, r);
+      }
     }
     return dups;
   }
