@@ -356,6 +356,177 @@ test('linkPatientToMessage marks UNMATCHED ledger as MATCHED', async () => {
   await fs.unlink(filePath).catch(() => {});
 });
 
+test('linkPatientToMessage blocks relink to another patient without force', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-relink-block-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'contact@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id });
+  const saved = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      mailboxId: 'contact@hairtpclinic.com',
+      folderType: 'inbox',
+      graphMessageId: 'graph-msg-relink-block',
+      internetMessageId: '<relink-block@example.com>',
+      subject: 'Redan länkat',
+      bodyPreview: 'Hej',
+      from: { address: 'known@example.com' },
+      receivedAt: '2026-05-26T12:00:00.000Z',
+      conversationId: 'conv-relink-block',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+  await store.updateLedger(saved.ledger.id, {
+    status: 'MATCHED',
+    patientMatchStatus: 'MATCHED',
+    patientId: 'patient-a',
+    completedAt: new Date().toISOString(),
+  });
+
+  await assert.rejects(
+    store.linkPatientToMessage({
+      rawMessageId: saved.rawMessage.id,
+      patientId: 'patient-b',
+      actorUserId: 'owner@test',
+    }),
+    (e) => e.statusCode === 409 && /redan länkat/i.test(e.message)
+  );
+  await fs.unlink(filePath).catch(() => {});
+});
+
+test('linkPatientToMessage allows relink with force and canForce', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-relink-force-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'contact@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id });
+  const saved = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      mailboxId: 'contact@hairtpclinic.com',
+      folderType: 'inbox',
+      graphMessageId: 'graph-msg-relink-force',
+      internetMessageId: '<relink-force@example.com>',
+      subject: 'Omlänkning',
+      bodyPreview: 'Hej',
+      from: { address: 'known@example.com' },
+      receivedAt: '2026-05-26T12:00:00.000Z',
+      conversationId: 'conv-relink-force',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+  await store.updateLedger(saved.ledger.id, {
+    status: 'MATCHED',
+    patientMatchStatus: 'MATCHED',
+    patientId: 'patient-a',
+    completedAt: new Date().toISOString(),
+  });
+
+  const linked = await store.linkPatientToMessage({
+    rawMessageId: saved.rawMessage.id,
+    patientId: 'patient-b',
+    actorUserId: 'owner@test',
+    linkedReason: 'Kunden uppgav rätt identitet',
+    force: true,
+    canForce: true,
+  });
+  assert.equal(linked.ledger.patientId, 'patient-b');
+  assert.equal(linked.ledger.linkedReason, 'Kunden uppgav rätt identitet');
+  assert.equal(linked.changed, true);
+  await fs.unlink(filePath).catch(() => {});
+});
+
+test('linkPatientToMessage creates audit event on relink', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-relink-audit-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'contact@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id });
+  const saved = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      mailboxId: 'contact@hairtpclinic.com',
+      folderType: 'inbox',
+      graphMessageId: 'graph-msg-relink-audit',
+      internetMessageId: '<relink-audit@example.com>',
+      subject: 'Audit',
+      bodyPreview: 'Hej',
+      from: { address: 'known@example.com' },
+      receivedAt: '2026-05-26T12:00:00.000Z',
+      conversationId: 'conv-relink-audit',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+  await store.updateLedger(saved.ledger.id, {
+    status: 'MATCHED',
+    patientMatchStatus: 'MATCHED',
+    patientId: 'patient-a',
+    completedAt: new Date().toISOString(),
+  });
+
+  await store.linkPatientToMessage({
+    rawMessageId: saved.rawMessage.id,
+    patientId: 'patient-b',
+    actorUserId: 'owner@test',
+    linkedReason: 'Rättelse',
+    force: true,
+    canForce: true,
+  });
+  const audit = store.getState().auditEvents.find(
+    (e) => e.type === 'mail_ingestion_patient_relinked'
+  );
+  assert.ok(audit, 'relinked-audit-event ska finnas');
+  assert.equal(audit.patientId, 'patient-b');
+  assert.equal(audit.previousPatientId, 'patient-a');
+  assert.equal(audit.actorUserId, 'owner@test');
+  await fs.unlink(filePath).catch(() => {});
+});
+
+test('linkPatientToMessage builds thread identity and flags conflict', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-thread-identity-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'contact@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id });
+
+  const baseTruth = {
+    mailboxId: 'contact@hairtpclinic.com',
+    folderType: 'inbox',
+    subject: 'Tråd',
+    bodyPreview: 'Hej',
+    from: { address: 'known@example.com' },
+    receivedAt: '2026-05-26T12:00:00.000Z',
+    conversationId: 'conv-thread-identity',
+  };
+
+  const savedA = await store.saveRawMessageFromTruth({
+    truthMessage: { ...baseTruth, graphMessageId: 'graph-msg-ti-1', internetMessageId: '<ti-1@example.com>' },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+  const savedB = await store.saveRawMessageFromTruth({
+    truthMessage: { ...baseTruth, graphMessageId: 'graph-msg-ti-2', internetMessageId: '<ti-2@example.com>' },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+
+  await store.updateLedger(savedA.ledger.id, { status: 'UNMATCHED', patientMatchStatus: 'UNMATCHED' });
+  await store.updateLedger(savedB.ledger.id, { status: 'UNMATCHED', patientMatchStatus: 'UNMATCHED' });
+
+  await store.linkPatientToMessage({ rawMessageId: savedA.rawMessage.id, patientId: 'patient-a', actorUserId: 'owner@test' });
+  const firstIdentity = store.getThreadIdentity('contact@hairtpclinic.com:conv-thread-identity');
+  assert.equal(firstIdentity.canonicalPatientId, 'patient-a');
+  assert.equal(firstIdentity.identityConflict, false);
+
+  await store.linkPatientToMessage({ rawMessageId: savedB.rawMessage.id, patientId: 'patient-b', actorUserId: 'owner@test' });
+  const conflictIdentity = store.getThreadIdentity('contact@hairtpclinic.com:conv-thread-identity');
+  assert.equal(conflictIdentity.identityConflict, true);
+  assert.equal(conflictIdentity.canonicalPatientId, null);
+  assert.deepEqual(new Set(conflictIdentity.patientIds), new Set(['patient-a', 'patient-b']));
+
+  const forPatientA = store.listThreadIdentities({ patientId: 'patient-a' });
+  assert.equal(forPatientA.length, 1);
+  assert.equal(forPatientA[0].conversationKey, 'contact@hairtpclinic.com:conv-thread-identity');
+  await fs.unlink(filePath).catch(() => {});
+});
+
 test('listReviewQueue returns unmatched rows', async () => {
   const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-review-${Date.now()}.json`);
   const store = await createCcoMailIngestionStore({ filePath });
