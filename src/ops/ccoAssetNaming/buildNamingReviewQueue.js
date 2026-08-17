@@ -10,11 +10,11 @@
  */
 
 const {
-  needsBackfill,
   resolveAliasKeyFn,
   groupByPatientId,
   assertPatientsResolved,
-} = require('../../../scripts/backfill-asset-display-names');
+} = require('../ccoIdentityResolution/sharedPatientResolver');
+const { needsBackfill } = require('../../../scripts/backfill-asset-display-names');
 const { buildAssetNamingMetadata } = require('./index');
 
 function normalizeText(value) {

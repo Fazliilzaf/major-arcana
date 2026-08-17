@@ -17,41 +17,18 @@
  * Ren funktion med injicerad store (`listPatients`) — enkel att enhetstesta.
  */
 
-function text(v) {
-  return typeof v === 'string' ? v.trim() : '';
-}
-function normalizeEmail(v) {
-  return text(v).toLowerCase();
-}
+const {
+  normalizeText: text,
+  normalizeEmail,
+  buildPatientContactLookup,
+  resolvePatientByEmail,
+} = require('./ccoIdentityResolution/sharedPatientResolver');
+
 function isEmail(v) {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
 }
 function asArray(v) {
   return Array.isArray(v) ? v : v == null ? [] : [v];
-}
-
-/**
- * Vilken källa matchade + konfidens. Direkt (primaryEmail/emails) = 1.0,
- * alias (cliento/pipedrive) = 0.9. Returnerar null om ingen källa matchar.
- */
-function matchEmailSources(patient, target) {
-  if (normalizeEmail(patient.primaryEmail) === target) {
-    return { by: 'primaryEmail', confidence: 1 };
-  }
-  if (asArray(patient.emails).some((e) => normalizeEmail(e) === target)) {
-    return { by: 'emails', confidence: 1 };
-  }
-  if (
-    asArray(patient.cliento && patient.cliento.emails).some((e) => normalizeEmail(e) === target)
-  ) {
-    return { by: 'cliento.emails', confidence: 0.9 };
-  }
-  if (
-    asArray(patient.pipedrive && patient.pipedrive.emails).some((e) => normalizeEmail(e) === target)
-  ) {
-    return { by: 'pipedrive.emails', confidence: 0.9 };
-  }
-  return null;
 }
 
 /**
@@ -132,36 +109,26 @@ async function resolveConversationPatient(ref = {}, stores = {}) {
   const result = await patientMasterStore.listPatients({ tenantId, limit: 20000 });
   const patients = Array.isArray(result && result.patients) ? result.patients : [];
 
-  // Matcha; dedupe på canonical patient.id (behåll starkaste källan per patient).
-  const byId = new Map();
-  for (const p of patients) {
-    const hit = matchEmailSources(p, target);
-    if (!hit) continue;
-    const id = text(p.id) || text(p.patientId); // ALLTID canonical id, aldrig cliento_*
-    if (!id) continue;
-    const existing = byId.get(id);
-    if (!existing || hit.confidence > existing.confidence) {
-      byId.set(id, {
-        patientId: id,
-        displayName: text(p.displayName) || null,
-        matchedBy: hit.by,
-        confidence: hit.confidence,
-      });
-    }
+  const lookup = buildPatientContactLookup(patients);
+  const emailResult = resolvePatientByEmail(lookup, target);
+
+  if (emailResult.status === 'unmatched') {
+    return { ...base, status: 'unmatched' };
+  }
+  if (emailResult.status === 'ambiguous') {
+    return {
+      ...base,
+      status: 'ambiguous',
+      matchedBy: 'email',
+      candidates: emailResult.candidates,
+    };
   }
 
-  const matches = [...byId.values()];
-  if (matches.length === 0) return { ...base, status: 'unmatched' };
-  if (matches.length > 1) {
-    return { ...base, status: 'ambiguous', matchedBy: 'email', candidates: matches };
-  }
-
-  const m = matches[0];
   return {
-    patientId: m.patientId,
-    displayName: m.displayName,
-    matchedBy: m.matchedBy,
-    confidence: m.confidence,
+    patientId: emailResult.patientId,
+    displayName: emailResult.displayName,
+    matchedBy: emailResult.matchedBy,
+    confidence: emailResult.confidence,
     status: 'matched',
   };
 }
@@ -216,6 +183,4 @@ module.exports = {
   buildPatientRollupIdentity,
   resolveConversationPatient,
   resolveConversationPatients,
-  matchEmailSources,
-  normalizeEmail,
 };

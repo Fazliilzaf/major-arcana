@@ -33,7 +33,11 @@ const { createCcoPatientAssetStore } = require('../src/ops/ccoPatientAssetStore'
 const { createCcoPatientMasterStore } = require('../src/ops/ccoPatientMasterStore');
 const { createCcoAuditLog } = require('../src/security/ccoAuditLog');
 const { buildAssetNamingMetadata } = require('../src/ops/ccoAssetNaming');
-const { resolveCanonicalPatientsForAssets } = require('../src/ops/ccoPatientAssetIdentity');
+const {
+  groupByPatientId,
+  resolveAliasKeyFn,
+  assertPatientsResolved,
+} = require('../src/ops/ccoIdentityResolution/sharedPatientResolver');
 
 const REPO = path.resolve(__dirname, '..');
 const DATA = path.join(REPO, 'data');
@@ -175,61 +179,6 @@ function needsBackfill(asset, { force = false }) {
  */
 function isAutoSafeNamingPatch(namingPatch) {
   return namingPatch?.namingStatus !== 'needs_review_for_naming';
-}
-
-/**
- * @param {object[]} assets
- * @param {(asset: object) => string} [keyFn] — patientId-nyckel att
- *   gruppera på. Default: rå asset.patientId (den historiskt buggiga
- *   grupperingen). Skickas en resolverad kanonisk-ID-uppslagning in
- *   (se resolveAliasKeyFn) fixas 519 verifierade kors-patient-
- *   kollisioner (CCO-STATUS.md punkt 1) — grupperingsnyckeln ändras,
- *   asset.patientId-fältet på den lagrade posten rörs aldrig.
- */
-function groupByPatientId(assets, keyFn = (asset) => asset.patientId) {
-  const map = new Map();
-  for (const asset of assets) {
-    const pid = normalizeText(keyFn(asset));
-    if (!pid) continue;
-    if (!map.has(pid)) map.set(pid, []);
-    map.get(pid).push(asset);
-  }
-  return map;
-}
-
-// ORD-85 (resolveCanonicalPatientsForAssets, ccoPatientAssetIdentity.js)
-// ordagrant — samma funktion #1368 verifierade mot prod (91 222 av
-// 126 642 assets bar ett alias-ID). Bygger en groupByPatientId-keyFn som
-// grupperar på kanonisk patient när den kan härledas, annars faller
-// tillbaka till rå asset.patientId (aldrig sämre än tidigare beteende).
-function resolveAliasKeyFn(assets, patients) {
-  const resolutions = resolveCanonicalPatientsForAssets({ patients, assets });
-  const canonicalByAssetId = new Map();
-  for (const resolution of resolutions) {
-    if (resolution.canonicalPatientId) {
-      canonicalByAssetId.set(resolution.assetId, resolution.canonicalPatientId);
-    }
-  }
-  return (asset) => canonicalByAssetId.get(asset.id) || asset.patientId;
-}
-
-// Fail-closed på riktigt: en TOM array är "truthy" i JS, så utan den här
-// kontrollen skulle resolveAliasKeyFn köra, lösa upp ingenting, och
-// grupperingen falla TYST tillbaka på rå patientId — exakt det
-// --patients-store/--tenant är till för att förhindra. Fel sökväg eller
-// felstavat tenant-namn ska krascha högljutt, inte degradera tyst till
-// den buggiga grupperingen. Hittad av Cursor Bugbot vid granskning av
-// #1374, 2026-08-13.
-function assertPatientsResolved(patients, { patientsStorePath, tenant } = {}) {
-  if (patients.length === 0) {
-    throw new Error(
-      `--patients-store/--tenant gav 0 patienter (tenant "${tenant}", ` +
-        `${path.resolve(patientsStorePath)}) — fel sökväg eller felstavad tenant? ` +
-        'Vägrar falla tillbaka tyst till oupplöst gruppering (kors-patient-' +
-        'kollisionsrisk). Verifiera --patients-store/--tenant, eller sätt ' +
-        '--i-understand-the-collision-risk-skip-alias-resolution om det är avsiktligt.'
-    );
-  }
 }
 
 async function backfillAssetDisplayNames({ assetStore, patients = null, args }) {
