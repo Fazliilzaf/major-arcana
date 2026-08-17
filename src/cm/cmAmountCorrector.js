@@ -90,19 +90,19 @@ const PATTERNS = [
     name: 'total_sek_decimal',
     currency: 'SEK',
     regex:
-      /Total(?:\s+(?:betalning|belopp|SEK|kr))?[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?/i,
+      /\bTotal(?:\s+(?:betalning|belopp|SEK|kr))?[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?/i,
   },
   {
     name: 'totalt_belatt_som_betalats',
     currency: 'SEK',
     regex:
-      /Totalt belopp som betalats[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?/i,
+      /\bTotalt belopp som betalats[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?/i,
   },
   {
     name: 'betalning_total',
     currency: 'SEK',
     regex:
-      /Total betalning[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr|\s*inkl)?/i,
+      /\bTotal betalning[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr|\s*inkl)?/i,
   },
   {
     name: 'fakturerat_belopp',
