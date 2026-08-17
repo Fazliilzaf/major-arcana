@@ -47,9 +47,23 @@ function looksLike100xError(currentAmount, parsedAmount) {
 
 function detectCurrency(text, matchIndex) {
   const beforeAndAfter = text.slice(Math.max(0, matchIndex - 30), matchIndex + 40).toLowerCase();
+  if (beforeAndAfter.includes('zar')) return 'ZAR';
   if (beforeAndAfter.includes('€') || beforeAndAfter.includes('eur')) return 'EUR';
   if (beforeAndAfter.includes('sek') || beforeAndAfter.includes('kr')) return 'SEK';
   return null;
+}
+
+// Grova växelkursuppskattningar för att konvertera till SEK.
+// Används endast för att rensa uppenbara ×100-fel; ägaren bör granska.
+const RATES_TO_SEK = {
+  EUR: 11.5,
+  ZAR: 0.6,
+  SEK: 1,
+};
+
+function convertToSek(parsedAmount, currency) {
+  const rate = RATES_TO_SEK[currency] || 1;
+  return Math.round(parsedAmount * rate);
 }
 
 const PATTERNS = [
@@ -120,7 +134,7 @@ const PATTERNS = [
  * Extrahera det mest sannolika verkliga beloppet från råmailet.
  * @param {Object} rawItem
  * @param {number} currentAmountIncVat
- * @returns {Object|null} { parsedAmount, currency, strategy, confidence }
+ * @returns {Object|null} { parsedAmount, sekAmount, currency, strategy, confidence }
  */
 function extractAmountFromRawItem(rawItem, currentAmountIncVat) {
   const text = normalizeWhitespace(
@@ -138,6 +152,7 @@ function extractAmountFromRawItem(rawItem, currentAmountIncVat) {
       if (looksLike100xError(currentAmountIncVat, parsedAmount)) {
         return {
           parsedAmount,
+          sekAmount: convertToSek(parsedAmount, currency),
           currency,
           strategy: pattern.name,
           confidence: 0.9,

@@ -658,6 +658,10 @@ function createCmRouter({
                 existing.status !== 'exported' &&
                 existing.fortnoxSyncStatus !== 'synced'
               ) {
+                const originalHint =
+                  candidate.currency && candidate.currency !== 'SEK'
+                    ? ` (ursprungligt ${candidate.parsedAmount} ${candidate.currency} -> ~${candidate.suggestedAmount} SEK)`
+                    : '';
                 await cfoExpenseStore.updateExpense({
                   id: cfoExpenseId,
                   patch: {
@@ -666,7 +670,7 @@ function createCmRouter({
                     vatRatePercent: 0,
                     notes:
                       String(existing.notes || '') +
-                      ` [cm-bulk-correct: belopp korrigerat från ${candidate.currentAmount} till ${candidate.suggestedAmount}]`,
+                      ` [cm-bulk-correct: belopp korrigerat från ${candidate.currentAmount} till ${candidate.suggestedAmount}${originalHint}]`,
                   },
                   actor: { userId: actor, role: 'owner', via: 'cm-bulk-correct' },
                 });
@@ -682,7 +686,7 @@ function createCmRouter({
                     date: record.date || new Date().toISOString().slice(0, 10),
                     category: 'annat',
                     paymentMethod: 'card',
-                    notes: `Återskapad efter bulk-korrigering. Ursprunglig CM-post ${record.id} hade felaktigt belopp ${candidate.currentAmount}.`,
+                    notes: `Återskapad efter bulk-korrigering. Ursprunglig CM-post ${record.id} hade felaktigt belopp ${candidate.currentAmount}.${candidate.currency && candidate.currency !== 'SEK' ? ` Ursprungligt ${candidate.parsedAmount} ${candidate.currency} -> ~${candidate.suggestedAmount} SEK.` : ''}`,
                   },
                 });
                 cfoExpenseId = created.id;
