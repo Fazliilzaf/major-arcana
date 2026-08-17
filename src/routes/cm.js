@@ -443,6 +443,41 @@ function createCmRouter({
     return res.json({ ok: true, record: rec });
   });
 
+  // PATCH /api/v1/cm/expense-records/:id — redigera amount/category/flags.
+  router.patch(
+    '/cm/expense-records/:id',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    express.json({ limit: '1mb' }),
+    async (req, res) => {
+      try {
+        const record =
+          typeof cmStore.getExpenseRecordById === 'function'
+            ? cmStore.getExpenseRecordById(req.params.id)
+            : null;
+        if (!record) return res.status(404).json({ ok: false, error: 'record finns ej' });
+        if (record.approvalStatus === 'rejected') {
+          return res.status(400).json({ ok: false, error: 'avvisad record kan inte uppdateras' });
+        }
+        const actor = req.user?.id || req.user?.email || req.auth?.userId || 'owner';
+        const patch = req.body || {};
+        const allowed = ['amountIncVat', 'amountExVat', 'vatAmount', 'category', 'flags', 'notes'];
+        const filtered = {};
+        for (const k of allowed) {
+          if (k in patch) filtered[k] = patch[k];
+        }
+        if (Object.keys(filtered).length === 0) {
+          return res.status(400).json({ ok: false, error: 'inget giltigt fält att uppdatera' });
+        }
+        const result = cmStore.updateExpenseRecord(record.id, filtered, actor);
+        await cmStore.persist();
+        return res.json({ ok: true, record: result.record });
+      } catch (err) {
+        return res.status(400).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   // ORD-CM-? · Reject a single expense record regardless of which queue it is in.
   // Needed to clean up dangling records (e.g. receipts that reference a deleted
   // CFO expense or records without a rawItem) that bulk reject cannot reach.
@@ -548,6 +583,143 @@ function createCmRouter({
         alreadyRejected,
         errors: errors.slice(0, 20),
       });
+    }
+  );
+
+  // Bulk-korrigering av uppenbara ×100-fel (t.ex. 983 kr -> 98 300 kr).
+  router.post(
+    '/cm/expense-records/bulk-correct-amounts',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    express.json({ limit: '1mb' }),
+    async (req, res) => {
+      try {
+        const body = req.body || {};
+        const source = String(body.source || 'receipts').trim();
+        const dryRun = body.dryRun !== false;
+        const confirm = body.confirm === true;
+        if (!confirm && !dryRun) {
+          return res.status(400).json({
+            ok: false,
+            error: 'confirm måste vara true för att utföra bulk-korrigering',
+          });
+        }
+        const actor = req.user?.id || req.user?.email || req.auth?.userId || 'owner';
+
+        const { candidates, scanned } = await cmStore.bulkCorrectAmounts({ source, actor });
+
+        if (dryRun) {
+          return res.json({
+            ok: true,
+            source,
+            dryRun: true,
+            scanned,
+            candidateCount: candidates.length,
+            candidates: candidates.slice(0, 100),
+          });
+        }
+
+        // Skarp körning
+        const corrected = [];
+        const skipped = [];
+        const errors = [];
+
+        for (const candidate of candidates) {
+          try {
+            const record = cmStore.getExpenseRecordById(candidate.id);
+            if (!record) {
+              skipped.push({ id: candidate.id, reason: 'record saknas' });
+              continue;
+            }
+            if (record.approvalStatus === 'rejected') {
+              skipped.push({ id: candidate.id, reason: 'redan avvisad' });
+              continue;
+            }
+
+            // Uppdatera CM-record
+            cmStore.updateExpenseRecord(
+              record.id,
+              {
+                amountIncVat: candidate.suggestedAmount,
+                amountExVat: candidate.suggestedAmount,
+                vatAmount: 0,
+                category: record.category || 'annat',
+                flags: record.flags.filter((f) => f !== 'MISSING_TOTAL_AMOUNT'),
+              },
+              actor
+            );
+
+            let cfoExpenseId = record.cfoExpenseId || null;
+
+            if (cfoExpenseId && cfoExpenseStore) {
+              const existing = cfoExpenseStore.getById(cfoExpenseId);
+              if (
+                existing &&
+                existing.status !== 'exported' &&
+                existing.fortnoxSyncStatus !== 'synced'
+              ) {
+                await cfoExpenseStore.updateExpense({
+                  id: cfoExpenseId,
+                  patch: {
+                    amountSek: candidate.suggestedAmount,
+                    vatSek: 0,
+                    vatRatePercent: 0,
+                    notes:
+                      String(existing.notes || '') +
+                      ` [cm-bulk-correct: belopp korrigerat från ${candidate.currentAmount} till ${candidate.suggestedAmount}]`,
+                  },
+                  actor: { userId: actor, role: 'owner', via: 'cm-bulk-correct' },
+                });
+              } else if (!existing) {
+                // CFO-expense saknas trots cfoExpenseId — skapa ny
+                const created = await cfoExpenseStore.createExpense({
+                  actor: { userId: actor, role: 'owner', via: 'cm-bulk-correct' },
+                  fields: {
+                    supplier: record.supplierName || 'Okänd leverantör',
+                    amountSek: candidate.suggestedAmount,
+                    vatSek: 0,
+                    vatRatePercent: 0,
+                    date: record.date || new Date().toISOString().slice(0, 10),
+                    category: 'annat',
+                    paymentMethod: 'card',
+                    notes: `Återskapad efter bulk-korrigering. Ursprunglig CM-post ${record.id} hade felaktigt belopp ${candidate.currentAmount}.`,
+                  },
+                });
+                cfoExpenseId = created.id;
+                cmStore.markHandedOff(record.id, { cfoExpenseId, actor });
+              } else {
+                skipped.push({ id: candidate.id, reason: 'CFO-expense redan exporterad/synkad' });
+                continue;
+              }
+            }
+
+            corrected.push({
+              id: candidate.id,
+              cfoExpenseId,
+              oldAmount: candidate.currentAmount,
+              newAmount: candidate.suggestedAmount,
+              supplier: candidate.supplier,
+            });
+          } catch (e) {
+            errors.push({ id: candidate.id, error: e.message });
+          }
+        }
+
+        await cmStore.persist();
+
+        return res.json({
+          ok: true,
+          source,
+          dryRun: false,
+          scanned,
+          candidateCount: candidates.length,
+          corrected,
+          skipped,
+          errors: errors.slice(0, 20),
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
     }
   );
 

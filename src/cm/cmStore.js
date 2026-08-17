@@ -600,6 +600,73 @@ function createCmStore({ filePath }) {
     return state.rawItems.filter((r) => r.status === 'FAILED');
   }
 
+  function updateExpenseRecord(recordId, patch = {}, actor = 'owner') {
+    const record = state.expenseRecords.find((r) => r.id === recordId);
+    if (!record) throw new Error('expense record finns ej');
+
+    const allowed = ['amountIncVat', 'amountExVat', 'vatAmount', 'category', 'flags'];
+    const numericFields = new Set(['amountIncVat', 'amountExVat', 'vatAmount']);
+    const changed = [];
+    for (const k of allowed) {
+      if (k in patch) {
+        let value = patch[k];
+        if (numericFields.has(k)) value = Number(value) || 0;
+        if (k === 'category') value = value ? String(value).slice(0, 100) : '';
+        if (k === 'flags') value = Array.isArray(value) ? value : record.flags;
+        record[k] = value;
+        changed.push(k);
+      }
+    }
+    if (changed.length === 0) return { record, changed };
+
+    // Rensa MISSING_TOTAL_AMOUNT om vi nu har ett belopp
+    if (record.amountIncVat > 0) {
+      record.flags = record.flags.filter((f) => f !== 'MISSING_TOTAL_AMOUNT');
+    }
+    record.updatedAt = nowIso();
+    audit('cm.expense_record.updated', { recordId, fields: changed, actor });
+    return { record, changed };
+  }
+
+  async function bulkCorrectAmounts({ source = 'receipts', limit = 1000, actor = 'owner' } = {}) {
+    const { extractAmountFromRawItem } = require('./cmAmountCorrector');
+
+    const sourceGetters = {
+      receipts: getReceipts,
+      invoices: getInvoices,
+      travel: getTravel,
+    };
+    const getter = sourceGetters[source];
+    if (!getter) throw new Error(`okänd source: ${source}`);
+
+    const candidates = [];
+    const records = getter
+      .call(this)
+      .filter((r) => r.approvalStatus === 'pending' && r.amountIncVat >= 1000);
+
+    for (const record of records.slice(0, limit)) {
+      const rawItem = record.rawItemId ? getRawItemById(record.rawItemId) : null;
+      if (!rawItem) continue;
+      const extracted = extractAmountFromRawItem(rawItem, record.amountIncVat);
+      if (!extracted) continue;
+      candidates.push({
+        id: record.id,
+        rawItemId: record.rawItemId,
+        supplier: record.supplierName,
+        category: record.category,
+        currentAmount: record.amountIncVat,
+        suggestedAmount: extracted.parsedAmount,
+        currency: extracted.currency,
+        strategy: extracted.strategy,
+        confidence: extracted.confidence,
+        cfoExpenseId: record.cfoExpenseId || null,
+        bookkeepingStatus: record.bookkeepingStatus,
+      });
+    }
+
+    return { ok: true, source, scanned: records.length, candidates };
+  }
+
   function getDashboard() {
     // ORD-70: rullande 24h-räknare för auto-intagets statusrad
     const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
@@ -662,6 +729,8 @@ function createCmStore({ filePath }) {
     getExported,
     getDuplicates,
     getImportErrors,
+    updateExpenseRecord,
+    bulkCorrectAmounts,
     getDashboard,
     EXPENSE_STATUSES,
     DOCUMENT_TYPES,
