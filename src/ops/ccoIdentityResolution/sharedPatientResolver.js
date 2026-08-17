@@ -14,6 +14,7 @@
 
 const path = require('node:path');
 const { resolveCanonicalPatientsForAssets } = require('../ccoPatientAssetIdentity');
+const { phoneMatchKey } = require('../../../scripts/migration/lib/migrationUtils');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -99,8 +100,12 @@ function collectPatientEmailSources(patient = {}) {
 
 function collectPatientPhoneSources(patient = {}) {
   return [
-    { value: patient.primaryPhone, source: 'primaryPhone', confidence: 0.85 },
-    ...asArray(patient.phones).map((value) => ({ value, source: 'phones', confidence: 0.85 })),
+    { value: phoneMatchKey(patient.primaryPhone), source: 'primaryPhone', confidence: 0.85 },
+    ...asArray(patient.phones).map((value) => ({
+      value: phoneMatchKey(value),
+      source: 'phones',
+      confidence: 0.85,
+    })),
   ].filter((entry) => normalizeText(entry.value));
 }
 
@@ -185,7 +190,7 @@ function resolvePatientByEmail(lookup = {}, email = '') {
  *   confidence:number, candidates:Array, status:'matched'|'ambiguous'|'unmatched'}}
  */
 function resolvePatientByPhone(lookup = {}, phone = '') {
-  const target = normalizeText(phone);
+  const target = phoneMatchKey(phone);
   if (!target) {
     return emptyResolution();
   }
