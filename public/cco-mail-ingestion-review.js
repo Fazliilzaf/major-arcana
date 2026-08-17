@@ -11,6 +11,7 @@
     limit: 50,
     summary: null,
     rows: [],
+    storeStatus: null,
     busy: false,
     message: '',
   };
@@ -53,6 +54,16 @@
     state.rows = data.rows || [];
   }
 
+  async function loadStatus() {
+    const data = await apiFetch('/status');
+    state.storeStatus = data.store || null;
+    return data;
+  }
+
+  async function activateStore() {
+    return apiFetch('/activate', { method: 'POST' });
+  }
+
   async function linkPatient(rawMessageId, patientId) {
     return apiFetch('/link-patient', {
       method: 'PATCH',
@@ -74,6 +85,32 @@
     });
   }
 
+  function renderStoreStatus() {
+    const s = state.storeStatus || {};
+    if (s.deferred === false && s.loaded !== false) {
+      return `<div class="cmir-toast cmir-toast--ok">Mail-ingestion store är aktiv.</div>`;
+    }
+    if (s.disabled) {
+      return `
+        <div class="cmir-toast cmir-toast--error">
+          <strong>Mail-ingestion är inaktiv.</strong>
+          ${s.reason ? `Orsak: ${escapeHtml(s.reason)}.` : ''}
+          <button id="cmir-activate" ${state.busy ? 'disabled' : ''}>Aktivera mail-ingestion</button>
+        </div>
+      `;
+    }
+    if (s.deferred && !s.loaded) {
+      return `
+        <div class="cmir-toast cmir-toast--error">
+          <strong>Mail-ingestion store är inte laddad.</strong>
+          Review-kön kan inte visas förrän storen aktiveras.
+          <button id="cmir-activate" ${state.busy ? 'disabled' : ''}>Aktivera mail-ingestion</button>
+        </div>
+      `;
+    }
+    return `<div class="cmir-toast">Kontrollerar mail-ingestion status…</div>`;
+  }
+
   function render() {
     const root = document.getElementById('cmir-root');
     if (!root) return;
@@ -92,6 +129,8 @@
           <strong>Owner-only.</strong> Denna vy anropar produktions-API:er. Varje länkning
           skriver audit-event. Kör alltid <em>dry-run</em> före skarp sweep.
         </div>
+
+        ${renderStoreStatus()}
 
         ${state.message ? `<div class="cmir-toast ${state.message.includes('fel') || state.message.includes('Fel') ? 'cmir-toast--error' : 'cmir-toast--ok'}">${escapeHtml(state.message)}</div>` : ''}
 
@@ -140,25 +179,36 @@
           </div>
         </div>
 
-        ${groups.length ? `
+        ${
+          groups.length
+            ? `
         <details class="cmir-groups">
           <summary>Gruppering per avsändare (${groups.length})</summary>
           <table class="cmir-table">
             <thead><tr><th>Avsändare</th><th>Antal</th><th>Typ</th><th>Ämne (exempel)</th></tr></thead>
             <tbody>
-              ${groups.map((g) => `<tr>
+              ${groups
+                .map(
+                  (g) => `<tr>
                 <td>${escapeHtml(g.email || '—')}</td>
                 <td>${escapeHtml(g.count)}</td>
                 <td>${g.nonPatient ? 'Icke-patient' : 'Patient-liknande'}</td>
                 <td>${escapeHtml(g.sampleSubject || '—')}</td>
-              </tr>`).join('')}
+              </tr>`
+                )
+                .join('')}
             </tbody>
           </table>
         </details>
-        ` : ''}
+        `
+            : ''
+        }
 
         <h2>Review-kö (${state.rows.length})</h2>
-        ${state.rows.length === 0 ? '<p class="amr-muted">Inga rader för vald filtrering.</p>' : `
+        ${
+          state.rows.length === 0
+            ? '<p class="amr-muted">Inga rader för vald filtrering.</p>'
+            : `
         <table class="cmir-table cmir-rows">
           <thead>
             <tr>
@@ -171,10 +221,11 @@
             </tr>
           </thead>
           <tbody>
-            ${state.rows.map((row) => {
-              const raw = row.rawMessage || {};
-              const pm = row.patientMatch || {};
-              return `<tr data-raw-id="${escapeHtml(raw.id || row.rawMessageId || '')}">
+            ${state.rows
+              .map((row) => {
+                const raw = row.rawMessage || {};
+                const pm = row.patientMatch || {};
+                return `<tr data-raw-id="${escapeHtml(raw.id || row.rawMessageId || '')}">
                 <td><span class="cmir-badge cmir-badge--${escapeHtml((row.status || '').toLowerCase())}">${escapeHtml(row.status || '—')}</span></td>
                 <td>${escapeHtml(pm.counterpartyEmail || raw.fromEmail || '—')}</td>
                 <td>${escapeHtml(raw.subject || '—')}</td>
@@ -182,10 +233,12 @@
                 <td><input type="text" class="cmir-patient-input" placeholder="patient-uuid" /></td>
                 <td><button class="cmir-link-btn" data-raw-id="${escapeHtml(raw.id || row.rawMessageId || '')}">Länka</button></td>
               </tr>`;
-            }).join('')}
+              })
+              .join('')}
           </tbody>
         </table>
-        `}
+        `
+        }
       </div>
     `;
 
@@ -199,19 +252,51 @@
     const reload = document.getElementById('cmir-reload');
     const sweepDry = document.getElementById('cmir-sweep-dry');
     const sweep = document.getElementById('cmir-sweep');
+    const activate = document.getElementById('cmir-activate');
 
-    if (mailbox) mailbox.addEventListener('change', (e) => { state.mailboxEmail = e.target.value; });
-    if (status) status.addEventListener('change', (e) => { state.status = e.target.value; });
-    if (limit) limit.addEventListener('change', (e) => { state.limit = Number(e.target.value); });
+    if (mailbox)
+      mailbox.addEventListener('change', (e) => {
+        state.mailboxEmail = e.target.value;
+      });
+    if (status)
+      status.addEventListener('change', (e) => {
+        state.status = e.target.value;
+      });
+    if (limit)
+      limit.addEventListener('change', (e) => {
+        state.limit = Number(e.target.value);
+      });
 
     if (reload) reload.addEventListener('click', () => refresh());
+
+    if (activate) {
+      activate.addEventListener('click', async () => {
+        if (
+          !window.confirm('Detta laddar mail-ingestion storen i minnet på prod-servern. Fortsätt?')
+        )
+          return;
+        setBusy(true, 'Aktiverar mail-ingestion…');
+        try {
+          const data = await activateStore();
+          state.storeStatus = data.store || null;
+          setMessage(data.message || 'Mail-ingestion aktiverad.');
+        } catch (err) {
+          setMessage(`Fel: ${err.message}`);
+        } finally {
+          setBusy(false);
+        }
+        await refresh(false);
+      });
+    }
 
     if (sweepDry) {
       sweepDry.addEventListener('click', async () => {
         setBusy(true, 'Kör sweep dry-run…');
         try {
           const data = await runSweep(true);
-          setMessage(`Dry-run: linked=${data.result?.linked ?? 0}, dismissed=${data.result?.dismissed ?? 0}, suggested=${data.result?.suggested ?? 0}`);
+          setMessage(
+            `Dry-run: linked=${data.result?.linked ?? 0}, dismissed=${data.result?.dismissed ?? 0}, suggested=${data.result?.suggested ?? 0}`
+          );
         } catch (err) {
           setMessage(`Fel: ${err.message}`);
         } finally {
@@ -227,7 +312,9 @@
         setBusy(true, 'Kör sweep commit…');
         try {
           const data = await runSweep(false);
-          setMessage(`Commit: linked=${data.result?.linked ?? 0}, dismissed=${data.result?.dismissed ?? 0}, suggested=${data.result?.suggested ?? 0}`);
+          setMessage(
+            `Commit: linked=${data.result?.linked ?? 0}, dismissed=${data.result?.dismissed ?? 0}, suggested=${data.result?.suggested ?? 0}`
+          );
         } catch (err) {
           setMessage(`Fel: ${err.message}`);
         } finally {
@@ -276,8 +363,9 @@
   async function refresh(renderAfter = true) {
     setBusy(true, 'Laddar…');
     try {
-      await Promise.all([loadSummary(), loadQueue()]);
-      if (!state.message.startsWith('Laddar')) state.message = '';
+      await Promise.all([loadStatus(), loadSummary(), loadQueue()]);
+      if (!state.message.startsWith('Laddar') && !state.message.startsWith('Aktiverar'))
+        state.message = '';
     } catch (err) {
       setMessage(`Fel: ${err.message}`);
     } finally {

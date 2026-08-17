@@ -321,6 +321,7 @@ module.exports = [
       'public/cco-photo-review.js',
       'public/cco-encounter-mapping-review.js',
       'public/cco-ambiguous-mail-enrichment-review.js',
+      'public/cco-mail-ingestion-review.js',
       'public/cco-kunder-real.js',
       'public/cco-kunder-mobil-real.js',
       'public/cco-kunder-actions.js',

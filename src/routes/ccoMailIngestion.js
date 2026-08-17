@@ -81,6 +81,19 @@ function createCcoMailIngestionRouter({
     }
   }
 
+  function getStoreActivationStatus() {
+    const deferred = ingestionStore?.deferred === true;
+    const loaded =
+      typeof ingestionStore?._isLoaded === 'function' ? ingestionStore._isLoaded() : !deferred;
+    return {
+      deferred,
+      loaded,
+      disabled: Boolean(ingestionStore?.disabled),
+      reason: ingestionStore?.reason || null,
+      filePath: ingestionStore?.filePath || null,
+    };
+  }
+
   router.get('/cco/mail-ingestion/status', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
     handle(req, res, async () => {
       const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
@@ -94,9 +107,62 @@ function createCcoMailIngestionRouter({
         graphSubscriptions: graphNotifications?.listSubscriptions?.() || [],
         allowlistedMailboxes: [...allowlistedMailboxes],
         jobs: ingestionWorker?.listJobs?.() || [],
+        store: getStoreActivationStatus(),
         dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }),
       });
     })
+  );
+
+  router.post(
+    '/cco/mail-ingestion/activate',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        if (config.ccoMailIngestionEnabled !== true) {
+          return res.status(503).json({
+            ok: false,
+            error: 'Mail-ingestion är inte aktiverat i konfigurationen.',
+          });
+        }
+        if (typeof ingestionStore?._load !== 'function') {
+          return res.json({
+            ok: true,
+            activated: true,
+            store: getStoreActivationStatus(),
+            message: 'Mail-ingestion store är redan aktiv (ingen deferred fasad).',
+          });
+        }
+        const before = getStoreActivationStatus();
+        if (before.loaded) {
+          return res.json({
+            ok: true,
+            activated: true,
+            store: before,
+            message: 'Mail-ingestion store är redan laddad.',
+          });
+        }
+        await ingestionStore._load();
+        const after = getStoreActivationStatus();
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId || config.defaultTenantId || 'hair-tp-clinic',
+          actorUserId: actor.userId || actor.email || 'owner',
+          action: 'cco.mail.ingestion.activate',
+          outcome: 'success',
+          targetType: 'cco_mail_ingestion_store',
+          targetId: after.filePath || 'deferred_store',
+          metadata: {
+            filePath: after.filePath,
+            previousReason: before.reason,
+          },
+        });
+        return res.json({
+          ok: true,
+          activated: true,
+          store: after,
+          dashboard: ingestionStore.buildDashboardSummary({}),
+        });
+      })
   );
 
   router.get(

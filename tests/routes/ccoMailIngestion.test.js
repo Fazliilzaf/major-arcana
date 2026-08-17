@@ -10,7 +10,7 @@ const { createCcoMailIngestionRouter } = require('../../src/routes/ccoMailIngest
 const passAuth = (_req, _res, next) => next();
 const passRole = (_role) => (_req, _res, next) => next();
 
-function createMockIngestionStore() {
+function createMockIngestionStore(overrides = {}) {
   const calls = [];
   const state = {
     dashboard: {
@@ -45,12 +45,29 @@ function createMockIngestionStore() {
     ],
   };
 
+  let loaded = overrides.loaded !== false;
+  let deferred = overrides.deferred === true;
+
   function record(name, args) {
     calls.push({ method: name, args });
   }
 
   return {
     _calls: calls,
+    deferred,
+    loaded,
+    disabled: overrides.disabled === true,
+    reason: overrides.reason || null,
+    filePath: overrides.filePath || '/tmp/cco-mail-ingestion.json',
+    _isLoaded() {
+      return this.loaded;
+    },
+    async _load() {
+      record('_load', {});
+      if (overrides.loadError) throw new Error(overrides.loadError);
+      this.loaded = true;
+      this.deferred = false;
+    },
     buildDashboardSummary({ mailboxEmail } = {}) {
       record('buildDashboardSummary', { mailboxEmail });
       return state.dashboard;
@@ -116,7 +133,10 @@ function createMockSyncService() {
   return {
     _calls: calls,
     async runMailboxImport({ mailboxEmail, mode, trigger, createdBy, skipDelta }) {
-      calls.push({ method: 'runMailboxImport', args: { mailboxEmail, mode, trigger, createdBy, skipDelta } });
+      calls.push({
+        method: 'runMailboxImport',
+        args: { mailboxEmail, mode, trigger, createdBy, skipDelta },
+      });
       return { imported: 7 };
     },
   };
@@ -172,7 +192,7 @@ function createConfig(overrides = {}) {
 function createRouter(config, overrides = {}) {
   return createCcoMailIngestionRouter({
     config,
-    authStore: {
+    authStore: overrides.authStore || {
       async getSessionContextByToken() {
         return null;
       },
@@ -203,13 +223,15 @@ async function withServer(app, run) {
   }
 }
 
-test('status endpoint returns dashboard and config flags', async () => {
+test('status endpoint returns dashboard, config flags and store activation status', async () => {
   const ingestionStore = createMockIngestionStore();
   const app = express();
   app.use('/api/v1', createRouter(createConfig(), { ingestionStore }));
 
   await withServer(app, async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/cco/mail-ingestion/status?mailboxEmail=kons@hairtpclinic.com`);
+    const res = await fetch(
+      `${baseUrl}/cco/mail-ingestion/status?mailboxEmail=kons@hairtpclinic.com`
+    );
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.ok, true);
@@ -219,7 +241,80 @@ test('status endpoint returns dashboard and config flags', async () => {
     assert.equal(body.webhookReady, true);
     assert.ok(body.allowlistedMailboxes.includes('kons@hairtpclinic.com'));
     assert.equal(body.dashboard.counts.rawMessages, 10);
+    assert.ok(body.store);
+    assert.equal(body.store.loaded, true);
+    assert.equal(body.store.deferred, false);
     assert.equal(ingestionStore._calls[0].method, 'buildDashboardSummary');
+  });
+});
+
+test('activate endpoint loads deferred store and writes audit', async () => {
+  const ingestionStore = createMockIngestionStore({ deferred: true, loaded: false });
+  const auditEvents = [];
+  const authStore = {
+    async getSessionContextByToken() {
+      return null;
+    },
+    async touchSession() {
+      return true;
+    },
+    async addAuditEvent(event) {
+      auditEvents.push(event);
+    },
+  };
+  const app = express();
+  app.use(express.json());
+  app.use('/api/v1', createRouter(createConfig(), { ingestionStore, authStore }));
+
+  await withServer(app, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco/mail-ingestion/activate`, { method: 'POST' });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.activated, true);
+    assert.equal(body.store.loaded, true);
+    assert.equal(body.store.deferred, false);
+    const loadCall = ingestionStore._calls.find((c) => c.method === '_load');
+    assert.ok(loadCall);
+    assert.equal(auditEvents.length, 1);
+    assert.equal(auditEvents[0].action, 'cco.mail.ingestion.activate');
+    assert.equal(auditEvents[0].outcome, 'success');
+  });
+});
+
+test('activate endpoint returns already active when store is loaded', async () => {
+  const ingestionStore = createMockIngestionStore({ deferred: true, loaded: true });
+  const app = express();
+  app.use(express.json());
+  app.use('/api/v1', createRouter(createConfig(), { ingestionStore }));
+
+  await withServer(app, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco/mail-ingestion/activate`, { method: 'POST' });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.activated, true);
+    assert.ok(body.message.includes('redan'));
+    const loadCall = ingestionStore._calls.find((c) => c.method === '_load');
+    assert.equal(loadCall, undefined);
+  });
+});
+
+test('activate endpoint returns 503 when mail ingestion is disabled in config', async () => {
+  const ingestionStore = createMockIngestionStore({ deferred: true, loaded: false });
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createRouter(createConfig({ ccoMailIngestionEnabled: false }), { ingestionStore })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco/mail-ingestion/activate`, { method: 'POST' });
+    assert.equal(res.status, 503);
+    const body = await res.json();
+    assert.equal(body.ok, false);
+    assert.ok(body.error.includes('inte aktiverat'));
   });
 });
 
@@ -433,7 +528,9 @@ test('reprocess-unmatched endpoint triggers requeue and drain', async () => {
     const body = await res.json();
     assert.equal(body.ok, true);
     assert.equal(body.requeued, 2);
-    const reprocessCall = ingestionStore._calls.find((c) => c.method === 'requestReprocessUnmatched');
+    const reprocessCall = ingestionStore._calls.find(
+      (c) => c.method === 'requestReprocessUnmatched'
+    );
     assert.ok(reprocessCall);
     assert.equal(reprocessCall.args.includeOldMatchVersion, true);
     const drainCall = ingestionWorker._calls.find((c) => c.method === 'enqueueProcessDrain');
