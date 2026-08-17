@@ -3831,6 +3831,9 @@ function createScheduler({
     if (!mailIngestionWorker || typeof mailIngestionWorker.runProcessBatch !== 'function') {
       return { tenantId, skipped: true, reason: 'mail_ingestion_worker_unavailable' };
     }
+    if (ccoMailIngestionStore && typeof ccoMailIngestionStore._load === 'function') {
+      await ccoMailIngestionStore._load();
+    }
     const mailboxEmail = normalizeText(config.ccoMailIngestionDefaultMailbox);
     if (!mailboxEmail) {
       return { tenantId, skipped: true, reason: 'default_mailbox_missing' };

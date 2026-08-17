@@ -71,6 +71,9 @@ function createCcoMailIngestionWorker({
     skipDelta = false,
     folderTypes = MAILBOX_FOLDER_TYPES,
   } = {}) {
+    if (ingestionStore && typeof ingestionStore._load === 'function') {
+      await ingestionStore._load();
+    }
     const normalized = normalizeEmail(mailboxEmail);
     const jobId = `${normalized}:${Date.now()}`;
     const job = {
@@ -147,6 +150,9 @@ function createCcoMailIngestionWorker({
     mode = 'read_only',
     maxMessages = null,
   } = {}) {
+    if (ingestionStore && typeof ingestionStore._load === 'function') {
+      await ingestionStore._load();
+    }
     if (processInFlight) {
       return { skipped: true, reason: 'process_in_flight' };
     }
@@ -187,6 +193,9 @@ function createCcoMailIngestionWorker({
       job.status = 'running';
       jobs.set(jobId, job);
       try {
+        if (ingestionStore && typeof ingestionStore._load === 'function') {
+          await ingestionStore._load();
+        }
         const batchSize = Number(config.ccoMailIngestionQueueBatchSize || 75);
         for (let i = 0; i < maxBatches; i += 1) {
           const batch = await runProcessBatch({
@@ -250,6 +259,9 @@ function createCcoMailIngestionWorker({
       job.status = 'running';
       jobs.set(jobId, job);
       try {
+        if (ingestionStore && typeof ingestionStore._load === 'function') {
+          await ingestionStore._load();
+        }
         await ensureQueueIntegrity({ mailboxEmail: normalized });
         const importResult = await syncService.runMailboxImport({
           mailboxEmail: normalized,
