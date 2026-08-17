@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 
 const { isNonPatientCounterpartyEmail } = require('../../src/ops/ccoMailIngestion/nonPatientRules');
 const {
+  extractContactFormPatientEmail,
+  resolveRowCounterpartyEmail,
   scorePatientNameAgainstEmail,
   summarizeReviewGroups,
 } = require('../../src/ops/ccoMailIngestion/resolveUnmatched');
@@ -87,4 +89,85 @@ test('summarizeReviewGroups keeps patient mailbox mixed group as patient-like', 
   ]);
   assert.equal(groups.length, 1);
   assert.equal(groups[0].nonPatient, false);
+});
+
+test('extractContactFormPatientEmail reads patient email from WordPress form body', () => {
+  const email = extractContactFormPatientEmail({
+    fromEmail: 'wordpress@hairtpclinic.se',
+    subject: '[Hair TP Clinic] Kontaktformulär',
+    bodyText: `Från:\n Mehdi\n E-post:\nmehdi.oubadah@hotmail.com\n Telefon:\n0767770239\nHur kan vi hjälpa dig?`,
+  });
+  assert.equal(email, 'mehdi.oubadah@hotmail.com');
+});
+
+test('extractContactFormPatientEmail reads email on same line', () => {
+  const email = extractContactFormPatientEmail({
+    fromEmail: 'no-reply@info.hairtpclinic.se',
+    subject: 'Kontaktformulär',
+    bodyText: 'E-post: anna.patient@example.com\nTelefon: 0701234567',
+  });
+  assert.equal(email, 'anna.patient@example.com');
+});
+
+test('extractContactFormPatientEmail falls back to html body', () => {
+  const email = extractContactFormPatientEmail({
+    fromEmail: 'wordpress@hairtpclinic.se',
+    subject: 'Kontaktformulär',
+    bodyHtml:
+      '<p>Från:</p><p>Pelle</p><p>E-post:</p><p>pelle.kund@icloud.com</p><p>Telefon:</p><p>0731234567</p>',
+  });
+  assert.equal(email, 'pelle.kund@icloud.com');
+});
+
+test('extractContactFormPatientEmail rejects non-patient extracted addresses', () => {
+  const email = extractContactFormPatientEmail({
+    fromEmail: 'wordpress@hairtpclinic.se',
+    subject: 'Kontaktformulär',
+    bodyText: 'E-post: info@hairtpclinic.com',
+  });
+  assert.equal(email, null);
+});
+
+test('extractContactFormPatientEmail returns null for regular mail', () => {
+  const email = extractContactFormPatientEmail({
+    fromEmail: 'patient@example.com',
+    subject: 'Hej',
+    bodyText: 'E-post: patient@example.com',
+  });
+  assert.equal(email, null);
+});
+
+test('resolveRowCounterpartyEmail uses patient email from contact form', () => {
+  const email = resolveRowCounterpartyEmail({
+    rawMessage: {
+      fromEmail: 'wordpress@hairtpclinic.se',
+      subject: 'Kontaktformulär',
+      bodyText: 'Från:\n Mehdi\n E-post:\nmehdi.oubadah@hotmail.com\n Telefon:\n0767770239',
+    },
+  });
+  assert.equal(email, 'mehdi.oubadah@hotmail.com');
+});
+
+test('resolveRowCounterpartyEmail keeps normal inbound sender for non-form mail', () => {
+  const email = resolveRowCounterpartyEmail({
+    rawMessage: {
+      fromEmail: 'patient@example.com',
+      subject: 'Fråga om bokning',
+      folderType: 'inbox',
+      mailboxId: 'kons@hairtpclinic.com',
+    },
+  });
+  assert.equal(email, 'patient@example.com');
+});
+
+test('resolveRowCounterpartyEmail respects existing counterpartyEmail', () => {
+  const email = resolveRowCounterpartyEmail({
+    rawMessage: {
+      fromEmail: 'wordpress@hairtpclinic.se',
+      subject: 'Kontaktformulär',
+      bodyText: 'E-post: anna@example.com',
+    },
+    patientMatch: { counterpartyEmail: 'existing@example.com' },
+  });
+  assert.equal(email, 'existing@example.com');
 });
