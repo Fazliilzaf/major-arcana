@@ -296,10 +296,15 @@ function createFortnoxClient({
       return request(`/vouchers?${params.toString()}`);
     },
     // Verifikat-läs för CFO-granskning (t.ex. verifiera kreditnota-rader).
-    getVoucher(voucherSeries, voucherNumber) {
+    // financialYearDate behövs när flera räkenskapsår finns — Fortnox svarar
+    // 404 om inte rätt år anges.
+    getVoucher(voucherSeries, voucherNumber, financialYearDate) {
       const series = normalizeText(voucherSeries) || 'A';
       const number = encodeURIComponent(String(voucherNumber));
-      return request(`/vouchers/${encodeURIComponent(series)}/${number}`);
+      const params = new URLSearchParams();
+      if (financialYearDate) params.set('financialyear', String(financialYearDate));
+      const qs = params.toString();
+      return request(`/vouchers/${encodeURIComponent(series)}/${number}${qs ? '?' + qs : ''}`);
     },
   };
 }

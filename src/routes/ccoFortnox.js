@@ -248,11 +248,13 @@ function createCcoFortnoxRouter({
         if (!number || !/^\d+$/.test(number)) {
           return res.status(400).json({ error: 'Voucher number måste vara ett positivt heltal.' });
         }
-        const result = await client.getVoucher(series, number);
+        const financialYearDate = normalizeText(req.query.financialYearDate);
+        const result = await client.getVoucher(series, number, financialYearDate);
         return res.json({
           ok: true,
           series,
           number,
+          financialYearDate: financialYearDate || null,
           voucher: result?.Voucher || result,
         });
       })
