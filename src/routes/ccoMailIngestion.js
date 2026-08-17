@@ -41,6 +41,14 @@ function createCcoMailIngestionRouter({
 }) {
   const router = express.Router();
 
+  // Konversationer Fas 1 — säkerställ att deferred store är laddad innan någon
+  // route försöker läsa eller skriva mail-ingestion-data. _load är idempotent.
+  async function ensureIngestionStoreLoaded() {
+    if (ingestionStore && typeof ingestionStore._load === 'function' && !ingestionStore._isLoaded?.()) {
+      await ingestionStore._load();
+    }
+  }
+
   // Konversationer Fas 1 — ingest-endpoints gate:as mot mailbox-allowlisten
   // (curated default / ARCANA_MAILBOX_ALLOWLIST). Ingestion får aldrig startas
   // mot en icke-allowlistad brevlåda.
@@ -122,6 +130,7 @@ function createCcoMailIngestionRouter({
 
   router.get('/cco/mail-ingestion/status', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
     handle(req, res, async () => {
+      await ensureIngestionStoreLoaded();
       const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
       return res.json({
         ok: true,
@@ -202,6 +211,7 @@ function createCcoMailIngestionRouter({
     requireRole(ROLE_OWNER),
     async (req, res) =>
       handle(req, res, async () => {
+        await ensureIngestionStoreLoaded();
         const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
         const dashboard = ingestionStore.buildDashboardSummary({ mailboxEmail });
         const needsReview = ingestionStore.listNeedsReview({ mailboxEmail, limit: 25 });
@@ -265,6 +275,7 @@ ${unmatched
     requireRole(ROLE_OWNER),
     async (req, res) =>
       handle(req, res, async () => {
+        await ensureIngestionStoreLoaded();
         const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
         const rows = ingestionStore.listReviewQueue({
           mailboxEmail,
@@ -294,6 +305,7 @@ ${unmatched
     requireRole(ROLE_OWNER),
     async (req, res) =>
       handle(req, res, async (actor) => {
+        await ensureIngestionStoreLoaded();
         const mailboxEmail = normalizeEmail(
           req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
         );
@@ -342,6 +354,7 @@ ${unmatched
     requireRole(ROLE_OWNER),
     async (req, res) =>
       handle(req, res, async () => {
+        await ensureIngestionStoreLoaded();
         const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
         const status = normalizeText(req.query.status || 'all').toLowerCase();
         const limit = Number(req.query.limit || 50);
@@ -368,6 +381,7 @@ ${unmatched
     requireRole(ROLE_OWNER),
     async (req, res) =>
       handle(req, res, async (actor) => {
+        await ensureIngestionStoreLoaded();
         const rawMessageId = normalizeText(req.body?.rawMessageId);
         const patientId = normalizeText(req.body?.patientId);
         if (!rawMessageId || !patientId) {
@@ -391,6 +405,7 @@ ${unmatched
     requireRole(ROLE_OWNER),
     async (req, res) =>
       handle(req, res, async (actor) => {
+        await ensureIngestionStoreLoaded();
         const mailboxEmail = normalizeEmail(
           req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
         );
@@ -420,6 +435,7 @@ ${unmatched
 
   router.post('/cco/mail-ingestion/sync', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
     handle(req, res, async (actor) => {
+      await ensureIngestionStoreLoaded();
       const mailboxEmail = normalizeEmail(
         req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
       );
@@ -464,6 +480,7 @@ ${unmatched
     requireRole(ROLE_OWNER),
     async (req, res) =>
       handle(req, res, async () => {
+        await ensureIngestionStoreLoaded();
         const mailboxEmail = normalizeEmail(
           req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
         );
@@ -493,6 +510,7 @@ ${unmatched
     requireRole(ROLE_OWNER),
     async (req, res) =>
       handle(req, res, async (actor) => {
+        await ensureIngestionStoreLoaded();
         const mailboxEmail = normalizeEmail(
           req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
         );
@@ -531,6 +549,7 @@ ${unmatched
     requireRole(ROLE_OWNER),
     async (req, res) =>
       handle(req, res, async (actor) => {
+        await ensureIngestionStoreLoaded();
         const mailboxEmail = normalizeEmail(
           req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
         );
@@ -561,6 +580,7 @@ ${unmatched
 
   router.post('/cco/mail-ingestion/reset', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
     handle(req, res, async (actor) => {
+      await ensureIngestionStoreLoaded();
       const mailboxEmail = normalizeEmail(req.body?.mailboxEmail);
       if (!mailboxEmail) {
         return res.status(400).json({ error: 'mailboxEmail krävs.' });
