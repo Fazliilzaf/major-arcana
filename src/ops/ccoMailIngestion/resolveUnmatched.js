@@ -124,7 +124,16 @@ async function suggestPatientForEmail({ patientMasterStore, tenantId = '', email
     return { patient: null, method: null, confidence: 0 };
   }
 
-  // Delad resolver: ladda tenant-patienter en gång och slå upp e-posten.
+  const direct = await patientMasterStore.findPatientByEmail({
+    tenantId,
+    email: normalizedEmail,
+  });
+  if (direct?.id) {
+    return { patient: direct, method: 'exact_email', confidence: 1 };
+  }
+
+  // Delad resolver: om storens findPatientByEmail missade, pröva även alias-
+  // källor (cliento/pipedrive) via den gemensamma kontaktuppslagningen.
   const listed = await patientMasterStore.listPatients({ tenantId, limit: 20000 });
   const patients = asArray(listed?.patients);
   const lookup = buildPatientContactLookup(patients);
