@@ -998,6 +998,30 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     return { ...e };
   }
 
+  /**
+   * CF.9-ORD-74: släpp expenses som fastnat med den gamla OAuth-blockern
+   * (fortnoxSyncStatus='blocked_integration') till 'pending' så att voucher-sync
+   * kan plocka upp dem. Guard: endast blocked_integration → pending.
+   */
+  async function markFortnoxUnblocked({ id, actor } = {}) {
+    const e = data.expenses.find((x) => x.id === id);
+    if (!e) throw new Error('expense finns ej');
+    if (e.fortnoxSyncStatus !== 'blocked_integration')
+      throw new Error('endast blocked_integration-poster kan släppas till pending');
+    e.fortnoxSyncStatus = 'pending';
+    e.fortnoxSyncError = null;
+    e.updatedAt = nowIso();
+    e.history.push({
+      status: e.status,
+      at: nowIso(),
+      by: actor,
+      reason: 'fortnox-unblocked: blocked_integration → pending',
+    });
+    await persist();
+    audit('cf.expense.fortnox_unblocked', { expenseId: id, actor });
+    return e;
+  }
+
   // ORD-CM-17 · error → pending: transient fel (utgången OAuth, 502) ska kunna
   // köras om efter åtgärd. Endast från 'error' — synced/syncing rörs aldrig.
   async function markFortnoxRetry({ id, actor } = {}) {
@@ -1090,6 +1114,7 @@ async function createCfoExpenseStore({ filePath, auditLog = null, secureStorage 
     markFortnoxSyncing,
     markFortnoxSynced,
     markFortnoxError,
+    markFortnoxUnblocked,
     markFortnoxRetry,
     markFortnoxSyncingToPending,
     markFortnoxSkip,

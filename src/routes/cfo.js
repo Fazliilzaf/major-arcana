@@ -725,6 +725,193 @@ function createCfoRouter({
     }
   );
 
+  // ORD-CM-74 · Bulk-release av expenses som fastnat med fortnoxSyncStatus='blocked_integration'.
+  // De som redan är 'ready_for_export' exporteras direkt. De som är 'categorized' med
+  // kategori 'annat' får rätt kategori/moms/vatMode utifrån en leverantörsmappning.
+  // Kräver owner + confirm=true; dryRun=true som standard.
+  router.post(
+    '/cco-cf/expenses/bulk-release-blocked',
+    attachRole,
+    requireAnyRole(['owner']),
+    jsonParser,
+    async (req, res) => {
+      try {
+        const store = expenseStore;
+        if (!store) return res.status(503).json({ error: 'expense store not ready' });
+        const body = req.body || {};
+        const dryRun = body.dryRun !== false;
+        const confirm = body.confirm === true;
+        if (!confirm && !dryRun) {
+          return res.status(400).json({
+            ok: false,
+            error: 'confirm måste vara true för skarp körning',
+          });
+        }
+        const actor = getActor(req);
+
+        // Leverantörsbaserad kategorimappning för de poster som fortfarande har category='annat'.
+        // Anpassad efter ägarbeslut 2026-08-17: "3" (gör båda i ett svep).
+        const supplierMappings = [
+          {
+            contains: 'Elite Services Group',
+            category: 'forbrukning',
+            vatRatePercent: 25,
+            vatMode: 'standard_25',
+          },
+          {
+            contains: 'Comfort Hotel Helsinki',
+            category: 'resor',
+            vatRatePercent: 0,
+            vatMode: 'reverse_charge_eu',
+          },
+          {
+            contains: 'Removify',
+            category: 'marknadsforing',
+            vatRatePercent: 0,
+            vatMode: 'reverse_charge_non_eu',
+          },
+          { contains: 'Doktor24', category: 'personal', vatRatePercent: 0, vatMode: 'standard_0' },
+          {
+            contains: 'Uber Eats',
+            category: 'mat_representation',
+            vatRatePercent: 12,
+            vatMode: 'standard_12',
+          },
+          {
+            contains: 'Uber Payments',
+            category: 'resor',
+            vatRatePercent: 25,
+            vatMode: 'standard_25',
+          },
+          { contains: 'Uber', category: 'resor', vatRatePercent: 25, vatMode: 'standard_25' },
+          {
+            contains: 'JustAnswer',
+            category: 'juridik_konsult',
+            vatRatePercent: 0,
+            vatMode: 'reverse_charge_non_eu',
+          },
+          {
+            contains: 'Shift Espresso',
+            category: 'mat_representation',
+            vatRatePercent: 0,
+            vatMode: 'reverse_charge_non_eu',
+          },
+          {
+            contains: 'Spotify',
+            category: 'marknadsforing',
+            vatRatePercent: 25,
+            vatMode: 'standard_25',
+          },
+          {
+            contains: 'Anthropic Ireland',
+            category: 'it_telefoni',
+            vatRatePercent: 0,
+            vatMode: 'standard_0',
+          },
+        ];
+
+        const blocked = store.listExpenses({
+          fortnoxSyncStatus: 'blocked_integration',
+          limit: 1000,
+        });
+        const readyForExport = blocked.filter((e) => e.status === 'ready_for_export');
+        const categorized = blocked.filter((e) => e.status === 'categorized');
+
+        const result = {
+          ok: true,
+          dryRun,
+          readyForExport: {
+            count: readyForExport.length,
+            exported: [],
+          },
+          categorized: {
+            count: categorized.length,
+            mapped: [],
+            unmapped: [],
+          },
+        };
+
+        for (const e of readyForExport) {
+          if (!dryRun) {
+            await store.transitionStatus({
+              id: e.id,
+              newStatus: 'exported',
+              actor,
+              reason: 'bulk-release-blocked: ready_for_export → exported',
+            });
+            await store.markFortnoxUnblocked({ id: e.id, actor });
+          }
+          result.readyForExport.exported.push({
+            id: e.id,
+            supplier: e.supplier,
+            amountSek: e.amountSek,
+            category: e.category,
+          });
+        }
+
+        for (const e of categorized) {
+          const mapping = supplierMappings.find((m) =>
+            String(e.supplier || '')
+              .toLowerCase()
+              .includes(m.contains.toLowerCase())
+          );
+          if (!mapping) {
+            result.categorized.unmapped.push({
+              id: e.id,
+              supplier: e.supplier,
+              amountSek: e.amountSek,
+            });
+            continue;
+          }
+          if (!dryRun) {
+            await store.updateExpense({
+              id: e.id,
+              patch: { category: mapping.category, vatRatePercent: mapping.vatRatePercent },
+              actor,
+            });
+            await store.setVatMode({
+              id: e.id,
+              vatMode: mapping.vatMode,
+              vatRatePercent: mapping.vatRatePercent,
+              actor,
+            });
+            await store.transitionStatus({
+              id: e.id,
+              newStatus: 'approved',
+              actor,
+              reason: 'bulk-release-blocked: categorized → approved',
+            });
+            await store.transitionStatus({
+              id: e.id,
+              newStatus: 'ready_for_export',
+              actor,
+              reason: 'bulk-release-blocked: approved → ready_for_export',
+            });
+            await store.transitionStatus({
+              id: e.id,
+              newStatus: 'exported',
+              actor,
+              reason: 'bulk-release-blocked: ready_for_export → exported',
+            });
+            await store.markFortnoxUnblocked({ id: e.id, actor });
+          }
+          result.categorized.mapped.push({
+            id: e.id,
+            supplier: e.supplier,
+            amountSek: e.amountSek,
+            category: mapping.category,
+            vatRatePercent: mapping.vatRatePercent,
+            vatMode: mapping.vatMode,
+          });
+        }
+
+        res.json(result);
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   // GET /api/v1/cco-cf/expenses/export/:batchId/:fileType — ladda ner export-fil
   router.get(
     '/cco-cf/expenses/export/:batchId/:fileType',
