@@ -16,6 +16,14 @@ function normalizeEmail(value = '') {
   return normalizeText(value).toLowerCase();
 }
 
+// I produktion sätts aldrig raw.bodyHtml direkt — det riktiga fältet är
+// raw.rawJson.bodyHtml (se store.js: rawJson är en verbatim klon av
+// truthMessage). Vi kollar båda så gamla testdata/anrop med toppnivå-
+// bodyHtml fortsätter fungera, men den faktiska produktionsvägen är fallback.
+function pickRawBodyHtml(raw = {}) {
+  return normalizeText(raw.bodyHtml || raw.rawJson?.bodyHtml);
+}
+
 // Brevlådor som aldrig tar emot patientmejl — grupper där samtliga rader går
 // till en sådan brevlåda kan dismissas som non-patient oavsett avsändare.
 const NON_PATIENT_MAILBOX_IDS = Object.freeze(['info@fazli.se']);
@@ -53,7 +61,7 @@ function stripHtmlToText(html = '') {
 
 function looksLikeContactForm(raw = {}) {
   const bodyText = normalizeText(raw.bodyText);
-  const bodyHtml = normalizeText(raw.bodyHtml);
+  const bodyHtml = pickRawBodyHtml(raw);
   const subject = normalizeText(raw.subject);
   const fromEmail = normalizeEmail(raw.fromEmail);
 
@@ -81,7 +89,7 @@ function extractContactFormPatientEmail(raw = {}) {
   if (!looksLikeContactForm(raw)) return null;
 
   const bodyText = normalizeText(raw.bodyText);
-  const bodyHtml = normalizeText(raw.bodyHtml);
+  const bodyHtml = pickRawBodyHtml(raw);
   const textProbe = bodyText || stripHtmlToText(bodyHtml);
 
   // "E-post:" kan stå ensamt på en rad följt av adressen på nästa rad,

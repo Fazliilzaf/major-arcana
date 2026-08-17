@@ -119,6 +119,19 @@ test('extractContactFormPatientEmail falls back to html body', () => {
   assert.equal(email, 'pelle.kund@icloud.com');
 });
 
+test('extractContactFormPatientEmail falls back to nested rawJson.bodyHtml (production shape)', () => {
+  const email = extractContactFormPatientEmail({
+    fromEmail: 'wordpress@hairtpclinic.se',
+    subject: 'Kontaktformulär',
+    bodyText: '',
+    rawJson: {
+      bodyHtml:
+        '<p>Från:</p><p>Siv</p><p>E-post:</p><p>siv.kund@example.com</p><p>Telefon:</p><p>0709998877</p>',
+    },
+  });
+  assert.equal(email, 'siv.kund@example.com');
+});
+
 test('extractContactFormPatientEmail rejects non-patient extracted addresses', () => {
   const email = extractContactFormPatientEmail({
     fromEmail: 'wordpress@hairtpclinic.se',
