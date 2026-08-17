@@ -207,6 +207,7 @@ function createCmRouter({
   // ORD-72 · Om-extraktion: records som saknar totalbelopp läses om ur det
   // SPARADE källmailet (mailtext + bilagor). Fyller endast tomma fält och
   // backfillar redan promotade CFO-utgifter vars belopp fortfarande är tomt.
+  // ORD-72e · recordIds (optional): rikta om-extraktion mot specifika poster.
   router.post('/cm/reextract-missing', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
     const mailSync = createCmMailSync({
       graphReadConnector,
@@ -214,14 +215,20 @@ function createCmRouter({
       secureStorage,
       cfoExpenseStore,
     });
-    const limit = Math.min(50, Math.max(1, Number(req.body?.limit) || 10));
+    const body = req.body || {};
+    const limit = Math.min(50, Math.max(1, Number(body.limit) || 10));
     // force=true (UI-knappen): kör om även poster som redan försökts på
     // denna processorversion. Schemakörningar kör utan force.
-    const force = req.body?.force === true;
+    const force = body.force === true;
     // debug=true: returnera per-post-diagnostik utan att påverka normalt beteende.
-    const debug = req.body?.debug === true;
+    const debug = body.debug === true;
+    // recordIds (optional): rikta in sig på specifika poster. Override-ar
+    // CM_MAX_EXTRACT_PER_SYNC upp till limit; används vid källgranskning.
+    const recordIds = Array.isArray(body.recordIds)
+      ? body.recordIds.filter((id) => typeof id === 'string' && id.length > 0)
+      : null;
     try {
-      const result = await mailSync.reextractMissingAmounts({ limit, force, debug });
+      const result = await mailSync.reextractMissingAmounts({ limit, force, debug, recordIds });
       return res.json(result);
     } catch (err) {
       return res.status(500).json({ ok: false, error: err.message });
@@ -440,7 +447,8 @@ function createCmRouter({
     const raw =
       typeof cmStore.getRawItemById === 'function' ? cmStore.getRawItemById(req.params.id) : null;
     if (!raw) return res.status(404).json({ error: 'rawItem finns ej' });
-    return res.json({
+    const full = req.query.full === '1' || req.query.full === 'true';
+    const out = {
       ok: true,
       id: raw.id,
       mailbox: raw.mailbox || null,
@@ -449,11 +457,17 @@ function createCmRouter({
       subject: raw.subject || null,
       receivedAt: raw.receivedAt || null,
       hasOriginal: !!raw.originalStorageKey,
+      originalStorageKey: full ? raw.originalStorageKey || null : undefined,
       attachmentNames: Array.isArray(raw.attachments)
         ? raw.attachments.map((a) => a?.name || a?.filename).filter(Boolean)
         : [],
       bodyPreview: String(raw.rawBodyText || raw.bodyPreview || '').slice(0, 1500),
-    });
+    };
+    if (full) {
+      out.rawBodyText = String(raw.rawBodyText || raw.bodyPreview || '');
+      out.metadata = raw.metadata || null;
+    }
+    return res.json(out);
   });
 
   router.get('/cm/groups-tree', requireAuth, requireRole(ROLE_OWNER), (req, res) => {

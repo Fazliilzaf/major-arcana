@@ -898,7 +898,12 @@ function createCmMailSync({
   // (rawBodyText + ev. bilagor) — fyller endast tomma fält, skriver aldrig
   // över befintliga värden. Redan promotade utgifter i CFO backfillas om
   // deras amountSek fortfarande är tomt.
-  async function reextractMissingAmounts({ limit = 10, force = false, debug = false } = {}) {
+  async function reextractMissingAmounts({
+    limit = 10,
+    force = false,
+    debug = false,
+    recordIds = null,
+  } = {}) {
     const results = {
       ok: true,
       candidates: 0,
@@ -916,15 +921,26 @@ function createCmMailSync({
     // markören på recordet minns processorversionen. force=true (UI-knappen)
     // kör om ändå. Utan detta bränns AI-budgeten på samma poster för evigt
     // och kön bakom dem nås aldrig.
-    const records = cmStore
-      .listRecordsMissingAmount({ limit: limit * 4 })
-      .filter((r) => force || r.reextractAttemptVersion !== CM_PROCESSOR_VERSION)
-      .slice(0, Math.max(1, limit));
-    results.skippedAlreadyTried = force
-      ? 0
-      : cmStore
-          .listRecordsMissingAmount({ limit: limit * 4 })
-          .filter((r) => r.reextractAttemptVersion === CM_PROCESSOR_VERSION).length;
+    let records;
+    if (Array.isArray(recordIds) && recordIds.length > 0) {
+      // ORD-72e: explicit riktad om-extraktion. Hoppar över force/debug-filtrering
+      // för dessa poster så vi kan felsöka källgranskning.
+      records = recordIds
+        .map((id) => cmStore.getExpenseRecordById(id))
+        .filter(Boolean)
+        .slice(0, Math.max(1, limit));
+      results.targetedRecordIds = recordIds;
+    } else {
+      records = cmStore
+        .listRecordsMissingAmount({ limit: limit * 4 })
+        .filter((r) => force || r.reextractAttemptVersion !== CM_PROCESSOR_VERSION)
+        .slice(0, Math.max(1, limit));
+      results.skippedAlreadyTried = force
+        ? 0
+        : cmStore
+            .listRecordsMissingAmount({ limit: limit * 4 })
+            .filter((r) => r.reextractAttemptVersion === CM_PROCESSOR_VERSION).length;
+    }
     results.candidates = records.length;
 
     for (const record of records) {
