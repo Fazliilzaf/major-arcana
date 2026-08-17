@@ -18,6 +18,10 @@ function normalizeKey(value) {
   return normalizeText(value).toLowerCase();
 }
 
+function asObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
 function cloneValue(value) {
   if (value === undefined) return undefined;
   if (value === null) return null;
@@ -155,56 +159,61 @@ function normalizeEvent(input = {}) {
 }
 
 function normalizeCustomerRecord(input = {}) {
+  const safeInput = asObject(input);
   const now = nowIso();
-  const drafts = Array.isArray(input.drafts)
-    ? input.drafts.map((item) => normalizePortalDraft(item))
+  const drafts = Array.isArray(safeInput.drafts)
+    ? safeInput.drafts.map((item) => normalizePortalDraft(item))
     : [];
-  const versions = Array.isArray(input.versions)
-    ? input.versions.map((item) => normalizePortalVersion(item))
+  const versions = Array.isArray(safeInput.versions)
+    ? safeInput.versions.map((item) => normalizePortalVersion(item))
     : [];
-  const notifications = Array.isArray(input.notifications)
-    ? input.notifications.map((item) => normalizeNotification(item))
+  const notifications = Array.isArray(safeInput.notifications)
+    ? safeInput.notifications.map((item) => normalizeNotification(item))
     : [];
-  const events = Array.isArray(input.events)
-    ? input.events.map((item) => normalizeEvent(item))
+  const events = Array.isArray(safeInput.events)
+    ? safeInput.events.map((item) => normalizeEvent(item))
     : [];
   const currentDraftId =
-    normalizeText(input.currentDraftId) ||
+    normalizeText(safeInput.currentDraftId) ||
     drafts.find((item) => item.status === 'draft')?.draftId ||
     drafts.at(-1)?.draftId ||
     '';
   const currentPublishedVersionId =
-    normalizeText(input.currentPublishedVersionId) || versions.at(-1)?.versionId || '';
+    normalizeText(safeInput.currentPublishedVersionId) || versions.at(-1)?.versionId || '';
 
   return {
-    customerKey: normalizeKey(input.customerKey),
-    customerName: normalizeText(input.customerName),
-    customerEmail: normalizeText(input.customerEmail).toLowerCase(),
-    customerPhone: normalizeText(input.customerPhone),
-    workspaceId: normalizeText(input.workspaceId) || DEFAULT_WORKSPACE_ID,
+    customerKey: normalizeKey(safeInput.customerKey),
+    customerName: normalizeText(safeInput.customerName),
+    customerEmail: normalizeText(safeInput.customerEmail).toLowerCase(),
+    customerPhone: normalizeText(safeInput.customerPhone),
+    workspaceId: normalizeText(safeInput.workspaceId) || DEFAULT_WORKSPACE_ID,
     currentDraftId,
     currentPublishedVersionId,
-    lastPublishedAt: normalizeText(input.lastPublishedAt),
-    lastViewedAt: normalizeText(input.lastViewedAt),
-    lastAcknowledgedAt: normalizeText(input.lastAcknowledgedAt),
+    lastPublishedAt: normalizeText(safeInput.lastPublishedAt),
+    lastViewedAt: normalizeText(safeInput.lastViewedAt),
+    lastAcknowledgedAt: normalizeText(safeInput.lastAcknowledgedAt),
     drafts,
     versions,
     notifications,
     events,
-    createdAt: normalizeText(input.createdAt) || now,
-    updatedAt: normalizeText(input.updatedAt) || now,
+    createdAt: normalizeText(safeInput.createdAt) || now,
+    updatedAt: normalizeText(safeInput.updatedAt) || now,
   };
 }
 
 function buildCustomerSummary(record) {
-  const latestVersion = record.versions.at(-1) || null;
+  const safeRecord = asObject(record);
+  const versions = Array.isArray(safeRecord.versions) ? safeRecord.versions : [];
+  const drafts = Array.isArray(safeRecord.drafts) ? safeRecord.drafts : [];
+  const notifications = Array.isArray(safeRecord.notifications) ? safeRecord.notifications : [];
+  const latestVersion = versions.at(-1) || null;
   const currentDraft =
-    record.drafts.find((item) => item.draftId === record.currentDraftId) ||
-    record.drafts.find((item) => item.status === 'draft') ||
+    drafts.find((item) => item.draftId === safeRecord.currentDraftId) ||
+    drafts.find((item) => item.status === 'draft') ||
     null;
-  const unreadNotificationCount = record.notifications.filter((item) => !item.readAt).length;
-  const publishedVersionCount = record.versions.length;
-  const draftCount = record.drafts.length;
+  const unreadNotificationCount = notifications.filter((item) => !item.readAt).length;
+  const publishedVersionCount = versions.length;
+  const draftCount = drafts.length;
   const portalStatus = latestVersion
     ? unreadNotificationCount > 0
       ? 'published_unread'
@@ -214,39 +223,44 @@ function buildCustomerSummary(record) {
       : 'empty';
 
   return {
-    customerKey: record.customerKey,
-    customerName: record.customerName,
-    customerEmail: record.customerEmail,
-    customerPhone: record.customerPhone,
-    workspaceId: record.workspaceId,
+    customerKey: safeRecord.customerKey,
+    customerName: safeRecord.customerName,
+    customerEmail: safeRecord.customerEmail,
+    customerPhone: safeRecord.customerPhone,
+    workspaceId: safeRecord.workspaceId,
     portalStatus,
     draftCount,
     publishedVersionCount,
     unreadNotificationCount,
-    lastPublishedAt: record.lastPublishedAt || null,
-    lastViewedAt: record.lastViewedAt || null,
-    lastAcknowledgedAt: record.lastAcknowledgedAt || null,
-    currentDraftId: record.currentDraftId || null,
-    currentPublishedVersionId: record.currentPublishedVersionId || null,
+    lastPublishedAt: safeRecord.lastPublishedAt || null,
+    lastViewedAt: safeRecord.lastViewedAt || null,
+    lastAcknowledgedAt: safeRecord.lastAcknowledgedAt || null,
+    currentDraftId: safeRecord.currentDraftId || null,
+    currentPublishedVersionId: safeRecord.currentPublishedVersionId || null,
     currentDraftTitle: currentDraft?.title || null,
     currentPublishedVersionTitle: latestVersion?.title || null,
     currentPublishedVersionNumber: latestVersion?.versionNumber || null,
-    notificationCount: record.notifications.length,
-    updatedAt: record.updatedAt,
+    notificationCount: notifications.length,
+    updatedAt: safeRecord.updatedAt,
   };
 }
 
 function buildCustomerPortalView(record, { viewerScope = 'owner' } = {}) {
   const summary = buildCustomerSummary(record);
-  const latestVersion = record.versions.at(-1) || null;
-  const visibleNotifications = record.notifications.map((item) => ({ ...item }));
+  const safeRecord = asObject(record);
+  const versions = Array.isArray(safeRecord.versions) ? safeRecord.versions : [];
+  const drafts = Array.isArray(safeRecord.drafts) ? safeRecord.drafts : [];
+  const notifications = Array.isArray(safeRecord.notifications) ? safeRecord.notifications : [];
+  const events = Array.isArray(safeRecord.events) ? safeRecord.events : [];
+  const latestVersion = versions.at(-1) || null;
+  const visibleNotifications = notifications.map((item) => ({ ...item }));
 
   if (viewerScope === 'customer') {
     return {
       ...summary,
       currentDraft: null,
       drafts: [],
-      versions: record.versions.map((item) => ({ ...item })),
+      versions: versions.map((item) => ({ ...item })),
       currentPublishedVersion: latestVersion ? { ...latestVersion } : null,
       notifications: visibleNotifications,
       events: [],
@@ -256,14 +270,14 @@ function buildCustomerPortalView(record, { viewerScope = 'owner' } = {}) {
   return {
     ...summary,
     currentDraft:
-      record.drafts.find((item) => item.draftId === record.currentDraftId) ||
-      record.drafts.find((item) => item.status === 'draft') ||
+      drafts.find((item) => item.draftId === safeRecord.currentDraftId) ||
+      drafts.find((item) => item.status === 'draft') ||
       null,
-    drafts: record.drafts.map((item) => ({ ...item })),
-    versions: record.versions.map((item) => ({ ...item })),
+    drafts: drafts.map((item) => ({ ...item })),
+    versions: versions.map((item) => ({ ...item })),
     currentPublishedVersion: latestVersion ? { ...latestVersion } : null,
     notifications: visibleNotifications,
-    events: record.events.map((item) => ({ ...item })),
+    events: events.map((item) => ({ ...item })),
   };
 }
 
@@ -552,12 +566,15 @@ async function createCcoPortalStore({ filePath }) {
   async function getTenantPortalOverview({ tenantId }) {
     const tenantState = ensureTenant(state, tenantId);
     const customers = Object.values(tenantState.customers || {})
+      .filter((record) => record && typeof record === 'object' && normalizeKey(record.customerKey))
       .map((record) => {
         const summary = buildCustomerSummary(record);
-        const latestVersion = record.versions.at(-1) || null;
+        const versions = Array.isArray(record.versions) ? record.versions : [];
+        const drafts = Array.isArray(record.drafts) ? record.drafts : [];
+        const latestVersion = versions.at(-1) || null;
         const currentDraft =
-          record.drafts.find((item) => item.draftId === record.currentDraftId) ||
-          record.drafts.find((item) => item.status === 'draft') ||
+          drafts.find((item) => item.draftId === record.currentDraftId) ||
+          drafts.find((item) => item.status === 'draft') ||
           null;
         return {
           ...summary,
