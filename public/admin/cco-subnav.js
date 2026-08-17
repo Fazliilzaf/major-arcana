@@ -82,6 +82,7 @@
       drive_import_review: '/drive-import-review.html?queue=owner_quarantine',
       import_review_getaccept: '/cco-import-review.html?source=getaccept',
       import_review_journal_sign: '/cco-import-review.html?source=journal_sign',
+      mail_ingestion_review: '/cco-mail-ingestion-review.html',
     };
 
     var moreToggle = nav.querySelector('[data-cco-more-toggle]');
@@ -104,6 +105,7 @@
       drive_import_review: 'Drive import review',
       import_review_getaccept: 'GetAccept import review',
       import_review_journal_sign: 'Journal/sign review',
+      mail_ingestion_review: 'Mail ingestion review',
     };
 
     function urlFor(key) {
