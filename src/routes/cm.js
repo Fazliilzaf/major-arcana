@@ -763,7 +763,6 @@ function createCmRouter({
 
         if (!dryRun) {
           await cmStore.persist();
-          await cfoExpenseStore.persist();
         }
 
         return res.json(result);
