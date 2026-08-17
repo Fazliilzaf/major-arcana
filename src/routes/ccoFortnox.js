@@ -347,6 +347,45 @@ function createCcoFortnoxRouter({
       })
   );
 
+  // CF.9 — Aktivera ett inaktivt BAS-konto i Fortnox (t.ex. 6990 Tull och spedition).
+  router.post(
+    '/cco-fortnox/accounts/:number/activate',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const accountNumber = normalizeText(req.params.number);
+        if (!accountNumber || !/^\d+$/.test(accountNumber)) {
+          return res.status(400).json({ error: 'Kontonummer måste vara siffror.' });
+        }
+        const client = createFortnoxClientForTenant({
+          fortnoxStore,
+          config,
+          tenantId: actor.tenantId,
+        });
+        const before = await client.getAccount(accountNumber);
+        const after = await client.activateAccount(accountNumber);
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.fortnox.account_activated',
+          outcome: 'success',
+          targetType: 'fortnox_account',
+          targetId: accountNumber,
+          metadata: {
+            wasActive: before?.Account?.Active || false,
+            isActive: after?.Account?.Active || true,
+          },
+        });
+        return res.json({
+          ok: true,
+          accountNumber,
+          before: before?.Account || null,
+          after: after?.Account || null,
+        });
+      })
+  );
+
   return router;
 }
 

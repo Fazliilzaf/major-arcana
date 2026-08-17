@@ -306,6 +306,22 @@ function createFortnoxClient({
       const qs = params.toString();
       return request(`/vouchers/${encodeURIComponent(series)}/${number}${qs ? '?' + qs : ''}`);
     },
+    // CF.9 — kontohantering: läs och uppdatera BAS-konton i Fortnox.
+    getAccount(accountNumber) {
+      return request(`/accounts/${encodeURIComponent(accountNumber)}`);
+    },
+    updateAccount(accountNumber, payload) {
+      return request(`/accounts/${encodeURIComponent(accountNumber)}`, {
+        method: 'PUT',
+        body: { Account: payload },
+      });
+    },
+    activateAccount(accountNumber) {
+      return request(`/accounts/${encodeURIComponent(accountNumber)}`, {
+        method: 'PUT',
+        body: { Account: { Active: true } },
+      });
+    },
   };
 }
 
