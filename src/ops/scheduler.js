@@ -54,6 +54,7 @@ const {
 const { createCcoMailboxTruthStore } = require('./ccoMailboxTruthStore');
 const { measureMailboxTruthBodyShare } = require('./mailboxTruthBodyShareScan');
 const { createConfiguredCcoMailboxTruthStore } = require('./ccoMailboxTruthStoreFactory');
+const { createAutomationConversationBridge } = require('./ccoAutomationConversationBridge');
 const { recordTenantAccessCheck } = require('./tenantAccessCheck');
 const {
   computeCcoInboxEnrichmentCoverage,
@@ -644,13 +645,31 @@ function createScheduler({
     let digest = { skipped: true, reason: 'empty_queue' };
     let patientEmails = { sent: 0, skipped: 0 };
     const patientSms = { sent: 0, skipped: 0 };
+    let automationBridge = null;
     if (queue.total > 0) {
+      try {
+        const truthStore = await resolveSchedulerTruthStore();
+        if (truthStore && patientMasterStore) {
+          automationBridge = createAutomationConversationBridge({
+            ccoMailboxTruthStore: truthStore,
+            patientMasterStore,
+            defaultTenantId: tenantId || config.defaultTenantId || 'hair-tp-clinic',
+          });
+        }
+      } catch (bridgeInitErr) {
+        logger?.warn?.(
+          '[runCcoCustomerReminders] failed to init automation bridge:',
+          bridgeInitErr?.message || bridgeInitErr
+        );
+      }
+
       patientEmails = await dispatchPatientVisitReminderEmails({
         queue,
         bookingEngineStore,
         graphSendConnector,
         patientCareStateStore,
         fromEmail: config.bookingReminderFromEmail || config.ccoCareReminderFromEmail,
+        automationBridge,
       });
 
       // SMS reminders (46elks / Twilio)

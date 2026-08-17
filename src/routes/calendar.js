@@ -11,6 +11,7 @@ function createCalendarRouter({
   getBookingEngineStore,
   getClientoBookingStore,
   getEncounterStore,
+  getMailboxTruthStore,
 } = {}) {
   const router = express.Router();
   const authenticate =
@@ -32,7 +33,49 @@ function createCalendarRouter({
       (typeof getEncounterStore === 'function' && getEncounterStore(req)) ||
       req.app?.locals?.ccoTreatmentEncounterStore ||
       null;
-    return { bookingEngineStore, clientoBookingStore, encounterStore };
+    const mailboxTruthStore =
+      (typeof getMailboxTruthStore === 'function' && getMailboxTruthStore(req)) ||
+      req.app?.locals?.ccoMailboxTruthStore ||
+      null;
+    return { bookingEngineStore, clientoBookingStore, encounterStore, mailboxTruthStore };
+  }
+
+  function createConversationResolver(mailboxTruthStore) {
+    if (!mailboxTruthStore || typeof mailboxTruthStore.listMessages !== 'function') {
+      return null;
+    }
+    return function resolveConversationId({ patientEmail } = {}) {
+      const email = String(patientEmail || '').trim().toLowerCase();
+      if (!email || !email.includes('@')) return null;
+      const mailboxes =
+        typeof mailboxTruthStore.listLoadedMailboxes === 'function'
+          ? mailboxTruthStore.listLoadedMailboxes()
+          : [];
+      let best = null;
+      let bestAt = '';
+      const sources = mailboxes.length
+        ? mailboxes.map((id) => ({ mailboxIds: [id] }))
+        : [{}];
+      for (const query of sources) {
+        const messages = mailboxTruthStore.listMessages({ ...query, folderTypes: ['inbox'], limit: 200 });
+        for (const m of messages || []) {
+          const counterpart = String(
+            m.fromEmail || m.from?.address || m.toEmail || m.to?.[0]?.address || ''
+          )
+            .trim()
+            .toLowerCase();
+          if (counterpart !== email) continue;
+          const convId = m.mailboxConversationId || m.conversationId;
+          if (!convId) continue;
+          const at = String(m.receivedAt || m.sentAt || m.lastModifiedAt || '');
+          if (!best || at > bestAt) {
+            best = convId;
+            bestAt = at;
+          }
+        }
+      }
+      return best;
+    };
   }
 
   function readContext(req, res) {
@@ -46,7 +89,8 @@ function createCalendarRouter({
       res.status(503).json({ ok: false, error: 'calendar_store_not_ready' });
       return null;
     }
-    return { tenantId, ...stores };
+    const resolveConversationId = createConversationResolver(stores.mailboxTruthStore);
+    return { tenantId, ...stores, resolveConversationId };
   }
 
   router.get('/calendar/day', ...readGuard, (req, res) => {

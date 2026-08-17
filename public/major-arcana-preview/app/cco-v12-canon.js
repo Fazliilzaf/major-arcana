@@ -1533,11 +1533,16 @@
   }
 
   /* ---------- 10 · KOMMUNIKATION ---------- */
-  function s10(comm, card) {
+  function s10(comm, card, conversationThreads) {
+    var replyEmail = txt(card && (card.primaryEmail || card.email));
+    // Fas 2.1: om riktiga konversationstrådar finns, rendera dem istället för
+    // den syntetiska kommunikationslistan.
+    if (conversationThreads && conversationThreads.threads && conversationThreads.threads.length) {
+      return s10ConversationThreads(conversationThreads, card, replyEmail);
+    }
     var items = arr(comm && comm.items ? comm.items : comm);
     // "senaste kontakt: <datum>" ur första (nyaste) meddelandets meta.
     var lastDate = items.length ? txt(items[0].meta).split('·').pop().trim() : '';
-    var replyEmail = txt(card && (card.primaryEmail || card.email));
     var head = secHead(
       '10',
       'Kommunikation',
@@ -1581,6 +1586,89 @@
         .join('') +
       '</section>'
     );
+  }
+
+  function s10ConversationThreads(data, card, replyEmail) {
+    var threads = arr(data.threads);
+    var counts = data.counts || {};
+    var total = Number(counts.all || threads.length) || 0;
+    var lastThread = threads[0] || {};
+    var lastDate = lastThread.ts ? lastThread.ts.slice(0, 10) : '';
+    var customerId = data.customerId || card.id || card.patientId || card.customerId || '';
+
+    var head = secHead(
+      '10',
+      'Kommunikation',
+      lastDate ? total + ' trådar · senaste ' + lastDate : total + ' trådar',
+      replyEmail
+        ? '<a class="sec-link" href="mailto:' + esc(replyEmail) + '">+ Svara</a>'
+        : ''
+    );
+
+    var kindMap = {
+      incoming_mail: { cls: 'in', icon: '✉', label: 'In' },
+      outgoing_mail: { cls: 'out', icon: '✉', label: 'Ut' },
+      system_mail: { cls: 'system', icon: '🤖', label: 'System' },
+      internal_note: { cls: 'internal', icon: '📝', label: 'Intern' },
+      comm_draft: { cls: 'draft', icon: '✏️', label: 'Utkast' },
+      comm_draft_needs_approval: { cls: 'needs-approval', icon: '⚡', label: 'Godkänn' },
+      comm_sent: { cls: 'sent', icon: '✓', label: 'Skickat' },
+      form_sent: { cls: 'sent', icon: '📋', label: 'Formulär' },
+      consent_sent: { cls: 'sent', icon: '✅', label: 'Samtycke' },
+      file_sent: { cls: 'sent', icon: '📎', label: 'Fil' },
+      portal_message: { cls: 'portal', icon: '💬', label: 'Portal' },
+    };
+
+    var rows = threads.slice(0, 8).map(function (t) {
+      var k = kindMap[t.kind] || { cls: '', icon: '•', label: t.kind || '?' };
+      var isUnread = t.threadStatus === 'unread';
+      var subject = esc(txt(t.subject || '(utan ämne)'));
+      var preview = esc(txt(t.preview || ''));
+      var time = t.ts ? t.ts.slice(0, 10) : '';
+      var statusHtml = '';
+      if (t.unanswered) statusHtml += '<span class="comm-status unanswered">Obesvarad</span>';
+      else if (t.snoozedUntil) statusHtml += '<span class="comm-status snoozed">Snoozad</span>';
+      else if (t.handled) statusHtml += '<span class="comm-status handled">Klar</span>';
+      else if (isUnread) statusHtml += '<span class="comm-status unread">Oläst</span>';
+
+      var linkHtml = '';
+      if (t.conversationId) {
+        var convParams = 'view=conversations&conv=' + encodeURIComponent(t.conversationId);
+        if (customerId) convParams += '&customerId=' + encodeURIComponent(customerId);
+        linkHtml =
+          '<a class="sec-link" href="?' +
+          esc(convParams) +
+          '" title="Öppna tråden i Konversationer">Visa →</a>';
+      }
+
+      return (
+        '<div class="comm-row' +
+        (isUnread ? ' is-unread' : '') +
+        '">' +
+        '<span class="comm-ic ' +
+        k.cls +
+        '">' +
+        k.icon +
+        '</span>' +
+        '<div class="comm-body"><div class="who">' +
+        subject +
+        '</div>' +
+        (preview ? '<div class="pre">' + preview + '</div>' : '') +
+        '</div>' +
+        '<div class="comm-meta">' +
+        '<span class="comm-kind ' +
+        k.cls +
+        '">' +
+        esc(k.label) +
+        '</span>' +
+        statusHtml +
+        (time ? '<span class="comm-time">' + esc(time) + '</span>' : '') +
+        linkHtml +
+        '</div></div>'
+      );
+    }).join('');
+
+    return '<section class="sec" id="s10">' + head + rows + '</section>';
   }
 
   /* ---------- 11 · EKONOMI ---------- */
@@ -2108,6 +2196,8 @@
     var history = call('buildHistoryFromExtras', [card, card, bundle, ctx.occasionTimeline], null);
     var journals = call('buildJournalsFromEntries', [ctx.journalEntries], null);
     var comm = call('buildCommunicationFromState', [card, ctx.occasionTimeline, bundle], null);
+    // Fas 2.1: riktiga konversationstrådar från backend (patient-master-ui.js laddar dem asynkront).
+    var conversationThreads = ctx.conversationThreads || null;
     var econ = call('buildEconomyFromCard', [card], null);
     var invoices = call('buildEconomyInvoices', [bundle && bundle.paymentHistory], null);
     var nextStep = call('buildSmartNextStep', [card], null);
@@ -2133,7 +2223,7 @@
       s7(photos, ctx.visitSegments, patientId) +
       s8(bookings, history, patientId) +
       s9(files, offers, autoDocs, patientId) +
-      s10(comm, card) +
+      s10(comm, card, conversationThreads) +
       s11(econ, invoices, patientId) +
       s12(nextStep, insights, patientId) +
       '</div>';

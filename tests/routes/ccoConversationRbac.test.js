@@ -438,6 +438,81 @@ test('dashboard: behorig Bearer-token far bara se aktiv mailbox-scope', async ()
   }
 });
 
+test('dashboard: raknar obesvarade tradar och SLA-risk korrekt', async () => {
+  const mailboxId = 'contact@hairtpclinic.com';
+  const nowMs = Date.now();
+  const hourMs = 60 * 60 * 1000;
+  const dayMs = 24 * hourMs;
+  const toIso = (offsetMs) => new Date(nowMs - offsetMs).toISOString();
+  const fixture = await createFixture({
+    messages: [
+      // Obesvarad + SLA-risk: senaste inbound för 48h sedan, inget svar
+      {
+        mailboxConversationId: 'sla-risk-thread',
+        senderEmail: 'kund-a@test.se',
+        mailboxId,
+        mailboxAddress: mailboxId,
+        folderType: 'inbox',
+        sentAt: toIso(48 * hourMs),
+      },
+      // Obesvarad men inom SLA: senaste inbound för 1h sedan
+      {
+        mailboxConversationId: 'unanswered-ok-thread',
+        senderEmail: 'kund-b@test.se',
+        mailboxId,
+        mailboxAddress: mailboxId,
+        folderType: 'inbox',
+        sentAt: toIso(1 * hourMs),
+      },
+      // Besvarad: inbound 36h sedan, outbound svar 12h sedan
+      {
+        mailboxConversationId: 'answered-thread',
+        senderEmail: 'kund-c@test.se',
+        mailboxId,
+        mailboxAddress: mailboxId,
+        folderType: 'inbox',
+        sentAt: toIso(36 * hourMs),
+      },
+      {
+        mailboxConversationId: 'answered-thread',
+        senderEmail: 'kund-c@test.se',
+        mailboxId,
+        mailboxAddress: mailboxId,
+        folderType: 'sentitems',
+        sentAt: toIso(12 * hourMs),
+      },
+      // Endast utgående: räknas inte som obesvarad
+      {
+        mailboxConversationId: 'outbound-only-thread',
+        senderEmail: 'klinik@hairtpclinic.com',
+        mailboxId,
+        mailboxAddress: mailboxId,
+        folderType: 'sentitems',
+        sentAt: toIso(2 * hourMs),
+      },
+    ],
+    mailboxIdsForSync: [mailboxId],
+    tenantScopeId: DASHBOARD_TENANT_ID,
+    requireAuth: requireDashboardBearerAuth,
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await dashboardReq(baseUrl, 'dashboard-operator');
+      assert.equal(response.status, 200);
+      const body = await response.json();
+      assert.equal(body.ok, true);
+      assert.equal(body.unansweredThreads, 2);
+      assert.equal(body.slaRiskThreads, 1);
+      assert.equal(body.slaThresholdHours, 24);
+      assert.equal(body.perMailbox[mailboxId].unanswered, 2);
+      assert.equal(body.perMailbox[mailboxId].inbound, 3);
+      assert.equal(body.perMailbox[mailboxId].outbound, 2);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
 test('messages: ingestion-fallback laser inte legacy-mailbox utanfor aktiv CCO-scope', async () => {
   const allowedMailboxId = 'contact@hairtpclinic.com';
   const legacyMailboxId = 'legacy@other-clinic.test';

@@ -7031,6 +7031,8 @@
       patient,
       tab,
       lite,
+      // Fas 2.1: riktiga konversationstrådar från /cco-customers/:id/conversation-threads
+      conversationThreads: runtime.detail?.conversationThreads || null,
       // Ett enda V12-renderer: CONTENT-CANON. CcoV12Workspace och CcoV12Spine
       // är arkiverade (ingår inte längre i renderingsvägen). commercialCase
       // behövs fortfarande så buildOffersFromPayload kan syntetisera en rad
@@ -9129,6 +9131,7 @@
     form_sent: { label: 'Formulär', cls: 'sent', icon: '📋' },
     consent_sent: { label: 'Samtycke', cls: 'sent', icon: '✅' },
     file_sent: { label: 'Fil', cls: 'sent', icon: '📎' },
+    portal_message: { label: 'Portal', cls: 'portal', icon: '💬' },
   };
 
   var C2_FILTERS = [
@@ -9142,6 +9145,7 @@
     { key: 'unanswered', label: 'Obesvarad' },
     { key: 'snoozed', label: 'Snoozad' },
     { key: 'handled', label: 'Hanterad' },
+    { key: 'portal', label: 'Portal' },
   ];
 
   function c2ClientFilter(threads, filter) {
@@ -9155,6 +9159,7 @@
       sent: (t) =>
         t.kind === 'comm_sent' || t.threadStatus === 'sent' || t.threadStatus === 'queued',
       internal: (t) => t.kind === 'internal_note' || t.direction === 'internal',
+      portal: (t) => t.kind === 'portal_message',
       unanswered: (t) => t.unanswered === true,
       snoozed: (t) => Boolean(t.snoozedUntil),
       handled: (t) => t.handled === true,
@@ -13443,6 +13448,8 @@
       }
       syncTimelineFocusFromEntries(payload.journalEntries);
       runtime.detailLoading = false;
+      // Fas 2.1: ladda konversationstrådar asynkront för V12-arbetsytan.
+      void loadPatientConversationThreads(patientId);
       const v10FacitDesktop =
         isV9CustomersEnabled() && usesV10KundkortFacit() && !isMobileViewport();
       if (v10FacitDesktop) {
@@ -13516,6 +13523,27 @@
       if (normalizeText(window.__ARCANA_MOBILE_DEEPLINK_PRIME__) === normalizeText(patientId)) {
         delete window.__ARCANA_MOBILE_DEEPLINK_PRIME__;
       }
+    }
+  }
+
+  async function loadPatientConversationThreads(patientId) {
+    if (!patientId) return;
+    try {
+      const data = await apiRequest(
+        '/api/v1/cco-customers/' + encodeURIComponent(patientId) + '/conversation-threads'
+      );
+      if (
+        normalizeText(runtime.selectedPatientId) !== normalizeText(patientId) ||
+        !runtime.detail
+      ) {
+        return;
+      }
+      runtime.detail.conversationThreads = data;
+      if (usesV12Workspace()) {
+        renderDetailPanel({ preserveRailScroll: true });
+      }
+    } catch (error) {
+      console.error('Kunde inte ladda konversationstrådar:', error);
     }
   }
 

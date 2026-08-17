@@ -157,7 +157,8 @@
           el('div', { class: 'cal-booking-service' }, slot.serviceLabel || slot.serviceId || ''),
           el('div', { class: 'cal-booking-pills' }, [
             el('span', { class: `cal-pill cal-pill--${statusTone}` }, slot.status || 'bokad'),
-          ]),
+            slot.conversationId ? el('span', { class: 'cal-pill cal-pill--info', title: 'Konversation' }, '💬') : null,
+          ].filter(Boolean)),
         ]);
         col.appendChild(card);
       }
@@ -192,6 +193,14 @@
       { id: 'no-show',        label: 'No-show',        icon: '✗',   onclick: callbacks.onNoShow },
       { id: 'open-card',      label: 'Öppna kort',     icon: '👤',  onclick: callbacks.onOpenCard },
     ];
+    if (slot.conversationId) {
+      ACTIONS.push({
+        id: 'open-conversation',
+        label: 'Konversation',
+        icon: '💬',
+        onclick: callbacks.onOpenConversation,
+      });
+    }
     const grid = el('div', { class: 'cal-actions' });
     for (const a of ACTIONS) {
       grid.appendChild(el('button', {
@@ -301,6 +310,7 @@
       onFollowUp:      () => triggerAction('follow-up', slot, pills),
       onNoShow:        () => triggerAction('no-show', slot, pills),
       onOpenCard:      () => triggerAction('open-card', slot, pills),
+      onOpenConversation: () => openConversationForSlot(slot),
     });
     root.appendChild(actions);
 
@@ -383,6 +393,12 @@
     } catch (err) {
       showToast('✗ Misslyckades: ' + err.message, 'error');
     }
+  }
+
+  function openConversationForSlot(slot) {
+    if (!slot.conversationId) return;
+    const url = '/major-arcana-preview/?view=conversations&conv=' + encodeURIComponent(slot.conversationId);
+    window.open(url, '_blank');
   }
 
   function showToast(msg, kind) {

@@ -32,6 +32,14 @@ function makeIngestionStore(messages = []) {
   };
 }
 
+function makePortalMessageStore(messages = []) {
+  return {
+    listMessagesForCustomer({ tenantId, customerId } = {}) {
+      return messages.filter((m) => m.tenantId === tenantId && m.customerId === customerId);
+    },
+  };
+}
+
 test('buildThreadsForCustomer prefers truth over duplicate ingestion rows', async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-thread-'));
   const filePath = path.join(tmp, 'states.json');
@@ -190,4 +198,68 @@ test('buildThreadsForCustomer merges ingestion-only rows and multi-mailbox summa
   assert.equal(threads.filter((t) => t.kind === 'incoming_mail').length, 2);
   assert.equal(summary.multiMailbox, true);
   assert.equal(mailboxes.length, 2);
+});
+
+
+test('buildThreadsForCustomer merges portal messages into customer threads', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-thread-'));
+  const filePath = path.join(tmp, 'states.json');
+  const customerId = 'cust-portal-1';
+  const tenantId = 'hairtpclinic';
+  const store = await createCcoConversationThreadStore({
+    filePath,
+    mailboxTruthStore: makeTruthStore([
+      {
+        mailboxId: 'contact@hairtpclinic.com',
+        graphMessageId: 'g-portal-mail',
+        folderType: 'inbox',
+        direction: 'inbound',
+        subject: 'Mail via kontakt',
+        bodyPreview: 'Hej, jag har en fråga',
+        fromEmail: 'patient@example.com',
+        receivedAt: '2026-06-01T10:00:00.000Z',
+        customerIdentity: { customerId, canonicalCustomerId: customerId },
+      },
+    ]),
+    portalMessageStore: makePortalMessageStore([
+      {
+        tenantId,
+        customerId,
+        id: 'portal-msg-1',
+        direction: 'inbound',
+        channel: 'portal',
+        body: 'Jag mår bra efter behandlingen',
+        author: 'patient',
+        createdAt: '2026-06-02T09:00:00.000Z',
+      },
+      {
+        tenantId,
+        customerId,
+        id: 'portal-msg-2',
+        direction: 'outbound',
+        channel: 'portal',
+        body: 'Bra att höra! Kontakta oss om något',
+        author: 'staff',
+        createdAt: '2026-06-02T10:00:00.000Z',
+      },
+    ]),
+    historyMailboxIds: ['contact@hairtpclinic.com'],
+  });
+
+  const { threads, counts } = await store.buildThreadsForCustomer(customerId, { tenantId });
+  const portalRows = threads.filter((t) => t.kind === 'portal_message');
+  assert.equal(portalRows.length, 2, 'both portal messages should appear');
+  assert.ok(portalRows.some((t) => t.direction === 'inbound' && t.body.includes('mår bra')));
+  assert.ok(portalRows.some((t) => t.direction === 'outbound' && t.body.includes('Bra att höra')));
+  assert.equal(counts.portal, 2, 'portal count should reflect both messages');
+
+  const allFiltered = store.filterThreads(threads, 'all');
+  assert.equal(allFiltered.length, 3, 'all-filter includes mail + 2 portal messages');
+
+  const portalFiltered = store.filterThreads(threads, 'portal');
+  assert.equal(portalFiltered.length, 2);
+
+  // Portal rows should be sorted together with mail by ts desc
+  assert.equal(threads[0].kind, 'portal_message');
+  assert.equal(threads[0].direction, 'outbound');
 });

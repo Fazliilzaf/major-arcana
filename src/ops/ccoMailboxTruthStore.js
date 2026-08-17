@@ -1838,6 +1838,120 @@ async function createCcoMailboxTruthStore({
     };
   }
 
+  async function addSyntheticSentMessage({
+    mailboxId = '',
+    mailboxAddress = '',
+    fromEmail = '',
+    fromName = '',
+    toEmail = '',
+    toName = '',
+    subject = '',
+    bodyHtml = '',
+    bodyText = '',
+    sentAt = '',
+    conversationId = '',
+    mailboxConversationId = '',
+    internetMessageId = '',
+    patientId = '',
+    automationType = '',
+  } = {}) {
+    const safeMailboxId = normalizeMailboxId(mailboxId);
+    if (!safeMailboxId) {
+      throw new Error('addSyntheticSentMessage requires mailboxId');
+    }
+    const safeFromEmail = normalizeText(fromEmail).toLowerCase() || safeMailboxId;
+    const safeToEmail = normalizeText(toEmail).toLowerCase();
+    if (!safeToEmail) {
+      throw new Error('addSyntheticSentMessage requires toEmail');
+    }
+
+    ensureAccount({
+      mailboxId: safeMailboxId,
+      mailboxAddress: mailboxAddress || safeMailboxId,
+      userPrincipalName: safeMailboxId,
+    });
+
+    const now = nowIso();
+    const safeSentAt = normalizeText(sentAt) || now;
+    const safeInternetMessageId = normalizeText(internetMessageId) || `cco-auto-${crypto.randomUUID()}@hairtpclinic.com`;
+    const graphMessageId = `cco-auto-${automationType ? `${automationType}-` : ''}${crypto.randomUUID()}`;
+    const messageKey = toMessageKey(safeMailboxId, graphMessageId);
+
+    const candidateMailboxConversationId = normalizeText(mailboxConversationId);
+    const candidateConversationId = normalizeText(conversationId);
+    const derivedMailboxConversationId =
+      candidateMailboxConversationId ||
+      toMailboxConversationId({
+        mailboxId: safeMailboxId,
+        conversationId: candidateConversationId,
+        internetMessageId: safeInternetMessageId,
+        graphMessageId,
+      });
+
+    const identityCarrier = patientId
+      ? {
+          customerIdentity: {
+            patientId: normalizeText(patientId),
+            source: 'automation_bridge',
+            updatedAt: now,
+          },
+        }
+      : {};
+
+    const rawMessage = {
+      graphMessageId,
+      internetMessageId: safeInternetMessageId,
+      conversationId: candidateConversationId,
+      mailboxConversationId: derivedMailboxConversationId,
+      mailboxId: safeMailboxId,
+      mailboxAddress: mailboxAddress || safeMailboxId,
+      userPrincipalName: safeMailboxId,
+      graphUserId: safeMailboxId,
+      folderType: 'sent',
+      direction: 'outbound',
+      subject: normalizeText(subject) || '(utan amne)',
+      bodyPreview: (normalizeText(bodyText) || htmlToPlainTextForStore(bodyHtml)).slice(0, 500),
+      bodyHtml,
+      bodyText: normalizeText(bodyText) || htmlToPlainTextForStore(bodyHtml),
+      from: { address: safeFromEmail, name: normalizeText(fromName) || '' },
+      fromEmail: safeFromEmail,
+      fromName: normalizeText(fromName) || '',
+      toRecipients: [{ address: safeToEmail, name: normalizeText(toName) || '' }],
+      toEmails: [safeToEmail],
+      ccRecipients: [],
+      ccEmails: [],
+      bccRecipients: [],
+      bccEmails: [],
+      sentAt: safeSentAt,
+      receivedAt: safeSentAt,
+      receivedDateTime: safeSentAt,
+      sentDateTime: safeSentAt,
+      lastModifiedAt: safeSentAt,
+      createdAt: now,
+      persistedAt: now,
+      isRead: true,
+      hasAttachments: false,
+      source: 'cco_automation_bridge',
+      automationType: normalizeText(automationType) || undefined,
+      ...identityCarrier,
+    };
+
+    const hydrated = hydrateStoredMessage(rawMessage, safeMailboxId);
+    if (!hydrated) {
+      throw new Error('addSyntheticSentMessage failed to hydrate message');
+    }
+
+    state.messages[messageKey] = hydrated;
+    maybeRebuildMailboxConversations(safeMailboxId);
+    await save();
+
+    return {
+      graphMessageId,
+      mailboxConversationId: hydrated.mailboxConversationId,
+      messageKey,
+    };
+  }
+
   if (initialStateMutated && deferInitialSave !== true) {
     await save();
   } else {
@@ -1870,6 +1984,7 @@ async function createCcoMailboxTruthStore({
     toNormalizedModel,
     getCompletenessReport,
     getDeltaSyncReport,
+    addSyntheticSentMessage,
   };
 }
 

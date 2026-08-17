@@ -3604,7 +3604,7 @@ function createCcoConversationRouter({
           const mailboxAddr =
             normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'okänd';
           if (!perMailboxCount[mailboxAddr])
-            perMailboxCount[mailboxAddr] = { total: 0, inbound: 0, outbound: 0 };
+            perMailboxCount[mailboxAddr] = { total: 0, inbound: 0, outbound: 0, unanswered: 0 };
           perMailboxCount[mailboxAddr].total += 1;
           if (dir === 'outbound') perMailboxCount[mailboxAddr].outbound += 1;
           else if (dir === 'inbound') perMailboxCount[mailboxAddr].inbound += 1;
@@ -3633,7 +3633,7 @@ function createCcoConversationRouter({
           }
         }
 
-        // Snitt-svartid: för varje konversation, hitta första outbound efter senaste inbound
+        // Snitt-svartid + obesvarade trådar: för varje konversation, spara senaste inbound/outbound
         const conversationLatest = {};
         for (const raw of allMessages) {
           const m = asObject(raw);
@@ -3641,15 +3641,39 @@ function createCcoConversationRouter({
           if (!key) continue;
           const tMs = Date.parse(m.sentAt || m.receivedAt || m.lastModifiedAt || '');
           if (!Number.isFinite(tMs)) continue;
-          if (!conversationLatest[key]) conversationLatest[key] = { inbounds: [], outbounds: [] };
+          if (!conversationLatest[key]) {
+            conversationLatest[key] = {
+              inbounds: [],
+              outbounds: [],
+              lastInboundMs: 0,
+              lastInboundMailbox: '',
+              lastOutboundMs: 0,
+            };
+          }
           const dir = deriveDir(m.folderType);
-          if (dir === 'inbound') conversationLatest[key].inbounds.push(tMs);
-          else if (dir === 'outbound') conversationLatest[key].outbounds.push(tMs);
+          const mailboxAddr =
+            normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'okänd';
+          if (dir === 'inbound') {
+            conversationLatest[key].inbounds.push(tMs);
+            if (tMs > conversationLatest[key].lastInboundMs) {
+              conversationLatest[key].lastInboundMs = tMs;
+              conversationLatest[key].lastInboundMailbox = mailboxAddr;
+            }
+          } else if (dir === 'outbound') {
+            conversationLatest[key].outbounds.push(tMs);
+            if (tMs > conversationLatest[key].lastOutboundMs) {
+              conversationLatest[key].lastOutboundMs = tMs;
+            }
+          }
         }
         const responseTimes = [];
+        let unansweredThreads = 0;
+        let slaRiskThreads = 0;
+        const SLA_THRESHOLD_MS = 24 * 60 * 60 * 1000;
         for (const key of Object.keys(conversationLatest)) {
-          const { inbounds, outbounds } = conversationLatest[key];
-          if (!inbounds.length || !outbounds.length) continue;
+          const { inbounds, outbounds, lastInboundMs, lastInboundMailbox, lastOutboundMs } =
+            conversationLatest[key];
+          if (!inbounds.length) continue;
           inbounds.sort((a, b) => a - b);
           outbounds.sort((a, b) => a - b);
           for (const inb of inbounds) {
@@ -3658,6 +3682,25 @@ function createCcoConversationRouter({
               const diffH = (reply - inb) / 3600000;
               if (diffH >= 0 && diffH < 168) responseTimes.push(diffH);
               break;
+            }
+          }
+          // Obesvarad = senaste meddelande är inbound och inget outbound efter det
+          const isUnanswered =
+            lastInboundMs > 0 && (lastOutboundMs === 0 || lastInboundMs > lastOutboundMs);
+          if (isUnanswered) {
+            unansweredThreads += 1;
+            if (lastInboundMailbox) {
+              if (!perMailboxCount[lastInboundMailbox])
+                perMailboxCount[lastInboundMailbox] = {
+                  total: 0,
+                  inbound: 0,
+                  outbound: 0,
+                  unanswered: 0,
+                };
+              perMailboxCount[lastInboundMailbox].unanswered += 1;
+            }
+            if (nowMs - lastInboundMs > SLA_THRESHOLD_MS) {
+              slaRiskThreads += 1;
             }
           }
         }
@@ -3695,6 +3738,9 @@ function createCcoConversationRouter({
             avgHours: avgResponseHours,
             medianHours: medianResponseHours,
           },
+          unansweredThreads,
+          slaRiskThreads,
+          slaThresholdHours: 24,
           perMailbox: perMailboxCount,
           topCustomers,
           volumeChart,

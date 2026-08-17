@@ -31,6 +31,9 @@ function createPatientPortalRouter({
   // resten av portalen.
   portalMessageStore = null,
   portalAccessStore = null,
+  // Fas 2.5 — sammanslagen vy av portal-chatt + CCO mail/SMS-konversationer.
+  // getThreadStore() => ccoConversationThreadStore | null
+  getThreadStore = null,
   // Rate-limiter för de token-grindade meddelande-endpointsen. Injiceras i test;
   // annars skapas en in-memory-limiter (30 req/min per token, faller till IP).
   messageRateLimiter = null,
@@ -686,8 +689,26 @@ function createPatientPortalRouter({
     return resolved;
   }
 
+  function normalizeThreadToPortalMessage(t = {}) {
+    const bodyParts = [t.subject && t.subject !== '(utan ämne)' ? t.subject : ''].filter(Boolean);
+    if (t.preview) bodyParts.push(t.preview);
+    return {
+      id: t.threadId || t.id || 'thread-' + (t.ts || nowIso()),
+      direction: t.direction || 'outbound',
+      channel: t.channel || 'email',
+      body: bodyParts.join('\n\n'),
+      author: t.from || (t.direction === 'outbound' ? 'Kliniken' : 'Patienten'),
+      createdAt: t.ts || null,
+      readAt: t.readAt || null,
+      kind: t.kind || null,
+      threadStatus: t.threadStatus || null,
+      conversationId: t.conversationId || null,
+    };
+  }
+
   // GET — patienten läser sina meddelanden. Markerar samtidigt INTE något läst
   // (klinikens läsning styr kliniksidan; patientens läsning är passiv).
+  // Fas 2.5: returnerar en sammanslagen vy av portal-chatt + CCO-trådar.
   router.get('/patient-portal/:accessToken/messages', msgRateLimit, async (req, res) => {
     const access = resolvePortalAccess(req, res);
     if (!access) return;
@@ -696,7 +717,34 @@ function createPatientPortalRouter({
         tenantId: access.tenantId,
         customerId: access.customerId,
       });
-      return res.json({ ok: true, messages });
+
+      let threadMessages = [];
+      if (typeof getThreadStore === 'function') {
+        try {
+          const threadStore = await getThreadStore();
+          if (threadStore?.buildThreadsForCustomer) {
+            const built = await threadStore.buildThreadsForCustomer(access.customerId, {
+              tenantId: access.tenantId,
+            });
+            const ccoThreads = (built?.threads || []).filter(
+              (t) =>
+                t.kind === 'incoming_mail' ||
+                t.kind === 'outgoing_mail' ||
+                t.kind === 'comm_sent' ||
+                t.kind === 'portal_message'
+            );
+            threadMessages = ccoThreads.map((t) => normalizeThreadToPortalMessage(t));
+          }
+        } catch {
+          /* CCO-trådar är valfri berikning */
+        }
+      }
+
+      const merged = messages
+        .concat(threadMessages)
+        .sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+
+      return res.json({ ok: true, messages: merged });
     } catch (error) {
       return res.status(500).json({ ok: false, error: error.message });
     }

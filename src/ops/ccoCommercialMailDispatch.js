@@ -122,6 +122,7 @@ async function dispatchOfferEmail({
   fromEmail = '',
   attachments = [],
   patientId = '',
+  automationBridge = null,
 } = {}) {
   const safeOffer = asObject(offer);
   const to = normalizeText(recipient);
@@ -170,6 +171,26 @@ async function dispatchOfferEmail({
         attachmentsCount: asArray(attachments).length,
       },
     });
+    if (automationBridge && typeof automationBridge.recordAutomationSend === 'function') {
+      try {
+        await automationBridge.recordAutomationSend({
+          mailboxId: normalizeText(fromEmail) || 'contact@hairtpclinic.com',
+          fromEmail,
+          toEmail: to,
+          toName: safeOffer.customerName || safeOffer.patientName,
+          subject: content.subject,
+          bodyHtml: content.html,
+          bodyText: content.text,
+          sentAt: new Date().toISOString(),
+          patientId,
+          tenantId,
+          automationType: 'offer_email',
+          sendResult: result,
+        });
+      } catch (bridgeErr) {
+        console.warn('[dispatchOfferEmail] conversation bridge failed:', bridgeErr?.message || bridgeErr);
+      }
+    }
   }
 
   return {
@@ -197,6 +218,7 @@ async function dispatchTreatmentPlanEmail({
   attachments = [],
   patientId = '',
   viewUrl = '',
+  automationBridge = null,
 } = {}) {
   const safePlan = asObject(plan);
   const to = normalizeText(recipient);
@@ -248,6 +270,26 @@ async function dispatchTreatmentPlanEmail({
         attachmentsCount: asArray(attachments).length,
       },
     });
+    if (automationBridge && typeof automationBridge.recordAutomationSend === 'function') {
+      try {
+        await automationBridge.recordAutomationSend({
+          mailboxId: normalizeText(fromEmail) || 'contact@hairtpclinic.com',
+          fromEmail,
+          toEmail: to,
+          toName: safePlan.customerName || safePlan.patientName,
+          subject: content.subject,
+          bodyHtml: content.html,
+          bodyText: content.text,
+          sentAt: new Date().toISOString(),
+          patientId,
+          tenantId,
+          automationType: 'treatment_plan_email',
+          sendResult: result,
+        });
+      } catch (bridgeErr) {
+        console.warn('[dispatchTreatmentPlanEmail] conversation bridge failed:', bridgeErr?.message || bridgeErr);
+      }
+    }
   }
 
   return {
@@ -275,6 +317,7 @@ async function dispatchBookingConfirmationEmail({
   fromEmail = '',
   locale = 'sv',
   bookingEngineStore = null,
+  automationBridge = null,
 } = {}) {
   const safeBooking = asObject(booking);
   const slot = asObject(safeBooking.slot);
@@ -353,6 +396,26 @@ async function dispatchBookingConfirmationEmail({
         includesIcs: Boolean(content.ics),
       },
     });
+    if (automationBridge && typeof automationBridge.recordAutomationSend === 'function') {
+      try {
+        await automationBridge.recordAutomationSend({
+          mailboxId: normalizeText(fromEmail) || 'contact@hairtpclinic.com',
+          fromEmail,
+          toEmail: customerEmail,
+          toName: safeBooking.customerName,
+          subject: content.subject,
+          bodyHtml: content.html,
+          bodyText: content.ics ? `${content.text}\n\n--- calendar ---\n${content.ics}` : content.text,
+          sentAt: new Date().toISOString(),
+          patientId: normalizeText(safeBooking.patientId),
+          tenantId: tenant,
+          automationType: 'booking_confirmation',
+          sendResult: result,
+        });
+      } catch (bridgeErr) {
+        console.warn('[dispatchBookingConfirmationEmail] conversation bridge failed:', bridgeErr?.message || bridgeErr);
+      }
+    }
   }
 
   return {

@@ -6676,6 +6676,39 @@
                 </div>
               </section>
 
+              <section class="analytics-section analytics-section-conversations">
+                <div class="analytics-section-head">
+                  <h2>Konversationer</h2>
+                  <p>Obesvarade trådar och SLA-risk från CCO.</p>
+                </div>
+                <div class="analytics-metric-row analytics-metric-row-live" aria-label="Konversations-KPI">
+                  <article class="analytics-metric-card analytics-metric-card-rose">
+                    <div class="analytics-metric-card-top">
+                      <span>Obesvarade trådar</span>
+                      <b class="analytics-metric-trend analytics-metric-trend-negative">Kräver åtgärd</b>
+                    </div>
+                    <strong data-conversations-kpi="unansweredThreads">—</strong>
+                    <p class="analytics-live-meta">Trådar utan svar.</p>
+                  </article>
+                  <article class="analytics-metric-card analytics-metric-card-gold">
+                    <div class="analytics-metric-card-top">
+                      <span>SLA-risk (>24h)</span>
+                      <b class="analytics-metric-trend analytics-metric-trend-negative">Brottgräns</b>
+                    </div>
+                    <strong data-conversations-kpi="slaRiskThreads">—</strong>
+                    <p class="analytics-live-meta">Obesvarad längre än 24h.</p>
+                  </article>
+                  <article class="analytics-metric-card analytics-metric-card-blue">
+                    <div class="analytics-metric-card-top">
+                      <span>Medelsvartid</span>
+                      <b class="analytics-metric-trend analytics-metric-trend-positive">Timmar</b>
+                    </div>
+                    <strong data-conversations-kpi="avgResponseHours">—</strong>
+                    <p class="analytics-live-meta">Genomsnitt över alla trådar.</p>
+                  </article>
+                </div>
+              </section>
+
               <section class="analytics-panel analytics-live-panel">
                 <div class="analytics-panel-head">
                   <h3 data-i18n="ui.live_lagesbild.6a46bc">Aktiv lägesbild</h3>
@@ -11736,5 +11769,40 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          replace-mode för alla köer. -->
     <script type="module" src="./app/components/arcana-thread-card.js?v=build-1ccb8f9"></script>
     <script type="module" src="./app/components/lit-switchover.js?v=build-1ccb8f9"></script>
+    <script>
+      // Fas 2.4: visa CCO konversations-KPI på Analysdashboard.
+      (function loadConversationKpi() {
+        function setKpi(key, value) {
+          var el = document.querySelector('[data-conversations-kpi="' + key + '"]');
+          if (el) el.textContent = value;
+        }
+        function fetchKpi() {
+          fetch('/api/v1/cco/runtime/dashboard', { credentials: 'same-origin' })
+            .then(function (r) {
+              if (!r.ok) throw new Error('status ' + r.status);
+              return r.json();
+            })
+            .then(function (data) {
+              if (!data || data.ok !== true) return;
+              setKpi('unansweredThreads', typeof data.unansweredThreads === 'number' ? data.unansweredThreads : '—');
+              setKpi('slaRiskThreads', typeof data.slaRiskThreads === 'number' ? data.slaRiskThreads : '—');
+              var avg = data.responseTimes && typeof data.responseTimes.avgHours === 'number'
+                ? data.responseTimes.avgHours.toFixed(1)
+                : '—';
+              setKpi('avgResponseHours', avg);
+            })
+            .catch(function () {
+              setKpi('unansweredThreads', '—');
+              setKpi('slaRiskThreads', '—');
+              setKpi('avgResponseHours', '—');
+            });
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', fetchKpi, { once: true });
+        } else {
+          fetchKpi();
+        }
+      })();
+    </script>
   </body>
 </html>

@@ -8,13 +8,23 @@ const express = require('express');
 
 const { createCcoBookingCaseStore } = require('../../src/ops/ccoBookingCaseStore');
 const { createCcoJournalPhotoStore } = require('../../src/ops/ccoJournalPhotoStore');
+const { createCcoPortalMessageStore } = require('../../src/ops/ccoPortalMessageStore');
+const { createCcoPortalAccessStore } = require('../../src/ops/ccoPortalAccessStore');
 const {
   createPatientPortalRouter,
   createPatientPortalStore,
 } = require('../../src/routes/patientPortal');
 
 async function withPatientPortalServer(
-  { patientPortalStore, bookingCaseStore, journalStore, journalPhotoStore },
+  {
+    patientPortalStore,
+    bookingCaseStore,
+    journalStore,
+    journalPhotoStore,
+    portalMessageStore = null,
+    portalAccessStore = null,
+    getThreadStore = null,
+  },
   run
 ) {
   const app = express();
@@ -26,6 +36,9 @@ async function withPatientPortalServer(
       bookingCaseStore,
       journalStore,
       journalPhotoStore,
+      portalMessageStore,
+      portalAccessStore,
+      getThreadStore,
     })
   );
   const server = http.createServer(app);
@@ -263,6 +276,90 @@ test('patientportal förbereder bilduppladdningspunkt utan att aktivera upload',
             remainingUploads: null,
           },
         ]);
+      }
+    );
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+
+test('patientportal messages merges portal chat and CCO thread rows', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'patient-portal-messages-merge-'));
+  try {
+    const portalMessageStore = await createCcoPortalMessageStore({
+      filePath: path.join(dir, 'portal-messages.json'),
+    });
+    const portalAccessStore = await createCcoPortalAccessStore({
+      filePath: path.join(dir, 'portal-access.json'),
+    });
+    const access = await portalAccessStore.issueToken({
+      tenantId: 'hairtpclinic',
+      customerId: 'patient-merge-1',
+    });
+
+    await portalMessageStore.appendMessage({
+      tenantId: 'hairtpclinic',
+      customerId: 'patient-merge-1',
+      direction: 'inbound',
+      body: 'Hej från portalen',
+      author: 'patient',
+    });
+
+    const fakeThreadStore = {
+      buildThreadsForCustomer: async (customerId, { tenantId }) => {
+        assert.equal(customerId, 'patient-merge-1');
+        assert.equal(tenantId, 'hairtpclinic');
+        return {
+          threads: [
+            {
+              threadId: 'mail-thread-1',
+              kind: 'incoming_mail',
+              direction: 'inbound',
+              ts: '2026-06-01T10:00:00.000Z',
+              subject: 'Mailfråga',
+              preview: 'När kan jag boka?',
+              from: 'patient@example.com',
+              channel: 'email',
+            },
+            {
+              threadId: 'portal-thread-1',
+              kind: 'portal_message',
+              direction: 'outbound',
+              ts: '2026-06-02T11:00:00.000Z',
+              subject: 'Svar från kliniken',
+              preview: 'Vi ses på måndag',
+              from: 'Kliniken',
+              channel: 'portal',
+              body: 'Vi ses på måndag',
+            },
+          ],
+        };
+      },
+    };
+
+    await withPatientPortalServer(
+      {
+        patientPortalStore: createPatientPortalStore({ filePath: path.join(dir, 'patient-portal.json') }),
+        portalMessageStore,
+        portalAccessStore,
+        getThreadStore: () => fakeThreadStore,
+      },
+      async (baseUrl) => {
+        const res = await fetch(`${baseUrl}/api/patient-portal/${access.token}/messages`);
+        assert.equal(res.status, 200);
+        const body = await res.json();
+        assert.equal(body.ok, true);
+        assert.ok(Array.isArray(body.messages));
+        assert.equal(body.messages.length, 3, 'portal inbound + mail + portal outbound');
+
+        const bodies = body.messages.map((m) => m.body);
+        assert.ok(bodies.some((b) => b.includes('Hej från portalen')));
+        assert.ok(bodies.some((b) => b.includes('Mailfråga')));
+        assert.ok(bodies.some((b) => b.includes('Vi ses på måndag')));
+
+        // Chronological order (oldest first)
+        assert.equal(body.messages[0].body.includes('Mailfråga'), true);
       }
     );
   } finally {

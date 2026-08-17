@@ -477,6 +477,14 @@ async function createCcoMailboxTruthShardedStore({
       const safeLimit = Math.max(0, Number(options.limit) || 0);
       return safeLimit > 0 ? rows.slice(0, safeLimit) : rows;
     },
+    async addSyntheticSentMessage(args = {}) {
+      const mailboxId = normalizeMailboxId(args.mailboxId);
+      const store = mailboxId ? await loadShard(mailboxId) : null;
+      if (!store || typeof store.addSyntheticSentMessage !== 'function') {
+        throw new Error('addSyntheticSentMessage not available for mailbox: ' + (mailboxId || 'unknown'));
+      }
+      return store.addSyntheticSentMessage(args);
+    },
     toNormalizedModel() {
       const mailboxIds = listedMailboxIds([]);
       const accounts = [];

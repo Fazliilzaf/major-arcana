@@ -12,6 +12,7 @@
  *  - conversationNotesStore    (interna notiser per customer:<id>)
  *  - commDraftStore            (Sprint 2 — drafts per customerId)
  *  - sendActionsList           (Sprint C — utskick av formulär/samtycken)
+ *  - portalMessageStore        (Fas 2.5 — patientportal-chatt)
  *
  * Owner-mandat:
  *  - INGEN extern AI på journalinnehåll
@@ -53,6 +54,7 @@ const VALID_FILTERS = [
   'needs_approval',
   'sent',
   'internal',
+  'portal',
   'unanswered',
   'system',
 ];
@@ -245,6 +247,26 @@ function buildMailThreadFromIngestionMessage(m = {}, customerId = '') {
   };
 }
 
+function buildPortalThreadFromMessage(m = {}, customerId = '') {
+  const isOutbound = m.direction === 'outbound';
+  return {
+    threadId: 'portal-' + normalizeText(m.id || m.createdAt),
+    kind: 'portal_message',
+    direction: isOutbound ? 'outbound' : 'inbound',
+    ts: m.createdAt || null,
+    subject: isOutbound ? 'Svar från kliniken' : 'Meddelande från patienten',
+    from: isOutbound ? 'Kliniken' : 'Patienten',
+    preview: safePreview(m.body),
+    body: m.body || '',
+    channel: m.channel || 'portal',
+    portalMessageId: normalizeText(m.id) || null,
+    systemMail: false,
+    requiresAttention: !isOutbound,
+    sourceLayer: 'portal',
+    customerId,
+  };
+}
+
 async function preloadTruthMailboxes(mailboxTruthStore, historyMailboxIds = []) {
   if (!mailboxTruthStore?.ensureMailboxLoaded) return;
   for (const mailboxId of asArray(historyMailboxIds)) {
@@ -337,6 +359,7 @@ async function createCcoConversationThreadStore({
   historyMailboxIds = [],
   enrichmentLookup = null, // optional (customerId) => { workflowLane, slaStatus, needsAction, riskLabel }
   patientMasterStore = null, // ORD-96: krävs för att härleda kundens adresser
+  portalMessageStore = null, // Fas 2.5 — patientportal-chatt ska synas i trådar
 } = {}) {
   if (!filePath) throw new Error('filePath required');
 
@@ -640,6 +663,23 @@ async function createCcoConversationThreadStore({
       }
     }
 
+    // 6. Patientportal-meddelanden (Fas 2.5)
+    if (portalMessageStore?.listMessagesForCustomer) {
+      try {
+        const portalMessages =
+          portalMessageStore.listMessagesForCustomer({ tenantId, customerId }) || [];
+        for (const m of portalMessages) {
+          const row = buildPortalThreadFromMessage(m, customerId);
+          const key = row.portalMessageId ? `portal:${row.portalMessageId}` : row.threadId;
+          if (mailKeys.has(key)) continue;
+          mailKeys.add(key);
+          threads.push(row);
+        }
+      } catch (err) {
+        /* ignore */
+      }
+    }
+
     // ─── Sort by ts desc ──
     threads.sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')));
 
@@ -664,7 +704,7 @@ async function createCcoConversationThreadStore({
     //  1. senaste inkommande mail (icke-system) är nyare än senaste utgående
     //  2. inte handled, inte snoozed, inte systemmail
     const lastIncomingNonSys = threads
-      .filter((t) => t.kind === 'incoming_mail' && !t.systemMail)
+      .filter((t) => (t.kind === 'incoming_mail' || t.kind === 'portal_message') && !t.systemMail && t.direction === 'inbound')
       .sort((a, b) => String(b.ts).localeCompare(String(a.ts)))[0];
     const lastOutgoing = threads
       .filter(
@@ -672,13 +712,14 @@ async function createCcoConversationThreadStore({
           t.kind === 'outgoing_mail' ||
           t.kind === 'comm_sent' ||
           t.kind === 'form_sent' ||
-          t.kind === 'consent_sent'
+          t.kind === 'consent_sent' ||
+          t.kind === 'portal_message'
       )
       .sort((a, b) => String(b.ts).localeCompare(String(a.ts)))[0];
 
     const nowMs = Date.now();
     for (const t of threads) {
-      if (t.kind !== 'incoming_mail' || t.systemMail) continue;
+      if ((t.kind !== 'incoming_mail' && t.kind !== 'portal_message') || t.systemMail) continue;
       if (t.handled) continue;
       if (t.snoozedUntil && Date.parse(t.snoozedUntil) > nowMs) continue;
       const inMs = Date.parse(t.ts || '');
@@ -701,6 +742,7 @@ async function createCcoConversationThreadStore({
       else if (t.kind === 'form_sent' || t.kind === 'consent_sent' || t.kind === 'file_sent')
         t.threadStatus = 'sent';
       else if (t.kind === 'outgoing_mail') t.threadStatus = 'sent';
+      else if (t.kind === 'portal_message') t.threadStatus = 'portal';
       else if (t.handled) t.threadStatus = 'handled';
       else if (t.snoozedUntil && Date.parse(t.snoozedUntil) > nowMs) t.threadStatus = 'snoozed';
       else if (t.unanswered) t.threadStatus = 'unanswered';
@@ -724,6 +766,7 @@ async function createCcoConversationThreadStore({
       needs_approval: threads.filter((t) => t.threadStatus === 'needs_approval').length,
       sent: threads.filter((t) => t.threadStatus === 'sent').length,
       internal: threads.filter((t) => t.kind === 'internal_note').length,
+      portal: threads.filter((t) => t.kind === 'portal_message').length,
       unanswered: threads.filter((t) => t.threadStatus === 'unanswered').length,
       system: threads.filter((t) => t.systemMail).length,
       handled: threads.filter((t) => t.handled).length,
@@ -793,6 +836,7 @@ async function createCcoConversationThreadStore({
       return threads.filter((t) => t.threadStatus === 'needs_approval');
     if (filter === 'sent') return threads.filter((t) => t.threadStatus === 'sent');
     if (filter === 'internal') return threads.filter((t) => t.kind === 'internal_note');
+    if (filter === 'portal') return threads.filter((t) => t.kind === 'portal_message');
     if (filter === 'unanswered') return threads.filter((t) => t.threadStatus === 'unanswered');
     if (filter === 'system') return threads.filter((t) => t.systemMail);
     if (filter === 'snoozed') return threads.filter((t) => t.threadStatus === 'snoozed');

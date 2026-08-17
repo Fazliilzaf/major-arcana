@@ -1052,8 +1052,11 @@ function createCcoWorkspaceRouter({
           .status(statusCode)
           .json({ error: error.message, metadata: error.metadata || null });
       }
-      console.error(error);
-      return res.status(500).json({ error: 'Kunde inte läsa layers-portalen.' });
+      console.error('[cco-workspace/portal] 500:', error?.message || error, error?.stack || '');
+      return res.status(500).json({
+        error: 'Kunde inte läsa layers-portalen.',
+        metadata: { detail: error?.message || 'unknown_error' },
+      });
     }
   });
 

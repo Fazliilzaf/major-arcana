@@ -584,6 +584,7 @@ async function dispatchPatientVisitReminderEmails({
   patientCareStateStore = null,
   fromEmail,
   locale = 'sv',
+  automationBridge = null,
 } = {}) {
   const mailer = createTransactionalMailer({ graphSendConnector });
   const servicesById = await loadServicesById(bookingEngineStore);
@@ -637,6 +638,29 @@ async function dispatchPatientVisitReminderEmails({
           },
         });
       }
+      if (automationBridge && typeof automationBridge.recordAutomationSend === 'function') {
+        try {
+          await automationBridge.recordAutomationSend({
+            mailboxId: normalizeText(fromEmail) || 'contact@hairtpclinic.com',
+            fromEmail,
+            toEmail: recipient,
+            toName: reminder.customerName,
+            subject: content.subject,
+            bodyHtml: content.html,
+            bodyText: content.text,
+            sentAt: new Date().toISOString(),
+            patientId: reminder.patientId,
+            tenantId: normalizeText(reminder.tenantId),
+            automationType: 'visit_reminder',
+            sendResult: result,
+          });
+        } catch (bridgeErr) {
+          console.warn(
+            '[dispatchPatientVisitReminderEmails] conversation bridge failed:',
+            bridgeErr?.message || bridgeErr
+          );
+        }
+      }
     } else {
       skipped += 1;
     }
@@ -662,6 +686,7 @@ async function dispatchBookingCancellationEmail({
   reason = '',
   tenantId = '',
   bookingEngineStore = null,
+  automationBridge = null,
 } = {}) {
   const safeBooking = asObject(booking);
   const customerEmail = normalizeText(safeBooking.customerEmail);
@@ -742,6 +767,30 @@ async function dispatchBookingCancellationEmail({
         reason: normalizeText(reason),
       },
     });
+  }
+
+  if (result?.ok === true && automationBridge && typeof automationBridge.recordAutomationSend === 'function') {
+    try {
+      await automationBridge.recordAutomationSend({
+        mailboxId: normalizeText(fromEmail) || 'contact@hairtpclinic.com',
+        fromEmail,
+        toEmail: customerEmail,
+        toName: safeBooking.customerName,
+        subject: content.subject,
+        bodyHtml: content.html,
+        bodyText: content.text,
+        sentAt: new Date().toISOString(),
+        patientId: normalizeText(safeBooking.patientId),
+        tenantId: resolvedTenantId,
+        automationType: 'booking_cancellation',
+        sendResult: result,
+      });
+    } catch (bridgeErr) {
+      console.warn(
+        '[dispatchBookingCancellationEmail] conversation bridge failed:',
+        bridgeErr?.message || bridgeErr
+      );
+    }
   }
 
   return {
