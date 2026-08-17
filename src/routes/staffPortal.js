@@ -39,6 +39,9 @@ const { CHECKLIST_TEMPLATES, PROCESS_TEMPLATES } = require('../qms/qmsTemplates'
  * @param {object}   opts.qmsStore              - QMS-store för OLS/handbok/avvikelser (valfri)
  * @param {object}   opts.journalPhotoStore     - ccoJournalPhotoStore (valfri)
  * @param {object}   opts.mailIngestionStore    - ccoMailIngestionStore (valfri)
+ * @param {object}   opts.portalMessageStore    - ccoPortalMessageStore (valfri, Fas 2.5)
+ * @param {object}   opts.threadStore           - färdig ccoConversationThreadStore-instans (valfri)
+ * @param {function} opts.getThreadStore        - Lazy-getter: () => ccoConversationThreadStore | null (valfri)
  * @param {function} opts.getNotificationFeedStore - Lazy-getter: () => notificationFeedStore | null
  * @param {function} opts.getCommDraftStore     - Lazy-getter: () => commDraftStore | null
  * @param {function} opts.getSendActionStore    - Lazy-getter: () => sendActionStore | null
@@ -54,6 +57,9 @@ function createStaffPortalRouter({
   qmsStore = null,
   journalPhotoStore: _journalPhotoStore = null,
   mailIngestionStore = null,
+  portalMessageStore = null,
+  threadStore = null,
+  getThreadStore: getThreadStoreInjected = null,
   getNotificationFeedStore = null,
   getCommDraftStore = null,
   getSendActionStore = null,
@@ -64,6 +70,11 @@ function createStaffPortalRouter({
   let _threadStorePromise = null;
 
   async function getThreadStore() {
+    if (threadStore) return threadStore;
+    if (typeof getThreadStoreInjected === 'function') {
+      const injected = await getThreadStoreInjected();
+      if (injected) return injected;
+    }
     if (!_threadStorePromise) {
       const { createCcoConversationThreadStore } = require('../ops/ccoConversationThreadStore');
       const commDraftStore = getCommDraftStore?.() ?? null;
@@ -80,6 +91,7 @@ function createStaffPortalRouter({
         sendActionsList: sendActionStore?.listSends
           ? (customerId) => sendActionStore.listSends({ customerId, limit: 100 })
           : null,
+        portalMessageStore: portalMessageStore || null,
         auditLog: ccoAuditLog,
       });
     }

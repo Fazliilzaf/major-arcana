@@ -12223,27 +12223,6 @@ process.once('SIGTERM', () => {
       auditLog: ccoAuditLog || null,
     });
   }
-  if (!app.locals.ccoConversationThreadStore) {
-    const { createCcoConversationThreadStore } = require('./src/ops/ccoConversationThreadStore');
-    app.locals.ccoConversationThreadStore = await createCcoConversationThreadStore({
-      filePath:
-        config.ccoConversationThreadStateStorePath ||
-        config.ccoConversationStateStorePath ||
-        `${config.stateRoot || config.dataDir || './data'}/cco-conversation-thread-state.json`,
-      mailboxTruthStore: ccoMailboxTruthStore || null,
-      mailIngestionStore: ccoMailIngestionStore || null,
-      conversationNotesStore: ccoConversationNotesStore || null,
-      commDraftStore: app.locals.ccoCommDraftStore || null,
-      historyMailboxIds: [
-        'kons@hairtpclinic.com',
-        'info@hairtpclinic.com',
-        'contact@hairtpclinic.com',
-        'egzona@hairtpclinic.com',
-        'fazli@hairtpclinic.com',
-      ],
-    });
-  }
-
   // Kundkort/dossier — RBAC-grindad läs-endpoint (mail.read) som samlar "all info
   // om kunden" för Svarstudion ur app.locals-storarna. Journalinnehåll ingår aldrig.
   const { createCcoCustomerDossierRouter } = require('./src/routes/ccoCustomerDossier');
@@ -12612,6 +12591,31 @@ process.once('SIGTERM', () => {
   app.locals.ccoPortalAccessStore = portalAccessStore;
   app.locals.ccoPortalNudgeStore = portalNudgeStore;
 
+  // Fas 2.5 — skapa den kanoniska konversationstrådstoren EFTER portal-meddelandestoren
+  // så att patientportal-chatt kan slås in i samma trådar som mail/SMS.
+  if (!app.locals.ccoConversationThreadStore) {
+    const { createCcoConversationThreadStore } = require('./src/ops/ccoConversationThreadStore');
+    app.locals.ccoConversationThreadStore = await createCcoConversationThreadStore({
+      filePath:
+        config.ccoConversationThreadStateStorePath ||
+        config.ccoConversationStateStorePath ||
+        `${config.stateRoot || config.dataDir || './data'}/cco-conversation-thread-state.json`,
+      mailboxTruthStore: ccoMailboxTruthStore || null,
+      mailIngestionStore: ccoMailIngestionStore || null,
+      conversationNotesStore: ccoConversationNotesStore || null,
+      commDraftStore: app.locals.ccoCommDraftStore || null,
+      patientMasterStore: ccoPatientMasterStore || app.locals.ccoPatientMasterStore || null,
+      portalMessageStore: portalMessageStore || null,
+      historyMailboxIds: [
+        'kons@hairtpclinic.com',
+        'info@hairtpclinic.com',
+        'contact@hairtpclinic.com',
+        'egzona@hairtpclinic.com',
+        'fazli@hairtpclinic.com',
+      ],
+    });
+  }
+
   app.use(
     '/api',
     createPatientPortalRouter({
@@ -12621,6 +12625,7 @@ process.once('SIGTERM', () => {
       journalPhotoStore: ccoJournalPhotoStore || null,
       portalMessageStore,
       portalAccessStore,
+      getThreadStore: () => app.locals.ccoConversationThreadStore || null,
     })
   );
   app.locals.patientPortalStore = patientPortalStore; // Beslut #2: exponera för staff-API
@@ -12834,6 +12839,8 @@ process.once('SIGTERM', () => {
       qmsStore,
       journalPhotoStore: ccoJournalPhotoStore || null,
       mailIngestionStore: ccoMailIngestionStore || null,
+      portalMessageStore: app.locals.ccoPortalMessageStore || null,
+      threadStore: app.locals.ccoConversationThreadStore || null,
       getCommDraftStore: () => app.locals.ccoCommDraftStore || null,
       getSendActionStore: () => app.locals.ccoSendActionStore || null,
     })
