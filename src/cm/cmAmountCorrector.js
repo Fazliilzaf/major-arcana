@@ -80,63 +80,76 @@ function convertToSek(parsedAmount, currency) {
 const PATTERNS = [
   {
     name: 'total_sek_decimal',
+    currency: 'SEK',
     regex:
       /Total(?:\s+(?:betalning|belopp|SEK|kr))?[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?/i,
   },
   {
     name: 'totalt_belatt_som_betalats',
+    currency: 'SEK',
     regex:
       /Totalt belopp som betalats[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?/i,
   },
   {
     name: 'betalning_total',
+    currency: 'SEK',
     regex:
       /Total betalning[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr|\s*inkl)?/i,
   },
   {
     name: 'fakturerat_belopp',
+    currency: 'SEK',
     regex:
       /Fakturerat belopp[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?/i,
   },
   {
     name: 'belopp_line',
+    currency: 'SEK',
     regex:
       /Belopp[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?/i,
   },
   {
     name: 'paypal_betald',
+    currency: 'SEK',
     regex:
       /Du betalade\s+(?:kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?/i,
   },
   {
     name: 'paypal_paid_to',
+    currency: 'SEK',
     regex:
       /betalade\s+(?:kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?\s*till/i,
   },
   {
     name: 'receipt_eur',
+    currency: 'EUR',
     regex: /Receipt from [^€]+€\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)/i,
   },
   {
     name: 'euro_symbol',
+    currency: 'EUR',
     regex: /€\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)/,
   },
   {
     name: 'paid_amount_sek',
+    currency: 'SEK',
     regex:
       /(?:paid|betalat)\s+(?:amount|belopp)?[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?/i,
   },
   {
     name: 'amount_due',
+    currency: 'SEK',
     regex:
       /(?:Kvar att betala|Att betala)[:\s]+(?:SEK|kr)?\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)\s*(?:SEK|kr)?/i,
   },
   {
     name: 'uber_total_zar',
+    currency: 'ZAR',
     regex: /Total\s+(?:ZAR|R)\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)/i,
   },
   {
     name: 'zar_symbol',
+    currency: 'ZAR',
     regex: /ZAR\s*([0-9]{1,3}(?:[\s\u00A0][0-9]{3})*(?:[.,][0-9]{2})?)/i,
   },
 ];
@@ -159,7 +172,7 @@ function extractAmountFromRawItem(rawItem, currentAmountIncVat) {
     while ((match = regex.exec(text)) !== null) {
       const parsedAmount = parseAmount(match[1]);
       if (!parsedAmount) continue;
-      const currency = detectCurrency(text, match.index);
+      const currency = pattern.currency || detectCurrency(text, match.index);
       if (looksLike100xError(currentAmountIncVat, parsedAmount)) {
         return {
           parsedAmount,
