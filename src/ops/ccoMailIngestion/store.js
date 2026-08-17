@@ -1285,6 +1285,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     getConversationIngestionMap,
     getThreadIdentity,
     listThreadIdentities,
+    updateThreadIdentityForMessage,
     linkPatientToMessage,
     requestReprocessUnmatched,
     isQueued,
