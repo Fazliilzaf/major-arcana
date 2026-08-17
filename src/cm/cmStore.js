@@ -591,8 +591,10 @@ function createCmStore({ filePath }) {
       const key = `${r.supplierName}|${r.amountIncVat}|${r.date}`;
       if (seen.has(key)) {
         const first = seen.get(key);
-        // Visa inte redan helt avvisade dubletter — de har ingen åtgärd kvar.
-        if (first.approvalStatus === 'rejected' && r.approvalStatus === 'rejected') {
+        // Visa inte par där minst en post redan är avvisad — de har redan
+        // hanterats (antingen via bulk-merge eller manuellt) och behöver ingen
+        // ytterligare åtgärd.
+        if (first.approvalStatus === 'rejected' || r.approvalStatus === 'rejected') {
           continue;
         }
         dups.push([first, r]);
