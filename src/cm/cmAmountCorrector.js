@@ -46,6 +46,14 @@ function looksLike100xError(currentAmount, parsedAmount) {
   return ratio >= 50 && ratio <= 150;
 }
 
+function detectCurrencyInMatch(matchText) {
+  const s = String(matchText || '').toLowerCase();
+  if (s.includes('€') || s.includes('eur') || s.includes('&euro;')) return 'EUR';
+  if (s.includes('zar')) return 'ZAR';
+  if (s.includes('sek') || s.includes('kr')) return 'SEK';
+  return null;
+}
+
 function detectCurrency(text, matchIndex) {
   // Use a wider window because some emails have long runs of filler/spacer
   // characters between the label and the actual currency symbol.
@@ -172,7 +180,8 @@ function extractAmountFromRawItem(rawItem, currentAmountIncVat) {
     while ((match = regex.exec(text)) !== null) {
       const parsedAmount = parseAmount(match[1]);
       if (!parsedAmount) continue;
-      const currency = pattern.currency || detectCurrency(text, match.index);
+      const currency =
+        detectCurrencyInMatch(match[0]) || pattern.currency || detectCurrency(text, match.index);
       if (looksLike100xError(currentAmountIncVat, parsedAmount)) {
         return {
           parsedAmount,
