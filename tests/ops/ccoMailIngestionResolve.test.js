@@ -36,3 +36,55 @@ test('scorePatientNameAgainstEmail matches local part tokens', () => {
   );
   assert.ok(score >= 0);
 });
+
+test('isNonPatientCounterpartyEmail flags observed newsletter/vendor domains', () => {
+  assert.equal(isNonPatientCounterpartyEmail('legal@notifications.resend.com'), true);
+  assert.equal(isNonPatientCounterpartyEmail('team@mail.cursor.com'), true);
+  assert.equal(isNonPatientCounterpartyEmail('utskick@hrnytt.se'), true);
+  assert.equal(isNonPatientCounterpartyEmail('shirley@joyfultechnology.com'), true);
+  assert.equal(isNonPatientCounterpartyEmail('instructors@updates.freeletics.com'), true);
+  assert.equal(isNonPatientCounterpartyEmail('info@bluebirdmedical.se'), true);
+  assert.equal(isNonPatientCounterpartyEmail('joe@tarotmysticismacademy.com'), true);
+});
+
+test('summarizeReviewGroups marks groups to non-patient mailbox as non-patient', () => {
+  const groups = summarizeReviewGroups([
+    {
+      rawMessage: {
+        id: 'a',
+        mailboxId: 'info@fazli.se',
+        fromEmail: 'someone@example.com',
+        subject: 'Köp av grejer',
+      },
+      patientMatch: { counterpartyEmail: 'someone@example.com' },
+    },
+    {
+      rawMessage: {
+        id: 'b',
+        mailboxId: 'info@fazli.se',
+        fromEmail: 'someone@example.com',
+        subject: 'Faktura',
+      },
+      patientMatch: { counterpartyEmail: 'someone@example.com' },
+    },
+  ]);
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].count, 2);
+  assert.equal(groups[0].nonPatient, true);
+});
+
+test('summarizeReviewGroups keeps patient mailbox mixed group as patient-like', () => {
+  const groups = summarizeReviewGroups([
+    {
+      rawMessage: {
+        id: 'a',
+        mailboxId: 'kons@hairtpclinic.com',
+        fromEmail: 'patient@example.com',
+        subject: 'Förfrågan',
+      },
+      patientMatch: { counterpartyEmail: 'patient@example.com' },
+    },
+  ]);
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].nonPatient, false);
+});

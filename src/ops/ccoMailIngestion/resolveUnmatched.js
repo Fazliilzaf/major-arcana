@@ -16,6 +16,10 @@ function normalizeEmail(value = '') {
   return normalizeText(value).toLowerCase();
 }
 
+// Brevlådor som aldrig tar emot patientmejl — grupper där samtliga rader går
+// till en sådan brevlåda kan dismissas som non-patient oavsett avsändare.
+const NON_PATIENT_MAILBOX_IDS = Object.freeze(['info@fazli.se']);
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -76,10 +80,18 @@ function summarizeReviewGroups(rows = []) {
   const groups = groupUnmatchedRows(rows);
   const summary = [];
   for (const [key, bucket] of groups.entries()) {
+    const counterpartyNonPatient = bucket.email
+      ? isNonPatientCounterpartyEmail(bucket.email)
+      : true;
+    const allToNonPatientMailbox =
+      bucket.rows.length > 0 &&
+      bucket.rows.every((row) =>
+        NON_PATIENT_MAILBOX_IDS.includes(normalizeEmail(row.rawMessage?.mailboxId))
+      );
     summary.push({
       email: bucket.email || null,
       count: bucket.rows.length,
-      nonPatient: bucket.email ? isNonPatientCounterpartyEmail(bucket.email) : true,
+      nonPatient: counterpartyNonPatient || allToNonPatientMailbox,
       sampleSubject: normalizeText(bucket.rows[0]?.rawMessage?.subject) || null,
       rawMessageIds: bucket.rows.map((row) => row.rawMessage?.id).filter(Boolean),
     });
@@ -333,6 +345,7 @@ async function runUnmatchedResolutionSweep({
 }
 
 module.exports = {
+  NON_PATIENT_MAILBOX_IDS,
   dismissRawMessages,
   emailLocalTokens,
   groupUnmatchedRows,

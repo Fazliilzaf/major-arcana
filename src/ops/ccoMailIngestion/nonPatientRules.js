@@ -32,6 +32,25 @@ const NON_PATIENT_DOMAIN_SUFFIXES = Object.freeze([
   'fortnox.se',
   'loopia.se',
   'google.com',
+  // Fas 3.3 — domäner observerade i review-kön (nyhetsbrev/notiser/försäljning).
+  'anthropic.com',
+  'bluebirdmedical.se',
+  'branschvinnare.se',
+  'byggportservice.se',
+  'ccsend.com',
+  'comune.roma.it',
+  'cursor.com',
+  'customer-travel-care.com',
+  'etc.se',
+  'freeletics.com',
+  'handelsbanken.se',
+  'hrnytt.se',
+  'ivo.se',
+  'joyfultechnology.com',
+  'oor.se',
+  'paidsocial.se',
+  'resend.com',
+  'tarotmysticismacademy.com',
 ]);
 
 const NON_PATIENT_LOCAL_PREFIXES = Object.freeze([
@@ -58,6 +77,12 @@ const NON_PATIENT_LOCAL_PREFIXES = Object.freeze([
   'autoreply',
   'newsletter',
   'nyhetsbrev',
+  // Fas 3.3 — prefix observerade i review-kön.
+  'utskick',
+  'team',
+  'instructors',
+  'legal',
+  'updates',
 ]);
 
 function isNonPatientCounterpartyEmail(email = '') {

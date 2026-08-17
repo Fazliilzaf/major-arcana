@@ -4,6 +4,7 @@ const express = require('express');
 const { ROLE_OWNER } = require('../security/roles');
 const { resolveCcoRouteActor } = require('./ccoRouteShared');
 const {
+  NON_PATIENT_MAILBOX_IDS,
   runUnmatchedResolutionSweep,
   summarizeReviewGroups,
 } = require('../ops/ccoMailIngestion/resolveUnmatched');
@@ -54,7 +55,11 @@ function createCcoMailIngestionRouter({
   );
 
   function assertAllowlistedMailbox(mailboxEmail) {
-    if (allowlistedMailboxes.has(normalizeEmail(mailboxEmail))) return;
+    const normalized = normalizeEmail(mailboxEmail);
+    if (allowlistedMailboxes.has(normalized)) return;
+    // Non-patient mailboxes (t.ex. info@fazli.se) får sweepas även om de inte
+    // ingår i kundkonversations-allowlistan — de dismissas direkt som non-patient.
+    if (NON_PATIENT_MAILBOX_IDS.includes(normalized)) return;
     const error = new Error(
       `Brevlådan ${mailboxEmail} är inte allowlistad för CCO-ingestion. ` +
         'Lägg till den via ARCANA_MAILBOX_ALLOWLIST om den ska ingå.'
