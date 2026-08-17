@@ -53,7 +53,7 @@ function detectCurrency(text, matchIndex) {
   const beforeAndAfter = text
     .slice(Math.max(0, matchIndex - windowSize), matchIndex + windowSize)
     .toLowerCase();
-  if (beforeAndAfter.includes('zar') || beforeAndAfter.includes('r ')) return 'ZAR';
+  if (beforeAndAfter.includes('zar')) return 'ZAR';
   if (
     beforeAndAfter.includes('€') ||
     beforeAndAfter.includes('eur') ||
