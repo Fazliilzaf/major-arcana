@@ -347,7 +347,28 @@ function createCcoFortnoxRouter({
       })
   );
 
+  // CF.9 — Lista räkenskapsår (för att veta vilket år en utgift ska bokföras i).
+  router.get(
+    '/cco-fortnox/financial-years',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const client = createFortnoxClientForTenant({
+          fortnoxStore,
+          config,
+          tenantId: actor.tenantId,
+        });
+        const result = await client.listFinancialYears();
+        return res.json({
+          ok: true,
+          financialYears: result?.FinancialYears || [],
+        });
+      })
+  );
+
   // CF.9 — Aktivera ett inaktivt BAS-konto i Fortnox (t.ex. 6990 Tull och spedition).
+  // ?financialYear=<YYYY-MM-DD|år-id> för att aktivera i ett specifikt räkenskapsår.
   router.post(
     '/cco-fortnox/accounts/:number/activate',
     requireAuth,
@@ -358,13 +379,14 @@ function createCcoFortnoxRouter({
         if (!accountNumber || !/^\d+$/.test(accountNumber)) {
           return res.status(400).json({ error: 'Kontonummer måste vara siffror.' });
         }
+        const financialYear = normalizeText(req.query.financialYear || req.query.financialyear);
         const client = createFortnoxClientForTenant({
           fortnoxStore,
           config,
           tenantId: actor.tenantId,
         });
-        const before = await client.getAccount(accountNumber);
-        const after = await client.activateAccount(accountNumber);
+        const before = await client.getAccount(accountNumber, { financialYear });
+        const after = await client.activateAccount(accountNumber, { financialYear });
         await authStore.addAuditEvent({
           tenantId: actor.tenantId,
           actorUserId: actor.userId,
@@ -373,6 +395,7 @@ function createCcoFortnoxRouter({
           targetType: 'fortnox_account',
           targetId: accountNumber,
           metadata: {
+            financialYear: financialYear || null,
             wasActive: before?.Account?.Active || false,
             isActive: after?.Account?.Active || true,
           },
@@ -380,6 +403,7 @@ function createCcoFortnoxRouter({
         return res.json({
           ok: true,
           accountNumber,
+          financialYear: financialYear || null,
           before: before?.Account || null,
           after: after?.Account || null,
         });

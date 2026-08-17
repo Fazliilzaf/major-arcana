@@ -194,6 +194,42 @@ function createCfoFortnoxVoucherSync({
     );
   }
 
+  // ORD-CM-75 · Säkerställ att kontot är aktivt i det räkenskapsår som
+  // transaktionsdatumet ligger i. Fortnox tillåter inte verifikat på konton
+  // som är inaktiva i aktuellt räkenskapsår, även om de är aktiva "nu".
+  async function ensureAccountActiveForDate(accountNumber, transactionDate) {
+    if (!accountNumber || !transactionDate || !fortnoxClient?.listFinancialYears) return;
+    try {
+      const yearsRes = await fortnoxClient.listFinancialYears();
+      const years = yearsRes?.FinancialYears || [];
+      const dateStr = String(transactionDate).slice(0, 10);
+      const year = years.find((y) => {
+        const from = y?.FromDate ? String(y.FromDate).slice(0, 10) : null;
+        const to = y?.ToDate ? String(y.ToDate).slice(0, 10) : null;
+        if (!from || !to) return false;
+        return dateStr >= from && dateStr <= to;
+      });
+      if (!year) return;
+      const yearParam = String(year.Id || '');
+      if (!yearParam) return;
+      const account = await fortnoxClient.getAccount(accountNumber, { financialYear: yearParam });
+      if (account?.Account?.Active) return;
+      await fortnoxClient.activateAccount(accountNumber, { financialYear: yearParam });
+      audit('cf.fortnox.account_activated', {
+        accountNumber,
+        financialYearId: yearParam,
+        transactionDate,
+      });
+    } catch (err) {
+      // Försök synca ändå — Fortnox ger tydligt fel om kontot fortfarande är inaktivt.
+      audit('cf.fortnox.account_activation_failed', {
+        accountNumber,
+        transactionDate,
+        error: err.message,
+      });
+    }
+  }
+
   // ORD-CM-16 · Ägar-styrd gate-override från persistenta disken (samma mönster
   // som ORD-74b scheduler-override: Blueprint-sync pausad + env-editorn kräver
   // mänsklig hand). Filen skrivs ENDAST via owner-API:t (audit-loggat) och läses
@@ -259,13 +295,22 @@ function createCfoFortnoxVoucherSync({
         // ORD-CM-27: Fortnox rate-limit (429, prod-verifierad 2026-07-19 vid
         // 250-batch). Throttle mellan writes + en backoff-retry vid 429.
         if (i > 0) await new Promise((z) => setTimeout(z, 600));
+        // ORD-CM-75: aktivera konton per transaktionens räkenskapsår innan write.
+        const voucherPayload = payloads[i].Voucher;
+        const txDate = voucherPayload.TransactionDate || expense.date;
+        const accountsInRows = [
+          ...new Set((voucherPayload.VoucherRows || []).map((r) => r.Account).filter(Boolean)),
+        ];
+        for (const acc of accountsInRows) {
+          await ensureAccountActiveForDate(acc, txDate);
+        }
         let response;
         try {
-          response = await fortnoxClient.createVoucher(payloads[i].Voucher);
+          response = await fortnoxClient.createVoucher(voucherPayload);
         } catch (err) {
           if (err && err.statusCode === 429) {
             await new Promise((z) => setTimeout(z, 20000));
-            response = await fortnoxClient.createVoucher(payloads[i].Voucher);
+            response = await fortnoxClient.createVoucher(voucherPayload);
           } else throw err;
         }
         const voucherId = response?.Voucher?.VoucherNumber || null;

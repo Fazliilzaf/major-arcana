@@ -210,9 +210,17 @@ function createFortnoxClient({
     return refreshed.accessToken;
   }
 
-  async function request(path, { method = 'GET', body } = {}) {
+  async function request(path, { method = 'GET', body, query } = {}) {
     const accessToken = await resolveAccessToken();
-    const response = await fetch(`${FORTNOX_API_BASE}${path}`, {
+    let url = `${FORTNOX_API_BASE}${path}`;
+    if (query && typeof query === 'object') {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value !== undefined && value !== null) params.set(key, String(value));
+      }
+      if (params.toString()) url += `?${params.toString()}`;
+    }
+    const response = await fetch(url, {
       method,
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -307,20 +315,28 @@ function createFortnoxClient({
       return request(`/vouchers/${encodeURIComponent(series)}/${number}${qs ? '?' + qs : ''}`);
     },
     // CF.9 — kontohantering: läs och uppdatera BAS-konton i Fortnox.
-    getAccount(accountNumber) {
-      return request(`/accounts/${encodeURIComponent(accountNumber)}`);
+    // financialYear kan vara ett datum (YYYY-MM-DD) eller Fortnox år-ID.
+    getAccount(accountNumber, { financialYear } = {}) {
+      return request(`/accounts/${encodeURIComponent(accountNumber)}`, {
+        query: financialYear ? { financialyear: String(financialYear) } : undefined,
+      });
     },
-    updateAccount(accountNumber, payload) {
+    updateAccount(accountNumber, payload, { financialYear } = {}) {
       return request(`/accounts/${encodeURIComponent(accountNumber)}`, {
         method: 'PUT',
         body: { Account: payload },
+        query: financialYear ? { financialyear: String(financialYear) } : undefined,
       });
     },
-    activateAccount(accountNumber) {
+    activateAccount(accountNumber, { financialYear } = {}) {
       return request(`/accounts/${encodeURIComponent(accountNumber)}`, {
         method: 'PUT',
         body: { Account: { Active: true } },
+        query: financialYear ? { financialyear: String(financialYear) } : undefined,
       });
+    },
+    listFinancialYears() {
+      return request('/financialyears');
     },
   };
 }
