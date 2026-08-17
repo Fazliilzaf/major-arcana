@@ -531,6 +531,11 @@ const config = {
     stateRoot,
     fileName: 'cco-workspace-prefs.json',
   }),
+  ccoPortalStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_PORTAL_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-portal.json',
+  }),
   ccoIntegrationStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_INTEGRATION_STORE_PATH,
     stateRoot,

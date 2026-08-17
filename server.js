@@ -9898,6 +9898,7 @@ const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
 const { createCcoBookingStore } = require('./src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('./src/ops/ccoBookingEngineStore');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
+const { createCcoPortalStore } = require('./src/ops/ccoPortalStore');
 const { createCcoIntegrationStore } = require('./src/ops/ccoIntegrationStore');
 const { createCfoFortnoxStore } = require('./src/cfo/cfoFortnoxStore');
 const { createCcoSwishStore } = require('./src/ops/ccoSwishStore');
@@ -10932,6 +10933,11 @@ process.once('SIGTERM', () => {
   const ccoWorkspacePrefsStore = await startupStep('ccoWorkspacePrefsStore', () =>
     createCcoWorkspacePrefsStore({
       filePath: config.ccoWorkspacePrefsStorePath,
+    })
+  );
+  const ccoPortalStore = await startupStep('ccoPortalStore', () =>
+    createCcoPortalStore({
+      filePath: config.ccoPortalStorePath,
     })
   );
   const ccoIntegrationStore = await startupStep('ccoIntegrationStore', () =>
@@ -12007,6 +12013,7 @@ process.once('SIGTERM', () => {
       patientMasterStore: ccoPatientMasterStore,
       journalStore: ccoJournalStore,
       workspacePrefsStore: ccoWorkspacePrefsStore,
+      portalStore: ccoPortalStore,
       authStore,
       config,
     })
@@ -12151,6 +12158,7 @@ process.once('SIGTERM', () => {
     '/api/v1',
     createCcoCustomersRouter({
       customerStore: ccoCustomerStore,
+      portalStore: ccoPortalStore,
       authStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
