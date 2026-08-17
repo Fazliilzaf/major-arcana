@@ -7,6 +7,7 @@ const NOTIFICATION_TYPES = [
   'id_verification',
   'agreement',
   'mail',
+  'mail_ingestion',
   'portal_message',
   'system',
 ];
@@ -117,6 +118,7 @@ function createCcoNotificationFeedStore({
   idVerificationStore = null,
   agreementStore = null,
   journalStore = null,
+  mailIngestionStore = null,
   portalMessageStore = null,
   readStore = null,
 } = {}) {
@@ -239,6 +241,32 @@ function createCcoNotificationFeedStore({
     );
   }
 
+  function collectMailIngestion() {
+    if (!mailIngestionStore?.buildDashboardSummary) return [];
+    const summary = mailIngestionStore.buildDashboardSummary({});
+    const counts = summary?.counts || {};
+    const unmatched = Number(counts.unmatched || 0);
+    const needsReview = Number(counts.needsReview || 0);
+    const total = unmatched + needsReview;
+    if (total <= 0) return [];
+    const title =
+      unmatched > 0 && needsReview > 0
+        ? `${total} mejl i review-kön (${unmatched} unmatched, ${needsReview} needs review)`
+        : unmatched > 0
+          ? `${unmatched} unmatched mejl i review-kön`
+          : `${needsReview} mejl behöver granskas`;
+    return [
+      notif({
+        type: 'mail_ingestion',
+        title,
+        body: 'Öppna CCO Mail Ingestion Review för att granska och länka till patient.',
+        at: summary?.generatedAt || null,
+        severity: unmatched > 0 ? 'warning' : 'info',
+        source: { kind: 'cco_mail_ingestion_review', id: 'review-queue' },
+      }),
+    ];
+  }
+
   async function getFeed({
     role = null,
     sinceHours = 72,
@@ -257,6 +285,7 @@ function createCcoNotificationFeedStore({
       Promise.resolve(collectIdVerification(customerEvalResults)),
       Promise.resolve(collectAgreements(customerEvalResults)),
       collectMail(),
+      Promise.resolve(collectMailIngestion()),
       Promise.resolve(collectPortal()),
     ]);
 

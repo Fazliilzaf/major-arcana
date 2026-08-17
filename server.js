@@ -5491,6 +5491,10 @@ try {
         listUnreadInboundSummaries: () =>
           app.locals.ccoPortalMessageStore?.listUnreadInboundSummaries?.() || [],
       },
+      mailIngestionStore: {
+        buildDashboardSummary: (args) =>
+          app.locals.ccoMailIngestionStore?.buildDashboardSummary?.(args) || { counts: {} },
+      },
       readStore,
     });
     app.locals.ccoNotificationFeedStore = feedStore;

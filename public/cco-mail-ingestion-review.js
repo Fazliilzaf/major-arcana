@@ -61,7 +61,10 @@
   }
 
   async function activateStore() {
-    return apiFetch('/activate', { method: 'POST' });
+    return apiFetch('/activate', {
+      method: 'POST',
+      body: JSON.stringify({ ownerAck: true }),
+    });
   }
 
   async function linkPatient(rawMessageId, patientId) {
@@ -81,6 +84,7 @@
       body: JSON.stringify({
         mailboxEmail: state.mailboxEmail,
         dryRun,
+        ownerAck: !dryRun,
       }),
     });
   }

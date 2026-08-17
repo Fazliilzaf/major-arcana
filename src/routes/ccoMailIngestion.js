@@ -81,6 +81,27 @@ function createCcoMailIngestionRouter({
     }
   }
 
+  function requireOwnerAck(req, action) {
+    if (req.body?.ownerAck !== true) {
+      const error = new Error('Åtgärden kräver explicit ägarbekräftelse.');
+      error.statusCode = 409;
+      error.metadata = { ownerAckRequired: true, action };
+      throw error;
+    }
+  }
+
+  async function recordOwnerAck(actor, action, metadata = {}) {
+    await authStore.addAuditEvent({
+      tenantId: actor.tenantId || config.defaultTenantId || 'hair-tp-clinic',
+      actorUserId: actor.userId || actor.email || 'owner',
+      action: 'cco.mail.ingestion.owner_ack',
+      outcome: 'success',
+      targetType: 'cco_mail_ingestion_action',
+      targetId: action,
+      metadata,
+    });
+  }
+
   function getStoreActivationStatus() {
     const deferred = ingestionStore?.deferred === true;
     const loaded =
@@ -125,6 +146,7 @@ function createCcoMailIngestionRouter({
             error: 'Mail-ingestion är inte aktiverat i konfigurationen.',
           });
         }
+        requireOwnerAck(req, 'cco.mail.ingestion.activate');
         if (typeof ingestionStore?._load !== 'function') {
           return res.json({
             ok: true,
@@ -142,6 +164,10 @@ function createCcoMailIngestionRouter({
             message: 'Mail-ingestion store är redan laddad.',
           });
         }
+        await recordOwnerAck(actor, 'cco.mail.ingestion.activate', {
+          filePath: before.filePath,
+          previousReason: before.reason,
+        });
         await ingestionStore._load();
         const after = getStoreActivationStatus();
         await authStore.addAuditEvent({
@@ -270,6 +296,13 @@ ${unmatched
           return res.status(400).json({ error: 'mailboxEmail krävs.' });
         }
         const dryRun = req.body?.dryRun === true;
+        if (!dryRun) {
+          requireOwnerAck(req, 'cco.mail.ingestion.resolve_unmatched_sweep');
+          await recordOwnerAck(actor, 'cco.mail.ingestion.resolve_unmatched_sweep', {
+            mailboxEmail,
+            dryRun,
+          });
+        }
         const result = await runUnmatchedResolutionSweep({
           ingestionStore,
           patientMasterStore,
@@ -352,13 +385,15 @@ ${unmatched
     requireAuth,
     requireRole(ROLE_OWNER),
     async (req, res) =>
-      handle(req, res, async () => {
+      handle(req, res, async (actor) => {
         const mailboxEmail = normalizeEmail(
           req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
         );
         if (!mailboxEmail) {
           return res.status(400).json({ error: 'mailboxEmail krävs.' });
         }
+        requireOwnerAck(req, 'cco.mail.ingestion.reprocess_unmatched');
+        await recordOwnerAck(actor, 'cco.mail.ingestion.reprocess_unmatched', { mailboxEmail });
         const result = await ingestionStore.requestReprocessUnmatched({
           mailboxEmail,
           includeOldMatchVersion: req.body?.includeOldMatchVersion !== false,
@@ -387,6 +422,8 @@ ${unmatched
         return res.status(400).json({ error: 'mailboxEmail krävs.' });
       }
       assertAllowlistedMailbox(mailboxEmail);
+      requireOwnerAck(req, 'cco.mail.ingestion.sync');
+      await recordOwnerAck(actor, 'cco.mail.ingestion.sync', { mailboxEmail });
       const mode = normalizeText(req.body?.mode) || config.ccoMailIngestionMode || 'read_only';
       const asyncMode = req.body?.async !== false;
       if (asyncMode && ingestionWorker) {
@@ -450,7 +487,7 @@ ${unmatched
     requireAuth,
     requireRole(ROLE_OWNER),
     async (req, res) =>
-      handle(req, res, async () => {
+      handle(req, res, async (actor) => {
         const mailboxEmail = normalizeEmail(
           req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox
         );
@@ -458,6 +495,8 @@ ${unmatched
           return res.status(400).json({ error: 'mailboxEmail krävs och worker måste finnas.' });
         }
         assertAllowlistedMailbox(mailboxEmail);
+        requireOwnerAck(req, 'cco.mail.ingestion.process_all');
+        await recordOwnerAck(actor, 'cco.mail.ingestion.process_all', { mailboxEmail });
         const mode = normalizeText(req.body?.mode) || config.ccoMailIngestionMode || 'read_only';
         await ingestionWorker.ensureQueueIntegrity({ mailboxEmail });
         const job = ingestionWorker.enqueueProcessDrain({
@@ -494,6 +533,8 @@ ${unmatched
           return res.status(400).json({ error: 'mailboxEmail krävs.' });
         }
         assertAllowlistedMailbox(mailboxEmail);
+        requireOwnerAck(req, 'cco.mail.ingestion.backfill');
+        await recordOwnerAck(actor, 'cco.mail.ingestion.backfill', { mailboxEmail });
         if (!ingestionWorker || typeof ingestionWorker.enqueueBackfillJob !== 'function') {
           return res.status(503).json({ error: 'Mail ingestion worker saknas.' });
         }
@@ -519,6 +560,11 @@ ${unmatched
       if (!mailboxEmail) {
         return res.status(400).json({ error: 'mailboxEmail krävs.' });
       }
+      requireOwnerAck(req, 'cco.mail.ingestion.reset');
+      await recordOwnerAck(actor, 'cco.mail.ingestion.reset', {
+        mailboxEmail,
+        hardResetRaw: req.body?.hardResetRaw === true,
+      });
       const result = await ingestionStore.resetMailboxLocalState({
         mailboxEmail,
         hardResetRaw: req.body?.hardResetRaw === true,

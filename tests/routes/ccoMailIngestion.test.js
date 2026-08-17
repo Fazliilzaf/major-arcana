@@ -199,6 +199,7 @@ function createRouter(config, overrides = {}) {
       async touchSession() {
         return true;
       },
+      async addAuditEvent() {},
     },
     requireAuth: passAuth,
     requireRole: passRole,
@@ -267,7 +268,11 @@ test('activate endpoint loads deferred store and writes audit', async () => {
   app.use('/api/v1', createRouter(createConfig(), { ingestionStore, authStore }));
 
   await withServer(app, async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/cco/mail-ingestion/activate`, { method: 'POST' });
+    const res = await fetch(`${baseUrl}/cco/mail-ingestion/activate`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ownerAck: true }),
+    });
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.ok, true);
@@ -276,9 +281,10 @@ test('activate endpoint loads deferred store and writes audit', async () => {
     assert.equal(body.store.deferred, false);
     const loadCall = ingestionStore._calls.find((c) => c.method === '_load');
     assert.ok(loadCall);
-    assert.equal(auditEvents.length, 1);
-    assert.equal(auditEvents[0].action, 'cco.mail.ingestion.activate');
-    assert.equal(auditEvents[0].outcome, 'success');
+    assert.equal(auditEvents.length, 2);
+    assert.equal(auditEvents[0].action, 'cco.mail.ingestion.owner_ack');
+    assert.equal(auditEvents[1].action, 'cco.mail.ingestion.activate');
+    assert.equal(auditEvents[1].outcome, 'success');
   });
 });
 
@@ -289,7 +295,11 @@ test('activate endpoint returns already active when store is loaded', async () =
   app.use('/api/v1', createRouter(createConfig(), { ingestionStore }));
 
   await withServer(app, async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/cco/mail-ingestion/activate`, { method: 'POST' });
+    const res = await fetch(`${baseUrl}/cco/mail-ingestion/activate`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ownerAck: true }),
+    });
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.ok, true);
@@ -315,6 +325,20 @@ test('activate endpoint returns 503 when mail ingestion is disabled in config', 
     const body = await res.json();
     assert.equal(body.ok, false);
     assert.ok(body.error.includes('inte aktiverat'));
+  });
+});
+
+test('activate endpoint returns 409 when ownerAck is missing', async () => {
+  const ingestionStore = createMockIngestionStore({ deferred: true, loaded: false });
+  const app = express();
+  app.use(express.json());
+  app.use('/api/v1', createRouter(createConfig(), { ingestionStore }));
+
+  await withServer(app, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco/mail-ingestion/activate`, { method: 'POST' });
+    assert.equal(res.status, 409);
+    const body = await res.json();
+    assert.equal(body.metadata.ownerAckRequired, true);
   });
 });
 
@@ -397,7 +421,7 @@ test('sync endpoint enqueues async job for allowlisted mailbox', async () => {
     const res = await fetch(`${baseUrl}/cco/mail-ingestion/sync`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ mailboxEmail: 'kons@hairtpclinic.com', async: true }),
+      body: JSON.stringify({ mailboxEmail: 'kons@hairtpclinic.com', async: true, ownerAck: true }),
     });
     assert.equal(res.status, 202);
     const body = await res.json();
@@ -436,7 +460,7 @@ test('sync endpoint runs sync when async is false', async () => {
     const res = await fetch(`${baseUrl}/cco/mail-ingestion/sync`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ mailboxEmail: 'kons@hairtpclinic.com', async: false }),
+      body: JSON.stringify({ mailboxEmail: 'kons@hairtpclinic.com', async: false, ownerAck: true }),
     });
     assert.equal(res.status, 200);
     const body = await res.json();
@@ -456,7 +480,11 @@ test('process endpoint runs batch via worker', async () => {
     const res = await fetch(`${baseUrl}/cco/mail-ingestion/process`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ mailboxEmail: 'kons@hairtpclinic.com', maxMessages: 25 }),
+      body: JSON.stringify({
+        mailboxEmail: 'kons@hairtpclinic.com',
+        maxMessages: 25,
+        ownerAck: true,
+      }),
     });
     assert.equal(res.status, 200);
     const body = await res.json();
@@ -478,7 +506,11 @@ test('process-all endpoint enqueues drain job', async () => {
     const res = await fetch(`${baseUrl}/cco/mail-ingestion/process-all`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ mailboxEmail: 'kons@hairtpclinic.com', maxBatches: 100 }),
+      body: JSON.stringify({
+        mailboxEmail: 'kons@hairtpclinic.com',
+        maxBatches: 100,
+        ownerAck: true,
+      }),
     });
     assert.equal(res.status, 202);
     const body = await res.json();
@@ -499,7 +531,11 @@ test('backfill endpoint enqueues backfill job for allowlisted mailbox', async ()
     const res = await fetch(`${baseUrl}/cco/mail-ingestion/backfill`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ mailboxEmail: 'kons@hairtpclinic.com', maxBatches: 50 }),
+      body: JSON.stringify({
+        mailboxEmail: 'kons@hairtpclinic.com',
+        maxBatches: 50,
+        ownerAck: true,
+      }),
     });
     assert.equal(res.status, 202);
     const body = await res.json();
@@ -522,7 +558,7 @@ test('reprocess-unmatched endpoint triggers requeue and drain', async () => {
     const res = await fetch(`${baseUrl}/cco/mail-ingestion/reprocess-unmatched`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ mailboxEmail: 'kons@hairtpclinic.com' }),
+      body: JSON.stringify({ mailboxEmail: 'kons@hairtpclinic.com', ownerAck: true }),
     });
     assert.equal(res.status, 200);
     const body = await res.json();

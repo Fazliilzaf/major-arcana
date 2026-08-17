@@ -61,7 +61,9 @@ async function withServer(router, fn) {
 function buildRouter({ syncService = null, ingestionWorker = null, ingestionStore }) {
   return createCcoMailIngestionRouter({
     config: { ccoMailIngestionDefaultMailbox: 'kons@hairtpclinic.com' },
-    authStore: null,
+    authStore: {
+      async addAuditEvent() {},
+    },
     requireAuth: passthroughAuth,
     requireRole: passthroughRole,
     ingestionStore,
@@ -125,7 +127,7 @@ test('backfill accepterar allowlistad brevlåda (202) och hårdlåser read_only'
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       // Försök eskalera mode — ska ignoreras.
-      body: JSON.stringify({ mailboxEmail: 'kons@hairtpclinic.com', mode: 'live' }),
+      body: JSON.stringify({ mailboxEmail: 'kons@hairtpclinic.com', mode: 'live', ownerAck: true }),
     });
     assert.equal(res.status, 202);
     const body = await res.json();
