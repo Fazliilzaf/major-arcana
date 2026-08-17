@@ -273,6 +273,9 @@ ${unmatched
           rawMessageId,
           patientId,
           actorUserId: actor.userId || actor.email || 'owner',
+          linkedReason: normalizeText(req.body?.reason) || 'manual_link',
+          force: req.body?.force === true,
+          canForce: true,
         });
         return res.json({ ok: true, result });
       })

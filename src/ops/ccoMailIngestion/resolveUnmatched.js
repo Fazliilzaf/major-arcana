@@ -273,17 +273,31 @@ async function runUnmatchedResolutionSweep({
 
     if (!dryRun) {
       for (const rawMessageId of group.rawMessageIds) {
-        await ingestionStore.linkPatientToMessage({
-          rawMessageId,
-          patientId: suggestion.patient.id,
-          actorUserId,
-          persist: false,
-        });
+        try {
+          await ingestionStore.linkPatientToMessage({
+            rawMessageId,
+            patientId: suggestion.patient.id,
+            actorUserId,
+            linkedReason: 'auto_exact_email_sweep',
+            persist: false,
+          });
+        } catch (error) {
+          // Konversationer Fas 1 — meddelandet var redan länkat till en annan
+          // patient. Tvinga inte igenom; flagga konflikten och fortsätt sweepen.
+          if (error?.statusCode === 409) {
+            groupResult.action = 'conflict_already_linked';
+            groupResult.conflictCount = (groupResult.conflictCount || 0) + 1;
+            groupResult.conflictRawMessageIds = groupResult.conflictRawMessageIds || [];
+            groupResult.conflictRawMessageIds.push(rawMessageId);
+            continue;
+          }
+          throw error;
+        }
       }
       markDirty();
     }
-    groupResult.action = 'linked';
-    result.linked += group.count;
+    groupResult.action = groupResult.action || 'linked';
+    result.linked += group.count - (groupResult.conflictCount || 0);
     result.groups.push(groupResult);
   }
 

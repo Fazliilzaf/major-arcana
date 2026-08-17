@@ -3,6 +3,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { buildDedupeKeyFromTruthMessage } = require('./dedupe');
+const { toCanonicalMailboxConversationKey } = require('../ccoMailboxTruthWorklistReadModel');
 const {
   FILTER_VERSION,
   IMPORT_RUN_STATUSES,
@@ -85,7 +86,9 @@ function shouldReplaceStoredBodyHtml(currentHtml = '', nextHtml = '') {
   const next = normalizeText(nextHtml);
   if (!next) return false;
   if (!current) return true;
-  return isIncompleteBodyHtml(current) && !isIncompleteBodyHtml(next) && next.length > current.length;
+  return (
+    isIncompleteBodyHtml(current) && !isIncompleteBodyHtml(next) && next.length > current.length
+  );
 }
 
 function deriveTruthBodyText(truthMessage = {}) {
@@ -130,6 +133,10 @@ function createEmptyState() {
     dedupeIndex: {},
     graphSubscriptions: {},
     auditEvents: [],
+    // Konversationer Fas 1 — persistent trådidentitet. Mappar conversationKey
+    // till kanoniskt patientId + konfliktflagga när olika meddelanden i samma
+    // tråd är länkade till olika patienter.
+    threadIdentityIndex: {},
   };
 }
 
@@ -562,6 +569,25 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
 
     state.processingQueue = state.processingQueue.filter((rawId) => !removedRawIds.has(rawId));
 
+    // Konversationer Fas 1 — rensa trådidentiteter som berör borttagna råmeddelanden
+    // eller tillhör den återställda mailboxen.
+    if (hardResetRaw) {
+      for (const conversationKey of Object.keys(state.threadIdentityIndex || {})) {
+        if (conversationKey.startsWith(`${normalized}:`)) {
+          delete state.threadIdentityIndex[conversationKey];
+        }
+      }
+    } else {
+      for (const [conversationKey, entry] of Object.entries(state.threadIdentityIndex || {})) {
+        const stillHasMessages = (entry.rawMessageIds || []).some(
+          (rawId) => !removedRawIds.has(rawId)
+        );
+        if (!stillHasMessages) {
+          delete state.threadIdentityIndex[conversationKey];
+        }
+      }
+    }
+
     for (const [ledgerId, ledger] of Object.entries(state.mailProcessingLedger)) {
       const raw = state.mailRawMessages[ledger.rawMessageId];
       if (!raw && !removedRawIds.has(ledger.rawMessageId)) continue;
@@ -826,11 +852,99 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     return map;
   }
 
+  function buildConversationKey(rawMessage = {}) {
+    return toCanonicalMailboxConversationKey({
+      mailboxId: rawMessage.mailboxId,
+      conversationId: rawMessage.conversationId,
+      mailboxConversationId: rawMessage.conversationId,
+      messageId: rawMessage.graphMessageId,
+    });
+  }
+
+  function getThreadIdentity(conversationKey = '') {
+    const key = normalizeText(conversationKey);
+    if (!key) return null;
+    const entry = state.threadIdentityIndex[key];
+    if (!entry) return null;
+    return {
+      ...entry,
+      patientIds: Array.from(entry.patientIds || []),
+    };
+  }
+
+  function listThreadIdentities({ patientId = '' } = {}) {
+    const safePatientId = normalizeText(patientId);
+    const values = Object.values(state.threadIdentityIndex || {});
+    if (!safePatientId) {
+      return values.map((entry) => ({ ...entry, patientIds: Array.from(entry.patientIds || []) }));
+    }
+    return values
+      .filter((entry) => (entry.patientIds || new Set()).has(safePatientId))
+      .map((entry) => ({ ...entry, patientIds: Array.from(entry.patientIds || []) }));
+  }
+
+  async function updateThreadIdentityForMessage({
+    rawMessageId = '',
+    patientId = '',
+    linkedBy = '',
+    linkedAt = '',
+    persist = true,
+  } = {}) {
+    const safeRawMessageId = normalizeText(rawMessageId);
+    const safePatientId = normalizeText(patientId);
+    const raw = getRawMessage(safeRawMessageId);
+    if (!raw || !safePatientId) return null;
+    const conversationKey = buildConversationKey(raw);
+    if (!conversationKey) return null;
+
+    const previous = state.threadIdentityIndex[conversationKey] || {
+      conversationKey,
+      canonicalPatientId: null,
+      linkedAt: null,
+      linkedBy: null,
+      identityConflict: false,
+      patientIds: new Set(),
+      rawMessageIds: [],
+    };
+
+    if (!previous.rawMessageIds.includes(safeRawMessageId)) {
+      previous.rawMessageIds.push(safeRawMessageId);
+    }
+    previous.patientIds.add(safePatientId);
+
+    const distinctPatients = Array.from(previous.patientIds);
+    const hasConflict = distinctPatients.length > 1;
+
+    // Kanoniskt patientId: senast länkade, eller det enda, eller null vid konflikt.
+    const canonicalPatientId = hasConflict
+      ? null
+      : distinctPatients[0] || previous.canonicalPatientId || safePatientId;
+
+    const entry = {
+      conversationKey,
+      canonicalPatientId,
+      linkedAt: normalizeText(linkedAt) || nowIso(),
+      linkedBy: normalizeText(linkedBy) || previous.linkedBy || null,
+      identityConflict: hasConflict,
+      patientIds: previous.patientIds,
+      rawMessageIds: previous.rawMessageIds,
+    };
+
+    state.threadIdentityIndex[conversationKey] = entry;
+    if (persist) {
+      await save();
+    }
+    return entry;
+  }
+
   async function linkPatientToMessage({
     rawMessageId = '',
     patientId = '',
     actorUserId = '',
+    linkedReason = '',
     persist = true,
+    force = false,
+    canForce = false,
   } = {}) {
     const safeRawMessageId = normalizeText(rawMessageId);
     const safePatientId = normalizeText(patientId);
@@ -843,18 +957,46 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       throw Object.assign(new Error('Raw message hittades inte.'), { statusCode: 404 });
     }
 
+    const existingPatientId = normalizeText(ledger.patientId);
+    if (existingPatientId && existingPatientId !== safePatientId) {
+      if (!force) {
+        const error = new Error(
+          `Meddelandet är redan länkat till patient ${existingPatientId}. Använd force=true för att omlänka.`
+        );
+        error.statusCode = 409;
+        error.metadata = {
+          existingPatientId,
+          requestedPatientId: safePatientId,
+          rawMessageId: safeRawMessageId,
+        };
+        throw error;
+      }
+      if (!canForce) {
+        const error = new Error('force kräver owner-roll.');
+        error.statusCode = 403;
+        throw error;
+      }
+    }
+
+    const changed = !existingPatientId || existingPatientId !== safePatientId;
+
     await updateLedger(
       ledger.id,
       {
         status: 'MATCHED',
         patientMatchStatus: 'MATCHED',
         patientId: safePatientId,
+        linkedPatientId: safePatientId,
+        linkedAt: nowIso(),
+        linkedBy: normalizeText(actorUserId) || null,
+        linkedReason: normalizeText(linkedReason) || null,
         processedAt: nowIso(),
         completedAt: nowIso(),
         matchVersion: MATCH_VERSION,
       },
       { persist }
     );
+
     const patientMatch = await savePatientMatch(
       {
         id: `${safeRawMessageId}:match`,
@@ -862,7 +1004,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
         status: 'MATCHED',
         confidence: 1,
         patientId: safePatientId,
-        reason: 'manual_link',
+        reason: normalizeText(linkedReason) || 'manual_link',
         source: 'manual_link',
         linkedBy: normalizeText(actorUserId) || null,
         linkedAt: nowIso(),
@@ -870,19 +1012,37 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       },
       { persist }
     );
-    await appendAudit(
-      {
-        type: 'mail_ingestion_patient_linked',
+
+    if (changed) {
+      await appendAudit(
+        {
+          type: existingPatientId
+            ? 'mail_ingestion_patient_relinked'
+            : 'mail_ingestion_patient_linked',
+          rawMessageId: safeRawMessageId,
+          patientId: safePatientId,
+          previousPatientId: existingPatientId || null,
+          actorUserId: normalizeText(actorUserId) || null,
+          reason: normalizeText(linkedReason) || null,
+        },
+        { persist }
+      );
+      await updateThreadIdentityForMessage({
         rawMessageId: safeRawMessageId,
         patientId: safePatientId,
-        actorUserId: normalizeText(actorUserId) || null,
-      },
-      { persist }
-    );
+        linkedBy: normalizeText(actorUserId) || null,
+        linkedAt: nowIso(),
+        persist,
+      });
+    }
+
+    const identity = getThreadIdentity(buildConversationKey(raw));
     return {
       rawMessage: raw,
       ledger: getLedgerByRawMessageId(safeRawMessageId),
       patientMatch,
+      changed,
+      identityConflict: identity?.identityConflict || false,
     };
   }
 
@@ -1127,6 +1287,8 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     getQueueLength,
     listReviewQueue,
     getConversationIngestionMap,
+    getThreadIdentity,
+    listThreadIdentities,
     linkPatientToMessage,
     requestReprocessUnmatched,
     isQueued,
