@@ -105,9 +105,7 @@ function createAutomationConversationBridge({
   defaultTenantId = 'hair-tp-clinic',
 } = {}) {
   if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.addSyntheticSentMessage !== 'function') {
-    throw new Error(
-      'createAutomationConversationBridge requires ccoMailboxTruthStore with addSyntheticSentMessage'
-    );
+    return null;
   }
 
   async function recordAutomationSend({
