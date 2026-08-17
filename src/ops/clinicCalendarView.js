@@ -196,7 +196,12 @@ function listClientoRows(clientoBookingStore, tenantId) {
   return asArray(clientoBookingStore.listAllBookings({ tenantId }));
 }
 
-function collectCalendarEntries({ bookingEngineStore, clientoBookingStore, tenantId }) {
+function collectCalendarEntries({
+  bookingEngineStore,
+  clientoBookingStore,
+  tenantId,
+  resolveConversationId = null,
+}) {
   const scopedTenantId = normalizeText(tenantId);
   const resourceIndex = buildResourceIndex(bookingEngineStore);
   const entries = [];
@@ -234,6 +239,24 @@ function collectCalendarEntries({ bookingEngineStore, clientoBookingStore, tenan
 
   for (const raw of listClientoRows(clientoBookingStore, scopedTenantId)) {
     push(normalizeClientoEntry(raw, resourceIndex));
+  }
+
+  // Fas 2.2: om en bokning saknar conversationId, försök härleda det från
+  // patientens epost via den injicerade resolvern (read-only, muterar ej storen).
+  if (typeof resolveConversationId === 'function') {
+    for (const entry of entries) {
+      if (entry.conversationId) continue;
+      try {
+        const resolved = resolveConversationId({
+          patientEmail: entry.patientEmail,
+          patientName: entry.patientName,
+          patientPhone: entry.patientPhone,
+        });
+        if (resolved) entry.conversationId = normalizeText(resolved);
+      } catch (_err) {
+        /* best-effort */
+      }
+    }
   }
 
   entries.sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt));
@@ -278,11 +301,18 @@ function buildDayView({
   encounterStore,
   tenantId,
   calendarData,
+  resolveConversationId = null,
 }) {
   void encounterStore;
   const targetDate = normalizeDateOnly(date);
   const data =
-    calendarData || collectCalendarEntries({ bookingEngineStore, clientoBookingStore, tenantId });
+    calendarData ||
+    collectCalendarEntries({
+      bookingEngineStore,
+      clientoBookingStore,
+      tenantId,
+      resolveConversationId,
+    });
   const resources = data.resources.map((resource) => ({ ...resource, slots: [] }));
   const byResource = new Map(resources.map((resource) => [resource.resourceId, resource]));
   const dayEntries = data.entries.filter(
@@ -339,12 +369,14 @@ function buildWeekView({
   clientoBookingStore,
   encounterStore,
   tenantId,
+  resolveConversationId = null,
 }) {
   const normalizedStart = normalizeDateOnly(startDate);
   const calendarData = collectCalendarEntries({
     bookingEngineStore,
     clientoBookingStore,
     tenantId,
+    resolveConversationId,
   });
   const days = [];
   for (let index = 0; index < 7; index += 1) {
@@ -356,6 +388,7 @@ function buildWeekView({
       encounterStore,
       tenantId,
       calendarData,
+      resolveConversationId,
     });
     days.push({
       ...dayView,

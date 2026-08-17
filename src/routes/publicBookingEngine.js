@@ -30,6 +30,7 @@ const {
   publicWebBookingDisabledBody,
 } = require('../infra/publicWebBooking');
 const { syncWebReservationToJournal } = require('../ops/ccoJournalBookingBridge');
+const { createAutomationConversationBridge } = require('../ops/ccoAutomationConversationBridge');
 const {
   resolveBookingVipToken,
   isResourceAllowedForVipToken,
@@ -167,9 +168,19 @@ function createPublicBookingEngineRouter({
   treatmentEncounterStore = null,
   config,
   graphSendConnector = null,
-}) {
+  ccoMailboxTruthStore = null,
+} = {}) {
   const router = express.Router();
   const { sendEmail } = createTransactionalMailer({ graphSendConnector });
+
+  const automationBridge =
+    ccoMailboxTruthStore && patientMasterStore
+      ? createAutomationConversationBridge({
+          ccoMailboxTruthStore,
+          patientMasterStore,
+          defaultTenantId: config?.defaultTenantId || 'hair-tp-clinic',
+        })
+      : null;
 
   function rejectIfPublicWebBookingDisabled(res) {
     if (isPublicWebBookingEnabled()) return false;
@@ -398,6 +409,25 @@ function createPublicBookingEngineRouter({
             sendMode: emailResult.sendMode || null,
           },
         });
+      }
+      if (emailResult.ok && automationBridge && typeof automationBridge.recordAutomationSend === 'function') {
+        try {
+          await automationBridge.recordAutomationSend({
+            mailboxId: 'contact@hairtpclinic.com',
+            fromEmail: 'contact@hairtpclinic.com',
+            toEmail: email,
+            toName: name,
+            subject: emailContent.subject,
+            bodyHtml: emailContent.html,
+            bodyText: emailContent.text,
+            sentAt: new Date().toISOString(),
+            tenantId,
+            automationType: 'booking_reservation',
+            sendResult: emailResult,
+          });
+        } catch (bridgeErr) {
+          console.warn('[public-reservation] conversation bridge failed:', bridgeErr?.message || bridgeErr);
+        }
       }
       console.log(
         `[public-reservation] ${vipTokenRecord ? 'vip' : 'web'} booking by ${email} for slot ${slotId} email:${emailResult.mode}`

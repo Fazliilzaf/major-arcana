@@ -9131,6 +9131,7 @@
     form_sent: { label: 'Formulär', cls: 'sent', icon: '📋' },
     consent_sent: { label: 'Samtycke', cls: 'sent', icon: '✅' },
     file_sent: { label: 'Fil', cls: 'sent', icon: '📎' },
+    portal_message: { label: 'Portal', cls: 'portal', icon: '💬' },
   };
 
   var C2_FILTERS = [
@@ -9144,6 +9145,7 @@
     { key: 'unanswered', label: 'Obesvarad' },
     { key: 'snoozed', label: 'Snoozad' },
     { key: 'handled', label: 'Hanterad' },
+    { key: 'portal', label: 'Portal' },
   ];
 
   function c2ClientFilter(threads, filter) {
@@ -9157,6 +9159,7 @@
       sent: (t) =>
         t.kind === 'comm_sent' || t.threadStatus === 'sent' || t.threadStatus === 'queued',
       internal: (t) => t.kind === 'internal_note' || t.direction === 'internal',
+      portal: (t) => t.kind === 'portal_message',
       unanswered: (t) => t.unanswered === true,
       snoozed: (t) => Boolean(t.snoozedUntil),
       handled: (t) => t.handled === true,

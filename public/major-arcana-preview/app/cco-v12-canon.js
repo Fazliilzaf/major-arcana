@@ -1616,6 +1616,7 @@
       form_sent: { cls: 'sent', icon: '📋', label: 'Formulär' },
       consent_sent: { cls: 'sent', icon: '✅', label: 'Samtycke' },
       file_sent: { cls: 'sent', icon: '📎', label: 'Fil' },
+      portal_message: { cls: 'portal', icon: '💬', label: 'Portal' },
     };
 
     var rows = threads.slice(0, 8).map(function (t) {

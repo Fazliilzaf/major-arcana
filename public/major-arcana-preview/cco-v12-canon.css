@@ -1575,6 +1575,10 @@
   background: var(--danger-bg);
   color: var(--danger);
 }
+.v12-canon .comm-ic.portal {
+  background: var(--accent-bg, rgba(120, 90, 160, 0.12));
+  color: var(--accent, #7a5aa0);
+}
 .v12-canon .comm-body .who {
   font-size: 12.5px;
   font-weight: 800;
@@ -1629,6 +1633,10 @@
 .v12-canon .comm-kind.needs-approval {
   background: var(--danger-bg);
   color: var(--danger);
+}
+.v12-canon .comm-kind.portal {
+  background: var(--accent-bg, rgba(120, 90, 160, 0.12));
+  color: var(--accent, #7a5aa0);
 }
 .v12-canon .comm-status.unanswered {
   background: var(--danger-bg);

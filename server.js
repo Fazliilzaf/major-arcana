@@ -11673,6 +11673,7 @@ process.once('SIGTERM', () => {
       treatmentEncounterStore: ccoTreatmentEncounterStore,
       config,
       graphSendConnector,
+      ccoMailboxTruthStore: ccoMailboxTruthStore || null,
     })
   );
 

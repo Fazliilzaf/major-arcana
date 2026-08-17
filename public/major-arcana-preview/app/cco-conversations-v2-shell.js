@@ -61,6 +61,8 @@
   var selected = {}; // v3: multi-select set (thread-id → true)
   var qrDraft = {}; // v3: snabbsvar-utkast per tråd-id (överlever om-rendering)
   var docKeydownBound = false; // ⌘K-lyssnaren binds på doc — bara EN gång
+  var pendingDeepLinkThreadId = null; // Fas 2.1/2.2: conv-param från deep-link
+  var deepLinkHandled = false; // bara en auto-select per sidladdning
 
   // Temat är app-brett: sätts på <html> (så v8-kalendern re-temas) + på roten.
   function applyTheme() {
@@ -3084,10 +3086,35 @@
     if (c && typeof c.run === 'function') c.run();
   }
 
+  function readDeepLinkThreadId() {
+    if (deepLinkHandled) return null;
+    try {
+      var params = new URLSearchParams(global.location.search || '');
+      return text(params.get('conv')) || null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
   function render(ctx) {
     if (!doc) return;
     releaseMailAssetUrls();
     boundCtx = ctx;
+
+    // Fas 2.1/2.2: om URL har ?conv=<id>, försök öppna den tråden en gång.
+    if (!deepLinkHandled) {
+      pendingDeepLinkThreadId = pendingDeepLinkThreadId || readDeepLinkThreadId();
+      if (pendingDeepLinkThreadId && ctx.allThreads && ctx.allThreads.length) {
+        var target = findThreadById(ctx, pendingDeepLinkThreadId);
+        if (target && ctx.handlers && typeof ctx.handlers.selectThread === 'function') {
+          deepLinkHandled = true;
+          ctx.handlers.selectThread(threadConversationKey(target));
+          // selectThread kommer trigga en re-render; avbryt nuvarande render.
+          return;
+        }
+      }
+    }
+
     ensureRoot();
     bindEvents();
     // v3: tema (app-brett) + densitet (persisteras).
