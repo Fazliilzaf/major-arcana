@@ -264,6 +264,60 @@ function createCfoRouter({
     }
   );
 
+  // GET /api/v1/cco-cf/expenses/:id/attachment-text — extrahera text ur
+  // PDF-bilagor för att manuellt kunna stämma av belopp utan att ladda ner filen.
+  router.get(
+    '/cco-cf/expenses/:id/attachment-text',
+    attachRole,
+    requireAnyRole(cfRBAC),
+    async (req, res) => {
+      try {
+        const store = expenseStore;
+        if (!store) return res.status(503).json({ error: 'expense store not ready' });
+        const e = store.getById(req.params.id);
+        if (!e) return res.status(404).json({ error: 'not found' });
+        const keys = Array.isArray(e.attachmentKeys) ? e.attachmentKeys : [];
+        const pdfKeys = keys.filter((k) => /\.pdf$/i.test(String(k)));
+        if (pdfKeys.length === 0) {
+          return res
+            .status(404)
+            .json({ ok: false, error: 'inga PDF-bilagor', attachmentKeys: keys });
+        }
+        let pdfParse;
+        try {
+          pdfParse = require('pdf-parse');
+        } catch {
+          pdfParse = null;
+        }
+        if (!pdfParse) {
+          return res.status(503).json({ error: 'pdf-parse inte installerat' });
+        }
+        const texts = [];
+        for (const key of pdfKeys.slice(0, 3)) {
+          try {
+            const obj = await secureStorage.getObject(key);
+            const buffer = obj?.buffer || obj;
+            if (!Buffer.isBuffer(buffer)) throw new Error('ingen buffer från secure storage');
+            const parsed = await pdfParse(buffer);
+            texts.push({ key, text: String(parsed?.text || '').slice(0, 8000) });
+          } catch (err) {
+            texts.push({ key, error: err.message });
+          }
+        }
+        return res.json({
+          ok: true,
+          expenseId: e.id,
+          supplier: e.supplier,
+          amountSek: e.amountSek,
+          pdfCount: pdfKeys.length,
+          texts,
+        });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+  );
+
   // ── CF.3 (MVP 2) — Expense routes ─────────────────────────────
   // Manual expense workflow utan Fortnox-write. Audit på alla mutationer.
 
