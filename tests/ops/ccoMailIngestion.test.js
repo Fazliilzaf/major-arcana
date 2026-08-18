@@ -549,6 +549,96 @@ test('linkPatientToMessage builds thread identity and flags conflict', async () 
   await fs.unlink(filePath).catch(() => {});
 });
 
+test('processRawMessage creates thread identity on automatic MATCHED', async () => {
+  const filePath = path.join(
+    os.tmpdir(),
+    `cco-mail-ingestion-pipeline-thread-identity-${Date.now()}.json`
+  );
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'contact@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id });
+  const saved = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      mailboxId: 'contact@hairtpclinic.com',
+      folderType: 'inbox',
+      graphMessageId: 'graph-msg-pipeline-ti',
+      internetMessageId: '<pipeline-ti@example.com>',
+      subject: 'Auto-match',
+      bodyPreview: 'Hej',
+      from: { address: 'patient@example.com' },
+      receivedAt: '2026-05-26T12:00:00.000Z',
+      conversationId: 'conv-pipeline-ti',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+
+  const result = await processRawMessage({
+    store,
+    rawMessage: saved.rawMessage,
+    ledger: saved.ledger,
+    mode: 'read_only',
+    patientDirectory: [
+      {
+        id: 'patient-auto',
+        primaryEmail: 'patient@example.com',
+        emails: ['patient@example.com'],
+      },
+    ],
+  });
+
+  assert.equal(result.ledger.status, 'MATCHED');
+  assert.equal(result.patientMatch.status, 'MATCHED');
+  assert.equal(result.patientMatch.patientId, 'patient-auto');
+
+  const identity = store.getThreadIdentity('contact@hairtpclinic.com:conv-pipeline-ti');
+  assert.ok(identity, 'trådidentitet ska ha skapats av pipeline');
+  assert.equal(identity.canonicalPatientId, 'patient-auto');
+  assert.equal(identity.identityConflict, false);
+  assert.ok(
+    identity.linkedBy?.includes('system:pipeline'),
+    'linkedBy ska indikera system:pipeline'
+  );
+
+  await fs.unlink(filePath).catch(() => {});
+});
+
+test('processRawMessage does not create thread identity on UNMATCHED', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-pipeline-no-ti-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'contact@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id });
+  const saved = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      mailboxId: 'contact@hairtpclinic.com',
+      folderType: 'inbox',
+      graphMessageId: 'graph-msg-pipeline-no-ti',
+      internetMessageId: '<pipeline-no-ti@example.com>',
+      subject: 'No match',
+      bodyPreview: 'Hej',
+      from: { address: 'unknown@example.com' },
+      receivedAt: '2026-05-26T12:00:00.000Z',
+      conversationId: 'conv-pipeline-no-ti',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+
+  const result = await processRawMessage({
+    store,
+    rawMessage: saved.rawMessage,
+    ledger: saved.ledger,
+    mode: 'read_only',
+    patientDirectory: [],
+  });
+
+  assert.equal(result.ledger.status, 'UNMATCHED');
+  const identity = store.getThreadIdentity('contact@hairtpclinic.com:conv-pipeline-no-ti');
+  assert.equal(identity, null);
+
+  await fs.unlink(filePath).catch(() => {});
+});
+
 test('listReviewQueue returns unmatched rows', async () => {
   const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-review-${Date.now()}.json`);
   const store = await createCcoMailIngestionStore({ filePath });

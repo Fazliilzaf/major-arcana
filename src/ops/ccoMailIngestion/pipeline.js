@@ -415,6 +415,19 @@ async function processRawMessage({
       );
     }
 
+    // Konversationer Fas 1.2: uppdatera persistent trådidentitet vid varje
+    // automatisk matchning, så tråden har ett kanoniskt patientId även utan
+    // manuell länkning.
+    if (match.status === 'MATCHED' && match.patientId) {
+      await store.updateThreadIdentityForMessage({
+        rawMessageId: rawMessage.id,
+        patientId: match.patientId,
+        linkedBy: 'system:pipeline:exact_email_match',
+        linkedAt: new Date().toISOString(),
+        persist,
+      });
+    }
+
     await store.appendAudit(
       {
         type: 'mail_ingestion_processed',
