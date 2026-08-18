@@ -61,19 +61,33 @@ test('e-postmönstret är linjärt, inte kvadratiskt, på lång text utan @', ()
 });
 
 test('skalningen är linjär: dubblad input ger inte fyrdubblad tid', () => {
-  function measure(sizeKb) {
+  // FLAKIGHET: forsta versionen matte 64 KB mot 128 KB en gang vardera och
+  // krävde kvot < 3. Pa en delad CI-runner blev det 15,4 ms -> 52,7 ms = 3,4x
+  // och testet foll, trots att koden var korrekt. Vid sa sma absoluta tider
+  // dominerar schemalaggningsbrus over den signal vi mater.
+  //
+  // Tva atgarder: storre input (128/256 KB) sa att signalen vaxer, och
+  // min-av-tre i stallet for enstaka matning. Minimum ar robust mot
+  // brustoppar — en runner kan bli avbruten och gora en matning langsammare,
+  // men aldrig snabbare an det verkliga arbetet.
+  function measureOnce(sizeKb) {
     const text = 'a'.repeat(sizeKb * 1024);
     const start = process.hrtime.bigint();
     findEmailAddresses(text);
     return Number(process.hrtime.bigint() - start) / 1e6;
   }
+  function measure(sizeKb) {
+    return Math.min(measureOnce(sizeKb), measureOnce(sizeKb), measureOnce(sizeKb));
+  }
 
-  measure(64); // uppvärmning (JIT)
-  const small = measure(64);
-  const large = measure(128);
+  measureOnce(128); // uppvärmning (JIT)
+  const small = measure(128);
+  const large = measure(256);
 
-  // Vid kvadratiskt beteende är kvoten ~4. Vid linjärt ~2. Vi tillåter upp
-  // till 3 för att inte flaka på mätbrus vid dessa små absoluta tider.
+  // Vid kvadratiskt beteende är kvoten ~4, vid linjärt ~2. Tröskeln 3 ligger
+  // mitt emellan. Med det gamla mönstret var skillnaden inte marginell utan
+  // enorm — 128 KB tog 7 653 ms mot 17 ms — så testet behöver ingen snäv
+  // tröskel för att fånga en regression.
   const ratio = large / Math.max(small, 0.01);
   assert.ok(
     ratio < 3,
