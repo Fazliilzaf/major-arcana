@@ -240,6 +240,24 @@ services:
       # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
       - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
         value: "2147483648"
+      # LRU-taket för laddade mailbox-truth-shards. Defaulten i src/config.js är
+      # 2, satt för CCO:s operatörsväljare som visar högst två brevlådor åt
+      # gången. Men listTruthMessagesForCustomer (ccoConversationThreadStore)
+      # sveper över ALLA history-brevlådor för att hitta en kunds trådar — med
+      # tak 2 vräks shards ut mitt i svepet och laddas om vid varje anrop.
+      #
+      # Värre än prestandan: listMessages hoppade tyst över oladdade shards
+      # (fixat i #1417, larmar nu). Enligt kodkommentarerna gav det fel svar
+      # minst fyra gånger — rapporter som "såg" två brevlådor, tomma
+      # konversationstrådar, historyMailboxIds: 8 mot loadedMailboxes: 2.
+      #
+      # Mätt read-only mot prod 2026-08-18:
+      #   11 shards, 78 MB på disk, parse av samtliga: 242 ms, 0 ms loop-lag
+      #   alla 11 laddade samtidigt: 98 MB heap, 192 MB RSS (1,3x mot disk)
+      #   V8-taket är 6192 MB — samtliga shards kostar 1,6 % av heapen
+      # Att hålla alla i minnet är alltså ofarligt och tar bort omladdningarna.
+      - key: ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS
+        value: "8"
       # ORD-74 2026-07-17: Drive-ingest klar — schedulern PÅ. Dashboard hade ENABLED=false
       # medan override-filen tände den; yaml behåller true så sync+DELETE override blir ren env-styrning.
       - key: ARCANA_SCHEDULER_ENABLED
