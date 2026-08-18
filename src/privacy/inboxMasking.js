@@ -1,3 +1,5 @@
+const { emailAddressRegExp } = require('../ops/emailAddressPattern');
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -38,7 +40,7 @@ function maskInboxText(value, maxLength = 360) {
   let text = normalizeText(stripCssNoise(value));
   if (!text) return '';
   text = text.replace(/https?:\/\/\S+/gi, '[lank]');
-  text = text.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email]');
+  text = text.replace(emailAddressRegExp('gi'), '[email]');
   text = text.replace(/\b(?:19|20)\d{10}\b/g, '[id]');
   text = text.replace(/\b\d{6,8}[-+ ]\d{4}\b/g, '[id]');
   text = text.replace(/\+?\d[\d\s\-()]{6,}\d/g, '[telefon]');

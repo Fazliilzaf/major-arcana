@@ -1,6 +1,7 @@
 'use strict';
 
 const { ROLE_OWNER } = require('../security/roles');
+const { emailAddressRegExp } = require('../ops/emailAddressPattern');
 const { BaseCapability } = require('./baseCapability');
 
 function normalizeText(value) {
@@ -21,16 +22,36 @@ function asArray(value) {
 }
 
 const HUMAN_HANDOFF_TRIGGERS = Object.freeze([
-  { id: 'explicit_request', pattern: /prata med (en |)(manniska|person|lakare|nagot riktigt|nagon annan)/i, label: 'Patient begarde mansklig kontakt' },
-  { id: 'medical_emergency', pattern: /akut|nodsituation|ambulans|bloder mycket|svimmar|medvetslos/i, label: 'Mojlig medicinsk akutsituation' },
-  { id: 'complaint', pattern: /klagomal|reklamation|missnojd|anmala|advokat|juridisk/i, label: 'Klagomal detekterat' },
-  { id: 'mental_health', pattern: /sjalvmord|suicid|vill inte leva|skadar mig sjalv|angest.*akut/i, label: 'Psykisk ohalsa — omedelbar eskalering' },
+  {
+    id: 'explicit_request',
+    pattern: /prata med (en |)(manniska|person|lakare|nagot riktigt|nagon annan)/i,
+    label: 'Patient begarde mansklig kontakt',
+  },
+  {
+    id: 'medical_emergency',
+    pattern: /akut|nodsituation|ambulans|bloder mycket|svimmar|medvetslos/i,
+    label: 'Mojlig medicinsk akutsituation',
+  },
+  {
+    id: 'complaint',
+    pattern: /klagomal|reklamation|missnojd|anmala|advokat|juridisk/i,
+    label: 'Klagomal detekterat',
+  },
+  {
+    id: 'mental_health',
+    pattern: /sjalvmord|suicid|vill inte leva|skadar mig sjalv|angest.*akut/i,
+    label: 'Psykisk ohalsa — omedelbar eskalering',
+  },
 ]);
 
 const PII_PATTERNS = [
   { id: 'personnummer', pattern: /\b\d{6}[-]?\d{4}\b/g, replacement: '[PERSONNUMMER]' },
-  { id: 'email', pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, replacement: '[EMAIL]' },
-  { id: 'phone', pattern: /(?:\+46|0)[\s-]?\d{1,3}[\s-]?\d{2,4}[\s-]?\d{2,4}/g, replacement: '[TELEFON]' },
+  { id: 'email', pattern: emailAddressRegExp('gi'), replacement: '[EMAIL]' },
+  {
+    id: 'phone',
+    pattern: /(?:\+46|0)[\s-]?\d{1,3}[\s-]?\d{2,4}[\s-]?\d{2,4}/g,
+    replacement: '[TELEFON]',
+  },
 ];
 
 function redactPii(text) {
@@ -93,9 +114,13 @@ class PatientChatResponseCapability extends BaseCapability {
     const config = asObject(safeContext.tenantConfig);
     const warnings = [];
 
-    const killSwitch = config.patientChatKillSwitch === true ||
+    const killSwitch =
+      config.patientChatKillSwitch === true ||
       normalizeText(process.env.ARCANA_PUBLIC_CHAT_KILL_SWITCH) === 'true';
-    const maxTurns = toNumber(config.patientChatMaxTurns || process.env.ARCANA_PUBLIC_CHAT_MAX_TURNS, 12);
+    const maxTurns = toNumber(
+      config.patientChatMaxTurns || process.env.ARCANA_PUBLIC_CHAT_MAX_TURNS,
+      12
+    );
     const turnNumber = toNumber(input.turnNumber, 1);
     const message = normalizeText(input.message);
     const redactedMessage = redactPii(message);
@@ -103,7 +128,8 @@ class PatientChatResponseCapability extends BaseCapability {
     if (killSwitch) {
       return {
         data: {
-          response: normalizeText(config.patientChatKillSwitchMessage) ||
+          response:
+            normalizeText(config.patientChatKillSwitchMessage) ||
             'Patientchatten ar tillfalligt pausad. Kontakta kliniken via telefon eller e-post.',
           handoff: { required: false, reason: 'kill_switch' },
           safetyFlags: { killSwitch: true },
@@ -120,9 +146,10 @@ class PatientChatResponseCapability extends BaseCapability {
       const primaryTrigger = handoffTriggers[0];
       return {
         data: {
-          response: primaryTrigger.id === 'mental_health'
-            ? 'Jag forstar att du har det svargt. Ring 112 vid akut fara, eller kontakta Mind pa 90101. Jag kopplar dig till en riktig person nu.'
-            : 'Jag kopplar dig till en av vara medarbetare som kan hjalpa dig vidare. Du hors av oss inom kort.',
+          response:
+            primaryTrigger.id === 'mental_health'
+              ? 'Jag forstar att du har det svargt. Ring 112 vid akut fara, eller kontakta Mind pa 90101. Jag kopplar dig till en riktig person nu.'
+              : 'Jag kopplar dig till en av vara medarbetare som kan hjalpa dig vidare. Du hors av oss inom kort.',
           handoff: {
             required: true,
             reason: primaryTrigger.id,
@@ -143,7 +170,8 @@ class PatientChatResponseCapability extends BaseCapability {
     if (turnNumber >= maxTurns) {
       return {
         data: {
-          response: 'For att ge dig basta mojliga hjalp vill jag koppla dig till en av vara medarbetare. Du kan ocksa boka en kostnadsfri konsultation direkt.',
+          response:
+            'For att ge dig basta mojliga hjalp vill jag koppla dig till en av vara medarbetare. Du kan ocksa boka en kostnadsfri konsultation direkt.',
           handoff: { required: true, reason: 'max_turns_reached', turnNumber, maxTurns },
           safetyFlags: { maxTurnsReached: true },
           generatedAt: new Date().toISOString(),

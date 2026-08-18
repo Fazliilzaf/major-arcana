@@ -1,3 +1,4 @@
+const { EMAIL_ADDRESS_SOURCE } = require('../emailAddressPattern');
 const { isNonPatientCounterpartyEmail } = require('./nonPatientRules');
 const {
   normalizeCounterpartyDirection,
@@ -95,8 +96,8 @@ function extractContactFormPatientEmail(raw = {}) {
   // "E-post:" kan stå ensamt på en rad följt av adressen på nästa rad,
   // eller på samma rad separerad med kolon.
   const patterns = [
-    /E-post\s*:?\s*\r?\n\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
-    /E-post\s*:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
+    new RegExp(`E-post\\s*:?\\s*\\r?\\n\\s*(${EMAIL_ADDRESS_SOURCE})`, 'i'),
+    new RegExp(`E-post\\s*:\\s*(${EMAIL_ADDRESS_SOURCE})`, 'i'),
   ];
 
   for (const pattern of patterns) {

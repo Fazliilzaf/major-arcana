@@ -15,9 +15,11 @@ const {
   phoneMatchKey,
 } = require('../../scripts/migration/lib/migrationUtils');
 
+const { emailAddressRegExp } = require('./emailAddressPattern');
+
 const MONTH_WORD_RE =
   /\b(januari|februari|mars|april|maj|juni|juli|augusti|september|oktober|november|december|jan|feb|mar|apr|jun|jul|aug|sep|okt|nov|dec)\b/i;
-const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const EMAIL_RE = emailAddressRegExp('gi');
 const PHONE_RE = /(?:\+?46|0)\s?7[\d\s().-]{7,}/g;
 
 function nowIso() {
