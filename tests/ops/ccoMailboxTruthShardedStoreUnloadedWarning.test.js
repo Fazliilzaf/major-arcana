@@ -122,3 +122,19 @@ test('ingen varning när alla efterfrågade brevlådor ryms i cachen', async () 
     assert.deepEqual(relevant, [], 'ett fullständigt svar ska inte larma');
   });
 });
+
+test('config default för maxLoadedShards är 8 (mätt 98 MB heap för alla shards)', () => {
+  const previous = process.env.ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS;
+  delete process.env.ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS;
+  try {
+    // Ladda config utan cache (Node kräver att vi rensar require-cache).
+    delete require.cache[require.resolve('../../src/config.js')];
+    const { config } = require('../../src/config.js');
+    assert.equal(config.ccoMailboxTruthMaxLoadedShards, 8);
+  } finally {
+    if (previous !== undefined) {
+      process.env.ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS = previous;
+    }
+    delete require.cache[require.resolve('../../src/config.js')];
+  }
+});

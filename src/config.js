@@ -277,10 +277,14 @@ const config = {
   // Sharded store reads per-mailbox files on disk. Lazy preload avoids OOM on boot.
   ccoMailboxTruthSharded: asBool(process.env.ARCANA_CCO_MAILBOX_TRUTH_SHARDED, true),
   ccoMailboxTruthLazyPreload: asBool(process.env.ARCANA_CCO_MAILBOX_TRUTH_LAZY_PRELOAD, true),
-  // CCO's operator selector displays at most two mailboxes at a time. Keep a
-  // matching bounded shard cache so historical accounts cannot accumulate in
-  // the Node heap as staff switch mailbox filters.
-  ccoMailboxTruthMaxLoadedShards: asInt(process.env.ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS, 2),
+  // Bounded shard cache. The operator selector displays at most two mailboxes
+  // at a time, but listTruthMessagesForCustomer sweeps all configured
+  // mailboxes to build a customer's threads. Measured 2026-08-18: all shards
+  // together cost ~98 MB heap (1.6 % of V8 limit on the production instance),
+  // so the default is raised to 8 to avoid thrashing and silent partial reads
+  // when more than two mailboxes are accessed. Override via
+  // ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS if needed.
+  ccoMailboxTruthMaxLoadedShards: asInt(process.env.ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS, 8),
   ccoMailboxTruthShardDir: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_MAILBOX_TRUTH_SHARD_DIR,
     stateRoot,
