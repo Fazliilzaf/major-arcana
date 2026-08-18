@@ -13,6 +13,9 @@ test('treatmentSessionLabel formats PRP/FUE/DHI with session number', () => {
   assert.equal(treatmentSessionLabel('PRP', 2), 'PRP 2');
   assert.equal(treatmentSessionLabel('FUE', 3), 'FUE 3');
   assert.equal(treatmentSessionLabel('DHI', 1), 'DHI 1');
+  assert.equal(treatmentSessionLabel('consultation', 2), 'Konsultation 2');
+  assert.equal(treatmentSessionLabel('microneedling', 3), 'Microneedling 3');
+  assert.equal(treatmentSessionLabel('mesoterapi', 1), 'Mesoterapi 1');
   assert.equal(treatmentSessionLabel('consultation', null), 'consultation');
   assert.equal(treatmentSessionLabel('', 1), null);
 });
@@ -45,12 +48,59 @@ test('countTreatmentSession: missing documentDate on the asset itself -> usedFal
 });
 
 test('countTreatmentSession: non-session treatment type never sets usedFallbackDate', () => {
-  const siblings = [
-    { id: 'a1', treatmentType: 'consultation', importedAt: '2026-01-01T10:00:00Z' },
-  ];
+  const siblings = [{ id: 'a1', treatmentType: 'botox', importedAt: '2026-01-01T10:00:00Z' }];
   const result = countTreatmentSession(siblings[0], siblings);
   assert.equal(result.sessionNumber, null);
   assert.equal(result.usedFallbackDate, false);
+});
+
+test('countTreatmentSession: consultation with multiple visits gets sequential session numbers', () => {
+  const siblings = [
+    { id: 'c1', treatmentType: 'consultation', documentDate: '2026-01-01' },
+    { id: 'c2', treatmentType: 'consultation', documentDate: '2026-02-01' },
+    { id: 'c3', treatmentType: 'consultation', documentDate: '2026-03-01' },
+  ];
+  assert.equal(countTreatmentSession(siblings[0], siblings).sessionNumber, 1);
+  assert.equal(countTreatmentSession(siblings[1], siblings).sessionNumber, 2);
+  assert.equal(countTreatmentSession(siblings[2], siblings).sessionNumber, 3);
+});
+
+test('countTreatmentSession: microneedling with multiple visits gets sequential session numbers', () => {
+  const siblings = [
+    { id: 'm1', treatmentType: 'microneedling', documentDate: '2026-01-01' },
+    { id: 'm2', treatmentType: 'microneedling', documentDate: '2026-02-01' },
+    {
+      id: 'm3',
+      treatmentType: 'microneedling',
+      documentDate: '2026-02-01',
+      encounterId: 'enc-feb',
+    },
+  ];
+  assert.equal(countTreatmentSession(siblings[0], siblings).sessionNumber, 1);
+  assert.equal(countTreatmentSession(siblings[1], siblings).sessionNumber, 2);
+  assert.equal(countTreatmentSession(siblings[2], siblings).sessionNumber, 2);
+});
+
+test('countTreatmentSession: mesoterapi with fallback date flags usedFallbackDate', () => {
+  const siblings = [{ id: 'm1', treatmentType: 'mesoterapi', importedAt: '2026-01-01T10:00:00Z' }];
+  const result = countTreatmentSession(siblings[0], siblings);
+  assert.equal(result.sessionNumber, 1);
+  assert.equal(result.visitLabel, 'Mesoterapi 1');
+  assert.equal(result.usedFallbackDate, true);
+});
+
+test('countTreatmentSession: documentClassifier-style "FUE Operation" and "DHI Operation" are treated as session types', () => {
+  const siblings = [
+    { id: 'a1', treatmentType: 'FUE Operation', documentDate: '2026-01-01' },
+    { id: 'a2', treatmentType: 'FUE Operation', documentDate: '2026-02-01' },
+    { id: 'b1', treatmentType: 'DHI Operation', documentDate: '2026-03-01' },
+  ];
+  const fueResult = countTreatmentSession(siblings[0], siblings);
+  assert.equal(fueResult.sessionNumber, 1);
+  assert.equal(fueResult.visitLabel, 'FUE 1');
+  const dhiResult = countTreatmentSession(siblings[2], siblings);
+  assert.equal(dhiResult.sessionNumber, 1);
+  assert.equal(dhiResult.visitLabel, 'DHI 1');
 });
 
 test('resolveEncounterNaming propagates usedFallbackDate from countTreatmentSession', () => {
