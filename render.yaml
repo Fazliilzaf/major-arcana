@@ -59,6 +59,11 @@ services:
       # i den skarpa tjänsten.
       - key: ARCANA_MEMORY_WATCHDOG_SNAPSHOT_ENABLED
         value: "false"
+      # Process-diagnostics: 1-sekunders heartbeat, event-loop-delay-histogram
+      # och GC-paus-loggning till stdout + /var/data/diag/heartbeat.log.
+      # Används för att skilja "event-loopen blockerad" från "Render tappar loggar".
+      - key: ARCANA_DIAG_HEARTBEAT
+        value: "true"
       - key: TRUST_PROXY
         value: "true"
       - key: ARCANA_AI_PROVIDER
