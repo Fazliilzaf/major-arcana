@@ -28,6 +28,9 @@ const EVENT_KIND_ICONS = {
   comm_failed: '✗',
   comm_cancelled: '⊘',
   internal_note: '🗒',
+  portal_chat: '💬',
+  portal_sms_inbound: '📩',
+  portal_staff_reply: '💬',
   // Utskick
   form_sent: '📋',
   consent_sent: '✍',
@@ -67,6 +70,9 @@ const EVENT_CATEGORIES = {
     'comm_failed',
     'comm_cancelled',
     'internal_note',
+    'portal_chat',
+    'portal_sms_inbound',
+    'portal_staff_reply',
     'form_sent',
     'consent_sent',
     'file_sent',
@@ -127,6 +133,7 @@ const SEND_KINDS = new Set(['form_sent', 'consent_sent', 'file_sent']);
 function displayTypeForEvent(event) {
   const { kind, category, meta } = event;
   if (MAIL_KINDS.has(kind)) return 'mail';
+  if (['portal_chat', 'portal_sms_inbound', 'portal_staff_reply'].includes(kind)) return 'mail';
   if (kind === 'internal_note') return 'anteckning';
   if (SEND_KINDS.has(kind)) return 'utskick';
   if (category === 'journal') return 'journal';
@@ -159,6 +166,7 @@ async function buildUnifiedTimeline({
   assetStore = null,
   agreementStore = null,
   legacyAgreementStore = null,
+  portalMessageStore = null,
 } = {}) {
   if (!customerId) return { events: [], counts: {} };
 
@@ -196,7 +204,40 @@ async function buildUnifiedTimeline({
     }
   }
 
-  // 2. Kundresa-historik
+  // 2. Portal-meddelanden (patient↔klinik fri kanal + SMS-brygga)
+  if (portalMessageStore?.listMessagesForCustomer) {
+    try {
+      const msgs = portalMessageStore.listMessagesForCustomer({ tenantId, customerId });
+      for (const m of msgs || []) {
+        const kind =
+          m.channel === 'sms'
+            ? 'portal_sms_inbound'
+            : m.direction === 'outbound'
+              ? 'portal_staff_reply'
+              : 'portal_chat';
+        events.push({
+          ts: m.createdAt || null,
+          kind,
+          category: 'communication',
+          icon: EVENT_KIND_ICONS[kind] || '·',
+          title: m.direction === 'inbound' ? 'Portal — patient' : 'Portal — klinik',
+          summary: m.body || '',
+          meta: {
+            direction: m.direction,
+            channel: m.channel || 'portal',
+            author: m.author || null,
+            readAt: m.readAt || null,
+          },
+          source: 'portal_message',
+          entityId: m.id || null,
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // 3. Kundresa-historik
   if (journeyStore?.getJourney) {
     try {
       const j = journeyStore.getJourney(customerId, { tenantId });

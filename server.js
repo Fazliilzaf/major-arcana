@@ -12245,6 +12245,9 @@ process.once('SIGTERM', () => {
       // gånger i dag. Bättre än de två LRU:n råkade bära, men inte komplett,
       // och det ska stå här och inte upptäckas senare.
       historyMailboxIds: config.schedulerCcoHistoryMailboxIds || [],
+      conversationStateStore: ccoConversationStateStore || null,
+      conversationNotesStore: ccoConversationNotesStore || null,
+      portalMessageStore: app.locals?.ccoPortalMessageStore || null,
       auditLog: ccoAuditLog,
       openai,
       openaiModel: config.openaiModel,

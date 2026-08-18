@@ -385,3 +385,94 @@ test('RBAC: revisor saknar mail.send och kan inte skapa utkast', async () => {
     assert.equal(res.status, 403);
   });
 });
+
+
+// ── Fas 6: batch-approve / batch-cancel ────────────────────────────────────
+
+test('Fas 6: POST /cco-comm/drafts/batch-approve godkänner flera utkast', async () => {
+  const { app } = await createFixture();
+  await withServer(app, async (baseUrl) => {
+    const drafts = [];
+    for (let i = 0; i < 3; i += 1) {
+      const created = await call(baseUrl, 'POST', '/cco-comm/drafts', {
+        role: 'operator',
+        user: `author-${i}`,
+        body: { customerId: `cust-batch-${i}`, body: `utkast ${i}` },
+      });
+      assert.equal(created.status, 201);
+      const id = created.json.draft.draftId;
+      await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
+        role: 'operator',
+        user: `author-${i}`,
+        body: { status: 'needs_approval' },
+      });
+      drafts.push(id);
+    }
+
+    const res = await call(baseUrl, 'POST', '/cco-comm/drafts/batch-approve', {
+      role: 'owner',
+      body: { draftIds: drafts, reason: 'batch test' },
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.json.ok, true);
+    assert.equal(res.json.succeeded, 3);
+    assert.equal(res.json.failed, 0);
+
+    for (const id of drafts) {
+      const get = await call(baseUrl, 'GET', `/cco-comm/drafts/${id}`, { role: 'owner' });
+      assert.equal(get.json.draft.status, 'approved');
+    }
+  });
+});
+
+test('Fas 6: POST /cco-comm/drafts/batch-approve kräver owner (mail.live_send)', async () => {
+  const { app } = await createFixture();
+  await withServer(app, async (baseUrl) => {
+    const created = await call(baseUrl, 'POST', '/cco-comm/drafts', {
+      role: 'operator',
+      user: 'author-b',
+      body: { customerId: 'cust-batch-perm', body: 'utkast' },
+    });
+    const id = created.json.draft.draftId;
+    await call(baseUrl, 'POST', `/cco-comm/drafts/${id}/transition`, {
+      role: 'operator',
+      user: 'author-b',
+      body: { status: 'needs_approval' },
+    });
+
+    const res = await call(baseUrl, 'POST', '/cco-comm/drafts/batch-approve', {
+      role: 'operator',
+      body: { draftIds: [id] },
+    });
+    assert.equal(res.status, 403);
+  });
+});
+
+test('Fas 6: POST /cco-comm/drafts/batch-cancel avbryter flera utkast', async () => {
+  const { app } = await createFixture();
+  await withServer(app, async (baseUrl) => {
+    const drafts = [];
+    for (let i = 0; i < 2; i += 1) {
+      const created = await call(baseUrl, 'POST', '/cco-comm/drafts', {
+        role: 'operator',
+        user: `author-cancel-${i}`,
+        body: { customerId: `cust-cancel-${i}`, body: `utkast ${i}` },
+      });
+      drafts.push(created.json.draft.draftId);
+    }
+
+    const res = await call(baseUrl, 'POST', '/cco-comm/drafts/batch-cancel', {
+      role: 'operator',
+      body: { draftIds: drafts, reason: 'batch cancel test' },
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.json.ok, true);
+    assert.equal(res.json.succeeded, 2);
+    assert.equal(res.json.failed, 0);
+
+    for (const id of drafts) {
+      const get = await call(baseUrl, 'GET', `/cco-comm/drafts/${id}`, { role: 'operator' });
+      assert.equal(get.json.draft.status, 'cancelled');
+    }
+  });
+});
