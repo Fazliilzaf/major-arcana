@@ -639,14 +639,15 @@ async function createCcoConversationThreadStore({
       try {
         const actions = sendActionsList(customerId) || [];
         for (const a of actions) {
+          const sendId = a.actionId || a.id || null;
           threads.push({
-            threadId: a.actionId || a.id || 'send-' + a.createdAt,
+            threadId: sendId || 'send-' + a.createdAt,
             kind:
               a.kind === 'form'
                 ? 'form_sent'
                 : a.kind === 'consent'
                   ? 'consent_sent'
-                  : a.kind === 'file'
+                  : a.kind === 'file' || a.kind === 'offer' || a.kind === 'agreement'
                     ? 'file_sent'
                     : 'send_action',
             direction: 'outbound',
@@ -656,6 +657,10 @@ async function createCcoConversationThreadStore({
             preview: '',
             channel: a.channel || 'email',
             requiresAttention: a.status === 'failed',
+            sendActionId: sendId,
+            conversationKey: a.conversationKey || null,
+            relatedEntityKind: a.relatedEntityKind || null,
+            relatedEntityId: a.relatedEntityId || null,
           });
         }
       } catch (err) {

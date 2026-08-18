@@ -53,6 +53,7 @@ const EVENT_KIND_ICONS = {
   consent_signed: '✍',
   agreement_signed: '📝',
   legacy_agreement_imported: '📜',
+  document_chain: '🔗',
   health_declaration_received: '📋',
   fitness_certificate_received: '📋',
   patient_document_received: '📎',
@@ -91,6 +92,7 @@ const EVENT_CATEGORIES = {
     'consent_signed',
     'agreement_signed',
     'legacy_agreement_imported',
+    'document_chain',
     'health_declaration_received',
     'fitness_certificate_received',
     'patient_document_received',
@@ -143,6 +145,7 @@ function displayTypeForEvent(event) {
     return String(meta?.category || '').startsWith('photo_') ? 'bild' : 'dokument';
   }
   if (kind === 'agreement_signed' || kind === 'legacy_agreement_imported') return 'avtal';
+  if (kind === 'document_chain') return 'dokumentkedja';
   return 'övrigt';
 }
 
@@ -167,6 +170,7 @@ async function buildUnifiedTimeline({
   agreementStore = null,
   legacyAgreementStore = null,
   portalMessageStore = null,
+  sendActionStore = null,
 } = {}) {
   if (!customerId) return { events: [], counts: {} };
 
@@ -194,6 +198,10 @@ async function buildUnifiedTimeline({
             // Mail → länka tillbaka till konversationstråden i CCO-inkorgen.
             conversationKey: isMail ? t.threadId || t.conversationId || null : null,
             mailboxId: isMail ? t.mailboxId || null : null,
+            // Fas 7: utskick → dokument-kedja.
+            sendActionId: t.sendActionId || null,
+            relatedEntityKind: t.relatedEntityKind || null,
+            relatedEntityId: t.relatedEntityId || null,
           },
           source: 'thread',
           entityId: t.threadId,
@@ -361,6 +369,10 @@ async function buildUnifiedTimeline({
             status: a.status,
             encounterId: a.encounterId || null,
             patientCardSection: a.patientCardSection || null,
+            // Fas 7: spårning tillbaka till utskick.
+            sourceSendId: a.sourceSendId || null,
+            conversationKey: a.conversationKey || null,
+            journeyStep: a.journeyStep || null,
             // Bild/dokument öppnas via befintlig säkrad asset-endpoint
             // (/api/v1/cco/assets/:assetId/download?inline=1 — samma URL som
             // assetToPatientFile().viewUrl), ALDRIG direkt Drive-länk och
@@ -437,22 +449,97 @@ async function buildUnifiedTimeline({
     e.displayType = displayTypeForEvent(e);
   }
 
+  // ─── Fas 7: kedje-ID från utskick → signerat/importerat dokument ──
+  function resolveChainId(e) {
+    const meta = e.meta || {};
+    if (meta.sendActionId) return meta.sendActionId;
+    if (meta.sourceSendId) return meta.sourceSendId;
+    if (sendActionStore?.findSendByRelatedEntity) {
+      if (e.source === 'agreement' && meta.agreementId) {
+        const s = sendActionStore.findSendByRelatedEntity('agreement', meta.agreementId);
+        if (s) return s.sendId;
+      }
+      if (e.source === 'legacy_agreement' && meta.agreementId) {
+        const s = sendActionStore.findSendByRelatedEntity('agreement', meta.agreementId);
+        if (s) return s.sendId;
+      }
+    }
+    return null;
+  }
+
+  function chainSummary(members) {
+    const labels = members.map((m) => {
+      if (m.kind === 'form_sent') return 'skickat formulär';
+      if (m.kind === 'consent_sent') return 'skickat samtycke';
+      if (m.kind === 'file_sent') return 'skickat fil';
+      if (m.kind === 'agreement_signed') return 'signerat avtal';
+      if (m.kind === 'legacy_agreement_imported') return 'importerat avtal';
+      if (m.kind === 'asset_uploaded') return 'dokument uppladdat';
+      return m.kind;
+    });
+    if (labels.length === 2) return `${labels[0]} → ${labels[1]}`;
+    return labels.slice(0, -1).join(' → ') + ' → ' + labels[labels.length - 1];
+  }
+
+  const chainMap = new Map();
+  const unchained = [];
+  for (const e of events) {
+    const chainId = resolveChainId(e);
+    if (chainId) {
+      e.meta = { ...e.meta, chainId };
+      if (!chainMap.has(chainId)) chainMap.set(chainId, []);
+      chainMap.get(chainId).push(e);
+    } else {
+      unchained.push(e);
+    }
+  }
+
+  const chainEvents = [];
+  for (const [chainId, members] of chainMap) {
+    if (members.length < 2) {
+      unchained.push(...members);
+      continue;
+    }
+    members.sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')));
+    const latest = members[0];
+    chainEvents.push({
+      ts: latest.ts,
+      kind: 'document_chain',
+      category: 'documents',
+      icon: '🔗',
+      title: 'Dokumentkedja',
+      summary: chainSummary(members),
+      displayType: 'dokumentkedja',
+      meta: {
+        chainId,
+        eventCount: members.length,
+        kinds: members.map((m) => m.kind),
+        firstTs: members[members.length - 1].ts,
+        lastTs: latest.ts,
+      },
+      source: 'chain',
+      entityId: chainId,
+      events: members.map((m) => ({ ...m })),
+    });
+  }
+
   // ─── Sort by ts desc (faktisk timestamp) ──
-  events.sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')));
+  const merged = [...chainEvents, ...unchained];
+  merged.sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')));
 
   // ─── Filter ──
   const filtered = (() => {
-    if (!filter || filter === 'all') return events;
+    if (!filter || filter === 'all') return merged;
     if (filter in EVENT_CATEGORIES) {
-      return events.filter((e) => e.category === filter);
+      return merged.filter((e) => e.category === filter);
     }
-    return events.filter((e) => e.kind === filter);
+    return merged.filter((e) => e.kind === filter);
   })();
 
   // ─── Counts per category ──
-  const counts = { all: events.length };
+  const counts = { all: merged.length };
   for (const cat of Object.keys(EVENT_CATEGORIES)) {
-    counts[cat] = events.filter((e) => e.category === cat).length;
+    counts[cat] = merged.filter((e) => e.category === cat).length;
   }
 
   return {

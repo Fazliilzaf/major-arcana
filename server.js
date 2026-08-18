@@ -6191,6 +6191,15 @@ let ccoAgreementQuickStore = null;
             },
             { role: req.cco?.role }
           );
+          // Fas 7: länka accepterad offert tillbaka till utskicket.
+          try {
+            const send = app.locals.ccoSendActionStore?.findSendByRelatedEntity?.('offer', offer.id);
+            if (send) {
+              await app.locals.ccoSendActionStore.linkDocument(send.sendId, { documentId: offer.id });
+            }
+          } catch (_linkErr) {
+            /* non-blocking */
+          }
           res.json(offer);
         } catch (err) {
           res.status(err.statusCode || 500).json({ error: err.message });
@@ -6354,6 +6363,15 @@ let ccoAgreementQuickStore = null;
           },
           { role }
         );
+        // Fas 7: länka signerat avtal tillbaka till utskicket.
+        try {
+          const send = app.locals.ccoSendActionStore?.findSendByRelatedEntity?.('agreement', ag.id);
+          if (send) {
+            await app.locals.ccoSendActionStore.linkDocument(send.sendId, { documentId: ag.id });
+          }
+        } catch (_linkErr) {
+          /* non-blocking */
+        }
         res.json(ag);
       } catch (err) {
         res.status(err.statusCode || 500).json({ error: err.message });
@@ -6727,6 +6745,7 @@ let ccoSendActionStore = null;
             dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
             templateRef: req.body?.templateRef || null,
             templateLang: req.body?.templateLang || 'sv',
+            conversationKey: req.body?.conversationKey || null,
           });
           res.json(result);
         } catch (err) {
@@ -6758,6 +6777,7 @@ let ccoSendActionStore = null;
             dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
             templateRef: req.body?.templateRef || null,
             templateLang: req.body?.templateLang || 'sv',
+            conversationKey: req.body?.conversationKey || null,
           });
           res.json(result);
         } catch (err) {
@@ -6792,6 +6812,7 @@ let ccoSendActionStore = null;
             dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
             templateRef: req.body?.templateRef || null,
             templateLang: req.body?.templateLang || 'sv',
+            conversationKey: req.body?.conversationKey || null,
           });
           res.json(result);
         } catch (err) {
@@ -6826,6 +6847,7 @@ let ccoSendActionStore = null;
             dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
             templateRef: req.body?.templateRef || null,
             templateLang: req.body?.templateLang || 'sv',
+            conversationKey: req.body?.conversationKey || null,
           });
           res.json(result);
         } catch (err) {

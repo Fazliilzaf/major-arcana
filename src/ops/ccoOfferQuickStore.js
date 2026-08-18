@@ -223,6 +223,9 @@ async function createCcoOfferQuickStore({
           offerId: offer.id,
           payload,
           role: normalizeText(actor?.role) || 'system',
+          conversationKey: null,
+          relatedEntityKind: 'offer',
+          relatedEntityId: offer.id,
         });
         if (result === undefined || result === null) {
           sendResult = { dryRun: true, delivered: false, reason: 'send_store_unavailable' };

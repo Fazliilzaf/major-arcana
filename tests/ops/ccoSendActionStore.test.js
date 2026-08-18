@@ -326,3 +326,73 @@ test('audit log append is called when provided', async () => {
     { auditLog }
   );
 });
+
+test('Fas 7: performSend kan bära conversationKey och relatedEntity', async () => {
+  await withTempStore(async (store) => {
+    const payload = store.buildFormPayload({
+      customerEmail: 'chain@example.com',
+      formKind: 'health_declaration',
+    });
+    const result = await store.performSend({
+      kind: 'form',
+      payload,
+      dryRunOverride: true,
+      conversationKey: 'conv-42',
+      relatedEntityKind: 'offer',
+      relatedEntityId: 'offer-123',
+    });
+    assert.equal(result.conversationKey, 'conv-42');
+    assert.equal(result.relatedEntityKind, 'offer');
+    assert.equal(result.relatedEntityId, 'offer-123');
+
+    const saved = store.listSends({})[0];
+    assert.equal(saved.conversationKey, 'conv-42');
+    assert.equal(saved.relatedEntityKind, 'offer');
+    assert.equal(saved.relatedEntityId, 'offer-123');
+  });
+});
+
+test('Fas 7: linkDocument kopplar dokument till utskick', async () => {
+  await withTempStore(async (store) => {
+    const payload = store.buildFormPayload({
+      customerEmail: 'link@example.com',
+      formKind: 'health_declaration',
+    });
+    const result = await store.performSend({ kind: 'form', payload, dryRunOverride: true });
+    const linked = await store.linkDocument(result.sendId, {
+      documentId: 'doc-99',
+      assetId: 'asset-88',
+    });
+    assert.equal(linked.linkedDocumentId, 'doc-99');
+    assert.equal(linked.linkedAssetId, 'asset-88');
+
+    const found = store.findSendByRelatedEntity('offer', 'offer-x');
+    assert.equal(found, null);
+  });
+});
+
+test('Fas 7: findSendByRelatedEntity returnerar senaste matchande utskick', async () => {
+  await withTempStore(async (store) => {
+    const payload = store.buildConsentPayload({
+      customerEmail: 'agree@example.com',
+      consentKind: 'photo_publish',
+    });
+    await store.performSend({
+      kind: 'consent',
+      payload,
+      dryRunOverride: true,
+      relatedEntityKind: 'agreement',
+      relatedEntityId: 'agr-1',
+    });
+    const latest = await store.performSend({
+      kind: 'consent',
+      payload,
+      dryRunOverride: true,
+      relatedEntityKind: 'agreement',
+      relatedEntityId: 'agr-1',
+    });
+    const found = store.findSendByRelatedEntity('agreement', 'agr-1');
+    assert.ok(found);
+    assert.equal(found.sendId, latest.sendId);
+  });
+});

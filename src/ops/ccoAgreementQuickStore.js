@@ -217,6 +217,9 @@ async function createCcoAgreementQuickStore({
           agreementId: agreement.id,
           payload,
           role: normalizeText(actor?.role) || 'system',
+          conversationKey: null,
+          relatedEntityKind: 'agreement',
+          relatedEntityId: agreement.id,
         });
         if (result === undefined || result === null) {
           sendResult = { dryRun: true, delivered: false, reason: 'send_store_unavailable' };

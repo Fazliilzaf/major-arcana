@@ -14,7 +14,7 @@ const path = require('node:path');
 // ccoAftercareSchedulerStore) får `buildFilePayload` + `performSend` härifrån.
 // ---------------------------------------------------------------------------
 
-const SEND_KINDS = ['form', 'consent', 'file', 'encounter', 'aftercare', 'notification'];
+const SEND_KINDS = ['form', 'consent', 'file', 'encounter', 'aftercare', 'notification', 'offer', 'agreement'];
 
 // Mall-kataloger — UI-dropdown läser id + dessa fält (server.js GET .../templates).
 // Nycklarna används som `formKind` / `consentKind` i route-koden.
@@ -324,6 +324,9 @@ async function createCcoSendActionStore({
     dryRunOverride = null,
     templateRef = null,
     templateLang = 'sv',
+    conversationKey = null,
+    relatedEntityKind = null,
+    relatedEntityId = null,
   } = {}) {
     const sendKind = normalizeKey(kind);
     if (!SEND_KINDS.includes(sendKind)) {
@@ -356,6 +359,11 @@ async function createCcoSendActionStore({
       templateLang: normalizeText(templateLang) || 'sv',
       templateSnapshot: templateSnapshot || null,
       meta: payload.meta || {},
+      conversationKey: normalizeText(conversationKey) || null,
+      relatedEntityKind: normalizeText(relatedEntityKind) || null,
+      relatedEntityId: normalizeText(relatedEntityId) || null,
+      linkedDocumentId: null,
+      linkedAssetId: null,
       createdAt: ts,
     };
 
@@ -420,9 +428,64 @@ async function createCcoSendActionStore({
       mode: record.mode || (dryRun ? 'dry-run' : null),
       messageId: record.messageId || null,
       templateSnapshot: record.templateSnapshot,
+      conversationKey: record.conversationKey,
+      relatedEntityKind: record.relatedEntityKind,
+      relatedEntityId: record.relatedEntityId,
+      linkedDocumentId: record.linkedDocumentId,
+      linkedAssetId: record.linkedAssetId,
       createdAt: record.createdAt,
       error: record.error || null,
     };
+  }
+
+  // -- Document / asset cross-linking (Fas 7) ---------------------------------
+
+  function requireSend(sendId) {
+    const id = normalizeText(sendId);
+    const idx = state.sends.findIndex((s) => s.sendId === id);
+    if (idx === -1) {
+      const e = new Error(`send ${id} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    return idx;
+  }
+
+  async function linkDocument(sendId, { documentId = null, assetId = null } = {}) {
+    const idx = requireSend(sendId);
+    const record = state.sends[idx];
+    const docId = normalizeText(documentId);
+    const aId = normalizeText(assetId);
+    if (docId) record.linkedDocumentId = docId;
+    if (aId) record.linkedAssetId = aId;
+    record.updatedAt = nowIso();
+    await save();
+    if (auditLog) {
+      auditLog.append({
+        action: 'cco.send.document_linked',
+        actor: { role: 'system', userId: null },
+        target: { kind: 'send', id: record.sendId },
+        detail: {
+          linkedDocumentId: record.linkedDocumentId,
+          linkedAssetId: record.linkedAssetId,
+        },
+      });
+    }
+    return { ...record };
+  }
+
+  function findSendByRelatedEntity(kind, entityId) {
+    const wantKind = normalizeText(kind);
+    const wantId = normalizeText(entityId);
+    if (!wantKind || !wantId) return null;
+    return state.sends
+      .filter(
+        (s) =>
+          s.relatedEntityKind === wantKind &&
+          s.relatedEntityId === wantId
+      )
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+      .map((s) => ({ ...s }))[0] || null;
   }
 
   // -- Read ------------------------------------------------------------------
@@ -468,6 +531,8 @@ async function createCcoSendActionStore({
     buildFilePayload,
     buildEncounterPayload,
     performSend,
+    linkDocument,
+    findSendByRelatedEntity,
     listSends,
     stats,
   };

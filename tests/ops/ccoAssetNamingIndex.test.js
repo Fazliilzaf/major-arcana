@@ -77,3 +77,29 @@ test('buildAssetNamingMetadata: ett redan lågkonfident foto hålls tillbaka pre
   const result = buildAssetNamingMetadata(asset, { siblingAssets: [asset] });
   assert.equal(result.namingStatus, 'needs_review_for_naming');
 });
+
+
+test('Fas 7: buildAssetNamingMetadata använder journeyStep från asset i displayName', () => {
+  const asset = {
+    id: 'a1',
+    category: 'agreement',
+    documentTitle: 'Behandlingsavtal',
+    documentDate: '2026-06-01',
+    importedAt: '2026-06-01T10:00:00.000Z',
+    journeyStep: '7',
+  };
+  const result = buildAssetNamingMetadata(asset, { siblingAssets: [asset] });
+  assert.ok(result.displayName.startsWith('Steg 7 ·'), result.displayName);
+});
+
+test('Fas 7: buildAssetNamingMetadata utan journeyStep påverkas inte', () => {
+  const asset = {
+    id: 'a1',
+    category: 'agreement',
+    documentTitle: 'Behandlingsavtal',
+    documentDate: '2026-06-01',
+    importedAt: '2026-06-01T10:00:00.000Z',
+  };
+  const result = buildAssetNamingMetadata(asset, { siblingAssets: [asset] });
+  assert.ok(!result.displayName.includes('Steg'), result.displayName);
+});

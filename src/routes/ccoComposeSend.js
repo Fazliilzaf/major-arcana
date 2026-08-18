@@ -43,6 +43,7 @@ function createCcoComposeSendRouter({
             draftId,
             tenantId: text(req.auth?.tenantId) || 'hairtpclinic',
             actor: { userId: text(req.auth?.userId) || text(req.cco?.role) || 'owner' },
+            conversationKey: text(req.body?.conversationKey) || null,
           },
           {
             draftStore,

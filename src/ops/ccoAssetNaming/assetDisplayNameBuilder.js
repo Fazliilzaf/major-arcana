@@ -83,6 +83,12 @@ function buildGenericDocumentDisplayName(asset = {}, ctx = {}) {
   return status ? `${date} · ${title} · ${status}` : `${date} · ${title}`;
 }
 
+function applyJourneyStep(displayName, journeyStep) {
+  const step = normalizeText(journeyStep);
+  if (!step || !displayName) return displayName;
+  return `Steg ${step} · ${displayName}`;
+}
+
 /**
  * @param {object} asset — med category/subCategory/documentTitle fyllda
  * @param {object} ctx — encounter resolver output
@@ -90,61 +96,71 @@ function buildGenericDocumentDisplayName(asset = {}, ctx = {}) {
 function buildAssetDisplayName(asset = {}, ctx = {}) {
   const cat = normalizeText(asset.category);
   const sub = normalizeText(asset.subCategory);
+  const journeyStep = normalizeText(ctx.journeyStep || asset.journeyStep);
 
   if (cat === 'journal' || cat === 'cco_journal_sign') {
     return {
-      displayName: buildJournalDisplayName(asset, ctx),
+      displayName: applyJourneyStep(buildJournalDisplayName(asset, ctx), journeyStep),
       namingConfidence: ctx.namingConfidence || 'high',
     };
   }
   if (cat === 'form' || sub === 'health_declaration' || sub === 'fitness_certificate') {
     return {
-      displayName: buildFormDisplayName(asset, ctx),
+      displayName: applyJourneyStep(buildFormDisplayName(asset, ctx), journeyStep),
       namingConfidence: ctx.namingConfidence || 'high',
     };
   }
   if (cat === 'consent' || cat === 'agreement' || sub === 'consent' || sub === 'agreement') {
     return {
-      displayName: buildConsentAgreementDisplayName(asset, ctx),
+      displayName: applyJourneyStep(buildConsentAgreementDisplayName(asset, ctx), journeyStep),
       namingConfidence: ctx.namingConfidence || 'medium',
     };
   }
   if (cat === 'offer' || sub === 'offer') {
     return {
-      displayName: buildOfferDisplayName(asset, ctx),
+      displayName: applyJourneyStep(buildOfferDisplayName(asset, ctx), journeyStep),
       namingConfidence: ctx.namingConfidence || 'medium',
     };
   }
   if (sub === 'treatment_plan' || /behandlingsplan|ritning/i.test(asset.originalFileName || '')) {
     return {
-      displayName: buildTreatmentPlanDisplayName(asset, ctx),
+      displayName: applyJourneyStep(buildTreatmentPlanDisplayName(asset, ctx), journeyStep),
       namingConfidence: ctx.namingConfidence || 'medium',
     };
   }
   if (sub === 'aftercare') {
     const date = parseIsoDate(asset.documentDate) || 'okänt datum';
     return {
-      displayName: `${date} · Eftervård · ${docStatusLabel(asset) || 'dokument'}`,
+      displayName: applyJourneyStep(
+        `${date} · Eftervård · ${docStatusLabel(asset) || 'dokument'}`,
+        journeyStep
+      ),
       namingConfidence: 'medium',
     };
   }
   if (sub === 'follow_up') {
     const date = parseIsoDate(asset.documentDate) || 'okänt datum';
     return {
-      displayName: `${date} · Uppföljning · ${docStatusLabel(asset) || 'dokument'}`,
+      displayName: applyJourneyStep(
+        `${date} · Uppföljning · ${docStatusLabel(asset) || 'dokument'}`,
+        journeyStep
+      ),
       namingConfidence: 'medium',
     };
   }
   if (cat === 'aisia_report') {
     const date = parseIsoDate(asset.documentDate) || 'okänt datum';
     return {
-      displayName: `${date} · Aisia · Rapport · ${docStatusLabel(asset) || 'importerad'}`,
+      displayName: applyJourneyStep(
+        `${date} · Aisia · Rapport · ${docStatusLabel(asset) || 'importerad'}`,
+        journeyStep
+      ),
       namingConfidence: 'high',
     };
   }
 
   return {
-    displayName: buildGenericDocumentDisplayName(asset, ctx),
+    displayName: applyJourneyStep(buildGenericDocumentDisplayName(asset, ctx), journeyStep),
     namingConfidence: ctx.namingConfidence || 'low',
   };
 }
