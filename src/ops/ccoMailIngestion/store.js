@@ -823,23 +823,50 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     return { removed, requeued };
   }
 
+  // Incident 2026-08-18 — OÄNDLIG LOOP (införd 2026-05-26 i 9223c7d3, som
+  // bytte en ofarlig `for...of` mot den här shift/push-loopen).
+  //
+  // Buggen: ett meddelande som tillhör en ANNAN brevlåda än filtret plockades
+  // av kön med queueShift() och lades tillbaka med queuePush() — inne i samma
+  // loop som villkoras på `state.processingQueue.length > 0`. Kön krympte
+  // därmed aldrig: samma id shiftades av och pushades tillbaka i all evighet.
+  //
+  // Utlöstes så fort kön innehöll minst ett meddelande för en annan brevlåda
+  // och inga fler matchande fanns kvar — dvs. exakt när alla meddelanden för
+  // den filtrerade brevlådan hade processats klart. Det förklarar den
+  // observerade signaturen: sista raden var alltid "klar raw=... (0ms)", och
+  // "batch klar" kom aldrig, eftersom loopen aldrig lämnade dequeue-anropet.
+  // Ren synkron CPU utan allokering, loggning eller timers → total tystnad,
+  // hälsokollen föll, Render tvångsstartade om, och kön låg kvar oförändrad
+  // eftersom save() aldrig nåddes. Reproducerat: hänger på 1 meddelande.
+  //
+  // Fixen: samla "fel brevlåda"-id:n vid sidan om och lägg tillbaka dem
+  // FÖRST när loopen är klar. Kön krymper monotont under loopen, så den
+  // terminerar alltid. Slutresultatet är oförändrat: främmande meddelanden
+  // ligger kvar i kön (sist, precis som förut) och det matchande returneras.
   function dequeueNextRawMessageId({ mailboxEmail = '' } = {}) {
     const normalized = normalizeEmail(mailboxEmail);
+    const deferred = [];
+    let found = null;
     while (state.processingQueue.length > 0) {
       const rawMessageId = queueShift();
       const raw = state.mailRawMessages[rawMessageId];
       if (!raw) continue;
       if (normalized && normalizeEmail(raw.mailboxId) !== normalized) {
-        queuePush(rawMessageId);
+        deferred.push(rawMessageId);
         continue;
       }
       const ledger = getLedgerByRawMessageId(rawMessageId);
       if (ledger && shouldSkipProcessing(ledger)) {
         continue;
       }
-      return rawMessageId;
+      found = rawMessageId;
+      break;
     }
-    return null;
+    for (const rawMessageId of deferred) {
+      queuePush(rawMessageId);
+    }
+    return found;
   }
 
   function listReviewQueue({
