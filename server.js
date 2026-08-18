@@ -11432,22 +11432,20 @@ process.once('SIGTERM', () => {
         config.publicBaseUrl || process.env.PUBLIC_BASE_URL || 'https://arcana.hairtpclinic.com',
       logger: console,
     }),
+    // Incident 2026-08-18: körde tidigare listPatients({ limit: 20000 }) +
+    // manuell .map() här. listPatients gör en full JSON.parse(JSON.stringify)-
+    // djupklon (clonePatient) av varje patient plus en localeCompare-sortering
+    // över hela registret — uppmätt till +517 MB heap och flera sekunders
+    // synkront CPU-arbete (se kommentar vid listPatientMatchDirectory i
+    // ccoPatientMasterStore.js). Detta körde en gång per processQueue-batch,
+    // INNAN något meddelande hunnit processas, och blockerade event-loopen
+    // tillräckligt länge för att fälla Render-hälsokollen (5s timeout) och
+    // tvinga fram en omstart. listPatientMatchDirectory returnerar exakt
+    // samma fältform utan klon/sortering.
     patientDirectoryProvider: async () => {
       const tenantId = config.defaultTenantId || 'hair-tp-clinic';
-      const listed = await ccoPatientMasterStore.listPatients({ tenantId, limit: 20000 });
-      return (listed.patients || []).map((patient) => ({
-        id: patient.id,
-        patientId: patient.id,
-        personnummer: patient.personnummer,
-        primaryEmail: patient.primaryEmail,
-        personalEmail: patient.primaryEmail,
-        verifiedPersonalEmailNormalized: String(patient.primaryEmail || '')
-          .trim()
-          .toLowerCase(),
-        emails: patient.emails,
-        phones: patient.phones,
-        primaryPhone: patient.primaryPhone,
-      }));
+      const listed = await ccoPatientMasterStore.listPatientMatchDirectory({ tenantId });
+      return listed.patients || [];
     },
     logger: console,
   });
