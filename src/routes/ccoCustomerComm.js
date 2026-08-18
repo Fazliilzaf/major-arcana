@@ -227,6 +227,7 @@ function createCcoCustomerCommRouter({
           threadStore,
           assetStore,
           portalMessageStore,
+          sendActionStore,
         });
         return res.json(payload);
       } catch (error) {

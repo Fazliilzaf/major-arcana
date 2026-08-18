@@ -94,7 +94,8 @@ async function walkToQueued(draftStore, draft, tenantId, actor) {
 }
 
 /**
- * @param {{draftId:string, tenantId?:string, actor?:object, forceLive?:boolean, from?:string}} ref
+ * @param {{draftId:string, tenantId?:string, actor?:object, forceLive?:boolean, from?:string,
+ *          conversationKey?:string}} ref
  * @param {{draftStore:object, patientMasterStore?:object, graphSendAdapter?:object,
  *          sendStore?:object}} stores
  * @returns {Promise<{status:'sent'|'skipped'|'failed', reason?:string, channel?:string,
@@ -172,6 +173,9 @@ async function deliverComposeDraft(ref = {}, stores = {}) {
         customerId: draft.customerId,
         userId: text(actor.userId) || 'owner',
         dryRunOverride: false,
+        conversationKey: text(ref.conversationKey) || null,
+        relatedEntityKind: 'draft',
+        relatedEntityId: draftId,
       });
       ok = r?.ok !== false;
       messageId = r?.messageId || null;

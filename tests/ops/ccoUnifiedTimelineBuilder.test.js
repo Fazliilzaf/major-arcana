@@ -271,3 +271,88 @@ test('Fas 6: portal-meddelanden dyker upp i tidslinjen med rätt kinds', async (
 
   assert.equal(result.counts.communication, 3);
 });
+
+
+test('Fas 7: sendAction + agreement signerat grupperas till dokumentkedja', async () => {
+  const sendActionStore = {
+    findSendByRelatedEntity(kind, entityId) {
+      if (kind === 'agreement' && entityId === 'agr-1') {
+        return { sendId: 'send-42' };
+      }
+      return null;
+    },
+  };
+  const threadStore = makeThreadStore([
+    {
+      threadId: 'send-42',
+      kind: 'file_sent',
+      ts: '2026-06-01T08:00:00.000Z',
+      subject: 'Avtal för signering',
+      sendActionId: 'send-42',
+      relatedEntityKind: 'agreement',
+      relatedEntityId: 'agr-1',
+    },
+  ]);
+  const agreementStore = {
+    listForCustomer() {
+      return [
+        {
+          agreementId: 'agr-1',
+          title: 'Behandlingsavtal',
+          signedAt: '2026-06-03T10:00:00.000Z',
+        },
+      ];
+    },
+  };
+
+  const result = await buildUnifiedTimeline({
+    customerId: 'cust-chain',
+    threadStore,
+    agreementStore,
+    sendActionStore,
+  });
+
+  const chain = result.events.find((e) => e.kind === 'document_chain');
+  assert.ok(chain, 'document_chain ska finnas');
+  assert.equal(chain.meta.chainId, 'send-42');
+  assert.equal(chain.meta.eventCount, 2);
+  assert.ok(chain.meta.kinds.includes('file_sent'));
+  assert.ok(chain.meta.kinds.includes('agreement_signed'));
+  assert.equal(chain.displayType, 'dokumentkedja');
+  // Kedje-eventen ska ha ersatts av kedjan, inte dubblerats.
+  assert.equal(result.events.filter((e) => e.kind === 'file_sent').length, 0);
+  assert.equal(result.events.filter((e) => e.kind === 'agreement_signed').length, 0);
+});
+
+test('Fas 7: asset med sourceSendId länkas till utskick i tidslinjen', async () => {
+  const assetStore = makeAssetStore([
+    {
+      id: 'asset-linked',
+      status: ASSET_VISIBLE_STATUS,
+      category: 'agreement',
+      documentDate: '2026-06-03T10:00:00.000Z',
+      sourceSendId: 'send-42',
+      conversationKey: 'conv-42',
+    },
+  ]);
+  const threadStore = makeThreadStore([
+    {
+      threadId: 'send-42',
+      kind: 'file_sent',
+      ts: '2026-06-01T08:00:00.000Z',
+      subject: 'Avtal',
+      sendActionId: 'send-42',
+    },
+  ]);
+
+  const result = await buildUnifiedTimeline({
+    customerId: 'cust-asset-chain',
+    threadStore,
+    assetStore,
+  });
+
+  const chain = result.events.find((e) => e.kind === 'document_chain');
+  assert.ok(chain, 'asset + send ska kedja');
+  assert.equal(chain.meta.chainId, 'send-42');
+  assert.ok(chain.meta.kinds.includes('asset_uploaded'));
+});

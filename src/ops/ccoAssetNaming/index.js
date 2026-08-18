@@ -62,6 +62,7 @@ function buildAssetNamingMetadata(asset = {}, ctx = {}) {
     namingResult = buildAssetDisplayName(merged, {
       ...encounter,
       namingConfidence: classification.confidence,
+      journeyStep: asset.journeyStep || null,
     });
   }
 

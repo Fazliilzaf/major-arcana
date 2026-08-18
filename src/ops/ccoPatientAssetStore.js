@@ -311,6 +311,11 @@ function normalizeAsset(input = {}, existing = {}) {
     reviewedBy: normalizeText(safe.reviewedBy || ex.reviewedBy) || null,
     reviewedAt: normalizeText(safe.reviewedAt || ex.reviewedAt) || null,
     reviewReason: normalizeText(safe.reviewReason || ex.reviewReason) || null,
+    // Fas 7: spårning tillbaka till utskick / konversation.
+    sourceSendId: normalizeText(safe.sourceSendId || ex.sourceSendId) || null,
+    conversationKey: normalizeText(safe.conversationKey || ex.conversationKey) || null,
+    // Fas 7: resa-steg för dokumentetiketter (valfritt).
+    journeyStep: normalizeText(safe.journeyStep || ex.journeyStep) || null,
     encounterMappingStatus:
       normalizeText(safe.encounterMappingStatus || ex.encounterMappingStatus) || null,
     encounterMappingReviewedAt:
@@ -1400,6 +1405,9 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       'reviewedBy',
       'reviewedAt',
       'reviewReason',
+      'sourceSendId',
+      'conversationKey',
+      'journeyStep',
       'oldCategory',
       'technicalInfo',
       'encounterMappingStatus',
@@ -1444,6 +1452,45 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     state.items[assetId] = merged;
     await save();
     logAudit(auditLog, 'asset.linked_to_encounter', merged, actor, 'ok', {});
+    return { ...merged };
+  }
+
+  /**
+   * Fas 7: koppla asset tillbaka till det utskick som producerade den.
+   * Sätter sourceSendId + eventuell conversationKey utan att röra binär eller
+   * patientkoppling.
+   */
+  async function linkAssetToSendAction(
+    id,
+    { sendId = null, conversationKey = null, actor = {}, reason = null } = {}
+  ) {
+    const assetId = normalizeText(id);
+    const existing = state.items[assetId];
+    if (!existing) {
+      const e = new Error(`asset ${assetId} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    const sId = normalizeText(sendId);
+    if (!sId) {
+      const e = new Error('sendId krävs.');
+      e.statusCode = 400;
+      throw e;
+    }
+    const merged = normalizeAsset(
+      {
+        ...existing,
+        sourceSendId: sId,
+        conversationKey: normalizeText(conversationKey) || existing.conversationKey || null,
+      },
+      existing
+    );
+    state.items[assetId] = merged;
+    await save();
+    logAudit(auditLog, 'asset.linked_to_send_action', merged, actor, 'ok', {
+      sendId: sId,
+      reason: reason || null,
+    });
     return { ...merged };
   }
 
@@ -1817,6 +1864,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     recordChecksumVerified,
     linkAssetToPatient,
     linkAssetToEncounter,
+    linkAssetToSendAction,
     softDeleteAsset,
     restoreRejectedAndLinkPatient,
     hardDeleteAsset,

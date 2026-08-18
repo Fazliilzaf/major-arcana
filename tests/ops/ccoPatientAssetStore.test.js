@@ -1245,3 +1245,39 @@ test('restoreRejectedAndLinkPatient: REJECTED pipedrive_import → VISIBLE med p
     await fs.rm(tmp, { recursive: true, force: true });
   }
 });
+
+
+test('Fas 7: linkAssetToSendAction kopplar asset till utskick och conversationKey', async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-asset-link-'));
+  try {
+    const store = await createCcoPatientAssetStore({ filePath: path.join(tmp, 'assets.json') });
+    const asset = await store.addAsset(
+      {
+        patientId: 'pat-link',
+        sourceSystem: 'upload',
+        category: 'agreement',
+        status: 'NEEDS_REVIEW',
+      },
+      { actor: { role: 'staff', userId: 'u1' } }
+    );
+    const linked = await store.linkAssetToSendAction(asset.id, {
+      sendId: 'send-42',
+      conversationKey: 'conv-42',
+      actor: { role: 'staff', userId: 'u1' },
+      reason: 'fas7_test',
+    });
+    assert.equal(linked.sourceSendId, 'send-42');
+    assert.equal(linked.conversationKey, 'conv-42');
+
+    // Tillåten via patchAssetNamingMetadata också.
+    const patched = await store.patchAssetNamingMetadata(
+      asset.id,
+      { sourceSendId: 'send-43', journeyStep: '7' },
+      { actor: { role: 'staff', userId: 'u1' }, reason: 'fas7_patch' }
+    );
+    assert.equal(patched.sourceSendId, 'send-43');
+    assert.equal(patched.journeyStep, '7');
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
