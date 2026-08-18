@@ -772,6 +772,115 @@ function createCmRouter({
     }
   );
 
+  // ORD-CM-? · Bulk-unpromote: återkalla handed_off CM-records där
+  // motsvarande CFO-expense saknas eller har avvisats, så att posterna
+  // kan granskas / promotas på nytt.
+  router.post(
+    '/cm/expense-records/bulk-unpromote',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    express.json({ limit: '1mb' }),
+    async (req, res) => {
+      try {
+        if (!cfoExpenseStore) {
+          return res
+            .status(503)
+            .json({
+              ok: false,
+              error: 'cfoExpenseStore ej monterad — bulk-unpromote otillgänglig',
+            });
+        }
+        const body = req.body || {};
+        const dryRun = body.dryRun !== false;
+        const confirm = body.confirm === true;
+        if (!confirm && !dryRun) {
+          return res.status(400).json({
+            ok: false,
+            error: 'confirm måste vara true för att utföra bulk-unpromote',
+          });
+        }
+        const includeRejectedCfo = body.includeRejectedCfo === true;
+        const actor = req.user?.id || req.user?.email || req.auth?.userId || 'owner';
+        const reason = String(
+          body.reason || 'CFO-expense saknas eller är avvisad — återkallad för omgranskning'
+        ).trim();
+
+        const records =
+          typeof cmStore.getExpenseRecordById === 'function'
+            ? [
+                ...(cmStore.getInbox?.() || []),
+                ...(cmStore.getNeedsReview?.() || []),
+                ...(cmStore.getInvoices?.() || []),
+                ...(cmStore.getReceipts?.() || []),
+                ...(cmStore.getTravel?.() || []),
+                ...(cmStore.getApprovalQueue?.() || []),
+                ...(cmStore.getReadyForBookkeeping?.() || []),
+                ...(cmStore.getExported?.() || []),
+              ]
+            : [];
+
+        const seen = new Set();
+        const candidates = [];
+        for (const r of records) {
+          if (seen.has(r.id)) continue;
+          seen.add(r.id);
+          if (!r.cfoExpenseId) continue;
+          if (r.approvalStatus === 'rejected') continue;
+          const existing = cfoExpenseStore.getById(r.cfoExpenseId);
+          if (!existing) {
+            candidates.push(r);
+          } else if (includeRejectedCfo && existing.status === 'rejected') {
+            candidates.push(r);
+          }
+        }
+
+        const unpromoted = [];
+        const skipped = [];
+        const errors = [];
+
+        for (const r of candidates) {
+          try {
+            if (dryRun) {
+              unpromoted.push({ id: r.id, cfoExpenseId: r.cfoExpenseId, supplier: r.supplierName });
+              continue;
+            }
+            const result = cmStore.unpromote(r.id, { actor, reason });
+            if (result) {
+              unpromoted.push({
+                id: r.id,
+                previousCfoExpenseId: r.cfoExpenseId,
+                supplier: r.supplierName,
+              });
+            } else {
+              skipped.push({ id: r.id, reason: 'unpromote returnerade null' });
+            }
+          } catch (e) {
+            errors.push({ id: r.id, error: e.message });
+          }
+        }
+
+        if (!dryRun) {
+          await cmStore.persist();
+        }
+
+        return res.json({
+          ok: true,
+          dryRun,
+          includeRejectedCfo,
+          candidateCount: candidates.length,
+          unpromotedCount: unpromoted.length,
+          skippedCount: skipped.length,
+          errorCount: errors.length,
+          unpromoted: unpromoted.slice(0, 100),
+          skipped: skipped.slice(0, 20),
+          errors: errors.slice(0, 20),
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   router.get('/cm/raw-items/:id', requireAuth, requireRole(ROLE_OWNER), (req, res) => {
     const raw =
       typeof cmStore.getRawItemById === 'function' ? cmStore.getRawItemById(req.params.id) : null;

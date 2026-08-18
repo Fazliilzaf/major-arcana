@@ -369,6 +369,26 @@ function createCmStore({ filePath }) {
     return record;
   }
 
+  // ORD-CM-? · Återkalla en handed_off-post till CM när motsvarande
+  // CFO-expense saknas eller avvisats. Nollställer cfoExpenseId och sätter
+  // bookkeepingStatus till pending så posten kan granskas / promotas på nytt.
+  function unpromote(recordId, { actor, reason } = {}) {
+    const record = state.expenseRecords.find((r) => r.id === recordId);
+    if (!record) return null;
+    if (record.approvalStatus === 'rejected') return null;
+    const previousCfoExpenseId = record.cfoExpenseId;
+    record.bookkeepingStatus = 'pending';
+    record.cfoExpenseId = null;
+    record.updatedAt = nowIso();
+    audit('cm.expense_record.unpromoted', {
+      recordId,
+      previousCfoExpenseId,
+      actor,
+      reason: normalizeText(reason),
+    });
+    return record;
+  }
+
   // ─── SYNC STATE (ORD-64 · delta-cursor per mailbox+folder) ───
 
   function getSyncState(mailboxId, folderType) {
@@ -716,6 +736,7 @@ function createCmStore({ filePath }) {
     reject,
     markExported,
     markHandedOff,
+    unpromote,
     getSyncState,
     setSyncState,
     addLedgerEntry,
