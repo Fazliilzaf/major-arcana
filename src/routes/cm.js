@@ -783,12 +783,10 @@ function createCmRouter({
     async (req, res) => {
       try {
         if (!cfoExpenseStore) {
-          return res
-            .status(503)
-            .json({
-              ok: false,
-              error: 'cfoExpenseStore ej monterad — bulk-unpromote otillgänglig',
-            });
+          return res.status(503).json({
+            ok: false,
+            error: 'cfoExpenseStore ej monterad — bulk-unpromote otillgänglig',
+          });
         }
         const body = req.body || {};
         const dryRun = body.dryRun !== false;
@@ -800,6 +798,7 @@ function createCmRouter({
           });
         }
         const includeRejectedCfo = body.includeRejectedCfo === true;
+        const clearRejectedStaleLinks = body.clearRejectedStaleLinks !== false;
         const actor = req.user?.id || req.user?.email || req.auth?.userId || 'owner';
         const reason = String(
           body.reason || 'CFO-expense saknas eller är avvisad — återkallad för omgranskning'
@@ -820,25 +819,30 @@ function createCmRouter({
             : [];
 
         const seen = new Set();
-        const candidates = [];
+        const unpromoteCandidates = [];
+        const clearLinkCandidates = [];
         for (const r of records) {
           if (seen.has(r.id)) continue;
           seen.add(r.id);
           if (!r.cfoExpenseId) continue;
-          if (r.approvalStatus === 'rejected') continue;
           const existing = cfoExpenseStore.getById(r.cfoExpenseId);
-          if (!existing) {
-            candidates.push(r);
-          } else if (includeRejectedCfo && existing.status === 'rejected') {
-            candidates.push(r);
+          const cfoIsMissingOrRejected =
+            !existing || (includeRejectedCfo && existing.status === 'rejected');
+          if (!cfoIsMissingOrRejected) continue;
+
+          if (r.approvalStatus === 'rejected') {
+            if (clearRejectedStaleLinks) clearLinkCandidates.push(r);
+          } else {
+            unpromoteCandidates.push(r);
           }
         }
 
         const unpromoted = [];
+        const cleared = [];
         const skipped = [];
         const errors = [];
 
-        for (const r of candidates) {
+        for (const r of unpromoteCandidates) {
           try {
             if (dryRun) {
               unpromoted.push({ id: r.id, cfoExpenseId: r.cfoExpenseId, supplier: r.supplierName });
@@ -859,6 +863,27 @@ function createCmRouter({
           }
         }
 
+        for (const r of clearLinkCandidates) {
+          try {
+            if (dryRun) {
+              cleared.push({ id: r.id, cfoExpenseId: r.cfoExpenseId, supplier: r.supplierName });
+              continue;
+            }
+            const result = cmStore.clearCfoExpenseId(r.id, { actor, reason });
+            if (result) {
+              cleared.push({
+                id: r.id,
+                previousCfoExpenseId: r.cfoExpenseId,
+                supplier: r.supplierName,
+              });
+            } else {
+              skipped.push({ id: r.id, reason: 'clearCfoExpenseId returnerade null' });
+            }
+          } catch (e) {
+            errors.push({ id: r.id, error: e.message });
+          }
+        }
+
         if (!dryRun) {
           await cmStore.persist();
         }
@@ -867,11 +892,16 @@ function createCmRouter({
           ok: true,
           dryRun,
           includeRejectedCfo,
-          candidateCount: candidates.length,
+          clearRejectedStaleLinks,
+          unpromoteCandidateCount: unpromoteCandidates.length,
+          clearLinkCandidateCount: clearLinkCandidates.length,
+          candidateCount: unpromoteCandidates.length + clearLinkCandidates.length,
           unpromotedCount: unpromoted.length,
+          clearedCount: cleared.length,
           skippedCount: skipped.length,
           errorCount: errors.length,
           unpromoted: unpromoted.slice(0, 100),
+          cleared: cleared.slice(0, 100),
           skipped: skipped.slice(0, 20),
           errors: errors.slice(0, 20),
         });
