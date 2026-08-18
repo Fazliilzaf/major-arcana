@@ -10528,6 +10528,16 @@ try {
   console.error('[memory-telemetry] init failed:', err && err.message);
 }
 
+// --- Process diagnostics ----------------------------------------------
+// 1-sekunders heartbeat + event-loop-delay + GC-pauses + signal-handlers.
+// No-op om ARCANA_DIAG_HEARTBEAT inte är 'true'.
+try {
+  const { startHeartbeat } = require('./src/ops/processDiagnostics');
+  startHeartbeat({ logger: console });
+} catch (err) {
+  console.error('[process-diagnostics] init failed:', err && err.message);
+}
+
 process.once('SIGINT', () => {
   void shutdown('SIGINT');
 });
