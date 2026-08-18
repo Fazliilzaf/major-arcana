@@ -232,6 +232,53 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     ledgerByRawMessageId.set(rawMessageId, ledger);
   }
 
+  // Incident 2026-08-18 04:49 UTC — reconcileProcessingQueue loopar över
+  // SAMTLIGA ledgers (alla brevlådor, ingen pruning) och anropade tidigare
+  // enqueueRawMessageId, som gjorde state.processingQueue.includes(...) — en
+  // O(kölängd)-scan PER ledger. Med tusentals ackumulerade ledgers blev hela
+  // reconciliation-passet O(n²) och blockerade event-loopen tillräckligt
+  // länge för att Render-hälsokollen missade ett svar och startade om
+  // instansen (samma symptom som JSON.stringify-blockeringen i #1410, men en
+  // helt annan orsak). processingQueueSet ger O(1)-medlemskap istället.
+  //
+  // state.processingQueue MÅSTE förbli en vanlig array — ordningen spelar
+  // roll (FIFO-dequeue via shift, och det är arrayen som faktiskt
+  // persisteras till disk). processingQueueSet är en runtime-cache som
+  // ALLTID muteras tillsammans med arrayen via helpers nedan. Inga andra
+  // ställen i filen får skriva till state.processingQueue direkt — annars
+  // kommer Set:et ur synk och medlemskapskontroller blir tysta fel.
+  const processingQueueSet = new Set(state.processingQueue);
+
+  function queueHas(rawMessageId) {
+    return processingQueueSet.has(rawMessageId);
+  }
+
+  function queuePush(rawMessageId) {
+    if (processingQueueSet.has(rawMessageId)) return false;
+    state.processingQueue.push(rawMessageId);
+    processingQueueSet.add(rawMessageId);
+    return true;
+  }
+
+  function queueShift() {
+    const rawMessageId = state.processingQueue.shift();
+    if (rawMessageId !== undefined) {
+      processingQueueSet.delete(rawMessageId);
+    }
+    return rawMessageId;
+  }
+
+  // Ersätter en fullständig omtilldelning av state.processingQueue (t.ex.
+  // efter ett .filter()) och håller processingQueueSet i synk med den nya
+  // arrayen. Använd denna istället för `state.processingQueue = x` direkt.
+  function queueReplaceAll(nextQueue) {
+    state.processingQueue = nextQueue;
+    processingQueueSet.clear();
+    for (const rawMessageId of nextQueue) {
+      processingQueueSet.add(rawMessageId);
+    }
+  }
+
   async function save() {
     state.updatedAt = nowIso();
     await writeJsonAtomic(resolvedPath, state);
@@ -402,7 +449,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       }
       kept.push(rawMessageId);
     }
-    state.processingQueue = kept;
+    queueReplaceAll(kept);
     return removed;
   }
 
@@ -469,12 +516,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       }
       const existingLedger = getLedgerByRawMessageId(existingRawId);
       let queued = false;
-      if (
-        existingLedger &&
-        !shouldSkipProcessing(existingLedger) &&
-        !state.processingQueue.includes(existingRawId)
-      ) {
-        state.processingQueue.push(existingRawId);
+      if (existingLedger && !shouldSkipProcessing(existingLedger) && queuePush(existingRawId)) {
         queued = true;
       }
       if (enriched || queued) {
@@ -559,9 +601,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     state.mailProcessingLedger[ledger.id] = ledger;
     indexLedger(ledger);
 
-    if (!state.processingQueue.includes(rawMessage.id)) {
-      state.processingQueue.push(rawMessage.id);
-    }
+    queuePush(rawMessage.id);
 
     return { rawMessage, ledger, duplicate: false, created: true };
   }
@@ -617,7 +657,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       }
     }
 
-    state.processingQueue = state.processingQueue.filter((rawId) => !removedRawIds.has(rawId));
+    queueReplaceAll(state.processingQueue.filter((rawId) => !removedRawIds.has(rawId)));
 
     // Konversationer Fas 1 — rensa trådidentiteter som berör borttagna råmeddelanden
     // eller tillhör den återställda mailboxen.
@@ -751,14 +791,13 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
 
   function isQueued(rawMessageId = '') {
     const normalized = normalizeText(rawMessageId);
-    return normalized ? state.processingQueue.includes(normalized) : false;
+    return normalized ? queueHas(normalized) : false;
   }
 
   function enqueueRawMessageId(rawMessageId = '') {
     const normalized = normalizeText(rawMessageId);
-    if (!normalized || state.processingQueue.includes(normalized)) return false;
-    state.processingQueue.push(normalized);
-    return true;
+    if (!normalized) return false;
+    return queuePush(normalized);
   }
 
   function getRawMessage(rawMessageId = '') {
@@ -787,12 +826,11 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
   function dequeueNextRawMessageId({ mailboxEmail = '' } = {}) {
     const normalized = normalizeEmail(mailboxEmail);
     while (state.processingQueue.length > 0) {
-      const rawMessageId = state.processingQueue[0];
-      state.processingQueue.shift();
+      const rawMessageId = queueShift();
       const raw = state.mailRawMessages[rawMessageId];
       if (!raw) continue;
       if (normalized && normalizeEmail(raw.mailboxId) !== normalized) {
-        state.processingQueue.push(rawMessageId);
+        queuePush(rawMessageId);
         continue;
       }
       const ledger = getLedgerByRawMessageId(rawMessageId);
@@ -1135,7 +1173,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
   }
 
   async function completeQueuedMessage(rawMessageId = '') {
-    state.processingQueue = state.processingQueue.filter((item) => item !== rawMessageId);
+    queueReplaceAll(state.processingQueue.filter((item) => item !== rawMessageId));
     await save();
   }
 
@@ -1170,7 +1208,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
   async function completeQueuedMessages(rawMessageIds = [], { persist = true } = {}) {
     const remove = new Set(asArray(rawMessageIds).filter(Boolean));
     if (remove.size === 0) return;
-    state.processingQueue = state.processingQueue.filter((item) => !remove.has(item));
+    queueReplaceAll(state.processingQueue.filter((item) => !remove.has(item)));
     if (persist) {
       await save();
     }
