@@ -196,6 +196,45 @@ async function createCcoMailboxTruthShardedStore({
   // the persistent disk and can be reopened on demand.
   const shardCache = new Map();
   const safeMaxLoadedShards = Math.max(1, Number(maxLoadedShards) || 2);
+
+  // TYST NOLLRESULTAT VID OLADDAD SHARD.
+  //
+  // listMessages hoppade tidigare tyst över varje brevlåda som inte råkade
+  // ligga i LRU:n (`if (!store) continue;`). En anropare som frågade efter
+  // åtta brevlådor men bara hade två laddade fick svaret "inga träffar" —
+  // omöjligt att skilja från en brevlåda som verkligen saknar meddelanden.
+  //
+  // Enligt kodkommentarerna i den här filen och i ccoConversationThreadStore
+  // har exakt det gett fel svar minst fyra gånger: korsbrevlåderapporten som
+  // "såg" två brevlådor, `listMessages({})` som tyst betydde "de laddade",
+  // tomma konversationstrådar utan felmeddelande, och rapporten där
+  // `historyMailboxIds: 8` men `loadedMailboxes: 2`.
+  //
+  // Grundorsaken är att maxLoadedShards (default 2) är mindre än antalet
+  // brevlådor en enskild logisk operation sveper över. Den avvägningen
+  // ligger i konfigurationen och rörs inte här. Det den här varningen gör
+  // är att göra tillståndet SYNLIGT i stället för tyst — ett felaktigt svar
+  // som larmar är oändligt mycket billigare än ett som inte gör det.
+  //
+  // Varnar en gång per brevlåda per process för att inte flöda loggen; att
+  // det bara varnar en gång räcker, eftersom problemet är konfigurationsbundet
+  // och inte varierar mellan anrop.
+  const warnedUnloadedShards = new Set();
+  function warnUnloadedShards(skippedMailboxIds = [], requestedCount = 0) {
+    const fresh = skippedMailboxIds.filter((id) => !warnedUnloadedShards.has(id));
+    if (fresh.length === 0) return;
+    for (const id of fresh) warnedUnloadedShards.add(id);
+    console.warn(
+      '[cco_mailbox_truth_store] listMessages hoppade over OLADDADE shards — svaret ar ofullstandigt',
+      JSON.stringify({
+        skipped: fresh,
+        requestedMailboxes: requestedCount,
+        loadedMailboxes: shardCache.size,
+        maxLoadedShards: safeMaxLoadedShards,
+        hint: 'Anropa ensureMailboxLoaded fore lasning, eller hoj ARCANA_CCO_MAILBOX_TRUTH_MAX_LOADED_SHARDS till antalet brevlador som sveps.',
+      })
+    );
+  }
   // Pågående laddningar, nyckel = mailboxId. Se loadShard().
   const shardLoadFlights = new Map();
 
@@ -464,10 +503,20 @@ async function createCcoMailboxTruthShardedStore({
     listMessages(options = {}) {
       const mailboxIds = listedMailboxIds(options.mailboxIds);
       const rows = [];
+      const skippedUnloaded = [];
       for (const mailboxId of mailboxIds) {
         const store = shardFor(mailboxId);
-        if (!store) continue;
+        if (!store) {
+          // TYST NOLLRESULTAT — se warnUnloadedShards nedan. Raden var
+          // tidigare bara `continue`, vilket gjorde en oladdad shard
+          // omöjlig att skilja från en brevlåda utan träffar.
+          skippedUnloaded.push(mailboxId);
+          continue;
+        }
         rows.push(...store.listMessages({ ...options, mailboxIds: [mailboxId] }));
+      }
+      if (skippedUnloaded.length > 0) {
+        warnUnloadedShards(skippedUnloaded, mailboxIds.length);
       }
       rows.sort((left, right) =>
         String(right.lastModifiedAt || right.receivedAt || right.sentAt || '').localeCompare(
@@ -481,7 +530,9 @@ async function createCcoMailboxTruthShardedStore({
       const mailboxId = normalizeMailboxId(args.mailboxId);
       const store = mailboxId ? await loadShard(mailboxId) : null;
       if (!store || typeof store.addSyntheticSentMessage !== 'function') {
-        throw new Error('addSyntheticSentMessage not available for mailbox: ' + (mailboxId || 'unknown'));
+        throw new Error(
+          'addSyntheticSentMessage not available for mailbox: ' + (mailboxId || 'unknown')
+        );
       }
       return store.addSyntheticSentMessage(args);
     },
