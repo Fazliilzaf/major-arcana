@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const bfj = require('bfj');
 
 const { buildDedupeKeyFromTruthMessage } = require('./dedupe');
 const { toCanonicalMailboxConversationKey } = require('../ccoMailboxTruthWorklistReadModel');
@@ -150,11 +151,60 @@ async function readJson(filePath, fallbackValue) {
   }
 }
 
+// bfj serialiserar Set-instanser via sin generella iterables-coercion (till
+// array) — native JSON.stringify serialiserar en bar Set till {} eftersom
+// Set saknar egna enumerable properties. Det enda fältet i mail-ingestion-
+// state som kan vara ett Set är threadIdentityIndex[*].patientIds (se
+// updateThreadIdentityForMessage). Normalisera just det fältet innan
+// skrivning så filformatet blir exakt oförändrat — utan att klona resten av
+// (potentiellt mycket stora) state:et.
+function toBfjSafeValue(state) {
+  const threadIdentityIndex = state?.threadIdentityIndex;
+  if (!threadIdentityIndex || typeof threadIdentityIndex !== 'object') {
+    return state;
+  }
+  let needsNormalizing = false;
+  for (const entry of Object.values(threadIdentityIndex)) {
+    if (entry?.patientIds instanceof Set) {
+      needsNormalizing = true;
+      break;
+    }
+  }
+  if (!needsNormalizing) {
+    return state;
+  }
+  const safeThreadIdentityIndex = {};
+  for (const [key, entry] of Object.entries(threadIdentityIndex)) {
+    safeThreadIdentityIndex[key] =
+      entry?.patientIds instanceof Set ? { ...entry, patientIds: {} } : entry;
+  }
+  return { ...state, threadIdentityIndex: safeThreadIdentityIndex };
+}
+
+// Undviker att blockera event-loopen: JSON.stringify(state) på hela
+// mail-ingestion-state:et (alla brevlådors råmeddelanden + fulla rawJson-
+// kopior) kunde ta lång nog tid att Render-hälsokollen (5s timeout) missade
+// ett svar och tvingade omstart av instansen (incident 2026-08-18 03:51 UTC —
+// se render-loggar: 84s total tystnad direkt efter deferred-load av store:en,
+// följt av "HTTP health check failed (timed out after 5 seconds)"). bfj.write
+// serialiserar asynkront och yieldar event-loopen mellan bitar, så servern
+// förblir responsiv under sparningen. Samma JSON-filformat som tidigare
+// (inkl. avslutande radbrytning) bevaras.
 async function writeJsonAtomic(filePath, data) {
   const dir = path.dirname(filePath);
   await fs.mkdir(dir, { recursive: true });
   const tmpPath = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
-  await fs.writeFile(tmpPath, `${JSON.stringify(data)}\n`, 'utf8');
+  try {
+    await bfj.write(tmpPath, toBfjSafeValue(data));
+    // bfj lägger inte till en avslutande radbrytning — bevara exakt samma
+    // filformat som tidigare `${JSON.stringify(data)}\n`.
+    await fs.appendFile(tmpPath, '\n', 'utf8');
+  } catch (error) {
+    await fs.unlink(tmpPath).catch(() => {
+      /* temp-filen kanske aldrig skapades — ofarligt att missa här */
+    });
+    throw error;
+  }
   await fs.rename(tmpPath, filePath);
 }
 
@@ -1323,4 +1373,9 @@ module.exports = {
   PROCESSOR_VERSION,
   FILTER_VERSION,
   MATCH_VERSION,
+  // Exporterade för direkt test av persistenslagrets serialiseringskontrakt
+  // (bfj-baserad streaming-skrivning, se writeJsonAtomic ovan) — inga andra
+  // konsumenter ska använda dessa, gå via createCcoMailIngestionStore.
+  writeJsonAtomic,
+  toBfjSafeValue,
 };
