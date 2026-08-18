@@ -3257,7 +3257,7 @@ function createCcoConversationRouter({
     authMiddleware,
     requireTenantScope,
     requirePermission('mail.read'),
-    (req, res) => {
+    async (req, res) => {
       try {
         if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
           return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
@@ -3429,6 +3429,45 @@ function createCcoConversationRouter({
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([date, counts]) => ({ date, ...counts }));
 
+        // SLA-breach-trend: obesvarade trådar grupperade efter senaste inbound-dag,
+        // med antal som passerat 24h (breach) samma dag.
+        const slaTrend = {};
+        for (const key of Object.keys(conversationLatest)) {
+          const { lastInboundMs, lastOutboundMs } = conversationLatest[key];
+          if (!lastInboundMs) continue;
+          const isUnanswered = lastOutboundMs === 0 || lastInboundMs > lastOutboundMs;
+          if (!isUnanswered) continue;
+          const dKey = new Date(lastInboundMs).toISOString().slice(0, 10);
+          if (!slaTrend[dKey]) slaTrend[dKey] = { total: 0, breach: 0 };
+          slaTrend[dKey].total += 1;
+          if (nowMs - lastInboundMs > SLA_THRESHOLD_MS) slaTrend[dKey].breach += 1;
+        }
+        const slaTrendChart = Object.entries(slaTrend)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, counts]) => ({ date, ...counts }));
+
+        // Sentimentfördelning från persistenta AI-sammanfattningar i conversation state store.
+        const sentimentDistribution = {};
+        if (
+          ccoConversationStateStore &&
+          typeof ccoConversationStateStore.getActiveStatesForTenant === 'function'
+        ) {
+          try {
+            const states = await ccoConversationStateStore.getActiveStatesForTenant({
+              tenantId: normalizeText(req.tenantId) || defaultTenantId,
+            });
+            for (const state of states) {
+              const tone = normalizeText(state.aiSummary?.sentiment?.tone).toLowerCase();
+              const label = normalizeText(state.aiSummary?.sentiment?.label).toLowerCase();
+              const bucket = tone || label || 'unknown';
+              sentimentDistribution[bucket] = (sentimentDistribution[bucket] || 0) + 1;
+            }
+          } catch (sentimentErr) {
+            // Sentiment-aggregering får inte blockera svaret.
+            console.error('Dashboard sentiment aggregation failed:', sentimentErr);
+          }
+        }
+
         return res.json({
           ok: true,
           windowDays: days,
@@ -3451,6 +3490,8 @@ function createCcoConversationRouter({
           perMailbox: perMailboxCount,
           topCustomers,
           volumeChart,
+          slaTrendChart,
+          sentimentDistribution,
         });
       } catch (err) {
         return res.status(500).json({

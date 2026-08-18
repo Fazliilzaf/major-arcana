@@ -67,6 +67,16 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
     bookings: { upcoming: [], recent: [], count: 0 },
     cases: [],
     threads: { count: 0, needsReply: 0, summary: null },
+    conversationSummary: {
+      unansweredCount: 0,
+      slaStatus: null,
+      dominantRisk: null,
+      latestInboundAt: null,
+      activeThreadCount: 0,
+      needsActionCount: 0,
+      sentiment: null,
+      intent: null,
+    },
     // Endast metadata om journalen — ALDRIG innehåll.
     journal: {
       count: 0,
@@ -211,6 +221,33 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
       return s.includes('need') || s.includes('open') || s.includes('pending');
     }).length;
     dossier.threads.summary = built?.summary || null;
+  }
+
+  // ── Konversationssammanfattning (CCO Fas 5) ───────────────────────────
+  if (stores.conversationContextService?.buildContextForCustomer && customerId) {
+    const ctx = await safe(
+      'conversation_context',
+      warnings,
+      () =>
+        stores.conversationContextService.buildContextForCustomer(customerId, {
+          tenantId,
+          nowMs: Date.now(),
+          includeAiSummary: true,
+        }),
+      null
+    );
+    if (ctx) {
+      dossier.conversationSummary = {
+        unansweredCount: ctx.unanswered?.count || 0,
+        slaStatus: ctx.slaStatus?.slaStatus || null,
+        dominantRisk: ctx.dominantRisk || null,
+        latestInboundAt: ctx.latestInboundAt || null,
+        activeThreadCount: ctx.activeThreadCount || 0,
+        needsActionCount: ctx.needsActionCount || 0,
+        sentiment: ctx.sentiment || null,
+        intent: ctx.intent || null,
+      };
+    }
   }
 
   // ── Journal: ENDAST metadata (antal + senaste), aldrig innehåll ───────

@@ -55,9 +55,7 @@ function createPatientMasterAdapter(patientMasterStore = null) {
   return {
     async getPatient({ tenantId, patientId, customerId, email } = {}) {
       const ids = unique(
-        [patientId, customerId]
-          .map((item) => text(item))
-          .filter((item) => item && !emailText(item))
+        [patientId, customerId].map((item) => text(item)).filter((item) => item && !emailText(item))
       );
       const emails = unique([email, patientId, customerId].map((item) => emailText(item)));
       for (const candidateTenantId of tenantCandidates(tenantId)) {
@@ -205,10 +203,14 @@ function createCcoCustomerDossierRouter({
           patientMasterStore: createPatientMasterAdapter(locals.ccoPatientMasterStore || null),
           journeyStore: await getJourneyStore(locals),
           bookingStore,
-          caseStore: createCaseStoreAdapter(locals.ccoBookingCaseStore || null, locals.ccoBookingStore || null),
+          caseStore: createCaseStoreAdapter(
+            locals.ccoBookingCaseStore || null,
+            locals.ccoBookingStore || null
+          ),
           threadStore: await getThreadStore(locals),
           journalStore: locals.ccoJournalStore || null,
           portalMessageStore: locals.ccoPortalMessageStore || null,
+          conversationContextService: locals.ccoConversationContextService || null,
         };
         const dossier = await buildCustomerDossier(
           {

@@ -448,3 +448,45 @@ test('ccoConversationStateStore accepterar aiSummary och returnerar det normalis
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('ccoConversationStateStore getActiveStatesForTenant returnerar aktiva states per tenant', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-conversation-state-tenant-'));
+  const filePath = path.join(tmpDir, 'cco-conversation-state-tenant.json');
+
+  try {
+    const store = await createCcoConversationStateStore({ filePath });
+
+    await store.writeConversationState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: 'conversationKey:a-1',
+      actionState: 'handled',
+      needsReplyStatusOverride: 'handled',
+      actionByUserId: 'owner-a',
+    });
+    await store.writeConversationState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: 'conversationKey:a-2',
+      actionState: 'handled',
+      needsReplyStatusOverride: 'handled',
+      actionByUserId: 'owner-a',
+    });
+    await store.writeConversationState({
+      tenantId: 'tenant-b',
+      canonicalConversationKey: 'conversationKey:b-1',
+      actionState: 'handled',
+      needsReplyStatusOverride: 'handled',
+      actionByUserId: 'owner-a',
+    });
+
+    const aStates = store.getActiveStatesForTenant({ tenantId: 'tenant-a' });
+    assert.equal(aStates.length, 2);
+    assert.ok(aStates.every((s) => s.tenantId === 'tenant-a'));
+
+    const bStates = store.getActiveStatesForTenant({ tenantId: 'tenant-b' });
+    assert.equal(bStates.length, 1);
+
+    assert.deepEqual(store.getActiveStatesForTenant({ tenantId: '' }), []);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
