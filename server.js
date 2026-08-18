@@ -12065,8 +12065,39 @@ process.once('SIGTERM', () => {
       readCache: ccoReadCache,
       authStore,
       config,
+      conversationStateStore: ccoConversationStateStore,
     })
   );
+
+  async function getConversationContextService() {
+    if (app.locals.ccoConversationContextService) return app.locals.ccoConversationContextService;
+    const threadStore = app.locals.ccoConversationThreadStore || null;
+    if (!threadStore) return null;
+    const {
+      createCcoConversationContextService,
+    } = require('./src/ops/ccoConversationContextService');
+    app.locals.ccoConversationContextService = createCcoConversationContextService({
+      threadStore,
+      slaMonitor: require('./src/intelligence/slaMonitor'),
+      riskStackEngine: require('./src/intelligence/riskStackEngine'),
+      customerTemperatureEngine: require('./src/intelligence/customerTemperatureEngine'),
+      aiSummaryResolver: async (conversationKey, tenantId) => {
+        if (
+          !ccoConversationStateStore ||
+          typeof ccoConversationStateStore.getActiveState !== 'function'
+        ) {
+          return null;
+        }
+        const state = await ccoConversationStateStore.getActiveState({
+          tenantId,
+          canonicalConversationKey: conversationKey,
+        });
+        return state?.aiSummary || null;
+      },
+      tenantConfig: config?.tenantConfig || null,
+    });
+    return app.locals.ccoConversationContextService;
+  }
 
   app.use(
     '/api/v1',
@@ -12081,6 +12112,7 @@ process.once('SIGTERM', () => {
       config,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
+      getConversationContextService,
     })
   );
 
@@ -12099,6 +12131,7 @@ process.once('SIGTERM', () => {
       config,
       graphSendConnector,
       auditLog: ccoAuditLog,
+      conversationStateStore: ccoConversationStateStore,
     })
   );
 
@@ -12213,6 +12246,8 @@ process.once('SIGTERM', () => {
       // och det ska stå här och inte upptäckas senare.
       historyMailboxIds: config.schedulerCcoHistoryMailboxIds || [],
       auditLog: ccoAuditLog,
+      openai,
+      openaiModel: config.openaiModel,
     })
   );
 

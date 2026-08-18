@@ -39,7 +39,10 @@ function stableSerialize(value) {
 }
 
 function createHash(value) {
-  return crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(String(value || ''), 'utf8')
+    .digest('hex');
 }
 
 async function readJson(filePath, fallbackValue) {
@@ -106,17 +109,50 @@ function normalizeWaitingOn(value = '') {
 function normalizeSupersededReason(value = '') {
   const normalized = normalizeText(value).toLowerCase();
   if (
-    [
-      'new_inbound',
-      'reply_sent',
-      'merge_migrated',
-      'merge_conflict_lost',
-      'manual_clear',
-    ].includes(normalized)
+    ['new_inbound', 'reply_sent', 'merge_migrated', 'merge_conflict_lost', 'manual_clear'].includes(
+      normalized
+    )
   ) {
     return normalized;
   }
   return null;
+}
+
+function normalizeBookingEvent(value) {
+  if (!value || typeof value !== 'object') return null;
+  const kind = normalizeText(value.kind).toLowerCase();
+  if (!['created', 'confirmed', 'cancelled', 'rescheduled'].includes(kind)) return null;
+  const at = toIso(value.at) || nowIso();
+  return {
+    kind,
+    bookingId: normalizeText(value.bookingId) || null,
+    at,
+  };
+}
+
+function normalizeAiSummary(value) {
+  if (!value || typeof value !== 'object') return null;
+  const headline = normalizeText(value.headline) || null;
+  const sentiment =
+    value.sentiment && typeof value.sentiment === 'object' ? cloneJson(value.sentiment) : null;
+  const intent = value.intent && typeof value.intent === 'object' ? cloneJson(value.intent) : null;
+  if (
+    !headline &&
+    !sentiment &&
+    !intent &&
+    !normalizeText(value.risk) &&
+    !normalizeText(value.nextStep)
+  ) {
+    return null;
+  }
+  return {
+    headline,
+    risk: normalizeText(value.risk) || null,
+    nextStep: normalizeText(value.nextStep) || null,
+    sentiment,
+    intent,
+    generatedAt: toIso(value.generatedAt) || nowIso(),
+  };
 }
 
 function toStateKey(tenantId, canonicalConversationKey) {
@@ -138,7 +174,13 @@ function toIdempotencyRecordKey({
   const safeActorUserId = normalizeText(actorUserId);
   const safeConversationKey = normalizeText(canonicalConversationKey);
   const safeIdempotencyKey = normalizeText(idempotencyKey);
-  if (!safeTenantId || !safeRouteKey || !safeActorUserId || !safeConversationKey || !safeIdempotencyKey) {
+  if (
+    !safeTenantId ||
+    !safeRouteKey ||
+    !safeActorUserId ||
+    !safeConversationKey ||
+    !safeIdempotencyKey
+  ) {
     return '';
   }
   return [
@@ -166,14 +208,17 @@ function normalizeConversationStateRecord(input = {}, existingRecord = null) {
   const canonicalConversationKey = normalizeText(input.canonicalConversationKey);
   const key = toStateKey(tenantId, canonicalConversationKey);
   const actionState = normalizeActionState(input.actionState);
-  const needsReplyStatusOverride = normalizeNeedsReplyStatusOverride(input.needsReplyStatusOverride);
+  const needsReplyStatusOverride = normalizeNeedsReplyStatusOverride(
+    input.needsReplyStatusOverride
+  );
   if (!tenantId || !canonicalConversationKey || !key || !actionState || !needsReplyStatusOverride) {
     return null;
   }
   const createdAt = normalizeText(existingRecord?.createdAt || input.createdAt) || nowIso();
   const updatedAt = nowIso();
   const existingVersion = Number.parseInt(String(existingRecord?.version ?? '0'), 10);
-  const nextVersion = Number.isFinite(existingVersion) && existingVersion > 0 ? existingVersion + 1 : 1;
+  const nextVersion =
+    Number.isFinite(existingVersion) && existingVersion > 0 ? existingVersion + 1 : 1;
   return {
     key,
     tenantId,
@@ -191,7 +236,9 @@ function normalizeConversationStateRecord(input = {}, existingRecord = null) {
     )
       .map((item) => normalizeText(item))
       .filter(Boolean),
-    underlyingMailboxIds: asArray(input.underlyingMailboxIds || existingRecord?.underlyingMailboxIds)
+    underlyingMailboxIds: asArray(
+      input.underlyingMailboxIds || existingRecord?.underlyingMailboxIds
+    )
       .map((item) => normalizeText(item).toLowerCase())
       .filter(Boolean),
     actionState,
@@ -200,6 +247,8 @@ function normalizeConversationStateRecord(input = {}, existingRecord = null) {
     waitingOn: normalizeWaitingOn(input.waitingOn),
     nextActionLabel: normalizeText(input.nextActionLabel) || null,
     nextActionSummary: normalizeText(input.nextActionSummary) || null,
+    bookingEvent: normalizeBookingEvent(input.bookingEvent || existingRecord?.bookingEvent),
+    aiSummary: normalizeAiSummary(input.aiSummary || existingRecord?.aiSummary),
     actionAt: toIso(input.actionAt) || nowIso(),
     actionByUserId: normalizeText(input.actionByUserId) || null,
     actionByEmail: normalizeText(input.actionByEmail).toLowerCase() || null,
@@ -244,7 +293,9 @@ function normalizeLoadedConversationStateRecord(record = {}) {
   const canonicalConversationKey = normalizeText(record.canonicalConversationKey);
   const key = normalizeText(record.key) || toStateKey(tenantId, canonicalConversationKey);
   const actionState = normalizeActionState(record.actionState);
-  const needsReplyStatusOverride = normalizeNeedsReplyStatusOverride(record.needsReplyStatusOverride);
+  const needsReplyStatusOverride = normalizeNeedsReplyStatusOverride(
+    record.needsReplyStatusOverride
+  );
   if (!tenantId || !canonicalConversationKey || !key || !actionState || !needsReplyStatusOverride) {
     return null;
   }
@@ -269,6 +320,8 @@ function normalizeLoadedConversationStateRecord(record = {}) {
     waitingOn: normalizeWaitingOn(record.waitingOn),
     nextActionLabel: normalizeText(record.nextActionLabel) || null,
     nextActionSummary: normalizeText(record.nextActionSummary) || null,
+    bookingEvent: normalizeBookingEvent(record.bookingEvent),
+    aiSummary: normalizeAiSummary(record.aiSummary),
     actionAt: toIso(record.actionAt) || nowIso(),
     actionByUserId: normalizeText(record.actionByUserId) || null,
     actionByEmail: normalizeText(record.actionByEmail).toLowerCase() || null,
@@ -389,8 +442,7 @@ async function createCcoConversationStateStore({ filePath, idempotencyTtlHours =
     if (!existingRecord) return null;
     existingRecord.superseded = true;
     existingRecord.supersededAt = toIso(supersededAt) || nowIso();
-    existingRecord.supersededReason =
-      normalizeSupersededReason(supersededReason) || 'manual_clear';
+    existingRecord.supersededReason = normalizeSupersededReason(supersededReason) || 'manual_clear';
     existingRecord.supersededByMessageId = normalizeText(supersededByMessageId) || null;
     existingRecord.version = Number.parseInt(String(existingRecord.version || '0'), 10) + 1;
     existingRecord.updatedAt = nowIso();
@@ -488,8 +540,9 @@ async function createCcoConversationStateStore({ filePath, idempotencyTtlHours =
       }
     }
     const createdAt = nowIso();
-    const expiresAt = new Date(Date.now() + Math.max(1, Number(idempotencyTtlHours || 24)) * 60 * 60 * 1000)
-      .toISOString();
+    const expiresAt = new Date(
+      Date.now() + Math.max(1, Number(idempotencyTtlHours || 24)) * 60 * 60 * 1000
+    ).toISOString();
     state.idempotencyRecords[key] = {
       key,
       tenantId: normalizeText(tenantId),

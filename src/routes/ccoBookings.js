@@ -29,6 +29,7 @@ const {
 const { syncPatient360FromBookingCase } = require('../ops/ccoPatient360Bridge');
 const { assertTreatmentBookingAllowed } = require('../ops/ccoTreatmentBookingGate');
 const { buildCalendarSignalsIndex } = require('../ops/bookingCalendarSignals');
+const { recordBookingConversationEvent } = require('../ops/ccoBookingConversationEvent');
 const { buildMissingFormsReport } = require('../ops/ccoPatientCareOps');
 const { normalizeBookingReminderLeadTimeConfig } = require('../ops/bookingReminderLeadTime');
 const {
@@ -749,6 +750,7 @@ function createCcoBookingsRouter({
   readCache = null,
   authStore,
   config,
+  conversationStateStore = null,
 }) {
   const router = express.Router();
 
@@ -761,6 +763,27 @@ function createCcoBookingsRouter({
       source: options.source || 'cco_bookings',
       includeTimelineEvent: options.includeTimelineEvent === true,
       event: options.event || latestEvent,
+    });
+  }
+
+  function bookingCaseConversationKey(bookingCase) {
+    return (
+      normalizeText(bookingCase?.conversationKey) ||
+      normalizeText(bookingCase?.conversationId) ||
+      ''
+    );
+  }
+
+  async function syncBookingConversationEvent(context, bookingCase, kind) {
+    const conversationKey = bookingCaseConversationKey(bookingCase);
+    if (!conversationKey) return;
+    await recordBookingConversationEvent({
+      conversationStateStore,
+      tenantId: context.tenantId,
+      conversationKey,
+      bookingId: normalizeText(bookingCase?.bookingId) || normalizeText(bookingCase?.caseRef) || '',
+      kind,
+      actorUserId: context.actor?.userId,
     });
   }
 
@@ -979,6 +1002,11 @@ function createCcoBookingsRouter({
         ...toCaseInput(context, req.body),
         status,
       });
+      const statusKindMap = {
+        confirmed_external: 'confirmed',
+        cancelled: 'cancelled',
+      };
+      await syncBookingConversationEvent(context, bookingCase, statusKindMap[status] || null);
       const patientRecord = await syncBookingPatient360(context, bookingCase, {
         source: 'cco_bookings_status',
         includeTimelineEvent: true,
@@ -1008,13 +1036,23 @@ function createCcoBookingsRouter({
       if (!label && !detail) {
         return res.status(400).json({ error: 'Bokningshändelsen saknar text.' });
       }
+      const eventType = normalizeText(req.body?.type) || 'operator_note';
       const bookingCase = await bookingStore.addEvent({
         ...toCaseInput(context, req.body),
-        type: normalizeText(req.body?.type) || 'operator_note',
+        type: eventType,
         label,
         detail,
         metadata: asObject(req.body?.metadata),
       });
+      const eventKindMap = {
+        confirmed: 'confirmed',
+        confirmation: 'confirmed',
+        cancelled: 'cancelled',
+        cancellation: 'cancelled',
+        rebooked: 'rescheduled',
+        rescheduled: 'rescheduled',
+      };
+      await syncBookingConversationEvent(context, bookingCase, eventKindMap[eventType] || null);
       const patientRecord = await syncBookingPatient360(context, bookingCase, {
         source: 'cco_bookings_event',
         includeTimelineEvent: true,
@@ -1071,6 +1109,7 @@ function createCcoBookingsRouter({
       const toDate = normalizeText(req.query.toDate || req.query.to);
       const resIds = normalizeCsvParam(req.query.resIds);
       const srvIds = normalizeCsvParam(req.query.srvIds);
+      const patientId = normalizeText(req.query.patientId);
       if (!fromDate || !toDate) {
         return res.status(400).json({ error: 'availability_range_missing' });
       }
@@ -1086,7 +1125,7 @@ function createCcoBookingsRouter({
         ? readCache.buildKey(
             'calendar-bundle',
             context.tenantId,
-            JSON.stringify({ fromDate, toDate, resIds, srvIds })
+            JSON.stringify({ fromDate, toDate, resIds, srvIds, patientId })
           )
         : '';
 
@@ -1111,7 +1150,7 @@ function createCcoBookingsRouter({
           ]);
         }
 
-        const cases =
+        let cases =
           typeof bookingStore.listCasesInRange === 'function'
             ? await bookingStore.listCasesInRange({
                 tenantId: context.tenantId,
@@ -1124,6 +1163,11 @@ function createCcoBookingsRouter({
                 sort: 'recent',
                 limit: 200,
               });
+        if (patientId) {
+          cases = asArray(cases).filter(
+            (bookingCase) => normalizeText(bookingCase?.patientId) === patientId
+          );
+        }
 
         let visits = [];
         if (patientMasterStore && clientoBookingStore) {
@@ -1208,6 +1252,9 @@ function createCcoBookingsRouter({
                 const date = normalizeText(visit.startsAt).slice(0, 10);
                 return date && date >= fromDate && date <= toDate;
               });
+            if (patientId) {
+              visits = visits.filter((visit) => normalizeText(visit.patientId) === patientId);
+            }
           } catch (error) {
             console.warn('[cco-bookings] canonical calendar visits unavailable', error?.message);
           }
@@ -1268,6 +1315,7 @@ function createCcoBookingsRouter({
           provider: 'cco_calendar_bundle',
           fromDate,
           toDate,
+          patientIdFilter: patientId || null,
           slots,
           blocks,
           cases,
@@ -1820,6 +1868,7 @@ function createCcoBookingsRouter({
         status: 'confirmed_external',
         statusSource: 'cco_engine',
       });
+      await syncBookingConversationEvent(caseContext, nextCase, 'rescheduled');
       nextCase = await bookingStore.addEvent({
         ...toCaseInput(caseContext, req.body),
         type: 'engine_booking_rebooked',

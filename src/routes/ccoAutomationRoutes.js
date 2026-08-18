@@ -45,7 +45,24 @@ function attachAutomationRoutes(router, deps) {
     ROLE_STAFF,
     config,
     handle,
+    getConversationContextService = null,
   } = deps;
+
+  async function loadConversationContext(tenantId, patientId, conversationKey = '') {
+    if (!getConversationContextService || !patientId || !tenantId) return null;
+    try {
+      const service = await getConversationContextService();
+      if (!service || typeof service.buildContextForCustomer !== 'function') return null;
+      return await service.buildContextForCustomer(patientId, {
+        tenantId,
+        conversationKey,
+        nowMs: Date.now(),
+        includeAiSummary: true,
+      });
+    } catch {
+      return null;
+    }
+  }
 
   async function loadPatientInstances(tenantId, patientId) {
     if (!documentInstanceStore?.listForPatient) return [];
@@ -116,10 +133,12 @@ function attachAutomationRoutes(router, deps) {
           instances: await loadPatientInstances(actor.tenantId, patientId),
         });
         Object.assign(readout, smartNext);
+        const conversationContext = await loadConversationContext(actor.tenantId, patientId);
         const evaluation = evaluatePatientSignals(readout, {
           agreement,
           bookingCoverage: bookingBundle.coverage,
           documentReadiness: smartNext.documentReadiness,
+          conversationContext,
         });
         return res.json({
           patientId,
@@ -197,10 +216,12 @@ function attachAutomationRoutes(router, deps) {
             instances: await loadPatientInstances(actor.tenantId, pid),
           });
           Object.assign(readout, smartNext);
+          const conversationContext = await loadConversationContext(actor.tenantId, pid);
           const evaluation = evaluatePatientSignals(readout, {
             agreement,
             bookingCoverage: bookingBundle.coverage,
             documentReadiness: smartNext.documentReadiness,
+            conversationContext,
           });
           const hits = (evaluation.signals || []).filter(
             (signal) => signal.status === 'active' && ruleIds.includes(signal.ruleId)

@@ -183,6 +183,64 @@ function evaluateRule(rule, ctx) {
         dataProvenance: ['readout.readyForTreatment'],
       });
     }
+    case 'conversation.unanswered_inbound': {
+      const cc = ctx.conversationContext || {};
+      const active = (cc.unanswered?.count || 0) > 0;
+      return buildSignal(rule, {
+        active,
+        confidence: active ? 'high' : 'medium',
+        inactiveReason: active ? null : 'Inga obesvarade konversationer',
+        dataProvenance: ['conversationContext.unanswered.count'],
+      });
+    }
+    case 'conversation.sla_breach': {
+      const cc = ctx.conversationContext || {};
+      const active = normalizeKey(cc.slaStatus?.slaStatus) === 'breach';
+      return buildSignal(rule, {
+        active,
+        confidence: active ? 'high' : 'medium',
+        inactiveReason: active ? null : 'Ingen aktiv SLA-breach',
+        dataProvenance: ['conversationContext.slaStatus.slaStatus'],
+      });
+    }
+    case 'conversation.frustrated_tone': {
+      const cc = ctx.conversationContext || {};
+      const tone = normalizeKey(cc.sentiment?.tone || cc.temperature?.temperature);
+      const dominantRisk = normalizeKey(cc.dominantRisk);
+      const active =
+        tone === 'frustrated' ||
+        tone === 'angry' ||
+        tone === 'negative' ||
+        dominantRisk === 'frustrated' ||
+        dominantRisk === 'complaint';
+      return buildSignal(rule, {
+        active,
+        confidence: active ? 'medium' : 'low',
+        inactiveReason: active ? null : 'Ingen frustrerad/missnöjd signal',
+        dataProvenance: ['conversationContext.sentiment.tone', 'conversationContext.dominantRisk'],
+      });
+    }
+    case 'conversation.booking_request_intent': {
+      const cc = ctx.conversationContext || {};
+      const intent = normalizeKey(cc.intent?.code);
+      const active = intent === 'booking' || intent === 'book' || intent === 'appointment';
+      return buildSignal(rule, {
+        active,
+        confidence: active ? 'medium' : 'low',
+        inactiveReason: active ? null : 'Ingen bokningsavsikt identifierad',
+        dataProvenance: ['conversationContext.intent.code'],
+      });
+    }
+    case 'conversation.follow_up_due': {
+      const cc = ctx.conversationContext || {};
+      const active = (cc.needsActionCount || 0) > 0;
+      return buildSignal(rule, {
+        active,
+        confidence: active ? 'high' : 'medium',
+        inactiveReason: active ? null : 'Inga behandlingskrävande ärenden',
+        dataProvenance: ['conversationContext.needsActionCount'],
+      });
+    }
     default:
       return buildSignal(rule, { active: false, confidence: 'low', inactiveReason: 'Okänd regel' });
   }

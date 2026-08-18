@@ -56,6 +56,7 @@ function createCcoStaffRouter({
   config,
   requireAuth,
   requireRole,
+  getConversationContextService = null,
 }) {
   const router = express.Router();
 
@@ -72,6 +73,22 @@ function createCcoStaffRouter({
       }
       console.error(error);
       return res.status(500).json({ error: 'Kunde inte hantera staff-endpoint.' });
+    }
+  }
+
+  async function loadConversationContext(tenantId, patientId, conversationKey = '') {
+    if (!getConversationContextService || !patientId || !tenantId) return null;
+    try {
+      const service = await getConversationContextService();
+      if (!service || typeof service.buildContextForCustomer !== 'function') return null;
+      return await service.buildContextForCustomer(patientId, {
+        tenantId,
+        conversationKey,
+        nowMs: Date.now(),
+        includeAiSummary: true,
+      });
+    } catch {
+      return null;
     }
   }
 
@@ -93,11 +110,13 @@ function createCcoStaffRouter({
         readout.patientId
       );
       applyFasAReadoutFields(readout, fasAMap.get(readout.patientId), agreement);
+      const conversationContext = await loadConversationContext(actor.tenantId, readout.patientId);
       const evaluation = evaluatePatientSignals(readout, {
         agreement,
         bookingCoverage: 'watch-complete-visit',
         documentReadiness: null,
         forceEvaluate: true,
+        conversationContext,
       });
       return (evaluation.signals || []).filter(isCriticalVisitSignal).map((signal) => ({
         ruleId: signal.ruleId,
@@ -330,10 +349,15 @@ function createCcoStaffRouter({
                   instances: instancesByPatient.get(readout.patientId) || [],
                 });
                 Object.assign(readout, smartNext);
+                const conversationContext = await loadConversationContext(
+                  actor.tenantId,
+                  readout.patientId
+                );
                 const evaluation = evaluatePatientSignals(readout, {
                   agreement,
                   bookingCoverage,
                   documentReadiness: smartNext.documentReadiness,
+                  conversationContext,
                 });
                 enriched.push({
                   ...readout,
@@ -736,6 +760,7 @@ function createCcoStaffRouter({
     ROLE_STAFF,
     config,
     handle,
+    getConversationContextService,
   });
 
   return router;

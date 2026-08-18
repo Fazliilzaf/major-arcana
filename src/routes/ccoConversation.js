@@ -23,6 +23,22 @@ const crypto = require('crypto');
 const express = require('express');
 const { runSummarizeThreadCapability } = require('../capabilities/summarizeThread');
 const {
+  deriveDir,
+  deriveFromName,
+  deriveTime,
+  deriveBody,
+  firstNormalizedText,
+  chooseRicherBodyText,
+  normalizeBodyText,
+  addBodyCandidate,
+  pickBestBodyCandidate,
+  buildConversationLookupScopes,
+  conversationMessageMatchesScopes,
+  buildConversationAliases,
+  fetchSortedConversationMessagesForKeys,
+  toSummarizeInputMessage,
+} = require('../ops/ccoAiThreadSummary');
+const {
   buildCanonicalMailContentSections,
   extractTextFromHtml,
 } = require('../ops/ccoMailContentParser');
@@ -227,7 +243,10 @@ function sanitizeReplyHtml(html) {
   );
 
   // 5. Ta bort övriga data-/xml-attribut som kan bära payload.
-  safe = safe.replace(/\s+(data-[a-zA-Z0-9-]+|jsaction|xmlns(:[a-zA-Z0-9-]+)?)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  safe = safe.replace(
+    /\s+(data-[a-zA-Z0-9-]+|jsaction|xmlns(:[a-zA-Z0-9-]+)?)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,
+    ''
+  );
 
   // 6. Vitlista taggar — ta bort otillåtna taggar men behåll innehållet.
   const allowed = new Set([
@@ -268,33 +287,6 @@ function sanitizeReplyHtml(html) {
   return safe.trim();
 }
 
-function deriveDir(folderType) {
-  const ft = String(folderType || '').toLowerCase();
-  if (ft === 'sent' || ft.includes('sent')) return 'outbound';
-  if (ft === 'drafts' || ft.includes('draft')) return 'draft';
-  return 'inbound';
-}
-
-function deriveFromName(message) {
-  const safe = asObject(message);
-  const candidates = [
-    safe.senderName,
-    safe.fromName,
-    asObject(asObject(safe.from).emailAddress).name,
-    asObject(safe.from).name,
-    asObject(asObject(safe.sender).emailAddress).name,
-  ];
-  for (const c of candidates) {
-    const t = normalizeText(c);
-    if (t) return t;
-  }
-  const emailFallback =
-    normalizeText(safe.senderEmail) ||
-    normalizeText(safe.fromAddress) ||
-    normalizeText(asObject(asObject(safe.from).emailAddress).address);
-  return emailFallback || '(okänd avsändare)';
-}
-
 function deriveSenderEmail(message) {
   const safe = asObject(message);
   return (
@@ -303,128 +295,6 @@ function deriveSenderEmail(message) {
     normalizeText(safe.fromAddress) ||
     normalizeText(asObject(asObject(safe.sender).emailAddress).address)
   ).toLowerCase();
-}
-
-function deriveTime(message) {
-  const safe = asObject(message);
-  return (
-    normalizeText(safe.sentAt) ||
-    normalizeText(safe.receivedAt) ||
-    normalizeText(safe.lastModifiedAt) ||
-    ''
-  );
-}
-
-function normalizeBodyText(value = '') {
-  return normalizeText(value)
-    .replace(/\r/g, '')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n[ \t]+/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
-}
-
-function addBodyCandidate(candidates, source, text, { previewLike = false, rank = 0 } = {}) {
-  const normalized = normalizeBodyText(text);
-  if (!normalized) return;
-  candidates.push({ source, text: normalized, previewLike, rank });
-}
-
-function pickBestBodyCandidate(candidates = [], preview = '') {
-  const normalizedPreview = normalizeBodyText(preview);
-  const seen = new Set();
-  const unique = [];
-  for (const candidate of candidates) {
-    const key = candidate.text.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    unique.push(candidate);
-  }
-  if (!unique.length) return '';
-  unique.sort((a, b) => {
-    const aPreviewLike =
-      a.previewLike ||
-      (normalizedPreview &&
-        a.text.length <= normalizedPreview.length + 12 &&
-        normalizedPreview.startsWith(a.text.slice(0, Math.min(24, a.text.length))));
-    const bPreviewLike =
-      b.previewLike ||
-      (normalizedPreview &&
-        b.text.length <= normalizedPreview.length + 12 &&
-        normalizedPreview.startsWith(b.text.slice(0, Math.min(24, b.text.length))));
-    if (aPreviewLike !== bPreviewLike) return aPreviewLike ? 1 : -1;
-    if (a.rank !== b.rank) return b.rank - a.rank;
-    return b.text.length - a.text.length;
-  });
-  return unique.reduce(
-    (best, candidate) => chooseRicherBodyText(best, candidate.text, normalizedPreview),
-    ''
-  );
-}
-
-function deriveBody(message) {
-  const safe = asObject(message);
-  const body = asObject(safe.body);
-  const rawJson = asObject(safe.rawJson);
-  const rawBody = asObject(rawJson.body);
-  const rawUniqueBody = asObject(rawJson.uniqueBody);
-  const uniqueBody = asObject(safe.uniqueBody);
-  const mailDocument = asObject(safe.mailDocument);
-  const preview =
-    normalizeText(safe.bodyPreview) ||
-    normalizeText(safe.preview) ||
-    normalizeText(safe.snippet) ||
-    normalizeText(rawJson.bodyPreview);
-  const candidates = [];
-  addBodyCandidate(candidates, 'mailDocument.primaryBodyText', mailDocument.primaryBodyText, {
-    rank: 9,
-  });
-  addBodyCandidate(
-    candidates,
-    'mailDocument.primaryBodyHtml',
-    extractTextFromHtml(mailDocument.primaryBodyHtml),
-    { rank: 9 }
-  );
-  addBodyCandidate(candidates, 'rawJson.body.content', extractTextFromHtml(rawBody.content), {
-    rank: 8,
-  });
-  addBodyCandidate(
-    candidates,
-    'rawJson.uniqueBody.content',
-    extractTextFromHtml(rawUniqueBody.content),
-    { rank: 8 }
-  );
-  addBodyCandidate(candidates, 'safe.body.content', extractTextFromHtml(body.content), {
-    rank: 7,
-  });
-  addBodyCandidate(candidates, 'safe.uniqueBody.content', extractTextFromHtml(uniqueBody.content), {
-    rank: 7,
-  });
-  addBodyCandidate(candidates, 'safe.bodyHtml', extractTextFromHtml(safe.bodyHtml), { rank: 7 });
-  addBodyCandidate(candidates, 'safe.body_html', extractTextFromHtml(safe.body_html), { rank: 7 });
-  addBodyCandidate(candidates, 'rawJson.bodyHtml', extractTextFromHtml(rawJson.bodyHtml), {
-    rank: 7,
-  });
-  addBodyCandidate(candidates, 'rawJson.body_html', extractTextFromHtml(rawJson.body_html), {
-    rank: 7,
-  });
-  addBodyCandidate(candidates, 'safe.bodyText', safe.bodyText, { rank: 5 });
-  addBodyCandidate(candidates, 'safe.body_text', safe.body_text, { rank: 5 });
-  addBodyCandidate(candidates, 'safe.text', safe.text, { rank: 5 });
-  addBodyCandidate(candidates, 'rawJson.bodyText', rawJson.bodyText, { rank: 5 });
-  addBodyCandidate(candidates, 'rawJson.body_text', rawJson.body_text, { rank: 5 });
-  addBodyCandidate(candidates, 'safe.bodyString', typeof safe.body === 'string' ? safe.body : '', {
-    rank: 4,
-  });
-  addBodyCandidate(
-    candidates,
-    'rawJson.bodyString',
-    typeof rawJson.body === 'string' ? rawJson.body : '',
-    { rank: 4 }
-  );
-  addBodyCandidate(candidates, 'preview', preview, { previewLike: true, rank: 1 });
-  return pickBestBodyCandidate(candidates, preview);
 }
 
 function deriveBodyHtml(message) {
@@ -473,10 +343,6 @@ function deriveDisplayMailBody(message) {
     text: [primaryText, signatureText].filter(Boolean).join('\n\n') || sourceText,
     html: [primaryHtml, signatureHtml].filter(Boolean).join('') || sourceHtml,
   };
-}
-
-function firstNormalizedText(...values) {
-  return values.map((value) => normalizeText(value)).find(Boolean) || '';
 }
 
 function buildMailAssetContentUrl({
@@ -748,10 +614,16 @@ const MAX_MESSAGES_LIMIT = 500;
 
 function parsePagination(query = {}) {
   const safeQuery = asObject(query);
-  const wantsAll = /^(true|1|yes)$/.test(String(safeQuery.all || '').trim().toLowerCase());
+  const wantsAll = /^(true|1|yes)$/.test(
+    String(safeQuery.all || '')
+      .trim()
+      .toLowerCase()
+  );
   if (wantsAll) return { limit: null, offset: 0 };
 
-  let limit = Number.isFinite(Number(safeQuery.limit)) ? Number(safeQuery.limit) : DEFAULT_MESSAGES_LIMIT;
+  let limit = Number.isFinite(Number(safeQuery.limit))
+    ? Number(safeQuery.limit)
+    : DEFAULT_MESSAGES_LIMIT;
   if (!Number.isFinite(limit) || Number.isNaN(limit)) limit = DEFAULT_MESSAGES_LIMIT;
   limit = Math.max(1, Math.min(MAX_MESSAGES_LIMIT, Math.floor(limit)));
 
@@ -883,101 +755,6 @@ function collapseDuplicateMessages(messages = []) {
     if (signature && !bySignature.has(signature)) bySignature.set(signature, rep);
   }
   return result;
-}
-
-async function fetchSortedConversationMessagesForKeys(store, keys = [], options = {}) {
-  const safeKeys = Array.from(
-    new Set(
-      asArray(keys)
-        .map((key) => normalizeText(key))
-        .filter(Boolean)
-    )
-  );
-  if (!safeKeys.length) return [];
-  return fetchSortedConversationMessages(store, safeKeys[0], safeKeys.slice(1), options);
-}
-
-function buildConversationLookupScopes(keys = [], options = {}) {
-  const safeOptions = asObject(options);
-  const fallbackContactEmail = normalizeEmail(
-    safeOptions.contactEmail || safeOptions.customerEmail || safeOptions.email
-  );
-  const fallbackContactReference = normalizeText(
-    safeOptions.contactReference || safeOptions.customerReference || safeOptions.reference
-  ).toLowerCase();
-  const scopes = asArray(keys)
-    .map((rawKey) => {
-      const requestedKey = normalizeText(rawKey);
-      if (!requestedKey) return null;
-      const scopedKey = parseContactFormScopedConversationKey(requestedKey);
-      return {
-        requestedKey,
-        baseKey: normalizeText(scopedKey.baseKey || requestedKey),
-        contactEmail: normalizeText(scopedKey.email).toLowerCase(),
-        contactReference: normalizeText(scopedKey.reference).toLowerCase(),
-      };
-    })
-    .filter(Boolean);
-  const contactEmailByBaseKey = new Map();
-  const contactReferenceByBaseKey = new Map();
-  for (const scope of scopes) {
-    if (scope.baseKey && scope.contactEmail && !contactEmailByBaseKey.has(scope.baseKey)) {
-      contactEmailByBaseKey.set(scope.baseKey, scope.contactEmail);
-    }
-    if (scope.baseKey && scope.contactReference && !contactReferenceByBaseKey.has(scope.baseKey)) {
-      contactReferenceByBaseKey.set(scope.baseKey, scope.contactReference);
-    }
-  }
-  const primaryScope = scopes[0] || {};
-  const primaryContactEmail = normalizeText(primaryScope.contactEmail).toLowerCase();
-  const primaryContactReference = normalizeText(primaryScope.contactReference).toLowerCase();
-  if (
-    contactEmailByBaseKey.size === 0 &&
-    contactReferenceByBaseKey.size === 0 &&
-    !primaryContactEmail &&
-    !primaryContactReference &&
-    !fallbackContactEmail &&
-    !fallbackContactReference
-  ) {
-    return scopes;
-  }
-  return scopes.map((scope) => {
-    const scopedContactEmail = contactEmailByBaseKey.get(scope.baseKey);
-    const scopedContactReference = contactReferenceByBaseKey.get(scope.baseKey);
-    if (scopedContactEmail && !scope.contactEmail) {
-      return { ...scope, contactEmail: scopedContactEmail };
-    }
-    if (scopedContactReference && !scope.contactEmail && !scope.contactReference) {
-      return { ...scope, contactReference: scopedContactReference };
-    }
-    if (primaryContactEmail && !scope.contactEmail) {
-      return { ...scope, contactEmail: primaryContactEmail };
-    }
-    if (primaryContactReference && !scope.contactEmail && !scope.contactReference) {
-      return { ...scope, contactReference: primaryContactReference };
-    }
-    if (fallbackContactEmail && !scope.contactEmail) {
-      return { ...scope, contactEmail: fallbackContactEmail };
-    }
-    if (fallbackContactReference && !scope.contactEmail && !scope.contactReference) {
-      return { ...scope, contactReference: fallbackContactReference };
-    }
-    return scope;
-  });
-}
-
-function conversationMessageMatchesScopes(message = {}, scopes = []) {
-  if (!scopes.length) return false;
-  const aliases = buildConversationAliases(message);
-  return scopes.some((scope) => {
-    const aliasMatches = aliases.has(scope.requestedKey) || aliases.has(scope.baseKey);
-    if (!aliasMatches) return false;
-    if (!scope.contactEmail && !scope.contactReference) return true;
-    return messageMatchesContactFormScope(message, {
-      email: scope.contactEmail,
-      reference: scope.contactReference,
-    });
-  });
 }
 
 function deriveInitials(name) {
@@ -1144,69 +921,6 @@ async function fetchConversationMessagesLoadingEachMailbox(
     }
   }
   return merged.sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
-}
-
-function buildConversationAliases(message = {}) {
-  const safe = asObject(message);
-  const rawJson = asObject(safe.rawJson);
-  const mailDocument = asObject(safe.mailDocument);
-  const mailboxId = firstNormalizedText(
-    safe.mailboxId,
-    safe.mailboxAddress,
-    safe.userPrincipalName,
-    mailDocument.mailboxId,
-    mailDocument.mailboxAddress,
-    rawJson.mailboxId,
-    rawJson.mailboxAddress,
-    rawJson.userPrincipalName
-  );
-  const conversationId = firstNormalizedText(
-    safe.conversationId,
-    mailDocument.conversationId,
-    rawJson.conversationId
-  );
-  const mailboxConversationId = firstNormalizedText(
-    safe.mailboxConversationId,
-    mailDocument.mailboxConversationId,
-    rawJson.mailboxConversationId
-  );
-  const graphMessageId = firstNormalizedText(
-    safe.graphMessageId,
-    safe.immutableGraphId,
-    safe.messageId,
-    safe.rawMessageId,
-    safe.id,
-    mailDocument.graphMessageId,
-    mailDocument.messageId,
-    mailDocument.internetMessageId,
-    mailDocument.id,
-    rawJson.graphMessageId,
-    rawJson.immutableGraphId,
-    rawJson.immutableId,
-    rawJson.messageId,
-    rawJson.rawMessageId,
-    rawJson.internetMessageId,
-    rawJson.id
-  );
-  return new Set(
-    [
-      mailboxConversationId,
-      conversationId,
-      graphMessageId,
-      normalizeText(safe.graphMessageId),
-      normalizeText(safe.immutableGraphId),
-      normalizeText(safe.messageId),
-      normalizeText(safe.rawMessageId),
-      normalizeText(rawJson.id),
-      normalizeText(rawJson.internetMessageId),
-      toCanonicalMailboxConversationKey({
-        mailboxId,
-        conversationId,
-        mailboxConversationId,
-        messageId: graphMessageId,
-      }),
-    ].filter(Boolean)
-  );
 }
 
 function toConversationMessageFromRaw(raw = {}) {
@@ -1423,21 +1137,6 @@ function bodyTextLooksLikePreview(text = '', preview = '') {
   if (!safeText || !safePreview) return false;
   if (safeText.length > safePreview.length + 12) return false;
   return safePreview.startsWith(safeText.slice(0, Math.min(24, safeText.length)));
-}
-
-function chooseRicherBodyText(existing = '', candidate = '', preview = '') {
-  const safeExisting = normalizeBodyText(existing);
-  const safeCandidate = normalizeBodyText(candidate);
-  if (!safeExisting) return safeCandidate;
-  if (!safeCandidate) return safeExisting;
-
-  const existingPreviewLike = bodyTextLooksLikePreview(safeExisting, preview);
-  const candidatePreviewLike = bodyTextLooksLikePreview(safeCandidate, preview);
-  if (existingPreviewLike !== candidatePreviewLike) {
-    return existingPreviewLike ? safeCandidate : safeExisting;
-  }
-  if (safeCandidate.length > safeExisting.length + 24) return safeCandidate;
-  return safeExisting;
 }
 
 function chooseRicherHtml(existing = '', candidate = '') {
@@ -1811,21 +1510,6 @@ async function applyConversationActionState({
 }
 
 // Mappa lagrade meddelanden → SummarizeThread input-shape
-function toSummarizeInputMessage(m) {
-  const safe = asObject(m);
-  const dir = deriveDir(safe.folderType);
-  // SummarizeThread förväntar 'direction' = 'inbound' eller 'outbound'
-  const direction = dir === 'outbound' ? 'outbound' : 'inbound';
-  return {
-    direction,
-    body: deriveBody(safe),
-    bodyPreview: normalizeText(safe.bodyPreview) || '',
-    sentAt: deriveTime(safe),
-    recordedAt: deriveTime(safe),
-    from: deriveFromName(safe),
-  };
-}
-
 async function safeAuditConversation(authStore, event) {
   if (!authStore || typeof authStore.addAuditEvent !== 'function') return;
   await authStore.addAuditEvent(event);
@@ -2055,9 +1739,7 @@ function createCcoConversationRouter({
         const totalCount = collapsedMessages.length;
         const { limit, offset } = parsePagination(req.query);
         const paginatedMessages =
-          limit === null
-            ? collapsedMessages
-            : collapsedMessages.slice(offset, offset + limit);
+          limit === null ? collapsedMessages : collapsedMessages.slice(offset, offset + limit);
         const tMap = process.hrtime.bigint();
         const toMs = (a, b) => Math.round((Number(b - a) / 1e6) * 10) / 10;
         return res.json({
@@ -2169,21 +1851,49 @@ function createCcoConversationRouter({
             ? `${nextStepLabel} — ${reasoning[0]}`
             : nextStepLabel
           : '';
+        const summary = {
+          headline: normalizeText(data.headline),
+          bullets: Array.isArray(data.bullets) ? data.bullets.filter(Boolean) : [],
+          risk,
+          nextStep,
+          sentiment: data.sentiment || null,
+          intent: data.intent || null,
+          primaryAction: primary || null,
+          secondaryActions: Array.isArray(nba.secondaryActions) ? nba.secondaryActions : [],
+          source: normalizeText(data.source) || 'heuristic',
+          generatedAt: normalizeText(data.generatedAt),
+        };
+        if (
+          ccoConversationStateStore &&
+          typeof ccoConversationStateStore.writeConversationState === 'function'
+        ) {
+          try {
+            await ccoConversationStateStore.writeConversationState({
+              tenantId: normalizeText(req.tenantId) || defaultTenantId,
+              canonicalConversationKey: key,
+              actionState: 'handled',
+              needsReplyStatusOverride: 'handled',
+              actionByUserId: normalizeText(req.auth?.userId) || 'system',
+              nextActionLabel: 'ai_summary',
+              nextActionSummary: summary.headline || 'AI-sammanfattning genererad',
+              aiSummary: {
+                headline: summary.headline,
+                risk: summary.risk,
+                nextStep: summary.nextStep,
+                sentiment: summary.sentiment,
+                intent: summary.intent,
+                generatedAt: summary.generatedAt,
+              },
+            });
+          } catch (persistErr) {
+            // Persistens av AI-summary får inte blockera svaret.
+            console.error('AI-summary persist failed:', persistErr);
+          }
+        }
         return res.json({
           ok: true,
           conversationKey: key,
-          summary: {
-            headline: normalizeText(data.headline),
-            bullets: Array.isArray(data.bullets) ? data.bullets.filter(Boolean) : [],
-            risk,
-            nextStep,
-            sentiment: data.sentiment || null,
-            intent: data.intent || null,
-            primaryAction: primary || null,
-            secondaryActions: Array.isArray(nba.secondaryActions) ? nba.secondaryActions : [],
-            source: normalizeText(data.source) || 'heuristic',
-            generatedAt: normalizeText(data.generatedAt),
-          },
+          summary,
           warnings: Array.isArray(result?.warnings) ? result.warnings : [],
         });
       } catch (err) {
@@ -2207,10 +1917,7 @@ function createCcoConversationRouter({
     requirePermission('mail.read'),
     async (req, res) => {
       try {
-        if (
-          !mailIngestionStore ||
-          typeof mailIngestionStore.getThreadIdentity !== 'function'
-        ) {
+        if (!mailIngestionStore || typeof mailIngestionStore.getThreadIdentity !== 'function') {
           return res.status(503).json({ ok: false, error: 'mail_ingestion_store_unavailable' });
         }
         const key = normalizeText(req.params.key);

@@ -4,9 +4,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const {
-  createCcoConversationStateStore,
-} = require('../../src/ops/ccoConversationStateStore');
+const { createCcoConversationStateStore } = require('../../src/ops/ccoConversationStateStore');
 const {
   createCcoMailboxTruthWorklistReadModel,
 } = require('../../src/ops/ccoMailboxTruthWorklistReadModel');
@@ -325,6 +323,127 @@ test('migrateConversationState returns null when from and to keys are identical'
       toCanonicalConversationKey: key,
     });
     assert.equal(migrated, null);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('ccoConversationStateStore accepterar bookingEvent och returnerar det normaliserat', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-conversation-state-booking-'));
+  const filePath = path.join(tmpDir, 'cco-conversation-state-booking.json');
+
+  try {
+    const store = await createCcoConversationStateStore({ filePath });
+
+    const record = await store.writeConversationState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: 'conversationKey:booking-test',
+      actionState: 'handled',
+      needsReplyStatusOverride: 'needs_reply',
+      actionByUserId: 'owner-a',
+      nextActionLabel: 'created',
+      nextActionSummary: 'Bokningshändelse: created',
+      bookingEvent: {
+        kind: 'created',
+        bookingId: 'booking-123',
+        at: '2026-05-20T09:00:00.000Z',
+      },
+    });
+
+    assert.ok(record.bookingEvent);
+    assert.equal(record.bookingEvent.kind, 'created');
+    assert.equal(record.bookingEvent.bookingId, 'booking-123');
+    assert.equal(record.bookingEvent.at, '2026-05-20T09:00:00.000Z');
+
+    const active = store.getActiveState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: 'conversationKey:booking-test',
+    });
+    assert.ok(active.bookingEvent);
+    assert.equal(active.bookingEvent.kind, 'created');
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('ccoConversationStateStore ignorera ogiltigt bookingEvent', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-conversation-state-invalid-'));
+  const filePath = path.join(tmpDir, 'cco-conversation-state-invalid.json');
+
+  try {
+    const store = await createCcoConversationStateStore({ filePath });
+
+    const record = await store.writeConversationState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: 'conversationKey:invalid-booking',
+      actionState: 'handled',
+      needsReplyStatusOverride: 'needs_reply',
+      actionByUserId: 'owner-a',
+      bookingEvent: {
+        kind: 'unknown',
+        bookingId: 'booking-999',
+      },
+    });
+
+    assert.equal(record.bookingEvent, null);
+
+    const active = store.getActiveState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: 'conversationKey:invalid-booking',
+    });
+    assert.equal(active.bookingEvent, null);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('ccoConversationStateStore accepterar aiSummary och returnerar det normaliserat', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-conversation-state-ai-'));
+  const filePath = path.join(tmpDir, 'cco-conversation-state-ai.json');
+
+  try {
+    const store = await createCcoConversationStateStore({ filePath });
+
+    const record = await store.writeConversationState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: 'conversationKey:ai-summary',
+      actionState: 'handled',
+      needsReplyStatusOverride: 'handled',
+      actionByUserId: 'owner-a',
+      nextActionLabel: 'ai_summary',
+      nextActionSummary: 'AI-sammanfattning genererad',
+      aiSummary: {
+        headline: 'Kund frågar om bokning',
+        risk: 'Stämning: positiv',
+        nextStep: 'Föreslå bokning — kunden vill ha tid',
+        sentiment: { tone: 'positive', label: 'positiv' },
+        intent: { code: 'booking', label: 'bokningsförfrågan' },
+        generatedAt: '2026-05-20T09:00:00.000Z',
+      },
+    });
+
+    assert.ok(record.aiSummary);
+    assert.equal(record.aiSummary.headline, 'Kund frågar om bokning');
+    assert.deepEqual(record.aiSummary.sentiment, { tone: 'positive', label: 'positiv' });
+    assert.deepEqual(record.aiSummary.intent, { code: 'booking', label: 'bokningsförfrågan' });
+
+    const active = store.getActiveState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: 'conversationKey:ai-summary',
+    });
+    assert.ok(active.aiSummary);
+    assert.equal(active.aiSummary.nextStep, 'Föreslå bokning — kunden vill ha tid');
+
+    // Ogiltigt aiSummary ignoreras
+    const invalid = await store.writeConversationState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: 'conversationKey:ai-summary-invalid',
+      actionState: 'handled',
+      needsReplyStatusOverride: 'handled',
+      actionByUserId: 'owner-a',
+      aiSummary: { foo: 'bar' },
+    });
+    assert.equal(invalid.aiSummary, null);
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true });
   }

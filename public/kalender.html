@@ -6052,18 +6052,21 @@
       (function () {
         function applyContext(context) {
           if (!context || typeof context !== 'object') return;
+          window.CCO_KALENDER_PATIENT_ID = context.patientId || null;
           window.CCO_KALENDER_CONTEXT = context;
           var name = String(context.customerName || '').trim();
           var email = String(context.email || context.customerEmail || '').trim();
           var term = name || email;
-          if (!term) return;
-          var search =
-            document.getElementById('globalSearchInput') ||
-            document.getElementById('searchOverlayInput');
-          if (search) {
-            search.value = term;
-            search.dispatchEvent(new Event('input', { bubbles: true }));
+          if (term) {
+            var search =
+              document.getElementById('globalSearchInput') ||
+              document.getElementById('searchOverlayInput');
+            if (search) {
+              search.value = term;
+              search.dispatchEvent(new Event('input', { bubbles: true }));
+            }
           }
+          window.dispatchEvent(new CustomEvent('cco:kalender:apply-context', { detail: context }));
         }
         // 1) URL-query (små fält) för direkt render.
         try {
