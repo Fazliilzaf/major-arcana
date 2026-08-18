@@ -425,6 +425,94 @@ function createCcoCommDraftRouter({
     }
   );
 
+  // ── POST /cco-comm/drafts/batch-approve — godkänn flera utkast ──
+  router.post(
+    '/cco-comm/drafts/batch-approve',
+    requireAuth,
+    attachRole,
+    requirePermission('mail.live_send'),
+    jsonParser,
+    async (req, res) => {
+      try {
+        const store = await ensureStore();
+        const draftIds = Array.isArray(req.body?.draftIds) ? req.body.draftIds : [];
+        const reason = text(req.body?.reason) || 'batch approve';
+        const tenantId = text(req.auth?.tenantId) || null;
+        if (draftIds.length === 0) {
+          return res.status(400).json({ ok: false, error: 'draftIds krävs (array).' });
+        }
+        const actor = actorOf(req);
+        const results = [];
+        let succeeded = 0;
+        let failed = 0;
+        for (const rawId of draftIds) {
+          const draftId = text(rawId);
+          if (!draftId) continue;
+          try {
+            const draft = await store.transitionStatus(draftId, 'approved', {
+              actor,
+              reason,
+              tenantId,
+              allowSelfApprove: true,
+            });
+            results.push({ draftId, ok: true, status: draft.status });
+            succeeded += 1;
+          } catch (error) {
+            results.push({ draftId, ok: false, error: error.message });
+            failed += 1;
+          }
+        }
+        return res.json({ ok: true, succeeded, failed, results });
+      } catch (error) {
+        return res.status(error.statusCode || 500).json({ ok: false, error: error.message });
+      }
+    }
+  );
+
+  // ── POST /cco-comm/drafts/batch-cancel — avbryt flera utkast ──
+  router.post(
+    '/cco-comm/drafts/batch-cancel',
+    requireAuth,
+    attachRole,
+    requirePermission('mail.send'),
+    jsonParser,
+    async (req, res) => {
+      try {
+        const store = await ensureStore();
+        const draftIds = Array.isArray(req.body?.draftIds) ? req.body.draftIds : [];
+        const reason = text(req.body?.reason) || 'batch cancel';
+        const tenantId = text(req.auth?.tenantId) || null;
+        if (draftIds.length === 0) {
+          return res.status(400).json({ ok: false, error: 'draftIds krävs (array).' });
+        }
+        const actor = actorOf(req);
+        const results = [];
+        let succeeded = 0;
+        let failed = 0;
+        for (const rawId of draftIds) {
+          const draftId = text(rawId);
+          if (!draftId) continue;
+          try {
+            const draft = await store.transitionStatus(draftId, 'cancelled', {
+              actor,
+              reason,
+              tenantId,
+              allowSelfApprove: true,
+            });
+            results.push({ draftId, ok: true, status: draft.status });
+            succeeded += 1;
+          } catch (error) {
+            results.push({ draftId, ok: false, error: error.message });
+            failed += 1;
+          }
+        }
+        return res.json({ ok: true, succeeded, failed, results });
+      } catch (error) {
+        return res.status(error.statusCode || 500).json({ ok: false, error: error.message });
+      }
+    }
+  );
+
   // ── Bilage-routes (steg 1b): upload / serve / delete. Ingen live-send. ──
   const multer = require('multer');
   const attachmentUpload = multer({

@@ -405,3 +405,234 @@ test('GET /cco-customers/:id/conversation-context caches response for 30s', asyn
     assert.equal(callCount, 1, 'second request should be served from cache');
   });
 });
+
+
+// ── Fas 6: communication-feed, internal-note och thread-action ─────────────
+
+function makePortalMessageStore(messages = []) {
+  return {
+    listMessagesForCustomer({ tenantId, customerId }) {
+      return messages.filter((m) => m.customerId === customerId);
+    },
+  };
+}
+
+function makeConversationNotesStore(notes = []) {
+  const state = new Map();
+  for (const n of notes) {
+    const key = n.conversationKey || 'default';
+    if (!state.has(key)) state.set(key, []);
+    state.get(key).push(n);
+  }
+  return {
+    listNotes({ conversationKey }) {
+      return state.get(conversationKey) || [];
+    },
+    async addNote({ conversationKey, body, authorEmail, authorName }) {
+      const note = {
+        noteId: 'note-' + Math.random().toString(36).slice(2),
+        body,
+        authorEmail,
+        authorName,
+        createdAt: new Date().toISOString(),
+      };
+      if (!state.has(conversationKey)) state.set(conversationKey, []);
+      state.get(conversationKey).push(note);
+      return note;
+    },
+  };
+}
+
+function makeSendActionStore(sends = []) {
+  return {
+    listSends({ customerId }) {
+      return sends.filter((s) => s.customerId === customerId);
+    },
+  };
+}
+
+test('Fas 6: GET /cco-customers/:id/communication-feed merges threads, portal, notes and sends', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-comm-feed-'));
+  const customerId = 'cust-feed-1';
+
+  const router = createCcoCustomerCommRouter({
+    config: {
+      ccoConversationThreadStateStorePath: path.join(tmp, 'thread-state.json'),
+    },
+    requireAuth: makeAuth(),
+    mailboxTruthStore: makeTruthStore([
+      {
+        mailboxId: 'contact@hairtpclinic.com',
+        graphMessageId: 'g-feed-1',
+        conversationId: 'conv-feed-1',
+        folderType: 'inbox',
+        direction: 'inbound',
+        subject: 'Mailfråga',
+        bodyPreview: 'Hej',
+        fromEmail: 'patient@example.com',
+        receivedAt: '2026-08-01T09:00:00.000Z',
+        customerIdentity: { customerId, canonicalCustomerId: customerId },
+      },
+    ]),
+    mailIngestionStore: makeIngestionStore([]),
+    portalMessageStore: makePortalMessageStore([
+      {
+        customerId,
+        direction: 'inbound',
+        channel: 'portal',
+        body: 'Hej kliniken!',
+        createdAt: '2026-08-01T10:00:00.000Z',
+      },
+    ]),
+    conversationNotesStore: makeConversationNotesStore([
+      {
+        conversationKey: customerId,
+        body: 'Intern anteckning',
+        authorName: 'Ssk Anna',
+        createdAt: '2026-08-01T08:00:00.000Z',
+      },
+    ]),
+    sendActionStore: makeSendActionStore([
+      {
+        customerId,
+        kind: 'form',
+        status: 'sent',
+        createdAt: '2026-08-01T07:00:00.000Z',
+      },
+    ]),
+  });
+
+  await withServer(router, async (baseUrl) => {
+    const res = await fetch(
+      `${baseUrl}/cco-customers/${encodeURIComponent(customerId)}/communication-feed`
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.customerId, customerId);
+    assert.equal(body.events.length, 4);
+    assert.equal(body.counters.total, 4);
+    assert.equal(body.counters.internal_notes, 1);
+    assert.equal(body.counters.sends, 1);
+    assert.equal(body.lastContactTs, '2026-08-01T10:00:00.000Z');
+    const kinds = body.events.map((e) => e.kind);
+    assert.ok(kinds.includes('portal_chat'));
+    assert.ok(kinds.includes('incoming_mail'));
+    assert.ok(kinds.includes('internal_note'));
+    assert.ok(kinds.includes('form_sent'));
+  });
+});
+
+test('Fas 6: POST /cco-customers/:id/internal-note creates a note and returns it', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-comm-note-'));
+  const customerId = 'cust-note-1';
+  const notesStore = makeConversationNotesStore([]);
+
+  const router = createCcoCustomerCommRouter({
+    config: {
+      ccoConversationThreadStateStorePath: path.join(tmp, 'thread-state.json'),
+    },
+    requireAuth: makeAuth(),
+    mailboxTruthStore: makeTruthStore([]),
+    mailIngestionStore: makeIngestionStore([]),
+    conversationNotesStore: notesStore,
+  });
+
+  await withServer(router, async (baseUrl) => {
+    const res = await fetch(
+      `${baseUrl}/cco-customers/${encodeURIComponent(customerId)}/internal-note`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ body: '  Viktig notis  ' }),
+      }
+    );
+    assert.equal(res.status, 201);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.note.body, 'Viktig notis');
+
+    const listed = notesStore.listNotes({ conversationKey: customerId });
+    assert.equal(listed.length, 1);
+    assert.equal(listed[0].body, 'Viktig notis');
+  });
+});
+
+test('Fas 6: POST /cco-conversation-threads/action marks thread handled', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-comm-action-'));
+  const customerId = 'cust-action-1';
+
+  const router = createCcoCustomerCommRouter({
+    config: {
+      ccoConversationThreadStateStorePath: path.join(tmp, 'thread-state.json'),
+    },
+    requireAuth: makeAuth(),
+    mailboxTruthStore: makeTruthStore([
+      {
+        mailboxId: 'contact@hairtpclinic.com',
+        graphMessageId: 'g-action-1',
+        conversationId: 'conv-action-1',
+        folderType: 'inbox',
+        direction: 'inbound',
+        subject: 'Hantera mig',
+        bodyPreview: 'Hej',
+        fromEmail: 'patient@example.com',
+        receivedAt: '2026-08-01T09:00:00.000Z',
+        customerIdentity: { customerId, canonicalCustomerId: customerId },
+      },
+    ]),
+    mailIngestionStore: makeIngestionStore([]),
+  });
+
+  await withServer(router, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco-conversation-threads/action`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        customerId,
+        threadId: 'conv-action-1',
+        action: 'mark_handled',
+      }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.state.handled, true);
+
+    const threads = await fetch(
+      `${baseUrl}/cco-customers/${encodeURIComponent(customerId)}/conversation-threads`
+    );
+    const tBody = await threads.json();
+    const thread = tBody.threads.find((x) => x.threadId === 'conv-action-1');
+    assert.ok(thread, 'thread must exist');
+    assert.equal(thread.handled, true);
+    assert.equal(thread.threadStatus, 'handled');
+  });
+});
+
+test('Fas 6: POST /cco-conversation-threads/action rejects invalid action', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-comm-action-bad-'));
+
+  const router = createCcoCustomerCommRouter({
+    config: {
+      ccoConversationThreadStateStorePath: path.join(tmp, 'thread-state.json'),
+    },
+    requireAuth: makeAuth(),
+    mailboxTruthStore: makeTruthStore([]),
+    mailIngestionStore: makeIngestionStore([]),
+  });
+
+  await withServer(router, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco-conversation-threads/action`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        customerId: 'c',
+        threadId: 't',
+        action: 'delete_everything',
+      }),
+    });
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    assert.equal(body.ok, false);
+  });
+});

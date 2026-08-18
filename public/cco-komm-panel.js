@@ -95,6 +95,24 @@
     return r.json();
   }
 
+  async function postPortalMessage(customerId, body, opts) {
+    const tenantId = opts?.tenantId || 'hair_tp';
+    const role = opts?.role || 'owner';
+    const r = await fetch(
+      '/api/v1/cco/runtime/customer/' + encodeURIComponent(customerId) + '/portal-message',
+      {
+        method: 'POST',
+        headers: requestHeaders(opts, {
+          'Content-Type': 'application/json',
+          'x-cco-role': role,
+          'x-cco-tenant': tenantId,
+        }),
+        body: JSON.stringify({ body, tenantId }),
+      }
+    );
+    return r.json();
+  }
+
   async function sendForm(customerId, formType, opts) {
     const tenantId = opts?.tenantId || 'hair_tp';
     const role = opts?.role || 'owner';
@@ -127,6 +145,12 @@
         label: 'Svarstudio',
         icon: '✏',
         onclick: () => openSvarstudio(customerId, opts, host),
+      },
+      {
+        id: 'portal-reply',
+        label: 'Svar i portalen',
+        icon: '💬',
+        onclick: () => openPortalReplyModal(customerId, opts, host),
       },
       {
         id: 'send-hd',
@@ -647,6 +671,91 @@
         errorBox.textContent = 'Misslyckades: ' + err.message;
         submitBtn.disabled = false;
         submitBtn.textContent = 'Spara notis';
+      }
+    });
+
+    modal.appendChild(
+      el('div', { class: 'cco-komm-modal-foot' }, [
+        el('button', { class: 'cco-komm-modal-cancel', type: 'button', onclick: close }, 'Avbryt'),
+        submitBtn,
+      ])
+    );
+
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+    setTimeout(() => textarea.focus(), 50);
+  }
+
+  // ─── Portal-svar modal (Fas 6) ───
+  function openPortalReplyModal(customerId, opts, host) {
+    document.querySelectorAll('.cco-komm-modal-backdrop').forEach((n) => n.remove());
+    const backdrop = el('div', {
+      class: 'cco-komm-modal-backdrop',
+      role: 'dialog',
+      'aria-modal': 'true',
+    });
+    const modal = el('div', { class: 'cco-komm-modal' });
+    const close = () => backdrop.remove();
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) close();
+    });
+
+    modal.appendChild(
+      el('div', { class: 'cco-komm-modal-head' }, [
+        el('h3', {}, '💬 Svar i portalen'),
+        el('button', { class: 'cco-komm-modal-close', onclick: close }, '×'),
+      ])
+    );
+
+    const body = el('div', { class: 'cco-komm-modal-body' });
+    body.appendChild(
+      el(
+        'div',
+        { class: 'cco-komm-modal-lead' },
+        'Skriv ett svar som visas i patientens portal. Patienten får en notis (om notis är aktiverad).'
+      )
+    );
+    body.appendChild(el('div', { class: 'cco-komm-modal-label' }, 'Meddelande (3–2000 tecken)'));
+    const textarea = el('textarea', {
+      class: 'cco-komm-modal-input',
+      rows: '5',
+      placeholder: 'Skriv ditt svar till patienten här…',
+    });
+    body.appendChild(textarea);
+    const errorBox = el('div', { class: 'cco-komm-modal-error', style: 'display: none;' });
+    body.appendChild(errorBox);
+    modal.appendChild(body);
+
+    const submitBtn = el(
+      'button',
+      { class: 'cco-komm-modal-submit', type: 'button' },
+      'Skicka svar'
+    );
+    submitBtn.addEventListener('click', async () => {
+      const text = textarea.value.trim();
+      if (text.length < 3) {
+        errorBox.style.display = 'block';
+        errorBox.textContent = 'Min 3 tecken.';
+        return;
+      }
+      if (text.length > 2000) {
+        errorBox.style.display = 'block';
+        errorBox.textContent = 'Max 2000 tecken.';
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Skickar…';
+      try {
+        const r = await postPortalMessage(customerId, text, opts);
+        if (!r.ok) throw new Error(r.error || 'unknown_error');
+        close();
+        showToast('✓ Svar skickat till portalen', 'ok');
+        reloadFeed(host, customerId, opts);
+      } catch (err) {
+        errorBox.style.display = 'block';
+        errorBox.textContent = 'Misslyckades: ' + err.message;
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Skicka svar';
       }
     });
 

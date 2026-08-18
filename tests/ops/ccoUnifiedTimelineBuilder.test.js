@@ -218,3 +218,56 @@ test('C6: displayTypeForEvent mappar kinds till tydlig typ', () => {
   );
   assert.equal(displayTypeForEvent({ kind: 'agreement_signed', category: 'documents' }), 'avtal');
 });
+
+
+test('Fas 6: portal-meddelanden dyker upp i tidslinjen med rätt kinds', async () => {
+  const portalMessageStore = {
+    listMessagesForCustomer() {
+      return [
+        {
+          id: 'pm-1',
+          direction: 'inbound',
+          channel: 'portal',
+          body: 'Hej från patienten',
+          createdAt: '2026-08-01T10:00:00.000Z',
+        },
+        {
+          id: 'pm-2',
+          direction: 'outbound',
+          channel: 'portal',
+          body: 'Svar från kliniken',
+          createdAt: '2026-08-01T11:00:00.000Z',
+        },
+        {
+          id: 'pm-3',
+          direction: 'inbound',
+          channel: 'sms',
+          body: 'SMS till kliniken',
+          createdAt: '2026-08-01T09:00:00.000Z',
+        },
+      ];
+    },
+  };
+
+  const result = await buildUnifiedTimeline({
+    customerId: 'cust-portal',
+    portalMessageStore,
+  });
+
+  const portalEvents = result.events.filter((e) => e.source === 'portal_message');
+  assert.equal(portalEvents.length, 3);
+
+  const chatInbound = portalEvents.find((e) => e.kind === 'portal_chat' && e.meta.direction === 'inbound');
+  const staffReply = portalEvents.find((e) => e.kind === 'portal_staff_reply');
+  const smsInbound = portalEvents.find((e) => e.kind === 'portal_sms_inbound');
+
+  assert.ok(chatInbound, 'portal_chat inbound ska finnas');
+  assert.ok(staffReply, 'portal_staff_reply ska finnas');
+  assert.ok(smsInbound, 'portal_sms_inbound ska finnas');
+  assert.equal(chatInbound.displayType, 'mail');
+  assert.equal(staffReply.displayType, 'mail');
+  assert.equal(smsInbound.displayType, 'mail');
+  assert.equal(chatInbound.summary, 'Hej från patienten');
+
+  assert.equal(result.counts.communication, 3);
+});

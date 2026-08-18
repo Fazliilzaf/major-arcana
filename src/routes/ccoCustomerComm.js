@@ -23,6 +23,9 @@ function createCcoCustomerCommRouter({
   resolvePatientAssetStore = null,
   patientMasterStore = null, // ORD-96
   historyMailboxIds = [], // ORD-96: utan denna söks bara de 2 som råkar ligga i LRU:n
+  conversationStateStore = null,
+  conversationNotesStore = null,
+  portalMessageStore = null,
   auditLog = null,
   openai = null,
   openaiModel = '',
@@ -223,6 +226,7 @@ function createCcoCustomerCommRouter({
           journeyStore,
           threadStore,
           assetStore,
+          portalMessageStore,
         });
         return res.json(payload);
       } catch (error) {
@@ -369,6 +373,201 @@ function createCcoCustomerCommRouter({
       } catch (error) {
         console.error(error);
         return res.status(500).json({ ok: false, error: 'Kunde inte läsa konversationskontext.' });
+      }
+    }
+  );
+
+  // ─── Fas 6: Communication feed (per kund) ────────────────────────────────
+  // Samlar alla kommunikationshändelser för en kund i en kronologisk feed som
+  // konsumeras av cco-komm-panel.js. Källor: mail-trådar, utkast, utskick,
+  // portal-meddelanden och interna notiser.
+  router.get(
+    '/cco-customers/:id/communication-feed',
+    requireAuth,
+    attachRole,
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const customerId = normalizeText(req.params.id);
+        const tenantId =
+          normalizeText(req.query.tenantId) ||
+          normalizeText(req.auth?.tenantId) ||
+          normalizeText(config?.defaultTenantId) ||
+          'hair-tp-clinic';
+        const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 80));
+
+        const events = [];
+
+        // 1. Trådar (mail + drafts)
+        if (threadStorePromise || mailboxTruthStore) {
+          try {
+            const store = await getThreadStore();
+            const built = await store.buildThreadsForCustomer(customerId, { tenantId });
+            for (const t of built.threads || []) {
+              const isDraft = t.kind && t.kind.startsWith('comm_draft');
+              events.push({
+                ts: t.ts || null,
+                kind: t.kind || 'incoming_mail',
+                title: t.subject || (isDraft ? 'Utkast' : t.kind || 'Mail'),
+                actor: t.from || null,
+                status: t.threadStatus || null,
+                detail: {
+                  channel: t.channel || null,
+                  journeyStep: t.journeyStep || null,
+                  dryRun: !!t.systemMail,
+                  recipientMasked: null,
+                },
+                threadId: t.threadId || null,
+              });
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+
+        // 2. Portal-meddelanden
+        if (portalMessageStore?.listMessagesForCustomer) {
+          try {
+            const msgs = portalMessageStore.listMessagesForCustomer({ tenantId, customerId });
+            for (const m of msgs || []) {
+              events.push({
+                ts: m.createdAt || null,
+                kind: m.channel === 'sms' ? 'portal_sms_inbound' : 'portal_chat',
+                title: m.direction === 'inbound' ? 'Patient (portal)' : 'Klinik (portal)',
+                actor: m.author || (m.direction === 'inbound' ? 'patient' : 'klinik'),
+                status: m.direction === 'inbound' && !m.readAt ? 'unread' : 'read',
+                detail: {
+                  body: m.body || '',
+                  channel: m.channel || 'portal',
+                  direction: m.direction,
+                },
+              });
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+
+        // 3. Interna notiser (per kund — conversationKey = customerId)
+        if (conversationNotesStore?.listNotes) {
+          try {
+            const notes = conversationNotesStore.listNotes({ conversationKey: customerId });
+            for (const n of notes || []) {
+              events.push({
+                ts: n.createdAt || null,
+                kind: 'internal_note',
+                title: 'Intern notis',
+                actor: n.authorName || n.authorEmail || null,
+                status: null,
+                detail: { body: n.body || '', noteId: n.noteId || null },
+              });
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+
+        events.sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')));
+
+        const total = events.length;
+        const sends = events.filter((e) =>
+          ['form_sent', 'consent_sent', 'file_sent', 'comm_sent'].includes(e.kind)
+        ).length;
+        const internalNotes = events.filter((e) => e.kind === 'internal_note').length;
+        const lastContactTs = events[0]?.ts || null;
+
+        return res.json({
+          customerId,
+          tenantId,
+          events: events.slice(0, limit),
+          counts: { total, sends, internal_notes: internalNotes },
+          counters: { total, sends, internal_notes: internalNotes },
+          lastContactTs,
+        });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte läsa communication feed.' });
+      }
+    }
+  );
+
+  // ─── Fas 6: Intern notis per kund ─────────────────────────────────────────
+  router.post(
+    '/cco-customers/:id/internal-note',
+    requireAuth,
+    attachRole,
+    requirePermission('customers.write'),
+    express.json({ limit: '16kb' }),
+    async (req, res) => {
+      try {
+        const customerId = normalizeText(req.params.id);
+        if (!customerId) return res.status(400).json({ ok: false, error: 'customerId saknas.' });
+        const body = normalizeText(req.body?.body);
+        if (!body) return res.status(400).json({ ok: false, error: 'body saknas.' });
+        if (!conversationNotesStore?.addNote) {
+          return res.status(503).json({ ok: false, error: 'notes_store_unavailable' });
+        }
+        const note = await conversationNotesStore.addNote({
+          conversationKey: customerId,
+          body,
+          authorEmail: normalizeText(req.auth?.email) || null,
+          authorName: normalizeText(req.auth?.name) || normalizeText(req.auth?.userId) || null,
+        });
+        auditLog?.append?.({
+          action: 'communication.internal_note.created',
+          actor: { role: req.cco?.role || req.auth?.role, userId: req.auth?.userId || null },
+          target: { kind: 'internal_note', id: note.noteId, tenantId: normalizeText(req.auth?.tenantId) },
+          result: 'ok',
+          detail: { customerId, bodyLength: body.length },
+        });
+        return res.status(201).json({ ok: true, note });
+      } catch (error) {
+        console.error(error);
+        return res.status(error.statusCode || 400).json({ ok: false, error: error.message });
+      }
+    }
+  );
+
+  // ─── Fas 6: Thread actions (handled / snooze) ─────────────────────────────
+  router.post(
+    '/cco-conversation-threads/action',
+    requireAuth,
+    attachRole,
+    requirePermission('customers.write'),
+    express.json({ limit: '16kb' }),
+    async (req, res) => {
+      try {
+        const customerId = normalizeText(req.body?.customerId);
+        const threadId = normalizeText(req.body?.threadId);
+        const action = normalizeText(req.body?.action).toLowerCase();
+        const tenantId =
+          normalizeText(req.body?.tenantId) ||
+          normalizeText(req.auth?.tenantId) ||
+          normalizeText(config?.defaultTenantId) ||
+          'hair-tp-clinic';
+        if (!customerId || !threadId) {
+          return res.status(400).json({ ok: false, error: 'customerId och threadId krävs.' });
+        }
+        if (!['mark_handled', 'unmark_handled', 'snooze', 'unsnooze'].includes(action)) {
+          return res.status(400).json({ ok: false, error: 'invalid action: ' + action });
+        }
+        const store = await getThreadStore();
+        if (!store?.performAction) {
+          return res.status(503).json({ ok: false, error: 'thread_store_unavailable' });
+        }
+        const result = store.performAction({
+          customerId,
+          threadId,
+          action,
+          tenantId,
+          actor: normalizeText(req.auth?.userId) || normalizeText(req.cco?.role) || 'staff',
+          snoozeUntilIso: normalizeText(req.body?.snoozeUntilIso) || null,
+          reason: normalizeText(req.body?.reason) || '',
+        });
+        return res.json({ ok: true, state: result });
+      } catch (error) {
+        console.error(error);
+        return res.status(error.statusCode || 400).json({ ok: false, error: error.message });
       }
     }
   );
