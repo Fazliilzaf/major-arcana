@@ -44,6 +44,8 @@ function deriveHistorySignals(targetThreads, nowMs) {
     .map((t) => [t.subject, t.preview, t.body].filter(Boolean).join(' '))
     .join(' ')
     .toLowerCase();
+  // Matcha stammar med ordgräns före, men tillåt svensk böjning efteråt
+  // (t.ex. "klagomål", "reklamation", "bokning", "behandlingar").
   if (/\b(klag|reklam|missnöjd|arg|frustrerad|besviken)/i.test(text)) {
     pattern = 'complaint';
   } else if (/\b(bok|tid|behandling|konsultation)/i.test(text)) {
@@ -216,4 +218,5 @@ function createCcoConversationContextService({
 
 module.exports = {
   createCcoConversationContextService,
+  deriveHistorySignals,
 };
