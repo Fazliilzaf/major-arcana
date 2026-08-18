@@ -42,12 +42,19 @@ function createCcoMailIngestionWorker({
   }
 
   async function ensureQueueIntegrity({ mailboxEmail = '' } = {}) {
+    // Incident 2026-08-18: loggas ALLTID, och både före och efter. Tidigare
+    // loggades bara efteråt och bara när något ändrats, vilket gjorde
+    // frånvaron av loggen tvetydig: den var lika förenlig med "hittade inget"
+    // som med "hänger inne i reconcile" (som gör await save() internt, före
+    // returen). Med en rad före och en efter blir sista raden före tystnaden
+    // ett entydigt besked om var event-loopen dog.
+    const label = normalizeEmail(mailboxEmail) || 'all';
+    logger?.log?.(`[mail-ingestion-worker] queue integrity start ${label}`);
+    const startedAt = Date.now();
     const result = await ingestionStore.reconcileProcessingQueue({ mailboxEmail });
-    if (result.removed > 0 || result.requeued > 0) {
-      logger?.log?.(
-        `[mail-ingestion-worker] queue integrity ${normalizeEmail(mailboxEmail) || 'all'}: removed ${result.removed}, requeued ${result.requeued}`
-      );
-    }
+    logger?.log?.(
+      `[mail-ingestion-worker] queue integrity klar ${label}: removed ${result.removed}, requeued ${result.requeued} (${Date.now() - startedAt}ms)`
+    );
     return result;
   }
 

@@ -86,15 +86,17 @@ function createCcoMailIngestionSyncService({
         .map((value) => normalizeText(value))
         .filter(Boolean)
     );
-    const messages = truth.listMessages({
-      mailboxIds: [normalizedMailbox],
-      folderTypes,
-      sinceIso,
-      limit: Math.max(0, Number(limit) || 0),
-    }).filter(
-      (message) =>
-        !hasMessageIdScope || requestedMessageIds.has(normalizeText(message?.graphMessageId))
-    );
+    const messages = truth
+      .listMessages({
+        mailboxIds: [normalizedMailbox],
+        folderTypes,
+        sinceIso,
+        limit: Math.max(0, Number(limit) || 0),
+      })
+      .filter(
+        (message) =>
+          !hasMessageIdScope || requestedMessageIds.has(normalizeText(message?.graphMessageId))
+      );
 
     const totalFetched = messages.length;
     let totalSaved = 0;
@@ -131,10 +133,21 @@ function createCcoMailIngestionSyncService({
 
   async function processQueue({ mailboxEmail = '', mode = 'read_only', maxMessages = 25 } = {}) {
     const normalizedMailbox = normalizeEmail(mailboxEmail);
+    // Incident 2026-08-18: brödsmulor genom hela batchen. Frysningarna har
+    // varit helt tysta — inga loggar, inga timers, ingen exception — vilket
+    // gjort att vi bara kunnat resonera oss fram till VAR event-loopen dog.
+    // Med en rad före varje steg blir sista raden före tystnaden ett direkt
+    // svar istället för en hypotes. Loggar bara id, antal och storlekar,
+    // aldrig innehåll (PII).
+    logger?.log?.(`[mail-ingestion] processQueue start mailbox=${normalizedMailbox || 'alla'}`);
+    const directoryStartedAt = Date.now();
     const patientDirectory =
       typeof patientDirectoryProvider === 'function'
         ? asArray(await patientDirectoryProvider({ mailboxEmail: normalizedMailbox }))
         : [];
+    logger?.log?.(
+      `[mail-ingestion] patientkatalog laddad n=${patientDirectory.length} (${Date.now() - directoryStartedAt}ms)`
+    );
 
     let processed = 0;
     let failed = 0;
@@ -154,6 +167,18 @@ function createCcoMailIngestionSyncService({
         continue;
       }
 
+      // Sista raden före en eventuell frysning pekar ut exakt vilket
+      // meddelande som orsakar den, och hur stort det är.
+      const sizeOf = (value) => (typeof value === 'string' ? value.length : 0);
+      const rawJson = rawMessage.rawJson || {};
+      logger?.log?.(
+        `[mail-ingestion] processar raw=${rawMessageId} ` +
+          `bodyText=${sizeOf(rawMessage.bodyText)} bodyHtml=${sizeOf(rawMessage.bodyHtml)} ` +
+          `rawJson.bodyHtml=${sizeOf(rawJson.bodyHtml)} rawJson.bodyText=${sizeOf(rawJson.bodyText)} ` +
+          `rawJson.body.content=${sizeOf((rawJson.body || {}).content)}`
+      );
+      const messageStartedAt = Date.now();
+
       try {
         const result = await processRawMessage({
           store: ingestionStore,
@@ -170,13 +195,21 @@ function createCcoMailIngestionSyncService({
           tenantId: config.defaultTenantId || config.defaultTenant || 'hair-tp-clinic',
         });
         results.push(result);
+        logger?.log?.(
+          `[mail-ingestion] klar raw=${rawMessageId} skipped=${Boolean(result.skipped)} (${Date.now() - messageStartedAt}ms)`
+        );
         if (result.skipped) {
           completedIds.push(rawMessageId);
         } else {
           processed += 1;
           completedIds.push(rawMessageId);
         }
-      } catch (_error) {
+      } catch (error) {
+        // Tidigare svaldes felet helt tyst (catch (_error) utan logg), vilket
+        // gjorde ett kastande meddelande omöjligt att skilja från en frysning.
+        logger?.error?.(
+          `[mail-ingestion] FEL raw=${rawMessageId} (${Date.now() - messageStartedAt}ms): ${error?.message || error}`
+        );
         failed += 1;
         completedIds.push(rawMessageId);
       }
@@ -185,7 +218,12 @@ function createCcoMailIngestionSyncService({
     if (completedIds.length > 0) {
       await ingestionStore.completeQueuedMessages(completedIds, { persist: false });
     }
+    logger?.log?.(
+      `[mail-ingestion] batch klar processed=${processed} failed=${failed} — sparar state`
+    );
+    const saveStartedAt = Date.now();
     await ingestionStore.save();
+    logger?.log?.(`[mail-ingestion] state sparat (${Date.now() - saveStartedAt}ms)`);
 
     return { processed, failed, results };
   }
@@ -424,7 +462,9 @@ function createCcoMailIngestionSyncService({
         totalDuplicates: ingestResult.totalDuplicates,
         totalProcessed: processResult.processed,
         totalFailed: processResult.failed,
-        error: imapResult.ok ? null : normalizeText(imapResult.error) || 'imap_sync_completed_with_errors',
+        error: imapResult.ok
+          ? null
+          : normalizeText(imapResult.error) || 'imap_sync_completed_with_errors',
       });
       await ingestionStore.appendAudit({
         type: 'cco_imap_mailbox_cycle_completed',
