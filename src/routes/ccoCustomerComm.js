@@ -5,6 +5,8 @@ const { attachRole, requirePermission } = require('../security/ccoRbac');
 const { buildUnifiedTimeline } = require('../ops/ccoUnifiedTimelineBuilder');
 const { createCcoCustomerJourneyStore } = require('../ops/ccoCustomerJourneyStore');
 const { createCcoConversationThreadStore } = require('../ops/ccoConversationThreadStore');
+const { createCcoConversationContextService } = require('../ops/ccoConversationContextService');
+const ccoAiThreadSummary = require('../ops/ccoAiThreadSummary');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -22,10 +24,47 @@ function createCcoCustomerCommRouter({
   patientMasterStore = null, // ORD-96
   historyMailboxIds = [], // ORD-96: utan denna söks bara de 2 som råkar ligga i LRU:n
   auditLog = null,
+  openai = null,
+  openaiModel = '',
 }) {
   const router = express.Router();
   let journeyStorePromise = null;
   let threadStorePromise = null;
+  let contextServicePromise = null;
+  const contextCache = new Map();
+  const CACHE_TTL_MS = 30 * 1000;
+  const MAX_CACHE_ENTRIES = 1000;
+
+  function evictExpiredAndOldestIfNeeded() {
+    const now = Date.now();
+    for (const [key, entry] of contextCache) {
+      if (entry.expiresAt < now) {
+        contextCache.delete(key);
+      }
+    }
+    while (contextCache.size > MAX_CACHE_ENTRIES) {
+      const first = contextCache.keys().next().value;
+      contextCache.delete(first);
+    }
+  }
+
+  function getCachedContext(key) {
+    const entry = contextCache.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt < Date.now()) {
+      contextCache.delete(key);
+      return null;
+    }
+    // LRU: move to end on access
+    contextCache.delete(key);
+    contextCache.set(key, entry);
+    return entry.value;
+  }
+
+  function setCachedContext(key, value) {
+    evictExpiredAndOldestIfNeeded();
+    contextCache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+  }
 
   function journeyStorePath() {
     return (
@@ -73,6 +112,36 @@ function createCcoCustomerCommRouter({
       });
     }
     return threadStorePromise;
+  }
+
+  async function getContextService() {
+    if (!contextServicePromise) {
+      const threadStore = await getThreadStore();
+      const aiSummaryResolver =
+        mailboxTruthStore && openai
+          ? (conversationKey, _tenantId) =>
+              ccoAiThreadSummary.summarizeThread({
+                mailboxTruthStore,
+                openai,
+                openaiModel,
+                conversationKey,
+                tenantId: _tenantId || config?.defaultTenantId || 'cco',
+              })
+          : null;
+      contextServicePromise = createCcoConversationContextService({
+        threadStore,
+        slaMonitor: require('../intelligence/slaMonitor'),
+        riskStackEngine: require('../intelligence/riskStackEngine'),
+        customerTemperatureEngine: require('../intelligence/customerTemperatureEngine'),
+        aiSummaryResolver,
+        tenantConfig: config?.tenantConfig || null,
+      });
+    }
+    return contextServicePromise;
+  }
+
+  function contextCacheKey(userId, tenantId, customerId, conversationKey, includeAiSummary) {
+    return `${userId}:${tenantId}:${customerId}:${conversationKey || ''}:${Boolean(includeAiSummary)}`;
   }
 
   router.get(
@@ -257,6 +326,49 @@ function createCcoCustomerCommRouter({
         return res
           .status(status)
           .json({ ok: false, error: error.message || 'rollback misslyckades.' });
+      }
+    }
+  );
+
+  router.get(
+    '/cco-customers/:id/conversation-context',
+    requireAuth,
+    attachRole,
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const customerId = normalizeText(req.params.id);
+        const tenantId =
+          normalizeText(req.query.tenantId) ||
+          normalizeText(req.auth?.tenantId) ||
+          normalizeText(config?.defaultTenantId) ||
+          'hair-tp-clinic';
+        const conversationKey = normalizeText(req.query.conversationKey);
+        const includeAiSummary = String(req.query.includeAiSummary).toLowerCase() === 'true';
+        const userId = normalizeText(req.auth?.userId) || 'anonymous';
+        const cacheKey = contextCacheKey(
+          userId,
+          tenantId,
+          customerId,
+          conversationKey,
+          includeAiSummary
+        );
+        const cached = getCachedContext(cacheKey);
+        if (cached) {
+          return res.json({ ok: true, context: cached });
+        }
+        const service = await getContextService();
+        const context = await service.buildContextForCustomer(customerId, {
+          tenantId,
+          conversationKey,
+          nowMs: Date.now(),
+          includeAiSummary,
+        });
+        setCachedContext(cacheKey, context);
+        return res.json({ ok: true, context });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ ok: false, error: 'Kunde inte läsa konversationskontext.' });
       }
     }
   );

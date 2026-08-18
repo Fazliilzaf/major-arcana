@@ -1963,3 +1963,205 @@ test('cco bookings calendar-signals returns operational signals for date range',
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
+
+test('calendar-bundle without patientId returns all visits', async () => {
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: {
+        async listCasesInRange() {
+          return [];
+        },
+      },
+      clientoBookingStore: {
+        listBookingsInRange() {
+          return [
+            {
+              bookingId: 'cliento-1',
+              customerEmail: 'a@example.com',
+              customerName: 'Patient A',
+              startsAt: '2026-05-20T09:00:00.000Z',
+              endsAt: '2026-05-20T09:30:00.000Z',
+              status: 'confirmed',
+              serviceLabel: 'PRP',
+            },
+            {
+              bookingId: 'cliento-2',
+              customerEmail: 'b@example.com',
+              customerName: 'Patient B',
+              startsAt: '2026-05-20T10:00:00.000Z',
+              endsAt: '2026-05-20T10:30:00.000Z',
+              status: 'confirmed',
+              serviceLabel: 'PRP',
+            },
+          ];
+        },
+      },
+      treatmentEncounterStore: {
+        listEncountersForEnrichment() {
+          return [
+            {
+              patientId: 'patient-a',
+              encounterId: 'enc-a',
+              bookingId: 'cliento-1',
+              startsAt: '2026-05-20T09:00:00.000Z',
+            },
+            {
+              patientId: 'patient-b',
+              encounterId: 'enc-b',
+              bookingId: 'cliento-2',
+              startsAt: '2026-05-20T10:00:00.000Z',
+            },
+          ];
+        },
+      },
+      patientMasterStore: {
+        async listPatients() {
+          return {
+            patients: [
+              {
+                id: 'patient-a',
+                primaryEmail: 'a@example.com',
+                emails: [],
+                phones: [],
+                fileSummary: {},
+              },
+              {
+                id: 'patient-b',
+                primaryEmail: 'b@example.com',
+                emails: [],
+                phones: [],
+                fileSummary: {},
+              },
+            ],
+          };
+        },
+      },
+      authStore: {
+        async getSessionContextByToken() {
+          return null;
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: { defaultTenantId: 'tenant-a', brand: 'hair-tp-clinic', brandByHost: {} },
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(
+      `${baseUrl}/cco-bookings/calendar-bundle?fromDate=2026-05-20&toDate=2026-05-20`
+    );
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.patientIdFilter, null);
+    assert.equal(payload.visits.length, 2);
+  });
+});
+
+test('calendar-bundle with patientId filters visits and cases', async () => {
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: {
+        async listCasesInRange() {
+          return [
+            { caseRef: 'case-a', patientId: 'patient-a', status: 'confirmed_external' },
+            { caseRef: 'case-b', patientId: 'patient-b', status: 'confirmed_external' },
+          ];
+        },
+      },
+      clientoBookingStore: {
+        listBookingsInRange() {
+          return [
+            {
+              bookingId: 'cliento-1',
+              customerEmail: 'a@example.com',
+              customerName: 'Patient A',
+              startsAt: '2026-05-20T09:00:00.000Z',
+              endsAt: '2026-05-20T09:30:00.000Z',
+              status: 'confirmed',
+              serviceLabel: 'PRP',
+            },
+            {
+              bookingId: 'cliento-2',
+              customerEmail: 'b@example.com',
+              customerName: 'Patient B',
+              startsAt: '2026-05-20T10:00:00.000Z',
+              endsAt: '2026-05-20T10:30:00.000Z',
+              status: 'confirmed',
+              serviceLabel: 'PRP',
+            },
+          ];
+        },
+      },
+      treatmentEncounterStore: {
+        listEncountersForEnrichment() {
+          return [
+            {
+              patientId: 'patient-a',
+              encounterId: 'enc-a',
+              bookingId: 'cliento-1',
+              startsAt: '2026-05-20T09:00:00.000Z',
+            },
+            {
+              patientId: 'patient-b',
+              encounterId: 'enc-b',
+              bookingId: 'cliento-2',
+              startsAt: '2026-05-20T10:00:00.000Z',
+            },
+          ];
+        },
+      },
+      patientMasterStore: {
+        async listPatients() {
+          return {
+            patients: [
+              {
+                id: 'patient-a',
+                primaryEmail: 'a@example.com',
+                emails: [],
+                phones: [],
+                fileSummary: {},
+              },
+              {
+                id: 'patient-b',
+                primaryEmail: 'b@example.com',
+                emails: [],
+                phones: [],
+                fileSummary: {},
+              },
+            ],
+          };
+        },
+      },
+      authStore: {
+        async getSessionContextByToken() {
+          return null;
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: { defaultTenantId: 'tenant-a', brand: 'hair-tp-clinic', brandByHost: {} },
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(
+      `${baseUrl}/cco-bookings/calendar-bundle?fromDate=2026-05-20&toDate=2026-05-20&patientId=patient-a`
+    );
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.patientIdFilter, 'patient-a');
+    assert.equal(payload.visits.length, 1);
+    assert.equal(payload.visits[0].patientId, 'patient-a');
+    assert.equal(payload.cases.length, 1);
+    assert.equal(payload.cases[0].patientId, 'patient-a');
+  });
+});

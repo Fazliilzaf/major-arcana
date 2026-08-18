@@ -197,6 +197,8 @@
 
   async function loadCanonicalVisits(fromDate, toDate, tenantId, role) {
     const query = new URLSearchParams({ fromDate, toDate });
+    const patientId = global.CCO_KALENDER_PATIENT_ID || null;
+    if (patientId) query.set('patientId', patientId);
     const response = await fetch('/api/v1/cco-bookings/calendar-bundle?' + query.toString(), {
       headers: calendarHeaders({ tenantId, role }),
     });
@@ -207,6 +209,90 @@
     }
     const payload = await response.json();
     return (Array.isArray(payload.visits) ? payload.visits : []).map(canonicalVisitToSlot);
+  }
+
+  function applyConversationContext(context) {
+    if (!context || typeof context !== 'object') return;
+    global.CCO_KALENDER_PATIENT_ID = context.patientId || null;
+    global.CCO_KALENDER_CONTEXT = context;
+    if (context.patientId) reloadCalendarWithPatientFilter();
+    renderConversationContextPanel(context);
+  }
+
+  function reloadCalendarWithPatientFilter() {
+    const view = new URLSearchParams(window.location.search).get('view') || 'day';
+    const tenantId = global.__ccoCalTenantId || 'hair_tp';
+    const role = global.__ccoCalRole || 'owner';
+    if (view === 'week' || view === 'v6') {
+      if (typeof v6Load === 'function') v6Load();
+      else if (typeof loadWeek === 'function') loadWeek({ tenantId, role });
+    } else if (view === 'day') {
+      if (typeof loadDay === 'function') loadDay({ tenantId, role });
+    }
+  }
+
+  function renderConversationContextPanel(context) {
+    const existing = document.getElementById('cco-kalender-conversation-context');
+    if (existing) existing.remove();
+    if (!context || !context.patientId) return;
+
+    const panel = document.createElement('div');
+    panel.id = 'cco-kalender-conversation-context';
+    panel.style.cssText = 'padding: 8px 12px; margin: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; color: #334155; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;';
+
+    const title = document.createElement('span');
+    title.style.cssText = 'font-weight: 600; margin-right: 4px;';
+    title.textContent = 'Konversation:';
+    panel.appendChild(title);
+
+    const loading = document.createElement('span');
+    loading.className = 'cco-cal-context-loading';
+    loading.style.cssText = 'color: #64748b;';
+    loading.textContent = 'Laddar…';
+    panel.appendChild(loading);
+
+    const calendarShell = document.querySelector('.calendar-shell');
+    if (calendarShell && calendarShell.parentNode) {
+      calendarShell.parentNode.insertBefore(panel, calendarShell);
+    } else {
+      document.body.insertBefore(panel, document.body.firstChild);
+    }
+
+    fetch('/api/v1/cco-customers/' + encodeURIComponent(context.patientId) + '/conversation-context', {
+      headers: calendarHeaders({ tenantId: global.__ccoCalTenantId || 'hair_tp', role: global.__ccoCalRole || 'owner' }),
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        const ctx = data && data.context ? data.context : null;
+        if (!ctx) {
+          panel.remove();
+          return;
+        }
+        loading.remove();
+        const chips = [
+          { label: 'Obesvarade', value: ctx.unanswered && ctx.unanswered.count },
+          { label: 'SLA', value: ctx.slaStatus && ctx.slaStatus.slaStatus },
+          { label: 'Senaste', value: ctx.latestInboundAt },
+          { label: 'Risk', value: ctx.dominantRisk },
+          { label: 'Temperatur', value: ctx.temperature && ctx.temperature.temperature },
+        ];
+        chips.forEach((chip) => {
+          if (chip.value === undefined || chip.value === null || chip.value === '') return;
+          const span = document.createElement('span');
+          span.style.cssText = 'background: #fff; padding: 2px 8px; border-radius: 999px; border: 1px solid #cbd5e1;';
+          span.innerHTML = '<b>' + chip.label + ':</b> ' + String(chip.value).replace(/</g, '&lt;');
+          panel.appendChild(span);
+        });
+      })
+      .catch(() => {
+        panel.remove();
+      });
+  }
+
+  if (typeof global.addEventListener === 'function') {
+    global.addEventListener('cco:kalender:apply-context', (event) => {
+      applyConversationContext(event.detail || {});
+    });
   }
 
   function canonicalDayView(date, visits) {

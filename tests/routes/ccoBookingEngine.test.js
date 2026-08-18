@@ -53,16 +53,15 @@ async function createFixture(options = {}) {
     }));
   const app = express();
   app.use(express.json());
-  const authStore =
-    options.authStore ||
-    {
-      async getSessionContextByToken() {
-        return null;
-      },
-      async touchSession() {
-        return true;
-      },
-    };
+  const authStore = options.authStore || {
+    async getSessionContextByToken() {
+      return null;
+    },
+    async touchSession() {
+      return true;
+    },
+  };
+  const auditLog = options.auditLog || { appendStrict: () => {} };
   app.use(
     '/api/v1',
     createCcoBookingEngineRouter({
@@ -76,6 +75,7 @@ async function createFixture(options = {}) {
       config: {
         defaultTenantId: options.tenantId || 'tenant-a',
       },
+      auditLog,
     })
   );
   return {
@@ -209,10 +209,7 @@ test('cco booking engine legacy-catalog is staff-only and supports details toggl
       assert.equal(payload.provider, 'legacy_migration_catalogs');
       assert.ok(payload.counts && typeof payload.counts.clientoServices === 'number');
       assert.ok(payload.catalogs && typeof payload.catalogs === 'object');
-      assert.match(
-        String(payload.policyNote || ''),
-        /ARCANA_PUBLIC_WEB_BOOKING_ENABLED/
-      );
+      assert.match(String(payload.policyNote || ''), /ARCANA_PUBLIC_WEB_BOOKING_ENABLED/);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
@@ -953,6 +950,157 @@ test('cco booking engine route spärrar behandlingsbokning utan signerat avtal',
       assert.equal(blockedResponse.status, 409);
       const blockedPayload = await blockedResponse.json();
       assert.equal(blockedPayload.metadata.code, 'treatment_agreement_not_bookable');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('create/preflight behåller conversationId från body', async () => {
+  const fixture = await createFixture();
+  try {
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: 'tenant-a',
+      id: 'patient-create-preflight',
+      displayName: 'Preflight Patient',
+      primaryEmail: 'preflight@example.com',
+    });
+    await withServer(fixture.app, async (baseUrl) => {
+      const { fromDate, toDate } = bookingMondayWindow();
+      const availabilityResponse = await fetch(
+        `${baseUrl}/cco-booking-engine/availability?workspaceId=major-arcana-preview&fromDate=${fromDate}&toDate=${toDate}&resIds=egzona&srvIds=consultation-physical`
+      );
+      assert.equal(availabilityResponse.status, 200);
+      const availabilityPayload = await availabilityResponse.json();
+      const slot = availabilityPayload.slots[0];
+
+      const preflightResponse = await fetch(`${baseUrl}/cco-booking-engine/create/preflight`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-idempotency-key': 'preflight-key-conv-001',
+        },
+        body: JSON.stringify({
+          patientId: 'patient-create-preflight',
+          serviceId: 'consultation-physical',
+          resourceId: 'egzona',
+          practitionerId: 'egzona',
+          startsAt: slot.startsAt,
+          timeZone: 'Europe/Stockholm',
+          conversationId: 'conversation-keep-me',
+        }),
+      });
+      assert.equal(preflightResponse.status, 200);
+      const payload = await preflightResponse.json();
+      assert.equal(payload.preflight.operationContext.conversationId, 'conversation-keep-me');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('create/preflight genererar syntetiskt conversationId när inget anges', async () => {
+  const fixture = await createFixture();
+  try {
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: 'tenant-a',
+      id: 'patient-create-preflight-synth',
+      displayName: 'Preflight Synth Patient',
+      primaryEmail: 'preflight-synth@example.com',
+    });
+    await withServer(fixture.app, async (baseUrl) => {
+      const { fromDate, toDate } = bookingMondayWindow();
+      const availabilityResponse = await fetch(
+        `${baseUrl}/cco-booking-engine/availability?workspaceId=major-arcana-preview&fromDate=${fromDate}&toDate=${toDate}&resIds=egzona&srvIds=consultation-physical`
+      );
+      assert.equal(availabilityResponse.status, 200);
+      const availabilityPayload = await availabilityResponse.json();
+      const slot = availabilityPayload.slots[0];
+
+      const preflightResponse = await fetch(`${baseUrl}/cco-booking-engine/create/preflight`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-idempotency-key': 'preflight-key-synth-001',
+        },
+        body: JSON.stringify({
+          patientId: 'patient-create-preflight-synth',
+          serviceId: 'consultation-physical',
+          resourceId: 'egzona',
+          practitionerId: 'egzona',
+          startsAt: slot.startsAt,
+          timeZone: 'Europe/Stockholm',
+        }),
+      });
+      assert.equal(preflightResponse.status, 200);
+      const payload = await preflightResponse.json();
+      assert.match(
+        payload.preflight.operationContext.conversationId,
+        /^calendar-create:patient-create-preflight-synth:/
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('create/confirm resulterar i bokning med conversationKey', async () => {
+  const fixture = await createFixture();
+  try {
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: 'tenant-a',
+      id: 'patient-create-confirm',
+      displayName: 'Confirm Patient',
+      primaryEmail: 'confirm@example.com',
+    });
+    await withServer(fixture.app, async (baseUrl) => {
+      const { fromDate, toDate } = bookingMondayWindow();
+      const availabilityResponse = await fetch(
+        `${baseUrl}/cco-booking-engine/availability?workspaceId=major-arcana-preview&fromDate=${fromDate}&toDate=${toDate}&resIds=egzona&srvIds=consultation-physical`
+      );
+      assert.equal(availabilityResponse.status, 200);
+      const availabilityPayload = await availabilityResponse.json();
+      const slot = availabilityPayload.slots[0];
+      const idempotencyKey = 'confirm-key-conv-001';
+
+      const preflightResponse = await fetch(`${baseUrl}/cco-booking-engine/create/preflight`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-idempotency-key': idempotencyKey,
+        },
+        body: JSON.stringify({
+          patientId: 'patient-create-confirm',
+          serviceId: 'consultation-physical',
+          resourceId: 'egzona',
+          practitionerId: 'egzona',
+          startsAt: slot.startsAt,
+          timeZone: 'Europe/Stockholm',
+          conversationId: 'conversation-confirm-key',
+        }),
+      });
+      assert.equal(preflightResponse.status, 200);
+
+      const confirmResponse = await fetch(`${baseUrl}/cco-booking-engine/create/confirm`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-idempotency-key': idempotencyKey,
+        },
+        body: JSON.stringify({
+          patientId: 'patient-create-confirm',
+          serviceId: 'consultation-physical',
+          resourceId: 'egzona',
+          practitionerId: 'egzona',
+          startsAt: slot.startsAt,
+          timeZone: 'Europe/Stockholm',
+          conversationId: 'conversation-confirm-key',
+          confirmText: 'SKAPA BOKNING',
+        }),
+      });
+      assert.equal(confirmResponse.status, 200);
+      const payload = await confirmResponse.json();
+      assert.equal(payload.booking.conversationKey, 'conversation-confirm-key');
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

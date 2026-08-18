@@ -19,6 +19,7 @@ const {
 } = require('../ops/ccoBookingStaffNotify');
 const { dispatchBookingCancellationEmail } = require('../ops/ccoPatientCareOps');
 const { createAutomationConversationBridge } = require('../ops/ccoAutomationConversationBridge');
+const { recordBookingConversationEvent } = require('../ops/ccoBookingConversationEvent');
 const { buildMeridiqConsentReadout } = require('../ops/meridiqConsentCatalogRuntime');
 const {
   assertTreatmentBookingAllowed,
@@ -611,6 +612,7 @@ function createCcoBookingEngineRouter({
   graphSendConnector = null,
   auditLog = null,
   ccoMailboxTruthStore = null,
+  conversationStateStore = null,
 }) {
   const router = express.Router();
 
@@ -807,6 +809,9 @@ function createCcoBookingEngineRouter({
       }
     }
     const email = patientEmail(patient);
+    const conversationId =
+      normalizeText(context.conversationId) ||
+      `calendar-create:${patientId}:${crypto.createHash('sha256').update(idempotencyKey).digest('hex').slice(0, 16)}`;
     const gates = [
       createGate(
         'canonical_patient',
@@ -925,7 +930,7 @@ function createCcoBookingEngineRouter({
           ? {
               tenantId: context.tenantId,
               workspaceId: WORKSPACE_ID,
-              conversationId: `calendar-create:${patientId}:${crypto.createHash('sha256').update(idempotencyKey).digest('hex').slice(0, 16)}`,
+              conversationId,
               customerEmail: email,
               customerName: patientName(patient),
             }
@@ -1019,6 +1024,7 @@ function createCcoBookingEngineRouter({
           slot: preflight.selectedSlot,
           idempotencyKey: preflight.idempotencyKey,
           requestFingerprint: preflight.requestFingerprint,
+          conversationKey: preflight.operationContext?.conversationId || null,
           ownerUserId: context.actor.userId,
         };
         const result = await bookingEngineStore.reserveAndConfirmIdempotent(input, {
@@ -1043,6 +1049,16 @@ function createCcoBookingEngineRouter({
             result: 'ok',
             detail: { idempotencyKey: preflight.idempotencyKey },
           });
+        if (result.booking?.conversationKey) {
+          await recordBookingConversationEvent({
+            conversationStateStore,
+            tenantId: context.tenantId,
+            conversationKey: result.booking.conversationKey,
+            bookingId: result.booking.bookingId,
+            kind: 'created',
+            actorUserId: context.actor?.userId,
+          });
+        }
         return res.json({
           provider: 'cco_engine',
           ok: true,

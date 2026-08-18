@@ -218,3 +218,190 @@ test('C6 route: unified-timeline for empty customer returns safe empty state', a
     assert.equal(body.counts.all, 0);
   });
 });
+
+// ── Conversation context route tests ──
+
+test('GET /cco-customers/:id/conversation-context returns context shape', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-comm-context-'));
+  const customerId = 'cust-ctx-route-1';
+
+  const router = createCcoCustomerCommRouter({
+    config: {
+      ccoConversationThreadStateStorePath: path.join(tmp, 'thread-state.json'),
+    },
+    requireAuth: makeAuth(),
+    mailboxTruthStore: makeTruthStore([
+      {
+        mailboxId: 'contact@hairtpclinic.com',
+        graphMessageId: 'g-ctx-1',
+        conversationId: 'conv-ctx-1',
+        folderType: 'inbox',
+        direction: 'inbound',
+        subject: 'Fråga',
+        bodyPreview: 'Hej',
+        fromEmail: 'patient@example.com',
+        receivedAt: '2026-07-15T08:00:00.000Z',
+        customerIdentity: { customerId, canonicalCustomerId: customerId },
+      },
+    ]),
+    mailIngestionStore: makeIngestionStore([]),
+  });
+
+  await withServer(router, async (baseUrl) => {
+    const res = await fetch(
+      `${baseUrl}/cco-customers/${encodeURIComponent(customerId)}/conversation-context`
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.context.customerId, customerId);
+    assert.equal(body.context.latestInboundAt, '2026-07-15T08:00:00.000Z');
+    assert.equal(body.context.unanswered.count, 1);
+    assert.ok(typeof body.context.slaStatus === 'object');
+    assert.ok(typeof body.context.risk === 'object');
+    assert.ok(typeof body.context.temperature === 'object');
+  });
+});
+
+test('GET /cco-customers/:id/conversation-context rejects missing permission', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-comm-context-'));
+  const router = createCcoCustomerCommRouter({
+    config: {
+      ccoConversationThreadStateStorePath: path.join(tmp, 'thread-state.json'),
+    },
+    requireAuth: makeAuth('revisor'),
+    mailboxTruthStore: makeTruthStore([]),
+    mailIngestionStore: makeIngestionStore([]),
+  });
+
+  await withServer(router, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco-customers/cust/conversation-context`);
+    assert.equal(res.status, 403);
+    const body = await res.json();
+    assert.equal(body.error, 'forbidden');
+  });
+});
+
+test('GET /cco-customers/:id/conversation-context returns empty context for unknown customer', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-comm-context-'));
+  const router = createCcoCustomerCommRouter({
+    config: {
+      ccoConversationThreadStateStorePath: path.join(tmp, 'thread-state.json'),
+    },
+    requireAuth: makeAuth(),
+    mailboxTruthStore: makeTruthStore([]),
+    mailIngestionStore: makeIngestionStore([]),
+  });
+
+  await withServer(router, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/cco-customers/no-such/conversation-context`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.context.unanswered.count, 0);
+    assert.equal(body.context.activeThreadCount, 0);
+    assert.equal(body.context.latestInboundAt, null);
+  });
+});
+
+test('GET /cco-customers/:id/conversation-context scopes by conversationKey', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-comm-context-'));
+  const customerId = 'cust-ctx-route-scope';
+
+  const router = createCcoCustomerCommRouter({
+    config: {
+      ccoConversationThreadStateStorePath: path.join(tmp, 'thread-state.json'),
+    },
+    requireAuth: makeAuth(),
+    mailboxTruthStore: makeTruthStore([
+      {
+        mailboxId: 'contact@hairtpclinic.com',
+        graphMessageId: 'g-scope-1',
+        conversationId: 'conv-scope-a',
+        folderType: 'inbox',
+        direction: 'inbound',
+        subject: 'A',
+        bodyPreview: 'A',
+        fromEmail: 'a@example.com',
+        receivedAt: '2026-07-15T08:00:00.000Z',
+        customerIdentity: { customerId, canonicalCustomerId: customerId },
+      },
+      {
+        mailboxId: 'contact@hairtpclinic.com',
+        graphMessageId: 'g-scope-2',
+        conversationId: 'conv-scope-b',
+        folderType: 'inbox',
+        direction: 'inbound',
+        subject: 'B',
+        bodyPreview: 'B',
+        fromEmail: 'b@example.com',
+        receivedAt: '2026-07-15T07:00:00.000Z',
+        customerIdentity: { customerId, canonicalCustomerId: customerId },
+      },
+    ]),
+    mailIngestionStore: makeIngestionStore([]),
+  });
+
+  await withServer(router, async (baseUrl) => {
+    const res = await fetch(
+      `${baseUrl}/cco-customers/${encodeURIComponent(
+        customerId
+      )}/conversation-context?conversationKey=conv-scope-a`
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.context.conversationKey, 'conv-scope-a');
+    assert.equal(body.context.unanswered.count, 1);
+    assert.equal(body.context.latestInboundAt, '2026-07-15T08:00:00.000Z');
+  });
+});
+
+test('GET /cco-customers/:id/conversation-context caches response for 30s', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cco-comm-context-'));
+  const customerId = 'cust-ctx-route-cache';
+  let callCount = 0;
+
+  const router = createCcoCustomerCommRouter({
+    config: {
+      ccoConversationThreadStateStorePath: path.join(tmp, 'thread-state.json'),
+    },
+    requireAuth: makeAuth(),
+    mailboxTruthStore: {
+      listLoadedMailboxes() {
+        return ['contact@hairtpclinic.com'];
+      },
+      listMessages() {
+        callCount += 1;
+        return [
+          {
+            mailboxId: 'contact@hairtpclinic.com',
+            graphMessageId: 'g-cache-1',
+            conversationId: 'conv-cache',
+            folderType: 'inbox',
+            direction: 'inbound',
+            subject: 'Cache',
+            bodyPreview: 'Cache',
+            fromEmail: 'patient@example.com',
+            receivedAt: '2026-07-15T08:00:00.000Z',
+            customerIdentity: { customerId, canonicalCustomerId: customerId },
+          },
+        ];
+      },
+    },
+    mailIngestionStore: makeIngestionStore([]),
+  });
+
+  await withServer(router, async (baseUrl) => {
+    const url = `${baseUrl}/cco-customers/${encodeURIComponent(customerId)}/conversation-context`;
+    const res1 = await fetch(url);
+    assert.equal(res1.status, 200);
+    const body1 = await res1.json();
+
+    const res2 = await fetch(url);
+    assert.equal(res2.status, 200);
+    const body2 = await res2.json();
+
+    assert.deepEqual(body1.context, body2.context);
+    assert.equal(callCount, 1, 'second request should be served from cache');
+  });
+});
