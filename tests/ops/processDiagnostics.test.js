@@ -94,13 +94,44 @@ test('installSignalHandlers installerar och avinstallerar handlers', () => {
   const logger = makeLogger();
   const sigintCountBefore = process.listenerCount('SIGINT');
   const sigtermCountBefore = process.listenerCount('SIGTERM');
+  const monitorCountBefore = process.listenerCount('uncaughtExceptionMonitor');
   const handlers = installSignalHandlers(logger);
   try {
     assert.equal(process.listenerCount('SIGINT'), sigintCountBefore + 1);
     assert.equal(process.listenerCount('SIGTERM'), sigtermCountBefore + 1);
+    assert.equal(
+      process.listenerCount('uncaughtExceptionMonitor'),
+      monitorCountBefore + 1,
+      'expected uncaughtExceptionMonitor handler'
+    );
   } finally {
     handlers.uninstall();
     assert.equal(process.listenerCount('SIGINT'), sigintCountBefore);
     assert.equal(process.listenerCount('SIGTERM'), sigtermCountBefore);
+    assert.equal(process.listenerCount('uncaughtExceptionMonitor'), monitorCountBefore);
+  }
+});
+
+test('installSignalHandlers skriver signal-event till disk', () => {
+  const logger = makeLogger();
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'diag-signal-'));
+  const heartbeatPath = path.join(tmpDir, 'signal.log');
+  const handlers = installSignalHandlers(logger, heartbeatPath);
+  try {
+    process.emit('SIGTERM');
+    assert.ok(fs.existsSync(heartbeatPath), 'signal log file should exist');
+    const content = fs.readFileSync(heartbeatPath, 'utf8');
+    const lines = content.trim().split('\n').filter(Boolean);
+    assert.ok(lines.length >= 1, 'expected at least one signal line on disk');
+    const sample = JSON.parse(lines[lines.length - 1]);
+    assert.equal(sample.type, 'diag_signal');
+    assert.equal(sample.signal, 'SIGTERM');
+  } finally {
+    handlers.uninstall();
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (_) {
+      // ignore cleanup errors
+    }
   }
 });

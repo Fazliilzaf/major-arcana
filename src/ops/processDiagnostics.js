@@ -60,6 +60,20 @@ function appendToDisk(filePath, line, logger) {
   }
 }
 
+// PerformanceObserver GC-pauser rapporterar kind som en numerisk konstant.
+// https://nodejs.org/api/perf_hooks.html#performanceentrydetail
+const GC_KIND_NAMES = {
+  1: 'major',
+  2: 'minor',
+  4: 'incremental',
+  8: 'weakcb',
+};
+
+function gcKindName(entry) {
+  const raw = entry.detail?.kind ?? entry.kind;
+  return GC_KIND_NAMES[raw] ?? raw ?? 'unknown';
+}
+
 function buildHeartbeatSample(histogram) {
   const mu = process.memoryUsage();
   const now = performance.now();
@@ -81,7 +95,7 @@ function buildHeartbeatSample(histogram) {
   };
 }
 
-function installSignalHandlers(logger) {
+function installSignalHandlers(logger, heartbeatPath) {
   const logSync = (signal, extra = '') => {
     const line = JSON.stringify({
       type: 'diag_signal',
@@ -91,37 +105,43 @@ function installSignalHandlers(logger) {
       uptime_s: Math.round(process.uptime()),
       extra,
     });
-    // Synkron skrivning: stdout kan vara en pipe och asynkrona flöden hinner
-    // inte flushas vid exit.
+    // Synkron skrivning till stdout (fd 1). process.stdout.write är inte
+    // garanterat synkron när stdout är en pipe, vilket den är på Render.
     try {
-      process.stdout.write(`${line}\n`);
+      fs.writeSync(1, `${line}\n`);
     } catch (_) {
       // swallow
     }
+    appendToDisk(heartbeatPath, line, logger);
   };
 
-  const handlers = {
+  const signalHandlers = {
     SIGINT: () => logSync('SIGINT'),
     SIGTERM: () => logSync('SIGTERM'),
     SIGHUP: () => logSync('SIGHUP'),
     beforeExit: (code) => logSync('beforeExit', `code=${code}`),
     exit: (code) => logSync('exit', `code=${code}`),
-    uncaughtException: (err) => logSync('uncaughtException', err && err.message),
-    unhandledRejection: (reason) => {
-      const message = reason instanceof Error ? reason.message : String(reason);
-      logSync('unhandledRejection', message);
-    },
   };
 
-  for (const [event, handler] of Object.entries(handlers)) {
+  for (const [event, handler] of Object.entries(signalHandlers)) {
     process.on(event, handler);
   }
 
+  // uncaughtExceptionMonitor fyrar både på uncaught exceptions och
+  // unhandled rejections, men låter processen krascha med default-beteende.
+  // En vanlig uncaughtException-handler skulle istället överleva i odefinierat
+  // tillstånd — exakt det vi vill undvika under en incident.
+  const uncaughtMonitor = (err, origin) => {
+    logSync(origin, err && err.message);
+  };
+  process.on('uncaughtExceptionMonitor', uncaughtMonitor);
+
   return {
     uninstall() {
-      for (const [event, handler] of Object.entries(handlers)) {
+      for (const [event, handler] of Object.entries(signalHandlers)) {
         process.removeListener(event, handler);
       }
+      process.removeListener('uncaughtExceptionMonitor', uncaughtMonitor);
     },
   };
 }
@@ -158,7 +178,7 @@ function startHeartbeat(options = {}) {
             type: 'diag_gc_pause',
             ts: new Date().toISOString(),
             pid: process.pid,
-            kind: entry.detail?.kind || entry.kind || 'unknown',
+            kind: gcKindName(entry),
             duration_ms: Math.round(durationMs * 100) / 100,
             threshold_ms: gcThresholdMs,
           });
@@ -172,7 +192,7 @@ function startHeartbeat(options = {}) {
     }
   }
 
-  const signalHandlers = installSignalHandlers(logger);
+  const signalHandlers = installSignalHandlers(logger, heartbeatPath);
 
   const timer = setInterval(() => {
     try {
