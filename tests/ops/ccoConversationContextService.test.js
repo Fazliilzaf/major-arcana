@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   createCcoConversationContextService,
+  deriveHistorySignals,
 } = require('../../src/ops/ccoConversationContextService');
 
 function makeThreadStore({ threads = [], counts = {} } = {}) {
@@ -241,4 +242,36 @@ test('factory validates required dependencies', () => {
   assert.throws(() =>
     createCcoConversationContextService({ threadStore: { buildThreadsForCustomer: () => {} } })
   );
+});
+
+test('deriveHistorySignals matches Swedish inflections for complaints', () => {
+  const nowMs = Date.parse('2026-07-15T12:00:00.000Z');
+  const threads = [
+    { subject: 'Klagomål på förra behandlingen', ts: '2026-07-15T08:00:00.000Z' },
+    { subject: 'Reklamation', ts: '2026-07-14T08:00:00.000Z' },
+    { preview: 'Jag är missnöjd med resultatet', ts: '2026-07-13T08:00:00.000Z' },
+  ];
+  const signals = deriveHistorySignals(threads, nowMs);
+  assert.equal(signals.pattern, 'complaint');
+});
+
+test('deriveHistorySignals matches Swedish inflections for booking intent', () => {
+  const nowMs = Date.parse('2026-07-15T12:00:00.000Z');
+  const threads = [
+    { subject: 'Bokning av nästa behandling', ts: '2026-07-15T08:00:00.000Z' },
+    { body: 'Jag vill gärna ha en konsultationstid', ts: '2026-07-14T08:00:00.000Z' },
+  ];
+  const signals = deriveHistorySignals(threads, nowMs);
+  assert.equal(signals.pattern, 'booking');
+});
+
+test('deriveHistorySignals falls back to mixed for unrelated frequent threads', () => {
+  const nowMs = Date.parse('2026-07-15T12:00:00.000Z');
+  const threads = [
+    { subject: 'Hej', ts: '2026-07-15T08:00:00.000Z' },
+    { subject: 'Tack', ts: '2026-07-14T08:00:00.000Z' },
+    { subject: 'Info', ts: '2026-07-13T08:00:00.000Z' },
+  ];
+  const signals = deriveHistorySignals(threads, nowMs);
+  assert.equal(signals.pattern, 'mixed');
 });
