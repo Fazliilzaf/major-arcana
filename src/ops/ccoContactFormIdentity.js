@@ -1,6 +1,16 @@
 'use strict';
 
 const { extractTextFromHtml } = require('./ccoMailContentParser');
+const { EMAIL_ADDRESS_SOURCE, findEmailAddresses } = require('./emailAddressPattern');
+
+// Incident 2026-08-18: collectMessageText slår ihop upp till 20 fält, varav 8
+// är fulla HTML→text-konverteringar, och resultatet kördes sedan genom ett
+// kvadratiskt e-postmönster (se emailAddressPattern.js). Mönstret är nu
+// linjärt, men taket här är kvarvarande djupförsvar: ett enskilt mail ska
+// aldrig kunna göra obegränsat med arbete. 512 KB text är långt mer än någon
+// verklig kontaktformulärsnotis (de har adressen i toppen) och lämnar god
+// marginal — vid 2 MB tar den nya scanningen 272 ms, vid 512 KB 61 ms.
+const MAX_SCANNED_TEXT_LENGTH = 512 * 1024;
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -29,7 +39,28 @@ function isClinicEmail(email = '') {
   );
 }
 
+// Memoisering per meddelandeobjekt. collectMessageText anropades tidigare 4–5
+// gånger per resolveContactFormIdentity (looksLikeContactFormMessage +
+// extractContactFormEmail/Name/Phone gör var sitt anrop), och
+// resolveCounterpartyEmail anropas i sin tur två gånger per meddelande i
+// processRawMessage — dvs. ~40 fulla HTML→text-passningar och lika många
+// flermegabytes-strängkonkateneringar för ETT mail. WeakMap:en gör att
+// resultatet beräknas en gång per meddelandeobjekt utan att hålla kvar
+// meddelandet i minnet (GC-vänligt).
+const messageTextCache = new WeakMap();
+
 function collectMessageText(message = {}) {
+  if (message && typeof message === 'object') {
+    const cached = messageTextCache.get(message);
+    if (cached !== undefined) return cached;
+    const computed = computeMessageText(message);
+    messageTextCache.set(message, computed);
+    return computed;
+  }
+  return computeMessageText(message);
+}
+
+function computeMessageText(message = {}) {
   const safe = asObject(message);
   const rawJson = asObject(safe.rawJson);
   const rawBody = asObject(rawJson.body);
@@ -60,7 +91,8 @@ function collectMessageText(message = {}) {
   ]
     .map(normalizeText)
     .filter(Boolean)
-    .join('\n');
+    .join('\n')
+    .slice(0, MAX_SCANNED_TEXT_LENGTH);
 }
 
 function looksLikeContactFormMessage(message = {}) {
@@ -84,15 +116,21 @@ function extractContactFormEmail(message = {}) {
   if (!looksLikeContactFormMessage(message)) return '';
   const text = collectMessageText(message);
   const labeledPatterns = [
-    /(?:e-?post(?:adress)?|email|mail)\s*[:：]\s*(?:<a\b[^>]*>)?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i,
-    /(?:från|from)\s*[:：].{0,120}?(?:e-?post(?:adress)?|email|mail)\s*[:：]\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i,
+    new RegExp(
+      `(?:e-?post(?:adress)?|email|mail)\\s*[:：]\\s*(?:<a\\b[^>]*>)?\\s*(${EMAIL_ADDRESS_SOURCE})`,
+      'i'
+    ),
+    new RegExp(
+      `(?:från|from)\\s*[:：].{0,120}?(?:e-?post(?:adress)?|email|mail)\\s*[:：]\\s*(${EMAIL_ADDRESS_SOURCE})`,
+      'i'
+    ),
   ];
   for (const pattern of labeledPatterns) {
     const match = text.match(pattern);
     const email = stripAngleAddress(match && match[1]);
     if (email && !isClinicEmail(email)) return email;
   }
-  const allEmails = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
+  const allEmails = findEmailAddresses(text);
   for (const raw of allEmails) {
     const email = stripAngleAddress(raw);
     if (email && !isClinicEmail(email)) return email;
@@ -231,7 +269,7 @@ function parseContactFormScopedConversationKey(key = '') {
 function collectEmailCandidates(value, output = []) {
   if (!value) return output;
   if (typeof value === 'string') {
-    const matches = value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
+    const matches = findEmailAddresses(value);
     for (const raw of matches) output.push(stripAngleAddress(raw));
     return output;
   }

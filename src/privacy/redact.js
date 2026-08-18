@@ -1,16 +1,12 @@
+const { emailAddressRegExp } = require('../ops/emailAddressPattern');
+
 function redactEmails(text) {
-  return String(text ?? '').replace(
-    /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
-    '[email]'
-  );
+  return String(text ?? '').replace(emailAddressRegExp('gi'), '[email]');
 }
 
 function redactPersonnummer(text) {
   // 850101-1234, 19850101-1234, 8501011234, 198501011234
-  return String(text ?? '').replace(
-    /\b(\d{6}|\d{8})[-+]?(\d{4})\b/g,
-    '[personnummer]'
-  );
+  return String(text ?? '').replace(/\b(\d{6}|\d{8})[-+]?(\d{4})\b/g, '[personnummer]');
 }
 
 function redactPhones(text) {

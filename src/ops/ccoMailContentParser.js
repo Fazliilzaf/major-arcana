@@ -1,3 +1,5 @@
+const { findEmailAddresses } = require('./emailAddressPattern');
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -69,7 +71,7 @@ const BLOCK_SPLIT_SENTINEL = '__ARCANA_MAIL_BLOCK__';
 function collectSignatureIdentityTokens(value = '') {
   const normalizedValue = normalizeText(value);
   if (!normalizedValue) return [];
-  const emailMatches = normalizedValue.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
+  const emailMatches = findEmailAddresses(normalizedValue);
   const urlMatches = normalizedValue.match(/https?:\/\/\S+|www\.\S+/gi) || [];
   const phoneMatches = normalizedValue.match(/\+?\d[\d\s().-]{5,}/g) || [];
   return Array.from(
@@ -107,15 +109,13 @@ function buildSignatureTruth({ text = '', html = '' } = {}) {
   const hasVisualCue = /<img\b/i.test(signatureHtml);
   const hasTableCue = /<table\b/i.test(signatureHtml);
   const hasExplicitGreeting = greetingLineCount > 0;
-  const hasIdentityCue = identityTokens.length > 0 || SIGNATURE_IDENTITY_PATTERN.test(signatureText);
+  const hasIdentityCue =
+    identityTokens.length > 0 || SIGNATURE_IDENTITY_PATTERN.test(signatureText);
   const isHairTpSignature = /hairtpclinic\.com|Hair TP Clinic|hårspecialist|vasaplatsen/i.test(
     `${signatureText}\n${signatureHtml}`
   );
   const layoutHeavy =
-    hasVisualCue ||
-    hasTableCue ||
-    lines.length >= 6 ||
-    signatureText.length >= 220;
+    hasVisualCue || hasTableCue || lines.length >= 6 || signatureText.length >= 220;
 
   let confidence = 'low';
   if (isHairTpSignature && (hasExplicitGreeting || hasIdentityCue)) {
@@ -127,10 +127,7 @@ function buildSignatureTruth({ text = '', html = '' } = {}) {
   }
 
   const layoutUnsafe =
-    hasVisualCue ||
-    hasTableCue ||
-    lines.length > 5 ||
-    signatureText.length > 180;
+    hasVisualCue || hasTableCue || lines.length > 5 || signatureText.length > 180;
 
   return {
     confidence,
@@ -154,9 +151,15 @@ function splitHtmlIntoBlocks(html = '') {
   const normalizedHtml = normalizeText(html);
   if (!normalizedHtml) return [];
   const separatedHtml = normalizedHtml
-    .replace(/(?=<(?:p|div|table|section|article|header|footer|ul|ol|li|tr|td)\b)/gi, BLOCK_SPLIT_SENTINEL)
+    .replace(
+      /(?=<(?:p|div|table|section|article|header|footer|ul|ol|li|tr|td)\b)/gi,
+      BLOCK_SPLIT_SENTINEL
+    )
     .replace(/<br\s*\/?>/gi, '<br />')
-    .replace(new RegExp(`${BLOCK_SPLIT_SENTINEL}${BLOCK_SPLIT_SENTINEL}+`, 'g'), BLOCK_SPLIT_SENTINEL);
+    .replace(
+      new RegExp(`${BLOCK_SPLIT_SENTINEL}${BLOCK_SPLIT_SENTINEL}+`, 'g'),
+      BLOCK_SPLIT_SENTINEL
+    );
   const parts = separatedHtml
     .split(BLOCK_SPLIT_SENTINEL)
     .map((part) => normalizeText(part))
@@ -269,10 +272,7 @@ function splitSignatureBlockFromText(text = '') {
   };
 }
 
-function buildTextFallbackSections({
-  sourceText = '',
-  primaryBodyHtml = '',
-} = {}) {
+function buildTextFallbackSections({ sourceText = '', primaryBodyHtml = '' } = {}) {
   const strippedSystem = stripLeadingSystemBlocksFromText(sourceText);
   const splitQuoted = splitQuotedReplyBlockFromText(strippedSystem.text);
   const splitSignature = splitSignatureBlockFromText(splitQuoted.primaryText);
@@ -289,17 +289,15 @@ function buildTextFallbackSections({
     diagnostics: {
       blockCount: 0,
       htmlSectioned: false,
-      signatureConfidence: normalizeText(splitSignature.signatureBlock?.truth?.confidence) || 'none',
+      signatureConfidence:
+        normalizeText(splitSignature.signatureBlock?.truth?.confidence) || 'none',
       signatureVisibleInReadSurface:
         splitSignature.signatureBlock?.truth?.visibleInReadSurface === true,
     },
   };
 }
 
-function buildStructuredSections({
-  primaryBodyHtml = '',
-  sourceText = '',
-} = {}) {
+function buildStructuredSections({ primaryBodyHtml = '', sourceText = '' } = {}) {
   const textFallbackSections = buildTextFallbackSections({
     sourceText,
     primaryBodyHtml,
@@ -311,7 +309,10 @@ function buildStructuredSections({
 
   const systemBlocks = [];
   let index = 0;
-  while (index < htmlBlocks.length && matchesPattern(htmlBlocks[index]?.text, SYSTEM_BLOCK_PATTERNS)) {
+  while (
+    index < htmlBlocks.length &&
+    matchesPattern(htmlBlocks[index]?.text, SYSTEM_BLOCK_PATTERNS)
+  ) {
     systemBlocks.push({
       kind: 'system_block',
       role: 'provider_notice',
@@ -429,10 +430,7 @@ function buildStructuredSections({
   };
 }
 
-function buildCanonicalMailContentSections({
-  primaryBodyHtml = '',
-  sourceText = '',
-} = {}) {
+function buildCanonicalMailContentSections({ primaryBodyHtml = '', sourceText = '' } = {}) {
   const normalizedHtml = normalizeText(primaryBodyHtml);
   const normalizedText = normalizeText(sourceText || extractTextFromHtml(normalizedHtml));
   if (!normalizedHtml) {
