@@ -961,6 +961,49 @@ async function createCcoPatientMasterStore({ filePath }) {
     return { total: patients.length, patients };
   }
 
+  // Incident 2026-08-18 (uppföljning till #1410/#1411): mail-ingestion-
+  // processningen (processQueue → patientDirectoryProvider i server.js)
+  // anropade listPatients({ limit: 20000 }) en gång per batch, INNAN något
+  // meddelande hann processas. Det är exakt samma kostnad som dokumenterad
+  // ovan vid listPatientIdentities (ORD-85): clonePatient
+  // (JSON.parse(JSON.stringify)) av varje post plus rows.sort med
+  // localeCompare(…, 'sv') över hela registret — uppmätt till +517 MB heap
+  // och flera sekunders synkront CPU-arbete för ~7 500 patienter. Det
+  // blockerade event-loopen tillräckligt länge för att Render-hälsokollen
+  // (5s timeout) skulle missa ett svar och tvinga fram en omstart — samma
+  // grundmekanism som #1410, fast i en tredje, tidigare oupptäckt kodväg.
+  //
+  // matchPatientOrEntity (via sharedPatientResolver) läser bara ett fåtal
+  // skalära/array-fält per patient (id, e-post, telefon) och bryr sig inte
+  // om sorteringsordning — se granskning i PR-beskrivningen. Denna funktion
+  // returnerar EXAKT samma fältform som patientDirectoryProvider i
+  // server.js tidigare byggde manuellt ovanpå listPatients (samma nycklar,
+  // samma normalisering), men utan djupklon och utan sortering — ett
+  // engångspass över bucket.patients, samma stil som listPatientIdentities
+  // ovan.
+  async function listPatientMatchDirectory({ tenantId } = {}) {
+    const bucket = tenantBucket(state, tenantId);
+    const patients = [];
+    for (const item of bucket.patients) {
+      // Samma uteslutning som listPatients: sammanslagna sekundärer ska inte
+      // vara matchningsbara mot inkommande mail.
+      if (item.matchStatus === 'merged') continue;
+      const primaryEmail = item.primaryEmail || '';
+      patients.push({
+        id: item.id,
+        patientId: item.id,
+        personnummer: item.personnummer,
+        primaryEmail,
+        personalEmail: primaryEmail,
+        verifiedPersonalEmailNormalized: String(primaryEmail).trim().toLowerCase(),
+        emails: Array.isArray(item.emails) ? [...item.emails] : [],
+        phones: Array.isArray(item.phones) ? [...item.phones] : [],
+        primaryPhone: item.primaryPhone,
+      });
+    }
+    return { total: patients.length, patients };
+  }
+
   async function importClientoRows({ tenantId, rows = [], duplicateEmails = new Set() } = {}) {
     const bucket = tenantBucket(state, tenantId);
     let created = 0;
@@ -1733,6 +1776,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     importClientoRows,
     listPatients,
     listPatientIdentities,
+    listPatientMatchDirectory,
     listMergeReviewGroups,
     mergeDriveProfiles,
     mergePatients,
