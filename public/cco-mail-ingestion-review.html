@@ -5,9 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CCO Mail Ingestion Review</title>
     <link rel="stylesheet" href="/cco-ambiguous-mail-enrichment-review.css" />
+    <link rel="stylesheet" href="/cco-mail-ingestion-review.css" />
   </head>
   <body>
-    <div id="cmir-root"></div>
+    <div id="app">
+      <header>
+        <h1>CCO Mail Ingestion Review</h1>
+        <p class="subtitle">Länka inkommande konversationer till rätt patient.</p>
+      </header>
+
+      <section id="auth-section" class="card">
+        <p id="auth-message">Kontrollerar inloggning…</p>
+        <a id="login-link" class="button" href="/admin" hidden>Logga in</a>
+      </section>
+
+      <section id="controls" class="card" hidden>
+        <div class="row">
+          <label>
+            Brevlåda
+            <select id="cmir-mailbox" class="cmir-mailbox">
+              <option value="">Alla brevlådor</option>
+              <option value="contact@hairtpclinic.com">contact@hairtpclinic.com</option>
+              <option value="egzona@hairtpclinic.com">egzona@hairtpclinic.com</option>
+              <option value="fazli@hairtpclinic.com">fazli@hairtpclinic.com</option>
+              <option value="marknad@hairtpclinic.com">marknad@hairtpclinic.com</option>
+            </select>
+          </label>
+          <label>
+            Status
+            <select id="cmir-status" class="cmir-status">
+              <option value="all">Alla</option>
+              <option value="unmatched" selected>UNMATCHED</option>
+              <option value="needs_review">NEEDS_REVIEW / SECURITY_REVIEW</option>
+            </select>
+          </label>
+          <label>
+            Antal
+            <select id="cmir-limit" class="cmir-limit">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="500">500</option>
+            </select>
+          </label>
+          <button id="refresh-btn" class="button primary">Hämta</button>
+        </div>
+        <div class="row sweep-row">
+          <button id="cmir-sweep-dry" class="button cmir-sweep-dry">Sweep torrkörning</button>
+          <button id="cmir-sweep" class="button primary cmir-sweep">Sweep commit</button>
+        </div>
+        <p id="summary" class="summary"></p>
+      </section>
+
+      <section id="queue-section" class="card" hidden>
+        <div id="queue-empty" class="empty" hidden>Kön är tom.</div>
+        <table id="queue-table" hidden>
+          <thead>
+            <tr>
+              <th>Mottaget</th>
+              <th>Ämne</th>
+              <th>Från</th>
+              <th>Brevlåda</th>
+              <th>Status</th>
+              <th>PatientId</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="queue-body"></tbody>
+        </table>
+      </section>
+
+      <section id="toast" class="toast" hidden></section>
+    </div>
+
+    <script src="/cco-review-auth.js"></script>
     <script src="/cco-mail-ingestion-review.js" defer></script>
   </body>
 </html>

@@ -2,19 +2,46 @@
   'use strict';
 
   const API = '/api/v1/cco/mail-ingestion';
-  const TENANT = new URLSearchParams(window.location.search).get('tenantId') || 'hair-tp-clinic';
-  const DEFAULT_MAILBOX = 'kons@hairtpclinic.com';
 
-  let state = {
-    mailboxEmail: DEFAULT_MAILBOX,
-    status: 'all',
-    limit: 50,
-    summary: null,
-    rows: [],
-    storeStatus: null,
-    busy: false,
-    message: '',
+  const auth = window.ArcanaReviewAuth;
+  if (!auth) {
+    document.body.innerHTML =
+      '<p class="subtitle" style="padding:24px">Kunde inte ladda auth-hjälparen.</p>';
+    return;
+  }
+
+  const els = {
+    authSection: document.getElementById('auth-section'),
+    authMessage: document.getElementById('auth-message'),
+    loginLink: document.getElementById('login-link'),
+    controls: document.getElementById('controls'),
+    mailboxSelect: document.getElementById('cmir-mailbox'),
+    statusSelect: document.getElementById('cmir-status'),
+    limitSelect: document.getElementById('cmir-limit'),
+    refreshBtn: document.getElementById('refresh-btn'),
+    sweepDryBtn: document.getElementById('cmir-sweep-dry'),
+    sweepBtn: document.getElementById('cmir-sweep'),
+    summary: document.getElementById('summary'),
+    queueSection: document.getElementById('queue-section'),
+    queueEmpty: document.getElementById('queue-empty'),
+    queueTable: document.getElementById('queue-table'),
+    queueBody: document.getElementById('queue-body'),
+    toast: document.getElementById('toast'),
   };
+
+  let rows = [];
+  let busy = false;
+
+  function apiFetch(path, opts = {}) {
+    return fetch(`${API}${path}`, {
+      credentials: 'same-origin',
+      headers: auth.authHeaders({
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      }),
+      ...opts,
+    });
+  }
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -24,387 +51,235 @@
       .replace(/"/g, '&quot;');
   }
 
-  async function apiFetch(path, opts = {}) {
-    const res = await fetch(`${API}${path}`, {
-      credentials: 'same-origin',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      ...opts,
+  function formatDate(value) {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString('sv-SE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(body.error || body.detail || res.statusText);
-    return body;
+  }
+
+  function showToast(message, type = 'success') {
+    els.toast.textContent = message;
+    els.toast.className = `toast ${type}`;
+    els.toast.hidden = false;
+    setTimeout(() => {
+      els.toast.hidden = true;
+    }, 4000);
+  }
+
+  async function checkAuth() {
+    const session = await auth.getSession();
+    if (!session.authenticated) {
+      els.authMessage.textContent = session.message || 'Du måste logga in.';
+      els.loginLink.href = session.loginUrl || '/admin';
+      els.loginLink.hidden = false;
+      return;
+    }
+    els.authSection.hidden = true;
+    els.controls.hidden = false;
+    els.queueSection.hidden = false;
+    await loadQueue();
+  }
+
+  function statusClass(status) {
+    const normalized = String(status || '').toLowerCase();
+    if (normalized === 'unmatched') return 'cmir-badge status-unmatched';
+    if (normalized === 'needs_review' || normalized === 'security_review') {
+      return 'cmir-badge status-needs_review';
+    }
+    return 'cmir-badge';
+  }
+
+  async function linkPatient(rawMessageId, patientId, reason, button) {
+    if (!patientId) return;
+    button.disabled = true;
+    button.textContent = 'Länkar…';
+
+    try {
+      const res = await apiFetch('/link-patient', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          rawMessageId,
+          patientId,
+          reason: reason || 'manual_review_ui_link',
+          force: false,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+      showToast(`Länkade till ${patientId}`);
+      await loadQueue();
+    } catch (err) {
+      showToast(`Fel: ${err.message}`, 'error');
+      button.disabled = false;
+      button.textContent = 'Länka';
+    }
+  }
+
+  async function runSweep({ dryRun = false } = {}) {
+    if (busy) return;
+    const mailbox = els.mailboxSelect.value;
+    if (!mailbox) {
+      showToast('Välj en brevlåda för sweep.', 'error');
+      return;
+    }
+    busy = true;
+    const btn = dryRun ? els.sweepDryBtn : els.sweepBtn;
+    btn.disabled = true;
+    btn.textContent = dryRun ? 'Kör torrkörning…' : 'Kör sweep…';
+
+    try {
+      const res = await apiFetch('/resolve-unmatched-sweep', {
+        method: 'POST',
+        body: JSON.stringify({ mailboxEmail: mailbox, dryRun }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+      const result = body.result || {};
+      showToast(
+        `${dryRun ? 'Torrkörning' : 'Sweep'}: ${result.linked || 0} länkade, ${result.dismissed || 0} avvisade, ${result.suggested || 0} förslag.`
+      );
+      await loadQueue();
+    } catch (err) {
+      showToast(`Sweep-fel: ${err.message}`, 'error');
+    } finally {
+      busy = false;
+      btn.disabled = false;
+      btn.textContent = dryRun ? 'Sweep torrkörning' : 'Sweep commit';
+    }
   }
 
   async function loadSummary() {
-    const q = new URLSearchParams();
-    if (state.mailboxEmail) q.set('mailboxEmail', state.mailboxEmail);
-    const data = await apiFetch(`/review-queue/summary?${q.toString()}`);
-    state.summary = data;
+    const mailbox = els.mailboxSelect.value;
+    const params = new URLSearchParams();
+    if (mailbox) params.set('mailboxEmail', mailbox);
+    try {
+      const res = await apiFetch(`/review-queue/summary?${params.toString()}`);
+      const body = await res.json().catch(() => ({}));
+      if (body.ok) {
+        return {
+          totalUnmatched: body.totalUnmatched ?? 0,
+          patientLikeCount: body.patientLikeCount ?? 0,
+          nonPatientCount: body.nonPatientCount ?? 0,
+        };
+      }
+    } catch {
+      // summary är valfri
+    }
+    return null;
+  }
+
+  function renderQueue() {
+    els.queueBody.innerHTML = '';
+    if (!rows.length) {
+      els.queueEmpty.hidden = false;
+      els.queueTable.hidden = true;
+      return;
+    }
+    els.queueEmpty.hidden = true;
+    els.queueTable.hidden = false;
+
+    for (const row of rows) {
+      const raw = row.rawMessage || {};
+      const ledger = row.ledger || {};
+      const review = row.reviewSummary || {};
+      const status = String(ledger.status || '').toUpperCase();
+      const rawId = escapeHtml(raw.id || ledger.rawMessageId || '');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(formatDate(review.receivedDateTime))}</td>
+        <td>${escapeHtml(review.subject || raw.subject || '(saknas)')}</td>
+        <td>${escapeHtml(review.counterpartyEmail || raw.fromEmail || '—')}</td>
+        <td>${escapeHtml(raw.mailboxId || '—')}</td>
+        <td><span class="${statusClass(status)}">${escapeHtml(status)}</span></td>
+        <td>
+          <input
+            type="text"
+            class="cmir-patient-input"
+            data-raw-id="${rawId}"
+            placeholder="patient-id"
+            aria-label="PatientId för ${escapeHtml(review.subject || raw.subject || '')}"
+          />
+        </td>
+        <td>
+          <button class="button primary cmir-link-btn" data-raw-id="${rawId}">Länka</button>
+        </td>
+      `;
+      els.queueBody.appendChild(tr);
+    }
+
+    for (const btn of els.queueBody.querySelectorAll('.cmir-link-btn')) {
+      btn.addEventListener('click', () => {
+        const rawId = btn.getAttribute('data-raw-id');
+        const input = els.queueBody.querySelector(
+          `input.cmir-patient-input[data-raw-id="${rawId}"]`
+        );
+        const patientId = input?.value?.trim();
+        if (!patientId) {
+          showToast('Ange ett patientId.', 'error');
+          return;
+        }
+        linkPatient(rawId, patientId, 'review_ui_link', btn);
+      });
+    }
   }
 
   async function loadQueue() {
-    const q = new URLSearchParams();
-    if (state.mailboxEmail) q.set('mailboxEmail', state.mailboxEmail);
-    q.set('status', state.status);
-    q.set('limit', String(state.limit));
-    const data = await apiFetch(`/review-queue?${q.toString()}`);
-    state.rows = data.rows || [];
-  }
+    if (busy) return;
+    busy = true;
+    els.refreshBtn.disabled = true;
+    els.refreshBtn.textContent = 'Hämtar…';
 
-  async function loadStatus() {
-    const data = await apiFetch('/status');
-    state.storeStatus = data.store || null;
-    return data;
-  }
-
-  async function activateStore() {
-    return apiFetch('/activate', {
-      method: 'POST',
-      body: JSON.stringify({ ownerAck: true }),
-    });
-  }
-
-  async function linkPatient(rawMessageId, patientId) {
-    return apiFetch('/link-patient', {
-      method: 'PATCH',
-      body: JSON.stringify({
-        rawMessageId,
-        patientId,
-        reason: 'manual_review_ui',
-      }),
-    });
-  }
-
-  async function runSweep(dryRun) {
-    return apiFetch('/resolve-unmatched-sweep', {
-      method: 'POST',
-      body: JSON.stringify({
-        mailboxEmail: state.mailboxEmail,
-        dryRun,
-        ownerAck: !dryRun,
-      }),
-    });
-  }
-
-  function renderStoreStatus() {
-    const s = state.storeStatus || {};
-    if (s.deferred === false && s.loaded !== false) {
-      return `<div class="cmir-toast cmir-toast--ok">Mail-ingestion store är aktiv.</div>`;
-    }
-    if (s.disabled) {
-      return `
-        <div class="cmir-toast cmir-toast--error">
-          <strong>Mail-ingestion är inaktiv.</strong>
-          ${s.reason ? `Orsak: ${escapeHtml(s.reason)}.` : ''}
-          <button id="cmir-activate" ${state.busy ? 'disabled' : ''}>Aktivera mail-ingestion</button>
-        </div>
-      `;
-    }
-    if (s.deferred && !s.loaded) {
-      return `
-        <div class="cmir-toast cmir-toast--error">
-          <strong>Mail-ingestion store är inte laddad.</strong>
-          Review-kön kan inte visas förrän storen aktiveras.
-          <button id="cmir-activate" ${state.busy ? 'disabled' : ''}>Aktivera mail-ingestion</button>
-        </div>
-      `;
-    }
-    return `<div class="cmir-toast">Kontrollerar mail-ingestion status…</div>`;
-  }
-
-  function render() {
-    const root = document.getElementById('cmir-root');
-    if (!root) return;
-
-    const summary = state.summary || {};
-    const groups = summary.groups || [];
-
-    root.innerHTML = `
-      <div class="amr-shell">
-        <header class="amr-header">
-          <h1>CCO Mail Ingestion Review</h1>
-          <p class="amr-muted">Granska och länka inkommande mejl till rätt patient.</p>
-        </header>
-
-        <div class="amr-guardrails">
-          <strong>Owner-only.</strong> Denna vy anropar produktions-API:er. Varje länkning
-          skriver audit-event. Kör alltid <em>dry-run</em> före skarp sweep.
-        </div>
-
-        ${renderStoreStatus()}
-
-        ${state.message ? `<div class="cmir-toast ${state.message.includes('fel') || state.message.includes('Fel') ? 'cmir-toast--error' : 'cmir-toast--ok'}">${escapeHtml(state.message)}</div>` : ''}
-
-        <div class="amr-controls">
-          <label>
-            Brevlåda
-            <input type="email" id="cmir-mailbox" value="${escapeHtml(state.mailboxEmail)}" placeholder="kons@hairtpclinic.com" />
-          </label>
-          <label>
-            Status
-            <select id="cmir-status">
-              <option value="all" ${state.status === 'all' ? 'selected' : ''}>Alla</option>
-              <option value="unmatched" ${state.status === 'unmatched' ? 'selected' : ''}>Unmatched</option>
-              <option value="needs_review" ${state.status === 'needs_review' ? 'selected' : ''}>Needs review</option>
-            </select>
-          </label>
-          <label>
-            Antal
-            <select id="cmir-limit">
-              <option value="50" ${state.limit === 50 ? 'selected' : ''}>50</option>
-              <option value="100" ${state.limit === 100 ? 'selected' : ''}>100</option>
-              <option value="250" ${state.limit === 250 ? 'selected' : ''}>250</option>
-            </select>
-          </label>
-          <button id="cmir-reload" ${state.busy ? 'disabled' : ''}>Ladda om</button>
-          <button id="cmir-sweep-dry" ${state.busy ? 'disabled' : ''}>Sweep dry-run</button>
-          <button id="cmir-sweep" ${state.busy ? 'disabled' : ''}>Sweep commit</button>
-        </div>
-
-        <div class="amr-stats">
-          <div class="amr-stat">
-            <strong>${escapeHtml(summary.totalUnmatched ?? '—')}</strong>
-            <span>unmatched totalt</span>
-          </div>
-          <div class="amr-stat">
-            <strong>${escapeHtml(summary.uniqueCounterparties ?? '—')}</strong>
-            <span>unika avsändare</span>
-          </div>
-          <div class="amr-stat">
-            <strong>${escapeHtml(summary.nonPatientCount ?? '—')}</strong>
-            <span>icke-patient</span>
-          </div>
-          <div class="amr-stat">
-            <strong>${escapeHtml(summary.patientLikeCount ?? '—')}</strong>
-            <span>patient-liknande</span>
-          </div>
-        </div>
-
-        ${
-          groups.length
-            ? `
-        <details class="cmir-groups">
-          <summary>Gruppering per avsändare (${groups.length})</summary>
-          <table class="cmir-table">
-            <thead><tr><th>Avsändare</th><th>Antal</th><th>Typ</th><th>Ämne (exempel)</th></tr></thead>
-            <tbody>
-              ${groups
-                .map(
-                  (g) => `<tr>
-                <td>${escapeHtml(g.email || '—')}</td>
-                <td>${escapeHtml(g.count)}</td>
-                <td>${g.nonPatient ? 'Icke-patient' : 'Patient-liknande'}</td>
-                <td>${escapeHtml(g.sampleSubject || '—')}</td>
-              </tr>`
-                )
-                .join('')}
-            </tbody>
-          </table>
-        </details>
-        `
-            : ''
-        }
-
-        <h2>Review-kö (${state.rows.length})</h2>
-        ${
-          state.rows.length === 0
-            ? '<p class="amr-muted">Inga rader för vald filtrering.</p>'
-            : `
-        <table class="cmir-table cmir-rows">
-          <thead>
-            <tr>
-              <th>Status</th>
-              <th>Avsändare</th>
-              <th>Ämne</th>
-              <th>Mottaget</th>
-              <th>PatientId</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            ${state.rows
-              .map((row) => {
-                const raw = row.rawMessage || {};
-                const pm = row.patientMatch || {};
-                return `<tr data-raw-id="${escapeHtml(raw.id || row.rawMessageId || '')}">
-                <td><span class="cmir-badge cmir-badge--${escapeHtml((row.status || '').toLowerCase())}">${escapeHtml(row.status || '—')}</span></td>
-                <td>${escapeHtml(pm.counterpartyEmail || raw.fromEmail || '—')}</td>
-                <td>${escapeHtml(raw.subject || '—')}</td>
-                <td>${escapeHtml(raw.receivedDateTime || raw.receivedAt || '—')}</td>
-                <td><input type="text" class="cmir-patient-input" placeholder="patient-uuid" /></td>
-                <td><button class="cmir-link-btn" data-raw-id="${escapeHtml(raw.id || row.rawMessageId || '')}">Länka</button></td>
-              </tr>`;
-              })
-              .join('')}
-          </tbody>
-        </table>
-        `
-        }
-      </div>
-    `;
-
-    bindEvents();
-  }
-
-  function bindEvents() {
-    const mailbox = document.getElementById('cmir-mailbox');
-    const status = document.getElementById('cmir-status');
-    const limit = document.getElementById('cmir-limit');
-    const reload = document.getElementById('cmir-reload');
-    const sweepDry = document.getElementById('cmir-sweep-dry');
-    const sweep = document.getElementById('cmir-sweep');
-    const activate = document.getElementById('cmir-activate');
-
-    if (mailbox)
-      mailbox.addEventListener('change', (e) => {
-        state.mailboxEmail = e.target.value;
-      });
-    if (status)
-      status.addEventListener('change', (e) => {
-        state.status = e.target.value;
-      });
-    if (limit)
-      limit.addEventListener('change', (e) => {
-        state.limit = Number(e.target.value);
-      });
-
-    if (reload) reload.addEventListener('click', () => refresh());
-
-    if (activate) {
-      activate.addEventListener('click', async () => {
-        if (
-          !window.confirm('Detta laddar mail-ingestion storen i minnet på prod-servern. Fortsätt?')
-        )
-          return;
-        setBusy(true, 'Aktiverar mail-ingestion…');
-        try {
-          const data = await activateStore();
-          state.storeStatus = data.store || null;
-          setMessage(data.message || 'Mail-ingestion aktiverad.');
-        } catch (err) {
-          setMessage(`Fel: ${err.message}`);
-        } finally {
-          setBusy(false);
-        }
-        await refresh(false);
-      });
-    }
-
-    if (sweepDry) {
-      sweepDry.addEventListener('click', async () => {
-        setBusy(true, 'Kör sweep dry-run…');
-        try {
-          const data = await runSweep(true);
-          setMessage(
-            `Dry-run: linked=${data.result?.linked ?? 0}, dismissed=${data.result?.dismissed ?? 0}, suggested=${data.result?.suggested ?? 0}`
-          );
-        } catch (err) {
-          setMessage(`Fel: ${err.message}`);
-        } finally {
-          setBusy(false);
-        }
-        await refresh(false);
-      });
-    }
-
-    if (sweep) {
-      sweep.addEventListener('click', async () => {
-        if (!window.confirm('Detta kör skarp sweep och länkar/avvisar mejl. Fortsätt?')) return;
-        setBusy(true, 'Kör sweep commit…');
-        try {
-          const data = await runSweep(false);
-          setMessage(
-            `Commit: linked=${data.result?.linked ?? 0}, dismissed=${data.result?.dismissed ?? 0}, suggested=${data.result?.suggested ?? 0}`
-          );
-        } catch (err) {
-          setMessage(`Fel: ${err.message}`);
-        } finally {
-          setBusy(false);
-        }
-        await refresh(false);
-      });
-    }
-
-    document.querySelectorAll('.cmir-link-btn').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const rawId = btn.getAttribute('data-raw-id');
-        const tr = btn.closest('tr');
-        const input = tr?.querySelector('.cmir-patient-input');
-        const patientId = (input?.value || '').trim();
-        if (!rawId || !patientId) {
-          setMessage('rawMessageId och patientId krävs.');
-          return;
-        }
-        setBusy(true, 'Länkar…');
-        try {
-          await linkPatient(rawId, patientId);
-          setMessage(`Länkad ${rawId} → ${patientId}`);
-          if (input) input.value = '';
-        } catch (err) {
-          setMessage(`Fel: ${err.message}`);
-        } finally {
-          setBusy(false);
-        }
-        await refresh(false);
-      });
-    });
-  }
-
-  function setBusy(value, text = '') {
-    state.busy = value;
-    if (text) state.message = text;
-    render();
-  }
-
-  function setMessage(text) {
-    state.message = text;
-    render();
-  }
-
-  async function refresh(renderAfter = true) {
-    setBusy(true, 'Laddar…');
     try {
-      await Promise.all([loadStatus(), loadSummary(), loadQueue()]);
-      if (!state.message.startsWith('Laddar') && !state.message.startsWith('Aktiverar'))
-        state.message = '';
+      const mailbox = els.mailboxSelect.value;
+      const status = els.statusSelect.value;
+      const limit = els.limitSelect.value;
+      const params = new URLSearchParams();
+      if (mailbox) params.set('mailboxEmail', mailbox);
+      params.set('status', status);
+      params.set('limit', limit);
+
+      const [queueRes, summary] = await Promise.all([
+        apiFetch(`/review-queue?${params.toString()}`),
+        loadSummary(),
+      ]);
+      const body = await queueRes.json().catch(() => ({}));
+      if (!queueRes.ok) {
+        throw new Error(body.error || `HTTP ${queueRes.status}`);
+      }
+      rows = body.rows || [];
+      const summaryText = summary
+        ? ` — summary: ${summary.totalUnmatched} unmatched, ${summary.patientLikeCount} patient-liknande, ${summary.nonPatientCount} icke-patient`
+        : '';
+      els.summary.textContent = `${rows.length} rad(er) — status: ${status}, brevlåda: ${mailbox || 'alla'}${summaryText}`;
+      renderQueue();
     } catch (err) {
-      setMessage(`Fel: ${err.message}`);
+      showToast(`Kunde inte hämta kö: ${err.message}`, 'error');
     } finally {
-      setBusy(false);
+      busy = false;
+      els.refreshBtn.disabled = false;
+      els.refreshBtn.textContent = 'Hämta';
     }
-    if (renderAfter) render();
   }
 
-  // Initiera
-  const style = document.createElement('style');
-  style.textContent = `
-    .cmir-controls { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin: 1rem 0; }
-    .cmir-controls label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; color: var(--amr-muted); }
-    .cmir-controls input, .cmir-controls select { padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--amr-border); background: var(--amr-panel); color: var(--amr-text); }
-    .cmir-controls button { padding: 0.45rem 0.9rem; border-radius: 6px; border: 1px solid var(--amr-border); background: var(--amr-panel); color: var(--amr-text); cursor: pointer; }
-    .cmir-controls button:hover { background: var(--amr-border); }
-    .cmir-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .cmir-toast { margin: 0.75rem 0; padding: 0.75rem 1rem; border-radius: 8px; }
-    .cmir-toast--ok { background: rgba(62, 207, 142, 0.12); border: 1px solid rgba(62, 207, 142, 0.4); }
-    .cmir-toast--error { background: rgba(255, 107, 107, 0.12); border: 1px solid rgba(255, 107, 107, 0.4); }
-    .cmir-groups { margin: 1rem 0; padding: 0.75rem; background: var(--amr-panel); border: 1px solid var(--amr-border); border-radius: 8px; }
-    .cmir-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.92rem; }
-    .cmir-table th, .cmir-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--amr-border); text-align: left; vertical-align: top; }
-    .cmir-table th { color: var(--amr-muted); font-weight: 600; }
-    .cmir-patient-input { width: 100%; min-width: 240px; padding: 0.35rem 0.5rem; border-radius: 6px; border: 1px solid var(--amr-border); background: var(--amr-panel); color: var(--amr-text); }
-    .cmir-link-btn { padding: 0.35rem 0.7rem; border-radius: 6px; border: 1px solid var(--amr-border); background: var(--amr-panel); color: var(--amr-text); cursor: pointer; }
-    .cmir-link-btn:hover { background: var(--amr-border); }
-    .cmir-badge { display: inline-block; padding: 0.15rem 0.45rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; }
-    .cmir-badge--unmatched { background: rgba(245, 166, 35, 0.15); color: var(--amr-warn); }
-    .cmir-badge--needs_review { background: rgba(77, 163, 255, 0.15); color: var(--amr-accent); }
-    .cmir-badge--security_review { background: rgba(255, 107, 107, 0.15); color: var(--amr-danger); }
-    .cmir-badge--matched { background: rgba(62, 207, 142, 0.15); color: var(--amr-ok); }
-  `;
-  document.head.appendChild(style);
+  els.refreshBtn.addEventListener('click', loadQueue);
+  els.mailboxSelect.addEventListener('change', loadQueue);
+  els.statusSelect.addEventListener('change', loadQueue);
+  els.limitSelect.addEventListener('change', loadQueue);
+  els.sweepDryBtn.addEventListener('click', () => runSweep({ dryRun: true }));
+  els.sweepBtn.addEventListener('click', () => runSweep({ dryRun: false }));
 
-  render();
-  refresh();
+  checkAuth().catch((err) => {
+    els.authMessage.textContent = `Fel vid initiering: ${err.message}`;
+  });
 })();
