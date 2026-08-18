@@ -94,8 +94,15 @@ async function writeJsonAtomic(filePath, data) {
 }
 
 async function migrateMonolithIfNeeded({ legacyFilePath, mailboxesDir, indexPath }) {
-  const legacyPath = path.resolve(String(legacyFilePath || '').trim());
-  if (!legacyPath) return { migrated: false, reason: 'no_legacy_path' };
+  // Tomhetskontrollen MASTE ske fore path.resolve. path.resolve('') returnerar
+  // cwd — en katalog som finns — sa vakten nedan fangade aldrig tom strang.
+  // Resultatet blev att fs.access lyckades (katalogen finns) och readJson
+  // kastade EISDIR i stallet for att hoppa over migreringen. Factoryn skickar
+  // alltid en riktig sokvag sa det smallde aldrig i prod, men varje anropare
+  // som utelamnar legacyFilePath traffade det direkt.
+  const rawLegacyPath = String(legacyFilePath || '').trim();
+  if (!rawLegacyPath) return { migrated: false, reason: 'no_legacy_path' };
+  const legacyPath = path.resolve(rawLegacyPath);
 
   try {
     await fs.access(legacyPath);

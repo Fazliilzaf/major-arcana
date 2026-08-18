@@ -36,14 +36,10 @@ const { createCcoMailboxTruthShardedStore } = require('../../src/ops/ccoMailboxT
 async function withStore(maxLoadedShards, fn) {
   const baseDir = path.join(os.tmpdir(), `truth-shard-${Date.now()}-${crypto.randomUUID()}`);
   await fs.mkdir(path.join(baseDir, 'mailboxes'), { recursive: true });
-  // legacyFilePath måste peka på en icke-existerande FIL. Tom sträng duger
-  // inte: path.resolve('') ger cwd, som finns och är en katalog, och då
-  // kraschar migreringssteget med EISDIR i stället för att hoppas över.
-  const store = await createCcoMailboxTruthShardedStore({
-    baseDir,
-    legacyFilePath: path.join(baseDir, 'no-legacy-monolith.json'),
-    maxLoadedShards,
-  });
+  // legacyFilePath utelämnas medvetet: det finns ingen monolith att migrera.
+  // Det kraschade tidigare med EISDIR (path.resolve('') → cwd), vilket är
+  // fixat separat och låses fast av testet längst ned i den här filen.
+  const store = await createCcoMailboxTruthShardedStore({ baseDir, maxLoadedShards });
   const warnings = [];
   const originalWarn = console.warn;
   console.warn = (...args) => {
@@ -96,6 +92,23 @@ test('varningen upprepas inte för samma brevlåda (ingen loggflod)', async () =
       `fick ${relevant.length} varningar för ${MAILBOXES.length} brevlådor över 25 anrop`
     );
   });
+});
+
+test('store kan skapas utan legacyFilePath (path.resolve("") → cwd fångas)', async () => {
+  // Tomhetskontrollen i migrateMonolithIfNeeded skedde tidigare EFTER
+  // path.resolve. path.resolve('') returnerar cwd — en katalog som finns —
+  // så `if (!legacyPath)` fångade aldrig tom sträng. fs.access lyckades och
+  // readJson kastade EISDIR i stället för att hoppa över migreringen.
+  const baseDir = path.join(os.tmpdir(), `truth-nolegacy-${Date.now()}-${crypto.randomUUID()}`);
+  await fs.mkdir(path.join(baseDir, 'mailboxes'), { recursive: true });
+  try {
+    for (const legacyFilePath of [undefined, '', '   ']) {
+      const store = await createCcoMailboxTruthShardedStore({ baseDir, legacyFilePath });
+      assert.equal(typeof store.listMessages, 'function');
+    }
+  } finally {
+    await fs.rm(baseDir, { recursive: true, force: true });
+  }
 });
 
 test('ingen varning när alla efterfrågade brevlådor ryms i cachen', async () => {
