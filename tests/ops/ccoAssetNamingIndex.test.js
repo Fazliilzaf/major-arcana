@@ -27,7 +27,7 @@ test('buildAssetNamingMetadata: sessionNumber via importedAt-fallback tvingar ne
   assert.equal(result.uiStatus, 'needs_review_for_naming');
   // Displayen är fortsatt korrekt byggd — bara sessionNumret är osäkert.
   assert.equal(result.namingConfidence, 'high');
-  assert.ok(result.displayName.includes('FUE Operation 1'));
+  assert.ok(result.displayName.includes('FUE 1'));
 });
 
 test('buildAssetNamingMetadata: sessionNumber via riktigt documentDate skrivs som resolved', () => {
@@ -47,7 +47,7 @@ test('buildAssetNamingMetadata: sessionNumber via riktigt documentDate skrivs so
   assert.equal(result.namingConfidence, 'high');
 });
 
-test('buildAssetNamingMetadata: assets utan sessionNumber (t.ex. konsultation) påverkas inte av fallback-regeln', () => {
+test('buildAssetNamingMetadata: konsultation numreras nu som session och hålls tillbaka vid fallback-datum', () => {
   const asset = {
     id: 'a1',
     category: 'journal',
@@ -61,8 +61,10 @@ test('buildAssetNamingMetadata: assets utan sessionNumber (t.ex. konsultation) p
     ],
   });
 
-  assert.equal(result.sessionNumber, null);
-  // namingStatus styrs här bara av den vanliga namingConfidence-vägen.
+  assert.equal(result.sessionNumber, 1);
+  assert.equal(result.namingStatus, 'needs_review_for_naming');
+  assert.ok(result.displayName.includes('Konsultation 1'));
+  // namingStatus styrs här både av session-fallback och av den vanliga namingConfidence-vägen.
   assert.notEqual(result.namingConfidence, undefined);
 });
 

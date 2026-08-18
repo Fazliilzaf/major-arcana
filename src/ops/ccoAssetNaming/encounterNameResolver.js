@@ -18,12 +18,28 @@ function parseIsoDate(value) {
   return d.toISOString().slice(0, 10);
 }
 
+const SESSION_TYPES = new Map([
+  ['prp', { label: 'PRP' }],
+  ['fue', { label: 'FUE' }],
+  ['dhi', { label: 'DHI' }],
+  ['consultation', { label: 'Konsultation' }],
+  ['konsultation', { label: 'Konsultation' }],
+  ['microneedling', { label: 'Microneedling' }],
+  ['mesoterapi', { label: 'Mesoterapi' }],
+]);
+
+function normalizeTreatmentType(treatmentType) {
+  return normalizeText(treatmentType)
+    .toLowerCase()
+    .replace(/\s+operation$/, '');
+}
+
 function treatmentSessionLabel(treatmentType, sessionNumber) {
-  const t = normalizeText(treatmentType);
+  const t = normalizeTreatmentType(treatmentType);
   if (!t) return null;
-  if (/^prp$/i.test(t) && sessionNumber) return `PRP ${sessionNumber}`;
-  if (/fue|dhi/i.test(t) && sessionNumber) return `${t} ${sessionNumber}`;
-  return t;
+  const sessionType = SESSION_TYPES.get(t);
+  if (sessionType && sessionNumber) return `${sessionType.label} ${sessionNumber}`;
+  return normalizeText(treatmentType);
 }
 
 // Bugbot-fynd på PR #1379 (2026-08-14), tre rättningar mot förra versionen:
@@ -148,7 +164,7 @@ function countTreatmentSession(asset, siblingAssets = []) {
   const idx = groups.findIndex((g) => g.key === myKey);
   const myGroup = idx >= 0 ? groups[idx] : null;
   const sessionNumber = idx >= 0 ? idx + 1 : groups.length + 1;
-  const isSessionType = /^prp$/i.test(treatment) || /fue|dhi/i.test(treatment);
+  const isSessionType = SESSION_TYPES.has(normalizeTreatmentType(treatment));
   const groupHasRealDate = myGroup
     ? myGroup.assets.some((a) => parseIsoDate(a.documentDate))
     : parseIsoDate(asset.documentDate) !== null;
