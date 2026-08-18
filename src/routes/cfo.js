@@ -785,6 +785,12 @@ function createCfoRouter({
           },
           { contains: 'Uber', category: 'resor', vatRatePercent: 25, vatMode: 'standard_25' },
           {
+            contains: 'Flix',
+            category: 'resor',
+            vatRatePercent: 0,
+            vatMode: 'standard_0',
+          },
+          {
             contains: 'JustAnswer',
             category: 'juridik_konsult',
             vatRatePercent: 0,
