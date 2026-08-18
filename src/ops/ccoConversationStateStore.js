@@ -611,10 +611,20 @@ async function createCcoConversationStateStore({ filePath, idempotencyTtlHours =
     return true;
   }
 
+  function getActiveStatesForTenant({ tenantId } = {}) {
+    const safeTenantId = normalizeText(tenantId);
+    if (!safeTenantId) return [];
+    const prefix = `${safeTenantId}:`;
+    return Object.values(state.conversationStates || {})
+      .filter((record) => record.key && record.key.startsWith(prefix) && record.superseded !== true)
+      .map((record) => cloneJson(record));
+  }
+
   return {
     getConversationState,
     getActiveState,
     getActiveStateMap,
+    getActiveStatesForTenant,
     writeConversationState,
     supersedeConversationState,
     migrateConversationState,

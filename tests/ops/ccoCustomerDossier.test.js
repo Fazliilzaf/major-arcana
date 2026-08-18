@@ -123,3 +123,52 @@ test('ingen kundnyckel → tomt kort med varning, ingen krasch', async () => {
   assert.ok(d.warnings.some((w) => w.includes('ingen kundnyckel')));
   assert.equal(d.customerId, null);
 });
+
+test('conversationSummary inkluderas när conversationContextService finns', async () => {
+  const withContext = {
+    ...stores,
+    conversationContextService: {
+      buildContextForCustomer: async (customerId, { tenantId }) => ({
+        customerId,
+        tenantId,
+        unanswered: { count: 3 },
+        slaStatus: { slaStatus: 'breach' },
+        dominantRisk: 'complaint',
+        latestInboundAt: '2026-07-15T08:00:00.000Z',
+        activeThreadCount: 5,
+        needsActionCount: 4,
+        sentiment: { tone: 'frustrated' },
+        intent: { code: 'complaint' },
+      }),
+    },
+  };
+  const d = await buildCustomerDossier(
+    { tenantId: 'hairtpclinic', customerId: 'CUST-1' },
+    withContext
+  );
+  assert.equal(d.conversationSummary.unansweredCount, 3);
+  assert.equal(d.conversationSummary.slaStatus, 'breach');
+  assert.equal(d.conversationSummary.dominantRisk, 'complaint');
+  assert.equal(d.conversationSummary.latestInboundAt, '2026-07-15T08:00:00.000Z');
+  assert.equal(d.conversationSummary.activeThreadCount, 5);
+  assert.equal(d.conversationSummary.needsActionCount, 4);
+  assert.deepEqual(d.conversationSummary.sentiment, { tone: 'frustrated' });
+  assert.deepEqual(d.conversationSummary.intent, { code: 'complaint' });
+});
+
+test('conversationSummary tolererar trasig context service', async () => {
+  const brokenContext = {
+    ...stores,
+    conversationContextService: {
+      buildContextForCustomer: async () => {
+        throw new Error('nere');
+      },
+    },
+  };
+  const d = await buildCustomerDossier(
+    { tenantId: 'hairtpclinic', customerId: 'CUST-1' },
+    brokenContext
+  );
+  assert.ok(d.warnings.some((w) => w.includes('conversation_context')));
+  assert.equal(d.conversationSummary.unansweredCount, 0);
+});
