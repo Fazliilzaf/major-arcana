@@ -94,6 +94,16 @@ function createDeferredCcoMailIngestionStore({
     'listAmbiguousMatches',
     'listMailboxStats',
     'listRawMessages',
+    'listQueuedMailboxCounts',
+    // Saknades tidigare — och i prod ar storen ALLTID deferrad (prod-safe), sa
+    // de gick inte att anropa dar. hydrateRawMessage ar lasvagen for
+    // externaliserade bodies och anropas av syncService fore varje meddelande;
+    // updateThreadIdentityForMessage anropas av pipelinen vid varje matchning.
+    // Bada hade kastat TypeError sa fort kon borjade bearbetas.
+    'hydrateRawMessage',
+    'getThreadIdentity',
+    'listThreadIdentities',
+    'updateThreadIdentityForMessage',
     'getState',
   ]);
 
