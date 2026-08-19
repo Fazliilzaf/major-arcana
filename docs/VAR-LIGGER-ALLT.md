@@ -35,6 +35,53 @@
 - UI: `public/finance.html` pratar med både `/api/v1/cm/*` (intag/promote) och
   `/api/v1/cco-cf/*` (CFO-arbetsyta).
 
+## 1c. CCO mail & konversationer — kolla HÄR innan du bygger
+
+> Varför avsnittet finns: de här besluten ser ut som något man behöver
+> uppfinna, men de är redan kodade — ofta i flera generationer. Filerna
+> nedan svarar på "är det gjort?" på under en minut. Flera utredningar har
+> gjorts om i onödan för att ingen visste att de fanns.
+
+**Regler och urval**
+
+| Fråga                                                                  | Fil                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vilka avsändare räknas INTE som patient (brus, notiser, egen domän)?   | `src/ops/ccoMailIngestion/nonPatientRules.js`                                                                                                                                                                                |
+| Vilka klinikbrevlådor läses in som kundkonversationer?                 | `src/ops/ccoMailboxAllowlist.js` + `ARCANA_MAILBOX_ALLOWLIST` i `render.yaml`                                                                                                                                                |
+| Vilka mappar ingesteras (inbox/sent/drafts/deleted)?                   | `evaluateSourceFilter` i `src/ops/ccoMailIngestion/pipeline.js`                                                                                                                                                              |
+| Hur matchas en avsändare mot patient?                                  | `matchPatientOrEntity` i `pipeline.js` — endast exakt normaliserad e-post auto-binder                                                                                                                                        |
+| Hur städas omatchade upp i efterhand?                                  | `src/ops/ccoMailIngestion/resolveUnmatched.js` (sweep: dismiss / link / enrich)                                                                                                                                              |
+| Vilka lägen finns (`dry_run` / `read_only` / `active`) och vad gör de? | `src/ops/ccoMailIngestion/constants.js` + guards i `pipeline.js`. OBS: `read_only` är INTE skrivfritt — den uppdaterar ledger, trådidentitet, kör dokumenttriage och kan skapa needs_approval-utkast. Bara `dry_run` avstår. |
+| Vilka automationsregler finns?                                         | `src/ops/ccoAutomationRegistry.js`                                                                                                                                                                                           |
+| Delad e-postregex (använd denna, kopiera inte)                         | `src/ops/emailAddressPattern.js` — bakgrund: fyra frysningar 2026-08-18 orsakade av elva kopior av ett kvadratiskt mönster                                                                                                   |
+
+**Lagring och drift**
+
+| Fråga                                 | Fil                                                                                                                   |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Var ligger mail-ingestion-state?      | `/var/data/cco-mail-ingestion.json` (en fil, en rad) — `src/ops/ccoMailIngestion/store.js`                            |
+| Var ligger mailbox-truth?             | `/var/data/cco-mailbox-truth/` — shardat per brevlåda, bodies i egen katalog. Referensmönstret för selektiv laddning. |
+| Batchstorlek, LRU-tak, ingestion-läge | `src/config.js` (defaults) — överstyrs av `render.yaml`. Kolla BÅDA; de skiljer sig (t.ex. batchstorlek 75 vs 50).    |
+| Kö och drain                          | `dequeueNextRawMessageId` i `store.js`, `enqueueProcessDrain` i `worker.js`                                           |
+
+**Fallgropar som redan kostat tid**
+
+- `FILTER_VERSION` i `constants.js` står på `'cco-mail-filter-2026-05-26'`.
+  Reglerna i `nonPatientRules.js` har utökats **2026-07-02** (A2, #510) och
+  **2026-08-17** (`d8c422bf`) utan att stämpeln bumpats. Logik som använder
+  FILTER_VERSION för att avgöra "processad med aktuellt filter?" är därför
+  blind för båda ändringarna. Mätning 2026-08-19: 90 av 477 misslyckade
+  matchningar (19 %) skulle fångas av dagens regler — de är historisk rest,
+  inte nya luckor. Bumpa stämpeln när du ändrar reglerna.
+- Kommentarerna i `nonPatientRules.js` daterar varje generation (`A2`,
+  `Fas 3.3 — domäner observerade i review-kön`) och förklarar medvetna
+  utelämnanden (`gmail.com` filtreras ALDRIG — patientdomän). Läs dem innan
+  du föreslår nya regler.
+- `/process-all` kräver `ownerAck: true` i bodyn, annars 409.
+- Egen-domän-regeln matchar bara `hairtpclinic.com`. `hairtpclinic.se` och
+  `fazli.se` täcks inte av den regeln (`info@fazli.se` hanteras i stället via
+  sweepen sedan `d8c422bf`).
+
 ## 2. Ordersystemet (vad som beställts, byggts, återstår)
 
 - `docs/handover/ORDERS/` — ORD-N-filer = kanoniska beställningar/leveranser.
@@ -100,6 +147,9 @@
 1. Läs `AGENTS.md` + `ORGANISATION.md` + denna fil.
 2. `git log --oneline -20` — main rör sig fort; det du tänker bygga kan
    redan vara byggt (kolla ORDERS + `docs/strategy/` + grep i `src/`).
+   Gäller det CCO mail/konversationer: läs avsnitt **1c** först. Reglerna
+   där ser ut att saknas men finns i flera generationer, och `git log` på
+   den enskilda regelfilen visar när de senast utökades.
 3. Jobba på egen gren via worktree, committa tidigt, PR med tester.
 4. Rör aldrig: journal/feed/forms-routes i `server.js`, andras WIP-filer,
    `~/Code`-strukturen, hemligheter.
