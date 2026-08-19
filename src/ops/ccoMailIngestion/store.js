@@ -6,6 +6,10 @@ const bfj = require('bfj');
 const { buildDedupeKeyFromTruthMessage } = require('./dedupe');
 const { toCanonicalMailboxConversationKey } = require('../ccoMailboxTruthWorklistReadModel');
 const {
+  bodyFilePath,
+  readBody,
+} = require('../ccoMailboxTruthBodyStore');
+const {
   FILTER_VERSION,
   IMPORT_RUN_STATUSES,
   MATCH_VERSION,
@@ -208,11 +212,17 @@ async function writeJsonAtomic(filePath, data) {
   await fs.rename(tmpPath, filePath);
 }
 
-async function createCcoMailIngestionStore({ filePath } = {}) {
+async function createCcoMailIngestionStore({
+  filePath,
+  bodyRoot = '',
+  bodyMailboxId = '',
+} = {}) {
   const resolvedPath = normalizeText(filePath);
   if (!resolvedPath) {
     throw new Error('createCcoMailIngestionStore requires filePath.');
   }
+  const resolvedBodyRoot = normalizeText(bodyRoot);
+  const resolvedBodyMailboxId = normalizeText(bodyMailboxId);
 
   let state = createEmptyState();
   state = { ...createEmptyState(), ...(await readJson(resolvedPath, createEmptyState())) };
@@ -802,6 +812,44 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
 
   function getRawMessage(rawMessageId = '') {
     return state.mailRawMessages[normalizeText(rawMessageId)] || null;
+  }
+
+  // ORD-2026-08-19: brödtexterna och rawJson ligger nu i sidofiler efter
+  // bodies-migreringen. Läs tillbaka dem när pipelinen behöver dem.
+  // Funktionen är opt-in: den påverkar inga andra läsvägar än de som
+  // explicit awaitar den, så getRawMessage fortsätter vara synkron.
+  async function hydrateRawMessage(rawMessageId = '') {
+    const message = getRawMessage(rawMessageId);
+    if (!message) return null;
+    if (!resolvedBodyRoot || !resolvedBodyMailboxId) return message;
+
+    const filePath = bodyFilePath({
+      bodyRoot: resolvedBodyRoot,
+      mailboxId: resolvedBodyMailboxId,
+      messageKey: message.id || rawMessageId,
+    });
+    const stored = await readBody(filePath);
+    if (!stored) return message;
+
+    const hydrated = { ...message };
+    if (typeof stored.bodyText === 'string' && stored.bodyText.length > 0) {
+      hydrated.bodyText = stored.bodyText;
+    }
+    if (typeof stored.rawJson === 'string' && stored.rawJson.length > 0) {
+      try {
+        hydrated.rawJson = JSON.parse(stored.rawJson);
+      } catch {
+        // Trasig JSON i sidofilen — lämna shardens värde kvar så vi inte
+        // tyst ersätter data med något ogiltigt.
+      }
+    } else if (
+      stored.rawJson &&
+      typeof stored.rawJson === 'object' &&
+      !Array.isArray(stored.rawJson)
+    ) {
+      hydrated.rawJson = stored.rawJson;
+    }
+    return hydrated;
   }
 
   async function reconcileProcessingQueue({ mailboxEmail = '' } = {}) {
@@ -1394,6 +1442,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     updateLedger,
     getLedgerByRawMessageId,
     getRawMessage,
+    hydrateRawMessage,
     shouldSkipProcessing,
     appendAudit,
     resetMailboxLocalState,

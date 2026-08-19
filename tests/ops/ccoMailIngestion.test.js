@@ -9,6 +9,7 @@ const {
   buildDedupeKeyFromTruthMessage,
 } = require('../../src/ops/ccoMailIngestion/dedupe');
 const { createCcoMailIngestionStore } = require('../../src/ops/ccoMailIngestion/store');
+const { bodyFilePath } = require('../../src/ops/ccoMailboxTruthBodyStore');
 const {
   processRawMessage,
   evaluateSourceFilter,
@@ -776,4 +777,76 @@ test('saving a Graph subscription renewal retains its mailbox identity', async (
   assert.equal(renewed.mailboxEmail, 'contact@hairtpclinic.com');
   assert.equal(renewed.graphUserId, 'contact@hairtpclinic.com');
   await fs.unlink(filePath).catch(() => {});
+});
+
+test('hydrateRawMessage reads bodyText and rawJson from body sidecar', async () => {
+  const stateRoot = path.join(os.tmpdir(), `cco-ingestion-hydrate-${Date.now()}`);
+  const filePath = path.join(stateRoot, 'cco-mail-ingestion.json');
+  const bodyRoot = path.join(stateRoot, 'bodies');
+  await fs.mkdir(stateRoot, { recursive: true });
+
+  const rawMessageId = 'raw-hydrate-1';
+  const rawMessageIdNoSidecar = 'raw-hydrate-2';
+  const state = {
+    modelVersion: 'cco.mail.ingestion.v1',
+    mailRawMessages: {
+      [rawMessageId]: {
+        id: rawMessageId,
+        mailboxId: 'contact@hairtpclinic.com',
+        subject: 'Hydreringstest',
+        bodyText: '',
+        rawJson: {},
+        bodyPreview: 'förhandsvisning',
+      },
+      [rawMessageIdNoSidecar]: {
+        id: rawMessageIdNoSidecar,
+        mailboxId: 'contact@hairtpclinic.com',
+        subject: 'Utan sidofil',
+        bodyText: 'inline-text',
+        rawJson: { inline: true },
+        bodyPreview: 'förhandsvisning',
+      },
+    },
+  };
+  await fs.writeFile(filePath, JSON.stringify(state), 'utf8');
+
+  const sidecarPath = bodyFilePath({
+    bodyRoot,
+    mailboxId: 'mail-ingestion',
+    messageKey: rawMessageId,
+  });
+  await fs.mkdir(path.dirname(sidecarPath), { recursive: true });
+  await fs.writeFile(
+    sidecarPath,
+    JSON.stringify({
+      bodyText: 'Detta är brödtexten.',
+      rawJson: JSON.stringify({ body: { content: '<p>HTML</p>' }, subject: 'Hydreringstest' }),
+    }),
+    'utf8'
+  );
+
+  const store = await createCcoMailIngestionStore({
+    filePath,
+    bodyRoot,
+    bodyMailboxId: 'mail-ingestion',
+  });
+
+  const dry = store.getRawMessage(rawMessageId);
+  assert.equal(dry.bodyText, '', 'getRawMessage ska inte hydrera');
+  assert.deepEqual(dry.rawJson, {}, 'getRawMessage ska inte hydrera rawJson');
+
+  const hydrated = await store.hydrateRawMessage(rawMessageId);
+  assert.equal(hydrated.bodyText, 'Detta är brödtexten.');
+  assert.equal(hydrated.rawJson.body.content, '<p>HTML</p>');
+  assert.equal(hydrated.subject, 'Hydreringstest');
+
+  // Saknat meddelande ger null.
+  assert.equal(await store.hydrateRawMessage('finns-inte'), null);
+
+  // Saknad sidofil returnerar meddelandet oförändrat.
+  const noSidecar = await store.hydrateRawMessage(rawMessageIdNoSidecar);
+  assert.equal(noSidecar.bodyText, 'inline-text');
+  assert.equal(noSidecar.rawJson.inline, true);
+
+  await fs.rm(stateRoot, { recursive: true, force: true });
 });

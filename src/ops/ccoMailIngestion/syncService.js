@@ -160,7 +160,7 @@ function createCcoMailIngestionSyncService({
       });
       if (!rawMessageId) break;
 
-      const rawMessage = ingestionStore.getRawMessage(rawMessageId);
+      const rawMessage = await ingestionStore.hydrateRawMessage(rawMessageId);
       const ledger = ingestionStore.getLedgerByRawMessageId(rawMessageId);
       if (!rawMessage || !ledger) {
         completedIds.push(rawMessageId);
