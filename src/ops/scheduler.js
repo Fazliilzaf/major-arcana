@@ -3845,10 +3845,19 @@ function createScheduler({
     // brevlada som har flest kolagda. En batch per tick som forut, sa
     // belastningen ar oforandrad — det ar bara urvalet som lagats.
     const defaultMailbox = normalizeText(config.ccoMailIngestionDefaultMailbox);
-    const koPerBrevlada =
-      typeof ccoMailIngestionStore?.listQueuedMailboxCounts === 'function'
-        ? ccoMailIngestionStore.listQueuedMailboxCounts()
-        : new Map();
+    // Ingen tyst fallback har. Forsta versionen hade en typeof-kontroll som
+    // foll tillbaka pa en tom karta — och eftersom metoden saknades i den
+    // deferrade fasadens allowlist blev resultatet queue_empty varje minut,
+    // helt tyst, medan 8 814 meddelanden lag kvar. Saknas accessorn ar det ett
+    // fel som ska synas.
+    if (typeof ccoMailIngestionStore?.listQueuedMailboxCounts !== 'function') {
+      logger?.error?.(
+        '[scheduler] cco_mail_ingestion_queue: listQueuedMailboxCounts saknas pa storen ' +
+          '(trolig orsak: metoden ar inte med i methodNames i deferredMailIngestionStore.js)'
+      );
+      return { tenantId, skipped: true, reason: 'queue_counts_unavailable' };
+    }
+    const koPerBrevlada = ccoMailIngestionStore.listQueuedMailboxCounts();
 
     let mailboxEmail = '';
     if (defaultMailbox && Number(koPerBrevlada.get(defaultMailbox) || 0) > 0) {
