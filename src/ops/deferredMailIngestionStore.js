@@ -95,6 +95,7 @@ function createDeferredCcoMailIngestionStore({
     'listMailboxStats',
     'listRawMessages',
     'listQueuedMailboxCounts',
+    'countLedgerStatuses',
     // Saknades tidigare — och i prod ar storen ALLTID deferrad (prod-safe), sa
     // de gick inte att anropa dar. hydrateRawMessage ar lasvagen for
     // externaliserade bodies och anropas av syncService fore varje meddelande;

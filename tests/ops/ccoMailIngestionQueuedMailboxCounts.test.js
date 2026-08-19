@@ -105,3 +105,23 @@ test('klonar inte staten — accessorn ska vara billig nog for en minutlig job',
   const vaxtMb = (efter - fore) / (1024 * 1024);
   assert.ok(vaxtMb < 5, `heapen vaxte ${vaxtMb.toFixed(1)} MB — ser ut som en klon`);
 });
+
+test('countLedgerStatuses raknar per status utan att klona', async () => {
+  const store = await skapaStore({
+    processingQueue: [],
+    mailRawMessages: {},
+    mailProcessingLedger: {
+      l1: { rawMessageId: 'a', status: 'MATCHED' },
+      l2: { rawMessageId: 'b', status: 'MATCHED' },
+      l3: { rawMessageId: 'c', status: 'DUPLICATE_SKIPPED' },
+      l4: { rawMessageId: 'd', status: 'RAW_SAVED' },
+      l5: { rawMessageId: 'e' },
+    },
+  });
+
+  const counts = store.countLedgerStatuses();
+  assert.equal(counts.MATCHED, 2);
+  assert.equal(counts.DUPLICATE_SKIPPED, 1);
+  assert.equal(counts.RAW_SAVED, 1);
+  assert.equal(counts.UNKNOWN, 1, 'post utan status ska hamna i UNKNOWN, inte tappas');
+});
