@@ -159,11 +159,18 @@ Städningen körs bara vid boot, vilket eliminerar risken med pid-återanvändni
 
 ### 5.3 `auth.json`-kapplöpning
 
-Fem `auth.json.93.*.tmp` från samma pid och samma sekund betyder att fem `writeJsonAtomic`-anrop mot samma målfil kördes samtidigt. Lösning:
+Fem `auth.json.93.*.tmp` från samma pid och samma sekund betyder att `authStore.save()` saknar serialisering — varje anrop startar sin egen `writeJsonAtomic`. De fem tmp-filerna var fem samtidiga skrivningar som dödades i flykten.
 
-- Serialisera skrivningar per målfil med en `Map<filePath, Promise>`.
-- Ett andra anrop till samma fil väntar på det första istället för att starta en egen `.tmp`-skrivning.
-- Detta bör implementeras generellt i `writeJsonAtomic`, inte bara för `auth.json`.
+Lösning för `authStore`:
+
+- Håll reda på pågående skrivning med `Map<filePath, Promise>`.
+- Om ingen skrivning pågår → skriv nu.
+- Om skrivning pågår och ingen är köad → köa en uppföljare, returnera dess promise.
+- Om skrivning pågår och en redan är köad → returnera den köades promise.
+
+Detta slår ihop fem samtidiga `save()` till högst två skrivningar: den pågående + en uppföljare som innehåller alla fem mutationer. Ingen anropare får "klart" förrän hens mutation faktiskt ligger på disk.
+
+**Obs:** `writeJsonAtomic` finns i **92 kopior** i `src/`. En generell serialisering i en gemensam modul är rätt på sikt, men det är mekaniskt arbete som bör vara en separat insats. Här börjar vi med `authStore` eftersom den skrivs oftast och ligger närmast en säkerhetsfunktion.
 
 ---
 
@@ -227,8 +234,8 @@ Rekommendation: **A** med tydlig dokumentation. Piloten ska vara kort och på st
 
 ## 9. Nästa steg (rekommenderad ordning)
 
-1. **Auth-serialisering** — egen PR, låg risk, kan mergas direkt.
-2. **Tmp-städning vid boot** — egen PR, låg risk.
+1. **Tmp-städning vid boot** — egen PR, låg risk. Den är global: ett ställe täcker alla 92 `writeJsonAtomic`-kopior, inklusive de åtta filerna från morgonens krasch och alla framtida.
+2. **Auth-serialisering** — egen PR, låg risk. Punktinsats för den fil som skrivs oftast och ligger närmast en säkerhetsfunktion.
 3. **Externalisera bodies** — huvudfixen. Större PR, kräver granskning och staging-test.
 4. **Shardning av metadata** — sekundär optimering efter att bodies är ute.
 
