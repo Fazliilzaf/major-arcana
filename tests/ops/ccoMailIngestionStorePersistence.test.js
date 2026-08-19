@@ -36,7 +36,17 @@ function tmpFile(name) {
   return path.join(os.tmpdir(), `${name}-${Date.now()}-${crypto.randomUUID()}.json`);
 }
 
-test('toBfjSafeValue normaliserar Set → {} (matchar legacy JSON.stringify), rör inte annat', () => {
+// KONTRAKTSBYTE 2026-08-19: testet krävde tidigare att en Set skrevs som {},
+// för att bfj-utdata skulle bli byte-identisk med legacy JSON.stringify. Det
+// kravet kom från migreringen till bfj och handlade om att inte ändra
+// filformatet — men {} är dataförlust: innehållet i patientIds försvann vid
+// VARJE skrivning, och nästa uppdatering av samma tråd anropade .add på ett
+// tomt objekt. I prod gav det sex misslyckade meddelanden per batch om femtio.
+//
+// Kontraktet är nu att fältet rundtrippar. En Set skrivs som array, vilket är
+// den naturliga JSON-representationen, och läses tillbaka som Set. Inget
+// utanför storen läser fältet från filen — skripten bygger egna kopior.
+test('toBfjSafeValue skriver Set som array så innehållet överlever, rör inte annat', () => {
   const state = {
     modelVersion: 'x',
     mailRawMessages: { a: { id: 'a', bodyText: 'hej' } },
@@ -57,12 +67,14 @@ test('toBfjSafeValue normaliserar Set → {} (matchar legacy JSON.stringify), r�
     auditEvents: [1, 2, 3],
   };
 
-  const expected = JSON.stringify(state);
   const safe = toBfjSafeValue(state);
-  assert.equal(JSON.stringify(safe), expected);
-  // Bekräfta att normaliseringen faktiskt skedde (inte råkat matcha av en slump).
-  assert.deepEqual(safe.threadIdentityIndex.conv1.patientIds, {});
+  assert.deepEqual(safe.threadIdentityIndex.conv1.patientIds, ['p1', 'p2']);
+  assert.deepEqual(safe.threadIdentityIndex.conv2.patientIds, []);
   assert.ok(!(safe.threadIdentityIndex.conv1.patientIds instanceof Set));
+  // Resten av state:et ska vara orört och inte klonat i onödan.
+  assert.equal(safe.mailRawMessages, state.mailRawMessages);
+  assert.deepEqual(safe.auditEvents, [1, 2, 3]);
+  assert.equal(safe.modelVersion, 'x');
   // Oförändrade fält ska vara exakt samma referens/värde, inte omklonade.
   assert.equal(safe.mailRawMessages, state.mailRawMessages);
 });
@@ -99,7 +111,7 @@ test('writeJsonAtomic producerar byte-identisk JSON mot JSON.stringify(data) + "
   // Filen ska vara giltig JSON och rundtrippa korrekt.
   const parsed = JSON.parse(actual);
   assert.equal(parsed.mailRawMessages.a.bodyText, 'åäö€ unicode');
-  assert.deepEqual(parsed.threadIdentityIndex.conv1.patientIds, {});
+  assert.deepEqual(parsed.threadIdentityIndex.conv1.patientIds, ['p1']);
 
   await fs.unlink(filePath).catch(() => {});
 });
@@ -174,11 +186,14 @@ test('stor state rundtrippar korrekt genom hela store-flödet (save → disk →
   assert.equal(Object.keys(parsed.mailRawMessages).length, MESSAGE_COUNT);
   assert.equal(parsed.processingQueue.length, MESSAGE_COUNT);
 
-  // threadIdentityIndex ska ha skrivits med patientIds som {} (legacy-format),
-  // inte som array.
+  // threadIdentityIndex ska ha skrivits med patientIds som array. Tidigare
+  // skrevs {} for att matcha legacy JSON.stringify — men da gick innehallet
+  // forlorat vid varje skrivning, och nasta uppdatering av samma trad kastade
+  // "patientIds.add is not a function". Se kontraktsbytet hogre upp i filen.
   const identityEntries = Object.values(parsed.threadIdentityIndex || {});
   assert.equal(identityEntries.length, 1);
-  assert.deepEqual(identityEntries[0].patientIds, {});
+  assert.ok(Array.isArray(identityEntries[0].patientIds), 'ska vara array, inte {}');
+  assert.ok(identityEntries[0].patientIds.length > 0, 'innehallet far inte ga forlorat');
 
   // Ladda om store från samma fil och verifiera att den fungerar normalt.
   const reloaded = await createCcoMailIngestionStore({ filePath });
