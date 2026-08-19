@@ -42,24 +42,40 @@ Referens: `ccoMailboxTruthBodyStore.js`, `ccoMailboxTruthBodyMigration.js`,
 | Katalogstruktur            | Per brevlåda + 256-vägs hash-uppdelning. Inte per månad                                                               |
 | Stort antal filer          | Hash-uppdelningen håller katalogerna hanterbara                                                                       |
 | Läsning                    | `bodySource: 'bodies_sidecar' \| 'shard_inline_only'` styrt av `deepScan` — metadata som standard, sidofil på begäran |
-| Migreringens omfattning    | Per brevlåda (`mailboxId` + `shardPath`)                                                                              |
-| Torrkörning                | `apply = false` är default; skarp körning är opt-in                                                                   |
+| Migreringens omfattning    | Per fil. Mailbox-truth har en fil per brevlåda — mail-ingestion har EN fil, se 6                                      |
+| Torrkörning                | `apply = false` är default — men den skriver ändå backup och alla sidofiler, se 6                                     |
 | Utrymme                    | Diskspärr som kräver `shardStat.size * 2 * marginRatio` innan start                                                   |
 | Backup                     | `${shardPath}.${Date.now()}.pre-body-migration.bak` före skrivning                                                    |
-| Stegvis utrullning         | Följer av per-brevlåda-migreringen                                                                                    |
+| Stegvis utrullning         | Bygger på en fil per brevlåda — gäller INTE här, se 6                                                                 |
 | Utlösare                   | Ops-route, inte boot. Operatörsstyrd                                                                                  |
 
 Beslutet i tidigare utkast om migrering **vid boot** bör alltså förkastas.
-Per brevlåda på begäran är både säkrare och redan byggt.
+På begäran via ops-route är både säkrare och redan byggt.
 
 ---
 
 ## 3. Det som faktiskt skiljer sig — fyra beslut
 
-**3.1 `rawJson` finns bara i mail-ingestion.**
-Mailbox-truth externaliserar brödtext. Här finns dessutom hela MIME-objektet
-(9 686 nycklar). Förslag: samma sidofil som `bodyHtml`/`bodyText` — de behövs
-vid samma tillfälle, och en uppdelning dubblar filantalet utan vinst.
+**3.1 `rawJson` ÄR problemet, och det är ett objekt.**
+
+Mätt 2026-08-19 — fältfördelningen inom de 206,4 MB:
+
+```
+rawJson    184,1 MB   89 %   objekt
+bodyText    22,3 MB   11 %   sträng
+bodyHtml     0,0 MB    0 %   sträng, men TOM på alla 9 664 nycklar
+```
+
+`bodyHtml` bär ingenting. HTML-kroppen ligger inuti `rawJson`. Det betyder att
+den befintliga transformen, som hanterar exakt `bodyText` och `bodyHtml`,
+skulle flytta **22,3 MB av 206,4** — filen går från 235 MB till ~213 MB. I
+praktiken ingen vinst.
+
+Transformen är en teckenvis JSON-skanner som ersätter _strängvärden_. Att
+hoppa över ett nästlat objekt från `{` till matchande `}` är ny logik. Den
+utökningen är projektets kärna, inte en detalj.
+
+`rawJson` och `bodyText` går till samma sidofil. `bodyHtml` lämnas som den är.
 
 **3.2 Nyckeln.**
 Kandidater: internt `rawMessageId` eller `internetMessageId`. Förslag:
@@ -135,21 +151,77 @@ till sidofilen; varje `nej` ska **inte** ha ett.
 
 ---
 
-## 6. Ordning
+## 6. En passering, inte per brevlåda
 
-1. Migrera en liten brevlåda torrt (`apply: false`), granska rapporten.
-2. Samma brevlåda skarpt. Verifiera `/status` och en `/process-batch`.
-3. Resterande små brevlådor.
-4. `egzona@` sist — 90,7 % av datan, och den som faktiskt löser problemet.
-5. Först därefter: `FILTER_VERSION`-bump och omkörning av backloggen.
+Mailbox-truth har **en fil per brevlåda**, så dess migrering kan köras
+inkrementellt. Mail-ingestion har **en fil för alla brevlådor**. Den
+stegvisa utrullningen går därför inte att ärva.
+
+**Beslut: en passering över hela monoliten.** Alternativet — sharda metadata
+per brevlåda först — lägger till ett helt migreringssteg innan bodies-problemet
+ens är löst. Och 235 MB genom en ström är inte det som sänkte instansen; det
+var `JSON.parse` som materialiserade allt i heapen. En passering undviker
+just det.
+
+### Torrkörningen måste gå mot en kopia
+
+`apply: false` betyder **inte** read-only. Flaggan läses först på rad 220,
+efter att modulen har:
+
+- skrivit backupen (full kopia av källfilen)
+- skrivit tmp-filen (full kopia)
+- skrivit **samtliga sidofiler**
+- läst tillbaka och verifierat dem
+
+`abort('torrkorning')` tar bara bort tmp-filen. Backupen och sidofilerna
+ligger kvar. Modulens egen kommentar säger det: _"`apply: false` gör allt utom
+att byta in den nya"_.
+
+Originalfilen rörs aldrig, så det är ofarligt. Men en torrkörning mot
+`/var/data/cco-mail-ingestion.json` lämnar en 235 MB backup och ~9 686
+sidofiler i den levande datakatalogen.
+
+**Kör torrt mot en kopia i en scratch-katalog**, inte mot produktionsfilen.
+Det ersätter "liten brevlåda först" som sätt att få bevis före skarp körning.
 
 ---
 
-## 7. Kräver beslut av ägaren
+## 7. Implementationsordning
 
-- Godkänn 3.1–3.4, eller peka ut vad som ska ändras.
-- Ska `mailbox-truth`-migreringen återanvändas som modul, eller ska
-  mail-ingestion få en egen kopia? Återanvändning kräver att den generaliseras
-  bort från shard-formatet; en kopia riskerar att de glider isär.
-- Backupfilerna från migreringen tar plats som `cco-mail-ingestion.json`.
-  När får de raderas?
+| Steg | Vad                                                                                                              | Klart när                                                                      |
+| ---- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 0    | Parametrisera transformen: `BODY_FIELDS` och sökvägsvillkoret `keyAtDepth[1] === 'messages'` → `mailRawMessages` | Befintliga mailbox-truth-tester fortfarande gröna                              |
+| 1    | Utöka transformen med objekthoppning för `rawJson`                                                               | Nya tester: nästlade objekt, strängar med klammer, escapade tecken             |
+| 2    | Torrkörning mot kopia av produktionsfilen                                                                        | Rapport: antal flyttade bodies, filstorlek före/efter, `decoded_chars` stämmer |
+| 3    | Skarp migrering av produktionsfilen                                                                              | `fileBytesAfter` ≈ 28,6 MB, backup kvar                                        |
+| 4    | `/process-batch` mot migrerad data                                                                               | Batchen går igenom, heap följer batchstorlek                                   |
+| 5    | `FILTER_VERSION`-bump och omkörning av backloggen                                                                | Se varningen i `constants.js`                                                  |
+
+Steg 1 är det enda som är verklig nykonstruktion. Steg 0 är två konstanter.
+Steg 2–4 är körningar, inte kod.
+
+---
+
+## 8. Beslutade frågor
+
+**Återanvänd migreringsmodulen — kopiera inte.** Orkestreringen är generisk
+och värdefull: diskspärr, backup, mottryck åt båda håll, serialiserade
+skrivningar, verifiering före byte. Kommentarerna dokumenterar **två redan
+lösta OOM-incidenter** — en från att brödtexter ackumulerades i en `Map`, en
+från att läsströmmen pumpade snabbare än skrivströmmen. En kopia betyder att
+båda måste härledas om.
+
+Formatberoendet är isolerat i transformen och litet: två konstanter plus
+objekthoppningen i steg 1.
+
+**Backupfilerna raderas** när verifieringen passerat _och_ en `/process-batch`
+gått igenom mot den nya strukturen — inte på tidsgräns.
+
+---
+
+## 9. Kvar att besluta
+
+- Godkänn 3.1–3.5, eller peka ut vad som ska ändras.
+- Var ska scratch-katalogen för torrkörningen ligga? `/var/data` har 217 GB
+  ledigt, men kopian plus sidofilerna är ~440 MB och bör inte hamna bland
+  levande data.
