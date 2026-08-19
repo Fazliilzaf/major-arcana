@@ -1003,9 +1003,12 @@ const config = {
     true
   ),
   startupStateBackupRetentionDays: asInt(process.env.ARCANA_STATE_BACKUP_RETENTION_DAYS, 30),
+  // Default true: skarp radering ska vara ett medvetet beslut satt via env,
+  // inte en bieffekt av en merge + auto-deploy. Sätt till false först efter
+  // torrkörning har verifierat vilka filer som skulle raderas.
   startupStateBackupRetentionDryRun: asBool(
     process.env.ARCANA_STATE_BACKUP_RETENTION_DRY_RUN,
-    false
+    true
   ),
   reportsDir: resolveStatePath({
     explicitPath: process.env.ARCANA_REPORTS_DIR,
