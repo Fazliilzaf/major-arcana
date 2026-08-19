@@ -10590,6 +10590,23 @@ process.once('SIGTERM', () => {
     reportDeletedCount: Number(diskGuardSummary?.reportPrune?.deletedCount || 0),
     tempDeletedCount: Number(diskGuardSummary?.tempFiles?.deletedCount || 0),
     errors: Array.isArray(diskGuardSummary?.errors) ? diskGuardSummary.errors : [],
+    retainableBackups: {
+      enabled: Boolean(diskGuardSummary?.retainableBackups?.enabled),
+      dryRun: Boolean(diskGuardSummary?.retainableBackups?.dryRun),
+      retentionDays: Number(diskGuardSummary?.retainableBackups?.retentionDays || 0),
+      deletedCount: Number(diskGuardSummary?.retainableBackups?.deletedCount || 0),
+      keptCount: Number(diskGuardSummary?.retainableBackups?.keptCount || 0),
+      reclaimedBytes: Number(diskGuardSummary?.retainableBackups?.reclaimedBytes || 0),
+      dryRunCandidates: Array.isArray(diskGuardSummary?.retainableBackups?.deleted)
+        ? diskGuardSummary.retainableBackups.deleted.map((item) => ({
+            filePath: item.filePath,
+            fileName: item.fileName,
+            sizeBytes: Number(item.sizeBytes || 0),
+            ageDays: Number(item.ageDays || 0),
+            dryRun: Boolean(item.dryRun),
+          }))
+        : [],
+    },
   };
 
   setStartupPhase('auth_store');
