@@ -62,8 +62,17 @@ function createBodyStreamTransform({
   // { messages: { "<key>": { bodyText: ... } } }.
   collectionKey = 'messages',
   bodyFields = BODY_FIELDS,
+  // Steg 1: fält vars värde är ett OBJEKT eller en ARRAY, inte en sträng.
+  // mail-ingestion har rawJson — 184 av 206 MB, alltså 89 % av allt som ska
+  // ut. Tomt som default, så mailbox-truth är oförändrad.
+  //
+  // Värdet som skickas till onBody är den RÅA JSON-texten, inte ett parsat
+  // objekt. Transformen ser bara tecken och ska inte börja tolka; anroparen
+  // avgör om texten ska sparas som den är eller parsas.
+  objectFields = new Set(),
 } = {}) {
   const fields = bodyFields instanceof Set ? bodyFields : new Set(bodyFields || []);
+  const objFields = objectFields instanceof Set ? objectFields : new Set(objectFields || []);
   let depth = 0;
   const keyAtDepth = [];
 
@@ -84,6 +93,17 @@ function createBodyStreamTransform({
   let divertField = '';
   let divertKey = '';
   let divertValue = '';
+
+  // Objektdiversionens delstate. Helt skilt från det yttre — se kommentaren i
+  // write(). objDepth börjar på 1 vid den öppnande klammern och når 0 vid den
+  // matchande stängningen.
+  let objectDiverting = false;
+  let objDepth = 0;
+  let objInString = false;
+  let objEscaped = false;
+  let objRaw = '';
+  let objField = '';
+  let objKey = '';
 
   const out = [];
   const bodies = [];
@@ -122,21 +142,65 @@ function createBodyStreamTransform({
     closed = null;
   }
 
-  /** Är strängen som just ska börja ett brödtextvärde? */
-  function shouldDivert() {
+  /** Gemensam positionskontroll: står vi på ett fält i ett meddelande? */
+  function atMessageField() {
     return (
       depth === 3 &&
       keyAtDepth[1] === collectionKey &&
       typeof keyAtDepth[2] === 'string' &&
-      keyAtDepth[2].length > 0 &&
-      fields.has(pendingKey)
+      keyAtDepth[2].length > 0
     );
+  }
+
+  /** Är strängen som just ska börja ett brödtextvärde? */
+  function shouldDivert() {
+    return atMessageField() && fields.has(pendingKey);
+  }
+
+  /** Är objektet/arrayen som just ska börja ett omstyrt värde? */
+  function shouldDivertObject() {
+    return atMessageField() && objFields.has(pendingKey);
   }
 
   function write(chunk) {
     const text = String(chunk);
     for (let index = 0; index < text.length; index += 1) {
       const char = text[index];
+
+      // OBJEKTDIVERSION HAR EGET DELSTATE.
+      //
+      // Klamrarna inuti rawJson får inte röra den yttre djupräkningen — gör de
+      // det står `depth` fel för resten av filen och varje efterföljande
+      // omstyrning hamnar på fel meddelande. Delstaten spårar därför sin egen
+      // nivå och sitt eget strängläge, och den yttre maskinen ser inte ett enda
+      // av tecknen.
+      //
+      // Strängläget är inte valfritt: ett objekt som innehåller "{" eller "}"
+      // i en textsträng skulle annars stänga tidigt, och resten av filen
+      // skrivas ut som skräp.
+      if (objectDiverting) {
+        objRaw += char;
+        if (objInString) {
+          if (objEscaped) objEscaped = false;
+          else if (char === '\\') objEscaped = true;
+          else if (char === '"') objInString = false;
+        } else if (char === '"') {
+          objInString = true;
+        } else if (char === '{' || char === '[') {
+          objDepth += 1;
+        } else if (char === '}' || char === ']') {
+          objDepth -= 1;
+          if (objDepth === 0) {
+            redirected += 1;
+            if (objRaw.length > maxValueChars) maxValueChars = objRaw.length;
+            bodies.push(onBody(objKey, objField, objRaw));
+            objectDiverting = false;
+            objRaw = '';
+            pendingKey = '';
+          }
+        }
+        continue;
+      }
 
       if (!inString) {
         if (char === '"') {
@@ -160,6 +224,20 @@ function createBodyStreamTransform({
           continue;
         }
         settle(char);
+        if ((char === '{' || char === '[') && shouldDivertObject()) {
+          // Ett tomt värde av samma typ skrivs i stället. Läsvägen behandlar
+          // {} och [] likadant som "" — falsy nog att falla tillbaka på
+          // sidofilen.
+          objectDiverting = true;
+          objField = pendingKey;
+          objKey = keyAtDepth[2];
+          objDepth = 1;
+          objRaw = char;
+          objInString = false;
+          objEscaped = false;
+          push(char === '{' ? '{}' : '[]');
+          continue;
+        }
         if (char === '{' || char === '[') {
           depth += 1;
           // NYCKLAR ÄRVS ALDRIG MELLAN SYSKON.
