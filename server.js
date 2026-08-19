@@ -10883,6 +10883,8 @@ process.once('SIGTERM', () => {
             createStore: () =>
               createCcoMailIngestionStore({
                 filePath: config.ccoMailIngestionStorePath,
+                bodyRoot: path.join(config.ccoMailboxTruthShardDir, 'bodies'),
+                bodyMailboxId: 'mail-ingestion',
               }),
             logger: console,
             label: 'ccoMailIngestionStore',
@@ -10890,6 +10892,8 @@ process.once('SIGTERM', () => {
         })()
       : createCcoMailIngestionStore({
           filePath: config.ccoMailIngestionStorePath,
+          bodyRoot: path.join(config.ccoMailboxTruthShardDir, 'bodies'),
+          bodyMailboxId: 'mail-ingestion',
         })
   );
   app.locals.ccoMailIngestionStore = ccoMailIngestionStore;
