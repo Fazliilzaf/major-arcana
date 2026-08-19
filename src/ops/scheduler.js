@@ -3824,6 +3824,38 @@ function createScheduler({
     );
   }
 
+  // En rad per kokorning, i JSON sa den gar att aggregera direkt ur
+  // Render-loggarna. Utan den syns bara att jobbet kort ("success"), inte VAD
+  // det gjorde — och nar det hoppade over syntes inte ens orsaken. Det kostade
+  // flera timmars gissande 2026-08-19, da jobbet gick varje minut och
+  // returnerade queue_empty for fel brevlada helt tyst.
+  //
+  // Bara skalarer. summarizeSchedulerJobResult ar generisk och skulle ta med
+  // processQueue:s per-meddelande-resultat — bade enormt och potentiellt PII.
+  function logKoKorning(fields = {}) {
+    try {
+      const ledger =
+        typeof ccoMailIngestionStore?.countLedgerStatuses === 'function'
+          ? ccoMailIngestionStore.countLedgerStatuses()
+          : {};
+      logger?.log?.(
+        JSON.stringify({
+          type: 'cco_mail_ingestion_queue_run',
+          ts: new Date().toISOString(),
+          ...fields,
+          matched: Number(ledger.MATCHED || 0),
+          duplicateSkipped: Number(ledger.DUPLICATE_SKIPPED || 0),
+          unmatched: Number(ledger.UNMATCHED || 0),
+          needsReview: Number(ledger.NEEDS_REVIEW || 0),
+          actionCreated: Number(ledger.ACTION_CREATED || 0),
+          rawSaved: Number(ledger.RAW_SAVED || 0),
+        })
+      );
+    } catch (_) {
+      // telemetri far aldrig krascha jobbkorningen
+    }
+  }
+
   async function runCcoMailIngestionQueue({ tenantId }) {
     if (!config.ccoMailIngestionEnabled) {
       return { tenantId, skipped: true, reason: 'mail_ingestion_disabled' };
@@ -3873,23 +3905,37 @@ function createScheduler({
     }
 
     if (!mailboxEmail) {
-      return {
-        tenantId,
+      const reason = koPerBrevlada.size === 0 ? 'queue_empty' : 'default_mailbox_missing';
+      logKoKorning({
         skipped: true,
-        reason: koPerBrevlada.size === 0 ? 'queue_empty' : 'default_mailbox_missing',
+        reason,
         defaultMailbox,
-      };
+        mailboxesWithQueue: koPerBrevlada.size,
+      });
+      return { tenantId, skipped: true, reason, defaultMailbox };
     }
 
     const before = ccoMailIngestionStore?.buildDashboardSummary?.({ mailboxEmail });
     if (!before || Number(before.queueLength || 0) <= 0) {
+      logKoKorning({ skipped: true, reason: 'queue_empty', mailboxEmail, queueBefore: 0 });
       return { tenantId, skipped: true, reason: 'queue_empty', mailboxEmail };
     }
-    const result = await mailIngestionWorker.runProcessBatch({
-      mailboxEmail,
-      mode: config.ccoMailIngestionMode || 'read_only',
-    });
+    const mode = config.ccoMailIngestionMode || 'read_only';
+    const result = await mailIngestionWorker.runProcessBatch({ mailboxEmail, mode });
     const after = ccoMailIngestionStore?.buildDashboardSummary?.({ mailboxEmail });
+    const queueBefore = Number(before.queueLength || 0);
+    const queueAfter = Number(after?.queueLength || 0);
+    logKoKorning({
+      skipped: false,
+      mailboxEmail,
+      mode,
+      queueBefore,
+      queueAfter,
+      drained: queueBefore - queueAfter,
+      processed: Number(result?.processed || 0),
+      failed: Number(result?.failed || 0),
+      totalQueue: [...koPerBrevlada.values()].reduce((a, b) => a + b, 0),
+    });
     return {
       tenantId,
       skipped: false,

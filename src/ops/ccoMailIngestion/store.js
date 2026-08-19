@@ -1477,6 +1477,18 @@ async function createCcoMailIngestionStore({ filePath, bodyRoot = '', bodyMailbo
     //
     // Egen accessor i stallet for getState() eftersom den senare djup-klonar
     // hela ingestion-staten, och det har anropas en gang per minut.
+    // Antal liggarposter per status. Icke-klonande, som listQueuedMailboxCounts.
+    // Anvands for att skriva en matbar telemetrirad per kokorning — utan den
+    // gar bara att se kolangden, och da vet man inte OM det som lamnar kon
+    // blev matchat, dubblett eller omatchat.
+    countLedgerStatuses: () => {
+      const counts = {};
+      for (const ledger of Object.values(state.mailProcessingLedger || {})) {
+        const status = normalizeText(ledger?.status) || 'UNKNOWN';
+        counts[status] = (counts[status] || 0) + 1;
+      }
+      return counts;
+    },
     listQueuedMailboxCounts: () => {
       const counts = new Map();
       for (const rawMessageId of state.processingQueue || []) {
