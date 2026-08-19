@@ -177,9 +177,25 @@ function toBfjSafeValue(state) {
   const safeThreadIdentityIndex = {};
   for (const [key, entry] of Object.entries(threadIdentityIndex)) {
     safeThreadIdentityIndex[key] =
-      entry?.patientIds instanceof Set ? { ...entry, patientIds: {} } : entry;
+      entry?.patientIds instanceof Set
+        ? { ...entry, patientIds: Array.from(entry.patientIds) }
+        : entry;
   }
   return { ...state, threadIdentityIndex: safeThreadIdentityIndex };
+}
+
+// Set:et kan komma tillbaka fran disk som array (nya formatet), som {} (gamla
+// formatet, dar innehallet gick forlorat vid skrivning) eller vara ett riktigt
+// Set i minnet. Alla tre maste ge ett Set, annars kastar .add och .has.
+//
+// Det var precis det som hande i prod: updateThreadIdentityForMessage anropade
+// previous.patientIds.add() pa en post som lasts tillbaka som {}, vilket gav
+// "previous.patientIds.add is not a function" — sex misslyckade meddelanden
+// per batch, 2026-08-19.
+function toPatientIdSet(value) {
+  if (value instanceof Set) return new Set(value);
+  if (Array.isArray(value)) return new Set(value.filter(Boolean));
+  return new Set();
 }
 
 // Undviker att blockera event-loopen: JSON.stringify(state) på hela
@@ -1035,7 +1051,7 @@ async function createCcoMailIngestionStore({ filePath, bodyRoot = '', bodyMailbo
       return values.map((entry) => ({ ...entry, patientIds: Array.from(entry.patientIds || []) }));
     }
     return values
-      .filter((entry) => (entry.patientIds || new Set()).has(safePatientId))
+      .filter((entry) => toPatientIdSet(entry.patientIds).has(safePatientId))
       .map((entry) => ({ ...entry, patientIds: Array.from(entry.patientIds || []) }));
   }
 
@@ -1063,12 +1079,16 @@ async function createCcoMailIngestionStore({ filePath, bodyRoot = '', bodyMailbo
       rawMessageIds: [],
     };
 
+    // Posten kan komma fran disk, dar Set:et ar en array (eller {} i det gamla
+    // formatet). Utan koerceringen kastar .add nedan.
+    const patientIds = toPatientIdSet(previous.patientIds);
+    if (!Array.isArray(previous.rawMessageIds)) previous.rawMessageIds = [];
     if (!previous.rawMessageIds.includes(safeRawMessageId)) {
       previous.rawMessageIds.push(safeRawMessageId);
     }
-    previous.patientIds.add(safePatientId);
+    patientIds.add(safePatientId);
 
-    const distinctPatients = Array.from(previous.patientIds);
+    const distinctPatients = Array.from(patientIds);
     const hasConflict = distinctPatients.length > 1;
 
     // Kanoniskt patientId: senast länkade, eller det enda, eller null vid konflikt.
@@ -1082,7 +1102,7 @@ async function createCcoMailIngestionStore({ filePath, bodyRoot = '', bodyMailbo
       linkedAt: normalizeText(linkedAt) || nowIso(),
       linkedBy: normalizeText(linkedBy) || previous.linkedBy || null,
       identityConflict: hasConflict,
-      patientIds: previous.patientIds,
+      patientIds,
       rawMessageIds: previous.rawMessageIds,
     };
 
