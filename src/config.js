@@ -996,6 +996,17 @@ const config = {
   }),
   backupRetentionMaxFiles: asInt(process.env.ARCANA_BACKUP_RETENTION_MAX_FILES, 50),
   backupRetentionMaxAgeDays: asInt(process.env.ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS, 30),
+  // Engångsbackuper bredvid statefilerna (.pre-*, .migrated.*, .archived-*).
+  // De hamnar aldrig i backupDir och omfattas därför inte av raderna ovan.
+  startupStateBackupRetentionEnabled: asBool(
+    process.env.ARCANA_STATE_BACKUP_RETENTION_ENABLED,
+    true
+  ),
+  startupStateBackupRetentionDays: asInt(process.env.ARCANA_STATE_BACKUP_RETENTION_DAYS, 30),
+  startupStateBackupRetentionDryRun: asBool(
+    process.env.ARCANA_STATE_BACKUP_RETENTION_DRY_RUN,
+    false
+  ),
   reportsDir: resolveStatePath({
     explicitPath: process.env.ARCANA_REPORTS_DIR,
     stateRoot,
