@@ -463,6 +463,13 @@ async function createAuthStore({
     tenantAccessEvidence: safeObject(rawState.tenantAccessEvidence),
   };
 
+  // Serialize concurrent save() calls so that N overlapping mutations result in
+  // at most two disk writes: the one in progress and one follow-up that persists
+  // the latest state. This prevents the race where multiple tmp files for the
+  // same target are written in parallel and the last rename wins.
+  let saveInProgress = null;
+  let saveQueued = null;
+
   function inspectAuditChain({ repairMissing = false, maxIssues = 25 } = {}) {
     const clampedMaxIssues = Math.max(1, Math.min(500, Number(maxIssues) || 25));
     const issues = [];
@@ -725,9 +732,7 @@ async function createAuthStore({
     return prune() || changed;
   }
 
-  async function save() {
-    prune();
-    await rotateAuditEventsIfNeeded();
+  async function persistWithRecovery() {
     const recoverySteps = [
       () => {},
       () => {
@@ -758,6 +763,38 @@ async function createAuthStore({
       lastError?.message || lastError
     );
     return false;
+  }
+
+  async function runSerializedSave() {
+    if (saveInProgress) {
+      // Wait for the active write so our follow-up captures every mutation
+      // that happened up to this point.
+      await saveInProgress.catch(() => {});
+    }
+
+    // Clear the queue slot immediately so another overlapping save can queue
+    // a fresh follow-up while we are writing.
+    saveQueued = null;
+    saveInProgress = persistWithRecovery();
+    try {
+      return await saveInProgress;
+    } finally {
+      saveInProgress = null;
+    }
+  }
+
+  async function save() {
+    prune();
+    await rotateAuditEventsIfNeeded();
+
+    if (saveQueued) {
+      return saveQueued;
+    }
+    if (saveInProgress) {
+      saveQueued = saveInProgress.then(runSerializedSave, runSerializedSave);
+      return saveQueued;
+    }
+    return runSerializedSave();
   }
 
   function findRawUserByEmail(email) {
