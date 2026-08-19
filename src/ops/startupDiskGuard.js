@@ -9,6 +9,12 @@ const TMP_FILE_PATTERN = /\.tmp$/i;
 // ORD-71: legacy `.oversize.bak` (no timestamp) is never auto-pruned — prod rescue backup
 // must survive until rotation is verified and ops removes it manually.
 const OVERSIZE_BAK_PRUNE_PATTERN = /\.oversize-\d{8}T\d{6}\.\d{3}Z\.bak$/i;
+// Atomic write temp files produced by writeJsonAtomic-style helpers across the codebase.
+// Format: ${filePath}.${process.pid}.${crypto.randomUUID()}.tmp
+const ATOMIC_TMP_PID_UUID_PATTERN =
+  /^(.+)\.(\d+)\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.tmp$/i;
+// Some legacy atomic helpers use: ${filePath}.${process.pid}.tmp
+const ATOMIC_TMP_PID_PATTERN = /^(.+)\.(\d+)\.tmp$/i;
 const MB = 1024 * 1024;
 
 function toPositiveInt(value, fallback = 0) {
@@ -99,6 +105,98 @@ async function pruneOversizeBackupsInDirectory({
       // Ignore cleanup errors; file can be concurrently removed.
     }
   }
+  return deleted;
+}
+
+function isProcessAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    // ESRCH = no such process → definitely dead.
+    // EPERM or anything else means a process exists that we cannot signal;
+    // treat it as alive to avoid deleting an in-use temp file.
+    if (error && error.code === 'ESRCH') return false;
+    return true;
+  }
+}
+
+function parseAtomicTmpFileName(fileName) {
+  let match = fileName.match(ATOMIC_TMP_PID_UUID_PATTERN);
+  if (match) {
+    return {
+      baseName: match[1],
+      pid: Number.parseInt(match[2], 10),
+      hasUuid: true,
+    };
+  }
+  match = fileName.match(ATOMIC_TMP_PID_PATTERN);
+  if (match) {
+    return {
+      baseName: match[1],
+      pid: Number.parseInt(match[2], 10),
+      hasUuid: false,
+    };
+  }
+  return null;
+}
+
+async function scanDirectoryRecursively({ directoryPath, onFile, maxDepth, currentDepth = 0 }) {
+  if (currentDepth > maxDepth) return;
+  await ensureDirectoryWithRetry(directoryPath);
+  const entries = await fs.readdir(directoryPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(directoryPath, entry.name);
+    if (entry.isDirectory()) {
+      await scanDirectoryRecursively({
+        directoryPath: fullPath,
+        onFile,
+        maxDepth,
+        currentDepth: currentDepth + 1,
+      });
+    } else if (entry.isFile()) {
+      await onFile({ filePath: fullPath, fileName: entry.name, directoryPath });
+    }
+  }
+}
+
+async function cleanupOrphanedAtomicTmpFiles({
+  directoryPath,
+  currentPid = process.pid,
+  maxDepth = 3,
+}) {
+  const deleted = [];
+  await scanDirectoryRecursively({
+    directoryPath,
+    maxDepth,
+    async onFile({ filePath, fileName }) {
+      const parsed = parseAtomicTmpFileName(fileName);
+      if (!parsed) return;
+      if (!Number.isFinite(parsed.pid) || parsed.pid <= 0) return;
+
+      // At boot, any temp file carrying our own pid cannot belong to us yet —
+      // it is leftover from a previous process instance that reused our pid
+      // or from a crash before rename(). Safe to delete.
+      if (parsed.pid !== currentPid && isProcessAlive(parsed.pid)) {
+        return;
+      }
+
+      try {
+        const stat = await fs.stat(filePath);
+        await fs.unlink(filePath);
+        deleted.push({
+          directoryPath,
+          fileName,
+          filePath,
+          sizeBytes: Number(stat.size || 0),
+          pid: parsed.pid,
+          reason: parsed.pid === currentPid ? 'own_process_boot' : 'dead_pid',
+        });
+      } catch {
+        // Ignore in startup guard; a concurrent process may have removed the file.
+      }
+    },
+  });
   return deleted;
 }
 
@@ -332,6 +430,12 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
       reclaimedBytes: 0,
       deleted: [],
     },
+    atomicTmpFiles: {
+      scannedDirectories: [],
+      deletedCount: 0,
+      reclaimedBytes: 0,
+      deleted: [],
+    },
     stateGuardBackups: {
       deletedCount: 0,
       reclaimedBytes: 0,
@@ -397,6 +501,8 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
     });
   }
 
+  const atomicTmpCleanupEnabled = config.startupAtomicTmpCleanupEnabled !== false;
+  const atomicTmpMaxDepth = toPositiveInt(config.startupAtomicTmpCleanupMaxDepth, 3);
   const directories = buildDirectorySet(config);
   for (const directoryPath of directories) {
     try {
@@ -415,6 +521,28 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
         message: error?.message || 'temp prune failed',
         code: error?.code || null,
       });
+    }
+    if (atomicTmpCleanupEnabled) {
+      try {
+        const deletedAtomic = await cleanupOrphanedAtomicTmpFiles({
+          directoryPath,
+          maxDepth: atomicTmpMaxDepth,
+        });
+        summary.atomicTmpFiles.scannedDirectories.push(directoryPath);
+        summary.atomicTmpFiles.deleted.push(...deletedAtomic);
+        summary.atomicTmpFiles.deletedCount += deletedAtomic.length;
+        summary.atomicTmpFiles.reclaimedBytes += deletedAtomic.reduce(
+          (acc, item) => acc + Number(item?.sizeBytes || 0),
+          0
+        );
+      } catch (error) {
+        summary.errors.push({
+          scope: 'atomic_tmp_prune',
+          directoryPath,
+          message: error?.message || 'atomic tmp prune failed',
+          code: error?.code || null,
+        });
+      }
     }
     try {
       const deletedBackups = await pruneOversizeBackupsInDirectory({ directoryPath });
@@ -435,12 +563,14 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
   }
 
   summary.reclaimedBytes += Number(summary.tempFiles.reclaimedBytes || 0);
+  summary.reclaimedBytes += Number(summary.atomicTmpFiles.reclaimedBytes || 0);
   summary.reclaimedBytes += Number(summary.stateGuardBackups.reclaimedBytes || 0);
   summary.finishedAt = new Date().toISOString();
 
   if (
     Number(summary.reclaimedBytes || 0) > 0 ||
     Number(summary.tempFiles.deletedCount || 0) > 0 ||
+    Number(summary.atomicTmpFiles.deletedCount || 0) > 0 ||
     summary.errors.length > 0
   ) {
     const reclaimedMb = Number((Number(summary.reclaimedBytes || 0) / (1024 * 1024)).toFixed(2));
@@ -450,7 +580,7 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
         summary.backupPrune?.deletedCount || 0
       } reportsDeleted=${summary.reportPrune?.deletedCount || 0} tmpDeleted=${
         summary.tempFiles.deletedCount
-      } oversizeBakDeleted=${
+      } atomicTmpDeleted=${summary.atomicTmpFiles.deletedCount} oversizeBakDeleted=${
         summary.stateGuardBackups.deletedCount
       } sanitizedStateFiles=${sanitizedStateFiles} errors=${summary.errors.length}`
     );
@@ -463,4 +593,5 @@ module.exports = {
   runStartupDiskGuard,
   buildTimestampedOversizeBackupPath,
   sanitizeOversizedStateFiles,
+  cleanupOrphanedAtomicTmpFiles,
 };
