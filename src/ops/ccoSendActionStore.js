@@ -14,7 +14,16 @@ const path = require('node:path');
 // ccoAftercareSchedulerStore) får `buildFilePayload` + `performSend` härifrån.
 // ---------------------------------------------------------------------------
 
-const SEND_KINDS = ['form', 'consent', 'file', 'encounter', 'aftercare', 'notification', 'offer', 'agreement'];
+const SEND_KINDS = [
+  'form',
+  'consent',
+  'file',
+  'encounter',
+  'aftercare',
+  'notification',
+  'offer',
+  'agreement',
+];
 
 // Mall-kataloger — UI-dropdown läser id + dessa fält (server.js GET .../templates).
 // Nycklarna används som `formKind` / `consentKind` i route-koden.
@@ -474,18 +483,37 @@ async function createCcoSendActionStore({
     return { ...record };
   }
 
+  /* Sortering på enbart createdAt räcker inte för att hitta "senaste".
+   *
+   * createdAt har millisekundupplösning. Två utskick som skapas i samma
+   * millisekund — vilket händer så fort anroparen inte väntar på nätverk,
+   * t.ex. vid dryRunOverride — får identisk stämpel. Komparatorn returnerar
+   * då 0, och eftersom V8:s sort är STABIL behåller de sin ursprungliga
+   * ordning. [0] blir därmed det FÖRST skapade, alltså precis tvärtom mot
+   * vad funktionen lovar.
+   *
+   * Det är inte en teoretisk risk: testet "Fas 7: findSendByRelatedEntity
+   * returnerar senaste matchande utskick" failade 5 av 10 lokala körningar
+   * 2026-08-19, och två oberoende CI-jobb samtidigt. Utfallet beror på hur
+   * snabb maskinen är, vilket är varför det setts som fladdrigt.
+   *
+   * state.sends är append-ordnad (state.sends.push(record) vid rad ~402), så
+   * vid lika stämpel är den som ligger SENARE i arrayen den nyare. Därför
+   * jämförs med >= i en enkel genomgång: senare index vinner oavgjort.
+   */
   function findSendByRelatedEntity(kind, entityId) {
     const wantKind = normalizeText(kind);
     const wantId = normalizeText(entityId);
     if (!wantKind || !wantId) return null;
-    return state.sends
-      .filter(
-        (s) =>
-          s.relatedEntityKind === wantKind &&
-          s.relatedEntityId === wantId
-      )
-      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
-      .map((s) => ({ ...s }))[0] || null;
+
+    let senaste = null;
+    for (const s of state.sends) {
+      if (s.relatedEntityKind !== wantKind || s.relatedEntityId !== wantId) continue;
+      if (!senaste || String(s.createdAt) >= String(senaste.createdAt)) {
+        senaste = s;
+      }
+    }
+    return senaste ? { ...senaste } : null;
   }
 
   // -- Read ------------------------------------------------------------------
@@ -494,13 +522,21 @@ async function createCcoSendActionStore({
     const wantKind = kind ? normalizeKey(kind) : null;
     const wantCustomer = customerId ? normalizeKey(customerId) : null;
     const cap = Number.isFinite(Number(limit)) && Number(limit) > 0 ? Number(limit) : 100;
+    // Samma oavgjort-problem som i findSendByRelatedEntity: utskick i samma
+    // millisekund får identisk createdAt, och en stabil sort lämnar dem i
+    // append-ordning — alltså äldst först i en lista som utger sig för att
+    // vara nyast först. Index används som sekundärnyckel, eftersom
+    // state.sends är append-ordnad.
     return state.sends
-      .filter((s) => (wantKind ? s.kind === wantKind : true))
-      .filter((s) => (wantCustomer ? s.customerId === wantCustomer : true))
-      .slice()
-      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+      .map((s, index) => ({ s, index }))
+      .filter(({ s }) => (wantKind ? s.kind === wantKind : true))
+      .filter(({ s }) => (wantCustomer ? s.customerId === wantCustomer : true))
+      .sort((a, b) => {
+        const efterTid = String(b.s.createdAt).localeCompare(String(a.s.createdAt));
+        return efterTid !== 0 ? efterTid : b.index - a.index;
+      })
       .slice(0, cap)
-      .map((s) => ({ ...s }));
+      .map(({ s }) => ({ ...s }));
   }
 
   function stats() {
