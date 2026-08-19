@@ -1,37 +1,53 @@
-# Designutkast: selektiv laddning av mail-ingestion-state
+# Designutkast: minska minnesavtrycket för mail-ingestion
 
 **Datum:** 2026-08-19  
-**Status:** utkast för granskning  
+**Status:** reviderat utkast efter mätning  
 **Bakgrund:** incident 2026-08-19 då en pilotkörning av `egzona@`-backlogen fördubblade heapen 1,48 → 3,10 GB på 14 sekunder och drev instansen in i en GC-dödsspiral.
 
 ---
 
 ## 1. Problem
 
-`ccoMailIngestionStore._load()` läser hela `/var/data/cco-mail-ingestion.json` synkront med `JSON.parse`. Filen är 235 MB på disk och expanderar till ~1,4 GB heap. Detta laddas vid **varje** anrop till `/process-all`, `/process-batch`, `/reprocess-unmatched` och vissa scheduler-passet — oavsett vilken brevlåda som faktiskt ska processas.
+`ccoMailIngestionStore._load()` läser hela `/var/data/cco-mail-ingestion.json` synkront med `JSON.parse`. Filen är 235 MB på disk och expanderar till ~1,4 GB heap.
 
-Konsekvenser:
+Mätningen avslöjar att fördelningen är extremt skev:
 
-- Baslinje-heapen är permanent ~1,4 GB högre än den behöver vara.
-- Varje process-all-anrop skapar en andra kopia under laddning, vilket trycker V8 nära sitt gamla-objekts-tak (6 144 MB) trots att containern har 16 GiB.
-- Ingen brevlåda kan processas utan att alla brevlådors råmeddelanden (inklusive fulla `rawJson`-kopior) finns i minnet.
+| brevlåda                | meddelanden | andel  |
+| ----------------------- | ----------- | ------ |
+| egzona@hairtpclinic.com | 17 570      | 90,7 % |
+| info@fazli.se           | 1 288       | 6,7 %  |
+| kons@hairtpclinic.com   | 414         | 2,1 %  |
+| fazli@hairtpclinic.com  | 100         | 0,5 %  |
 
-`ccoMailboxTruthStore` löser redan samma problem med shards: en fil per brevlåda, laddad selektivt. Mail-ingestion bör använda samma mönster.
+`egzona@` **är** state:et. Enbart per-brevlåde-shards skulle göra `shards/egzona@...json` till ~210 MB (~1,3 GB heap) och inte lösa kraschen.
+
+Det stora minnet sitter i `rawJson`, `bodyHtml` och `bodyText` för varje meddelande — cirka 24 KB per meddelande, helt dominerat av brödtexter. `ccoMailboxTruthStore` har redan löst samma sak genom att lägga brödtexterna i separata filer under `/var/data/cco-mailbox-truth/bodies/` och bara metadata i shards.
 
 ---
 
 ## 2. Mål
 
-- En process-drain av `egzona@` får bara ladda egzonas slice av state — inte hela state:et för alla brevlådor.
-- Baslinje-heapen ska sjunka proportionellt mot hur många brevlådor som faktiskt är aktiva i minnet.
+- En process-drain av `egzona@` får inte behöva ladda alla 17 570 brödtexter i minnet samtidigt.
+- Minneskostnaden ska vara proportionell mot **batchen** (50 meddelanden), inte mot brevlådans totala backlogg.
+- Baslinje-heapen ska sjunka kraftigt genom att brödtexter inte ligger residenta i state-objektet.
 - Ingen förlust av data, inget avbrott i pågående flöden.
 - Backwards-kompatibel migrering från dagens monolitfil.
 
 ---
 
-## 3. Förslag: per-brevlåde-shards för mail-ingestion
+## 3. Förslag A: externalisera brödtexter (huvudfix)
 
-### 3.1 Filstruktur
+### 3.1 Vilka fält som ska ut
+
+För varje `mailRawMessages[id]`:
+
+- `rawJson` — hela Graph/JSON-objektet.
+- `bodyHtml` — HTML-versionen.
+- `bodyText` — textversionen.
+
+Dessa flyttas till separata filer. Metadata (`subject`, `from`, `to`, `receivedAt`, `conversationKey`, `mailboxId`, `dedupeKey`, etc.) behålls i state-filen.
+
+### 3.2 Filstruktur
 
 Dagens monolit:
 
@@ -43,118 +59,75 @@ Föreslagen struktur:
 
 ```
 /var/data/cco-mail-ingestion/
-  index.json                          # metadata: version, migratedFrom, shardMapping
-  shared.json                         # konton, synk-state, subscriptions, auditEvents, etc.
-  shards/
-    egzona@hairtpclinic.com.json      # rawMessages + ledger + threadIdentity för denna brevlåda
-    fazli@hairtpclinic.com.json
-    info@hairtpclinic.com.json
+  index.json                          # metadata: version, migratedFrom
+  state.json                          # metadata per meddelande, ledger, konton, etc.
+  bodies/
+    <rawMessageId>.json               # rawJson + bodyHtml + bodyText
     ...
 ```
 
-### 3.2 Vad som hamnar var
+Alternativt gruppera i underkataloger för att undvika för många filer i en katalog:
 
-**`shared.json`** — globalt state, läses alltid:
-
-- `mailAccounts`
-- `mailSyncState`
-- `graphSubscriptions`
-- `mailImportRuns`
-- `auditEvents`
-- `mailReprocessJobs`
-- `dedupeIndex` (om den är global; annars per shard)
-- `processingQueue` (se nedan)
-
-**`shards/<mailbox>.json`** — per brevlåda:
-
-- `mailRawMessages` för denna brevlåda
-- `mailProcessingLedger` för denna brevlåda
-- `mailPatientMatches` för denna brevlåda
-- `mailActions` för denna brevlåda
-- `threadIdentityIndex` för trådar där det äldsta meddelandet tillhör denna brevlåda (se avsnitt 3.6)
-
-### 3.3 `processingQueue`
-
-Dagens `processingQueue` är en global FIFO av `rawMessageId`. Om vi delar upp den per brevlåda försvinner den globala ordningen. Det är troligen OK — redan idag är kön i praktiken per brevlåda eftersom `dequeueNextRawMessageId` filtrerar på `mailboxId`.
-
-Förslag: byt `processingQueue` till en array per brevlåda i respektive shard. `dequeueNextRawMessageId({ mailboxEmail })` läser bara den aktuella shardens kö.
-
-Risk: om någon kod förväntar sig en global FIFO. Sökning krävs för att verifiera.
-
-### 3.4 `_load()`-beteende
-
-Nytt API:
-
-```js
-// Laddar bara shared + en shard
-await ingestionStore._load({ mailboxEmail: 'egzona@hairtpclinic.com' });
-
-// Laddar shared + alla shards (t.ex. för dashboard/scheduler som sveper)
-await ingestionStore._load();
+```
+  bodies/
+    ab/
+      abcd1234...json
+    ef/
+      efgh5678...json
 ```
 
-Default beteende: om inget `mailboxEmail` anges, laddas alla shards (backwards-kompatibelt med dagens anrop).
+### 3.3 När bodies läses
 
-Intern implementering:
+- **Vid processning:** när `processRawMessage` behandlar ett meddelande läses dess body-fil in.
+- **Vid import:** när ett nytt meddelande sparas skrivs body-filen direkt (atomiskt).
+- **Vid status/dashboard:** bodies läses **aldrig** — bara metadata räknas.
+- **Vid reprocess-unmatched:** bodies behövs inte förrän meddelandet faktiskt processas.
 
-1. Läs `index.json`.
-2. Läs `shared.json`.
-3. Om `mailboxEmail` anges: läs endast `shards/<mailbox>.json`.
-4. Annars: läs alla shard-filer.
+### 3.4 `rawJson`-fältet
 
-### 3.5 `save()`-beteende
+`rawJson` används idag på flera ställen. Innan externalisering måste vi kartlägga alla läsare. Förslag:
 
-Dagens `save()` skriver hela state:et. Nytt beteende:
+1. Ersätt `rawJson` med `rawJsonRef: { filePath, sizeBytes }` i state.
+2. Lägg till `getRawJson(rawMessageId)` som laddar body-filen on demand.
+3. Uppdatera alla läsare att anropa `getRawJson()` istället för att läsa fältet direkt.
 
-- `save({ mailboxEmail })` — spara bara shared + aktuell shard.
-- `save()` — spara shared + alla laddade shards.
+### 3.5 Tillfällig kompatibilitet
 
-För att undvika att glömma spara en shard inför vi ett "dirty shard"-set. När en operation muterar en shard markeras den dirty. `save()` skriver bara dirty shards (plus shared om den är dirty).
+För att minska risken kan vi under en övergångsperiod behålla både inline `rawJson` och externaliserad variant, med en feature-flag:
 
-### 3.6 Trådidentitet över brevlådor
+```js
+const useExternalBodies = config.ccoMailIngestionExternalBodies === true;
+```
 
-`threadIdentityIndex` mappar `conversationKey` → kanoniskt patientId. En tråd kan innehålla meddelanden från flera brevlådor (t.ex. inkommande på `info@`, svar från `fazli@`).
+När flaggan är av: gamla beteendet. När flaggan är på: nya beteendet. Efter verifiering: ta bort inline-stödet.
 
-Två alternativ:
+### 3.6 Förväntad effekt
 
-**A) Trådidentitet i shared.** Enklare — `threadIdentityIndex` blir global och läses alltid. Kostnad är låg eftersom den bara innehåller metadata.
-
-**B) Trådidentitet i äldsta brevlådans shard.** Mer elegangt, men kräver att `updateThreadIdentityForMessage` avgör vilken brevlåda tråden "tillhör".
-
-Rekommendation: **A** i första steget. Det minskar komplexiteten och kostnaden är försumbar.
-
-### 3.7 Dedupe-index
-
-Dagens `dedupeIndex` är globalt. Om det är litet kan det ligga i shared. Om det är stort bör det också shardas, men det är sekundärt — mät först.
+- `state.json` sjunker från 235 MB till kanske 20–40 MB (~150–300 MB heap).
+- En drain av `egzona@` laddar 50 metadata-poster + 50 body-filer per batch ≈ några MB, inte 1,3 GB.
+- Baslinje-heapen sjunker kraftigt eftersom bodies inte längre är residenta.
 
 ---
 
-## 4. Migreringsväg
+## 4. Förslag B: per-brevlåde-shards (sekundär optimering)
 
-### 4.1 Migrering vid uppstart
+Efter att bodies är externaliserade blir shardning enklare och mer effektiv. Då kan `state.json` delas upp i:
 
-Vid boot:
+```
+/var/data/cco-mail-ingestion/
+  index.json
+  shared.json                         # konton, synk-state, subscriptions, auditEvents, etc.
+  shards/
+    egzona@hairtpclinic.com.json      # metadata per meddelande + ledger för denna brevlåda
+    info@fazli.se.json
+    ...
+  bodies/
+    ...
+```
 
-1. Om `/var/data/cco-mail-ingestion.json` finns och `/var/data/cco-mail-ingestion/` inte finns:
-   - Läs monolitfilen.
-   - Skriv `index.json`, `shared.json` och per-brevlåda-shards.
-   - Behåll monolitfilen som `cco-mail-ingestion.json.migrated-<timestamp>.bak`.
-2. Om shard-katalogen finns: använd den.
+Detta ger ytterligare minskning av baslinje-heapen för dashboard/scheduler och gör att andra brevlådor kan processas utan att ladda egzonas metadata.
 
-### 4.2 Rollback
-
-- Monolit-backupfilen ligger kvar.
-- Om något går fel kan man flytta tillbaka till monolitfilen och ta bort shard-katalogen.
-
-### 4.3 Pilot-fas
-
-Föreslagen försiktig approach:
-
-1. Implementera sharding bakom feature-flag eller env-variabel (`ARCANA_CCO_MAIL_INGESTION_SHARDED=true`).
-2. Migrera på staging/dev först.
-3. På prod: migrera vid nästa deploy, men behåll backupfilen.
-4. Kör `/status` och en liten `/process-batch` för att verifiera.
-5. Efter 1 vecka utan incidenter: ta bort backupfilen och monolit-stödet.
+**Rekommendation:** gör förslag A först. När det är stabilt, överväg förslag B.
 
 ---
 
@@ -162,7 +135,7 @@ Föreslagen försiktig approach:
 
 ### 5.1 Problem
 
-`writeJsonAtomic` skriver `${filePath}.${pid}.${uuid}.tmp` och döper om vid framgång. Dör processen under skrivning lämnas `.tmp`-filen kvar. Detta har hänt vid varje krasch i månader och gav 2 GB skräp i arbetskatalogen (plus 6,4 GB i backups).
+`writeJsonAtomic` skriver `${filePath}.${pid}.${uuid}.tmp` och döper om vid framgång. Dör processen under skrivning lämnas `.tmp`-filen kvar. Vid kraschen i morse låg åtta sådana filer kvar, inklusive fem för `auth.json` från samma pid — vilket indikerar kapplöpning.
 
 ### 5.2 Förslag
 
@@ -177,63 +150,86 @@ await cleanupOrphanedTmpFiles({
 
 Regler:
 
-- Matcha mönstret `*.${pid}.${uuid}.tmp` där `pid` är en siffra och `uuid` är en UUID.
-- Om filens `pid` **inte** är ett levande process-id, radera den.
-- Om filens `pid` är nuvarande process, radera den (det är vår egen avbrutna skrivning).
-- Ignorera filer yngre än 60 sekunder med levande pid (pågående skrivning från en annan process).
+- Matcha mönstret `${filePath}.${pid}.${uuid}.tmp` där `pid` är en siffra och `uuid` är en UUID.
+- Om filens `pid` **inte** är ett levande process-id → radera.
+- Om filens `pid` är **nuvarande process** → radera (vid boot kan vår egen process inte ha pågående skrivningar än).
+- Om filens `pid` är en **levande främmande process** → rör **aldrig**, oavsett ålder. En `save()` av detta state tog tidigare 27 s och växer med datamängden; 60 sekunders gräns är för kort.
 
-Placering: i `src/infra/fileStore.js` eller motsvarande där `writeJsonAtomic` definieras.
+Städningen körs bara vid boot, vilket eliminerar risken med pid-återanvändning (en ny process med samma pid som kraschen skulle annars kunna radera sina egna pågående skrivningar).
 
 ### 5.3 `auth.json`-kapplöpning
 
-Observation: vid kraschen fanns fem `auth.json.93.*.tmp` från samma pid och samma sekund. Det betyder att fem `writeJsonAtomic`-anrop mot samma målfil var samtidiga. Sista rename vinner och de andras arbete kastas.
-
-Detta är en separat bugg oavsett minnesfrågan. Förslag:
+Fem `auth.json.93.*.tmp` från samma pid och samma sekund betyder att fem `writeJsonAtomic`-anrop mot samma målfil kördes samtidigt. Lösning:
 
 - Serialisera skrivningar per målfil med en `Map<filePath, Promise>`.
 - Ett andra anrop till samma fil väntar på det första istället för att starta en egen `.tmp`-skrivning.
+- Detta bör implementeras generellt i `writeJsonAtomic`, inte bara för `auth.json`.
 
 ---
 
-## 6. Risker
+## 6. Migreringsväg för förslag A
 
-| Risk                                    | Sannolikhet | Påverkan | Mitigering                                                   |
-| --------------------------------------- | ----------- | -------- | ------------------------------------------------------------ |
-| Migreringen misslyckas halvvägs         | Låg         | Hög      | Behåll monolit-backup; rollback-förfarande testat på staging |
-| Kod glömmer spara en shard              | Medel       | Medel    | "Dirty shard"-set; assertions i dev/test                     |
-| Trådidentitet blir fel vid shardning    | Låg         | Hög      | Lägg den i shared i första steget                            |
-| `processingQueue`-ordning ändras        | Medel       | Låg      | Verifiera att ingen kod förlitar sig på global FIFO          |
-| Tmp-städning raderar pågående skrivning | Låg         | Hög      | pid-villkor + åldersmarginal                                 |
+### 6.1 Migrering vid uppstart
+
+Vid boot:
+
+1. Om `/var/data/cco-mail-ingestion.json` finns och `/var/data/cco-mail-ingestion/` inte finns:
+   - Läs monolitfilen.
+   - För varje `mailRawMessages[id]`: skriv body-fil med `rawJson`, `bodyHtml`, `bodyText`; ersätt dessa fält i state med `bodyRef`.
+   - Skriv `index.json` och `state.json`.
+   - Behåll monolitfilen som `cco-mail-ingestion.json.migrated-<timestamp>.bak`.
+2. Om den nya katalogen finns: använd den.
+
+### 6.2 Rollback
+
+- Monolit-backupfilen ligger kvar.
+- **Viktigt:** backupen är en ögonblicksbild från migreringstillfället. Om skrivningar har skett mot den nya strukturen kan man inte bara "flytta tillbaka" till monolitfilen utan datatapp.
+- Två alternativ:
+  - **A)** Rollback-fönstret stängs vid första skrivningen. Därefter krävs en återmigrering som slår ihop `state.json` + bodies tillbaka till monolitformat.
+  - **B)** Under pilotfasen skriver vi alltid både monolit (som backup) och ny struktur, så rollback är trivial. Detta dubblerar skrivkostnaden under piloten.
+
+Rekommendation: **A** med tydlig dokumentation. Piloten ska vara kort och på staging.
+
+### 6.3 Pilot-fas
+
+1. Implementera externalisering bakom env-variabel (`ARCANA_CCO_MAIL_INGESTION_EXTERNAL_BODIES=true`).
+2. Migrera på staging/dev.
+3. Kör `/status`, `/process-batch` och en liten drain för att verifiera.
+4. Efter 1 vecka utan incidenter på prod: ta bort monolit-backup och inline-stödet.
 
 ---
 
-## 7. Beroenden
+## 7. Risker
 
-- `src/ops/ccoMailIngestion/store.js` — huvudsakliga ändringar.
-- `src/infra/fileStore.js` — tmp-städning och serialisering av skrivningar.
-- `src/ops/ccoMailIngestion/worker.js` — `_load({ mailboxEmail })` i `runProcessBatch`.
-- `src/ops/scheduler.js` — eventuellt `_load({ mailboxEmail })` i scheduler-passet.
-- `src/routes/ccoMailIngestion.js` — kan behöva skicka mailbox till `_load`.
-- Tester för store, worker och routes.
+| Risk                                    | Sannolikhet | Påverkan | Mitigering                                                                    |
+| --------------------------------------- | ----------- | -------- | ----------------------------------------------------------------------------- |
+| Externalisering misslyckas halvvägs     | Låg         | Hög      | Behåll monolit-backup; testad rollback-återmigrering på staging               |
+| Någon kod läser `rawJson` direkt        | Medel       | Hög      | Sök igenom alla läsare; inför `getRawJson()` och tester                       |
+| Body-filer blir korrupta/försvinner     | Låg         | Hög      | Atomisk skrivning; validering vid laddning; backup                            |
+| `processingQueue`-semantik ändras       | Låg         | Medel    | Behåll global FIFO i förslag A; överväg per-brevlåda-kö först i förslag B     |
+| Tmp-städning raderar pågående skrivning | Låg         | Hög      | Städa aldrig levande främmande pid; kör endast vid boot                       |
+| Auth-serialisering blockerar vid fel    | Låg         | Medel    | Timeout + felhantering så att en trasig skrivning inte låser filen för alltid |
 
 ---
 
 ## 8. Definition of done
 
-- [ ] Monolitfilen migreras till shared + shards vid boot.
-- [ ] `_load({ mailboxEmail })` laddar bara aktuell shard.
-- [ ] `save()` skriver bara dirty shards + shared.
-- [ ] Pilotkörning av en enskild brevlåda inte laddar andra brevlådors råmeddelanden.
-- [ ] Tmp-städning vid uppstart är på plats (pid-baserad).
-- [ ] `auth.json`-skrivningar är serialiserade.
+- [ ] Brödtexter (`rawJson`, `bodyHtml`, `bodyText`) lagras i separata filer.
+- [ ] `state.json` innehåller bara metadata + referenser till body-filer.
+- [ ] Alla läsare av `rawJson` använder `getRawJson()` / lazy loading.
+- [ ] Migrering vid boot med monolit-backup.
+- [ ] Tmp-städning vid uppstart (pid-baserad, boot-only).
+- [ ] `writeJsonAtomic` serialiserar skrivningar per målfil.
 - [ ] Enhetstester och integrationstester gröna.
-- [ ] Staging-körning utan incidenter.
+- [ ] Staging-körning av drain utan minnesincident.
 
 ---
 
-## 9. Nästa steg
+## 9. Nästa steg (rekommenderad ordning)
 
-1. Godkänn designen eller påpeka detaljer som behöver ändras.
-2. Dela upp i PR:er: migrering/shardning först, tmp-städning + auth-serialisering separat.
-3. Implementera bakom feature-flag.
-4. Testa på staging.
+1. **Auth-serialisering** — egen PR, låg risk, kan mergas direkt.
+2. **Tmp-städning vid boot** — egen PR, låg risk.
+3. **Externalisera bodies** — huvudfixen. Större PR, kräver granskning och staging-test.
+4. **Shardning av metadata** — sekundär optimering efter att bodies är ute.
+
+Säg till vilket du vill att jag börjar med.
