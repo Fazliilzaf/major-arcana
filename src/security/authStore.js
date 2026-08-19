@@ -772,10 +772,11 @@ async function createAuthStore({
       await saveInProgress.catch(() => {});
     }
 
-    // Clear the queue slot immediately so another overlapping save can queue
-    // a fresh follow-up while we are writing.
-    saveQueued = null;
     saveInProgress = persistWithRecovery();
+    // Clear the queue slot only after claiming the in-progress slot so that
+    // any save() arriving during this handoff sees a live writer and either
+    // returns the existing follow-up or queues a new one.
+    saveQueued = null;
     try {
       return await saveInProgress;
     } finally {
