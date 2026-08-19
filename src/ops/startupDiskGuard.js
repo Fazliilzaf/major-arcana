@@ -701,15 +701,32 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
   }
   summary.finishedAt = new Date().toISOString();
 
-  if (
+  const hasAnyActivity =
     Number(summary.reclaimedBytes || 0) > 0 ||
     Number(summary.tempFiles.deletedCount || 0) > 0 ||
     Number(summary.atomicTmpFiles.deletedCount || 0) > 0 ||
     Number(summary.retainableBackups.deletedCount || 0) > 0 ||
-    summary.errors.length > 0
-  ) {
+    summary.errors.length > 0;
+
+  // Retention-svepet ska alltid synas i loggen när det är påslaget, även om
+  // noll filer är kandidater — annars går det inte att skilja "kördes och hittade
+  // inget" från "kördes inte alls".
+  const shouldLog = hasAnyActivity || retainableEnabled;
+
+  if (shouldLog) {
     const reclaimedMb = Number((Number(summary.reclaimedBytes || 0) / (1024 * 1024)).toFixed(2));
     const sanitizedStateFiles = Number(summary.stateFiles?.sanitizedCount || 0);
+    const retainableDeleted = summary.retainableBackups.deleted || [];
+    const retainableKept = summary.retainableBackups.kept || [];
+    const sampleDeleted = retainableDeleted
+      .slice(0, 10)
+      .map((item) => item.fileName)
+      .join(',');
+    const sampleKept = retainableKept
+      .slice(0, 10)
+      .map((item) => item.fileName)
+      .join(',');
+
     logger?.warn?.(
       `[startup-disk-guard] reclaimed=${reclaimedMb}MB backupsDeleted=${
         summary.backupPrune?.deletedCount || 0
@@ -721,7 +738,9 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
         retainableDryRun ? 'DryRunCandidates' : 'Deleted'
       }=${summary.retainableBackups.deletedCount} stateBackupsKept=${
         summary.retainableBackups.keptCount
-      } errors=${summary.errors.length}`
+      } errors=${summary.errors.length}` +
+        (retainableDeleted.length > 0 ? ` stateBackupDeletedSample=[${sampleDeleted}]` : '') +
+        (retainableKept.length > 0 ? ` stateBackupKeptSample=[${sampleKept}]` : '')
     );
   }
 
