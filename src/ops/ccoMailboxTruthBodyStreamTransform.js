@@ -47,7 +47,23 @@ const MAX_KEY_CHARS = 512;
  *        anroparen samlar löftena och avgör själv hur många som får vara i
  *        flykt samtidigt.
  */
-function createBodyStreamTransform({ onBody, emit } = {}) {
+function createBodyStreamTransform({
+  onBody,
+  emit,
+  // Steg 0 av bodies-externaliseringen för mail-ingestion
+  // (docs/ops/cco-mail-ingestion-bodies-utkast.md). Transformen var hårdkodad
+  // mot mailbox-truths shard-format. Formatberoendet är två saker:
+  // samlingsnyckeln och vilka fält som styrs om. Bägge är nu parametrar med
+  // mailbox-truths värden som default, så befintliga anropare är oförändrade.
+  //
+  // Djupet behöver INTE parametriseras: mail-ingestion har samma form,
+  // { mailRawMessages: { "<id>": { bodyText: ... } } }, alltså samlingen på
+  // djup 1, meddelandenyckeln på 2 och fältet på 3 — precis som
+  // { messages: { "<key>": { bodyText: ... } } }.
+  collectionKey = 'messages',
+  bodyFields = BODY_FIELDS,
+} = {}) {
+  const fields = bodyFields instanceof Set ? bodyFields : new Set(bodyFields || []);
   let depth = 0;
   const keyAtDepth = [];
 
@@ -110,10 +126,10 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
   function shouldDivert() {
     return (
       depth === 3 &&
-      keyAtDepth[1] === 'messages' &&
+      keyAtDepth[1] === collectionKey &&
       typeof keyAtDepth[2] === 'string' &&
       keyAtDepth[2].length > 0 &&
-      BODY_FIELDS.has(pendingKey)
+      fields.has(pendingKey)
     );
   }
 
@@ -186,7 +202,17 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
           continue;
         }
         const decoded =
-          char === 'n' ? '\n' : char === 't' ? '\t' : char === 'r' ? '\r' : char === 'b' ? '\b' : char === 'f' ? '\f' : char;
+          char === 'n'
+            ? '\n'
+            : char === 't'
+              ? '\t'
+              : char === 'r'
+                ? '\r'
+                : char === 'b'
+                  ? '\b'
+                  : char === 'f'
+                    ? '\f'
+                    : char;
         if (diverting) divertValue += decoded;
         else {
           candidateChars += 1;
@@ -228,7 +254,7 @@ function createBodyStreamTransform({ onBody, emit } = {}) {
 
     const chunkOut = out.join('');
     out.length = 0;
-    if (chunkOut && typeof emit === "function") return emit(chunkOut);
+    if (chunkOut && typeof emit === 'function') return emit(chunkOut);
     return true;
   }
 
