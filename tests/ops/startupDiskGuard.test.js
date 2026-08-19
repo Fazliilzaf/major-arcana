@@ -4,7 +4,10 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const { runStartupDiskGuard } = require('../../src/ops/startupDiskGuard');
+const {
+  runStartupDiskGuard,
+  cleanupOrphanedAtomicTmpFiles,
+} = require('../../src/ops/startupDiskGuard');
 
 async function createFile(filePath, content = '{}') {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -451,6 +454,121 @@ test('startup disk guard raderar inte gamla filer som inte slutar på .tmp', asy
   });
 
   await fs.stat(other);
+
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+function atomicTmpName(baseName, pid, includeUuid = true) {
+  const uuid = includeUuid ? '12345678-1234-1234-1234-123456789abc' : '';
+  return uuid ? `${baseName}.${pid}.${uuid}.tmp` : `${baseName}.${pid}.tmp`;
+}
+
+test('cleanupOrphanedAtomicTmpFiles raderar tempfiler från egen pid vid boot', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-atomic-tmp-own-'));
+  const ownFile = path.join(tempDir, atomicTmpName('auth', process.pid));
+  await createFile(ownFile, 'orphan');
+
+  const deleted = await cleanupOrphanedAtomicTmpFiles({ directoryPath: tempDir, maxDepth: 1 });
+
+  assert.equal(deleted.length, 1);
+  assert.equal(deleted[0].reason, 'own_process_boot');
+  await assert.rejects(fs.stat(ownFile), (error) => error && error.code === 'ENOENT');
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+test('cleanupOrphanedAtomicTmpFiles raderar tempfiler från död pid', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-atomic-tmp-dead-'));
+  const deadPid = 999999;
+  const deadFile = path.join(tempDir, atomicTmpName('data', deadPid));
+  await createFile(deadFile, 'orphan');
+
+  const deleted = await cleanupOrphanedAtomicTmpFiles({ directoryPath: tempDir, maxDepth: 1 });
+
+  assert.equal(deleted.length, 1);
+  assert.equal(deleted[0].reason, 'dead_pid');
+  assert.equal(deleted[0].pid, deadPid);
+  await assert.rejects(fs.stat(deadFile), (error) => error && error.code === 'ENOENT');
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+test('cleanupOrphanedAtomicTmpFiles raderar även legacy pid-only tempfiler', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-atomic-tmp-legacy-'));
+  const deadPid = 999998;
+  const legacyFile = path.join(tempDir, `memory.json.${deadPid}.tmp`);
+  await createFile(legacyFile, 'orphan');
+
+  const deleted = await cleanupOrphanedAtomicTmpFiles({ directoryPath: tempDir, maxDepth: 1 });
+
+  assert.equal(deleted.length, 1);
+  assert.equal(deleted[0].reason, 'dead_pid');
+  await assert.rejects(fs.stat(legacyFile), (error) => error && error.code === 'ENOENT');
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+test('cleanupOrphanedAtomicTmpFiles behåller tempfiler från levande främmande process', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-atomic-tmp-live-'));
+  const child = require('node:child_process').spawn(
+    process.execPath,
+    ['-e', 'setTimeout(() => {}, 10000)'],
+    { detached: false }
+  );
+  await new Promise((resolve) => child.once('spawn', resolve));
+  const liveFile = path.join(tempDir, atomicTmpName('auth', child.pid));
+  await createFile(liveFile, 'in-use');
+
+  const deleted = await cleanupOrphanedAtomicTmpFiles({ directoryPath: tempDir, maxDepth: 1 });
+
+  assert.equal(deleted.length, 0);
+  await fs.stat(liveFile);
+
+  child.kill('SIGTERM');
+  await new Promise((resolve) => child.once('exit', resolve));
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+test('cleanupOrphanedAtomicTmpFiles respekterar maxDepth', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-atomic-tmp-depth-'));
+  const deadPid = 999997;
+  const shallow = path.join(tempDir, atomicTmpName('a', deadPid));
+  const deep = path.join(tempDir, 'one', 'two', 'three', atomicTmpName('b', deadPid));
+  await createFile(shallow, 'orphan');
+  await createFile(deep, 'orphan');
+
+  const deleted = await cleanupOrphanedAtomicTmpFiles({ directoryPath: tempDir, maxDepth: 2 });
+
+  assert.equal(deleted.length, 1);
+  assert.equal(deleted[0].fileName, path.basename(shallow));
+  await assert.rejects(fs.stat(shallow), (error) => error && error.code === 'ENOENT');
+  await fs.stat(deep);
+
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+test('startup disk guard integrerar atomisk tmp-städning i sammanfattningen', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-startup-atomic-'));
+  const stateRoot = path.join(tempDir, 'state');
+  const backupDir = path.join(stateRoot, 'backups');
+  const reportsDir = path.join(stateRoot, 'reports');
+  const orphan = path.join(stateRoot, 'auth.json.999996.12345678-1234-1234-1234-123456789abc.tmp');
+  await createFile(orphan, 'orphan');
+
+  const summary = await runStartupDiskGuard({
+    config: {
+      stateRoot,
+      backupDir,
+      reportsDir,
+      backupRetentionMaxFiles: 10,
+      backupRetentionMaxAgeDays: 365,
+      reportRetentionMaxFiles: 10,
+      reportRetentionMaxAgeDays: 365,
+    },
+    logger: { warn() {} },
+  });
+
+  assert.equal(summary.atomicTmpFiles.deletedCount, 1);
+  assert.equal(summary.atomicTmpFiles.deleted[0].pid, 999996);
+  assert.equal(summary.reclaimedBytes, Buffer.byteLength('orphan', 'utf8'));
+  await assert.rejects(fs.stat(orphan), (error) => error && error.code === 'ENOENT');
 
   await fs.rm(tempDir, { recursive: true, force: true });
 });
