@@ -84,14 +84,30 @@ test('skalningen är linjär: dubblad input ger inte fyrdubblad tid', () => {
   const small = measure(128);
   const large = measure(256);
 
-  // Vid kvadratiskt beteende är kvoten ~4, vid linjärt ~2. Tröskeln 3 ligger
-  // mitt emellan. Med det gamla mönstret var skillnaden inte marginell utan
-  // enorm — 128 KB tog 7 653 ms mot 17 ms — så testet behöver ingen snäv
-  // tröskel för att fånga en regression.
+  // ANDRA FLAKIGHETEN, 2026-08-19: 3,3x vid 91,5 ms -> 301,5 ms. Koden var
+  // korrekt; testet var fel konstruerat, och min forsta atgard behandlade
+  // symptomet.
+  //
+  // Kvoten ar fel matvarde. Regressionen vi vaktar mot ar INTE 2x mot 4x —
+  // den ar 17 ms mot 7 653 ms pa 128 KB, alltsa ~450 ganger. Att da satta
+  // troskeln till 3, mitt emellan linjart och kvadratiskt, ger 1,5x marginal
+  // for att upptacka nagot som ar 450x. Storre input och min-av-tre gjorde
+  // bruset mindre men andrade inte det.
+  //
+  // Absolut tid har den marginal signalen fortjanar: linjart mater ~300 ms pa
+  // 256 KB, kvadratiskt skulle ta tiotals sekunder. Taket nedan ligger 10x
+  // over det linjara utfallet och tva storleksordningar under det
+  // kvadratiska. Schemalaggningsbrus pa en delad runner ryms med god marginal.
+  //
+  // Kvoten loggas fortfarande — den ar bra diagnostik nar testet val faller.
+  const TAK_MS = 3000;
   const ratio = large / Math.max(small, 0.01);
   assert.ok(
-    ratio < 3,
-    `tiden växte ${ratio.toFixed(1)}x när input dubblades (linjärt ≈2x, kvadratiskt ≈4x) — ${small.toFixed(1)}ms → ${large.toFixed(1)}ms`
+    large < TAK_MS,
+    `256 KB tog ${large.toFixed(1)}ms (tak ${TAK_MS}ms). ` +
+      `128 KB tog ${small.toFixed(1)}ms, kvot ${ratio.toFixed(1)}x. ` +
+      'Kvadratiskt beteende ger tiotals sekunder — kontrollera att monstret ' +
+      'fortfarande ar bundet (se emailAddressPattern.js).'
   );
 });
 
