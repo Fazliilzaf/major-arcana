@@ -234,9 +234,19 @@ services:
         value: "30"
       - key: ARCANA_CCO_IMAP_MAX_MESSAGES_PER_CYCLE
         value: "25"
-      # Separat queue-jobb avstangt; truth-delta-jobbet kor en liten ingestion-batch efter ny mail.
+      # 2026-08-19: sattes tillbaka till 1. Den gamla motiveringen ("separat
+      # queue-jobb avstangt; truth-delta-jobbet kor en liten ingestion-batch
+      # efter ny mail") galler inte langre — ARCANA_SCHEDULER_CCO_TRUTH_DELTA_
+      # INTERVAL_MINUTES ar ocksa 0. Bada jobben var alltsa avstangda, och
+      # ingenting bearbetade kon. Resultat: 8 814 meddelanden i RAW_SAVED och
+      # noll ACTION_CREATED i liggaren.
+      #
+      # Med 1 minut och QUEUE_BATCH_SIZE=50 dras backloggen av pa ca 3 timmar.
+      # MODE ar kvar pa read_only: enligt pipeline.js rad 398 styr 'active'
+      # enbart om liggaren far ACTION_CREATED i stallet for MATCHED — trad-
+      # identitet, patientmatchning och audit skrivs i bada lagen.
       - key: ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES
-        value: "0"
+        value: "1"
       # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
       - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
         value: "2147483648"
