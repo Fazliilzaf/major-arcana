@@ -132,6 +132,44 @@ test('en förlorad sidofil stoppar migreringen med sharden intakt', async () => 
   assert.equal(after.messages['a@b.se:m2'].bodyText, 'Andra', 'ingen text får ha tappats');
 });
 
+test('custom collectionKey, bodyFields och objectFields styr om rätt fält', async () => {
+  // mail-ingestion-formen: en fil, samlingen heter mailRawMessages, rawJson
+  // är ett objekt och bodyText är en sträng.
+  const messages = {
+    'raw-1': {
+      id: 'raw-1',
+      mailboxId: 'egzona@hairtpclinic.com',
+      bodyText: 'Brödtext',
+      bodyPreview: 'Preview',
+      rawJson: { headers: { from: 'a@b.se' }, body: 'HTML-kropp' },
+    },
+  };
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ord89-mig-'));
+  const shardPath = path.join(root, 'cco-mail-ingestion.json');
+  fs.writeFileSync(shardPath, JSON.stringify({ version: 1, mailRawMessages: messages }), 'utf8');
+  const config = { ccoMailboxTruthShardDir: root };
+
+  const report = await migrateMailboxBodies({
+    config,
+    mailboxId: 'mail-ingestion',
+    shardPath,
+    collectionKey: 'mailRawMessages',
+    bodyFields: ['bodyText'],
+    objectFields: ['rawJson'],
+  });
+
+  assert.equal(report.stoppedBecause, 'torrkorning');
+  assert.equal(report.written, 1);
+  assert.equal(report.verifiedDecodedChars, report.expectedDecodedChars);
+  assert.ok(report.expectedDecodedChars > 'Brödtext'.length, 'rawJson ska räknas med i verifieringen');
+});
+
+test('decodedCharsOf kan räkna objektfält', async () => {
+  const rawJson = JSON.stringify({ a: 1, b: 'text' });
+  assert.equal(decodedCharsOf({ rawJson }, ['rawJson']), rawJson.length);
+  assert.equal(decodedCharsOf({ rawJson }, new Set(['rawJson'])), rawJson.length);
+});
+
 test('en text som kommer tillbaka förkortad stoppar migreringen', async () => {
   // decodedChars-kontrollen är det som skiljer "skrev filerna" från "texten
   // kom fram". En trunkerad skrivning ser ut som en lyckad skrivning.

@@ -133,9 +133,9 @@ async function removeBody(filePath) {
  * råkar skriva över den. Atomiciteten var rätt tänkt; det var namnet som
  * saknade unikhet.
  */
-async function writeBody(filePath, body = {}) {
+async function writeBody(filePath, body = {}, fields = BODY_FIELDS) {
   const payload = {};
-  for (const field of BODY_FIELDS) {
+  for (const field of fields) {
     if (typeof body[field] === 'string' && body[field].length > 0) payload[field] = body[field];
   }
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
