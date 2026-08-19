@@ -3834,10 +3834,44 @@ function createScheduler({
     if (ccoMailIngestionStore && typeof ccoMailIngestionStore._load === 'function') {
       await ccoMailIngestionStore._load();
     }
-    const mailboxEmail = normalizeText(config.ccoMailIngestionDefaultMailbox);
-    if (!mailboxEmail) {
-      return { tenantId, skipped: true, reason: 'default_mailbox_missing' };
+    // Tidigare togs ENBART default-brevladan har. Det gjorde att jobbet kunde
+    // ga varje minut och alltid returnera queue_empty medan kon vaxte: 8 814
+    // kolagda meddelanden lag i egzona@hairtpclinic.com (8 785) och
+    // info@fazli.se (29), medan defaulten pekade pa kons@hairtpclinic.com.
+    // buildDashboardSummary ar brevladescopad, sa den svarade 0 — korrekt for
+    // kons@, men fel fraga.
+    //
+    // Nu valjs default-brevladan om den har nagot att gora, annars den
+    // brevlada som har flest kolagda. En batch per tick som forut, sa
+    // belastningen ar oforandrad — det ar bara urvalet som lagats.
+    const defaultMailbox = normalizeText(config.ccoMailIngestionDefaultMailbox);
+    const koPerBrevlada =
+      typeof ccoMailIngestionStore?.listQueuedMailboxCounts === 'function'
+        ? ccoMailIngestionStore.listQueuedMailboxCounts()
+        : new Map();
+
+    let mailboxEmail = '';
+    if (defaultMailbox && Number(koPerBrevlada.get(defaultMailbox) || 0) > 0) {
+      mailboxEmail = defaultMailbox;
+    } else {
+      let storst = 0;
+      for (const [brevlada, antal] of koPerBrevlada) {
+        if (antal > storst) {
+          storst = antal;
+          mailboxEmail = brevlada;
+        }
+      }
     }
+
+    if (!mailboxEmail) {
+      return {
+        tenantId,
+        skipped: true,
+        reason: koPerBrevlada.size === 0 ? 'queue_empty' : 'default_mailbox_missing',
+        defaultMailbox,
+      };
+    }
+
     const before = ccoMailIngestionStore?.buildDashboardSummary?.({ mailboxEmail });
     if (!before || Number(before.queueLength || 0) <= 0) {
       return { tenantId, skipped: true, reason: 'queue_empty', mailboxEmail };
@@ -4083,10 +4117,7 @@ function createScheduler({
         bodyValues: row.bodyTextValues + row.bodyHtmlValues,
         bodyDecodedChars: row.bodyDecodedChars,
       }));
-      logger?.error?.(
-        '[scheduler] cco_mailbox_body_monitor regression',
-        JSON.stringify(summary)
-      );
+      logger?.error?.('[scheduler] cco_mailbox_body_monitor regression', JSON.stringify(summary));
       throw new Error(
         `Inline bodyText/bodyHtml återfunna i ${regressions.length} shard(s): ${regressions
           .map((r) => r.mailbox)

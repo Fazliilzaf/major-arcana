@@ -5,10 +5,7 @@ const bfj = require('bfj');
 
 const { buildDedupeKeyFromTruthMessage } = require('./dedupe');
 const { toCanonicalMailboxConversationKey } = require('../ccoMailboxTruthWorklistReadModel');
-const {
-  bodyFilePath,
-  readBody,
-} = require('../ccoMailboxTruthBodyStore');
+const { bodyFilePath, readBody } = require('../ccoMailboxTruthBodyStore');
 const {
   FILTER_VERSION,
   IMPORT_RUN_STATUSES,
@@ -212,11 +209,7 @@ async function writeJsonAtomic(filePath, data) {
   await fs.rename(tmpPath, filePath);
 }
 
-async function createCcoMailIngestionStore({
-  filePath,
-  bodyRoot = '',
-  bodyMailboxId = '',
-} = {}) {
+async function createCcoMailIngestionStore({ filePath, bodyRoot = '', bodyMailboxId = '' } = {}) {
   const resolvedPath = normalizeText(filePath);
   if (!resolvedPath) {
     throw new Error('createCcoMailIngestionStore requires filePath.');
@@ -1478,6 +1471,22 @@ async function createCcoMailIngestionStore({
     // för att spika heapen > tillgängligt RAM och trigga OOM (4GB-kraschen).
     // Läsvägar som bara behöver iterera råmeddelanden ska använda denna i stället.
     listRawMessages: () => Object.values(state.mailRawMessages || {}),
+    // Kolangd per brevlada. Behovs av schemalaggaren for att veta VILKEN
+    // brevlada som har nagot att gora — buildDashboardSummary ar brevlade-
+    // scopad och svarar 0 for en tom lada aven nar kon ar full av andra.
+    //
+    // Egen accessor i stallet for getState() eftersom den senare djup-klonar
+    // hela ingestion-staten, och det har anropas en gang per minut.
+    listQueuedMailboxCounts: () => {
+      const counts = new Map();
+      for (const rawMessageId of state.processingQueue || []) {
+        const message = state.mailRawMessages?.[rawMessageId];
+        const mailbox = normalizeEmail(message?.mailboxEmail || message?.mailboxId);
+        if (!mailbox) continue;
+        counts.set(mailbox, (counts.get(mailbox) || 0) + 1);
+      }
+      return counts;
+    },
     getState: () => cloneJson(state),
   };
 }
