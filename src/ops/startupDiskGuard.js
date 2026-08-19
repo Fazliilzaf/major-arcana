@@ -16,6 +16,40 @@ const ATOMIC_TMP_PID_UUID_PATTERN =
 // Some legacy atomic helpers use: ${filePath}.${process.pid}.tmp
 const ATOMIC_TMP_PID_PATTERN = /^(.+)\.(\d+)\.tmp$/i;
 const MB = 1024 * 1024;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Engångsbackuper från migreringar och restore-körningar. De skrivs bredvid
+// sin källfil, aldrig i backupDir, så pruneBackups() har aldrig sett dem. Mätt
+// på prod 2026-08-19: 2,38 GB i tre mönster, varav en .migrated.-fil från
+// shardningen tre månader tidigare.
+//
+// Varje mönster måste innehålla en MARKÖR (pre-, migrated., archived-). Det är
+// det som gör regeln säker: en levande statefil heter cco-mailbox-truth.json
+// och saknar markör, så den kan aldrig matcha oavsett ålder.
+//
+// Åldern läses från mtime, inte från tidsstämpeln i namnet. Namnen har minst
+// fyra olika format (epoch-ms, ISO, ISO med bindestreck) och en parser för dem
+// alla vore mer kod med fler sätt att ha fel — mtime är samma källa som de
+// befintliga svepen redan litar på.
+const RETAINABLE_BACKUP_PATTERNS = [
+  // src/ops/ccoMailboxTruthBodyMigration.js  → <shard>.<epoch>.pre-body-migration.bak
+  // scripts/backfill-journal-pdfs.js         → <fil>.pre-pdf-backfill-<ts>.bak
+  // scripts/backfill-cliento-...js           → <fil>.pre-sourceid-backfill-<ISO>.json
+  /\.pre-[a-z0-9-]+\.(?:bak|json)$/i,
+  // src/ops/ccoMailboxTruthRestore.js        → <shard>.pre-restore.<epoch>.bak
+  /\.pre-restore\.\d+\.bak$/i,
+  // src/ops/ccoMailboxTruthShardedStore.js   → <legacy>.migrated.<epoch>.bak
+  /\.migrated\.\d+\.bak$/i,
+  // Manuellt skapade arkiv (ingen kodväg i repot, men 0,32 GB låg på prod).
+  /\.archived-[a-z0-9-]*\.(?:bak|json)$/i,
+];
+
+function isRetainableBackupFileName(fileName = '') {
+  const name = String(fileName || '');
+  // ORD-71: en .bak utan markör rörs aldrig automatiskt. Samma princip här —
+  // matchar inget mönster, då lämnar vi filen i fred.
+  return RETAINABLE_BACKUP_PATTERNS.some((pattern) => pattern.test(name));
+}
 
 function toPositiveInt(value, fallback = 0) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -198,6 +232,58 @@ async function cleanupOrphanedAtomicTmpFiles({
     },
   });
   return deleted;
+}
+
+async function pruneRetainableBackupsInDirectory({
+  directoryPath,
+  olderThanMs = 30 * DAY_MS,
+  maxDepth = 3,
+  dryRun = false,
+  nowMs = Date.now(),
+}) {
+  const deleted = [];
+  const kept = [];
+  // Rekursivt, till skillnad från pruneOversizeBackupsInDirectory: migrerings-
+  // backuperna ligger bredvid shardarna i en underkatalog till stateRoot, så en
+  // platt readdir() hade missat exakt de filer som väger mest.
+  await scanDirectoryRecursively({
+    directoryPath,
+    maxDepth,
+    async onFile({ filePath, fileName, directoryPath: parentPath }) {
+      if (!isRetainableBackupFileName(fileName)) return;
+      let stat = null;
+      try {
+        stat = await fs.stat(filePath);
+      } catch {
+        return;
+      }
+      if (!stat) return;
+      const ageMs = nowMs - Number(stat.mtimeMs || 0);
+      const sizeBytes = Number(stat.size || 0);
+      const record = {
+        directoryPath: parentPath,
+        fileName,
+        filePath,
+        sizeBytes,
+        ageDays: Number((ageMs / DAY_MS).toFixed(1)),
+      };
+      if (ageMs < olderThanMs) {
+        kept.push({ ...record, reason: 'too_young' });
+        return;
+      }
+      if (dryRun) {
+        deleted.push({ ...record, dryRun: true });
+        return;
+      }
+      try {
+        await fs.unlink(filePath);
+        deleted.push(record);
+      } catch {
+        // Startsvep: en parallell process kan redan ha tagit filen.
+      }
+    },
+  });
+  return { deleted, kept };
 }
 
 function buildTimestampedOversizeBackupPath(filePath) {
@@ -441,6 +527,17 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
       reclaimedBytes: 0,
       deleted: [],
     },
+    retainableBackups: {
+      enabled: false,
+      dryRun: false,
+      retentionDays: 0,
+      scannedDirectories: [],
+      deletedCount: 0,
+      reclaimedBytes: 0,
+      keptCount: 0,
+      deleted: [],
+      kept: [],
+    },
     stateFiles: null,
     reclaimedBytes: 0,
     errors: [],
@@ -503,6 +600,12 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
 
   const atomicTmpCleanupEnabled = config.startupAtomicTmpCleanupEnabled !== false;
   const atomicTmpMaxDepth = toPositiveInt(config.startupAtomicTmpCleanupMaxDepth, 3);
+  const retainableEnabled = config.startupStateBackupRetentionEnabled !== false;
+  const retainableDryRun = config.startupStateBackupRetentionDryRun === true;
+  const retainableDays = toPositiveInt(config.startupStateBackupRetentionDays, 30);
+  summary.retainableBackups.enabled = retainableEnabled;
+  summary.retainableBackups.dryRun = retainableDryRun;
+  summary.retainableBackups.retentionDays = retainableDays;
   const directories = buildDirectorySet(config);
   for (const directoryPath of directories) {
     try {
@@ -560,17 +663,49 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
         code: error?.code || null,
       });
     }
+    if (retainableEnabled) {
+      try {
+        const { deleted, kept } = await pruneRetainableBackupsInDirectory({
+          directoryPath,
+          olderThanMs: retainableDays * DAY_MS,
+          maxDepth: atomicTmpMaxDepth,
+          dryRun: retainableDryRun,
+        });
+        summary.retainableBackups.scannedDirectories.push(directoryPath);
+        summary.retainableBackups.deleted.push(...deleted);
+        summary.retainableBackups.kept.push(...kept);
+        summary.retainableBackups.deletedCount += deleted.length;
+        summary.retainableBackups.keptCount += kept.length;
+        summary.retainableBackups.reclaimedBytes += deleted.reduce(
+          (acc, item) => acc + Number(item?.sizeBytes || 0),
+          0
+        );
+      } catch (error) {
+        summary.errors.push({
+          scope: 'state_backup_retention',
+          directoryPath,
+          message: error?.message || 'state backup retention failed',
+          code: error?.code || null,
+        });
+      }
+    }
   }
 
   summary.reclaimedBytes += Number(summary.tempFiles.reclaimedBytes || 0);
   summary.reclaimedBytes += Number(summary.atomicTmpFiles.reclaimedBytes || 0);
   summary.reclaimedBytes += Number(summary.stateGuardBackups.reclaimedBytes || 0);
+  // Vid torrkörning har ingenting raderats. Att räkna in kandidaternas storlek
+  // i reclaimedBytes vore en direkt felrapport till den som läser loggen.
+  if (!retainableDryRun) {
+    summary.reclaimedBytes += Number(summary.retainableBackups.reclaimedBytes || 0);
+  }
   summary.finishedAt = new Date().toISOString();
 
   if (
     Number(summary.reclaimedBytes || 0) > 0 ||
     Number(summary.tempFiles.deletedCount || 0) > 0 ||
     Number(summary.atomicTmpFiles.deletedCount || 0) > 0 ||
+    Number(summary.retainableBackups.deletedCount || 0) > 0 ||
     summary.errors.length > 0
   ) {
     const reclaimedMb = Number((Number(summary.reclaimedBytes || 0) / (1024 * 1024)).toFixed(2));
@@ -582,7 +717,11 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
         summary.tempFiles.deletedCount
       } atomicTmpDeleted=${summary.atomicTmpFiles.deletedCount} oversizeBakDeleted=${
         summary.stateGuardBackups.deletedCount
-      } sanitizedStateFiles=${sanitizedStateFiles} errors=${summary.errors.length}`
+      } sanitizedStateFiles=${sanitizedStateFiles} stateBackups${
+        retainableDryRun ? 'DryRunCandidates' : 'Deleted'
+      }=${summary.retainableBackups.deletedCount} stateBackupsKept=${
+        summary.retainableBackups.keptCount
+      } errors=${summary.errors.length}`
     );
   }
 
@@ -594,4 +733,6 @@ module.exports = {
   buildTimestampedOversizeBackupPath,
   sanitizeOversizedStateFiles,
   cleanupOrphanedAtomicTmpFiles,
+  pruneRetainableBackupsInDirectory,
+  isRetainableBackupFileName,
 };
