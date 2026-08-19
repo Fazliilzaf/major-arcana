@@ -54,7 +54,7 @@ På begäran via ops-route är både säkrare och redan byggt.
 
 ---
 
-## 3. Det som faktiskt skiljer sig — fyra beslut
+## 3. Det som faktiskt skiljer sig — fem beslut
 
 **3.1 `rawJson` ÄR problemet, och det är ett objekt.**
 
@@ -141,13 +141,13 @@ till sidofilen; varje `nej` ska **inte** ha ett.
 
 ## 5. Risker
 
-| Risk                              | Sannolikhet | Påverkan | Mitigering                                                                         |
-| --------------------------------- | ----------- | -------- | ---------------------------------------------------------------------------------- |
-| Läsväg glömd → tomma bodies       | Medel       | Hög      | Listan i avsnitt 4; test per yta                                                   |
-| Avbrott mitt i migrering          | Låg         | Hög      | Backup + verifiera-före-byt, redan i mönstret                                      |
-| Diskutrymme under migrering       | Låg         | Hög      | Diskspärren, redan i mönstret                                                      |
-| Sidofil saknas vid läsning        | Medel       | Medel    | `readBody` returnerar `null` = "ingen sidofil", inte fel — måste hanteras explicit |
-| Migrering av egzona@ tar lång tid | Hög         | Låg      | Per brevlåda; kör små först                                                        |
+| Risk                        | Sannolikhet | Påverkan | Mitigering                                                                         |
+| --------------------------- | ----------- | -------- | ---------------------------------------------------------------------------------- |
+| Läsväg glömd → tomma bodies | Medel       | Hög      | Listan i avsnitt 4; test per yta                                                   |
+| Avbrott mitt i migrering    | Låg         | Hög      | Backup + verifiera-före-byt, redan i mönstret                                      |
+| Diskutrymme under migrering | Låg         | Hög      | Diskspärren, redan i mönstret                                                      |
+| Sidofil saknas vid läsning  | Medel       | Medel    | `readBody` returnerar `null` = "ingen sidofil", inte fel — måste hanteras explicit |
+| Migreringen tar lång tid    | Hög         | Låg      | Strömmande; en passering. Torrkörning mot kopia ger tidsuppskattning först         |
 
 ---
 
