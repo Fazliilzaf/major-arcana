@@ -81,6 +81,14 @@ utökningen är projektets kärna, inte en detalj.
 Kandidater: internt `rawMessageId` eller `internetMessageId`. Förslag:
 **internt id**. Det externa kan saknas eller återanvändas av avsändaren.
 
+**3.2b `mailboxId` för sidofilerna.**
+Mail-ingestion har alla brevlådor i en fil, så brevlådan är inte tillgänglig som
+en separat katalogkomponent på samma sätt som i mailbox-truth. Förslag:
+syntetiskt `mailboxId: 'mail-ingestion'`. Det ger samma katalogstruktur
+`bodies/mail-ingestion/<hash[0:2]>/<läsbart48>.<sha256>.json` och undviker att
+behöva två passeringar eller lita på JSON-nyckelordning. Per-brevlåde-`du`
+kräver i så fall metadata-sharding först.
+
 **3.3 Bodies behövs för varje processat meddelande — och hela batchen lever kvar.**
 `classifyMailType` bygger sin text av `subject` + `bodyPreview` + `bodyText`,
 så varje meddelande som processas behöver sin body. "Ladda vid behov" får
@@ -193,12 +201,13 @@ Det ersätter "liten brevlåda först" som sätt att få bevis före skarp körn
 | 0    | Parametrisera transformen: `BODY_FIELDS` och sökvägsvillkoret `keyAtDepth[1] === 'messages'` → `mailRawMessages` | Befintliga mailbox-truth-tester fortfarande gröna                              |
 | 1    | Utöka transformen med objekthoppning för `rawJson`                                                               | Nya tester: nästlade objekt, strängar med klammer, escapade tecken             |
 | 2    | Torrkörning mot kopia av produktionsfilen                                                                        | Rapport: antal flyttade bodies, filstorlek före/efter, `decoded_chars` stämmer |
-| 3    | Skarp migrering av produktionsfilen                                                                              | `fileBytesAfter` ≈ 28,6 MB, backup kvar                                        |
-| 4    | `/process-batch` mot migrerad data                                                                               | Batchen går igenom, heap följer batchstorlek                                   |
-| 5    | `FILTER_VERSION`-bump och omkörning av backloggen                                                                | Se varningen i `constants.js`                                                  |
+| 3    | Förläng `migrateMailboxBodies` med `collectionKey`, `bodyFields`, `objectFields` och rätta `decodedCharsOf`       | Torrkörning via modulen ger samma siffror som det fristående skriptet          |
+| 4    | Skarp migrering av produktionsfilen                                                                              | `fileBytesAfter` ≈ 28,6 MB, backup kvar                                        |
+| 5    | `/process-batch` mot migrerad data                                                                               | Batchen går igenom, heap följer batchstorlek                                   |
+| 6    | `FILTER_VERSION`-bump och omkörning av backloggen                                                                | Se varningen i `constants.js`                                                  |
 
-Steg 1 är det enda som är verklig nykonstruktion. Steg 0 är två konstanter.
-Steg 2–4 är körningar, inte kod.
+Steg 1 är det enda som är verklig nykonstruktion. Steg 0 och 3 är små
+parametriseringar. Steg 2, 4 och 5 är körningar, inte kod.
 
 ---
 
@@ -214,6 +223,15 @@ båda måste härledas om.
 Formatberoendet är isolerat i transformen och litet: två konstanter plus
 objekthoppningen i steg 1.
 
+**`decodedCharsOf` måste ta emot samma fältlista som transformen.** Modulens
+interna `BODY_FIELDS` räknar bara `bodyText`/`bodyHtml`; med `rawJson` i sidan
+skulle verifieringen annars avbryta med `decoded_chars_stammer_inte` trots att
+allt är korrekt.
+
+**`mailboxId: 'mail-ingestion'`** används syntetiskt för sidofilerna. Det ger
+samma katalogstruktur som mailbox-truth utan att kräva två passeringar eller
+lita på JSON-nyckelordning.
+
 **Backupfilerna raderas** när verifieringen passerat _och_ en `/process-batch`
 gått igenom mot den nya strukturen — inte på tidsgräns.
 
@@ -222,6 +240,5 @@ gått igenom mot den nya strukturen — inte på tidsgräns.
 ## 9. Kvar att besluta
 
 - Godkänn 3.1–3.5, eller peka ut vad som ska ändras.
-- Var ska scratch-katalogen för torrkörningen ligga? `/var/data` har 217 GB
-  ledigt, men kopian plus sidofilerna är ~440 MB och bör inte hamna bland
-  levande data.
+- Var ska scratch-katalogen för torrkörningen ligga? `/var/tmp` har 71 GB
+  ledigt och är separat från levande data.

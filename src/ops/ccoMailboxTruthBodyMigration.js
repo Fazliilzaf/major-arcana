@@ -41,9 +41,9 @@ const {
 } = require('./ccoMailboxTruthBodyStore');
 const { createBodyStreamTransform } = require('./ccoMailboxTruthBodyStreamTransform');
 
-function decodedCharsOf(message = {}) {
+function decodedCharsOf(message = {}, fields = BODY_FIELDS) {
   let total = 0;
-  for (const field of BODY_FIELDS) {
+  for (const field of fields) {
     if (typeof message[field] === 'string') total += message[field].length;
   }
   return total;
@@ -70,10 +70,22 @@ async function migrateMailboxBodies({
   // kan annars bara inträffa i drift, och då är det för sent att upptäcka att
   // den var felskriven.
   deps = { writeBody, readBody },
+  // Skickas rakt vidare till transformen. Defaulten är mailbox-truths format;
+  // mail-ingestion använder samma form med andra namn.
+  collectionKey = 'messages',
+  bodyFields = BODY_FIELDS,
+  objectFields = new Set(),
 } = {}) {
-  const write = deps.writeBody || writeBody;
-  const read = deps.readBody || readBody;
   const bodyRoot = resolveBodyRoot(config);
+  // Fälten som ska skrivas till och läsas tillbaka från sidofilerna. Måste
+  // matcha det transformen styrde om — annars avbryter verifieringen med
+  // `decoded_chars_stammer_inte` när objektfält som rawJson finns med.
+  const verifyFields = new Set([
+    ...(bodyFields instanceof Set ? bodyFields : new Set(bodyFields || [])),
+    ...(objectFields instanceof Set ? objectFields : new Set(objectFields || [])),
+  ]);
+  const write = (filePath, body) => (deps.writeBody || writeBody)(filePath, body, verifyFields);
+  const read = (filePath) => (deps.readBody || readBody)(filePath, verifyFields);
   const report = {
     mailboxId,
     shardPath,
@@ -141,7 +153,12 @@ async function migrateMailboxBodies({
     return writeChain;
   }
 
+  const allBodyFields = bodyFields instanceof Set ? bodyFields : new Set(bodyFields || []);
+  const allObjectFields = objectFields instanceof Set ? objectFields : new Set(objectFields || []);
   const transform = createBodyStreamTransform({
+    collectionKey,
+    bodyFields: allBodyFields,
+    objectFields: allObjectFields,
     emit: (chunk) => outStream.write(chunk),
     onBody: (messageKey, field, value) => {
       if (messageKey !== currentKey) {
@@ -212,7 +229,7 @@ async function migrateMailboxBodies({
   for (const messageKey of touched.keys()) {
     const stored = await read(bodyFilePath({ bodyRoot, mailboxId, messageKey }));
     if (!stored) return abort('sidofil_saknas_efter_skrivning', { failedKey: messageKey });
-    verifiedChars += decodedCharsOf(stored);
+    verifiedChars += decodedCharsOf(stored, verifyFields);
   }
   report.verifiedDecodedChars = verifiedChars;
   if (verifiedChars !== expectedChars) return abort('decoded_chars_stammer_inte');
