@@ -65,18 +65,44 @@ vid samma tillfälle, och en uppdelning dubblar filantalet utan vinst.
 Kandidater: internt `rawMessageId` eller `internetMessageId`. Förslag:
 **internt id**. Det externa kan saknas eller återanvändas av avsändaren.
 
-**3.3 Bodies behövs oftare än "vid behov" antyder.**
+**3.3 Bodies behövs för varje processat meddelande — och hela batchen lever kvar.**
 `classifyMailType` bygger sin text av `subject` + `bodyPreview` + `bodyText`,
-så varje meddelande som processas behöver sin body. Vinsten ligger i att bara
-**ett i taget** behövs: minnet blir proportionellt mot batchen (50), inte mot
-brevlådan (8 785). Det bör stå utskrivet — annars låter "ladda vid behov" som
-att bodies sällan behövs, vilket är fel.
+så varje meddelande som processas behöver sin body. "Ladda vid behov" får
+alltså inte läsas som att bodies sällan behövs.
 
-**3.4 Kön och ledgern rörs inte.**
+Toppminnet blir inte ett meddelande utan **hela batchen**. `processQueue` gör
+`results.push(result)` (syncService.js:197) där `result` innehåller
+`rawMessage`, och arrayen returneras ur batchen (`return { processed, failed,
+results }`). Laddas bodies på begäran och hängs på `rawMessage` lever alltså
+alla 50 kvar tills batchen är klar — och de lämnar batchen.
+
+Vinsten är ändå den avgörande: proportionellt mot batchen (50) i stället för
+mot brevlådan (8 785). Men implementationen bör antingen inte hänga bodies på
+`rawMessage`, eller strippa dem ur `results` innan retur. Annars ligger 50
+bodies resident utan att någon bett om det.
+
+**3.4 `bodyPreview` stannar kvar som metadata.**
+Mätt: 2,4 MB fördelat på samtliga 9 686 meddelanden, alltså 1 % av filen. Den
+används av `classifyMailType` och av review-UI:t, och är liten nog att inte
+motivera en sidofilsläsning. Följer alltså **inte** med bodies.
+
+**3.5 Kön och ledgern rörs inte.**
 Metadata, `processingQueue` och `mailProcessingLedger` stannar i
-`cco-mail-ingestion.json`. Filen krymper till uppskattningsvis 10–25 MB. Ingen
-shardning av metadata i det här steget — den blir en separat, valfri
-optimering efteråt.
+`cco-mail-ingestion.json`. Ingen shardning av metadata i det här steget — den
+blir en separat, valfri optimering efteråt.
+
+Storleken efter flytten är **mätt, inte uppskattad** (2026-08-19):
+
+```
+total                            235,0 MB
+rawJson + bodyHtml + bodyText    206,4 MB   87,8 %   flyttas ut
+bodyPreview                        2,4 MB    1,0 %   stannar
+kvar i cco-mail-ingestion.json    28,6 MB
+```
+
+28,6 MB ger ungefär 170–200 MB heap vid `JSON.parse`, jämfört med dagens
+~1,4 GB. En tidigare uppskattning i det här utkastet sa 10–25 MB; den var för
+låg.
 
 ---
 
@@ -86,7 +112,7 @@ Måste fungera under och efter migrering:
 
 | Yta                                           | Behöver bodies?                       |
 | --------------------------------------------- | ------------------------------------- |
-| `/process-all`, `/process-batch`              | Ja, ett meddelande i taget            |
+| `/process-all`, `/process-batch`              | Ja — hela batchen lever kvar, se 3.3  |
 | `reprocess-unmatched`                         | Ja, samma väg                         |
 | Poller / scheduler                            | Nej — metadata räcker                 |
 | `/status`, dashboard                          | Nej                                   |
