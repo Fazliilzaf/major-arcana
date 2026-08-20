@@ -13,6 +13,14 @@ test.describe('CCO huvudflöden', () => {
   test('alla runtime-moduler laddas', async ({ page }) => {
     await page.goto('/major-arcana-preview/');
     await page.waitForLoadState('networkidle');
+    // Bundle injiceras asynkront via requestIdleCallback; vänta på nyckelglobaler.
+    await page.waitForFunction(
+      () =>
+        typeof window.MajorArcanaPreviewConfig === 'object' &&
+        typeof window.MajorArcanaPreviewWorkspaceState === 'object',
+      undefined,
+      { timeout: 10000, polling: 100 }
+    );
     const modules = await page.evaluate(() => {
       return Object.keys(window).filter((k) => k.startsWith('MajorArcanaPreview'));
     });
