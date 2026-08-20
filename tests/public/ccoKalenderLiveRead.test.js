@@ -108,6 +108,21 @@ test('V6 calendar exposes keyboard shortcuts for view switching and help', () =>
   assert.match(html, /cco-cal-keyboard-help/);
 });
 
+test('V6 calendar patient intel enables dossier tabs and fetches dossier-bundle', () => {
+  const intelBlock = shell.slice(
+    shell.indexOf('async function fetchPatientDossier'),
+    shell.indexOf('function v6BookingCard')
+  );
+  assert.match(intelBlock, /fetchPatientDossier/);
+  assert.match(intelBlock, /v6RenderDossierTab/);
+  assert.doesNotMatch(
+    intelBlock,
+    /class:\s*'intel-tab'[\s\S]{0,200}?disabled:\s*['"]disabled['"]/
+  );
+  assert.match(intelBlock, /'Besök', 'Historik', 'Filer', 'Anteckningar'/);
+  assert.match(intelBlock, /\/api\/v1\/cco-patient-master\/patient\/dossier-bundle/);
+});
+
 test('V6 calendar boot wires the quality panel before the original V6 renderer', () => {
   const initBlock = shell.slice(
     shell.indexOf('function init()'),

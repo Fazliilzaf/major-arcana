@@ -61,6 +61,7 @@ const TILLATNA_PREFIX = [
   '/api/v1/cco-booking-engine/create/preflight',
   '/api/v1/cco-booking-engine/create/confirm',
   '/api/v1/cco-customers/',
+  '/api/v1/cco-patient-master/patient/dossier-bundle',
 ];
 
 /**

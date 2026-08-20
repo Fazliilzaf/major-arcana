@@ -1837,6 +1837,85 @@
     ]);
   }
 
+  const dossierCache = new Map();
+  async function fetchPatientDossier(patientId) {
+    if (!patientId) return null;
+    if (dossierCache.has(patientId)) return dossierCache.get(patientId);
+    try {
+      const response = await fetch('/api/v1/cco-patient-master/patient/dossier-bundle?patientId=' +
+        encodeURIComponent(patientId), { headers: calendarHeaders() });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const payload = await response.json();
+      dossierCache.set(patientId, payload);
+      return payload;
+    } catch (error) {
+      console.warn('Kunde inte hämta dossier:', error);
+      return null;
+    }
+  }
+
+  function v6RenderDossierTab(shell, slot, tab) {
+    const content = shell.querySelector('.ai-reason');
+    if (!content) return;
+    content.innerHTML = '';
+    if (!slot?.patientId) {
+      content.textContent = 'Välj ett besök med en kopplad patient för att visa dossié.';
+      return;
+    }
+    content.appendChild(el('div', { class: 'cco-cal-empty' }, 'Läser patientdossié…'));
+    fetchPatientDossier(slot.patientId).then((dossier) => {
+      if (v6State.selected !== slot) return;
+      content.innerHTML = '';
+      if (!dossier) {
+        content.textContent = 'Dossié kunde inte hämtas.';
+        return;
+      }
+      const renderList = (items, render) => {
+        if (!items || !items.length) return el('p', { class: 'cco-cal-dossier-empty' }, 'Inga poster.');
+        const list = el('div', { class: 'cco-cal-dossier-list' });
+        items.forEach((item) => list.appendChild(render(item)));
+        return list;
+      };
+      const fmtDate = (value) => {
+        if (!value) return '—';
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('sv-SE', {
+          timeZone: 'Europe/Stockholm', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+        });
+      };
+      if (tab === 'Besök') {
+        const visits = [
+          ...(dossier.upcomingBookings || []),
+          ...(dossier.historyBookings || []),
+        ];
+        content.appendChild(renderList(visits, (v) => el('div', { class: 'cco-cal-dossier-row' }, [
+          el('strong', {}, v.serviceDisplayName || v.serviceName || v.serviceId || 'Besök'),
+          el('span', {}, fmtDate(v.startsAt) + ' · ' + (v.status || '')),
+        ])));
+      } else if (tab === 'Historik') {
+        const timeline = dossier.occasionTimeline || dossier.visitSegments || [];
+        content.appendChild(renderList(timeline, (t) => el('div', { class: 'cco-cal-dossier-row' }, [
+          el('strong', {}, t.label || t.type || 'Händelse'),
+          el('span', {}, fmtDate(t.date || t.startsAt || t.createdAt)),
+        ])));
+      } else if (tab === 'Filer') {
+        content.appendChild(renderList(dossier.driveFiles || [], (f) => el('div', { class: 'cco-cal-dossier-row' }, [
+          el('strong', {}, f.name || f.fileName || 'Fil'),
+          el('span', {}, (f.mimeType || '').split('/')[1] || f.mimeType || ''),
+        ])));
+      } else if (tab === 'Anteckningar') {
+        const notes = [
+          ...(dossier.journalEntries || []),
+          ...(dossier.communicationMessages || []),
+        ];
+        content.appendChild(renderList(notes, (n) => el('div', { class: 'cco-cal-dossier-row' }, [
+          el('strong', {}, n.type || n.kind || 'Anteckning'),
+          el('span', {}, n.text || n.summary || n.content || fmtDate(n.createdAt)),
+        ])));
+      }
+    });
+  }
+
   function v6RenderIntel(slot) {
     const shell = document.querySelector('.intel-shell');
     if (!shell) return;
@@ -1910,10 +1989,17 @@
     const tabs = shell.querySelector('.intel-tabs');
     if (tabs) {
       tabs.innerHTML = '';
-      ['Besök', 'Historik', 'Filer', 'Anteckningar'].forEach((label, index) => {
-        tabs.appendChild(el('button', {
-          class: 'intel-tab' + (index === 0 ? ' active' : ''), type: 'button', disabled: 'disabled',
-        }, label));
+      const labels = ['Besök', 'Historik', 'Filer', 'Anteckningar'];
+      labels.forEach((label, index) => {
+        const button = el('button', {
+          class: 'intel-tab' + (index === 0 ? ' active' : ''), type: 'button',
+        }, label);
+        button.addEventListener('click', () => {
+          tabs.querySelectorAll('.intel-tab').forEach((t) => t.classList.remove('active'));
+          button.classList.add('active');
+          v6RenderDossierTab(shell, slot, label);
+        });
+        tabs.appendChild(button);
       });
     }
 
