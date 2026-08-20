@@ -220,6 +220,29 @@ Skriptet `scripts/dry-run-patientid-on-bookings.js` körde 2026-08-20 mot prod-d
 
 **Slutsats:** migreringen är värd att göra för Cliento-delen — den ger en stor och omedelbar förbättring. Den egna bokningsmotorn har för få bokningar för att dra några generella slutsatser; de 7 av 12 som inte går att matcha behöver manuell granskning.
 
+**Migreringsskript:** `scripts/migrate-patientid-on-cliento-bookings.js`
+- Default är torrkörning (`--dry-run`). Inga skrivningar görs.
+- `--commit` krävs för skarp körning. En backup tas automatiskt före skrivning.
+- `--skip-backup` kan användas om backup redan finns, men rekommenderas inte.
+- Matchad bokning får `patientId`, `patientIdResolutionStatus: 'linked'`, `patientIdResolutionAt` och nytt `updatedAt`.
+- Ej matchad bokning får `patientIdResolutionStatus` (`missing_identity`, `no_canonical_match` eller `ambiguous_identity`) och nytt `updatedAt`, men inget `patientId`.
+
+**Så här körs det på Render Web Shell (eftersom SSH var nere vid testtillfället):**
+
+```bash
+cd /opt/render/project/src
+git pull origin main
+node scripts/migrate-patientid-on-cliento-bookings.js --dry-run
+```
+
+Om torrkörningen ser rimlig ut:
+
+```bash
+node scripts/migrate-patientid-on-cliento-bookings.js --commit
+```
+
+Backup hamnar bredvid originalfilen: `/var/data/cco/cliento-bookings.json.pre-patientid-migration-<timestamp>.json`.
+
 ---
 
 ## 3. Hur är det kopplat? — integrationskarta
@@ -311,7 +334,7 @@ Operatörer kan inte dra, ändra eller skapa bokningar direkt i kalendern. All s
 
 ### P0 — måste göras för att uppfylla "alla kunder med kopplad kund-ID"
 
-1. **Migrera `patientId` till alla 53 316 befintliga bokningar.** Kör samma matchning som `ccoKunderBookingEnrichment.js` redan gör, men spara resultatet på bokningsposterna. Torrkörning visar 78,9 % täckning (42 051/53 316). De återstående 11 265 behöver antingen kompletterande identitet eller en granskingskö (`needs_review_for_patient_link`).
+1. **Migrera `patientId` till alla 53 316 befintliga bokningar.** Skriptet `scripts/migrate-patientid-on-cliento-bookings.js` är klart. Torrkörning visar 78,9 % täckning (42 051/53 316). De återstående 11 265 får `patientIdResolutionStatus` så att de kan granskas (`missing_identity`, `no_canonical_match`, `ambiguous_identity`).
 2. **Etablera ett kanoniskt fältnamn.** Använd `patientId` överallt. `canonicalPatientId` och avsaknaden i legacy-ärenden är teknisk skuld som redan orsakar tysta fel.
 3. **Exponera `patientId` i kalendervyerna.** `clinicCalendarView.js` måste bära `patientId` så att `/calendar/day` och `/calendar/week` kan länka till kundkort.
 4. **Etablera ett kanoniskt kund-ID över lager.** Alla moduler som refererar till en människa ska använda `patientId` från `ccoPatientMasterStore`. `ccoCustomerStore` kan fortsätta vara kommunikationskatalog, men den ska hålla en `patientId`-referens.
