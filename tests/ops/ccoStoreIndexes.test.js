@@ -44,3 +44,26 @@ test('casesByDate index filters range', () => {
   });
   assert.equal(inRange.length, 1);
 });
+
+test('casesByDate index stoder selectedSlots med startsAt', () => {
+  const state = {
+    cases: [
+      {
+        tenantId: 't1',
+        selectedSlots: [{ startsAt: '2026-05-10T09:00:00.000Z' }],
+      },
+      {
+        tenantId: 't1',
+        selectedSlots: [{ startsAt: '2026-06-01T10:00:00.000Z' }],
+      },
+    ],
+  };
+  rebuildBookingCasesByDate(state);
+  const inRange = listCasesInDateRange(state, {
+    tenantId: 't1',
+    fromDate: '2026-05-01',
+    toDate: '2026-05-31',
+    limit: 10,
+  });
+  assert.equal(inRange.length, 1);
+});

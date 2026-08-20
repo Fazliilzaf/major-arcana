@@ -11,6 +11,7 @@ const { createCcoBookingStore } = require('../../src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineStore');
 const { createCcoHistoryStore } = require('../../src/ops/ccoHistoryStore');
 const { createCcoPatientSystemStore } = require('../../src/ops/ccoPatientSystemStore');
+const { createCcoPatientMasterStore } = require('../../src/ops/ccoPatientMasterStore');
 const { payloadChecksums } = require('../../src/ops/clientoCrossTenantCoverage');
 const { createClientoLinkSidecarLedger } = require('../../src/ops/clientoLinkSidecarLedger');
 const { bookingMondayWindow, nextBookableWeekday } = require('../helpers/bookingTestDates');
@@ -2164,4 +2165,79 @@ test('calendar-bundle with patientId filters visits and cases', async () => {
     assert.equal(payload.cases.length, 1);
     assert.equal(payload.cases[0].patientId, 'patient-a');
   });
+});
+
+test('calendar-bundle patientId-filter fungerar for legacy-arenden skapade via /cco-bookings/case', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-bookings-pid-filter-'));
+  const bookingStore = await createCcoBookingStore({
+    filePath: path.join(tempDir, 'bookings.json'),
+  });
+  const patientMasterStore = await createCcoPatientMasterStore({
+    filePath: path.join(tempDir, 'patient-master.json'),
+  });
+
+  const patient = await patientMasterStore.upsertPatient({
+    tenantId: 'tenant-a',
+    displayName: 'Anna Andersson',
+    primaryEmail: 'anna@example.com',
+    emails: ['anna@example.com'],
+    phones: [],
+  });
+
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore,
+      patientMasterStore,
+      authStore: {
+        async getSessionContextByToken() {
+          return null;
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: {
+        defaultTenantId: 'tenant-a',
+        brand: 'hair-tp-clinic',
+        brandByHost: {},
+      },
+    })
+  );
+
+  try {
+    await withServer(app, async (baseUrl) => {
+      const qs = 'workspaceId=major-arcana-preview&conversationId=conv-anna-1&customerEmail=anna%40example.com&customerName=Anna';
+      const caseResponse = await fetch(`${baseUrl}/cco-bookings/case?${qs}`);
+      assert.equal(caseResponse.status, 200);
+      const casePayload = await caseResponse.json();
+      assert.equal(casePayload.bookingCase.patientId, patient.id);
+
+      const slot = {
+        resourceId: 'res-1',
+        serviceId: 'consultation-physical',
+        startsAt: '2026-05-20T09:00:00.000Z',
+        endsAt: '2026-05-20T09:30:00.000Z',
+      };
+      const candidatesResponse = await fetch(`${baseUrl}/cco-bookings/candidates?${qs}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ selectedSlots: [slot] }),
+      });
+      assert.equal(candidatesResponse.status, 200);
+
+      const bundleResponse = await fetch(
+        `${baseUrl}/cco-bookings/calendar-bundle?fromDate=2026-05-20&toDate=2026-05-20&patientId=${patient.id}`
+      );
+      assert.equal(bundleResponse.status, 200);
+      const bundlePayload = await bundleResponse.json();
+      assert.equal(bundlePayload.patientIdFilter, patient.id);
+      assert.equal(bundlePayload.cases.length, 1);
+      assert.equal(bundlePayload.cases[0].patientId, patient.id);
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 });

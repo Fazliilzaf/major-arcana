@@ -12,7 +12,7 @@ function asArray(value) {
 
 function slotIsoDate(slot) {
   if (!slot || typeof slot !== 'object') return '';
-  const raw = slot.date || slot.isoDate || slot.startDate || '';
+  const raw = slot.date || slot.isoDate || slot.startDate || slot.startsAt || '';
   return String(raw).slice(0, 10);
 }
 

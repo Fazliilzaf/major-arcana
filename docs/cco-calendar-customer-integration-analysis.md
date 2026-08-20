@@ -268,6 +268,8 @@ Legacy-ärendena i `cco-booking.json` berikades med `patientId` i PR #1459 och k
 
 Detta gör att `cco-kalender-shell.js:611`, som redan hade logik för att visa en "öppna kund"-knapp villkorad på `slot.patientId`, nu faktiskt aktiveras för länkade bokningar. Klienten hade sedan tidigare en "vägra gissa"-logik som läser `identityMatchStatus` — den får nu rätt indata för tvetydiga bokningar.
 
+**Under arbetet upptäcktes och fixades en inkonsekvens i datumindexeringen.** `normalizeCandidateSlot` normaliserar egna slots till fältet `startsAt`, men `slotIsoDate` i `src/ops/ccoStoreIndexes.js` läste bara `date`/`isoDate`/`startDate`. Det gjorde att egna kandidat-slots inte indexerades för `listCasesInDateRange`, vilket påverkade både testbarheten och potentiellt produktionsfallet där egna slots används. Fixen lägger till `startsAt` i `slotIsoDate` och testas i `tests/ops/ccoStoreIndexes.test.js`.
+
 Tester finns i `tests/ops/clinicCalendarViewPatientId.test.js`.
 
 ---
@@ -362,7 +364,7 @@ Operatörer kan inte dra, ändra eller skapa bokningar direkt i kalendern. All s
 ### P0 — måste göras för att uppfylla "alla kunder med kopplad kund-ID"
 
 1. **~~Migrera `patientId` till alla 53 316 befintliga bokningar.~~** ✅ Klart. Migreringen kördes skarpt 2026-08-20. 42 051 av 53 316 Cliento-bokningar fick `patientId`. De återstående 11 265 fick `patientIdResolutionStatus` så att de kan granskas (`missing_identity`, `no_canonical_match`, `ambiguous_identity`).
-2. **~~Etablera ett kanoniskt fältnamn och laga legacy `ccoBookingStore`.~~** ✅ Klart. `patientId` används nu i Cliento-store, legacy `ccoBookingStore` och kalendervyer; `canonicalPatientId` översätts till `patientId` i `clinicCalendarView.js`. `/calendar-bundle?patientId=` har verifierats returnera träffar. Kvarstående brus: 199 av 298 olänkade legacy-ärenden är testdata (`@example.com`, `arcana.invalid`) och bör städas ur produktionsstoren.
+2. **~~Etablera ett kanoniskt fältnamn och laga legacy `ccoBookingStore`.~~** ✅ Klart. `patientId` används nu i Cliento-store, legacy `ccoBookingStore` och kalendervyer; `canonicalPatientId` översätts till `patientId` i `clinicCalendarView.js`. `/calendar-bundle?patientId=` har verifierats returnera träffar. Ett regressionstest i `tests/routes/ccoBookings.test.js` säkerställer att legacy-ärenden skapade via `/cco-bookings/case` får `patientId` och filtreras korrekt i `calendar-bundle`. Kvarstående brus: 199 av 298 olänkade legacy-ärenden är testdata (`@example.com`, `arcana.invalid`) och bör städas ur produktionsstoren.
 3. **~~Exponera `patientId` i kalendervyerna.~~** ✅ Klart. `clinicCalendarView.js` bär nu `patientId`, `patientIdResolutionStatus` och `identityMatchStatus` ut i sloten.
 4. **Etablera ett kanoniskt kund-ID över lager.** Alla moduler som refererar till en människa ska använda `patientId` från `ccoPatientMasterStore`. `ccoCustomerStore` kan fortsätta vara kommunikationskatalog, men den ska hålla en `patientId`-referens.
 5. **Koppla `ccoBookingEngineStore` till kunddossién.** Dossién ska läsa nya bokningar, inte bara legacy/cliento.
