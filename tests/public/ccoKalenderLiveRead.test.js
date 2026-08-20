@@ -81,6 +81,20 @@ test('original V6 home surfaces stay present and are canonical or honestly read-
   assert.doesNotMatch(shell, /querySelectorAll\('\.mini-inbox,[^\n]+\.story-cta-row'\)/);
 });
 
+test('V6 calendar boot wires the quality panel before the original V6 renderer', () => {
+  const initBlock = shell.slice(
+    shell.indexOf('function init()'),
+    shell.indexOf('global.CcoKalenderShell')
+  );
+  const bindQualityIndex = initBlock.indexOf('bindQualityPanel();');
+  const originalV6Index = initBlock.indexOf('initOriginalV6Calendar();');
+  assert.ok(bindQualityIndex >= 0, 'init ska anropa bindQualityPanel');
+  assert.ok(
+    originalV6Index < 0 || bindQualityIndex < originalV6Index,
+    'bindQualityPanel ska köras före V6-rendering när båda finns'
+  );
+});
+
 test('canonical hydration preserves the original rich morning component hierarchy', () => {
   const storyBlock = shell.slice(
     shell.indexOf('function v6UpdateStory'),

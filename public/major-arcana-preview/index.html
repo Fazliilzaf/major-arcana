@@ -93,6 +93,18 @@
           var params = new URLSearchParams(window.location.search || '');
           var view = String(params.get('view') || '').trim();
           var path = String(window.location.pathname || '');
+          var KNOWN_SHELL_VIEWS = {
+            customers: 1,
+            calendar: 1,
+            automation: 1,
+            analytics: 1,
+            later: 1,
+            sent: 1,
+            integrations: 1,
+            macros: 1,
+            settings: 1,
+            showcase: 1,
+          };
           if (!view) {
             if (path.indexOf('/staff') === 0 || path.indexOf('/mobil') === 0) view = 'customers';
             else return;
@@ -100,19 +112,20 @@
           if (view === 'conversations' || view === 'inbox' || view === 'home' || view === 'queue') {
             return;
           }
+          var resolvedView = KNOWN_SHELL_VIEWS[view] ? view : 'customers';
           var reveal = function () {
             document.querySelectorAll('[data-shell-view]').forEach(function (section) {
-              section.hidden = section.getAttribute('data-shell-view') !== 'customers';
+              section.hidden = section.getAttribute('data-shell-view') !== resolvedView;
             });
             var canvas = document.querySelector('.preview-canvas');
             if (canvas) {
-              canvas.dataset.appShellView = 'customers';
-              canvas.dataset.appView = 'customers';
+              canvas.dataset.appShellView = resolvedView;
+              canvas.dataset.appView = resolvedView;
             }
             document.querySelectorAll('[data-nav-view]').forEach(function (btn) {
               var navView = btn.getAttribute('data-nav-view') || '';
-              var active = navView === 'customers';
-              btn.classList.toggle('is-active', active);
+              var active = navView === resolvedView;
+              btn.classList.toggle('preview-nav-item-active', active);
               btn.setAttribute('aria-pressed', active ? 'true' : 'false');
             });
           };

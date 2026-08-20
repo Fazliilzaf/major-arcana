@@ -15,9 +15,7 @@ const INDEX_HTML = path.join(ROOT, 'public', 'major-arcana-preview', 'index.html
 const CALENDAR_SHELL = path.join(
   ROOT,
   'public',
-  'major-arcana-preview',
-  'app',
-  'cco-calendar-v8-shell.js'
+  'cco-kalender-shell.js'
 );
 const ADMIN_EMBED_CONTRACT = path.join(
   ROOT,
@@ -53,16 +51,64 @@ function createClassList(initial = []) {
   };
 }
 
+function kebabToCamel(value) {
+  return value.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+function camelToKebab(value) {
+  return value.replace(/([A-Z])/g, '-$1').toLowerCase();
+}
+
 function createElement(initialAttributes = {}) {
   const attributes = new Map(Object.entries(initialAttributes));
   const listeners = new Map();
+  const dataset = {};
+  Object.defineProperties(
+    dataset,
+    Object.fromEntries(
+      Array.from(attributes.keys())
+        .filter((name) => name.startsWith('data-'))
+        .map((name) => {
+          const key = kebabToCamel(name.slice(5));
+          return [
+            key,
+            {
+              get() {
+                return attributes.get(name) || '';
+              },
+              set(value) {
+                attributes.set(name, String(value));
+              },
+              enumerable: true,
+              configurable: true,
+            },
+          ];
+        })
+    )
+  );
   return {
     classList: createClassList(),
+    dataset,
     getAttribute(name) {
       return attributes.get(name) || '';
     },
     setAttribute(name, value) {
       attributes.set(name, String(value));
+      if (name.startsWith('data-')) {
+        const key = kebabToCamel(name.slice(5));
+        if (!(key in dataset)) {
+          Object.defineProperty(dataset, key, {
+            get() {
+              return attributes.get(name) || '';
+            },
+            set(value) {
+              attributes.set(name, String(value));
+            },
+            enumerable: true,
+            configurable: true,
+          });
+        }
+      }
     },
     addEventListener(type, listener) {
       listeners.set(type, listener);
@@ -209,6 +255,59 @@ function runAdminEmbedContract(search) {
   });
 
   return { body, canvas, documentElement, legacyNodes, sections, window };
+}
+
+function runStaffShellEarly({ search, scriptSource } = {}) {
+  const html = read(INDEX_HTML);
+  const scriptMatch = html.match(/\(function staffCustomersShellEarly\(\)[\s\S]*?\}\)\(\);/);
+  assert.ok(scriptMatch, 'staffCustomersShellEarly ska finnas i index.html');
+  const source = scriptSource || scriptMatch[0];
+
+  const canvas = createElement({
+    'data-app-shell-view': 'conversations',
+    'data-app-view': 'conversations',
+  });
+  const sections = {
+    conversations: createElement({ 'data-shell-view': 'conversations' }),
+    customers: createElement({ 'data-shell-view': 'customers' }),
+    calendar: createElement({ 'data-shell-view': 'calendar' }),
+  };
+  const navButtons = [
+    createElement({ 'data-nav-view': 'conversations' }),
+    createElement({ 'data-nav-view': 'customers' }),
+    createElement({ 'data-nav-view': 'calendar' }),
+  ];
+  navButtons.forEach((btn) => {
+    btn.classList = createClassList();
+  });
+
+  const document = {
+    readyState: 'complete',
+    querySelector(selector) {
+      return selector === '.preview-canvas' ? canvas : null;
+    },
+    querySelectorAll(selector) {
+      if (selector === '[data-shell-view]') return Object.values(sections);
+      if (selector === '[data-nav-view]') return navButtons;
+      return [];
+    },
+    addEventListener() {},
+  };
+  const window = {
+    location: {
+      search: search || '',
+      pathname: '/major-arcana-preview/',
+    },
+  };
+
+  vm.runInNewContext(source, {
+    URL,
+    URLSearchParams,
+    document,
+    window,
+  });
+
+  return { canvas, sections, navButtons };
 }
 
 test('admin#cco kundlänk pekar på live customers-vyn utan demo/UAT-flaggor', () => {
@@ -663,4 +762,42 @@ test('admin embed gömmer watch chrome i customers-vyn', () => {
     /html\.is-admin-embed\[data-v9-enabled="on"\] \.v9-watch-wrap/,
     'watch-wrap ska döljas i admin-embed'
   );
+});
+
+
+test('staffCustomersShellEarly respekterar ?view=calendar', () => {
+  const harness = runStaffShellEarly({ search: '?view=calendar' });
+
+  assert.equal(harness.canvas.getAttribute('data-app-shell-view'), 'calendar');
+  assert.equal(harness.canvas.getAttribute('data-app-view'), 'calendar');
+  assert.equal(harness.sections.calendar.hidden, false);
+  assert.equal(harness.sections.customers.hidden, true);
+  assert.equal(harness.sections.conversations.hidden, true);
+
+  const activeNav = harness.navButtons.find((btn) =>
+    btn.classList.contains('preview-nav-item-active')
+  );
+  assert.ok(activeNav, 'exakt en navknapp ska vara aktiv');
+  assert.equal(activeNav.getAttribute('data-nav-view'), 'calendar');
+});
+
+test('staffCustomersShellEarly faller tillbaka på customers vid okänd vy', () => {
+  const harness = runStaffShellEarly({ search: '?view=unknown' });
+
+  assert.equal(harness.canvas.getAttribute('data-app-shell-view'), 'customers');
+  assert.equal(harness.canvas.getAttribute('data-app-view'), 'customers');
+  assert.equal(harness.sections.customers.hidden, false);
+  assert.equal(harness.sections.calendar.hidden, true);
+});
+
+test('staffCustomersShellEarly mutation: hårdkodat customers döljer kalendern', () => {
+  const harness = runStaffShellEarly({
+    search: '?view=calendar',
+    scriptSource: read(INDEX_HTML)
+      .match(/\(function staffCustomersShellEarly\(\)[\s\S]*?\}\)\(\);/)[0]
+      .replace("var resolvedView = KNOWN_SHELL_VIEWS[view] ? view : 'customers';", "var resolvedView = 'customers';"),
+  });
+
+  assert.equal(harness.sections.calendar.hidden, true, 'kalendern ska inte synas om vyn hårdkodas till customers');
+  assert.equal(harness.sections.customers.hidden, false);
 });

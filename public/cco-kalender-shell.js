@@ -2563,12 +2563,12 @@
     const view = detectViewFromUrl();
     applyView(view);
     if (view === 'calendar') {
+      bindQualityPanel();
       if (isOriginalV6Mode()) {
         initOriginalV6Calendar();
         return;
       }
       resetLiveReadUi();
-      bindQualityPanel();
       const dagTab = document.querySelector('.segment-tab[data-mode="dag"]');
       if (dagTab) {
         setTimeout(() => {

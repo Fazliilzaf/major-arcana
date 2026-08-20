@@ -125,6 +125,10 @@ test('kalender.html loads the shared auth helper before the active calendar shel
   );
 });
 
+test('kalender.html enables create booking in the active calendar', () => {
+  assert.match(calendarHtml, /window\.CCO_CALENDAR_CREATE_BOOKING_ENABLED\s*=\s*true/);
+});
+
 test('create drawer fails closed for missing or ambiguous canonical patient', async () => {
   const shell = loadShell(true);
   await assert.doesNotReject(shell.openCreateBookingDrawer({ patientId: '' }));
