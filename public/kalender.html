@@ -2077,6 +2077,68 @@
         display: none;
       }
 
+      /* ─── Tangentbordsgenvägar hjälp ─── */
+      .cco-cal-keyboard-help {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .cco-cal-keyboard-help-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(43, 37, 31, 0.35);
+        backdrop-filter: blur(2px);
+      }
+      .cco-cal-keyboard-help-surface {
+        position: relative;
+        width: 100%;
+        max-width: 420px;
+        max-height: 80vh;
+        overflow: auto;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow: var(--panel-shell-shadow-strong);
+        border-radius: 22px;
+        padding: 22px;
+      }
+      .cco-cal-keyboard-help-surface header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .cco-cal-keyboard-help-surface h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+      .cco-cal-keyboard-help-surface header button {
+        background: transparent;
+        border: 0;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--cco-text-secondary);
+      }
+      .cco-cal-keyboard-help-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px 14px;
+        margin: 0;
+        font-size: 12px;
+      }
+      .cco-cal-keyboard-help-grid dt {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 700;
+        color: var(--accent-studio);
+        min-width: 60px;
+      }
+      .cco-cal-keyboard-help-grid dd {
+        margin: 0;
+        color: var(--cco-text-secondary);
+      }
+
       /* ═══════════════════════════════════════════════════════════════
      INTERAKTION 9: APPLE WATCH GLANCE
      ═══════════════════════════════════════════════════════════════ */

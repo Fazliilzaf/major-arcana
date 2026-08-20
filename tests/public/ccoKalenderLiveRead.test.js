@@ -93,6 +93,21 @@ test('V6 calendar includes a read-only resource view renderer', () => {
   assert.doesNotMatch(v6Block, /resourceTab\.disabled = true/);
 });
 
+test('V6 calendar exposes keyboard shortcuts for view switching and help', () => {
+  const controlsBlock = shell.slice(
+    shell.indexOf('function v6BindControls'),
+    shell.indexOf('async function v6Load')
+  );
+  assert.match(controlsBlock, /toggleKeyboardHelp/);
+  assert.match(controlsBlock, /case '1':/);
+  assert.match(controlsBlock, /case '2':/);
+  assert.match(controlsBlock, /case '3':/);
+  assert.match(controlsBlock, /case '4':/);
+  assert.match(controlsBlock, /case 'j':/);
+  assert.match(controlsBlock, /case '\?':/);
+  assert.match(html, /cco-cal-keyboard-help/);
+});
+
 test('V6 calendar boot wires the quality panel before the original V6 renderer', () => {
   const initBlock = shell.slice(
     shell.indexOf('function init()'),

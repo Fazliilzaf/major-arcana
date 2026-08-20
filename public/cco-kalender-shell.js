@@ -2561,8 +2561,70 @@
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         setTimeout(() => openV6SearchOverlay(document.getElementById('searchOverlayInput')?.value || ''), 0);
+        return;
+      }
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const activeTag = document.activeElement?.tagName?.toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+
+      const go = (mode) => {
+        v6State.mode = mode;
+        if (mode === 'dag' && !v6State.dayDate) v6State.dayDate = isoToday();
+        v6RenderWeek(v6State.visits);
+      };
+      const shiftDay = (offset) => {
+        if (v6State.mode === 'dag' || v6State.mode === 'resurs') {
+          v6State.dayDate = v6IsoOffset(v6State.dayDate, offset);
+          v6State.weekStart = v6WeekStart(v6State.dayDate);
+        } else {
+          v6State.weekStart = v6IsoOffset(v6State.weekStart, offset * 7);
+          if (offset === 0) v6State.dayDate = isoToday();
+        }
+        v6Load();
+      };
+
+      switch (event.key) {
+        case '1': event.preventDefault(); go('morgon'); break;
+        case '2': event.preventDefault(); go('vecka'); break;
+        case '3': event.preventDefault(); go('dag'); break;
+        case '4': event.preventDefault(); go('resurs'); break;
+        case 'j': event.preventDefault(); shiftDay(1); break;
+        case 'k': event.preventDefault(); shiftDay(-1); break;
+        case 'h': event.preventDefault(); if (v6State.mode === 'dag' || v6State.mode === 'resurs') shiftDay(-1); else shiftDay(-1); break;
+        case 'l': event.preventDefault(); if (v6State.mode === 'dag' || v6State.mode === 'resurs') shiftDay(1); else shiftDay(1); break;
+        case '?': event.preventDefault(); toggleKeyboardHelp(); break;
+        default: break;
       }
     });
+  }
+
+  function toggleKeyboardHelp() {
+    let overlay = document.getElementById('ccoCalKeyboardHelp');
+    if (overlay) {
+      overlay.remove();
+      return;
+    }
+    overlay = el('div', { id: 'ccoCalKeyboardHelp', class: 'cco-cal-keyboard-help' }, [
+      el('div', { class: 'cco-cal-keyboard-help-backdrop', onclick: () => overlay.remove() }),
+      el('div', { class: 'cco-cal-keyboard-help-surface', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Tangentbordsgenvägar' }, [
+        el('header', {}, [
+          el('h3', {}, 'Tangentbordsgenvägar'),
+          el('button', { type: 'button', 'aria-label': 'Stäng', onclick: () => overlay.remove() }, '×'),
+        ]),
+        el('dl', { class: 'cco-cal-keyboard-help-grid' }, [
+          el('dt', {}, '1'), el('dd', {}, 'Morgonöversikt'),
+          el('dt', {}, '2'), el('dd', {}, 'Veckovy'),
+          el('dt', {}, '3'), el('dd', {}, 'Dagvy'),
+          el('dt', {}, '4'), el('dd', {}, 'Resursvy'),
+          el('dt', {}, 'j / l'), el('dd', {}, 'Nästa / föregående dag eller vecka'),
+          el('dt', {}, 'k / h'), el('dd', {}, 'Föregående / nästa dag eller vecka'),
+          el('dt', {}, '⌘K'), el('dd', {}, 'Sök canonical bokningshistorik'),
+          el('dt', {}, '?'), el('dd', {}, 'Visa denna hjälp'),
+          el('dt', {}, 'Esc'), el('dd', {}, 'Stäng sökning / hjälp'),
+        ]),
+      ]),
+    ]);
+    document.body.appendChild(overlay);
   }
 
   async function v6Load() {
