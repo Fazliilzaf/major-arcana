@@ -2081,6 +2081,12 @@
             onclick: () => openCreateBookingDrawer(slot),
           }, 'Skapa bokning'));
         }
+        if (isRebookable(slot)) {
+          actions.appendChild(el('button', {
+            class: 'quick-pill quick-pill--ai', type: 'button',
+            onclick: () => openRebookDrawer(slot),
+          }, 'Boka om'));
+        }
       } else {
         actions.appendChild(el('button', {
           class: 'quick-pill quick-pill--success', type: 'button', disabled: 'disabled',
@@ -2856,6 +2862,134 @@
       }
     }
     bindSetModeHook();
+  }
+
+  function isRebookable(slot) {
+    if (!slot) return false;
+    if (slot.source !== 'cco_booking_engine') return false;
+    if (!slot.customerEmail || !slot.conversationId) return false;
+    if (!slot.serviceId || !slot.resourceId) return false;
+    if (slot.identityAmbiguous || slot.linkAllowed === false) return false;
+    return true;
+  }
+
+  async function openRebookDrawer(slot) {
+    if (!isRebookable(slot)) return;
+
+    const drawer = getDrawerMount();
+    drawer.innerHTML = '';
+    drawer.classList.add('is-open');
+    const close = () => {
+      drawer.classList.remove('is-open');
+      drawer.innerHTML = '';
+    };
+    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
+      el('h3', {}, 'Boka om besök'),
+      el('div', { class: 'cco-cal-drawer-meta' }, 'Canonical patient · skrivande åtgärd'),
+      el('button', { class: 'cco-cal-drawer-close', type: 'button', onclick: close, 'aria-label': 'Stäng' }, '×'),
+    ]));
+
+    drawer.appendChild(el('dl', { class: 'cco-cal-preflight-fields' }, [
+      el('dt', {}, 'Patient'), el('dd', {}, slot.patientName || 'Namn saknas'),
+      el('dt', {}, 'Nuvarande tid'), el('dd', {}, slot.date + ' ' + formatTimeRange(slot.time, slot.endTime)),
+      el('dt', {}, 'Behandling'), el('dd', {}, slot.serviceLabel || slot.serviceId),
+      el('dt', {}, 'Resurs'), el('dd', {}, slot.resourceLabel || slot.resourceId),
+    ]));
+
+    const form = el('section', { class: 'cco-cal-create-controlled' });
+    const dateInput = el('input', {
+      class: 'cco-cal-create-input', type: 'date', value: slot.date, 'aria-label': 'Nytt datum',
+    });
+    const availabilitySelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Ny ledig Stockholm-tid' });
+    const message = el('p', { class: 'cco-cal-preflight-footnote', role: 'status' }, 'Laddar lediga tider…');
+
+    async function loadAvailability() {
+      availabilitySelect.innerHTML = '';
+      const params = new URLSearchParams({
+        fromDate: dateInput.value,
+        toDate: dateInput.value,
+        resIds: slot.resourceId,
+        srvIds: slot.serviceId,
+      });
+      try {
+        const response = await fetch('/api/v1/cco-booking-engine/availability?' + params,
+          { headers: calendarHeaders() });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const payload = await response.json();
+        (payload.slots || []).forEach((available) => {
+          const local = stockholmParts(available.startsAt);
+          availabilitySelect.appendChild(el('option', { value: available.startsAt },
+            local.date + ' kl ' + local.time + ' · Europe/Stockholm'));
+        });
+        message.textContent = availabilitySelect.options.length
+          ? 'Välj en ny tid och bekräfta ombokningen.'
+          : 'Inga lediga tider för valt datum med samma resurs/behandling.';
+      } catch (_) {
+        message.textContent = 'Kunde inte läsa availability. Ombokning blockerad.';
+      }
+    }
+
+    const confirmInput = el('input', {
+      class: 'cco-cal-create-input', type: 'text', autocomplete: 'off',
+      placeholder: 'Skriv BOKA OM', 'aria-label': 'Skriv BOKA OM för att bekräfta',
+    });
+    const confirmButton = el('button', {
+      class: 'quick-pill quick-pill--success', type: 'button', disabled: 'disabled',
+    }, 'Bekräfta ombokning');
+
+    confirmInput.addEventListener('input', () => {
+      confirmButton.disabled = confirmInput.value !== 'BOKA OM' || !availabilitySelect.value;
+    });
+    availabilitySelect.addEventListener('change', () => {
+      confirmButton.disabled = confirmInput.value !== 'BOKA OM' || !availabilitySelect.value;
+    });
+
+    confirmButton.addEventListener('click', async () => {
+      confirmButton.disabled = true;
+      try {
+        const response = await fetch('/api/v1/cco-booking-engine/rebook', {
+          method: 'POST',
+          headers: calendarHeaders({ json: true }),
+          body: JSON.stringify({
+            conversationId: slot.conversationId,
+            customerEmail: slot.customerEmail,
+            workspaceId: slot.workspaceId || '',
+            slot: {
+              startsAt: availabilitySelect.value,
+              resourceId: slot.resourceId,
+              serviceId: slot.serviceId,
+            },
+            reason: 'Ombokad från kalendern',
+          }),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'rebook_failed');
+        drawer.innerHTML = '';
+        drawer.appendChild(el('div', { class: 'cco-cal-ready cco-cal-ready--ok', role: 'status' },
+          'Besöket ombokades. Ny tid: ' + (payload.booking?.slot?.startsAt || availabilitySelect.value)));
+        setTimeout(() => {
+          close();
+          v6Load();
+        }, 1200);
+      } catch (error) {
+        message.textContent = 'Ombokningen misslyckades: ' + (error.message || 'okänt fel');
+        confirmButton.disabled = false;
+      }
+    });
+
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Nytt datum'));
+    form.appendChild(dateInput);
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Ny ledig tid'));
+    form.appendChild(availabilitySelect);
+    form.appendChild(message);
+    form.appendChild(el('p', { class: 'cco-cal-preflight-warning' },
+      'Detta avbokar den gamla tiden och skapar en ny bekräftad bokning. Skriv BOKA OM för att fortsätta.'));
+    form.appendChild(confirmInput);
+    form.appendChild(confirmButton);
+    drawer.appendChild(form);
+
+    dateInput.addEventListener('change', loadAvailability);
+    await loadAvailability();
   }
 
   global.CcoKalenderShell = isReadOnlyMode()

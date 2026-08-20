@@ -136,6 +136,15 @@ test('V6 calendar exposes resource and service filters wired to displayVisits', 
   assert.match(shell, /v6BuildFilters\(\);/);
 });
 
+test('V6 calendar exposes rebooking for confirmed engine bookings with identity', () => {
+  assert.match(shell, /function isRebookable\(slot\)/);
+  assert.match(shell, /async function openRebookDrawer\(slot\)/);
+  assert.match(shell, /'\/api\/v1\/cco-booking-engine\/rebook'/);
+  assert.match(shell, /slot\.source !== 'cco_booking_engine'/);
+  assert.match(shell, /onclick: \(\) => openRebookDrawer\(slot\)/);
+  assert.match(shell, /'Boka om'/);
+});
+
 test('V6 calendar boot wires the quality panel before the original V6 renderer', () => {
   const initBlock = shell.slice(
     shell.indexOf('function init()'),
