@@ -75,4 +75,53 @@ test.describe('CCO huvudflöden', () => {
     await expect(bookingCaseList).toHaveCount(1);
     await expect(page.locator('body')).toContainText(/Webb-bokningar|Bokningsärenden/i);
   });
+
+  test('?view=calendar öppnar kalendern direkt utan att klicka nav', async ({ page }) => {
+    const viewport = page.viewportSize();
+    if (viewport && viewport.width <= 768) {
+      test.skip(true, 'mobilskal hanterar view-parametern separat');
+    }
+
+    await page.goto('/major-arcana-preview/?view=calendar');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Vänta på att desktop-shell-routingen landar i kalendern (den utgår från
+    // workspace-surface, inte på ett networkidle-paket).
+    await page.waitForFunction(
+      () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'calendar',
+      undefined,
+      { timeout: 10000, polling: 50 }
+    );
+
+    // Vänta på att kalender-ytan syns och har laddat sitt innehåll.
+    await page.waitForFunction(
+      () => {
+        const cal = document.getElementById('cco-desktop-calendar');
+        if (!cal || cal.hidden) return false;
+        const body = cal.querySelector('[data-cal-body], .cco-cal-body, .cco-cal-workstation');
+        return Boolean(body);
+      },
+      undefined,
+      { timeout: 15000, polling: 50 }
+    );
+
+    const calendarReady = await page.evaluate(() => {
+      const canvas = document.querySelector('.preview-canvas');
+      const cal = document.getElementById('cco-desktop-calendar');
+      const navBtn = document.querySelector('[data-nav-view="calendar"]');
+      return {
+        appShellView: canvas?.dataset.appShellView || '',
+        appView: canvas?.dataset.appView || '',
+        calendarExists: Boolean(cal),
+        calendarVisible: Boolean(cal && !cal.hidden),
+        navActive: navBtn?.classList.contains('preview-nav-item-active') || false,
+      };
+    });
+
+    expect(calendarReady.appShellView).toBe('calendar');
+    expect(calendarReady.appView).toBe('calendar');
+    expect(calendarReady.calendarExists).toBe(true);
+    expect(calendarReady.calendarVisible).toBe(true);
+    expect(calendarReady.navActive).toBe(true);
+  });
 });
