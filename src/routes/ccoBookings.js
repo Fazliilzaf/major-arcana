@@ -37,6 +37,8 @@ const {
   buildCanonicalBookingIntegrityReport,
   buildUnlinkedClientoBookingReview,
   loadClientoLinkSidecarLedgerEvents,
+  buildPatientLookupMaps,
+  resolvePatientIdFromClientoBooking,
 } = require('../ops/ccoKunderBookingEnrichment');
 const {
   buildClientoHistoricalShadowReadmodel,
@@ -397,13 +399,15 @@ function requireStaffRole(context) {
   throw error;
 }
 
-function toCaseInput(context, body = {}) {
+function toCaseInput(context, body = {}, options = {}) {
   return {
     tenantId: context.tenantId,
     workspaceId: context.workspaceId,
     conversationId: context.conversationId,
     customerEmail: context.customerEmail,
     customerName: context.customerName,
+    // patientId kan komma explicit (t.ex. fran UI) eller harledas av routen.
+    patientId: normalizeText(options.patientId) || normalizeText(body.patientId) || null,
     source: normalizeText(body.source) || 'operator',
     ownerUserId: context.actor.userId,
     ownerName: normalizeText(body.ownerName),
@@ -752,6 +756,44 @@ function createCcoBookingsRouter({
   config,
   conversationStateStore = null,
 }) {
+  // Resolver for patientId baserat pa patient-master. Samma princip som
+  // migreringen av Cliento-bokningar: tvetydig identitet ger null, aldrig en
+  // gissning. Cachad per request-kontext for att slippa bygga om lookup maps
+  // vid flera case-anrop inom samma request.
+  async function buildPatientLookupForTenant(context) {
+    if (!patientMasterStore || !context?.tenantId) return null;
+    const cacheKey = '_patientLookup';
+    if (context[cacheKey]) return context[cacheKey];
+    try {
+      const directory = await patientMasterStore.listPatientMatchDirectory({
+        tenantId: context.tenantId,
+      });
+      const lookup = buildPatientLookupMaps(directory?.patients || []);
+      context[cacheKey] = lookup;
+      return lookup;
+    } catch (err) {
+      console.warn('[ccoBookings] kunde inte bygga patient lookup:', err.message);
+      return null;
+    }
+  }
+
+  async function resolvePatientIdForCase(context, body = {}) {
+    const explicitPatientId = normalizeText(body?.patientId);
+    if (explicitPatientId) return explicitPatientId;
+
+    const customerEmail = normalizeKey(context?.customerEmail || body?.customerEmail);
+    if (!customerEmail) return null;
+
+    const lookup = await buildPatientLookupForTenant(context);
+    if (!lookup) return null;
+
+    return resolvePatientIdFromClientoBooking({ customerEmail }, lookup);
+  }
+
+  async function buildCaseInput(context, body = {}) {
+    const patientId = await resolvePatientIdForCase(context, body);
+    return toCaseInput(context, body, { patientId });
+  }
   const router = express.Router();
 
   async function syncBookingPatient360(context, bookingCase, options = {}) {
@@ -808,7 +850,7 @@ function createCcoBookingsRouter({
     handle(req, res, async (context) => {
       requireBookingContext(context);
       const bookingCase = await bookingStore.ensureCase({
-        ...toCaseInput(context),
+        ...(await buildCaseInput(context)),
         status: 'needs_triage',
       });
       const bookingEngine = bookingEngineStore
@@ -916,7 +958,7 @@ function createCcoBookingsRouter({
   router.put('/cco-bookings/case', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingContext(context);
-      const bookingCase = await bookingStore.upsertCase(toCaseInput(context, req.body));
+      const bookingCase = await bookingStore.upsertCase(await buildCaseInput(context, req.body));
       const patientRecord = await syncBookingPatient360(context, bookingCase, {
         source: 'cco_bookings_case_upsert',
         includeTimelineEvent: true,
@@ -951,14 +993,15 @@ function createCcoBookingsRouter({
         patientId: normalizeText(req.body?.patientId),
         body: req.body || {},
       });
+      const caseInput = await buildCaseInput(context, req.body);
       const reservedSlots = bookingEngineStore
         ? await bookingEngineStore.reserveSlots({
-            ...toCaseInput(context, req.body),
+            ...caseInput,
             selectedSlots: req.body?.selectedSlots || req.body?.slots,
           })
         : null;
       const bookingCase = await bookingStore.setCandidateSlots({
-        ...toCaseInput(context, req.body),
+        ...caseInput,
         selectedSlots: reservedSlots
           ? reservedSlots.map((item) => item.slot)
           : req.body?.selectedSlots || req.body?.slots,
@@ -999,7 +1042,7 @@ function createCcoBookingsRouter({
         return res.status(400).json({ error: 'Okänd bokningsstatus.' });
       }
       const bookingCase = await bookingStore.updateStatus({
-        ...toCaseInput(context, req.body),
+        ...(await buildCaseInput(context, req.body)),
         status,
       });
       const statusKindMap = {
@@ -1038,7 +1081,7 @@ function createCcoBookingsRouter({
       }
       const eventType = normalizeText(req.body?.type) || 'operator_note';
       const bookingCase = await bookingStore.addEvent({
-        ...toCaseInput(context, req.body),
+        ...(await buildCaseInput(context, req.body)),
         type: eventType,
         label,
         detail,
@@ -1078,7 +1121,7 @@ function createCcoBookingsRouter({
     handle(req, res, async (context) => {
       requireBookingContext(context);
       const bookingCase = await bookingStore.updateStatus({
-        ...toCaseInput(context, req.body),
+        ...(await buildCaseInput(context, req.body)),
         status: 'offered',
       });
       const patientRecord = await syncBookingPatient360(context, bookingCase, {
@@ -1859,18 +1902,19 @@ function createCcoBookingsRouter({
         slot,
         reason: normalizeText(req.body?.reason) || 'Ombokad från kalendern',
       });
+      const caseInput = await buildCaseInput(caseContext, req.body);
       let nextCase = await bookingStore.setCandidateSlots({
-        ...toCaseInput(caseContext, req.body),
+        ...caseInput,
         selectedSlots: [booking.slot],
       });
       nextCase = await bookingStore.updateStatus({
-        ...toCaseInput(caseContext, req.body),
+        ...caseInput,
         status: 'confirmed_external',
         statusSource: 'cco_engine',
       });
       await syncBookingConversationEvent(caseContext, nextCase, 'rescheduled');
       nextCase = await bookingStore.addEvent({
-        ...toCaseInput(caseContext, req.body),
+        ...caseInput,
         type: 'engine_booking_rebooked',
         label: 'Bokning ombokad i CCO',
         detail: 'Tid flyttades via kalendern.',
