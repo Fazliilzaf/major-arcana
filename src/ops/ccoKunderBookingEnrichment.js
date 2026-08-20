@@ -13,7 +13,42 @@ const {
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 
-const WAITLIST_STATUSES = new Set(['waiting_customer', 'needs_triage', 'offered', 'slots_ready']);
+/**
+ * Statusar dar en manniska bevisligen har gjort nagot med arendet.
+ *
+ * needs_triage saknas har med flit. Den ar storens default for allt — och
+ * viktigare: ett tomt bokningsarende skapas automatiskt varje gang nagon bara
+ * OPPNAR en konversation (ccoWorkspace.js:770) eller bokningsytan
+ * (ccoBookings.js:849). I produktion var 134 av 148 arenden sadana skal.
+ *
+ * Nar needs_triage rakandes som vantelista blev foljden att patienter visades
+ * som vantande pa tid for att nagon rakat titta pa deras konversation. Det syns
+ * hela vagen ut i segmentet "Vantelista", raknaren och taggen "Pa vantelistan".
+ */
+const AKTIVA_VANTELISTESTATUSAR = new Set(['waiting_customer', 'offered', 'slots_ready']);
+
+/**
+ * Innehaller arendet nagot som en manniska har lagt dit?
+ *
+ * Ett skal har exakt en handelse (case_created) och inget annat. Sa fort en
+ * operator valt tider, angett behandling, satt onskad tidsram eller tagit
+ * agarskap finns det nagot att vanta pa — oavsett om statusen hunnit andras.
+ */
+function bookingCaseHarManskligtInnehall(bookingCase = {}) {
+  if (asArray(bookingCase.selectedSlots).length > 0) return true;
+  if (normalizeText(bookingCase.requestedTreatment)) return true;
+  if (normalizeText(bookingCase.preferredWindow)) return true;
+  if (normalizeText(bookingCase.ownerUserId)) return true;
+  return asArray(bookingCase.events).length > 1;
+}
+
+function arPaVantelista(bookingCase = {}) {
+  const status = normalizeKey(bookingCase.status);
+  if (AKTIVA_VANTELISTESTATUSAR.has(status)) return true;
+  if (status !== 'needs_triage') return false;
+  // Ett otriagerat arende raknas — men bara om det ar ett riktigt arende.
+  return bookingCaseHarManskligtInnehall(bookingCase);
+}
 
 const TREATMENT_SEGMENT_DEFS = [
   { id: 'treatment_fue', serviceIds: ['fue'], label: 'FUE' },
@@ -642,7 +677,16 @@ function collectBookingReadouts({
   }
 
   for (const bookingCase of asArray(bookingCases)) {
-    const patientId = emailToPatient.get(normalizeEmail(bookingCase.customerEmail));
+    // Samma bugg som redan ar fixad for engine-poster ovan, men for arenden.
+    //
+    // Uppslaget gjordes bara pa e-post, sa det patientId som migreringen
+    // 2026-08-20 skrev pa arendet kastades bort vid varje kortbygge. Foljden
+    // var tyst: en kund vars arende har en annan mejladress an den registrerade
+    // tappade sitt bokningsarende fran kundkortet, trots korrekt koppling.
+    const explicitPatientId = normalizeText(bookingCase.patientId);
+    const patientId =
+      (lookup.patientIds?.has(explicitPatientId) && explicitPatientId) ||
+      emailToPatient.get(normalizeEmail(bookingCase.customerEmail));
     if (!patientId) continue;
     for (const slot of asArray(bookingCase.selectedSlots)) {
       const safeSlot = asObject(slot);
@@ -1094,7 +1138,7 @@ function buildBookingSignalsIndex({
       sig.bookingCaseStatus = status || null;
     }
 
-    if (WAITLIST_STATUSES.has(status)) {
+    if (arPaVantelista(bookingCase)) {
       sig.onWaitlist = true;
       sig.waitingListStatus = status;
     }
@@ -1329,8 +1373,18 @@ async function loadKunderBookingIndex(
         : [];
     const bookingCases =
       typeof stores.caseStore.listCasesForEnrichment === 'function'
-        ? await stores.caseStore.listCasesForEnrichment({ tenantId: tid, limit: 5000 })
-        : await stores.caseStore.listCases({ tenantId: tid, limit: 5000 });
+        ? // excludeTestData: annars flaggar de 199 RFC-2606-arendena riktiga
+          // patienter som vantande pa tid.
+          await stores.caseStore.listCasesForEnrichment({
+            tenantId: tid,
+            limit: 5000,
+            excludeTestData: true,
+          })
+        : await stores.caseStore.listCases({
+            tenantId: tid,
+            limit: 5000,
+            excludeTestData: true,
+          });
     const encounters =
       typeof stores.encounterStore.listEncountersForEnrichment === 'function'
         ? stores.encounterStore.listEncountersForEnrichment(tid)
