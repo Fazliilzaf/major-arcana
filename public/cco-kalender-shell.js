@@ -18,10 +18,6 @@
   const HOUR_START = 7;
   const HOUR_END = 19;
 
-  function isReadOnlyMode() {
-    return global.CCO_CALENDAR_READ_ONLY === true;
-  }
-
   function isOriginalV6Mode() {
     return global.CCO_CALENDAR_ORIGINAL_V6 === true;
   }
@@ -45,10 +41,8 @@
   function calendarHeaders({ tenantId = '', role = '', json = false } = {}) {
     const headers = {};
     if (json) headers['Content-Type'] = 'application/json';
-    if (!isReadOnlyMode()) {
-      if (role) headers['x-cco-role'] = role;
-      if (tenantId) headers['x-cco-tenant'] = tenantId;
-    }
+    if (role) headers['x-cco-role'] = role;
+    if (tenantId) headers['x-cco-tenant'] = tenantId;
     const auth = global.ArcanaReviewAuth;
     if (auth && typeof auth.authHeaders === 'function') {
       return auth.authHeaders(headers);
@@ -427,7 +421,7 @@
     const body = document.body;
     const calendarShell = document.querySelector('.calendar-shell');
     body.setAttribute('data-cco-view', view === 'calendar' ? 'calendar' : 'customers');
-    if (view === 'calendar' && isReadOnlyMode()) {
+    if (view === 'calendar' && isOriginalV6Mode()) {
       body.setAttribute('data-cco-calendar-mode', 'live-read');
     }
     if (calendarShell) calendarShell.hidden = (view !== 'calendar');
@@ -571,10 +565,6 @@
   // Anropet gick alltid fel och föll tillbaka på samma default nedan — borttaget,
   // beteendet är identiskt.
   async function onBookingClick(slot) {
-    if (isReadOnlyMode()) {
-      renderReadonlyDrawer(slot);
-      return;
-    }
     const treatment = slot.serviceId || '';
     const pills = {
       patientId: null, encounterId: null, treatment,
@@ -584,59 +574,6 @@
       readyForTreatment: false, blockingMissing: [],
     };
     renderDrawer(slot, pills);
-  }
-
-  function renderReadonlyDrawer(slot) {
-    const drawer = getDrawerMount();
-    const placeholder = document.querySelector('.cco-cal-live-placeholder');
-    if (placeholder) placeholder.hidden = true;
-    drawer.innerHTML = '';
-    drawer.classList.add('is-open');
-    const close = () => {
-      drawer.classList.remove('is-open');
-      drawer.innerHTML = '';
-      if (placeholder) placeholder.hidden = false;
-    };
-    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
-      el('h3', {}, slot.patientName || '(okänd patient)'),
-      el('div', { class: 'cco-cal-drawer-meta' },
-        formatTimeRange(slot.time, slot.endTime) + ' · ' +
-        (slot.serviceLabel || slot.serviceId || 'Bokning')),
-      el('button', { class: 'cco-cal-drawer-close', onclick: close, 'aria-label': 'Stäng' }, '×'),
-    ]));
-    const details = [
-      ['Status', statusLabel(slot.status)],
-      ['Behandling', slot.serviceLabel || slot.serviceId || '—'],
-      ['Källa', sourceLabel(slot.source)],
-      ['Canonical patientId', slot.patientId || 'Okopplad'],
-      ['Besökstillfälle', slot.encounterId || 'Saknas'],
-    ];
-    const detailList = el('dl', { class: 'cco-cal-read-details' });
-    for (const [label, value] of details) {
-      detailList.appendChild(el('dt', {}, label));
-      detailList.appendChild(el('dd', {}, value));
-    }
-    drawer.appendChild(detailList);
-    if (slot.patientId) {
-      drawer.appendChild(el('button', {
-        class: 'cco-cal-open-patient', type: 'button', onclick: () => openCanonicalPatient(slot.patientId),
-      }, 'Öppna samma patient i Kunder V11/V12'));
-    }
-    drawer.appendChild(renderReadonlyBookingPreflight(slot));
-    const noteFields = [
-      ['Bokningsanteckning', slot.bookingNotes || slot.notes],
-      ['Kundmeddelande', slot.customerMessage],
-      ['Intern anteckning', slot.internalNotes],
-      ['Behandlingsanteckning', slot.treatmentNotes],
-    ].filter((entry) => entry[1]);
-    const notes = el('section', { class: 'cco-cal-visit-notes' }, [
-      el('h4', {}, 'Anteckningar'),
-    ]);
-    if (!noteFields.length) notes.appendChild(el('p', {}, 'Inga anteckningar registrerade.'));
-    noteFields.forEach(([label, value]) => notes.appendChild(el('article', {}, [
-      el('strong', {}, label), el('p', {}, value),
-    ])));
-    drawer.appendChild(notes);
   }
 
   function readonlyGate(key, label, passed, detail) {
@@ -721,45 +658,6 @@
       gates,
       blockers: gates.filter((gate) => gate.status === 'blocked'),
     };
-  }
-
-  function renderReadonlyBookingPreflight(slot) {
-    const preflight = buildReadonlyBookingPreflight(slot);
-    const fields = el('dl', { class: 'cco-cal-preflight-fields' });
-    preflight.fields.forEach(([label, value]) => {
-      fields.appendChild(el('dt', {}, label));
-      fields.appendChild(el('dd', {}, value));
-    });
-    const gates = el('ul', { class: 'cco-cal-preflight-gates' });
-    preflight.gates.forEach((gate) => {
-      const passed = gate.status === 'pass';
-      gates.appendChild(el('li', { class: passed ? 'is-pass' : 'is-blocked' }, [
-        el('span', { 'aria-hidden': 'true' }, passed ? '✓' : '!'),
-        el('div', {}, [el('strong', {}, gate.label), el('p', {}, gate.detail)]),
-      ]));
-    });
-    return el('section', {
-      class: 'cco-cal-preflight',
-      'aria-label': 'Read-only boknings-preflight',
-      dataset: { readOnly: 'true', zeroWrites: 'true', actionAllowed: 'false' },
-    }, [
-      el('header', {}, [
-        el('div', {}, [
-          el('span', { class: 'cco-cal-preflight-kicker' }, 'READ-ONLY · 0 WRITES'),
-          el('h4', {}, 'Boknings-preflight'),
-        ]),
-        el('span', { class: 'cco-cal-preflight-stop' }, 'BLOCKERAD'),
-      ]),
-      preflight.identityState === 'ambiguous'
-        ? el('p', { class: 'cco-cal-preflight-warning' },
-          'Tvetydig identitet. Posten förblir okopplad och får aldrig kopplas genom gissning.')
-        : null,
-      fields,
-      el('h5', {}, 'Säkerhetsgrindar'),
-      gates,
-      el('p', { class: 'cco-cal-preflight-footnote' },
-        'Ingen bekräftelse, flytt eller avbokning är tillgänglig i denna fas.'),
-    ]);
   }
 
   function createBookingIdempotencyKey() {
@@ -1203,7 +1101,6 @@
   }
 
   function resetLiveReadUi() {
-    if (!isReadOnlyMode()) return;
     document.querySelectorAll(
       '.mockup-label, .caption, .mini-inbox, .morgon-story, .story-cta-row, ' +
       '.calendar-busy, .vibe-strip, .calendar-week, .watch-widget, .watch-restore, ' +
@@ -1304,7 +1201,7 @@
   }
 
   function bindQualityPanel() {
-    if (!isReadOnlyMode() || document.getElementById('ccoCalQualityPanel')) return;
+    if (isOriginalV6Mode() || document.getElementById('ccoCalQualityPanel')) return;
     const actions = document.querySelector('.calendar-toolbar-actions');
     if (!actions) return;
     const panel = el('section', { id: 'ccoCalQualityPanel', class: 'cco-cal-quality-panel',
@@ -1325,7 +1222,6 @@
   }
 
   function renderLiveStatus({ label, total, confirmed, pending, sourceCounts = {} }) {
-    if (!isReadOnlyMode()) return;
     const status = document.querySelector('.calendar-status-bar');
     if (!status) return;
     status.replaceChildren(
@@ -1350,7 +1246,6 @@
   }
 
   function updateDaySummary(dayView) {
-    if (!isReadOnlyMode()) return;
     updateSideCount('Dagens mottagning', dayView.totalSlots || 0);
     updateSideCount('Resurser', (dayView.resources || []).filter((resource) =>
       resource.resourceId !== '_unassigned').length);
@@ -1373,7 +1268,6 @@
   }
 
   async function refreshCanonicalSidebarSummary(date, tenantId, role) {
-    if (!isReadOnlyMode()) return;
     try {
       const selectedDate = date || isoToday();
       const startDate = startOfWeek(selectedDate);
@@ -1404,23 +1298,8 @@
     mount.innerHTML = '<div class="cco-cal-empty">Laddar dagens kalender…</div>';
 
     try {
-      if (isReadOnlyMode()) {
-        const visits = await loadCanonicalVisits(date, date, tenantId, role);
-        const dayView = canonicalDayView(date, visits);
-        mount.innerHTML = '';
-        mount.appendChild(renderDayGrid(dayView, onBookingClick));
-        updateDaySummary(dayView);
-        await refreshCanonicalSidebarSummary(date, tenantId, role);
-        const title = document.getElementById('calTitle');
-        if (title) {
-          const d = new Date(date + 'T00:00:00');
-          title.textContent = d.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' }) +
-            ' · ' + dayView.totalSlots + ' bokningar';
-        }
-        return;
-      }
       const query = new URLSearchParams({ date });
-      if (!isReadOnlyMode()) query.set('tenantId', tenantId);
+      query.set('tenantId', tenantId);
       const res = await fetch('/api/v1/calendar/day?' + query.toString(), {
         headers: calendarHeaders({ tenantId, role }),
       });
@@ -1636,30 +1515,8 @@
     mount.innerHTML = '<div class="cco-cal-empty">Laddar vecka…</div>';
 
     try {
-      if (isReadOnlyMode()) {
-        const end = new Date(startDate + 'T12:00:00.000Z');
-        end.setUTCDate(end.getUTCDate() + 6);
-        const visits = await loadCanonicalVisits(startDate, end.toISOString().slice(0, 10), tenantId, role);
-        const weekView = canonicalWeekView(startDate, visits);
-        mount.innerHTML = '';
-        mount.appendChild(renderWeekGrid(weekView, onBookingClick));
-        await refreshCanonicalSidebarSummary(opts.date || isoToday(), tenantId, role);
-        const totals = weekView.days.reduce((summary, day) => {
-          summary.confirmed += day.confirmedBookings;
-          summary.pending += day.pendingReservations;
-          summary.sourceCounts.bookingEngine += day.sourceCounts.bookingEngine;
-          summary.sourceCounts.cliento += day.sourceCounts.cliento;
-          return summary;
-        }, { confirmed: 0, pending: 0, sourceCounts: { bookingEngine: 0, cliento: 0 } });
-        renderLiveStatus({ label: 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')),
-          total: weekView.totalSlots, ...totals });
-        const title = document.getElementById('calTitle');
-        if (title) title.textContent = 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')) +
-          ' · ' + weekView.totalSlots + ' bokningar';
-        return;
-      }
       const query = new URLSearchParams({ startDate });
-      if (!isReadOnlyMode()) query.set('tenantId', tenantId);
+      query.set('tenantId', tenantId);
       const res = await fetch('/api/v1/calendar/week?' + query.toString(), {
         headers: calendarHeaders({ tenantId, role }),
       });
@@ -1687,16 +1544,14 @@
         },
         { confirmed: 0, pending: 0, sourceCounts: { bookingEngine: 0, cliento: 0 } }
       );
-      if (isReadOnlyMode()) {
-        updateSideCount('Veckan', weekView.totalSlots || 0);
-        renderLiveStatus({
-          label: 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')),
-          total: weekView.totalSlots,
-          confirmed: totals.confirmed,
-          pending: totals.pending,
-          sourceCounts: totals.sourceCounts,
-        });
-      }
+      updateSideCount('Veckan', weekView.totalSlots || 0);
+      renderLiveStatus({
+        label: 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')),
+        total: weekView.totalSlots,
+        confirmed: totals.confirmed,
+        pending: totals.pending,
+        sourceCounts: totals.sourceCounts,
+      });
 
       // Uppdatera existing #calTitle
       const title = document.getElementById('calTitle');
@@ -3129,11 +2984,11 @@
     drawer.appendChild(form);
   }
 
-  global.CcoKalenderShell = isReadOnlyMode()
-    ? { loadDay, loadWeek, applyView, renderDrawer: renderReadonlyDrawer,
-        buildCanonicalSidebarSummary, canonicalConflictCount, buildReadonlyBookingPreflight,
-        createBookingPayload, openCreateBookingDrawer }
-    : { loadDay, loadWeek, applyView, renderDrawer };
+  global.CcoKalenderShell = {
+    loadDay, loadWeek, applyView, renderDrawer,
+    buildCanonicalSidebarSummary, canonicalConflictCount, buildReadonlyBookingPreflight,
+    createBookingPayload, openCreateBookingDrawer,
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

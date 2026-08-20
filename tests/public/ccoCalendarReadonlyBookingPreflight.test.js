@@ -16,7 +16,7 @@ const visualFixture = fs.readFileSync(
 
 function loadShell() {
   const sandbox = {
-    window: { CCO_CALENDAR_READ_ONLY: true },
+    window: {},
     document: { readyState: 'loading', addEventListener() {} },
     console,
     Date,
@@ -129,11 +129,11 @@ test('read-only preflight exposes every operational safety gate and no mutation 
   assert.doesNotMatch(block, /Bekräfta bokning|Flytta bokning|Avboka bokning/);
   assert.match(block, /actionAllowed: false/);
   assert.ok(
-    source.indexOf('global.CcoKalenderShell = isReadOnlyMode()') <
+    source.indexOf('global.CcoKalenderShell = {') <
       source.indexOf("document.addEventListener('DOMContentLoaded', init)")
   );
   assert.match(html, /cco-kalender-shell\.js\?v=20260717j/);
   assert.match(visualFixture, /window\.CcoKalenderShell\.renderDrawer/);
-  assert.match(visualFixture, /window\.CCO_CALENDAR_READ_ONLY = true/);
+  assert.doesNotMatch(visualFixture, /window\.CCO_CALENDAR_READ_ONLY = true/);
   assert.doesNotMatch(visualFixture, /fetch\s*\(|method\s*:\s*['"]POST/);
 });

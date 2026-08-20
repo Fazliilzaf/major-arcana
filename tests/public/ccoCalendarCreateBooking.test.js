@@ -13,7 +13,6 @@ const calendarHtml = fs.readFileSync(path.join(root, 'public/kalender.html'), 'u
 function loadShell(createEnabled = false) {
   const sandbox = {
     window: {
-      CCO_CALENDAR_READ_ONLY: true,
       CCO_CALENDAR_CREATE_BOOKING_ENABLED: createEnabled,
     },
     document: { readyState: 'loading', addEventListener() {} },
@@ -77,13 +76,12 @@ test('controlled UI is default-off and orders preflight before explicit confirm'
 
 test('active calendar catalog/preflight headers reuse shared admin auth helper first', () => {
   const instrumented = source.replace(
-    'createBookingPayload, openCreateBookingDrawer }',
-    'createBookingPayload, openCreateBookingDrawer, __testCalendarHeaders: calendarHeaders }'
+    'createBookingPayload, openCreateBookingDrawer,\n  };',
+    'createBookingPayload, openCreateBookingDrawer,\n    __testCalendarHeaders: calendarHeaders,\n  };'
   );
   const calls = [];
   const sandbox = {
     window: {
-      CCO_CALENDAR_READ_ONLY: true,
       CCO_CALENDAR_CREATE_BOOKING_ENABLED: true,
       ArcanaReviewAuth: {
         authHeaders(headers) {

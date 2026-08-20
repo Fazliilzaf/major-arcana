@@ -12,7 +12,7 @@ function loadCalendarShell() {
     'utf8'
   );
   const sandbox = {
-    window: { CCO_CALENDAR_READ_ONLY: true },
+    window: {},
     document: { readyState: 'loading', addEventListener() {} },
     console,
     Date,

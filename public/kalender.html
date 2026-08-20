@@ -4116,7 +4116,6 @@
     </style>
     <link rel="stylesheet" href="/cco-mobile.css?v=20260531a" />
     <script>
-      window.CCO_CALENDAR_READ_ONLY = true;
       window.CCO_CALENDAR_ORIGINAL_V6 = true;
       window.CCO_CALENDAR_CREATE_BOOKING_ENABLED = true;
       document.documentElement.classList.add('cco-v6-booting');
@@ -5878,7 +5877,6 @@
       };
 
       tmSlider.addEventListener('input', () => {
-        if (window.CCO_CALENDAR_READ_ONLY === true) return;
         const v = tmSlider.value;
         const info = DAY_OFFSETS[v] || { label: 'Nutid', dir: 'now' };
         tmLabel.textContent = info.label;
@@ -5912,7 +5910,6 @@
 
       // Cmd+Z / Ctrl+Z = ångra senaste (här: visuell flash + toast + reset till nutid)
       document.addEventListener('keydown', (ev) => {
-        if (window.CCO_CALENDAR_READ_ONLY === true) return;
         if ((ev.metaKey || ev.ctrlKey) && ev.key === 'z' && !ev.shiftKey) {
           ev.preventDefault();
           const flash = document.createElement('div');
@@ -6038,7 +6035,7 @@
           badges: [{ kind: 'vip', label: 'VIP' }],
         },
       ];
-      const CUSTOMERS = window.CCO_CALENDAR_READ_ONLY ? [] : LEGACY_PREVIEW_CUSTOMERS;
+      const CUSTOMERS = LEGACY_PREVIEW_CUSTOMERS;
 
       const globalSearch = document.getElementById('globalSearch');
       const globalSearchInput = document.getElementById('globalSearchInput');

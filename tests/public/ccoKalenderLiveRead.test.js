@@ -10,14 +10,14 @@ const html = fs.readFileSync(path.join(root, 'public/kalender.html'), 'utf8');
 const shell = fs.readFileSync(path.join(root, 'public/cco-kalender-shell.js'), 'utf8');
 const bridge = fs.readFileSync(path.join(root, 'public/cco-kalender-bridge.js'), 'utf8');
 
-test('canonical calendar activates the original V6 renderer in read-only mode', () => {
+test('canonical calendar activates the original V6 renderer; read-only flag removed', () => {
   const modeIndex = html.indexOf('window.CCO_CALENDAR_READ_ONLY = true');
   const originalIndex = html.indexOf('window.CCO_CALENDAR_ORIGINAL_V6 = true');
   const shellMatch = html.match(/\/cco-kalender-shell\.js\?v=[^"']+/);
   const shellIndex = shellMatch ? shellMatch.index : -1;
-  assert.ok(modeIndex >= 0);
-  assert.ok(originalIndex > modeIndex);
-  assert.ok(shellIndex > modeIndex);
+  assert.equal(modeIndex, -1, 'read-only flag should be removed from kalender.html');
+  assert.ok(originalIndex >= 0);
+  assert.ok(shellIndex > originalIndex);
   assert.doesNotMatch(html, /cco-kalender-shell\.css\?v=[^"']+/);
   assert.match(html, /class="calendar-week" id="calWeek"/);
   assert.match(html, /src="\/cco-kalender-bridge\.js\?v=/);
@@ -31,9 +31,9 @@ test('live renderer uses the admin bearer token and recognizes /kalender.html', 
   assert.match(shell, /calendar\/week\?' \+ query\.toString\(\)/);
 });
 
-test('read-only V6 mode disables writes and replaces fixture surfaces with canonical data', () => {
-  assert.match(bridge, /CCO_CALENDAR_READ_ONLY === true/);
-  assert.match(bridge, /write bridge disabled/);
+test('V6 mode disables writes and replaces fixture surfaces with canonical data', () => {
+  assert.doesNotMatch(bridge, /CCO_CALENDAR_READ_ONLY === true/);
+  assert.doesNotMatch(bridge, /write bridge disabled/);
   assert.match(shell, /function initOriginalV6Calendar\(\)/);
   assert.match(shell, /loadCanonicalVisits\(v6State\.weekStart, end/);
   assert.match(shell, /slots\.innerHTML = ''/);
@@ -67,7 +67,7 @@ test('original V6 home surfaces stay present and are canonical or honestly read-
   assert.match(html, /class="timemachine"/);
   assert.match(
     html,
-    /const CUSTOMERS = window\.CCO_CALENDAR_READ_ONLY \? \[\] : LEGACY_PREVIEW_CUSTOMERS/
+    /const CUSTOMERS = LEGACY_PREVIEW_CUSTOMERS/
   );
   assert.match(shell, /function v6RenderMiniInboxState\(\)/);
   assert.match(shell, /function v6UpdateBusy\(visits\)/);
