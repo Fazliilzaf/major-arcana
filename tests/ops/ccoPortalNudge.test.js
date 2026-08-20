@@ -46,8 +46,10 @@ test('förbereder nudge: magisk länk + utkast på needs_approval (aldrig sent)'
   // Länken finns i brödtexten (leverans i den kontrollerade kedjan).
   assert.match(draft.body, /portal-chat\//);
   // Ingen egen avslutshälsning och inga streck (samma disciplin som Svarstudion).
+  // Notera \b: den magiska länken kan slumpa fram bokstavskombinationer som
+  // MVh eller Varma, så vi matchar bara hela ord.
   assert.doesNotMatch(draft.body, /[—–]/);
-  assert.doesNotMatch(draft.body, /Mvh|Vänligen|Varma hälsningar/i);
+  assert.doesNotMatch(draft.body, /\b(Mvh|Vänligen|Varma hälsningar)\b/i);
 });
 
 test('portal-länk blir absolut även när baseUrl saknas', () => {
