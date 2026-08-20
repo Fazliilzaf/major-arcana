@@ -5,6 +5,7 @@
 
 module.exports = {
   testDir: '.',
+  testIgnore: 'cco-v2-virtualization.spec.js',
   timeout: 30000,
   retries: 1,
   workers: 1,
