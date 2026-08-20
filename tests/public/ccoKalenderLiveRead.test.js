@@ -123,6 +123,19 @@ test('V6 calendar patient intel enables dossier tabs and fetches dossier-bundle'
   assert.match(intelBlock, /\/api\/v1\/cco-patient-master\/patient\/dossier-bundle/);
 });
 
+test('V6 calendar exposes resource and service filters wired to displayVisits', () => {
+  assert.match(html, /class="calendar-filter-bar" id="ccoCalFilters"/);
+  assert.match(html, /data-filter="resource"/);
+  assert.match(html, /data-filter="service"/);
+  assert.match(shell, /filters: \{ resourceId: '', serviceId: '' \}/);
+  assert.match(shell, /function v6FilteredVisits\(\)/);
+  assert.match(shell, /function v6BuildFilters\(\)/);
+  assert.match(shell, /function v6ApplyFilters\(\)/);
+  assert.match(shell, /v6State\.displayVisits = v6FilteredVisits\(\)/);
+  assert.match(shell, /v6RenderWeek\(v6State\.displayVisits\)/);
+  assert.match(shell, /v6BuildFilters\(\);/);
+});
+
 test('V6 calendar boot wires the quality panel before the original V6 renderer', () => {
   const initBlock = shell.slice(
     shell.indexOf('function init()'),
@@ -168,7 +181,7 @@ test('facit toolbar geometry and rich read-only rails are not replaced by a redu
   assert.match(intelBlock, /\['Besök', 'Historik', 'Filer', 'Anteckningar'\]/);
   assert.match(intelBlock, /Ombokning avstängd/);
   assert.match(intelBlock, /openCanonicalPatient\(slot\.patientId\)/);
-  assert.match(shell, /v6State\.selected = selected \|\| v6State\.visits\.find/);
+  assert.match(shell, /v6State\.selected = selected \|\| v6State\.displayVisits\.find/);
   assert.match(shell, /'God morgon, Fazli'/);
   assert.match(shell, /count >= 5 \? '🔆' : count >= 3 \? '⛅'/);
   assert.match(shell, /\['Dragning avstängd', 'Saknar verifierat boknings-write-kontrakt'/);

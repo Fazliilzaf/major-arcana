@@ -1753,7 +1753,71 @@
     'januari', 'februari', 'mars', 'april', 'maj', 'juni',
     'juli', 'augusti', 'september', 'oktober', 'november', 'december',
   ];
-  const v6State = { weekStart: '', dayDate: '', visits: [], selected: null, mode: 'vecka' };
+  const v6State = {
+    weekStart: '',
+    dayDate: '',
+    visits: [],
+    displayVisits: [],
+    selected: null,
+    mode: 'vecka',
+    filters: { resourceId: '', serviceId: '' },
+  };
+
+  function v6FilteredVisits() {
+    const { resourceId, serviceId } = v6State.filters;
+    if (!resourceId && !serviceId) return v6State.visits;
+    return v6State.visits.filter((slot) => {
+      if (resourceId && slot.resourceId !== resourceId) return false;
+      if (serviceId && slot.serviceId !== serviceId) return false;
+      return true;
+    });
+  }
+
+  function v6ApplyFilters() {
+    v6State.displayVisits = v6FilteredVisits();
+    v6RenderWeek(v6State.displayVisits);
+    v6UpdateSidebars(v6State.displayVisits);
+    v6UpdateStory(v6State.displayVisits);
+    v6UpdateOriginalHome(v6State.displayVisits);
+    const selected = v6State.selected && v6State.displayVisits.find((slot) =>
+      slot.id === v6State.selected.id || slot.bookingId === v6State.selected.bookingId);
+    v6State.selected = selected || v6State.displayVisits.find((slot) => slot.date === isoToday()) ||
+      v6State.displayVisits.find((slot) => slot.date >= isoToday()) ||
+      v6State.displayVisits[0] || null;
+    v6RenderIntel(v6State.selected);
+  }
+
+  function v6BuildFilters() {
+    const bar = document.getElementById('ccoCalFilters');
+    if (!bar) return;
+    const resourceSelect = bar.querySelector('[data-filter="resource"]');
+    const serviceSelect = bar.querySelector('[data-filter="service"]');
+    if (!resourceSelect || !serviceSelect) return;
+
+    const resources = new Map();
+    const services = new Map();
+    v6State.visits.forEach((slot) => {
+      if (slot.resourceId) resources.set(slot.resourceId, slot.resourceLabel || slot.resourceId);
+      if (slot.serviceId) services.set(slot.serviceId, slot.serviceLabel || slot.serviceId);
+    });
+
+    const currentResource = resourceSelect.value;
+    const currentService = serviceSelect.value;
+
+    function fill(select, items, emptyLabel) {
+      select.innerHTML = '';
+      select.appendChild(el('option', { value: '' }, emptyLabel));
+      [...items.entries()]
+        .sort((a, b) => String(a[1]).localeCompare(String(b[1]), 'sv-SE'))
+        .forEach(([id, label]) => select.appendChild(el('option', { value: id }, label)));
+    }
+
+    fill(resourceSelect, resources, 'Alla resurser');
+    fill(serviceSelect, services, 'Alla behandlingar');
+
+    resourceSelect.value = resources.has(currentResource) ? currentResource : v6State.filters.resourceId;
+    serviceSelect.value = services.has(currentService) ? currentService : v6State.filters.serviceId;
+  }
 
   function v6IsoOffset(dateKey, days) {
     const date = new Date(dateKey + 'T12:00:00.000Z');
@@ -2227,7 +2291,7 @@
         document.querySelectorAll('.segment-tab').forEach((tab) => {
           tab.classList.toggle('active', tab.dataset.mode === 'vecka');
         });
-        v6RenderWeek(v6State.visits);
+        v6RenderWeek(v6State.displayVisits);
       },
     }, '→ Öppna veckovyn'));
     [
@@ -2611,7 +2675,7 @@
         const mode = tab.dataset.mode;
         v6State.mode = ['morgon', 'dag', 'resurs'].includes(mode) ? mode : 'vecka';
         if (v6State.mode === 'dag' && !v6State.dayDate) v6State.dayDate = isoToday();
-        v6RenderWeek(v6State.visits);
+        v6RenderWeek(v6State.displayVisits);
       });
     });
     const nav = document.querySelectorAll('.calendar-toolbar-actions > .nav-btn');
@@ -2639,6 +2703,14 @@
       if (openedAt && Date.now() - openedAt < 150) return;
       if (event.target === event.currentTarget) closeV6SearchOverlay();
     });
+    const filterBar = document.getElementById('ccoCalFilters');
+    filterBar?.querySelectorAll('select').forEach((select) => {
+      select.addEventListener('change', () => {
+        v6State.filters.resourceId = filterBar.querySelector('[data-filter="resource"]').value;
+        v6State.filters.serviceId = filterBar.querySelector('[data-filter="service"]').value;
+        v6ApplyFilters();
+      });
+    });
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && document.getElementById('searchOverlay')?.classList.contains('is-visible')) {
         closeV6SearchOverlay();
@@ -2656,7 +2728,7 @@
       const go = (mode) => {
         v6State.mode = mode;
         if (mode === 'dag' && !v6State.dayDate) v6State.dayDate = isoToday();
-        v6RenderWeek(v6State.visits);
+        v6RenderWeek(v6State.displayVisits);
       };
       const shiftDay = (offset) => {
         if (v6State.mode === 'dag' || v6State.mode === 'resurs') {
@@ -2718,18 +2790,22 @@
     try {
       v6State.visits = await loadCanonicalVisits(v6State.weekStart, end,
         global.__ccoCalTenantId || 'hair_tp', global.__ccoCalRole || 'owner');
-      v6RenderWeek(v6State.visits);
-      v6UpdateSidebars(v6State.visits);
-      v6UpdateStory(v6State.visits);
-      v6UpdateOriginalHome(v6State.visits);
-      const selected = v6State.selected && v6State.visits.find((slot) =>
+      v6State.displayVisits = v6FilteredVisits();
+      v6BuildFilters();
+      v6RenderWeek(v6State.displayVisits);
+      v6UpdateSidebars(v6State.displayVisits);
+      v6UpdateStory(v6State.displayVisits);
+      v6UpdateOriginalHome(v6State.displayVisits);
+      const selected = v6State.selected && v6State.displayVisits.find((slot) =>
         slot.id === v6State.selected.id || slot.bookingId === v6State.selected.bookingId);
-      v6State.selected = selected || v6State.visits.find((slot) => slot.date === isoToday()) ||
-        v6State.visits.find((slot) => slot.date >= isoToday()) || v6State.visits[0] || null;
+      v6State.selected = selected || v6State.displayVisits.find((slot) => slot.date === isoToday()) ||
+        v6State.displayVisits.find((slot) => slot.date >= isoToday()) ||
+        v6State.displayVisits[0] || null;
       v6RenderIntel(v6State.selected);
       v6RenderSearch('');
     } catch (error) {
       v6State.visits = [];
+      v6State.displayVisits = [];
       v6RenderWeek([]);
       v6UpdateSidebars([]);
       v6UpdateStory([]);

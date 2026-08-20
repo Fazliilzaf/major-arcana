@@ -123,6 +123,7 @@ function normalizeEngineEntry(raw, type = 'booking') {
     id: normalizeText(raw?.bookingId || raw?.reservationId || raw?.id),
     type,
     tenantId: normalizeText(raw?.tenantId),
+    workspaceId: normalizeText(raw?.workspaceId),
     startsAt: new Date(startsAt).toISOString(),
     endsAt: resolvedEndsAt,
     durationMinutes: durationMinutes(startsAt, resolvedEndsAt, slot.durationMinutes),
@@ -156,6 +157,7 @@ function normalizeClientoEntry(raw, resourceIndex) {
     id: normalizeText(raw?.bookingId || raw?.id),
     type: 'booking',
     tenantId: '',
+    workspaceId: normalizeText(raw?.workspaceId) || '',
     startsAt: new Date(startsAt).toISOString(),
     endsAt: resolvedEndsAt,
     durationMinutes: durationMinutes(startsAt, resolvedEndsAt, raw?.durationMinutes),
@@ -290,11 +292,16 @@ function toSlot(entry) {
     startsAt: entry.startsAt,
     endsAt: entry.endsAt,
     durationMinutes: entry.durationMinutes,
+    resourceId: entry.resourceId,
+    resourceLabel: entry.resourceLabel,
     serviceId: entry.serviceId,
     serviceLabel: entry.serviceLabel,
     patientName: entry.patientName,
     patientEmail: entry.patientEmail,
     patientPhone: entry.patientPhone,
+    // Samma nyckel som patientEmail, men med det namn bokningsmotorn forvantar
+    // sig nar den ska skriva (t.ex. ombokning). Undviker gissningar i UI.
+    customerEmail: entry.patientEmail,
     // Utan det här fältet kan /calendar/day och /week inte länka till ett
     // kundkort, oavsett hur väl datan är kopplad i storen.
     patientId: entry.patientId,
@@ -307,6 +314,7 @@ function toSlot(entry) {
       entry.identityMatchStatus ||
       (entry.patientIdResolutionStatus === 'ambiguous_identity' ? 'ambiguous' : ''),
     conversationId: entry.conversationId,
+    workspaceId: entry.workspaceId,
     status: entry.status,
     source: entry.source,
     locationLabel: entry.locationLabel,
