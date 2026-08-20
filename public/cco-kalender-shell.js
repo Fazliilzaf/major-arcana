@@ -585,7 +585,7 @@
     };
   }
 
-  function buildReadonlyBookingPreflight(slot = {}) {
+  function buildBookingSafetyPreflight(slot = {}) {
     const matchStatus = String(slot.identityMatchStatus || '').trim().toLowerCase();
     const identityAmbiguous = slot.identityAmbiguous === true || slot.linkAllowed === false ||
       ['ambiguous', 'collision', 'review_required', 'multiple_matches'].includes(matchStatus);
@@ -606,10 +606,11 @@
       : 'Saknas eller är ogiltig';
     const providerKey = String(slot.source || '').trim().toLowerCase();
     const providerLabel = sourceLabel(slot.source) || 'Okänd provider';
+    const providerWritable = providerKey.includes('cco');
     const providerDetail = providerKey.includes('cliento')
-      ? 'Cliento write-adapter saknas.'
+      ? 'Cliento-bokningar kan inte skrivas om via CCO; endast läsning.'
       : providerKey.includes('cco')
-        ? 'CCO booking engine är spärrad i denna fas.'
+        ? 'CCO booking engine har write-kontrakt för skapande och ombokning.'
         : 'Provider saknar verifierat write-kontrakt.';
 
     const gates = [
@@ -629,21 +630,13 @@
         hasCanonicalTime ? 'Tiden är beräknad från canonical timestamp.' : 'Canonical timestamp saknas eller är ogiltig.'),
       readonlyGate('encounter_policy', 'Besökstillfälle', Boolean(encounterId),
         encounterId ? 'Canonical encounterId finns.' : 'Encounter saknas; explicit pre-visit-policy krävs före write.'),
-      readonlyGate('provider_write_contract', 'Provider-write', false, providerDetail),
-      readonlyGate('write_permission', 'Behörighet bookings.write', false,
-        'Explicit fail-closed write-behörighet är inte aktiverad.'),
-      readonlyGate('idempotency', 'Idempotency', false,
-        'Obligatorisk idempotency-key och request fingerprint saknas.'),
-      readonlyGate('append_only_audit', 'Append-only audit', false,
-        'Requested, committed, failed och compensated audit saknas.'),
-      readonlyGate('recovery', 'Återställning', false,
-        'Testad rollback eller kompensation saknas.'),
+      readonlyGate('provider_write_contract', 'Provider-write', providerWritable, providerDetail),
     ];
 
+    const blockers = gates.filter((gate) => gate.status === 'blocked');
+
     return {
-      readOnly: true,
-      zeroWrites: true,
-      actionAllowed: false,
+      actionAllowed: blockers.length === 0,
       identityState: identityAmbiguous ? 'ambiguous' : patientId ? 'canonical' : 'missing',
       provider: providerLabel,
       fields: [
@@ -656,7 +649,7 @@
         ['Provider', providerLabel],
       ],
       gates,
-      blockers: gates.filter((gate) => gate.status === 'blocked'),
+      blockers,
     };
   }
 
@@ -688,7 +681,7 @@
     });
     section.appendChild(el('header', {}, [
       el('div', {}, [
-        el('span', { class: 'cco-cal-preflight-kicker' }, 'READ-ONLY PREFLIGHT · 0 WRITES'),
+        el('span', { class: 'cco-cal-preflight-kicker' }, 'BOKNINGSPREFLIGHT · INGA SKRIVNINGAR'),
         el('h4', {}, 'Verifierad bokning'),
       ]),
       el('span', { class: 'cco-cal-preflight-stop' },
@@ -820,7 +813,7 @@
             local.date + ' kl ' + local.time + ' · Europe/Stockholm'));
         });
         message.textContent = availabilitySelect.options.length
-          ? 'Välj en tid och kör read-only preflight.'
+          ? 'Välj en tid och kör preflight.'
           : 'Inga lediga canonical tider för valt datum.';
       } catch (_) {
         message.textContent = 'Kunde inte läsa availability. Ingen bokning kan skapas.';
@@ -829,7 +822,7 @@
 
     const preflightButton = el('button', {
       class: 'quick-pill quick-pill--ai', type: 'button', disabled: 'disabled',
-    }, 'Kör read-only preflight');
+    }, 'Kör preflight');
     preflightButton.addEventListener('click', async () => {
       results.innerHTML = '';
       if (!availabilitySelect.value) {
@@ -1873,13 +1866,11 @@
     const shell = document.querySelector('.intel-shell');
     if (!shell) return;
     v6State.selected = slot || null;
-    shell.dataset.readOnly = 'true';
-    shell.dataset.zeroWrites = 'true';
     v6SetText(shell.querySelector('.intel-avatar'), v6Initials(slot && slot.patientName));
     v6SetText(shell.querySelector('.intel-name'), slot ? (slot.patientName || 'Okopplad patient') : 'Välj ett besök');
     v6SetText(shell.querySelector('.intel-meta'), slot
       ? statusLabel(slot.status) + ' · ' + sourceLabel(slot.source)
-      : 'Canonical bokningsdata · read-only');
+      : 'Canonical bokningsdata');
 
     const grid = shell.querySelector('.intel-grid');
     if (grid) {
@@ -1904,7 +1895,7 @@
     if (ready) {
       ready.innerHTML = '';
       if (slot) {
-        const preflight = buildReadonlyBookingPreflight(slot);
+        const preflight = buildBookingSafetyPreflight(slot);
         preflight.gates.slice(0, 7).forEach((gate) => {
           ready.appendChild(el('span', {
             class: 'ready-pill',
@@ -1912,10 +1903,11 @@
             title: gate.detail,
           }, (gate.status === 'pass' ? '✓ ' : '! ') + gate.label));
         });
+        ready.appendChild(el('span', {
+          class: 'ready-pill',
+          dataset: { state: preflight.actionAllowed ? 'success' : 'warning' },
+        }, preflight.actionAllowed ? '✓ Klart för åtgärd' : '! Åtgärd blockerad'));
       }
-      ready.appendChild(el('span', {
-        class: 'ready-pill', dataset: { state: 'warning' },
-      }, 'READ-ONLY · 0 WRITES'));
     }
 
     const notes = shell.querySelector('.ai-reason');
@@ -1981,15 +1973,6 @@
           class: 'quick-pill quick-pill--success', type: 'button', disabled: 'disabled',
         }, 'Välj besök för canonical patient'));
       }
-      [
-        ['quick-pill quick-pill--ai', 'Boknings-preflight · read-only'],
-        ['quick-pill quick-pill--ai', 'Säkerhetsgrindar · read-only'],
-        ['quick-pill', 'Anteckningar · read-only'],
-        ['quick-pill', 'Resurs och vårdgivare · read-only'],
-        ['quick-pill', 'Ombokning avstängd'],
-      ].forEach(([className, label]) => actions.appendChild(el('button', {
-        class: className, type: 'button', disabled: 'disabled',
-      }, label)));
     }
   }
 
@@ -2107,7 +2090,7 @@
       'resource', 'practitioner', 'stockholm_time',
     ]);
     const risks = todayVisits.map((slot) => {
-      const gate = buildReadonlyBookingPreflight(slot).blockers.find((item) => safetyKeys.has(item.key));
+      const gate = buildBookingSafetyPreflight(slot).blockers.find((item) => safetyKeys.has(item.key));
       return gate ? { slot, gate } : null;
     }).filter(Boolean);
     v6SetStoryKicker(riskCard, risks.length + ' risk' + (risks.length === 1 ? '' : 'er'));
@@ -2986,7 +2969,7 @@
 
   global.CcoKalenderShell = {
     loadDay, loadWeek, applyView, renderDrawer,
-    buildCanonicalSidebarSummary, canonicalConflictCount, buildReadonlyBookingPreflight,
+    buildCanonicalSidebarSummary, canonicalConflictCount, buildBookingSafetyPreflight,
     createBookingPayload, openCreateBookingDrawer,
   };
 

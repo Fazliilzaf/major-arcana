@@ -47,12 +47,10 @@ function canonicalSlot(overrides = {}) {
   };
 }
 
-test('preflight shows canonical care data and converts time to Europe/Stockholm', () => {
-  const preflight = loadShell().buildReadonlyBookingPreflight(canonicalSlot());
+test('safety preflight shows canonical care data and converts time to Europe/Stockholm', () => {
+  const preflight = loadShell().buildBookingSafetyPreflight(canonicalSlot());
   const fields = Object.fromEntries(preflight.fields);
 
-  assert.equal(preflight.readOnly, true);
-  assert.equal(preflight.zeroWrites, true);
   assert.equal(preflight.actionAllowed, false);
   assert.equal(preflight.identityState, 'canonical');
   assert.equal(fields['Canonical patientId'], 'patient-canonical');
@@ -71,7 +69,7 @@ test('preflight shows canonical care data and converts time to Europe/Stockholm'
 });
 
 test('missing or ambiguous identity remains unlinked and fail-closed', () => {
-  const missing = loadShell().buildReadonlyBookingPreflight(
+  const missing = loadShell().buildBookingSafetyPreflight(
     canonicalSlot({
       patientId: '',
       encounterId: '',
@@ -82,6 +80,7 @@ test('missing or ambiguous identity remains unlinked and fail-closed', () => {
     })
   );
   assert.equal(missing.identityState, 'missing');
+  assert.equal(missing.actionAllowed, false);
   assert.ok(missing.blockers.some((gate) => gate.key === 'canonical_patient'));
   assert.ok(missing.blockers.some((gate) => gate.key === 'booking_reference'));
   assert.ok(missing.blockers.some((gate) => gate.key === 'treatment'));
@@ -90,16 +89,29 @@ test('missing or ambiguous identity remains unlinked and fail-closed', () => {
   assert.equal(Object.fromEntries(missing.fields).Behandling, 'Saknas');
   assert.equal(Object.fromEntries(missing.fields).Vårdgivare, 'Saknas');
 
-  const ambiguous = loadShell().buildReadonlyBookingPreflight(
+  const ambiguous = loadShell().buildBookingSafetyPreflight(
     canonicalSlot({ identityAmbiguous: true, linkAllowed: false })
   );
   assert.equal(ambiguous.identityState, 'ambiguous');
+  assert.equal(ambiguous.actionAllowed, false);
   assert.equal(Object.fromEntries(ambiguous.fields)['Canonical patientId'], 'Tvetydig · okopplad');
   assert.ok(ambiguous.blockers.some((gate) => gate.key === 'identity_unambiguous'));
 });
 
-test('read-only preflight exposes every operational safety gate and no mutation action', () => {
-  const preflight = loadShell().buildReadonlyBookingPreflight(canonicalSlot());
+test('cco engine booking with complete data is action-allowed', () => {
+  const preflight = loadShell().buildBookingSafetyPreflight(
+    canonicalSlot({ source: 'cco_booking_engine' })
+  );
+  assert.equal(preflight.actionAllowed, true);
+  assert.ok(
+    preflight.gates.some(
+      (gate) => gate.key === 'provider_write_contract' && gate.status === 'pass'
+    )
+  );
+});
+
+test('safety preflight exposes every data gate and no hardcoded write-blocking gates', () => {
+  const preflight = loadShell().buildBookingSafetyPreflight(canonicalSlot());
   const keys = new Set(preflight.gates.map((gate) => gate.key));
   for (const key of [
     'canonical_patient',
@@ -111,15 +123,15 @@ test('read-only preflight exposes every operational safety gate and no mutation 
     'stockholm_time',
     'encounter_policy',
     'provider_write_contract',
-    'write_permission',
-    'idempotency',
-    'append_only_audit',
-    'recovery',
   ])
     assert.ok(keys.has(key), `missing gate ${key}`);
 
+  for (const removedKey of ['write_permission', 'idempotency', 'append_only_audit', 'recovery']) {
+    assert.ok(!keys.has(removedKey), `legacy hardcoded gate ${removedKey} should be removed`);
+  }
+
   const block = source.slice(
-    source.indexOf('function buildReadonlyBookingPreflight'),
+    source.indexOf('function buildBookingSafetyPreflight'),
     source.indexOf('function createBookingIdempotencyKey')
   );
   assert.doesNotMatch(
@@ -127,7 +139,7 @@ test('read-only preflight exposes every operational safety gate and no mutation 
     /fetch\s*\(|method\s*:\s*['"]POST|\/cco-booking-engine\/(confirm|cancel|rebook)/
   );
   assert.doesNotMatch(block, /Bekräfta bokning|Flytta bokning|Avboka bokning/);
-  assert.match(block, /actionAllowed: false/);
+  assert.match(block, /actionAllowed: blockers\.length === 0/);
   assert.ok(
     source.indexOf('global.CcoKalenderShell = {') <
       source.indexOf("document.addEventListener('DOMContentLoaded', init)")

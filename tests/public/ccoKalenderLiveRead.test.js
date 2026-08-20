@@ -38,7 +38,7 @@ test('V6 mode disables writes and replaces fixture surfaces with canonical data'
   assert.match(shell, /loadCanonicalVisits\(v6State\.weekStart, end/);
   assert.match(shell, /slots\.innerHTML = ''/);
   assert.match(shell, /v6RenderIntel\(slot\)/);
-  assert.match(shell, /READ-ONLY · 0 WRITES/);
+  assert.match(shell, /Klart för åtgärd|Åtgärd blockerad/);
   assert.match(shell, /openCanonicalPatient\(slot\.patientId\)/);
   assert.match(html, /data-cco-calendar-source='canonical-v6'/);
   assert.doesNotMatch(
@@ -197,7 +197,8 @@ test('facit toolbar geometry and rich read-only rails are not replaced by a redu
   assert.doesNotMatch(canonicalStyle, /\.calendar-toolbar[^}]*flex-wrap:\s*wrap/s);
   assert.doesNotMatch(canonicalStyle, /\.calendar-toolbar-actions[^}]*flex-wrap:\s*wrap/s);
   assert.match(intelBlock, /\['Besök', 'Historik', 'Filer', 'Anteckningar', 'Foton'\]/);
-  assert.match(intelBlock, /Ombokning avstängd/);
+  assert.doesNotMatch(intelBlock, /Ombokning avstängd/);
+  assert.match(intelBlock, /Boka om/);
   assert.match(intelBlock, /openCanonicalPatient\(slot\.patientId\)/);
   assert.match(shell, /v6State\.selected = selected \|\| v6State\.displayVisits\.find/);
   assert.match(shell, /'God morgon, Fazli'/);
