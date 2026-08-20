@@ -8,20 +8,22 @@
 
 ## 1. Sammanfattning
 
-CCO har ett **funktionellt men fragmenterat** kalender-/kundsegment. Backenden innehåller de flesta byggstenarna: bokningsmotor, kalendervyer, kunddossié, enhetlig tidslinje, journal, automationsregler och analys. Men kopplingarna mellan dessa block är ofullständiga eller bräckliga, och UI-ytan är uppdelad i flera separata skal istället för ett enhetligt gränssnitt.
+CCO har ett **funktionellt men fragmenterat** kalender-/kundsegment. Backenden innehåller de flesta byggstenarna: bokningsmotor, kalendervyer, kunddossié, enhetlig tidslinje, journal, automationsregler och analys. Kopplingarna mellan blocken är delvis åtgärdade i detta pass, men flera viktiga delar återstår.
 
-**Det akutaste dataproblemet, verifierat på prod:** av **53 316 Cliento-bokningar** har **noll** ett sparat `patientId`. En torrkörning av samma matchningslogik som `src/ops/ccoKunderBookingEnrichment.js` visar att **42 051 bokningar (78,9 %) skulle kunna kopplas direkt** om vi sparade resultatet:
+**Det akutaste dataproblemet är åtgärdat på prod.** Av **53 316 Cliento-bokningar** har nu **42 051 (78,9 %)** ett sparat `patientId`:
 
 - **37 623** via `customerEmail`
 - **3 826** via `clientoCustomerId`
-- **0** via telefon (telefonmatchning överskuggas av e-post/clientoId i nuvarande resolver)
+- **10** via telefon
 
-**11 265 bokningar (21,1 %) skulle förbli okopplade:**
+**11 265 bokningar (21,1 %) är fortfarande okopplade:**
 - **9 377** saknar alla tre identiteterna (e-post, clientoId, telefon)
 - **1 521** har identitet men matchar ingen känd patient
 - **367** matchar flera patienter (tvetydig identitet)
 
-Kopplingen beräknas idag vid varje läsning och kastas bort. Det betyder att kalendervyer, bokningsärenden och filter som förväntar sig `patientId` arbetar med tomma värden eller heuristik.
+Dessa bokningar har fått ett `patientIdResolutionStatus` så att de kan granskas i efterhand. Backup finns på `/var/data/cco/cliento-bookings.json.pre-patientid-migration-2026-08-20T07-36-24-620Z.json`.
+
+**Kalendervyerna bär nu `patientId`.** `clinicCalendarView.js` översätter `canonicalPatientId`/`patientId` från både engine- och Cliento-poster till ett enhetligt `patientId` på sloten, tillsammans med `patientIdResolutionStatus` och `identityMatchStatus`. Klienten (`cco-kalender-shell.js`) hade redan logik för att öppna kundkort när `slot.patientId` finns — den var bara aldrig inkopplad.
 
 **Den allvarligaste strukturella svagheten är att det finns två parallella kundidentiteter:**
 
@@ -51,7 +53,7 @@ Kalendern är en **read model** som slår samman:
 
 Dubblettborttagningen är heuristisk (`patientEmail + startMs + service + resource`), vilket är en svag punkt.
 
-**Kalender-UI:t idag (`public/kalender.html` + `cco-kalender-shell.js`)** är read-only (`CCO_CALENDAR_READ_ONLY = true`). Det visar vecko-/dagvy och vid klick på en bokning visas status, resurs, vårdgivare, fyra anteckningstyper och en länk till kundkort — men bara i embed-läge via `postMessage`. Följande är avstängt eller saknas:
+**Kalender-UI:t idag (`public/kalender.html` + `cco-kalender-shell.js`)** är read-only (`CCO_CALENDAR_READ_ONLY = true`). Det visar vecko-/dagvy och vid klick på en bokning visas status, resurs, vårdgivare, fyra anteckningstyper och en länk till kundkort — nu med riktigt `patientId` bakom länken (`clinicCalendarView.js` bär fältet ut i sloten sedan PR #1458). Följande är fortfarande avstängt eller saknas:
 - Omboka, no-show, checkin, uppföljning — knappar renderas `disabled`.
 - Besökshistorik, ekonomi, filer, konversationstråd, personnummer — visas inte.
 - Flera endpoints anropas men finns inte: `/api/v1/calendar/services`, `/cco-bookings/:id/checkin`, `/cco-bookings/:id/no-show`, `/cco-bookings/:id/follow-up`, `/calendar/booking/:id/status-pills`, `/calendar/booking/:id/intelligence`.
@@ -84,10 +86,13 @@ Dubblettborttagningen är heuristisk (`patientEmail + startMs + service + resour
 
 Det skapar förvirring om var sanningen finns.
 
-**Produktionsdata (2026-08-19), torrkörning verifierad på prod:**
-- `clientoBookingStore`: **53 316** bokningar, varav **0** med sparat `patientId`.
-  - Uppslagsbar till patient: **42 051 (78,9 %)** — 37 623 via e-post, 3 826 via `clientoCustomerId`.
-  - Ej uppslagsbar: **11 265 (21,1 %)** — 9 377 saknar identitet, 1 521 matchar ingen patient, 367 är tvetydiga.
+**Produktionsdata efter migrering (2026-08-20):**
+- `clientoBookingStore`: **53 316** bokningar, varav **42 051 (78,9 %)** med sparat `patientId`.
+  - Via e-post: **37 623**
+  - Via `clientoCustomerId`: **3 826**
+  - Via telefon: **10**
+  - Ej länkade: **11 265 (21,1 %)** — 9 377 saknar identitet, 1 521 matchar ingen patient, 367 är tvetydiga.
+  - Distinkta patienter som fick minst en bokning: **6 612**.
 - `ccoBookingEngineStore`: **12** bokningar, varav **2** med `canonicalPatientId`.
   - Av de 10 utan: **3** skulle kunna matchas med samma logik.
   - Täckning efter migrering: **5/12 (41,7 %)**.
@@ -191,9 +196,9 @@ Torrkörningen visar att migreringen är **högt täckande men inte komplett**: 
 
 Endast `POST /cco-booking-engine/create/confirm` tvingar fram en riktig patientmatchning innan bokning skapas (`canonical_patient`-gate, `src/routes/ccoBookingEngine.js:816-825`). Övriga flöden — reservera, bekräfta, omboka, avboka — kräver bara e-post och gör best-effort-uppslag efteråt.
 
-### 2.9 Verifierad torrkörning av patientId-migrering
+### 2.9 Genomförd patientId-migrering
 
-Skriptet `scripts/dry-run-patientid-on-bookings.js` körde 2026-08-20 mot prod-data på Render (`/var/data`) och skrev ingenting.
+Migreringen kördes skarpt på prod 2026-08-20 med `scripts/migrate-patientid-on-cliento-bookings.js`. Backup togs automatiskt: `/var/data/cco/cliento-bookings.json.pre-patientid-migration-2026-08-20T07-36-24-620Z.json` (49 119 323 byte, exakt originalstorlek).
 
 **Cliento-bokningar (53 316):**
 
@@ -202,12 +207,13 @@ Skriptet `scripts/dry-run-patientid-on-bookings.js` körde 2026-08-20 mot prod-d
 | Kopplade totalt | 42 051 | 78,9 % |
 | — via e-post | 37 623 | 70,6 % |
 | — via clientoCustomerId | 3 826 | 7,2 % |
-| — via telefon | 0 | 0 % |
-| — explicit patientId | 0 | 0 % |
+| — via telefon | 10 | <0,1 % |
 | Okopplade totalt | 11 265 | 21,1 % |
 | — saknar identitet | 9 377 | 17,6 % |
 | — matchar ingen patient | 1 521 | 2,9 % |
 | — tvetydig identitet | 367 | 0,7 % |
+
+Distinkta patienter som fick minst en bokning kopplad: **6 612**.
 
 **Engine-bokningar (12):**
 
@@ -218,30 +224,27 @@ Skriptet `scripts/dry-run-patientid-on-bookings.js` körde 2026-08-20 mot prod-d
 | Saknar canonicalPatientId och ej uppslagsbar | 7 |
 | Täckning efter migrering | 5/12 (41,7 %) |
 
-**Slutsats:** migreringen är värd att göra för Cliento-delen — den ger en stor och omedelbar förbättring. Den egna bokningsmotorn har för få bokningar för att dra några generella slutsatser; de 7 av 12 som inte går att matcha behöver manuell granskning.
+**Viktig fix under vägen.** Den ursprungliga versionen av migreringsskriptet skulle ha skrivit över varje boknings `updatedAt` med migreringens tidsstämpel. Det upptäcktes och rättades i PR #1457 innan skarp körning. `updatedAt` lämnas nu orört; endast `patientIdResolutionAt` får migreringens tidsstämpel.
 
 **Migreringsskript:** `scripts/migrate-patientid-on-cliento-bookings.js`
 - Default är torrkörning (`--dry-run`). Inga skrivningar görs.
-- `--commit` krävs för skarp körning. En backup tas automatiskt före skrivning.
-- `--skip-backup` kan användas om backup redan finns, men rekommenderas inte.
-- Matchad bokning får `patientId`, `patientIdResolutionStatus: 'linked'`, `patientIdResolutionAt` och nytt `updatedAt`.
-- Ej matchad bokning får `patientIdResolutionStatus` (`missing_identity`, `no_canonical_match` eller `ambiguous_identity`) och nytt `updatedAt`, men inget `patientId`.
+- `--commit` krävs för skarp körning. Backup tas automatiskt före skrivning.
+- Matchad bokning får `patientId`, `patientIdResolutionStatus: 'linked'`, `patientIdResolutionAt`.
+- Ej matchad bokning får `patientIdResolutionStatus` (`missing_identity`, `no_canonical_match` eller `ambiguous_identity`) och `patientIdResolutionAt`, men inget `patientId`.
+- Bokningens eget `updatedAt` lämnas orört.
+- Skarp körning gör en efterkontroll: antal bokningar och antal med `patientId` läses tillbaka och stäms av mot förväntat. Misslyckas kontrollen skrivs återställningskommandot ut.
 
-**Så här körs det på Render Web Shell (eftersom SSH var nere vid testtillfället):**
+### 2.10 Kalendervyn bär nu patientId
 
-```bash
-cd /opt/render/project/src
-git pull origin main
-node scripts/migrate-patientid-on-cliento-bookings.js --dry-run
-```
+`clinicCalendarView.js` (`normalizeEngineEntry` och `normalizeClientoEntry`, rader 139–141 och 174–175) översätter både `canonicalPatientId` från engine-posterna och `patientId` från Cliento-posterna till ett enhetligt `patientId` på entry-nivå. `toSlot` (rad 300–308) för vidare:
 
-Om torrkörningen ser rimlig ut:
+- `patientId` — kanoniskt kund-ID, tomt om ej länkat
+- `patientIdResolutionStatus` — `linked`, `missing_identity`, `no_canonical_match`, `ambiguous_identity`
+- `identityMatchStatus` — klientens eget ordforråd; `ambiguous` när statusen är `ambiguous_identity`, annars tomt
 
-```bash
-node scripts/migrate-patientid-on-cliento-bookings.js --commit
-```
+Detta gör att `cco-kalender-shell.js:611`, som redan hade logik för att visa en "öppna kund"-knapp villkorad på `slot.patientId`, nu faktiskt aktiveras för länkade bokningar. Klienten hade sedan tidigare en "vägra gissa"-logik som läser `identityMatchStatus` — den får nu rätt indata för tvetydiga bokningar.
 
-Backup hamnar bredvid originalfilen: `/var/data/cco/cliento-bookings.json.pre-patientid-migration-<timestamp>.json`.
+Tester finns i `tests/ops/clinicCalendarViewPatientId.test.js`.
 
 ---
 
@@ -334,9 +337,9 @@ Operatörer kan inte dra, ändra eller skapa bokningar direkt i kalendern. All s
 
 ### P0 — måste göras för att uppfylla "alla kunder med kopplad kund-ID"
 
-1. **Migrera `patientId` till alla 53 316 befintliga bokningar.** Skriptet `scripts/migrate-patientid-on-cliento-bookings.js` är klart. Torrkörning visar 78,9 % täckning (42 051/53 316). De återstående 11 265 får `patientIdResolutionStatus` så att de kan granskas (`missing_identity`, `no_canonical_match`, `ambiguous_identity`).
-2. **Etablera ett kanoniskt fältnamn.** Använd `patientId` överallt. `canonicalPatientId` och avsaknaden i legacy-ärenden är teknisk skuld som redan orsakar tysta fel.
-3. **Exponera `patientId` i kalendervyerna.** `clinicCalendarView.js` måste bära `patientId` så att `/calendar/day` och `/calendar/week` kan länka till kundkort.
+1. **~~Migrera `patientId` till alla 53 316 befintliga bokningar.~~** ✅ Klart. Migreringen kördes skarpt 2026-08-20. 42 051 av 53 316 Cliento-bokningar fick `patientId`. De återstående 11 265 fick `patientIdResolutionStatus` så att de kan granskas (`missing_identity`, `no_canonical_match`, `ambiguous_identity`).
+2. **Etablera ett kanoniskt fältnamn.** ✅ Delvis klart — `patientId` används nu i Cliento-store och kalendervyer; `canonicalPatientId` översätts till `patientId` i `clinicCalendarView.js`. Kvar: legacy `ccoBookingStore` saknar fortfarande `patientId`, vilket gör att `?patientId`-filtret i `ccoBookings.js:1166` tyst returnerar tom lista.
+3. **~~Exponera `patientId` i kalendervyerna.~~** ✅ Klart. `clinicCalendarView.js` bär nu `patientId`, `patientIdResolutionStatus` och `identityMatchStatus` ut i sloten.
 4. **Etablera ett kanoniskt kund-ID över lager.** Alla moduler som refererar till en människa ska använda `patientId` från `ccoPatientMasterStore`. `ccoCustomerStore` kan fortsätta vara kommunikationskatalog, men den ska hålla en `patientId`-referens.
 5. **Koppla `ccoBookingEngineStore` till kunddossién.** Dossién ska läsa nya bokningar, inte bara legacy/cliento.
 6. **Montera automation-API:et och ta det ur dry-run.** Börja med de säkraste signalerna (t.ex. "missing health declaration" → skapa journalutkast).
@@ -427,13 +430,14 @@ Alla tre analyserna är överens om:
 
 Den snabbaste vägen till en verkställbar kalender är:
 
-1. **Migrera och spara `patientId` på befintliga bokningar** — torrkörningen visar 78,9 % täckning på Cliento-delen och 41,7 % på engine-delen. Kör skarpt mot en backup, med granskingskö för de 21,1 % som inte går att matcha.
-2. **Bestäm en kanonisk kalenderkomponent** — troligen `booking-desktop-week.js` i preview-SPA:t, men den måste flyttas in i huvudskalet.
-3. **Exponera `patientId` i kalendervyerna** så att varje bokning kan länka till kundkort.
-4. **Laga eller ta bort de saknade endpointsen** som UI:t redan anropar.
-5. **Koppla bokningsmotor + kalender + automation** — t.ex. no-show-detektion och påminnelser som reagerar på bokningsstatus.
-6. **Först då:** enhetligt UI-skal och analysyta.
+1. **~~Migrera och spara `patientId` på befintliga bokningar~~** ✅ Klart.
+2. **~~Exponera `patientId` i kalendervyerna~~** ✅ Klart.
+3. **Laga `ccoBookingStore` / `ccoBookings.js`** så att `?patientId`-filtret fungerar och legacy-ärenden bär samma kanoniska kund-ID.
+4. **Bestäm en kanonisk kalenderkomponent** — troligen `booking-desktop-week.js` i preview-SPA:t, men den måste flyttas in i huvudskalet.
+5. **Laga eller ta bort de saknade endpointsen** som UI:t redan anropar.
+6. **Koppla bokningsmotor + kalender + automation** — t.ex. no-show-detektion och påminnelser som reagerar på bokningsstatus.
+7. **Först då:** enhetligt UI-skal och analysyta.
 
 ---
 
-*Analysen är gjord utifrån läsning av källkod, dokument, tester i repot och en egen torrkörning mot produktionsdata på Render. Torrkörningen läste `/var/data/cco-patient-master.json`, `/var/data/cco/cliento-bookings.json` och `/var/data/cco-booking-engine.json` och skrev ingenting.*
+*Analysen är gjord utifrån läsning av källkod, dokument, tester i repot och skarpa förändringar mot produktionsdata på Render. Migreringen kördes skarpt med backup och efterkontroll; kalendervyerna uppdaterades för att bära `patientId` hela vägen ut till klienten.*
