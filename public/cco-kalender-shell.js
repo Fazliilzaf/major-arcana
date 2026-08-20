@@ -1079,11 +1079,8 @@
     // Snabbactions med dynamisk primary
     const primary = computePrimary(pills, slot.bookingStatus);
     const ACTIONS = [
-      { id: 'checkin',       label: 'Ankommen',       icon: '✓' },
       { id: 'start-journal', label: 'Starta journal', icon: '📝' },
       { id: 'send-form',     label: 'Skicka formulär',icon: '📋' },
-      { id: 'follow-up',     label: 'Återbesök',      icon: '↻' },
-      { id: 'no-show',       label: 'No-show',        icon: '✗' },
       { id: 'open-card',     label: 'Öppna kort',     icon: '👤' },
     ];
     const actions = el('div', { class: 'cco-cal-actions' });
@@ -1152,7 +1149,7 @@
   function computePrimary(pills, bookingStatus) {
     if (pills && Array.isArray(pills.blockingMissing) && pills.blockingMissing.length > 0) return 'send-form';
     if (bookingStatus === 'checked_in') return 'start-journal';
-    return 'checkin';
+    return 'start-journal';
   }
 
   function pillForStatus(status) {
@@ -1184,22 +1181,10 @@
       alert('Skicka formulär — wirad i Sprint 3 (audit-only nu).');
       return;
     }
-    const endpointMap = {
-      'checkin':   '/api/v1/cco-bookings/' + encodeURIComponent(bookingId) + '/checkin',
-      'no-show':   '/api/v1/cco-bookings/' + encodeURIComponent(bookingId) + '/no-show',
-      'follow-up': '/api/v1/cco-bookings/' + encodeURIComponent(bookingId) + '/follow-up',
-    };
-    const body = actionId === 'no-show'    ? { reason: prompt('Anledning (valfri)?') || '' }
-               : actionId === 'follow-up'  ? { interval: prompt('Intervall (3m/6m/12m)?') || '' }
-               : {};
-    try {
-      const res = await fetch(endpointMap[actionId], { method: 'POST', headers, body: JSON.stringify(body) });
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || ('HTTP ' + res.status));
-      showToast('✓ ' + actionId + ' loggad', 'ok');
-    } catch (err) {
-      showToast('✗ Misslyckades: ' + err.message, 'error');
-    }
+    // Okanda actionId ignoreras. Checkin/no-show/follow-up fanns tidigare men
+    // pekade pa endpoints som aldrig byggts; kalendern ar read-only tills vidare
+    // sa de tas inte med har. Blir kalendern skrivbar aterinfors knapp + endpoint
+    // tillsammans som ett medvetet beslut.
   }
 
   function showToast(msg, kind) {
@@ -1731,27 +1716,9 @@
   }
 
   // ═══ CREATE-MODAL (Sprint 2) ═══════════════════════════════════════════════
-  let _services = null;
-  let _resources = null;
-
-  async function loadServices(tenantId, role) {
-    if (_services) return _services;
-    try {
-      const r = await fetch('/api/v1/calendar/services?tenantId=' + tenantId,
-        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
-      _services = await r.json();
-    } catch { _services = { quickPicks: [], catalog: [] }; }
-    return _services;
-  }
-
-  async function loadResourcesFromDay(tenantId, role) {
-    try {
-      const r = await fetch('/api/v1/calendar/day?date=' + isoToday() + '&tenantId=' + tenantId,
-        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
-      const d = await r.json();
-      return (d.resources || []).filter(x => x.resourceId !== '_unassigned');
-    } catch { return []; }
-  }
+  // Tjänster/resurser läses från /api/v1/cco-booking-engine/catalog (se
+  // renderCreateBookingDrawer). Död kod som anropade /api/v1/calendar/services
+  // och /api/v1/calendar/day har tagits bort.
 
   // ─── Hook in i existing setMode-flow ────────────────────────────────────
   function bindSetModeHook() {
