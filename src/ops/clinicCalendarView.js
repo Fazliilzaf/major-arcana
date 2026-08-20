@@ -82,7 +82,9 @@ function resolveEndsAt(startsAt, endsAt, explicitDuration) {
   if (Number.isFinite(parsedEnd)) return new Date(parsedEnd).toISOString();
   const parsedStart = Date.parse(startsAt);
   if (!Number.isFinite(parsedStart)) return '';
-  return new Date(parsedStart + durationMinutes(startsAt, '', explicitDuration) * 60000).toISOString();
+  return new Date(
+    parsedStart + durationMinutes(startsAt, '', explicitDuration) * 60000
+  ).toISOString();
 }
 
 function inferredResourceId(label) {
@@ -132,6 +134,10 @@ function normalizeEngineEntry(raw, type = 'booking') {
     patientName: normalizeText(raw?.customerName || raw?.contact?.name),
     patientEmail: normalizeKey(raw?.customerEmail || raw?.contact?.email),
     patientPhone: normalizeText(raw?.customerPhone || raw?.contact?.phone),
+    // Motorn kallar fältet canonicalPatientId, storen och vyn kallar det
+    // patientId. Namnet översätts här, en gång, i stället för i varje läsare.
+    patientId: normalizeText(raw?.canonicalPatientId || raw?.patientId),
+    patientIdResolutionStatus: normalizeText(raw?.patientIdResolutionStatus),
     conversationId: normalizeText(raw?.conversationId),
     status,
     source: type === 'reservation' ? 'cco_booking_reservation' : 'cco_booking_engine',
@@ -143,12 +149,9 @@ function normalizeClientoEntry(raw, resourceIndex) {
   const startsAt = normalizeText(raw?.startsAt);
   if (!Number.isFinite(Date.parse(startsAt))) return null;
   const staffName = normalizeText(raw?.staffName || raw?.staff);
-  const resourceId = resourceIndex.byLabel.get(normalizeKey(staffName)) || inferredResourceId(staffName);
-  const resolvedEndsAt = resolveEndsAt(
-    startsAt,
-    normalizeText(raw?.endsAt),
-    raw?.durationMinutes
-  );
+  const resourceId =
+    resourceIndex.byLabel.get(normalizeKey(staffName)) || inferredResourceId(staffName);
+  const resolvedEndsAt = resolveEndsAt(startsAt, normalizeText(raw?.endsAt), raw?.durationMinutes);
   return {
     id: normalizeText(raw?.bookingId || raw?.id),
     type: 'booking',
@@ -164,6 +167,12 @@ function normalizeClientoEntry(raw, resourceIndex) {
     patientName: normalizeText(raw?.customerName),
     patientEmail: normalizeKey(raw?.customerEmail),
     patientPhone: normalizeText(raw?.customerPhone || raw?.phone),
+    // Satt av migreringen 2026-08-20 på 42 051 av 53 316 bokningar. Statusen
+    // följer med så att gränssnittet kan skilja "saknar identitet" från
+    // "tvetydig identitet" — det förra är en återvändsgränd, det senare något
+    // en människa kan lösa.
+    patientId: normalizeText(raw?.patientId),
+    patientIdResolutionStatus: normalizeText(raw?.patientIdResolutionStatus),
     conversationId: normalizeText(raw?.conversationId),
     status: normalizeKey(raw?.status) || 'unknown',
     source: normalizeText(raw?.source) || 'cliento',
@@ -286,6 +295,17 @@ function toSlot(entry) {
     patientName: entry.patientName,
     patientEmail: entry.patientEmail,
     patientPhone: entry.patientPhone,
+    // Utan det här fältet kan /calendar/day och /week inte länka till ett
+    // kundkort, oavsett hur väl datan är kopplad i storen.
+    patientId: entry.patientId,
+    patientIdResolutionStatus: entry.patientIdResolutionStatus,
+    // Klienten har sedan tidigare ett eget ordforrad for identitetslaget och
+    // vagrar koppla en bokning vars identitet ar tvetydig. Den logiken finns
+    // redan i cco-kalender-shell.js — den har bara aldrig fatt veta. Har
+    // oversatts storens ord till klientens, pa ett stalle.
+    identityMatchStatus:
+      entry.identityMatchStatus ||
+      (entry.patientIdResolutionStatus === 'ambiguous_identity' ? 'ambiguous' : ''),
     conversationId: entry.conversationId,
     status: entry.status,
     source: entry.source,
@@ -346,11 +366,14 @@ function buildDayView({
     byResource.get(resourceId).slots.push(toSlot(entry));
   }
 
-  const sourceCounts = dayEntries.reduce((counts, entry) => {
-    const key = entry.source.startsWith('cco_booking') ? 'bookingEngine' : 'cliento';
-    counts[key] += 1;
-    return counts;
-  }, { bookingEngine: 0, cliento: 0 });
+  const sourceCounts = dayEntries.reduce(
+    (counts, entry) => {
+      const key = entry.source.startsWith('cco_booking') ? 'bookingEngine' : 'cliento';
+      counts[key] += 1;
+      return counts;
+    },
+    { bookingEngine: 0, cliento: 0 }
+  );
 
   return {
     date: targetDate,
