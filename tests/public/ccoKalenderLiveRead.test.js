@@ -76,9 +76,21 @@ test('original V6 home surfaces stay present and are canonical or honestly read-
   assert.match(shell, /v6State\.mode = 'morgon'/);
   assert.match(shell, /mic\.disabled = true/);
   assert.match(shell, /slider\.disabled = true/);
-  assert.match(shell, /resourceTab\.disabled = true/);
+  assert.match(shell, /resourceTab\.disabled = false/);
+  assert.match(shell, /Resursvy · canonical read-only/);
   assert.match(shell, /Ankomstskrivning avstängd/);
   assert.doesNotMatch(shell, /querySelectorAll\('\.mini-inbox,[^\n]+\.story-cta-row'\)/);
+});
+
+test('V6 calendar includes a read-only resource view renderer', () => {
+  const v6Block = shell.slice(
+    shell.indexOf('function v6RenderWeek'),
+    shell.indexOf('function historySearchRowToV6Slot')
+  );
+  assert.match(v6Block, /function v6RenderResourceView/);
+  assert.match(v6Block, /v6State\.mode === 'resurs'/);
+  assert.match(v6Block, /v6RenderResourceView\(visits\)/);
+  assert.doesNotMatch(v6Block, /resourceTab\.disabled = true/);
 });
 
 test('V6 calendar boot wires the quality panel before the original V6 renderer', () => {

@@ -2246,8 +2246,8 @@
     const resourceTab = document.querySelector('.segment-tab[data-mode="resurs"]');
     if (resourceTab) {
       resourceTab.hidden = false;
-      resourceTab.disabled = true;
-      resourceTab.title = 'Separat resursvy saknar verifierat read-kontrakt';
+      resourceTab.disabled = false;
+      resourceTab.title = 'Resursvy · canonical read-only';
     }
     document.querySelectorAll('.voice-overlay, .voice-sheet, .watch-restore').forEach((node) => {
       node.hidden = true;
@@ -2264,6 +2264,10 @@
   }
 
   function v6RenderWeek(visits) {
+    if (v6State.mode === 'resurs') {
+      v6RenderResourceView(visits);
+      return;
+    }
     const week = document.getElementById('calWeek');
     if (!week) return;
     const days = week.querySelectorAll('.day-col');
@@ -2302,6 +2306,54 @@
     v6SetText(document.querySelector('.week-pill .num'), String(v6WeekNumber(v6State.weekStart)));
     const content = document.querySelector('.calendar-content');
     if (content) content.dataset.mode = v6State.mode === 'morgon' ? 'morgon' : 'vecka';
+  }
+
+  function v6RenderResourceView(visits) {
+    const week = document.getElementById('calWeek');
+    if (!week) return;
+    const resources = Array.from(
+      visits.reduce((map, slot) => {
+        const id = slot.resourceId || '_unassigned';
+        if (!map.has(id)) {
+          map.set(id, { resourceId: id, resourceLabel: slot.resourceLabel || slot.staffName || 'Ej tilldelad' });
+        }
+        return map;
+      }, new Map()).values()
+    ).sort((a, b) => (a.resourceId === '_unassigned' ? 1 : b.resourceId === '_unassigned' ? -1
+      : (a.resourceLabel || '').localeCompare(b.resourceLabel || '', 'sv-SE')));
+
+    week.innerHTML = '';
+    week.style.gridTemplateColumns = '28px repeat(' + resources.length + ', 1fr)';
+
+    const timeCol = el('div', { class: 'time-col' });
+    for (let h = V6_HOUR_START; h < 23; h++) {
+      timeCol.appendChild(el('div', { class: 'time-tick' }, String(h).padStart(2, '0') + ':00'));
+    }
+    week.appendChild(timeCol);
+
+    resources.forEach((resource) => {
+      const col = el('div', { class: 'day-col', dataset: { resourceId: resource.resourceId } });
+      col.appendChild(el('div', { class: 'day-head' }, [
+        el('span', { class: 'day-label' }, resource.resourceLabel || resource.resourceId),
+      ]));
+      const slots = el('div', { class: 'day-slots' });
+      const resourceVisits = visits.filter((slot) => (slot.resourceId || '_unassigned') === resource.resourceId);
+      if (!resourceVisits.length) {
+        slots.appendChild(el('div', { class: 'v6-empty' }, 'Inga bokningar'));
+      } else {
+        resourceVisits.forEach((slot) => slots.appendChild(v6BookingCard(slot)));
+      }
+      col.appendChild(slots);
+      week.appendChild(col);
+    });
+
+    const content = document.querySelector('.calendar-content');
+    if (content) content.dataset.mode = 'resurs';
+    const calTitle = document.getElementById('calTitle');
+    if (calTitle) {
+      v6SetText(calTitle, 'Resurser · vecka ' + v6WeekNumber(v6State.weekStart) +
+        ' · ' + resources.length + ' resurser');
+    }
   }
 
   function historySearchRowToV6Slot(row) {
@@ -2470,7 +2522,8 @@
   function v6BindControls() {
     document.querySelectorAll('.segment-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
-        v6State.mode = ['morgon', 'dag'].includes(tab.dataset.mode) ? tab.dataset.mode : 'vecka';
+        const mode = tab.dataset.mode;
+        v6State.mode = ['morgon', 'dag', 'resurs'].includes(mode) ? mode : 'vecka';
         if (v6State.mode === 'dag' && !v6State.dayDate) v6State.dayDate = isoToday();
         v6RenderWeek(v6State.visits);
       });
