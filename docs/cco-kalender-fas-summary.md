@@ -61,21 +61,26 @@ node --test tests/public/ccoKalenderLiveRead.test.js
 
 ```
 npm run test:e2e
-→ 52 passed, 8 skipped, 10 failed
+→ 58 passed, 8 skipped, 0 failed
 ```
 
-**Viktigt:** ingen av de 10 felen är kalenderrelaterad. De fallerade testerna är:
+Felen åtgärdades i commit `e8b1899e5`:
 
-- `cco-flows.spec.js`: "alla 30+ runtime-moduler laddas", "command palette öppnas med ⌘K", "bokningsytan exponerar operatörstermer för webb-bokningar"
-- `cco-v2-virtualization.spec.js`: V2-inkorgens virtualisering (timeout på `window.__v2HarnessReady`)
+- Uppdaterade föråldrade förväntningar i `tests/e2e/cco-flows.spec.js`
+  (sidtitel, antal runtime-moduler, sök/⌘K, bokningsytans synlighet).
+- Exkluderade `cco-v2-virtualization.spec.js` från huvudkonfigen — den har
+  sin egen server (`playwright.virtualization.config.js`) och ska köras med
+  `npm run test:e2e:v2-virtualization`.
+
+```
+npm run test:e2e:v2-virtualization
+→ 2/2 passed
+```
 
 Kalenderspecifika E2E-tester är gröna:
 
 - `?view=calendar öppnar kalendern direkt utan att klicka nav` (chromium + mobile-iphone)
-- `CCO Preview UI › calendar day view` (chromium)
-
-De röda testerna misstänks vara lokala miljö/bundle-problem snarare än
-regressioner från kalenderarbetet, eftersom de inte rör kalenderkoden.
+- `CCO Preview UI › calendar day view` (chromium + mobile-iphone)
 
 ## Teknisk översikt
 
@@ -99,26 +104,40 @@ regressioner från kalenderarbetet, eftersom de inte rör kalenderkoden.
 - Legacy-bokningsärenden har fått `patientId` där matchning var möjlig.
 - Kalendervyerna exponerar `patientId` så att kundkort kan öppnas.
 
+## Produktionsspotcheck (2026-08-20)
+
+Prod kör commit `dee5a133d` på `main` — den har **inte** kalender-fas A:s
+ändringar än. Grenen `feat/kalender-fas-a-b` är inte mergad till `main`.
+
+```
+https://arcana.hairtpclinic.se/kalender.html
+→ title: "CCO Kalender — v6 de vilda"
+→ CCO_CALENDAR_READ_ONLY = true   (fortfarande satt)
+→ CCO_CALENDAR_CREATE_BOOKING_ENABLED: ej satt
+→ Resursfliken finns i DOM, inte disabled
+→ cco-kalender-shell.js?v=20260717j laddas
+```
+
+**Slutsats:** prod är fortfarande i read-only-läge. För att kalender-fas A:s
+funktioner (skapa bokning, ombokning, resursvy, filter, dossié, kamera,
+tangentbordsgenvägar) ska nå produktion krävs en merge av
+`feat/kalender-fas-a-b` → `main` följt av deploy.
+
 ## Öppna frågor / kvarstående risker
 
-1. **E2E-miljön.** De 10 röda E2E-testerna behöver undersökas separat. De
-   verkar vara miljörelaterade (bundle-hashar / harness-initialisering) snarare
-   än kalenderbuggar, men de blockerar en helt grön E2E-svit.
-
-2. **Produktionsverifiering av kalendern.** Mycket av kalenderkoden är
-   implementerad och testad på filnivå, men en manuell UI-spotcheck på prod
-   (eller staging med prod-liknande data) är fortfarande värd att göra innan
-   personal använder skrivande funktioner som ombokning.
-
-3. **Kalender vs övriga segment.** Kalendern har nu `patientId`, men en del
+1. **Kalender vs övriga segment.** Kalendern har nu `patientId`, men en del
    andra ytor (t.ex. Automatisering, Analys) är fortfarande löst kopplade till
    kund-ID enligt tidigare analys. Det är ett separat spår, inte en
    kalender-blockerare.
 
-4. **Testtäckning för skrivande operationer.** Ombokning och skapa bokning har
+2. **Testtäckning för skrivande operationer.** Ombokning och skapa bokning har
    tester på funktionsnivå, men det finns inga fulla E2E-tester som går hela
    vägen från UI-klick till bekräftad bokning i backend. Det är den största
    återstående testluckan.
+
+3. **Deploy och prod-verifiering.** Innan personal använder skrivande funktioner
+   bör grenen deployas till staging/prod och en manuell UI-spotcheck göras på
+   riktig data.
 
 ## Rekommendation
 
