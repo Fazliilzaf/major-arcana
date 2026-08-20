@@ -18,10 +18,6 @@
   const HOUR_START = 7;
   const HOUR_END = 19;
 
-  function isReadOnlyMode() {
-    return global.CCO_CALENDAR_READ_ONLY === true;
-  }
-
   function isOriginalV6Mode() {
     return global.CCO_CALENDAR_ORIGINAL_V6 === true;
   }
@@ -45,10 +41,8 @@
   function calendarHeaders({ tenantId = '', role = '', json = false } = {}) {
     const headers = {};
     if (json) headers['Content-Type'] = 'application/json';
-    if (!isReadOnlyMode()) {
-      if (role) headers['x-cco-role'] = role;
-      if (tenantId) headers['x-cco-tenant'] = tenantId;
-    }
+    if (role) headers['x-cco-role'] = role;
+    if (tenantId) headers['x-cco-tenant'] = tenantId;
     const auth = global.ArcanaReviewAuth;
     if (auth && typeof auth.authHeaders === 'function') {
       return auth.authHeaders(headers);
@@ -427,7 +421,7 @@
     const body = document.body;
     const calendarShell = document.querySelector('.calendar-shell');
     body.setAttribute('data-cco-view', view === 'calendar' ? 'calendar' : 'customers');
-    if (view === 'calendar' && isReadOnlyMode()) {
+    if (view === 'calendar' && isOriginalV6Mode()) {
       body.setAttribute('data-cco-calendar-mode', 'live-read');
     }
     if (calendarShell) calendarShell.hidden = (view !== 'calendar');
@@ -571,10 +565,6 @@
   // Anropet gick alltid fel och föll tillbaka på samma default nedan — borttaget,
   // beteendet är identiskt.
   async function onBookingClick(slot) {
-    if (isReadOnlyMode()) {
-      renderReadonlyDrawer(slot);
-      return;
-    }
     const treatment = slot.serviceId || '';
     const pills = {
       patientId: null, encounterId: null, treatment,
@@ -586,59 +576,6 @@
     renderDrawer(slot, pills);
   }
 
-  function renderReadonlyDrawer(slot) {
-    const drawer = getDrawerMount();
-    const placeholder = document.querySelector('.cco-cal-live-placeholder');
-    if (placeholder) placeholder.hidden = true;
-    drawer.innerHTML = '';
-    drawer.classList.add('is-open');
-    const close = () => {
-      drawer.classList.remove('is-open');
-      drawer.innerHTML = '';
-      if (placeholder) placeholder.hidden = false;
-    };
-    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
-      el('h3', {}, slot.patientName || '(okänd patient)'),
-      el('div', { class: 'cco-cal-drawer-meta' },
-        formatTimeRange(slot.time, slot.endTime) + ' · ' +
-        (slot.serviceLabel || slot.serviceId || 'Bokning')),
-      el('button', { class: 'cco-cal-drawer-close', onclick: close, 'aria-label': 'Stäng' }, '×'),
-    ]));
-    const details = [
-      ['Status', statusLabel(slot.status)],
-      ['Behandling', slot.serviceLabel || slot.serviceId || '—'],
-      ['Källa', sourceLabel(slot.source)],
-      ['Canonical patientId', slot.patientId || 'Okopplad'],
-      ['Besökstillfälle', slot.encounterId || 'Saknas'],
-    ];
-    const detailList = el('dl', { class: 'cco-cal-read-details' });
-    for (const [label, value] of details) {
-      detailList.appendChild(el('dt', {}, label));
-      detailList.appendChild(el('dd', {}, value));
-    }
-    drawer.appendChild(detailList);
-    if (slot.patientId) {
-      drawer.appendChild(el('button', {
-        class: 'cco-cal-open-patient', type: 'button', onclick: () => openCanonicalPatient(slot.patientId),
-      }, 'Öppna samma patient i Kunder V11/V12'));
-    }
-    drawer.appendChild(renderReadonlyBookingPreflight(slot));
-    const noteFields = [
-      ['Bokningsanteckning', slot.bookingNotes || slot.notes],
-      ['Kundmeddelande', slot.customerMessage],
-      ['Intern anteckning', slot.internalNotes],
-      ['Behandlingsanteckning', slot.treatmentNotes],
-    ].filter((entry) => entry[1]);
-    const notes = el('section', { class: 'cco-cal-visit-notes' }, [
-      el('h4', {}, 'Anteckningar'),
-    ]);
-    if (!noteFields.length) notes.appendChild(el('p', {}, 'Inga anteckningar registrerade.'));
-    noteFields.forEach(([label, value]) => notes.appendChild(el('article', {}, [
-      el('strong', {}, label), el('p', {}, value),
-    ])));
-    drawer.appendChild(notes);
-  }
-
   function readonlyGate(key, label, passed, detail) {
     return {
       key,
@@ -648,7 +585,7 @@
     };
   }
 
-  function buildReadonlyBookingPreflight(slot = {}) {
+  function buildBookingSafetyPreflight(slot = {}) {
     const matchStatus = String(slot.identityMatchStatus || '').trim().toLowerCase();
     const identityAmbiguous = slot.identityAmbiguous === true || slot.linkAllowed === false ||
       ['ambiguous', 'collision', 'review_required', 'multiple_matches'].includes(matchStatus);
@@ -669,10 +606,11 @@
       : 'Saknas eller är ogiltig';
     const providerKey = String(slot.source || '').trim().toLowerCase();
     const providerLabel = sourceLabel(slot.source) || 'Okänd provider';
+    const providerWritable = providerKey.includes('cco');
     const providerDetail = providerKey.includes('cliento')
-      ? 'Cliento write-adapter saknas.'
+      ? 'Cliento-bokningar kan inte skrivas om via CCO; endast läsning.'
       : providerKey.includes('cco')
-        ? 'CCO booking engine är spärrad i denna fas.'
+        ? 'CCO booking engine har write-kontrakt för skapande och ombokning.'
         : 'Provider saknar verifierat write-kontrakt.';
 
     const gates = [
@@ -692,21 +630,13 @@
         hasCanonicalTime ? 'Tiden är beräknad från canonical timestamp.' : 'Canonical timestamp saknas eller är ogiltig.'),
       readonlyGate('encounter_policy', 'Besökstillfälle', Boolean(encounterId),
         encounterId ? 'Canonical encounterId finns.' : 'Encounter saknas; explicit pre-visit-policy krävs före write.'),
-      readonlyGate('provider_write_contract', 'Provider-write', false, providerDetail),
-      readonlyGate('write_permission', 'Behörighet bookings.write', false,
-        'Explicit fail-closed write-behörighet är inte aktiverad.'),
-      readonlyGate('idempotency', 'Idempotency', false,
-        'Obligatorisk idempotency-key och request fingerprint saknas.'),
-      readonlyGate('append_only_audit', 'Append-only audit', false,
-        'Requested, committed, failed och compensated audit saknas.'),
-      readonlyGate('recovery', 'Återställning', false,
-        'Testad rollback eller kompensation saknas.'),
+      readonlyGate('provider_write_contract', 'Provider-write', providerWritable, providerDetail),
     ];
 
+    const blockers = gates.filter((gate) => gate.status === 'blocked');
+
     return {
-      readOnly: true,
-      zeroWrites: true,
-      actionAllowed: false,
+      actionAllowed: blockers.length === 0,
       identityState: identityAmbiguous ? 'ambiguous' : patientId ? 'canonical' : 'missing',
       provider: providerLabel,
       fields: [
@@ -719,47 +649,8 @@
         ['Provider', providerLabel],
       ],
       gates,
-      blockers: gates.filter((gate) => gate.status === 'blocked'),
+      blockers,
     };
-  }
-
-  function renderReadonlyBookingPreflight(slot) {
-    const preflight = buildReadonlyBookingPreflight(slot);
-    const fields = el('dl', { class: 'cco-cal-preflight-fields' });
-    preflight.fields.forEach(([label, value]) => {
-      fields.appendChild(el('dt', {}, label));
-      fields.appendChild(el('dd', {}, value));
-    });
-    const gates = el('ul', { class: 'cco-cal-preflight-gates' });
-    preflight.gates.forEach((gate) => {
-      const passed = gate.status === 'pass';
-      gates.appendChild(el('li', { class: passed ? 'is-pass' : 'is-blocked' }, [
-        el('span', { 'aria-hidden': 'true' }, passed ? '✓' : '!'),
-        el('div', {}, [el('strong', {}, gate.label), el('p', {}, gate.detail)]),
-      ]));
-    });
-    return el('section', {
-      class: 'cco-cal-preflight',
-      'aria-label': 'Read-only boknings-preflight',
-      dataset: { readOnly: 'true', zeroWrites: 'true', actionAllowed: 'false' },
-    }, [
-      el('header', {}, [
-        el('div', {}, [
-          el('span', { class: 'cco-cal-preflight-kicker' }, 'READ-ONLY · 0 WRITES'),
-          el('h4', {}, 'Boknings-preflight'),
-        ]),
-        el('span', { class: 'cco-cal-preflight-stop' }, 'BLOCKERAD'),
-      ]),
-      preflight.identityState === 'ambiguous'
-        ? el('p', { class: 'cco-cal-preflight-warning' },
-          'Tvetydig identitet. Posten förblir okopplad och får aldrig kopplas genom gissning.')
-        : null,
-      fields,
-      el('h5', {}, 'Säkerhetsgrindar'),
-      gates,
-      el('p', { class: 'cco-cal-preflight-footnote' },
-        'Ingen bekräftelse, flytt eller avbokning är tillgänglig i denna fas.'),
-    ]);
   }
 
   function createBookingIdempotencyKey() {
@@ -790,7 +681,7 @@
     });
     section.appendChild(el('header', {}, [
       el('div', {}, [
-        el('span', { class: 'cco-cal-preflight-kicker' }, 'READ-ONLY PREFLIGHT · 0 WRITES'),
+        el('span', { class: 'cco-cal-preflight-kicker' }, 'BOKNINGSPREFLIGHT · INGA SKRIVNINGAR'),
         el('h4', {}, 'Verifierad bokning'),
       ]),
       el('span', { class: 'cco-cal-preflight-stop' },
@@ -922,7 +813,7 @@
             local.date + ' kl ' + local.time + ' · Europe/Stockholm'));
         });
         message.textContent = availabilitySelect.options.length
-          ? 'Välj en tid och kör read-only preflight.'
+          ? 'Välj en tid och kör preflight.'
           : 'Inga lediga canonical tider för valt datum.';
       } catch (_) {
         message.textContent = 'Kunde inte läsa availability. Ingen bokning kan skapas.';
@@ -931,7 +822,7 @@
 
     const preflightButton = el('button', {
       class: 'quick-pill quick-pill--ai', type: 'button', disabled: 'disabled',
-    }, 'Kör read-only preflight');
+    }, 'Kör preflight');
     preflightButton.addEventListener('click', async () => {
       results.innerHTML = '';
       if (!availabilitySelect.value) {
@@ -1203,7 +1094,6 @@
   }
 
   function resetLiveReadUi() {
-    if (!isReadOnlyMode()) return;
     document.querySelectorAll(
       '.mockup-label, .caption, .mini-inbox, .morgon-story, .story-cta-row, ' +
       '.calendar-busy, .vibe-strip, .calendar-week, .watch-widget, .watch-restore, ' +
@@ -1304,7 +1194,7 @@
   }
 
   function bindQualityPanel() {
-    if (!isReadOnlyMode() || document.getElementById('ccoCalQualityPanel')) return;
+    if (isOriginalV6Mode() || document.getElementById('ccoCalQualityPanel')) return;
     const actions = document.querySelector('.calendar-toolbar-actions');
     if (!actions) return;
     const panel = el('section', { id: 'ccoCalQualityPanel', class: 'cco-cal-quality-panel',
@@ -1325,7 +1215,6 @@
   }
 
   function renderLiveStatus({ label, total, confirmed, pending, sourceCounts = {} }) {
-    if (!isReadOnlyMode()) return;
     const status = document.querySelector('.calendar-status-bar');
     if (!status) return;
     status.replaceChildren(
@@ -1350,7 +1239,6 @@
   }
 
   function updateDaySummary(dayView) {
-    if (!isReadOnlyMode()) return;
     updateSideCount('Dagens mottagning', dayView.totalSlots || 0);
     updateSideCount('Resurser', (dayView.resources || []).filter((resource) =>
       resource.resourceId !== '_unassigned').length);
@@ -1373,7 +1261,6 @@
   }
 
   async function refreshCanonicalSidebarSummary(date, tenantId, role) {
-    if (!isReadOnlyMode()) return;
     try {
       const selectedDate = date || isoToday();
       const startDate = startOfWeek(selectedDate);
@@ -1404,23 +1291,8 @@
     mount.innerHTML = '<div class="cco-cal-empty">Laddar dagens kalender…</div>';
 
     try {
-      if (isReadOnlyMode()) {
-        const visits = await loadCanonicalVisits(date, date, tenantId, role);
-        const dayView = canonicalDayView(date, visits);
-        mount.innerHTML = '';
-        mount.appendChild(renderDayGrid(dayView, onBookingClick));
-        updateDaySummary(dayView);
-        await refreshCanonicalSidebarSummary(date, tenantId, role);
-        const title = document.getElementById('calTitle');
-        if (title) {
-          const d = new Date(date + 'T00:00:00');
-          title.textContent = d.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' }) +
-            ' · ' + dayView.totalSlots + ' bokningar';
-        }
-        return;
-      }
       const query = new URLSearchParams({ date });
-      if (!isReadOnlyMode()) query.set('tenantId', tenantId);
+      query.set('tenantId', tenantId);
       const res = await fetch('/api/v1/calendar/day?' + query.toString(), {
         headers: calendarHeaders({ tenantId, role }),
       });
@@ -1636,30 +1508,8 @@
     mount.innerHTML = '<div class="cco-cal-empty">Laddar vecka…</div>';
 
     try {
-      if (isReadOnlyMode()) {
-        const end = new Date(startDate + 'T12:00:00.000Z');
-        end.setUTCDate(end.getUTCDate() + 6);
-        const visits = await loadCanonicalVisits(startDate, end.toISOString().slice(0, 10), tenantId, role);
-        const weekView = canonicalWeekView(startDate, visits);
-        mount.innerHTML = '';
-        mount.appendChild(renderWeekGrid(weekView, onBookingClick));
-        await refreshCanonicalSidebarSummary(opts.date || isoToday(), tenantId, role);
-        const totals = weekView.days.reduce((summary, day) => {
-          summary.confirmed += day.confirmedBookings;
-          summary.pending += day.pendingReservations;
-          summary.sourceCounts.bookingEngine += day.sourceCounts.bookingEngine;
-          summary.sourceCounts.cliento += day.sourceCounts.cliento;
-          return summary;
-        }, { confirmed: 0, pending: 0, sourceCounts: { bookingEngine: 0, cliento: 0 } });
-        renderLiveStatus({ label: 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')),
-          total: weekView.totalSlots, ...totals });
-        const title = document.getElementById('calTitle');
-        if (title) title.textContent = 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')) +
-          ' · ' + weekView.totalSlots + ' bokningar';
-        return;
-      }
       const query = new URLSearchParams({ startDate });
-      if (!isReadOnlyMode()) query.set('tenantId', tenantId);
+      query.set('tenantId', tenantId);
       const res = await fetch('/api/v1/calendar/week?' + query.toString(), {
         headers: calendarHeaders({ tenantId, role }),
       });
@@ -1687,16 +1537,14 @@
         },
         { confirmed: 0, pending: 0, sourceCounts: { bookingEngine: 0, cliento: 0 } }
       );
-      if (isReadOnlyMode()) {
-        updateSideCount('Veckan', weekView.totalSlots || 0);
-        renderLiveStatus({
-          label: 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')),
-          total: weekView.totalSlots,
-          confirmed: totals.confirmed,
-          pending: totals.pending,
-          sourceCounts: totals.sourceCounts,
-        });
-      }
+      updateSideCount('Veckan', weekView.totalSlots || 0);
+      renderLiveStatus({
+        label: 'Vecka ' + weekNumber(new Date(startDate + 'T12:00:00.000Z')),
+        total: weekView.totalSlots,
+        confirmed: totals.confirmed,
+        pending: totals.pending,
+        sourceCounts: totals.sourceCounts,
+      });
 
       // Uppdatera existing #calTitle
       const title = document.getElementById('calTitle');
@@ -1753,7 +1601,71 @@
     'januari', 'februari', 'mars', 'april', 'maj', 'juni',
     'juli', 'augusti', 'september', 'oktober', 'november', 'december',
   ];
-  const v6State = { weekStart: '', dayDate: '', visits: [], selected: null, mode: 'vecka' };
+  const v6State = {
+    weekStart: '',
+    dayDate: '',
+    visits: [],
+    displayVisits: [],
+    selected: null,
+    mode: 'vecka',
+    filters: { resourceId: '', serviceId: '' },
+  };
+
+  function v6FilteredVisits() {
+    const { resourceId, serviceId } = v6State.filters;
+    if (!resourceId && !serviceId) return v6State.visits;
+    return v6State.visits.filter((slot) => {
+      if (resourceId && slot.resourceId !== resourceId) return false;
+      if (serviceId && slot.serviceId !== serviceId) return false;
+      return true;
+    });
+  }
+
+  function v6ApplyFilters() {
+    v6State.displayVisits = v6FilteredVisits();
+    v6RenderWeek(v6State.displayVisits);
+    v6UpdateSidebars(v6State.displayVisits);
+    v6UpdateStory(v6State.displayVisits);
+    v6UpdateOriginalHome(v6State.displayVisits);
+    const selected = v6State.selected && v6State.displayVisits.find((slot) =>
+      slot.id === v6State.selected.id || slot.bookingId === v6State.selected.bookingId);
+    v6State.selected = selected || v6State.displayVisits.find((slot) => slot.date === isoToday()) ||
+      v6State.displayVisits.find((slot) => slot.date >= isoToday()) ||
+      v6State.displayVisits[0] || null;
+    v6RenderIntel(v6State.selected);
+  }
+
+  function v6BuildFilters() {
+    const bar = document.getElementById('ccoCalFilters');
+    if (!bar) return;
+    const resourceSelect = bar.querySelector('[data-filter="resource"]');
+    const serviceSelect = bar.querySelector('[data-filter="service"]');
+    if (!resourceSelect || !serviceSelect) return;
+
+    const resources = new Map();
+    const services = new Map();
+    v6State.visits.forEach((slot) => {
+      if (slot.resourceId) resources.set(slot.resourceId, slot.resourceLabel || slot.resourceId);
+      if (slot.serviceId) services.set(slot.serviceId, slot.serviceLabel || slot.serviceId);
+    });
+
+    const currentResource = resourceSelect.value;
+    const currentService = serviceSelect.value;
+
+    function fill(select, items, emptyLabel) {
+      select.innerHTML = '';
+      select.appendChild(el('option', { value: '' }, emptyLabel));
+      [...items.entries()]
+        .sort((a, b) => String(a[1]).localeCompare(String(b[1]), 'sv-SE'))
+        .forEach(([id, label]) => select.appendChild(el('option', { value: id }, label)));
+    }
+
+    fill(resourceSelect, resources, 'Alla resurser');
+    fill(serviceSelect, services, 'Alla behandlingar');
+
+    resourceSelect.value = resources.has(currentResource) ? currentResource : v6State.filters.resourceId;
+    serviceSelect.value = services.has(currentService) ? currentService : v6State.filters.serviceId;
+  }
 
   function v6IsoOffset(dateKey, days) {
     const date = new Date(dateKey + 'T12:00:00.000Z');
@@ -1837,17 +1749,128 @@
     ]);
   }
 
+  const dossierCache = new Map();
+  async function fetchPatientDossier(patientId) {
+    if (!patientId) return null;
+    if (dossierCache.has(patientId)) return dossierCache.get(patientId);
+    try {
+      const response = await fetch('/api/v1/cco-patient-master/patient/dossier-bundle?patientId=' +
+        encodeURIComponent(patientId), { headers: calendarHeaders() });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const payload = await response.json();
+      dossierCache.set(patientId, payload);
+      return payload;
+    } catch (error) {
+      console.warn('Kunde inte hämta dossier:', error);
+      return null;
+    }
+  }
+
+  function v6RenderDossierTab(shell, slot, tab) {
+    const content = shell.querySelector('.ai-reason');
+    if (!content) return;
+    content.innerHTML = '';
+    if (!slot?.patientId) {
+      content.textContent = 'Välj ett besök med en kopplad patient för att visa dossié.';
+      return;
+    }
+    content.appendChild(el('div', { class: 'cco-cal-empty' }, 'Läser patientdossié…'));
+    fetchPatientDossier(slot.patientId).then((dossier) => {
+      if (v6State.selected !== slot) return;
+      content.innerHTML = '';
+      if (!dossier) {
+        content.textContent = 'Dossié kunde inte hämtas.';
+        return;
+      }
+      const renderList = (items, render) => {
+        if (!items || !items.length) return el('p', { class: 'cco-cal-dossier-empty' }, 'Inga poster.');
+        const list = el('div', { class: 'cco-cal-dossier-list' });
+        items.forEach((item) => list.appendChild(render(item)));
+        return list;
+      };
+      const fmtDate = (value) => {
+        if (!value) return '—';
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('sv-SE', {
+          timeZone: 'Europe/Stockholm', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+        });
+      };
+      if (tab === 'Besök') {
+        const visits = [
+          ...(dossier.upcomingBookings || []),
+          ...(dossier.historyBookings || []),
+        ];
+        content.appendChild(renderList(visits, (v) => el('div', { class: 'cco-cal-dossier-row' }, [
+          el('strong', {}, v.serviceDisplayName || v.serviceName || v.serviceId || 'Besök'),
+          el('span', {}, fmtDate(v.startsAt) + ' · ' + (v.status || '')),
+        ])));
+      } else if (tab === 'Historik') {
+        const timeline = dossier.occasionTimeline || dossier.visitSegments || [];
+        content.appendChild(renderList(timeline, (t) => el('div', { class: 'cco-cal-dossier-row' }, [
+          el('strong', {}, t.label || t.type || 'Händelse'),
+          el('span', {}, fmtDate(t.date || t.startsAt || t.createdAt)),
+        ])));
+      } else if (tab === 'Filer') {
+        content.appendChild(renderList(dossier.driveFiles || [], (f) => el('div', { class: 'cco-cal-dossier-row' }, [
+          el('strong', {}, f.name || f.fileName || 'Fil'),
+          el('span', {}, (f.mimeType || '').split('/')[1] || f.mimeType || ''),
+        ])));
+      } else if (tab === 'Anteckningar') {
+        const notes = [
+          ...(dossier.journalEntries || []),
+          ...(dossier.communicationMessages || []),
+        ];
+        content.appendChild(renderList(notes, (n) => el('div', { class: 'cco-cal-dossier-row' }, [
+          el('strong', {}, n.type || n.kind || 'Anteckning'),
+          el('span', {}, n.text || n.summary || n.content || fmtDate(n.createdAt)),
+        ])));
+      } else if (tab === 'Foton') {
+        content.appendChild(el('button', {
+          class: 'quick-pill quick-pill--ai', type: 'button',
+          onclick: () => openCameraDrawer(slot),
+        }, 'Ta ny före/efter-bild'));
+        content.appendChild(el('div', { class: 'cco-cal-empty' }, 'Läser före/efter-bilder…'));
+        fetch('/api/v1/cco-journal/before-after-photos?patientId=' + encodeURIComponent(slot.patientId),
+          { headers: calendarHeaders() })
+          .then((response) => response.ok ? response.json() : null)
+          .then((gallery) => {
+            if (v6State.selected !== slot) return;
+            content.querySelector('.cco-cal-empty')?.remove();
+            if (!gallery) {
+              content.appendChild(el('p', { class: 'cco-cal-dossier-empty' }, 'Kunde inte hämta bilder.'));
+              return;
+            }
+            const renderPhotoGroup = (title, items) => {
+              content.appendChild(el('h4', { class: 'cco-cal-dossier-subtitle' }, title));
+              content.appendChild(renderList(items, (p) => el('div', { class: 'cco-cal-dossier-row' }, [
+                el('strong', {}, p.label || p.fileName || 'Bild'),
+                el('span', {}, fmtDate(p.capturedAt)),
+              ])));
+            };
+            if (gallery.before?.length) renderPhotoGroup('Före', gallery.before);
+            if (gallery.after?.length) renderPhotoGroup('Efter', gallery.after);
+            if (gallery.unclassified?.length) renderPhotoGroup('Oklassificerade', gallery.unclassified);
+            if (!gallery.before?.length && !gallery.after?.length && !gallery.unclassified?.length) {
+              content.appendChild(el('p', { class: 'cco-cal-dossier-empty' }, 'Inga före/efter-bilder än.'));
+            }
+          })
+          .catch(() => {
+            content.querySelector('.cco-cal-empty')?.remove();
+            content.appendChild(el('p', { class: 'cco-cal-dossier-empty' }, 'Kunde inte hämta bilder.'));
+          });
+      }
+    });
+  }
+
   function v6RenderIntel(slot) {
     const shell = document.querySelector('.intel-shell');
     if (!shell) return;
     v6State.selected = slot || null;
-    shell.dataset.readOnly = 'true';
-    shell.dataset.zeroWrites = 'true';
     v6SetText(shell.querySelector('.intel-avatar'), v6Initials(slot && slot.patientName));
     v6SetText(shell.querySelector('.intel-name'), slot ? (slot.patientName || 'Okopplad patient') : 'Välj ett besök');
     v6SetText(shell.querySelector('.intel-meta'), slot
       ? statusLabel(slot.status) + ' · ' + sourceLabel(slot.source)
-      : 'Canonical bokningsdata · read-only');
+      : 'Canonical bokningsdata');
 
     const grid = shell.querySelector('.intel-grid');
     if (grid) {
@@ -1872,7 +1895,7 @@
     if (ready) {
       ready.innerHTML = '';
       if (slot) {
-        const preflight = buildReadonlyBookingPreflight(slot);
+        const preflight = buildBookingSafetyPreflight(slot);
         preflight.gates.slice(0, 7).forEach((gate) => {
           ready.appendChild(el('span', {
             class: 'ready-pill',
@@ -1880,10 +1903,11 @@
             title: gate.detail,
           }, (gate.status === 'pass' ? '✓ ' : '! ') + gate.label));
         });
+        ready.appendChild(el('span', {
+          class: 'ready-pill',
+          dataset: { state: preflight.actionAllowed ? 'success' : 'warning' },
+        }, preflight.actionAllowed ? '✓ Klart för åtgärd' : '! Åtgärd blockerad'));
       }
-      ready.appendChild(el('span', {
-        class: 'ready-pill', dataset: { state: 'warning' },
-      }, 'READ-ONLY · 0 WRITES'));
     }
 
     const notes = shell.querySelector('.ai-reason');
@@ -1910,10 +1934,17 @@
     const tabs = shell.querySelector('.intel-tabs');
     if (tabs) {
       tabs.innerHTML = '';
-      ['Besök', 'Historik', 'Filer', 'Anteckningar'].forEach((label, index) => {
-        tabs.appendChild(el('button', {
-          class: 'intel-tab' + (index === 0 ? ' active' : ''), type: 'button', disabled: 'disabled',
-        }, label));
+      const labels = ['Besök', 'Historik', 'Filer', 'Anteckningar', 'Foton'];
+      labels.forEach((label, index) => {
+        const button = el('button', {
+          class: 'intel-tab' + (index === 0 ? ' active' : ''), type: 'button',
+        }, label);
+        button.addEventListener('click', () => {
+          tabs.querySelectorAll('.intel-tab').forEach((t) => t.classList.remove('active'));
+          button.classList.add('active');
+          v6RenderDossierTab(shell, slot, label);
+        });
+        tabs.appendChild(button);
       });
     }
 
@@ -1931,20 +1962,17 @@
             onclick: () => openCreateBookingDrawer(slot),
           }, 'Skapa bokning'));
         }
+        if (isRebookable(slot)) {
+          actions.appendChild(el('button', {
+            class: 'quick-pill quick-pill--ai', type: 'button',
+            onclick: () => openRebookDrawer(slot),
+          }, 'Boka om'));
+        }
       } else {
         actions.appendChild(el('button', {
           class: 'quick-pill quick-pill--success', type: 'button', disabled: 'disabled',
         }, 'Välj besök för canonical patient'));
       }
-      [
-        ['quick-pill quick-pill--ai', 'Boknings-preflight · read-only'],
-        ['quick-pill quick-pill--ai', 'Säkerhetsgrindar · read-only'],
-        ['quick-pill', 'Anteckningar · read-only'],
-        ['quick-pill', 'Resurs och vårdgivare · read-only'],
-        ['quick-pill', 'Ombokning avstängd'],
-      ].forEach(([className, label]) => actions.appendChild(el('button', {
-        class: className, type: 'button', disabled: 'disabled',
-      }, label)));
     }
   }
 
@@ -2062,7 +2090,7 @@
       'resource', 'practitioner', 'stockholm_time',
     ]);
     const risks = todayVisits.map((slot) => {
-      const gate = buildReadonlyBookingPreflight(slot).blockers.find((item) => safetyKeys.has(item.key));
+      const gate = buildBookingSafetyPreflight(slot).blockers.find((item) => safetyKeys.has(item.key));
       return gate ? { slot, gate } : null;
     }).filter(Boolean);
     v6SetStoryKicker(riskCard, risks.length + ' risk' + (risks.length === 1 ? '' : 'er'));
@@ -2141,7 +2169,7 @@
         document.querySelectorAll('.segment-tab').forEach((tab) => {
           tab.classList.toggle('active', tab.dataset.mode === 'vecka');
         });
-        v6RenderWeek(v6State.visits);
+        v6RenderWeek(v6State.displayVisits);
       },
     }, '→ Öppna veckovyn'));
     [
@@ -2246,8 +2274,8 @@
     const resourceTab = document.querySelector('.segment-tab[data-mode="resurs"]');
     if (resourceTab) {
       resourceTab.hidden = false;
-      resourceTab.disabled = true;
-      resourceTab.title = 'Separat resursvy saknar verifierat read-kontrakt';
+      resourceTab.disabled = false;
+      resourceTab.title = 'Resursvy · canonical read-only';
     }
     document.querySelectorAll('.voice-overlay, .voice-sheet, .watch-restore').forEach((node) => {
       node.hidden = true;
@@ -2264,6 +2292,10 @@
   }
 
   function v6RenderWeek(visits) {
+    if (v6State.mode === 'resurs') {
+      v6RenderResourceView(visits);
+      return;
+    }
     const week = document.getElementById('calWeek');
     if (!week) return;
     const days = week.querySelectorAll('.day-col');
@@ -2302,6 +2334,54 @@
     v6SetText(document.querySelector('.week-pill .num'), String(v6WeekNumber(v6State.weekStart)));
     const content = document.querySelector('.calendar-content');
     if (content) content.dataset.mode = v6State.mode === 'morgon' ? 'morgon' : 'vecka';
+  }
+
+  function v6RenderResourceView(visits) {
+    const week = document.getElementById('calWeek');
+    if (!week) return;
+    const resources = Array.from(
+      visits.reduce((map, slot) => {
+        const id = slot.resourceId || '_unassigned';
+        if (!map.has(id)) {
+          map.set(id, { resourceId: id, resourceLabel: slot.resourceLabel || slot.staffName || 'Ej tilldelad' });
+        }
+        return map;
+      }, new Map()).values()
+    ).sort((a, b) => (a.resourceId === '_unassigned' ? 1 : b.resourceId === '_unassigned' ? -1
+      : (a.resourceLabel || '').localeCompare(b.resourceLabel || '', 'sv-SE')));
+
+    week.innerHTML = '';
+    week.style.gridTemplateColumns = '28px repeat(' + resources.length + ', 1fr)';
+
+    const timeCol = el('div', { class: 'time-col' });
+    for (let h = V6_HOUR_START; h < 23; h++) {
+      timeCol.appendChild(el('div', { class: 'time-tick' }, String(h).padStart(2, '0') + ':00'));
+    }
+    week.appendChild(timeCol);
+
+    resources.forEach((resource) => {
+      const col = el('div', { class: 'day-col', dataset: { resourceId: resource.resourceId } });
+      col.appendChild(el('div', { class: 'day-head' }, [
+        el('span', { class: 'day-label' }, resource.resourceLabel || resource.resourceId),
+      ]));
+      const slots = el('div', { class: 'day-slots' });
+      const resourceVisits = visits.filter((slot) => (slot.resourceId || '_unassigned') === resource.resourceId);
+      if (!resourceVisits.length) {
+        slots.appendChild(el('div', { class: 'v6-empty' }, 'Inga bokningar'));
+      } else {
+        resourceVisits.forEach((slot) => slots.appendChild(v6BookingCard(slot)));
+      }
+      col.appendChild(slots);
+      week.appendChild(col);
+    });
+
+    const content = document.querySelector('.calendar-content');
+    if (content) content.dataset.mode = 'resurs';
+    const calTitle = document.getElementById('calTitle');
+    if (calTitle) {
+      v6SetText(calTitle, 'Resurser · vecka ' + v6WeekNumber(v6State.weekStart) +
+        ' · ' + resources.length + ' resurser');
+    }
   }
 
   function historySearchRowToV6Slot(row) {
@@ -2470,9 +2550,10 @@
   function v6BindControls() {
     document.querySelectorAll('.segment-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
-        v6State.mode = ['morgon', 'dag'].includes(tab.dataset.mode) ? tab.dataset.mode : 'vecka';
+        const mode = tab.dataset.mode;
+        v6State.mode = ['morgon', 'dag', 'resurs'].includes(mode) ? mode : 'vecka';
         if (v6State.mode === 'dag' && !v6State.dayDate) v6State.dayDate = isoToday();
-        v6RenderWeek(v6State.visits);
+        v6RenderWeek(v6State.displayVisits);
       });
     });
     const nav = document.querySelectorAll('.calendar-toolbar-actions > .nav-btn');
@@ -2500,6 +2581,14 @@
       if (openedAt && Date.now() - openedAt < 150) return;
       if (event.target === event.currentTarget) closeV6SearchOverlay();
     });
+    const filterBar = document.getElementById('ccoCalFilters');
+    filterBar?.querySelectorAll('select').forEach((select) => {
+      select.addEventListener('change', () => {
+        v6State.filters.resourceId = filterBar.querySelector('[data-filter="resource"]').value;
+        v6State.filters.serviceId = filterBar.querySelector('[data-filter="service"]').value;
+        v6ApplyFilters();
+      });
+    });
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && document.getElementById('searchOverlay')?.classList.contains('is-visible')) {
         closeV6SearchOverlay();
@@ -2508,8 +2597,70 @@
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         setTimeout(() => openV6SearchOverlay(document.getElementById('searchOverlayInput')?.value || ''), 0);
+        return;
+      }
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const activeTag = document.activeElement?.tagName?.toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+
+      const go = (mode) => {
+        v6State.mode = mode;
+        if (mode === 'dag' && !v6State.dayDate) v6State.dayDate = isoToday();
+        v6RenderWeek(v6State.displayVisits);
+      };
+      const shiftDay = (offset) => {
+        if (v6State.mode === 'dag' || v6State.mode === 'resurs') {
+          v6State.dayDate = v6IsoOffset(v6State.dayDate, offset);
+          v6State.weekStart = v6WeekStart(v6State.dayDate);
+        } else {
+          v6State.weekStart = v6IsoOffset(v6State.weekStart, offset * 7);
+          if (offset === 0) v6State.dayDate = isoToday();
+        }
+        v6Load();
+      };
+
+      switch (event.key) {
+        case '1': event.preventDefault(); go('morgon'); break;
+        case '2': event.preventDefault(); go('vecka'); break;
+        case '3': event.preventDefault(); go('dag'); break;
+        case '4': event.preventDefault(); go('resurs'); break;
+        case 'j': event.preventDefault(); shiftDay(1); break;
+        case 'k': event.preventDefault(); shiftDay(-1); break;
+        case 'h': event.preventDefault(); if (v6State.mode === 'dag' || v6State.mode === 'resurs') shiftDay(-1); else shiftDay(-1); break;
+        case 'l': event.preventDefault(); if (v6State.mode === 'dag' || v6State.mode === 'resurs') shiftDay(1); else shiftDay(1); break;
+        case '?': event.preventDefault(); toggleKeyboardHelp(); break;
+        default: break;
       }
     });
+  }
+
+  function toggleKeyboardHelp() {
+    let overlay = document.getElementById('ccoCalKeyboardHelp');
+    if (overlay) {
+      overlay.remove();
+      return;
+    }
+    overlay = el('div', { id: 'ccoCalKeyboardHelp', class: 'cco-cal-keyboard-help' }, [
+      el('div', { class: 'cco-cal-keyboard-help-backdrop', onclick: () => overlay.remove() }),
+      el('div', { class: 'cco-cal-keyboard-help-surface', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Tangentbordsgenvägar' }, [
+        el('header', {}, [
+          el('h3', {}, 'Tangentbordsgenvägar'),
+          el('button', { type: 'button', 'aria-label': 'Stäng', onclick: () => overlay.remove() }, '×'),
+        ]),
+        el('dl', { class: 'cco-cal-keyboard-help-grid' }, [
+          el('dt', {}, '1'), el('dd', {}, 'Morgonöversikt'),
+          el('dt', {}, '2'), el('dd', {}, 'Veckovy'),
+          el('dt', {}, '3'), el('dd', {}, 'Dagvy'),
+          el('dt', {}, '4'), el('dd', {}, 'Resursvy'),
+          el('dt', {}, 'j / l'), el('dd', {}, 'Nästa / föregående dag eller vecka'),
+          el('dt', {}, 'k / h'), el('dd', {}, 'Föregående / nästa dag eller vecka'),
+          el('dt', {}, '⌘K'), el('dd', {}, 'Sök canonical bokningshistorik'),
+          el('dt', {}, '?'), el('dd', {}, 'Visa denna hjälp'),
+          el('dt', {}, 'Esc'), el('dd', {}, 'Stäng sökning / hjälp'),
+        ]),
+      ]),
+    ]);
+    document.body.appendChild(overlay);
   }
 
   async function v6Load() {
@@ -2517,18 +2668,22 @@
     try {
       v6State.visits = await loadCanonicalVisits(v6State.weekStart, end,
         global.__ccoCalTenantId || 'hair_tp', global.__ccoCalRole || 'owner');
-      v6RenderWeek(v6State.visits);
-      v6UpdateSidebars(v6State.visits);
-      v6UpdateStory(v6State.visits);
-      v6UpdateOriginalHome(v6State.visits);
-      const selected = v6State.selected && v6State.visits.find((slot) =>
+      v6State.displayVisits = v6FilteredVisits();
+      v6BuildFilters();
+      v6RenderWeek(v6State.displayVisits);
+      v6UpdateSidebars(v6State.displayVisits);
+      v6UpdateStory(v6State.displayVisits);
+      v6UpdateOriginalHome(v6State.displayVisits);
+      const selected = v6State.selected && v6State.displayVisits.find((slot) =>
         slot.id === v6State.selected.id || slot.bookingId === v6State.selected.bookingId);
-      v6State.selected = selected || v6State.visits.find((slot) => slot.date === isoToday()) ||
-        v6State.visits.find((slot) => slot.date >= isoToday()) || v6State.visits[0] || null;
+      v6State.selected = selected || v6State.displayVisits.find((slot) => slot.date === isoToday()) ||
+        v6State.displayVisits.find((slot) => slot.date >= isoToday()) ||
+        v6State.displayVisits[0] || null;
       v6RenderIntel(v6State.selected);
       v6RenderSearch('');
     } catch (error) {
       v6State.visits = [];
+      v6State.displayVisits = [];
       v6RenderWeek([]);
       v6UpdateSidebars([]);
       v6UpdateStory([]);
@@ -2563,12 +2718,12 @@
     const view = detectViewFromUrl();
     applyView(view);
     if (view === 'calendar') {
+      bindQualityPanel();
       if (isOriginalV6Mode()) {
         initOriginalV6Calendar();
         return;
       }
       resetLiveReadUi();
-      bindQualityPanel();
       const dagTab = document.querySelector('.segment-tab[data-mode="dag"]');
       if (dagTab) {
         setTimeout(() => {
@@ -2581,11 +2736,242 @@
     bindSetModeHook();
   }
 
-  global.CcoKalenderShell = isReadOnlyMode()
-    ? { loadDay, loadWeek, applyView, renderDrawer: renderReadonlyDrawer,
-        buildCanonicalSidebarSummary, canonicalConflictCount, buildReadonlyBookingPreflight,
-        createBookingPayload, openCreateBookingDrawer }
-    : { loadDay, loadWeek, applyView, renderDrawer };
+  function isRebookable(slot) {
+    if (!slot) return false;
+    if (slot.source !== 'cco_booking_engine') return false;
+    if (!slot.customerEmail || !slot.conversationId) return false;
+    if (!slot.serviceId || !slot.resourceId) return false;
+    if (slot.identityAmbiguous || slot.linkAllowed === false) return false;
+    return true;
+  }
+
+  async function openRebookDrawer(slot) {
+    if (!isRebookable(slot)) return;
+
+    const drawer = getDrawerMount();
+    drawer.innerHTML = '';
+    drawer.classList.add('is-open');
+    const close = () => {
+      drawer.classList.remove('is-open');
+      drawer.innerHTML = '';
+    };
+    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
+      el('h3', {}, 'Boka om besök'),
+      el('div', { class: 'cco-cal-drawer-meta' }, 'Canonical patient · skrivande åtgärd'),
+      el('button', { class: 'cco-cal-drawer-close', type: 'button', onclick: close, 'aria-label': 'Stäng' }, '×'),
+    ]));
+
+    drawer.appendChild(el('dl', { class: 'cco-cal-preflight-fields' }, [
+      el('dt', {}, 'Patient'), el('dd', {}, slot.patientName || 'Namn saknas'),
+      el('dt', {}, 'Nuvarande tid'), el('dd', {}, slot.date + ' ' + formatTimeRange(slot.time, slot.endTime)),
+      el('dt', {}, 'Behandling'), el('dd', {}, slot.serviceLabel || slot.serviceId),
+      el('dt', {}, 'Resurs'), el('dd', {}, slot.resourceLabel || slot.resourceId),
+    ]));
+
+    const form = el('section', { class: 'cco-cal-create-controlled' });
+    const dateInput = el('input', {
+      class: 'cco-cal-create-input', type: 'date', value: slot.date, 'aria-label': 'Nytt datum',
+    });
+    const availabilitySelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Ny ledig Stockholm-tid' });
+    const message = el('p', { class: 'cco-cal-preflight-footnote', role: 'status' }, 'Laddar lediga tider…');
+
+    async function loadAvailability() {
+      availabilitySelect.innerHTML = '';
+      const params = new URLSearchParams({
+        fromDate: dateInput.value,
+        toDate: dateInput.value,
+        resIds: slot.resourceId,
+        srvIds: slot.serviceId,
+      });
+      try {
+        const response = await fetch('/api/v1/cco-booking-engine/availability?' + params,
+          { headers: calendarHeaders() });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const payload = await response.json();
+        (payload.slots || []).forEach((available) => {
+          const local = stockholmParts(available.startsAt);
+          availabilitySelect.appendChild(el('option', { value: available.startsAt },
+            local.date + ' kl ' + local.time + ' · Europe/Stockholm'));
+        });
+        message.textContent = availabilitySelect.options.length
+          ? 'Välj en ny tid och bekräfta ombokningen.'
+          : 'Inga lediga tider för valt datum med samma resurs/behandling.';
+      } catch (_) {
+        message.textContent = 'Kunde inte läsa availability. Ombokning blockerad.';
+      }
+    }
+
+    const confirmInput = el('input', {
+      class: 'cco-cal-create-input', type: 'text', autocomplete: 'off',
+      placeholder: 'Skriv BOKA OM', 'aria-label': 'Skriv BOKA OM för att bekräfta',
+    });
+    const confirmButton = el('button', {
+      class: 'quick-pill quick-pill--success', type: 'button', disabled: 'disabled',
+    }, 'Bekräfta ombokning');
+
+    confirmInput.addEventListener('input', () => {
+      confirmButton.disabled = confirmInput.value !== 'BOKA OM' || !availabilitySelect.value;
+    });
+    availabilitySelect.addEventListener('change', () => {
+      confirmButton.disabled = confirmInput.value !== 'BOKA OM' || !availabilitySelect.value;
+    });
+
+    confirmButton.addEventListener('click', async () => {
+      confirmButton.disabled = true;
+      try {
+        const response = await fetch('/api/v1/cco-booking-engine/rebook', {
+          method: 'POST',
+          headers: calendarHeaders({ json: true }),
+          body: JSON.stringify({
+            conversationId: slot.conversationId,
+            customerEmail: slot.customerEmail,
+            workspaceId: slot.workspaceId || '',
+            slot: {
+              startsAt: availabilitySelect.value,
+              resourceId: slot.resourceId,
+              serviceId: slot.serviceId,
+            },
+            reason: 'Ombokad från kalendern',
+          }),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'rebook_failed');
+        drawer.innerHTML = '';
+        drawer.appendChild(el('div', { class: 'cco-cal-ready cco-cal-ready--ok', role: 'status' },
+          'Besöket ombokades. Ny tid: ' + (payload.booking?.slot?.startsAt || availabilitySelect.value)));
+        setTimeout(() => {
+          close();
+          v6Load();
+        }, 1200);
+      } catch (error) {
+        message.textContent = 'Ombokningen misslyckades: ' + (error.message || 'okänt fel');
+        confirmButton.disabled = false;
+      }
+    });
+
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Nytt datum'));
+    form.appendChild(dateInput);
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Ny ledig tid'));
+    form.appendChild(availabilitySelect);
+    form.appendChild(message);
+    form.appendChild(el('p', { class: 'cco-cal-preflight-warning' },
+      'Detta avbokar den gamla tiden och skapar en ny bekräftad bokning. Skriv BOKA OM för att fortsätta.'));
+    form.appendChild(confirmInput);
+    form.appendChild(confirmButton);
+    drawer.appendChild(form);
+
+    dateInput.addEventListener('change', loadAvailability);
+    await loadAvailability();
+  }
+
+  function openCameraDrawer(slot) {
+    if (!slot?.patientId) return;
+
+    const drawer = getDrawerMount();
+    drawer.innerHTML = '';
+    drawer.classList.add('is-open');
+    const close = () => {
+      drawer.classList.remove('is-open');
+      drawer.innerHTML = '';
+    };
+    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
+      el('h3', {}, 'Ta före/efter-bild'),
+      el('div', { class: 'cco-cal-drawer-meta' }, 'Kopplas till journalen för besöket'),
+      el('button', { class: 'cco-cal-drawer-close', type: 'button', onclick: close, 'aria-label': 'Stäng' }, '×'),
+    ]));
+
+    drawer.appendChild(el('dl', { class: 'cco-cal-preflight-fields' }, [
+      el('dt', {}, 'Patient'), el('dd', {}, slot.patientName || 'Namn saknas'),
+      el('dt', {}, 'Besök'), el('dd', {}, slot.encounterId || 'Saknas'),
+    ]));
+
+    const form = el('section', { class: 'cco-cal-create-controlled' });
+    const phaseSelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Bildfas' }, [
+      el('option', { value: '' }, 'Välj fas'),
+      el('option', { value: 'before' }, 'Före'),
+      el('option', { value: 'after' }, 'Efter'),
+    ]);
+    const labelInput = el('input', {
+      class: 'cco-cal-create-input', type: 'text', placeholder: 'Etikett (valfritt)',
+      'aria-label': 'Etikett',
+    });
+    const fileInput = el('input', {
+      class: 'cco-cal-create-input', type: 'file', accept: 'image/*', capture: 'environment',
+      'aria-label': 'Bild från kamera',
+    });
+    const preview = el('img', {
+      class: 'cco-cal-camera-preview',
+      style: 'display:none;max-width:100%;max-height:220px;border-radius:10px;',
+      alt: 'Förhandsgranskning',
+    });
+    const message = el('p', { class: 'cco-cal-preflight-footnote', role: 'status' }, 'Välj fas och ta en bild.');
+    const uploadButton = el('button', {
+      class: 'quick-pill quick-pill--success', type: 'button', disabled: 'disabled',
+    }, 'Ladda upp till journalen');
+
+    let selectedFile = null;
+    fileInput.addEventListener('change', () => {
+      selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      if (selectedFile) {
+        preview.src = URL.createObjectURL(selectedFile);
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
+      uploadButton.disabled = !selectedFile || !phaseSelect.value;
+    });
+    phaseSelect.addEventListener('change', () => {
+      uploadButton.disabled = !selectedFile || !phaseSelect.value;
+    });
+
+    uploadButton.addEventListener('click', async () => {
+      if (!selectedFile || !phaseSelect.value) return;
+      uploadButton.disabled = true;
+      const body = new FormData();
+      body.append('patientId', slot.patientId);
+      if (slot.encounterId) body.append('encounterId', slot.encounterId);
+      body.append('photoPhase', phaseSelect.value);
+      body.append('label', labelInput.value || (phaseSelect.value === 'before' ? 'Före' : 'Efter'));
+      body.append('photo', selectedFile, selectedFile.name);
+
+      try {
+        const response = await fetch('/api/v1/cco-journal/photo', {
+          method: 'POST',
+          headers: calendarHeaders(),
+          body,
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'upload_failed');
+        drawer.innerHTML = '';
+        drawer.appendChild(el('div', { class: 'cco-cal-ready cco-cal-ready--ok', role: 'status' },
+          'Bilden sparades i journalen.'));
+        setTimeout(() => {
+          close();
+          if (v6State.selected === slot) v6RenderDossierTab(document.querySelector('.intel-shell'), slot, 'Foton');
+        }, 1200);
+      } catch (error) {
+        message.textContent = 'Uppladdningen misslyckades: ' + (error.message || 'okänt fel');
+        uploadButton.disabled = false;
+      }
+    });
+
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Fas'));
+    form.appendChild(phaseSelect);
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Etikett'));
+    form.appendChild(labelInput);
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Bild'));
+    form.appendChild(fileInput);
+    form.appendChild(preview);
+    form.appendChild(message);
+    form.appendChild(uploadButton);
+    drawer.appendChild(form);
+  }
+
+  global.CcoKalenderShell = {
+    loadDay, loadWeek, applyView, renderDrawer,
+    buildCanonicalSidebarSummary, canonicalConflictCount, buildBookingSafetyPreflight,
+    createBookingPayload, openCreateBookingDrawer,
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

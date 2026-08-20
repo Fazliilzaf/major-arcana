@@ -283,6 +283,53 @@
         font-weight: 700;
         letter-spacing: -0.03em;
       }
+      .calendar-filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        margin: -8px 0 8px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(248, 244, 240, 0.62));
+        border: 1px solid rgba(120, 105, 90, 0.12);
+        border-radius: 12px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+      .calendar-filter-bar label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #5e534b;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .calendar-filter-bar select {
+        min-width: 140px;
+        padding: 5px 8px;
+        border: 1px solid rgba(120, 105, 90, 0.18);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.86);
+        color: #2d241e;
+        font-size: 12px;
+      }
+      .calendar-filter-bar select:disabled {
+        opacity: 0.5;
+      }
+      .cco-cal-camera-preview {
+        display: block;
+        max-width: 100%;
+        max-height: 220px;
+        border-radius: 10px;
+        margin: 8px 0;
+        border: 1px solid rgba(120, 105, 90, 0.14);
+      }
+      .cco-cal-dossier-subtitle {
+        margin: 14px 0 6px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #5e534b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
 
       .week-pill {
         display: inline-flex;
@@ -1985,6 +2032,31 @@
         padding-top: 12px;
         box-shadow: inset 0 1px 0 rgba(215, 202, 194, 0.46);
       }
+      .cco-cal-dossier-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .cco-cal-dossier-row {
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.55);
+        box-shadow: inset 0 0 0 1px rgba(132, 117, 107, 0.08);
+        font-size: 11px;
+      }
+      .cco-cal-dossier-row strong {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .cco-cal-dossier-row span {
+        color: var(--cco-text-secondary);
+      }
+      .cco-cal-dossier-empty {
+        color: var(--cco-text-secondary);
+        font-size: 11px;
+        font-style: italic;
+      }
       .quick-pill {
         display: inline-flex;
         align-items: center;
@@ -2072,6 +2144,71 @@
       }
       .calendar-content[data-mode='vecka'] .morgon-story {
         display: none;
+      }
+      .calendar-content[data-mode='resurs'] .morgon-story {
+        display: none;
+      }
+
+      /* ─── Tangentbordsgenvägar hjälp ─── */
+      .cco-cal-keyboard-help {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .cco-cal-keyboard-help-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(43, 37, 31, 0.35);
+        backdrop-filter: blur(2px);
+      }
+      .cco-cal-keyboard-help-surface {
+        position: relative;
+        width: 100%;
+        max-width: 420px;
+        max-height: 80vh;
+        overflow: auto;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow: var(--panel-shell-shadow-strong);
+        border-radius: 22px;
+        padding: 22px;
+      }
+      .cco-cal-keyboard-help-surface header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .cco-cal-keyboard-help-surface h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+      .cco-cal-keyboard-help-surface header button {
+        background: transparent;
+        border: 0;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--cco-text-secondary);
+      }
+      .cco-cal-keyboard-help-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px 14px;
+        margin: 0;
+        font-size: 12px;
+      }
+      .cco-cal-keyboard-help-grid dt {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 700;
+        color: var(--accent-studio);
+        min-width: 60px;
+      }
+      .cco-cal-keyboard-help-grid dd {
+        margin: 0;
+        color: var(--cco-text-secondary);
       }
 
       /* ═══════════════════════════════════════════════════════════════
@@ -3979,8 +4116,8 @@
     </style>
     <link rel="stylesheet" href="/cco-mobile.css?v=20260531a" />
     <script>
-      window.CCO_CALENDAR_READ_ONLY = true;
       window.CCO_CALENDAR_ORIGINAL_V6 = true;
+      window.CCO_CALENDAR_CREATE_BOOKING_ENABLED = true;
       document.documentElement.classList.add('cco-v6-booting');
     </script>
     <style>
@@ -4296,6 +4433,17 @@
               <button class="nav-btn">›</button>
             </div>
           </header>
+
+          <div class="calendar-filter-bar" id="ccoCalFilters">
+            <label>
+              Resurs
+              <select data-filter="resource" aria-label="Filtrera på resurs"></select>
+            </label>
+            <label>
+              Behandling
+              <select data-filter="service" aria-label="Filtrera på behandling"></select>
+            </label>
+          </div>
 
           <div class="calendar-status-bar">
             <span class="week-pill">Vecka <span class="num">22</span></span>
@@ -5729,7 +5877,6 @@
       };
 
       tmSlider.addEventListener('input', () => {
-        if (window.CCO_CALENDAR_READ_ONLY === true) return;
         const v = tmSlider.value;
         const info = DAY_OFFSETS[v] || { label: 'Nutid', dir: 'now' };
         tmLabel.textContent = info.label;
@@ -5763,7 +5910,6 @@
 
       // Cmd+Z / Ctrl+Z = ångra senaste (här: visuell flash + toast + reset till nutid)
       document.addEventListener('keydown', (ev) => {
-        if (window.CCO_CALENDAR_READ_ONLY === true) return;
         if ((ev.metaKey || ev.ctrlKey) && ev.key === 'z' && !ev.shiftKey) {
           ev.preventDefault();
           const flash = document.createElement('div');
@@ -5889,7 +6035,7 @@
           badges: [{ kind: 'vip', label: 'VIP' }],
         },
       ];
-      const CUSTOMERS = window.CCO_CALENDAR_READ_ONLY ? [] : LEGACY_PREVIEW_CUSTOMERS;
+      const CUSTOMERS = LEGACY_PREVIEW_CUSTOMERS;
 
       const globalSearch = document.getElementById('globalSearch');
       const globalSearchInput = document.getElementById('globalSearchInput');

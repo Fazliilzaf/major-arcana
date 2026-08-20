@@ -5901,7 +5901,8 @@
       return false;
     }
 
-    async function initializeWorkspaceSurface() {
+    async function initializeWorkspaceSurface(options = {}) {
+      const initialView = normalizeKey(options.initialView) || "conversations";
       if (shouldDeferHeavyWorkspaceBootstrap()) {
         bindWorkspaceInteractions();
         bindRuntimeVisibilityRecovery();
@@ -5931,7 +5932,7 @@
       renderSignalRows(focusSignalRows, FOCUS_SIGNALS);
       renderQuickActionRows(focusActionRows, FOCUS_ACTIONS);
       renderQuickActionRows(intelActionRows, INTEL_ACTIONS);
-      setAppView("conversations");
+      setAppView(initialView);
       applyFocusSection("conversation");
       applyStudioMode("reply");
       renderLaterOptions(state.later.option);

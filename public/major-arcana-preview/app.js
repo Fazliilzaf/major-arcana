@@ -44466,10 +44466,7 @@
     setAuxStatus(macrosStatus, "", "");
     setAuxStatus(settingsStatus, "", "");
     setAuxStatus(showcaseStatus, "", "");
-    initializeWorkspaceSurface();
-    if (initialShellViewState.view !== "conversations") {
-      setAppView(initialShellViewState.view);
-    }
+    initializeWorkspaceSurface({ initialView: initialShellViewState.view });
     // C3: öppna rätt tråd + kund när URL innehåller ?conv= (deep-link från kundkortet)
     if (
       initialShellViewState.conv &&

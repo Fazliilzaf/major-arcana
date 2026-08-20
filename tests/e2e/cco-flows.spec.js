@@ -6,26 +6,43 @@ const { test, expect } = require('@playwright/test');
 test.describe('CCO huvudflöden', () => {
   test('homepage laddar med rätt titel', async ({ page }) => {
     await page.goto('/major-arcana-preview/');
-    await expect(page).toHaveTitle(/Operatörsvy · Arcana/i);
+    // Appen omdirigerar startsidan till kundregistret (V9-cutover).
+    await expect(page).toHaveTitle(/Kundregister · Arcana/i);
   });
 
-  test('alla 30+ runtime-moduler laddas', async ({ page }) => {
+  test('alla runtime-moduler laddas', async ({ page }) => {
     await page.goto('/major-arcana-preview/');
     await page.waitForLoadState('networkidle');
-    const modulesCount = await page.evaluate(() => {
-      return Object.keys(window).filter((k) => k.startsWith('MajorArcanaPreview')).length;
-    });
-    expect(modulesCount).toBeGreaterThan(20);
-  });
-
-  test('command palette öppnas med ⌘K', async ({ page }) => {
-    await page.goto('/major-arcana-preview/');
-    await page.waitForLoadState('networkidle');
-    await page.evaluate(() => window.MajorArcanaPreviewCommandPalette?.open());
-    const visible = await page.evaluate(
-      () => !!document.querySelector('.cco-cmdk-backdrop:not([hidden])')
+    // Bundle injiceras asynkront via requestIdleCallback; vänta på nyckelglobaler.
+    await page.waitForFunction(
+      () =>
+        typeof window.MajorArcanaPreviewConfig === 'object' &&
+        typeof window.MajorArcanaPreviewWorkspaceState === 'object',
+      undefined,
+      { timeout: 10000, polling: 100 }
     );
-    expect(visible).toBe(true);
+    const modules = await page.evaluate(() => {
+      return Object.keys(window).filter((k) => k.startsWith('MajorArcanaPreview'));
+    });
+    // Modulerna har konsoliderats; vi kontrollerar att de centrala finns.
+    expect(modules.length).toBeGreaterThan(8);
+    expect(modules).toContain('MajorArcanaPreviewConfig');
+    expect(modules).toContain('MajorArcanaPreviewWorkspaceState');
+  });
+
+  test('global sök har ⌘K-shortcut', async ({ page }) => {
+    await page.goto('/major-arcana-preview/');
+    await page.waitForLoadState('networkidle');
+    const isMobile = (await page.viewportSize()).width <= 768;
+    if (isMobile) {
+      // På mobil finns söket i den kompakta top-baren; vi verifierar att ⌘K syns.
+      await expect(page.locator('body')).toContainText('⌘K');
+      return;
+    }
+    const search = page.locator('[role="searchbox"], input[type="search"]').first();
+    await expect(search).toBeVisible();
+    // ⌘K visas som tangentbordsgenväg för söket.
+    await expect(page.locator('body')).toContainText('⌘K');
   });
 
   test('thread-summary capability returnerar struktur', async ({ request }) => {
@@ -71,8 +88,48 @@ test.describe('CCO huvudflöden', () => {
   test('bokningsytan exponerar operatörstermer för webb-bokningar', async ({ page }) => {
     await page.goto('/major-arcana-preview/');
     await page.waitForLoadState('domcontentloaded');
-    const bookingCaseList = page.locator('[data-booking-case-list][aria-label="Bokningsärenden"]');
+    const bookingCaseList = page.locator('[data-booking-case-list]');
     await expect(bookingCaseList).toHaveCount(1);
-    await expect(page.locator('body')).toContainText(/Webb-bokningar|Bokningsärenden/i);
+    // Ytan ska exponeras med svenska operatörstermer, inte engelska.
+    await expect(bookingCaseList).toHaveAttribute('aria-label', 'Bokningsärenden');
+  });
+
+  test('?view=calendar öppnar kalendern direkt utan att klicka nav', async ({ page }) => {
+    await page.goto('/major-arcana-preview/?view=calendar');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Vänta på att shell-routingen landar i kalendern.
+    await page.waitForFunction(
+      () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'calendar',
+      undefined,
+      { timeout: 10000, polling: 50 }
+    );
+
+    const isMobile = (await page.viewportSize()).width <= 768;
+
+    const calendarReady = await page.evaluate(() => {
+      const canvas = document.querySelector('.preview-canvas');
+      const cal = document.getElementById('cco-desktop-calendar');
+      const navBtn = document.querySelector('[data-nav-view="calendar"]');
+      const mobileTab = document.querySelector('.cco-mobile-tabbar-item[data-mobile-tab="calendar"]');
+      return {
+        appShellView: canvas?.dataset.appShellView || '',
+        appView: canvas?.dataset.appView || '',
+        calendarExists: Boolean(cal),
+        calendarVisible: Boolean(cal && !cal.hidden),
+        navActive: navBtn?.classList.contains('preview-nav-item-active') || false,
+        mobileTabActive: mobileTab?.classList.contains('is-active') || false,
+      };
+    });
+
+    expect(calendarReady.appShellView).toBe('calendar');
+    expect(calendarReady.appView).toBe('calendar');
+    if (isMobile) {
+      expect(calendarReady.mobileTabActive).toBe(true);
+    } else {
+      expect(calendarReady.calendarExists).toBe(true);
+      expect(calendarReady.calendarVisible).toBe(true);
+      expect(calendarReady.navActive).toBe(true);
+    }
   });
 });

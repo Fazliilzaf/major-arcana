@@ -680,6 +680,8 @@
       return;
     const startup = parseStartupParams();
     if (startup.patientId || runtime.pendingPatientId) return;
+    // Bocka inte om användaren kom in med en annan vy, t.ex. ?view=calendar.
+    if (startup.view && startup.view !== 'customers') return;
     try {
       window.history.replaceState({ ccoMobilePatientList: true }, '', buildPatientDeepLink(''));
     } catch {
