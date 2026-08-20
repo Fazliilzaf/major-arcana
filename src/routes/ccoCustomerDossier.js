@@ -137,6 +137,7 @@ function createCcoCustomerDossierRouter({
   ccoMailIngestionStore = null,
   ccoConversationNotesStore = null,
   clientoBookingStore = null,
+  bookingEngineStore = null,
   getCommDraftStore = null,
 } = {}) {
   const router = express.Router();
@@ -197,12 +198,14 @@ function createCcoCustomerDossierRouter({
         // Journey/trådar lazy-skapas mot lokala stores och mail truth, utan live-fetch.
         const bookingStore =
           locals.clientoBookingStore || clientoBookingStore || locals.ccoBookingStore || null;
+        const engineStore = locals.ccoBookingEngineStore || bookingEngineStore || null;
         const tenantId = resolveTenantId(req, config);
         const email = emailText(req.query?.email) || emailText(customerId);
         const stores = {
           patientMasterStore: createPatientMasterAdapter(locals.ccoPatientMasterStore || null),
           journeyStore: await getJourneyStore(locals),
           bookingStore,
+          bookingEngineStore: engineStore,
           caseStore: createCaseStoreAdapter(
             locals.ccoBookingCaseStore || null,
             locals.ccoBookingStore || null

@@ -255,6 +255,8 @@ Legacy-ärendena i `cco-booking.json` berikades med `patientId` i PR #1459 och k
 
 **Testdatabruset har markerats, inte raderats.** 199 av de 298 olänkade ärendena hade RFC-2606-adresser (`@example.com`, `@arcana.invalid`). De har fått `isTestData: true` via `scripts/migrate-testdata-flag-on-legacy-booking-cases.js` och filtreras bort i operatörsvyer (`/cco-bookings/cases`, `/calendar-bundle`, `/calendar-signals`, `/canonical-integrity`). De återstående 8 ärendena på `hairtpclinic.com` lämnades orörda — de kan vara riktiga interna förfrågningar och bör granskas för hand.
 
+**Affärsnotering:** Av de 148 kvarvarande icke-test-ärendena har 49 kopplats till patienter och 99 inte. Det betyder att **67 % av de riktiga legacy-förfrågningarna aldrig blev patienter**. Detta är en affärssiffra snarare än ett datafel — men om den är oväntat hög pekar den på ett uppföljningshål snarare än ett tekniskt problem.
+
 **Verifiering:**
 - Filtret `/calendar-bundle?patientId=<id>` har testats mot prod och returnerar nu träffar i stället för tom lista.
 - Backup: `/var/data/cco-bookings.json.pre-legacy-patientid-migration-2026-08-20T09-26-23-437Z.json`.

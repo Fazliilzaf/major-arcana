@@ -158,12 +158,13 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
   }
 
   // ── Bokningar (kommande + senaste) ────────────────────────────────────
-  if (stores.bookingStore?.getBookingsForCustomer) {
+  async function loadBookingsFromStore(store, label) {
+    if (!store?.getBookingsForCustomer) return [];
     const bookings = await safe(
-      'bookings',
+      label,
       warnings,
       () =>
-        stores.bookingStore.getBookingsForCustomer({
+        store.getBookingsForCustomer({
           tenantId,
           customerEmail: email || dossier.contact.emails[0] || '',
           customerId,
@@ -171,27 +172,44 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
         }),
       []
     );
-    const list = Array.isArray(bookings)
+    return Array.isArray(bookings)
       ? bookings
       : Array.isArray(bookings?.bookings)
         ? bookings.bookings
         : [];
-    const norm = list.map((b) => ({
-      id: text(b.id) || text(b.bookingId) || null,
-      service: text(b.serviceLabel) || text(b.serviceName) || text(b.service) || null,
-      startsAt: text(b.startsAt) || text(b.start) || text(b.date) || null,
-      status: text(b.status) || null,
-    }));
-    const now = ref.nowIso ? text(ref.nowIso) : '';
-    dossier.bookings.count = norm.length;
-    dossier.bookings.upcoming = norm
-      .filter((b) => b.startsAt && (!now || b.startsAt >= now))
-      .slice(0, 5);
-    dossier.bookings.recent = norm
-      .filter((b) => b.startsAt && now && b.startsAt < now)
-      .slice(-5)
-      .reverse();
   }
+
+  const legacyBookings = await loadBookingsFromStore(stores.bookingStore, 'bookings');
+  const engineBookings = await loadBookingsFromStore(stores.bookingEngineStore, 'booking_engine');
+
+  const normalizeBooking = (b) => ({
+    id: text(b.id) || text(b.bookingId) || null,
+    service:
+      text(b.serviceLabel) || text(b.serviceName) || text(b.service) || text(b.slot?.serviceLabel) || null,
+    startsAt:
+      text(b.startsAt) || text(b.start) || text(b.date) || text(b.slot?.startsAt) || null,
+    status: text(b.status) || null,
+    source: text(b.source) || null,
+  });
+
+  const seenIds = new Set();
+  const allBookings = [];
+  for (const b of [...legacyBookings, ...engineBookings]) {
+    const id = text(b.id) || text(b.bookingId);
+    if (id && seenIds.has(id)) continue;
+    if (id) seenIds.add(id);
+    allBookings.push(normalizeBooking(b));
+  }
+
+  const now = ref.nowIso ? text(ref.nowIso) : '';
+  dossier.bookings.count = allBookings.length;
+  dossier.bookings.upcoming = allBookings
+    .filter((b) => b.startsAt && (!now || b.startsAt >= now))
+    .slice(0, 5);
+  dossier.bookings.recent = allBookings
+    .filter((b) => b.startsAt && now && b.startsAt < now)
+    .slice(-5)
+    .reverse();
 
   // ── Ärenden/case ──────────────────────────────────────────────────────
   if (stores.caseStore?.listCasesForCustomer) {

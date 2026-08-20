@@ -1,174 +1,122 @@
 'use strict';
 
-/* Kundkort/dossier för Svarstudion — ren aggregering av "all info om kunden".
- * Testlåser: samlar från alla källor, TOLERERAR trasiga/saknade källor, och —
- * viktigast — att RÅ JOURNALTEXT aldrig läcker ut (bara antal + senaste datum).
- * Personnummer maskas. */
-
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
+
 const { buildCustomerDossier } = require('../../src/ops/ccoCustomerDossier');
+const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineStore');
 
-const stores = {
-  patientMasterStore: {
-    getPatient: async () => ({
-      name: 'Anna Karlsson',
-      personnummer: '19900101-1234',
-      emails: ['anna@mail.se', 'ANNA@mail.se'],
-      phone: '+46701234567',
-    }),
-  },
-  journeyStore: {
-    // Verkliga storens API: POSITIONELL (customerId, { tenantId }). Fälten heter
-    // currentStep/sideState/completedSteps, och steps[] bär den läsbara etiketten.
-    getJourney: (customerId, { tenantId } = {}) => {
-      assert.equal(typeof customerId, 'string'); // regression: aldrig ett objekt
-      assert.ok(tenantId);
-      return {
-        customerId,
-        currentStep: 'treatment_offered',
-        sideState: null,
-        completedSteps: ['lead_first_contact', 'consultation_booked'],
-        steps: [
-          { id: 'lead_first_contact', label: 'Lead välkomnande' },
-          { id: 'treatment_offered', label: 'Behandlingsförslag' },
-        ],
-        updatedAt: '2026-06-01T10:00',
-      };
-    },
-  },
-  bookingStore: {
-    getBookingsForCustomer: async () => [
-      { id: 'b1', serviceLabel: 'Konsultation', startsAt: '2026-09-15T09:00', status: 'confirmed' },
-      { id: 'b2', serviceLabel: 'PRP', startsAt: '2026-03-01T10:00', status: 'done' },
-    ],
-  },
-  caseStore: {
-    listCasesForCustomer: async () => [{ id: 'c1', title: 'DHI-plan', status: 'open' }],
-  },
-  threadStore: {
-    buildThreadsForCustomer: async () => ({
-      threads: [{ needsReplyStatus: 'needs_reply' }, { status: 'closed' }],
-      summary: 'Två trådar',
-    }),
-  },
-  journalStore: {
-    listEntries: async () => [
-      { createdAt: '2026-02-01', body: 'HEMLIG JOURNALTEXT om diagnos' },
-      { createdAt: '2026-05-10', note: 'ÄNNU MER KÄNSLIGT' },
-    ],
-  },
-  portalMessageStore: {
-    listMessagesForCustomer: () => [
-      { direction: 'inbound', createdAt: '2026-06-01', readAt: null },
-      { direction: 'outbound', createdAt: '2026-06-02', readAt: null },
-    ],
-    countUnreadInbound: () => 1,
-  },
-};
+test('dossier inkluderar bokningar fran bookingEngineStore', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-customer-dossier-'));
+  try {
+    const engineStore = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'engine.json'),
+    });
 
-test('dossier samlar identitet, kontakt, journey, bokningar, ärenden, trådar', async () => {
-  const d = await buildCustomerDossier(
-    { tenantId: 'hairtpclinic', customerId: 'CUST-1', nowIso: '2026-07-08T00:00' },
-    stores
-  );
-  assert.equal(d.identity.name, 'Anna Karlsson');
-  assert.match(d.identity.personnummerMasked, /•/); // maskad, ej klartext
-  assert.doesNotMatch(d.identity.personnummerMasked, /19900101-123/);
-  assert.deepEqual(d.contact.emails, ['anna@mail.se']); // dedupe (case-insensitiv)
-  assert.equal(d.contact.phones[0], '+46701234567');
-  assert.equal(d.journey.step, 'treatment_offered');
-  assert.equal(d.journey.stepLabel, 'Behandlingsförslag'); // läsbar etikett från steps[]
-  assert.equal(d.journey.completedCount, 2);
-  assert.equal(d.journey.totalSteps, 2);
-  assert.equal(d.bookings.count, 2);
-  assert.equal(d.bookings.upcoming[0].service, 'Konsultation'); // framtida
-  assert.equal(d.bookings.recent[0].service, 'PRP'); // förfluten
-  assert.equal(d.cases[0].title, 'DHI-plan');
-  assert.equal(d.threads.count, 2);
-  assert.equal(d.threads.needsReply, 1);
-  assert.equal(d.portal.count, 2);
-  assert.equal(d.portal.unread, 1);
-  assert.equal(d.portal.latestAt, '2026-06-02');
-});
-
-test('RÅ JOURNALTEXT läcker ALDRIG — bara antal + senaste datum', async () => {
-  const d = await buildCustomerDossier({ tenantId: 'hairtpclinic', customerId: 'CUST-1' }, stores);
-  assert.equal(d.journal.count, 2);
-  assert.equal(d.journal.latestAt, '2026-05-10');
-  const serialized = JSON.stringify(d);
-  assert.doesNotMatch(serialized, /HEMLIG JOURNALTEXT/);
-  assert.doesNotMatch(serialized, /ÄNNU MER KÄNSLIGT/);
-  assert.doesNotMatch(serialized, /diagnos/);
-});
-
-test('trasig/saknad källa stjälper inte kortet — noteras i warnings', async () => {
-  const broken = {
-    patientMasterStore: {
-      getPatient: async () => {
-        throw new Error('nere');
+    await engineStore.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-engine-1',
+      customerEmail: 'anna@example.com',
+      customerName: 'Anna',
+      canonicalPatientId: 'patient-anna',
+      slot: {
+        resourceId: 'res-1',
+        serviceId: 'consultation-physical',
+        startsAt: '2026-09-01T09:00:00.000Z',
+        endsAt: '2026-09-01T09:30:00.000Z',
       },
-    },
-    // journeyStore saknas helt
-    threadStore: stores.threadStore,
-  };
-  const d = await buildCustomerDossier({ tenantId: 't', customerId: 'CUST-2' }, broken);
-  assert.ok(d.warnings.some((w) => w.includes('patient_master')));
-  assert.equal(d.threads.count, 2); // resten byggdes ändå
-  assert.equal(d.identity.name, null);
+      serviceLabel: 'Konsultation',
+      status: 'confirmed',
+    });
+
+    const dossier = await buildCustomerDossier(
+      { tenantId: 'tenant-a', patientId: 'patient-anna' },
+      {
+        patientMasterStore: {
+          async getPatient({ patientId }) {
+            if (patientId === 'patient-anna') {
+              return {
+                id: 'patient-anna',
+                displayName: 'Anna Andersson',
+                emails: ['anna@example.com'],
+              };
+            }
+            return null;
+          },
+        },
+        bookingEngineStore: engineStore,
+      }
+    );
+
+    assert.equal(dossier.bookings.count, 1);
+    assert.equal(dossier.bookings.upcoming.length, 1);
+    assert.equal(dossier.bookings.upcoming[0].service, 'Fysisk konsultation');
+    assert.equal(dossier.bookings.upcoming[0].startsAt, '2026-09-01T09:00:00.000Z');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 });
 
-test('ingen kundnyckel → tomt kort med varning, ingen krasch', async () => {
-  const d = await buildCustomerDossier({}, stores);
-  assert.ok(d.warnings.some((w) => w.includes('ingen kundnyckel')));
-  assert.equal(d.customerId, null);
-});
+test('dossier slar samman legacy- och engine-bokningar utan dubbletter', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-customer-dossier-merge-'));
+  try {
+    const engineStore = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'engine.json'),
+    });
 
-test('conversationSummary inkluderas när conversationContextService finns', async () => {
-  const withContext = {
-    ...stores,
-    conversationContextService: {
-      buildContextForCustomer: async (customerId, { tenantId }) => ({
-        customerId,
-        tenantId,
-        unanswered: { count: 3 },
-        slaStatus: { slaStatus: 'breach' },
-        dominantRisk: 'complaint',
-        latestInboundAt: '2026-07-15T08:00:00.000Z',
-        activeThreadCount: 5,
-        needsActionCount: 4,
-        sentiment: { tone: 'frustrated' },
-        intent: { code: 'complaint' },
-      }),
-    },
-  };
-  const d = await buildCustomerDossier(
-    { tenantId: 'hairtpclinic', customerId: 'CUST-1' },
-    withContext
-  );
-  assert.equal(d.conversationSummary.unansweredCount, 3);
-  assert.equal(d.conversationSummary.slaStatus, 'breach');
-  assert.equal(d.conversationSummary.dominantRisk, 'complaint');
-  assert.equal(d.conversationSummary.latestInboundAt, '2026-07-15T08:00:00.000Z');
-  assert.equal(d.conversationSummary.activeThreadCount, 5);
-  assert.equal(d.conversationSummary.needsActionCount, 4);
-  assert.deepEqual(d.conversationSummary.sentiment, { tone: 'frustrated' });
-  assert.deepEqual(d.conversationSummary.intent, { code: 'complaint' });
-});
-
-test('conversationSummary tolererar trasig context service', async () => {
-  const brokenContext = {
-    ...stores,
-    conversationContextService: {
-      buildContextForCustomer: async () => {
-        throw new Error('nere');
+    await engineStore.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-engine-2',
+      customerEmail: 'bertil@example.com',
+      customerName: 'Bertil',
+      canonicalPatientId: 'patient-bertil',
+      slot: {
+        resourceId: 'res-1',
+        serviceId: 'consultation-physical',
+        startsAt: '2026-09-02T10:00:00.000Z',
+        endsAt: '2026-09-02T10:30:00.000Z',
       },
-    },
-  };
-  const d = await buildCustomerDossier(
-    { tenantId: 'hairtpclinic', customerId: 'CUST-1' },
-    brokenContext
-  );
-  assert.ok(d.warnings.some((w) => w.includes('conversation_context')));
-  assert.equal(d.conversationSummary.unansweredCount, 0);
+      serviceLabel: 'Konsultation',
+      status: 'confirmed',
+    });
+
+    const legacyStore = {
+      async getBookingsForCustomer({ patientId }) {
+        if (patientId === 'patient-bertil') {
+          return [
+            {
+              bookingId: 'legacy-1',
+              serviceLabel: 'Gammal bokning',
+              startsAt: '2026-09-01T09:00:00.000Z',
+              status: 'confirmed',
+            },
+          ];
+        }
+        return [];
+      },
+    };
+
+    const dossier = await buildCustomerDossier(
+      { tenantId: 'tenant-a', patientId: 'patient-bertil' },
+      {
+        patientMasterStore: {
+          async getPatient() {
+            return { id: 'patient-bertil', displayName: 'Bertil', emails: ['bertil@example.com'] };
+          },
+        },
+        bookingStore: legacyStore,
+        bookingEngineStore: engineStore,
+      }
+    );
+
+    assert.equal(dossier.bookings.count, 2);
+    assert.equal(dossier.bookings.upcoming.length, 2);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 });

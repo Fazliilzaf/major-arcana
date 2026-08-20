@@ -12342,6 +12342,7 @@ process.once('SIGTERM', () => {
       ccoMailIngestionStore,
       ccoConversationNotesStore,
       clientoBookingStore,
+      bookingEngineStore: ccoBookingEngineStore,
       getCommDraftStore: () => app.locals.ccoCommDraftStore || null,
     })
   );

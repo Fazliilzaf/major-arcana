@@ -1853,8 +1853,28 @@ async function createCcoBookingEngineStore({ filePath }) {
     );
   }
 
+  /** Dossié / kundkort: hamta bokningar kopplade till samma patient eller e-post. */
+  function getBookingsForCustomer({ tenantId, customerEmail, customerId, patientId } = {}) {
+    const tid = normalizeText(tenantId);
+    const wantedPatientId = normalizeText(patientId) || normalizeText(customerId);
+    const wantedEmail = normalizeKey(customerEmail);
+    return clone(
+      state.bookings.filter((item) => {
+        if (tid && item.tenantId !== tid) return false;
+        if (wantedPatientId && normalizeText(item.canonicalPatientId) === wantedPatientId) {
+          return true;
+        }
+        if (wantedEmail && item.customerEmail === wantedEmail) {
+          return true;
+        }
+        return false;
+      })
+    );
+  }
+
   return {
     listBookingsForEnrichment,
+    getBookingsForCustomer,
     setBookingPolicySettings,
     listAvailability,
     reserveSlots,
