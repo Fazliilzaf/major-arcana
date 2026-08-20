@@ -16,6 +16,7 @@ async function dispatchBookingConfirmation({ booking, customerEmail, customerNam
   const results = { email: null, calendarEvent: null };
 
   if (!booking || !customerEmail) return results;
+  if (booking.isTestData) return results;
 
   const startsAt = normalizeText(booking.slot?.startsAt || booking.slot?.start || booking.startsAt);
   const serviceLabel = normalizeText(booking.serviceLabel || booking.slot?.serviceLabel || '');

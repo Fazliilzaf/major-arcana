@@ -35,6 +35,7 @@ const {
   serviceMatchesBrand,
   resourceMatchesBrand,
 } = require('./curatiioCatalogRuntime');
+const { isTestDataEmail } = require('../infra/isTestDataEmail');
 
 const SERVICE_REGISTER_BOOKING_POLICY = buildServiceRegisterBookingPolicy();
 const SERVICE_REGISTER_PUBLIC_SERVICE_IDS = new Set(
@@ -883,6 +884,9 @@ function normalizeReservation(input = {}, { services = [], resources = [] } = {}
     source: normalizeText(safe.source) || 'cco_engine',
     ownerUserId: normalizeText(safe.ownerUserId),
     ownerName: normalizeText(safe.ownerName),
+    // Permanent markering för RFC-2606 / klinikinterna testadresser.
+    // Sätts automatiskt vid skapande och kan aldrig tvättas bort av en uppdatering.
+    isTestData: safe.isTestData === true || isTestDataEmail(customerEmail),
     createdAt: normalizeIso(safe.createdAt) || nowIso(),
     updatedAt: normalizeIso(safe.updatedAt) || nowIso(),
     expiresAt: normalizeIso(safe.expiresAt),
@@ -908,6 +912,9 @@ function normalizeBookingRecord(input = {}, { services = [], resources = [] } = 
     source: normalizeText(safe.source) || 'cco_engine',
     ownerUserId: normalizeText(safe.ownerUserId),
     ownerName: normalizeText(safe.ownerName),
+    // Permanent markering för RFC-2606 / klinikinterna testadresser.
+    // Sätts automatiskt vid skapande och kan aldrig tvättas bort av en uppdatering.
+    isTestData: safe.isTestData === true || isTestDataEmail(customerEmail),
     canonicalPatientId: normalizeText(safe.canonicalPatientId || safe.patientId),
     encounterId: normalizeText(safe.encounterId),
     practitionerId: normalizeText(safe.practitionerId),
@@ -1465,7 +1472,12 @@ async function createCcoBookingEngineStore({ filePath }) {
     );
   }
 
-  async function getActiveReservations({ tenantId, conversationId, customerEmail } = {}) {
+  async function getActiveReservations({
+    tenantId,
+    conversationId,
+    customerEmail,
+    excludeTestData = false,
+  } = {}) {
     await expireStaleReservations();
     const tenant = normalizeText(tenantId);
     const conversation = normalizeText(conversationId);
@@ -1475,6 +1487,7 @@ async function createCcoBookingEngineStore({ filePath }) {
         if (tenant && item.tenantId !== tenant) return false;
         if (conversation && item.conversationId !== conversation) return false;
         if (customer && item.customerEmail !== customer) return false;
+        if (excludeTestData && item.isTestData) return false;
         return normalizeKey(item.status) === 'active';
       })
     );
@@ -1823,13 +1836,14 @@ async function createCcoBookingEngineStore({ filePath }) {
     };
   }
 
-  async function getCaseSummary({ tenantId, conversationId, customerEmail } = {}) {
-    const reservations = await getActiveReservations({ tenantId, conversationId, customerEmail });
+  async function getCaseSummary({ tenantId, conversationId, customerEmail, excludeTestData = false } = {}) {
+    const reservations = await getActiveReservations({ tenantId, conversationId, customerEmail, excludeTestData });
     const booking =
       state.bookings.find((item) => {
         if (tenantId && item.tenantId !== normalizeText(tenantId)) return false;
         if (conversationId && item.conversationId !== normalizeText(conversationId)) return false;
         if (customerEmail && item.customerEmail !== normalizeKey(customerEmail)) return false;
+        if (excludeTestData && item.isTestData) return false;
         return normalizeKey(item.status) === 'confirmed';
       }) || null;
     const workflow = buildCaseWorkflowSummary({ reservations, booking });
@@ -1843,24 +1857,32 @@ async function createCcoBookingEngineStore({ filePath }) {
   }
 
   /** Server-side Kunder enrichment — minimal booking rows (no PII beyond email keying). */
-  function listBookingsForEnrichment(tenantId = null) {
+  function listBookingsForEnrichment(tenantId = null, { excludeTestData = false } = {}) {
     const tid = normalizeText(tenantId);
     return clone(
       state.bookings.filter((item) => {
         if (tid && item.tenantId !== tid) return false;
+        if (excludeTestData && item.isTestData) return false;
         return true;
       })
     );
   }
 
   /** Dossié / kundkort: hamta bokningar kopplade till samma patient eller e-post. */
-  function getBookingsForCustomer({ tenantId, customerEmail, customerId, patientId } = {}) {
+  function getBookingsForCustomer({
+    tenantId,
+    customerEmail,
+    customerId,
+    patientId,
+    excludeTestData = false,
+  } = {}) {
     const tid = normalizeText(tenantId);
     const wantedPatientId = normalizeText(patientId) || normalizeText(customerId);
     const wantedEmail = normalizeKey(customerEmail);
     return clone(
       state.bookings.filter((item) => {
         if (tid && item.tenantId !== tid) return false;
+        if (excludeTestData && item.isTestData) return false;
         if (wantedPatientId && normalizeText(item.canonicalPatientId) === wantedPatientId) {
           return true;
         }

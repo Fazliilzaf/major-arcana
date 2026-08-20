@@ -1369,7 +1369,7 @@ async function loadKunderBookingIndex(
 
     const engineBookings =
       typeof stores.engineStore.listBookingsForEnrichment === 'function'
-        ? stores.engineStore.listBookingsForEnrichment(tid)
+        ? stores.engineStore.listBookingsForEnrichment(tid, { excludeTestData: true })
         : [];
     const bookingCases =
       typeof stores.caseStore.listCasesForEnrichment === 'function'

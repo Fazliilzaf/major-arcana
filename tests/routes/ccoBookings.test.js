@@ -654,7 +654,7 @@ test('cco bookings route låter case-listan följa engine-blocker när tider är
 
     await withServer(fixture.app, async (baseUrl) => {
       const qs =
-        'workspaceId=major-arcana-preview&conversationId=conv-engine-backed-list&customerEmail=engine-list%40example.com&customerName=Engine%20List';
+        'workspaceId=major-arcana-preview&conversationId=conv-engine-backed-list&customerEmail=engine-list%40test.se&customerName=Engine%20List';
       const candidatesResponse = await fetch(`${baseUrl}/cco-bookings/candidates?${qs}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -1182,7 +1182,7 @@ test('cco bookings route låter case-listan visa confirm_external när CCO redan
       tenantId: 'tenant-a',
       workspaceId: 'major-arcana-preview',
       conversationId: 'conv-engine-backed-confirm',
-      customerEmail: 'engine-confirm@example.com',
+      customerEmail: 'engine-confirm@test.se',
       customerName: 'Engine Confirm',
       ownerUserId: 'preview-local',
       ownerName: 'Preview',

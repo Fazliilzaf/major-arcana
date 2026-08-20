@@ -620,3 +620,109 @@ test('ccoBookingEngineStore stamps priceTier on availability and exposes runtime
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('ccoBookingEngineStore markerar RFC-2606-bokningar som permanent testdata', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-testdata-'));
+  try {
+    const store = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+    const { fromDate, toDate } = bookingMondayWindow();
+    const availability = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(availability.length >= 1);
+    const slot = availability[0];
+
+    const realBooking = await store.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-real',
+      customerEmail: 'real-patient@hairtpclinic.com',
+      customerName: 'Real Patient',
+      slot,
+    });
+    assert.equal(realBooking.isTestData, false);
+
+    const testBooking = await store.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-test',
+      customerEmail: 'test@example.com',
+      customerName: 'Test Patient',
+      slot: availability[1] || slot,
+    });
+    assert.equal(testBooking.isTestData, true);
+
+    const all = store.listBookingsForEnrichment('tenant-a');
+    assert.equal(all.length, 2);
+
+    const excludingTest = store.listBookingsForEnrichment('tenant-a', { excludeTestData: true });
+    assert.equal(excludingTest.length, 1);
+    assert.equal(excludingTest[0].bookingId, realBooking.bookingId);
+
+    const dossierBookings = store.getBookingsForCustomer({
+      tenantId: 'tenant-a',
+      customerEmail: 'test@example.com',
+      excludeTestData: true,
+    });
+    assert.equal(dossierBookings.length, 0);
+
+    const caseSummary = await store.getCaseSummary({
+      tenantId: 'tenant-a',
+      conversationId: 'conv-test',
+      customerEmail: 'test@example.com',
+      excludeTestData: true,
+    });
+    assert.equal(caseSummary.booking, null);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ccoBookingEngineStore bevarar isTestData vid ombokning', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-rebook-testdata-'));
+  try {
+    const store = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+    const { fromDate, toDate } = bookingMondayWindow();
+    const availability = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(availability.length >= 2);
+
+    const first = await store.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-rebook-test',
+      customerEmail: 'test@example.com',
+      customerName: 'Test Patient',
+      slot: availability[0],
+    });
+    assert.equal(first.isTestData, true);
+
+    const second = await store.rebookBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-rebook-test',
+      customerEmail: 'test@example.com',
+      selectedSlots: [availability[1]],
+      slot: availability[1],
+    });
+    assert.equal(second.isTestData, true);
+
+    const all = store.listBookingsForEnrichment('tenant-a', { excludeTestData: true });
+    assert.equal(all.length, 0);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

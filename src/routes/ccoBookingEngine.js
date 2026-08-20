@@ -1182,7 +1182,7 @@ function createCcoBookingEngineRouter({
     handle(req, res, async (context) => {
       requireBookingContext(context);
       const [summary, rawBookingCase] = await Promise.all([
-        bookingEngineStore.getCaseSummary(context),
+        bookingEngineStore.getCaseSummary({ ...context, excludeTestData: true }),
         bookingStore.getCase(context),
       ]);
       const bookingCase = await enrichBookingCaseWithHistorySignals(rawBookingCase, historyStore);

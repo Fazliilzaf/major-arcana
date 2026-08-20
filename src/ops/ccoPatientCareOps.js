@@ -376,6 +376,7 @@ function listUpcomingBookings(bookingEngineStore, tenantId, withinHours = 48) {
   const slots = [];
 
   for (const booking of bookings) {
+    if (booking?.isTestData) continue;
     const startsAt = normalizeText(booking?.slot?.startsAt || booking?.startsAt);
     const hours = hoursUntil(startsAt);
     if (hours === null || hours < 0 || hours > withinHours) continue;
@@ -394,6 +395,7 @@ function listUpcomingBookings(bookingEngineStore, tenantId, withinHours = 48) {
   }
 
   for (const reservation of reservations) {
+    if (reservation?.isTestData) continue;
     const startsAt = normalizeText(reservation?.slot?.startsAt);
     const hours = hoursUntil(startsAt);
     if (hours === null || hours < 0 || hours > withinHours) continue;

@@ -51,7 +51,7 @@ async function runBookingReminders({ bookingEngineStore, graphSendConnector, con
 
   const now = Date.now();
   const bookings = bookingEngineStore._state.bookings.filter(
-    (b) => b.status === 'confirmed' || b.status === 'active'
+    (b) => (b.status === 'confirmed' || b.status === 'active') && !b.isTestData
   );
 
   for (const booking of bookings) {

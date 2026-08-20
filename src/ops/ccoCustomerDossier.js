@@ -158,7 +158,7 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
   }
 
   // ── Bokningar (kommande + senaste) ────────────────────────────────────
-  async function loadBookingsFromStore(store, label) {
+  async function loadBookingsFromStore(store, label, options = {}) {
     if (!store?.getBookingsForCustomer) return [];
     const bookings = await safe(
       label,
@@ -169,6 +169,7 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
           customerEmail: email || dossier.contact.emails[0] || '',
           customerId,
           patientId,
+          ...options,
         }),
       []
     );
@@ -180,7 +181,9 @@ async function buildCustomerDossier(ref = {}, stores = {}) {
   }
 
   const legacyBookings = await loadBookingsFromStore(stores.bookingStore, 'bookings');
-  const engineBookings = await loadBookingsFromStore(stores.bookingEngineStore, 'booking_engine');
+  const engineBookings = await loadBookingsFromStore(stores.bookingEngineStore, 'booking_engine', {
+    excludeTestData: true,
+  });
 
   const normalizeBooking = (b) => ({
     id: text(b.id) || text(b.bookingId) || null,

@@ -195,10 +195,10 @@ function dedupeKey(entry) {
 function listEngineRows(bookingEngineStore, tenantId) {
   if (!bookingEngineStore) return [];
   if (typeof bookingEngineStore.listBookingsForEnrichment === 'function') {
-    return asArray(bookingEngineStore.listBookingsForEnrichment(tenantId));
+    return asArray(bookingEngineStore.listBookingsForEnrichment(tenantId, { excludeTestData: true }));
   }
   return asArray(bookingEngineStore._state?.bookings).filter(
-    (booking) => normalizeText(booking?.tenantId) === tenantId
+    (booking) => normalizeText(booking?.tenantId) === tenantId && !booking?.isTestData
   );
 }
 
@@ -245,6 +245,7 @@ function collectCalendarEntries({
   for (const raw of asArray(bookingEngineStore?._state?.reservations)) {
     if (normalizeText(raw?.tenantId) !== scopedTenantId) continue;
     if (!ACTIVE_RESERVATION_STATUSES.has(normalizeKey(raw?.status))) continue;
+    if (raw?.isTestData) continue;
     push(normalizeEngineEntry(raw, 'reservation'));
   }
 

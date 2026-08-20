@@ -262,6 +262,7 @@ async function enrichBookingCaseWithEngine(bookingCase, bookingEngineStore) {
     workspaceId: bookingCase.workspaceId,
     conversationId: bookingCase.conversationId,
     customerEmail: bookingCase.customerEmail,
+    excludeTestData: true,
   });
   const blocker = buildBookingCaseWorkflowBlocker(bookingCase, bookingEngine);
   const waitingCustomer =
@@ -854,7 +855,7 @@ function createCcoBookingsRouter({
         status: 'needs_triage',
       });
       const bookingEngine = bookingEngineStore
-        ? await bookingEngineStore.getCaseSummary(context)
+        ? await bookingEngineStore.getCaseSummary({ ...context, excludeTestData: true })
         : null;
       const bookingCaseWithHistory = await enrichBookingCaseWithHistorySignals(
         bookingCase,
@@ -1225,7 +1226,11 @@ function createCcoBookingsRouter({
             });
             const patients = asArray(population?.patients);
             const engineBookings = bookingEngineStore?.listBookingsForEnrichment
-              ? asArray(bookingEngineStore.listBookingsForEnrichment(context.tenantId)).filter(
+              ? asArray(
+                  bookingEngineStore.listBookingsForEnrichment(context.tenantId, {
+                    excludeTestData: true,
+                  })
+                ).filter(
                   (booking) => {
                     const date = normalizeText(booking?.slot?.startsAt || booking?.startsAt).slice(
                       0,
@@ -1476,7 +1481,9 @@ function createCcoBookingsRouter({
       );
 
       const engineBookings = bookingEngineStore?.listBookingsForEnrichment
-        ? filterRange(bookingEngineStore.listBookingsForEnrichment(context.tenantId))
+        ? filterRange(
+            bookingEngineStore.listBookingsForEnrichment(context.tenantId, { excludeTestData: true })
+          )
         : [];
       const clientoBookings = filterRange(
         listClientoBookingsForHistory({
@@ -1670,7 +1677,9 @@ function createCcoBookingsRouter({
       });
       const patients = asArray(population?.patients);
       const engineBookings = bookingEngineStore?.listBookingsForEnrichment
-        ? asArray(bookingEngineStore.listBookingsForEnrichment(context.tenantId))
+        ? asArray(
+            bookingEngineStore.listBookingsForEnrichment(context.tenantId, { excludeTestData: true })
+          )
         : [];
       const bookingCases =
         typeof bookingStore.listCases === 'function'

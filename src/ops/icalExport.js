@@ -80,14 +80,15 @@ function getBookingsForResource(
   const scopedTenantId = normalizeText(tenantId);
   const engineBookings =
     typeof bookingEngineStore?.listBookingsForEnrichment === 'function'
-      ? bookingEngineStore.listBookingsForEnrichment(scopedTenantId)
-      : bookingEngineStore?._state?.bookings || [];
+      ? bookingEngineStore.listBookingsForEnrichment(scopedTenantId, { excludeTestData: true })
+      : (bookingEngineStore?._state?.bookings || []).filter((b) => !b.isTestData);
   const clientoBookings =
     typeof clientoBookingStore?.listAllBookings === 'function'
       ? clientoBookingStore.listAllBookings({ tenantId: scopedTenantId })
       : [];
   const seen = new Set();
   return [...engineBookings, ...clientoBookings].filter((b) => {
+    if (b.isTestData) return false;
     if (normalizeText(b.status).toLowerCase() === 'cancelled') return false;
     if (scopedTenantId && b.tenantId && b.tenantId !== scopedTenantId) return false;
     const rid = normalizeText(b.resourceId || b.slot?.resourceId);

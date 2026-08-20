@@ -20,7 +20,7 @@ test('dossier inkluderar bokningar fran bookingEngineStore', async () => {
       tenantId: 'tenant-a',
       workspaceId: 'major-arcana-preview',
       conversationId: 'conv-engine-1',
-      customerEmail: 'anna@example.com',
+      customerEmail: 'anna@test.se',
       customerName: 'Anna',
       canonicalPatientId: 'patient-anna',
       slot: {
@@ -72,7 +72,7 @@ test('dossier slar samman legacy- och engine-bokningar utan dubbletter', async (
       tenantId: 'tenant-a',
       workspaceId: 'major-arcana-preview',
       conversationId: 'conv-engine-2',
-      customerEmail: 'bertil@example.com',
+      customerEmail: 'bertil@test.se',
       customerName: 'Bertil',
       canonicalPatientId: 'patient-bertil',
       slot: {

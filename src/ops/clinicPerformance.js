@@ -217,9 +217,10 @@ function collectFromBookingEngineStore({ bookingEngineStore = null, tenantId = '
   }
   const rows = [];
   for (const candidate of bookingTenantCandidates(tenantId)) {
-    const batch = bookingEngineStore.listBookingsForEnrichment(candidate) || [];
+    const batch = bookingEngineStore.listBookingsForEnrichment(candidate, { excludeTestData: true }) || [];
     for (const booking of asArray(batch)) {
       if (normalizeText(booking.status).toLowerCase() !== 'confirmed') continue;
+      if (booking.isTestData) continue;
       const slot = booking && booking.slot && typeof booking.slot === 'object' ? booking.slot : {};
       const row = buildClinicPerformanceRow({
         bookingId: booking.bookingId,
