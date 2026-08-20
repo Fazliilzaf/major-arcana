@@ -38,8 +38,8 @@ function nowIso() {
 function flattenTenantPatients(patientMaster) {
   if (!patientMaster) return [];
   if (Array.isArray(patientMaster.patients)) return patientMaster.patients;
-  return Object.values(patientMaster.tenants || {}).flatMap(
-    (tenant) => (Array.isArray(tenant.patients) ? tenant.patients : [])
+  return Object.values(patientMaster.tenants || {}).flatMap((tenant) =>
+    Array.isArray(tenant.patients) ? tenant.patients : []
   );
 }
 
@@ -115,7 +115,9 @@ async function main() {
   const clientoBookingPath = config.clientoBookingStorePath;
 
   console.log('=== Migrering: patientId på Cliento-bokningar ===\n');
-  console.log(`Läge:             ${commit ? 'SKARP (kommer skriva)' : 'TORRKÖRNING (ingen skrivning)'}`);
+  console.log(
+    `Läge:             ${commit ? 'SKARP (kommer skriva)' : 'TORRKÖRNING (ingen skrivning)'}`
+  );
   console.log(`patientMaster:    ${patientMasterPath}`);
   console.log(`clientoBookings:  ${clientoBookingPath}\n`);
 
@@ -144,6 +146,15 @@ async function main() {
   const byIdentity = { explicit: 0, email: 0, clientoId: 0, phone: 0 };
   let bucketsTouched = 0;
 
+  // Migreringens egen tidsstämpel skrivs till patientIdResolutionAt, aldrig till
+  // booking.updatedAt.
+  //
+  // updatedAt betyder "när ändrades bokningen" och är bokningens egen historik.
+  // Skulle migreringen skriva den skulle 53 000 bokningar få identisk stämpel och
+  // sin verkliga ändringstid utraderad — oåterkalleligt, sånär som på backupen.
+  // Det finns minst en läsare: dedupeBookings i clientoBookingStore.js sorterar
+  // dubbletter på updatedAt för att välja vilken post som blir sammanslagnings-
+  // bas. Med identiska värden blir den ordningen godtycklig.
   const resolutionTimestamp = nowIso();
 
   for (const [bucketKey, list] of Object.entries(state.bookings || {})) {
@@ -165,7 +176,8 @@ async function main() {
         booking.patientIdResolutionAt = resolutionTimestamp;
         booking.patientIdResolutionStatus = 'linked';
         delete booking.patientIdResolutionReason;
-        booking.updatedAt = resolutionTimestamp;
+        // booking.updatedAt lämnas medvetet orörd. Se kommentaren vid
+        // resolutionTimestamp nedan.
         updated += 1;
         bucketModified = true;
 
@@ -176,7 +188,6 @@ async function main() {
         byReason[reason] = (byReason[reason] || 0) + 1;
         booking.patientIdResolutionStatus = reason;
         booking.patientIdResolutionAt = resolutionTimestamp;
-        booking.updatedAt = resolutionTimestamp;
         unresolved += 1;
         bucketModified = true;
       }
@@ -212,6 +223,46 @@ async function main() {
 
   state.updatedAt = resolutionTimestamp;
   await writeJsonAtomic(clientoBookingPath, state);
+
+  // Läs tillbaka och räkna. En skrivning som tystnar halvvägs lämnar en fil som
+  // ser rimlig ut men saknar poster — och just den här filen har vi ingen
+  // rimlighetskontroll på någon annanstans. Backupen är bara till nytta om vi
+  // upptäcker att vi behöver den.
+  const verifieringsFel = [];
+  const efter = await readJsonSafe(clientoBookingPath);
+
+  if (!efter) {
+    verifieringsFel.push('filen gick inte att läsa tillbaka');
+  } else {
+    let bokningarEfter = 0;
+    let medPatientId = 0;
+    for (const list of Object.values(efter.bookings || {})) {
+      if (!Array.isArray(list)) continue;
+      bokningarEfter += list.length;
+      for (const b of list) if (normalizeText(b.patientId)) medPatientId += 1;
+    }
+
+    const forvantatMedPatientId = alreadyLinked + updated;
+    if (bokningarEfter !== totalBookings) {
+      verifieringsFel.push(`antal bokningar ${bokningarEfter}, förväntat ${totalBookings}`);
+    }
+    if (medPatientId !== forvantatMedPatientId) {
+      verifieringsFel.push(`med patientId ${medPatientId}, förväntat ${forvantatMedPatientId}`);
+    }
+
+    console.log('\n--- Efterkontroll ---');
+    console.log(`Bokningar i filen: ${bokningarEfter} (förväntat ${totalBookings})`);
+    console.log(`Med patientId:     ${medPatientId} (förväntat ${forvantatMedPatientId})`);
+  }
+
+  if (verifieringsFel.length > 0) {
+    console.error('\n=== EFTERKONTROLLEN MISSLYCKADES ===');
+    for (const fel of verifieringsFel) console.error(`  - ${fel}`);
+    console.error(
+      `\nÅterställ med:\n  cp ${backupPath || '<backup saknas>'} ${clientoBookingPath}`
+    );
+    process.exit(1);
+  }
 
   console.log('\n=== SKARP KÖRNING KLAR ===');
   console.log(`Backup: ${backupPath || 'SKIPPAD'}`);
