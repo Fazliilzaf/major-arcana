@@ -176,6 +176,9 @@ function normalizeBookingCase(input = {}) {
     // harvat fran customerEmail ensamt eftersom samma adress kan peka pa flera
     // patienter.
     patientId: normalizeText(safe.patientId) || null,
+    // isTestData markerar arenden som skapats med RFC-2606-testadresser
+    // eller andra domander som aldrig kan tillhora en verklig patient.
+    isTestData: safe.isTestData === true,
     customerName: normalizeText(safe.customerName),
     status: normalizeStatus(safe.status),
     source: normalizeText(safe.source) || 'operator',
@@ -917,6 +920,9 @@ async function createCcoBookingStore({ filePath }) {
         // anger ett nytt varde. Tomt/normaliserat null fran normalizeBookingCase
         // betyder "inget angivet", inte "ta bort".
         patientId: normalizeText(normalized.patientId) || existing.patientId || null,
+        // isTestData ar en permanent markering. Nar den val ar sann far den
+        // aldrig tas bort av en uppdatering som inte explicit anger nya vardet.
+        isTestData: normalized.isTestData || existing.isTestData || false,
         events,
         createdAt: existing.createdAt,
         updatedAt: ts,
@@ -1043,7 +1049,14 @@ async function createCcoBookingStore({ filePath }) {
     });
   }
 
-  async function listCases({ tenantId, customerEmail, status, sort = 'recent', limit = 50 } = {}) {
+  async function listCases({
+    tenantId,
+    customerEmail,
+    status,
+    sort = 'recent',
+    limit = 50,
+    excludeTestData = false,
+  } = {}) {
     const tenant = normalizeText(tenantId);
     const customer = normalizeKey(customerEmail);
     const normalizedStatus = normalizeKey(status);
@@ -1053,6 +1066,7 @@ async function createCcoBookingStore({ filePath }) {
       .filter((item) => !tenant || item.tenantId === tenant)
       .filter((item) => !customer || item.customerEmail === customer)
       .filter((item) => !normalizedStatus || item.status === normalizedStatus)
+      .filter((item) => !excludeTestData || !item.isTestData)
       .sort((a, b) => {
         if (normalizedSort === 'blocked') {
           const scoreDelta = getBookingCaseBlockerScore(b) - getBookingCaseBlockerScore(a);
@@ -1068,14 +1082,20 @@ async function createCcoBookingStore({ filePath }) {
       .map((item) => cloneBookingCase(item));
   }
 
-  async function listCasesInRange({ tenantId, fromDate, toDate, limit = 200 } = {}) {
-    return listCasesInDateRange(state, { tenantId, fromDate, toDate, limit }).map((item) =>
-      cloneBookingCase(item)
-    );
+  async function listCasesInRange({
+    tenantId,
+    fromDate,
+    toDate,
+    limit = 200,
+    excludeTestData = false,
+  } = {}) {
+    return listCasesInDateRange(state, { tenantId, fromDate, toDate, limit })
+      .filter((item) => !excludeTestData || !item.isTestData)
+      .map((item) => cloneBookingCase(item));
   }
 
-  async function listCasesForEnrichment({ tenantId, limit = 5000 } = {}) {
-    return listCases({ tenantId, limit });
+  async function listCasesForEnrichment({ tenantId, limit = 5000, excludeTestData = false } = {}) {
+    return listCases({ tenantId, limit, excludeTestData });
   }
 
   return {

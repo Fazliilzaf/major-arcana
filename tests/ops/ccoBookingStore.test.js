@@ -744,3 +744,39 @@ test('ccoBookingStore accepterar follow_up_completed och findCaseByRef', async (
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('isTestData kan sattas och bevaras vid uppdatering', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-store-testdata-'));
+  try {
+    const store = await createCcoBookingStore({
+      filePath: path.join(tempDir, 'bookings.json'),
+    });
+
+    const base = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-testdata-1',
+      customerEmail: 'test@example.com',
+      customerName: 'Test',
+      isTestData: true,
+    };
+
+    const created = await store.ensureCase(base);
+    assert.equal(created.isTestData, true);
+
+    const updated = await store.updateStatus({
+      ...base,
+      status: 'waiting_customer',
+    });
+    assert.equal(updated.isTestData, true);
+
+    const listed = await store.listCases({ tenantId: 'tenant-a', excludeTestData: true });
+    assert.equal(listed.length, 0);
+
+    const all = await store.listCases({ tenantId: 'tenant-a' });
+    assert.equal(all.length, 1);
+    assert.equal(all[0].isTestData, true);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

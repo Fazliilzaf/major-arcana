@@ -898,6 +898,7 @@ function createCcoBookingsRouter({
         status: status && status !== 'all' ? status : '',
         sort: 'recent',
         limit: bookingEngineStore ? Math.max(requestedLimit, 50) : requestedLimit,
+        excludeTestData: true,
       });
       const historyAwareCases = await Promise.all(
         rawCases.map((bookingCase) =>
@@ -1200,11 +1201,13 @@ function createCcoBookingsRouter({
                 fromDate,
                 toDate,
                 limit: 200,
+                excludeTestData: true,
               })
             : await bookingStore.listCases({
                 tenantId: context.tenantId,
                 sort: 'recent',
                 limit: 200,
+                excludeTestData: true,
               });
         if (patientId) {
           cases = asArray(cases).filter(
@@ -1455,12 +1458,14 @@ function createCcoBookingsRouter({
               fromDate,
               toDate,
               limit: 20000,
+              excludeTestData: true,
             })
           : typeof bookingStore?.listCases === 'function'
             ? bookingStore.listCases({
                 tenantId: context.tenantId,
                 sort: 'recent',
                 limit: 20000,
+                excludeTestData: true,
               })
             : [],
         loadClientoLinkSidecarLedgerEvents(config || {}),
@@ -1674,6 +1679,7 @@ function createCcoBookingsRouter({
                 tenantId: context.tenantId,
                 sort: 'recent',
                 limit: 20000,
+                excludeTestData: true,
               })
             )
           : [];
@@ -1751,6 +1757,7 @@ function createCcoBookingsRouter({
         tenantId: context.tenantId,
         sort: 'recent',
         limit: 200,
+        excludeTestData: true,
       });
       const reminderLog =
         patientCareStateStore && typeof patientCareStateStore.listReminderLog === 'function'

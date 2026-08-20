@@ -253,6 +253,8 @@ Legacy-ärendena i `cco-booking.json` berikades med `patientId` i PR #1459 och k
 - Matchningen sker endast via `customerEmail`; `clientoCustomerId` finns inte på dessa poster.
 - Fail-closed-skyddet gör att tvetydig e-post ger `null`, aldrig en felaktig gissning.
 
+**Testdatabruset har markerats, inte raderats.** 199 av de 298 olänkade ärendena hade RFC-2606-adresser (`@example.com`, `@arcana.invalid`). De har fått `isTestData: true` via `scripts/migrate-testdata-flag-on-legacy-booking-cases.js` och filtreras bort i operatörsvyer (`/cco-bookings/cases`, `/calendar-bundle`, `/calendar-signals`, `/canonical-integrity`). De återstående 8 ärendena på `hairtpclinic.com` lämnades orörda — de kan vara riktiga interna förfrågningar och bör granskas för hand.
+
 **Verifiering:**
 - Filtret `/calendar-bundle?patientId=<id>` har testats mot prod och returnerar nu träffar i stället för tom lista.
 - Backup: `/var/data/cco-bookings.json.pre-legacy-patientid-migration-2026-08-20T09-26-23-437Z.json`.
@@ -364,7 +366,7 @@ Operatörer kan inte dra, ändra eller skapa bokningar direkt i kalendern. All s
 ### P0 — måste göras för att uppfylla "alla kunder med kopplad kund-ID"
 
 1. **~~Migrera `patientId` till alla 53 316 befintliga bokningar.~~** ✅ Klart. Migreringen kördes skarpt 2026-08-20. 42 051 av 53 316 Cliento-bokningar fick `patientId`. De återstående 11 265 fick `patientIdResolutionStatus` så att de kan granskas (`missing_identity`, `no_canonical_match`, `ambiguous_identity`).
-2. **~~Etablera ett kanoniskt fältnamn och laga legacy `ccoBookingStore`.~~** ✅ Klart. `patientId` används nu i Cliento-store, legacy `ccoBookingStore` och kalendervyer; `canonicalPatientId` översätts till `patientId` i `clinicCalendarView.js`. `/calendar-bundle?patientId=` har verifierats returnera träffar. Ett regressionstest i `tests/routes/ccoBookings.test.js` säkerställer att legacy-ärenden skapade via `/cco-bookings/case` får `patientId` och filtreras korrekt i `calendar-bundle`. Kvarstående brus: 199 av 298 olänkade legacy-ärenden är testdata (`@example.com`, `arcana.invalid`) och bör städas ur produktionsstoren.
+2. **~~Etablera ett kanoniskt fältnamn och laga legacy `ccoBookingStore`.~~** ✅ Klart. `patientId` används nu i Cliento-store, legacy `ccoBookingStore` och kalendervyer; `canonicalPatientId` översätts till `patientId` i `clinicCalendarView.js`. `/calendar-bundle?patientId=` har verifierats returnera träffar. Ett regressionstest i `tests/routes/ccoBookings.test.js` säkerställer att legacy-ärenden skapade via `/cco-bookings/case` får `patientId` och filtreras korrekt i `calendar-bundle`. Testdatabruset (199 ärenden med `@example.com` / `arcana.invalid`) har markerats med `isTestData` via `scripts/migrate-testdata-flag-on-legacy-booking-cases.js` och filtreras bort i kalender-/ärendevyer samt i `calendar-signals` och `canonical-integrity`.
 3. **~~Exponera `patientId` i kalendervyerna.~~** ✅ Klart. `clinicCalendarView.js` bär nu `patientId`, `patientIdResolutionStatus` och `identityMatchStatus` ut i sloten.
 4. **Etablera ett kanoniskt kund-ID över lager.** Alla moduler som refererar till en människa ska använda `patientId` från `ccoPatientMasterStore`. `ccoCustomerStore` kan fortsätta vara kommunikationskatalog, men den ska hålla en `patientId`-referens.
 5. **Koppla `ccoBookingEngineStore` till kunddossién.** Dossién ska läsa nya bokningar, inte bara legacy/cliento.
