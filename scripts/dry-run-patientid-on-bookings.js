@@ -134,17 +134,43 @@ function main() {
   const clientoStore = readJsonSafe(clientoBookingPath);
   const engineStore = readJsonSafe(engineBookingPath);
 
-  const patients = patientMaster && Array.isArray(patientMaster.patients) ? patientMaster.patients : [];
-  const clientoBookings = Array.isArray(clientoStore?.bookings)
-    ? clientoStore.bookings
-    : Array.isArray(clientoStore)
-      ? clientoStore
-      : [];
-  const engineBookings = Array.isArray(engineStore?.bookings)
-    ? engineStore.bookings
-    : Array.isArray(engineStore)
-      ? engineStore
-      : [];
+  // Prod-data är tenant-sharded. Platta ut innan analys.
+  const patients = patientMaster
+    ? Array.isArray(patientMaster.patients)
+      ? patientMaster.patients
+      : Object.values(patientMaster.tenants || {})
+          .flatMap((tenant) => (Array.isArray(tenant.patients) ? tenant.patients : []))
+    : [];
+
+  const clientoBookings = clientoStore
+    ? Array.isArray(clientoStore.bookings)
+      ? clientoStore.bookings
+      : Object.values(clientoStore.bookings || {}).flat()
+    : [];
+
+  const engineBookings = engineStore
+    ? Array.isArray(engineStore.bookings)
+      ? engineStore.bookings
+      : Array.isArray(engineStore)
+        ? engineStore
+        : []
+    : [];
+
+  // Felsökningshjälp: visa toppnivånycklar om resultatet ser konstigt ut
+  if (patientMaster && patients.length === 0) {
+    console.log('  [debug] patientMaster keys:', Object.keys(patientMaster).slice(0, 20));
+  }
+  if (clientoStore && clientoBookings.length === 0) {
+    console.log('  [debug] clientoStore keys:', Object.keys(clientoStore).slice(0, 20));
+    const sampleKey = Object.keys(clientoStore.bookings || {})[0];
+    if (sampleKey) {
+      const sample = clientoStore.bookings[sampleKey];
+      console.log(`  [debug] sample booking bucket type: ${Array.isArray(sample) ? 'array' : typeof sample}, length: ${sample?.length ?? 'n/a'}`);
+    }
+  }
+  if (engineStore && engineBookings.length === 0) {
+    console.log('  [debug] engineStore keys:', Object.keys(engineStore).slice(0, 20));
+  }
 
   console.log(`Patienter totalt:      ${patients.length}`);
   console.log(`Cliento-bokningar:     ${clientoBookings.length}`);
