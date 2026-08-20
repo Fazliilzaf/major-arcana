@@ -80,11 +80,10 @@ test.describe('CCO huvudflöden', () => {
   test('bokningsytan exponerar operatörstermer för webb-bokningar', async ({ page }) => {
     await page.goto('/major-arcana-preview/');
     await page.waitForLoadState('domcontentloaded');
-    const bookingCaseList = page.locator('[data-booking-case-list][aria-label="Bokningsärenden"]');
-    // Ytan finns monterad i DOM (kan vara dold beroende på vy/data).
+    const bookingCaseList = page.locator('[data-booking-case-list]');
     await expect(bookingCaseList).toHaveCount(1);
-    const isHidden = await bookingCaseList.evaluate((el) => el.hidden);
-    expect(typeof isHidden).toBe('boolean');
+    // Ytan ska exponeras med svenska operatörstermer, inte engelska.
+    await expect(bookingCaseList).toHaveAttribute('aria-label', 'Bokningsärenden');
   });
 
   test('?view=calendar öppnar kalendern direkt utan att klicka nav', async ({ page }) => {
