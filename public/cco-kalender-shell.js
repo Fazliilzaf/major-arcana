@@ -1731,27 +1731,9 @@
   }
 
   // ═══ CREATE-MODAL (Sprint 2) ═══════════════════════════════════════════════
-  let _services = null;
-  let _resources = null;
-
-  async function loadServices(tenantId, role) {
-    if (_services) return _services;
-    try {
-      const r = await fetch('/api/v1/calendar/services?tenantId=' + tenantId,
-        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
-      _services = await r.json();
-    } catch { _services = { quickPicks: [], catalog: [] }; }
-    return _services;
-  }
-
-  async function loadResourcesFromDay(tenantId, role) {
-    try {
-      const r = await fetch('/api/v1/calendar/day?date=' + isoToday() + '&tenantId=' + tenantId,
-        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
-      const d = await r.json();
-      return (d.resources || []).filter(x => x.resourceId !== '_unassigned');
-    } catch { return []; }
-  }
+  // Tjänster/resurser läses från /api/v1/cco-booking-engine/catalog (se
+  // renderCreateBookingDrawer). Död kod som anropade /api/v1/calendar/services
+  // och /api/v1/calendar/day har tagits bort.
 
   // ─── Hook in i existing setMode-flow ────────────────────────────────────
   function bindSetModeHook() {
