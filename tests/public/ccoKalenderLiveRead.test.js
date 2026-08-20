@@ -119,7 +119,7 @@ test('V6 calendar patient intel enables dossier tabs and fetches dossier-bundle'
     intelBlock,
     /class:\s*'intel-tab'[\s\S]{0,200}?disabled:\s*['"]disabled['"]/
   );
-  assert.match(intelBlock, /'Besök', 'Historik', 'Filer', 'Anteckningar'/);
+  assert.match(intelBlock, /'Besök', 'Historik', 'Filer', 'Anteckningar', 'Foton'/);
   assert.match(intelBlock, /\/api\/v1\/cco-patient-master\/patient\/dossier-bundle/);
 });
 
@@ -134,6 +134,15 @@ test('V6 calendar exposes resource and service filters wired to displayVisits', 
   assert.match(shell, /v6State\.displayVisits = v6FilteredVisits\(\)/);
   assert.match(shell, /v6RenderWeek\(v6State\.displayVisits\)/);
   assert.match(shell, /v6BuildFilters\(\);/);
+});
+
+test('V6 calendar exposes a camera drawer linked to the journal', () => {
+  assert.match(shell, /function openCameraDrawer\(slot\)/);
+  assert.match(shell, /'\/api\/v1\/cco-journal\/photo'/);
+  assert.match(shell, /'\/api\/v1\/cco-journal\/before-after-photos/);
+  assert.match(shell, /body\.append\('photo', selectedFile, selectedFile\.name\)/);
+  assert.match(shell, /capture: 'environment'/);
+  assert.match(shell, /'Ta ny före\/efter-bild'/);
 });
 
 test('V6 calendar exposes rebooking for confirmed engine bookings with identity', () => {
@@ -187,7 +196,7 @@ test('facit toolbar geometry and rich read-only rails are not replaced by a redu
   );
   assert.doesNotMatch(canonicalStyle, /\.calendar-toolbar[^}]*flex-wrap:\s*wrap/s);
   assert.doesNotMatch(canonicalStyle, /\.calendar-toolbar-actions[^}]*flex-wrap:\s*wrap/s);
-  assert.match(intelBlock, /\['Besök', 'Historik', 'Filer', 'Anteckningar'\]/);
+  assert.match(intelBlock, /\['Besök', 'Historik', 'Filer', 'Anteckningar', 'Foton'\]/);
   assert.match(intelBlock, /Ombokning avstängd/);
   assert.match(intelBlock, /openCanonicalPatient\(slot\.patientId\)/);
   assert.match(shell, /v6State\.selected = selected \|\| v6State\.displayVisits\.find/);

@@ -1976,6 +1976,40 @@
           el('strong', {}, n.type || n.kind || 'Anteckning'),
           el('span', {}, n.text || n.summary || n.content || fmtDate(n.createdAt)),
         ])));
+      } else if (tab === 'Foton') {
+        content.appendChild(el('button', {
+          class: 'quick-pill quick-pill--ai', type: 'button',
+          onclick: () => openCameraDrawer(slot),
+        }, 'Ta ny före/efter-bild'));
+        content.appendChild(el('div', { class: 'cco-cal-empty' }, 'Läser före/efter-bilder…'));
+        fetch('/api/v1/cco-journal/before-after-photos?patientId=' + encodeURIComponent(slot.patientId),
+          { headers: calendarHeaders() })
+          .then((response) => response.ok ? response.json() : null)
+          .then((gallery) => {
+            if (v6State.selected !== slot) return;
+            content.querySelector('.cco-cal-empty')?.remove();
+            if (!gallery) {
+              content.appendChild(el('p', { class: 'cco-cal-dossier-empty' }, 'Kunde inte hämta bilder.'));
+              return;
+            }
+            const renderPhotoGroup = (title, items) => {
+              content.appendChild(el('h4', { class: 'cco-cal-dossier-subtitle' }, title));
+              content.appendChild(renderList(items, (p) => el('div', { class: 'cco-cal-dossier-row' }, [
+                el('strong', {}, p.label || p.fileName || 'Bild'),
+                el('span', {}, fmtDate(p.capturedAt)),
+              ])));
+            };
+            if (gallery.before?.length) renderPhotoGroup('Före', gallery.before);
+            if (gallery.after?.length) renderPhotoGroup('Efter', gallery.after);
+            if (gallery.unclassified?.length) renderPhotoGroup('Oklassificerade', gallery.unclassified);
+            if (!gallery.before?.length && !gallery.after?.length && !gallery.unclassified?.length) {
+              content.appendChild(el('p', { class: 'cco-cal-dossier-empty' }, 'Inga före/efter-bilder än.'));
+            }
+          })
+          .catch(() => {
+            content.querySelector('.cco-cal-empty')?.remove();
+            content.appendChild(el('p', { class: 'cco-cal-dossier-empty' }, 'Kunde inte hämta bilder.'));
+          });
       }
     });
   }
@@ -2053,7 +2087,7 @@
     const tabs = shell.querySelector('.intel-tabs');
     if (tabs) {
       tabs.innerHTML = '';
-      const labels = ['Besök', 'Historik', 'Filer', 'Anteckningar'];
+      const labels = ['Besök', 'Historik', 'Filer', 'Anteckningar', 'Foton'];
       labels.forEach((label, index) => {
         const button = el('button', {
           class: 'intel-tab' + (index === 0 ? ' active' : ''), type: 'button',
@@ -2990,6 +3024,109 @@
 
     dateInput.addEventListener('change', loadAvailability);
     await loadAvailability();
+  }
+
+  function openCameraDrawer(slot) {
+    if (!slot?.patientId) return;
+
+    const drawer = getDrawerMount();
+    drawer.innerHTML = '';
+    drawer.classList.add('is-open');
+    const close = () => {
+      drawer.classList.remove('is-open');
+      drawer.innerHTML = '';
+    };
+    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
+      el('h3', {}, 'Ta före/efter-bild'),
+      el('div', { class: 'cco-cal-drawer-meta' }, 'Kopplas till journalen för besöket'),
+      el('button', { class: 'cco-cal-drawer-close', type: 'button', onclick: close, 'aria-label': 'Stäng' }, '×'),
+    ]));
+
+    drawer.appendChild(el('dl', { class: 'cco-cal-preflight-fields' }, [
+      el('dt', {}, 'Patient'), el('dd', {}, slot.patientName || 'Namn saknas'),
+      el('dt', {}, 'Besök'), el('dd', {}, slot.encounterId || 'Saknas'),
+    ]));
+
+    const form = el('section', { class: 'cco-cal-create-controlled' });
+    const phaseSelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Bildfas' }, [
+      el('option', { value: '' }, 'Välj fas'),
+      el('option', { value: 'before' }, 'Före'),
+      el('option', { value: 'after' }, 'Efter'),
+    ]);
+    const labelInput = el('input', {
+      class: 'cco-cal-create-input', type: 'text', placeholder: 'Etikett (valfritt)',
+      'aria-label': 'Etikett',
+    });
+    const fileInput = el('input', {
+      class: 'cco-cal-create-input', type: 'file', accept: 'image/*', capture: 'environment',
+      'aria-label': 'Bild från kamera',
+    });
+    const preview = el('img', {
+      class: 'cco-cal-camera-preview',
+      style: 'display:none;max-width:100%;max-height:220px;border-radius:10px;',
+      alt: 'Förhandsgranskning',
+    });
+    const message = el('p', { class: 'cco-cal-preflight-footnote', role: 'status' }, 'Välj fas och ta en bild.');
+    const uploadButton = el('button', {
+      class: 'quick-pill quick-pill--success', type: 'button', disabled: 'disabled',
+    }, 'Ladda upp till journalen');
+
+    let selectedFile = null;
+    fileInput.addEventListener('change', () => {
+      selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      if (selectedFile) {
+        preview.src = URL.createObjectURL(selectedFile);
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
+      uploadButton.disabled = !selectedFile || !phaseSelect.value;
+    });
+    phaseSelect.addEventListener('change', () => {
+      uploadButton.disabled = !selectedFile || !phaseSelect.value;
+    });
+
+    uploadButton.addEventListener('click', async () => {
+      if (!selectedFile || !phaseSelect.value) return;
+      uploadButton.disabled = true;
+      const body = new FormData();
+      body.append('patientId', slot.patientId);
+      if (slot.encounterId) body.append('encounterId', slot.encounterId);
+      body.append('photoPhase', phaseSelect.value);
+      body.append('label', labelInput.value || (phaseSelect.value === 'before' ? 'Före' : 'Efter'));
+      body.append('photo', selectedFile, selectedFile.name);
+
+      try {
+        const response = await fetch('/api/v1/cco-journal/photo', {
+          method: 'POST',
+          headers: calendarHeaders(),
+          body,
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'upload_failed');
+        drawer.innerHTML = '';
+        drawer.appendChild(el('div', { class: 'cco-cal-ready cco-cal-ready--ok', role: 'status' },
+          'Bilden sparades i journalen.'));
+        setTimeout(() => {
+          close();
+          if (v6State.selected === slot) v6RenderDossierTab(document.querySelector('.intel-shell'), slot, 'Foton');
+        }, 1200);
+      } catch (error) {
+        message.textContent = 'Uppladdningen misslyckades: ' + (error.message || 'okänt fel');
+        uploadButton.disabled = false;
+      }
+    });
+
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Fas'));
+    form.appendChild(phaseSelect);
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Etikett'));
+    form.appendChild(labelInput);
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Bild'));
+    form.appendChild(fileInput);
+    form.appendChild(preview);
+    form.appendChild(message);
+    form.appendChild(uploadButton);
+    drawer.appendChild(form);
   }
 
   global.CcoKalenderShell = isReadOnlyMode()
