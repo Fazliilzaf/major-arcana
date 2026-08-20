@@ -171,6 +171,11 @@ function normalizeBookingCase(input = {}) {
     workspaceId,
     conversationId,
     customerEmail,
+    // Kanoniskt patientId, separat fran kommunikationsidentiteten. Satt av
+    // routen vid skapande/upsert via saker uppslag mot patient-master; aldrig
+    // harvat fran customerEmail ensamt eftersom samma adress kan peka pa flera
+    // patienter.
+    patientId: normalizeText(safe.patientId) || null,
     customerName: normalizeText(safe.customerName),
     status: normalizeStatus(safe.status),
     source: normalizeText(safe.source) || 'operator',
@@ -908,6 +913,10 @@ async function createCcoBookingStore({ filePath }) {
         ...existing,
         ...normalized,
         bookingCaseId: existing.bookingCaseId,
+        // patientId ska aldrig raderas av en uppdatering som inte explicit
+        // anger ett nytt varde. Tomt/normaliserat null fran normalizeBookingCase
+        // betyder "inget angivet", inte "ta bort".
+        patientId: normalizeText(normalized.patientId) || existing.patientId || null,
         events,
         createdAt: existing.createdAt,
         updatedAt: ts,
