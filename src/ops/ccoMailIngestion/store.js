@@ -198,6 +198,15 @@ function toPatientIdSet(value) {
   return new Set();
 }
 
+function withTimeout(promise, ms, context) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`Timeout: ${context} exceeded ${ms}ms`)), ms);
+    }),
+  ]);
+}
+
 // Undviker att blockera event-loopen: JSON.stringify(state) på hela
 // mail-ingestion-state:et (alla brevlådors råmeddelanden + fulla rawJson-
 // kopior) kunde ta lång nog tid att Render-hälsokollen (5s timeout) missade
@@ -207,22 +216,48 @@ function toPatientIdSet(value) {
 // serialiserar asynkront och yieldar event-loopen mellan bitar, så servern
 // förblir responsiv under sparningen. Samma JSON-filformat som tidigare
 // (inkl. avslutande radbrytning) bevaras.
+//
+// 2026-08-20: timeout + granulär loggning tillagd efter att en sparning
+// tyst hängde i prod (sista loggrad "sparar state", filen uppdaterades aldrig).
+// Om timeout inträffar kastas ett fel så att anroparen kan återställa sina
+// in-flight-flaggor och försöka igen — i stället för att stå stilla för evigt.
+const WRITE_JSON_ATOMIC_TIMEOUT_MS =
+  Number(process.env.ARCANA_MAIL_INGESTION_WRITE_TIMEOUT_MS) || 120_000;
+
 async function writeJsonAtomic(filePath, data) {
   const dir = path.dirname(filePath);
-  await fs.mkdir(dir, { recursive: true });
   const tmpPath = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  console.log(`[mail-ingestion-store] writeJsonAtomic start ${path.basename(filePath)}`);
   try {
-    await bfj.write(tmpPath, toBfjSafeValue(data));
+    await fs.mkdir(dir, { recursive: true });
+    console.log(`[mail-ingestion-store] mkdir ok`);
+
+    console.log(`[mail-ingestion-store] toBfjSafeValue start`);
+    const safeData = toBfjSafeValue(data);
+    console.log(`[mail-ingestion-store] toBfjSafeValue ok`);
+
+    console.log(`[mail-ingestion-store] bfj.write start ${tmpPath}`);
+    await withTimeout(
+      bfj.write(tmpPath, safeData),
+      WRITE_JSON_ATOMIC_TIMEOUT_MS,
+      'bfj.write'
+    );
+    console.log(`[mail-ingestion-store] bfj.write ok`);
+
     // bfj lägger inte till en avslutande radbrytning — bevara exakt samma
     // filformat som tidigare `${JSON.stringify(data)}\n`.
     await fs.appendFile(tmpPath, '\n', 'utf8');
+    console.log(`[mail-ingestion-store] append newline ok`);
+
+    await fs.rename(tmpPath, filePath);
+    console.log(`[mail-ingestion-store] rename ok ${path.basename(filePath)}`);
   } catch (error) {
+    console.error(`[mail-ingestion-store] writeJsonAtomic failed: ${error.message}`);
     await fs.unlink(tmpPath).catch(() => {
       /* temp-filen kanske aldrig skapades — ofarligt att missa här */
     });
     throw error;
   }
-  await fs.rename(tmpPath, filePath);
 }
 
 async function createCcoMailIngestionStore({ filePath, bodyRoot = '', bodyMailboxId = '' } = {}) {

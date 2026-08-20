@@ -201,3 +201,37 @@ test('stor state rundtrippar korrekt genom hela store-flödet (save → disk →
 
   await fs.unlink(filePath).catch(() => {});
 });
+
+test('writeJsonAtomic tidsgränsar en hängande bfj.write och kastar tydligt fel', async () => {
+  // Ladda en färsk instans av store med kort timeout så testet inte behöver
+  // vänta på prod-defaulten (120 s). Top-level-importen har fortfarande den
+  // vanliga timeouten; den här testen använder bara den nya instansen.
+  process.env.ARCANA_MAIL_INGESTION_WRITE_TIMEOUT_MS = '50';
+  const storePath = require.resolve('../../src/ops/ccoMailIngestion/store');
+  delete require.cache[storePath];
+  const { writeJsonAtomic: writeWithTimeout } = require(storePath);
+
+  const bfj = require('bfj');
+  const originalWrite = bfj.write;
+  bfj.write = () => new Promise(() => {}); // hänger för evigt
+
+  const filePath = tmpFile('bfj-hang-timeout');
+  const dir = path.dirname(filePath);
+
+  try {
+    await assert.rejects(
+      () => writeWithTimeout(filePath, { a: 1 }),
+      /Timeout: bfj.write exceeded 50ms/
+    );
+
+    // Ingen .tmp-fil ska ha lämnats kvar av ett misslyckat försök.
+    const leftover = (await fs.readdir(dir).catch(() => [])).filter((name) =>
+      name.startsWith(path.basename(filePath)) && name.endsWith('.tmp')
+    );
+    assert.deepEqual(leftover, []);
+  } finally {
+    bfj.write = originalWrite;
+    delete process.env.ARCANA_MAIL_INGESTION_WRITE_TIMEOUT_MS;
+    delete require.cache[storePath];
+  }
+});
