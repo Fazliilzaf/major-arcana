@@ -344,6 +344,7 @@
       return "customers";
     }
     if (AUX_VIEWS.has(shellView)) return "more";
+    if (shellView === "calendar") return "calendar";
     if (shellView === "conversations" && mobileWorkspaceView === "focus") return "booking";
     return "home";
   }
