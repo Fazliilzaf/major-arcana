@@ -90,7 +90,8 @@ async function listBeforeAfterPhotos({ journalStore, tenantId, patientId } = {})
     return { before: [], after: [], unclassified: [], total: 0 };
   }
   const result = await journalStore.listEntries({ tenantId, patientId });
-  const entries = asArray(result?.entries);
+  // journalStore.listEntries returnerar en array direkt, inte { entries: [...] }.
+  const entries = Array.isArray(result) ? result : asArray(result?.entries);
   return listBeforeAfterPhotosFromEntries(entries);
 }
 
