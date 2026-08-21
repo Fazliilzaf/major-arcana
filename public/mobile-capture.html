@@ -70,84 +70,11 @@
         align-items: center;
         justify-content: center;
       }
-      video,
-      .preview-img,
-      .placeholder,
-      .overlay {
+      .preview-img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-      .preview-img {
         object-fit: contain;
-      }
-      .overlay {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        z-index: 2;
-      }
-      .placeholder {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 14px;
-        text-align: center;
-        padding: 24px;
-      }
-      .placeholder-icon {
-        font-size: 48px;
-        margin-bottom: 8px;
-      }
-      .loading-icon {
-        width: 48px;
-        height: 48px;
-        border: 4px solid rgba(255, 255, 255, 0.2);
-        border-top-color: #fff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 12px;
-      }
-      .guide {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1;
-      }
-      .guide-frame {
-        width: 82%;
-        height: 62%;
-        border: 2px dashed rgba(255, 255, 255, 0.35);
-        border-radius: 12px;
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.28);
-        transition:
-          border-color 0.2s,
-          box-shadow 0.2s;
-      }
-      .guide-frame.active {
-        border-color: rgba(74, 222, 128, 0.85);
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.18);
-      }
-      .guide-text {
-        position: absolute;
-        bottom: 18%;
-        left: 50%;
-        transform: translateX(-50%);
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 13px;
-        font-weight: 600;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-        white-space: nowrap;
-        transition: color 0.2s;
-      }
-      .guide-text.active {
-        color: rgba(74, 222, 128, 0.95);
+        display: block;
       }
       .actions {
         display: flex;
@@ -190,34 +117,6 @@
         font-size: 17px;
         padding: 18px 16px;
         min-height: 56px;
-      }
-      .shutter {
-        width: 72px;
-        height: 72px;
-        border-radius: 50%;
-        border: 4px solid #fff;
-        background: rgba(255, 255, 255, 0.25);
-        position: absolute;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-        z-index: 3;
-      }
-      .shutter::after {
-        content: '';
-        position: absolute;
-        inset: 6px;
-        border-radius: 50%;
-        background: #fff;
-      }
-      .shutter:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-      }
-      .shutter.ready::after {
-        background: #4ade80;
       }
       .hidden {
         display: none !important;
@@ -352,11 +251,6 @@
         h1 {
           font-size: 18px;
         }
-        .shutter {
-          width: 60px;
-          height: 60px;
-          bottom: 16px;
-        }
       }
     </style>
   </head>
@@ -376,36 +270,9 @@
         </button>
         <div class="hint">Telefonens egen kamera öppnas — håll kvittot plant och fyll bilden.</div>
         <div class="actions" style="margin-top: 12px">
-          <button class="btn" id="open-live" type="button">🎥 Live-kamera med guide</button>
           <a class="btn" href="/finance.html">⬅ Tillbaka</a>
         </div>
         <input type="file" id="file-input" accept="image/*" capture="environment" class="hidden" />
-      </div>
-
-      <!-- Live camera (secondary mode) -->
-      <div class="card hidden" id="camera-card">
-        <div class="viewfinder" id="viewfinder">
-          <div class="placeholder" id="placeholder">
-            <div class="loading-icon" id="loading-icon"></div>
-            <div id="placeholder-text">Startar kamera…</div>
-          </div>
-          <video id="video" autoplay playsinline muted class="hidden"></video>
-          <canvas id="overlay" class="overlay hidden"></canvas>
-          <div class="guide" id="guide">
-            <div class="guide-frame" id="guide-frame"></div>
-            <div class="guide-text" id="guide-text">Placera kvittot här</div>
-          </div>
-        </div>
-        <button
-          class="shutter"
-          id="shutter"
-          type="button"
-          aria-label="Fota kvitto"
-          disabled
-        ></button>
-        <div class="actions">
-          <button class="btn" id="exit-live" type="button">⬅ Avbryt live-läge</button>
-        </div>
       </div>
 
       <!-- Preview of chosen photo -->
@@ -483,17 +350,7 @@
         return token ? { Authorization: `Bearer ${token}` } : {};
       }
 
-      const video = document.getElementById('video');
-      const overlay = document.getElementById('overlay');
-      const overlayCtx = overlay.getContext('2d');
       const preview = document.getElementById('preview');
-      const placeholder = document.getElementById('placeholder');
-      const placeholderText = document.getElementById('placeholder-text');
-      const loadingIcon = document.getElementById('loading-icon');
-      const guide = document.getElementById('guide');
-      const guideFrame = document.getElementById('guide-frame');
-      const guideText = document.getElementById('guide-text');
-      const shutter = document.getElementById('shutter');
       const usePhoto = document.getElementById('use-photo');
       const retake = document.getElementById('retake');
       const manualCropBtn = document.getElementById('manual-crop');
@@ -502,11 +359,8 @@
       const scanSpinner = document.getElementById('scan-spinner');
       const scanSpinnerText = document.getElementById('scan-spinner-text');
       const startCard = document.getElementById('start-card');
-      const cameraCard = document.getElementById('camera-card');
       const previewCard = document.getElementById('preview-card');
       const openNativeBtn = document.getElementById('open-native');
-      const openLiveBtn = document.getElementById('open-live');
-      const exitLiveBtn = document.getElementById('exit-live');
       const cropCard = document.getElementById('crop-card');
       const cropOriginal = document.getElementById('crop-original');
       const cropCropped = document.getElementById('crop-cropped');
@@ -524,7 +378,6 @@
       const approveBtn = document.getElementById('approve-capture');
       const rejectBtn = document.getElementById('reject-capture');
 
-      let stream = null;
       let capturedBlob = null;
       let croppedBlob = null;
       let originalDataUrl = null;
@@ -532,13 +385,6 @@
       let currentExpenseRecord = null;
       let currentRawItem = null;
       let cvLoaded = false;
-      let rafId = null;
-      let lastCorners = null;
-      let lastCornersTime = 0;
-      let stableFrames = 0;
-      const STABLE_THRESHOLD = 8;
-      let processing = false;
-      let capturePending = false;
 
       // Manual editor state
       let editCorners = null; // [{x,y} x4] in original-image coordinates
@@ -552,7 +398,6 @@
 
       function hideAll() {
         startCard.classList.add('hidden');
-        cameraCard.classList.add('hidden');
         previewCard.classList.add('hidden');
         cropCard.classList.add('hidden');
         editCard.classList.add('hidden');
@@ -570,15 +415,10 @@
         editCorners = null;
         editDetected = null;
         editDragIdx = -1;
-        lastCorners = null;
-        lastCornersTime = 0;
-        stableFrames = 0;
-        shutter.classList.remove('ready');
         fileInput.value = '';
       }
 
       function showStart() {
-        stopCamera();
         hideAll();
         resetState();
         startCard.classList.remove('hidden');
@@ -640,135 +480,6 @@
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-      }
-
-      // ---------- Live camera flow (secondary) ----------
-
-      async function startCamera() {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: 'environment',
-              width: { ideal: 1920 },
-              height: { ideal: 2560 },
-            },
-            audio: false,
-          });
-          video.srcObject = stream;
-          await video.play();
-          resizeOverlay();
-          placeholder.classList.add('hidden');
-          video.classList.remove('hidden');
-          overlay.classList.remove('hidden');
-          shutter.disabled = false;
-
-          const track = stream.getVideoTracks()[0];
-          if (track && track.applyConstraints) {
-            try {
-              await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-            } catch (_) {
-              // Focus constraints not supported on all devices
-            }
-          }
-
-          setStatus('Kamera aktiv. Håll kvittot stilla.', 'ok');
-          startDetectionLoop();
-        } catch (err) {
-          console.error('Kamerafel:', err);
-          setStatus('Kunde inte starta kamera — använd "Ta foto av kvitto" i stället.', 'error');
-          placeholderText.textContent = 'Kamera ej tillgänglig';
-          loadingIcon.classList.add('hidden');
-        }
-      }
-
-      function stopCamera() {
-        stopDetectionLoop();
-        if (stream) {
-          for (const track of stream.getTracks()) track.stop();
-          stream = null;
-        }
-        video.srcObject = null;
-        shutter.disabled = true;
-      }
-
-      function showLive() {
-        hideAll();
-        resetState();
-        cameraCard.classList.remove('hidden');
-        placeholder.classList.remove('hidden');
-        loadingIcon.classList.remove('hidden');
-        placeholderText.textContent = 'Startar kamera…';
-        startCamera();
-      }
-
-      function resizeOverlay() {
-        const rect = video.getBoundingClientRect();
-        overlay.width = rect.width * window.devicePixelRatio;
-        overlay.height = rect.height * window.devicePixelRatio;
-        overlay.style.width = rect.width + 'px';
-        overlay.style.height = rect.height + 'px';
-        overlayCtx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
-      }
-
-      function delay(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-      }
-
-      async function triggerFocus() {
-        if (!stream) return;
-        const track = stream.getVideoTracks()[0];
-        if (!track || !track.applyConstraints) return;
-        try {
-          await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
-        } catch (_) {
-          // Fall back to native AF
-        }
-      }
-
-      async function capturePhoto() {
-        if (!video.videoWidth || capturePending) return;
-        capturePending = true;
-        stopDetectionLoop();
-
-        setStatus('Fokuserar…', 'ok');
-        await triggerFocus();
-        await delay(450);
-
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
-
-        originalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-        capturedBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
-        originalImg = await loadImage(originalDataUrl);
-        stopCamera();
-
-        // Run detection ON the captured frame so corners match exactly
-        const corners = await detectCornersOnDataUrl(originalDataUrl);
-
-        if (corners) {
-          editDetected = corners;
-          const cropped = await warpReceipt(originalDataUrl, corners);
-          if (cropped) {
-            croppedBlob = dataUrlToBlobSync(cropped);
-            cropOriginal.src = originalDataUrl;
-            cropCropped.src = cropped;
-            document.getElementById('crop-cropped-label').textContent = 'Auto-beskuren';
-            hideAll();
-            cropCard.classList.remove('hidden');
-            setStatus('Kant hittad — granska beskärningen', 'ok');
-            capturePending = false;
-            return;
-          }
-        }
-
-        hideAll();
-        preview.src = originalDataUrl;
-        previewCard.classList.remove('hidden');
-        setStatus('Ingen kant hittades automatiskt — justera manuellt eller använd fotot', 'warn');
-        capturePending = false;
       }
 
       // ---------- OpenCV detection ----------
@@ -846,73 +557,6 @@
           script.onerror = () => resolve(false);
           setTimeout(() => resolve(false), 30000);
           document.head.appendChild(script);
-        });
-      }
-
-      function startDetectionLoop() {
-        if (rafId) cancelAnimationFrame(rafId);
-        let lastFrameTime = 0;
-        const frameInterval = 120; // ~8 fps
-
-        const loop = (t) => {
-          rafId = requestAnimationFrame(loop);
-          if (!video.videoWidth || processing || capturePending) return;
-          if (t - lastFrameTime < frameInterval) return;
-          lastFrameTime = t;
-
-          processing = true;
-          detectFrame()
-            .then((corners) => {
-              updateCorners(corners);
-              drawOverlay(lastCorners, stableFrames >= STABLE_THRESHOLD);
-            })
-            .catch((err) => {
-              console.error('Frame detect error:', err);
-            })
-            .finally(() => {
-              processing = false;
-            });
-        };
-        rafId = requestAnimationFrame(loop);
-      }
-
-      function stopDetectionLoop() {
-        if (rafId) {
-          cancelAnimationFrame(rafId);
-          rafId = null;
-        }
-        overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-      }
-
-      async function detectFrame() {
-        return new Promise((resolve) => {
-          if (!cvLoaded || !cv.getBuildInformation) return resolve(null);
-
-          const videoW = video.videoWidth;
-          const videoH = video.videoHeight;
-          if (!videoW || !videoH) return resolve(null);
-
-          const scale = Math.min(1, 640 / Math.max(videoW, videoH));
-          const smallW = Math.round(videoW * scale);
-          const smallH = Math.round(videoH * scale);
-
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = smallW;
-          tempCanvas.height = smallH;
-          const tempCtx = tempCanvas.getContext('2d');
-          tempCtx.drawImage(video, 0, 0, smallW, smallH);
-          const imageData = tempCtx.getImageData(0, 0, smallW, smallH);
-
-          const small = new cv.Mat(smallH, smallW, cv.CV_8UC4);
-          small.data.set(imageData.data);
-
-          const pts = findReceiptContour(small);
-          small.delete();
-
-          if (!pts) return resolve(null);
-
-          const scaled = pts.map((p) => ({ x: p.x / scale, y: p.y / scale }));
-          resolve(orderCorners(scaled));
         });
       }
 
@@ -1050,81 +694,6 @@
         return best;
       }
 
-      function updateCorners(corners) {
-        const now = Date.now();
-        if (!corners) {
-          if (now - lastCornersTime > 400) {
-            lastCorners = null;
-            stableFrames = 0;
-            guideFrame.classList.remove('active');
-            guideText.classList.remove('active');
-            shutter.classList.remove('ready');
-            guideText.textContent = 'Placera kvittot här';
-          }
-          return;
-        }
-
-        if (lastCorners && cornersSimilar(lastCorners, corners)) {
-          stableFrames = Math.min(stableFrames + 1, STABLE_THRESHOLD + 5);
-        } else {
-          stableFrames = 1;
-          lastCorners = corners;
-          lastCornersTime = now;
-        }
-
-        if (stableFrames >= STABLE_THRESHOLD) {
-          guideFrame.classList.add('active');
-          guideText.classList.add('active');
-          shutter.classList.add('ready');
-          guideText.textContent = 'Kvitto hittat — fota nu';
-        } else {
-          guideFrame.classList.remove('active');
-          guideText.classList.remove('active');
-          shutter.classList.remove('ready');
-          guideText.textContent = 'Håll stilla…';
-        }
-      }
-
-      function cornersSimilar(a, b, threshold = 0.06) {
-        const maxDist = Math.max(a[0].x, a[0].y, b[0].x, b[0].y, 100);
-        for (let i = 0; i < 4; i++) {
-          const dx = a[i].x - b[i].x;
-          const dy = a[i].y - b[i].y;
-          if (Math.hypot(dx, dy) > maxDist * threshold) return false;
-        }
-        return true;
-      }
-
-      function drawOverlay(corners, stable) {
-        const rect = overlay.getBoundingClientRect();
-        overlayCtx.clearRect(0, 0, rect.width, rect.height);
-        if (!corners) return;
-
-        const scaleX = rect.width / video.videoWidth;
-        const scaleY = rect.height / video.videoHeight;
-        const projected = corners.map((p) => ({ x: p.x * scaleX, y: p.y * scaleY }));
-
-        overlayCtx.beginPath();
-        overlayCtx.moveTo(projected[0].x, projected[0].y);
-        for (let i = 1; i < 4; i++) {
-          overlayCtx.lineTo(projected[i].x, projected[i].y);
-        }
-        overlayCtx.closePath();
-
-        overlayCtx.lineWidth = 3;
-        overlayCtx.strokeStyle = stable ? 'rgba(74, 222, 128, 0.95)' : 'rgba(255, 255, 255, 0.75)';
-        overlayCtx.stroke();
-        overlayCtx.fillStyle = stable ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 255, 255, 0.08)';
-        overlayCtx.fill();
-
-        overlayCtx.fillStyle = stable ? '#4ade80' : '#fff';
-        for (const p of projected) {
-          overlayCtx.beginPath();
-          overlayCtx.arc(p.x, p.y, 5, 0, Math.PI * 2);
-          overlayCtx.fill();
-        }
-      }
-
       // ---------- Manual corner editor ----------
 
       function openManualEditor() {
@@ -1246,7 +815,7 @@
         e.preventDefault();
       }
 
-      function onEditPointerUp(e) {
+      function onEditPointerUp() {
         editDragIdx = -1;
       }
 
@@ -1480,9 +1049,6 @@
       // ---------- Wire up ----------
 
       openNativeBtn.addEventListener('click', () => fileInput.click());
-      openLiveBtn.addEventListener('click', showLive);
-      exitLiveBtn.addEventListener('click', showStart);
-      shutter.addEventListener('click', capturePhoto);
       usePhoto.addEventListener('click', () => uploadCapture(capturedBlob));
       retake.addEventListener('click', showStart);
       manualCropBtn.addEventListener('click', openManualEditor);
@@ -1508,7 +1074,6 @@
       rejectBtn.addEventListener('click', rejectRecord);
       fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
       window.addEventListener('resize', () => {
-        if (!cameraCard.classList.contains('hidden')) resizeOverlay();
         if (!editCard.classList.contains('hidden') && originalImg) drawEditor();
       });
 
