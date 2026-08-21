@@ -90,11 +90,23 @@ function normalizeWeekdays(value) {
   return weekdays.length ? Array.from(new Set(weekdays)) : [1, 2, 3, 4, 5];
 }
 
+/**
+ * En regel utan giltiga klockslag ska erbjuda noll tider.
+ *
+ * Här stod tidigare `: ['09:30', '13:30', '15:00']` — en regel med tom lista
+ * fick alltså tre påhittade tider, varav 09:30 ligger före öppning. Det såg ut
+ * som en ofarlig skyddsnätsrad men gjorde motsatsen: den tillverkade
+ * tillgänglighet ur ingenting, och en patient kunde boka en tid som ingen
+ * hade lagt in.
+ *
+ * Det upptäcktes när tre gamla kvällsregler skulle tystas genom att sätta
+ * `startTimes: []`. De blev inte tysta — de blev 09:30, 13:30 och 15:00.
+ */
 function normalizeStartTimes(value) {
   const times = asArray(value)
     .map((item) => normalizeText(item))
     .filter((item) => /^\d{2}:\d{2}$/.test(item));
-  return times.length ? Array.from(new Set(times)) : ['09:30', '13:30', '15:00'];
+  return Array.from(new Set(times));
 }
 
 function normalizeDateOnly(value) {
@@ -393,6 +405,44 @@ function defaultState() {
         weekdays: [1, 2, 3, 4, 5],
         startTimes: KONSULTATION_VARDAG,
         locationLabel: 'Hair TP Clinic',
+      },
+      // ── De tre kvällsreglerna neutraliseras, inte raderas ──────────────
+      //
+      // rule-evening-cons-* och rule-evening-online-fazli togs bort ur källan
+      // 2026-08-21. De försvann inte ur prod. Sammanslagningen längre ned
+      // lägger till och uppdaterar regler som finns i defaults — den raderar
+      // inte regler som slutat finnas här. Prod fortsatte alltså erbjuda
+      // 17:30 och 18:00, som med 45-minutersbesök slutar 18:15 och 18:45,
+      // efter stängning.
+      //
+      // Tom startTimes ger noll tider utan att röra raden. `active: false`
+      // fungerar inte: sammanslagningen tvingar `active: true` för publikt
+      // bokningsbara tjänster.
+      //
+      // Vardagsrutnätets sista pass är 16:45–17:30, så kvällen är täckt.
+      {
+        ruleId: 'rule-evening-cons-fazli',
+        resourceId: 'fazli',
+        serviceId: 'consultation-physical',
+        weekdays: [1, 2, 3, 4, 5],
+        startTimes: [],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-evening-cons-egzona',
+        resourceId: 'egzona',
+        serviceId: 'consultation-physical',
+        weekdays: [1, 2, 3, 4, 5],
+        startTimes: [],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-evening-online-fazli',
+        resourceId: 'fazli',
+        serviceId: 'consultation-online',
+        weekdays: [1, 2, 3, 4, 5],
+        startTimes: [],
+        locationLabel: 'Online (videomöte)',
       },
       // Lördagsreglerna låg tidigare i migration/booking-schedule-defaults.json
       // och inte här. Halva schemat i kod och halva i data gjorde att ingen
