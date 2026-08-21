@@ -89,6 +89,7 @@ function createCfoBankReconciliationRouter({ authStore, reconciliation, fortnoxS
           bankAccount: req.body?.bankAccount || '1930',
           fromDate: req.body?.fromDate || null,
           toDate: req.body?.toDate || null,
+          merge: req.body?.merge === true,
         });
         if (!result.ok) return res.status(502).json(result);
         await reconciliation.persist();

@@ -212,6 +212,35 @@ test('ORD-103b: voucher-belopp hämtas från 1930-rader (tecknat) + dubbelmatch-
   assert.ok(res.error);
 });
 
+test('ORD-103b: merge=true uppdaterar fönstret och behåller övriga verifikat', async () => {
+  const recon = createCfoBankReconciliation({ filePath: await tmpFile() });
+  const mkClient = (vs) => ({
+    listVouchers: async () => ({ Vouchers: vs }),
+    getVoucher: async () => ({
+      Voucher: { VoucherRows: [{ Account: 1930, Debit: 100, Credit: 0 }] },
+    }),
+  });
+  const all = [
+    { VoucherNumber: 1, VoucherSeries: 'A', TransactionDate: '2026-07-01', Description: 'juli' },
+    { VoucherNumber: 2, VoucherSeries: 'A', TransactionDate: '2026-08-01', Description: 'aug' },
+  ];
+  // Kör bit 1 (juli) och bit 2 (aug) med merge — båda ska finnas kvar,
+  // och aug-verifikatet (utanför bit 1:s fönster) får sina radbelopp i bit 2.
+  await recon.fetchVouchers(mkClient(all), {
+    fromDate: '2026-07-01',
+    toDate: '2026-07-31',
+    merge: true,
+  });
+  await recon.fetchVouchers(mkClient(all), {
+    fromDate: '2026-08-01',
+    toDate: '2026-08-31',
+    merge: true,
+  });
+  const vs = recon._state().vouchers;
+  assert.equal(vs.length, 2);
+  assert.ok(vs.every((v) => v.hasBankRow && v.signed && v.amount === 100));
+});
+
 test('dedupe: samma transaktion importeras bara en gång', async () => {
   const recon = createCfoBankReconciliation({ filePath: await tmpFile() });
   const transactions = parseHandelsbankenCsv(HANDBANKEN_CSV);

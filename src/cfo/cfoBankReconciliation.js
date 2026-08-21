@@ -192,9 +192,12 @@ function createCfoBankReconciliation({
   // getVoucher och bankrörelsen beräknas som Σ(Debit) − Σ(Credit) på bank-
   // kontot (default 1930). Beloppet är då TECKNAT som kontoutdraget.
   // Fallback: om klienten saknar getVoucher (t.ex. tester) används v.Amount.
+  // merge=true: uppdatera endast verifikat i fönstret och behåll övriga —
+  // gör att stora perioder kan hämtas i bitar utan att LB-timeout (~100 s)
+  // kastar bort allt (ORD-103b prod-lärdom: helårshämtning tar >10 min).
   async function fetchVouchers(
     fortnoxClient,
-    { financialYearDate, bankAccount = '1930', fromDate = null, toDate = null } = {}
+    { financialYearDate, bankAccount = '1930', fromDate = null, toDate = null, merge = false } = {}
   ) {
     if (!fortnoxClient || typeof fortnoxClient.listVouchers !== 'function') {
       return { ok: false, error: 'fortnoxClient saknas eller saknar listVouchers' };
@@ -269,7 +272,8 @@ function createCfoBankReconciliation({
       await new Promise((r) => setTimeout(r, 260));
     }
 
-    state.vouchers = vouchers.map((v) => {
+    const sourceVouchers = merge ? vouchers.filter(inWindow) : vouchers;
+    const mapped = sourceVouchers.map((v) => {
       const key = `${v.VoucherSeries}|${v.VoucherNumber}`;
       const signedAmount = detailByKey.has(key) ? detailByKey.get(key) : null;
       return {
@@ -284,6 +288,12 @@ function createCfoBankReconciliation({
         hasBankRow: canFetchRows ? signedAmount !== null : Number(v.Amount) !== 0,
       };
     });
+    if (merge) {
+      const newKeys = new Set(mapped.map((v) => v.voucherId));
+      state.vouchers = [...state.vouchers.filter((v) => !newKeys.has(v.voucherId)), ...mapped];
+    } else {
+      state.vouchers = mapped;
+    }
     audit('cf.bank_reconciliation.vouchers_loaded', {
       count: state.vouchers.length,
       withBankRows: state.vouchers.filter((v) => v.hasBankRow).length,
