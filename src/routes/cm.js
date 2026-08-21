@@ -1,6 +1,8 @@
 'use strict';
 
 const express = require('express');
+const multer = require('multer');
+const crypto = require('crypto');
 const { extractDocument } = require('../cm/cmAiExtractor');
 const { createCmMailSync, DEFAULT_FOLDER_TYPES } = require('../cm/cmMailSync');
 const { promoteRecordToCfo } = require('../cm/cmCfoHandoff');
@@ -18,6 +20,11 @@ function createCmRouter({
   const requireRole = authStore.requireRole;
   const ROLE_OWNER = 'OWNER';
   const ROLE_STAFF = 'STAFF';
+
+  const cmImageUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 20 * 1024 * 1024 },
+  });
 
   // Dashboard — ORD-70: inkl. auto-intagets senaste körning (statusraden i UI:t)
   router.get('/cm/dashboard', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), (req, res) => {
@@ -1294,6 +1301,108 @@ function createCmRouter({
       needsReview: !expenseRecord || (expenseRecord?.confidenceScore || 0) < 70,
     });
   });
+
+  // Mobilt kvittofoto — ORD-104
+  // Tar en bild, sparar i secure storage, skapar rawItem + document + expenseRecord.
+  router.post(
+    '/cm/capture',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    cmImageUpload.single('image'),
+    async (req, res) => {
+      try {
+        if (!req.file) {
+          return res
+            .status(400)
+            .json({ ok: false, error: 'image krävs (multipart/form-data field: image)' });
+        }
+        if (!secureStorage) {
+          return res.status(503).json({ ok: false, error: 'secure storage not ready' });
+        }
+
+        const actor = req.user?.id || req.user?.email || req.auth?.userId || 'owner';
+        const buffer = req.file.buffer;
+        const mimeType = req.file.mimetype || 'image/jpeg';
+        const sha = crypto.createHash('sha256').update(buffer).digest('hex');
+        const ext = /png/i.test(mimeType) ? 'png' : /webp/i.test(mimeType) ? 'webp' : 'jpg';
+        const ym = new Date().toISOString().slice(0, 7);
+        const storageKey = `cm-capture/${ym}/${sha.slice(0, 8)}-${crypto.randomBytes(4).toString('hex')}.${ext}`;
+
+        await secureStorage.putObject(storageKey, buffer, { mimeType });
+
+        const importResult = cmStore.importRawItem({
+          sourceType: 'mobile_capture',
+          sourceId: storageKey,
+          subject: 'Kvittofoto',
+          fromEmail: req.auth?.email || null,
+          receivedAt: new Date().toISOString(),
+          rawBodyText: '',
+          hasAttachments: true,
+          hasPdf: false,
+          hasImage: true,
+          metadata: { capturedBy: actor, storageKey },
+        });
+        if (!importResult.ok) {
+          return res.status(409).json(importResult);
+        }
+        const rawItem = importResult.rawItem;
+
+        const doc = cmStore.createDocument({
+          rawItemId: rawItem.id,
+          documentType: 'receipt',
+          fileName: req.file.originalname || `capture.${ext}`,
+          mimeType,
+          storagePath: storageKey,
+          fileHash: sha,
+          source: 'image',
+        });
+
+        const extraction = await extractDocument({
+          imageBase64: buffer.toString('base64'),
+          mimeType,
+          source: 'mobile_capture',
+        });
+
+        let expenseRecord = null;
+        if (extraction.ok && extraction.extraction?.confidenceScore >= 50) {
+          expenseRecord = cmStore.createExpenseRecord({
+            documentId: doc.id,
+            rawItemId: rawItem.id,
+            expenseType: extraction.extraction.documentType,
+            supplierName: extraction.extraction.supplier,
+            invoiceNumber: extraction.extraction.invoiceNumber,
+            receiptNumber: extraction.extraction.receiptNumber,
+            orderNumber: extraction.extraction.orderNumber,
+            date: extraction.extraction.date,
+            dueDate: extraction.extraction.dueDate,
+            amountExVat: extraction.extraction.amountExVat,
+            vatAmount: extraction.extraction.vatAmount,
+            amountIncVat: extraction.extraction.amountIncVat,
+            currency: extraction.extraction.currency,
+            category: extraction.extraction.category,
+            confidenceScore: extraction.extraction.confidenceScore,
+            flags:
+              extraction.extraction.confidenceScore < 70
+                ? ['NEEDS_MANUAL_REVIEW', 'LOW_CONFIDENCE_EXTRACTION']
+                : [],
+          });
+        }
+
+        await cmStore.persist();
+
+        return res.json({
+          ok: true,
+          rawItem,
+          document: doc,
+          expenseRecord,
+          extraction: extraction.ok ? extraction.extraction : null,
+          needsReview: !expenseRecord || (expenseRecord?.confidenceScore || 0) < 70,
+        });
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
 
   return router;
 }
