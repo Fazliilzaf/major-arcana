@@ -1046,3 +1046,104 @@ test('cykliska availabilityRules gäller bara rätt vecka', async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('sjuksköterskors schema-regler är avstängda i defaultState', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-nurse-defaults-'));
+  try {
+    const filePath = path.join(tempDir, 'booking-engine.json');
+    const store = await createCcoBookingEngineStore({ filePath });
+    const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
+
+    const nurseIds = ['veronica', 'clara', 'wendela', 'louise'];
+    for (const resourceId of nurseIds) {
+      const rules = persisted.availabilityRules.filter((r) => r.resourceId === resourceId);
+      assert.ok(rules.length > 0, `${resourceId} ska ha minst en regel`);
+      for (const rule of rules) {
+        assert.equal(rule.active, false, `${rule.ruleId} ska vara inaktiv`);
+        assert.equal(rule.managedBy, 'staff', `${rule.ruleId} ska vara staff-märkt`);
+      }
+    }
+
+    const { fromDate, toDate } = bookingMondayWindow();
+    for (const resourceId of nurseIds) {
+      const availability = await store.listAvailability({
+        tenantId: 'hair-tp-clinic',
+        fromDate,
+        toDate,
+        resIds: resourceId,
+        srvIds: 'consultation-physical',
+      });
+      assert.equal(availability.length, 0, `${resourceId} ska inte erbjuda tider`);
+    }
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('post-migration stänger av aktiva sjuksköterskeregler från äldre data', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-nurse-migration-'));
+  try {
+    const filePath = path.join(tempDir, 'booking-engine.json');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify(
+        {
+          version: 1,
+          resources: [
+            { id: 'veronica', label: 'Veronica', active: true, publicBookable: false, role: 'Sjuksköterska' },
+            { id: 'clara', label: 'Clara', active: true, publicBookable: false, role: 'Sjuksköterska' },
+          ],
+          services: [{ id: 'consultation-physical', label: 'Konsultation', durationMinutes: 45, active: true }],
+          availabilityRules: [
+            {
+              ruleId: 'rule-cons-veronica',
+              resourceId: 'veronica',
+              serviceId: 'consultation-physical',
+              weekdays: [1, 2, 3, 4, 5],
+              startTimes: ['10:00'],
+              locationLabel: 'Hair TP Clinic',
+              active: true,
+            },
+            {
+              ruleId: 'rule-cons-clara',
+              resourceId: 'clara',
+              serviceId: 'consultation-physical',
+              weekdays: [1, 2, 3, 4, 5],
+              startTimes: ['11:00'],
+              locationLabel: 'Hair TP Clinic',
+              active: true,
+            },
+          ],
+          reservations: [],
+          bookings: [],
+        },
+        null,
+        2
+      ),
+      'utf8'
+    );
+
+    const store = await createCcoBookingEngineStore({ filePath });
+    const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
+
+    const veronicaRule = persisted.availabilityRules.find((r) => r.ruleId === 'rule-cons-veronica');
+    const claraRule = persisted.availabilityRules.find((r) => r.ruleId === 'rule-cons-clara');
+
+    assert.equal(veronicaRule.active, false, 'Veronicas regel ska stängas av');
+    assert.equal(veronicaRule.managedBy, 'staff', 'Veronicas regel ska staff-märkas');
+    assert.equal(claraRule.active, false, 'Claras regel ska stängas av');
+    assert.equal(claraRule.managedBy, 'staff', 'Claras regel ska staff-märkas');
+
+    const { fromDate, toDate } = bookingMondayWindow();
+    const availability = await store.listAvailability({
+      tenantId: 'hair-tp-clinic',
+      fromDate,
+      toDate,
+      resIds: 'veronica,clara',
+      srvIds: 'consultation-physical',
+    });
+    assert.equal(availability.length, 0, 'inga tider ska erbjudas för avställda sjuksköterskor');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
