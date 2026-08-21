@@ -1801,7 +1801,37 @@ async function createCcoBookingEngineStore({ filePath }) {
     };
   }
 
-  async function rebookBooking(input = {}) {
+  /**
+   * Ombokning i ett steg: avboka gammal tid, reservera ny, bekräfta.
+   *
+   * ── Varför rollbacken är kirurgisk och inte en helstate-återställning ──────
+   *
+   * Ombokningen måste vara atomisk. Failar något efter avbokningen — måltiden
+   * hann bli upptagen, bokningspolicyn säger nej — ska patienten inte stå utan
+   * bokning. Det inträffade under prod-spotchecken 2026-08-21: `rebookBooking`
+   * avbokade originalet och föll sedan på 180-dagarsgränsen i `confirmBooking`.
+   *
+   * Den enkla lösningen är att kopiera hela `state` före och skriva tillbaka
+   * den vid fel. `reserveAndConfirmIdempotent` gör precis så. Men den kan
+   * bara göra det för att den samtidigt serialiserar sig genom
+   * `createBookingMutationTail` — utan kön hade dess rollback kunnat radera
+   * en annan bokning som blev klar i fönstret.
+   *
+   * Kön räcker ändå inte här. `cancelBooking`, `renewReservation` och
+   * kalenderblocken skriver till `state` helt utanför kön. En helstate-
+   * återställning kunde alltså tysta en avbokning som personalen gjorde för
+   * en ANNAN patient mitt i vårt fönster — vi hade bytt ett sätt att förlora
+   * en bokning mot ett annat.
+   *
+   * Därför två spärrar:
+   *
+   *   1. Rollbacken rör bara rader vi själva äger — bokningar och
+   *      reservationer för den här patienten — och tar bort rader som vårt
+   *      egna misslyckade försök hann skapa. Allt annat lämnas orört.
+   *   2. Hela ombokningen körs i samma kö som skapa-bokning, så vår rollback
+   *      och deras aldrig kan överlappa åt något håll.
+   */
+  async function rebookBookingSerialiserad(input = {}) {
     await expireStaleReservations();
     const tenantId = normalizeText(input.tenantId);
     const conversationId = normalizeText(input.conversationId);
@@ -1813,10 +1843,36 @@ async function createCcoBookingEngineStore({ filePath }) {
         if (customerEmail && item.customerEmail !== customerEmail) return false;
         return normalizeKey(item.status) === 'confirmed';
       }) || null;
-    // F2-3: hela ombokningen måste vara atomisk. Om något steg efter
-    // avbokningen failar (t.ex. ny tid är upptagen) rullar vi tillbaka
-    // state till snapshot och sparar, så patienten inte står utan bokning.
-    const snapshot = clone(state);
+
+    // Samma filter som cancelBooking och confirmBooking använder. Tomma fält
+    // matchar allt, exakt som där — annars hade snapshoten kunnat missa en
+    // rad som cancelBooking sedan ändrar.
+    const tillhorOss = (item) => {
+      if (tenantId && item.tenantId !== tenantId) return false;
+      if (conversationId && item.conversationId !== conversationId) return false;
+      if (customerEmail && normalizeKey(item.customerEmail) !== customerEmail) return false;
+      return true;
+    };
+    const bokningarFore = new Map(
+      state.bookings.filter(tillhorOss).map((item) => [item.bookingId, clone(item)])
+    );
+    const reservationerFore = new Map(
+      state.reservations.filter(tillhorOss).map((item) => [item.reservationId, clone(item)])
+    );
+    // Rader som fanns innan vi började. Allt som dyker upp därutöver är vårt
+    // eget misslyckade försök och ska bort.
+    const kandaBokningsId = new Set(state.bookings.map((item) => item.bookingId));
+    const kandaReservationsId = new Set(state.reservations.map((item) => item.reservationId));
+
+    const rullaTillbaka = () => {
+      state.bookings = state.bookings
+        .filter((item) => kandaBokningsId.has(item.bookingId))
+        .map((item) => bokningarFore.get(item.bookingId) || item);
+      state.reservations = state.reservations
+        .filter((item) => kandaReservationsId.has(item.reservationId))
+        .map((item) => reservationerFore.get(item.reservationId) || item);
+    };
+
     try {
       await cancelBooking({
         tenantId: input.tenantId,
@@ -1840,16 +1896,34 @@ async function createCcoBookingEngineStore({ filePath }) {
         previousSlot: previousBooking?.slot ? clone(previousBooking.slot) : null,
       };
     } catch (error) {
-      Object.keys(state).forEach((key) => delete state[key]);
-      Object.assign(state, snapshot);
+      rullaTillbaka();
       await save();
       error.metadata = { ...(error.metadata || {}), rebookRolledBack: true };
       throw error;
     }
   }
 
-  async function getCaseSummary({ tenantId, conversationId, customerEmail, excludeTestData = false } = {}) {
-    const reservations = await getActiveReservations({ tenantId, conversationId, customerEmail, excludeTestData });
+  async function rebookBooking(input = {}) {
+    // Spärr 2: samma kö som reserveAndConfirmIdempotent. Ombokning och
+    // skapa-bokning kan därmed aldrig ligga i varandras fönster.
+    const mutate = () => rebookBookingSerialiserad(input);
+    const operation = createBookingMutationTail.then(mutate, mutate);
+    createBookingMutationTail = operation.catch(() => {});
+    return operation;
+  }
+
+  async function getCaseSummary({
+    tenantId,
+    conversationId,
+    customerEmail,
+    excludeTestData = false,
+  } = {}) {
+    const reservations = await getActiveReservations({
+      tenantId,
+      conversationId,
+      customerEmail,
+      excludeTestData,
+    });
     const booking =
       state.bookings.find((item) => {
         if (tenantId && item.tenantId !== normalizeText(tenantId)) return false;

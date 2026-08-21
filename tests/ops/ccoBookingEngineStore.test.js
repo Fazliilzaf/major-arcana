@@ -685,7 +685,9 @@ test('ccoBookingEngineStore markerar RFC-2606-bokningar som permanent testdata',
 });
 
 test('ccoBookingEngineStore bevarar isTestData vid ombokning', async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-rebook-testdata-'));
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-booking-engine-rebook-testdata-')
+  );
   try {
     const store = await createCcoBookingEngineStore({
       filePath: path.join(tempDir, 'booking-engine.json'),
@@ -727,9 +729,10 @@ test('ccoBookingEngineStore bevarar isTestData vid ombokning', async () => {
   }
 });
 
-
 test('ccoBookingEngineStore rullar tillbaka ombokning om ny tid inte kan reserveras', async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-rebook-rollback-'));
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-booking-engine-rebook-rollback-')
+  );
   try {
     const store = await createCcoBookingEngineStore({
       filePath: path.join(tempDir, 'booking-engine.json'),
@@ -800,6 +803,129 @@ test('ccoBookingEngineStore rullar tillbaka ombokning om ny tid inte kan reserve
     });
     assert.equal(otherSummary.booking.status, 'confirmed');
     assert.equal(otherSummary.booking.slot.slotId, secondSlot.slotId);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ccoBookingEngineStore rullar tillbaka kirurgiskt och rör inte andra patienters rader', async () => {
+  // Regressionsskydd för det fönster som en helstate-återställning öppnar.
+  //
+  // Rollbacken vid misslyckad ombokning måste röra BARA den ombokande
+  // patientens rader. Skriver någon annan till state medan ombokningen pågår
+  // — personalen avbokar en annan patient, till exempel — får den skrivningen
+  // inte tystas av vår rollback.
+  //
+  // `cancelBooking` går inte via createBookingMutationTail, så den kan landa
+  // mitt i ombokningens fönster. Testet placerar den där med flit.
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-booking-engine-rebook-kirurgisk-')
+  );
+  try {
+    const store = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+
+    const { fromDate, toDate } = bookingMondayWindow();
+    const availability = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(availability.length >= 3);
+    const [egenTid, maltid, annanTid] = availability;
+
+    const egen = await store.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-kirurgisk-egen',
+      customerEmail: 'egen@example.com',
+      customerName: 'Egen',
+      slot: egenTid,
+    });
+    assert.equal(egen.status, 'confirmed');
+
+    // Blockerar måltiden så att ombokningen failar efter avbokningen.
+    await store.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-kirurgisk-blockerare',
+      customerEmail: 'blockerare@example.com',
+      customerName: 'Blockerare',
+      slot: maltid,
+    });
+
+    // Den oskyldiga tredje parten. Den ska avbokas mitt i fönstret och
+    // fortfarande vara avbokad när allt är över.
+    await store.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-kirurgisk-tredje',
+      customerEmail: 'tredje@example.com',
+      customerName: 'Tredje',
+      slot: annanTid,
+    });
+
+    const ombokning = store.rebookBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-kirurgisk-egen',
+      customerEmail: 'egen@example.com',
+      selectedSlots: [maltid],
+      slot: maltid,
+    });
+
+    // Vänta tills vi bevisligen är inne i fönstret: originalet är avbokat men
+    // ombokningen har inte returnerat än. Ingen sleep — vi pollar tillståndet.
+    let inneIFonstret = false;
+    for (let i = 0; i < 200 && !inneIFonstret; i += 1) {
+      const s = await store.getCaseSummary({
+        tenantId: 'tenant-a',
+        conversationId: 'conv-kirurgisk-egen',
+        customerEmail: 'egen@example.com',
+      });
+      if (!s.booking) inneIFonstret = true;
+      else await new Promise((r) => setImmediate(r));
+    }
+    assert.ok(inneIFonstret, 'kom aldrig in i ombokningens fönster');
+
+    await store.cancelBooking({
+      tenantId: 'tenant-a',
+      conversationId: 'conv-kirurgisk-tredje',
+      customerEmail: 'tredje@example.com',
+      reason: 'Patienten ringde och avbokade',
+    });
+
+    await assert.rejects(
+      () => ombokning,
+      (error) => {
+        assert.equal(error.metadata?.rebookRolledBack, true);
+        return true;
+      }
+    );
+
+    // Vår egen bokning ska vara tillbaka.
+    const egenEfter = await store.getCaseSummary({
+      tenantId: 'tenant-a',
+      conversationId: 'conv-kirurgisk-egen',
+      customerEmail: 'egen@example.com',
+    });
+    assert.equal(egenEfter.booking.status, 'confirmed');
+    assert.equal(egenEfter.booking.bookingId, egen.bookingId);
+
+    // Den tredje partens avbokning ska INTE ha återuppstått.
+    const tredjeEfter = await store.getCaseSummary({
+      tenantId: 'tenant-a',
+      conversationId: 'conv-kirurgisk-tredje',
+      customerEmail: 'tredje@example.com',
+    });
+    assert.equal(
+      tredjeEfter.booking,
+      null,
+      'rollbacken återuppväckte en avbokning som tillhörde någon annan'
+    );
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
