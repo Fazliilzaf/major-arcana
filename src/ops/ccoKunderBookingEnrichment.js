@@ -733,8 +733,10 @@ function collectBookingReadouts({
     const patientId = resolvePatientIdFromClientoBooking(clientoBooking, lookup);
     if (!patientId) continue;
     const staffName = normalizeText(clientoBooking.staffName || clientoBooking.staff);
+    const staffKey = normalizeKey(staffName);
+    const tokenMatch = resourceIndex.byToken.get(staffKey);
     const resourceId =
-      resourceIndex.byLabel.get(normalizeKey(staffName)) || inferredResourceId(staffName);
+      resourceIndex.byLabel.get(staffKey) || (tokenMatch || undefined) || inferredResourceId(staffName);
     push(
       normalizeBookingReadout({
         patientId,
