@@ -2596,7 +2596,10 @@
                 '<div class="empty">Inga leverantörer ännu. Klicka "+ Skapa leverantör" eller skapa från en expense via ny-leverantör-badge.</div>';
               return;
             }
-            $('vendors-list').innerHTML = allVendors
+            // ORD-102c-mönstret: tak så registret aldrig blir en oändlig lista.
+            const visadeVendors = allVendors.slice(0, 60);
+            const vendorsRest = allVendors.length - visadeVendors.length;
+            $('vendors-list').innerHTML = visadeVendors
               .map((v) => {
                 const aliases = (v.aliases || []).slice(0, 4).join(', ');
                 const defaults = [
@@ -2632,7 +2635,8 @@
               </div>
             </div>`;
               })
-              .join('');
+              .join('') +
+              (vendorsRest > 0 ? `<div class="empty">… och ${vendorsRest} till — använd \"Behöver granskas\"-filtret eller sök i registret.</div>` : '');
           } catch (err) {
             $('vendors-list').innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
           }
