@@ -65,10 +65,7 @@ test('original V6 home surfaces stay present and are canonical or honestly read-
   assert.match(html, /class="watch-widget" id="watchWidget"/);
   assert.match(html, /class="mic-btn"/);
   assert.match(html, /class="timemachine"/);
-  assert.match(
-    html,
-    /const CUSTOMERS = LEGACY_PREVIEW_CUSTOMERS/
-  );
+  assert.match(html, /const CUSTOMERS = LEGACY_PREVIEW_CUSTOMERS/);
   assert.match(shell, /function v6RenderMiniInboxState\(\)/);
   assert.match(shell, /function v6UpdateBusy\(visits\)/);
   assert.match(shell, /function v6UpdateVibe\(visits\)/);
@@ -115,10 +112,7 @@ test('V6 calendar patient intel enables dossier tabs and fetches dossier-bundle'
   );
   assert.match(intelBlock, /fetchPatientDossier/);
   assert.match(intelBlock, /v6RenderDossierTab/);
-  assert.doesNotMatch(
-    intelBlock,
-    /class:\s*'intel-tab'[\s\S]{0,200}?disabled:\s*['"]disabled['"]/
-  );
+  assert.doesNotMatch(intelBlock, /class:\s*'intel-tab'[\s\S]{0,200}?disabled:\s*['"]disabled['"]/);
   assert.match(intelBlock, /'Besök', 'Historik', 'Filer', 'Anteckningar', 'Foton'/);
   assert.match(intelBlock, /\/api\/v1\/cco-patient-master\/patient\/dossier-bundle/);
 });
@@ -154,18 +148,20 @@ test('V6 calendar exposes rebooking for confirmed engine bookings with identity'
   assert.match(shell, /'Boka om'/);
 });
 
-test('V6 calendar boot wires the quality panel before the original V6 renderer', () => {
-  const initBlock = shell.slice(
-    shell.indexOf('function init()'),
-    shell.indexOf('global.CcoKalenderShell')
-  );
-  const bindQualityIndex = initBlock.indexOf('bindQualityPanel();');
-  const originalV6Index = initBlock.indexOf('initOriginalV6Calendar();');
-  assert.ok(bindQualityIndex >= 0, 'init ska anropa bindQualityPanel');
-  assert.ok(
-    originalV6Index < 0 || bindQualityIndex < originalV6Index,
-    'bindQualityPanel ska köras före V6-rendering när båda finns'
-  );
+test('datakvalitetspanelen är borta, inte bara avstängd', () => {
+  // Panelen byggdes men kördes aldrig: bindQualityPanel började med
+  //
+  //     if (isOriginalV6Mode() || ...) return;
+  //
+  // och V6 är det enda läge personalen använder. Den låg alltså som kod som
+  // såg färdig ut och aldrig gick igång — det sämsta av båda. Fazli valde att
+  // radera den 2026-08-21.
+  //
+  // Testet vaktar att den inte kommer tillbaka som avstängd kod. Vill någon
+  // ha den ska den byggas för att köras.
+  assert.equal(shell.indexOf('bindQualityPanel'), -1, 'bindQualityPanel är tillbaka');
+  assert.equal(shell.indexOf('openQualityPanel'), -1, 'openQualityPanel är tillbaka');
+  assert.equal(shell.indexOf('cco-cal-quality'), -1, 'kvalitetspanelens markup är tillbaka');
 });
 
 test('canonical hydration preserves the original rich morning component hierarchy', () => {

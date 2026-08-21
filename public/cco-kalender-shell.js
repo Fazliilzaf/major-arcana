@@ -1122,98 +1122,6 @@
     }
   }
 
-  function metricCard(label, value, tone) {
-    return el('div', { class: 'cco-cal-quality-metric cco-cal-quality-metric--' + (tone || 'neutral') }, [
-      el('span', {}, label), el('strong', {}, String(value ?? '—')),
-    ]);
-  }
-
-  function renderQualityPanel(panel, integrity, review) {
-    const content = panel.querySelector('[data-quality-content]');
-    content.innerHTML = '';
-    const safe = integrity?.zeroWrites === true && integrity?.readOnly === true &&
-      integrity?.ok === true && review?.zeroWrites === true;
-    content.appendChild(el('div', { class: 'cco-cal-quality-state ' + (safe ? 'is-ok' : 'is-stop') }, [
-      el('strong', {}, safe ? 'Canonical kontroll godkänd' : 'STOPP · avvikelse i canonical kontroll'),
-      el('span', {}, 'Read-only · 0 writes'),
-    ]));
-    const metrics = el('div', { class: 'cco-cal-quality-metrics' }, [
-      metricCard('Besök', integrity?.totalVisits),
-      metricCard('Integritetsfel', integrity?.totalIssues, integrity?.totalIssues === 0 ? 'ok' : 'stop'),
-      metricCard('Med encounter', integrity?.encounterCoverage?.withEncounter),
-      metricCard('Utan encounter', integrity?.encounterCoverage?.withoutEncounter),
-      metricCard('Okopplad review', review?.total, Number(review?.total) === 55 ? 'ok' : 'stop'),
-    ]);
-    content.appendChild(metrics);
-
-    const status = el('section', { class: 'cco-cal-quality-section' }, [el('h4', {}, 'Status och anteckningstäckning')]);
-    const statusGrid = el('div', { class: 'cco-cal-quality-chips' });
-    Object.entries(integrity?.byStatus || {}).forEach(([key, value]) =>
-      statusGrid.appendChild(el('span', {}, statusLabel(key) + ' ' + value)));
-    Object.entries(integrity?.noteCoverage || {}).forEach(([key, value]) =>
-      statusGrid.appendChild(el('span', {}, key + ' ' + value)));
-    status.appendChild(statusGrid);
-    content.appendChild(status);
-
-    const reviewSection = el('section', { class: 'cco-cal-quality-section' }, [
-      el('h4', {}, 'Okopplade Cliento-poster · ingen gissningskoppling'),
-    ]);
-    const reasons = el('div', { class: 'cco-cal-quality-chips' });
-    Object.entries(review?.byReason || {}).forEach(([key, value]) =>
-      reasons.appendChild(el('span', {}, key + ' ' + value)));
-    reviewSection.appendChild(reasons);
-    const rows = el('div', { class: 'cco-cal-quality-rows' });
-    (Array.isArray(review?.rows) ? review.rows : []).forEach((row) => rows.appendChild(el('article', {}, [
-      el('div', {}, [el('strong', {}, row.bookingId || 'saknar id'), el('span', {}, row.date || 'saknar datum')]),
-      el('p', {}, (row.identityBasis || []).map((item) => item.type + ': ' + item.masked).join(' · ')),
-      el('p', {}, row.reason || row.reasonCode || 'Okänd orsak'),
-    ])));
-    if (!rows.childElementCount) rows.appendChild(el('p', {}, 'Inga review-poster.'));
-    reviewSection.appendChild(rows);
-    content.appendChild(reviewSection);
-  }
-
-  async function openQualityPanel(panel) {
-    panel.classList.add('is-open');
-    panel.setAttribute('aria-hidden', 'false');
-    const content = panel.querySelector('[data-quality-content]');
-    content.innerHTML = '<div class="cco-cal-empty">Läser canonical integritet…</div>';
-    try {
-      const headers = calendarHeaders({ tenantId: global.__ccoCalTenantId, role: global.__ccoCalRole });
-      const [integrityResponse, reviewResponse] = await Promise.all([
-        fetch('/api/v1/cco-bookings/canonical-integrity', { headers }),
-        fetch('/api/v1/cco-bookings/cliento-unlinked-review', { headers }),
-      ]);
-      if (!integrityResponse.ok || !reviewResponse.ok) throw new Error('HTTP-kontroll misslyckades');
-      renderQualityPanel(panel, await integrityResponse.json(), await reviewResponse.json());
-    } catch (error) {
-      content.innerHTML = '';
-      content.appendChild(el('div', { class: 'cco-cal-quality-state is-stop' },
-        'STOPP · kunde inte verifiera canonical data: ' + error.message));
-    }
-  }
-
-  function bindQualityPanel() {
-    if (isOriginalV6Mode() || document.getElementById('ccoCalQualityPanel')) return;
-    const actions = document.querySelector('.calendar-toolbar-actions');
-    if (!actions) return;
-    const panel = el('section', { id: 'ccoCalQualityPanel', class: 'cco-cal-quality-panel',
-      'aria-hidden': 'true', 'aria-label': 'Datakvalitet för bokningar' }, [
-      el('div', { class: 'cco-cal-quality-backdrop', onclick: () => close() }),
-      el('div', { class: 'cco-cal-quality-surface', role: 'dialog', 'aria-modal': 'true' }, [
-        el('header', {}, [
-          el('div', {}, [el('span', {}, 'READ-ONLY · CANONICAL BESÖKSDATA'), el('h3', {}, 'Datakvalitet')]),
-          el('button', { type: 'button', 'aria-label': 'Stäng', onclick: () => close() }, '×'),
-        ]),
-        el('div', { class: 'cco-cal-quality-content', 'data-quality-content': '' }),
-      ]),
-    ]);
-    const close = () => { panel.classList.remove('is-open'); panel.setAttribute('aria-hidden', 'true'); };
-    actions.prepend(el('button', { class: 'cco-cal-quality-button', type: 'button',
-      onclick: () => openQualityPanel(panel) }, 'Datakvalitet'));
-    document.body.appendChild(panel);
-  }
-
   function renderLiveStatus({ label, total, confirmed, pending, sourceCounts = {} }) {
     const status = document.querySelector('.calendar-status-bar');
     if (!status) return;
@@ -2718,7 +2626,6 @@
     const view = detectViewFromUrl();
     applyView(view);
     if (view === 'calendar') {
-      bindQualityPanel();
       if (isOriginalV6Mode()) {
         initOriginalV6Calendar();
         return;
