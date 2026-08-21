@@ -14,12 +14,11 @@ const {
   resolveTodayVisitForPatient,
 } = require('./ccoOperationDayGate');
 
-const CONSULTATION_SERVICE_IDS = new Set([
-  'consultation-online',
-  'consultation-physical',
-  'followup-transplant',
-  'consultation',
-  'konsultation',
+const TREATMENT_AGREEMENT_REQUIRED_SERVICE_IDS = new Set([
+  'fue',
+  'dhi',
+  'beard',
+  'eyebrow',
 ]);
 
 function normalizeText(value) {
@@ -37,7 +36,7 @@ function asArray(value) {
 function requiresTreatmentAgreement(serviceId) {
   const id = normalizeKey(serviceId);
   if (!id) return false;
-  return !CONSULTATION_SERVICE_IDS.has(id);
+  return TREATMENT_AGREEMENT_REQUIRED_SERVICE_IDS.has(id);
 }
 
 function collectServiceIds(body = {}) {

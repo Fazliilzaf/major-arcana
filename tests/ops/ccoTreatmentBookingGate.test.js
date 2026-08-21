@@ -14,11 +14,16 @@ const { createCcoTreatmentAgreementStore } = require('../../src/ops/ccoTreatment
 const { createCcoPatientMasterStore } = require('../../src/ops/ccoPatientMasterStore');
 const { createPatientIdentityStore } = require('../../src/ops/patientIdentityVerification');
 
-test('requiresTreatmentAgreement skiljer konsultation från behandling', () => {
+test('requiresTreatmentAgreement kräver avtal endast för transplantationer', () => {
   assert.equal(requiresTreatmentAgreement('consultation-physical'), false);
   assert.equal(requiresTreatmentAgreement('followup-transplant'), false);
+  assert.equal(requiresTreatmentAgreement('prp-hair'), false);
+  assert.equal(requiresTreatmentAgreement('prp-skin'), false);
+  assert.equal(requiresTreatmentAgreement('microneedling'), false);
   assert.equal(requiresTreatmentAgreement('fue'), true);
   assert.equal(requiresTreatmentAgreement('dhi'), true);
+  assert.equal(requiresTreatmentAgreement('beard'), true);
+  assert.equal(requiresTreatmentAgreement('eyebrow'), true);
 });
 
 test('checkTreatmentBookingGate släpper igenom konsultation utan avtal', async () => {
