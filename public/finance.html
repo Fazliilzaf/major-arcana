@@ -3837,12 +3837,17 @@
           const ig = ev.target.closest('[data-card-ignore]');
           try {
             if (m) {
-              await fetch(`/api/v1/cco-cf/card-transactions/${m.dataset.cardMatch}/match`, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ expenseId: m.dataset.expense }),
-              });
+              const r = await fetch(
+                `/api/v1/cco-cf/card-transactions/${m.dataset.cardMatch}/match`,
+                {
+                  method: 'POST',
+                  credentials: 'same-origin',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ expenseId: m.dataset.expense }),
+                }
+              );
+              const d = await r.json().catch(() => ({}));
+              if (!r.ok) alert('Matchning nekad: ' + (d.error || r.status));
               await load();
             } else if (ig) {
               const reason = prompt('Anledning (t.ex. privat köp):', 'privat köp');

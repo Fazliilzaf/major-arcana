@@ -75,6 +75,8 @@ function createCfoCardReconciliationRouter({ authStore, reconciliation }) {
           actor: req.user?.id || null,
         });
         if (!tx) return res.status(404).json({ ok: false, error: 'transaktion finns ej' });
+        // Bugbot PR #1466: dubbelmatchning avvisas — en utgift, en dragning
+        if (tx.error) return res.status(409).json({ ok: false, error: tx.error });
         return res.json({ ok: true, transaction: tx });
       } catch (err) {
         return res.status(500).json({ ok: false, error: err.message });

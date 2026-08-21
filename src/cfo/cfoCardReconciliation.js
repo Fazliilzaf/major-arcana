@@ -34,11 +34,15 @@ function sha12(v) {
   return crypto.createHash('sha256').update(String(v)).digest('hex').slice(0, 12);
 }
 
-/** "2 404,95" / "-52 166,47" / "19,00" → Number (SEK). */
+/**
+ * "2 404,95" / "-52 166,47" / "10.099,19" / "19,00" → Number (SEK).
+ * Bugbot PR #1466: punkt är TUSENTAL i svensk Amex-export när decimalkomma
+ * finns — strippas då (samma som cmAmexMatch/ORD-CM-26). Utan komma tolkas
+ * punkt som decimal.
+ */
 function parseSwedishAmount(raw) {
-  const cleaned = String(raw || '')
-    .replace(/["\s  ]/g, '')
-    .replace(',', '.');
+  let cleaned = String(raw || '').replace(/["\s\u00a0\u202f]/g, '');
+  if (cleaned.includes(',')) cleaned = cleaned.replace(/\./g, '').replace(',', '.');
   const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
 }
@@ -218,6 +222,7 @@ function createCardReconciliation({ filePath, expenseStore }) {
         tx.matchKind = 'auto';
         tx.matchedAt = nowIso();
         matchedExpenseIds.add(strong[0].id);
+        pruneSuggestionsFor(strong[0].id);
         autoMatched++;
       } else if (candidates.length > 0) {
         tx.suggestions = candidates.slice(0, 5).map((e) => ({
@@ -234,15 +239,34 @@ function createCardReconciliation({ filePath, expenseStore }) {
     return { autoMatched, suggested };
   }
 
+  // Bugbot PR #1466: en utgift får bara matchas av EN dragning — och när en
+  // utgift tas rensas den ur alla andra raders förslag (annars kan UI:t
+  // erbjuda stale förslag och korrumpera kort-mot-kvitto).
+  function pruneSuggestionsFor(expenseId) {
+    for (const t of state.transactions) {
+      if (!Array.isArray(t.suggestions)) continue;
+      t.suggestions = t.suggestions.filter((s) => s.expenseId !== expenseId);
+      if (t.suggestions.length === 0) delete t.suggestions;
+    }
+  }
+
   async function confirmMatch(txId, expenseId, { actor } = {}) {
     const tx = state.transactions.find((t) => t.id === txId);
     if (!tx) return null;
+    const cleanId = normalizeText(expenseId);
+    const taken = state.transactions.find((t) => t.id !== txId && t.matchedExpenseId === cleanId);
+    if (taken) {
+      return {
+        error: `utgiften är redan matchad mot dragningen ${taken.description} ${taken.date}`,
+      };
+    }
     tx.matchStatus = 'matched';
-    tx.matchedExpenseId = normalizeText(expenseId);
+    tx.matchedExpenseId = cleanId;
     tx.matchKind = 'manual';
     tx.matchedBy = actor || null;
     tx.matchedAt = nowIso();
     delete tx.suggestions;
+    pruneSuggestionsFor(cleanId);
     await persist();
     return tx;
   }
