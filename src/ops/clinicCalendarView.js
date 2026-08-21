@@ -106,7 +106,25 @@ function buildResourceIndex(bookingEngineStore) {
   const byLabel = new Map(
     resources.map((resource) => [normalizeKey(resource.resourceLabel), resource.resourceId])
   );
-  return { resources, byLabel };
+  // Cliento-bokningar har ofta bara förnamnet (t.ex. "Egzona") medan motorn
+  // lagrar hela namnet ("Egzona Krasniqi"). Utan den här kartan får samma
+  // person två resourceId — t.ex. "egzona" och "cliento-egzona" — vilket
+  // gör att resursfiltret i kalendern döljer halva bokningarna.
+  const byToken = new Map();
+  for (const resource of resources) {
+    const tokens = normalizeKey(resource.resourceLabel)
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length > 1);
+    for (const token of tokens) {
+      const existing = byToken.get(token);
+      if (existing === undefined) {
+        byToken.set(token, resource.resourceId);
+      } else if (existing !== resource.resourceId) {
+        byToken.set(token, null); // tvetydigt — lita inte på enskilt token
+      }
+    }
+  }
+  return { resources, byLabel, byToken };
 }
 
 function normalizeEngineEntry(raw, type = 'booking') {
@@ -150,8 +168,12 @@ function normalizeClientoEntry(raw, resourceIndex) {
   const startsAt = normalizeText(raw?.startsAt);
   if (!Number.isFinite(Date.parse(startsAt))) return null;
   const staffName = normalizeText(raw?.staffName || raw?.staff);
+  const staffKey = normalizeKey(staffName);
+  const tokenMatch = resourceIndex.byToken.get(staffKey);
   const resourceId =
-    resourceIndex.byLabel.get(normalizeKey(staffName)) || inferredResourceId(staffName);
+    resourceIndex.byLabel.get(staffKey) ||
+    (tokenMatch || undefined) ||
+    inferredResourceId(staffName);
   const resolvedEndsAt = resolveEndsAt(startsAt, normalizeText(raw?.endsAt), raw?.durationMinutes);
   return {
     id: normalizeText(raw?.bookingId || raw?.id),
