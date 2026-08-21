@@ -1476,7 +1476,11 @@
           // Status banner
           const banner = d.partial
             ? `<div class="status-banner status-banner--partial">⚠ PARTIAL · ${d.partialReasons.join(' · ')}</div>`
-            : `<div class="status-banner status-banner--ok">✓ Allt synkat</div>`;
+            : `<div class="status-banner status-banner--ok">✓ Allt synkat${
+                (d.acknowledgedReasons || []).length
+                  ? ` <span style="font-weight:400;opacity:.65">· medvetet ej anslutet: ${d.acknowledgedReasons.join(', ')}</span>`
+                  : ''
+              }</div>`;
           $('status-banner').innerHTML = banner;
 
           // CF.3: Fortnox blocked-integration banner

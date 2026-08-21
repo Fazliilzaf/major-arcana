@@ -15,6 +15,9 @@
 
 'use strict';
 
+// Medvetet ej anslutna integrationer (ägar-beslut 2026-08-21) — larmar inte.
+const ACKNOWLEDGED_REASONS = ['swish_not_connected', 'no_commercial_data'];
+
 const SCHEMA_VERSION = '1.0.0';
 const {
   buildFortnoxPaidPeriodTotals,
@@ -666,8 +669,14 @@ async function buildFinanceDashboard({
     monthlyClose, // CF.9
     suggestions, // CF.4 + CF.5
     anomalies,
-    partial: partial.reasons.length > 0,
-    partialReasons: partial.reasons,
+    // Ägar-beslut 2026-08-21: Swish-integration och commercial-modulen är
+    // MEDVETET ej anslutna (Swish stäms av via banken; intäkter läses via
+    // Fortnox-fakturor). De ska inte larma som PARTIAL — de redovisas i
+    // stället som acknowledgedReasons och visas diskret i UI:t.
+    // Återaktivera larmet genom att ta bort skälet ur listan nedan.
+    partial: partial.reasons.filter((r) => !ACKNOWLEDGED_REASONS.includes(r)).length > 0,
+    partialReasons: partial.reasons.filter((r) => !ACKNOWLEDGED_REASONS.includes(r)),
+    acknowledgedReasons: partial.reasons.filter((r) => ACKNOWLEDGED_REASONS.includes(r)),
     issues,
   };
 }
