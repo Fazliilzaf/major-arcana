@@ -6193,9 +6193,14 @@ let ccoAgreementQuickStore = null;
           );
           // Fas 7: länka accepterad offert tillbaka till utskicket.
           try {
-            const send = app.locals.ccoSendActionStore?.findSendByRelatedEntity?.('offer', offer.id);
+            const send = app.locals.ccoSendActionStore?.findSendByRelatedEntity?.(
+              'offer',
+              offer.id
+            );
             if (send) {
-              await app.locals.ccoSendActionStore.linkDocument(send.sendId, { documentId: offer.id });
+              await app.locals.ccoSendActionStore.linkDocument(send.sendId, {
+                documentId: offer.id,
+              });
             }
           } catch (_linkErr) {
             /* non-blocking */
@@ -9878,6 +9883,9 @@ const { createCfoVoucherSyncRouter } = require('./src/routes/cfoVoucherSync');
 // ORD-102 · Kortavstämning (Amex-CSV → matchning mot utgifter)
 const { createCfoCardReconciliationRouter } = require('./src/routes/cfoCardReconciliation');
 const { createCardReconciliation } = require('./src/cfo/cfoCardReconciliation');
+// ORD-103 · Bankavstämning Handelsbanken mot Fortnox-verifikat
+const { createCfoBankReconciliationRouter } = require('./src/routes/cfoBankReconciliation');
+const { createCfoBankReconciliation } = require('./src/cfo/cfoBankReconciliation');
 const { createCfoRouter } = require('./src/routes/cfo');
 const { createReconciliationRouter } = require('./src/routes/reconciliation');
 const { createComplianceRouter } = require('./src/routes/compliance');
@@ -12843,6 +12851,20 @@ process.once('SIGTERM', () => {
         filePath: path.join(config.stateRoot, 'cfo-card-reconciliation.json'),
         expenseStore: app.locals.cfoExpenseStore || null,
       }),
+    })
+  );
+
+  // ORD-103 · Bankavstämning: Handelsbanken-CSV → matchning mot Fortnox-verifikat
+  app.use(
+    '/api/v1',
+    createCfoBankReconciliationRouter({
+      authStore: auth,
+      reconciliation: createCfoBankReconciliation({
+        filePath: path.join(config.stateRoot, 'cfo-bank-reconciliation.json'),
+        auditLog: app.locals.ccoAuditLog || null,
+      }),
+      fortnoxStore: app.locals.cfoFortnoxStore || null,
+      config,
     })
   );
 

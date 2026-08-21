@@ -1011,6 +1011,28 @@
         </div>
       </div>
 
+      <!-- ORD-103 · Bankavstämning: Handelsbanken-CSV mot Fortnox-verifikat -->
+      <div class="section" id="bank-recon">
+        <h2>
+          Bankavstämning · Handelsbanken
+          <span class="meta" id="bank-recon-count">—</span>
+          <div class="section-actions">
+            <input type="file" id="bank-recon-file" accept=".csv" style="display: none" />
+            <button class="btn btn--primary" data-action="bank-import">⬆ Importera bank-CSV</button>
+            <button class="btn" data-action="bank-fetch-vouchers">📥 Hämta verifikat</button>
+            <button class="btn" data-action="bank-run-match">↔ Matcha</button>
+            <button class="btn" data-action="bank-refresh">↻ Uppdatera</button>
+          </div>
+        </h2>
+        <div class="receipt-meta" id="bank-recon-stats" style="margin: 0 4px 10px"></div>
+        <div class="receipts-list" id="bank-recon-list">
+          <div class="empty">
+            Importera Handelsbanken-CSV och hämta verifikat från Fortnox. Matchade rader = redan
+            bokförda. Omatchade = saknar verifikat och behöver granskas.
+          </div>
+        </div>
+      </div>
+
       <div class="section" id="cf9-dryrun">
         <h2>
           Fortnox verifikat · dryRun
@@ -3784,10 +3806,8 @@
         const fileInput = document.getElementById('card-recon-file');
         const importBtn = document.querySelector('[data-action="card-import"]');
         if (!list || !fileInput || !importBtn) return;
-        const esc = (s) =>
-          String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-        const kr = (n) =>
-          Number(n).toLocaleString('sv-SE', { minimumFractionDigits: 2 }) + ' kr';
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+        const kr = (n) => Number(n).toLocaleString('sv-SE', { minimumFractionDigits: 2 }) + ' kr';
 
         async function load() {
           try {
@@ -3900,9 +3920,186 @@
           importBtn.disabled = false;
           importBtn.textContent = '⬆ Importera kort-CSV';
         });
-        document
-          .querySelector('[data-action="card-refresh"]')
-          ?.addEventListener('click', load);
+        document.querySelector('[data-action="card-refresh"]')?.addEventListener('click', load);
+        load();
+      })();
+
+      // ORD-103 · Bankavstämning (Handelsbanken-CSV → Fortnox-verifikat)
+      (function bankReconSection() {
+        const list = document.getElementById('bank-recon-list');
+        const statsEl = document.getElementById('bank-recon-stats');
+        const countEl = document.getElementById('bank-recon-count');
+        const fileInput = document.getElementById('bank-recon-file');
+        const importBtn = document.querySelector('[data-action="bank-import"]');
+        const fetchBtn = document.querySelector('[data-action="bank-fetch-vouchers"]');
+        const matchBtn = document.querySelector('[data-action="bank-run-match"]');
+        const refreshBtn = document.querySelector('[data-action="bank-refresh"]');
+        if (!list || !fileInput || !importBtn) return;
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+        const kr = (n) => Number(n).toLocaleString('sv-SE', { minimumFractionDigits: 2 }) + ' kr';
+        const statusLabel = {
+          matched: '✅ Matchad',
+          unmatched: '❌ Saknar verifikat',
+          suggestion: '💡 Förslag',
+          ignored: '⏭ Ignorerad',
+        };
+
+        async function load() {
+          try {
+            const r = await fetch('/api/v1/cco-cf/bank-reconciliation', {
+              credentials: 'same-origin',
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              list.innerHTML = `<div class="empty">Kunde inte hämta: ${esc(d.error || r.status)}</div>`;
+              return;
+            }
+            const s = d.stats || {};
+            countEl.textContent = s.total || 0;
+            statsEl.innerHTML =
+              `${statusLabel.matched} <strong>${s.matched || 0}</strong> · ` +
+              `${statusLabel.unmatched} <strong>${s.unmatched || 0} (${kr(s.unmatchedSumSek || 0)})</strong> · ` +
+              `${statusLabel.suggestion} <strong>${s.suggestions || 0}</strong> · ` +
+              `${statusLabel.ignored} <strong>${s.ignored || 0}</strong>`;
+            const rows = d.transactions || [];
+            if (!rows.length) {
+              list.innerHTML = '<div class="empty">Inga banktransaktioner importerade ännu.</div>';
+              return;
+            }
+            list.innerHTML = rows
+              .map((t) => {
+                const sug = (t.suggestions || [])
+                  .map(
+                    (x) =>
+                      `<button class="btn" data-bank-match="${esc(t.id)}" data-voucher="${esc(x.voucherId)}" title="Matcha mot verifikat ${esc(x.voucherNumber || '?')}">↔ ${esc(x.voucherSeries || '')} ${esc(x.voucherNumber || '?')} ${kr(x.amount || 0)} ${esc(x.transactionDate || '')}</button>`
+                  )
+                  .join(' ');
+                const matchedInfo = t.matchedVoucherNumber
+                  ? `<div class="receipt-meta">${statusLabel.matched} · verifikat ${esc(t.matchedVoucherSeries || '')} ${esc(t.matchedVoucherNumber)}</div>`
+                  : '';
+                const ignoredInfo =
+                  t.matchStatus === 'ignored'
+                    ? `<div class="receipt-meta">${statusLabel.ignored}: ${esc(t.ignoreReason || '')}</div>`
+                    : '';
+                return (
+                  `<div class="receipt-row" style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid rgba(0,0,0,.06)">` +
+                  `<div><strong>${esc(t.reference || '(ingen referens)')}</strong><div class="receipt-meta">${esc(t.bookingDay)} · ${esc(t.type)} · ${esc(t.accountNumber)}</div>${matchedInfo}${ignoredInfo}${sug ? `<div style="margin-top:4px">${sug}</div>` : ''}</div>` +
+                  `<div style="text-align:right;white-space:nowrap"><strong>${kr(t.amountSek)}</strong><div style="margin-top:4px"><button class="btn" data-bank-ignore="${esc(t.id)}" title="Intern överföring / ska ej stämmas">✕ Ignorera</button></div></div>` +
+                  `</div>`
+                );
+              })
+              .join('');
+          } catch (err) {
+            list.innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
+          }
+        }
+
+        list.addEventListener('click', async (ev) => {
+          const m = ev.target.closest('[data-bank-match]');
+          const ig = ev.target.closest('[data-bank-ignore]');
+          try {
+            if (m) {
+              const r = await fetch(
+                `/api/v1/cco-cf/bank-transactions/${m.dataset.bankMatch}/match`,
+                {
+                  method: 'POST',
+                  credentials: 'same-origin',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ voucherId: m.dataset.voucher }),
+                }
+              );
+              const d = await r.json().catch(() => ({}));
+              if (!r.ok) alert('Matchning nekad: ' + (d.error || r.status));
+              await load();
+            } else if (ig) {
+              const reason = prompt('Anledning (t.ex. intern överföring):', 'intern överföring');
+              if (reason === null) return;
+              await fetch(`/api/v1/cco-cf/bank-transactions/${ig.dataset.bankIgnore}/ignore`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason }),
+              });
+              await load();
+            }
+          } catch (err) {
+            alert('Fel: ' + err.message);
+          }
+        });
+
+        importBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files?.[0];
+          if (!file) return;
+          importBtn.disabled = true;
+          importBtn.textContent = 'Importerar…';
+          try {
+            const csvText = await file.text();
+            const r = await fetch('/api/v1/cco-cf/bank-import', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ csvText }),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) alert(`${file.name}: ${d.error || r.status}`);
+            else
+              alert(`${file.name}: ${d.parsed} rader · ${d.added} nya · ${d.skipped} dubbletter`);
+            await load();
+          } catch (err) {
+            alert('Importfel: ' + err.message);
+          }
+          fileInput.value = '';
+          importBtn.disabled = false;
+          importBtn.textContent = '⬆ Importera bank-CSV';
+        });
+
+        fetchBtn?.addEventListener('click', async () => {
+          fetchBtn.disabled = true;
+          fetchBtn.textContent = 'Hämtar…';
+          try {
+            const r = await fetch('/api/v1/cco-cf/bank-reconciliation/fetch-vouchers', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({}),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) alert('Kunde inte hämta verifikat: ' + (d.error || r.status));
+            else alert(`Hämtade ${d.count} verifikat från Fortnox`);
+            await load();
+          } catch (err) {
+            alert('Fel: ' + err.message);
+          }
+          fetchBtn.disabled = false;
+          fetchBtn.textContent = '📥 Hämta verifikat';
+        });
+
+        matchBtn?.addEventListener('click', async () => {
+          matchBtn.disabled = true;
+          matchBtn.textContent = 'Matchar…';
+          try {
+            const r = await fetch('/api/v1/cco-cf/bank-reconciliation/run-matching', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({}),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) alert('Matchning misslyckades: ' + (d.error || r.status));
+            else
+              alert(
+                `Auto-matchade ${d.matched} · förslag ${d.suggestions} · kvarstående unmatched: ${d.stats?.unmatched || 0}`
+              );
+            await load();
+          } catch (err) {
+            alert('Fel: ' + err.message);
+          }
+          matchBtn.disabled = false;
+          matchBtn.textContent = '↔ Matcha';
+        });
+
+        refreshBtn?.addEventListener('click', load);
         load();
       })();
 
