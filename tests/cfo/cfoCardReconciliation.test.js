@@ -117,3 +117,38 @@ test('confirmMatch + ignore är ägar-beslut som persisteras', async () => {
   await recon2.ignoreTransaction(persisted.id, { reason: 'privat köp' });
   assert.equal(recon2.stats().ignored, 1);
 });
+
+test('Bugbot #1466: punkt-tusental parsas, dubbelmatchning avvisas, stale förslag rensas', async () => {
+  // 1. Tusentalspunkt (10.099,19) får inte tappas
+  assert.equal(parseSwedishAmount('"10.099,19"'), 10099.19);
+  assert.equal(parseSwedishAmount('1.234.567,89'), 1234567.89);
+  assert.equal(parseSwedishAmount('19,00'), 19);
+
+  // 2+3. Två dragningar med samma belopp, en utgift → förslag på båda;
+  // manuell match på ena ska rensa förslaget på andra och blockera dubbelmatch
+  const expenses = [
+    { id: 'eX', supplier: 'Butiken', amountSek: 500, date: '2026-07-10', status: 'new' },
+  ];
+  const recon = createCardReconciliation({
+    filePath: await tmpFile(),
+    expenseStore: { listExpenses: () => expenses },
+  });
+  const csv =
+    'Datum,Beskrivning,Belopp\n07/09/2026,BUTIKEN A,"500,00"\n07/20/2026,BUTIKEN B,"500,00"';
+  const { transactions } = parseAmexCsv(csv, { cardRef: '61008' });
+  await recon.importTransactions(transactions);
+  await recon.runMatching();
+
+  // Ena inom ±7d → auto-match? BUTIKEN A (9/7, 1 dag) är entydig strong-träff
+  const unmatched = recon.listTransactions({ status: 'unmatched' });
+  const matched = recon.listTransactions({ status: 'matched' });
+  assert.equal(matched.length, 1);
+  assert.equal(unmatched.length, 1);
+  // Stale förslag på den omatchade (eX är tagen) ska vara rensat
+  assert.ok(!unmatched[0].suggestions || unmatched[0].suggestions.length === 0);
+
+  // Dubbelmatch avvisas med error
+  const res = await recon.confirmMatch(unmatched[0].id, 'eX', { actor: 'fazli' });
+  assert.ok(res.error, 'dubbelmatch ska ge error');
+  assert.equal(recon.listTransactions({ status: 'matched' }).length, 1);
+});
