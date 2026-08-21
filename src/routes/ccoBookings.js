@@ -1285,6 +1285,9 @@ function createCcoBookingsRouter({
                   return date && date >= fromDate && date <= toDate;
                 })
               : [];
+            const resources = bookingEngineStore
+              ? await bookingEngineStore.listResources()
+              : [];
             const byPatient = collectBookingReadouts({
               patients,
               engineBookings,
@@ -1293,6 +1296,7 @@ function createCcoBookingsRouter({
               historicalShadowClientoBookings,
               historicalShadowLedgerEvents,
               encounters,
+              resources,
             });
             visits = [...byPatient.values()]
               .flatMap((bucket) => [
@@ -1507,6 +1511,9 @@ function createCcoBookingsRouter({
       const encounters = treatmentEncounterStore?.listEncountersForEnrichment
         ? filterRange(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId))
         : [];
+      const resources = bookingEngineStore
+        ? await bookingEngineStore.listResources()
+        : [];
 
       const byPatient = collectBookingReadouts({
         patients,
@@ -1516,6 +1523,7 @@ function createCcoBookingsRouter({
         historicalShadowClientoBookings,
         historicalShadowLedgerEvents: tenantScopedHistoricalShadowLedgerEvents,
         encounters,
+        resources,
       });
 
       const linkedRows = [...byPatient.values()]
@@ -1703,6 +1711,9 @@ function createCcoBookingsRouter({
       const encounters = treatmentEncounterStore?.listEncountersForEnrichment
         ? asArray(treatmentEncounterStore.listEncountersForEnrichment(context.tenantId))
         : [];
+      const resources = bookingEngineStore
+        ? await bookingEngineStore.listResources()
+        : [];
       const byPatient = collectBookingReadouts({
         patients,
         engineBookings,
@@ -1711,6 +1722,7 @@ function createCcoBookingsRouter({
         historicalShadowClientoBookings,
         historicalShadowLedgerEvents,
         encounters,
+        resources,
       });
       const report = buildCanonicalBookingIntegrityReport({ patients, byPatient, encounters });
       return res.json({

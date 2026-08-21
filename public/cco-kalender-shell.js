@@ -170,7 +170,7 @@
       serviceId: visit.serviceId || '',
       serviceLabel: visit.serviceName || visit.title || 'Bokning',
       treatmentPresent: Boolean(visit.serviceName || visit.title || visit.serviceId),
-      resourceId: visit.resourceLabel || '_unassigned',
+      resourceId: visit.resourceId || '',
       resourceLabel: visit.resourceLabel || 'Ej tilldelad',
       staffName: visit.staffName || visit.staff || '',
       practitioner: visit.practitioner || visit.providerName || visit.staffName || visit.staff || '',
