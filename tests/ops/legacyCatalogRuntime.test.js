@@ -364,16 +364,22 @@ test('mergeLegacyResourcesIntoEngineState promotes Cliento resource catalog rows
   assert.ok(result.scheduleBindingsTotal >= 1);
 });
 
-test('mergeClientoSchedulesIntoEngineState merges evening and weekend rules', () => {
+test('mergeClientoSchedulesIntoEngineState lägger inte längre till egna konsultationsregler', () => {
+  // Migrationsfilen hade kvälls- och helgregler för konsultation som ALSO låg
+  // i defaultState(). Två källor för samma ruleId, med olika tider — och
+  // kvällspasset 18:00 slutade 18:30, efter stängning. Reglerna bor nu bara i
+  // defaultState(); filen behåller resurskartan.
+  //
+  // Testet vaktar att ingen lägger tillbaka dem här. Kommer de igen har vi
+  // två scheman igen, och det syns först när en patient bokar fel tid.
   const { mergeClientoSchedulesIntoEngineState } = require('../../src/ops/legacyCatalogRuntime');
   const state = { availabilityRules: [] };
   const result = mergeClientoSchedulesIntoEngineState(state);
-  assert.equal(result.changed, true);
-  assert.equal(result.clientoResourceCount, 16);
-  assert.ok(
-    state.availabilityRules.some(
-      (rule) => rule.ruleId === 'rule-evening-cons-fazli' && rule.active === true
-    )
+  assert.equal(result.clientoResourceCount, 16, 'resurskartan ska vara kvar');
+  assert.equal(
+    state.availabilityRules.length,
+    0,
+    'migrationsfilen ska inte längre bära egna schemaregler'
   );
 });
 

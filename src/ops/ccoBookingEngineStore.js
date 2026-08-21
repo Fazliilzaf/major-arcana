@@ -137,6 +137,57 @@ async function writeJsonAtomic(filePath, data) {
   await fs.rename(tmpPath, filePath);
 }
 
+/**
+ * Klinikens öppettider för konsultation, i klinikens egen tid.
+ *
+ * Fram till 2026-08-21 tolkade motorn regeltiderna som UTC, så siffrorna här
+ * betydde inte det de sa. Med `klinikTidTillUtc` på plats gör de det, och då
+ * går det att skriva schemat mot verkligheten: mån–fre 10–18, lör 10–16.
+ */
+const KONSULTATION_OPPET = {
+  vardag: { fran: '10:00', till: '18:00' },
+  lordag: { fran: '10:00', till: '16:00' },
+};
+const KONSULTATION_MINUTER = 45;
+
+/**
+ * Varje starttid som hinner sluta innan stängning.
+ *
+ * Kliniken vill erbjuda alla lediga tider, inte fyra fasta pass. Dagen fylls
+ * därför med besök efter besök, utan luckor.
+ *
+ * Steget är lika långt som besöket. Ett kvartsrutnät prövades först — det gav
+ * fler valmöjligheter men gjorde intilliggande tider överlappande: 10:00 och
+ * 10:15 kan inte båda bokas. Motorn hanterar det rätt (`isSlotTaken` jämför
+ * riktiga intervall), men patienten hade fått se tider som försvinner när
+ * någon annan bokar bredvid, och två samtidiga besökare hade kunnat välja var
+ * sin överlappande tid och en av dem fått nej vid bekräftelsen.
+ *
+ * Lunchblocket 12:00–13:00 filtreras bort av samma intervalljämförelse, så
+ * passen som skär in i lunchen faller av sig själva.
+ *
+ * Sista starttid blir 16:45 på vardagar och 15:15 på lördagar.
+ *
+ * Reglerna är fortfarande fasta veckoscheman. Personalen har rullande scheman
+ * i Cliento, och Cliento-API:t har ingen schema-endpoint — bara `getSlots`,
+ * som ger lediga tider utan schemat bakom. Tills den luckan är löst kan
+ * rutnätet erbjuda en tid hos någon som är ledig just den veckan.
+ */
+function konsultationstider({ fran, till }, steg = KONSULTATION_MINUTER) {
+  const minuter = (hhmm) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const ut = [];
+  for (let t = minuter(fran); t + KONSULTATION_MINUTER <= minuter(till); t += steg) {
+    ut.push(`${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`);
+  }
+  return ut;
+}
+
+const KONSULTATION_VARDAG = konsultationstider(KONSULTATION_OPPET.vardag);
+const KONSULTATION_LORDAG = konsultationstider(KONSULTATION_OPPET.lordag);
+
 function defaultState() {
   const ts = nowIso();
   return {
@@ -186,7 +237,7 @@ function defaultState() {
       {
         id: 'consultation-online',
         label: 'Online möte',
-        durationMinutes: 30,
+        durationMinutes: KONSULTATION_MINUTER,
         active: true,
         publicBookable: true,
         meetingMode: 'online',
@@ -199,7 +250,7 @@ function defaultState() {
       {
         id: 'consultation-physical',
         label: 'Fysisk konsultation',
-        durationMinutes: 30,
+        durationMinutes: KONSULTATION_MINUTER,
         active: true,
         publicBookable: true,
         meetingMode: 'physical',
@@ -332,7 +383,7 @@ function defaultState() {
         resourceId: 'fazli',
         serviceId: 'consultation-physical',
         weekdays: [1, 2, 3, 4, 5],
-        startTimes: ['09:00', '11:00', '14:00', '16:00'],
+        startTimes: KONSULTATION_VARDAG,
         locationLabel: 'Hair TP Clinic',
       },
       {
@@ -340,7 +391,28 @@ function defaultState() {
         resourceId: 'egzona',
         serviceId: 'consultation-physical',
         weekdays: [1, 2, 3, 4, 5],
-        startTimes: ['09:30', '11:30', '14:30', '16:30'],
+        startTimes: KONSULTATION_VARDAG,
+        locationLabel: 'Hair TP Clinic',
+      },
+      // Lördagsreglerna låg tidigare i migration/booking-schedule-defaults.json
+      // och inte här. Halva schemat i kod och halva i data gjorde att ingen
+      // kunde se hela bilden utan att läsa båda — och kvällsreglerna som låg
+      // där erbjöd 18:00, som slutar efter stängning. Ett schema, ett ställe.
+      // Kvällarna behövs inte längre: vardagsrutnätet går till 17:15.
+      {
+        ruleId: 'rule-weekend-cons-fazli',
+        resourceId: 'fazli',
+        serviceId: 'consultation-physical',
+        weekdays: [6],
+        startTimes: KONSULTATION_LORDAG,
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-weekend-cons-egzona',
+        resourceId: 'egzona',
+        serviceId: 'consultation-physical',
+        weekdays: [6],
+        startTimes: KONSULTATION_LORDAG,
         locationLabel: 'Hair TP Clinic',
       },
       {
@@ -357,7 +429,7 @@ function defaultState() {
         resourceId: 'fazli',
         serviceId: 'consultation-online',
         weekdays: [1, 2, 3, 4, 5],
-        startTimes: ['09:00', '11:00', '14:00', '16:00'],
+        startTimes: KONSULTATION_VARDAG,
         locationLabel: 'Online (videomöte)',
       },
       {
@@ -365,7 +437,7 @@ function defaultState() {
         resourceId: 'egzona',
         serviceId: 'consultation-online',
         weekdays: [1, 2, 3, 4, 5],
-        startTimes: ['09:30', '11:30', '14:30', '16:30'],
+        startTimes: KONSULTATION_VARDAG,
         locationLabel: 'Online (videomöte)',
       },
       {

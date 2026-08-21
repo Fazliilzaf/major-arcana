@@ -321,13 +321,16 @@ test('ccoBookingEngineStore blockerar överlappande tider på samma resurs även
       resourceId: 'egzona',
       serviceId: 'consultation-short',
       weekdays: [1],
-      startTimes: ['09:30'],
+      // 10:15–10:45 skär in i konsultationen 10:00–10:45. Tidigare stod här
+      // 09:30, som överlappade när dagen började 09:30 — med öppettiden 10:00
+      // låg den utanför och testet slutade pröva det den heter.
+      startTimes: ['10:15'],
       locationLabel: 'Hair TP Clinic',
       active: true,
     });
 
     const { fromDate, toDate } = bookingMondayWindow();
-    const overlapStartsAt = slotStartsAt(fromDate, '09:30');
+    const overlapStartsAt = slotStartsAt(fromDate, '10:15');
     const consultationAvailability = await store.listAvailability({
       tenantId: 'tenant-a',
       fromDate,
@@ -372,7 +375,10 @@ test('ccoBookingEngineStore blockerar överlappande tider på samma resurs även
                 startsAt: overlapStartsAt,
               }),
               startsAt: overlapStartsAt,
-              endsAt: slotStartsAt(fromDate, '10:00'),
+              // 30 minuter från 10:15. Slutade tidigare 10:00, alltså före
+              // starten — ett negativt intervall överlappar ingenting, och
+              // testet hade slutat pröva det den heter.
+              endsAt: slotStartsAt(fromDate, '10:45'),
               resourceId: 'egzona',
               resourceLabel: 'Egzona',
               serviceId: 'consultation-short',
