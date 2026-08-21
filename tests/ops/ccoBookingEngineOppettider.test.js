@@ -168,3 +168,97 @@ test('första passet börjar när kliniken öppnar, inte senare', async () => {
     );
   });
 });
+
+test('en gammal regel som ligger kvar i sparad data kan inte smyga tillbaka tider', async () => {
+  // Fällan: att ta bort en regel ur defaultState() tar inte bort den ur prod.
+  // Sammanslagningen vid uppstart lägger till och uppdaterar regler som finns
+  // i defaults — den raderar inte regler som slutat finnas där.
+  //
+  // 2026-08-21 togs rule-evening-cons-* bort ur källan. Prod fortsatte erbjuda
+  // 17:30 och 18:00, som med 45-minutersbesök slutar 18:15 och 18:45.
+  //
+  // Testet startar en butik med den gamla regeln redan sparad, precis som
+  // prod såg ut, och kräver att inga tider utanför öppettiden överlever.
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-gammal-regel-'));
+  try {
+    const fil = path.join(dir, 'booking-engine.json');
+    await fs.writeFile(
+      fil,
+      JSON.stringify({
+        availabilityRules: [
+          {
+            ruleId: 'rule-evening-cons-fazli',
+            resourceId: 'fazli',
+            serviceId: 'consultation-physical',
+            weekdays: [1, 2, 3, 4, 5],
+            startTimes: ['17:00', '17:30', '18:00'],
+            locationLabel: 'Hair TP Clinic',
+            active: true,
+          },
+        ],
+      }),
+      'utf8'
+    );
+
+    const store = await createCcoBookingEngineStore({ filePath: fil });
+    const slots = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate: datum(1),
+      toDate: datum(21),
+      srvIds: 'consultation-physical',
+    });
+    const LANGD_MIN = await langdMinuter(store, 'consultation-physical');
+
+    for (const slot of slots) {
+      const t = stockholm(slot.startsAt);
+      const oppet = OPPET[t.veckodag];
+      assert.ok(oppet, `erbjuds ${t.datum} ${t.klocka} — stängt den dagen`);
+      assert.ok(
+        t.minuter + LANGD_MIN <= tillMinuter(oppet.till),
+        `${slot.resourceId} erbjuds ${t.datum} ${t.klocka} — slutar efter stängning ` +
+          `${oppet.till}. En gammal regel i sparad data lever kvar.`
+      );
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('en regel utan klockslag erbjuder noll tider, inte påhittade', async () => {
+  // normalizeStartTimes hade en skyddsnätsrad som gav ['09:30','13:30','15:00']
+  // när listan var tom. Den tillverkade tillgänglighet ur ingenting, och 09:30
+  // ligger före öppning. Det upptäcktes när tre gamla kvällsregler skulle
+  // tystas med startTimes: [] — de blev inte tysta, de blev 09:30.
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-tom-regel-'));
+  try {
+    const fil = path.join(dir, 'booking-engine.json');
+    await fs.writeFile(
+      fil,
+      JSON.stringify({
+        availabilityRules: [
+          {
+            ruleId: 'rule-tom-fazli',
+            resourceId: 'fazli',
+            serviceId: 'consultation-physical',
+            weekdays: [1, 2, 3, 4, 5],
+            startTimes: [],
+            locationLabel: 'Hair TP Clinic',
+            active: true,
+          },
+        ],
+      }),
+      'utf8'
+    );
+
+    const store = await createCcoBookingEngineStore({ filePath: fil });
+    const regel = (store._state.availabilityRules || []).find((r) => r.ruleId === 'rule-tom-fazli');
+    assert.ok(regel, 'regeln försvann');
+    assert.deepEqual(
+      regel.startTimes,
+      [],
+      'en tom lista fylldes på med tider som ingen lagt in: ' + JSON.stringify(regel.startTimes)
+    );
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
