@@ -151,18 +151,17 @@ function createCardReconciliation({ filePath, expenseStore }) {
 
   function listExpensesForMatching() {
     const all =
-      typeof expenseStore.listExpenses === 'function' ? expenseStore.listExpenses() : [];
+      typeof expenseStore.listExpenses === 'function'
+        ? expenseStore.listExpenses({ limit: 1000 })
+        : [];
     const rows = Array.isArray(all) ? all : all?.items || [];
-    return rows.filter(
-      (e) => e && e.status !== 'rejected' && Number.isFinite(Number(e.amountSek))
-    );
+    return rows.filter((e) => e && e.status !== 'rejected' && Number.isFinite(Number(e.amountSek)));
   }
 
   function findCandidates(tx, expenses, matchedExpenseIds) {
     return expenses.filter((e) => {
       if (matchedExpenseIds.has(e.id)) return false;
-      const amountOk =
-        Math.abs(Number(e.amountSek) - tx.amountSek) <= MATCH_AMOUNT_TOLERANCE_SEK;
+      const amountOk = Math.abs(Number(e.amountSek) - tx.amountSek) <= MATCH_AMOUNT_TOLERANCE_SEK;
       if (!amountOk) return false;
       const d = normalizeText(e.date);
       if (!d) return true; // utgift utan datum: beloppsträff räcker som kandidat
@@ -211,8 +210,7 @@ function createCardReconciliation({ filePath, expenseStore }) {
       if (tx.matchStatus !== 'unmatched') continue;
       const candidates = findCandidates(tx, expenses, matchedExpenseIds);
       const strong = candidates.filter(
-        (e) =>
-          normalizeText(e.date) && daysBetween(e.date, tx.date) <= MATCH_DATE_TOLERANCE_DAYS
+        (e) => normalizeText(e.date) && daysBetween(e.date, tx.date) <= MATCH_DATE_TOLERANCE_DAYS
       );
       if (strong.length === 1) {
         tx.matchStatus = 'matched';

@@ -9875,6 +9875,9 @@ const { createQmsStore } = require('./src/qms/qmsStore');
 const { createCmRouter } = require('./src/routes/cm');
 const { createCmStore } = require('./src/cm/cmStore');
 const { createCfoVoucherSyncRouter } = require('./src/routes/cfoVoucherSync');
+// ORD-102 · Kortavstämning (Amex-CSV → matchning mot utgifter)
+const { createCfoCardReconciliationRouter } = require('./src/routes/cfoCardReconciliation');
+const { createCardReconciliation } = require('./src/cfo/cfoCardReconciliation');
 const { createCfoRouter } = require('./src/routes/cfo');
 const { createReconciliationRouter } = require('./src/routes/reconciliation');
 const { createComplianceRouter } = require('./src/routes/compliance');
@@ -12828,6 +12831,18 @@ process.once('SIGTERM', () => {
       fortnoxStore: app.locals.cfoFortnoxStore || null,
       config,
       auditLog: app.locals.ccoAuditLog || null,
+    })
+  );
+
+  // ORD-102 · Kortavstämning: Amex-CSV → matchning mot utgifter (ägar-GO 2026-08-21)
+  app.use(
+    '/api/v1',
+    createCfoCardReconciliationRouter({
+      authStore: auth,
+      reconciliation: createCardReconciliation({
+        filePath: path.join(config.stateRoot, 'cfo-card-reconciliation.json'),
+        expenseStore: app.locals.cfoExpenseStore || null,
+      }),
     })
   );
 
