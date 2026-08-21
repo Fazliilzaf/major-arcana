@@ -79,6 +79,9 @@
         object-fit: cover;
         display: block;
       }
+      .preview-img {
+        object-fit: contain;
+      }
       .overlay {
         position: absolute;
         inset: 0;
@@ -182,6 +185,12 @@
         background: linear-gradient(180deg, #c85a5a, #a84040);
         color: #fff;
       }
+      .btn-big {
+        width: 100%;
+        font-size: 17px;
+        padding: 18px 16px;
+        min-height: 56px;
+      }
       .shutter {
         width: 72px;
         height: 72px;
@@ -225,6 +234,9 @@
       .status.ok {
         color: var(--ok);
       }
+      .status.warn {
+        color: var(--warn);
+      }
       .result-grid {
         display: grid;
         gap: 10px;
@@ -261,16 +273,6 @@
       .confidence-low {
         background: rgba(200, 130, 30, 0.14);
         color: var(--warn);
-      }
-      .fallback {
-        margin-top: 12px;
-      }
-      input[type='file'] {
-        width: 100%;
-        padding: 10px;
-        border: 1px dashed rgba(132, 117, 107, 0.4);
-        border-radius: 10px;
-        background: #fff;
       }
       .scan-spinner {
         display: flex;
@@ -319,6 +321,25 @@
         background: #1a1612;
         border-radius: 12px;
       }
+      .edit-canvas-wrap {
+        position: relative;
+        width: 100%;
+        background: #1a1612;
+        border-radius: 12px;
+        overflow: hidden;
+        touch-action: none;
+      }
+      #edit-canvas {
+        display: block;
+        width: 100%;
+        touch-action: none;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+        margin-top: 8px;
+      }
       @media (min-width: 400px) {
         .compare {
           grid-template-columns: 1fr 1fr;
@@ -344,20 +365,32 @@
       <header>
         <h1>📷 Fota kvitto</h1>
         <div class="subtitle">
-          Håll kvittot innanför ramen — systemet läser belopp och leverantör automatiskt.
+          Ta en skarp bild med telefonens egen kamera — systemet beskär och läser av automatiskt.
         </div>
       </header>
 
-      <!-- Camera view -->
-      <div class="card" id="camera-card">
+      <!-- Start: native camera -->
+      <div class="card" id="start-card">
+        <button class="btn btn-primary btn-big" id="open-native" type="button">
+          📷 Ta foto av kvitto
+        </button>
+        <div class="hint">Telefonens egen kamera öppnas — håll kvittot plant och fyll bilden.</div>
+        <div class="actions" style="margin-top: 12px">
+          <button class="btn" id="open-live" type="button">🎥 Live-kamera med guide</button>
+          <a class="btn" href="/finance.html">⬅ Tillbaka</a>
+        </div>
+        <input type="file" id="file-input" accept="image/*" capture="environment" class="hidden" />
+      </div>
+
+      <!-- Live camera (secondary mode) -->
+      <div class="card hidden" id="camera-card">
         <div class="viewfinder" id="viewfinder">
           <div class="placeholder" id="placeholder">
             <div class="loading-icon" id="loading-icon"></div>
-            <div id="placeholder-text">Laddar bildbehandling…</div>
+            <div id="placeholder-text">Startar kamera…</div>
           </div>
           <video id="video" autoplay playsinline muted class="hidden"></video>
           <canvas id="overlay" class="overlay hidden"></canvas>
-          <img id="preview" class="preview-img hidden" alt="Kvittoförhandsgranskning" />
           <div class="guide" id="guide">
             <div class="guide-frame" id="guide-frame"></div>
             <div class="guide-text" id="guide-text">Placera kvittot här</div>
@@ -370,24 +403,27 @@
           aria-label="Fota kvitto"
           disabled
         ></button>
-
-        <div class="fallback">
-          <input type="file" id="file-input" accept="image/*" capture="environment" />
+        <div class="actions">
+          <button class="btn" id="exit-live" type="button">⬅ Avbryt live-läge</button>
         </div>
       </div>
 
-      <!-- Preview actions -->
-      <div class="actions" id="capture-actions">
-        <a class="btn" href="/finance.html">⬅ Tillbaka</a>
-        <button class="btn hidden" id="retake" type="button">Ta om</button>
-        <button class="btn btn-primary hidden" id="use-photo" type="button">Använd foto</button>
-        <button class="btn hidden" id="auto-crop" type="button">✂️ Auto-beskär</button>
+      <!-- Preview of chosen photo -->
+      <div class="card hidden" id="preview-card">
+        <div class="viewfinder">
+          <img id="preview" class="preview-img" alt="Kvittoförhandsgranskning" />
+        </div>
+        <div class="actions">
+          <button class="btn" id="retake" type="button">Ta om</button>
+          <button class="btn" id="manual-crop" type="button">✂️ Justera beskärning</button>
+          <button class="btn btn-primary" id="use-photo" type="button">Använd foto</button>
+        </div>
       </div>
 
       <!-- Scan spinner -->
       <div class="scan-spinner hidden" id="scan-spinner">
         <div class="spinner"></div>
-        <div>Hittar kvittots kanter…</div>
+        <div id="scan-spinner-text">Hittar kvittots kanter…</div>
       </div>
 
       <div class="status" id="status"></div>
@@ -401,8 +437,8 @@
             <img id="crop-original" class="compare-img" alt="Original" />
           </div>
           <div class="compare-item">
-            <div class="compare-label">Auto-beskuren</div>
-            <img id="crop-cropped" class="compare-img" alt="Auto-beskuren" />
+            <div class="compare-label" id="crop-cropped-label">Beskuren</div>
+            <img id="crop-cropped" class="compare-img" alt="Beskuren" />
           </div>
         </div>
         <div class="actions">
@@ -411,6 +447,20 @@
           <button class="btn btn-primary" id="crop-use-cropped" type="button">
             Använd beskuren
           </button>
+        </div>
+      </div>
+
+      <!-- Manual corner editor -->
+      <div class="card hidden" id="edit-card">
+        <h2 style="margin: 0 0 12px; font-size: 18px">Justera hörn</h2>
+        <div class="edit-canvas-wrap">
+          <canvas id="edit-canvas"></canvas>
+        </div>
+        <div class="hint">Dra de fyra punkterna till kvittots hörn.</div>
+        <div class="actions">
+          <button class="btn" id="edit-cancel" type="button">Avbryt</button>
+          <button class="btn" id="edit-reset" type="button">Återställ</button>
+          <button class="btn btn-primary" id="edit-confirm" type="button">Beskär</button>
         </div>
       </div>
 
@@ -446,16 +496,28 @@
       const shutter = document.getElementById('shutter');
       const usePhoto = document.getElementById('use-photo');
       const retake = document.getElementById('retake');
-      const autoCropBtn = document.getElementById('auto-crop');
+      const manualCropBtn = document.getElementById('manual-crop');
       const fileInput = document.getElementById('file-input');
       const statusEl = document.getElementById('status');
       const scanSpinner = document.getElementById('scan-spinner');
+      const scanSpinnerText = document.getElementById('scan-spinner-text');
+      const startCard = document.getElementById('start-card');
+      const cameraCard = document.getElementById('camera-card');
+      const previewCard = document.getElementById('preview-card');
+      const openNativeBtn = document.getElementById('open-native');
+      const openLiveBtn = document.getElementById('open-live');
+      const exitLiveBtn = document.getElementById('exit-live');
       const cropCard = document.getElementById('crop-card');
       const cropOriginal = document.getElementById('crop-original');
       const cropCropped = document.getElementById('crop-cropped');
       const cropUseOriginal = document.getElementById('crop-use-original');
       const cropUseCropped = document.getElementById('crop-use-cropped');
       const cropRetake = document.getElementById('crop-retake');
+      const editCard = document.getElementById('edit-card');
+      const editCanvas = document.getElementById('edit-canvas');
+      const editConfirm = document.getElementById('edit-confirm');
+      const editReset = document.getElementById('edit-reset');
+      const editCancel = document.getElementById('edit-cancel');
       const resultCard = document.getElementById('result-card');
       const resultGrid = document.getElementById('result-grid');
       const newCaptureBtn = document.getElementById('new-capture');
@@ -466,6 +528,7 @@
       let capturedBlob = null;
       let croppedBlob = null;
       let originalDataUrl = null;
+      let originalImg = null;
       let currentExpenseRecord = null;
       let currentRawItem = null;
       let cvLoaded = false;
@@ -477,48 +540,109 @@
       let processing = false;
       let capturePending = false;
 
+      // Manual editor state
+      let editCorners = null; // [{x,y} x4] in original-image coordinates
+      let editDetected = null; // auto-detected corners to fall back to
+      let editDragIdx = -1;
+
       function setStatus(text, type) {
         statusEl.textContent = text;
         statusEl.className = 'status ' + (type || '');
       }
 
-      function showPreview() {
-        video.classList.add('hidden');
-        overlay.classList.add('hidden');
-        placeholder.classList.add('hidden');
-        preview.classList.remove('hidden');
-        guide.classList.add('hidden');
-        shutter.classList.add('hidden');
-        usePhoto.classList.remove('hidden');
-        retake.classList.remove('hidden');
-        autoCropBtn.classList.remove('hidden');
+      function hideAll() {
+        startCard.classList.add('hidden');
+        cameraCard.classList.add('hidden');
+        previewCard.classList.add('hidden');
+        cropCard.classList.add('hidden');
+        editCard.classList.add('hidden');
+        resultCard.classList.add('hidden');
+        scanSpinner.classList.add('hidden');
       }
 
-      function showCamera() {
-        preview.classList.add('hidden');
-        preview.src = '';
-        placeholder.classList.add('hidden');
-        video.classList.remove('hidden');
-        overlay.classList.remove('hidden');
-        guide.classList.remove('hidden');
-        shutter.classList.remove('hidden');
-        usePhoto.classList.add('hidden');
-        retake.classList.add('hidden');
-        autoCropBtn.classList.add('hidden');
-        resultCard.classList.add('hidden');
-        cropCard.classList.add('hidden');
-        scanSpinner.classList.add('hidden');
+      function resetState() {
         capturedBlob = null;
         croppedBlob = null;
         originalDataUrl = null;
+        originalImg = null;
         currentExpenseRecord = null;
         currentRawItem = null;
+        editCorners = null;
+        editDetected = null;
+        editDragIdx = -1;
         lastCorners = null;
         lastCornersTime = 0;
         stableFrames = 0;
         shutter.classList.remove('ready');
-        startDetectionLoop();
+        fileInput.value = '';
       }
+
+      function showStart() {
+        stopCamera();
+        hideAll();
+        resetState();
+        startCard.classList.remove('hidden');
+        setStatus('');
+      }
+
+      // ---------- Native camera flow (primary) ----------
+
+      async function handleFile(file) {
+        if (!file || !file.type.startsWith('image/')) {
+          setStatus('Välj en bildfil (JPG/PNG/WEBP).', 'error');
+          return;
+        }
+        const dataUrl = await readFileAsDataUrl(file);
+        capturedBlob = file;
+        originalDataUrl = dataUrl;
+        originalImg = await loadImage(dataUrl);
+
+        // Try auto-crop right away on the sharp still image
+        if (cvLoaded) {
+          hideAll();
+          scanSpinnerText.textContent = 'Hittar kvittots kanter…';
+          scanSpinner.classList.remove('hidden');
+          setStatus('');
+          const corners = await detectCornersOnDataUrl(dataUrl);
+          scanSpinner.classList.add('hidden');
+          if (corners) {
+            editDetected = corners;
+            const cropped = await warpReceipt(dataUrl, corners);
+            if (cropped) {
+              croppedBlob = dataUrlToBlobSync(cropped);
+              cropOriginal.src = dataUrl;
+              cropCropped.src = cropped;
+              document.getElementById('crop-cropped-label').textContent = 'Auto-beskuren';
+              hideAll();
+              cropCard.classList.remove('hidden');
+              setStatus('Kant hittad — granska beskärningen', 'ok');
+              return;
+            }
+          }
+        }
+
+        // No corners (or OpenCV not ready) — show plain preview
+        hideAll();
+        preview.src = dataUrl;
+        previewCard.classList.remove('hidden');
+        setStatus(
+          cvLoaded
+            ? 'Ingen kant hittades — använd fotot direkt eller justera manuellt'
+            : 'Bild vald — auto-beskärning laddas fortfarande, du kan använda fotot direkt',
+          'warn'
+        );
+      }
+
+      function readFileAsDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // ---------- Live camera flow (secondary) ----------
 
       async function startCamera() {
         try {
@@ -527,16 +651,6 @@
               facingMode: 'environment',
               width: { ideal: 1920 },
               height: { ideal: 2560 },
-              focusMode: 'continuous',
-              advanced: [
-                {
-                  width: 1920,
-                  height: 2560,
-                  focusMode: 'continuous',
-                  exposureMode: 'continuous',
-                  whiteBalanceMode: 'continuous',
-                },
-              ],
             },
             audio: false,
           });
@@ -548,48 +662,43 @@
           overlay.classList.remove('hidden');
           shutter.disabled = false;
 
-          // Try to enable continuous autofocus after stream starts (best-effort)
           const track = stream.getVideoTracks()[0];
           if (track && track.applyConstraints) {
             try {
-              await track.applyConstraints({
-                advanced: [{ focusMode: 'continuous' }],
-              });
-            } catch (focusErr) {
-              console.log('Continuous autofocus not supported:', focusErr.message);
+              await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+            } catch (_) {
+              // Focus constraints not supported on all devices
             }
           }
 
-          // Tap-to-focus: re-trigger autofocus when user taps the viewfinder
-          const viewfinderEl = document.getElementById('viewfinder');
-          if (viewfinderEl) {
-            viewfinderEl.addEventListener('pointerdown', async (e) => {
-              if (!track || !track.applyConstraints) return;
-              try {
-                await track.applyConstraints({
-                  advanced: [{ focusMode: 'single-shot' }],
-                });
-                setTimeout(async () => {
-                  try {
-                    await track.applyConstraints({
-                      advanced: [{ focusMode: 'continuous' }],
-                    });
-                  } catch (_) {}
-                }, 500);
-              } catch (tapErr) {
-                console.log('Tap-to-focus not supported:', tapErr.message);
-              }
-            });
-          }
-
-          setStatus('Kamera aktiv. Tryck på skärmen för att fokusera.', 'ok');
+          setStatus('Kamera aktiv. Håll kvittot stilla.', 'ok');
           startDetectionLoop();
         } catch (err) {
           console.error('Kamerafel:', err);
-          setStatus('Kunde inte starta kamera. Använd filväljaren nedan.', 'error');
+          setStatus('Kunde inte starta kamera — använd "Ta foto av kvitto" i stället.', 'error');
           placeholderText.textContent = 'Kamera ej tillgänglig';
           loadingIcon.classList.add('hidden');
         }
+      }
+
+      function stopCamera() {
+        stopDetectionLoop();
+        if (stream) {
+          for (const track of stream.getTracks()) track.stop();
+          stream = null;
+        }
+        video.srcObject = null;
+        shutter.disabled = true;
+      }
+
+      function showLive() {
+        hideAll();
+        resetState();
+        cameraCard.classList.remove('hidden');
+        placeholder.classList.remove('hidden');
+        loadingIcon.classList.remove('hidden');
+        placeholderText.textContent = 'Startar kamera…';
+        startCamera();
       }
 
       function resizeOverlay() {
@@ -598,7 +707,7 @@
         overlay.height = rect.height * window.devicePixelRatio;
         overlay.style.width = rect.width + 'px';
         overlay.style.height = rect.height + 'px';
-        overlayCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        overlayCtx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
       }
 
       function delay(ms) {
@@ -612,7 +721,7 @@
         try {
           await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
         } catch (_) {
-          // Focus constraints are not supported on all devices; fall back to native AF
+          // Fall back to native AF
         }
       }
 
@@ -621,7 +730,6 @@
         capturePending = true;
         stopDetectionLoop();
 
-        // Trigger autofocus and let the lens settle before capturing
         setStatus('Fokuserar…', 'ok');
         await triggerFocus();
         await delay(450);
@@ -634,39 +742,36 @@
 
         originalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
         capturedBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+        originalImg = await loadImage(originalDataUrl);
+        stopCamera();
 
         // Run detection ON the captured frame so corners match exactly
         const corners = await detectCornersOnDataUrl(originalDataUrl);
 
         if (corners) {
-          const cropped = await warpReceipt(
-            originalDataUrl,
-            corners,
-            video.videoWidth,
-            video.videoHeight
-          );
+          editDetected = corners;
+          const cropped = await warpReceipt(originalDataUrl, corners);
           if (cropped) {
             croppedBlob = dataUrlToBlobSync(cropped);
             cropOriginal.src = originalDataUrl;
             cropCropped.src = cropped;
+            document.getElementById('crop-cropped-label').textContent = 'Auto-beskuren';
+            hideAll();
             cropCard.classList.remove('hidden');
-            usePhoto.classList.add('hidden');
-            retake.classList.add('hidden');
-            autoCropBtn.classList.add('hidden');
             setStatus('Kant hittad — granska beskärningen', 'ok');
-            preview.src = cropped;
-            showPreviewAfterCapture();
             capturePending = false;
             return;
           }
         }
 
-        // No usable corners found — show original and offer manual auto-crop
-        preview.src = URL.createObjectURL(capturedBlob);
-        showPreviewAfterCapture();
-        setStatus('Ingen kant hittades automatiskt — prova ✂️ Auto-beskär', 'warn');
+        hideAll();
+        preview.src = originalDataUrl;
+        previewCard.classList.remove('hidden');
+        setStatus('Ingen kant hittades automatiskt — justera manuellt eller använd fotot', 'warn');
         capturePending = false;
       }
+
+      // ---------- OpenCV detection ----------
 
       async function detectCornersOnDataUrl(dataUrl) {
         return new Promise((resolve) => {
@@ -703,29 +808,13 @@
         });
       }
 
-      function showPreviewAfterCapture() {
-        video.classList.add('hidden');
-        overlay.classList.add('hidden');
-        placeholder.classList.add('hidden');
-        preview.classList.remove('hidden');
-        guide.classList.add('hidden');
-        shutter.classList.add('hidden');
-      }
-
-      function handleFile(file) {
-        if (!file || !file.type.startsWith('image/')) {
-          setStatus('Välj en bildfil (JPG/PNG/WEBP).', 'error');
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => {
-          capturedBlob = file;
-          originalDataUrl = reader.result;
-          preview.src = URL.createObjectURL(file);
-          showPreview();
-          setStatus('Bild vald', 'ok');
-        };
-        reader.readAsDataURL(file);
+      function loadImage(src) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = src;
+        });
       }
 
       // Load OpenCV.js
@@ -739,8 +828,20 @@
           script.src = 'https://docs.opencv.org/4.9.0/opencv.js';
           script.async = true;
           script.onload = () => {
-            cvLoaded = true;
-            resolve(true);
+            const check = () => {
+              if (typeof cv !== 'undefined' && cv.getBuildInformation) {
+                cvLoaded = true;
+                resolve(true);
+              } else if (cv && cv.then) {
+                cv.then(() => {
+                  cvLoaded = true;
+                  resolve(true);
+                });
+              } else {
+                setTimeout(check, 100);
+              }
+            };
+            check();
           };
           script.onerror = () => resolve(false);
           setTimeout(() => resolve(false), 30000);
@@ -751,7 +852,7 @@
       function startDetectionLoop() {
         if (rafId) cancelAnimationFrame(rafId);
         let lastFrameTime = 0;
-        const frameInterval = 120; // ~8 fps, smoother detection
+        const frameInterval = 120; // ~8 fps
 
         const loop = (t) => {
           rafId = requestAnimationFrame(loop);
@@ -810,7 +911,6 @@
 
           if (!pts) return resolve(null);
 
-          // Scale corners back to video coordinates
           const scaled = pts.map((p) => ({ x: p.x / scale, y: p.y / scale }));
           resolve(orderCorners(scaled));
         });
@@ -820,14 +920,10 @@
         const imgArea = src.cols * src.rows;
         const minReceiptArea = imgArea * 0.015;
 
-        // Primary: threshold-based — receipts are bright paper on darker background
         let best = findReceiptByThreshold(src, imgArea, minReceiptArea);
-
-        // Fallback: Canny edges when threshold doesn't give a good receipt shape
         if (!best) {
           best = findReceiptByCanny(src, imgArea, minReceiptArea);
         }
-
         return best;
       }
 
@@ -839,9 +935,7 @@
 
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
         cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-        // Otsu threshold: bright paper becomes white
         cv.threshold(blurred, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
-        // Close small holes in receipt
         cv.morphologyEx(thresh, closed, cv.MORPH_CLOSE, cv.Mat.ones(9, 9, cv.CV_8U));
 
         const contours = new cv.MatVector();
@@ -916,7 +1010,6 @@
           const area = cv.contourArea(cnt);
           if (area < minReceiptArea) continue;
 
-          // Prefer minAreaRect — gives true rotated receipt corners
           const rect = cv.minAreaRect(cnt);
           const pts = rotatedBoxPoints(rect);
 
@@ -926,12 +1019,9 @@
           if (width < 10 || height < 10) continue;
 
           const aspect = Math.max(width, height) / Math.min(width, height);
-          // Receipts are long/tall, but allow square-ish paper too
           const aspectScore =
             aspect > 1.1 && aspect < 16 ? 1 : aspect > 1.05 && aspect < 20 ? 0.6 : 0.25;
-          // Reward filling a decent part of the frame, but not the whole thing
           const areaScore = Math.min(area / imgArea, 0.85);
-          // Prefer contours that are roughly rectangular
           const rectScore =
             rect.size.width && rect.size.height
               ? Math.min(rect.size.width, rect.size.height) /
@@ -939,7 +1029,6 @@
               : 0;
           const shapeScore = rectScore > 0.15 ? 1 : 0.5;
 
-          // Prefer contours near the center of the frame (where the guide is)
           const cx = rect.center.x;
           const cy = rect.center.y;
           const dx = (cx - src.cols / 2) / (src.cols / 2);
@@ -947,7 +1036,6 @@
           const centerDist = Math.sqrt(dx * dx + dy * dy);
           const centerScore = 1 - Math.min(centerDist, 1) * 0.5;
 
-          // Prefer solid, paper-like rectangles over spiky background noise
           const rectArea = rect.size.width * rect.size.height;
           const rectangularity = rectArea > 0 ? area / rectArea : 0;
           const rectFillScore = rectangularity > 0.65 ? 1 : rectangularity > 0.35 ? 0.7 : 0.35;
@@ -1029,7 +1117,6 @@
         overlayCtx.fillStyle = stable ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 255, 255, 0.08)';
         overlayCtx.fill();
 
-        // Corner dots
         overlayCtx.fillStyle = stable ? '#4ade80' : '#fff';
         for (const p of projected) {
           overlayCtx.beginPath();
@@ -1038,87 +1125,160 @@
         }
       }
 
-      async function scanReceipt() {
-        if (!capturedBlob || !originalDataUrl) return;
-        if (!cvLoaded) {
-          setStatus('Bildbehandling inte redo.', 'error');
-          return;
-        }
-        scanSpinner.classList.remove('hidden');
-        autoCropBtn.disabled = true;
+      // ---------- Manual corner editor ----------
+
+      function openManualEditor() {
+        if (!originalImg || !originalDataUrl) return;
+        hideAll();
+        editCard.classList.remove('hidden');
         setStatus('');
 
-        try {
-          const img = await loadImage(originalDataUrl);
-          const cropped = await detectReceiptContourFull(img);
-          if (cropped) {
-            croppedBlob = await dataUrlToBlob(cropped);
-            cropOriginal.src = originalDataUrl;
-            cropCropped.src = cropped;
-            cropCard.classList.remove('hidden');
-            usePhoto.classList.add('hidden');
-            retake.classList.add('hidden');
-            autoCropBtn.classList.add('hidden');
-            setStatus('Kant hittad — granska beskärningen', 'ok');
-          } else {
-            setStatus('Hittade ingen tydlig kant — använder originalet', 'warn');
-            uploadCapture(capturedBlob);
-          }
-        } catch (err) {
-          console.error('Scan-fel:', err);
-          setStatus('Auto-beskärning misslyckades — använder originalet', 'error');
-          uploadCapture(capturedBlob);
-        } finally {
-          scanSpinner.classList.add('hidden');
-          autoCropBtn.disabled = false;
+        const W = originalImg.width;
+        const H = originalImg.height;
+
+        // Initial corners: auto-detected, else 8% inset
+        if (editDetected) {
+          editCorners = editDetected.map((p) => ({ x: p.x, y: p.y }));
+        } else {
+          editCorners = [
+            { x: W * 0.08, y: H * 0.08 },
+            { x: W * 0.92, y: H * 0.08 },
+            { x: W * 0.92, y: H * 0.92 },
+            { x: W * 0.08, y: H * 0.92 },
+          ];
+        }
+
+        const wrap = editCanvas.parentElement;
+        const displayW = wrap.clientWidth;
+        const displayH = Math.round((H / W) * displayW);
+        const dpr = window.devicePixelRatio || 1;
+        editCanvas.width = displayW * dpr;
+        editCanvas.height = displayH * dpr;
+        editCanvas.style.height = displayH + 'px';
+
+        drawEditor();
+      }
+
+      function drawEditor() {
+        const ctx = editCanvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const W = originalImg.width;
+        const H = originalImg.height;
+        const cw = editCanvas.width / dpr;
+        const ch = editCanvas.height / dpr;
+        const sx = cw / W;
+        const sy = ch / H;
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.drawImage(originalImg, 0, 0, cw, ch);
+
+        const pts = editCorners.map((p) => ({ x: p.x * sx, y: p.y * sy }));
+
+        // Dim outside
+        ctx.beginPath();
+        ctx.rect(0, 0, cw, ch);
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < 4; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        ctx.fill('evenodd');
+
+        // Outline
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < 4; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.closePath();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = 'rgba(74, 222, 128, 0.95)';
+        ctx.stroke();
+
+        // Handles
+        for (const p of pts) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+          ctx.fillStyle = '#4ade80';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#fff';
+          ctx.stroke();
         }
       }
 
-      function loadImage(src) {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve(img);
-          img.onerror = reject;
-          img.src = src;
-        });
+      function editPointerPos(e) {
+        const rect = editCanvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top, rect };
       }
 
-      function dataUrlToBlob(dataUrl) {
-        return fetch(dataUrl).then((res) => res.blob());
-      }
-
-      function dataUrlToBlobSync(dataUrl) {
-        const byteString = atob(dataUrl.split(',')[1]);
-        const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i);
-        }
-        return new Blob([ab], { type: mimeString });
-      }
-
-      function detectReceiptContourFull(img) {
-        return new Promise((resolve) => {
-          if (!cvLoaded || !cv.getBuildInformation) return resolve(null);
-          try {
-            const src = cv.imread(img);
-            const pts = findReceiptContour(src);
-            if (!pts) {
-              src.delete();
-              return resolve(null);
-            }
-            const cropped = warpReceiptFromSrc(src, pts);
-            src.delete();
-            resolve(cropped);
-          } catch (err) {
-            console.error('OpenCV detect error:', err);
-            resolve(null);
+      function onEditPointerDown(e) {
+        const { x, y, rect } = editPointerPos(e);
+        const W = originalImg.width;
+        const H = originalImg.height;
+        const sx = rect.width / W;
+        const sy = rect.height / H;
+        editDragIdx = -1;
+        for (let i = 0; i < 4; i++) {
+          const px = editCorners[i].x * sx;
+          const py = editCorners[i].y * sy;
+          if (Math.hypot(x - px, y - py) < 28) {
+            editDragIdx = i;
+            break;
           }
-        });
+        }
+        if (editDragIdx >= 0) {
+          editCanvas.setPointerCapture(e.pointerId);
+          e.preventDefault();
+        }
       }
 
-      function warpReceipt(dataUrl, corners, width, height) {
+      function onEditPointerMove(e) {
+        if (editDragIdx < 0) return;
+        const { x, y, rect } = editPointerPos(e);
+        const W = originalImg.width;
+        const H = originalImg.height;
+        const sx = rect.width / W;
+        const sy = rect.height / H;
+        editCorners[editDragIdx] = {
+          x: Math.min(Math.max(x / sx, 0), W),
+          y: Math.min(Math.max(y / sy, 0), H),
+        };
+        drawEditor();
+        e.preventDefault();
+      }
+
+      function onEditPointerUp(e) {
+        editDragIdx = -1;
+      }
+
+      async function confirmManualCrop() {
+        if (!editCorners || !originalDataUrl) return;
+        hideAll();
+        scanSpinnerText.textContent = 'Beskär kvittot…';
+        scanSpinner.classList.remove('hidden');
+
+        const ordered = orderCorners(editCorners);
+        const cropped = await warpReceipt(originalDataUrl, ordered);
+        scanSpinner.classList.add('hidden');
+
+        if (cropped) {
+          croppedBlob = dataUrlToBlobSync(cropped);
+          cropOriginal.src = originalDataUrl;
+          cropCropped.src = cropped;
+          document.getElementById('crop-cropped-label').textContent = 'Manuellt beskuren';
+          hideAll();
+          cropCard.classList.remove('hidden');
+          setStatus('Granska beskärningen', 'ok');
+        } else {
+          hideAll();
+          preview.src = originalDataUrl;
+          previewCard.classList.remove('hidden');
+          setStatus('Beskärningen misslyckades — använd originalet', 'error');
+        }
+      }
+
+      // ---------- Warp ----------
+
+      function warpReceipt(dataUrl, corners) {
         return new Promise((resolve) => {
           const img = new Image();
           img.onload = () => {
@@ -1166,11 +1326,11 @@
         ]);
         const M = cv.getPerspectiveTransform(srcTri, dstTri);
         const dst = new cv.Mat();
-        cv.warpPerspective(src, dst, M, new cv.Size(width, height));
+        cv.warpPerspective(src, dst, M, new cv.Size(Math.round(width), Math.round(height)));
 
         const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = Math.round(width);
+        canvas.height = Math.round(height);
         cv.imshow(canvas, dst);
         const result = canvas.toDataURL('image/jpeg', 0.95);
 
@@ -1188,6 +1348,19 @@
         const bottom = sorted[2].x < sorted[3].x ? [sorted[2], sorted[3]] : [sorted[3], sorted[2]];
         return [top[0], top[1], bottom[1], bottom[0]];
       }
+
+      function dataUrlToBlobSync(dataUrl) {
+        const byteString = atob(dataUrl.split(',')[1]);
+        const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], { type: mimeString });
+      }
+
+      // ---------- Upload & result ----------
 
       async function uploadCapture(blob) {
         if (!blob) return;
@@ -1219,7 +1392,8 @@
               : 'Kunde inte tolka kvittot — granska manuellt i finance.html',
             'ok'
           );
-          cropCard.classList.add('hidden');
+          hideAll();
+          resultCard.classList.remove('hidden');
         } catch (err) {
           setStatus('Fel: ' + err.message, 'error');
         } finally {
@@ -1277,7 +1451,7 @@
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Kunde inte godkänna');
           setStatus('Godkänd och överlämnad till CFO.', 'ok');
-          setTimeout(showCamera, 1200);
+          setTimeout(showStart, 1200);
         } catch (err) {
           setStatus('Fel vid godkännande: ' + err.message, 'error');
           approveBtn.disabled = false;
@@ -1296,37 +1470,55 @@
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Kunde inte avvisa');
           setStatus('Avvisad.', 'ok');
-          setTimeout(showCamera, 1200);
+          setTimeout(showStart, 1200);
         } catch (err) {
           setStatus('Fel vid avvisande: ' + err.message, 'error');
           rejectBtn.disabled = false;
         }
       }
 
+      // ---------- Wire up ----------
+
+      openNativeBtn.addEventListener('click', () => fileInput.click());
+      openLiveBtn.addEventListener('click', showLive);
+      exitLiveBtn.addEventListener('click', showStart);
       shutter.addEventListener('click', capturePhoto);
       usePhoto.addEventListener('click', () => uploadCapture(capturedBlob));
-      retake.addEventListener('click', showCamera);
-      autoCropBtn.addEventListener('click', scanReceipt);
+      retake.addEventListener('click', showStart);
+      manualCropBtn.addEventListener('click', openManualEditor);
       cropUseOriginal.addEventListener('click', () => uploadCapture(capturedBlob));
       cropUseCropped.addEventListener('click', () => uploadCapture(croppedBlob));
-      cropRetake.addEventListener('click', showCamera);
-      newCaptureBtn.addEventListener('click', showCamera);
+      cropRetake.addEventListener('click', showStart);
+      editConfirm.addEventListener('click', confirmManualCrop);
+      editReset.addEventListener('click', () => {
+        editDetected = null;
+        openManualEditor();
+      });
+      editCancel.addEventListener('click', () => {
+        hideAll();
+        preview.src = originalDataUrl;
+        previewCard.classList.remove('hidden');
+      });
+      editCanvas.addEventListener('pointerdown', onEditPointerDown);
+      editCanvas.addEventListener('pointermove', onEditPointerMove);
+      editCanvas.addEventListener('pointerup', onEditPointerUp);
+      editCanvas.addEventListener('pointercancel', onEditPointerUp);
+      newCaptureBtn.addEventListener('click', showStart);
       approveBtn.addEventListener('click', promoteRecord);
       rejectBtn.addEventListener('click', rejectRecord);
       fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
-      window.addEventListener('resize', resizeOverlay);
+      window.addEventListener('resize', () => {
+        if (!cameraCard.classList.contains('hidden')) resizeOverlay();
+        if (!editCard.classList.contains('hidden') && originalImg) drawEditor();
+      });
 
-      // Load OpenCV then start camera
+      // Load OpenCV in the background — the native camera flow works even before it finishes
       loadOpenCv().then((ok) => {
         if (ok) {
           console.log('OpenCV.js redo');
-          startCamera();
         } else {
-          console.warn('OpenCV.js kunde inte laddas');
-          placeholderText.textContent = 'Bildbehandling kunde inte laddas. Använd filväljaren.';
-          loadingIcon.classList.add('hidden');
-          setStatus('Kunde inte ladda auto-beskärning. Kameran startas ändå.', 'error');
-          startCamera();
+          console.warn('OpenCV.js kunde inte laddas — auto-beskärning avaktiverad');
+          setStatus('Auto-beskärning kunde inte laddas. Du kan ändå fota och ladda upp.', 'warn');
         }
       });
     </script>
