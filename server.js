@@ -55,6 +55,17 @@ if (config.trustProxy) app.set('trust proxy', 1);
 app.use(cors(createCorsPolicy(config)));
 app.use(express.json({ limit: '10mb' }));
 
+// Agent-subdomäner (CMO-mönstret: cmo.hairtpclinic.com är egen tjänst; CFO och CM
+// bor i denna tjänst) — cfo./cm.hairtpclinic.com landar direkt på rätt yta.
+app.use((req, res, next) => {
+  const host = String(req.headers.host || '').toLowerCase();
+  if (req.method === 'GET' && (req.path === '/' || req.path === '')) {
+    if (host.startsWith('cfo.')) return res.redirect(302, '/finance.html');
+    if (host.startsWith('cm.')) return res.redirect(302, '/finance.html#cm-intake');
+  }
+  return next();
+});
+
 let ccoRequireAuthMiddleware = null;
 let sharedPatientAssetStorePromise = null;
 // ORD-69: CM-storen monteras efter schedulern — deps sätts vid CM-mount och
