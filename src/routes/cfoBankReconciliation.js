@@ -84,7 +84,12 @@ function createCfoBankReconciliationRouter({ authStore, reconciliation, fortnoxS
             .status(503)
             .json({ ok: false, error: 'Fortnox ej konfigurerat eller ej anslutet' });
         const financialYearDate = req.body?.financialYearDate || null;
-        const result = await reconciliation.fetchVouchers(client, { financialYearDate });
+        const result = await reconciliation.fetchVouchers(client, {
+          financialYearDate,
+          bankAccount: req.body?.bankAccount || '1930',
+          fromDate: req.body?.fromDate || null,
+          toDate: req.body?.toDate || null,
+        });
         if (!result.ok) return res.status(502).json(result);
         await reconciliation.persist();
         return res.json({ ok: true, ...result });
