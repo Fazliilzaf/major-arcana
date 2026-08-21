@@ -19,6 +19,7 @@ const {
   buildStaffRuntimeCatalogReadout,
   buildServiceRegisterBookingPolicy,
 } = require('./legacyCatalogRuntime');
+const { klinikTidTillUtc, utcTillKlinikTid } = require('./klinikTid');
 const {
   applyBookingPolicyMigrationToServices,
   applyBookingPolicySettingsToService,
@@ -1017,8 +1018,12 @@ function normalizeCalendarBlock(input = {}) {
 
 function buildBlockInterval({ day, block, resourceId, resourceLabel }) {
   const dateOnly = day.toISOString().slice(0, 10);
-  const startsAt = `${dateOnly}T${block.startTime}:00.000Z`;
-  const endsAt = `${dateOnly}T${block.endTime}:00.000Z`;
+  // Blockets tider är klinikens väggklocka. Tidigare klistrades ett 'Z' på,
+  // vilket gjorde lunchen 12:00–13:00 till 14:00–15:00 svensk sommartid —
+  // den täckte alltså inte lunchen. Se src/ops/klinikTid.js.
+  const startsAt = klinikTidTillUtc(dateOnly, block.startTime);
+  const endsAt = klinikTidTillUtc(dateOnly, block.endTime);
+  if (!startsAt || !endsAt) return null;
   if (Date.parse(startsAt) >= Date.parse(endsAt)) return null;
   return {
     blockId: block.blockId,
@@ -1254,7 +1259,11 @@ async function createCcoBookingEngineStore({ filePath }) {
 
   function buildAvailabilitySlot(rule, day, timeLabel) {
     const dateOnly = day.toISOString().slice(0, 10);
-    const startsAt = `${dateOnly}T${timeLabel}:00.000Z`;
+    // Regelns starttid är klinikens väggklocka, inte UTC. Tidigare stod här
+    // `${dateOnly}T${timeLabel}:00.000Z`, så 10:00 i schemat blev 12:00 i
+    // kalendern på sommaren och 11:00 på vintern. Se src/ops/klinikTid.js.
+    const startsAt = klinikTidTillUtc(dateOnly, timeLabel);
+    if (!startsAt) return null;
     const service = getServiceById(rule.serviceId) || {};
     const resource = getResourceById(rule.resourceId) || {};
     return normalizeEngineSlot(
