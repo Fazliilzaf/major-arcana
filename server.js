@@ -9555,14 +9555,22 @@ app.use((req, res, next) => {
 
   // CSP — endast för HTML-svar, inte för JSON-API eller SSE-streams
   if (!isApi && !isStream) {
+    // OpenCV.js (Emscripten/WASM) behöver 'unsafe-eval' + data:-fetch för mobil kvittofoto
+    const isMobileCapture = path === '/mobile-capture.html';
+    const scriptSrc = isMobileCapture
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://docs.opencv.org"
+      : "script-src 'self' 'unsafe-inline'";
+    const connectSrc = isMobileCapture
+      ? "connect-src 'self' https: data:"
+      : "connect-src 'self' https:";
     const cspDirectives = [
       "default-src 'self'",
       // 'unsafe-inline' för style behövs för existing CSS-injection från modulerna
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "script-src 'self' 'unsafe-inline'",
+      scriptSrc,
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' https:",
+      connectSrc,
       "frame-src 'self' blob:",
       "frame-ancestors 'self'",
       "base-uri 'self'",
