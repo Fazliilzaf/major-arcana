@@ -425,6 +425,74 @@ function createCfoBankReconciliation({
     return { total, matched, unmatched, suggestions, ignored, unmatchedSumSek };
   }
 
+  // ORD-102c · Pyramid i CM-mönstret (jfr /cm/groups-tree): öppna poster
+  // (unmatched + förslag) grupperade år → månad → motpart, för klumpvis granskning.
+  function counterpartLabel(text) {
+    const words = normalizeText(text)
+      .replace(/\s{2,}/g, ' ')
+      .split(' ');
+    return words.slice(0, 2).join(' ') || 'Okänd';
+  }
+  function groupsTree() {
+    const open = state.transactions.filter(
+      (t) => t.matchStatus === 'unmatched' || t.matchStatus === 'suggestion'
+    );
+    const years = new Map();
+    for (const t of open) {
+      const year = String(t.bookingDay || '').slice(0, 4) || 'okänt';
+      const month = String(t.bookingDay || '').slice(5, 7) || '??';
+      const label = counterpartLabel(t.reference);
+      if (!years.has(year)) years.set(year, new Map());
+      const months = years.get(year);
+      if (!months.has(month)) months.set(month, new Map());
+      const groups = months.get(month);
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(t);
+    }
+    const round = (n) => Math.round(n * 100) / 100;
+    const out = [...years.entries()]
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([year, months]) => {
+        const monthsOut = [...months.entries()]
+          .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+          .map(([month, groups]) => {
+            const groupsOut = [...groups.entries()]
+              .map(([label, txs]) => ({
+                label,
+                count: txs.length,
+                sum: round(txs.reduce((a, t) => a + Math.abs(t.amountSek || 0), 0)),
+                withSuggestions: txs.filter((t) => (t.suggestions || []).length > 0).length,
+                transactions: txs
+                  .slice()
+                  .sort((a, b) => (a.bookingDay < b.bookingDay ? 1 : -1))
+                  .map((t) => ({
+                    id: t.id,
+                    bookingDay: t.bookingDay,
+                    reference: t.reference,
+                    amountSek: t.amountSek,
+                    type: t.type,
+                    matchStatus: t.matchStatus,
+                    suggestions: t.suggestions || [],
+                  })),
+              }))
+              .sort((a, b) => b.sum - a.sum);
+            return {
+              month,
+              count: groupsOut.reduce((a, g) => a + g.count, 0),
+              sum: round(groupsOut.reduce((a, g) => a + g.sum, 0)),
+              groups: groupsOut,
+            };
+          });
+        return {
+          year,
+          count: monthsOut.reduce((a, m) => a + m.count, 0),
+          sum: round(monthsOut.reduce((a, m) => a + m.sum, 0)),
+          months: monthsOut,
+        };
+      });
+    return { totalOpen: open.length, years: out };
+  }
+
   load();
 
   return {
@@ -436,6 +504,7 @@ function createCfoBankReconciliation({
     ignoreTransaction,
     listTransactions,
     stats,
+    groupsTree,
     persist,
     _state: () => state,
   };

@@ -63,6 +63,24 @@ function createCfoCardReconciliationRouter({ authStore, reconciliation }) {
     }
   });
 
+  // ORD-102c · Pyramid för klumpvis granskning (CM-mönstret).
+  router.get(
+    '/cco-cf/card-reconciliation/tree',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    (req, res) => {
+      try {
+        return res.json({
+          ok: true,
+          stats: reconciliation.stats(),
+          ...reconciliation.groupsTree(),
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
   router.post(
     '/cco-cf/card-transactions/:id/match',
     requireAuth,
