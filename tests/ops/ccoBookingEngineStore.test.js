@@ -726,3 +726,81 @@ test('ccoBookingEngineStore bevarar isTestData vid ombokning', async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+
+test('ccoBookingEngineStore rullar tillbaka ombokning om ny tid inte kan reserveras', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-rebook-rollback-'));
+  try {
+    const store = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+
+    const { fromDate, toDate } = bookingMondayWindow();
+    const availability = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(availability.length >= 2);
+    const firstSlot = availability[0];
+    const secondSlot = availability[1];
+
+    const originalBooking = await store.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-rebook-rollback',
+      customerEmail: 'rollback@example.com',
+      customerName: 'Rollback',
+      slot: firstSlot,
+    });
+    assert.equal(originalBooking.status, 'confirmed');
+    assert.equal(originalBooking.slot.slotId, firstSlot.slotId);
+
+    // Uppta måltiden med en annan patient så att reserveSlots failar efter cancel.
+    await store.confirmBooking({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-rebook-rollback-other',
+      customerEmail: 'other@example.com',
+      customerName: 'Other',
+      slot: secondSlot,
+    });
+
+    await assert.rejects(
+      () =>
+        store.rebookBooking({
+          tenantId: 'tenant-a',
+          workspaceId: 'major-arcana-preview',
+          conversationId: 'conv-rebook-rollback',
+          customerEmail: 'rollback@example.com',
+          selectedSlots: [secondSlot],
+          slot: secondSlot,
+        }),
+      (error) => {
+        assert.equal(error.statusCode, 409);
+        return true;
+      }
+    );
+
+    const summary = await store.getCaseSummary({
+      tenantId: 'tenant-a',
+      conversationId: 'conv-rebook-rollback',
+      customerEmail: 'rollback@example.com',
+    });
+    assert.equal(summary.booking.status, 'confirmed');
+    assert.equal(summary.booking.slot.slotId, firstSlot.slotId);
+    assert.equal(summary.booking.bookingId, originalBooking.bookingId);
+
+    const otherSummary = await store.getCaseSummary({
+      tenantId: 'tenant-a',
+      conversationId: 'conv-rebook-rollback-other',
+      customerEmail: 'other@example.com',
+    });
+    assert.equal(otherSummary.booking.status, 'confirmed');
+    assert.equal(otherSummary.booking.slot.slotId, secondSlot.slotId);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

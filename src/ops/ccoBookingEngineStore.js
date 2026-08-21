@@ -1813,27 +1813,39 @@ async function createCcoBookingEngineStore({ filePath }) {
         if (customerEmail && item.customerEmail !== customerEmail) return false;
         return normalizeKey(item.status) === 'confirmed';
       }) || null;
-    await cancelBooking({
-      tenantId: input.tenantId,
-      conversationId: input.conversationId,
-      customerEmail: input.customerEmail || input.customerId,
-      reason: normalizeText(input.reason) || 'Ombokad i CCO',
-      // F2-3: markera tydligt att avbokningen är del av rebook-flow
-      // (skiljer sig från manuell avboka eller patient-cancel)
-      cancelledBy: normalizeText(input.cancelledBy) || 'rebook',
-    });
-    await reserveSlots(input);
-    // F2-3: propagera audit-pekare till nya bokningen så vi kan tracerar
-    // hela ombokningskedjan via rescheduledFromBookingId
-    const booking = await confirmBooking({
-      ...input,
-      rescheduledFromBookingId: normalizeText(previousBooking?.bookingId) || '',
-    });
-    return {
-      ...booking,
-      previousBooking: previousBooking ? clone(previousBooking) : null,
-      previousSlot: previousBooking?.slot ? clone(previousBooking.slot) : null,
-    };
+    // F2-3: hela ombokningen måste vara atomisk. Om något steg efter
+    // avbokningen failar (t.ex. ny tid är upptagen) rullar vi tillbaka
+    // state till snapshot och sparar, så patienten inte står utan bokning.
+    const snapshot = clone(state);
+    try {
+      await cancelBooking({
+        tenantId: input.tenantId,
+        conversationId: input.conversationId,
+        customerEmail: input.customerEmail || input.customerId,
+        reason: normalizeText(input.reason) || 'Ombokad i CCO',
+        // F2-3: markera tydligt att avbokningen är del av rebook-flow
+        // (skiljer sig från manuell avboka eller patient-cancel)
+        cancelledBy: normalizeText(input.cancelledBy) || 'rebook',
+      });
+      await reserveSlots(input);
+      // F2-3: propagera audit-pekare till nya bokningen så vi kan tracerar
+      // hela ombokningskedjan via rescheduledFromBookingId
+      const booking = await confirmBooking({
+        ...input,
+        rescheduledFromBookingId: normalizeText(previousBooking?.bookingId) || '',
+      });
+      return {
+        ...booking,
+        previousBooking: previousBooking ? clone(previousBooking) : null,
+        previousSlot: previousBooking?.slot ? clone(previousBooking.slot) : null,
+      };
+    } catch (error) {
+      Object.keys(state).forEach((key) => delete state[key]);
+      Object.assign(state, snapshot);
+      await save();
+      error.metadata = { ...(error.metadata || {}), rebookRolledBack: true };
+      throw error;
+    }
   }
 
   async function getCaseSummary({ tenantId, conversationId, customerEmail, excludeTestData = false } = {}) {
