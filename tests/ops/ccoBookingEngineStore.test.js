@@ -936,3 +936,113 @@ test('ccoBookingEngineStore rullar tillbaka kirurgiskt och rör inte andra patie
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('staff-hanterade availabilityRules överlever sammanslagningen med defaults', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-staff-rule-'));
+  try {
+    const filePath = path.join(tempDir, 'booking-engine.json');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify(
+        {
+          version: 1,
+          resources: [{ id: 'veronica', label: 'Veronica', active: true, publicBookable: false }],
+          services: [{ id: 'consultation-physical', label: 'Konsultation', durationMinutes: 45, active: true }],
+          availabilityRules: [
+            {
+              ruleId: 'rule-cons-veronica',
+              resourceId: 'veronica',
+              serviceId: 'consultation-physical',
+              weekdays: [1, 2, 3, 4, 5],
+              startTimes: ['09:30'],
+              locationLabel: 'Hair TP Clinic',
+              managedBy: 'staff',
+            },
+          ],
+          reservations: [],
+          bookings: [],
+        },
+        null,
+        2
+      ),
+      'utf8'
+    );
+    const store = await createCcoBookingEngineStore({ filePath });
+    const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
+    const rule = persisted.availabilityRules.find((r) => r.ruleId === 'rule-cons-veronica');
+    assert.ok(rule, 'regeln finns kvar');
+    assert.equal(rule.managedBy, 'staff');
+    assert.deepEqual(rule.startTimes, ['09:30'], 'personalens starttider ska inte skrivas över');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cykliska availabilityRules gäller bara rätt vecka', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-cycle-rule-'));
+  try {
+    const filePath = path.join(tempDir, 'booking-engine.json');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify(
+        {
+          version: 1,
+          resources: [{ id: 'veronica', label: 'Veronica', active: true, publicBookable: false }],
+          services: [{ id: 'consultation-physical', label: 'Konsultation', durationMinutes: 45, active: true }],
+          availabilityRules: [
+            {
+              ruleId: 'rule-cons-veronica',
+              resourceId: 'veronica',
+              serviceId: 'consultation-physical',
+              weekdays: [1],
+              startTimes: ['10:00'],
+              locationLabel: 'Hair TP Clinic',
+              managedBy: 'staff',
+              cycleWeeks: 4,
+              cycleWeek: 1,
+              cycleStart: '2026-08-24T00:00:00.000Z',
+            },
+          ],
+          reservations: [],
+          bookings: [],
+        },
+        null,
+        2
+      ),
+      'utf8'
+    );
+    const store = await createCcoBookingEngineStore({ filePath });
+
+    // 2026-08-24 är måndag i cykelvecka 1 — ska ge en tid.
+    const inCycle = await store.listAvailability({
+      tenantId: 'hair-tp-clinic',
+      fromDate: '2026-08-24',
+      toDate: '2026-08-24',
+      resIds: 'veronica',
+      srvIds: 'consultation-physical',
+    });
+    assert.equal(inCycle.length, 1, 'cykelvecka 1 ska ge en tid på ankardatumet');
+
+    // 2026-08-17 är måndag i cykelvecka 4 — ska inte ge någon tid för cycleWeek 1.
+    const outOfCycle = await store.listAvailability({
+      tenantId: 'hair-tp-clinic',
+      fromDate: '2026-08-17',
+      toDate: '2026-08-17',
+      resIds: 'veronica',
+      srvIds: 'consultation-physical',
+    });
+    assert.equal(outOfCycle.length, 0, 'cykelvecka 4 ska inte ge tid för cycleWeek 1');
+
+    // 2026-09-21 är måndag i cykelvecka 1 igen.
+    const nextCycle = await store.listAvailability({
+      tenantId: 'hair-tp-clinic',
+      fromDate: '2026-09-21',
+      toDate: '2026-09-21',
+      resIds: 'veronica',
+      srvIds: 'consultation-physical',
+    });
+    assert.equal(nextCycle.length, 1, 'cykelvecka 1 ska återkomma fyra veckor senare');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
