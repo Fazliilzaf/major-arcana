@@ -1766,113 +1766,378 @@
     }
   }
 
+  function dossierDateParts(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    const parts = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Europe/Stockholm',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    }).formatToParts(d);
+    const get = (type) => parts.find((p) => p.type === type)?.value || '';
+    return {
+      day: get('weekday').replace(/\.$/, ''),
+      num: get('day'),
+      mon: get('month').replace(/\.$/, ''),
+    };
+  }
+
+  function dossierFormatDateTime(value) {
+    if (!value) return '—';
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('sv-SE', {
+      timeZone: 'Europe/Stockholm',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  function dossierFormatCurrency(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return value || '—';
+    return num.toLocaleString('sv-SE', { style: 'currency', currency: 'SEK', maximumFractionDigits: 0 });
+  }
+
+  function dossierAvatarColor(name) {
+    if (!name) return '#84756b';
+    const palette = ['#7c3aed', '#a37433', '#2596a8', '#bb4779', '#4a8268', '#c8821e', '#84756b', '#5e8db8'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+    return palette[hash % palette.length];
+  }
+
+  function v6CloseDossier() {
+    const shell = document.querySelector('.intel-shell');
+    if (!shell) return;
+    shell.dataset.context = 'booking';
+    const customerView = shell.querySelector('.intel-customer-view');
+    if (customerView) customerView.innerHTML = '';
+    const tabs = shell.querySelectorAll('.intel-tab');
+    tabs.forEach((t) => t.classList.remove('active'));
+    const firstTab = shell.querySelector('.intel-tab');
+    if (firstTab) firstTab.classList.add('active');
+  }
+
   function v6RenderDossierTab(shell, slot, tab) {
-    const content = shell.querySelector('.ai-reason');
-    if (!content) return;
-    content.innerHTML = '';
+    const customerView = shell.querySelector('.intel-customer-view');
+    if (!customerView) return;
     if (!slot?.patientId) {
-      content.textContent = 'Välj ett besök med en kopplad patient för att visa dossié.';
+      customerView.innerHTML = '';
+      shell.dataset.context = 'booking';
       return;
     }
-    content.appendChild(el('div', { class: 'cco-cal-empty' }, 'Läser patientdossié…'));
+
+    shell.dataset.context = 'customer';
+    customerView.innerHTML = '<div class="dossier-scroll"><div class="cco-cal-empty">Läser patientdossié…</div></div>';
+
     fetchPatientDossier(slot.patientId).then((dossier) => {
       if (v6State.selected !== slot) return;
-      content.innerHTML = '';
       if (!dossier) {
-        content.textContent = 'Dossié kunde inte hämtas.';
+        customerView.innerHTML = '<div class="dossier-scroll"><p class="cco-cal-dossier-empty">Dossié kunde inte hämtas.</p></div>';
         return;
       }
-      const renderList = (items, render) => {
-        if (!items || !items.length) return el('p', { class: 'cco-cal-dossier-empty' }, 'Inga poster.');
-        const list = el('div', { class: 'cco-cal-dossier-list' });
-        items.forEach((item) => list.appendChild(render(item)));
-        return list;
+
+      const card = dossier.card || {};
+      const displayName = card.displayName || slot.patientName || 'Okopplad patient';
+      const initials = v6Initials(displayName);
+      const avatarColor = dossierAvatarColor(displayName);
+      const contactParts = [card.primaryPhone, card.primaryEmail].filter(Boolean);
+      const contact = contactParts.length ? contactParts.join(' · ') : 'Ingen kontaktinformation registrerad.';
+
+      const statValue = (value, fallback) => {
+        if (value === undefined || value === null || value === '') return fallback;
+        return value;
       };
-      const fmtDate = (value) => {
-        if (!value) return '—';
-        const d = new Date(value);
-        return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('sv-SE', {
-          timeZone: 'Europe/Stockholm', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+
+      const stats = [
+        { label: 'Besök', value: statValue(card.totalVisits, '—'), trend: statValue(card.visitTrend, '') },
+        { label: 'Intäkt', value: statValue(card.lifetimeValue, '—'), trend: statValue(card.revenueTrend, '') },
+        { label: 'No-shows', value: statValue(card.attendance?.noShows, '—'), trend: statValue(card.attendance?.trend, '') },
+      ];
+
+      const tagItems = [];
+      if (card.flags?.lifecycle) {
+        tagItems.push({ kind: 'lifecycle', label: card.flags.lifecycle });
+      }
+      const tagsHtml = tagItems.length
+        ? `<div class="dossier-tags">${tagItems.map((t) => `<span class="dossier-tag dossier-tag--${t.kind}">${escapeHtml(t.label)}</span>`).join('')}</div>`
+        : '';
+
+      const headHtml = `
+        <div class="dossier-head">
+          <div class="dossier-avatar" style="background:${avatarColor}">${initials}</div>
+          <div class="dossier-head-body">
+            <div class="dossier-kicker">★ Kunddossiér</div>
+            <div class="dossier-name">${escapeHtml(displayName)}</div>
+            <div class="dossier-contact">${escapeHtml(contact)}</div>
+            ${tagsHtml}
+          </div>
+          <button class="dossier-close" id="dossierClose" title="Stäng dossiér" type="button">×</button>
+        </div>
+        <div class="dossier-stats">
+          ${stats.map((s) => `
+            <div class="dossier-stat">
+              <div class="dossier-stat-label">${escapeHtml(s.label)}</div>
+              <div class="dossier-stat-value">${escapeHtml(String(s.value))}</div>
+              ${s.trend ? `<div class="dossier-stat-trend">${escapeHtml(String(s.trend))}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      const fmtStatus = (status) => {
+        const s = String(status || '').toLowerCase();
+        if (s === 'confirmed' || s === 'bekräftad') return { state: 'ready', label: 'Bekräftad' };
+        if (s === 'cancelled' || s === 'avbokad') return { state: 'done', label: 'Avbokad' };
+        if (s === 'noshow') return { state: 'noshow', label: 'No-show' };
+        return { state: 'warn', label: status || 'Okänd' };
+      };
+
+      const renderBookingRow = (b, opts = {}) => {
+        const date = dossierDateParts(b.startsAt || b.date);
+        const status = fmtStatus(b.status);
+        const source = b.source || slot.source || 'info';
+        return `
+          <div class="dossier-booking" data-source="${escapeHtml(String(source))}">
+            <div class="db-date">
+              ${date ? `<div class="day">${date.day}</div><div class="num">${date.num}</div><div class="mon">${date.mon}</div>` : '<div class="num">—</div>'}
+            </div>
+            <div class="db-meta">
+              <div class="db-title">${escapeHtml(b.serviceDisplayName || b.serviceName || b.serviceLabel || b.serviceId || 'Besök')}</div>
+              <div class="db-sub">${escapeHtml(dossierFormatDateTime(b.startsAt || b.date))}</div>
+            </div>
+            <span class="db-status" data-state="${status.state}">${status.label}</span>
+          </div>
+        `;
+      };
+
+      const visits = [
+        ...(dossier.upcomingBookings || []),
+        ...(dossier.historyBookings || []),
+      ];
+      const timeline = dossier.occasionTimeline || dossier.visitSegments || [];
+      const files = dossier.driveFiles || [];
+      const notes = [
+        ...(dossier.journalEntries || []),
+        ...(dossier.communicationMessages || []),
+      ];
+      const comms = dossier.communicationMessages || [];
+      const economy = [];
+      if (dossier.paymentHistory?.length || dossier.quotedAmount || dossier.depositAmount || dossier.paymentStatus) {
+        economy.push(
+          { label: 'Betalstatus', value: dossier.paymentStatus || '—' },
+          { label: 'Offert', value: dossier.quotedAmount ? dossierFormatCurrency(dossier.quotedAmount) : '—' },
+          { label: 'Deposition', value: dossier.depositAmount ? dossierFormatCurrency(dossier.depositAmount) : '—' }
+        );
+      }
+
+      const section = (title, count, body, open) => `
+        <details class="dossier-section" ${open ? 'open' : ''}>
+          <summary>${escapeHtml(title)} <span class="count">${count}</span></summary>
+          ${body}
+        </details>
+      `;
+
+      const visitsBody = visits.length
+        ? visits.map((b) => renderBookingRow(b)).join('')
+        : '<p class="cco-cal-dossier-empty">Inga besök registrerade.</p>';
+
+      const historyBody = timeline.length
+        ? timeline.map((t) => renderBookingRow(t)).join('')
+        : '<p class="cco-cal-dossier-empty">Ingen historik registrerad.</p>';
+
+      const filesBody = files.length
+        ? `<div class="dossier-files">${files.map((f) => `
+          <div class="dossier-file">
+            <div class="dossier-file-icon">${fileIcon(f.mimeType)}</div>
+            <div class="dossier-file-name">${escapeHtml(f.name || f.fileName || 'Fil')}</div>
+          </div>
+        `).join('')}</div>`
+        : '<p class="cco-cal-dossier-empty">Inga filer registrerade.</p>';
+
+      const notesBody = notes.length
+        ? notes.map((n) => `
+          <div class="dossier-note">
+            ${escapeHtml(n.text || n.summary || n.content || '')}
+            <div class="dossier-note-meta">${escapeHtml(n.type || n.kind || 'Anteckning')} · ${dossierFormatDateTime(n.createdAt)}</div>
+          </div>
+        `).join('')
+        : '<p class="cco-cal-dossier-empty">Inga anteckningar registrerade.</p>';
+
+      const commBody = comms.length
+        ? comms.map((c) => `
+          <div class="dossier-comm">
+            <div class="dossier-comm-icon" data-type="${commType(c.type)}">${commIcon(c.type)}</div>
+            <div class="dossier-comm-body">
+              <div class="dossier-comm-text">${escapeHtml(c.text || c.summary || c.subject || 'Meddelande')}</div>
+              <div class="dossier-comm-meta">${dossierFormatDateTime(c.createdAt || c.sentAt)}</div>
+            </div>
+          </div>
+        `).join('')
+        : '<p class="cco-cal-dossier-empty">Ingen kommunikation registrerad.</p>';
+
+      const economyBody = economy.length
+        ? economy.map((m) => `
+          <div class="dossier-money">
+            <div class="dossier-money-label">${escapeHtml(m.label)}</div>
+            <div class="dossier-money-value">${escapeHtml(String(m.value))}</div>
+          </div>
+        `).join('')
+        : '<p class="cco-cal-dossier-empty">Ingen ekonomisk data registrerad.</p>';
+
+      const photosPlaceholderId = 'dossierPhotos';
+      const photosBody = `<div id="${photosPlaceholderId}"><p class="cco-cal-dossier-empty">Läser före/efter-bilder…</p></div>`;
+
+      customerView.innerHTML = headHtml + `
+        <div class="dossier-scroll">
+          ${section('Kommande bokningar', visits.length, visitsBody, true)}
+          ${section('Historik', timeline.length, historyBody, false)}
+          ${section('Filer', files.length, filesBody, false)}
+          ${section('Foton', 0, photosBody, false)}
+          ${section('Anteckningar', notes.length, notesBody, false)}
+          ${section('Kommunikation', comms.length, commBody, false)}
+          ${section('Ekonomi', economy.length, economyBody, false)}
+        </div>
+        <div class="dossier-actions">
+          <button class="quick-pill quick-pill--ai full" type="button" id="dossierBookNext">★ Boka nästa besök</button>
+          <button class="quick-pill" type="button" id="dossierNote">✎ Anteckna</button>
+          <button class="quick-pill" type="button" id="dossierReply">✉ Svarstudio</button>
+          <button class="quick-pill quick-pill--success full" type="button" id="dossierConfirmUpcoming">✓ Bekräfta kommande tider (${visits.length})</button>
+        </div>
+      `;
+
+      fetch('/api/v1/cco-journal/before-after-photos?patientId=' + encodeURIComponent(slot.patientId),
+        { headers: calendarHeaders() })
+        .then((response) => response.ok ? response.json() : null)
+        .then((gallery) => {
+          if (v6State.selected !== slot) return;
+          const container = customerView.querySelector('#' + photosPlaceholderId);
+          const sectionEl = container?.closest('details');
+          if (!container) return;
+
+          const renderPhotoGroup = (title, items) => {
+            container.appendChild(el('h4', { class: 'cco-cal-dossier-subtitle' }, title));
+            container.appendChild(el('div', { class: 'dossier-files' }, items.map((p) =>
+              el('div', { class: 'dossier-file', dataset: { photo: '1' } }, [
+                el('img', { src: p.thumbnailUrl || p.url || '', alt: p.label || p.fileName || 'Foto' }),
+                el('div', { class: 'dossier-file-name' }, p.label || p.fileName || 'Foto'),
+              ])
+            )));
+          };
+
+          container.innerHTML = '';
+          const allPhotos = [
+            ...(gallery?.before || []),
+            ...(gallery?.after || []),
+            ...(gallery?.unclassified || []),
+          ];
+          if (allPhotos.length) {
+            if (gallery?.before?.length) renderPhotoGroup('Före', gallery.before);
+            if (gallery?.after?.length) renderPhotoGroup('Efter', gallery.after);
+            if (gallery?.unclassified?.length) renderPhotoGroup('Oklassificerade', gallery.unclassified);
+          } else {
+            container.appendChild(el('p', { class: 'cco-cal-dossier-empty' }, 'Inga före/efter-bilder än.'));
+          }
+          container.appendChild(el('button', {
+            class: 'quick-pill quick-pill--ai', type: 'button',
+            onclick: () => openCameraDrawer(slot),
+          }, 'Ta ny före/efter-bild'));
+
+          if (sectionEl) {
+            const countEl = sectionEl.querySelector('.count');
+            if (countEl) countEl.textContent = String(allPhotos.length);
+          }
+        })
+        .catch(() => {
+          const container = customerView.querySelector('#' + photosPlaceholderId);
+          if (!container) return;
+          container.innerHTML = '<p class="cco-cal-dossier-empty">Kunde inte hämta bilder.</p>';
+          container.appendChild(el('button', {
+            class: 'quick-pill quick-pill--ai', type: 'button',
+            onclick: () => openCameraDrawer(slot),
+          }, 'Ta ny före/efter-bild'));
         });
-      };
-      if (tab === 'Besök') {
-        const visits = [
-          ...(dossier.upcomingBookings || []),
-          ...(dossier.historyBookings || []),
-        ];
-        content.appendChild(renderList(visits, (v) => el('div', { class: 'cco-cal-dossier-row' }, [
-          el('strong', {}, v.serviceDisplayName || v.serviceName || v.serviceId || 'Besök'),
-          el('span', {}, fmtDate(v.startsAt) + ' · ' + (v.status || '')),
-        ])));
-      } else if (tab === 'Historik') {
-        const timeline = dossier.occasionTimeline || dossier.visitSegments || [];
-        content.appendChild(renderList(timeline, (t) => el('div', { class: 'cco-cal-dossier-row' }, [
-          el('strong', {}, t.label || t.type || 'Händelse'),
-          el('span', {}, fmtDate(t.date || t.startsAt || t.createdAt)),
-        ])));
-      } else if (tab === 'Filer') {
-        content.appendChild(renderList(dossier.driveFiles || [], (f) => el('div', { class: 'cco-cal-dossier-row' }, [
-          el('strong', {}, f.name || f.fileName || 'Fil'),
-          el('span', {}, (f.mimeType || '').split('/')[1] || f.mimeType || ''),
-        ])));
-      } else if (tab === 'Anteckningar') {
-        const notes = [
-          ...(dossier.journalEntries || []),
-          ...(dossier.communicationMessages || []),
-        ];
-        content.appendChild(renderList(notes, (n) => el('div', { class: 'cco-cal-dossier-row' }, [
-          el('strong', {}, n.type || n.kind || 'Anteckning'),
-          el('span', {}, n.text || n.summary || n.content || fmtDate(n.createdAt)),
-        ])));
-      } else if (tab === 'Foton') {
-        content.appendChild(el('button', {
-          class: 'quick-pill quick-pill--ai', type: 'button',
-          onclick: () => openCameraDrawer(slot),
-        }, 'Ta ny före/efter-bild'));
-        content.appendChild(el('div', { class: 'cco-cal-empty' }, 'Läser före/efter-bilder…'));
-        fetch('/api/v1/cco-journal/before-after-photos?patientId=' + encodeURIComponent(slot.patientId),
-          { headers: calendarHeaders() })
-          .then((response) => response.ok ? response.json() : null)
-          .then((gallery) => {
-            if (v6State.selected !== slot) return;
-            content.querySelector('.cco-cal-empty')?.remove();
-            if (!gallery) {
-              content.appendChild(el('p', { class: 'cco-cal-dossier-empty' }, 'Kunde inte hämta bilder.'));
-              return;
-            }
-            const renderPhotoGroup = (title, items) => {
-              content.appendChild(el('h4', { class: 'cco-cal-dossier-subtitle' }, title));
-              content.appendChild(renderList(items, (p) => el('div', { class: 'cco-cal-dossier-row' }, [
-                el('strong', {}, p.label || p.fileName || 'Bild'),
-                el('span', {}, fmtDate(p.capturedAt)),
-              ])));
-            };
-            if (gallery.before?.length) renderPhotoGroup('Före', gallery.before);
-            if (gallery.after?.length) renderPhotoGroup('Efter', gallery.after);
-            if (gallery.unclassified?.length) renderPhotoGroup('Oklassificerade', gallery.unclassified);
-            if (!gallery.before?.length && !gallery.after?.length && !gallery.unclassified?.length) {
-              content.appendChild(el('p', { class: 'cco-cal-dossier-empty' }, 'Inga före/efter-bilder än.'));
-            }
-          })
-          .catch(() => {
-            content.querySelector('.cco-cal-empty')?.remove();
-            content.appendChild(el('p', { class: 'cco-cal-dossier-empty' }, 'Kunde inte hämta bilder.'));
+
+      const closeBtn = customerView.querySelector('#dossierClose');
+      if (closeBtn) closeBtn.addEventListener('click', v6CloseDossier);
+
+      const bookNextBtn = customerView.querySelector('#dossierBookNext');
+      if (bookNextBtn) {
+        bookNextBtn.addEventListener('click', () => {
+          if (isCreateBookingEnabled()) openCreateBookingDrawer(slot);
+        });
+      }
+
+      const scroll = customerView.querySelector('.dossier-scroll');
+      if (scroll && tab) {
+        const titles = { Besök: 'Kommande bokningar', Historik: 'Historik', Filer: 'Filer', Anteckningar: 'Anteckningar', Foton: 'Foton' };
+        const target = scroll.querySelector('details');
+        if (target && titles[tab]) {
+          Array.from(scroll.querySelectorAll('details')).forEach((d) => {
+            const summaryText = d.querySelector('summary')?.childNodes[0]?.textContent?.trim();
+            if (summaryText === titles[tab]) d.setAttribute('open', '');
+            else d.removeAttribute('open');
           });
+          setTimeout(() => {
+            const active = Array.from(scroll.querySelectorAll('details')).find((d) => {
+              const summaryText = d.querySelector('summary')?.childNodes[0]?.textContent?.trim();
+              return summaryText === titles[tab];
+            });
+            if (active) active.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 0);
+        }
       }
     });
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  function fileIcon(mimeType) {
+    const type = String(mimeType || '').toLowerCase();
+    if (type.startsWith('image/')) return '🖼';
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('word') || type.includes('document')) return '📝';
+    if (type.includes('sheet') || type.includes('excel') || type.includes('csv')) return '📊';
+    return '📎';
+  }
+
+  function commType(type) {
+    const t = String(type || '').toLowerCase();
+    if (t.includes('mail') || t.includes('email')) return 'mail';
+    if (t.includes('sms') || t.includes('text')) return 'sms';
+    if (t.includes('call') || t.includes('phone') || t.includes('tel')) return 'call';
+    return 'mail';
+  }
+
+  function commIcon(type) {
+    const t = commType(type);
+    return t === 'mail' ? '✉' : t === 'sms' ? '💬' : '📞';
   }
 
   function v6RenderIntel(slot) {
     const shell = document.querySelector('.intel-shell');
     if (!shell) return;
     v6State.selected = slot || null;
-    v6SetText(shell.querySelector('.intel-avatar'), v6Initials(slot && slot.patientName));
-    v6SetText(shell.querySelector('.intel-name'), slot ? (slot.patientName || 'Okopplad patient') : 'Välj ett besök');
-    v6SetText(shell.querySelector('.intel-meta'), slot
+    shell.dataset.context = 'booking';
+
+    const bookingView = shell.querySelector('.intel-booking-view');
+    const customerView = shell.querySelector('.intel-customer-view');
+    if (customerView) customerView.innerHTML = '';
+
+    v6SetText(bookingView?.querySelector('.intel-avatar'), v6Initials(slot && slot.patientName));
+    v6SetText(bookingView?.querySelector('.intel-name'), slot ? (slot.patientName || 'Okopplad patient') : 'Välj ett besök');
+    v6SetText(bookingView?.querySelector('.intel-meta'), slot
       ? statusLabel(slot.status) + ' · ' + sourceLabel(slot.source)
       : 'Canonical bokningsdata');
 
-    const grid = shell.querySelector('.intel-grid');
+    const grid = bookingView?.querySelector('.intel-grid');
     if (grid) {
       grid.innerHTML = '';
       const rows = slot ? [
@@ -1891,7 +2156,7 @@
       });
     }
 
-    const ready = shell.querySelector('.ready-row');
+    const ready = bookingView?.querySelector('.ready-row');
     if (ready) {
       ready.innerHTML = '';
       if (slot) {
@@ -1910,7 +2175,7 @@
       }
     }
 
-    const notes = shell.querySelector('.ai-reason');
+    const notes = bookingView?.querySelector('.ai-reason');
     if (notes) {
       notes.innerHTML = '';
       const noteFields = slot ? [
@@ -1931,7 +2196,7 @@
       }
     }
 
-    const tabs = shell.querySelector('.intel-tabs');
+    const tabs = bookingView?.querySelector('.intel-tabs');
     if (tabs) {
       tabs.innerHTML = '';
       const labels = ['Besök', 'Historik', 'Filer', 'Anteckningar', 'Foton'];
@@ -1948,7 +2213,7 @@
       });
     }
 
-    const actions = shell.querySelector('.intel-actions');
+    const actions = bookingView?.querySelector('.intel-actions');
     if (actions) {
       actions.innerHTML = '';
       if (slot && slot.patientId && slot.linkAllowed !== false && !slot.identityAmbiguous) {
