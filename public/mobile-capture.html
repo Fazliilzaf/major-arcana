@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#faf6f2" />
+    <title>Fota kvitto · CM</title>
+    <style>
+      :root {
+        --bg: #faf6f2;
+        --ink: #2b251f;
+        --muted: #84756b;
+        --accent: #bb4779;
+        --ok: #4a8268;
+        --warn: #c8821e;
+        --danger: #b94a4a;
+        --panel: rgba(255, 255, 255, 0.94);
+        --radius: 16px;
+        --shadow: 0 8px 24px rgba(70, 50, 30, 0.08), 0 2px 6px rgba(70, 50, 30, 0.05);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        min-height: 100vh;
+        line-height: 1.45;
+      }
+      .wrap {
+        max-width: 480px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      header {
+        margin-bottom: 16px;
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 800;
+        margin: 0 0 4px;
+      }
+      .subtitle {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .card {
+        background: var(--panel);
+        border-radius: var(--radius);
+        padding: 16px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+      }
+      .viewfinder {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 3 / 4;
+        background: #1a1612;
+        border-radius: var(--radius);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      video,
+      .preview-img,
+      .placeholder {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+        text-align: center;
+        padding: 24px;
+      }
+      .placeholder-icon {
+        font-size: 48px;
+        margin-bottom: 8px;
+      }
+      .guide {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .guide-frame {
+        width: 82%;
+        height: 62%;
+        border: 2px dashed rgba(255, 255, 255, 0.65);
+        border-radius: 12px;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.28);
+      }
+      .guide-text {
+        position: absolute;
+        bottom: 18%;
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 13px;
+        font-weight: 600;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+        white-space: nowrap;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .btn {
+        flex: 1;
+        appearance: none;
+        border: 0;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 241, 232, 0.92));
+        color: var(--ink);
+        padding: 14px 16px;
+        border-radius: 14px;
+        font-size: 15px;
+        font-weight: 650;
+        cursor: pointer;
+        text-align: center;
+        box-shadow: var(--shadow);
+        min-height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .btn-primary {
+        background: linear-gradient(180deg, #6b4f3f, #4f3a2d);
+        color: #fff;
+      }
+      .btn-danger {
+        background: linear-gradient(180deg, #c85a5a, #a84040);
+        color: #fff;
+      }
+      .shutter {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 4px solid #fff;
+        background: rgba(255, 255, 255, 0.25);
+        position: absolute;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      }
+      .shutter::after {
+        content: '';
+        position: absolute;
+        inset: 6px;
+        border-radius: 50%;
+        background: #fff;
+      }
+      .shutter:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .hidden {
+        display: none !important;
+      }
+      .status {
+        font-size: 13px;
+        color: var(--muted);
+        text-align: center;
+        margin-top: 12px;
+      }
+      .status.error {
+        color: var(--danger);
+      }
+      .status.ok {
+        color: var(--ok);
+      }
+      .result-grid {
+        display: grid;
+        gap: 10px;
+      }
+      .result-field {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        background: rgba(248, 241, 232, 0.7);
+        border-radius: 10px;
+      }
+      .result-field label {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .result-field span {
+        font-size: 14px;
+        font-weight: 650;
+      }
+      .confidence {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        margin-left: 6px;
+      }
+      .confidence-high {
+        background: rgba(74, 130, 104, 0.14);
+        color: var(--ok);
+      }
+      .confidence-low {
+        background: rgba(200, 130, 30, 0.14);
+        color: var(--warn);
+      }
+      .fallback {
+        margin-top: 12px;
+      }
+      input[type='file'] {
+        width: 100%;
+        padding: 10px;
+        border: 1px dashed rgba(132, 117, 107, 0.4);
+        border-radius: 10px;
+        background: #fff;
+      }
+      @media (max-width: 360px) {
+        .wrap {
+          padding: 10px;
+        }
+        h1 {
+          font-size: 18px;
+        }
+        .shutter {
+          width: 60px;
+          height: 60px;
+          bottom: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>📷 Fota kvitto</h1>
+        <div class="subtitle">
+          Håll kvittot innanför ramen — systemet läser belopp och leverantör automatiskt.
+        </div>
+      </header>
+
+      <!-- Camera view -->
+      <div class="card" id="camera-card">
+        <div class="viewfinder" id="viewfinder">
+          <div class="placeholder" id="placeholder">
+            <div class="placeholder-icon">📷</div>
+            <div>Väntar på kamera…</div>
+          </div>
+          <video id="video" autoplay playsinline muted class="hidden"></video>
+          <img id="preview" class="preview-img hidden" alt="Kvittoförhandsgranskning" />
+          <div class="guide" id="guide">
+            <div class="guide-frame"></div>
+            <div class="guide-text">Placera kvittot här</div>
+          </div>
+        </div>
+        <button
+          class="shutter"
+          id="shutter"
+          type="button"
+          aria-label="Fota kvitto"
+          disabled
+        ></button>
+
+        <div class="fallback">
+          <input type="file" id="file-input" accept="image/*" capture="environment" />
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="actions" id="capture-actions">
+        <a class="btn" href="/finance.html">⬅ Tillbaka</a>
+        <button class="btn btn-primary hidden" id="use-photo" type="button">Använd foto</button>
+        <button class="btn hidden" id="retake" type="button">Ta om</button>
+      </div>
+
+      <div class="status" id="status"></div>
+
+      <!-- Result view -->
+      <div class="card hidden" id="result-card">
+        <h2 style="margin: 0 0 12px; font-size: 18px">AI-lästa fält</h2>
+        <div class="result-grid" id="result-grid"></div>
+        <div class="actions" style="margin-top: 16px">
+          <button class="btn" id="new-capture" type="button">Nytt foto</button>
+          <button class="btn btn-primary" id="approve-capture" type="button">Godkänn</button>
+          <button class="btn btn-danger" id="reject-capture" type="button">Avvisa</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Auth-token helper — använder samma ARCANA_ADMIN_TOKEN som /admin
+      function getAuthHeaders() {
+        const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+        return token ? { Authorization: `Bearer ${token}` } : {};
+      }
+
+      const video = document.getElementById('video');
+      const preview = document.getElementById('preview');
+      const placeholder = document.getElementById('placeholder');
+      const guide = document.getElementById('guide');
+      const shutter = document.getElementById('shutter');
+      const usePhoto = document.getElementById('use-photo');
+      const retake = document.getElementById('retake');
+      const fileInput = document.getElementById('file-input');
+      const statusEl = document.getElementById('status');
+      const resultCard = document.getElementById('result-card');
+      const resultGrid = document.getElementById('result-grid');
+      const newCaptureBtn = document.getElementById('new-capture');
+      const approveBtn = document.getElementById('approve-capture');
+      const rejectBtn = document.getElementById('reject-capture');
+
+      let stream = null;
+      let capturedBlob = null;
+      let currentExpenseRecord = null;
+      let currentRawItem = null;
+
+      function setStatus(text, type) {
+        statusEl.textContent = text;
+        statusEl.className = 'status ' + (type || '');
+      }
+
+      function showPreview() {
+        video.classList.add('hidden');
+        placeholder.classList.add('hidden');
+        preview.classList.remove('hidden');
+        guide.classList.add('hidden');
+        shutter.classList.add('hidden');
+        usePhoto.classList.remove('hidden');
+        retake.classList.remove('hidden');
+      }
+
+      function showCamera() {
+        preview.classList.add('hidden');
+        preview.src = '';
+        placeholder.classList.add('hidden');
+        video.classList.remove('hidden');
+        guide.classList.remove('hidden');
+        shutter.classList.remove('hidden');
+        usePhoto.classList.add('hidden');
+        retake.classList.add('hidden');
+        resultCard.classList.add('hidden');
+        capturedBlob = null;
+        currentExpenseRecord = null;
+        currentRawItem = null;
+      }
+
+      async function startCamera() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' },
+            audio: false,
+          });
+          video.srcObject = stream;
+          placeholder.classList.add('hidden');
+          video.classList.remove('hidden');
+          shutter.disabled = false;
+          setStatus('Kamera aktiv', 'ok');
+        } catch (err) {
+          console.error('Kamerafel:', err);
+          setStatus('Kunde inte starta kamera. Använd filväljaren nedan.', 'error');
+          placeholder.innerHTML =
+            '<div class="placeholder-icon">⚠️</div><div>Kamera ej tillgänglig</div>';
+        }
+      }
+
+      function capturePhoto() {
+        if (!video.videoWidth) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+        canvas.toBlob(
+          (blob) => {
+            capturedBlob = blob;
+            preview.src = URL.createObjectURL(blob);
+            showPreview();
+          },
+          'image/jpeg',
+          0.92
+        );
+      }
+
+      function handleFile(file) {
+        if (!file || !file.type.startsWith('image/')) {
+          setStatus('Välj en bildfil (JPG/PNG/WEBP).', 'error');
+          return;
+        }
+        capturedBlob = file;
+        preview.src = URL.createObjectURL(file);
+        showPreview();
+        setStatus('Bild vald', 'ok');
+      }
+
+      async function uploadCapture() {
+        if (!capturedBlob) return;
+        setStatus('Laddar upp och läser av kvittot…');
+        usePhoto.disabled = true;
+
+        const form = new FormData();
+        form.append('image', capturedBlob, 'capture.jpg');
+
+        try {
+          const res = await fetch('/api/v1/cm/capture', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: form,
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error(data.error || `Serverfel ${res.status}`);
+          }
+          currentExpenseRecord = data.expenseRecord;
+          currentRawItem = data.rawItem;
+          renderResult(data.extraction, data.expenseRecord, data.needsReview);
+          setStatus(
+            currentExpenseRecord
+              ? 'Kvittot tolkat'
+              : 'Kunde inte tolka kvittot — granska manuellt i finance.html',
+            'ok'
+          );
+        } catch (err) {
+          setStatus('Fel: ' + err.message, 'error');
+        } finally {
+          usePhoto.disabled = false;
+        }
+      }
+
+      function kr(n) {
+        if (n == null || Number.isNaN(Number(n))) return '—';
+        return (
+          Number(n).toLocaleString('sv-SE', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }) + ' kr'
+        );
+      }
+
+      function renderResult(extraction, record, needsReview) {
+        resultGrid.innerHTML = '';
+        const fields = [
+          { label: 'Leverantör', value: extraction?.supplier || '—' },
+          { label: 'Belopp', value: kr(extraction?.amountIncVat) },
+          { label: 'Moms', value: kr(extraction?.vatAmount) },
+          { label: 'Datum', value: extraction?.date || '—' },
+          { label: 'Kategori', value: extraction?.category || '—' },
+          {
+            label: 'Säkerhet',
+            value:
+              (extraction?.confidenceScore || 0) +
+              '% ' +
+              (needsReview
+                ? '<span class="confidence confidence-low">Granskning</span>'
+                : '<span class="confidence confidence-high">OK</span>'),
+          },
+        ];
+        for (const f of fields) {
+          const row = document.createElement('div');
+          row.className = 'result-field';
+          row.innerHTML = `<label>${f.label}</label><span>${f.value}</span>`;
+          resultGrid.appendChild(row);
+        }
+        resultCard.classList.remove('hidden');
+      }
+
+      async function promoteRecord() {
+        if (!currentExpenseRecord) return;
+        approveBtn.disabled = true;
+        try {
+          const res = await fetch(`/api/v1/cm/expense-records/${currentExpenseRecord.id}/promote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Kunde inte godkänna');
+          setStatus('Godkänd och överlämnad till CFO.', 'ok');
+          setTimeout(showCamera, 1200);
+        } catch (err) {
+          setStatus('Fel vid godkännande: ' + err.message, 'error');
+          approveBtn.disabled = false;
+        }
+      }
+
+      async function rejectRecord() {
+        if (!currentExpenseRecord) return;
+        rejectBtn.disabled = true;
+        try {
+          const res = await fetch(`/api/v1/cm/expense-records/${currentExpenseRecord.id}/reject`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({ reason: 'Avvisad från mobil capture' }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Kunde inte avvisa');
+          setStatus('Avvisad.', 'ok');
+          setTimeout(showCamera, 1200);
+        } catch (err) {
+          setStatus('Fel vid avvisande: ' + err.message, 'error');
+          rejectBtn.disabled = false;
+        }
+      }
+
+      shutter.addEventListener('click', capturePhoto);
+      usePhoto.addEventListener('click', uploadCapture);
+      retake.addEventListener('click', showCamera);
+      newCaptureBtn.addEventListener('click', showCamera);
+      approveBtn.addEventListener('click', promoteRecord);
+      rejectBtn.addEventListener('click', rejectRecord);
+      fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+      startCamera();
+    </script>
+  </body>
+</html>
