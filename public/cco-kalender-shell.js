@@ -2792,6 +2792,7 @@
         v6Load();
       };
 
+      const selected = v6State.selected;
       switch (event.key) {
         case '1': event.preventDefault(); go('morgon'); break;
         case '2': event.preventDefault(); go('vecka'); break;
@@ -2801,6 +2802,9 @@
         case 'k': event.preventDefault(); shiftDay(-1); break;
         case 'h': event.preventDefault(); if (v6State.mode === 'dag' || v6State.mode === 'resurs') shiftDay(-1); else shiftDay(-1); break;
         case 'l': event.preventDefault(); if (v6State.mode === 'dag' || v6State.mode === 'resurs') shiftDay(1); else shiftDay(1); break;
+        case 'n': event.preventDefault(); if (isCreateBookingEnabled() && selected?.patientId && !selected.identityAmbiguous && selected.linkAllowed !== false) openCreateBookingDrawer(selected); break;
+        case 'r': event.preventDefault(); if (isRebookable(selected)) openRebookDrawer(selected); break;
+        case 'c': event.preventDefault(); if (isCancellable(selected)) openCancelDrawer(selected); break;
         case '?': event.preventDefault(); toggleKeyboardHelp(); break;
         default: break;
       }
@@ -2827,6 +2831,9 @@
           el('dt', {}, '4'), el('dd', {}, 'Resursvy'),
           el('dt', {}, 'j / l'), el('dd', {}, 'Nästa / föregående dag eller vecka'),
           el('dt', {}, 'k / h'), el('dd', {}, 'Föregående / nästa dag eller vecka'),
+          el('dt', {}, 'n'), el('dd', {}, 'Ny bokning för vald patient'),
+          el('dt', {}, 'r'), el('dd', {}, 'Boka om valt besök'),
+          el('dt', {}, 'c'), el('dd', {}, 'Avboka valt besök'),
           el('dt', {}, '⌘K'), el('dd', {}, 'Sök canonical bokningshistorik'),
           el('dt', {}, '?'), el('dd', {}, 'Visa denna hjälp'),
           el('dt', {}, 'Esc'), el('dd', {}, 'Stäng sökning / hjälp'),
@@ -2914,6 +2921,16 @@
     if (!slot.customerEmail || !slot.conversationId) return false;
     if (!slot.serviceId || !slot.resourceId) return false;
     if (slot.identityAmbiguous || slot.linkAllowed === false) return false;
+    return true;
+  }
+
+  function isCancellable(slot) {
+    if (!slot) return false;
+    if (slot.source !== 'cco_booking_engine') return false;
+    if (!slot.customerEmail || !slot.conversationId) return false;
+    if (slot.identityAmbiguous || slot.linkAllowed === false) return false;
+    const status = String(slot.status || '').toLowerCase();
+    if (['cancelled', 'canceled', 'no_show', 'completed'].includes(status)) return false;
     return true;
   }
 
@@ -3034,6 +3051,86 @@
 
     dateInput.addEventListener('change', loadAvailability);
     await loadAvailability();
+  }
+
+  async function openCancelDrawer(slot) {
+    if (!isCancellable(slot)) return;
+
+    const drawer = getDrawerMount();
+    drawer.innerHTML = '';
+    drawer.classList.add('is-open');
+    const close = () => {
+      drawer.classList.remove('is-open');
+      drawer.innerHTML = '';
+    };
+    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
+      el('h3', {}, 'Avboka besök'),
+      el('div', { class: 'cco-cal-drawer-meta' }, 'Canonical patient · skrivande åtgärd'),
+      el('button', { class: 'cco-cal-drawer-close', type: 'button', onclick: close, 'aria-label': 'Stäng' }, '×'),
+    ]));
+
+    drawer.appendChild(el('dl', { class: 'cco-cal-preflight-fields' }, [
+      el('dt', {}, 'Patient'), el('dd', {}, slot.patientName || 'Namn saknas'),
+      el('dt', {}, 'Tid'), el('dd', {}, slot.date + ' ' + formatTimeRange(slot.time, slot.endTime)),
+      el('dt', {}, 'Behandling'), el('dd', {}, slot.serviceLabel || slot.serviceId),
+      el('dt', {}, 'Resurs'), el('dd', {}, slot.resourceLabel || slot.resourceId),
+    ]));
+
+    const form = el('section', { class: 'cco-cal-create-controlled' });
+    const reasonInput = el('input', {
+      class: 'cco-cal-create-input', type: 'text', autocomplete: 'off',
+      placeholder: 'Anledning (valfritt)', 'aria-label': 'Avbokningsanledning',
+    });
+    const confirmInput = el('input', {
+      class: 'cco-cal-create-input', type: 'text', autocomplete: 'off',
+      placeholder: 'Skriv AVBOKA', 'aria-label': 'Skriv AVBOKA för att bekräfta',
+    });
+    const message = el('p', { class: 'cco-cal-preflight-footnote', role: 'status' }, '');
+    const confirmButton = el('button', {
+      class: 'quick-pill quick-pill--danger', type: 'button', disabled: 'disabled',
+    }, 'Bekräfta avbokning');
+
+    function updateConfirm() {
+      confirmButton.disabled = confirmInput.value !== 'AVBOKA';
+    }
+    confirmInput.addEventListener('input', updateConfirm);
+
+    confirmButton.addEventListener('click', async () => {
+      confirmButton.disabled = true;
+      try {
+        const response = await fetch('/api/v1/cco-booking-engine/cancel', {
+          method: 'POST',
+          headers: calendarHeaders({ json: true }),
+          body: JSON.stringify({
+            conversationId: slot.conversationId,
+            customerEmail: slot.customerEmail,
+            workspaceId: slot.workspaceId || '',
+            reason: reasonInput.value || 'Avbokad från kalendern',
+          }),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'cancel_failed');
+        drawer.innerHTML = '';
+        drawer.appendChild(el('div', { class: 'cco-cal-ready cco-cal-ready--ok', role: 'status' },
+          'Besöket avbokades.'));
+        setTimeout(() => {
+          close();
+          v6Load();
+        }, 1200);
+      } catch (error) {
+        message.textContent = 'Avbokningen misslyckades: ' + (error.message || 'okänt fel');
+        confirmButton.disabled = false;
+      }
+    });
+
+    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Anledning'));
+    form.appendChild(reasonInput);
+    form.appendChild(el('p', { class: 'cco-cal-preflight-warning' },
+      'Detta avbokar besöket och kan skicka avbokningsbekräftelse till patienten. Skriv AVBOKA för att fortsätta.'));
+    form.appendChild(confirmInput);
+    form.appendChild(confirmButton);
+    form.appendChild(message);
+    drawer.appendChild(form);
   }
 
   function openCameraDrawer(slot) {
