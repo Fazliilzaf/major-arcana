@@ -624,6 +624,8 @@ function defaultState() {
         weekdays: [1, 2, 3, 4, 5],
         startTimes: ['10:30', '13:30'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-prp-hair-veronica',
@@ -633,6 +635,7 @@ function defaultState() {
         startTimes: ['11:00', '14:00'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-prp-skin-veronica',
@@ -642,6 +645,7 @@ function defaultState() {
         startTimes: ['10:00', '13:00'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-micro-veronica',
@@ -651,6 +655,7 @@ function defaultState() {
         startTimes: ['11:00', '14:00'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-followup-veronica',
@@ -659,6 +664,8 @@ function defaultState() {
         weekdays: [2],
         startTimes: ['09:00', '09:30', '15:30', '16:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
+        managedBy: 'staff',
       },
 
       // — Clara: prp-hair Tis/Tor, prp-skin Mån, microneedling Ons, followup Fre —
@@ -669,6 +676,8 @@ function defaultState() {
         weekdays: [1, 2, 3, 4, 5],
         startTimes: ['11:00', '14:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-prp-hair-clara',
@@ -678,6 +687,7 @@ function defaultState() {
         startTimes: ['10:30', '13:30'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-prp-skin-clara',
@@ -687,6 +697,7 @@ function defaultState() {
         startTimes: ['10:00', '13:00'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-micro-clara',
@@ -696,6 +707,7 @@ function defaultState() {
         startTimes: ['11:00', '14:00'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-followup-clara',
@@ -704,6 +716,8 @@ function defaultState() {
         weekdays: [5],
         startTimes: ['09:00', '09:30', '15:30', '16:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
+        managedBy: 'staff',
       },
 
       // — Wendela: prp-hair Mån/Fre, prp-skin Ons, microneedling Tis, followup Tor —
@@ -714,6 +728,8 @@ function defaultState() {
         weekdays: [1, 2, 3, 4, 5],
         startTimes: ['10:00', '15:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-prp-hair-wendela',
@@ -723,6 +739,7 @@ function defaultState() {
         startTimes: ['11:30', '14:30'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-prp-skin-wendela',
@@ -732,6 +749,7 @@ function defaultState() {
         startTimes: ['10:00', '13:00'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-micro-wendela',
@@ -741,6 +759,7 @@ function defaultState() {
         startTimes: ['11:00', '14:00'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-followup-wendela',
@@ -749,6 +768,8 @@ function defaultState() {
         weekdays: [4],
         startTimes: ['09:00', '09:30', '15:30', '16:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
+        managedBy: 'staff',
       },
 
       // — Louise: prp-hair Ons, prp-skin Tor, microneedling Fre, followup Mån —
@@ -759,6 +780,8 @@ function defaultState() {
         weekdays: [1, 2, 3, 4, 5],
         startTimes: ['11:30', '15:30'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-prp-hair-louise',
@@ -768,6 +791,7 @@ function defaultState() {
         startTimes: ['10:30', '13:30'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-prp-skin-louise',
@@ -777,6 +801,7 @@ function defaultState() {
         startTimes: ['10:00', '13:00'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-micro-louise',
@@ -786,6 +811,7 @@ function defaultState() {
         startTimes: ['11:00', '14:00'],
         locationLabel: 'Hair TP Clinic',
         active: false,
+        managedBy: 'staff',
       },
       {
         ruleId: 'rule-followup-louise',
@@ -794,6 +820,8 @@ function defaultState() {
         weekdays: [1],
         startTimes: ['09:00', '09:30', '15:30', '16:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
+        managedBy: 'staff',
       },
     ],
     reservations: [],
@@ -867,7 +895,11 @@ function migratePlanASchema(state) {
     const existing = rulesById.get(canonicalRule.ruleId);
     if (existing?.managedBy === 'staff') continue;
     if (isServiceRegisterPublicBookable(serviceId)) {
-      const next = { ...(existing || {}), ...canonicalRule, active: true };
+      const next = {
+        ...(existing || {}),
+        ...canonicalRule,
+        active: canonicalRule.active !== false,
+      };
       if (!existing || JSON.stringify(existing) !== JSON.stringify(next)) {
         rulesById.set(rule.ruleId, next);
         changed = true;
@@ -876,6 +908,25 @@ function migratePlanASchema(state) {
     }
     if (existing && existing.active !== false) {
       rulesById.set(rule.ruleId, { ...existing, active: false });
+      changed = true;
+    }
+  }
+
+  // Sjuksköterskornas schema-regler är personbundna och följer en rullande
+  // fyra-veckorsrotation som CCO ännu inte kan uttrycka. Stäng av dem tills
+  // cykliska regler är på plats, så att patienter inte bokas hos någon som
+  // inte är på plats. managedBy: 'staff' skyddar reglerna från att default-
+  // sammanslagningen tänder dem igen vid nästa deploy.
+  const staffResourceIds = new Set(
+    state.resources
+      .filter((r) => !r.publicBookable && normalizeText(r.role) === 'sjukskoterska')
+      .map((r) => r.id)
+  );
+  for (const [ruleId, rule] of rulesById) {
+    if (!staffResourceIds.has(rule.resourceId)) continue;
+    const next = { ...rule, active: false, managedBy: 'staff' };
+    if (JSON.stringify(rule) !== JSON.stringify(next)) {
+      rulesById.set(ruleId, next);
       changed = true;
     }
   }
