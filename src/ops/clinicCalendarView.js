@@ -95,6 +95,16 @@ function inferredResourceId(label) {
   return key ? `cliento-${key}` : '';
 }
 
+const TITLE_TOKENS = new Set(['dr', 'leg', 'sjukskoterska', 'underskoterska']);
+
+// Cliento har virtuella banor (t.ex. "Fysisk konsultation", "Online konsultation")
+// som egentligen är tjänstkanaler, inte resurser. De ska inte skapa egna
+// resurskolumner eller dyka upp i resursfiltret.
+const VIRTUAL_LANE_LABELS = new Set([
+  normalizeKey('Fysisk konsultation'),
+  normalizeKey('Online konsultation'),
+]);
+
 function buildResourceIndex(bookingEngineStore) {
   const resources = asArray(bookingEngineStore?._state?.resources)
     .filter((resource) => resource && resource.active !== false && normalizeText(resource.id))
@@ -114,7 +124,7 @@ function buildResourceIndex(bookingEngineStore) {
   for (const resource of resources) {
     const tokens = normalizeKey(resource.resourceLabel)
       .split(/[^a-z0-9]+/)
-      .filter((token) => token.length > 1);
+      .filter((token) => token.length > 1 && !TITLE_TOKENS.has(token));
     for (const token of tokens) {
       const existing = byToken.get(token);
       if (existing === undefined) {
@@ -169,11 +179,13 @@ function normalizeClientoEntry(raw, resourceIndex) {
   if (!Number.isFinite(Date.parse(startsAt))) return null;
   const staffName = normalizeText(raw?.staffName || raw?.staff);
   const staffKey = normalizeKey(staffName);
-  const tokenMatch = resourceIndex.byToken.get(staffKey);
-  const resourceId =
-    resourceIndex.byLabel.get(staffKey) ||
-    (tokenMatch || undefined) ||
-    inferredResourceId(staffName);
+  const isVirtualLane = VIRTUAL_LANE_LABELS.has(staffKey);
+  const tokenMatch = isVirtualLane ? undefined : resourceIndex.byToken.get(staffKey);
+  const resourceId = isVirtualLane
+    ? '_unassigned'
+    : resourceIndex.byLabel.get(staffKey) ||
+      (tokenMatch || undefined) ||
+      inferredResourceId(staffName);
   const resolvedEndsAt = resolveEndsAt(startsAt, normalizeText(raw?.endsAt), raw?.durationMinutes);
   return {
     id: normalizeText(raw?.bookingId || raw?.id),

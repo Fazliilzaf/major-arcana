@@ -146,3 +146,41 @@ test('okand resurs far fortfarande cliento-prefix', () => {
   const ids = vy.resources.map((r) => r.resourceId);
   assert.ok(ids.includes('cliento-okand-behandlare'), 'okand resurs ska fa inferred cliento-id');
 });
+
+test('titlar anvands inte som matchande token', () => {
+  const vy = buildDayView({
+    date: DATUM,
+    bookingEngineStore: engineStoreMed(
+      [{ id: 'arya', label: 'Dr. Arya Emami', active: true }],
+      []
+    ),
+    clientoBookingStore: clientoStoreMed([clientobokning({ staffName: 'Dr' })]),
+    tenantId: 'hair-tp-clinic',
+  });
+
+  const ids = vy.resources.map((r) => r.resourceId);
+  assert.ok(
+    ids.includes('cliento-dr'),
+    'titeln "Dr" ska inte binda till Arya — det ar inte ett namn'
+  );
+});
+
+test('virtuella banor visas inte som resurser', () => {
+  const vy = buildDayView({
+    date: DATUM,
+    bookingEngineStore: engineStoreMed(
+      [{ id: 'fazli', label: 'Fazli Krasniqi', active: true }],
+      []
+    ),
+    clientoBookingStore: clientoStoreMed([
+      clientobokning({ staffName: 'Fysisk konsultation' }),
+      clientobokning({ staffName: 'Online konsultation' }),
+    ]),
+    tenantId: 'hair-tp-clinic',
+  });
+
+  const ids = vy.resources.map((r) => r.resourceId);
+  assert.ok(!ids.includes('cliento-fysisk-konsultation'), 'fysisk konsultation ska inte bli en resurs');
+  assert.ok(!ids.includes('cliento-online-konsultation'), 'online konsultation ska inte bli en resurs');
+  assert.ok(ids.includes('_unassigned'), 'virtuella banor ska hamna under Ej tilldelad');
+});
