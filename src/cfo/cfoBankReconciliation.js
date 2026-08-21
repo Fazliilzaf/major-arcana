@@ -186,7 +186,16 @@ function createCfoBankReconciliation({
     return { ok: true, added, skipped, total: state.transactions.length };
   }
 
-  async function fetchVouchers(fortnoxClient, { financialYearDate } = {}) {
+  // ORD-103b: Fortnox voucher-LISTAN saknar beloppsfält (Amount finns inte i
+  // list-svaret) — utan detaljhämtning blir alla belopp 0 och inget matchar.
+  // Fix: för verifikat inom transaktionernas datumfönster hämtas raderna via
+  // getVoucher och bankrörelsen beräknas som Σ(Debit) − Σ(Credit) på bank-
+  // kontot (default 1930). Beloppet är då TECKNAT som kontoutdraget.
+  // Fallback: om klienten saknar getVoucher (t.ex. tester) används v.Amount.
+  async function fetchVouchers(
+    fortnoxClient,
+    { financialYearDate, bankAccount = '1930', fromDate = null, toDate = null } = {}
+  ) {
     if (!fortnoxClient || typeof fortnoxClient.listVouchers !== 'function') {
       return { ok: false, error: 'fortnoxClient saknas eller saknar listVouchers' };
     }
@@ -200,25 +209,110 @@ function createCfoBankReconciliation({
       hasMore = pageVouchers.length === 100;
       page++;
     }
-    state.vouchers = vouchers.map((v) => ({
-      voucherId: v.VoucherId || null,
-      voucherNumber: v.VoucherNumber || null,
-      voucherSeries: v.VoucherSeries || null,
-      transactionDate: v.TransactionDate || null,
-      description: v.Description || '',
-      amount: Number(v.Amount) || 0,
-    }));
-    audit('cf.bank_reconciliation.vouchers_loaded', { count: state.vouchers.length });
-    return { ok: true, count: state.vouchers.length };
+
+    // Datumfönster: uttryckligt, annars härlett från importerade transaktioner ±7 dagar.
+    let windowFrom = parseDate(fromDate);
+    let windowTo = parseDate(toDate);
+    if ((!windowFrom || !windowTo) && state.transactions.length > 0) {
+      const days = state.transactions
+        .map((t) => t.bookingDay)
+        .filter(Boolean)
+        .sort();
+      if (days.length > 0) {
+        const pad = (iso, deltaDays) => {
+          const d = new Date(iso);
+          d.setDate(d.getDate() + deltaDays);
+          return d.toISOString().slice(0, 10);
+        };
+        windowFrom = windowFrom || pad(days[0], -7);
+        windowTo = windowTo || pad(days[days.length - 1], 7);
+      }
+    }
+    const inWindow = (v) => {
+      if (!windowFrom || !windowTo) return true;
+      const d = parseDate(v.TransactionDate);
+      return d !== null && d >= windowFrom && d <= windowTo;
+    };
+
+    const canFetchRows = typeof fortnoxClient.getVoucher === 'function';
+    const detailTargets = canFetchRows ? vouchers.filter(inWindow) : [];
+    const MAX_DETAILS = 1500;
+    if (detailTargets.length > MAX_DETAILS) {
+      return {
+        ok: false,
+        error: `för många verifikat i fönstret (${detailTargets.length} > ${MAX_DETAILS}) — ange fromDate/toDate`,
+      };
+    }
+
+    const detailByKey = new Map();
+    let detailErrors = 0;
+    for (const v of detailTargets) {
+      try {
+        const detail = await fortnoxClient.getVoucher(
+          v.VoucherSeries,
+          v.VoucherNumber,
+          financialYearDate
+        );
+        const rows = Array.isArray(detail?.Voucher?.VoucherRows) ? detail.Voucher.VoucherRows : [];
+        const bankRows = rows.filter((r) => String(r.Account) === String(bankAccount));
+        if (bankRows.length > 0) {
+          const amount = bankRows.reduce(
+            (sum, r) => sum + (Number(r.Debit) || 0) - (Number(r.Credit) || 0),
+            0
+          );
+          detailByKey.set(`${v.VoucherSeries}|${v.VoucherNumber}`, Math.round(amount * 100) / 100);
+        }
+      } catch {
+        detailErrors++;
+      }
+      // Fortnox rate limit ~4 anrop/s — throttla.
+      await new Promise((r) => setTimeout(r, 260));
+    }
+
+    state.vouchers = vouchers.map((v) => {
+      const key = `${v.VoucherSeries}|${v.VoucherNumber}`;
+      const signedAmount = detailByKey.has(key) ? detailByKey.get(key) : null;
+      return {
+        voucherId: v.VoucherId || key,
+        voucherNumber: v.VoucherNumber || null,
+        voucherSeries: v.VoucherSeries || null,
+        transactionDate: v.TransactionDate || null,
+        description: v.Description || '',
+        // signed=true → amount är tecknad bankrörelse (1930-rader); annars fallback.
+        amount: signedAmount !== null ? signedAmount : Number(v.Amount) || 0,
+        signed: signedAmount !== null,
+        hasBankRow: canFetchRows ? signedAmount !== null : Number(v.Amount) !== 0,
+      };
+    });
+    audit('cf.bank_reconciliation.vouchers_loaded', {
+      count: state.vouchers.length,
+      withBankRows: state.vouchers.filter((v) => v.hasBankRow).length,
+      detailErrors,
+      bankAccount,
+      windowFrom,
+      windowTo,
+    });
+    return {
+      ok: true,
+      count: state.vouchers.length,
+      withBankRows: state.vouchers.filter((v) => v.hasBankRow).length,
+      detailErrors,
+    };
   }
 
   function runMatching({ amountTolerance = 1, dateToleranceDays = 7 } = {}) {
     let matched = 0;
     let suggestions = 0;
+    // ORD-103b: ett verifikat får bara matchas mot EN banktransaktion.
+    const usedVoucherIds = new Set(
+      state.transactions.filter((t) => t.matchedVoucherId).map((t) => t.matchedVoucherId)
+    );
     for (const tx of state.transactions) {
       if (tx.matchStatus === 'ignored' || tx.matchStatus === 'matched') continue;
       const candidates = state.vouchers
         .filter((v) => {
+          if (v.hasBankRow === false) return false;
+          if (usedVoucherIds.has(v.voucherId)) return false;
           if (!v.transactionDate || !tx.bookingDay) return false;
           const vDate = new Date(v.transactionDate);
           const txDate = new Date(tx.bookingDay);
@@ -228,7 +322,11 @@ function createCfoBankReconciliation({
         })
         .map((v) => ({
           ...v,
-          amountDiff: Math.abs((v.amount || 0) - Math.abs(tx.amountSek)),
+          // signed=true → jämför MED tecken (1930-rörelse = kontoutdragets tecken);
+          // fallback (osignerat listbelopp) jämförs mot |belopp| som tidigare.
+          amountDiff: v.signed
+            ? Math.abs((v.amount || 0) - tx.amountSek)
+            : Math.abs((v.amount || 0) - Math.abs(tx.amountSek)),
         }))
         .filter((v) => v.amountDiff <= amountTolerance)
         .sort((a, b) => a.amountDiff - b.amountDiff);
@@ -241,6 +339,7 @@ function createCfoBankReconciliation({
         tx.matchedVoucherSeries = c.voucherSeries;
         tx.matchKind = 'auto';
         tx.suggestions = [];
+        usedVoucherIds.add(c.voucherId);
         matched++;
       } else if (candidates.length > 1) {
         tx.matchStatus = 'suggestion';
@@ -272,6 +371,13 @@ function createCfoBankReconciliation({
     if (!tx) return null;
     const voucher = state.vouchers.find((v) => v.voucherId === voucherId);
     if (!voucher) return { error: 'verifikat finns inte' };
+    // ORD-103b: verifikat som redan matchats mot en annan transaktion får inte återanvändas.
+    const taken = state.transactions.find((t) => t.id !== txId && t.matchedVoucherId === voucherId);
+    if (taken) {
+      return {
+        error: `verifikatet är redan matchat mot en annan transaktion (${taken.bookingDay} ${taken.amountSek} kr)`,
+      };
+    }
     tx.matchStatus = 'matched';
     tx.matchedVoucherId = voucher.voucherId;
     tx.matchedVoucherNumber = voucher.voucherNumber;

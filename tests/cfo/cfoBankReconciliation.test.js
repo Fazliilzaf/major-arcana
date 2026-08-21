@@ -139,6 +139,79 @@ test('confirmMatch + ignore är ägar-beslut som persisteras', async () => {
   assert.equal(recon2.stats().ignored, 1);
 });
 
+test('ORD-103b: voucher-belopp hämtas från 1930-rader (tecknat) + dubbelmatch-guard', async () => {
+  const recon = createCfoBankReconciliation({ filePath: await tmpFile() });
+  await recon.importTransactions(parseHandelsbankenCsv(HANDBANKEN_CSV));
+
+  // Klient MED getVoucher: listan saknar Amount (som riktiga Fortnox);
+  // beloppen ligger i raderna. v101 = insättning 54376 (debet 1930),
+  // v102 = uttag 120000 (kredit 1930), v103 = utan 1930-rad (ska exkluderas).
+  const details = {
+    'A|101': {
+      Voucher: {
+        VoucherRows: [
+          { Account: 1930, Debit: 54376, Credit: 0 },
+          { Account: 3001, Debit: 0, Credit: 54376 },
+        ],
+      },
+    },
+    'A|102': {
+      Voucher: {
+        VoucherRows: [
+          { Account: 1930, Debit: 0, Credit: 120000 },
+          { Account: 4010, Debit: 120000, Credit: 0 },
+        ],
+      },
+    },
+    'A|103': {
+      Voucher: { VoucherRows: [{ Account: 2440, Debit: 0, Credit: 307 }] },
+    },
+  };
+  const client = {
+    listVouchers: async () => ({
+      Vouchers: [
+        {
+          VoucherNumber: 101,
+          VoucherSeries: 'A',
+          TransactionDate: '2026-08-20',
+          Description: 'Bg-insättning',
+        },
+        {
+          VoucherNumber: 102,
+          VoucherSeries: 'A',
+          TransactionDate: '2026-08-20',
+          Description: 'Utlägg',
+        },
+        {
+          VoucherNumber: 103,
+          VoucherSeries: 'A',
+          TransactionDate: '2026-08-19',
+          Description: 'Leverantörsskuld utan bankrad',
+        },
+      ],
+    }),
+    getVoucher: async (series, number) => details[`${series}|${number}`],
+  };
+
+  const fetched = await recon.fetchVouchers(client, {});
+  assert.equal(fetched.count, 3);
+  assert.equal(fetched.withBankRows, 2);
+
+  const result = recon.runMatching();
+  // 54376 (income) → v101 (+54376), -120000 (expense) → v102 (−120000).
+  // -307 matchar INTE v103 (ingen 1930-rad).
+  assert.equal(result.matched, 2);
+  const matched = recon.listTransactions({ status: 'matched' });
+  assert.equal(matched.find((t) => t.amountSek === 54376).matchedVoucherNumber, 101);
+  assert.equal(matched.find((t) => t.amountSek === -120000).matchedVoucherNumber, 102);
+  assert.equal(recon.listTransactions({ status: 'unmatched' }).length, 1);
+
+  // Dubbelmatch-guard: v101 är redan tagen → confirmMatch mot annan tx vägras.
+  const freeTx = recon.listTransactions({ status: 'unmatched' })[0];
+  const res = recon.confirmMatch(freeTx.id, 'A|101', { actor: 'test' });
+  assert.ok(res.error);
+});
+
 test('dedupe: samma transaktion importeras bara en gång', async () => {
   const recon = createCfoBankReconciliation({ filePath: await tmpFile() });
   const transactions = parseHandelsbankenCsv(HANDBANKEN_CSV);
