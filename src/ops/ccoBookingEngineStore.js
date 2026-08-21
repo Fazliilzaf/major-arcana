@@ -856,6 +856,7 @@ function migratePlanASchema(state) {
   for (const rule of state.availabilityRules) {
     const mapped = resolveServiceRegisterAlias(rule.serviceId);
     if (!mapped || rule.serviceId === mapped) continue;
+    if (rule.managedBy === 'staff') continue;
     rulesById.set(rule.ruleId, { ...rule, serviceId: mapped });
     changed = true;
   }
@@ -864,6 +865,7 @@ function migratePlanASchema(state) {
     const serviceId = resolveServiceRegisterAlias(rule.serviceId);
     const canonicalRule = { ...rule, serviceId };
     const existing = rulesById.get(canonicalRule.ruleId);
+    if (existing?.managedBy === 'staff') continue;
     if (isServiceRegisterPublicBookable(serviceId)) {
       const next = { ...(existing || {}), ...canonicalRule, active: true };
       if (!existing || JSON.stringify(existing) !== JSON.stringify(next)) {
@@ -948,6 +950,13 @@ function normalizeAvailabilityRule(input = {}) {
   const resourceId = normalizeText(safe.resourceId);
   const serviceId = normalizeText(safe.serviceId);
   if (!resourceId || !serviceId) return null;
+
+  const cycleWeeks = Number.isInteger(safe.cycleWeeks) && safe.cycleWeeks > 0 ? safe.cycleWeeks : undefined;
+  let cycleWeek;
+  if (cycleWeeks && Number.isInteger(safe.cycleWeek) && safe.cycleWeek >= 1 && safe.cycleWeek <= cycleWeeks) {
+    cycleWeek = safe.cycleWeek;
+  }
+
   return {
     ruleId: normalizeText(safe.ruleId) || crypto.randomUUID(),
     resourceId,
@@ -956,6 +965,10 @@ function normalizeAvailabilityRule(input = {}) {
     startTimes: normalizeStartTimes(safe.startTimes),
     locationLabel: normalizeText(safe.locationLabel || 'Hair TP Clinic'),
     active: safe.active !== false,
+    managedBy: normalizeText(safe.managedBy) || undefined,
+    cycleWeeks,
+    cycleWeek,
+    cycleStart: normalizeIso(safe.cycleStart) || undefined,
   };
 }
 
@@ -1379,6 +1392,20 @@ async function createCcoBookingEngineStore({ filePath }) {
     );
   }
 
+  function getCycleWeekForDate(rule, date) {
+    if (!rule.cycleWeeks || !rule.cycleStart) return 1;
+    const startMs = Date.parse(rule.cycleStart);
+    if (!Number.isFinite(startMs)) return 1;
+    const daysDiff = Math.floor((date.getTime() - startMs) / (24 * 60 * 60 * 1000));
+    const weeksDiff = Math.floor(daysDiff / 7);
+    return ((weeksDiff % rule.cycleWeeks) + rule.cycleWeeks) % rule.cycleWeeks + 1;
+  }
+
+  function ruleAppliesOnDate(rule, date) {
+    if (!rule.cycleWeeks || !rule.cycleWeek || !rule.cycleStart) return true;
+    return getCycleWeekForDate(rule, date) === rule.cycleWeek;
+  }
+
   function buildAvailabilitySlot(rule, day, timeLabel) {
     const dateOnly = day.toISOString().slice(0, 10);
     // Regelns starttid är klinikens väggklocka, inte UTC. Tidigare stod här
@@ -1454,6 +1481,7 @@ async function createCcoBookingEngineStore({ filePath }) {
         .filter((rule) => publicOnly !== true || isRuntimePublicService(rule.serviceId))
         .filter((rule) => !serviceIds.length || serviceIds.includes(rule.serviceId))
         .filter((rule) => asArray(rule.weekdays).includes(weekday))
+        .filter((rule) => ruleAppliesOnDate(rule, day))
         .filter((rule) => {
           if (!normalizeText(brand)) return true;
           // Curatiio Fas 1 — brand-isolation enforcad på service-nivå.
