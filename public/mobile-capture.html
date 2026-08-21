@@ -473,7 +473,7 @@
       let lastCorners = null;
       let lastCornersTime = 0;
       let stableFrames = 0;
-      const STABLE_THRESHOLD = 5;
+      const STABLE_THRESHOLD = 8;
       let processing = false;
       let capturePending = false;
 
@@ -523,7 +523,21 @@
       async function startCamera() {
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' },
+            video: {
+              facingMode: 'environment',
+              width: { ideal: 1920 },
+              height: { ideal: 2560 },
+              focusMode: 'continuous',
+              advanced: [
+                {
+                  width: 1920,
+                  height: 2560,
+                  focusMode: 'continuous',
+                  exposureMode: 'continuous',
+                  whiteBalanceMode: 'continuous',
+                },
+              ],
+            },
             audio: false,
           });
           video.srcObject = stream;
@@ -533,7 +547,42 @@
           video.classList.remove('hidden');
           overlay.classList.remove('hidden');
           shutter.disabled = false;
-          setStatus('Kamera aktiv. Håll kvittot stilla.', 'ok');
+
+          // Try to enable continuous autofocus after stream starts (best-effort)
+          const track = stream.getVideoTracks()[0];
+          if (track && track.applyConstraints) {
+            try {
+              await track.applyConstraints({
+                advanced: [{ focusMode: 'continuous' }],
+              });
+            } catch (focusErr) {
+              console.log('Continuous autofocus not supported:', focusErr.message);
+            }
+          }
+
+          // Tap-to-focus: re-trigger autofocus when user taps the viewfinder
+          const viewfinderEl = document.getElementById('viewfinder');
+          if (viewfinderEl) {
+            viewfinderEl.addEventListener('pointerdown', async (e) => {
+              if (!track || !track.applyConstraints) return;
+              try {
+                await track.applyConstraints({
+                  advanced: [{ focusMode: 'single-shot' }],
+                });
+                setTimeout(async () => {
+                  try {
+                    await track.applyConstraints({
+                      advanced: [{ focusMode: 'continuous' }],
+                    });
+                  } catch (_) {}
+                }, 500);
+              } catch (tapErr) {
+                console.log('Tap-to-focus not supported:', tapErr.message);
+              }
+            });
+          }
+
+          setStatus('Kamera aktiv. Tryck på skärmen för att fokusera.', 'ok');
           startDetectionLoop();
         } catch (err) {
           console.error('Kamerafel:', err);
@@ -552,10 +601,30 @@
         overlayCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
       }
 
+      function delay(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function triggerFocus() {
+        if (!stream) return;
+        const track = stream.getVideoTracks()[0];
+        if (!track || !track.applyConstraints) return;
+        try {
+          await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
+        } catch (_) {
+          // Focus constraints are not supported on all devices; fall back to native AF
+        }
+      }
+
       async function capturePhoto() {
         if (!video.videoWidth || capturePending) return;
         capturePending = true;
         stopDetectionLoop();
+
+        // Trigger autofocus and let the lens settle before capturing
+        setStatus('Fokuserar…', 'ok');
+        await triggerFocus();
+        await delay(450);
 
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
@@ -563,8 +632,8 @@
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0);
 
-        originalDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-        capturedBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+        originalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        capturedBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
 
         // Run detection ON the captured frame so corners match exactly
         const corners = await detectCornersOnDataUrl(originalDataUrl);
@@ -682,7 +751,7 @@
       function startDetectionLoop() {
         if (rafId) cancelAnimationFrame(rafId);
         let lastFrameTime = 0;
-        const frameInterval = 150; // ~6-7 fps to save battery
+        const frameInterval = 120; // ~8 fps, smoother detection
 
         const loop = (t) => {
           rafId = requestAnimationFrame(loop);
@@ -779,7 +848,7 @@
         const hierarchy = new cv.Mat();
         cv.findContours(closed, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-        let best = scoreAndPickContour(contours, imgArea, minReceiptArea);
+        let best = scoreAndPickContour(contours, imgArea, minReceiptArea, src);
 
         gray.delete();
         blurred.delete();
@@ -806,7 +875,7 @@
         const hierarchy = new cv.Mat();
         cv.findContours(dilated, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-        let best = scoreAndPickContour(contours, imgArea, minReceiptArea);
+        let best = scoreAndPickContour(contours, imgArea, minReceiptArea, src);
 
         gray.delete();
         blurred.delete();
@@ -838,7 +907,7 @@
         }));
       }
 
-      function scoreAndPickContour(contours, imgArea, minReceiptArea) {
+      function scoreAndPickContour(contours, imgArea, minReceiptArea, src) {
         let best = null;
         let bestScore = 0;
 
@@ -858,7 +927,8 @@
 
           const aspect = Math.max(width, height) / Math.min(width, height);
           // Receipts are long/tall, but allow square-ish paper too
-          const aspectScore = aspect > 1.3 && aspect < 12 ? 1 : 0.3;
+          const aspectScore =
+            aspect > 1.1 && aspect < 16 ? 1 : aspect > 1.05 && aspect < 20 ? 0.6 : 0.25;
           // Reward filling a decent part of the frame, but not the whole thing
           const areaScore = Math.min(area / imgArea, 0.85);
           // Prefer contours that are roughly rectangular
@@ -869,7 +939,20 @@
               : 0;
           const shapeScore = rectScore > 0.15 ? 1 : 0.5;
 
-          const score = areaScore * aspectScore * shapeScore;
+          // Prefer contours near the center of the frame (where the guide is)
+          const cx = rect.center.x;
+          const cy = rect.center.y;
+          const dx = (cx - src.cols / 2) / (src.cols / 2);
+          const dy = (cy - src.rows / 2) / (src.rows / 2);
+          const centerDist = Math.sqrt(dx * dx + dy * dy);
+          const centerScore = 1 - Math.min(centerDist, 1) * 0.5;
+
+          // Prefer solid, paper-like rectangles over spiky background noise
+          const rectArea = rect.size.width * rect.size.height;
+          const rectangularity = rectArea > 0 ? area / rectArea : 0;
+          const rectFillScore = rectangularity > 0.65 ? 1 : rectangularity > 0.35 ? 0.7 : 0.35;
+
+          const score = areaScore * aspectScore * shapeScore * centerScore * rectFillScore;
           if (score > bestScore) {
             best = ordered;
             bestScore = score;
