@@ -72,11 +72,18 @@
       }
       video,
       .preview-img,
-      .placeholder {
+      .placeholder,
+      .overlay {
         width: 100%;
         height: 100%;
         object-fit: cover;
         display: block;
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
       }
       .placeholder {
         display: flex;
@@ -92,6 +99,15 @@
         font-size: 48px;
         margin-bottom: 8px;
       }
+      .loading-icon {
+        width: 48px;
+        height: 48px;
+        border: 4px solid rgba(255, 255, 255, 0.2);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 12px;
+      }
       .guide {
         position: absolute;
         inset: 0;
@@ -99,13 +115,21 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        z-index: 1;
       }
       .guide-frame {
         width: 82%;
         height: 62%;
-        border: 2px dashed rgba(255, 255, 255, 0.65);
+        border: 2px dashed rgba(255, 255, 255, 0.35);
         border-radius: 12px;
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.28);
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+      .guide-frame.active {
+        border-color: rgba(74, 222, 128, 0.85);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.18);
       }
       .guide-text {
         position: absolute;
@@ -117,6 +141,10 @@
         font-weight: 600;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         white-space: nowrap;
+        transition: color 0.2s;
+      }
+      .guide-text.active {
+        color: rgba(74, 222, 128, 0.95);
       }
       .actions {
         display: flex;
@@ -166,6 +194,7 @@
         transform: translateX(-50%);
         cursor: pointer;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        z-index: 3;
       }
       .shutter::after {
         content: '';
@@ -177,6 +206,9 @@
       .shutter:disabled {
         opacity: 0.4;
         cursor: not-allowed;
+      }
+      .shutter.ready::after {
+        background: #4ade80;
       }
       .hidden {
         display: none !important;
@@ -320,14 +352,15 @@
       <div class="card" id="camera-card">
         <div class="viewfinder" id="viewfinder">
           <div class="placeholder" id="placeholder">
-            <div class="placeholder-icon">📷</div>
-            <div id="placeholder-text">Väntar på kamera…</div>
+            <div class="loading-icon" id="loading-icon"></div>
+            <div id="placeholder-text">Laddar bildbehandling…</div>
           </div>
           <video id="video" autoplay playsinline muted class="hidden"></video>
+          <canvas id="overlay" class="overlay hidden"></canvas>
           <img id="preview" class="preview-img hidden" alt="Kvittoförhandsgranskning" />
           <div class="guide" id="guide">
-            <div class="guide-frame"></div>
-            <div class="guide-text">Placera kvittot här</div>
+            <div class="guide-frame" id="guide-frame"></div>
+            <div class="guide-text" id="guide-text">Placera kvittot här</div>
           </div>
         </div>
         <button
@@ -401,10 +434,15 @@
       }
 
       const video = document.getElementById('video');
+      const overlay = document.getElementById('overlay');
+      const overlayCtx = overlay.getContext('2d');
       const preview = document.getElementById('preview');
       const placeholder = document.getElementById('placeholder');
       const placeholderText = document.getElementById('placeholder-text');
+      const loadingIcon = document.getElementById('loading-icon');
       const guide = document.getElementById('guide');
+      const guideFrame = document.getElementById('guide-frame');
+      const guideText = document.getElementById('guide-text');
       const shutter = document.getElementById('shutter');
       const usePhoto = document.getElementById('use-photo');
       const retake = document.getElementById('retake');
@@ -431,6 +469,13 @@
       let currentExpenseRecord = null;
       let currentRawItem = null;
       let cvLoaded = false;
+      let rafId = null;
+      let lastCorners = null;
+      let lastCornersTime = 0;
+      let stableFrames = 0;
+      const STABLE_THRESHOLD = 5;
+      let processing = false;
+      let capturePending = false;
 
       function setStatus(text, type) {
         statusEl.textContent = text;
@@ -439,6 +484,7 @@
 
       function showPreview() {
         video.classList.add('hidden');
+        overlay.classList.add('hidden');
         placeholder.classList.add('hidden');
         preview.classList.remove('hidden');
         guide.classList.add('hidden');
@@ -453,6 +499,7 @@
         preview.src = '';
         placeholder.classList.add('hidden');
         video.classList.remove('hidden');
+        overlay.classList.remove('hidden');
         guide.classList.remove('hidden');
         shutter.classList.remove('hidden');
         usePhoto.classList.add('hidden');
@@ -466,6 +513,11 @@
         originalDataUrl = null;
         currentExpenseRecord = null;
         currentRawItem = null;
+        lastCorners = null;
+        lastCornersTime = 0;
+        stableFrames = 0;
+        shutter.classList.remove('ready');
+        startDetectionLoop();
       }
 
       async function startCamera() {
@@ -475,34 +527,84 @@
             audio: false,
           });
           video.srcObject = stream;
+          await video.play();
+          resizeOverlay();
           placeholder.classList.add('hidden');
           video.classList.remove('hidden');
+          overlay.classList.remove('hidden');
           shutter.disabled = false;
-          setStatus('Kamera aktiv', 'ok');
+          setStatus('Kamera aktiv. Håll kvittot stilla.', 'ok');
+          startDetectionLoop();
         } catch (err) {
           console.error('Kamerafel:', err);
           setStatus('Kunde inte starta kamera. Använd filväljaren nedan.', 'error');
           placeholderText.textContent = 'Kamera ej tillgänglig';
+          loadingIcon.classList.add('hidden');
         }
       }
 
-      function capturePhoto() {
-        if (!video.videoWidth) return;
+      function resizeOverlay() {
+        const rect = video.getBoundingClientRect();
+        overlay.width = rect.width * window.devicePixelRatio;
+        overlay.height = rect.height * window.devicePixelRatio;
+        overlay.style.width = rect.width + 'px';
+        overlay.style.height = rect.height + 'px';
+        overlayCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      }
+
+      async function capturePhoto() {
+        if (!video.videoWidth || capturePending) return;
+        capturePending = true;
+        stopDetectionLoop();
+
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0);
-        canvas.toBlob(
-          (blob) => {
-            capturedBlob = blob;
-            originalDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-            preview.src = URL.createObjectURL(blob);
-            showPreview();
-          },
-          'image/jpeg',
-          0.92
-        );
+
+        originalDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+        if (lastCorners && stableFrames >= STABLE_THRESHOLD) {
+          // Use live-detected corners for immediate crop
+          const cropped = await warpReceipt(
+            originalDataUrl,
+            lastCorners,
+            video.videoWidth,
+            video.videoHeight
+          );
+          if (cropped) {
+            croppedBlob = dataUrlToBlobSync(cropped);
+            cropOriginal.src = originalDataUrl;
+            cropCropped.src = cropped;
+            cropCard.classList.remove('hidden');
+            usePhoto.classList.add('hidden');
+            retake.classList.add('hidden');
+            autoCropBtn.classList.add('hidden');
+            setStatus('Kant hittad — granska beskärningen', 'ok');
+            preview.src = cropped;
+            showPreviewAfterCapture();
+            capturedBlob = await new Promise((resolve) =>
+              canvas.toBlob(resolve, 'image/jpeg', 0.92)
+            );
+            capturePending = false;
+            return;
+          }
+        }
+
+        capturedBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+        preview.src = URL.createObjectURL(capturedBlob);
+        showPreviewAfterCapture();
+        capturePending = false;
+      }
+
+      function showPreviewAfterCapture() {
+        video.classList.add('hidden');
+        overlay.classList.add('hidden');
+        placeholder.classList.add('hidden');
+        preview.classList.remove('hidden');
+        guide.classList.add('hidden');
+        shutter.classList.add('hidden');
       }
 
       function handleFile(file) {
@@ -524,7 +626,7 @@
       // Load OpenCV.js
       function loadOpenCv() {
         return new Promise((resolve) => {
-          if (typeof cv !== 'undefined' && cv.Mat) {
+          if (typeof cv !== 'undefined' && cv.getBuildInformation) {
             cvLoaded = true;
             return resolve(true);
           }
@@ -536,21 +638,223 @@
             resolve(true);
           };
           script.onerror = () => resolve(false);
-          // Timeout after 15s
-          setTimeout(() => resolve(false), 15000);
+          setTimeout(() => resolve(false), 30000);
           document.head.appendChild(script);
         });
+      }
+
+      function startDetectionLoop() {
+        if (rafId) cancelAnimationFrame(rafId);
+        let lastFrameTime = 0;
+        const frameInterval = 150; // ~6-7 fps to save battery
+
+        const loop = (t) => {
+          rafId = requestAnimationFrame(loop);
+          if (!video.videoWidth || processing || capturePending) return;
+          if (t - lastFrameTime < frameInterval) return;
+          lastFrameTime = t;
+
+          processing = true;
+          detectFrame()
+            .then((corners) => {
+              updateCorners(corners);
+              drawOverlay(lastCorners, stableFrames >= STABLE_THRESHOLD);
+            })
+            .catch((err) => {
+              console.error('Frame detect error:', err);
+            })
+            .finally(() => {
+              processing = false;
+            });
+        };
+        rafId = requestAnimationFrame(loop);
+      }
+
+      function stopDetectionLoop() {
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+      }
+
+      async function detectFrame() {
+        return new Promise((resolve) => {
+          if (!cvLoaded || !cv.getBuildInformation) return resolve(null);
+
+          const videoW = video.videoWidth;
+          const videoH = video.videoHeight;
+          if (!videoW || !videoH) return resolve(null);
+
+          const scale = Math.min(1, 640 / Math.max(videoW, videoH));
+          const smallW = Math.round(videoW * scale);
+          const smallH = Math.round(videoH * scale);
+
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = smallW;
+          tempCanvas.height = smallH;
+          const tempCtx = tempCanvas.getContext('2d');
+          tempCtx.drawImage(video, 0, 0, smallW, smallH);
+          const imageData = tempCtx.getImageData(0, 0, smallW, smallH);
+
+          const small = new cv.Mat(smallH, smallW, cv.CV_8UC4);
+          small.data.set(imageData.data);
+
+          const pts = findReceiptContour(small);
+          small.delete();
+
+          if (!pts) return resolve(null);
+
+          // Scale corners back to video coordinates
+          const scaled = pts.map((p) => ({ x: p.x / scale, y: p.y / scale }));
+          resolve(orderCorners(scaled));
+        });
+      }
+
+      function findReceiptContour(src) {
+        const gray = new cv.Mat();
+        const blurred = new cv.Mat();
+        const edges = new cv.Mat();
+        const dilated = new cv.Mat();
+
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+        cv.Canny(blurred, edges, 30, 100);
+        cv.dilate(edges, dilated, cv.Mat.ones(3, 3, cv.CV_8U), new cv.Point(-1, -1), 1);
+
+        const contours = new cv.MatVector();
+        const hierarchy = new cv.Mat();
+        cv.findContours(dilated, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+        let best = null;
+        let bestScore = 0;
+        const imgArea = src.cols * src.rows;
+
+        for (let i = 0; i < contours.size(); i++) {
+          const cnt = contours.get(i);
+          const area = cv.contourArea(cnt);
+          if (area < imgArea * 0.02) continue;
+
+          const peri = cv.arcLength(cnt, true);
+          const approx = new cv.Mat();
+          cv.approxPolyDP(cnt, approx, 0.04 * peri, true);
+
+          if (approx.rows === 4) {
+            const pts = [];
+            for (let j = 0; j < 4; j++) {
+              pts.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
+            }
+            const ordered = orderCorners(pts);
+            const width = Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y);
+            const height = Math.hypot(ordered[3].x - ordered[0].x, ordered[3].y - ordered[0].y);
+            if (width < 10 || height < 10) {
+              approx.delete();
+              continue;
+            }
+            const aspect = Math.max(width, height) / Math.min(width, height);
+            // Receipts are typically long/tall, but allow some range
+            const aspectScore = aspect > 1.2 && aspect < 10 ? 1 : 0.4;
+            const areaScore = area / imgArea;
+            const score = areaScore * aspectScore;
+            if (score > bestScore) {
+              best = ordered;
+              bestScore = score;
+            }
+          }
+          approx.delete();
+        }
+
+        gray.delete();
+        blurred.delete();
+        edges.delete();
+        dilated.delete();
+        contours.delete();
+        hierarchy.delete();
+
+        return best;
+      }
+
+      function updateCorners(corners) {
+        const now = Date.now();
+        if (!corners) {
+          if (now - lastCornersTime > 400) {
+            lastCorners = null;
+            stableFrames = 0;
+            guideFrame.classList.remove('active');
+            guideText.classList.remove('active');
+            shutter.classList.remove('ready');
+            guideText.textContent = 'Placera kvittot här';
+          }
+          return;
+        }
+
+        if (lastCorners && cornersSimilar(lastCorners, corners)) {
+          stableFrames = Math.min(stableFrames + 1, STABLE_THRESHOLD + 5);
+        } else {
+          stableFrames = 1;
+          lastCorners = corners;
+          lastCornersTime = now;
+        }
+
+        if (stableFrames >= STABLE_THRESHOLD) {
+          guideFrame.classList.add('active');
+          guideText.classList.add('active');
+          shutter.classList.add('ready');
+          guideText.textContent = 'Kvitto hittat — fota nu';
+        } else {
+          guideFrame.classList.remove('active');
+          guideText.classList.remove('active');
+          shutter.classList.remove('ready');
+          guideText.textContent = 'Håll stilla…';
+        }
+      }
+
+      function cornersSimilar(a, b, threshold = 0.06) {
+        const maxDist = Math.max(a[0].x, a[0].y, b[0].x, b[0].y, 100);
+        for (let i = 0; i < 4; i++) {
+          const dx = a[i].x - b[i].x;
+          const dy = a[i].y - b[i].y;
+          if (Math.hypot(dx, dy) > maxDist * threshold) return false;
+        }
+        return true;
+      }
+
+      function drawOverlay(corners, stable) {
+        const rect = overlay.getBoundingClientRect();
+        overlayCtx.clearRect(0, 0, rect.width, rect.height);
+        if (!corners) return;
+
+        const scaleX = rect.width / video.videoWidth;
+        const scaleY = rect.height / video.videoHeight;
+        const projected = corners.map((p) => ({ x: p.x * scaleX, y: p.y * scaleY }));
+
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(projected[0].x, projected[0].y);
+        for (let i = 1; i < 4; i++) {
+          overlayCtx.lineTo(projected[i].x, projected[i].y);
+        }
+        overlayCtx.closePath();
+
+        overlayCtx.lineWidth = 3;
+        overlayCtx.strokeStyle = stable ? 'rgba(74, 222, 128, 0.95)' : 'rgba(255, 255, 255, 0.75)';
+        overlayCtx.stroke();
+        overlayCtx.fillStyle = stable ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 255, 255, 0.08)';
+        overlayCtx.fill();
+
+        // Corner dots
+        overlayCtx.fillStyle = stable ? '#4ade80' : '#fff';
+        for (const p of projected) {
+          overlayCtx.beginPath();
+          overlayCtx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+          overlayCtx.fill();
+        }
       }
 
       async function scanReceipt() {
         if (!capturedBlob || !originalDataUrl) return;
         if (!cvLoaded) {
-          const ok = await loadOpenCv();
-          if (!ok) {
-            setStatus('Kunde inte ladda bildbehandling. Använder originalet.', 'error');
-            uploadCapture(capturedBlob);
-            return;
-          }
+          setStatus('Bildbehandling inte redo.', 'error');
+          return;
         }
         scanSpinner.classList.remove('hidden');
         autoCropBtn.disabled = true;
@@ -558,10 +862,9 @@
 
         try {
           const img = await loadImage(originalDataUrl);
-          const cropped = await detectReceiptContour(img);
+          const cropped = await detectReceiptContourFull(img);
           if (cropped) {
-            const blob = await dataUrlToBlob(cropped);
-            croppedBlob = blob;
+            croppedBlob = await dataUrlToBlob(cropped);
             cropOriginal.src = originalDataUrl;
             cropCropped.src = cropped;
             cropCard.classList.remove('hidden');
@@ -596,122 +899,102 @@
         return fetch(dataUrl).then((res) => res.blob());
       }
 
-      async function detectReceiptContour(img) {
+      function dataUrlToBlobSync(dataUrl) {
+        const byteString = atob(dataUrl.split(',')[1]);
+        const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], { type: mimeString });
+      }
+
+      function detectReceiptContourFull(img) {
         return new Promise((resolve) => {
-          if (cv.getBuildInformation) {
-            doDetect(img, resolve);
-          } else {
-            cv.onRuntimeInitialized = () => doDetect(img, resolve);
+          if (!cvLoaded || !cv.getBuildInformation) return resolve(null);
+          try {
+            const src = cv.imread(img);
+            const pts = findReceiptContour(src);
+            if (!pts) {
+              src.delete();
+              return resolve(null);
+            }
+            const cropped = warpReceiptFromSrc(src, pts);
+            src.delete();
+            resolve(cropped);
+          } catch (err) {
+            console.error('OpenCV detect error:', err);
+            resolve(null);
           }
         });
       }
 
-      function doDetect(img, resolve) {
-        try {
-          const src = cv.imread(img);
-          const gray = new cv.Mat();
-          const blurred = new cv.Mat();
-          const edges = new cv.Mat();
-          const dilated = new cv.Mat();
+      function warpReceipt(dataUrl, corners, width, height) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const src = cv.imread(img);
+            const result = warpReceiptFromSrc(src, corners);
+            src.delete();
+            resolve(result);
+          };
+          img.onerror = () => resolve(null);
+          img.src = dataUrl;
+        });
+      }
 
-          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-          cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-          cv.Canny(blurred, edges, 50, 150);
-          cv.dilate(edges, dilated, cv.Mat.ones(5, 5, cv.CV_8U), new cv.Point(-1, -1), 1);
+      function warpReceiptFromSrc(src, corners) {
+        const ordered = orderCorners(corners);
+        const width = Math.max(
+          Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y),
+          Math.hypot(ordered[2].x - ordered[3].x, ordered[2].y - ordered[3].y)
+        );
+        const height = Math.max(
+          Math.hypot(ordered[3].x - ordered[0].x, ordered[3].y - ordered[0].y),
+          Math.hypot(ordered[2].x - ordered[1].x, ordered[2].y - ordered[1].y)
+        );
+        if (width < 20 || height < 20) return null;
 
-          const contours = new cv.MatVector();
-          const hierarchy = new cv.Mat();
-          cv.findContours(dilated, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+        const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+          ordered[0].x,
+          ordered[0].y,
+          ordered[1].x,
+          ordered[1].y,
+          ordered[2].x,
+          ordered[2].y,
+          ordered[3].x,
+          ordered[3].y,
+        ]);
+        const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+          0,
+          0,
+          width,
+          0,
+          width,
+          height,
+          0,
+          height,
+        ]);
+        const M = cv.getPerspectiveTransform(srcTri, dstTri);
+        const dst = new cv.Mat();
+        cv.warpPerspective(src, dst, M, new cv.Size(width, height));
 
-          let best = null;
-          let bestArea = 0;
-          const minArea = src.cols * src.rows * 0.05; // at least 5% of image
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        cv.imshow(canvas, dst);
+        const result = canvas.toDataURL('image/jpeg', 0.95);
 
-          for (let i = 0; i < contours.size(); i++) {
-            const cnt = contours.get(i);
-            const area = cv.contourArea(cnt);
-            if (area < minArea) continue;
-            const peri = cv.arcLength(cnt, true);
-            const approx = new cv.Mat();
-            cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
-            if (approx.rows === 4 && area > bestArea) {
-              best = approx.clone();
-              bestArea = area;
-            }
-            approx.delete();
-          }
+        srcTri.delete();
+        dstTri.delete();
+        M.delete();
+        dst.delete();
 
-          let result = null;
-          if (best) {
-            const pts = [];
-            for (let i = 0; i < 4; i++) {
-              pts.push({ x: best.data32S[i * 2], y: best.data32S[i * 2 + 1] });
-            }
-            // Order corners: top-left, top-right, bottom-right, bottom-left
-            const ordered = orderCorners(pts);
-            const width = Math.max(
-              Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y),
-              Math.hypot(ordered[2].x - ordered[3].x, ordered[2].y - ordered[3].y)
-            );
-            const height = Math.max(
-              Math.hypot(ordered[3].x - ordered[0].x, ordered[3].y - ordered[0].y),
-              Math.hypot(ordered[2].x - ordered[1].x, ordered[2].y - ordered[1].y)
-            );
-
-            const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-              ordered[0].x,
-              ordered[0].y,
-              ordered[1].x,
-              ordered[1].y,
-              ordered[2].x,
-              ordered[2].y,
-              ordered[3].x,
-              ordered[3].y,
-            ]);
-            const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-              0,
-              0,
-              width,
-              0,
-              width,
-              height,
-              0,
-              height,
-            ]);
-            const M = cv.getPerspectiveTransform(srcTri, dstTri);
-            const dst = new cv.Mat();
-            cv.warpPerspective(src, dst, M, new cv.Size(width, height));
-
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            cv.imshow(canvas, dst);
-            result = canvas.toDataURL('image/jpeg', 0.95);
-
-            srcTri.delete();
-            dstTri.delete();
-            M.delete();
-            dst.delete();
-            best.delete();
-          }
-
-          src.delete();
-          gray.delete();
-          blurred.delete();
-          edges.delete();
-          dilated.delete();
-          contours.delete();
-          hierarchy.delete();
-
-          resolve(result);
-        } catch (err) {
-          console.error('OpenCV detect error:', err);
-          resolve(null);
-        }
+        return result;
       }
 
       function orderCorners(pts) {
-        // Sort by y, then x
         const sorted = [...pts].sort((a, b) => a.y - b.y || a.x - b.x);
         const top = sorted[0].x < sorted[1].x ? [sorted[0], sorted[1]] : [sorted[1], sorted[0]];
         const bottom = sorted[2].x < sorted[3].x ? [sorted[2], sorted[3]] : [sorted[3], sorted[2]];
@@ -843,17 +1126,21 @@
       approveBtn.addEventListener('click', promoteRecord);
       rejectBtn.addEventListener('click', rejectRecord);
       fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+      window.addEventListener('resize', resizeOverlay);
 
-      // Preload OpenCV in background
+      // Load OpenCV then start camera
       loadOpenCv().then((ok) => {
         if (ok) {
           console.log('OpenCV.js redo');
+          startCamera();
         } else {
           console.warn('OpenCV.js kunde inte laddas');
+          placeholderText.textContent = 'Bildbehandling kunde inte laddas. Använd filväljaren.';
+          loadingIcon.classList.add('hidden');
+          setStatus('Kunde inte ladda auto-beskärning. Kameran startas ändå.', 'error');
+          startCamera();
         }
       });
-
-      startCamera();
     </script>
   </body>
 </html>
