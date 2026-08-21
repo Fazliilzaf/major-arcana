@@ -322,6 +322,291 @@
         margin: 8px 0;
         border: 1px solid rgba(120, 105, 90, 0.14);
       }
+
+      /* ─── Camera overlay (scoped to calendar drawer) ─── */
+      .cco-cal-drawer .cam-overlay {
+        position: relative;
+        inset: auto;
+        display: flex;
+        flex-direction: column;
+        min-height: 360px;
+        margin: -14px -16px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #1f1a16, #15110e);
+        color: #fff;
+        overflow: hidden;
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .cam-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 8px 14px;
+      }
+      .cam-head-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .cam-head-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 800;
+        font-size: 12.5px;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.4),
+          0 4px 12px rgba(0, 0, 0, 0.4);
+      }
+      .cam-head-meta .name {
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .cam-head-meta .sub {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 2px;
+      }
+      .cam-close {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: white;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        line-height: 1;
+      }
+      .cam-close:hover {
+        background: rgba(255, 255, 255, 0.18);
+      }
+      .cam-stage {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 8px 10px;
+        position: relative;
+      }
+      .cam-canvas-wrap {
+        position: relative;
+        max-width: 100%;
+        max-height: 280px;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow:
+          0 30px 80px rgba(0, 0, 0, 0.5),
+          0 0 0 1px rgba(255, 255, 255, 0.1);
+        background: #000;
+      }
+      .cam-video,
+      .cam-photo {
+        display: block;
+        max-width: 100%;
+        max-height: 280px;
+        width: auto;
+        height: auto;
+        background: #000;
+      }
+      .cam-annot {
+        position: absolute;
+        inset: 0;
+        cursor: crosshair;
+        touch-action: none;
+      }
+      .cam-badge {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: rgba(216, 82, 107, 0.92);
+        color: white;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        z-index: 5;
+      }
+      .cam-badge::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: white;
+        animation: camRec 1.4s ease-in-out infinite;
+      }
+      @keyframes camRec {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+      }
+      .cam-stage[data-mode='captured'] .cam-badge {
+        display: none;
+      }
+      .cam-meta-stamp {
+        position: absolute;
+        bottom: 14px;
+        left: 14px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.55);
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        font-variant-numeric: tabular-nums;
+        backdrop-filter: blur(8px);
+        z-index: 5;
+      }
+      .cam-options-row {
+        display: flex;
+        gap: 8px;
+        padding: 0 8px 10px;
+      }
+      .cam-options-row .cam-tool {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+      .cam-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 0 8px 10px;
+        flex-wrap: wrap;
+      }
+      .cam-tool {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        height: 44px;
+        padding: 0 12px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: white;
+        font-size: 12.5px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        backdrop-filter: blur(8px);
+      }
+      .cam-tool:hover {
+        background: rgba(255, 255, 255, 0.18);
+      }
+      .cam-tool::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+      .cam-capture {
+        width: 64px;
+        height: 64px;
+        border-radius: 999px;
+        background: white;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        cursor: pointer;
+        box-shadow:
+          0 0 0 4px rgba(0, 0, 0, 0.4),
+          0 12px 30px rgba(0, 0, 0, 0.5);
+        transition: transform 0.12s ease;
+      }
+      .cam-capture:active {
+        transform: scale(0.92);
+      }
+      .cam-save-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .cam-save {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        height: 44px;
+        padding: 0 16px;
+        border-radius: 14px;
+        font-size: 12.5px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+      }
+      .cam-save--primary {
+        background: linear-gradient(180deg, #eef7f2, #6fb595);
+        color: #1f4030;
+      }
+      .cam-save--primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .cam-save--retake {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .cam-save--delete {
+        background: rgba(216, 82, 107, 0.85);
+        color: white;
+      }
+      .cam-loading {
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 13px;
+        text-align: center;
+        padding: 40px 20px;
+      }
+      .cam-loading-spinner {
+        width: 32px;
+        height: 32px;
+        margin: 0 auto 12px;
+        border: 2.5px solid rgba(255, 255, 255, 0.18);
+        border-top-color: var(--calendar-accent);
+        border-radius: 999px;
+        animation: camSpin 1s linear infinite;
+      }
+      @keyframes camSpin {
+        to { transform: rotate(360deg); }
+      }
+      .cam-error {
+        padding: 40px 28px;
+        text-align: center;
+        color: white;
+      }
+      .cam-error h3 {
+        font-size: 16px;
+        font-weight: 800;
+        margin: 0 0 8px;
+      }
+      .cam-error p {
+        font-size: 12.5px;
+        color: rgba(255, 255, 255, 0.62);
+        margin: 0;
+        line-height: 1.5;
+      }
+      .cam-overlay .cco-cal-preflight-footnote {
+        color: rgba(255, 255, 255, 0.72);
+        text-align: center;
+        margin: 4px 8px 0;
+      }
+
       .cco-cal-dossier-subtitle {
         margin: 14px 0 6px;
         font-size: 13px;
