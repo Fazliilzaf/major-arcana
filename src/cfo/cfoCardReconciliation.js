@@ -310,6 +310,74 @@ function createCardReconciliation({ filePath, expenseStore }) {
       .slice(0, Math.max(1, limit));
   }
 
+  // ORD-102c · Pyramid i CM-mönstret (jfr /cm/groups-tree): öppna poster
+  // (unmatched + rader med förslag) grupperade år → månad → leverantör,
+  // så att granskningen kan ske klumpvis i stället för rad för rad.
+  function supplierLabel(text) {
+    const words = normalizeText(text)
+      .replace(/\s{2,}/g, ' ')
+      .split(' ');
+    return words.slice(0, 2).join(' ') || 'Okänd';
+  }
+  function groupsTree() {
+    const open = state.transactions.filter(
+      (t) => t.type === 'charge' && t.matchStatus === 'unmatched'
+    );
+    const years = new Map();
+    for (const t of open) {
+      const year = String(t.date || '').slice(0, 4) || 'okänt';
+      const month = String(t.date || '').slice(5, 7) || '??';
+      const label = supplierLabel(t.description);
+      if (!years.has(year)) years.set(year, new Map());
+      const months = years.get(year);
+      if (!months.has(month)) months.set(month, new Map());
+      const groups = months.get(month);
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(t);
+    }
+    const round = (n) => Math.round(n * 100) / 100;
+    const out = [...years.entries()]
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([year, months]) => {
+        const monthsOut = [...months.entries()]
+          .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+          .map(([month, groups]) => {
+            const groupsOut = [...groups.entries()]
+              .map(([label, txs]) => ({
+                label,
+                count: txs.length,
+                sum: round(txs.reduce((a, t) => a + t.amountSek, 0)),
+                withSuggestions: txs.filter((t) => (t.suggestions || []).length > 0).length,
+                transactions: txs
+                  .slice()
+                  .sort((a, b) => (a.date < b.date ? 1 : -1))
+                  .map((t) => ({
+                    id: t.id,
+                    date: t.date,
+                    description: t.description,
+                    amountSek: t.amountSek,
+                    cardRef: t.cardRef,
+                    suggestions: t.suggestions || [],
+                  })),
+              }))
+              .sort((a, b) => b.sum - a.sum);
+            return {
+              month,
+              count: groupsOut.reduce((a, g) => a + g.count, 0),
+              sum: round(groupsOut.reduce((a, g) => a + g.sum, 0)),
+              groups: groupsOut,
+            };
+          });
+        return {
+          year,
+          count: monthsOut.reduce((a, m) => a + m.count, 0),
+          sum: round(monthsOut.reduce((a, m) => a + m.sum, 0)),
+          months: monthsOut,
+        };
+      });
+    return { totalOpen: open.length, years: out };
+  }
+
   return {
     importTransactions,
     runMatching,
@@ -317,6 +385,7 @@ function createCardReconciliation({ filePath, expenseStore }) {
     ignoreTransaction,
     stats,
     listTransactions,
+    groupsTree,
     persist,
   };
 }
