@@ -1251,6 +1251,11 @@ const config = {
     process.env.ARCANA_SCHEDULER_CM_MAIL_SYNC_INTERVAL_MINUTES,
     30
   ),
+  // ORD-CM-21: nattlig CFO auto-bokföring (ägar-regel → export → Fortnox). 0 = av.
+  schedulerCfoAutoBookIntervalMinutes: asInt(
+    process.env.ARCANA_SCHEDULER_CFO_AUTO_BOOK_INTERVAL_MINUTES,
+    1440
+  ),
   schedulerIncidentAutoEscalationEnabled: asBool(
     process.env.ARCANA_SCHEDULER_INCIDENT_AUTO_ESCALATION_ENABLED,
     true
