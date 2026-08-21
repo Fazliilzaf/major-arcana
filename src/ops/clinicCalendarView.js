@@ -442,7 +442,9 @@ module.exports = {
   CLINIC_TIME_ZONE,
   buildDayView,
   buildWeekView,
+  buildResourceIndex,
   clinicDateTimeParts,
   collectCalendarEntries,
+  inferredResourceId,
   normalizeDateOnly,
 };

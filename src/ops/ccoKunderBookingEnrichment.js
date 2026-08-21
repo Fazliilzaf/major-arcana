@@ -10,6 +10,10 @@ const {
   buildClientoHistoricalShadowReadmodel,
   HISTORICAL_BOOKING_REASON,
 } = require('./clientoHistoricalShadowReadmodel');
+const {
+  buildResourceIndex,
+  inferredResourceId,
+} = require('./clinicCalendarView');
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 
@@ -518,6 +522,7 @@ function normalizeBookingReadout({
   serviceId = '',
   serviceLabel = '',
   serviceDisplayName = '',
+  resourceId = '',
   resourceLabel = '',
   locationLabel = '',
   notes = '',
@@ -568,6 +573,7 @@ function normalizeBookingReadout({
     staff: staffName,
     staffName,
     practitioner: staffName,
+    resourceId: normalizeText(resourceId) || null,
     resourceLabel: staffName,
     locationLabel: normalizeText(locationLabel) || null,
     notes: normalizeText(notes) || null,
@@ -591,9 +597,11 @@ function collectBookingReadouts({
   historicalShadowLedgerEvents = [],
   encounters = [],
   services = [],
+  resources = [],
   lookup = buildPatientLookupMaps(patients),
 } = {}) {
   const emailToPatient = lookup.emailToPatient;
+  const resourceIndex = buildResourceIndex({ _state: { resources } });
   const rows = [];
   const serviceDisplayNames = new Map(
     asArray(services)
@@ -666,6 +674,7 @@ function collectBookingReadouts({
         serviceId: slot.serviceId,
         serviceLabel: slot.serviceLabel,
         serviceDisplayName: resolveServiceDisplayName(slot.serviceId, slot.serviceLabel),
+        resourceId: slot.resourceId,
         resourceLabel: slot.resourceLabel,
         notes: booking.notes,
         status: booking.status,
@@ -700,6 +709,7 @@ function collectBookingReadouts({
           serviceId: safeSlot.serviceId,
           serviceLabel: safeSlot.serviceLabel,
           serviceDisplayName: resolveServiceDisplayName(safeSlot.serviceId, safeSlot.serviceLabel),
+          resourceId: safeSlot.resourceId,
           resourceLabel: safeSlot.resourceLabel,
           notes: bookingCase.notes,
           status:
@@ -722,6 +732,9 @@ function collectBookingReadouts({
     if (sourceKey && historicalShadow.consumedSourceKeys.has(sourceKey)) continue;
     const patientId = resolvePatientIdFromClientoBooking(clientoBooking, lookup);
     if (!patientId) continue;
+    const staffName = normalizeText(clientoBooking.staffName || clientoBooking.staff);
+    const resourceId =
+      resourceIndex.byLabel.get(normalizeKey(staffName)) || inferredResourceId(staffName);
     push(
       normalizeBookingReadout({
         patientId,
@@ -734,7 +747,8 @@ function collectBookingReadouts({
           clientoBooking.serviceId,
           clientoBooking.serviceLabel
         ),
-        resourceLabel: clientoBooking.staffName,
+        resourceId,
+        resourceLabel: staffName,
         locationLabel: clientoBooking.locationName,
         notes: clientoBooking.notes,
         bookingNotes: clientoBooking.bookingNotes,
@@ -1030,6 +1044,7 @@ function buildBookingSignalsIndex({
   historicalShadowClientoBookings = clientoBookings,
   historicalShadowLedgerEvents = [],
   services = [],
+  resources = [],
 } = {}) {
   const index = new Map();
   const lookup = buildPatientLookupMaps(patients);
@@ -1044,6 +1059,7 @@ function buildBookingSignalsIndex({
     historicalShadowLedgerEvents,
     encounters,
     services,
+    resources,
     lookup,
   });
 

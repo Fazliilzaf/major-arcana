@@ -641,3 +641,54 @@ describe('ccoKunderBookingEnrichment', () => {
     assert.equal(sig.hasUpcomingBooking, true, 'den gamla vägen får inte regressera');
   });
 });
+
+
+  it('propagates resourceId from engine bookings and resolves it for Cliento bookings', () => {
+    const byPatient = collectBookingReadouts({
+      patients: [
+        { id: 'p-engine', primaryEmail: 'engine@example.com' },
+        { id: 'p-cliento', primaryEmail: 'cliento@example.com' },
+      ],
+      engineBookings: [
+        {
+          bookingId: 'booking-engine',
+          customerEmail: 'engine@example.com',
+          canonicalPatientId: 'p-engine',
+          status: 'confirmed',
+          startsAt: '2026-05-20T09:00:00.000Z',
+          slot: {
+            startsAt: '2026-05-20T09:00:00.000Z',
+            endsAt: '2026-05-20T09:30:00.000Z',
+            resourceId: 'fazli',
+            resourceLabel: 'Fazli Krasniqi',
+            serviceId: 'consultation-physical',
+            serviceLabel: 'Fysisk konsultation',
+          },
+        },
+      ],
+      clientoBookings: [
+        {
+          bookingId: 'booking-cliento',
+          customerEmail: 'cliento@example.com',
+          status: 'confirmed',
+          startsAt: '2026-05-20T10:00:00.000Z',
+          endsAt: '2026-05-20T10:30:00.000Z',
+          staffName: 'Fazli Krasniqi',
+          serviceLabel: 'Konsultation',
+        },
+      ],
+      resources: [
+        { id: 'fazli', label: 'Fazli Krasniqi', active: true },
+      ],
+    });
+
+    const engineHistory = byPatient.get('p-engine').historyBookings;
+    assert.equal(engineHistory.length, 1);
+    assert.equal(engineHistory[0].resourceId, 'fazli');
+    assert.equal(engineHistory[0].resourceLabel, 'Fazli Krasniqi');
+
+    const clientoHistory = byPatient.get('p-cliento').historyBookings;
+    assert.equal(clientoHistory.length, 1);
+    assert.equal(clientoHistory[0].resourceId, 'fazli');
+    assert.equal(clientoHistory[0].resourceLabel, 'Fazli Krasniqi');
+  });
