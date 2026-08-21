@@ -1340,7 +1340,7 @@ function createCmRouter({
           hasAttachments: true,
           hasPdf: false,
           hasImage: true,
-          metadata: { capturedBy: actor, storageKey },
+          metadata: { capturedBy: actor, storageKey, fileHash: sha },
         });
         if (!importResult.ok) {
           return res.status(409).json(importResult);
