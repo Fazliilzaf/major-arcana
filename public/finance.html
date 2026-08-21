@@ -991,6 +991,26 @@
       </div>
 
       <!-- ORD-67 · CF.9: Fortnox verifikat — dryRun-granskning (ägar-GO 2026-07-13) -->
+      <!-- ORD-102 · Kortavstämning: Amex-CSV mot utgifterna (ägar-GO 2026-08-21) -->
+      <div class="section" id="card-recon">
+        <h2>
+          Kortavstämning · Amex
+          <span class="meta" id="card-recon-count">—</span>
+          <div class="section-actions">
+            <input type="file" id="card-recon-file" accept=".csv" multiple style="display: none" />
+            <button class="btn btn--primary" data-action="card-import">⬆ Importera kort-CSV</button>
+            <button class="btn" data-action="card-refresh">↻ Uppdatera</button>
+          </div>
+        </h2>
+        <div class="receipt-meta" id="card-recon-stats" style="margin: 0 4px 10px"></div>
+        <div class="receipts-list" id="card-recon-list">
+          <div class="empty">
+            Importera Amex-CSV (t.ex. amex-sas-elite-86005-2026.csv) — dragningarna matchas
+            automatiskt mot utgifterna. Omatchade rader = köp som saknar kvitto i systemet.
+          </div>
+        </div>
+      </div>
+
       <div class="section" id="cf9-dryrun">
         <h2>
           Fortnox verifikat · dryRun
@@ -3756,6 +3776,131 @@
       })();
 
       // ORD-67 · CF.9 dryRun-granskning: verifikat-förslag utan write
+      // ORD-102 · Kortavstämning (Amex-CSV → matchning mot utgifter)
+      (function cardReconSection() {
+        const list = document.getElementById('card-recon-list');
+        const statsEl = document.getElementById('card-recon-stats');
+        const countEl = document.getElementById('card-recon-count');
+        const fileInput = document.getElementById('card-recon-file');
+        const importBtn = document.querySelector('[data-action="card-import"]');
+        if (!list || !fileInput || !importBtn) return;
+        const esc = (s) =>
+          String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+        const kr = (n) =>
+          Number(n).toLocaleString('sv-SE', { minimumFractionDigits: 2 }) + ' kr';
+
+        async function load() {
+          try {
+            const r = await fetch('/api/v1/cco-cf/card-reconciliation?status=unmatched', {
+              credentials: 'same-origin',
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              list.innerHTML = `<div class="empty">Kunde inte hämta: ${esc(d.error || r.status)}</div>`;
+              return;
+            }
+            const s = d.stats || {};
+            countEl.textContent = s.totalCharges || 0;
+            statsEl.innerHTML =
+              `💳 <strong>${s.matched || 0} matchade</strong> · ` +
+              `${s.unmatched || 0} saknar kvitto (${kr(s.unmatchedSumSek || 0)}) · ` +
+              `${s.ignored || 0} ignorerade · kort: ${(s.cards || []).map(esc).join(', ') || '—'}`;
+            const rows = d.transactions || [];
+            if (!rows.length) {
+              list.innerHTML =
+                '<div class="empty">Inga omatchade dragningar — allt har kvitto. 🎉</div>';
+              return;
+            }
+            list.innerHTML = rows
+              .map((t) => {
+                const sug = (t.suggestions || [])
+                  .map(
+                    (x) =>
+                      `<button class="btn" data-card-match="${esc(t.id)}" data-expense="${esc(x.expenseId)}" title="Matcha mot denna utgift">↔ ${esc(x.supplier || '?')} ${kr(x.amountSek)} ${esc(x.date || '')}</button>`
+                  )
+                  .join(' ');
+                return (
+                  `<div class="receipt-row" style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid rgba(0,0,0,.06)">` +
+                  `<div><strong>${esc(t.description)}</strong><div class="receipt-meta">${esc(t.date)} · kort ····${esc(t.cardRef)}</div>${sug ? `<div style="margin-top:4px">${sug}</div>` : ''}</div>` +
+                  `<div style="text-align:right;white-space:nowrap"><strong>${kr(t.amountSek)}</strong><div style="margin-top:4px"><button class="btn" data-card-ignore="${esc(t.id)}" title="Privat köp / ska ej bokföras">✕ Ignorera</button></div></div>` +
+                  `</div>`
+                );
+              })
+              .join('');
+          } catch (err) {
+            list.innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
+          }
+        }
+
+        list.addEventListener('click', async (ev) => {
+          const m = ev.target.closest('[data-card-match]');
+          const ig = ev.target.closest('[data-card-ignore]');
+          try {
+            if (m) {
+              await fetch(`/api/v1/cco-cf/card-transactions/${m.dataset.cardMatch}/match`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ expenseId: m.dataset.expense }),
+              });
+              await load();
+            } else if (ig) {
+              const reason = prompt('Anledning (t.ex. privat köp):', 'privat köp');
+              if (reason === null) return;
+              await fetch(`/api/v1/cco-cf/card-transactions/${ig.dataset.cardIgnore}/ignore`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason }),
+              });
+              await load();
+            }
+          } catch (err) {
+            alert('Fel: ' + err.message);
+          }
+        });
+
+        importBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', async () => {
+          const files = [...(fileInput.files || [])];
+          if (!files.length) return;
+          importBtn.disabled = true;
+          importBtn.textContent = 'Importerar…';
+          try {
+            for (const f of files) {
+              const csvText = await f.text();
+              const cardRef =
+                (f.name.match(/(\d{5})/) || [])[1] ||
+                prompt(`Kortets fyra-fem sista siffror för ${f.name}:`) ||
+                'okänt';
+              const r = await fetch('/api/v1/cco-cf/card-import', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ csvText, cardRef }),
+              });
+              const d = await r.json().catch(() => ({}));
+              if (!r.ok) alert(`${f.name}: ${d.error || r.status}`);
+              else
+                alert(
+                  `${f.name}: ${d.imported} nya (${d.duplicates} dubbletter) · ` +
+                    `${d.autoMatched} auto-matchade · ${d.suggested} förslag`
+                );
+            }
+            await load();
+          } catch (err) {
+            alert('Importfel: ' + err.message);
+          }
+          fileInput.value = '';
+          importBtn.disabled = false;
+          importBtn.textContent = '⬆ Importera kort-CSV';
+        });
+        document
+          .querySelector('[data-action="card-refresh"]')
+          ?.addEventListener('click', load);
+        load();
+      })();
+
       (function cf9DryRunSection() {
         const list = document.getElementById('cf9-list');
         const countEl = document.getElementById('cf9-count');
