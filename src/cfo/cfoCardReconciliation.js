@@ -41,7 +41,11 @@ function sha12(v) {
  * punkt som decimal.
  */
 function parseSwedishAmount(raw) {
-  let cleaned = String(raw || '').replace(/["\s\u00a0\u202f]/g, '');
+  // Amex använder Unicode-minus (U+2212) på betalningsrader — normalisera,
+  // annars skippas krediterna tyst i stället för att registreras.
+  let cleaned = String(raw || '')
+    .replace(/[\u2212\u2013]/g, '-')
+    .replace(/["\s\u00a0\u202f]/g, '');
   if (cleaned.includes(',')) cleaned = cleaned.replace(/\./g, '').replace(',', '.');
   const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
