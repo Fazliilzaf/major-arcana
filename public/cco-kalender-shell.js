@@ -3143,59 +3143,128 @@
       drawer.classList.remove('is-open');
       drawer.innerHTML = '';
     };
-    drawer.appendChild(el('div', { class: 'cco-cal-drawer-head' }, [
-      el('h3', {}, 'Ta före/efter-bild'),
-      el('div', { class: 'cco-cal-drawer-meta' }, 'Kopplas till journalen för besöket'),
-      el('button', { class: 'cco-cal-drawer-close', type: 'button', onclick: close, 'aria-label': 'Stäng' }, '×'),
+
+    const name = slot.patientName || 'Okopplad patient';
+    const initials = v6Initials(name);
+    const avatarColor = dossierAvatarColor(name);
+    const stamp = `${name} · ${new Date().toLocaleString('sv-SE', { dateStyle: 'long', timeStyle: 'short' })}`;
+
+    const overlay = el('div', { class: 'cam-overlay' });
+    overlay.appendChild(el('div', { class: 'cam-head' }, [
+      el('div', { class: 'cam-head-info' }, [
+        el('div', { class: 'cam-head-avatar', style: `background:${avatarColor}` }, initials),
+        el('div', { class: 'cam-head-meta' }, [
+          el('div', { class: 'name' }, name),
+          el('div', { class: 'sub' }, 'Klinisk dokumentation · CCO journal'),
+        ]),
+      ]),
+      el('button', { class: 'cam-close', type: 'button', 'aria-label': 'Stäng', onclick: close }, '×'),
     ]));
 
-    drawer.appendChild(el('dl', { class: 'cco-cal-preflight-fields' }, [
-      el('dt', {}, 'Patient'), el('dd', {}, slot.patientName || 'Namn saknas'),
-      el('dt', {}, 'Besök'), el('dd', {}, slot.encounterId || 'Saknas'),
-    ]));
+    const stage = el('div', { class: 'cam-stage', dataset: { mode: 'ready' } });
+    const wrap = el('div', { class: 'cam-canvas-wrap' });
+    const badge = el('span', { class: 'cam-badge', style: 'display:none;' }, 'REC · LIVE');
+    const metaStamp = el('span', { class: 'cam-meta-stamp' }, stamp);
+    const fileInput = el('input', {
+      id: 'camFileInput',
+      class: 'cco-cal-create-input',
+      type: 'file',
+      accept: 'image/*',
+      capture: 'environment',
+      'aria-label': 'Bild från kamera',
+      style: 'display:none;',
+    });
+    const video = el('video', { class: 'cam-video', autoplay: true, playsinline: true, muted: true, hidden: true });
+    const photo = el('img', { class: 'cam-photo', alt: 'Förhandsgranskning', hidden: true });
+    const annot = el('canvas', { class: 'cam-annot', hidden: true });
+    const placeholder = el('div', { class: 'cam-loading', id: 'camPlaceholder' }, [
+      el('div', { class: 'cam-loading-spinner' }),
+      'Klicka på knappen nedan för att välja eller ta en bild.',
+    ]);
+    wrap.appendChild(badge);
+    wrap.appendChild(metaStamp);
+    wrap.appendChild(fileInput);
+    wrap.appendChild(video);
+    wrap.appendChild(photo);
+    wrap.appendChild(annot);
+    wrap.appendChild(placeholder);
+    stage.appendChild(wrap);
+    overlay.appendChild(stage);
 
-    const form = el('section', { class: 'cco-cal-create-controlled' });
-    const phaseSelect = el('select', { class: 'cco-cal-create-input', 'aria-label': 'Bildfas' }, [
+    const phaseSelect = el('select', { class: 'cam-tool', 'aria-label': 'Bildfas' }, [
       el('option', { value: '' }, 'Välj fas'),
       el('option', { value: 'before' }, 'Före'),
       el('option', { value: 'after' }, 'Efter'),
     ]);
     const labelInput = el('input', {
-      class: 'cco-cal-create-input', type: 'text', placeholder: 'Etikett (valfritt)',
-      'aria-label': 'Etikett',
+      class: 'cam-tool', type: 'text', placeholder: 'Etikett (valfritt)', 'aria-label': 'Etikett',
     });
-    const fileInput = el('input', {
-      class: 'cco-cal-create-input', type: 'file', accept: 'image/*', capture: 'environment',
-      'aria-label': 'Bild från kamera',
-    });
-    const preview = el('img', {
-      class: 'cco-cal-camera-preview',
-      style: 'display:none;max-width:100%;max-height:220px;border-radius:10px;',
-      alt: 'Förhandsgranskning',
-    });
+    const optionsRow = el('div', { class: 'cam-options-row' }, [phaseSelect, labelInput]);
+    overlay.appendChild(optionsRow);
+
+    const toolbar = el('div', { class: 'cam-toolbar' });
+    overlay.appendChild(toolbar);
+
     const message = el('p', { class: 'cco-cal-preflight-footnote', role: 'status' }, 'Välj fas och ta en bild.');
-    const uploadButton = el('button', {
-      class: 'quick-pill quick-pill--success', type: 'button', disabled: 'disabled',
-    }, 'Ladda upp till journalen');
+    overlay.appendChild(message);
 
     let selectedFile = null;
+
+    function updateSaveState() {
+      const btn = toolbar.querySelector('.cam-save--primary');
+      if (btn) btn.disabled = !(selectedFile && phaseSelect.value);
+    }
+
+    function setMode(mode) {
+      stage.dataset.mode = mode;
+      toolbar.innerHTML = '';
+      if (mode === 'ready') {
+        photo.hidden = true;
+        placeholder.hidden = false;
+        badge.style.display = 'none';
+        toolbar.appendChild(el('button', {
+          class: 'cam-capture', type: 'button', title: 'Ta bild',
+          onclick: () => fileInput.click(),
+        }));
+      } else if (mode === 'captured') {
+        photo.hidden = false;
+        placeholder.hidden = true;
+        badge.style.display = 'none';
+        const saveRow = el('div', { class: 'cam-save-row' });
+        saveRow.appendChild(el('button', {
+          class: 'cam-save cam-save--delete', type: 'button',
+          onclick: () => setMode('ready'),
+        }, '🗑 Radera'));
+        saveRow.appendChild(el('button', {
+          class: 'cam-save cam-save--retake', type: 'button',
+          onclick: () => fileInput.click(),
+        }, '↻ Ta ny'));
+        saveRow.appendChild(el('button', {
+          class: 'cam-save cam-save--primary', type: 'button', disabled: 'disabled',
+          onclick: doUpload,
+        }, '✓ Spara i journal'));
+        toolbar.appendChild(saveRow);
+        updateSaveState();
+      }
+    }
+
     fileInput.addEventListener('change', () => {
       selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
       if (selectedFile) {
-        preview.src = URL.createObjectURL(selectedFile);
-        preview.style.display = 'block';
+        photo.src = URL.createObjectURL(selectedFile);
+        setMode('captured');
       } else {
-        preview.style.display = 'none';
+        setMode('ready');
       }
-      uploadButton.disabled = !selectedFile || !phaseSelect.value;
+      updateSaveState();
     });
-    phaseSelect.addEventListener('change', () => {
-      uploadButton.disabled = !selectedFile || !phaseSelect.value;
-    });
+    phaseSelect.addEventListener('change', updateSaveState);
+    labelInput.addEventListener('input', updateSaveState);
 
-    uploadButton.addEventListener('click', async () => {
+    async function doUpload() {
       if (!selectedFile || !phaseSelect.value) return;
-      uploadButton.disabled = true;
+      const btn = toolbar.querySelector('.cam-save--primary');
+      if (btn) btn.disabled = true;
       const body = new FormData();
       body.append('patientId', slot.patientId);
       if (slot.encounterId) body.append('encounterId', slot.encounterId);
@@ -3220,20 +3289,12 @@
         }, 1200);
       } catch (error) {
         message.textContent = 'Uppladdningen misslyckades: ' + (error.message || 'okänt fel');
-        uploadButton.disabled = false;
+        if (btn) btn.disabled = false;
       }
-    });
+    }
 
-    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Fas'));
-    form.appendChild(phaseSelect);
-    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Etikett'));
-    form.appendChild(labelInput);
-    form.appendChild(el('div', { class: 'cco-cal-create-label' }, 'Bild'));
-    form.appendChild(fileInput);
-    form.appendChild(preview);
-    form.appendChild(message);
-    form.appendChild(uploadButton);
-    drawer.appendChild(form);
+    setMode('ready');
+    drawer.appendChild(overlay);
   }
 
   global.CcoKalenderShell = {
