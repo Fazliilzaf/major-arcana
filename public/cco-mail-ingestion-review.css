@@ -16,6 +16,11 @@
   box-sizing: border-box;
 }
 
+img {
+  max-width: 100%;
+  height: auto;
+}
+
 body {
   margin: 0;
   padding: 24px;
@@ -212,19 +217,80 @@ tbody tr:hover {
 }
 
 @media (max-width: 768px) {
+  body {
+    padding: 12px;
+  }
+
+  h1 {
+    font-size: 1.35rem;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
   .row {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
   }
 
   select,
   input[type="text"],
   .button {
     width: 100%;
+    min-height: 38px;
+  }
+
+  .button {
+    justify-content: center;
+  }
+
+  .sweep-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   table {
     display: block;
     overflow-x: auto;
+    font-size: 0.85rem;
+  }
+
+  th,
+  td {
+    padding: 8px;
+    white-space: nowrap;
+  }
+
+  .toast {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 8px;
+  }
+
+  h1 {
+    font-size: 1.15rem;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  th,
+  td {
+    padding: 6px;
   }
 }

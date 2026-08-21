@@ -507,3 +507,44 @@ ol.amr-steps {
   margin: 0.35rem 0 0.75rem;
   color: var(--amr-muted);
 }
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  .amr-shell {
+    padding: 0.75rem;
+  }
+
+  .amr-header h1 {
+    font-size: 1.15rem;
+  }
+
+  .amr-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .amr-actions button {
+    width: 100%;
+    min-height: 38px;
+  }
+
+  .amr-field input,
+  .amr-field textarea,
+  .amr-field select {
+    min-height: 38px;
+  }
+}
+
+@media (max-width: 480px) {
+  .amr-shell {
+    padding: 0.5rem;
+  }
+
+  .amr-stats {
+    grid-template-columns: 1fr;
+  }
+}
