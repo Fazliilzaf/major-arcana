@@ -1619,37 +1619,41 @@
               '<div class="empty">Inga kvitton med detta filter.</div>';
             return;
           }
-          $('receipts-list').innerHTML = filtered
-            .map((r) => {
-              const thumb = (r.mimeType || '').includes('pdf') ? '📄' : '🖼';
-              const customer = r.customerId
-                ? `<a class="receipt-customerlink" href="/major-arcana-preview/?view=customers&v9=on&customer=${esc(r.customerId)}">→ kundkort</a>`
-                : '';
-              // CF.2-fix 2026-06-01 (BUG-3): visa encounter/treatment/offer-IDs när satta.
-              // Trunkera till sista 6 tecken så raden inte sprängs — full ID syns vid hover (title).
-              const tail6 = (s) => String(s || '').slice(-6);
-              const encChip = r.encounterId
-                ? `<span class="receipt-link-chip" title="encounterId: ${esc(r.encounterId)}">enc:${esc(tail6(r.encounterId))}</span>`
-                : '';
-              const txChip = r.treatmentId
-                ? `<span class="receipt-link-chip" title="treatmentId: ${esc(r.treatmentId)}">tx:${esc(tail6(r.treatmentId))}</span>`
-                : '';
-              const offerChip = r.offerId
-                ? `<span class="receipt-link-chip" title="offerId: ${esc(r.offerId)}">offer:${esc(tail6(r.offerId))}</span>`
-                : '';
-              const meta = [
-                r.supplier && esc(r.supplier),
-                r.category && esc(r.category),
-                r.date && esc(fmtTs(r.date)),
-                r.sourceSystem !== 'manual_upload' && esc(r.sourceSystem),
-                customer,
-                encChip,
-                txChip,
-                offerChip,
-              ]
-                .filter(Boolean)
-                .join(' · ');
-              return `
+          // ORD-102c-mönstret: visa aldrig hundratals rader rakt av — tak + hänvisning.
+          const visade = filtered.slice(0, 60);
+          const rest = filtered.length - visade.length;
+          $('receipts-list').innerHTML =
+            visade
+              .map((r) => {
+                const thumb = (r.mimeType || '').includes('pdf') ? '📄' : '🖼';
+                const customer = r.customerId
+                  ? `<a class="receipt-customerlink" href="/major-arcana-preview/?view=customers&v9=on&customer=${esc(r.customerId)}">→ kundkort</a>`
+                  : '';
+                // CF.2-fix 2026-06-01 (BUG-3): visa encounter/treatment/offer-IDs när satta.
+                // Trunkera till sista 6 tecken så raden inte sprängs — full ID syns vid hover (title).
+                const tail6 = (s) => String(s || '').slice(-6);
+                const encChip = r.encounterId
+                  ? `<span class="receipt-link-chip" title="encounterId: ${esc(r.encounterId)}">enc:${esc(tail6(r.encounterId))}</span>`
+                  : '';
+                const txChip = r.treatmentId
+                  ? `<span class="receipt-link-chip" title="treatmentId: ${esc(r.treatmentId)}">tx:${esc(tail6(r.treatmentId))}</span>`
+                  : '';
+                const offerChip = r.offerId
+                  ? `<span class="receipt-link-chip" title="offerId: ${esc(r.offerId)}">offer:${esc(tail6(r.offerId))}</span>`
+                  : '';
+                const meta = [
+                  r.supplier && esc(r.supplier),
+                  r.category && esc(r.category),
+                  r.date && esc(fmtTs(r.date)),
+                  r.sourceSystem !== 'manual_upload' && esc(r.sourceSystem),
+                  customer,
+                  encChip,
+                  txChip,
+                  offerChip,
+                ]
+                  .filter(Boolean)
+                  .join(' · ');
+                return `
           <div class="receipt" data-id="${esc(r.id)}">
             <div class="receipt-thumb">${thumb}</div>
             <div class="receipt-main">
@@ -1661,8 +1665,11 @@
             <a class="btn" href="/api/v1/cco-cf/receipts/${esc(r.id)}/download" target="_blank">Visa</a>
           </div>
         `;
-            })
-            .join('');
+              })
+              .join('') +
+            (rest > 0
+              ? `<div class="empty">… och ${rest} till — använd statusfiltren ovan för att hitta rätt.</div>`
+              : '');
         }
 
         // Filter pills
@@ -2713,56 +2720,42 @@
           await loadDashboard();
         });
 
-        // ── CF.4: Rule Engine UI ────────────────────────────────────
-        async function loadRules() {
-          try {
-            const r = await fetch('/api/v1/cco-cf/rules?limit=200', { credentials: 'same-origin' });
-            if (!r.ok) {
-              $('rules-list').innerHTML = `<div class="empty">HTTP ${r.status}</div>`;
-              return;
-            }
-            const data = await r.json();
-            const rules = data.rules || [];
-            $('rules-count').textContent =
-              `${rules.length} regler (${data.summary?.active || 0} aktiva)`;
-            if (rules.length === 0) {
-              $('rules-list').innerHTML =
-                '<div class="empty">Inga regler ännu. Skapa via "+ Skapa regel" eller från en expense via "Spara som regel".</div>';
-              return;
-            }
-            $('rules-list').innerHTML = rules
-              .map((rule) => {
-                const conds = (rule.conditions || [])
-                  .map((c) =>
-                    c.type === 'supplier_equals'
-                      ? `leverantör=${esc(c.value)}`
-                      : c.type === 'supplier_contains'
-                        ? `leverantör⊇${esc(c.value)}`
-                        : c.type === 'supplier_regex'
-                          ? `regex:${esc(c.pattern)}`
-                          : c.type === 'amount_between'
-                            ? `belopp ${c.min ?? '?'}-${c.max ?? '?'}`
-                            : c.type === 'payment_method_is'
-                              ? `betalsätt=${esc(c.value)}`
-                              : c.type === 'vat_rate_is'
-                                ? `moms=${esc(c.value)}%`
-                                : c.type === 'category_is'
-                                  ? `kategori=${esc(c.value)}`
-                                  : c.type === 'notes_contains'
-                                    ? `noter⊇${esc(c.value)}`
-                                    : c.type === 'amount_equals'
-                                      ? `belopp=${esc(c.value)}`
-                                      : esc(c.type)
-                  )
-                  .join(' · ');
-                const sets = [];
-                if (rule.setCategory) sets.push(`→ kategori: <b>${esc(rule.setCategory)}</b>`);
-                if (rule.setVatRatePercent !== null && rule.setVatRatePercent !== undefined)
-                  sets.push(`→ moms: <b>${esc(rule.setVatRatePercent)}%</b>`);
-                if (rule.setPaymentMethod)
-                  sets.push(`→ betalsätt: <b>${esc(rule.setPaymentMethod)}</b>`);
-                const stats = rule.stats || {};
-                return `
+        // ── CF.4: Rule Engine UI (ORD-102c-mönstret: grupperat per kategori) ──
+        let rulesCache = [];
+        let rulesSummary = {};
+        let rulesOpenGroup = null;
+
+        function ruleRowHtml(rule) {
+          const conds = (rule.conditions || [])
+            .map((c) =>
+              c.type === 'supplier_equals'
+                ? `leverantör=${esc(c.value)}`
+                : c.type === 'supplier_contains'
+                  ? `leverantör⊇${esc(c.value)}`
+                  : c.type === 'supplier_regex'
+                    ? `regex:${esc(c.pattern)}`
+                    : c.type === 'amount_between'
+                      ? `belopp ${c.min ?? '?'}-${c.max ?? '?'}`
+                      : c.type === 'payment_method_is'
+                        ? `betalsätt=${esc(c.value)}`
+                        : c.type === 'vat_rate_is'
+                          ? `moms=${esc(c.value)}%`
+                          : c.type === 'category_is'
+                            ? `kategori=${esc(c.value)}`
+                            : c.type === 'notes_contains'
+                              ? `noter⊇${esc(c.value)}`
+                              : c.type === 'amount_equals'
+                                ? `belopp=${esc(c.value)}`
+                                : esc(c.type)
+            )
+            .join(' · ');
+          const sets = [];
+          if (rule.setCategory) sets.push(`→ kategori: <b>${esc(rule.setCategory)}</b>`);
+          if (rule.setVatRatePercent !== null && rule.setVatRatePercent !== undefined)
+            sets.push(`→ moms: <b>${esc(rule.setVatRatePercent)}%</b>`);
+          if (rule.setPaymentMethod) sets.push(`→ betalsätt: <b>${esc(rule.setPaymentMethod)}</b>`);
+          const stats = rule.stats || {};
+          return `
             <div class="rule-row" data-rule-id="${esc(rule.id)}" data-enabled="${rule.enabled !== false}">
               <div>
                 <div class="rule-name">${esc(rule.name)} <span class="meta">(prio ${esc(rule.priority || 0)})</span></div>
@@ -2778,8 +2771,55 @@
                 <button class="btn" data-rule-action="delete">×</button>
               </div>
             </div>`;
-              })
-              .join('');
+        }
+
+        function renderRules() {
+          const rules = rulesCache;
+          $('rules-count').textContent =
+            `${rules.length} regler (${rulesSummary.active || 0} aktiva)`;
+          if (rules.length === 0) {
+            $('rules-list').innerHTML =
+              '<div class="empty">Inga regler ännu. Skapa via "+ Skapa regel" eller från en expense via "Spara som regel".</div>';
+            return;
+          }
+          const grupper = new Map();
+          for (const rule of rules) {
+            const kat = rule.setCategory || 'övrigt';
+            if (!grupper.has(kat)) grupper.set(kat, []);
+            grupper.get(kat).push(rule);
+          }
+          $('rules-list').innerHTML = [...grupper.entries()]
+            .sort((a, b) => b[1].length - a[1].length)
+            .map(([kat, list]) => {
+              const aktiva = list.filter((r) => r.enabled !== false).length;
+              const applied = list.reduce((a, r) => a + ((r.stats || {}).timesApplied || 0), 0);
+              const öppen = rulesOpenGroup === kat;
+              const rader = öppen
+                ? '<div style="margin:4px 0 10px 44px">' + list.map(ruleRowHtml).join('') + '</div>'
+                : '';
+              return (
+                `<div class="receipt" data-rule-group="${esc(kat)}" style="cursor:pointer">` +
+                `<div class="receipt-thumb">⚙️</div>` +
+                `<div class="receipt-main"><div class="receipt-name">${esc(kat)}</div>` +
+                `<div class="receipt-meta"><span>${list.length} regler · ${aktiva} aktiva · applied ${applied}</span></div></div>` +
+                `<div class="receipt-meta">${öppen ? '▾' : '▸'}</div></div>` +
+                rader
+              );
+            })
+            .join('');
+        }
+
+        async function loadRules() {
+          try {
+            const r = await fetch('/api/v1/cco-cf/rules?limit=200', { credentials: 'same-origin' });
+            if (!r.ok) {
+              $('rules-list').innerHTML = `<div class="empty">HTTP ${r.status}</div>`;
+              return;
+            }
+            const data = await r.json();
+            rulesCache = data.rules || [];
+            rulesSummary = data.summary || {};
+            renderRules();
           } catch (err) {
             $('rules-list').innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
           }
@@ -2787,7 +2827,15 @@
 
         document.getElementById('rules-list').addEventListener('click', async (ev) => {
           const action = ev.target.closest('[data-rule-action]');
-          if (!action) return;
+          if (!action) {
+            const grupp = ev.target.closest('[data-rule-group]');
+            if (grupp) {
+              const kat = grupp.dataset.ruleGroup;
+              rulesOpenGroup = rulesOpenGroup === kat ? null : kat;
+              renderRules();
+            }
+            return;
+          }
           const row = action.closest('.rule-row');
           const ruleId = row?.dataset.ruleId;
           if (!ruleId) return;
