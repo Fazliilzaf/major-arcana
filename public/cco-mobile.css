@@ -804,10 +804,61 @@
     background: rgba(132, 117, 107, 0.09);
   }
 
-  /* Korten ovanför skuggningen. */
-  .day-slots > * {
-    position: relative;
+  /* Korten ovanför skuggningen.
+   *
+   * Här stod `position: relative` först. Det såg oskyldigt ut men bröt
+   * kalendern: .booking är `position: absolute` med ett uträknat `top`, och
+   * relative gjorde att kortet lades i flödet i stället — 09:00-bokningen
+   * hamnade högst upp oavsett tid, och bredden kollapsade från 348 px till
+   * innehållets 142. Felet syntes inte förrän det fanns bokningar att rita.
+   *
+   * z-index räcker; positionen ska lämnas i fred. */
+  .day-slots > .booking,
+  .day-slots > .v6-empty,
+  .day-slots > .now-line {
     z-index: 1;
+  }
+}
+
+/* ─── Dagvyns kort: tid uppe, namnet framträdande ─────────────────────
+ * Cliento lägger tid och längd på en rad och namnet under, i fetare stil.
+ * Vårt kort hade tre staplade rader med namnet sist och minst — tjänsten
+ * fick mest vikt fast det är patienten man letar efter.
+ *
+ * Gäller bara när kolumnen är bred, alltså i dagvyn. I veckovyn är kortet
+ * 47 px och visar bara tiden (blocket nedan). */
+@container (min-width: 200px) {
+  .booking {
+    display: grid !important;
+    grid-template-rows: auto auto;
+    align-content: start;
+    gap: 0;
+    /* 47 px för ett 45-minuterskort. Två rader plus 8 px padding satte
+     * namnets underhäng mot kanten; 5 px ger luft utan att kortet växer. */
+    padding: 5px 11px !important;
+    text-align: left;
+    overflow: hidden;
+  }
+  .booking-time {
+    order: 1;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    opacity: 0.75;
+  }
+  .booking-sub {
+    order: 2;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    opacity: 1 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Tjänsten göms i dagvyn. Ett 45-minuterskort är 47 px högt och rymmer
+   * två rader — tid och namn, som hos Cliento. Tjänsten finns i lådan när
+   * man trycker. Tre rader hade klippts mitt i en bokstav. */
+  .booking-title {
+    display: none !important;
   }
 }
 
