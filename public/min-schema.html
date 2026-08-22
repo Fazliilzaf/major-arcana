@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Mitt schema · Arcana</title>
+    <link rel="icon" type="image/png" href="/assets/major-arcana-mark-final.png" />
+    <link rel="apple-touch-icon" href="/assets/major-arcana-mark-final.png" />
+    <style>
+      :root {
+        --bg: #faf6f2;
+        --brand: #2b251f;
+        --text: #2b251f;
+        --muted: #6b6258;
+        --accent: #bb4779;
+        --accent-text: #fff;
+        --sage: #4a8268;
+        --danger: #b94a4a;
+        --border: rgba(43, 37, 31, 0.12);
+        --surface: #fff;
+        --shadow: 0 4px 16px rgba(43, 37, 31, 0.08);
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { height: 100%; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.45;
+        min-height: 100vh;
+      }
+      .appbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+      }
+      .appbar h1 { font-size: 18px; font-weight: 600; }
+      .appbar a { color: var(--muted); text-decoration: none; font-size: 13px; }
+      main { padding: 16px; max-width: 520px; margin: 0 auto; }
+      .card {
+        background: var(--surface);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .card h2 { font-size: 16px; margin-bottom: 12px; }
+      .status {
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+      .status.ok { background: rgba(74, 130, 104, 0.12); color: #2d5a46; }
+      .status.warn { background: rgba(201, 130, 30, 0.12); color: #7a4e0e; }
+      .status.bad { background: rgba(185, 74, 74, 0.12); color: #7a2d2d; }
+      .form-grid { display: grid; gap: 12px; }
+      .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+      input, select, button {
+        font: inherit;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        width: 100%;
+      }
+      button {
+        background: var(--accent);
+        color: var(--accent-text);
+        border-color: var(--accent);
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      button.secondary { background: #fff; color: var(--brand); }
+      .day {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+      .day h3 { font-size: 14px; margin-bottom: 8px; color: var(--muted); }
+      .slot, .block {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .slot:last-child, .block:last-child { border-bottom: none; }
+      .time { font-weight: 600; }
+      .service { font-size: 13px; color: var(--muted); }
+      .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+      .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+      .loader { color: var(--muted); font-size: 13px; padding: 8px 0; }
+    </style>
+  </head>
+  <body>
+    <header class="appbar">
+      <h1>Mitt schema</h1>
+      <a href="/staff-portal">← Tillbaka till portalen</a>
+    </header>
+    <main id="app">
+      <div class="card">
+        <div id="meStatus" class="status warn">Laddar...</div>
+        <div class="hint">
+          Här ser du dina kommande arbetstider och kan lägga in lunch eller annan ledig tid.
+          Du kan bara ändra ditt eget schema.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Lägg in lunch / ledighet</h2>
+        <form id="blockForm" class="form-grid">
+          <div class="form-row">
+            <div>
+              <label for="dateFrom">Datum</label>
+              <input id="dateFrom" type="date" required />
+            </div>
+            <div>
+              <label for="dateTo">Upprepas till (valfritt)</label>
+              <input id="dateTo" type="date" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label for="startTime">Från</label>
+              <input id="startTime" type="time" value="12:30" required />
+            </div>
+            <div>
+              <label for="endTime">Till</label>
+              <input id="endTime" type="time" value="13:15" required />
+            </div>
+          </div>
+          <div>
+            <label for="blockType">Typ</label>
+            <select id="blockType">
+              <option value="lunch">Lunch</option>
+              <option value="closed">Ledighet / annat</option>
+            </select>
+          </div>
+          <div>
+            <label for="blockLabel">Etikett</label>
+            <input id="blockLabel" type="text" placeholder="Lunch" />
+          </div>
+          <div>
+            <label for="blockWeekdays">Veckodagar (valfritt, 1=måndag)</label>
+            <input id="blockWeekdays" type="text" placeholder="1,2,3,4,5" />
+          </div>
+          <button type="submit" id="saveBlockBtn">Spara block</button>
+        </form>
+        <div class="hint">
+          Lämna "Upprepas till" tom för en enskild dag. Ett block stänger bara tid — det kan inte öppna ny tid eller byta dag med en kollega.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Mina tider</h2>
+        <div id="slotsView" class="loader">Laddar tider...</div>
+      </div>
+
+      <div class="card">
+        <h2>Mina block</h2>
+        <div id="blocksView" class="loader">Laddar block...</div>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        const state = {
+          me: null,
+          resourceId: null,
+          slots: [],
+          blocks: [],
+        };
+
+        const els = {
+          meStatus: document.getElementById('meStatus'),
+          blockForm: document.getElementById('blockForm'),
+          dateFrom: document.getElementById('dateFrom'),
+          dateTo: document.getElementById('dateTo'),
+          startTime: document.getElementById('startTime'),
+          endTime: document.getElementById('endTime'),
+          blockType: document.getElementById('blockType'),
+          blockLabel: document.getElementById('blockLabel'),
+          blockWeekdays: document.getElementById('blockWeekdays'),
+          saveBlockBtn: document.getElementById('saveBlockBtn'),
+          slotsView: document.getElementById('slotsView'),
+          blocksView: document.getElementById('blocksView'),
+        };
+
+        async function api(path, opts = {}) {
+          const res = await fetch(path, { credentials: 'include', ...opts });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            const msg = body.error || body.message || `Fel ${res.status}`;
+            throw new Error(msg);
+          }
+          return body;
+        }
+
+        function escapeHtml(value) {
+          return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+        }
+
+        function formatDate(value) {
+          if (!value) return '—';
+          const d = new Date(value);
+          if (Number.isNaN(d.getTime())) return escapeHtml(value);
+          return d.toLocaleDateString('sv-SE', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+
+        function formatTime(value) {
+          if (!value) return '';
+          const d = new Date(value);
+          if (Number.isNaN(d.getTime())) return escapeHtml(value);
+          return d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function setStatus(el, text, type = 'warn') {
+          el.textContent = text;
+          el.className = `status ${type}`;
+        }
+
+        async function loadMe() {
+          try {
+            const me = await api('/api/v1/staff/me');
+            state.me = me;
+            state.resourceId = me?.resourceId || null;
+            if (!state.resourceId) {
+              setStatus(
+                els.meStatus,
+                'Ditt konto är inte kopplat till en bokningsbar resurs. Kontakta ägaren.',
+                'bad'
+              );
+              els.saveBlockBtn.disabled = true;
+              return false;
+            }
+            setStatus(
+              els.meStatus,
+              `Inloggad. Resurs: ${escapeHtml(state.resourceId)}.`,
+              'ok'
+            );
+            return true;
+          } catch (error) {
+            setStatus(els.meStatus, `Kunde inte läsa profil: ${error.message}`, 'bad');
+            return false;
+          }
+        }
+
+        function getDateRange() {
+          const today = new Date();
+          const from = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+          const to = new Date(from);
+          to.setUTCDate(to.getUTCDate() + 27);
+          return {
+            fromDate: from.toISOString().slice(0, 10),
+            toDate: to.toISOString().slice(0, 10),
+          };
+        }
+
+        async function loadSlots() {
+          if (!state.resourceId) {
+            els.slotsView.innerHTML = '<div class="empty">Ingen resurs kopplad.</div>';
+            return;
+          }
+          const { fromDate, toDate } = getDateRange();
+          try {
+            const data = await api(
+              `/api/v1/cco-bookings/slots?fromDate=${fromDate}&toDate=${toDate}&resIds=${encodeURIComponent(
+                state.resourceId
+              )}&srvIds=consultation-physical`
+            );
+            const slots = Array.isArray(data?.slots) ? data.slots : [];
+            state.slots = slots;
+            renderSlots(slots);
+          } catch (error) {
+            els.slotsView.innerHTML = `<div class="empty">Kunde inte läsa tider: ${escapeHtml(
+              error.message
+            )}</div>`;
+          }
+        }
+
+        function renderSlots(slots) {
+          if (!slots.length) {
+            els.slotsView.innerHTML = '<div class="empty">Inga tider i perioden.</div>';
+            return;
+          }
+          const byDay = {};
+          for (const slot of slots) {
+            const key = String(slot.startsAt || '').slice(0, 10);
+            if (!key) continue;
+            if (!byDay[key]) byDay[key] = [];
+            byDay[key].push(slot);
+          }
+          const days = Object.keys(byDay).sort();
+          els.slotsView.innerHTML = days
+            .map((day) => {
+              const items = byDay[day];
+              return `
+                <div class="day">
+                  <h3>${formatDate(day)}</h3>
+                  ${items
+                    .map(
+                      (slot) => `
+                    <div class="slot">
+                      <span class="time">${formatTime(slot.startsAt)} – ${formatTime(
+                        slot.endsAt
+                      )}</span>
+                      <span class="service">${escapeHtml(slot.serviceLabel || slot.serviceId || '')}</span>
+                    </div>
+                  `
+                    )
+                    .join('')}
+                </div>
+              `;
+            })
+            .join('');
+        }
+
+        async function loadBlocks() {
+          if (!state.resourceId) {
+            els.blocksView.innerHTML = '<div class="empty">Ingen resurs kopplad.</div>';
+            return;
+          }
+          const { fromDate, toDate } = getDateRange();
+          try {
+            const data = await api(
+              `/api/v1/cco-bookings/calendar-blocks?fromDate=${fromDate}&toDate=${toDate}&resIds=${encodeURIComponent(
+                state.resourceId
+              )}`
+            );
+            const blocks = Array.isArray(data?.blocks) ? data.blocks : [];
+            state.blocks = blocks;
+            renderBlocks(blocks);
+          } catch (error) {
+            els.blocksView.innerHTML = `<div class="empty">Kunde inte läsa block: ${escapeHtml(
+              error.message
+            )}</div>`;
+          }
+        }
+
+        function renderBlocks(blocks) {
+          if (!blocks.length) {
+            els.blocksView.innerHTML = '<div class="empty">Inga block i perioden.</div>';
+            return;
+          }
+          els.blocksView.innerHTML = blocks
+            .map(
+              (block) => `
+                <div class="day">
+                  <div class="block">
+                    <div>
+                      <div class="time">${escapeHtml(block.startTime || '')} – ${escapeHtml(
+                        block.endTime || ''
+                      )}</div>
+                      <div class="service">${escapeHtml(block.label || '')} · ${escapeHtml(
+                        block.blockType || ''
+                      )}</div>
+                    </div>
+                    <div class="service">${formatDate(block.startsAt)}</div>
+                  </div>
+                </div>
+              `
+            )
+            .join('');
+        }
+
+        async function saveBlock(event) {
+          event.preventDefault();
+          if (!state.resourceId) return;
+          const dateFrom = els.dateFrom.value;
+          const dateTo = els.dateTo.value || dateFrom;
+          const startTime = els.startTime.value;
+          const endTime = els.endTime.value;
+          const blockType = els.blockType.value;
+          const label = els.blockLabel.value.trim() || (blockType === 'lunch' ? 'Lunch' : 'Ledig');
+          const weekdaysRaw = els.blockWeekdays.value.trim();
+          const weekdays = weekdaysRaw
+            ? weekdaysRaw.split(',').map((s) => Number(s.trim())).filter((n) => n >= 1 && n <= 7)
+            : [];
+
+          const body = {
+            resourceIds: [state.resourceId],
+            dateFrom,
+            dateTo,
+            startTime,
+            endTime,
+            blockType,
+            label,
+          };
+          if (weekdays.length) body.weekdays = weekdays;
+
+          try {
+            els.saveBlockBtn.disabled = true;
+            await api('/api/v1/cco-bookings/calendar-blocks', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+            setStatus(els.meStatus, 'Block sparat.', 'ok');
+            els.blockForm.reset();
+            els.startTime.value = '12:30';
+            els.endTime.value = '13:15';
+            await Promise.all([loadSlots(), loadBlocks()]);
+          } catch (error) {
+            setStatus(els.meStatus, `Kunde inte spara block: ${error.message}`, 'bad');
+          } finally {
+            els.saveBlockBtn.disabled = false;
+          }
+        }
+
+        async function init() {
+          els.blockForm.addEventListener('submit', saveBlock);
+          const ok = await loadMe();
+          if (!ok) return;
+          await Promise.all([loadSlots(), loadBlocks()]);
+        }
+
+        init().catch((error) => {
+          setStatus(els.meStatus, `Något gick fel: ${error.message}`, 'bad');
+        });
+      })();
+    </script>
+  </body>
+</html>

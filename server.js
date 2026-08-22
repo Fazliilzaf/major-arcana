@@ -11851,6 +11851,7 @@ process.once('SIGTERM', () => {
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
       requireTenantScope: auth.requireTenantScope,
+      bookingEngineStore: ccoBookingEngineStore,
       loginRateLimiter: loginRateLimiterWithAudit,
       selectTenantRateLimiter,
       ownerMfaRequired: config.authOwnerMfaRequired,

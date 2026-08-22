@@ -61,6 +61,7 @@ test('staff first login returns mustChangePassword and clears after password cha
               membershipId: context.membership.id,
               tenantId: context.membership.tenantId,
               role: context.membership.role,
+              resourceId: context.membership.resourceId || null,
             };
             req.currentUser = context.user;
             req.currentMembership = context.membership;
@@ -160,5 +161,150 @@ test('staff first login returns mustChangePassword and clears after password cha
     const reloginBody = await staffRelogin.json();
     assert.equal(reloginBody.user.mustChangePassword, false);
     assert.equal(reloginBody.membership.role, 'STAFF');
+  });
+});
+
+
+test('POST /users/staff validerar resourceId mot bokningsmotorns resurser', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-staff-resource-id-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+
+  await authStore.bootstrapOwner({
+    tenantId: 'hair-tp-clinic',
+    email: 'owner@example.com',
+    password: 'owner-secret-12',
+    forcePasswordReset: true,
+    forceMfaReset: true,
+  });
+
+  const bookingEngineStore = {
+    async listResources() {
+      return [
+        { id: 'veronica', label: 'Veronica', active: true },
+        { id: 'clara', label: 'Clara', active: true },
+      ];
+    },
+  };
+
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createAuthRouter({
+      authStore,
+      bookingEngineStore,
+      requireAuth: (req, res, next) => {
+        const header = req.headers.authorization || '';
+        const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+        if (!token) return res.status(401).json({ error: 'Unauthorized.' });
+        authStore
+          .getSessionContextByToken(token)
+          .then((context) => {
+            if (!context) return res.status(401).json({ error: 'Unauthorized.' });
+            req.auth = {
+              token,
+              sessionId: context.session.id,
+              userId: context.user.id,
+              membershipId: context.membership.id,
+              tenantId: context.membership.tenantId,
+              role: context.membership.role,
+              resourceId: context.membership.resourceId || null,
+            };
+            req.currentUser = context.user;
+            req.currentMembership = context.membership;
+            return next();
+          })
+          .catch(next);
+      },
+      requireRole:
+        (...roles) =>
+        (req, res, next) => {
+          if (!roles.includes(req.auth?.role)) {
+            return res.status(403).json({ error: 'Forbidden.' });
+          }
+          return next();
+        },
+      requireTenantScope: () => (_req, _res, next) => next(),
+      ownerMfaRequired: false,
+      ownerMfaBypassHosts: [],
+      loginSessionRotationScope: 'tenant',
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const ownerLogin = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        email: 'owner@example.com',
+        password: 'owner-secret-12',
+        tenantId: 'hair-tp-clinic',
+      }),
+    });
+    const ownerBody = await ownerLogin.json();
+    assert.equal(ownerLogin.status, 200);
+
+    const invalidResource = await fetch(`${baseUrl}/users/staff`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${ownerBody.token}`,
+      },
+      body: JSON.stringify({
+        email: 'nurse-bad@example.com',
+        password: 'temp-pass-1234',
+        tenantId: 'hair-tp-clinic',
+        resourceId: 'veronca',
+      }),
+    });
+    assert.equal(invalidResource.status, 400);
+    const invalidBody = await invalidResource.json();
+    assert.match(invalidBody.error, /finns inte/i);
+
+    const validResource = await fetch(`${baseUrl}/users/staff`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${ownerBody.token}`,
+      },
+      body: JSON.stringify({
+        email: 'nurse-good@example.com',
+        password: 'temp-pass-1234',
+        tenantId: 'hair-tp-clinic',
+        resourceId: 'veronica',
+      }),
+    });
+    assert.equal(validResource.status, 201);
+    const validBody = await validResource.json();
+    assert.equal(validBody.membership.resourceId, 'veronica');
+
+    const patchInvalid = await fetch(`${baseUrl}/users/staff/${validBody.membership.id}`, {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${ownerBody.token}`,
+      },
+      body: JSON.stringify({ resourceId: 'clarabelle' }),
+    });
+    assert.equal(patchInvalid.status, 400);
+
+    const patchValid = await fetch(`${baseUrl}/users/staff/${validBody.membership.id}`, {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${ownerBody.token}`,
+      },
+      body: JSON.stringify({ resourceId: 'clara' }),
+    });
+    assert.equal(patchValid.status, 200);
+    const patchBody = await patchValid.json();
+    assert.equal(patchBody.membership.resourceId, 'clara');
   });
 });

@@ -2022,6 +2022,10 @@ function createStaffPortalRouter({
     res.sendFile(path.join(__dirname, '../../public/staff-portal.html'));
   });
 
+  router.get('/min-schema', (_req, res) => {
+    res.sendFile(path.join(__dirname, '../../public/min-schema.html'));
+  });
+
   /* ── GET /api/v1/staff/me ─────────────────────────────────────
      Returnerar inloggad personals roll och profil.
   ─────────────────────────────────────────────────────────────── */
@@ -2037,6 +2041,7 @@ function createStaffPortalRouter({
         role,
         tenantId: auth.tenantId ?? null,
         name: auth.name ?? auth.displayName ?? auth.staffName ?? null,
+        resourceId: auth.resourceId ?? null,
       });
     }
   );

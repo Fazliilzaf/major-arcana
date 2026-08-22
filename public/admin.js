@@ -468,6 +468,7 @@
     },
     filteredStaffMembershipIds: [],
     selectedStaffMembershipId: '',
+    bookingCatalogResources: [],
     lastInviteMessage: '',
     profile: null,
     calibrationSuggestion: null,
@@ -782,6 +783,28 @@
     revisionStatus: document.getElementById('revisionStatus'),
     revisionSummary: document.getElementById('revisionSummary'),
     revisionDiffBlock: document.getElementById('revisionDiffBlock'),
+    staffEmailInput: document.getElementById('staffEmailInput'),
+    staffPasswordInput: document.getElementById('staffPasswordInput'),
+    staffResourceSelect: document.getElementById('staffResourceSelect'),
+    createStaffBtn: document.getElementById('createStaffBtn'),
+    generateStaffPasswordBtn: document.getElementById('generateStaffPasswordBtn'),
+    copyInviteMessageBtn: document.getElementById('copyInviteMessageBtn'),
+    staffStatus: document.getElementById('staffStatus'),
+    staffInvitePreview: document.getElementById('staffInvitePreview'),
+    staffSearchInput: document.getElementById('staffSearchInput'),
+    staffStatusFilter: document.getElementById('staffStatusFilter'),
+    staffEnableFilteredBtn: document.getElementById('staffEnableFilteredBtn'),
+    staffDisableFilteredBtn: document.getElementById('staffDisableFilteredBtn'),
+    staffTableBody: document.getElementById('staffTableBody'),
+    staffUnlinkedResourcesAlert: document.getElementById('staffUnlinkedResourcesAlert'),
+    selectedStaffMeta: document.getElementById('selectedStaffMeta'),
+    selectedStaffDetails: document.getElementById('selectedStaffDetails'),
+    selectedStaffResourceSelect: document.getElementById('selectedStaffResourceSelect'),
+    saveSelectedStaffResourceBtn: document.getElementById('saveSelectedStaffResourceBtn'),
+    resetSelectedStaffPasswordBtn: document.getElementById('resetSelectedStaffPasswordBtn'),
+    selectedStaffRoleBtn: document.getElementById('selectedStaffRoleBtn'),
+    copySelectedStaffInviteBtn: document.getElementById('copySelectedStaffInviteBtn'),
+    refreshStaffBtn: document.getElementById('refreshStaffBtn'),
   };
 
   if (els.ccoWorkspaceSection) {
@@ -2398,6 +2421,7 @@
     const updatedAt = formatDateTime(selected?.membership?.updatedAt || selected?.user?.updatedAt);
     const membershipId = String(selected?.membership?.id || '-');
     const userId = String(selected?.user?.id || '-');
+    const resourceId = selected?.membership?.resourceId || '';
     const activeOwnerCount = (Array.isArray(state.staffMembers) ? state.staffMembers : []).filter(
       (item) => item?.membership?.role === 'OWNER' && item?.membership?.status === 'active'
     ).length;
@@ -2414,6 +2438,7 @@
         `email: ${email}`,
         `roll: ${role}`,
         `status: ${status}`,
+        `resurs: ${resourceId ? getResourceLabel(resourceId) : '—'}`,
         `membershipId: ${membershipId}`,
         `userId: ${userId}`,
         `createdAt: ${createdAt}`,
@@ -2426,6 +2451,12 @@
             ? 'session: other'
             : 'session: annan',
       ].join('\n');
+    }
+    if (els.selectedStaffResourceSelect) {
+      els.selectedStaffResourceSelect.value = resourceId;
+    }
+    if (els.saveSelectedStaffResourceBtn) {
+      els.saveSelectedStaffResourceBtn.disabled = !isOwner() || !resourceId;
     }
     const canReset = isOwner() && role !== 'OWNER';
     if (els.resetSelectedStaffPasswordBtn) els.resetSelectedStaffPasswordBtn.disabled = !canReset;
@@ -2520,6 +2551,24 @@
     setText(els.teamSummaryActive, active);
     setText(els.teamSummaryDisabled, disabled);
     setText(els.teamSummaryOwners, owners);
+  }
+
+  function renderUnlinkedResourcesAlert(members = []) {
+    if (!els.staffUnlinkedResourcesAlert) return;
+    const linkedIds = new Set(
+      members
+        .map((item) => String(item?.membership?.resourceId || '').trim())
+        .filter(Boolean)
+    );
+    const unlinked = state.bookingCatalogResources.filter((r) => !linkedIds.has(String(r.id)));
+    if (unlinked.length === 0) {
+      els.staffUnlinkedResourcesAlert.textContent = '';
+      els.staffUnlinkedResourcesAlert.className = 'status-line';
+      return;
+    }
+    const names = unlinked.map((r) => escapeHtml(r.label || r.id)).join(', ');
+    els.staffUnlinkedResourcesAlert.textContent = `Resurser utan konto: ${names}.`;
+    els.staffUnlinkedResourcesAlert.className = 'status-line warn';
   }
 
   function syncMobileStaffJournalBanner(isLoggedIn) {
@@ -5480,6 +5529,7 @@
     if (!els.staffTableBody) return;
     readStaffFiltersFromInputs();
     renderTeamSummary(members);
+    renderUnlinkedResourcesAlert(members);
     els.staffTableBody.innerHTML = '';
     const owner = isOwner();
     const filteredMembers = getFilteredStaffMembers(Array.isArray(members) ? members : []);
@@ -5501,7 +5551,7 @@
 
     if (filteredMembers.length === 0) {
       const tr = document.createElement('tr');
-      tr.innerHTML = '<td colspan="5" class="muted">Inga staff-medlemmar matchar filtret.</td>';
+      tr.innerHTML = '<td colspan="6" class="muted">Inga staff-medlemmar matchar filtret.</td>';
       els.staffTableBody.appendChild(tr);
       renderSelectedStaffProfile();
       return;
@@ -5549,12 +5599,16 @@
              isEnglishLanguage() ? 'Reset password' : 'Återställ lösenord'
            }</button>`;
 
+      const resourceId = item?.membership?.resourceId || '';
+      const resourceLabel = resourceId ? escapeHtml(getResourceLabel(resourceId)) : '<span class="muted">—</span>';
+
       const tr = document.createElement('tr');
       if (isSelected) tr.classList.add('staff-row-active');
       tr.innerHTML = `
         <td>${email}</td>
         <td>${role}</td>
         <td>${status}</td>
+        <td class="mini">${resourceLabel}</td>
         <td class="mini">${updatedAt}</td>
         <td>
           <div class="seg">
@@ -7026,6 +7080,35 @@
     }
   }
 
+  async function loadBookingCatalogResources() {
+    try {
+      const response = await api('/cco-booking-engine/catalog');
+      const resources = Array.isArray(response?.resources) ? response.resources : [];
+      state.bookingCatalogResources = resources.filter((r) => r?.id && r?.active !== false);
+      populateStaffResourceSelects();
+    } catch (error) {
+      console.error('[admin] kunde inte ladda resurskatalog:', error);
+      state.bookingCatalogResources = [];
+    }
+  }
+
+  function populateStaffResourceSelects() {
+    const options = [
+      '<option value="">— Ingen resurs —</option>',
+      ...state.bookingCatalogResources.map(
+        (r) => `<option value="${escapeHtml(r.id)}">${escapeHtml(r.label || r.id)}</option>`
+      ),
+    ].join('');
+    if (els.staffResourceSelect) els.staffResourceSelect.innerHTML = options;
+    if (els.selectedStaffResourceSelect) els.selectedStaffResourceSelect.innerHTML = options;
+  }
+
+  function getResourceLabel(resourceId) {
+    if (!resourceId) return '';
+    const found = state.bookingCatalogResources.find((r) => String(r.id) === String(resourceId));
+    return found ? `${found.label || found.id} (${found.id})` : resourceId;
+  }
+
   async function loadStaffMembers() {
     if (!isOwner()) {
       state.staffMembers = [];
@@ -7033,6 +7116,7 @@
       renderStaffTable(state.staffMembers);
       return;
     }
+    await loadBookingCatalogResources();
     const response = await api('/users/staff');
     state.staffMembers = Array.isArray(response?.members) ? response.members : [];
     if (state.selectedStaffMembershipId) {
@@ -7080,12 +7164,15 @@
         throw new Error('Lösenordet är för svagt. Använd minst 10 tecken med blandade tecken.');
       }
 
+      const resourceId = String(els.staffResourceSelect?.value || '').trim();
+
       setStatus(els.staffStatus, 'Skapar/uppdaterar staff...');
       const response = await api('/users/staff', {
         method: 'POST',
         body: {
           email,
           password,
+          ...(resourceId ? { resourceId } : {}),
         },
       });
       const statusCode = response?.createdUser ? 'skapad' : 'uppdaterad';
@@ -7308,6 +7395,30 @@
       setStatus(els.staffStatus, `Roll uppdaterad: ${email} → ${role}.`);
     } catch (error) {
       setStatus(els.staffStatus, error.message || 'Kunde inte ändra roll.', true);
+    }
+  }
+
+  async function updateStaffResource(membershipId) {
+    try {
+      if (!isOwner()) throw new Error('Endast OWNER kan ändra resurs.');
+      const resourceId = String(els.selectedStaffResourceSelect?.value || '').trim();
+      const member = getStaffMemberByMembershipId(membershipId);
+      const email = String(member?.user?.email || '')
+        .trim()
+        .toLowerCase();
+      if (!member || !email) throw new Error('Kunde inte hitta vald användare.');
+
+      setStatus(els.staffStatus, `Uppdaterar resurs för ${email}...`);
+      await api(`/users/staff/${membershipId}`, {
+        method: 'PATCH',
+        body: { resourceId },
+      });
+
+      state.selectedStaffMembershipId = String(membershipId);
+      await loadStaffMembers();
+      setStatus(els.staffStatus, `Resurs uppdaterad: ${email} → ${resourceId || 'ingen'}.`);
+    } catch (error) {
+      setStatus(els.staffStatus, error.message || 'Kunde inte ändra resurs.', true);
     }
   }
 
@@ -10478,6 +10589,14 @@
     copyInviteForMember(member).catch((error) => {
       setStatus(els.staffStatus, error.message || 'Kunde inte kopiera inbjudningstext.', true);
     });
+  });
+  els.saveSelectedStaffResourceBtn?.addEventListener('click', () => {
+    const membershipId = String(state.selectedStaffMembershipId || '').trim();
+    if (!membershipId) {
+      setStatus(els.staffStatus, 'Välj en medarbetarrad först.');
+      return;
+    }
+    updateStaffResource(membershipId);
   });
   els.changeOwnPasswordBtn?.addEventListener('click', () => {
     changeOwnPassword();
