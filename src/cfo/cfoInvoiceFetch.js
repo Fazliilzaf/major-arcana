@@ -40,6 +40,79 @@ function normalizeText(v) {
   return typeof v === 'string' ? v.trim() : '';
 }
 
+// ORD-102e: AI-extraktionen kan returnera svenska kategorier med åäö och
+// mellanslag (t.ex. "marknadsföring"), men CFO-fältet kräver snake_case utan
+// diakritiska tecken. Normalisera hårt och fall tillbaka till null vid osäkerhet.
+const VALID_CFO_CATEGORIES = new Set([
+  'utrustning',
+  'forbrukning',
+  'lokal',
+  'personal',
+  'utbildning',
+  'resor',
+  'mat_representation',
+  'marknadsforing',
+  'administrativ',
+  'it_telefoni',
+  'forsakring',
+  'juridik_konsult',
+  'bank_finansiell',
+  'skatter_avgifter',
+  'annat',
+  'privat',
+]);
+
+function normalizeCfoCategory(value) {
+  const raw = normalizeText(value).toLowerCase();
+  if (!raw) return null;
+  const transliterated = raw
+    .replace(/[åä]/g, 'a')
+    .replace(/[ö]/g, 'o')
+    .replace(/[é]/g, 'e')
+    .replace(/[ü]/g, 'u')
+    .replace(/[\s\/\\-]+/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_|_$/g, '');
+  if (VALID_CFO_CATEGORIES.has(transliterated)) return transliterated;
+  const mapping = {
+    kontorsmaterial: 'forbrukning',
+    kontor: 'administrativ',
+    programvara: 'it_telefoni',
+    software: 'it_telefoni',
+    behandlingsmaterial: 'forbrukning',
+    forbrukningsmaterial: 'forbrukning',
+    resekostnad: 'resor',
+    resa: 'resor',
+    hotell: 'resor',
+    flyg: 'resor',
+    taxi: 'resor',
+    mat: 'mat_representation',
+    restaurang: 'mat_representation',
+    marknadsforing: 'marknadsforing',
+    reklam: 'marknadsforing',
+    annonsering: 'marknadsforing',
+    sociala_medier: 'marknadsforing',
+    facebook_ads: 'marknadsforing',
+    google_ads: 'marknadsforing',
+    it: 'it_telefoni',
+    telefoni: 'it_telefoni',
+    internet: 'it_telefoni',
+    hosting: 'it_telefoni',
+    molntjanst: 'it_telefoni',
+    cloud: 'it_telefoni',
+    forsakring: 'forsakring',
+    juridik: 'juridik_konsult',
+    konsult: 'juridik_konsult',
+    bank: 'bank_finansiell',
+    skatt: 'skatter_avgifter',
+    avgift: 'skatter_avgifter',
+    privat: 'privat',
+  };
+  const mapped = mapping[transliterated];
+  if (mapped && VALID_CFO_CATEGORIES.has(mapped)) return mapped;
+  return null;
+}
+
 function amountMatches(a, b, tolerance = AMOUNT_TOLERANCE) {
   const na = Number(a);
   const nb = Number(b);
@@ -269,7 +342,7 @@ async function createExpenseFromCmRecord({
       amountSek: Number(tx.amountSek) || record.amountIncVat,
       vatSek: record.vatAmount || null,
       date: tx.date,
-      category: record.category || null,
+      category: normalizeCfoCategory(record.category),
       paymentMethod: 'card',
       notes: `Kortdragning ${tx.cardRef} ${tx.date} ${tx.description}. Underlag från CM: ${record.id}`,
     },
@@ -567,5 +640,6 @@ module.exports = {
   fetchMailboxPdfAttachment,
   createExpenseFromMailboxMessage,
   supplierDisplayName,
+  normalizeCfoCategory,
   DEFAULT_BULK_THRESHOLD,
 };

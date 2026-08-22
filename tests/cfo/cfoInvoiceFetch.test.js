@@ -269,6 +269,8 @@ function makeGraphConnector(attachmentBuffer = Buffer.from('pdf-bytes')) {
   };
 }
 
+const { normalizeCfoCategory } = require('../../src/cfo/cfoInvoiceFetch');
+
 test('findInvoiceForTransaction: skapar expense ur mailbox-bilaga när Graph-connector finns', async () => {
   const messages = [
     {
@@ -313,4 +315,13 @@ test('findInvoiceForTransaction: utan Graph-connector rapporteras mailbox-träff
   assert.equal(r.matched, false);
   assert.equal(r.source, 'mailbox_truth');
   assert.equal(r.evidence?.hasPdfAttachment, true);
+});
+
+test('normalizeCfoCategory: svenska tecken och mellanslag normaliseras', () => {
+  assert.equal(normalizeCfoCategory('marknadsföring'), 'marknadsforing');
+  assert.equal(normalizeCfoCategory('  Marknadsföring '), 'marknadsforing');
+  assert.equal(normalizeCfoCategory('kontorsmaterial'), 'forbrukning');
+  assert.equal(normalizeCfoCategory('programvara'), 'it_telefoni');
+  assert.equal(normalizeCfoCategory('osäker kategori'), null);
+  assert.equal(normalizeCfoCategory(null), null);
 });
