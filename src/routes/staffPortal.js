@@ -2037,6 +2037,7 @@ function createStaffPortalRouter({
         role,
         tenantId: auth.tenantId ?? null,
         name: auth.name ?? auth.displayName ?? auth.staffName ?? null,
+        resourceId: auth.resourceId ?? null,
       });
     }
   );

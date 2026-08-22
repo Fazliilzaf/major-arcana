@@ -141,6 +141,7 @@ function applyPreviewAuthToRequest(req, localPreviewAuthContext) {
     membershipId: localPreviewAuthContext.membershipId,
     tenantId: localPreviewAuthContext.tenantId,
     role: localPreviewAuthContext.role,
+    resourceId: localPreviewAuthContext.resourceId || null,
     authMode: localPreviewAuthContext.authMode,
   };
   req.currentUser = localPreviewAuthContext.currentUser;
@@ -187,6 +188,7 @@ function buildPreviewAuthContext({ config = {}, previewAuthContext = null } = {}
     membershipId: previewMembership.id,
     tenantId: previewMembership.tenantId,
     role,
+    resourceId: previewMembership.resourceId || null,
     authMode: 'preview_local',
     currentUser: previewUser,
     currentMembership: previewMembership,
@@ -269,6 +271,7 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
             membershipId: context.membership.id,
             tenantId: context.membership.tenantId,
             role: context.membership.role,
+            resourceId: context.membership.resourceId || null,
           };
 
           req.currentUser = context.user;

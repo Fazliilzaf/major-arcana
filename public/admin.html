@@ -3358,6 +3358,12 @@
                       placeholder="Tomt = auto-generera"
                     />
                   </div>
+                  <div>
+                    <label for="staffResourceSelect">Kopplad resurs</label>
+                    <select id="staffResourceSelect">
+                      <option value="">— Ingen resurs —</option>
+                    </select>
+                  </div>
                 </div>
                 <div style="margin-top: 10px" class="seg quick-actions glass-toolbar">
                   <button id="createStaffBtn" class="btn primary">
@@ -3420,6 +3426,7 @@
                 <div id="profileStatus" class="status-line"></div>
               </article>
             </div>
+            <div id="staffUnlinkedResourcesAlert" class="status-line" style="margin-top: 10px"></div>
             <div class="team-filters glass-toolbar">
               <div>
                 <label for="staffSearchInput">Sök staff</label>
@@ -3452,6 +3459,7 @@
                     <th>E-post</th>
                     <th>Roll</th>
                     <th>Status</th>
+                    <th>Resurs</th>
                     <th>Senast ändrad</th>
                     <th></th>
                   </tr>
@@ -3465,7 +3473,18 @@
               <div id="selectedStaffDetails" class="code-block" style="margin-top: 8px">
                 Välj en rad i tabellen för att se detaljer och nästa steg.
               </div>
+              <div class="grid" style="margin-top: 10px">
+                <div>
+                  <label for="selectedStaffResourceSelect">Kopplad resurs</label>
+                  <select id="selectedStaffResourceSelect">
+                    <option value="">— Ingen resurs —</option>
+                  </select>
+                </div>
+              </div>
               <div class="invite-preview-actions quick-actions glass-toolbar">
+                <button id="saveSelectedStaffResourceBtn" class="btn small primary">
+                  Spara resurs
+                </button>
                 <button id="resetSelectedStaffPasswordBtn" class="btn small">
                   Återställ lösenord
                 </button>

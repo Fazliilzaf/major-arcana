@@ -7,6 +7,14 @@ function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 function toEmailLoginCandidates(value) {
   const normalized = normalizeEmail(value);
   if (!normalized) return [];
@@ -77,6 +85,7 @@ function createAuthRouter({
   requireAuth,
   requireRole,
   requireTenantScope,
+  bookingEngineStore = null,
   loginRateLimiter = null,
   selectTenantRateLimiter = null,
   ownerMfaRequired = false,
@@ -122,6 +131,22 @@ function createAuthRouter({
   const normalizedBootstrapOwnerEmail = normalizeEmail(bootstrapOwnerEmail);
   const normalizedBootstrapOwnerTenantId = normalizeTenantId(bootstrapOwnerTenantId);
   const selfHealEnabled = ownerCredentialSelfHeal !== false;
+
+  async function assertResourceIdExists(resourceId) {
+    if (!resourceId || !bookingEngineStore) return;
+    const resources =
+      typeof bookingEngineStore.listResources === 'function'
+        ? await bookingEngineStore.listResources()
+        : [];
+    const found = asArray(resources).some(
+      (item) => normalizeText(item?.id) === normalizeText(resourceId)
+    );
+    if (!found) {
+      const error = new Error('Resursen finns inte i bokningsmotorn.');
+      error.statusCode = 400;
+      throw error;
+    }
+  }
 
   function isOwnerMfaBypassed(req) {
     if (ownerMfaBypassHostSet.size === 0) return false;
@@ -1119,6 +1144,8 @@ function createAuthRouter({
         return res.status(403).json({ error: 'Du kan bara skapa staff i din tenant.' });
       }
 
+      await assertResourceIdExists(resourceId);
+
       const result = await authStore.upsertStaffMember({
         tenantId,
         email,
@@ -1195,6 +1222,7 @@ function createAuthRouter({
         if (req.body?.resourceId !== undefined) {
           patch.resourceId =
             typeof req.body.resourceId === 'string' ? req.body.resourceId.trim().toLowerCase() : '';
+          await assertResourceIdExists(patch.resourceId);
         }
 
         if (!Object.keys(patch).length) {
@@ -1276,6 +1304,9 @@ function createAuthRouter({
 
         return res.json({ membership: updated });
       } catch (error) {
+        if (error && error.message) {
+          return res.status(Number(error.statusCode) || 400).json({ error: error.message });
+        }
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte uppdatera staff-medlemskap.' });
       }
