@@ -1379,6 +1379,91 @@
         gap: 8px;
       }
 
+      /* ── Mitt schema panel ────────────────────────────────────────── */
+      .schedule-form {
+        display: grid;
+        gap: 12px;
+      }
+      .schedule-form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .schedule-form label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text3);
+        margin-bottom: 4px;
+      }
+      .schedule-form input,
+      .schedule-form select {
+        width: 100%;
+        padding: 9px 11px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #fff;
+        font: inherit;
+      }
+      .schedule-status {
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        margin-bottom: 12px;
+      }
+      .schedule-status.ok {
+        background: rgba(74, 130, 104, 0.12);
+        color: #2d5a46;
+      }
+      .schedule-status.warn {
+        background: rgba(201, 130, 30, 0.12);
+        color: #7a4e0e;
+      }
+      .schedule-status.bad {
+        background: rgba(185, 74, 74, 0.12);
+        color: #7a2d2d;
+      }
+      .schedule-day {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+        background: rgba(255, 255, 255, 0.6);
+      }
+      .schedule-day h4 {
+        font-size: 12px;
+        margin-bottom: 8px;
+        color: var(--text3);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .schedule-slot,
+      .schedule-block {
+        display: flex;
+        justify-content: space-between;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+      }
+      .schedule-slot:last-child,
+      .schedule-block:last-child {
+        border-bottom: none;
+      }
+      .schedule-slot .time,
+      .schedule-block .time {
+        font-weight: 600;
+      }
+      .schedule-slot .service,
+      .schedule-block .meta {
+        font-size: 11px;
+        color: var(--text3);
+      }
+      .schedule-empty {
+        color: var(--text3);
+        font-size: 12px;
+        padding: 8px 0;
+      }
+
       /* ── Checklist ────────────────────────────────────────────────── */
       .checklist {
         display: flex;
@@ -2031,10 +2116,6 @@
               <div class="user-role" id="userRoleEl">Sjuksköterska</div>
             </div>
           </div>
-          <a href="/min-schema" class="nav-item" style="margin-top: 8px;">
-            <span class="icon">📅</span>
-            Mitt schema
-          </a>
         </div>
       </aside>
 
@@ -2312,6 +2393,73 @@
 
           <div class="section-title">OLS &amp; personalhandbok</div>
           <div id="liveQmsHandbookNurse" class="live-panel"></div>
+
+          <!-- Mitt schema -->
+          <div id="panel-schedule-nurse" class="schedule-panel">
+            <div class="page-header">
+              <div class="kicker">Mitt schema</div>
+              <h1>Arbetstider &amp; block</h1>
+              <p class="lead">Här ser du dina kommande arbetstider och kan lägga in lunch eller annan ledig tid.</p>
+            </div>
+
+            <div id="scheduleStatus" class="schedule-status warn">Laddar...</div>
+
+            <div class="card">
+              <h3 style="font-size: 14px; margin-bottom: 12px">Lägg in rast / ledighet</h3>
+              <form id="scheduleBlockForm" class="schedule-form">
+                <div class="schedule-form-row">
+                  <div>
+                    <label for="scheduleDateFrom">Datum</label>
+                    <input id="scheduleDateFrom" type="date" required />
+                  </div>
+                  <div>
+                    <label for="scheduleDateTo">Upprepas till (valfritt)</label>
+                    <input id="scheduleDateTo" type="date" />
+                  </div>
+                </div>
+                <div class="schedule-form-row">
+                  <div>
+                    <label for="scheduleStartTime">Från</label>
+                    <input id="scheduleStartTime" type="time" value="10:00" required />
+                  </div>
+                  <div>
+                    <label for="scheduleEndTime">Till</label>
+                    <input id="scheduleEndTime" type="time" value="10:45" required />
+                  </div>
+                </div>
+                <div>
+                  <label for="scheduleBlockType">Typ</label>
+                  <select id="scheduleBlockType">
+                    <option value="lunch">Rast / lunch</option>
+                    <option value="closed">Ledighet / annat</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="scheduleBlockLabel">Etikett</label>
+                  <input id="scheduleBlockLabel" type="text" placeholder="Rast" />
+                </div>
+                <div>
+                  <label for="scheduleBlockWeekdays">Veckodagar (valfritt, 1=måndag)</label>
+                  <input id="scheduleBlockWeekdays" type="text" placeholder="1,2,3,4,5" />
+                </div>
+                <button type="submit" id="scheduleSaveBtn" class="btn">Spara block</button>
+              </form>
+              <p style="font-size: 11px; color: var(--text3); margin-top: 10px">
+                Lämna "Upprepas till" tom för en enskild dag. Ett block stänger bara tid — det kan inte öppna ny tid eller byta dag med en kollega.
+              </p>
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 14px; margin-bottom: 12px">Mina tider</h3>
+              <div id="scheduleSlotsView" class="schedule-empty">Laddar tider...</div>
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 14px; margin-bottom: 12px">Mina block</h3>
+              <div id="scheduleBlocksView" class="schedule-empty">Laddar block...</div>
+            </div>
+          </div>
+          <!-- /mitt schema -->
         </div>
         <!-- /nurse -->
 
@@ -5513,6 +5661,203 @@
         });
       }
 
+      /* ── Mitt schema (read-only tider + skriv egna block) ─────────── */
+
+      function scheduleStatus(text, type = 'warn') {
+        const el = document.getElementById('scheduleStatus');
+        if (!el) return;
+        el.textContent = text;
+        el.className = `schedule-status ${type}`;
+      }
+
+      function formatScheduleDate(value) {
+        if (!value) return '—';
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return escapeHtml(value);
+        return d.toLocaleDateString('sv-SE', { weekday: 'short', month: 'short', day: 'numeric' });
+      }
+
+      function formatScheduleTime(value) {
+        if (!value) return '';
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return escapeHtml(value);
+        return d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+      }
+
+      function getScheduleDateRange() {
+        const today = new Date();
+        const from = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+        const to = new Date(from);
+        to.setUTCDate(to.getUTCDate() + 27);
+        return {
+          fromDate: from.toISOString().slice(0, 10),
+          toDate: to.toISOString().slice(0, 10),
+        };
+      }
+
+      async function scheduleApi(path, opts = {}) {
+        const res = await fetch(path, { credentials: 'include', ...opts });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(body.error || body.message || `Fel ${res.status}`);
+        }
+        return body;
+      }
+
+      function renderScheduleSlots(slots) {
+        const container = document.getElementById('scheduleSlotsView');
+        if (!container) return;
+        if (!slots.length) {
+          container.innerHTML = '<div class="schedule-empty">Inga tider i perioden.</div>';
+          return;
+        }
+        const byDay = {};
+        for (const slot of slots) {
+          const key = String(slot.startsAt || '').slice(0, 10);
+          if (!key) continue;
+          if (!byDay[key]) byDay[key] = [];
+          byDay[key].push(slot);
+        }
+        const days = Object.keys(byDay).sort();
+        container.innerHTML = days
+          .map((day) => {
+            const items = byDay[day];
+            return `
+              <div class="schedule-day">
+                <h4>${formatScheduleDate(day)}</h4>
+                ${items
+                  .map(
+                    (slot) => `
+                  <div class="schedule-slot">
+                    <span class="time">${formatScheduleTime(slot.startsAt)} – ${formatScheduleTime(slot.endsAt)}</span>
+                    <span class="service">${escapeHtml(slot.serviceLabel || slot.serviceId || '')}</span>
+                  </div>
+                `
+                  )
+                  .join('')}
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      function renderScheduleBlocks(blocks) {
+        const container = document.getElementById('scheduleBlocksView');
+        if (!container) return;
+        if (!blocks.length) {
+          container.innerHTML = '<div class="schedule-empty">Inga block i perioden.</div>';
+          return;
+        }
+        container.innerHTML = blocks
+          .map(
+            (block) => `
+              <div class="schedule-day">
+                <div class="schedule-block">
+                  <div>
+                    <div class="time">${escapeHtml(block.startTime || '')} – ${escapeHtml(block.endTime || '')}</div>
+                    <div class="meta">${escapeHtml(block.label || '')} · ${escapeHtml(block.blockType || '')}</div>
+                  </div>
+                  <div class="meta">${formatScheduleDate(block.startsAt)}</div>
+                </div>
+              </div>
+            `
+          )
+          .join('');
+      }
+
+      async function loadScheduleSlotsAndBlocks() {
+        const resourceId = _meData?.resourceId || null;
+        if (!resourceId) {
+          scheduleStatus('Ditt konto är inte kopplat till en bokningsbar resurs. Kontakta ägaren.', 'bad');
+          document.getElementById('scheduleSaveBtn').disabled = true;
+          document.getElementById('scheduleSlotsView').innerHTML = '<div class="schedule-empty">Ingen resurs kopplad.</div>';
+          document.getElementById('scheduleBlocksView').innerHTML = '<div class="schedule-empty">Ingen resurs kopplad.</div>';
+          return;
+        }
+        scheduleStatus(`Inloggad. Resurs: ${escapeHtml(resourceId)}.`, 'ok');
+        document.getElementById('scheduleSaveBtn').disabled = false;
+        const { fromDate, toDate } = getScheduleDateRange();
+        try {
+          const slotsData = await scheduleApi(
+            `/api/v1/cco-bookings/slots?fromDate=${fromDate}&toDate=${toDate}&resIds=${encodeURIComponent(
+              resourceId
+            )}&srvIds=consultation-physical`
+          );
+          renderScheduleSlots(Array.isArray(slotsData?.slots) ? slotsData.slots : []);
+        } catch (error) {
+          document.getElementById('scheduleSlotsView').innerHTML = `<div class="schedule-empty">Kunde inte läsa tider: ${escapeHtml(
+            error.message
+          )}</div>`;
+        }
+        try {
+          const blocksData = await scheduleApi(
+            `/api/v1/cco-bookings/calendar-blocks?fromDate=${fromDate}&toDate=${toDate}&resIds=${encodeURIComponent(
+              resourceId
+            )}`
+          );
+          renderScheduleBlocks(Array.isArray(blocksData?.blocks) ? blocksData.blocks : []);
+        } catch (error) {
+          document.getElementById('scheduleBlocksView').innerHTML = `<div class="schedule-empty">Kunde inte läsa block: ${escapeHtml(
+            error.message
+          )}</div>`;
+        }
+      }
+
+      async function saveScheduleBlock(event) {
+        event.preventDefault();
+        const resourceId = _meData?.resourceId || null;
+        if (!resourceId) return;
+        const dateFrom = document.getElementById('scheduleDateFrom').value;
+        const dateTo = document.getElementById('scheduleDateTo').value || dateFrom;
+        const startTime = document.getElementById('scheduleStartTime').value;
+        const endTime = document.getElementById('scheduleEndTime').value;
+        const blockType = document.getElementById('scheduleBlockType').value;
+        const label = document.getElementById('scheduleBlockLabel').value.trim() || (blockType === 'lunch' ? 'Rast' : 'Ledig');
+        const weekdaysRaw = document.getElementById('scheduleBlockWeekdays').value.trim();
+        const weekdays = weekdaysRaw
+          ? weekdaysRaw.split(',').map((s) => Number(s.trim())).filter((n) => n >= 1 && n <= 7)
+          : [];
+
+        const body = {
+          resourceIds: [resourceId],
+          dateFrom,
+          dateTo,
+          startTime,
+          endTime,
+          blockType,
+          label,
+        };
+        if (weekdays.length) body.weekdays = weekdays;
+
+        try {
+          document.getElementById('scheduleSaveBtn').disabled = true;
+          await scheduleApi('/api/v1/cco-bookings/calendar-blocks', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          scheduleStatus('Block sparat.', 'ok');
+          document.getElementById('scheduleBlockForm').reset();
+          document.getElementById('scheduleStartTime').value = '10:00';
+          document.getElementById('scheduleEndTime').value = '10:45';
+          await loadScheduleSlotsAndBlocks();
+        } catch (error) {
+          scheduleStatus(`Kunde inte spara block: ${error.message}`, 'bad');
+        } finally {
+          document.getElementById('scheduleSaveBtn').disabled = false;
+        }
+      }
+
+      function initMySchedulePanel() {
+        const form = document.getElementById('scheduleBlockForm');
+        if (form) form.addEventListener('submit', saveScheduleBlock);
+      }
+
+      async function loadMySchedule() {
+        if (!_liveMode) return;
+        await loadScheduleSlotsAndBlocks();
+      }
+
       async function submitDeviationReport() {
         const button = document.getElementById('reportDeviationBtn');
         const feedback = document.getElementById('deviationFeedback');
@@ -5567,6 +5912,7 @@
             loadDelegations(),
             loadQmsHandbook(),
             loadConversations(),
+            loadMySchedule(),
           ]);
           applyDeepLink();
         }
@@ -5597,6 +5943,8 @@
             { id: 'deleg', icon: '📄', label: 'Delegering' },
             { section: 'Kvalitet' },
             { id: 'qms', icon: '✅', label: 'QMS-checklista' },
+            { section: 'Schema' },
+            { id: 'schedule', icon: '📅', label: 'Mitt schema' },
           ],
         },
         doctor: {
@@ -5696,6 +6044,9 @@
         audit: 'audit',
         conversations: 'conversations',
         konversationer: 'conversations',
+        schedule: 'schedule',
+        schema: 'schedule',
+        'mitt-schema': 'schedule',
       };
 
       const PANEL_ROLE = {
@@ -5717,6 +6068,7 @@
         catalog: 'admin',
         'qms-admin': 'admin',
         audit: 'admin',
+        schedule: 'nurse',
       };
 
       const PANEL_TARGET = {
@@ -5740,6 +6092,7 @@
         'qms-admin': '#liveQmsHandbookAdmin',
         audit: '#liveAuditList',
         conversations: '#liveConversationListNurse',
+        schedule: '#panel-schedule-nurse',
       };
 
       function roleFromSession(rawRole) {
@@ -6039,6 +6392,7 @@
 
       // DOM är redan redo (script i slutet av body)
       setRole('nurse', { target: document.querySelector('.role-btn') });
+      initMySchedulePanel();
       initLiveData();
     </script>
   </body>
