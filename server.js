@@ -10916,6 +10916,7 @@ process.once('SIGTERM', () => {
   const ccoMailboxTruthStore = await startupStep('ccoMailboxTruthStore', () =>
     createConfiguredCcoMailboxTruthStore(config)
   );
+  app.locals.ccoMailboxTruthStore = ccoMailboxTruthStore;
   const ccoMailIngestionStore = await startupStep('ccoMailIngestionStore', () =>
     prodSafeMode
       ? (() => {
@@ -12863,6 +12864,8 @@ process.once('SIGTERM', () => {
   );
 
   // ORD-102 · Kortavstämning: Amex-CSV → matchning mot utgifter (ägar-GO 2026-08-21)
+  // ORD-102d · kortavstämning får access till CM, secure storage och mailbox truth
+  // så att underlag kan hämtas automatiskt för stora omatchade transaktioner.
   app.use(
     '/api/v1',
     createCfoCardReconciliationRouter({
@@ -12871,6 +12874,12 @@ process.once('SIGTERM', () => {
         filePath: path.join(config.stateRoot, 'cfo-card-reconciliation.json'),
         expenseStore: app.locals.cfoExpenseStore || null,
       }),
+      expenseStore: app.locals.cfoExpenseStore || null,
+      receiptStore: app.locals.cfoReceiptStore || null,
+      cmStore,
+      secureStorage: app.locals.ccoSecureStorage || null,
+      mailboxTruthStore: app.locals.ccoMailboxTruthStore || null,
+      auditLog: app.locals.ccoAuditLog || null,
     })
   );
 

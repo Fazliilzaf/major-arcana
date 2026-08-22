@@ -14,8 +14,18 @@
 
 const express = require('express');
 const { parseAmexCsv } = require('../cfo/cfoCardReconciliation');
+const { findInvoiceForTransaction, autoFetchInvoices } = require('../cfo/cfoInvoiceFetch');
 
-function createCfoCardReconciliationRouter({ authStore, reconciliation }) {
+function createCfoCardReconciliationRouter({
+  authStore,
+  reconciliation,
+  expenseStore = null,
+  receiptStore = null,
+  cmStore = null,
+  secureStorage = null,
+  mailboxTruthStore = null,
+  auditLog = null,
+}) {
   const router = express.Router();
   const requireAuth = authStore.requireAuth;
   const requireRole = authStore.requireRole;
@@ -133,6 +143,95 @@ function createCfoCardReconciliationRouter({ authStore, reconciliation }) {
         });
         if (!tx) return res.status(404).json({ ok: false, error: 'transaktion finns ej' });
         return res.json({ ok: true, transaction: tx });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  // ORD-102d · auto-hämta underlag för en specifik omatchad transaktion
+  router.post(
+    '/cco-cf/card-transactions/:id/fetch-invoice',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const tx = reconciliation
+          .listTransactions({ status: 'unmatched' })
+          .find((t) => t.id === req.params.id);
+        if (!tx)
+          return res
+            .status(404)
+            .json({ ok: false, error: 'transaktion finns ej eller är redan matchad' });
+        const actor = { userId: req.user?.id || null, role: ROLE_OWNER };
+        const result = await findInvoiceForTransaction(tx, {
+          expenseStore,
+          receiptStore,
+          cmStore,
+          secureStorage,
+          mailboxTruthStore,
+          actor,
+          mailboxIds: req.body?.mailboxIds || null,
+        });
+        if (result.matched && result.expenseId) {
+          const confirmed = await reconciliation.confirmMatch(tx.id, result.expenseId, { actor });
+          if (confirmed?.error) {
+            result.matchConfirmed = false;
+            result.matchError = confirmed.error;
+          } else {
+            result.matchConfirmed = true;
+            result.transaction = confirmed;
+          }
+        }
+        if (auditLog && typeof auditLog.append === 'function') {
+          auditLog.append({
+            action: 'cf.card.fetch_invoice',
+            actor,
+            target: { kind: 'card_transaction', id: tx.id },
+            detail: {
+              matched: result.matched,
+              source: result.source,
+              expenseId: result.expenseId,
+              evidence: result.evidence,
+            },
+          });
+        }
+        return res.json({ ok: true, result });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  // ORD-102d · bulk auto-hämta för alla omatchade över tröskel
+  router.post(
+    '/cco-cf/card-reconciliation/auto-fetch',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const threshold = Number(req.body?.threshold) || 1000;
+        const actor = { userId: req.user?.id || null, role: ROLE_OWNER };
+        const result = await autoFetchInvoices({
+          reconciliation,
+          expenseStore,
+          receiptStore,
+          cmStore,
+          secureStorage,
+          mailboxTruthStore,
+          actor,
+          threshold,
+          mailboxIds: req.body?.mailboxIds || null,
+        });
+        if (auditLog && typeof auditLog.append === 'function') {
+          auditLog.append({
+            action: 'cf.card.auto_fetch',
+            actor,
+            target: { kind: 'card_reconciliation' },
+            detail: { threshold, matched: result.matched, scanned: result.scanned },
+          });
+        }
+        return res.json({ ok: true, ...result });
       } catch (err) {
         return res.status(500).json({ ok: false, error: err.message });
       }

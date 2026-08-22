@@ -535,4 +535,14 @@ function createCardReconciliation({ filePath, expenseStore }) {
   };
 }
 
-module.exports = { createCardReconciliation, parseAmexCsv, parseSwedishAmount, parseAmexDate };
+module.exports = {
+  createCardReconciliation,
+  parseAmexCsv,
+  parseSwedishAmount,
+  parseAmexDate,
+  tokenSet,
+  supplierHint,
+  normalizeSupplier,
+  normalizeForTokens,
+  SUPPLIER_ALIASES,
+};
