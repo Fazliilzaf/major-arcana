@@ -723,11 +723,75 @@
    * sina sju svepbara kolumner — utan att CSS behöver veta vilket läge
    * som är aktivt. */
   .calendar-week {
-    grid-template-columns: 36px !important;
+    grid-template-columns: 34px !important;
     grid-auto-flow: column !important;
-    grid-auto-columns: minmax(110px, 1fr) !important;
+    grid-auto-columns: minmax(0, 1fr) !important;
+    overflow-x: hidden !important;
+    /* Kant till kant, som Cliento. Rutnätet är det enda på sidan som tjänar
+     * på varje pixel — 14 px gutter på varje sida kostar 4 px per dagkolumn.
+     * Negativ marginal upphäver .calendar-shell:s padding just här. */
+    margin-left: -14px !important;
+    margin-right: -14px !important;
   }
 
+  /* ─── Hela veckan på en skärm ───────────────────────────────────────
+   * Mätt i Clientos mobilkalender: 34 px timkolumn + 7 × 51 px dagar =
+   * 391 px, alltså precis en iPhone-bredd utan sidoscroll. Personalen ser
+   * hela veckan i ett ögonkast i stället för att svepa till fredag.
+   *
+   * `minmax(110px, 1fr)` gav 834 px scrollbredd. Med `minmax(0, 1fr)`
+   * delas bredden på antalet renderade kolumner — sju i veckovyn, en i
+   * dagvyn, utan att CSS behöver veta vilket läge som gäller.
+   *
+   * Priset är att ett 51 px-kort inte rymmer text. Cliento löser det med
+   * ikoner plus tid, och plockar upp detaljen när man trycker. Samma här:
+   * tiden stannar, tjänst och patientnamn döljs — men bara när kolumnen
+   * faktiskt är smal. Container query i stället för lägesdetektering, så
+   * dagvyns breda kolumn behåller allt. */
+  .day-col {
+    container-type: inline-size;
+  }
+}
+
+@container (max-width: 90px) {
+  .booking-title,
+  .booking-sub {
+    display: none !important;
+  }
+  /* "Inga bokningar" är 10 px text i en 31 px-ruta — ordet bryts till en
+   * bokstav per rad och blir en lodrät remsa. En tom kolumn läses redan
+   * som tom. */
+  .v6-empty {
+    display: none !important;
+  }
+  /* Dagens datum bär en markering som gör rubriken 53 px i en 47 px-kolumn.
+   * Bara den klipps — de sex andra ryms. Stramare typografi räcker. */
+  .day-head {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    /* 20 px etikett + 6 px gap + 21 px datummarkering = 47, precis över
+     * kanten. Gapet ner till 2 px räcker. */
+    gap: 2px !important;
+    overflow: hidden !important;
+  }
+  .day-label {
+    font-size: 9px !important;
+    letter-spacing: 0.02em !important;
+  }
+  .day-date {
+    font-size: 13px !important;
+  }
+  .booking {
+    padding: 3px 4px !important;
+    min-width: 0 !important;
+  }
+  .booking-time {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+  }
+}
+
+@media (max-width: 720px) {
   /* ─── Dossier-rutnät: en spalt (krav 4) ────────────────────────────── */
   .dossier-stats,
   .dossier-files,
