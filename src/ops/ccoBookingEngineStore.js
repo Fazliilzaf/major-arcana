@@ -254,7 +254,7 @@ const KONSULTATION_LORDAG = konsultationstider(KONSULTATION_OPPET.lordag);
 const SKIFT_A_VARDAG = konsultationstider({ fran: '10:00', till: '17:00' });
 const SKIFT_B_VARDAG = SKIFT_A_VARDAG;
 const SKIFT_B_LORDAG = konsultationstider({ fran: '10:00', till: '16:00' });
-const SKIFT_C_VARDAG = konsultationstider({ fran: '11:00', till: '18:00' });
+const SKIFT_C_VARDAG = KONSULTATION_VARDAG.filter((t) => t >= '11:00');
 const SKIFT_D_VARDAG = KONSULTATION_VARDAG;
 const SKIFT_D_LORDAG = SKIFT_B_LORDAG;
 

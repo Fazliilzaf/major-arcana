@@ -1200,3 +1200,41 @@ test('Wendelas måndagstid återkommer i cykelvecka 2', async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('sjuksköterskors konsultationstider ligger på klinikens rutnät', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-nurse-grid-'));
+  try {
+    const filePath = path.join(tempDir, 'booking-engine.json');
+    const store = await createCcoBookingEngineStore({ filePath });
+    const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
+
+    const VARDAG_RUTNAT = new Set([
+      '10:00', '10:45', '11:30', '12:15', '13:00', '13:45', '14:30', '15:15', '16:00', '16:45',
+    ]);
+    const LORDAG_RUTNAT = new Set([
+      '10:00', '10:45', '11:30', '12:15', '13:00', '13:45', '14:30', '15:15',
+    ]);
+
+    const nurseIds = new Set(['veronica', 'clara', 'wendela', 'louise']);
+    const consRules = persisted.availabilityRules.filter(
+      (r) => nurseIds.has(r.resourceId) && r.serviceId === 'consultation-physical'
+    );
+
+    assert.ok(consRules.length > 0, 'ska finnas sjuksköterskeregler för konsultation');
+
+    for (const rule of consRules) {
+      const weekdays = Array.isArray(rule.weekdays) ? rule.weekdays : [];
+      const startTimes = Array.isArray(rule.startTimes) ? rule.startTimes : [];
+      const isSaturday = weekdays.includes(6);
+      const allowed = isSaturday ? LORDAG_RUTNAT : VARDAG_RUTNAT;
+      for (const time of startTimes) {
+        assert.ok(
+          allowed.has(time),
+          `${rule.ruleId} har tiden ${time} som inte ligger på ${isSaturday ? 'lördags' : 'vardags'}rutnätet`
+        );
+      }
+    }
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
