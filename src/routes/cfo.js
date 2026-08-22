@@ -366,6 +366,12 @@ function createCfoRouter({
                 key,
                 type: 'json',
                 date: graphMessageDate(parsed),
+                rawDate: {
+                  receivedDateTime: parsed.receivedDateTime || null,
+                  sentDateTime: parsed.sentDateTime || null,
+                  createdDateTime: parsed.createdDateTime || null,
+                  date: parsed.date || null,
+                },
                 subject: parsed.subject || null,
                 from: fromAddr,
                 text: graphMessageText(parsed),
