@@ -97,7 +97,7 @@
       makron: 'Makron',
       installningar: 'Inställningar',
       notiser: 'Notiser',
-      signaturer: 'Signaturer',
+      signaturer: 'Signering',
       revisor: 'Revisor',
       showcase: 'Showcase',
       photo_review: 'Photo review',

@@ -88,3 +88,6 @@ test/visual/diffs/
 
 # Lokal utvecklings-state-root (ARCANA_STATE_ROOT) — aldrig skarp data
 .local-state/
+
+# Skräpfiler från lokalt bildarbete — hör inte hemma i repot.
+tmp/
