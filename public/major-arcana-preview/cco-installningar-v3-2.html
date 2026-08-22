@@ -873,6 +873,30 @@
         font-variant-numeric: tabular-nums;
       }
 
+      /* inställningsstatus */
+      .settings-status {
+        margin: 0 0 var(--gap);
+        padding: 0.75rem 1rem;
+        border-radius: var(--r-md);
+        font-size: var(--fs-meta);
+        font-weight: 600;
+      }
+      .settings-status.ok {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      .settings-status.error {
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+      .row-inactive-note {
+        display: block;
+        font-size: var(--fs-meta);
+        color: var(--text-tertiary);
+        font-style: italic;
+        margin-top: 0.15rem;
+      }
+
       /* konto-profilrad */
       .profile {
         display: flex;
@@ -909,6 +933,26 @@
         color: var(--text-tertiary);
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+      .profile input.p-name,
+      .profile input.p-mail {
+        display: block;
+        width: 100%;
+        border: 1px solid transparent;
+        background: transparent;
+        padding: 0.15rem 0;
+        font: inherit;
+        color: inherit;
+      }
+      .profile input.p-name:hover,
+      .profile input.p-mail:hover,
+      .profile input.p-name:focus,
+      .profile input.p-mail:focus {
+        border-color: rgba(180, 165, 150, 0.5);
+        background: var(--bg-surface);
+        border-radius: var(--r-sm);
+        padding: 0.15rem 0.4rem;
+        outline: none;
       }
 
       .panel-foot {
@@ -993,6 +1037,8 @@
         </div>
       </section>
 
+      <div id="settingsStatus" class="settings-status" role="status" aria-live="polite" style="display: none"></div>
+
       <!-- PANEL GRID -->
       <section class="panels" aria-label="Inställningspaneler">
         <!-- 1. Utseende -->
@@ -1004,15 +1050,15 @@
           <div class="choice-group">
             <p class="choice-label">Tema</p>
             <div class="choices" role="group" aria-label="Tema">
-              <button class="choice" aria-pressed="true">
+              <button class="choice" data-setting="theme" data-value="light" aria-pressed="true">
                 <span class="ch-name">Ljust</span
                 ><span class="ch-desc">Hög kontrast och varm neutral bakgrund</span>
               </button>
-              <button class="choice" aria-pressed="false">
+              <button class="choice" data-setting="theme" data-value="dark" aria-pressed="false">
                 <span class="ch-name">Mörkt</span
                 ><span class="ch-desc">Tonad kvällsvy med lugnare bakgrund</span>
               </button>
-              <button class="choice" aria-pressed="false">
+              <button class="choice" data-setting="theme" data-value="auto" aria-pressed="false">
                 <span class="ch-name">Auto</span
                 ><span class="ch-desc">Växlar efter systemläge</span>
               </button>
@@ -1021,14 +1067,14 @@
           <div class="choice-group">
             <p class="choice-label">Täthet</p>
             <div class="choices" role="group" aria-label="Täthet">
-              <button class="choice" aria-pressed="true">
+              <button class="choice" data-setting="density" data-value="compact" aria-pressed="true">
                 <span class="ch-name">Kompakt</span
                 ><span class="ch-desc">Mer info, mindre plats</span>
               </button>
-              <button class="choice" aria-pressed="false">
+              <button class="choice" data-setting="density" data-value="comfortable" aria-pressed="false">
                 <span class="ch-name">Bekväm</span><span class="ch-desc">Balanserad arbetsyta</span>
               </button>
-              <button class="choice" aria-pressed="false">
+              <button class="choice" data-setting="density" data-value="spacious" aria-pressed="false">
                 <span class="ch-name">Rymlig</span
                 ><span class="ch-desc">Mer andrum mellan blocken</span>
               </button>
@@ -1049,7 +1095,7 @@
                 <div class="row-desc">Ordning: 1</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="AI-förutsägelse" /><span
+                ><input type="checkbox" data-setting="sidebarSections.ai-prediction" checked aria-label="AI-förutsägelse" /><span
                   class="track"
                 ></span
               ></label>
@@ -1060,7 +1106,7 @@
                 <div class="row-desc">Ordning: 2</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Mätvärden" /><span class="track"></span
+                ><input type="checkbox" data-setting="sidebarSections.metrics" checked aria-label="Mätvärden" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1069,7 +1115,7 @@
                 <div class="row-desc">Ordning: 3</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Mallar" /><span class="track"></span
+                ><input type="checkbox" data-setting="sidebarSections.templates" checked aria-label="Mallar" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1078,7 +1124,7 @@
                 <div class="row-desc">Ordning: 4</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Smart schemaläggning" /><span
+                ><input type="checkbox" data-setting="sidebarSections.scheduling" checked aria-label="Smart schemaläggning" /><span
                   class="track"
                 ></span
               ></label>
@@ -1089,7 +1135,7 @@
                 <div class="row-desc">Ordning: 5</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" aria-label="Merförsäljningsmöjligheter" /><span
+                ><input type="checkbox" data-setting="sidebarSections.upsell" aria-label="Merförsäljningsmöjligheter" /><span
                   class="track"
                 ></span
               ></label>
@@ -1100,7 +1146,7 @@
                 <div class="row-desc">Ordning: 6</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Auto-tilldela" /><span
+                ><input type="checkbox" data-setting="sidebarSections.assignment" checked aria-label="Auto-tilldela" /><span
                   class="track"
                 ></span
               ></label>
@@ -1121,7 +1167,7 @@
                 <div class="row-desc">Synka möten och tillgänglighet</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Google Calendar-synk" /><span
+                ><input type="checkbox" data-setting="toggles.googleCalendarSync" checked aria-label="Google Calendar-synk" /><span
                   class="track"
                 ></span
               ></label>
@@ -1132,7 +1178,7 @@
                 <div class="row-desc">Koppla ditt Outlook-konto</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" aria-label="Outlook-integration" /><span
+                ><input type="checkbox" data-setting="toggles.outlookIntegration" aria-label="Outlook-integration" /><span
                   class="track"
                 ></span
               ></label>
@@ -1143,7 +1189,7 @@
                 <div class="row-desc">Skicka bekräftelse vid ny bokning</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Automatisk bokningsbekräftelse" /><span
+                ><input type="checkbox" data-setting="toggles.automaticBookingConfirmation" checked aria-label="Automatisk bokningsbekräftelse" /><span
                   class="track"
                 ></span
               ></label>
@@ -1164,7 +1210,7 @@
                 <div class="row-desc">Automatiska påminnelser för förfallna fakturor</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Betalningspåminnelser" /><span
+                ><input type="checkbox" data-setting="toggles.paymentReminders" checked aria-label="Betalningspåminnelser" /><span
                   class="track"
                 ></span
               ></label>
@@ -1175,7 +1221,7 @@
                 <div class="row-desc">Ta emot kortbetalningar</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Stripe-integration" /><span
+                ><input type="checkbox" data-setting="toggles.stripeIntegration" checked aria-label="Stripe-integration" /><span
                   class="track"
                 ></span
               ></label>
@@ -1186,7 +1232,7 @@
                 <div class="row-desc">Aktivera Swish för snabba betalningar</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" aria-label="Swish-betalningar" /><span class="track"></span
+                ><input type="checkbox" data-setting="toggles.swishPayments" aria-label="Swish-betalningar" /><span class="track"></span
               ></label>
             </div>
           </div>
@@ -1205,7 +1251,7 @@
                 <div class="row-desc">Inkludera din signatur i alla svar</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="E-postsignatur" /><span
+                ><input type="checkbox" data-setting="toggles.emailSignature" checked aria-label="E-postsignatur" /><span
                   class="track"
                 ></span
               ></label>
@@ -1216,7 +1262,7 @@
                 <div class="row-desc">Be om läsbekräftelse</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" aria-label="Läs-kvitton" /><span class="track"></span
+                ><input type="checkbox" data-setting="toggles.readReceipts" aria-label="Läs-kvitton" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1225,7 +1271,7 @@
                 <div class="row-desc">Automatiskt svar när kontoret är stängt</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Auto-svar utanför kontorstid" /><span
+                ><input type="checkbox" data-setting="toggles.outOfOfficeAutoReplies" checked aria-label="Auto-svar utanför kontorstid" /><span
                   class="track"
                 ></span
               ></label>
@@ -1246,7 +1292,7 @@
                 <div class="row-desc">E-posta veckovis prestandarapport</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Veckosammanfattning" /><span
+                ><input type="checkbox" data-setting="toggles.weeklySummary" checked aria-label="Veckosammanfattning" /><span
                   class="track"
                 ></span
               ></label>
@@ -1257,7 +1303,7 @@
                 <div class="row-desc">Spara kundinteraktioner för insikter</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Kundbeteende-spårning" /><span
+                ><input type="checkbox" data-setting="toggles.customerBehaviorTracking" checked aria-label="Kundbeteende-spårning" /><span
                   class="track"
                 ></span
               ></label>
@@ -1268,7 +1314,7 @@
                 <div class="row-desc">Tillåt export av analysdata</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Export till Excel" /><span
+                ><input type="checkbox" data-setting="toggles.exportToExcel" checked aria-label="Export till Excel" /><span
                   class="track"
                 ></span
               ></label>
@@ -1289,7 +1335,7 @@
                 <div class="row-desc">AI föreslår svar baserat på innehåll</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Smart svar-förslag" /><span
+                ><input type="checkbox" data-setting="toggles.smartReplySuggestions" checked aria-label="Smart svar-förslag" /><span
                   class="track"
                 ></span
               ></label>
@@ -1300,7 +1346,7 @@
                 <div class="row-desc">AI sorterar konversationer efter brådska</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Automatisk prioritering" /><span
+                ><input type="checkbox" data-setting="toggles.automaticPrioritization" checked aria-label="Automatisk prioritering" /><span
                   class="track"
                 ></span
               ></label>
@@ -1311,7 +1357,7 @@
                 <div class="row-desc">Upptäck kunder i riskzonen</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Churn-förutsägelse" /><span
+                ><input type="checkbox" data-setting="toggles.churnPrediction" checked aria-label="Churn-förutsägelse" /><span
                   class="track"
                 ></span
               ></label>
@@ -1332,7 +1378,7 @@
                 <div class="row-desc">Få meddelanden även när CCO är i bakgrunden</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Desktop-aviseringar" /><span
+                ><input type="checkbox" data-setting="toggles.desktopNotifications" checked aria-label="Desktop-aviseringar" /><span
                   class="track"
                 ></span
               ></label>
@@ -1343,7 +1389,7 @@
                 <div class="row-desc">Spela ljud för nya meddelanden</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" aria-label="Ljudvarningar" /><span class="track"></span
+                ><input type="checkbox" data-setting="toggles.soundAlerts" aria-label="Ljudvarningar" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1352,7 +1398,7 @@
                 <div class="row-desc">Varna när SLA-deadline närmar sig</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="SLA-varningar" /><span
+                ><input type="checkbox" data-setting="toggles.slaAlerts" checked aria-label="SLA-varningar" /><span
                   class="track"
                 ></span
               ></label>
@@ -1363,7 +1409,7 @@
                 <div class="row-desc">Meddela när någon @nämner dig</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Team-omnämnanden" /><span
+                ><input type="checkbox" data-setting="toggles.teamMentions" checked aria-label="Team-omnämnanden" /><span
                   class="track"
                 ></span
               ></label>
@@ -1415,10 +1461,9 @@
           <div class="profile">
             <span class="avatar">FK</span>
             <div class="p-main">
-              <div class="p-name">Ditt namn</div>
-              <div class="p-mail">din.email@hairtp.com</div>
+              <input class="p-name" data-setting="profileName" type="text" value="Ditt namn" aria-label="Profilnamn" />
+              <input class="p-mail" data-setting="profileEmail" type="email" value="din.email@hairtp.com" aria-label="E-post" />
             </div>
-            <button class="btn">Redigera profil</button>
           </div>
         </article>
 
@@ -1435,7 +1480,7 @@
                 <div class="row-desc">Lägg till ett extra säkerhetslager</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" aria-label="Tvåfaktors-autentisering" /><span
+                ><input type="checkbox" data-setting="toggles.twoFactorAuth" aria-label="Tvåfaktors-autentisering" /><span
                   class="track"
                 ></span
               ></label>
@@ -1446,13 +1491,13 @@
                 <div class="row-desc">Spåra alla åtgärder för revisionsspår</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Aktivitetsloggning" /><span
+                ><input type="checkbox" data-setting="toggles.activityLogging" checked aria-label="Aktivitetsloggning" /><span
                   class="track"
                 ></span
               ></label>
             </div>
           </div>
-          <div class="panel-foot"><button class="btn btn--danger">Radera konto</button></div>
+          <div class="panel-foot"><button class="btn btn--danger" data-setting="requestDeleteAccount">Radera konto</button></div>
         </article>
 
         <!-- 12. Anpassa din CCO-upplevelse -->
@@ -1468,7 +1513,7 @@
                 <div class="row-desc">Visa fler konversationer samtidigt</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Kompakt konversationsvy" /><span
+                ><input type="checkbox" data-setting="toggles.compactConversationView" checked aria-label="Kompakt konversationsvy" /><span
                   class="track"
                 ></span
               ></label>
@@ -1479,7 +1524,7 @@
                 <div class="row-desc">Använd färger för att indikera brådska</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" checked aria-label="Färgkodade prioriteter" /><span
+                ><input type="checkbox" data-setting="toggles.colorCodedPriorities" checked aria-label="Färgkodade prioriteter" /><span
                   class="track"
                 ></span
               ></label>
@@ -1490,7 +1535,7 @@
                 <div class="row-desc">Visa extra filtreringsalternativ</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" aria-label="Avancerade filter" /><span class="track"></span
+                ><input type="checkbox" data-setting="toggles.advancedFilters" aria-label="Avancerade filter" /><span class="track"></span
               ></label>
             </div>
           </div>
@@ -1564,31 +1609,273 @@
     </nav>
 
     <script>
-      // choice-cards: enkel single-select inom respektive grupp
-      document.querySelectorAll('.choices').forEach((group) => {
-        group.addEventListener('click', (e) => {
-          const b = e.target.closest('.choice');
-          if (!b) return;
-          group.querySelectorAll('.choice').forEach((c) => c.setAttribute('aria-pressed', 'false'));
-          b.setAttribute('aria-pressed', 'true');
-        });
-      });
-    </script>
-    <script>
       (function () {
-        var nav = document.querySelector('.botnav');
-        if (!nav) return;
-        nav.addEventListener('click', function (e) {
-          var b = e.target.closest('.nav-i');
-          if (!b) return;
-          nav.querySelectorAll('.nav-i').forEach(function (x) {
-            x.classList.remove('is-active');
-            x.removeAttribute('aria-current');
+        'use strict';
+
+        const API_BASE = '/api/v1';
+        const USED_TOGGLE_KEYS = ['swishPayments'];
+
+        let currentSettings = null;
+        let saveTimeout = null;
+        let isLoading = false;
+
+        const statusEl = document.getElementById('settingsStatus');
+
+        function setStatus(message, type) {
+          if (!statusEl) return;
+          statusEl.textContent = message || '';
+          statusEl.className = 'settings-status ' + (type || '');
+          statusEl.style.display = message ? 'block' : 'none';
+        }
+
+        function clearStatus() {
+          setStatus('', '');
+        }
+
+        function readSetting(settings, setting) {
+          if (setting.startsWith('sidebarSections.')) {
+            const id = setting.slice('sidebarSections.'.length);
+            const list = Array.isArray(settings.sidebarSections) ? settings.sidebarSections : [];
+            const item = list.find((s) => s && s.id === id);
+            return item ? item.enabled : undefined;
+          }
+          return setting.split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), settings);
+        }
+
+        function writeSetting(settings, setting, value) {
+          if (setting.startsWith('sidebarSections.')) {
+            const id = setting.slice('sidebarSections.'.length);
+            if (!Array.isArray(settings.sidebarSections)) settings.sidebarSections = [];
+            const index = settings.sidebarSections.findIndex((s) => s && s.id === id);
+            if (index >= 0) {
+              settings.sidebarSections[index] = { ...settings.sidebarSections[index], enabled: value };
+            } else {
+              settings.sidebarSections.push({ id, enabled: value, label: '', order: settings.sidebarSections.length + 1 });
+            }
+            return;
+          }
+          const keys = setting.split('.');
+          const last = keys.pop();
+          let target = settings;
+          for (const key of keys) {
+            if (target[key] == null || typeof target[key] !== 'object') target[key] = {};
+            target = target[key];
+          }
+          target[last] = value;
+        }
+
+        async function api(path, opts) {
+          const res = await fetch(API_BASE + path, {
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            ...opts,
           });
-          void b.offsetWidth;
-          b.classList.add('is-active');
-          b.setAttribute('aria-current', 'page');
-        });
+          if (res.status === 401) {
+            const err = new Error('Du är inte inloggad. Ladda om sidan och försök igen.');
+            err.status = 401;
+            throw err;
+          }
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(body.error || `Fel ${res.status}`);
+          return body;
+        }
+
+        function markInactiveToggles() {
+          document.querySelectorAll('[data-setting^="toggles."]').forEach((input) => {
+            const key = input.getAttribute('data-setting').slice('toggles.'.length);
+            if (USED_TOGGLE_KEYS.includes(key)) return;
+            const row = input.closest('.row');
+            if (!row) return;
+            const main = row.querySelector('.row-main');
+            if (!main) return;
+            if (main.querySelector('.row-inactive-note')) return;
+            const note = document.createElement('span');
+            note.className = 'row-inactive-note';
+            note.textContent = 'Sparas, men styr inget än.';
+            main.appendChild(note);
+          });
+        }
+
+        function applySettings(settings) {
+          currentSettings = settings;
+
+          document.querySelectorAll('[data-setting]').forEach((el) => {
+            const setting = el.getAttribute('data-setting');
+            if (setting === 'requestDeleteAccount') return;
+
+            if (el.classList.contains('choice')) {
+              const group = el.closest('.choices');
+              const value = readSetting(settings, setting);
+              const isActive = String(el.getAttribute('data-value')) === String(value);
+              el.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+              if (group && isActive) {
+                group.querySelectorAll('.choice').forEach((c) => {
+                  if (c !== el) c.setAttribute('aria-pressed', 'false');
+                });
+              }
+              return;
+            }
+
+            if (el.tagName === 'INPUT' && el.type === 'checkbox') {
+              const value = readSetting(settings, setting);
+              el.checked = Boolean(value);
+              return;
+            }
+
+            if (el.tagName === 'INPUT') {
+              const value = readSetting(settings, setting);
+              el.value = value != null ? String(value) : '';
+            }
+          });
+
+          markInactiveToggles();
+          updateSummary();
+        }
+
+        function updateSummary() {
+          const summaryValue = document.querySelector('.summary .s-val');
+          if (!summaryValue || !currentSettings) return;
+          const densityLabel = { compact: 'Kompakt', balanced: 'Bekväm', airy: 'Rymlig' }[currentSettings.density] || currentSettings.density;
+          const themeLabel = { mist: 'Ljust', ink: 'Mörkt', auto: 'Auto' }[currentSettings.theme] || currentSettings.theme;
+          summaryValue.textContent = densityLabel + ' + ' + themeLabel;
+        }
+
+        function readSettingsFromUI() {
+          const settings = JSON.parse(JSON.stringify(currentSettings || {}));
+
+          document.querySelectorAll('[data-setting]').forEach((el) => {
+            const setting = el.getAttribute('data-setting');
+            if (setting === 'requestDeleteAccount') return;
+
+            if (el.classList.contains('choice')) {
+              if (el.getAttribute('aria-pressed') === 'true') {
+                writeSetting(settings, setting, el.getAttribute('data-value'));
+              }
+              return;
+            }
+
+            if (el.tagName === 'INPUT' && el.type === 'checkbox') {
+              writeSetting(settings, setting, el.checked);
+              return;
+            }
+
+            if (el.tagName === 'INPUT') {
+              writeSetting(settings, setting, el.value);
+            }
+          });
+
+          return settings;
+        }
+
+        async function saveSettings() {
+          if (isLoading || !currentSettings) return;
+          clearStatus();
+          const nextSettings = readSettingsFromUI();
+          try {
+            const result = await api('/cco/settings', {
+              method: 'PUT',
+              body: JSON.stringify(nextSettings),
+            });
+            currentSettings = result.settings || nextSettings;
+            applySettings(currentSettings);
+            setStatus('Inställningarna sparades.', 'ok');
+            window.setTimeout(clearStatus, 3000);
+          } catch (error) {
+            setStatus('Kunde inte spara: ' + error.message, 'error');
+          }
+        }
+
+        function scheduleSave() {
+          if (saveTimeout) window.clearTimeout(saveTimeout);
+          saveTimeout = window.setTimeout(saveSettings, 400);
+        }
+
+        async function requestDeleteAccount() {
+          const confirmed = window.confirm(
+            'Är du säker på att du vill flagga kontot för radering? Åtgärden går att ångra innan den slutförs.'
+          );
+          if (!confirmed) return;
+          clearStatus();
+          try {
+            const result = await api('/cco/settings/request-delete-account', { method: 'POST' });
+            setStatus(
+              'Kontot flaggat för radering: ' + (result.deleteRequestedAt ? new Date(result.deleteRequestedAt).toLocaleString('sv-SE') : 'okänd tid'),
+              'ok'
+            );
+          } catch (error) {
+            setStatus('Kunde inte flagga kontot: ' + error.message, 'error');
+          }
+        }
+
+        async function loadSettings() {
+          isLoading = true;
+          setStatus('Laddar inställningar...', '');
+          try {
+            const result = await api('/cco/settings');
+            applySettings(result.settings || {});
+            clearStatus();
+          } catch (error) {
+            if (error.status === 401) {
+              document.querySelector('.panels').style.display = 'none';
+              setStatus(error.message, 'error');
+            } else {
+              setStatus('Kunde inte läsa inställningar: ' + error.message, 'error');
+            }
+          } finally {
+            isLoading = false;
+          }
+        }
+
+        function init() {
+          // choice-cards: enkel single-select inom respektive grupp
+          document.querySelectorAll('.choices').forEach((group) => {
+            group.addEventListener('click', (e) => {
+              const b = e.target.closest('.choice');
+              if (!b) return;
+              group.querySelectorAll('.choice').forEach((c) => c.setAttribute('aria-pressed', 'false'));
+              b.setAttribute('aria-pressed', 'true');
+              scheduleSave();
+            });
+          });
+
+          // toggles
+          document.querySelectorAll('[data-setting^="toggles."], [data-setting^="sidebarSections."]').forEach((input) => {
+            input.addEventListener('change', scheduleSave);
+          });
+
+          // text inputs (profile)
+          document.querySelectorAll('[data-setting="profileName"], [data-setting="profileEmail"]').forEach((input) => {
+            input.addEventListener('input', scheduleSave);
+          });
+
+          // delete account
+          const deleteBtn = document.querySelector('[data-setting="requestDeleteAccount"]');
+          if (deleteBtn) deleteBtn.addEventListener('click', requestDeleteAccount);
+
+          // botnav active state
+          const nav = document.querySelector('.botnav');
+          if (nav) {
+            nav.addEventListener('click', function (e) {
+              const b = e.target.closest('.nav-i');
+              if (!b) return;
+              nav.querySelectorAll('.nav-i').forEach(function (x) {
+                x.classList.remove('is-active');
+                x.removeAttribute('aria-current');
+              });
+              void b.offsetWidth;
+              b.classList.add('is-active');
+              b.setAttribute('aria-current', 'page');
+            });
+          }
+
+          loadSettings();
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', init);
+        } else {
+          init();
+        }
       })();
     </script>
   </body>
