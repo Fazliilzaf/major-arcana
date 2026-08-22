@@ -321,6 +321,7 @@ function createCardReconciliation({ filePath, expenseStore }) {
         tx.matchedAt = nowIso();
         matchedExpenseIds.add(strong[0].id);
         pruneSuggestionsFor(strong[0].id);
+        delete tx.suggestions;
         autoMatched++;
       } else if (candidates.length > 0) {
         tx.suggestions = candidates.slice(0, 5).map((e) => ({
@@ -331,6 +332,9 @@ function createCardReconciliation({ filePath, expenseStore }) {
           supplierHint: supplierHint(tx.description, e.supplier || ''),
         }));
         suggested++;
+      } else {
+        // Inga giltiga kandidater längre — rensa gamla/stale förslag
+        delete tx.suggestions;
       }
     }
 
