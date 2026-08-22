@@ -2,7 +2,7 @@
 
 Ett sammanhängande uppdrag, inte en lista småsaker. Målet är en hel kedja: från
 att sköterskorna inte finns som användare, till att Veronica loggar in på sin
-telefon och lägger in att hon tar lunch 12:30 på torsdag.
+telefon och lägger in att hon är borta 10:00 på torsdag.
 
 Allt backend som behövs finns redan. Det här är i huvudsak frontend plus en
 validering.
@@ -108,7 +108,15 @@ Inte "testerna är gröna". Så här:
 2. Veronica loggar in på sin telefon.
 3. Hon ser sina kommande arbetstider — och de matchar rotationen i
    `skoterskeschema-plan.md`.
-4. Hon lägger in lunch 12:30–13:15 en torsdag.
+4. Hon lägger in en rast 10:00–10:45 en torsdag.
+
+   Rättat 2026-08-22: kriteriet sa först "lunch 12:30–13:15". Det duger inte
+   som test. `block-lunch-all` stänger redan 12:00–13:00 måndag till fredag
+   för alla resurser, så tiden är borta oavsett om hennes eget block sparades
+   eller inte — testet hade blivit grönt även om ingenting fungerade.
+   Kimi hittade det vid lokal körning. En tid mitt i öppettiden visar
+   skillnaden på riktigt.
+
 5. Den tiden försvinner ur `/cco-booking-engine/availability` för `veronica`,
    och bara för henne.
 6. Hon försöker lägga ett block på `clara` — får 403.
