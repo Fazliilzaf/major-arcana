@@ -1037,7 +1037,13 @@
         </div>
       </section>
 
-      <div id="settingsStatus" class="settings-status" role="status" aria-live="polite" style="display: none"></div>
+      <div
+        id="settingsStatus"
+        class="settings-status"
+        role="status"
+        aria-live="polite"
+        style="display: none"
+      ></div>
 
       <!-- PANEL GRID -->
       <section class="panels" aria-label="Inställningspaneler">
@@ -1047,14 +1053,31 @@
             <h2>Utseende</h2>
             <p>Välj tema och täthet utan att ändra skalets grundstruktur.</p>
           </div>
+          <!--
+            data-value bär storens kanoniska värden, inte etiketterna.
+
+            ccoSettingsStore.js har alias: light→mist, dark→ink,
+            comfortable→balanced, spacious→airy. Knapparna hette först
+            light/dark/comfortable/spacious, vilket gick att spara men inte att
+            läsa tillbaka: applySettings jämför data-value med det servern
+            returnerar, och servern returnerar mist/ink/balanced/airy. Ingen
+            knapp blev alltså markerad efter omladdning.
+
+            Det syntes inte i enhetstesterna, för DOM-mocken lämnade tillbaka
+            samma värde som skickades in. Det syntes när sidan kördes i en
+            webbläsare mot det riktiga API:et.
+
+            compact var identiskt i båda ändar och fungerade hela tiden — det
+            är därför felet såg ut att gälla bara temat.
+          -->
           <div class="choice-group">
             <p class="choice-label">Tema</p>
             <div class="choices" role="group" aria-label="Tema">
-              <button class="choice" data-setting="theme" data-value="light" aria-pressed="true">
+              <button class="choice" data-setting="theme" data-value="mist" aria-pressed="true">
                 <span class="ch-name">Ljust</span
                 ><span class="ch-desc">Hög kontrast och varm neutral bakgrund</span>
               </button>
-              <button class="choice" data-setting="theme" data-value="dark" aria-pressed="false">
+              <button class="choice" data-setting="theme" data-value="ink" aria-pressed="false">
                 <span class="ch-name">Mörkt</span
                 ><span class="ch-desc">Tonad kvällsvy med lugnare bakgrund</span>
               </button>
@@ -1067,14 +1090,24 @@
           <div class="choice-group">
             <p class="choice-label">Täthet</p>
             <div class="choices" role="group" aria-label="Täthet">
-              <button class="choice" data-setting="density" data-value="compact" aria-pressed="true">
+              <button
+                class="choice"
+                data-setting="density"
+                data-value="compact"
+                aria-pressed="true"
+              >
                 <span class="ch-name">Kompakt</span
                 ><span class="ch-desc">Mer info, mindre plats</span>
               </button>
-              <button class="choice" data-setting="density" data-value="comfortable" aria-pressed="false">
+              <button
+                class="choice"
+                data-setting="density"
+                data-value="balanced"
+                aria-pressed="false"
+              >
                 <span class="ch-name">Bekväm</span><span class="ch-desc">Balanserad arbetsyta</span>
               </button>
-              <button class="choice" data-setting="density" data-value="spacious" aria-pressed="false">
+              <button class="choice" data-setting="density" data-value="airy" aria-pressed="false">
                 <span class="ch-name">Rymlig</span
                 ><span class="ch-desc">Mer andrum mellan blocken</span>
               </button>
@@ -1095,9 +1128,11 @@
                 <div class="row-desc">Ordning: 1</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="sidebarSections.ai-prediction" checked aria-label="AI-förutsägelse" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="sidebarSections.ai-prediction"
+                  checked
+                  aria-label="AI-förutsägelse" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1106,7 +1141,11 @@
                 <div class="row-desc">Ordning: 2</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="sidebarSections.metrics" checked aria-label="Mätvärden" /><span class="track"></span
+                ><input
+                  type="checkbox"
+                  data-setting="sidebarSections.metrics"
+                  checked
+                  aria-label="Mätvärden" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1115,7 +1154,11 @@
                 <div class="row-desc">Ordning: 3</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="sidebarSections.templates" checked aria-label="Mallar" /><span class="track"></span
+                ><input
+                  type="checkbox"
+                  data-setting="sidebarSections.templates"
+                  checked
+                  aria-label="Mallar" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1124,9 +1167,11 @@
                 <div class="row-desc">Ordning: 4</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="sidebarSections.scheduling" checked aria-label="Smart schemaläggning" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="sidebarSections.scheduling"
+                  checked
+                  aria-label="Smart schemaläggning" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1135,9 +1180,10 @@
                 <div class="row-desc">Ordning: 5</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="sidebarSections.upsell" aria-label="Merförsäljningsmöjligheter" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="sidebarSections.upsell"
+                  aria-label="Merförsäljningsmöjligheter" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1146,9 +1192,11 @@
                 <div class="row-desc">Ordning: 6</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="sidebarSections.assignment" checked aria-label="Auto-tilldela" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="sidebarSections.assignment"
+                  checked
+                  aria-label="Auto-tilldela" /><span class="track"></span
               ></label>
             </div>
           </div>
@@ -1167,9 +1215,11 @@
                 <div class="row-desc">Synka möten och tillgänglighet</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.googleCalendarSync" checked aria-label="Google Calendar-synk" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.googleCalendarSync"
+                  checked
+                  aria-label="Google Calendar-synk" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1178,9 +1228,10 @@
                 <div class="row-desc">Koppla ditt Outlook-konto</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.outlookIntegration" aria-label="Outlook-integration" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.outlookIntegration"
+                  aria-label="Outlook-integration" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1189,9 +1240,11 @@
                 <div class="row-desc">Skicka bekräftelse vid ny bokning</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.automaticBookingConfirmation" checked aria-label="Automatisk bokningsbekräftelse" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.automaticBookingConfirmation"
+                  checked
+                  aria-label="Automatisk bokningsbekräftelse" /><span class="track"></span
               ></label>
             </div>
           </div>
@@ -1210,9 +1263,11 @@
                 <div class="row-desc">Automatiska påminnelser för förfallna fakturor</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.paymentReminders" checked aria-label="Betalningspåminnelser" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.paymentReminders"
+                  checked
+                  aria-label="Betalningspåminnelser" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1221,9 +1276,11 @@
                 <div class="row-desc">Ta emot kortbetalningar</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.stripeIntegration" checked aria-label="Stripe-integration" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.stripeIntegration"
+                  checked
+                  aria-label="Stripe-integration" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1232,7 +1289,10 @@
                 <div class="row-desc">Aktivera Swish för snabba betalningar</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.swishPayments" aria-label="Swish-betalningar" /><span class="track"></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.swishPayments"
+                  aria-label="Swish-betalningar" /><span class="track"></span
               ></label>
             </div>
           </div>
@@ -1251,9 +1311,11 @@
                 <div class="row-desc">Inkludera din signatur i alla svar</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.emailSignature" checked aria-label="E-postsignatur" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.emailSignature"
+                  checked
+                  aria-label="E-postsignatur" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1262,7 +1324,10 @@
                 <div class="row-desc">Be om läsbekräftelse</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.readReceipts" aria-label="Läs-kvitton" /><span class="track"></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.readReceipts"
+                  aria-label="Läs-kvitton" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1271,9 +1336,11 @@
                 <div class="row-desc">Automatiskt svar när kontoret är stängt</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.outOfOfficeAutoReplies" checked aria-label="Auto-svar utanför kontorstid" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.outOfOfficeAutoReplies"
+                  checked
+                  aria-label="Auto-svar utanför kontorstid" /><span class="track"></span
               ></label>
             </div>
           </div>
@@ -1292,9 +1359,11 @@
                 <div class="row-desc">E-posta veckovis prestandarapport</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.weeklySummary" checked aria-label="Veckosammanfattning" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.weeklySummary"
+                  checked
+                  aria-label="Veckosammanfattning" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1303,9 +1372,11 @@
                 <div class="row-desc">Spara kundinteraktioner för insikter</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.customerBehaviorTracking" checked aria-label="Kundbeteende-spårning" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.customerBehaviorTracking"
+                  checked
+                  aria-label="Kundbeteende-spårning" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1314,9 +1385,11 @@
                 <div class="row-desc">Tillåt export av analysdata</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.exportToExcel" checked aria-label="Export till Excel" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.exportToExcel"
+                  checked
+                  aria-label="Export till Excel" /><span class="track"></span
               ></label>
             </div>
           </div>
@@ -1335,9 +1408,11 @@
                 <div class="row-desc">AI föreslår svar baserat på innehåll</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.smartReplySuggestions" checked aria-label="Smart svar-förslag" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.smartReplySuggestions"
+                  checked
+                  aria-label="Smart svar-förslag" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1346,9 +1421,11 @@
                 <div class="row-desc">AI sorterar konversationer efter brådska</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.automaticPrioritization" checked aria-label="Automatisk prioritering" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.automaticPrioritization"
+                  checked
+                  aria-label="Automatisk prioritering" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1357,9 +1434,11 @@
                 <div class="row-desc">Upptäck kunder i riskzonen</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.churnPrediction" checked aria-label="Churn-förutsägelse" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.churnPrediction"
+                  checked
+                  aria-label="Churn-förutsägelse" /><span class="track"></span
               ></label>
             </div>
           </div>
@@ -1378,9 +1457,11 @@
                 <div class="row-desc">Få meddelanden även när CCO är i bakgrunden</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.desktopNotifications" checked aria-label="Desktop-aviseringar" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.desktopNotifications"
+                  checked
+                  aria-label="Desktop-aviseringar" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1389,7 +1470,10 @@
                 <div class="row-desc">Spela ljud för nya meddelanden</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.soundAlerts" aria-label="Ljudvarningar" /><span class="track"></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.soundAlerts"
+                  aria-label="Ljudvarningar" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1398,9 +1482,11 @@
                 <div class="row-desc">Varna när SLA-deadline närmar sig</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.slaAlerts" checked aria-label="SLA-varningar" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.slaAlerts"
+                  checked
+                  aria-label="SLA-varningar" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1409,9 +1495,11 @@
                 <div class="row-desc">Meddela när någon @nämner dig</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.teamMentions" checked aria-label="Team-omnämnanden" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.teamMentions"
+                  checked
+                  aria-label="Team-omnämnanden" /><span class="track"></span
               ></label>
             </div>
           </div>
@@ -1461,8 +1549,20 @@
           <div class="profile">
             <span class="avatar">FK</span>
             <div class="p-main">
-              <input class="p-name" data-setting="profileName" type="text" value="Ditt namn" aria-label="Profilnamn" />
-              <input class="p-mail" data-setting="profileEmail" type="email" value="din.email@hairtp.com" aria-label="E-post" />
+              <input
+                class="p-name"
+                data-setting="profileName"
+                type="text"
+                value="Ditt namn"
+                aria-label="Profilnamn"
+              />
+              <input
+                class="p-mail"
+                data-setting="profileEmail"
+                type="email"
+                value="din.email@hairtp.com"
+                aria-label="E-post"
+              />
             </div>
           </div>
         </article>
@@ -1480,9 +1580,10 @@
                 <div class="row-desc">Lägg till ett extra säkerhetslager</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.twoFactorAuth" aria-label="Tvåfaktors-autentisering" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.twoFactorAuth"
+                  aria-label="Tvåfaktors-autentisering" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1491,13 +1592,19 @@
                 <div class="row-desc">Spåra alla åtgärder för revisionsspår</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.activityLogging" checked aria-label="Aktivitetsloggning" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.activityLogging"
+                  checked
+                  aria-label="Aktivitetsloggning" /><span class="track"></span
               ></label>
             </div>
           </div>
-          <div class="panel-foot"><button class="btn btn--danger" data-setting="requestDeleteAccount">Radera konto</button></div>
+          <div class="panel-foot">
+            <button class="btn btn--danger" data-setting="requestDeleteAccount">
+              Radera konto
+            </button>
+          </div>
         </article>
 
         <!-- 12. Anpassa din CCO-upplevelse -->
@@ -1513,9 +1620,11 @@
                 <div class="row-desc">Visa fler konversationer samtidigt</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.compactConversationView" checked aria-label="Kompakt konversationsvy" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.compactConversationView"
+                  checked
+                  aria-label="Kompakt konversationsvy" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1524,9 +1633,11 @@
                 <div class="row-desc">Använd färger för att indikera brådska</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.colorCodedPriorities" checked aria-label="Färgkodade prioriteter" /><span
-                  class="track"
-                ></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.colorCodedPriorities"
+                  checked
+                  aria-label="Färgkodade prioriteter" /><span class="track"></span
               ></label>
             </div>
             <div class="row">
@@ -1535,7 +1646,10 @@
                 <div class="row-desc">Visa extra filtreringsalternativ</div>
               </div>
               <label class="switch"
-                ><input type="checkbox" data-setting="toggles.advancedFilters" aria-label="Avancerade filter" /><span class="track"></span
+                ><input
+                  type="checkbox"
+                  data-setting="toggles.advancedFilters"
+                  aria-label="Avancerade filter" /><span class="track"></span
               ></label>
             </div>
           </div>
@@ -1639,7 +1753,12 @@
             const item = list.find((s) => s && s.id === id);
             return item ? item.enabled : undefined;
           }
-          return setting.split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), settings);
+          return setting
+            .split('.')
+            .reduce(
+              (value, key) => (value && typeof value === 'object' ? value[key] : undefined),
+              settings
+            );
         }
 
         function writeSetting(settings, setting, value) {
@@ -1648,9 +1767,17 @@
             if (!Array.isArray(settings.sidebarSections)) settings.sidebarSections = [];
             const index = settings.sidebarSections.findIndex((s) => s && s.id === id);
             if (index >= 0) {
-              settings.sidebarSections[index] = { ...settings.sidebarSections[index], enabled: value };
+              settings.sidebarSections[index] = {
+                ...settings.sidebarSections[index],
+                enabled: value,
+              };
             } else {
-              settings.sidebarSections.push({ id, enabled: value, label: '', order: settings.sidebarSections.length + 1 });
+              settings.sidebarSections.push({
+                id,
+                enabled: value,
+                label: '',
+                order: settings.sidebarSections.length + 1,
+              });
             }
             return;
           }
@@ -1735,8 +1862,12 @@
         function updateSummary() {
           const summaryValue = document.querySelector('.summary .s-val');
           if (!summaryValue || !currentSettings) return;
-          const densityLabel = { compact: 'Kompakt', balanced: 'Bekväm', airy: 'Rymlig' }[currentSettings.density] || currentSettings.density;
-          const themeLabel = { mist: 'Ljust', ink: 'Mörkt', auto: 'Auto' }[currentSettings.theme] || currentSettings.theme;
+          const densityLabel =
+            { compact: 'Kompakt', balanced: 'Bekväm', airy: 'Rymlig' }[currentSettings.density] ||
+            currentSettings.density;
+          const themeLabel =
+            { mist: 'Ljust', ink: 'Mörkt', auto: 'Auto' }[currentSettings.theme] ||
+            currentSettings.theme;
           summaryValue.textContent = densityLabel + ' + ' + themeLabel;
         }
 
@@ -1799,7 +1930,10 @@
           try {
             const result = await api('/cco/settings/request-delete-account', { method: 'POST' });
             setStatus(
-              'Kontot flaggat för radering: ' + (result.deleteRequestedAt ? new Date(result.deleteRequestedAt).toLocaleString('sv-SE') : 'okänd tid'),
+              'Kontot flaggat för radering: ' +
+                (result.deleteRequestedAt
+                  ? new Date(result.deleteRequestedAt).toLocaleString('sv-SE')
+                  : 'okänd tid'),
               'ok'
             );
           } catch (error) {
@@ -1832,21 +1966,27 @@
             group.addEventListener('click', (e) => {
               const b = e.target.closest('.choice');
               if (!b) return;
-              group.querySelectorAll('.choice').forEach((c) => c.setAttribute('aria-pressed', 'false'));
+              group
+                .querySelectorAll('.choice')
+                .forEach((c) => c.setAttribute('aria-pressed', 'false'));
               b.setAttribute('aria-pressed', 'true');
               scheduleSave();
             });
           });
 
           // toggles
-          document.querySelectorAll('[data-setting^="toggles."], [data-setting^="sidebarSections."]').forEach((input) => {
-            input.addEventListener('change', scheduleSave);
-          });
+          document
+            .querySelectorAll('[data-setting^="toggles."], [data-setting^="sidebarSections."]')
+            .forEach((input) => {
+              input.addEventListener('change', scheduleSave);
+            });
 
           // text inputs (profile)
-          document.querySelectorAll('[data-setting="profileName"], [data-setting="profileEmail"]').forEach((input) => {
-            input.addEventListener('input', scheduleSave);
-          });
+          document
+            .querySelectorAll('[data-setting="profileName"], [data-setting="profileEmail"]')
+            .forEach((input) => {
+              input.addEventListener('input', scheduleSave);
+            });
 
           // delete account
           const deleteBtn = document.querySelector('[data-setting="requestDeleteAccount"]');

@@ -19,12 +19,13 @@ function read(file) {
 }
 
 const EXPECTED_SETTINGS = [
-  { selector: 'data-setting="theme" data-value="light"', type: 'choice' },
-  { selector: 'data-setting="theme" data-value="dark"', type: 'choice' },
+  // Kanoniska värden, inte etiketter — se testet längst ned om varför.
+  { selector: 'data-setting="theme" data-value="mist"', type: 'choice' },
+  { selector: 'data-setting="theme" data-value="ink"', type: 'choice' },
   { selector: 'data-setting="theme" data-value="auto"', type: 'choice' },
   { selector: 'data-setting="density" data-value="compact"', type: 'choice' },
-  { selector: 'data-setting="density" data-value="comfortable"', type: 'choice' },
-  { selector: 'data-setting="density" data-value="spacious"', type: 'choice' },
+  { selector: 'data-setting="density" data-value="balanced"', type: 'choice' },
+  { selector: 'data-setting="density" data-value="airy"', type: 'choice' },
   { setting: 'sidebarSections.ai-prediction', type: 'checkbox' },
   { setting: 'sidebarSections.metrics', type: 'checkbox' },
   { setting: 'sidebarSections.templates', type: 'checkbox' },
@@ -234,7 +235,14 @@ function buildDom() {
   makeChoiceGroup('density', ['compact', 'comfortable', 'spacious'], 'compact');
 
   // Sidebar sections
-  for (const id of ['ai-prediction', 'metrics', 'templates', 'scheduling', 'upsell', 'assignment']) {
+  for (const id of [
+    'ai-prediction',
+    'metrics',
+    'templates',
+    'scheduling',
+    'upsell',
+    'assignment',
+  ]) {
     makeToggle(`sidebarSections.${id}`, id !== 'upsell');
   }
 
@@ -332,7 +340,8 @@ function runHarness({ fetchImpl, confirmImpl = () => true } = {}) {
   const fetchCalls = [];
   const timeouts = [];
 
-  const fetchFn = fetchImpl ||
+  const fetchFn =
+    fetchImpl ||
     (() => {
       throw new Error('fetch ska inte anropas i detta test');
     });
@@ -441,10 +450,7 @@ test('alla förväntade kontroller har data-setting', () => {
   const html = read(SETTINGS_HTML);
   for (const item of EXPECTED_SETTINGS) {
     const needle = item.selector || `data-setting="${item.setting}"`;
-    assert.ok(
-      html.includes(needle),
-      `Saknar data-setting för ${item.setting || item.selector}`
-    );
+    assert.ok(html.includes(needle), `Saknar data-setting för ${item.setting || item.selector}`);
   }
 });
 
@@ -484,7 +490,9 @@ test('en ändrad switch ger PUT /api/v1/cco/settings med hela dokumentet', async
     fetchImpl: async (url, opts) => {
       if (opts.method === 'PUT') {
         putBodies.push(JSON.parse(opts.body));
-        return okResponse({ settings: { ...settings, toggles: { ...settings.toggles, swishPayments: true } } });
+        return okResponse({
+          settings: { ...settings, toggles: { ...settings.toggles, swishPayments: true } },
+        });
       }
       return okResponse({ settings });
     },
@@ -522,7 +530,9 @@ test('PUT vid temaändring bevarar bokningsreglerna oförändrade', async () => 
   await flushHarness(harness);
 
   const darkBtn = harness.bySetting['theme:dark'];
-  const themeGroup = harness.choicesGroups.find((g) => g.group.getAttribute('data-group') === 'theme');
+  const themeGroup = harness.choicesGroups.find(
+    (g) => g.group.getAttribute('data-group') === 'theme'
+  );
   darkBtn.setAttribute('aria-pressed', 'true');
   themeGroup.group.emit('click', { target: darkBtn });
   await flushHarness(harness);
@@ -536,7 +546,11 @@ test('PUT vid temaändring bevarar bokningsreglerna oförändrade', async () => 
 
 test('401 döljer panelerna och visar felmeddelande', async () => {
   const harness = runHarness({
-    fetchImpl: async () => ({ status: 401, ok: false, json: async () => ({ error: 'Unauthorized' }) }),
+    fetchImpl: async () => ({
+      status: 401,
+      ok: false,
+      json: async () => ({ error: 'Unauthorized' }),
+    }),
   });
 
   await flushHarness(harness);
@@ -583,14 +597,66 @@ test('radera konto utan bekräftelse skickar ingen POST', async () => {
   assert.equal(postCall, undefined);
 });
 
-test('mutation: om ett data-setting saknas failar testet', () => {
+test('valknapparna bär storens kanoniska värden, inte etiketterna', () => {
+  // Knapparna hette först light / dark / comfortable / spacious. De gick att
+  // spara — storen har alias för dem — men inte att läsa tillbaka, för
+  // applySettings jämför data-value med det servern returnerar, och servern
+  // returnerar mist / ink / balanced / airy. Efter en omladdning stod alltså
+  // ingen temaknapp som vald.
+  //
+  // Enhetstesterna missade det eftersom DOM-mocken gav tillbaka samma värde
+  // som skickades in. Felet syntes först när sidan kördes i en webbläsare mot
+  // det riktiga API:et. compact var identiskt i båda ändar, vilket är varför
+  // täthetsväljaren såg ut att fungera.
+  //
+  // Testet läser aliastabellerna ur storen i stället för att upprepa dem, så
+  // att sidan och storen inte kan glida isär.
+  const store = read(path.join(ROOT, 'src', 'ops', 'ccoSettingsStore.js'));
+
+  function aliasTable(namn) {
+    const block = store.match(new RegExp(namn + '\\s*=\\s*Object\\.freeze\\(\\{([^}]*)\\}'));
+    assert.ok(block, namn + ' hittades inte i ccoSettingsStore.js');
+    const table = {};
+    for (const rad of block[1].split(',')) {
+      const m = rad.match(/([a-zA-Z]+)\s*:\s*'([a-zA-Z]+)'/);
+      if (m) table[m[1]] = m[2];
+    }
+    assert.ok(Object.keys(table).length >= 3, namn + ' tolkades tomt');
+    return table;
+  }
+
   const html = read(SETTINGS_HTML);
-  const tampered = html.replace('data-setting="toggles.swishPayments"', '');
-  assert.throws(
-    () => {
-      const match = tampered.match(/data-setting="toggles\.swishPayments"/);
-      if (!match) throw new Error('mutation saknar swishPayments');
-    },
-    /mutation saknar swishPayments/
-  );
+  const fall = [
+    { setting: 'theme', alias: aliasTable('THEME_ALIASES') },
+    { setting: 'density', alias: aliasTable('DENSITY_ALIASES') },
+  ];
+
+  for (const { setting, alias } of fall) {
+    const varden = [
+      ...html.matchAll(new RegExp('data-setting="' + setting + '" data-value="([a-zA-Z-]+)"', 'g')),
+    ].map((m) => m[1]);
+
+    assert.ok(varden.length >= 3, 'hittade inga knappar för ' + setting);
+
+    for (const v of varden) {
+      assert.ok(
+        Object.prototype.hasOwnProperty.call(alias, v),
+        setting + '-knappen "' + v + '" finns inte i storens aliastabell'
+      );
+      assert.equal(
+        alias[v],
+        v,
+        setting +
+          '-knappen "' +
+          v +
+          '" är ett alias för "' +
+          alias[v] +
+          '". ' +
+          'Storen returnerar "' +
+          alias[v] +
+          '", så knappen skulle aldrig bli markerad ' +
+          'efter omladdning. Använd det kanoniska värdet.'
+      );
+    }
+  }
 });
