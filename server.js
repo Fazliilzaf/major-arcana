@@ -12879,6 +12879,7 @@ process.once('SIGTERM', () => {
       cmStore,
       secureStorage: app.locals.ccoSecureStorage || null,
       mailboxTruthStore: app.locals.ccoMailboxTruthStore || null,
+      graphReadConnector: graphReadConnector || null,
       auditLog: app.locals.ccoAuditLog || null,
     })
   );

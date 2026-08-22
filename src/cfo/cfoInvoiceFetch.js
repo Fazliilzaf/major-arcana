@@ -197,10 +197,17 @@ async function findMailboxMessage({ tx, mailboxTruthStore, opts = {} }) {
 
     all.push({
       mailboxId: m.mailboxId,
+      mailboxAddress: m.mailboxAddress || m.mailboxId,
+      userPrincipalName: m.userPrincipalName || m.mailboxAddress || m.mailboxId,
+      id: m.id,
+      messageId: m.messageId,
+      graphMessageId: m.graphMessageId,
       messageKey: m.messageKey || m.id || `${m.mailboxId}:${received}`,
       subject: m.subject,
       receivedAt: received,
       hasAttachments: Boolean(m.hasAttachments || m.attachmentCount > 0),
+      attachments: m.attachments,
+      attachmentNames: m.attachmentNames,
       hasPdfAttachment: Boolean(
         m.attachmentNames?.some((n) => String(n).toLowerCase().endsWith('.pdf')) ||
         m.attachments?.some((a) =>
@@ -271,10 +278,149 @@ async function createExpenseFromCmRecord({
   return { created: true, expense, receipt, source: 'cm_document' };
 }
 
+// ─── Hjälpare: välj läsbart leverantörsnamn från kortbeskrivningen ──────────
+function supplierDisplayName(description) {
+  const tokens = tokenSet(description || '');
+  const DISPLAY_NAMES = {
+    facebook: 'Meta / Facebook',
+    uber: 'Uber',
+    ubereats: 'Uber Eats',
+    ubertrip: 'Uber',
+    voi: 'Voi Technology',
+    apple: 'Apple',
+    github: 'GitHub',
+    anthropic: 'Anthropic',
+    openai: 'OpenAI',
+    google: 'Google',
+    googleads: 'Google Ads',
+    googlecloud: 'Google Cloud',
+    googleone: 'Google One',
+    zapier: 'Zapier',
+    cursor: 'Cursor',
+    microsoft: 'Microsoft',
+    adobe: 'Adobe',
+    canva: 'Canva',
+    elevenlabs: 'Elevenlabs',
+    booking: 'Booking.com',
+    sj: 'SJ',
+    hemkop: 'Hemköp',
+    willys: 'Willys',
+    bolt: 'Bolt',
+    pipedrive: 'Pipedrive',
+    figma: 'Figma',
+    render: 'Render',
+    klm: 'KLM',
+    faire: 'Faire',
+    swiss: 'Swiss',
+  };
+  for (const t of tokens) {
+    if (DISPLAY_NAMES[t]) return DISPLAY_NAMES[t];
+  }
+  return normalizeSupplier(description) || 'Okänd leverantör';
+}
+
+// ─── Hjälpare: hämta första icke-inline PDF-bilaga ur mailbox truth ─────────
+async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
+  if (!graphReadConnector) return null;
+  const safeUserId = normalizeText(
+    message.userPrincipalName || message.mailboxAddress || message.mailboxId
+  );
+  const safeMessageId = normalizeText(message.graphMessageId || message.messageId || message.id);
+  if (!safeUserId || !safeMessageId) return null;
+
+  let attachments = [];
+  if (Array.isArray(message.attachments) && message.attachments.length) {
+    attachments = message.attachments
+      .map((a) => ({
+        id: normalizeText(a?.id || a?.attachmentId),
+        name: normalizeText(a?.name),
+        contentType: normalizeText(a?.contentType),
+        isInline: a?.isInline === true,
+        size: Number(a?.size) || 0,
+      }))
+      .filter((a) => a.id);
+  } else if (typeof graphReadConnector.probeMessageAttachments === 'function') {
+    attachments = await graphReadConnector.probeMessageAttachments({
+      userId: safeUserId,
+      messageId: safeMessageId,
+    });
+  }
+
+  const pdf = attachments.find((a) => !a.isInline && /pdf/i.test(a.contentType || a.name || ''));
+  if (!pdf) return null;
+
+  const fetched = await graphReadConnector.fetchMessageAttachmentContent({
+    userId: safeUserId,
+    messageId: safeMessageId,
+    attachmentId: pdf.id,
+  });
+  if (!fetched?.buffer?.length) return null;
+  return {
+    buffer: fetched.buffer,
+    name: fetched.name || pdf.name || 'underlag.pdf',
+    contentType: fetched.contentType || pdf.contentType || 'application/pdf',
+  };
+}
+
+// ─── Skapa CFO-expense + kvitto från mailbox-bilaga ───────────────────────────
+async function createExpenseFromMailboxMessage({
+  tx,
+  message,
+  receiptStore,
+  expenseStore,
+  graphReadConnector,
+  actor,
+}) {
+  const attachment = await fetchMailboxPdfAttachment({ message, graphReadConnector });
+  if (!attachment) {
+    return { created: false, reason: 'mailbox_attachment_fetch_failed' };
+  }
+
+  let receipt = null;
+  if (receiptStore && typeof receiptStore.uploadReceipt === 'function') {
+    receipt = await receiptStore.uploadReceipt({
+      buffer: attachment.buffer,
+      mimeType: attachment.contentType,
+      originalFileName: attachment.name,
+      sourceSystem: 'receipt_mail_import',
+      actor,
+      metadata: {
+        supplier: supplierDisplayName(tx.description),
+        amountSek: Number(tx.amountSek),
+        date: tx.date,
+        notes: `Auto-hämtat ur mailbox ${message.mailboxId} för korttransaktion ${tx.description} ${tx.date}`,
+      },
+    });
+  }
+
+  const expense = await expenseStore.createExpense({
+    actor,
+    receiptId: receipt?.id || null,
+    fields: {
+      supplier: supplierDisplayName(tx.description),
+      amountSek: Number(tx.amountSek),
+      date: tx.date,
+      paymentMethod: 'card',
+      notes: `Kortdragning ${tx.cardRef} ${tx.date} ${tx.description}. Underlag från mailbox: ${message.mailboxId} / ${message.messageKey}`,
+    },
+  });
+
+  return { created: true, expense, receipt, source: 'mailbox_attachment' };
+}
+
 // ─── Huvudfunktion: leta + (om möjligt) skapa/matcha ─────────────────────────
 async function findInvoiceForTransaction(
   tx,
-  { expenseStore, receiptStore, cmStore, secureStorage, mailboxTruthStore, actor, mailboxIds } = {}
+  {
+    expenseStore,
+    receiptStore,
+    cmStore,
+    secureStorage,
+    mailboxTruthStore,
+    graphReadConnector,
+    actor,
+    mailboxIds,
+  } = {}
 ) {
   const result = {
     tx,
@@ -325,6 +471,34 @@ async function findInvoiceForTransaction(
   // 3. Finns det i mailbox truth?
   const message = await findMailboxMessage({ tx, mailboxTruthStore, opts: { mailboxIds } });
   if (message) {
+    // ORD-102e: om träffen har en PDF-bilaga, försök hämta och skapa expense direkt.
+    const canCreate =
+      expenseStore &&
+      typeof expenseStore.createExpense === 'function' &&
+      receiptStore &&
+      typeof receiptStore.uploadReceipt === 'function';
+    if (message.hasPdfAttachment && canCreate && graphReadConnector) {
+      const created = await createExpenseFromMailboxMessage({
+        tx,
+        message,
+        receiptStore,
+        expenseStore,
+        graphReadConnector,
+        actor,
+      });
+      if (created.created) {
+        result.matched = true;
+        result.source = created.source;
+        result.expenseId = created.expense.id;
+        result.receiptId = created.receipt?.id;
+        result.message = 'Skapade CFO-expense + kvitto från mailbox-bilaga';
+        return result;
+      }
+      result.source = 'mailbox_truth';
+      result.evidence = { ...message, reason: created.reason };
+      result.message = 'Träff i mailboxen med PDF, men bilagan kunde inte hämtas';
+      return result;
+    }
     result.source = 'mailbox_truth';
     result.evidence = message;
     result.message = message.hasAttachments
@@ -345,6 +519,7 @@ async function autoFetchInvoices({
   cmStore,
   secureStorage,
   mailboxTruthStore,
+  graphReadConnector,
   actor,
   threshold = DEFAULT_BULK_THRESHOLD,
   mailboxIds,
@@ -359,6 +534,7 @@ async function autoFetchInvoices({
       cmStore,
       secureStorage,
       mailboxTruthStore,
+      graphReadConnector,
       actor,
       mailboxIds,
     });
@@ -388,5 +564,8 @@ module.exports = {
   findCfoExpense,
   findCmRecord,
   findMailboxMessage,
+  fetchMailboxPdfAttachment,
+  createExpenseFromMailboxMessage,
+  supplierDisplayName,
   DEFAULT_BULK_THRESHOLD,
 };

@@ -24,6 +24,7 @@ function createCfoCardReconciliationRouter({
   cmStore = null,
   secureStorage = null,
   mailboxTruthStore = null,
+  graphReadConnector = null,
   auditLog = null,
 }) {
   const router = express.Router();
@@ -170,6 +171,7 @@ function createCfoCardReconciliationRouter({
           cmStore,
           secureStorage,
           mailboxTruthStore,
+          graphReadConnector,
           actor,
           mailboxIds: req.body?.mailboxIds || null,
         });
@@ -219,6 +221,7 @@ function createCfoCardReconciliationRouter({
           cmStore,
           secureStorage,
           mailboxTruthStore,
+          graphReadConnector,
           actor,
           threshold,
           mailboxIds: req.body?.mailboxIds || null,

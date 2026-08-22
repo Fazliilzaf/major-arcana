@@ -249,3 +249,68 @@ test('autoFetchInvoices: matchar endast omatchade över tröskel', async () => {
   assert.equal(result.matched, 1);
   assert.equal(result.results[0].matchConfirmed, true);
 });
+
+function makeGraphConnector(attachmentBuffer = Buffer.from('pdf-bytes')) {
+  return {
+    probeMessageAttachments: async () => [
+      {
+        id: 'att-1',
+        name: 'invoice.pdf',
+        contentType: 'application/pdf',
+        isInline: false,
+        size: attachmentBuffer.length,
+      },
+    ],
+    fetchMessageAttachmentContent: async () => ({
+      buffer: attachmentBuffer,
+      name: 'invoice.pdf',
+      contentType: 'application/pdf',
+    }),
+  };
+}
+
+test('findInvoiceForTransaction: skapar expense ur mailbox-bilaga när Graph-connector finns', async () => {
+  const messages = [
+    {
+      id: 'msg-1',
+      mailboxId: 'info@hairtpclinic.com',
+      subject: 'Faktura från Meta',
+      receivedAt: '2026-08-11T09:00:00Z',
+      hasAttachments: true,
+      attachmentNames: ['invoice.pdf'],
+    },
+  ];
+  const r = await findInvoiceForTransaction(makeTx(), {
+    expenseStore: makeExpenseStore(),
+    receiptStore: makeReceiptStore(),
+    mailboxTruthStore: makeMailboxTruthStore(messages),
+    graphReadConnector: makeGraphConnector(),
+    actor: { userId: 'owner', role: 'OWNER' },
+  });
+  assert.equal(r.matched, true);
+  assert.equal(r.source, 'mailbox_attachment');
+  assert.equal(r.expenseId, 'exp-new');
+  assert.equal(r.receiptId, 'rcpt-new');
+});
+
+test('findInvoiceForTransaction: utan Graph-connector rapporteras mailbox-träff', async () => {
+  const messages = [
+    {
+      id: 'msg-1',
+      mailboxId: 'info@hairtpclinic.com',
+      subject: 'Faktura från Meta',
+      receivedAt: '2026-08-11T09:00:00Z',
+      hasAttachments: true,
+      attachmentNames: ['invoice.pdf'],
+    },
+  ];
+  const r = await findInvoiceForTransaction(makeTx(), {
+    expenseStore: makeExpenseStore(),
+    receiptStore: makeReceiptStore(),
+    mailboxTruthStore: makeMailboxTruthStore(messages),
+    actor: { userId: 'owner', role: 'OWNER' },
+  });
+  assert.equal(r.matched, false);
+  assert.equal(r.source, 'mailbox_truth');
+  assert.equal(r.evidence?.hasPdfAttachment, true);
+});
