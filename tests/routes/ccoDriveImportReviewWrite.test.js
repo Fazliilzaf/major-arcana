@@ -124,7 +124,7 @@ async function request(app, method, path, body) {
   const srv = app.listen(0);
   const port = srv.address().port;
   try {
-    return await fetch(`http://127.0.0.1:${port}${path}`, {
+    const res = await fetch(`http://127.0.0.1:${port}${path}`, {
       method,
       headers: {
         Accept: 'application/json',
@@ -134,8 +134,17 @@ async function request(app, method, path, body) {
       },
       body: body ? JSON.stringify(body) : undefined,
     });
+    // Läs hela body innan servern stängs, så fetch hinner konsumera svaret
+    // utan att socketen stängs under pågående läsning.
+    const text = await res.text();
+    return {
+      status: res.status,
+      async json() {
+        return JSON.parse(text);
+      },
+    };
   } finally {
-    srv.close();
+    await new Promise((resolve) => srv.close(resolve));
   }
 }
 
