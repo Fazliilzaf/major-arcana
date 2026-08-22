@@ -1504,6 +1504,26 @@
   // other CCO calendar views. It deliberately exposes no booking mutations.
   const V6_HOUR_START = 6;
   const V6_HOUR_HEIGHT = 62;
+
+  /**
+   * Timhöjden bor på två ställen: `--calendar-hour-h` i CSS styr rutnätets
+   * rader, konstanten ovan styr kortens `top` och `height` i JS. Så länge de
+   * är samma siffra märks inget — men ändrar man den ena hamnar korten fel
+   * mot linjerna, och det syns inte förrän det finns bokningar att rita.
+   *
+   * Här läses CSS-värdet i stället, så det finns en sanning. Konstanten blir
+   * reserv om variabeln saknas.
+   */
+  function v6HourHeight() {
+    try {
+      const raw = getComputedStyle(document.documentElement).getPropertyValue('--calendar-hour-h');
+      const px = parseFloat(raw);
+      if (Number.isFinite(px) && px > 0) return px;
+    } catch {
+      /* faller igenom till konstanten */
+    }
+    return V6_HOUR_HEIGHT;
+  }
   const V6_DAY_NAMES = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
   const V6_MONTH_NAMES = [
     'januari', 'februari', 'mars', 'april', 'maj', 'juni',
@@ -2182,7 +2202,7 @@
     const minutes = hh * 60 + mm;
     if (minutes < V6_HOUR_START * 60 || minutes >= 23 * 60) return;
 
-    const top = ((minutes - V6_HOUR_START * 60) / 60) * V6_HOUR_HEIGHT;
+    const top = ((minutes - V6_HOUR_START * 60) / 60) * v6HourHeight();
     const label = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
     slots.appendChild(
       el('div', { class: 'now-line', style: 'top:' + top + 'px' }, [
@@ -2205,14 +2225,20 @@
     const start = timeToMinutes(slot.time);
     const fallbackEnd = slot.durationMinutes ? start + Number(slot.durationMinutes) : start + 30;
     const end = slot.endTime ? timeToMinutes(slot.endTime) : fallbackEnd;
-    const top = Math.max(0, ((start - V6_HOUR_START * 60) / 60) * V6_HOUR_HEIGHT);
-    const height = Math.max(31, ((Math.max(end, start + 15) - start) / 60) * V6_HOUR_HEIGHT);
+    const hourH = v6HourHeight();
+    const top = Math.max(0, ((start - V6_HOUR_START * 60) / 60) * hourH);
+    const height = Math.max(31, ((Math.max(end, start + 15) - start) / 60) * hourH);
+    // Hur många rader ryms? Se kommentaren vid .booking[data-fit] i
+    // kalender.html. Höjden är känd här och ingen annanstans — CSS kan inte
+    // fråga efter sin egen höjd — så beslutet hör hemma här.
+    const fit = height >= 76 ? 'tall' : height >= 56 ? 'full' : height >= 38 ? 'medium' : 'compact';
     const card = el('button', {
       class: 'booking', type: 'button',
       style: 'top:' + top + 'px;height:' + height + 'px;--rail-color:' + colorForResource(slot.resourceId),
       dataset: {
         bookingId: slot.bookingId || slot.id || '', patientId: slot.patientId || '',
         encounterId: slot.encounterId || '', status: v6StatusKey(slot.status), source: 'canonical',
+        fit,
       },
       onclick: (event) => { event.stopPropagation(); v6RenderIntel(slot); },
     }, [

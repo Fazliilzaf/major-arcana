@@ -180,11 +180,46 @@ test('nu-linjen ritas ur klockan, inte som statisk markup', () => {
   assert.match(shell, /timeZone: 'Europe\/Stockholm'/);
   // Samma formel som bokningskorten använder för sitt top — annars hamnar
   // linjen inte där en bokning med den starttiden skulle ligga.
-  assert.match(shell, /\(\(minutes - V6_HOUR_START \* 60\) \/ 60\) \* V6_HOUR_HEIGHT/);
+  // Timhöjden läses ur --calendar-hour-h, inte ur konstanten. Konstanten
+  // finns kvar som reserv. Skulle de två glida isär hamnar korten fel mot
+  // rutnätets linjer, och det syns inte förrän det finns bokningar att rita.
+  assert.match(shell, /\(\(minutes - V6_HOUR_START \* 60\) \/ 60\) \* v6HourHeight\(\)/);
+  assert.match(shell, /function v6HourHeight\(\)/);
+  assert.match(shell, /getPropertyValue\('--calendar-hour-h'\)/);
   // Bara dagens kolumn.
   assert.match(shell, /if \(dateKey === today\) v6RenderNowLine\(slots\)/);
   // Och den ska följa med klockan.
   assert.match(shell, /function v6ScheduleNowLine\(/);
+});
+
+test('bokningskortets rader krymper inte under sin egen radhöjd', () => {
+  // Kortet är en flexbox i kolumn. Barnen saknade flex-shrink, så ett för
+  // lågt kort pressade ihop varje rad i stället för att ta bort någon:
+  // mätt på ett 45-minuterskort blev tiden 5 px av 10, behandlingen 14 av 26
+  // och namnet 7 av 14. Alla tre klippta samtidigt, på webb som på telefon.
+  //
+  // Nu krymper ingen rad, och renderaren bestämmer i stället hur många rader
+  // kortet har plats för.
+  const mobil = fs.readFileSync(path.join(root, 'public/cco-mobile.css'), 'utf8');
+
+  assert.match(html, /\.booking > \*\s*\{[^}]*flex-shrink:\s*0/s);
+  assert.match(shell, /const fit = height >= 76 \? 'tall'/);
+  assert.match(shell, /height >= 56 \? 'full'/);
+  assert.match(shell, /height >= 38 \? 'medium'/);
+  assert.match(html, /\.booking\[data-fit='medium'\] \.booking-title\s*\{\s*display:\s*none/s);
+  assert.match(html, /\.booking\[data-fit='compact'\] \.booking-title\s*\{\s*display:\s*none/s);
+
+  // Namnet står före behandlingen. Ryms bara en sak ska personalen se vem
+  // som kommer.
+  const sub = html.indexOf('.booking-sub {\n        order: 2;');
+  const title = html.indexOf('.booking-title {\n        order: 3;');
+  assert.ok(sub > 0 && title > sub, 'namnet ska ha lägre order än behandlingen');
+
+  // 78 px per timme — 62 px gav ett 47 px kort som inte rymde tre rader.
+  assert.match(html, /--calendar-hour-h:\s*78px/);
+
+  // Mobilfilen la en grid-override ovanpå som klämde raderna till 13 px.
+  assert.doesNotMatch(mobil, /\.booking\s*\{[^}]*display:\s*grid/s);
 });
 
 test('canonical hydration preserves the original rich morning component hierarchy', () => {
