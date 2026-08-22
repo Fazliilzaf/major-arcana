@@ -402,37 +402,58 @@ async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
   if (!safeUserId || !safeMessageId) return null;
 
   let attachments = [];
-  if (Array.isArray(message.attachments) && message.attachments.length) {
-    attachments = message.attachments
-      .map((a) => ({
-        id: normalizeText(a?.id || a?.attachmentId),
-        name: normalizeText(a?.name),
-        contentType: normalizeText(a?.contentType),
-        isInline: a?.isInline === true,
-        size: Number(a?.size) || 0,
-      }))
-      .filter((a) => a.id);
-  } else if (typeof graphReadConnector.probeMessageAttachments === 'function') {
-    attachments = await graphReadConnector.probeMessageAttachments({
-      userId: safeUserId,
-      messageId: safeMessageId,
-    });
+  try {
+    if (Array.isArray(message.attachments) && message.attachments.length) {
+      attachments = message.attachments
+        .map((a) => ({
+          id: normalizeText(a?.id || a?.attachmentId),
+          name: normalizeText(a?.name),
+          contentType: normalizeText(a?.contentType),
+          isInline: a?.isInline === true,
+          size: Number(a?.size) || 0,
+        }))
+        .filter((a) => a.id);
+    } else if (typeof graphReadConnector.probeMessageAttachments === 'function') {
+      attachments = await graphReadConnector.probeMessageAttachments({
+        userId: safeUserId,
+        messageId: safeMessageId,
+      });
+    }
+  } catch (err) {
+    console.warn(
+      '[cfoInvoiceFetch] kunde inte lista bilagor:',
+      safeUserId,
+      safeMessageId,
+      err?.message
+    );
+    return null;
   }
 
   const pdf = attachments.find((a) => !a.isInline && /pdf/i.test(a.contentType || a.name || ''));
   if (!pdf) return null;
 
-  const fetched = await graphReadConnector.fetchMessageAttachmentContent({
-    userId: safeUserId,
-    messageId: safeMessageId,
-    attachmentId: pdf.id,
-  });
-  if (!fetched?.buffer?.length) return null;
-  return {
-    buffer: fetched.buffer,
-    name: fetched.name || pdf.name || 'underlag.pdf',
-    contentType: fetched.contentType || pdf.contentType || 'application/pdf',
-  };
+  try {
+    const fetched = await graphReadConnector.fetchMessageAttachmentContent({
+      userId: safeUserId,
+      messageId: safeMessageId,
+      attachmentId: pdf.id,
+    });
+    if (!fetched?.buffer?.length) return null;
+    return {
+      buffer: fetched.buffer,
+      name: fetched.name || pdf.name || 'underlag.pdf',
+      contentType: fetched.contentType || pdf.contentType || 'application/pdf',
+    };
+  } catch (err) {
+    console.warn(
+      '[cfoInvoiceFetch] kunde inte hämta bilaga:',
+      safeUserId,
+      safeMessageId,
+      pdf.id,
+      err?.message
+    );
+    return null;
+  }
 }
 
 // ─── Skapa CFO-expense + kvitto från mailbox-bilaga ───────────────────────────
@@ -601,16 +622,30 @@ async function autoFetchInvoices({
   const targets = unmatched.filter((t) => Number(t.amountSek) >= threshold);
   const results = [];
   for (const tx of targets) {
-    const r = await findInvoiceForTransaction(tx, {
-      expenseStore,
-      receiptStore,
-      cmStore,
-      secureStorage,
-      mailboxTruthStore,
-      graphReadConnector,
-      actor,
-      mailboxIds,
-    });
+    let r;
+    try {
+      r = await findInvoiceForTransaction(tx, {
+        expenseStore,
+        receiptStore,
+        cmStore,
+        secureStorage,
+        mailboxTruthStore,
+        graphReadConnector,
+        actor,
+        mailboxIds,
+      });
+    } catch (err) {
+      r = {
+        tx,
+        matched: false,
+        source: null,
+        expenseId: null,
+        receiptId: null,
+        message: `Fel vid sökning: ${err.message}`,
+        evidence: null,
+        error: err.message,
+      };
+    }
     if (r.matched) {
       try {
         await reconciliation.confirmMatch(tx.id, r.expenseId, { actor });
