@@ -19,6 +19,41 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function stripHtml(html) {
+  return typeof html === 'string'
+    ? html
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+    : '';
+}
+
+function graphMessageDate(parsed) {
+  const candidates = [
+    parsed.receivedDateTime,
+    parsed.sentDateTime,
+    parsed.createdDateTime,
+    parsed.date,
+  ];
+  for (const d of candidates) {
+    if (!d) continue;
+    const iso = new Date(d).toISOString();
+    if (iso !== 'Invalid Date') return iso;
+  }
+  return null;
+}
+
+function graphMessageText(parsed) {
+  const body =
+    typeof parsed.body === 'string'
+      ? parsed.body
+      : typeof parsed.body?.content === 'string'
+        ? parsed.body.content
+        : '';
+  const text = normalizeText(parsed.text) || stripHtml(body) || stripHtml(parsed.html) || '';
+  return text.slice(0, 8000);
+}
+
 function createCfoRouter({
   requireAuthenticated,
   cfoReceiptStore,
@@ -322,13 +357,18 @@ function createCfoRouter({
               });
             } else if (lowerKey.endsWith('.json')) {
               const parsed = JSON.parse(buffer.toString('utf8'));
+              const fromObj = parsed.from;
+              const fromAddr =
+                typeof fromObj === 'string'
+                  ? fromObj
+                  : fromObj?.address || fromObj?.emailAddress?.address || null;
               attachments.push({
                 key,
                 type: 'json',
-                date: parsed.date || null,
+                date: graphMessageDate(parsed),
                 subject: parsed.subject || null,
-                from: parsed.from || null,
-                text: normalizeText(parsed.text || parsed.html || parsed.body || '').slice(0, 8000),
+                from: fromAddr,
+                text: graphMessageText(parsed),
               });
             } else {
               attachments.push({
