@@ -166,6 +166,47 @@ test('unmatchTransaction: återställer en felaktig matchning och persisteras', 
   assert.ok(second.error, 'omatchad transaktion ska inte kunna unmatchas igen');
 });
 
+test('exporterade utgifter ska inte matchas mot kortdragningar', async () => {
+  const expenses = [
+    { id: 'e-new', supplier: 'Aktiv', amountSek: 500, date: '2026-07-10', status: 'new' },
+    {
+      id: 'e-exported',
+      supplier: 'Gammal',
+      amountSek: 500,
+      date: '2026-07-10',
+      status: 'exported',
+    },
+    {
+      id: 'e-ready',
+      supplier: 'Färdig',
+      amountSek: 500,
+      date: '2026-07-10',
+      status: 'ready_for_export',
+    },
+    {
+      id: 'e-rejected',
+      supplier: 'Avvisad',
+      amountSek: 500,
+      date: '2026-07-10',
+      status: 'rejected',
+    },
+  ];
+  const recon = createCardReconciliation({
+    filePath: await tmpFile(),
+    expenseStore: { listExpenses: () => expenses },
+  });
+  const { transactions } = parseAmexCsv(
+    'Datum,Beskrivning,Belopp\n07/10/2026,AKTIV BUTIK,"500,00"',
+    { cardRef: '61008' }
+  );
+  await recon.importTransactions(transactions);
+  const m = await recon.runMatching();
+  // Endast e-new är tillgänglig för matchning
+  assert.equal(m.autoMatched, 1);
+  const matched = recon.listTransactions({ status: 'matched' })[0];
+  assert.equal(matched.matchedExpenseId, 'e-new');
+});
+
 test('Bugbot #1466: punkt-tusental parsas, dubbelmatchning avvisas, stale förslag rensas', async () => {
   // 1. Tusentalspunkt (10.099,19) får inte tappas
   assert.equal(parseSwedishAmount('"10.099,19"'), 10099.19);

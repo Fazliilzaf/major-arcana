@@ -163,7 +163,14 @@ function createCardReconciliation({ filePath, expenseStore }) {
         ? expenseStore.listExpenses({ limit: 1000 })
         : [];
     const rows = Array.isArray(all) ? all : all?.items || [];
-    return rows.filter((e) => e && e.status !== 'rejected' && Number.isFinite(Number(e.amountSek)));
+    return rows.filter(
+      (e) =>
+        e &&
+        e.status !== 'rejected' &&
+        e.status !== 'exported' &&
+        e.status !== 'ready_for_export' &&
+        Number.isFinite(Number(e.amountSek))
+    );
   }
 
   function findCandidates(tx, expenses, matchedExpenseIds) {
