@@ -1,11 +1,13 @@
 # Designfacit
 
-Två mockuper som visar hur CCO:s kalender och kundvy är tänkta att se ut.
+Mockuper som visar hur CCO:s ytor är tänkta att se ut.
 
-| Fil                       | Motsvarar                                 | Skapad     |
-| ------------------------- | ----------------------------------------- | ---------- |
-| `kalender-mockup-v8.html` | `public/kalender.html`                    | 2026-05-29 |
-| `kunder-mockup-v9.html`   | preview-SPA:ts kundvy (`?view=customers`) | 2026-05-29 |
+| Fil                           | Motsvarar                                 | Skapad     |
+| ----------------------------- | ----------------------------------------- | ---------- |
+| `kalender-mockup-v8.html`     | `public/kalender.html`                    | 2026-05-29 |
+| `kunder-mockup-v9.html`       | preview-SPA:ts kundvy (`?view=customers`) | 2026-05-29 |
+| `mobil-kalender-ritning.html` | finns inte — `/m-kalender.html` ger 404   | 2026-05-29 |
+| `mobil-kunder-ritning.html`   | `public/m-kunder.html`, som är en stump   | 2026-05-29 |
 
 ## Läs det här först
 
@@ -15,6 +17,42 @@ se ut, inte hur det ska fungera.
 
 De ligger i `docs/` och inte i `public/` med flit. Servern servar bara
 `public/`, så de kan inte nås som en sida av misstag.
+
+## De två mobilritningarna
+
+Hämtade ur iCloud-arkivet `major-arcana-pr96/public/` 2026-08-22, efter en
+genomgång av alla 26 sidor i det arkivet. Bara dessa två saknade motsvarighet
+i repot — resten var antingen redan byggda i v3-familjen, eller tomma.
+
+- **`mobil-kalender-ritning.html`** (63 kB) — bottom-sheet, dagswipe, FAB-mic,
+  vibe-väder. Det finns ingen mobilkalender alls i dag; `/m-kalender.html` ger
+  404 i prod.
+- **`mobil-kunder-ritning.html`** (61 kB) — sökbara kort, AI-aggregat, dossié,
+  kamera. Repots `public/m-kunder.html` är en stump på 11 kB som bara visar
+  rubriken "Kunder" och en knapp "Ladda fler". Ritningen är den ursprungliga
+  avsikten.
+
+Kontrollera mot `cco-installningar-v3-2.html` och `cco-analytics-v3.html` innan
+du hämtar fler sidor ur arkivet — flera arkivsidor har nyare och större
+v3-syskon i `public/major-arcana-preview/` som är lätta att missa om man bara
+söker på filnamnet.
+
+## Inställningssidan i arkivet — hämta den inte
+
+`_ARKIV-iCloud-Major-Arcana-2.0/major-arcana-pr96/public/installningar.html`,
+68 kB. Tre oberoende granskare kom fram till samma sak: bygg inte på den.
+Öppettidsblocket saknar `id` och sparar ingenting, "Personal & roller" är bara
+en menyrad utan panel.
+
+Det som är värt att veta om den, så att filen inte behöver hämtas:
+
+- **Kategorierna den föreslår:** Klinikinfo · Öppettider · Personal & roller ·
+  Behandlingar & priser · Mejl & SMS-mallar · Brand & utseende · Integrationer ·
+  AI & automation · Säkerhet & GDPR · Fakturering.
+- **Den delen som faktiskt var kopplad** gick mot `cco-policies`, `cco-users`,
+  `cco-mailboxes`, `cco-brands`, compliance-scan och notifieringar — de
+  endpointsen finns kvar och är det man bygger mot i stället.
+- Klinikuppgifterna i filen är demodata ("Sveavägen 42", org.nr 559123-4567).
 
 ## Kalendern: designen finns redan
 
