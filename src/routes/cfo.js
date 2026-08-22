@@ -12,7 +12,12 @@
 
 const express = require('express');
 const multer = require('multer');
+const { simpleParser } = require('mailparser');
 const { attachRole, requireAnyRole, getActor } = require('../security/ccoRbac');
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
 
 function createCfoRouter({
   requireAuthenticated,
@@ -265,7 +270,8 @@ function createCfoRouter({
   );
 
   // GET /api/v1/cco-cf/expenses/:id/attachment-text — extrahera text ur
-  // PDF-bilagor för att manuellt kunna stämma av belopp utan att ladda ner filen.
+  // bilagor (PDF, EML, JSON) för att kunna stämma av datum/belopp utan att
+  // ladda ner filen. Returnerar också eventuellt datum från bilagan.
   router.get(
     '/cco-cf/expenses/:id/attachment-text',
     attachRole,
@@ -277,39 +283,77 @@ function createCfoRouter({
         const e = store.getById(req.params.id);
         if (!e) return res.status(404).json({ error: 'not found' });
         const keys = Array.isArray(e.attachmentKeys) ? e.attachmentKeys : [];
-        const pdfKeys = keys.filter((k) => /\.pdf$/i.test(String(k)));
-        if (pdfKeys.length === 0) {
-          return res
-            .status(404)
-            .json({ ok: false, error: 'inga PDF-bilagor', attachmentKeys: keys });
+        if (keys.length === 0) {
+          return res.status(404).json({ ok: false, error: 'inga bilagor', attachmentKeys: keys });
         }
-        let pdfParse;
+
+        let pdfParse = null;
         try {
           pdfParse = require('pdf-parse');
         } catch {
           pdfParse = null;
         }
-        if (!pdfParse) {
-          return res.status(503).json({ error: 'pdf-parse inte installerat' });
-        }
-        const texts = [];
-        for (const key of pdfKeys.slice(0, 3)) {
+
+        const attachments = [];
+        for (const key of keys.slice(0, 5)) {
           try {
             const obj = await secureStorage.getObject(key);
             const buffer = obj?.buffer || obj;
             if (!Buffer.isBuffer(buffer)) throw new Error('ingen buffer från secure storage');
-            const parsed = await pdfParse(buffer);
-            texts.push({ key, text: String(parsed?.text || '').slice(0, 8000) });
+            const lowerKey = String(key).toLowerCase();
+
+            if (lowerKey.endsWith('.pdf')) {
+              if (!pdfParse) throw new Error('pdf-parse inte installerat');
+              const parsed = await pdfParse(buffer);
+              attachments.push({
+                key,
+                type: 'pdf',
+                text: String(parsed?.text || '').slice(0, 8000),
+              });
+            } else if (lowerKey.endsWith('.eml')) {
+              const parsed = await simpleParser(buffer);
+              attachments.push({
+                key,
+                type: 'eml',
+                date: parsed.date ? parsed.date.toISOString() : null,
+                subject: parsed.subject || null,
+                from: parsed.from?.value?.[0]?.address || null,
+                text: normalizeText(parsed.text || parsed.html || '').slice(0, 8000),
+              });
+            } else if (lowerKey.endsWith('.json')) {
+              const parsed = JSON.parse(buffer.toString('utf8'));
+              attachments.push({
+                key,
+                type: 'json',
+                date: parsed.date || null,
+                subject: parsed.subject || null,
+                from: parsed.from || null,
+                text: normalizeText(parsed.text || parsed.html || parsed.body || '').slice(0, 8000),
+              });
+            } else {
+              attachments.push({
+                key,
+                type: 'unknown',
+                text: buffer.toString('utf8').slice(0, 2000),
+              });
+            }
           } catch (err) {
-            texts.push({ key, error: err.message });
+            attachments.push({ key, type: 'error', error: err.message });
           }
         }
+
+        const pdfCount = attachments.filter((a) => a.type === 'pdf').length;
+        const texts = attachments
+          .filter((a) => a.type === 'pdf')
+          .map((a) => ({ key: a.key, text: a.text }));
+
         return res.json({
           ok: true,
           expenseId: e.id,
           supplier: e.supplier,
           amountSek: e.amountSek,
-          pdfCount: pdfKeys.length,
+          pdfCount,
+          attachments,
           texts,
         });
       } catch (err) {
