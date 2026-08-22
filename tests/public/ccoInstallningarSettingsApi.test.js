@@ -446,11 +446,49 @@ function makeSampleSettings(overrides = {}) {
   };
 }
 
+/**
+ * Plockar ut taggarna i filen och matchar attribut inom varje tagg — inte på
+ * textsträngar tvärs filen.
+ *
+ * Testerna letade först efter `data-setting="density" data-value="compact"`
+ * som en sammanhängande sträng. Det höll tills prettier körde vid commit och
+ * bröt långa taggar över flera rader:
+ *
+ *     <button
+ *       class="choice"
+ *       data-setting="density"
+ *       data-value="compact"
+ *
+ * Då hittade testet ingenting, fast markupen var oförändrad i sak. En
+ * formatterare ska inte kunna fälla ett test.
+ */
+function taggarMed(html, attribut) {
+  return [...html.matchAll(/<[a-zA-Z][^>]*>/g)]
+    .map((m) => m[0])
+    .filter((tag) =>
+      Object.entries(attribut).every(([namn, varde]) =>
+        new RegExp(namn + '="' + varde + '"').test(tag)
+      )
+    );
+}
+
 test('alla förväntade kontroller har data-setting', () => {
   const html = read(SETTINGS_HTML);
   for (const item of EXPECTED_SETTINGS) {
-    const needle = item.selector || `data-setting="${item.setting}"`;
-    assert.ok(html.includes(needle), `Saknar data-setting för ${item.setting || item.selector}`);
+    if (item.selector) {
+      const par = [...item.selector.matchAll(/([a-z-]+)="([^"]+)"/g)];
+      const attribut = Object.fromEntries(par.map(([, n, v]) => [n, v]));
+      assert.equal(
+        taggarMed(html, attribut).length,
+        1,
+        'Saknar exakt en tagg för ' + item.selector
+      );
+      continue;
+    }
+    assert.ok(
+      taggarMed(html, { 'data-setting': item.setting }).length >= 1,
+      'Saknar data-setting för ' + item.setting
+    );
   }
 });
 
@@ -632,9 +670,9 @@ test('valknapparna bär storens kanoniska värden, inte etiketterna', () => {
   ];
 
   for (const { setting, alias } of fall) {
-    const varden = [
-      ...html.matchAll(new RegExp('data-setting="' + setting + '" data-value="([a-zA-Z-]+)"', 'g')),
-    ].map((m) => m[1]);
+    const varden = taggarMed(html, { 'data-setting': setting })
+      .map((tag) => (tag.match(/data-value="([a-zA-Z-]+)"/) || [])[1])
+      .filter(Boolean);
 
     assert.ok(varden.length >= 3, 'hittade inga knappar för ' + setting);
 
