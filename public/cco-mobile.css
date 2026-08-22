@@ -712,6 +712,22 @@
     min-height: 0 !important;
   }
 
+  /* ─── Rutnätet ska följa antalet synliga dagar ──────────────────────
+   * `36px repeat(7, minmax(110px, 1fr))` reserverar sju spår oavsett hur
+   * många dagkolumner som faktiskt renderas. I dagvyn är sex av sju
+   * `display: none`, men spåren finns kvar: 834 px scrollbredd för en enda
+   * dag, och kolumnen klämd till 110 px med tomrum bredvid.
+   *
+   * Med `grid-auto-flow: column` skapas spår av barnen i stället för av
+   * mallen. Dolda barn skapar inga spår. Dagvyn får hela bredden, veckovyn
+   * sina sju svepbara kolumner — utan att CSS behöver veta vilket läge
+   * som är aktivt. */
+  .calendar-week {
+    grid-template-columns: 36px !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: minmax(110px, 1fr) !important;
+  }
+
   /* ─── Dossier-rutnät: en spalt (krav 4) ────────────────────────────── */
   .dossier-stats,
   .dossier-files,
