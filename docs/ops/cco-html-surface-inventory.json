@@ -1,0 +1,1206 @@
+[
+ {
+  "path": "public/CCO-Kunder-Mockup-v9-DESKTOP.html",
+  "klass": "live",
+  "kodRef": 13,
+  "docRef": 11,
+  "size": 310587
+ },
+ {
+  "path": "public/admin.html",
+  "klass": "live",
+  "kodRef": 32,
+  "docRef": 339,
+  "size": 226320
+ },
+ {
+  "path": "public/ai-triage.html",
+  "klass": "live",
+  "kodRef": 8,
+  "docRef": 5,
+  "size": 46014
+ },
+ {
+  "path": "public/ambiguous-mail-enrichment-review.html",
+  "klass": "live",
+  "kodRef": 17,
+  "docRef": 9,
+  "size": 419
+ },
+ {
+  "path": "public/cco-after-meeting-start.html",
+  "klass": "live",
+  "kodRef": 11,
+  "docRef": 9,
+  "size": 18106
+ },
+ {
+  "path": "public/cco-concepts.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 4,
+  "size": 3194
+ },
+ {
+  "path": "public/cco-demo.html",
+  "klass": "live",
+  "kodRef": 48,
+  "docRef": 23,
+  "size": 27562
+ },
+ {
+  "path": "public/cco-import-review.html",
+  "klass": "live",
+  "kodRef": 23,
+  "docRef": 21,
+  "size": 450
+ },
+ {
+  "path": "public/cco-journal-safety-helper.html",
+  "klass": "live",
+  "kodRef": 10,
+  "docRef": 8,
+  "size": 14849
+ },
+ {
+  "path": "public/cco-journalpilot-faq.html",
+  "klass": "live",
+  "kodRef": 32,
+  "docRef": 11,
+  "size": 12305
+ },
+ {
+  "path": "public/cco-journalpilot-go-live.html",
+  "klass": "live",
+  "kodRef": 23,
+  "docRef": 11,
+  "size": 26585
+ },
+ {
+  "path": "public/cco-kunder-v9-egen.html",
+  "klass": "live",
+  "kodRef": 3,
+  "docRef": 3,
+  "size": 84868
+ },
+ {
+  "path": "public/cco-kundkort-REFERENS.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 3,
+  "size": 9687
+ },
+ {
+  "path": "public/cco-kundkort-blueprint.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 4,
+  "size": 38063
+ },
+ {
+  "path": "public/cco-mail-ingestion-review.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 5,
+  "size": 3090
+ },
+ {
+  "path": "public/cco-morning-checklist.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 10167
+ },
+ {
+  "path": "public/cco-naming-review/index.html",
+  "klass": "live",
+  "kodRef": 132,
+  "docRef": 419,
+  "size": 13993
+ },
+ {
+  "path": "public/cco-next-release/index.html",
+  "klass": "live",
+  "kodRef": 132,
+  "docRef": 419,
+  "size": 2336
+ },
+ {
+  "path": "public/cco-ops-workbench.html",
+  "klass": "live",
+  "kodRef": 31,
+  "docRef": 20,
+  "size": 444
+ },
+ {
+  "path": "public/cco-personal-start.html",
+  "klass": "live",
+  "kodRef": 35,
+  "docRef": 26,
+  "size": 2553
+ },
+ {
+  "path": "public/cco-photo-review.html",
+  "klass": "live",
+  "kodRef": 8,
+  "docRef": 12,
+  "size": 572
+ },
+ {
+  "path": "public/cco-pre-signering-check.html",
+  "klass": "live",
+  "kodRef": 24,
+  "docRef": 11,
+  "size": 15269
+ },
+ {
+  "path": "public/cco-presenter-mode.html",
+  "klass": "live",
+  "kodRef": 15,
+  "docRef": 9,
+  "size": 28073
+ },
+ {
+  "path": "public/cco-review-material-warning.html",
+  "klass": "live",
+  "kodRef": 21,
+  "docRef": 11,
+  "size": 16757
+ },
+ {
+  "path": "public/cco-staff-day1-checklist.html",
+  "klass": "live",
+  "kodRef": 17,
+  "docRef": 9,
+  "size": 12285
+ },
+ {
+  "path": "public/cco-staff-go-live-control.html",
+  "klass": "live",
+  "kodRef": 13,
+  "docRef": 10,
+  "size": 37657
+ },
+ {
+  "path": "public/cco-staff-training-completion.html",
+  "klass": "live",
+  "kodRef": 13,
+  "docRef": 9,
+  "size": 13361
+ },
+ {
+  "path": "public/cco-staff-training-mode.html",
+  "klass": "live",
+  "kodRef": 28,
+  "docRef": 12,
+  "size": 24534
+ },
+ {
+  "path": "public/cco/index.html",
+  "klass": "live",
+  "kodRef": 132,
+  "docRef": 419,
+  "size": 1709
+ },
+ {
+  "path": "public/customer-quote.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 9,
+  "size": 25087
+ },
+ {
+  "path": "public/drive-historik.html",
+  "klass": "live",
+  "kodRef": 8,
+  "docRef": 7,
+  "size": 19448
+ },
+ {
+  "path": "public/drive-import-review.html",
+  "klass": "live",
+  "kodRef": 6,
+  "docRef": 15,
+  "size": 514
+ },
+ {
+  "path": "public/finance-reports.html",
+  "klass": "live",
+  "kodRef": 17,
+  "docRef": 11,
+  "size": 21927
+ },
+ {
+  "path": "public/finance-review.html",
+  "klass": "live",
+  "kodRef": 22,
+  "docRef": 15,
+  "size": 29002
+ },
+ {
+  "path": "public/finance.html",
+  "klass": "live",
+  "kodRef": 45,
+  "docRef": 76,
+  "size": 187850
+ },
+ {
+  "path": "public/friskforsakran.html",
+  "klass": "live",
+  "kodRef": 13,
+  "docRef": 34,
+  "size": 12462
+ },
+ {
+  "path": "public/gouraloto-proposal/current-based-v1.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 1,
+  "size": 27271
+ },
+ {
+  "path": "public/gouraloto-proposal/final-landing.html",
+  "klass": "live",
+  "kodRef": 3,
+  "docRef": 1,
+  "size": 29149
+ },
+ {
+  "path": "public/gouraloto-proposal/future-home-v2.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 1,
+  "size": 29149
+ },
+ {
+  "path": "public/gouraloto-proposal/index.html",
+  "klass": "live",
+  "kodRef": 132,
+  "docRef": 419,
+  "size": 8984
+ },
+ {
+  "path": "public/gouraloto-proposal/pathways.html",
+  "klass": "live",
+  "kodRef": 2,
+  "docRef": 1,
+  "size": 8665
+ },
+ {
+  "path": "public/gouraloto-proposal/website-ready.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 1,
+  "size": 29149
+ },
+ {
+  "path": "public/index.html",
+  "klass": "live",
+  "kodRef": 132,
+  "docRef": 419,
+  "size": 20837
+ },
+ {
+  "path": "public/installningar-arkiv.html",
+  "klass": "arbetsfil_utanfor_git",
+  "kodRef": 0,
+  "docRef": 0,
+  "size": 68591
+ },
+ {
+  "path": "public/journal-build-demo.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 2,
+  "size": 25320
+ },
+ {
+  "path": "public/journal-feed-demo.html",
+  "klass": "live",
+  "kodRef": 33,
+  "docRef": 16,
+  "size": 11168
+ },
+ {
+  "path": "public/journal-pilot-guide.html",
+  "klass": "live",
+  "kodRef": 48,
+  "docRef": 17,
+  "size": 26442
+ },
+ {
+  "path": "public/journal-pilot-print-pack.html",
+  "klass": "live",
+  "kodRef": 15,
+  "docRef": 6,
+  "size": 20827
+ },
+ {
+  "path": "public/journal-pilot-signoff-sheet.html",
+  "klass": "live",
+  "kodRef": 20,
+  "docRef": 10,
+  "size": 10881
+ },
+ {
+  "path": "public/journal-qa.html",
+  "klass": "live",
+  "kodRef": 15,
+  "docRef": 12,
+  "size": 39841
+ },
+ {
+  "path": "public/kalender.html",
+  "klass": "live",
+  "kodRef": 58,
+  "docRef": 122,
+  "size": 245374
+ },
+ {
+  "path": "public/konversationer.html",
+  "klass": "live",
+  "kodRef": 90,
+  "docRef": 107,
+  "size": 250049
+ },
+ {
+  "path": "public/kunder-FACIT.html",
+  "klass": "live",
+  "kodRef": 2,
+  "docRef": 1,
+  "size": 89536
+ },
+ {
+  "path": "public/kunder-mockup-v10.html",
+  "klass": "live",
+  "kodRef": 7,
+  "docRef": 2,
+  "size": 370951
+ },
+ {
+  "path": "public/kundkort-mockup-gemensamt.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 1,
+  "size": 34139
+ },
+ {
+  "path": "public/m-konversationer.html",
+  "klass": "live",
+  "kodRef": 6,
+  "docRef": 3,
+  "size": 17750
+ },
+ {
+  "path": "public/m-kunder.html",
+  "klass": "live",
+  "kodRef": 8,
+  "docRef": 8,
+  "size": 10708
+ },
+ {
+  "path": "public/major-arcana-preview/auto-avbokningsbekraftelse-final-demo.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 34167
+ },
+ {
+  "path": "public/major-arcana-preview/auto-bokningspaminnelse-final-demo.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 33211
+ },
+ {
+  "path": "public/major-arcana-preview/auto-integritet-final-demo.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 36133
+ },
+ {
+  "path": "public/major-arcana-preview/auto-medical-finance-final-demo.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 5,
+  "size": 33728
+ },
+ {
+  "path": "public/major-arcana-preview/cco-admin-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 76616
+ },
+ {
+  "path": "public/major-arcana-preview/cco-after-meeting-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 50944
+ },
+ {
+  "path": "public/major-arcana-preview/cco-ai-coach-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 41516
+ },
+ {
+  "path": "public/major-arcana-preview/cco-ai-triage-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 66541
+ },
+ {
+  "path": "public/major-arcana-preview/cco-analytics-v3.html",
+  "klass": "live",
+  "kodRef": 4,
+  "docRef": 5,
+  "size": 63084
+ },
+ {
+  "path": "public/major-arcana-preview/cco-automatisering-v3.html",
+  "klass": "live",
+  "kodRef": 2,
+  "docRef": 3,
+  "size": 76472
+ },
+ {
+  "path": "public/major-arcana-preview/cco-avtal-samtycke-bundle.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 10,
+  "size": 1822
+ },
+ {
+  "path": "public/major-arcana-preview/cco-booking-wizard-v3.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 3,
+  "size": 59174
+ },
+ {
+  "path": "public/major-arcana-preview/cco-calendar-v6.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 0,
+  "size": 36843
+ },
+ {
+  "path": "public/major-arcana-preview/cco-dokument-v1.html",
+  "klass": "live",
+  "kodRef": 13,
+  "docRef": 3,
+  "size": 70811
+ },
+ {
+  "path": "public/major-arcana-preview/cco-drive-historik-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 47668
+ },
+ {
+  "path": "public/major-arcana-preview/cco-finance-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 41825
+ },
+ {
+  "path": "public/major-arcana-preview/cco-finansrapporter-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 47417
+ },
+ {
+  "path": "public/major-arcana-preview/cco-foto-samtycke-demo-overlay.html",
+  "klass": "live",
+  "kodRef": 3,
+  "docRef": 3,
+  "size": 1789
+ },
+ {
+  "path": "public/major-arcana-preview/cco-friskforsakran-demo-overlay.html",
+  "klass": "live",
+  "kodRef": 3,
+  "docRef": 3,
+  "size": 1811
+ },
+ {
+  "path": "public/major-arcana-preview/cco-import-review-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 46471
+ },
+ {
+  "path": "public/major-arcana-preview/cco-installningar-v3-2.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 6,
+  "size": 66325
+ },
+ {
+  "path": "public/major-arcana-preview/cco-integrationer-v3.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 1,
+  "size": 40320
+ },
+ {
+  "path": "public/major-arcana-preview/cco-journal-qa-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 57303
+ },
+ {
+  "path": "public/major-arcana-preview/cco-journal-safety-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 40317
+ },
+ {
+  "path": "public/major-arcana-preview/cco-journalbygge-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 48185
+ },
+ {
+  "path": "public/major-arcana-preview/cco-kalender-v8.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 2,
+  "size": 39088
+ },
+ {
+  "path": "public/major-arcana-preview/cco-konversationer-v3.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 2,
+  "size": 34080
+ },
+ {
+  "path": "public/major-arcana-preview/cco-kunder-v11.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 46984
+ },
+ {
+  "path": "public/major-arcana-preview/cco-mail-review-v3.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 2,
+  "size": 76694
+ },
+ {
+  "path": "public/major-arcana-preview/cco-makron-v3.html",
+  "klass": "live",
+  "kodRef": 17,
+  "docRef": 11,
+  "size": 69118
+ },
+ {
+  "path": "public/major-arcana-preview/cco-morning-checklist-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 39746
+ },
+ {
+  "path": "public/major-arcana-preview/cco-no-show-ai-v3.html",
+  "klass": "live",
+  "kodRef": 17,
+  "docRef": 9,
+  "size": 37680
+ },
+ {
+  "path": "public/major-arcana-preview/cco-no-show-v3.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 7,
+  "size": 50730
+ },
+ {
+  "path": "public/major-arcana-preview/cco-notiser-v3.html",
+  "klass": "live",
+  "kodRef": 21,
+  "docRef": 12,
+  "size": 61680
+ },
+ {
+  "path": "public/major-arcana-preview/cco-ny-bokning.html",
+  "klass": "live",
+  "kodRef": 7,
+  "docRef": 11,
+  "size": 30172
+ },
+ {
+  "path": "public/major-arcana-preview/cco-operator-dashboard-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 36604
+ },
+ {
+  "path": "public/major-arcana-preview/cco-ops-workbench-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 73391
+ },
+ {
+  "path": "public/major-arcana-preview/cco-patient-hub-v3.html",
+  "klass": "live",
+  "kodRef": 11,
+  "docRef": 13,
+  "size": 50166
+ },
+ {
+  "path": "public/major-arcana-preview/cco-patient-offer-portal-v1.html",
+  "klass": "kandidat",
+  "kodRef": 0,
+  "docRef": 0,
+  "size": 43421
+ },
+ {
+  "path": "public/major-arcana-preview/cco-patient-offer-portal-v2.html",
+  "klass": "kandidat",
+  "kodRef": 0,
+  "docRef": 0,
+  "size": 43769
+ },
+ {
+  "path": "public/major-arcana-preview/cco-patient-offer-portal-v3.html",
+  "klass": "live",
+  "kodRef": 11,
+  "docRef": 13,
+  "size": 216007
+ },
+ {
+  "path": "public/major-arcana-preview/cco-patient-portal-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 57413
+ },
+ {
+  "path": "public/major-arcana-preview/cco-personal-start-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 50788
+ },
+ {
+  "path": "public/major-arcana-preview/cco-photo-review-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 52865
+ },
+ {
+  "path": "public/major-arcana-preview/cco-pre-signering-v3.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 2,
+  "size": 37245
+ },
+ {
+  "path": "public/major-arcana-preview/cco-presenter-mode-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 52011
+ },
+ {
+  "path": "public/major-arcana-preview/cco-review-warning-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 39917
+ },
+ {
+  "path": "public/major-arcana-preview/cco-revisor-v3.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 2,
+  "size": 49066
+ },
+ {
+  "path": "public/major-arcana-preview/cco-senare-v3.html",
+  "klass": "live",
+  "kodRef": 20,
+  "docRef": 16,
+  "size": 73503
+ },
+ {
+  "path": "public/major-arcana-preview/cco-showcase-v3.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 2,
+  "size": 39670
+ },
+ {
+  "path": "public/major-arcana-preview/cco-signaturer-v3.html",
+  "klass": "live",
+  "kodRef": 13,
+  "docRef": 12,
+  "size": 60375
+ },
+ {
+  "path": "public/major-arcana-preview/cco-skickat-v3.html",
+  "klass": "live",
+  "kodRef": 20,
+  "docRef": 14,
+  "size": 61482
+ },
+ {
+  "path": "public/major-arcana-preview/cco-smart-anteckning-v3.html",
+  "klass": "live",
+  "kodRef": 20,
+  "docRef": 16,
+  "size": 68489
+ },
+ {
+  "path": "public/major-arcana-preview/cco-staff-go-live-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 60588
+ },
+ {
+  "path": "public/major-arcana-preview/cco-staff-training-v3.html",
+  "klass": "underlag",
+  "kodRef": 0,
+  "docRef": 1,
+  "size": 46536
+ },
+ {
+  "path": "public/major-arcana-preview/cco-svarstudio-v3.html",
+  "klass": "live",
+  "kodRef": 13,
+  "docRef": 4,
+  "size": 122368
+ },
+ {
+  "path": "public/major-arcana-preview/index.html",
+  "klass": "live",
+  "kodRef": 132,
+  "docRef": 419,
+  "size": 535462
+ },
+ {
+  "path": "public/major-arcana-preview/lit-preview.html",
+  "klass": "live",
+  "kodRef": 1,
+  "docRef": 1,
+  "size": 11282
+ },
+ {
+  "path": "public/major-arcana-preview/staff-anteckningar-kort-final-demo.html",
+  "klass": "live",
+  "kodRef": 6,
+  "docRef": 5,
+  "size": 50345
+ },
+ {
+  "path": "public/major-arcana-preview/staff-auto-internt-sms-final-demo.html",
+  "klass": "live",
+  "kodRef": 6,
+  "docRef": 5,
+  "size": 47696
+ },
+ {
+  "path": "public/major-arcana-preview/steg2-auto-bokningsbekraftelse-final-demo.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 35832
+ },
+ {
+  "path": "public/major-arcana-preview/steg3-auto-instruktion-formular-final-demo.html",
+  "klass": "live",
+  "kodRef": 8,
+  "docRef": 7,
+  "size": 33948
+ },
+ {
+  "path": "public/major-arcana-preview/steg3-halsodeklaration-final-demo.html",
+  "klass": "live",
+  "kodRef": 17,
+  "docRef": 17,
+  "size": 46433
+ },
+ {
+  "path": "public/major-arcana-preview/steg3-health-questionnaire-eng-final-demo.html",
+  "klass": "live",
+  "kodRef": 10,
+  "docRef": 10,
+  "size": 47203
+ },
+ {
+  "path": "public/major-arcana-preview/steg4-botulinum-info-final-demo.html",
+  "klass": "live",
+  "kodRef": 2,
+  "docRef": 1,
+  "size": 39696
+ },
+ {
+  "path": "public/major-arcana-preview/steg4-hyalase-info-sve-final-demo.html",
+  "klass": "live",
+  "kodRef": 2,
+  "docRef": 1,
+  "size": 35593
+ },
+ {
+  "path": "public/major-arcana-preview/steg4-id-verifiering-final-demo.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 52344
+ },
+ {
+  "path": "public/major-arcana-preview/steg4-konsultationsmall-final-demo.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 51213
+ },
+ {
+  "path": "public/major-arcana-preview/steg4-microneedling-info-sve-final-demo.html",
+  "klass": "live",
+  "kodRef": 7,
+  "docRef": 6,
+  "size": 38061
+ },
+ {
+  "path": "public/major-arcana-preview/steg4-prp-hair-info-eng-final-demo.html",
+  "klass": "live",
+  "kodRef": 7,
+  "docRef": 6,
+  "size": 42012
+ },
+ {
+  "path": "public/major-arcana-preview/steg4-prp-hair-info-sve-final-demo.html",
+  "klass": "live",
+  "kodRef": 7,
+  "docRef": 6,
+  "size": 35634
+ },
+ {
+  "path": "public/major-arcana-preview/steg5-behandlingsplan-staff-final-demo.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 51924
+ },
+ {
+  "path": "public/major-arcana-preview/steg5-info-offert-tp-final-demo.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 33884
+ },
+ {
+  "path": "public/major-arcana-preview/steg5-offert-microneedling-final-demo.html",
+  "klass": "live",
+  "kodRef": 3,
+  "docRef": 3,
+  "size": 36272
+ },
+ {
+  "path": "public/major-arcana-preview/steg5-offert-prf-final-demo.html",
+  "klass": "live",
+  "kodRef": 3,
+  "docRef": 3,
+  "size": 36211
+ },
+ {
+  "path": "public/major-arcana-preview/steg5-offert-profilo-final-demo.html",
+  "klass": "live",
+  "kodRef": 3,
+  "docRef": 3,
+  "size": 36222
+ },
+ {
+  "path": "public/major-arcana-preview/steg5-offert-prp-hair-final-demo.html",
+  "klass": "live",
+  "kodRef": 3,
+  "docRef": 3,
+  "size": 36009
+ },
+ {
+  "path": "public/major-arcana-preview/steg5-offert-prp-skin-final-demo.html",
+  "klass": "live",
+  "kodRef": 3,
+  "docRef": 3,
+  "size": 36005
+ },
+ {
+  "path": "public/major-arcana-preview/steg5-offert-tp-final-demo.html",
+  "klass": "live",
+  "kodRef": 4,
+  "docRef": 3,
+  "size": 36141
+ },
+ {
+  "path": "public/major-arcana-preview/steg6-auto-betanketid-final-demo.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 35390
+ },
+ {
+  "path": "public/major-arcana-preview/steg6-betanketid-samtycke-final-demo.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 37153
+ },
+ {
+  "path": "public/major-arcana-preview/steg7-offert-microneedling-final-demo.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 4,
+  "size": 46480
+ },
+ {
+  "path": "public/major-arcana-preview/steg7-offert-prf-final-demo.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 4,
+  "size": 46372
+ },
+ {
+  "path": "public/major-arcana-preview/steg7-offert-profilo-final-demo.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 4,
+  "size": 46411
+ },
+ {
+  "path": "public/major-arcana-preview/steg7-offert-prp-hair-final-demo.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 4,
+  "size": 44126
+ },
+ {
+  "path": "public/major-arcana-preview/steg7-offert-prp-skin-final-demo.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 4,
+  "size": 44124
+ },
+ {
+  "path": "public/major-arcana-preview/steg7-v6-kundkort-final-demo.html",
+  "klass": "live",
+  "kodRef": 12,
+  "docRef": 11,
+  "size": 45989
+ },
+ {
+  "path": "public/major-arcana-preview/steg8-fore-efter-bildmall-final-demo.html",
+  "klass": "live",
+  "kodRef": 6,
+  "docRef": 5,
+  "size": 49497
+ },
+ {
+  "path": "public/major-arcana-preview/steg8-friskforsakran-final.html",
+  "klass": "live",
+  "kodRef": 10,
+  "docRef": 10,
+  "size": 50412
+ },
+ {
+  "path": "public/major-arcana-preview/steg8-journal-prp-multi-final-demo.html",
+  "klass": "live",
+  "kodRef": 6,
+  "docRef": 6,
+  "size": 64800
+ },
+ {
+  "path": "public/major-arcana-preview/steg8-journal-tp-final-demo.html",
+  "klass": "live",
+  "kodRef": 7,
+  "docRef": 7,
+  "size": 80742
+ },
+ {
+  "path": "public/major-arcana-preview/steg8-journal-tp-follow-12-final-demo.html",
+  "klass": "live",
+  "kodRef": 6,
+  "docRef": 6,
+  "size": 48454
+ },
+ {
+  "path": "public/major-arcana-preview/steg8-journal-tp-follow-4-final-demo.html",
+  "klass": "live",
+  "kodRef": 6,
+  "docRef": 6,
+  "size": 54085
+ },
+ {
+  "path": "public/major-arcana-preview/steg8-journal-tp-follow-6-final-demo.html",
+  "klass": "live",
+  "kodRef": 6,
+  "docRef": 6,
+  "size": 54085
+ },
+ {
+  "path": "public/major-arcana-preview/steg8-journal-tp-post-prp-final-demo.html",
+  "klass": "live",
+  "kodRef": 6,
+  "docRef": 6,
+  "size": 66652
+ },
+ {
+  "path": "public/major-arcana-preview/steg8-ordination-recept-final-demo.html",
+  "klass": "live",
+  "kodRef": 2,
+  "docRef": 1,
+  "size": 33414
+ },
+ {
+  "path": "public/major-arcana-preview/steg8-ordination-tp-final-demo.html",
+  "klass": "live",
+  "kodRef": 8,
+  "docRef": 7,
+  "size": 51221
+ },
+ {
+  "path": "public/major-arcana-preview/steg9-foto-samtycke-final-demo.html",
+  "klass": "live",
+  "kodRef": 9,
+  "docRef": 8,
+  "size": 34013
+ },
+ {
+  "path": "public/mobile-capture.html",
+  "klass": "live",
+  "kodRef": 2,
+  "docRef": 1,
+  "size": 36816
+ },
+ {
+  "path": "public/operator-dashboard.html",
+  "klass": "live",
+  "kodRef": 7,
+  "docRef": 9,
+  "size": 14209
+ },
+ {
+  "path": "public/patient-hub.html",
+  "klass": "live",
+  "kodRef": 4,
+  "docRef": 17,
+  "size": 2635
+ },
+ {
+  "path": "public/patient-portal-chat.html",
+  "klass": "live",
+  "kodRef": 2,
+  "docRef": 2,
+  "size": 10499
+ },
+ {
+  "path": "public/patient-portal.html",
+  "klass": "live",
+  "kodRef": 11,
+  "docRef": 19,
+  "size": 36970
+ },
+ {
+  "path": "public/patient/curatiio.html",
+  "klass": "live",
+  "kodRef": 4,
+  "docRef": 66,
+  "size": 11826
+ },
+ {
+  "path": "public/patient/index.html",
+  "klass": "live",
+  "kodRef": 132,
+  "docRef": 419,
+  "size": 14240
+ },
+ {
+  "path": "public/patientinformation-hartransplantation-dhi-prp-minimal.html",
+  "klass": "live",
+  "kodRef": 7,
+  "docRef": 6,
+  "size": 13326
+ },
+ {
+  "path": "public/patientinformation-ogonlocksplastik-curatiio.html",
+  "klass": "live",
+  "kodRef": 4,
+  "docRef": 3,
+  "size": 47498
+ },
+ {
+  "path": "public/personal-demo.html",
+  "klass": "live",
+  "kodRef": 26,
+  "docRef": 20,
+  "size": 33338
+ },
+ {
+  "path": "public/photo-review.html",
+  "klass": "live",
+  "kodRef": 49,
+  "docRef": 45,
+  "size": 443
+ },
+ {
+  "path": "public/staff-portal-desktop.html",
+  "klass": "arbetsfil_utanfor_git",
+  "kodRef": 0,
+  "docRef": 0,
+  "size": 245405
+ },
+ {
+  "path": "public/staff-portal.html",
+  "klass": "live",
+  "kodRef": 6,
+  "docRef": 10,
+  "size": 259216
+ },
+ {
+  "path": "public/svarstudio-v2.html",
+  "klass": "live",
+  "kodRef": 5,
+  "docRef": 1,
+  "size": 423660
+ },
+ {
+  "path": "public/torti-ritual/index.html",
+  "klass": "live",
+  "kodRef": 132,
+  "docRef": 419,
+  "size": 6470
+ },
+ {
+  "path": "public/uppfoljning/index.html",
+  "klass": "live",
+  "kodRef": 132,
+  "docRef": 419,
+  "size": 33241
+ },
+ {
+  "path": "public/uppfoljning/omdome.html",
+  "klass": "live",
+  "kodRef": 4,
+  "docRef": 7,
+  "size": 8534
+ }
+]
