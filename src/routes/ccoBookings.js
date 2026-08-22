@@ -325,6 +325,7 @@ async function resolveActor(req, { authStore, config }) {
       tenantId: context.membership.tenantId,
       userId: context.user.id,
       role: context.membership.role,
+      resourceId: context.membership.resourceId || undefined,
       authMode: 'session',
     };
   }
@@ -398,6 +399,67 @@ function requireStaffRole(context) {
   const error = new Error('Otillräcklig behörighet.');
   error.statusCode = 403;
   throw error;
+}
+
+function normalizeResourceIds(value) {
+  return asArray(value)
+    .map((item) => normalizeText(item))
+    .filter(Boolean);
+}
+
+function assertCalendarBlockScope(context, body = {}, bookingEngineStore) {
+  const role = normalizeText(context?.actor?.role).toUpperCase();
+  const resourceId = normalizeText(context?.actor?.resourceId);
+
+  // OWNER och lokal preview får hantera alla block.
+  if (role === 'OWNER' || context?.actor?.authMode === 'preview_local') {
+    return normalizeResourceIds(body.resourceIds || body.resourceId);
+  }
+
+  // STAFF utan länkad resurs får inte skriva block alls.
+  if (!resourceId) {
+    const error = new Error('Ingen bokningsbar resurs är kopplad till ditt konto.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const allowed = new Set([resourceId]);
+
+  // Om vi uppdaterar ett befintligt block får vi bara röra det om det
+  // tillhör vår egen resurs. Globala block eller kollegors block är låsta.
+  const blockId = normalizeText(body.blockId);
+  if (blockId && bookingEngineStore) {
+    const existing = bookingEngineStore.getCalendarBlock(blockId);
+    if (existing) {
+      const existingIds = new Set(existing.resourceIds || []);
+      if (existingIds.size === 0 || !setIsSubset(existingIds, allowed)) {
+        const error = new Error('Du har inte behörighet att ändra detta block.');
+        error.statusCode = 403;
+        throw error;
+      }
+    }
+  }
+
+  const requested = normalizeResourceIds(body.resourceIds || body.resourceId);
+  if (requested.length === 0) {
+    // Om inga resurser anges antar vi anroparens egen resurs.
+    return [resourceId];
+  }
+
+  if (!setIsSubset(new Set(requested), allowed)) {
+    const error = new Error('Du kan bara skapa block för din egen resurs.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return requested;
+}
+
+function setIsSubset(left, right) {
+  for (const item of left) {
+    if (!right.has(item)) return false;
+  }
+  return true;
 }
 
 function toCaseInput(context, body = {}, options = {}) {
@@ -1884,7 +1946,11 @@ function createCcoBookingsRouter({
       if (!bookingEngineStore) {
         return res.status(503).json({ error: 'booking_engine_disabled' });
       }
-      const block = await bookingEngineStore.upsertCalendarBlock(req.body || {});
+      const resourceIds = assertCalendarBlockScope(context, req.body || {}, bookingEngineStore);
+      const block = await bookingEngineStore.upsertCalendarBlock({
+        ...(req.body || {}),
+        resourceIds,
+      });
       return res.json({ provider: 'cco_engine', block });
     })
   );

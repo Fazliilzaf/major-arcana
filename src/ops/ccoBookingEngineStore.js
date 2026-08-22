@@ -1599,6 +1599,13 @@ async function createCcoBookingEngineStore({ filePath }) {
     return clone(nextBlock);
   }
 
+  function getCalendarBlock(blockId) {
+    const block = state.calendarBlocks.find(
+      (item) => normalizeText(item.blockId) === normalizeText(blockId)
+    );
+    return block ? clone(block) : null;
+  }
+
   async function reserveSlots(input = {}) {
     await expireStaleReservations();
     const tenantId = normalizeText(input.tenantId);
@@ -2220,6 +2227,7 @@ async function createCcoBookingEngineStore({ filePath }) {
     rebookBooking,
     getCaseSummary,
     listCalendarBlocks,
+    getCalendarBlock,
     upsertCalendarBlock,
     listResources: async ({ brand = '' } = {}) =>
       clone(

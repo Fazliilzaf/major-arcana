@@ -1108,6 +1108,8 @@ function createAuthRouter({
       const password = typeof req.body?.password === 'string' ? req.body.password : '';
       const tenantId = normalizeTenantId(req.body?.tenantId) || req.auth.tenantId;
       const mustChangePassword = parseBoolean(req.body?.mustChangePassword, true);
+      const resourceId =
+        typeof req.body?.resourceId === 'string' ? req.body.resourceId.trim().toLowerCase() : '';
 
       if (!email || !password) {
         return res.status(400).json({ error: 'E-postadress och lösenord krävs.' });
@@ -1123,6 +1125,7 @@ function createAuthRouter({
         password,
         actorUserId: req.auth.userId,
         mustChangePassword,
+        resourceId,
       });
 
       await authStore.addAuditEvent({
@@ -1136,6 +1139,7 @@ function createAuthRouter({
           email,
           createdUser: result.createdUser,
           mustChangePassword: Boolean(result.mustChangePassword),
+          resourceId: result.membership.resourceId || null,
         },
       });
 
@@ -1188,10 +1192,15 @@ function createAuthRouter({
           patch.role = nextRoleRaw;
         }
 
+        if (req.body?.resourceId !== undefined) {
+          patch.resourceId =
+            typeof req.body.resourceId === 'string' ? req.body.resourceId.trim().toLowerCase() : '';
+        }
+
         if (!Object.keys(patch).length) {
           return res
             .status(400)
-            .json({ error: 'Inget att uppdatera. Ange status och/eller role.' });
+            .json({ error: 'Inget att uppdatera. Ange status, role och/eller resourceId.' });
         }
 
         const effectiveRole = typeof patch.role === 'string' ? patch.role : existing.role;
