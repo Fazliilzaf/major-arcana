@@ -98,7 +98,27 @@ async function get(app, path) {
   const srv = app.listen(0);
   const port = srv.address().port;
   try {
-    return await fetch(`http://127.0.0.1:${port}${path}`);
+    const res = await fetch(`http://127.0.0.1:${port}${path}`);
+    // Läs hela kroppen innan servern stängs.
+    //
+    // fetch() returnerar när huvudena kommit, inte när kroppen är läst. Den
+    // här hjälparen returnerade svaret och stängde servern i finally — alltså
+    // innan anroparens `await r.json()` ens börjat. Under last i full svit
+    // hann socketen rivas mitt i läsningen och testet föll med
+    // UND_ERR_SOCKET: other side closed. Ensamt passerade filen alltid, vilket
+    // är varför det såg ut som miljöberoende.
+    //
+    // Samma fix som Kimi gjorde i ccoDriveImportReviewWrite.test.js (#1508).
+    const text = await res.text();
+    return {
+      status: res.status,
+      async json() {
+        return JSON.parse(text);
+      },
+      async text() {
+        return text;
+      },
+    };
   } finally {
     srv.close();
   }

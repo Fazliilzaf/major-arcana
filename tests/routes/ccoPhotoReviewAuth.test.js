@@ -37,6 +37,10 @@ test('anonymous GET photo-review/summary is rejected (401), patient photos prote
   const port = srv.address().port;
   try {
     const r = await fetch(`http://127.0.0.1:${port}/api/v1/cco/photo-review/summary`);
+    // Kroppen konsumeras även om testet bara bryr sig om statuskoden. Lämnar
+    // man den oläst rivs socketen av srv.close() nedan medan svaret ännu
+    // strömmar — samma rotorsak som flakigheten i drive-import-review (#1508).
+    await r.text();
     assert.equal(r.status, 401, 'anonymous photo-review must be 401');
     assert.equal(handlerRan, false, 'router-level gate must block before per-route middleware');
   } finally {
@@ -56,7 +60,10 @@ test('photo-review auth does not intercept the Graph mail webhook', async () => 
     })
   );
   app.post('/api/v1/cco/mail-ingestion/graph/webhook', (req, res) => {
-    res.type('text/plain').status(200).send(String(req.query.validationToken || ''));
+    res
+      .type('text/plain')
+      .status(200)
+      .send(String(req.query.validationToken || ''));
   });
 
   const srv = app.listen(0);

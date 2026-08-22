@@ -104,9 +104,7 @@ test('cco engine booking with complete data is action-allowed', () => {
   );
   assert.equal(preflight.actionAllowed, true);
   assert.ok(
-    preflight.gates.some(
-      (gate) => gate.key === 'provider_write_contract' && gate.status === 'pass'
-    )
+    preflight.gates.some((gate) => gate.key === 'provider_write_contract' && gate.status === 'pass')
   );
 });
 
@@ -144,7 +142,10 @@ test('safety preflight exposes every data gate and no hardcoded write-blocking g
     source.indexOf('global.CcoKalenderShell = {') <
       source.indexOf("document.addEventListener('DOMContentLoaded', init)")
   );
-  assert.match(html, /cco-kalender-shell\.js\?v=20260717j/);
+  // Versionen är inte fastlåst — se kommentaren i
+  // ccoCanonicalBookingCalendar.test.js. Poängen är att shellen laddas med en
+  // cache-buster, inte vilken.
+  assert.match(html, /cco-kalender-shell\.js\?v=[0-9a-z]+/);
   assert.match(visualFixture, /window\.CcoKalenderShell\.renderDrawer/);
   assert.doesNotMatch(visualFixture, /window\.CCO_CALENDAR_READ_ONLY = true/);
   assert.doesNotMatch(visualFixture, /fetch\s*\(|method\s*:\s*['"]POST/);

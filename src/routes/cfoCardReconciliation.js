@@ -174,6 +174,7 @@ function createCfoCardReconciliationRouter({
           graphReadConnector,
           actor,
           mailboxIds: req.body?.mailboxIds || null,
+          reconciliation,
         });
         if (result.matched && result.expenseId) {
           const confirmed = await reconciliation.confirmMatch(tx.id, result.expenseId, { actor });

@@ -584,6 +584,13 @@ async function createExpenseFromMailboxMessage({
   return { created: true, expense, receipt, source: 'mailbox_attachment' };
 }
 
+// ─── Hjälpare: kontrollera att en expense inte redan är matchad mot annan tx ─
+function isExpenseAlreadyMatched({ expenseId, reconciliation, currentTxId }) {
+  if (!reconciliation || !expenseId) return false;
+  const all = reconciliation.listTransactions?.({ status: 'matched', limit: 10000 }) || [];
+  return all.some((t) => t.id !== currentTxId && t.matchedExpenseId === expenseId);
+}
+
 // ─── Huvudfunktion: leta + (om möjligt) skapa/matcha ─────────────────────────
 async function findInvoiceForTransaction(
   tx,
@@ -596,6 +603,7 @@ async function findInvoiceForTransaction(
     graphReadConnector,
     actor,
     mailboxIds,
+    reconciliation,
   } = {}
 ) {
   const result = {
@@ -610,7 +618,14 @@ async function findInvoiceForTransaction(
 
   // 1. Finns redan en CFO-expense?
   const existingExpense = findCfoExpense({ tx, expenseStore });
-  if (existingExpense) {
+  if (
+    existingExpense &&
+    !isExpenseAlreadyMatched({
+      expenseId: existingExpense.id,
+      reconciliation,
+      currentTxId: tx.id,
+    })
+  ) {
     result.matched = true;
     result.source = 'cfo_expense';
     result.expenseId = existingExpense.id;
@@ -715,6 +730,7 @@ async function autoFetchInvoices({
         graphReadConnector,
         actor,
         mailboxIds,
+        reconciliation,
       });
     } catch (err) {
       r = {
@@ -730,8 +746,13 @@ async function autoFetchInvoices({
     }
     if (r.matched) {
       try {
-        await reconciliation.confirmMatch(tx.id, r.expenseId, { actor });
-        r.matchConfirmed = true;
+        const confirmed = await reconciliation.confirmMatch(tx.id, r.expenseId, { actor });
+        if (confirmed && confirmed.error) {
+          r.matchConfirmed = false;
+          r.matchError = confirmed.error;
+        } else {
+          r.matchConfirmed = true;
+        }
       } catch (err) {
         r.matchConfirmed = false;
         r.matchError = err.message;

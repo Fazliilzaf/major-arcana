@@ -41,9 +41,7 @@ function extractFunction(source, name, nextName) {
     nextAsyncStart !== -1 && (nextPlainStart === -1 || nextAsyncStart < nextPlainStart)
       ? nextAsyncStart
       : nextPlainStart;
-  const end = nextName
-    ? nextStart
-    : source.indexOf('\n  function ', start + 1);
+  const end = nextName ? nextStart : source.indexOf('\n  function ', start + 1);
   assert.notEqual(end, -1, `${name} extraction should have a terminator`);
   return source.slice(start, end);
 }
@@ -172,14 +170,19 @@ test('Kalender consumes canonical visit rows with patient, status, encounter and
   assert.equal(event.treatmentNotes, 'Behandlingsanteckning');
 });
 
-
 test('active admin calendar uses canonical bundle and the same strict patient handoff', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '../../public/cco-kalender-shell.js'),
     'utf8'
   );
   const html = fs.readFileSync(path.join(__dirname, '../../public/kalender.html'), 'utf8');
-  assert.match(html, /<script src="\/cco-kalender-shell\.js\?v=20260717j" defer><\/script>/);
+  // Versionen är inte fastlåst. Testet vaktar att kalendern laddar den
+  // kanoniska shellen, defer, med en cache-buster — inte vilken buster det
+  // råkar vara. Med literalen 20260717j inbakad föll det här testet, och två
+  // till, varje gång någon bumpade versionen för att tvinga fram ny CSS eller
+  // JS hos personalen. Det är en normal och nödvändig åtgärd; ett test som
+  // straffar den lär folk att ignorera testet.
+  assert.match(html, /<script src="\/cco-kalender-shell\.js\?v=[0-9a-z]+" defer><\/script>/);
   assert.doesNotMatch(
     html,
     /\[data-embed\] \.top-nav,\[data-embed\] \.caption/,
