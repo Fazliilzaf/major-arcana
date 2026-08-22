@@ -50,7 +50,13 @@ function graphMessageText(parsed) {
       : typeof parsed.body?.content === 'string'
         ? parsed.body.content
         : '';
-  const text = normalizeText(parsed.text) || stripHtml(body) || stripHtml(parsed.html) || '';
+  const text =
+    normalizeText(parsed.bodyPreview) ||
+    normalizeText(parsed.text) ||
+    stripHtml(body) ||
+    stripHtml(parsed.html) ||
+    normalizeText(parsed.bodyHtml) ||
+    '';
   return text.slice(0, 8000);
 }
 
