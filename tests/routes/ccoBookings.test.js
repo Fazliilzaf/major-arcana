@@ -2241,3 +2241,232 @@ test('calendar-bundle patientId-filter fungerar for legacy-arenden skapade via /
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+
+function createAuthStoreForCalendarBlockScope() {
+  return {
+    async getSessionContextByToken(token) {
+      const map = {
+        'owner-token': { role: 'OWNER', resourceId: '' },
+        'staff-no-resource-token': { role: 'STAFF', resourceId: '' },
+        'veronica-token': { role: 'STAFF', resourceId: 'veronica' },
+        'clara-token': { role: 'STAFF', resourceId: 'clara' },
+      };
+      const entry = map[token];
+      if (!entry) return null;
+      return {
+        session: { id: `session-${token}` },
+        user: { id: `user-${token}` },
+        membership: { tenantId: 'tenant-a', role: entry.role, resourceId: entry.resourceId },
+      };
+    },
+    async touchSession() {
+      return true;
+    },
+  };
+}
+
+async function createCalendarBlockScopeFixture() {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-block-scope-route-'));
+  const bookingEngineStore = await createCcoBookingEngineStore({
+    filePath: path.join(tempDir, 'booking-engine.json'),
+  });
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: {},
+      bookingEngineStore,
+      historyStore: {},
+      patientSystemStore: {},
+      authStore: createAuthStoreForCalendarBlockScope(),
+      config: {
+        defaultTenantId: 'tenant-a',
+        brand: 'hair-tp-clinic',
+        brandByHost: {},
+        clientoPartnerId: '1650',
+        clientoApiBaseUrl: 'https://cliento.com/api/v2/partner/cliento',
+      },
+    })
+  );
+  return { app, tempDir, bookingEngineStore };
+}
+
+test('calendar-blocks: staff utan resourceId nekas', async () => {
+  const fixture = await createCalendarBlockScopeFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/cco-bookings/calendar-blocks`, {
+        method: 'POST',
+        headers: { authorization: 'Bearer staff-no-resource-token', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          blockId: 'block-veronica-test',
+          dateFrom: '2026-09-01',
+          dateTo: '2026-09-01',
+          startTime: '12:00',
+          endTime: '13:00',
+          resourceIds: ['veronica'],
+        }),
+      });
+      assert.equal(response.status, 403);
+      const payload = await response.json();
+      assert.match(payload.error || payload.message || '', /resurs|kopplad|konto/i);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calendar-blocks: staff skapar block för egen resurs', async () => {
+  const fixture = await createCalendarBlockScopeFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/cco-bookings/calendar-blocks`, {
+        method: 'POST',
+        headers: { authorization: 'Bearer veronica-token', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          blockId: 'block-veronica-lunch',
+          dateFrom: '2026-09-01',
+          dateTo: '2026-09-01',
+          startTime: '12:00',
+          endTime: '13:00',
+          blockType: 'lunch',
+        }),
+      });
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      assert.equal(payload.block.resourceIds.length, 1);
+      assert.equal(payload.block.resourceIds[0], 'veronica');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calendar-blocks: staff kan inte skriva kollegans resurs', async () => {
+  const fixture = await createCalendarBlockScopeFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/cco-bookings/calendar-blocks`, {
+        method: 'POST',
+        headers: { authorization: 'Bearer veronica-token', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          blockId: 'block-clara-lunch',
+          dateFrom: '2026-09-01',
+          dateTo: '2026-09-01',
+          startTime: '12:00',
+          endTime: '13:00',
+          resourceIds: ['clara'],
+        }),
+      });
+      assert.equal(response.status, 403);
+      const payload = await response.json();
+      assert.match(payload.error || payload.message || '', /egen resurs|eget schema/i);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calendar-blocks: owner skapar globalt block', async () => {
+  const fixture = await createCalendarBlockScopeFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/cco-bookings/calendar-blocks`, {
+        method: 'POST',
+        headers: { authorization: 'Bearer owner-token', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          blockId: 'block-lunch-all',
+          dateFrom: '2026-09-01',
+          dateTo: '2026-09-30',
+          startTime: '12:00',
+          endTime: '13:00',
+          weekdays: [1, 2, 3, 4, 5],
+          blockType: 'lunch',
+        }),
+      });
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      assert.equal(payload.block.blockId, 'block-lunch-all');
+      assert.equal(payload.block.resourceIds.length, 0);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calendar-blocks: staff kan inte skriva över globalt block', async () => {
+  const fixture = await createCalendarBlockScopeFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      await fixture.bookingEngineStore.upsertCalendarBlock({
+        blockId: 'block-lunch-all',
+        dateFrom: '2026-09-01',
+        dateTo: '2026-09-30',
+        startTime: '12:00',
+        endTime: '13:00',
+        weekdays: [1, 2, 3, 4, 5],
+        blockType: 'lunch',
+      });
+
+      const response = await fetch(`${baseUrl}/cco-bookings/calendar-blocks`, {
+        method: 'POST',
+        headers: { authorization: 'Bearer veronica-token', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          blockId: 'block-lunch-all',
+          dateFrom: '2026-09-01',
+          dateTo: '2026-09-30',
+          startTime: '12:30',
+          endTime: '13:00',
+          weekdays: [1, 2, 3, 4, 5],
+          blockType: 'lunch',
+        }),
+      });
+      assert.equal(response.status, 403);
+      const payload = await response.json();
+      assert.match(payload.error || payload.message || '', /behörighet|detta block/i);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calendar-blocks: staff kan uppdatera eget block', async () => {
+  const fixture = await createCalendarBlockScopeFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const createResponse = await fetch(`${baseUrl}/cco-bookings/calendar-blocks`, {
+        method: 'POST',
+        headers: { authorization: 'Bearer veronica-token', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          blockId: 'block-veronica-own',
+          dateFrom: '2026-09-01',
+          dateTo: '2026-09-01',
+          startTime: '12:00',
+          endTime: '13:00',
+          resourceIds: ['veronica'],
+        }),
+      });
+      assert.equal(createResponse.status, 200);
+
+      const updateResponse = await fetch(`${baseUrl}/cco-bookings/calendar-blocks`, {
+        method: 'POST',
+        headers: { authorization: 'Bearer veronica-token', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          blockId: 'block-veronica-own',
+          dateFrom: '2026-09-01',
+          dateTo: '2026-09-01',
+          startTime: '12:30',
+          endTime: '13:00',
+          resourceIds: ['veronica'],
+        }),
+      });
+      assert.equal(updateResponse.status, 200);
+      const payload = await updateResponse.json();
+      assert.equal(payload.block.startTime, '12:30');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});

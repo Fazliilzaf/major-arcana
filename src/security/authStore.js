@@ -423,6 +423,7 @@ function toSafeMembership(membership) {
     tenantId: membership.tenantId,
     role: membership.role,
     status: membership.status,
+    resourceId: membership.resourceId || undefined,
     createdBy: membership.createdBy || null,
     createdAt: membership.createdAt,
     updatedAt: membership.updatedAt,
@@ -993,9 +994,11 @@ async function createAuthStore({
     return listRawMembershipsForUser(userId, { includeDisabled }).map(toSafeMembership);
   }
 
-  async function ensureMembership({ userId, tenantId, role, createdBy = null }) {
+  async function ensureMembership({ userId, tenantId, role, createdBy = null, resourceId = '' }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     const normalizedRole = normalizeRole(role);
+    const normalizedResourceId =
+      typeof resourceId === 'string' ? resourceId.trim().toLowerCase() : '';
     if (!normalizedTenantId) {
       throw new Error('tenantId saknas.');
     }
@@ -1012,6 +1015,10 @@ async function createAuthStore({
       }
       if (existing.role !== ROLE_OWNER && existing.role !== normalizedRole) {
         existing.role = normalizedRole;
+        changed = true;
+      }
+      if (normalizedResourceId && existing.resourceId !== normalizedResourceId) {
+        existing.resourceId = normalizedResourceId;
         changed = true;
       }
       if (changed) {
@@ -1032,6 +1039,9 @@ async function createAuthStore({
       createdAt,
       updatedAt: createdAt,
     };
+    if (normalizedResourceId) {
+      membership.resourceId = normalizedResourceId;
+    }
     state.memberships[membership.id] = membership;
     await save();
     return toSafeMembership(membership);
@@ -1498,6 +1508,20 @@ async function createAuthStore({
       }
     }
 
+    if (patch.resourceId !== undefined) {
+      const nextResourceId =
+        typeof patch.resourceId === 'string' ? patch.resourceId.trim().toLowerCase() : '';
+      if (nextResourceId) {
+        if (membership.resourceId !== nextResourceId) {
+          membership.resourceId = nextResourceId;
+          changed = true;
+        }
+      } else if (membership.resourceId) {
+        delete membership.resourceId;
+        changed = true;
+      }
+    }
+
     if (!changed) return toSafeMembership(membership);
 
     membership.updatedAt = nowIso();
@@ -1511,6 +1535,7 @@ async function createAuthStore({
     password,
     actorUserId = null,
     mustChangePassword = false,
+    resourceId = '',
   }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     if (!normalizedTenantId) throw new Error('tenantId saknas.');
@@ -1555,6 +1580,7 @@ async function createAuthStore({
       tenantId: normalizedTenantId,
       role: ROLE_STAFF,
       createdBy: actorUserId,
+      resourceId,
     });
 
     return {
