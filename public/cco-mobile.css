@@ -750,7 +750,15 @@
      * på varje pixel — 14 px gutter på varje sida kostar 4 px per dagkolumn.
      * Negativ marginal upphäver .calendar-shell:s padding just här. */
     margin-left: -14px !important;
-    margin-right: -14px !important;
+    /* 2 px mindre till höger än till vänster.
+     *
+     * Med -14 px på båda sidor slutade söndagskolumnen på exakt 390 px, och
+     * datumets sista siffra låg mot skärmkanten utan en pixel luft. Det
+     * mätte som att det rymdes — inget klipptes — men det såg avskuret ut,
+     * och söndag är den dag man tittar minst noga på.
+     *
+     * Kostnaden är 0,3 px per dagkolumn. Det märks inte. */
+    margin-right: -12px !important;
   }
 
   /* ─── Hela veckan på en skärm ───────────────────────────────────────
