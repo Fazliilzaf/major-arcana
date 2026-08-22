@@ -13,10 +13,12 @@
  *
  * ⚠️ VILLKORAD PROD-SKRIVNING
  * Vid WB-07 POSTar skriptet ett riktigt lead till {WEB_BASE}/api/lead.
- * Den raden nås bara om Arcana lämnar ut en slot i WB-06. Porten är
- * config.publicWebBookingEnabled (src/config.js), som läser
- * ARCANA_PUBLIC_WEB_BOOKING_ENABLED och **defaultar till true** — den är
- * alltså öppen om inte env-värdet uttryckligen sätts till false. Skriptet
+ * Den raden nås bara om Arcana lämnar ut en slot i WB-06. Porten styrs av
+ * isPublicWebBookingEnabled() (src/infra/publicWebBooking.js), som läser
+ * ARCANA_PUBLIC_WEB_BOOKING_ENABLED och **defaultar till false** — porten är
+ * alltså stängd om env-värdet saknas och öppnas bara med ett explicit true.
+ * (config.publicWebBookingEnabled i src/config.js defaultar true men används
+ * bara av diag.js för visning — den styr inte porten.) Skriptet
  * skriver ut portens läge före WB-07 och kräver WRITE_LEAD=1 för att gå vidare.
  *
  * Kräver Vercel env:
@@ -136,8 +138,8 @@ async function main() {
   );
   const gateClosed = arcAvail.body?.error === 'public_web_booking_disabled';
   console.log(
-    `\nPort: config.publicWebBookingEnabled = ${gateClosed ? 'false (stängd)' : 'öppen eller okänd'}` +
-      ` — ARCANA_PUBLIC_WEB_BOOKING_ENABLED, default true i src/config.js`
+    `\nPort: isPublicWebBookingEnabled() = ${gateClosed ? 'false (stängd)' : 'öppen eller okänd'}` +
+      ` — ARCANA_PUBLIC_WEB_BOOKING_ENABLED, default false i src/infra/publicWebBooking.js`
   );
 
   const slot = (arcAvail.body.slots || [])[0];
