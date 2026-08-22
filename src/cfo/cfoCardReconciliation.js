@@ -275,6 +275,26 @@ function createCardReconciliation({ filePath, expenseStore }) {
     return tx;
   }
 
+  async function unmatchTransaction(txId, { actor, reason } = {}) {
+    const tx = state.transactions.find((t) => t.id === txId);
+    if (!tx) return null;
+    if (tx.matchStatus !== 'matched') {
+      return { error: 'transaktionen är inte matchad' };
+    }
+    const previousExpenseId = tx.matchedExpenseId;
+    tx.matchStatus = 'unmatched';
+    tx.matchedExpenseId = null;
+    tx.matchKind = null;
+    tx.matchedBy = actor || null;
+    tx.matchedAt = null;
+    tx.unmatchedAt = nowIso();
+    tx.unmatchReason = normalizeText(reason) || null;
+    delete tx.suggestions;
+    if (previousExpenseId) pruneSuggestionsFor(previousExpenseId);
+    await persist();
+    return tx;
+  }
+
   async function ignoreTransaction(txId, { reason, actor } = {}) {
     const tx = state.transactions.find((t) => t.id === txId);
     if (!tx) return null;
@@ -382,6 +402,7 @@ function createCardReconciliation({ filePath, expenseStore }) {
     importTransactions,
     runMatching,
     confirmMatch,
+    unmatchTransaction,
     ignoreTransaction,
     stats,
     listTransactions,

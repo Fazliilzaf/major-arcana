@@ -103,6 +103,25 @@ function createCfoCardReconciliationRouter({ authStore, reconciliation }) {
   );
 
   router.post(
+    '/cco-cf/card-transactions/:id/unmatch',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const tx = await reconciliation.unmatchTransaction(req.params.id, {
+          actor: req.user?.id || null,
+          reason: req.body?.reason,
+        });
+        if (!tx) return res.status(404).json({ ok: false, error: 'transaktion finns ej' });
+        if (tx.error) return res.status(409).json({ ok: false, error: tx.error });
+        return res.json({ ok: true, transaction: tx });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    }
+  );
+
+  router.post(
     '/cco-cf/card-transactions/:id/ignore',
     requireAuth,
     requireRole(ROLE_OWNER),
