@@ -452,8 +452,13 @@
         animation: camRec 1.4s ease-in-out infinite;
       }
       @keyframes camRec {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.4; }
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
       }
       .cam-stage[data-mode='captured'] .cam-badge {
         display: none;
@@ -583,7 +588,9 @@
         animation: camSpin 1s linear infinite;
       }
       @keyframes camSpin {
-        to { transform: rotate(360deg); }
+        to {
+          transform: rotate(360deg);
+        }
       }
       .cam-error {
         padding: 40px 28px;
@@ -4943,7 +4950,7 @@
         gap: 5px;
       }
     </style>
-    <link rel="stylesheet" href="/cco-mobile.css?v=20260531a" />
+    <link rel="stylesheet" href="/cco-mobile.css?v=20260822e" />
     <script>
       window.CCO_CALENDAR_ORIGINAL_V6 = true;
       window.CCO_CALENDAR_CREATE_BOOKING_ENABLED = true;
@@ -5840,11 +5847,17 @@
             <button class="intel-tab">Anteckningar</button>
           </div>
           <div class="intel-actions">
-            <button class="quick-pill" type="button" disabled>Välj besök för canonical patient</button>
+            <button class="quick-pill" type="button" disabled>
+              Välj besök för canonical patient
+            </button>
           </div>
         </div>
 
-        <div class="intel-customer-view" id="intelCustomerView" style="display: flex; flex-direction: column; height: 100%"></div>
+        <div
+          class="intel-customer-view"
+          id="intelCustomerView"
+          style="display: flex; flex-direction: column; height: 100%"
+        ></div>
       </aside>
     </div>
 

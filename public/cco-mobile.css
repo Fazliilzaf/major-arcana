@@ -509,6 +509,166 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+ * KALENDER PÅ TELEFON
+ *
+ * Facit: docs/design/mobil-kalender-ritning.html — mobilmockupen från
+ * 2026-05-29. Värdena nedan är hämtade ur den, inte uppfunna: 14 px sidgutter,
+ * 14 px kortradie, 999 px på piller, och kortskuggan
+ * `0 3px 10px rgba(56,40,28,.08)` med obligatorisk `inset 0 1px 0 rgba(255,255,255,.86)`
+ * på varje upphöjd yta.
+ *
+ * Blocket ovan (720 px) gjorde redan grovjobbet — .app-grid staplas, top-nav
+ * scrollar, veckorutnätet blir svepbart. Det här stycket rättar det som
+ * återstod när sidan faktiskt renderades på 390 px:
+ *
+ *   1. Arbetslistan låg först. Kalendern började 809 px ner, alltså under
+ *      skärmkanten på en telefon. Den som öppnar kalendern ska se kalendern.
+ *   2. Watch-widgeten är `position: fixed` och la sig som en 196×292-overlay
+ *      mitt över inkorgen. Den är dekor.
+ *   3. .calendar-toolbar-actions var 1136 px bred — knapparna gick inte att nå.
+ *
+ * Två saker ur facit följs medvetet INTE:
+ *   · `.phone-frame` — mockupens telefonram, ren desktop-preview-kosmetik.
+ *   · Facits 30 px touch-mål. Det är under Apples 44 px. Vi använder 44.
+ * ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 720px) {
+  /* ─── 1. Ordning: kalendern först ──────────────────────────────────── */
+  .app-grid > .calendar-shell {
+    order: 1 !important;
+  }
+  .app-grid > .side-shell {
+    order: 2 !important;
+  }
+  .app-grid > .intel-shell {
+    order: 3 !important;
+  }
+
+  /* ─── 2. Dekor som tar plats den inte förtjänar ────────────────────── */
+  .watch-widget,
+  .timemachine {
+    display: none !important;
+  }
+
+  /* Visningslägen, inte funktioner. Mätt på 390 px kostar de tre 138 px —
+   * mer än kalenderns första innehållsrad. Facit har en enda segmentrad.
+   * Vyväxlaren (.segment-group) och navigeringen (.nav-btn) stannar. */
+  .density-toggle,
+  .calm-toggle,
+  .avatar-toggle {
+    display: none !important;
+  }
+
+  /* Mikrofonen är `disabled` med titeln "Röstbokning saknar verifierat
+   * write-kontrakt · read-only". En avstängd knapp som tar en egen 44 px-rad
+   * på en telefon. Den kommer tillbaka den dagen kontraktet finns. */
+  .mic-btn[disabled] {
+    display: none !important;
+  }
+
+  /* Filterraden klipptes: scrollWidth 418 px i en 302 px-bred behållare med
+   * `overflow: visible` och `nowrap`. Behandlingsfiltret gick inte att nå.
+   * Etiketterna "Resurs" och "Behandling" är dessutom överflödiga när
+   * kontrollen bredvid säger "Alla resurser" — de tas bort, och då ryms båda
+   * på en rad i stället för att ta 81 px på två. */
+  .calendar-filter-bar {
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    padding: 0 !important;
+  }
+  /* Obs: <select> ligger INUTI <label>. Att dölja etiketten döljer filtret.
+   * Texten tystas med font-size: 0 och återställs på kontrollen. */
+  .calendar-filter-bar > label {
+    font-size: 0 !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+  .calendar-filter-bar > label select {
+    font-size: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* ─── Hälsningen stod två gånger ────────────────────────────────────
+   * Verktygsradens rubrik och standup-kortets rubrik säger båda
+   * "God morgon, Fazli". På skrivbordet ligger de långt isär; på 390 px
+   * hamnar de ovanpå varandra med 200 px kontroller emellan.
+   * Standup-kortet får behålla den — det är där den hör hemma, precis som
+   * i facit. Kickern "KALENDER" stannar som avsändare. */
+  .calendar-toolbar-main h2 {
+    display: none !important;
+  }
+
+  /* ─── Vyväxlare och navigering på samma rad ─────────────────────────
+   * Morgon/Vecka/Dag/Resurs och ‹ Idag › är båda vykontroller. Facit har
+   * dem som en enda segmentrad. */
+  .calendar-toolbar-actions {
+    align-items: center !important;
+    row-gap: 6px !important;
+  }
+  .calendar-toolbar-actions .segment-group {
+    flex: 1 1 100% !important;
+  }
+  .nav-btn {
+    flex: 0 0 auto;
+  }
+
+  /* ─── 3. Verktygsraden: knapparna ska gå att nå ────────────────────── */
+  .calendar-toolbar-actions {
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    gap: 6px !important;
+  }
+  .calendar-toolbar-actions > * {
+    flex: 0 0 auto;
+  }
+
+  /* ─── Sidgutter 14 px, ur facit ────────────────────────────────────── */
+  .calendar-shell,
+  .side-shell,
+  .intel-shell {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  /* ─── Bredder som spränger 390 px ──────────────────────────────────── */
+  .global-search,
+  .search-panel,
+  .voice-text,
+  .caption,
+  .cco-cal-keyboard-help-surface {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  .calendar-filter-bar select {
+    min-width: 0 !important;
+    flex: 1 1 45% !important;
+  }
+
+  /* ─── Tomma ytor ───────────────────────────────────────────────────── */
+  .calendar-surface {
+    min-height: 0 !important;
+  }
+
+  /* ─── Dossier-rutnät: en spalt (krav 4) ────────────────────────────── */
+  .dossier-stats,
+  .dossier-files,
+  .dossier-economy,
+  .dossier-actions,
+  .voice-sheet-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ─── Touch-mål 44 px ──────────────────────────────────────────────── */
+  .calendar-toolbar-actions button,
+  .calendar-toolbar-actions a,
+  .nav-btn,
+  .ctl-select {
+    min-height: 44px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
  * SAFE AREA (iPhone notch/home indicator)
  * ═══════════════════════════════════════════════════════════════════════ */
 @supports (padding: max(0px)) {
