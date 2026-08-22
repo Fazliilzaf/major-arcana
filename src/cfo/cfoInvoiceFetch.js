@@ -12,6 +12,8 @@
  * Kvittot/fakturan är underlaget; kortraden är bara bevis på betalning.
  */
 
+const { simpleParser } = require('mailparser');
+
 const {
   tokenSet,
   supplierHint,
@@ -392,6 +394,43 @@ function supplierDisplayName(description) {
   return normalizeSupplier(description) || 'Okänd leverantör';
 }
 
+// ─── Hjälpare: hämta första icke-inline PDF-bilaga via MIME-fallback ──────────
+// ORD-102f: Graphs attachment-API kan returnera 404 för vissa bilagor (t.ex.
+// gamla kvitton i kvitto@). Då provar vi hämta hela mejlet som MIME och plocka
+// ut PDF:n med mailparser istället.
+async function fetchMailboxPdfAttachmentViaMime({ userId, messageId, graphReadConnector }) {
+  if (!graphReadConnector || typeof graphReadConnector.fetchMessageMimeContent !== 'function') {
+    return null;
+  }
+  try {
+    const mime = await graphReadConnector.fetchMessageMimeContent({
+      userId,
+      messageId,
+      label: 'CFO auto-fetch MIME fallback',
+      timeoutMs: 15000,
+    });
+    const rawMime = normalizeText(mime?.rawMime);
+    if (!rawMime) return null;
+    const parsed = await simpleParser(rawMime);
+    const candidates = Array.isArray(parsed.attachments) ? parsed.attachments : [];
+    const pdf = candidates.find((a) => {
+      if (!a || a.related === true) return false;
+      const contentType = normalizeText(a.contentType).toLowerCase();
+      const filename = normalizeText(a.filename).toLowerCase();
+      return contentType.includes('pdf') || filename.endsWith('.pdf');
+    });
+    if (!pdf?.content || !Buffer.isBuffer(pdf.content)) return null;
+    return {
+      buffer: pdf.content,
+      name: normalizeText(pdf.filename) || 'underlag.pdf',
+      contentType: 'application/pdf',
+    };
+  } catch (err) {
+    console.warn('[cfoInvoiceFetch] MIME-fallback misslyckades:', userId, messageId, err?.message);
+    return null;
+  }
+}
+
 // ─── Hjälpare: hämta första icke-inline PDF-bilaga ur mailbox truth ─────────
 async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
   if (!graphReadConnector) return null;
@@ -446,13 +485,17 @@ async function fetchMailboxPdfAttachment({ message, graphReadConnector }) {
     };
   } catch (err) {
     console.warn(
-      '[cfoInvoiceFetch] kunde inte hämta bilaga:',
+      '[cfoInvoiceFetch] kunde inte hämta bilaga, provar MIME-fallback:',
       safeUserId,
       safeMessageId,
       pdf.id,
       err?.message
     );
-    return null;
+    return fetchMailboxPdfAttachmentViaMime({
+      userId: safeUserId,
+      messageId: safeMessageId,
+      graphReadConnector,
+    });
   }
 }
 
