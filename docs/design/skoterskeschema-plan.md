@@ -37,6 +37,42 @@ vem som hade rätt och varför, en gång, sedan bara slutsatsen.
   - Enda skyddet i dag är att ingen UI exponerar routen. Scope-kontrollen
     behövs alltså innan routen visas för personal — inte när
     självbetjänings-UI:t byggs.
+
+  > **ÅTGÄRDAT 2026-08-22 — luckan är stängd.**
+  >
+  > Beskrivningen ovan gällde koden när fyndet gjordes. Den står kvar
+  > oförändrad, eftersom ett säkerhetsfynd som skrivs om i efterhand ser ut
+  > som att det aldrig fanns.
+  >
+  > **Fixen:** `assertCalendarBlockScope` i `src/routes/ccoBookings.js:410`,
+  > anropad från block-routen på rad 1949. Den:
+  >
+  > - släpper igenom `OWNER` och lokalt preview-läge oförändrat
+  > - nekar `STAFF` utan kopplad `resourceId` att skriva block alls
+  > - tolkar en tom `resourceIds` som anroparens **egen** resurs, inte som
+  >   ett globalt block
+  > - nekar `STAFF` att röra ett befintligt block vars `resourceIds` är tomt
+  >   — det vill säga exakt `block-lunch-all`-angreppet ovan — eller som
+  >   tillhör en kollega
+  >
+  > **Testet:** `calendar-blocks: staff kan inte skriva över globalt block` i
+  > `tests/routes/ccoBookings.test.js:2399`. Det seedar `block-lunch-all` som
+  > globalt lunchblock, låter ett STAFF-token försöka skriva över det med en
+  > ändrad starttid, och kräver `403`. Fem angränsande fall täcks i samma
+  > fil: staff utan resurs, staff på egen resurs, staff som uppdaterar sitt
+  > eget block, staff mot kollegas resurs, owner mot globalt block.
+  >
+  > **Landade i:** commit `32c575f0`
+  > (_feat(cco): resource-scope på POST /cco-bookings/calendar-blocks_),
+  > mergad till `main` via `70e2d657`. Ändrade `ccoBookings.js`,
+  > `ccoBookingEngineStore.js`, `auth.js`, `authStore.js` och la 229 rader
+  > test.
+  >
+  > **Verifierat 2026-08-22:** skyddet är mutationstestat. Tas villkoret
+  > `existingIds.size === 0` bort ur rad 435 faller exakt ett test. Skyddet är
+  > alltså inte bara skrivet utan bevakat — någon som råkar ta bort det får
+  > veta det.
+
 - **`confirmBooking` validerar aldrig mot schemat.** Den kontrollerar bara
   `isSlotTaken` (rad 1767–1799) — aldrig `availabilityRules` eller
   `calendarBlocks`. En reservation som hamnar utanför schemat kan ändå
