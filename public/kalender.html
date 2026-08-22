@@ -49,7 +49,13 @@
         --calendar-accent: #c8821e;
         --calendar-accent-soft: rgba(200, 130, 30, 0.14);
         --calendar-accent-glow: rgba(200, 130, 30, 0.22);
-        --calendar-hour-h: 62px;
+        /* 78 px per timme, som Cliento. Med 62 px blev ett 45-minuterskort
+         * 47 px, och 47 px rymmer inte tid + namn + behandling — det var
+         * därför texten kapades. 58 px gör det. Dagen blir 27 % längre att
+         * scrolla; det är priset för att kunna läsa korten.
+         * Samma siffra läses av v6HourHeight() i cco-kalender-shell.js, så
+         * rutnätets rader och kortens höjd kan inte glida isär. */
+        --calendar-hour-h: 78px;
         --calendar-hour-start: 6;
         --calendar-hour-end: 23;
 
@@ -452,8 +458,13 @@
         animation: camRec 1.4s ease-in-out infinite;
       }
       @keyframes camRec {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.4; }
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
       }
       .cam-stage[data-mode='captured'] .cam-badge {
         display: none;
@@ -583,7 +594,9 @@
         animation: camSpin 1s linear infinite;
       }
       @keyframes camSpin {
-        to { transform: rotate(360deg); }
+        to {
+          transform: rotate(360deg);
+        }
       }
       .cam-error {
         padding: 40px 28px;
@@ -1525,6 +1538,66 @@
         padding-right: 14px;
         max-width: 100%;
         min-width: 0;
+      }
+
+      /* ─── Hur mycket ryms i ett kort? ──────────────────────────────────
+       * Kortet är en flexbox i kolumn. Barnen hade ingen flex-shrink, så
+       * när kortet var för lågt pressades varje rad ihop i stället för att
+       * någon rad togs bort: en 18 px radhöjd blev 6 px och bokstäverna
+       * kapades på mitten. Kortet såg fullt ut men gick inte att läsa.
+       *
+       * Mätt på ett 45-minuterskort: tiden 5 px av 10, behandlingen 14 av
+       * 26, namnet 7 av 14. Alla tre klippta samtidigt — på webben likaväl
+       * som på telefonen.
+       *
+       * Nu krymper ingen rad. I stället räknar renderaren ut hur många
+       * rader som får plats och sätter data-fit på kortet:
+       *
+       *   tall    ≥ 76 px   tid · namn · behandling (två rader behandling)
+       *   full    ≥ 56 px   tid · namn · behandling
+       *   medium  ≥ 38 px   tid · namn
+       *   compact  < 38 px  tid · namn på samma rad
+       *
+       * Namnet går före behandlingen. Ryms bara en sak ska personalen se
+       * vem som kommer; vad besöket gäller står i kortets tooltip, i
+       * aria-etiketten och i lådan när man klickar. */
+      .booking > * {
+        flex-shrink: 0;
+      }
+      .booking-time {
+        order: 1;
+      }
+      .booking-sub {
+        order: 2;
+      }
+      .booking-title {
+        order: 3;
+      }
+      .booking[data-fit='full'] .booking-title {
+        -webkit-line-clamp: 1;
+      }
+      .booking[data-fit='medium'] .booking-title {
+        display: none;
+      }
+      .booking[data-fit='compact'] {
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+      }
+      .booking[data-fit='compact'] .booking-title {
+        display: none;
+      }
+      .booking[data-fit='compact'] > * + * {
+        margin-top: 0;
+      }
+      .booking[data-fit='compact'] .booking-sub {
+        margin-top: 0;
+      }
+      /* Hovern över ett 15-minuterskort fäller ut det och ska visa allt —
+       * även behandlingen, som annars är gömd i kompakt läge. */
+      .booking[style*='height:31px']:hover .booking-title,
+      .booking[style*='height: 31px']:hover .booking-title {
+        display: -webkit-box !important;
       }
       /* ─── Korta bokningar (≤31px ≈ 15/30 min) ─────────────────────
      Default: TID · BEHANDLING på en rad (kompakt)
@@ -4943,7 +5016,7 @@
         gap: 5px;
       }
     </style>
-    <link rel="stylesheet" href="/cco-mobile.css?v=20260531a" />
+    <link rel="stylesheet" href="/cco-mobile.css?v=20260822z" />
     <script>
       window.CCO_CALENDAR_ORIGINAL_V6 = true;
       window.CCO_CALENDAR_CREATE_BOOKING_ENABLED = true;
@@ -5712,9 +5785,16 @@
                     <div class="booking-time">16:00 – 16:30</div>
                     <div class="booking-title">Återbesök</div>
                   </div>
-                  <div class="now-line" style="top: 511px">
-                    <span class="now-label">NU 14:23</span>
-                  </div>
+                  <!--
+                    Nu-linjen ritas av cco-kalender-shell.js ur klockan.
+                    Här låg en statisk kopia med top: 511px och en hårdkodad
+                    tidsetikett. De två pekade inte ens på samma tid — 511 px
+                    från 06:00 med 62 px per timme är 14:14, etiketten sa nio
+                    minuter senare. Och den syntes aldrig, eftersom den
+                    kanoniska renderaren tömmer kolumnen med
+                    slots.innerHTML = '' innan den ritar. Borttagen så ingen
+                    tror att kalendern har en levande nu-linje härifrån.
+                  -->
                 </div>
               </div>
 
@@ -5840,11 +5920,17 @@
             <button class="intel-tab">Anteckningar</button>
           </div>
           <div class="intel-actions">
-            <button class="quick-pill" type="button" disabled>Välj besök för canonical patient</button>
+            <button class="quick-pill" type="button" disabled>
+              Välj besök för canonical patient
+            </button>
           </div>
         </div>
 
-        <div class="intel-customer-view" id="intelCustomerView" style="display: flex; flex-direction: column; height: 100%"></div>
+        <div
+          class="intel-customer-view"
+          id="intelCustomerView"
+          style="display: flex; flex-direction: column; height: 100%"
+        ></div>
       </aside>
     </div>
 
@@ -6982,7 +7068,7 @@
     </script>
     <script src="/cco-review-auth.js?v=20260720a" defer></script>
     <script src="/cco-kalender-bridge.js?v=20260710a" defer></script>
-    <script src="/cco-kalender-shell.js?v=20260717j" defer></script>
+    <script src="/cco-kalender-shell.js?v=20260822c" defer></script>
     <script>
       /* PR 10 — ta emot vald live-tråds kontext från admin#cco → Konversationer
          ("Öppna kalender"). Scopar kalendern till trådens kund via befintlig

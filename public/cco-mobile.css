@@ -69,15 +69,28 @@
     min-width: 0 !important;
   }
 
-  /* ─── Top-nav: horizontal scroll instead of wrap ─────────────────── */
+  /* ─── Top-nav: horizontal scroll instead of wrap ───────────────────
+   * Sex mål plus märket får inte plats på 390 px vid läsbar storlek, så
+   * raden scrollar i sidled. Problemet var att den inte såg ut att göra
+   * det: "Automatisering" slutade tvärt vid 391 px och läste som en
+   * trasig layout, inte som något man kan svepa i.
+   *
+   * Masken tonar ut de sista 28 px. Den ligger på scroll-behållaren, inte
+   * på innehållet, så den står kvar medan raden rör sig — kanten säger
+   * "det finns mer" i stället för "här tog det slut".
+   *
+   * padding-right ger sista målet plats att svepas fram förbi toningen. */
   .top-nav {
     overflow-x: auto !important;
     overflow-y: hidden !important;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 6px !important;
+    padding-right: 20px !important;
     gap: 6px !important;
     margin-bottom: 8px !important;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
   }
   .top-nav::-webkit-scrollbar {
     display: none;
@@ -205,18 +218,24 @@
   .calendar-toolbar-main {
     flex: 1 1 100%;
   }
+  /* ─── Statusraden radbryter i stället för att scrolla ──────────────
+   * De fyra pillren — bokade, genomförda, avbokade, uteblivna — är
+   * tillsammans 391 px på en 390 px skärm. Med sidscroll hamnade
+   * "0 uteblivna" utanför kanten. Uteblivna är det tal man helst vill se,
+   * och det var det enda man inte såg.
+   *
+   * Det här är dagens fyra siffror. De ska gå att läsa på en gång, inte
+   * svepas fram. Två rader kostar 26 px och ingen interaktion. */
   .calendar-status-bar {
-    overflow-x: auto !important;
-    flex-wrap: nowrap !important;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: visible !important;
+    flex-wrap: wrap !important;
+    row-gap: 6px !important;
+    column-gap: 6px !important;
     padding-bottom: 4px;
-    gap: 6px !important;
-  }
-  .calendar-status-bar::-webkit-scrollbar {
-    display: none;
   }
   .calendar-status-bar > * {
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-width: 0;
   }
   .ctl-row {
     flex-wrap: wrap !important;
@@ -420,8 +439,16 @@
     gap: 4px !important;
   }
 
-  /* ─── Touch targets minimum 44px ───────────────────────────────── */
-  button:not(.tab):not(.chip-mini):not(.cco-komm-modal-close),
+  /* ─── Touch targets minimum 44px ─────────────────────────────────
+   * .segment-tab och .nav-btn undantas. De är kalenderns vyväxlare och
+   * har egna, smalare mått längre ner (38 px) — de är 85 px breda, så
+   * ytan räcker ändå.
+   *
+   * Undantaget måste stå här och inte lösas med en egen regel: den här
+   * selektorn är (0,3,1) tack vare sina tre :not(), och slår därför
+   * `.segment-group > *` som bara är (0,1,0). Utan undantaget blir
+   * segmentraden 100 px hög i stället för 44. */
+  button:not(.tab):not(.chip-mini):not(.cco-komm-modal-close):not(.segment-tab):not(.nav-btn),
   .btn,
   input[type="submit"],
   input[type="button"] {
@@ -509,6 +536,438 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+ * KALENDER PÅ TELEFON
+ *
+ * Facit: docs/design/mobil-kalender-ritning.html — mobilmockupen från
+ * 2026-05-29. Värdena nedan är hämtade ur den, inte uppfunna: 14 px sidgutter,
+ * 14 px kortradie, 999 px på piller, och kortskuggan
+ * `0 3px 10px rgba(56,40,28,.08)` med obligatorisk `inset 0 1px 0 rgba(255,255,255,.86)`
+ * på varje upphöjd yta.
+ *
+ * Blocket ovan (720 px) gjorde redan grovjobbet — .app-grid staplas, top-nav
+ * scrollar, veckorutnätet blir svepbart. Det här stycket rättar det som
+ * återstod när sidan faktiskt renderades på 390 px:
+ *
+ *   1. Arbetslistan låg först. Kalendern började 809 px ner, alltså under
+ *      skärmkanten på en telefon. Den som öppnar kalendern ska se kalendern.
+ *   2. Watch-widgeten är `position: fixed` och la sig som en 196×292-overlay
+ *      mitt över inkorgen. Den är dekor.
+ *   3. .calendar-toolbar-actions var 1136 px bred — knapparna gick inte att nå.
+ *
+ * Två saker ur facit följs medvetet INTE:
+ *   · `.phone-frame` — mockupens telefonram, ren desktop-preview-kosmetik.
+ *   · Facits 30 px touch-mål. Det är under Apples 44 px. Vi använder 44.
+ * ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 720px) {
+  /* ─── 1. Ordning: kalendern först ──────────────────────────────────── */
+  .app-grid > .calendar-shell {
+    order: 1 !important;
+  }
+  .app-grid > .side-shell {
+    order: 2 !important;
+  }
+  .app-grid > .intel-shell {
+    order: 3 !important;
+  }
+
+  /* ─── 2. Dekor som tar plats den inte förtjänar ────────────────────── */
+  .watch-widget,
+  .timemachine {
+    display: none !important;
+  }
+
+  /* Visningslägen, inte funktioner. Mätt på 390 px kostar de tre 138 px —
+   * mer än kalenderns första innehållsrad. Facit har en enda segmentrad.
+   * Vyväxlaren (.segment-group) och navigeringen (.nav-btn) stannar. */
+  .density-toggle,
+  .calm-toggle,
+  .avatar-toggle {
+    display: none !important;
+  }
+
+  /* Mikrofonen är `disabled` med titeln "Röstbokning saknar verifierat
+   * write-kontrakt · read-only". En avstängd knapp som tar en egen 44 px-rad
+   * på en telefon. Den kommer tillbaka den dagen kontraktet finns. */
+  .mic-btn[disabled] {
+    display: none !important;
+  }
+
+  /* Filterraden klipptes: scrollWidth 418 px i en 302 px-bred behållare med
+   * `overflow: visible` och `nowrap`. Behandlingsfiltret gick inte att nå.
+   * Etiketterna "Resurs" och "Behandling" är dessutom överflödiga när
+   * kontrollen bredvid säger "Alla resurser" — de tas bort, och då ryms båda
+   * på en rad i stället för att ta 81 px på två. */
+  .calendar-filter-bar {
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    padding: 0 !important;
+  }
+  /* Obs: <select> ligger INUTI <label>. Att dölja etiketten döljer filtret.
+   * Texten tystas med font-size: 0 och återställs på kontrollen. */
+  .calendar-filter-bar > label {
+    font-size: 0 !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+  .calendar-filter-bar > label select {
+    font-size: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* ─── Hälsningen stod två gånger ────────────────────────────────────
+   * Verktygsradens rubrik och standup-kortets rubrik säger båda
+   * "God morgon, Fazli". På skrivbordet ligger de långt isär; på 390 px
+   * hamnar de ovanpå varandra med 200 px kontroller emellan.
+   * Standup-kortet får behålla den — det är där den hör hemma, precis som
+   * i facit. Kickern "KALENDER" stannar som avsändare. */
+  .calendar-toolbar-main h2 {
+    display: none !important;
+  }
+
+  /* ─── Vyväxlare och navigering på samma rad ─────────────────────────
+   * Morgon/Vecka/Dag/Resurs och ‹ Idag › är båda vykontroller. Facit har
+   * dem som en enda segmentrad på 30 px + 3 px inre padding.
+   *
+   * Måtten var uppblåsta: flikarna 44 px i en 50 px-grupp, plus en egen
+   * navrad på 44 px = 100 px. Det var mitt eget fel — jag satte 44 px på
+   * allt klickbart och lät gruppen ta hela bredden så navigeringen bröt ner.
+   *
+   * 38 px i stället för facits 30. Flikarna är 85 px breda, så ytan är
+   * bekväm ändå, och 30 px är i tunnaste laget för en tumme. */
+  .calendar-toolbar-actions {
+    align-items: center !important;
+    row-gap: 6px !important;
+  }
+  .calendar-toolbar-actions {
+    flex-wrap: nowrap !important;
+  }
+  /* Segmentgruppen får krympa och scrolla. Utan `min-width: 0` vägrar en
+   * flex-item bli smalare än sitt innehåll, och då bröt `›` till egen rad. */
+  .segment-group {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 3px !important;
+    gap: 2px !important;
+  }
+  .segment-group::-webkit-scrollbar {
+    display: none;
+  }
+  .segment-group > * {
+    min-height: 38px !important;
+    padding: 0 10px !important;
+    flex: 0 0 auto;
+  }
+  .nav-btn {
+    flex: 0 0 auto;
+    min-height: 38px !important;
+    padding: 0 10px !important;
+  }
+
+  /* ─── 3. Verktygsraden: knapparna ska gå att nå ────────────────────── */
+  .calendar-toolbar-actions {
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    gap: 6px !important;
+  }
+  .calendar-toolbar-actions > * {
+    flex: 0 0 auto;
+  }
+
+  /* ─── Bubblan som ramar in allt ─────────────────────────────────────
+   * Mätt på 390 px: 96 px — en fjärdedel av skärmen — gick åt till
+   * nästlad padding innan ett enda kort fick plats.
+   *
+   *   body              390   padding  8+8  = 16
+   *   .calendar-shell   374   padding 14+14 = 28
+   *   .calendar-surface 346   padding 22+22 = 44   ← radie 28 px, bubblan
+   *   .morgon-story     302   padding  4+4  =  8
+   *   .story-card       294
+   *
+   * Facit har en enda 14 px-gutter och 362 px innehåll. På skrivbordet är
+   * ytan en upphöjd panel med rundade hörn — det är rätt där. På en telefon
+   * är en ram runt hela skärmen bara marginal som äter innehåll.
+   *
+   * Gutterna slås ihop till en: .calendar-shell håller 14 px, resten nollas. */
+  .calendar-shell,
+  .side-shell,
+  .intel-shell {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+  .calendar-surface {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-radius: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    box-shadow: none !important;
+  }
+  .morgon-story {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* ─── Bredder som spränger 390 px ──────────────────────────────────── */
+  .global-search,
+  .search-panel,
+  .voice-text,
+  .caption,
+  .cco-cal-keyboard-help-surface {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  .calendar-filter-bar select {
+    min-width: 0 !important;
+    flex: 1 1 45% !important;
+  }
+
+  /* ─── Tomma ytor ───────────────────────────────────────────────────── */
+  .calendar-surface {
+    min-height: 0 !important;
+  }
+
+  /* ─── Rutnätet ska följa antalet synliga dagar ──────────────────────
+   * `36px repeat(7, minmax(110px, 1fr))` reserverar sju spår oavsett hur
+   * många dagkolumner som faktiskt renderas. I dagvyn är sex av sju
+   * `display: none`, men spåren finns kvar: 834 px scrollbredd för en enda
+   * dag, och kolumnen klämd till 110 px med tomrum bredvid.
+   *
+   * Med `grid-auto-flow: column` skapas spår av barnen i stället för av
+   * mallen. Dolda barn skapar inga spår. Dagvyn får hela bredden, veckovyn
+   * sina sju svepbara kolumner — utan att CSS behöver veta vilket läge
+   * som är aktivt. */
+  .calendar-week {
+    grid-template-columns: 34px !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: minmax(0, 1fr) !important;
+    overflow-x: hidden !important;
+    /* Kant till kant, som Cliento. Rutnätet är det enda på sidan som tjänar
+     * på varje pixel — 14 px gutter på varje sida kostar 4 px per dagkolumn.
+     * Negativ marginal upphäver .calendar-shell:s padding just här. */
+    margin-left: -14px !important;
+    margin-right: -14px !important;
+  }
+
+  /* ─── Hela veckan på en skärm ───────────────────────────────────────
+   * Mätt i Clientos mobilkalender: 34 px timkolumn + 7 × 51 px dagar =
+   * 391 px, alltså precis en iPhone-bredd utan sidoscroll. Personalen ser
+   * hela veckan i ett ögonkast i stället för att svepa till fredag.
+   *
+   * `minmax(110px, 1fr)` gav 834 px scrollbredd. Med `minmax(0, 1fr)`
+   * delas bredden på antalet renderade kolumner — sju i veckovyn, en i
+   * dagvyn, utan att CSS behöver veta vilket läge som gäller.
+   *
+   * Priset är att ett 51 px-kort inte rymmer text. Cliento löser det med
+   * ikoner plus tid, och plockar upp detaljen när man trycker. Samma här:
+   * tiden stannar, tjänst och patientnamn döljs — men bara när kolumnen
+   * faktiskt är smal. Container query i stället för lägesdetektering, så
+   * dagvyns breda kolumn behåller allt. */
+  .day-col {
+    container-type: inline-size;
+  }
+
+  /* ─── Stängda timmar är gråa ────────────────────────────────────────
+   * Cliento gråar allt före öppning. Man ser var dagen börjar utan att
+   * läsa en enda siffra. Vi har haft samma information i öppettiderna
+   * hela tiden men aldrig visat den.
+   *
+   * Rutnätet går 06–23 med 62 px per timme, så en timmes läge är
+   * `(H − start) × timhöjd`. Räknas ur variablerna, inte hårdkodat —
+   * ändras spannet följer skuggningen med.
+   *
+   * Kliniken är öppen 08–20 måndag till fredag, 08–17 lördag, stängt
+   * söndag. Dagkolumnerna ligger i fast ordning efter tidskolumnen, så
+   * lördag är barn 7 och söndag barn 8.
+   *
+   * Lägget är ett ::after utan pointer-events — bokningskorten ligger
+   * ovanpå och går att trycka på som förut. */
+  .day-slots {
+    position: relative;
+  }
+  .day-slots::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      to bottom,
+      rgba(132, 117, 107, 0.09) 0,
+      rgba(132, 117, 107, 0.09) calc((8 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      transparent calc((8 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      transparent calc((20 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      rgba(132, 117, 107, 0.09) calc((20 - var(--calendar-hour-start)) * var(--calendar-hour-h))
+    );
+  }
+
+  /* Lördag stänger 17:00. */
+  .calendar-week > .day-col:nth-child(7) .day-slots::after {
+    background: linear-gradient(
+      to bottom,
+      rgba(132, 117, 107, 0.09) 0,
+      rgba(132, 117, 107, 0.09) calc((8 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      transparent calc((8 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      transparent calc((17 - var(--calendar-hour-start)) * var(--calendar-hour-h)),
+      rgba(132, 117, 107, 0.09) calc((17 - var(--calendar-hour-start)) * var(--calendar-hour-h))
+    );
+  }
+
+  /* Söndag är stängd hela dagen. */
+  .calendar-week > .day-col:nth-child(8) .day-slots::after {
+    background: rgba(132, 117, 107, 0.09);
+  }
+
+  /* Korten ovanför skuggningen.
+   *
+   * Här stod `position: relative` först. Det såg oskyldigt ut men bröt
+   * kalendern: .booking är `position: absolute` med ett uträknat `top`, och
+   * relative gjorde att kortet lades i flödet i stället — 09:00-bokningen
+   * hamnade högst upp oavsett tid, och bredden kollapsade från 348 px till
+   * innehållets 142. Felet syntes inte förrän det fanns bokningar att rita.
+   *
+   * z-index räcker; positionen ska lämnas i fred. */
+  .day-slots > .booking,
+  .day-slots > .v6-empty,
+  .day-slots > .now-line {
+    z-index: 1;
+  }
+}
+
+/* ─── Dagvyns kort: tid uppe, namnet framträdande ─────────────────────
+ * Cliento lägger tid och längd på en rad och namnet under, i fetare stil.
+ * Vårt kort hade tre staplade rader med namnet sist och minst — tjänsten
+ * fick mest vikt fast det är patienten man letar efter.
+ *
+ * Gäller bara när kolumnen är bred, alltså i dagvyn. I veckovyn är kortet
+ * 47 px och visar bara tiden (blocket nedan). */
+/* Här stod `display: grid !important` med tre auto-rader. Det såg rimligt ut
+ * men klämde varje rad: 13 px höga rutor för 14,95 / 18,2 / 14,3 px text, så
+ * alla tre kapades samtidigt. Rutnätet fick en bestämd höjd av kortet och
+ * fördelade den i stället för att låta raderna behålla sin storlek.
+ *
+ * Layouten ägs nu av .booking[data-fit] i kalender.html, som gäller webb och
+ * telefon lika. Här blir bara typografin kvar: större text på en bred skärm,
+ * namnet före behandlingen i vikt. */
+@container (min-width: 200px) {
+  .booking {
+    padding: 4px 11px !important;
+    text-align: left;
+    overflow: hidden;
+  }
+  /* Radavståndet är räknat, inte valt. Ett 45-minuterskort är 58,5 px och
+   * har 48,5 px innanför padding och ram. Tre rader kostar 13,2 + 16,9 +
+   * 13,1 = 43,2, plus 2 px mellanrum = 45,2. Det ryms med 3 px över.
+   * Höjer man någon siffra faller behandlingen ur kortet igen. */
+  .booking > * + * {
+    margin-top: 1px !important;
+  }
+  .booking-time {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    opacity: 0.75;
+  }
+  .booking-sub {
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    opacity: 1 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .booking-title {
+    font-size: 10.5px !important;
+    font-weight: 400 !important;
+    line-height: 1.25 !important;
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* ─── Timhöjden: 78 px, som Cliento ───────────────────────────────────
+ * Med 62 px per timme är ett 45-minuterskort 47 px. Tre rader — tid, namn,
+ * behandling — får inte plats, och namnet klipps mitt i underhänget.
+ *
+ * Jag löste det först genom att gömma behandlingen. Fel: personalen behöver
+ * se vad besöket gäller, inte bara vem som kommer. Rätt lösning är att ge
+ * kortet plats.
+ *
+ * 78 px per timme ger 58 px för 45 minuter — Clientos mått, och tillräckligt
+ * för tre rader. Dagen blir 27 % längre att scrolla; det är priset.
+ *
+ * Kortens höjd räknas numera ur samma variabel i cco-kalender-shell.js, så
+ * rader och kort kan inte glida isär. */
+/* Timhöjden sattes först här, bara för telefon. Fel ställe: samma kort
+ * kapades på webben. Den bor nu i kalender.html där variabeln definieras,
+ * och gäller båda. */
+
+@container (max-width: 90px) {
+  .booking-title,
+  .booking-sub {
+    display: none !important;
+  }
+  /* "Inga bokningar" är 10 px text i en 31 px-ruta — ordet bryts till en
+   * bokstav per rad och blir en lodrät remsa. En tom kolumn läses redan
+   * som tom. */
+  .v6-empty {
+    display: none !important;
+  }
+  /* Dagens datum bär en markering som gör rubriken 53 px i en 47 px-kolumn.
+   * Bara den klipps — de sex andra ryms. Stramare typografi räcker. */
+  .day-head {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    /* 20 px etikett + 6 px gap + 21 px datummarkering = 47, precis över
+     * kanten. Gapet ner till 2 px räcker. */
+    gap: 2px !important;
+    overflow: hidden !important;
+  }
+  .day-label {
+    font-size: 9px !important;
+    letter-spacing: 0.02em !important;
+  }
+  .day-date {
+    font-size: 13px !important;
+  }
+  .booking {
+    padding: 3px 4px !important;
+    min-width: 0 !important;
+  }
+  .booking-time {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+  }
+}
+
+@media (max-width: 720px) {
+  /* ─── Dossier-rutnät: en spalt (krav 4) ────────────────────────────── */
+  .dossier-stats,
+  .dossier-files,
+  .dossier-economy,
+  .dossier-actions,
+  .voice-sheet-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ─── Touch-mål ────────────────────────────────────────────────────
+   * 44 px där ytan är smal. Segmentflikarna och navknapparna har egna
+   * mått ovan — de är breda nog att klara 38. */
+  .ctl-select,
+  .calendar-filter-bar select {
+    min-height: 38px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
  * SAFE AREA (iPhone notch/home indicator)
  * ═══════════════════════════════════════════════════════════════════════ */
 @supports (padding: max(0px)) {
@@ -516,5 +975,16 @@
     padding-left: max(8px, env(safe-area-inset-left)) !important;
     padding-right: max(8px, env(safe-area-inset-right)) !important;
     padding-bottom: max(80px, env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Måste ligga efter @supports-blocket ovan, annars vinner dess 8 px-golv.
+ * På telefon håller .calendar-shell hela sidgutten på 14 px — då blir body:s
+ * egen padding dubbel marginal. Skärmkanten behålls bara där enheten kräver
+ * det, alltså vid hack och rundade hörn i liggande läge. */
+@media (max-width: 720px) {
+  body {
+    padding-left: env(safe-area-inset-left, 0px) !important;
+    padding-right: env(safe-area-inset-right, 0px) !important;
   }
 }

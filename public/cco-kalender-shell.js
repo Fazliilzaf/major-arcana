@@ -1504,6 +1504,26 @@
   // other CCO calendar views. It deliberately exposes no booking mutations.
   const V6_HOUR_START = 6;
   const V6_HOUR_HEIGHT = 62;
+
+  /**
+   * Timhöjden bor på två ställen: `--calendar-hour-h` i CSS styr rutnätets
+   * rader, konstanten ovan styr kortens `top` och `height` i JS. Så länge de
+   * är samma siffra märks inget — men ändrar man den ena hamnar korten fel
+   * mot linjerna, och det syns inte förrän det finns bokningar att rita.
+   *
+   * Här läses CSS-värdet i stället, så det finns en sanning. Konstanten blir
+   * reserv om variabeln saknas.
+   */
+  function v6HourHeight() {
+    try {
+      const raw = getComputedStyle(document.documentElement).getPropertyValue('--calendar-hour-h');
+      const px = parseFloat(raw);
+      if (Number.isFinite(px) && px > 0) return px;
+    } catch {
+      /* faller igenom till konstanten */
+    }
+    return V6_HOUR_HEIGHT;
+  }
   const V6_DAY_NAMES = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
   const V6_MONTH_NAMES = [
     'januari', 'februari', 'mars', 'april', 'maj', 'juni',
@@ -2149,18 +2169,76 @@
     }
   }
 
+  /**
+   * Nu-linjen.
+   *
+   * Den fanns som statisk markup i kalender.html — `style="top: 511px"` med
+   * etiketten "NU 14:23". 511 px med 62 px per timme från 06:00 är 14:14, så
+   * linjen och etiketten pekade inte ens på samma tid. Och eftersom den
+   * kanoniska renderaren tömmer varje dagkolumn med `slots.innerHTML = ''`
+   * försvann elementet redan vid första ritningen. Kalendern har alltså inte
+   * haft någon nu-linje alls — bara färdig CSS för en.
+   *
+   * Här ritas den ur klockan i stället: samma formel som bokningskorten
+   * använder för sitt `top`, så linjen hamnar exakt där en bokning med den
+   * starttiden skulle ligga.
+   */
+  let v6NowTimer = null;
+
+  function v6RenderNowLine(slots) {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Europe/Stockholm',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(now);
+    const hh = Number(parts.find((p) => p.type === 'hour')?.value ?? NaN);
+    const mm = Number(parts.find((p) => p.type === 'minute')?.value ?? NaN);
+    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return;
+
+    // Utanför rutnätets spann finns ingen plats att rita på. Hellre ingen
+    // linje än en klistrad mot kanten som ljuger om var vi är på dagen.
+    const minutes = hh * 60 + mm;
+    if (minutes < V6_HOUR_START * 60 || minutes >= 23 * 60) return;
+
+    const top = ((minutes - V6_HOUR_START * 60) / 60) * v6HourHeight();
+    const label = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+    slots.appendChild(
+      el('div', { class: 'now-line', style: 'top:' + top + 'px' }, [
+        el('span', { class: 'now-label' }, label),
+      ])
+    );
+  }
+
+  /** Ritar om vid nästa hela minut, sedan varje minut. */
+  function v6ScheduleNowLine() {
+    if (v6NowTimer) return;
+    const tillNastaMinut = 60000 - (Date.now() % 60000);
+    v6NowTimer = setTimeout(function tick() {
+      v6NowTimer = setInterval(() => v6RenderWeek(v6State.displayVisits || []), 60000);
+      v6RenderWeek(v6State.displayVisits || []);
+    }, tillNastaMinut);
+  }
+
   function v6BookingCard(slot) {
     const start = timeToMinutes(slot.time);
     const fallbackEnd = slot.durationMinutes ? start + Number(slot.durationMinutes) : start + 30;
     const end = slot.endTime ? timeToMinutes(slot.endTime) : fallbackEnd;
-    const top = Math.max(0, ((start - V6_HOUR_START * 60) / 60) * V6_HOUR_HEIGHT);
-    const height = Math.max(31, ((Math.max(end, start + 15) - start) / 60) * V6_HOUR_HEIGHT);
+    const hourH = v6HourHeight();
+    const top = Math.max(0, ((start - V6_HOUR_START * 60) / 60) * hourH);
+    const height = Math.max(31, ((Math.max(end, start + 15) - start) / 60) * hourH);
+    // Hur många rader ryms? Se kommentaren vid .booking[data-fit] i
+    // kalender.html. Höjden är känd här och ingen annanstans — CSS kan inte
+    // fråga efter sin egen höjd — så beslutet hör hemma här.
+    const fit = height >= 76 ? 'tall' : height >= 56 ? 'full' : height >= 38 ? 'medium' : 'compact';
     const card = el('button', {
       class: 'booking', type: 'button',
       style: 'top:' + top + 'px;height:' + height + 'px;--rail-color:' + colorForResource(slot.resourceId),
       dataset: {
         bookingId: slot.bookingId || slot.id || '', patientId: slot.patientId || '',
         encounterId: slot.encounterId || '', status: v6StatusKey(slot.status), source: 'canonical',
+        fit,
       },
       onclick: (event) => { event.stopPropagation(); v6RenderIntel(slot); },
     }, [
@@ -2473,6 +2551,7 @@
     if (!week) return;
     const days = week.querySelectorAll('.day-col');
     const today = isoToday();
+    v6ScheduleNowLine();
     days.forEach((column, index) => {
       const dateKey = v6IsoOffset(v6State.weekStart, index);
       column.dataset.date = dateKey;
@@ -2485,6 +2564,7 @@
       const dayVisits = visits.filter((slot) => slot.date === dateKey);
       dayVisits.forEach((slot) => slots.appendChild(v6BookingCard(slot)));
       if (!dayVisits.length) slots.appendChild(el('div', { class: 'v6-empty' }, 'Inga bokningar'));
+      if (dateKey === today) v6RenderNowLine(slots);
     });
     week.style.gridTemplateColumns = v6State.mode === 'dag'
       ? '28px minmax(0, 1fr)'
